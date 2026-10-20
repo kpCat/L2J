@@ -115,6 +115,11 @@ final class PhantomSupply060OwnerGuards
 	{
 		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, true, false, false, false, true);
 	}
+	static void lowFunds(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, false, false, false, false, false, 215);
+	}
 	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid, boolean unarmed) throws Exception
 	{
@@ -122,6 +127,11 @@ final class PhantomSupply060OwnerGuards
 	}
 	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid, boolean unarmed, boolean longApproach) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, ammunition, blessed, equipment, paid, unarmed, longApproach, -1);
+	}
+	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid, boolean unarmed, boolean longApproach, long finiteWallet) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final long baselineAdena = player.getAdena();
@@ -157,6 +167,14 @@ final class PhantomSupply060OwnerGuards
 			PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.compatible(player, itemData.getTemplate(1835)), "Existing native NG shot compatibility regressed.");
 		}
 		player.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomSupply060OwnerGuards.class);
+		if (finiteWallet >= 0)
+		{
+			PhantomAssertions.assertTrue(player.reduceAdena(ItemProcessType.DESTROY, player.getAdena() - finiteWallet, player, false), "Declared finite TEST wallet setup failed.");
+			final var previousStock = player.getInventory().getItemByItemId(supplyItemId);
+			PhantomAssertions.assertTrue(previousStock == null || previousStock.getCount() == 0, "Independent low-funds TEST fixture must already have empty shot stock.");
+			PhantomAssertions.assertEquals(finiteWallet, player.getAdena(), "Declared TEST wallet differs.");
+			context.record("supply061.lowFundsInput", "Independent native Fighter5/NG68/SS0/Adena215 before measurement; unchanged reserve500, native shops/prices/fees/weight/capacity; no ordinary actor changed; no grants during measurement");
+		}
 		player.refreshExpertisePenalty(); player.refreshOverloaded(); player.setRunning(); player.standUp();
 		if (equipment)
 		{
@@ -254,6 +272,7 @@ final class PhantomSupply060OwnerGuards
 			allowed.set(true); player.getAI().clientStartAutoAttack();
 			PhantomAssertions.assertTrue(player.isInCombat(), "Native combat stance did not start.");
 			PhantomAssertions.assertTrue(journey.needsOrOwns(profileId, root), "Future stock need was not selectable during native combat.");
+			if (finiteWallet >= 0) { context.record("supply061.lowFundsOffer", "Native productive shot source selected with A=" + player.getAdena() + "; root/owner/HOLD/combat/expiry/conservation guards continue; no payment/farm claim from this guard"); }
 			final var replacement = root.withStatus(PhantomGoalStatus.ACTIVE);
 			goals.replace(profileId, goals.load(profileId).orElseThrow().rowVersion(), replacement);
 			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal();
@@ -342,6 +361,13 @@ final class PhantomSupply060OwnerGuards
 			PhantomAssertions.assertTrue(current.goal().equals(root) || current.goal().equals(root.withStatus(PhantomGoalStatus.ACTIVE)), "Foreign root; cleanup refused.");
 			goals.delete(profileId, current.rowVersion());
 			if (player.getAdena() == baselineAdena + 10_000) { player.reduceAdena(ItemProcessType.DESTROY, 10_000, player, false); }
+			if (finiteWallet >= 0)
+			{
+				PhantomAssertions.assertEquals(finiteWallet, player.getAdena(), "Unexpected native currency mutation; low-funds input cleanup refused.");
+				final long excess = finiteWallet - baselineAdena;
+				if (excess > 0) { PhantomAssertions.assertTrue(player.reduceAdena(ItemProcessType.DESTROY, excess, player, false), "Own finite TEST wallet cleanup failed."); }
+				else if (excess < 0) { player.getInventory().addItem(ItemProcessType.REWARD, 57, -excess, player, PhantomSupply060OwnerGuards.class); }
+			}
 		}
 	}
 }

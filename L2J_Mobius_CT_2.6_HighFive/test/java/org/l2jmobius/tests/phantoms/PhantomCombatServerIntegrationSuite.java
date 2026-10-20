@@ -654,6 +654,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				if (Boolean.getBoolean("phantom.test.loadoutGuards061"))
 				{
+					if (Boolean.getBoolean("phantom.test.lowFunds061"))
+					{
+						registry.add("061-native-productive-shot-reserve-with-low-funds", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.lowFunds(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
+						return;
+					}
 					registry.add("04-canonical-shot-conservation-and-discharge", _ -> testCanonicalShot());
 					registry.add("05-missing-shot-does-not-fabricate", _ -> testMissingShot());
 					registry.add("061-native-mandatory-shots-refuse-unpaid-attack-and-cast", this::testMandatoryShots061);

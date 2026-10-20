@@ -1,5 +1,5 @@
 param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards,[switch]$LivingOfflineStore,[switch]$SupplyReturnGuards,[switch]$SupplyManufactureGuards,[switch]$LivingManufacture,[switch]$LivingGatekeeper,[switch]$SupplyGatekeeperGuards,[switch]$SupplyResumeGuards,[switch]$LivingResumeSave,[switch]$LivingResumeContinue,[ValidatePattern('^living-resume060-[1-9][0-9]?$')][string]$ResumeReceipt='living-resume060-1',[switch]$DeathCpGuards,[switch]$PetSupport,[switch]$SupplyAmmunitionGuards,[switch]$LivingBow,[switch]$AreaAggro,[switch]$AggroReadiness,[switch]$Campaign061,[switch]$CareerProducer,[switch]$Frozen061,
- [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061,[switch]$JourneyLifecycle061,[switch]$LoadoutGuards061,[switch]$AutoProfessions061)
+ [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061,[switch]$JourneyLifecycle061,[switch]$LoadoutGuards061,[switch]$AutoProfessions061,[switch]$LowFunds061)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -17,8 +17,9 @@ if($frozen061){
  if(!$frozenMatch061){throw 'Mode/seed is not in frozen111 inventory'}
 }
 if ($Campaign061 -and ($Campaign060 -or !($frozenMatch061 -or ($Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($Mode -ceq 'lifecycle-completion027' -and $Seed -eq 27002701) -or (($AutonomousLearning -or $PaidAutoGetGuards -or $SupplyGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact frozen111, quest controls/producer, owned lifecycle, supply or learning continuation mode/seed/build'}
-if ($Campaign061 -and $SupplyGuards -and @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','SupplyAmmunitionGuards','SupplyReturnGuards','SupplyResumeGuards','SupplyManufactureGuards','SupplyGatekeeperGuards','LoadoutGuards061')}).Count) {throw 'TASK061 supply continuation has an unrelated flag'}
-if($LoadoutGuards061 -and (!$Campaign061 -or !$SupplyGuards -or @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','LoadoutGuards061')}).Count)){throw 'Native loadout guards require separate exact061 supply mode'}
+if ($Campaign061 -and $SupplyGuards -and @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','SupplyAmmunitionGuards','SupplyReturnGuards','SupplyResumeGuards','SupplyManufactureGuards','SupplyGatekeeperGuards','LoadoutGuards061','LowFunds061')}).Count) {throw 'TASK061 supply continuation has an unrelated flag'}
+if($LoadoutGuards061 -and (!$Campaign061 -or !$SupplyGuards -or @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','LoadoutGuards061','LowFunds061')}).Count)){throw 'Native loadout guards require separate exact061 supply mode'}
+if($LowFunds061 -and !$LoadoutGuards061){throw 'Low funds requires exact061 native loadout guards'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
 if ($AutoProfessions061 -and (!$Campaign061 -or !$CareerProducer -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Automatic professions require exact TASK061 native career authority/mode/seed'}
 if($LearningLong061 -and (!$Campaign061 -or !$PaidAutoGetGuards -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)){throw 'Observed learning route requires separate exact061 paid guard mode/seed'}
@@ -127,6 +128,7 @@ if ($SupplyGuards) {
  $args059+='-Dphantom.test.supplyGuards060=true'
 }
 if ($LoadoutGuards061) {$args059+='-Dphantom.test.loadoutGuards061=true'}
+if ($LowFunds061) {$args059+='-Dphantom.test.lowFunds061=true'}
 if ($Living) {$args059+='-Dphantom.test.living060=true'}
 if ($LivingMage) {$args059+='-Dphantom.test.livingMage060=true'}
 if ($LivingDwarf -and $LivingMage) {throw 'Separate declared class scenes required'}

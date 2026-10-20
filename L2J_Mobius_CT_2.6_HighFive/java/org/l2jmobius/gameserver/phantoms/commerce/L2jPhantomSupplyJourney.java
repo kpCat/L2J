@@ -291,7 +291,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			}
 			if (choices.isEmpty()) { return Optional.empty(); }
 			final var first = choices.getFirst();
-			cached.offer = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("item", Integer.toString(first.itemId)), first.count, 0, "commerce.buy", sources, root.selectedAnchor(), ACTION, 700, 0, player.getAdena() - _policy.minimumAdenaReserve(), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), Map.of("source.index", 0L), "supplies.native.low_stock", revision, binding.encode()), now);
+			cached.offer = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("item", Integer.toString(first.itemId)), first.count, 0, "commerce.buy", sources, root.selectedAnchor(), ACTION, 700, 0, player.getAdena() - purchaseReserve(player, ItemData.getInstance().getTemplate(first.itemId)), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), Map.of("source.index", 0L), "supplies.native.low_stock", revision, binding.encode()), now);
 			return Optional.of(cached.offer);
 		}
 	}
@@ -373,7 +373,15 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final var constraints = new LinkedHashMap<>(preparation); constraints.put("source.index", 0L);
 		final int target = owned ? ownedTemplate : choices.getFirst().itemId;
 		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
-		return org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("item", Integer.toString(target)), owned ? 1 : choices.getFirst().count, 0, owned ? "equipment.owned" : "commerce.buy", sources, root.selectedAnchor(), ACTION, 700, 0, Math.max(0, player.getAdena() - _policy.minimumAdenaReserve() - preparation.getOrDefault("equipment.reserve", 0L)), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), constraints, "supplies.equipment.prepare", revision, binding.encode()), now);
+		return org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("item", Integer.toString(target)), owned ? 1 : choices.getFirst().count, 0, owned ? "equipment.owned" : "commerce.buy", sources, root.selectedAnchor(), ACTION, 700, 0, Math.max(0, player.getAdena() - purchaseReserve(player, ItemData.getInstance().getTemplate(target)) - preparation.getOrDefault("equipment.reserve", 0L)), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), constraints, "supplies.equipment.prepare", revision, binding.encode()), now);
+	}
+
+	private long purchaseReserve(Player player, ItemTemplate item)
+	{
+		// Equipment keeps the full configured reserve. Combat consumables must remain
+		// affordable to native-born/poor actors: protect one quarter, capped at that reserve.
+		final boolean productive = item != null && (item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT || item instanceof EtcItem etc && (etc.getItemType() == EtcItemType.ARROW || etc.getItemType() == EtcItemType.BOLT));
+		return productive ? Math.min(_policy.minimumAdenaReserve(), player.getAdena() / 4) : _policy.minimumAdenaReserve();
 	}
 
 	public static boolean compatible(Player player, ItemTemplate item)
@@ -439,7 +447,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					final var destination = new PhantomNavigationPoint(merchant.getX(), merchant.getY(), merchant.getZ(), merchant.getInstanceId());
 					final long outbound = fee(player, PhantomNativeTravelActions.point(player), destination), returning = fee(player, destination, PhantomNativeTravelActions.point(player));
 					if (outbound < 0 || returning < 0) { continue; }
-					final long budget = player.getAdena() - _policy.minimumAdenaReserve() - outbound - returning - equipmentReserve;
+					final long budget = player.getAdena() - purchaseReserve(player, item) - outbound - returning - equipmentReserve;
 					final long price = (long) (offer.price() * (1 + merchant.getMpc().getBaseTaxRate()));
 					if (price <= 0 || budget < price) { continue; }
 					final long count = Math.min(wanted, budget / price);
@@ -562,7 +570,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					if (player.isMoving()) { return retry("supplies.counter.movement_pending"); }
 					final var item = ItemData.getInstance().getTemplate(source.itemId);
 					final long returnFee = fee(player, PhantomNativeTravelActions.point(player), binding.field());
-					final long budget = Math.min(intent.expenseBudget(), returnFee < 0 ? 0 : player.getAdena() - _policy.minimumAdenaReserve() - returnFee - intent.constraints().getOrDefault("equipment.reserve", 0L));
+					final long budget = Math.min(intent.expenseBudget(), returnFee < 0 ? 0 : player.getAdena() - purchaseReserve(player, item) - returnFee - intent.constraints().getOrDefault("equipment.reserve", 0L));
 					final var future = intent.constraints().containsKey("equipment.weapon") ? ItemData.getInstance().getTemplate(intent.constraints().get("equipment.weapon").intValue()) : null;
 					final boolean suitable = intent.constraints().containsKey("equipment.weapon") ? future instanceof org.l2jmobius.gameserver.model.item.Weapon weapon && org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.compatible(player, weapon) && compatible(player, item, weapon) : compatible(player, item);
 					if (!suitable || !mobilePurchase(player, item, source.count) || budget <= 0 || returnFee < 0) { return terminal(profileId, context.goal(), cached, false, "supplies.counter.mobility_or_reserve"); }
