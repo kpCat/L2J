@@ -762,6 +762,20 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			final var plan = _navigation.consumeTravelPlan(travel.requestId()).orElse(null);
 			if (result.route() == null || result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA || plan == null)
 			{
+				// A failed complete itinerary is not a failed durable journey. Reuse the existing local WALK owner.
+				if (remainingMillis > TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS)
+					&& travel.origin().distanceTo(travel.destination()) > org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.LOCAL_WALK_DISTANCE
+					&& Set.of(PhantomNavigationResult.Status.NO_PATH, PhantomNavigationResult.Status.ROUTE_OBSTRUCTED, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()))
+				{
+					final var local = _backend.walkApproaches(profileId, content, step, target, requiredDistance, _navigation.arrivalRadius());
+					if (!local.isEmpty() && local.size() <= 17)
+					{
+						_navigation.cancel(profileId, travel.requestId());
+						travel = new Travel(content.id(), step.id(), target, new PhantomNavigationPoint(observation.x(), observation.y(), observation.z(), observation.instanceId()), 0, List.of(), 0, TravelMode.PROVEN_WALK, null, 0, local, 0);
+						synchronized (_monitor) { _travels.put(profileId, travel); }
+						return retry("questinstance.navigation.local_checkpoint_retry");
+					}
+				}
 				if (travel.destinationIndex() + 1 < travel.destinations().size())
 				{
 					travel = travel.withDestination(travel.destinationIndex() + 1);

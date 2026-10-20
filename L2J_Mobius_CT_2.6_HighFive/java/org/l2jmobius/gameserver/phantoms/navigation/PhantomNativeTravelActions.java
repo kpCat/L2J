@@ -21,6 +21,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTrave
 /** Actual native fees/actions only. Unsupported return paths remain explicitly unavailable. */
 public final class PhantomNativeTravelActions
 {
+	public static final int LOCAL_WALK_DISTANCE = 3000;
 	private static final ThreadLocal<ReturnOperation> RETURN_GUARD = new ThreadLocal<>();
 	public enum Status { ARRIVED, UNAVAILABLE, INSUFFICIENT_RESOURCES, NATIVE_REJECTED, PAID_WITHOUT_ARRIVAL }
 	public record GatekeeperResult(Status status, long fee, long adenaBefore, long adenaAfter, PhantomNavigationPoint before, PhantomNavigationPoint after) { }
@@ -73,6 +74,31 @@ public final class PhantomNativeTravelActions
 		}
 		return true;
 	}
+	/** Existing finite journey owners prove these local checkpoints through Navigation before moving. */
+	public static List<PhantomNavigationPoint> localWalkDestinations(PhantomNavigationPoint from, PhantomNavigationPoint target)
+	{
+		if (from.instanceId() != target.instanceId()) { return List.of(); }
+		final double distance = from.distanceTo(target);
+		if (distance <= 187) { return List.of(target); }
+		final double bearing = Math.atan2((double) target.y() - from.y(), (double) target.x() - from.x());
+		final List<PhantomNavigationPoint> points = new java.util.ArrayList<>(); final var geo = GeoEngine.getInstance();
+		if (distance <= LOCAL_WALK_DISTANCE) { points.add(target); }
+		for (int stride : new int[] {LOCAL_WALK_DISTANCE, 1500, 750, 375, 187})
+		{
+			for (double turn : stride >= 750 ? new double[] {0, -Math.PI / 6, Math.PI / 6, -Math.PI / 3, Math.PI / 3} : new double[] {0})
+			{
+				final double step = Math.min(stride, distance - 100);
+				final int x = from.x() + (int) Math.round(step * Math.cos(bearing + turn)), y = from.y() + (int) Math.round(step * Math.sin(bearing + turn));
+				if (!geo.hasGeo(x, y)) { continue; }
+				final var point = new PhantomNavigationPoint(x, y, geo.getHeight(x, y, from.z()), from.instanceId());
+				if (from.distanceTo(point) > 3200 || point.distanceTo(target) >= distance) { continue; }
+				if (!points.contains(point)) { points.add(point); }
+				if (points.size() == 17) { return List.copyOf(points); }
+			}
+		}
+		return List.copyOf(points);
+	}
+
 	public static boolean ordinary(Player player)
 	{
 		final var owner = player.getNativeWorkOwner();

@@ -514,26 +514,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	/** Same bounded native WALK pattern as class journeys; original trip deadline and fee checks stay intact. */
 	private List<PhantomNavigationPoint> localDestinations(Travel travel)
 	{
-		final Player player = travel.actor(); final var target = travel.destination();
-		final double distance = player.calculateDistance3D(target.x(), target.y(), target.z());
-		if (distance <= 187) { return List.of(target); }
-		final double bearing = Math.atan2((double) target.y() - player.getY(), (double) target.x() - player.getX());
-		final List<PhantomNavigationPoint> points = new ArrayList<>(); final var geo = GeoEngine.getInstance();
-		if (distance <= 3000) { points.add(target); }
-		for (int stride : new int[] {3000, 1500, 750, 375, 187})
-		{
-			for (double turn : stride >= 750 ? new double[] {0, -Math.PI / 6, Math.PI / 6, -Math.PI / 3, Math.PI / 3} : new double[] {0})
-			{
-				final double step = Math.min(stride, distance - 100);
-				final int x = player.getX() + (int) Math.round(step * Math.cos(bearing + turn)), y = player.getY() + (int) Math.round(step * Math.sin(bearing + turn));
-				if (!geo.hasGeo(x, y)) { continue; }
-				final int z = geo.getHeight(x, y, player.getZ());
-				if (player.calculateDistance3D(x, y, z) > 3200 || Math.sqrt(Math.pow((double) target.x() - x, 2) + Math.pow((double) target.y() - y, 2) + Math.pow((double) target.z() - z, 2)) >= player.calculateDistance3D(target.x(), target.y(), target.z())) { continue; }
-				final var point = new PhantomNavigationPoint(x, y, z, target.instanceId()); if (!points.contains(point)) { points.add(point); }
-				if (points.size() == 17) { return List.copyOf(points); }
-			}
-		}
-		return List.copyOf(points);
+		return PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(travel.actor()), travel.destination());
 	}
 
 	private record Travel(Player actor, long goalId, long goalRevision, Request request, boolean returning, int trainerNpcId, List<PhantomNavigationPoint> destinations, int destinationIndex, long deadlineNanos, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint, List<SpawnFact> trainerOptions, int trainerIndex, int segmentAttempt, PhantomNativeTravelActions.OwnedWalk issuedWalk)

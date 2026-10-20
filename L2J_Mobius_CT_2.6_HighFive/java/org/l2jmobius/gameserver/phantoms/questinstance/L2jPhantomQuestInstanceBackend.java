@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Content;
@@ -43,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatal
 public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanceBackend
 {
 	private static final int SPAWN_FACT_LIMIT = 8;
+	private static final int ESTIMATE_LOCAL_DISTANCE = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance();
 	private static final int KAMALOKA_LEVEL = 23;
 	private static final int KAMALOKA_LEVEL_DIFFERENCE = 5;
 	private static final int KAMALOKA_MAX_PARTY = 6;
@@ -93,23 +95,46 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if (lease == null || _knowledge.get() == null) { return null; }
-			final var legs = new ArrayList<org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg>();
-			for (var entry : CAREER_GATEKEEPERS.entrySet())
-			{
-				final var source = _knowledge.get().spawnFacts(entry.getKey(), PageRequest.first(SPAWN_FACT_LIMIT)).values().stream()
-					.filter(fact -> fact.instanceId() == 0 && fact.amount() > 0).sorted(Comparator.comparing(SpawnFact::stableKey)).findFirst().orElse(null);
-				if (source == null) { continue; }
-				for (int index : entry.getValue())
-				{
-					org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.observeNativeLeg(entry.getKey(), index, source.x(), source.y(), org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(source.x(), source.y(), source.z()))
-						.filter(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions::available).ifPresent(legs::add);
-				}
-			}
-			legs.sort(Comparator.comparing(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg::id));
+			final var legs = careerLegs();
 			final var nativeOptions = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.snapshot(lease.player(), legs, remainingMillis);
 			return new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options(nativeOptions.legs(), nativeOptions.speed(), nativeOptions.adena(), 0,
 				nativeOptions.classIndex(), nativeOptions.level(), nativeOptions.epochMinute(), nativeOptions.gatekeeperAllowed(), "questinstance.no_return_scroll", null, 0, remainingMillis, nativeOptions.blockedEdges());
 		}
+	}
+
+	private List<org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg> careerLegs()
+	{
+		final var legs = new ArrayList<org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg>();
+		for (var entry : CAREER_GATEKEEPERS.entrySet())
+		{
+			final var source = _knowledge.get().spawnFacts(entry.getKey(), PageRequest.first(SPAWN_FACT_LIMIT)).values().stream()
+				.filter(fact -> fact.instanceId() == 0 && fact.amount() > 0).sorted(Comparator.comparing(SpawnFact::stableKey)).findFirst().orElse(null);
+			if (source == null) { continue; }
+			for (int index : entry.getValue())
+			{
+				org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.observeNativeLeg(entry.getKey(), index, source.x(), source.y(), org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(source.x(), source.y(), source.z()))
+					.filter(PhantomNativeTravelActions::available).ifPresent(legs::add);
+			}
+		}
+		legs.sort(Comparator.comparing(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg::id));
+		return List.copyOf(legs);
+	}
+
+	/** A route estimate chooses a source; Navigation must still prove every leg before a native fee/action. */
+	private static double travelDistance(Player player, SpawnFact target, List<org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg> legs)
+	{
+		double best = player.calculateDistance3D(target.x(), target.y(), target.z());
+		final long minute = System.currentTimeMillis() / 60_000;
+		for (var leg : legs)
+		{
+			final double ingress = player.calculateDistance3D(leg.sourceX(), leg.sourceY(), leg.sourceZ());
+			final double egress = Math.hypot(Math.hypot((double) target.x() - leg.destinationX(), (double) target.y() - leg.destinationY()), (double) target.z() - leg.destinationZ());
+			if (ingress <= ESTIMATE_LOCAL_DISTANCE && egress <= ESTIMATE_LOCAL_DISTANCE && org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), minute) <= player.getAdena())
+			{
+				best = Math.min(best, ingress + egress + player.getMoveSpeed() * leg.travelMillis() / 1000.0);
+			}
+		}
+		return best;
 	}
 
 	@Override
@@ -227,7 +252,8 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 				facts.addAll(sources.stream().filter(fact -> (fact.instanceId() == 0) && (fact.amount() > 0))
 					.filter(fact -> !careerCombat || PhantomAutonomousCareer.cell(fact.x(), fact.y()) != avoided && combatAreaDanger(player, fact.x(), fact.y(), fact.z(), null, localMonsters) < 10_000).toList());
 			}
-			final SpawnFact fact = facts.stream().min(Comparator.comparingDouble((SpawnFact value) -> player.calculateDistance3D(value.x(), value.y(), value.z())).thenComparing(SpawnFact::stableKey)).orElse(null);
+			final var legs = careerCombat && PhantomNativeTravelActions.ordinary(player) ? careerLegs() : List.<org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg>of();
+			final SpawnFact fact = facts.stream().min(Comparator.comparingDouble((SpawnFact value) -> travelDistance(player, value, legs)).thenComparing(SpawnFact::stableKey)).orElse(null);
 			return fact == null ? null : new Target(0, fact.npcId(), fact.x(), fact.y(), fact.z(), fact.instanceId(), player.calculateDistance3D(fact.x(), fact.y(), fact.z()), false);
 		}
 	}
@@ -260,27 +286,8 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if (lease == null || lease.player().getInstanceId() != target.instanceId()) { return List.of(); }
-			final Player player = lease.player();
-			final double dx = (double) target.x() - player.getX(), dy = (double) target.y() - player.getY(), distance = Math.hypot(dx, dy);
-			if (distance <= 3000) { return List.of(); }
-			final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
-			final double bearing = Math.atan2(dy, dx);
-			final List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> points = new ArrayList<>();
-			// A refused long projection must not keep selecting the same distant obstruction.
-			// Every alternative remains a free forward step proved by the existing native corridor.
-			for (int stride : new int[] {3000, 1500, 750, 375, 187})
-			{
-				for (double turn : stride >= 750 ? new double[] {0, -Math.PI / 6, Math.PI / 6, -Math.PI / 3, Math.PI / 3} : new double[] {0})
-				{
-					final int x = player.getX() + (int) Math.round(stride * Math.cos(bearing + turn)), y = player.getY() + (int) Math.round(stride * Math.sin(bearing + turn));
-					if (!geo.hasGeo(x, y)) { continue; }
-					final int z = geo.getHeight(x, y, player.getZ());
-					if (player.calculateDistance3D(x, y, z) > 3200 || Math.sqrt(Math.pow((double) target.x() - x, 2) + Math.pow((double) target.y() - y, 2) + Math.pow((double) target.z() - z, 2)) >= player.calculateDistance3D(target.x(), target.y(), target.z())) { continue; }
-					final var point = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, target.instanceId());
-					if (!points.contains(point)) { points.add(point); }
-				}
-			}
-			return List.copyOf(points);
+			return PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(lease.player()),
+				new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId()));
 		}
 	}
 

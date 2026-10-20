@@ -565,10 +565,16 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			trip = new Trip(player, intent.revision(), returning, destinations, context.logicalNowNanos() + TimeUnit.MILLISECONDS.toNanos(remaining), intent.deadlineEpochMillis());
 			synchronized (this) { if (_state != State.RUNNING || _trips.size() >= _policy.maximumProfiles()) { return retry("supplies.trip.capacity"); } _trips.put(profileId, trip); }
 		}
+		if (trip.plan != null && trip.stage >= trip.plan.stages().size() && !trip.plan.stages().getLast().to().equals(trip.destination()))
+		{
+			clearRoute(profileId, trip); trip.localAttempt = -1;
+			trip.retryAt = context.logicalNowNanos() + TimeUnit.MILLISECONDS.toNanos(_navigation.policy().pathfindingCooldownMillis());
+			return retry("supplies.native.checkpoint_reached");
+		}
 		if (!returning && trip.plan != null && trip.stage >= trip.plan.stages().size())
 		{
 			if (trip.destinationIndex + 1 >= trip.destinations.size()) { return alternative(profileId, context.goal(), cached, "supplies.counter.interaction_unavailable", false); }
-			clearRoute(profileId, trip); trip.destinationIndex++; return retry("supplies.counter.next_approach");
+			clearRoute(profileId, trip); trip.destinationIndex++; trip.localAttempt = -1; return retry("supplies.counter.next_approach");
 		}
 		if (context.logicalNowNanos() >= trip.deadline) { return alternative(profileId, context.goal(), cached, "supplies.trip.deadline", returning); }
 		if (cancelled(context, binding, player, trip.intentDeadline)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "supplies.cancelled"); }
@@ -576,7 +582,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (failure == null) { return retry(trip.reason); }
 		if (!returning && trip.destinationIndex + 1 < trip.destinations.size())
 		{
-			clearRoute(profileId, trip); trip.destinationIndex++; return retry("supplies.merchant.next_approach");
+			clearRoute(profileId, trip); trip.destinationIndex++; trip.localAttempt = -1; return retry("supplies.merchant.next_approach");
 		}
 		return alternative(profileId, context.goal(), cached, failure, returning);
 	}
@@ -735,9 +741,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				trip.origin = PhantomNativeTravelActions.point(player);
 				trip.requestDeadline = now + _navigation.policy().defaultRequestDeadlineNanos();
+				final var checkpoints = trip.localAttempt < 0 ? List.<PhantomNavigationPoint>of() : PhantomNativeTravelActions.localWalkDestinations(trip.origin, trip.destination());
+				if (trip.localAttempt >= checkpoints.size() && trip.localAttempt >= 0) { return "supplies.navigation.no_local_approach"; }
+				trip.requestDestination = trip.localAttempt < 0 ? trip.destination() : checkpoints.get(trip.localAttempt);
 				final var nativeOptions = PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, (trip.deadline - now) / 1_000_000));
 				final var options = new PhantomTravelStrategy.Options(nativeOptions.legs(), nativeOptions.speed(), nativeOptions.adena(), 0, nativeOptions.classIndex(), nativeOptions.level(), nativeOptions.epochMinute(), nativeOptions.gatekeeperAllowed(), "supplies.no_return_scroll", null, 0, nativeOptions.remainingMillis(), nativeOptions.blockedEdges());
-				final var submission = _navigation.submitTravelPlan(new PhantomNavigationRequest(profileId, trip.origin, trip.destination(), now, trip.requestDeadline, _navigation.policy().maximumRouteDistance()), options);
+				final var request = new PhantomNavigationRequest(profileId, trip.origin, trip.requestDestination, now, trip.requestDeadline, _navigation.policy().maximumRouteDistance());
+				final var submission = trip.localAttempt < 0 ? _navigation.submitTravelPlan(request, options) : _navigation.submitWalkCorridor(request);
 				trip.requestId = submission.requestId();
 				if (submission.immediateResult() != null)
 				{
@@ -798,9 +808,33 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			clearRoute(profileId, trip); trip.retryAt = now + TimeUnit.MILLISECONDS.toNanos(500); return null;
 		}
-		if (result.route() == null || result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA) { return "supplies.navigation." + result.status().name().toLowerCase(java.util.Locale.ROOT); }
-		final var plan = _navigation.consumeTravelPlan(trip.requestId).orElse(null);
-		if (plan == null || !plan.stages().getFirst().from().equals(trip.origin) || !plan.stages().getLast().to().equals(trip.destination())) { return "supplies.navigation.plan_identity"; }
+		if (result.route() == null)
+		{
+			if ((trip.localAttempt >= 0 || trip.origin.distanceTo(trip.destination()) > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
+				&& Set.of(PhantomNavigationResult.Status.NO_PATH, PhantomNavigationResult.Status.ROUTE_OBSTRUCTED, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()))
+			{
+				final var checkpoints = PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(trip.player), trip.destination());
+				if (trip.localAttempt + 1 < checkpoints.size())
+				{
+					clearRoute(profileId, trip); trip.localAttempt++;
+					trip.retryAt = now + TimeUnit.MILLISECONDS.toNanos(_navigation.policy().pathfindingCooldownMillis());
+					trip.reason = "supplies.navigation.local_checkpoint_retry"; return null;
+				}
+			}
+			return "supplies.navigation." + result.status().name().toLowerCase(java.util.Locale.ROOT);
+		}
+		if (result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA) { return "supplies.navigation.unverified"; }
+		PhantomTravelStrategy.Candidate plan;
+		if (trip.localAttempt < 0) { plan = _navigation.consumeTravelPlan(trip.requestId).orElse(null); }
+		else
+		{
+			if (!result.route().origin().equals(trip.origin) || !result.route().destination().equals(trip.requestDestination)) { return "supplies.navigation.plan_identity"; }
+			if (trip.player.getMoveSpeed() <= 0) { return "supplies.native.movement_disabled"; }
+			final long millis = (long) Math.ceil(1000 * result.route().totalDistance() / trip.player.getMoveSpeed());
+			if (millis > Math.max(0, (trip.deadline - now) / 1_000_000)) { return "supplies.navigation.travel_budget"; }
+			plan = new PhantomTravelStrategy.Candidate("walk.checkpoint", List.of(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.WALK, trip.origin, trip.requestDestination, result.route().waypoints(), null, millis, 0, 0)));
+		}
+		if (plan == null || !plan.stages().getFirst().from().equals(trip.origin) || !plan.stages().getLast().to().equals(trip.requestDestination)) { return "supplies.navigation.plan_identity"; }
 		trip.plan = plan; trip.stage = 0; trip.waypoint = 0; trip.reason = "supplies.navigation.ready"; return null;
 	}
 
@@ -915,9 +949,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		private final long revision, deadline, intentDeadline;
 		private final boolean returning;
 		private final List<PhantomNavigationPoint> destinations;
-		private int destinationIndex, stage, waypoint, segmentReplans;
+		private int destinationIndex, stage, waypoint, segmentReplans, localAttempt = -1;
 		private long requestId, requestDeadline, retryAt;
-		private PhantomNavigationPoint origin, issued;
+		private PhantomNavigationPoint origin, issued, requestDestination;
 		private PhantomTravelStrategy.Candidate plan;
 		private String reason = "supplies.navigation.new";
 		private Trip(Player actor, long childRevision, boolean returnTrip, List<PhantomNavigationPoint> points, long legDeadline, long durableDeadline)

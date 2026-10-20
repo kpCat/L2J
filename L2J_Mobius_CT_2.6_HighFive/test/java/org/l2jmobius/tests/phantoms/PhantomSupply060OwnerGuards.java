@@ -116,6 +116,10 @@ final class PhantomSupply060OwnerGuards
 		if (blessed)
 		{
 			player.getInventory().addItem(ItemProcessType.REWARD, 2509, 100, null, PhantomSupply060OwnerGuards.class);
+			// Independent, declared native route input from ordinary18; no relocation after measurement begins.
+			final int ground = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(-88024, 251400, -3656);
+			player.decayMe(); player.setXYZInvisible(-88024, 251400, ground); player.spawnMe(); player.revalidateZone(true);
+			context.record("supply061.observedRouteInput", "Independent TEST Mystic5/NG6 at ordinary18 original field(-88024,251400," + ground + "); native source selection and unchanged eight-minute journey; no ordinary state mutation");
 			final var data = org.l2jmobius.gameserver.data.xml.ItemData.getInstance();
 			PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.compatible(player, data.getTemplate(3947)), "Native NG blessed spiritshot is unavailable.");
 			PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.compatible(player, data.getTemplate(3948)), "No-grade mage weapon accepted D-grade blessed spiritshot.");

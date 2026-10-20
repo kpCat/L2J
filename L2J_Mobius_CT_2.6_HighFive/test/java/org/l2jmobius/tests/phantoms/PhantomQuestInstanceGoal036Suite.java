@@ -260,6 +260,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("12-native-career-nearest-supported-spawn061", this::careerNearestSpawn061);
 			registry.add("13-native-career-two-minute-route-refusal061", this::careerSkeletonRoute061);
 			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
+			registry.add("14u-native-career-local-limit-does-not-discard-journey061", this::careerLocalLimit061);
 			registry.add("15-native-career-child-combat-plan-lifetime061", this::careerCombatLifetime061);
 			registry.add("16-native-warrior-owned-store-boundary061", this::careerClassStore061);
 			registry.add("16a-native-career-finish-checkpoint061", this::careerFinishCheckpoint061);
@@ -929,7 +930,18 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			.filter(fact -> fact.instanceId() == 0 && fact.amount() > 0).min(Comparator.comparingDouble(fact -> _player.calculateDistance3D(fact.x(), fact.y(), fact.z()))).orElseThrow();
 		final var actual = _backend.locate(_profile.profileId(), content, step);
 		context.record("career061.nearestSpawn", "actual=" + actual + ";expected=" + expected);
-		PhantomAssertions.assertTrue(actual != null && actual.distance() <= _player.calculateDistance3D(expected.x(), expected.y(), expected.z()) + 1, "Q401 chose an arbitrary early spawn page instead of its nearest supported native source.");
+		PhantomAssertions.assertTrue(actual != null, "Q401 has no supported native source.");
+		if (actual.distance() > _player.calculateDistance3D(expected.x(), expected.y(), expected.z()) + 1)
+		{
+			// A farther source must earn its preference with a complete, faster native itinerary.
+			final var from = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player);
+			final var to = _backend.approaches(_profile.profileId(), content, step, actual, 1000, _navigation.arrivalRadius()).getFirst();
+			final long now = System.nanoTime();
+			final var proof = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend().planTravel(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), from, to, now, now + TimeUnit.SECONDS.toNanos(10), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), _navigation.policy(), System::nanoTime, _backend.travelOptions(_profile.profileId(), content, TimeUnit.MINUTES.toMillis(90)));
+			context.record("career061.nearestSpawn.nativeProof", proof);
+			PhantomAssertions.assertTrue(proof.candidate() != null && proof.candidate().stages().stream().anyMatch(stage -> stage.mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.GK)
+				&& proof.candidate().millis() < 1000 * _player.calculateDistance3D(expected.x(), expected.y(), expected.z()) / _player.getMoveSpeed(), "A farther source has no proven route faster than the nearest direct WALK lower bound.");
+		}
 	}
 
 	private void careerSkeletonRoute061(PhantomTestContext context) throws Exception
@@ -938,7 +950,10 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		_player.decayMe(); _player.setXYZInvisible(-12728, 122824, -3112); _player.spawnMe(); _player.revalidateZone(true); // Fixed independent TEST input matching the observed ordinary boundary.
 		final var content = _catalog.content("class.warrior-q401").orElseThrow();
 		final var step = content.step("collect.skeleton").orElseThrow();
-		final var factual = _backend.locate(_profile.profileId(), content, step);
+		// Pin this negative's original native endpoint; the producer may now choose a faster lawful GK source.
+		final var fact = step.npcIds().stream().flatMap(npcId -> _knowledge.query().snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream())
+			.filter(value -> value.instanceId() == 0 && value.amount() > 0).min(Comparator.comparingDouble(value -> _player.calculateDistance3D(value.x(), value.y(), value.z()))).orElseThrow();
+		final var factual = new Target(0, fact.npcId(), fact.x(), fact.y(), fact.z(), 0, _player.calculateDistance3D(fact.x(), fact.y(), fact.z()), false);
 		final var destinations = _backend.approaches(_profile.profileId(), content, step, factual, 1000, _navigation.arrivalRadius());
 		final var options = _backend.travelOptions(_profile.profileId(), content, 120_000);
 		Thread.sleep(_navigation.policy().pathfindingCooldownMillis() + 50);
@@ -1008,6 +1023,32 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			service.beginStop(); service.finishStop();
 			await(() -> _navigation.snapshot().activeRequests() == 0, "Cancelled TEST route did not drain before fixture cleanup.");
 		}
+	}
+
+	private void careerLocalLimit061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 19); ensureWeapon(1142);
+		_player.decayMe(); _player.setXYZInvisible(-78995, 150861, -3032); _player.spawnMe(); _player.revalidateZone(true);
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.startQuest(); quest.setCond(5, false); // Independent TEST boundary before measurement, never ordinary B.
+		installGoal("class.warrior-q401", PhantomQuestInstanceService.CLASS_GOAL_TYPE);
+		final var original = _goals.load(_profile.profileId()).orElseThrow().goal();
+		_goals.store(_profile.profileId(), new PhantomGoal(original.goalId(), original.goalType(), original.status(), original.subject(), original.target(), original.requiredAmount(), original.currentAmount(), original.acquisitionMethod(), original.validSources(), original.selectedAnchor(), original.purposeKey(), original.priority(), original.riskBudget(), original.expenseBudget(), System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(90), original.constraints(), original.reasonKey(), original.revision()));
+		final var from = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player);
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		context.record("career061.localLimit.target", _backend.locate(_profile.profileId(), content, content.step("collect.spider").orElseThrow()));
+		final long exp = _player.getExp(), sp = _player.getSp(), adena = _player.getAdena();
+		final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
+		final var phases = new java.util.ArrayList<String>();
+		while (from.distanceTo(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player)) < 100 && System.nanoTime() < until)
+		{
+			final var result = advance(PhantomActivityState.ACTIVE);
+			if (phases.size() < 40 && (phases.isEmpty() || !phases.getLast().equals(result.reasonKey()))) { phases.add(result.reasonKey()); }
+			Thread.sleep(250);
+		}
+		context.record("career061.localLimit", "Independent native TEST cond5; source=" + from + ";actual=" + org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player) + ";phases=" + phases + "; no full Q401 claim");
+		PhantomAssertions.assertTrue(from.distanceTo(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player)) >= 100, "Complete local itinerary refusal discarded a resumable career instead of using proven checkpoints.");
+		PhantomAssertions.assertTrue(_player.getExp() == exp && _player.getSp() == sp && _player.getAdena() == adena && cond(401) == 5 && itemCount(1145) == 0, "A free local checkpoint changed native progress or resources.");
 	}
 
 	private void careerCombatLifetime061(PhantomTestContext context) throws Exception
