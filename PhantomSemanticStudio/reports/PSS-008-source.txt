@@ -1,0 +1,2 @@
+PASS ACTUAL_SOURCE read-only files=65 SHA/bytes equal; patterns=5310; templates=20963; pairs=26; fingerprint=43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322
+SYNTHETIC selected=2; stage=STAGED_V3_UNVALIDATED; Java=NOT_RUN; NOT_INSTALLED; path stored only in own workspace

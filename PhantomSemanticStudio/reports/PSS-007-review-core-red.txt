@@ -1,0 +1,4 @@
+FAIL PSS-007 B opt-in one separate mentor question explicit confirmation and stale ticket: Expected [AUTO], actual [REAL]
+PASS PSS-007 B strict JSON envelope errors cancellation sanitized no retry
+PASS PSS-007 B manual scoped lesson legacy session private save and twenty-call budget
+RESULT: 2 PASS; 1 FAIL

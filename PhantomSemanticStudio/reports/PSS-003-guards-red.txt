@@ -1,0 +1,5 @@
+FAIL javac literal destdir: guard did not reject reachable task shape
+FAIL Java literal output: guard did not reject reachable task shape
+FAIL Java report JVM path: guard did not reject reachable task shape
+FAIL extra Java task in compile: guard did not reject reachable task shape
+FAIL missing JDK must remain BLOCKED_JAVA

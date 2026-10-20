@@ -1,0 +1,3 @@
+SYNTHETIC_SELECTION_DISPATCH_MS=277; SOURCE_TEMPLATES=7500
+FAIL PSS-006 A actual saved selection responsive latest identity cancel error close: Assertion failed
+CONTROL_CONTRACT_RESULT: 0 PASS; 1 FAIL; physical UI/DPI/VS NOT_TESTED

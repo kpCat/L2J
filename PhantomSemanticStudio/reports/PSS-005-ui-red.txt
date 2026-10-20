@@ -1,0 +1,7 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+Missing designed candidate action: btnFindSimilar
+At C:\Users\ZBook\PhantomSemanticStudio\scripts\Verify-PSS005.ps1:8 char:156
++ ... me + '\)')) { throw ('Missing designed candidate action: ' + $name) }
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Missing designe... btnFindSimilar:String) [], RuntimeException
+    + FullyQualifiedErrorId : Missing designed candidate action: btnFindSimilar

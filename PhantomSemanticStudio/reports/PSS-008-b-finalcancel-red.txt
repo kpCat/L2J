@@ -1,0 +1,9 @@
+FAIL PSS-008 B cancellation during final peer recheck never publishes a finished stage: Expected failure, but operation succeeded
+PASS PSS-008 B mid-copy source approval and cancellation preserve unrelated finished sentinel
+PASS PSS-008 B junction and parent file reject without touching unrelated targets
+PASS PSS-008 B preserves existing trailing whitespace while appending real-layout XML
+PASS PSS-008 B XML ID global collision file and clean bucket caps fail before output
+PASS PSS-008 B exact mixed and single-kind v3 pair append preserve65 source session and manifest
+PASS PSS-008 B selection scope editorial UTF duplicate collision and consent reject whole batch
+PASS PSS-008 B source schema drift cancellation and partial guards have zero output
+RESULT: 7 PASS; 1 FAIL

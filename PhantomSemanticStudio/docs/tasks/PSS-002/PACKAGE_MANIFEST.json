@@ -1,0 +1,47 @@
+{
+  "task": "PSS-002",
+  "title": "LM Studio controlled generation and WinForms UI gates",
+  "repository": "https://github.com/kpCat/PhantomSemanticStudio",
+  "required_base_sha": "87755c86421c9a320c7bc1f5f7682fb13c95332e",
+  "target_branch": "main",
+  "target_root": "C:\\Users\\ZBook\\PhantomSemanticStudio",
+  "immutable_source_root": "C:\\Users\\ZBook\\L2J_Mobius",
+  "entrypoint": "docs/tasks/PSS-002/GOAL.md",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-002/ACCEPTANCE.md",
+      "bytes": 5285,
+      "sha256": "3d64a0c94444af6074b8103628f96f82bd05ad49fc59bc90c8115a18d55acfbb"
+    },
+    {
+      "path": "docs/tasks/PSS-002/ARCHITECTURE.md",
+      "bytes": 3540,
+      "sha256": "c598686a9e79b6df979ed174080f93e6fb19d544852a3c22cbd5e2d13563d259"
+    },
+    {
+      "path": "docs/tasks/PSS-002/CODEX_LAUNCHER_RU.txt",
+      "bytes": 1768,
+      "sha256": "25ddd3873eec11510e0ae400aac8979b35ab584378c8fbdb27a8fcf641f0961c"
+    },
+    {
+      "path": "docs/tasks/PSS-002/GOAL.md",
+      "bytes": 13142,
+      "sha256": "61ca73b8b332e8c0f78071982c94c71a771a49f20191fb441990585f1d98c191"
+    },
+    {
+      "path": "docs/tasks/PSS-002/SAFETY_AND_GIT.md",
+      "bytes": 4559,
+      "sha256": "384096a5e3424236b3cfdf9e834b55604211dfef43896d000bedb6115996ab76"
+    },
+    {
+      "path": "docs/tasks/PSS-002/SOURCE_AUDIT.md",
+      "bytes": 3479,
+      "sha256": "396bf2434ed24e2061c4869317d2cb9021495edd4e4106dcf76f6486431d96fe"
+    },
+    {
+      "path": "docs/tasks/PSS-002/TEST_CASES.md",
+      "bytes": 3997,
+      "sha256": "e386512c2a871f82d69979f1a062ed223365ca2bbd4e69bd06b6611bf17ee8d0"
+    }
+  ]
+}

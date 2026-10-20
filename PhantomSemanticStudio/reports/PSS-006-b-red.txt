@@ -1,0 +1,5 @@
+FAIL PSS-006 B privacy skip before persistence UTF8 timestamp triage and reopen: NOT_IMPLEMENTED: импорт или индекс корпуса отклонён. Исходный ZIP и прежние корпуса сохранены.
+FAIL PSS-006 B language ambiguity and sensitive preview preserve original: NOT_IMPLEMENTED: импорт или индекс корпуса отклонён. Исходный ZIP и прежние корпуса сохранены.
+FAIL PSS-006 B malformed counters normalized dedup independent ZIP order paged filters: NOT_IMPLEMENTED: импорт или индекс корпуса отклонён. Исходный ZIP и прежние корпуса сохранены.
+FAIL PSS-006 B archive negative controls and cancelled import atomic old corpus: NOT_IMPLEMENTED: импорт или индекс корпуса отклонён. Исходный ZIP и прежние корпуса сохранены.
+RESULT: 0 PASS; 4 FAIL

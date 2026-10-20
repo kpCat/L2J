@@ -1,0 +1,4 @@
+FAIL PSS-008 A missing responses clean diversity provenance and no template topic: Assertion failed
+FAIL PSS-008 A actual segment capacity normalized duplicates deterministic ordering: Sequence contains no matching element
+FAIL PSS-008 A 5k 20k bounded lexical sample cancellation and index caps: Sequence contains no matching element
+RESULT: 0 PASS; 3 FAIL

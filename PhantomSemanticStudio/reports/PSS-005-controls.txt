@@ -1,0 +1,4 @@
+PASS PSS-005 actual controls semantic buttons nonoverlap at minimum and resized layout
+PASS PSS-005 actual offline action saved advisory stale editor and edit clears approval
+PASS PSS-005 actual saved report source drift and invalid UTF8 select as STALE without crash
+CONTROL_CONTRACT_RESULT: 3 PASS; 0 FAIL; interactive UI/DPI/VS NOT_TESTED

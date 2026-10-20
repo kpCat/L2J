@@ -1,0 +1,3 @@
+FAIL PSS-005 actual controls semantic buttons nonoverlap at minimum and resized layout: Assertion failed
+PASS PSS-005 actual offline action saved advisory stale editor and edit clears approval
+CONTROL_CONTRACT_RESULT: 1 PASS; 1 FAIL; interactive UI/DPI/VS NOT_TESTED

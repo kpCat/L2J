@@ -1,0 +1,670 @@
+{
+  "Fingerprint": "43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322",
+  "Before": [
+    {
+      "RelativePath": "semantic/humanized/high-five-ru-humanized-semantic-v1.xml",
+      "Sha256": "eb22698e078e6197331705d14b3d06d9ea85adbf80fa455dc23c927dc1f96347",
+      "Bytes": 10905
+    },
+    {
+      "RelativePath": "conversation/humanized/high-five-ru-humanized-conversation-v1.xml",
+      "Sha256": "df347ed4f28b5bc37f7f50e875a4ef80dce530a80f27b66b03c5e7bd12d43e9f",
+      "Bytes": 14278
+    },
+    {
+      "RelativePath": "conversation/humanized/high-five-ru-persona-v1.xml",
+      "Sha256": "4d34ec46e5b2564007360b28b8730e6ef4548ca763af37aa429f38637fd46a39",
+      "Bytes": 1070
+    },
+    {
+      "RelativePath": "semantic/humanized/high-five-ru-humanized-corpus-v1.tsv",
+      "Sha256": "5553f8e18a41b787c8a4afa53e74031bcdf971abf98b0d5c1424778487b82e80",
+      "Bytes": 5648
+    },
+    {
+      "RelativePath": "semantic/humanized/high-five-ru-humanized-semantic-v2.xml",
+      "Sha256": "5ac1016ba5ffa45d5f8e1c68967fe2440c5cd5630b801b84d6ab056cd04dbbe4",
+      "Bytes": 22007
+    },
+    {
+      "RelativePath": "conversation/humanized/high-five-ru-humanized-conversation-v2.xml",
+      "Sha256": "062795a14c6012579d8407b37d6dd70d78a569e1d36fc7d947ca754e576924bc",
+      "Bytes": 19228
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/manifest.xml",
+      "Sha256": "185cffd604a842be2ff119e9a25174d042b655ef96809af28e801d2646a8de37",
+      "Bytes": 15552
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/leveling.xml",
+      "Sha256": "29c592802246ebd9a56439d17103fb6534a6e244b6d287fff4383d2ac9819ec0",
+      "Bytes": 46525
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/leveling.xml",
+      "Sha256": "da01a4932b6a4c1b8fc451cc2fbfbea7eb096596354210a602b61f8fdc55dfbc",
+      "Bytes": 214923
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/farming.xml",
+      "Sha256": "53e080746b908ac38f359b14b0c63cb8f050b5741d02a0a5cf8e6dbe4792e9b9",
+      "Bytes": 45227
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/farming.xml",
+      "Sha256": "8aeff43084bac9aeeee5de4623e511bdde9ee217d046dfc97eb2c9a743a44de6",
+      "Bytes": 207758
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/party.xml",
+      "Sha256": "c1a4168c388a3533c77de65de5e39d7f9639ea094ee866656b2611214a2aa3a7",
+      "Bytes": 45318
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/party.xml",
+      "Sha256": "a24b72c1d9c01a21590bbf7e469cd585546383aa3db55980ab9b6ad9377bc49c",
+      "Bytes": 208863
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/classes.xml",
+      "Sha256": "f9b40894cd6de012f3a1b51f2d8ade333c1ae2308e951f8b4031b02bdbd74fbb",
+      "Bytes": 45032
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/classes.xml",
+      "Sha256": "6506874081de2550a5d265952bf5394e00aa8cf901577503a44d966a70a726e7",
+      "Bytes": 217023
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/buffs.xml",
+      "Sha256": "b9739a4de44637843fb8248cacec62ee3adbc452812bb1430ff77e2370c1112a",
+      "Bytes": 44920
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/buffs.xml",
+      "Sha256": "6b53a9291e3c922d1b7b1711b31d94c324afe0bd2b446f62b8cd226bc073d7ad",
+      "Bytes": 213264
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/crafting.xml",
+      "Sha256": "ceab137c42e5a0dbfc31b7963a5c49d8c8466f5f4eff4d49f4325036101c83ac",
+      "Bytes": 46865
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/crafting.xml",
+      "Sha256": "4f70798dff611bb5468e6264c2112af39b28c471a88881bcffb85c7328943adb",
+      "Bytes": 218395
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/trade.xml",
+      "Sha256": "ab87c2df70afa8c5905c95ba3f47eb447f3da2f4302721b6a768a6142bdb661e",
+      "Bytes": 44026
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/trade.xml",
+      "Sha256": "a1d058ca4e4e7be4f0f399b736981aa1783511d4d8bdb1369861733a46d00827",
+      "Bytes": 189119
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/enchant.xml",
+      "Sha256": "76ad1b7f50a25c8e4841e96912a079e89fc3ebe342a11ef5a9248816d48265bf",
+      "Bytes": 45077
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/enchant.xml",
+      "Sha256": "72394929f6aeca39f07f23dea6c3eb91d1158bf07f6270d2c0f975ba2c2f083d",
+      "Bytes": 199215
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/pvp.xml",
+      "Sha256": "37470ee6dd0417e4579648ac85ab0d648bb93451baa97c7a154fc18fd9431072",
+      "Bytes": 40587
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/pvp.xml",
+      "Sha256": "207cff5c9fb0e731892e75402facf6a89afa34cc20bfa4056d4d9c85e0f5339a",
+      "Bytes": 187193
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/clan.xml",
+      "Sha256": "d444e7326192b73a67f4f8875e740c57e290fb157dce4d2fe1963d4fdc3d000c",
+      "Bytes": 44309
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/clan.xml",
+      "Sha256": "4d1b01fe4a1c95546675ebca813116386d7ca8309105e5e2373174ddd7deb9f6",
+      "Bytes": 196109
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/raids.xml",
+      "Sha256": "2b152c71bf60647d92754f4200b0ccd7ec7f2a005ccbee69e0a44268e6a00fb8",
+      "Bytes": 42781
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/raids.xml",
+      "Sha256": "fb4eaee762d8688815b7f81317be0faf567da36eca7e3646d5a85d6255b91cb5",
+      "Bytes": 191410
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/quests.xml",
+      "Sha256": "ef970afec5a92b24e4fda6441ce681893f7fc7e522935138c41100ef30684ea2",
+      "Bytes": 43638
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/quests.xml",
+      "Sha256": "67cfa1703c82565e7b1515b178dddb6676b00715703131bade6a635acc6f2149",
+      "Bytes": 192353
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/greeting.xml",
+      "Sha256": "d6575379b80d4e995333d1890f1d9b220740e85d5b9dfbe7c0350e24aa93eefa",
+      "Bytes": 42778
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/greeting.xml",
+      "Sha256": "b523668b842f278dca1cc94a81f9f8b65800fa4324a5fade2d6937d5c15d038b",
+      "Bytes": 184802
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/mood.xml",
+      "Sha256": "b15a8f30a4d1b2d92d836a1b34ffcbe4cda8ae2f7e9ea2f86fc21aaffc0ad70b",
+      "Bytes": 40015
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/mood.xml",
+      "Sha256": "77cd0c2dcb4e17e773bfcf4dd5363a1bf2d9fe5d8a7d006c8aaf4b4674ae46e8",
+      "Bytes": 179734
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/food.xml",
+      "Sha256": "098b573319d92a7666e38ecfd1b53d7c008434c5407458421b41348726f8b588",
+      "Bytes": 44766
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/food.xml",
+      "Sha256": "03f756b7f3c72b9e97b090693c459ff19557b76609b0eebf8bd45ae12d569d1e",
+      "Bytes": 194688
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/music.xml",
+      "Sha256": "76c56e0cfdbe934f0c8a480964fd737a025b01b6177fbed3a49d91c97544d62f",
+      "Bytes": 47000
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/music.xml",
+      "Sha256": "eff3f3eb094b67d634e2d3a6a892a98341ea97fe696577df40629bd7a1624104",
+      "Bytes": 203255
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/movies.xml",
+      "Sha256": "f4d1ddb9d0e828cac54a5b8982850a1b26051bc241460df3d66a3b221314562a",
+      "Bytes": 46108
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/movies.xml",
+      "Sha256": "3a4436b6c7ee563434e16010ee00e8c702eb73d08a6b61c47244204bbcd9911b",
+      "Bytes": 207990
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/work.xml",
+      "Sha256": "e63cfb91eec7625cd9d4cfcc573392d3ab1d5da83ad75b81ab05a5224d421201",
+      "Bytes": 44800
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/work.xml",
+      "Sha256": "50cb70717b2f05e1bbcd61cea51598667bfbc8d77667eafe986a16fa35ba14be",
+      "Bytes": 207614
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/sleep.xml",
+      "Sha256": "020b6e9a0296faa39101971411a2bb5f9d46c76a97c6c4dce2c1988b1d3c1c16",
+      "Bytes": 44949
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/sleep.xml",
+      "Sha256": "911331525f4ef4f6d968ed77b0fefc27c97290b4f11b8ae7e3eef6bdadc0a0b7",
+      "Bytes": 212198
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/everyday.xml",
+      "Sha256": "976f023f0514b74a1ad712ce85ea94fb89c225218c31370fc516ea0e758364ed",
+      "Bytes": 46448
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/everyday.xml",
+      "Sha256": "1db5914f09e9ef81722e3120ed632efbb0ae6b27c21b757cabf85d4dfd9e8858",
+      "Bytes": 212784
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/friendly.xml",
+      "Sha256": "2ef8155467a68e754ce395df29eafb7122655553f08d4c7bd36429cdca3b3ed3",
+      "Bytes": 47643
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/friendly.xml",
+      "Sha256": "305dfd046fa226718d6e4ffa9af2cd5d84694e06778a5d0be51f61bd466256db",
+      "Bytes": 201048
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/teasing.xml",
+      "Sha256": "126848947fe951eda230ad262430a0109ea6b6344ed3578c058a3b7858648307",
+      "Bytes": 46806
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/teasing.xml",
+      "Sha256": "5fc62eb3639e668d7f4182f37d13aff7a0c208563a787f9cae31755e1afbc46b",
+      "Bytes": 207816
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/rivalry.xml",
+      "Sha256": "20aaa3bbbd714f1e4857e8a62fe5f5a8dd0ceaee07858789721eab116666ac01",
+      "Bytes": 46267
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/rivalry.xml",
+      "Sha256": "8af2dae7bca0e4edf3dd62db1ad899abb5a4d064ac7dbf74a03be2f84a691ede",
+      "Bytes": 193806
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/angry.xml",
+      "Sha256": "3a3b0530beaacd3b100ced9d9352da364f008f337bc96ee8d04ac1c2f1f5b38e",
+      "Bytes": 45872
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/angry.xml",
+      "Sha256": "5c1ae39743dce2c7e63d5558ac00c9bfd2689e74e3c201bdd8368b8481156089",
+      "Bytes": 182824
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/apology.xml",
+      "Sha256": "359fd60526a582dc5b32e574013c085bed3729334c143004865ad7793608113b",
+      "Bytes": 46789
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/apology.xml",
+      "Sha256": "f6e9d12296c5e835e5af7d98bb99ac53db772a295668c164992a9a946c4ff717",
+      "Bytes": 183679
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/reconcile.xml",
+      "Sha256": "cbe8a88a4fb2d077120e1b80f5ad50e686b12ec9c8bcb9f6dd7548c78c808edf",
+      "Bytes": 48616
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/reconcile.xml",
+      "Sha256": "26874659712fbe594ca02e0f1811c4c48484c953eaaec5b4ed09095295e06a5b",
+      "Bytes": 188773
+    },
+    {
+      "RelativePath": "semantic/custom/my-ru-aliases.xml",
+      "Sha256": "037f0dececa8d4dc20069ed17cf39ec69b24fd5ab61a7f4167dee810e076c4e4",
+      "Bytes": 206
+    },
+    {
+      "RelativePath": "semantic/custom/my-slang.xml",
+      "Sha256": "9bd4a4752e249ed4bc745245c599ae3eee95ce5b05ccd45c5d32a9bb2cff62eb",
+      "Bytes": 148
+    },
+    {
+      "RelativePath": "semantic/custom/my-social-topics.xml",
+      "Sha256": "0b3e9a905998560895277a8ee9df4368d6a7ac67e42deef39337a7d762adcbf7",
+      "Bytes": 200
+    },
+    {
+      "RelativePath": "conversation/custom/my-phrases.xml",
+      "Sha256": "210b8e894aa7b8af3118e917447610680bf8e6a009a3d0c1a88975919f7331a6",
+      "Bytes": 189
+    },
+    {
+      "RelativePath": "conversation/custom/my-profanity.xml",
+      "Sha256": "82e04da51dbe1531f11ace7b35d896a596de99ad756cc272bb76d87c8f4a3bd8",
+      "Bytes": 211
+    },
+    {
+      "RelativePath": "conversation/custom/my-mature-dialogue.xml",
+      "Sha256": "a8c577ac627eee3932965f4559aba0b3fdcc2743dce2c0dfc9305a95c0304804",
+      "Bytes": 229
+    }
+  ],
+  "After": [
+    {
+      "RelativePath": "semantic/humanized/high-five-ru-humanized-semantic-v1.xml",
+      "Sha256": "eb22698e078e6197331705d14b3d06d9ea85adbf80fa455dc23c927dc1f96347",
+      "Bytes": 10905
+    },
+    {
+      "RelativePath": "conversation/humanized/high-five-ru-humanized-conversation-v1.xml",
+      "Sha256": "df347ed4f28b5bc37f7f50e875a4ef80dce530a80f27b66b03c5e7bd12d43e9f",
+      "Bytes": 14278
+    },
+    {
+      "RelativePath": "conversation/humanized/high-five-ru-persona-v1.xml",
+      "Sha256": "4d34ec46e5b2564007360b28b8730e6ef4548ca763af37aa429f38637fd46a39",
+      "Bytes": 1070
+    },
+    {
+      "RelativePath": "semantic/humanized/high-five-ru-humanized-corpus-v1.tsv",
+      "Sha256": "5553f8e18a41b787c8a4afa53e74031bcdf971abf98b0d5c1424778487b82e80",
+      "Bytes": 5648
+    },
+    {
+      "RelativePath": "semantic/humanized/high-five-ru-humanized-semantic-v2.xml",
+      "Sha256": "5ac1016ba5ffa45d5f8e1c68967fe2440c5cd5630b801b84d6ab056cd04dbbe4",
+      "Bytes": 22007
+    },
+    {
+      "RelativePath": "conversation/humanized/high-five-ru-humanized-conversation-v2.xml",
+      "Sha256": "062795a14c6012579d8407b37d6dd70d78a569e1d36fc7d947ca754e576924bc",
+      "Bytes": 19228
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/manifest.xml",
+      "Sha256": "185cffd604a842be2ff119e9a25174d042b655ef96809af28e801d2646a8de37",
+      "Bytes": 15552
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/leveling.xml",
+      "Sha256": "29c592802246ebd9a56439d17103fb6534a6e244b6d287fff4383d2ac9819ec0",
+      "Bytes": 46525
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/leveling.xml",
+      "Sha256": "da01a4932b6a4c1b8fc451cc2fbfbea7eb096596354210a602b61f8fdc55dfbc",
+      "Bytes": 214923
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/farming.xml",
+      "Sha256": "53e080746b908ac38f359b14b0c63cb8f050b5741d02a0a5cf8e6dbe4792e9b9",
+      "Bytes": 45227
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/farming.xml",
+      "Sha256": "8aeff43084bac9aeeee5de4623e511bdde9ee217d046dfc97eb2c9a743a44de6",
+      "Bytes": 207758
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/party.xml",
+      "Sha256": "c1a4168c388a3533c77de65de5e39d7f9639ea094ee866656b2611214a2aa3a7",
+      "Bytes": 45318
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/party.xml",
+      "Sha256": "a24b72c1d9c01a21590bbf7e469cd585546383aa3db55980ab9b6ad9377bc49c",
+      "Bytes": 208863
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/classes.xml",
+      "Sha256": "f9b40894cd6de012f3a1b51f2d8ade333c1ae2308e951f8b4031b02bdbd74fbb",
+      "Bytes": 45032
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/classes.xml",
+      "Sha256": "6506874081de2550a5d265952bf5394e00aa8cf901577503a44d966a70a726e7",
+      "Bytes": 217023
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/buffs.xml",
+      "Sha256": "b9739a4de44637843fb8248cacec62ee3adbc452812bb1430ff77e2370c1112a",
+      "Bytes": 44920
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/buffs.xml",
+      "Sha256": "6b53a9291e3c922d1b7b1711b31d94c324afe0bd2b446f62b8cd226bc073d7ad",
+      "Bytes": 213264
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/crafting.xml",
+      "Sha256": "ceab137c42e5a0dbfc31b7963a5c49d8c8466f5f4eff4d49f4325036101c83ac",
+      "Bytes": 46865
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/crafting.xml",
+      "Sha256": "4f70798dff611bb5468e6264c2112af39b28c471a88881bcffb85c7328943adb",
+      "Bytes": 218395
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/trade.xml",
+      "Sha256": "ab87c2df70afa8c5905c95ba3f47eb447f3da2f4302721b6a768a6142bdb661e",
+      "Bytes": 44026
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/trade.xml",
+      "Sha256": "a1d058ca4e4e7be4f0f399b736981aa1783511d4d8bdb1369861733a46d00827",
+      "Bytes": 189119
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/enchant.xml",
+      "Sha256": "76ad1b7f50a25c8e4841e96912a079e89fc3ebe342a11ef5a9248816d48265bf",
+      "Bytes": 45077
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/enchant.xml",
+      "Sha256": "72394929f6aeca39f07f23dea6c3eb91d1158bf07f6270d2c0f975ba2c2f083d",
+      "Bytes": 199215
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/pvp.xml",
+      "Sha256": "37470ee6dd0417e4579648ac85ab0d648bb93451baa97c7a154fc18fd9431072",
+      "Bytes": 40587
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/pvp.xml",
+      "Sha256": "207cff5c9fb0e731892e75402facf6a89afa34cc20bfa4056d4d9c85e0f5339a",
+      "Bytes": 187193
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/clan.xml",
+      "Sha256": "d444e7326192b73a67f4f8875e740c57e290fb157dce4d2fe1963d4fdc3d000c",
+      "Bytes": 44309
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/clan.xml",
+      "Sha256": "4d1b01fe4a1c95546675ebca813116386d7ca8309105e5e2373174ddd7deb9f6",
+      "Bytes": 196109
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/raids.xml",
+      "Sha256": "2b152c71bf60647d92754f4200b0ccd7ec7f2a005ccbee69e0a44268e6a00fb8",
+      "Bytes": 42781
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/raids.xml",
+      "Sha256": "fb4eaee762d8688815b7f81317be0faf567da36eca7e3646d5a85d6255b91cb5",
+      "Bytes": 191410
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/lineage/quests.xml",
+      "Sha256": "ef970afec5a92b24e4fda6441ce681893f7fc7e522935138c41100ef30684ea2",
+      "Bytes": 43638
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/lineage/quests.xml",
+      "Sha256": "67cfa1703c82565e7b1515b178dddb6676b00715703131bade6a635acc6f2149",
+      "Bytes": 192353
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/greeting.xml",
+      "Sha256": "d6575379b80d4e995333d1890f1d9b220740e85d5b9dfbe7c0350e24aa93eefa",
+      "Bytes": 42778
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/greeting.xml",
+      "Sha256": "b523668b842f278dca1cc94a81f9f8b65800fa4324a5fade2d6937d5c15d038b",
+      "Bytes": 184802
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/mood.xml",
+      "Sha256": "b15a8f30a4d1b2d92d836a1b34ffcbe4cda8ae2f7e9ea2f86fc21aaffc0ad70b",
+      "Bytes": 40015
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/mood.xml",
+      "Sha256": "77cd0c2dcb4e17e773bfcf4dd5363a1bf2d9fe5d8a7d006c8aaf4b4674ae46e8",
+      "Bytes": 179734
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/food.xml",
+      "Sha256": "098b573319d92a7666e38ecfd1b53d7c008434c5407458421b41348726f8b588",
+      "Bytes": 44766
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/food.xml",
+      "Sha256": "03f756b7f3c72b9e97b090693c459ff19557b76609b0eebf8bd45ae12d569d1e",
+      "Bytes": 194688
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/music.xml",
+      "Sha256": "76c56e0cfdbe934f0c8a480964fd737a025b01b6177fbed3a49d91c97544d62f",
+      "Bytes": 47000
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/music.xml",
+      "Sha256": "eff3f3eb094b67d634e2d3a6a892a98341ea97fe696577df40629bd7a1624104",
+      "Bytes": 203255
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/movies.xml",
+      "Sha256": "f4d1ddb9d0e828cac54a5b8982850a1b26051bc241460df3d66a3b221314562a",
+      "Bytes": 46108
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/movies.xml",
+      "Sha256": "3a4436b6c7ee563434e16010ee00e8c702eb73d08a6b61c47244204bbcd9911b",
+      "Bytes": 207990
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/work.xml",
+      "Sha256": "e63cfb91eec7625cd9d4cfcc573392d3ab1d5da83ad75b81ab05a5224d421201",
+      "Bytes": 44800
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/work.xml",
+      "Sha256": "50cb70717b2f05e1bbcd61cea51598667bfbc8d77667eafe986a16fa35ba14be",
+      "Bytes": 207614
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/sleep.xml",
+      "Sha256": "020b6e9a0296faa39101971411a2bb5f9d46c76a97c6c4dce2c1988b1d3c1c16",
+      "Bytes": 44949
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/sleep.xml",
+      "Sha256": "911331525f4ef4f6d968ed77b0fefc27c97290b4f11b8ae7e3eef6bdadc0a0b7",
+      "Bytes": 212198
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/life/everyday.xml",
+      "Sha256": "976f023f0514b74a1ad712ce85ea94fb89c225218c31370fc516ea0e758364ed",
+      "Bytes": 46448
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/life/everyday.xml",
+      "Sha256": "1db5914f09e9ef81722e3120ed632efbb0ae6b27c21b757cabf85d4dfd9e8858",
+      "Bytes": 212784
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/friendly.xml",
+      "Sha256": "2ef8155467a68e754ce395df29eafb7122655553f08d4c7bd36429cdca3b3ed3",
+      "Bytes": 47643
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/friendly.xml",
+      "Sha256": "305dfd046fa226718d6e4ffa9af2cd5d84694e06778a5d0be51f61bd466256db",
+      "Bytes": 201048
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/teasing.xml",
+      "Sha256": "126848947fe951eda230ad262430a0109ea6b6344ed3578c058a3b7858648307",
+      "Bytes": 46806
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/teasing.xml",
+      "Sha256": "5fc62eb3639e668d7f4182f37d13aff7a0c208563a787f9cae31755e1afbc46b",
+      "Bytes": 207816
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/rivalry.xml",
+      "Sha256": "20aaa3bbbd714f1e4857e8a62fe5f5a8dd0ceaee07858789721eab116666ac01",
+      "Bytes": 46267
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/rivalry.xml",
+      "Sha256": "8af2dae7bca0e4edf3dd62db1ad899abb5a4d064ac7dbf74a03be2f84a691ede",
+      "Bytes": 193806
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/angry.xml",
+      "Sha256": "3a3b0530beaacd3b100ced9d9352da364f008f337bc96ee8d04ac1c2f1f5b38e",
+      "Bytes": 45872
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/angry.xml",
+      "Sha256": "5c1ae39743dce2c7e63d5558ac00c9bfd2689e74e3c201bdd8368b8481156089",
+      "Bytes": 182824
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/apology.xml",
+      "Sha256": "359fd60526a582dc5b32e574013c085bed3729334c143004865ad7793608113b",
+      "Bytes": 46789
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/apology.xml",
+      "Sha256": "f6e9d12296c5e835e5af7d98bb99ac53db772a295668c164992a9a946c4ff717",
+      "Bytes": 183679
+    },
+    {
+      "RelativePath": "semantic/humanized/v3/segments/social/reconcile.xml",
+      "Sha256": "cbe8a88a4fb2d077120e1b80f5ad50e686b12ec9c8bcb9f6dd7548c78c808edf",
+      "Bytes": 48616
+    },
+    {
+      "RelativePath": "conversation/humanized/v3/segments/social/reconcile.xml",
+      "Sha256": "26874659712fbe594ca02e0f1811c4c48484c953eaaec5b4ed09095295e06a5b",
+      "Bytes": 188773
+    },
+    {
+      "RelativePath": "semantic/custom/my-ru-aliases.xml",
+      "Sha256": "037f0dececa8d4dc20069ed17cf39ec69b24fd5ab61a7f4167dee810e076c4e4",
+      "Bytes": 206
+    },
+    {
+      "RelativePath": "semantic/custom/my-slang.xml",
+      "Sha256": "9bd4a4752e249ed4bc745245c599ae3eee95ce5b05ccd45c5d32a9bb2cff62eb",
+      "Bytes": 148
+    },
+    {
+      "RelativePath": "semantic/custom/my-social-topics.xml",
+      "Sha256": "0b3e9a905998560895277a8ee9df4368d6a7ac67e42deef39337a7d762adcbf7",
+      "Bytes": 200
+    },
+    {
+      "RelativePath": "conversation/custom/my-phrases.xml",
+      "Sha256": "210b8e894aa7b8af3118e917447610680bf8e6a009a3d0c1a88975919f7331a6",
+      "Bytes": 189
+    },
+    {
+      "RelativePath": "conversation/custom/my-profanity.xml",
+      "Sha256": "82e04da51dbe1531f11ace7b35d896a596de99ad756cc272bb76d87c8f4a3bd8",
+      "Bytes": 211
+    },
+    {
+      "RelativePath": "conversation/custom/my-mature-dialogue.xml",
+      "Sha256": "a8c577ac627eee3932965f4559aba0b3fdcc2743dce2c0dfc9305a95c0304804",
+      "Bytes": 229
+    }
+  ],
+  "SourceEqual": true,
+  "Segments": 52,
+  "Patterns": 5310,
+  "Templates": 20963,
+  "Aliases": 424,
+  "Profanity": 104,
+  "Pairs": 26,
+  "Topics": 130,
+  "Acts": 139,
+  "WarningRows": 130,
+  "LexicalComparisons": 2012,
+  "JavaStatus": "NOT_RUN",
+  "StageStatus": "STAGED_V3_UNVALIDATED"
+}

@@ -1,0 +1,17 @@
+/goal Выполни PSS-006 по файлу:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-006\GOAL.md
+
+Рабочая папка: C:\Users\ZBook\PhantomSemanticStudio\
+Модель: основная Codex; reasoning HIGH. Новый диалог Codex, один КРУПНЫЙ checkpoint с внутренними A/B/C, не три отдельных запуска.
+Required base origin/main: f92431aa5594a62210916e94bc6b617ec51f4bdc
+URL origin: https://github.com/kpCat/PhantomSemanticStudio.git
+
+Read-first: AGENTS.md, PSS-005-final/UI, весь пакет PSS-006, реальный код/тесты. PSS-005 имеет 88/0, live Gemma BAD_RESPONSE, возможное торможение UI selection. Исправляй по RED/GREEN, не по догадке.
+
+A: неблокирующее обновление saved semantic evidence и безопасная классификация LM ошибок, без сырого ответа/ослабления JSON.
+B: безопасный потоковый импорт пользовательского chat.zip в отдельное приватное disk-backed хранилище с приватными TELL/FRIENDTELL исключёнными ДО записи, triage языка/транслита, search/filter/counts, никакого автообучения.
+C: настоящее отдельное WinForms окно корпуса и статический редактируемый VS Designer, пагинация, 1-20 вручную выбранных public excerpts для просмотра, без approvals/XML.
+
+L2J строго READ_ONLY. Никаких review ZIP. Raw chat.zip/сообщения/ники/индексы никогда не коммитить и не помещать в отчёты или prompts. Используй только синтетические tracked fixtures. Никакой автоматической загрузки/выгрузки LM-модели.
+
+Отчёты PSS-006-final.md, PSS-006-ui.md, PSS-006-plan.md, exact owned-files; реальные RED/GREEN + Release Build-Verify + security/encoding/Designer + честные live/DPI/Java статусы. Обычные локальные checkpoint commits допустимы; обязательный non-force push только origin HEAD:refs/heads/main с remote SHA proof. BLOCKED сообщай честно, не выдумывай PASS. STOP после PSS-006; PSS-007 не начинать.

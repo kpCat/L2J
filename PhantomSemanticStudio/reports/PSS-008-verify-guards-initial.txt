@@ -1,0 +1,15 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS exact modal selection flow (static)
+PASS new static Designer controls handlers constructor resx nesting ID/filter safety and consent; NOT a VS round-trip or DPI test
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS PSS-005 static Designer actions and saved-candidate/fresh-source flow; VS/UI/DPI not implied
+PASS PSS-006 static Designer, six tabs, handlers/resx/nesting; offline UI, streaming/privacy/SQL guards. NOT VS/UI/DPI proof.
+PASS PSS-007 static Designer/handlers/ctor/resx/nesting/entry/default permissions; runtime no shell/model lifecycle. NOT physical UI/DPI/VS.
+PASS PSS-008 static Designer/ctor/resx/nesting/handlers; separate forms; default NO; complete proof preview; NOT physical UI/DPI/VS
+FAIL guard: javac destdir
+At C:\Users\ZBook\PhantomSemanticStudio\scripts\Verify-PSS008.ps1:65 char:225
++ ... lter 'oracle-*').Count -ne 0) { throw ('FAIL guard: ' + $case.Name) }
++                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (FAIL guard: javac destdir:String) [], RuntimeException
+    + FullyQualifiedErrorId : FAIL guard: javac destdir

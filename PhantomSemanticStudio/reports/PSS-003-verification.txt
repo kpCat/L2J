@@ -1,0 +1,4 @@
+PASS mojibake markers in changed files checked
+PASS escaped Cyrillic in changed files checked separately
+PASS task package exact SHA/bytes unchanged
+PASS final source equality: 65 humanized files

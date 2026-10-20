@@ -1,0 +1,3 @@
+SYNTHETIC_UI_FIXTURE: C:\Users\ZBook\PhantomSemanticStudio\artifacts\PSS-004\ui-run-2
+SYNTHETIC_SOURCE: C:\Users\ZBook\AppData\Local\Temp\pss-tests-e28c34a1099144f19d1a1044efcf11dd\L2J_Mobius_CT_2.6_HighFive
+APPROVED=27; current baseline=25; stale=1; old baseline=1; no actual L2J import

@@ -1,0 +1,67 @@
+[
+  {
+    "Path": "PhantomSemanticStudio.sln",
+    "Bytes": 2278,
+    "Sha256": "4aa3a62b295b89b435bbad62ea34a67b0eb3447f52a89c927d711138af786442"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/ChatCorpusForm.Designer.cs",
+    "Bytes": 21450,
+    "Sha256": "cf242bf75124f33c5b421c9d2a1cca5403ebc266c493bc1a32a5aaa3c17e6c8f"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/ChatCorpusForm.resx",
+    "Bytes": 550,
+    "Sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/DialogueLabForm.Designer.cs",
+    "Bytes": 38481,
+    "Sha256": "ef1148d2ddfc938cb4c56816aafccc648437925e81fe3699a953fd1d73070dfa"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/DialogueLabForm.resx",
+    "Bytes": 550,
+    "Sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/MainForm.Designer.cs",
+    "Bytes": 86716,
+    "Sha256": "1d2171a4e0096e365e103cbe1dde21c9763d0ad6bd397cbf4cca0c7b5e823052"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/MainForm.resx",
+    "Bytes": 550,
+    "Sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/PackQualityForm.Designer.cs",
+    "Bytes": 8785,
+    "Sha256": "518f292dbba9f50c61b4b7778fd4bda6a4a248f077eeffda0a496b8819702a0e"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/PackQualityForm.resx",
+    "Bytes": 550,
+    "Sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/StageSelectionForm.Designer.cs",
+    "Bytes": 13455,
+    "Sha256": "be40d663a8fa4ea09c88622c2e1c4f6b6b7215d33f5523d3e369cd073fe87ef7"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/StageSelectionForm.resx",
+    "Bytes": 550,
+    "Sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/V3ProposalForm.Designer.cs",
+    "Bytes": 9507,
+    "Sha256": "f676e198bde46ce0d7d24801900da60f9f9c2f8b6a855318296045b97554f107"
+  },
+  {
+    "Path": "src/PhantomSemanticStudio.WinForms/V3ProposalForm.resx",
+    "Bytes": 550,
+    "Sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+  }
+]

@@ -1,0 +1,2 @@
+FAIL actual Java pattern negative fixture: native exit=1
+FAIL actual Java override negative fixture: native exit=1

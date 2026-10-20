@@ -1,0 +1,52 @@
+PASS normalize Cyrillic and punctuation
+PASS normalize preserves placeholders
+PASS normalize compatibility form
+PASS normalize distinguishes negation
+PASS endpoint accepts loopback
+PASS endpoint rejects remote
+PASS endpoint rejects credentials
+PASS endpoint rejects query
+PASS strict JSON valid
+PASS strict JSON rejects unknown keys
+PASS strict JSON rejects fenced output
+PASS strict JSON rejects duplicate keys
+PASS strict JSON rejects null
+PASS strict JSON rejects unknown kind
+PASS reader sees v3 plus base
+PASS fingerprint deterministic
+PASS reader accepts explicit custom override
+PASS DTD/XXE rejected
+PASS manifest traversal rejected
+PASS duplicate exact normalized blocked
+PASS unknown act blocked
+PASS action act blocked
+PASS invalid placeholder blocked
+PASS gender-specific kept as runtime warning
+PASS approval invalidated by edit
+PASS path excludes source
+PASS path excludes ancestor
+PASS sibling path allowed
+PASS negative assertion controls reject a successful operation
+PASS approval binds manual note and review timestamp
+PASS unverified profanity and conditions never produce safe XML
+PASS reader diagnoses unsupported schema without silent loss
+PASS invalid custom override is rejected
+PASS reader rejects malformed bytes, limits, missing segments and partial v2
+PASS path rejects absolute traversal and directory junction
+PASS batch duplicates conflict across acts and unknown scope is blocked
+PASS failed save preserves valid state and interrupted temporary file is ignored
+FAIL conflicting aliases require exact explicit override: Could not find a part of the path 'C:\Users\ZBook\AppData\Local\Temp\pss-tests-6a71b3e875464b54b063a0041dffbbaf\L2J_Mobius_CT_2.6_HighFive\dist\game\data\phantoms\semantic\custom\my-ru-aliases.xml'.
+PASS workspace independent lock
+PASS workspace persists session
+PASS export refuses stale approval instead of silently dropping it
+PASS export rejects stale source
+PASS export writes only review ZIP outside source
+PASS HTTP parses expected model response
+PASS HTTP errors fail closed
+PASS HTTP cancellation respected
+PASS HTTP generation rejects length tools bad JSON errors and response limits
+RESULT: 46 PASS; 1 FAIL
+conflicting aliases require exact explicit override: System.IO.DirectoryNotFoundException: Could not find a part of the path 'C:\Users\ZBook\AppData\Local\Temp\pss-tests-6a71b3e875464b54b063a0041dffbbaf\L2J_Mobius_CT_2.6_HighFive\dist\game\data\phantoms\semantic\custom\my-ru-aliases.xml'.
+   at System.IO.FileSystem.DeleteFile(String fullPath)
+   at Program.<>c__DisplayClass3_0.<Main>b__39() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 170
+   at Program.Test(String name, Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 237

@@ -1,0 +1,4 @@
+PASS PSS-007 A catalog-only exact reply provenance unsupported and no mutation
+PASS PSS-007 A scope histories cancellation stale source and transactional repeat queue
+PASS PSS-007 A limits reset no truncation and bounded editor transcript
+RESULT: 3 PASS; 0 FAIL

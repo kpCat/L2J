@@ -1,0 +1,3 @@
+LIVE_LM_ATTEMPT: one explicit POST; exact model=gemma-4-26b-a4b-it-ultra-uncensored-heretic; references=1
+BLOCKED_LM: BAD_RESPONSE; no retry; elapsedSeconds=119
+SESSION_BYTES_UNCHANGED=True

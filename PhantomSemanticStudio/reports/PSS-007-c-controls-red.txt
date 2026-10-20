@@ -1,0 +1,7 @@
+SYNTHETIC_A_TURN count=1; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=2; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=3; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+PASS PSS-007 A real STA lab roles trace three turns cancel input and layout
+PASS PSS-007 B STA separate opt-in preview confirmation lesson and private history
+FAIL PSS-007 C STA explicit transfer separate consent manual mask suggestion to scoped lesson: Assertion failed
+CONTROL_CONTRACT_RESULT: 2 PASS; 1 FAIL; physical UI/DPI/VS NOT_TESTED

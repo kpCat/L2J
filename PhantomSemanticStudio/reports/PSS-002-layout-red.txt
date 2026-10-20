@@ -1,0 +1,6 @@
+Instruction editor collapses at minimum form height: 0 px
+At C:\Users\ZBook\PhantomSemanticStudio\scripts\Verify-PSS002.ps1:12 char:36
++ ... t -lt 40) { throw "Instruction editor collapses at minimum form heigh ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Instruction edi...rm height: 0 px:String) [], RuntimeException
+    + FullyQualifiedErrorId : Instruction editor collapses at minimum form height: 0 px

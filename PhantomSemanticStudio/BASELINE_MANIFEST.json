@@ -1,0 +1,188 @@
+{
+  "package": "PhantomSemanticStudio-0.1-source",
+  "version": 1,
+  "source_reference": {
+    "repo": "kpCat/L2J",
+    "branch": "feature/phantom-world",
+    "sha": "3fd4aa5f29cf23c1c06cc91ae7b1016c820acb25",
+    "read_only": true
+  },
+  "build_status": "NOT_RUN_NO_DOTNET_SDK",
+  "files": [
+    {
+      "path": ".editorconfig",
+      "bytes": 156,
+      "sha256": "76a8388fdb65dfb34d3a7d7cef6fca989f1dac4f1ec07d6eef08b47facde67cd"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 77,
+      "sha256": "618a5ec6e967737717b801f02bba13ce5973db9fde3876470877954715a914a4"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 2767,
+      "sha256": "5a90e5e2ba4d9b1171ed21689e492d5369079e1237e79aaa8e20197bb7e99ed4"
+    },
+    {
+      "path": "Directory.Build.props",
+      "bytes": 210,
+      "sha256": "658e2df8671fc17da255dc521ab296ff3e931bb7feb7ee6e5b80ffac4dc7415c"
+    },
+    {
+      "path": "PhantomSemanticStudio.sln",
+      "bytes": 2111,
+      "sha256": "1974605bd87cee096eb357e0cc743336f02ffcc22a5497b841dc1d411bda6155"
+    },
+    {
+      "path": "README_RU.md",
+      "bytes": 8749,
+      "sha256": "53775987e2a0493a666ec571f1b5d69743a0dec67eb6863e65dda98ebbe61d62"
+    },
+    {
+      "path": "START_HERE_RU.txt",
+      "bytes": 1061,
+      "sha256": "d6d26c9c91b56e4420db444abbf59fd871a8bfa679b9f9ece53183a1cda08e1f"
+    },
+    {
+      "path": "Start.cmd",
+      "bytes": 536,
+      "sha256": "cfa4d00a9fce39dada88a4f414fbcd50cfa063fd900c5242ddbdd1c441287ba7"
+    },
+    {
+      "path": "docs/DESIGN_RU.md",
+      "bytes": 4433,
+      "sha256": "8239cdc2c15fc94fa7ba9443ceae800e3b9644d4f14b98b30214bbfdc924077b"
+    },
+    {
+      "path": "docs/IMPLEMENTATION_PLAN_RU.md",
+      "bytes": 1888,
+      "sha256": "5d282e9d98e1432adb33ca7bc11ebfeb5975f22950a2a6189ee2d43df8a04ed4"
+    },
+    {
+      "path": "docs/SOURCE_AUDIT_RU.md",
+      "bytes": 3797,
+      "sha256": "ce3655e07767f26d16edeb046ec6921bf5df4a48533e658e69366445e5901509"
+    },
+    {
+      "path": "reports/BASELINE_VERIFICATION.md",
+      "bytes": 3408,
+      "sha256": "2d1697f9f2acd480daafb60420aee1cb034a79af20a26558c7de76cfd7b8e54d"
+    },
+    {
+      "path": "reports/build-attempt.txt",
+      "bytes": 165,
+      "sha256": "2c9ac5ce2f67374eed7780df329a3b927b7afd5823be6b4aecc06bf648f8d63d"
+    },
+    {
+      "path": "reports/static-verification.txt",
+      "bytes": 367,
+      "sha256": "9cb16031354d5a1a958dc3cc2012d7558e424d1745a09b653df48498d2b4ea7a"
+    },
+    {
+      "path": "scripts/Build-Verify.ps1",
+      "bytes": 1015,
+      "sha256": "1abbaf363bb96de6f48365271331beea155cea9d2432cfb31ca1f972d11d1e5f"
+    },
+    {
+      "path": "scripts/New-ReviewBundle.ps1",
+      "bytes": 1769,
+      "sha256": "46bff98542e332d87f32cb92bb17b4f921524a9a4e98758ec01037899be278f2"
+    },
+    {
+      "path": "scripts/Verify-Designer.ps1",
+      "bytes": 1390,
+      "sha256": "1049f8b620906b4fce68dcb78144ef695b745330ae412f978b0b7229578aad4e"
+    },
+    {
+      "path": "scripts/static_checks.py",
+      "bytes": 1210,
+      "sha256": "72989d18e93bb3c1987484390f9b93d30386e433355622ceace37a7a00497f72"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/CandidateValidator.cs",
+      "bytes": 8262,
+      "sha256": "f132885f2a82814fda5352733b736f5747e951b07cad78a701be9553c18c3b0d"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/LmStudioClient.cs",
+      "bytes": 12383,
+      "sha256": "571a1d272f9e01d151b1875c00d29d396bf5cfc770edc986489417548e684eec"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/Models.cs",
+      "bytes": 4378,
+      "sha256": "2404c4838be1f1ee200ca4827475a2ff4291ba77e84293fdcb58102cf8f9ecf0"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/PackPreview.cs",
+      "bytes": 3885,
+      "sha256": "ae47afdec0afb0cde14cc3e04384cbf0385e5cdca67160a1d6c8eb9903080ccb"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/PackReader.cs",
+      "bytes": 10512,
+      "sha256": "dc84b096b79a0b02f87096fffb6a5e512070e2e4179a0a3b50e556b2b67aa59c"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/PathSafety.cs",
+      "bytes": 3528,
+      "sha256": "93da1e9ad1c05bd19e12e91c3c80813b18b12489738670cd5d7542efa61e8ab9"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/PhantomSemanticStudio.Core.csproj",
+      "bytes": 117,
+      "sha256": "91275edd3790c4f0cb484653195ccd8ad6af2f1a0a69b84fdb26b88c0b52407f"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/ReviewExporter.cs",
+      "bytes": 5828,
+      "sha256": "f0f9f97bfa597f83a284c8e55144ec213e751534b6e4375e5f613d24f1ec1b15"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/TextRules.cs",
+      "bytes": 2639,
+      "sha256": "66ed8cfdecd579b8af74418e2f05385938b5be352e8916529d6bac26c47351d7"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.Core/WorkspaceStore.cs",
+      "bytes": 4520,
+      "sha256": "beed8989a5938a9d71e46e6ad4269b4a2120fc68e42473df712e92486c2a9726"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.WinForms/MainForm.Designer.cs",
+      "bytes": 64555,
+      "sha256": "3dadff09952ea7113255224686bc65b2ae5650179ebef5df263d843e12ef2e0e"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.WinForms/MainForm.cs",
+      "bytes": 24267,
+      "sha256": "27e4ac483813e9dc1e75fbcff87118b8171e1a05a49ac51ff93871908c8b8187"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.WinForms/MainForm.resx",
+      "bytes": 550,
+      "sha256": "80c60f1b45d86e8e31165d8031fbf5398cb2c86c62d9f27cd1a74cb1b79ae269"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.WinForms/PhantomSemanticStudio.WinForms.csproj",
+      "bytes": 913,
+      "sha256": "5d4c1851203c08fba88caeec1788eff9a60759baefec99592dbde78f07a60b4a"
+    },
+    {
+      "path": "src/PhantomSemanticStudio.WinForms/Program.cs",
+      "bytes": 224,
+      "sha256": "bef9e814f6999644acf7168783b9cd6a0010575ee393e58ce6d35b19bc1caee8"
+    },
+    {
+      "path": "tests/PhantomSemanticStudio.Tests/PhantomSemanticStudio.Tests.csproj",
+      "bytes": 276,
+      "sha256": "d2cf8dc54374eec3e46aa518f66a119f3682b65ad8d13b5dc2da53e0bccc5e0d"
+    },
+    {
+      "path": "tests/PhantomSemanticStudio.Tests/Program.cs",
+      "bytes": 14006,
+      "sha256": "7184a8e0da98127a76df3295f3c71cb4a31b695d012acee500dc5b3eeeb60ac7"
+    }
+  ]
+}

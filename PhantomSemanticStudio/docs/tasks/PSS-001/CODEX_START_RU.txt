@@ -1,0 +1,17 @@
+/goal Выполни задачу PSS-001 по файлу C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-001\GOAL.md.
+
+Рабочая папка: C:\Users\ZBook\PhantomSemanticStudio\.
+Модель: основная модель Codex, не Spark. Уровень мышления: Высокий (High).
+
+Это уже подготовленный C# WinForms starter. Не создавай другую программу с нуля: сначала проверь BASELINE_MANIFEST.json, прочитай AGENTS.md, README_RU.md, reports\BASELINE_VERIFICATION.md и пакет задачи. В исходной поставке C#-сборка, реальные тесты и Visual Studio Designer НЕ запускались — начни с их проверки и исправлений.
+
+Весь C:\Users\ZBook\L2J_Mobius\ — СТРОГО READ_ONLY. High Five: C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.
+Не меняй Java, Semantic Pack, v1/v2/v3/custom, manifest, конфиги, сервер, клиент, БД или текущую разработку L2J. Не запускай там Ant/JAR и не делай git commit/push.
+
+Сохрани нормальный MainForm.Designer.cs и MainForm.resx: constructor только InitializeComponent, без циклов/условий/LINQ/фабрик/IO/async в InitializeComponent. Проверь открытие и сохранение формы в дизайнере VS, а не только текст файла.
+
+Gemma: gemma-4-26b-a4b-it-ultra-uncensored-heretic, http://127.0.0.1:1234/v1. Только structured JSON-кандидаты, никаких tools/исполнения кода и автоматического редактирования пакета. Каждое одобрение ручное; правка его отменяет. Экспорт только REVIEW_ONLY / NOT_SERVER_VALIDATED за пределами L2J. Не добавляй установку или автопубликацию.
+
+Выполни весь checkpoint без повторного согласования и без перехода к PSS-002. Не подменяй реальные проверки заявлениями PASS. Недоступный LM Studio/Designer отметь честно и заверши остальные независимые пункты.
+
+В конце: reports\PSS-001-final.md, обновлённый review ZIP, реальные проверки, список изменённых файлов, обычный commit в собственном репозитории приложения. Push только в уже настроенный origin этого приложения; никогда в kpCat/L2J. Нет origin — PUSH_NOT_CONFIGURED и обязательный review ZIP. После handoff остановись.

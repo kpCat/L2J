@@ -1,0 +1,11 @@
+SYNTHETIC_A_TURN count=1; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=2; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=3; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+PASS PSS-007 A real STA lab roles trace three turns cancel input and layout
+PASS PSS-007 B STA separate opt-in preview confirmation lesson and private history
+SYNTHETIC_C_STACK=   at CallSite.Target(Closure, CallSite, Object, Int32)
+   at Program.<Pss007Controls>g__Control|66_2(Object ui, String name) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Pss007Controls.cs:line 18
+   at Program.<>c__DisplayClass66_0.<Pss007Controls>g__Pump|3(Object ui) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Pss007Controls.cs:line 23
+   at Program.<>c__DisplayClass66_0.<Pss007Controls>b__6() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Pss007Controls.cs:line 99
+FAIL PSS-007 C STA explicit transfer separate consent manual mask suggestion to scoped lesson: Index was outside the bounds of the array.
+CONTROL_CONTRACT_RESULT: 2 PASS; 1 FAIL; physical UI/DPI/VS NOT_TESTED

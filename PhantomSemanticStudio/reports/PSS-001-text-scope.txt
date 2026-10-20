@@ -1,0 +1,12 @@
+PSS-001 text verification and scope guard
+Baseline manifest SHA unchanged: 191087dce21f3613feb892525ba9ad1604619d70e791e2a534fe15aff735faaa.
+Modified baseline paths: 11, exactly the allowlist in PSS-001-final.md.
+New source: tests/PhantomSemanticStudio.Tests/SourceSmoke.cs.
+No changes to solution/csproj, AGENTS, baseline report, manifest, MainForm.resx, or L2J.
+User-provided task package: 7 files, preserved unchanged.
+Source final SHA equality: 65/65.
+Mojibake markers: PASS, zero case-sensitive matches; all requested markers checked separately from escaped Cyrillic.
+The initial case-insensitive Select-String matched ordinary Russian text ending in a lowercase letter before a closing quotation mark. The exact case-sensitive scan removed this diagnostic false positive; no source text was rewritten for it.
+Escaped Cyrillic / XML escaped Cyrillic: PASS, zero matches, both XML x/X variants and both Unicode ranges checked.
+Untouched TextRules.cs and modified source use UTF-8 and LF; existing source newline style preserved.
+Exact task-owned paths: PSS-001-owned-files.txt (final inventory regenerated before packaging).

@@ -1,0 +1,124 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+  Определение проектов для восстановления...
+  Все проекты обновлены для восстановления.
+  PhantomSemanticStudio.Core -> C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.Core\bin\Release\net10.0\PhantomSemanticStudio.Core.dll
+  PhantomSemanticStudio.WinForms -> C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\bin\Release\net10.0-windows\PhantomSemanticStudio.dll
+  PhantomSemanticStudio.Tests -> C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\bin\Release\net10.0\PhantomSemanticStudio.Tests.dll
+
+Сборка успешно завершена.
+    Предупреждений: 0
+    Ошибок: 0
+
+Прошло времени 00:00:03.25
+PASS normalize Cyrillic and punctuation
+PASS normalize preserves placeholders
+PASS normalize compatibility form
+PASS normalize distinguishes negation
+PASS endpoint accepts loopback
+PASS endpoint rejects remote
+PASS endpoint rejects credentials
+PASS endpoint rejects query
+PASS strict JSON valid
+PASS strict JSON rejects unknown keys
+PASS strict JSON rejects fenced output
+PASS strict JSON rejects duplicate keys
+PASS strict JSON rejects null
+PASS strict JSON rejects unknown kind
+PASS reader sees v3 plus base
+PASS fingerprint deterministic
+PASS reader accepts explicit custom override
+PASS DTD/XXE rejected
+PASS manifest traversal rejected
+PASS duplicate exact normalized blocked
+PASS unknown act blocked
+PASS action act blocked
+PASS invalid placeholder blocked
+PASS gender-specific kept as runtime warning
+PASS approval invalidated by edit
+PASS path excludes source
+PASS path excludes ancestor
+PASS sibling path allowed
+PASS negative assertion controls reject a successful operation
+PASS approval binds manual note and review timestamp
+PASS unverified profanity and conditions never produce safe XML
+PASS reader diagnoses unsupported schema without silent loss
+PASS invalid custom override is rejected
+PASS reader rejects malformed bytes, limits, missing segments and partial v2
+PASS path rejects absolute traversal and directory junction
+PASS batch duplicates conflict across acts and unknown scope is blocked
+PASS failed save preserves valid state and interrupted temporary file is ignored
+PASS conflicting aliases require exact explicit override
+PASS workspace independent lock
+PASS workspace persists session
+PASS saved scoped lesson survives restart without applying to every topic
+PASS export refuses stale approval instead of silently dropping it
+PASS export rejects stale source
+PASS export writes only review ZIP outside source
+PASS HTTP parses expected model response
+PASS HTTP errors fail closed
+PASS HTTP cancellation respected
+PASS HTTP generation rejects length tools bad JSON errors and response limits
+PASS HTTP refuses legacy function calls even with valid candidate content
+PASS HTTP timeout cancels a stalled request without retries
+PASS PSS-002 single kind schema and local whole batch rejection
+PASS PSS-002 MIXED legacy requests lessons and invalid enum
+PASS PSS-002 HTTP categories redact body token and exception
+PASS PSS-002 catalogue rejects malformed duplicate fields and oversize
+PASS PSS-002 exact catalogue check is advisory GET only and endpoint guards
+PASS PSS-002 positive drafts duplicate warnings and JSON review only
+PASS PSS-002 envelope rejects duplicate refusal non-string and multi-choice
+PASS PSS-002 failed generation preserves saved session and approval
+PASS PSS-002 external cancel and timeout are distinct without retry
+PASS PSS-003 65-file stage preserves source session comments overrides and deterministic IDs
+PASS PSS-003 exact selection consent and stale approval fail entire batch without output
+PASS PSS-003 source drift blocks staging and preserves approval history
+PASS PSS-003 unsupported gender placeholders markup controls gameplay and profanity blocked
+PASS PSS-003 normalized peer duplicates invalid candidate IDs and XML ID collisions blocked
+PASS PSS-003 actual Java UTF8 UTF16 and custom schema file bounds fail closed
+PASS PSS-003 cancellation IO failure and reparse leave no finished or unrelated output
+PASS PSS-003 target catalog capacity rejects whole batch at Java hard count
+PASS PSS-003 Java template bucket limit rejects before finished stage
+PASS PSS-003 mid-copy source drift and cancellation clean only own partial
+PASS PSS-004 empty selection never defaults to 25 500 or 5000 approvals
+PASS PSS-004 exact Ordinal subset includes last approval and preserves inputs
+PASS PSS-004 exactly 20 accepted and 21 rejected without truncation
+PASS PSS-004 malformed IDs and duplicate peers fail the entire selection
+PASS PSS-004 stale fields DRAFT and REJECTED block all selected IDs
+PASS PSS-004 real stage selects only 2 of 25 approvals XML receipt source and session preserved
+PASS PSS-004 consent cancellation and invalid subset leave zero stages and unchanged session
+PASS PSS-004 stager rechecks approval source drift peers and incompatible selected item
+PASS PSS-005 offline kind cross-act exact provenance and source-peer namespaces
+PASS PSS-005 stable shortlist bounded 5k patterns 20k templates and cancellation
+PASS PSS-005 synonym and empty lexical results never prove semantic coverage
+PASS PSS-005 one semantic POST exact schema model temperature and advisory only
+PASS PSS-005 strict verdict set fields labels lengths and JSON failures
+PASS PSS-005 rejects tools refusal truncation multi-choice and malformed envelopes
+PASS PSS-005 HTTP failure codes sanitized no retries and no evidence
+PASS PSS-005 legacy session approval and atomic advisory round trip
+PASS PSS-005 evidence bounds reject corrupted state preserving old bytes
+PASS PSS-005 candidate source stamp peer and referenced hash drift stale without approval changes
+PASS PSS-005 physical source race and cancellation reject before atomic persistence
+PASS PSS-006 A safe failure-stage classification strict single POST
+SQL_CANCEL interruptedInsideExecution=true; callbacks=52; ceiling=1000
+PASS PSS-006 B cancellation inside native SQL execution
+ZIP_PREFLIGHT entries=20000; rejectionAllocatedBytes=104192; ceilingBytes=4194304
+PASS PSS-006 B central directory budget before entry materialization
+PASS PSS-006 B privacy skip before persistence UTF8 timestamp triage and reopen
+PASS PSS-006 B language ambiguity and sensitive preview preserve original
+PASS PSS-006 B malformed counters normalized dedup independent ZIP order paged filters
+PASS PSS-006 B archive negative controls and cancelled import atomic old corpus
+PASS PSS-006 B encrypted symlink metadata limits physical corruption
+PASS PSS-006 B CRC damaged archive cannot publish
+SYNTHETIC_100K elapsedMs=5130; sampledPeakPrivateBytes=93548544; privateDeltaBytes=7487488; archiveBytes=2209531; pages=100/100
+PASS PSS-006 B 100k streaming cancel retry bounded pages private memory
+PASS PSS-007 A catalog-only exact reply provenance unsupported and no mutation
+PASS PSS-007 A scope histories cancellation stale source and transactional repeat queue
+PASS PSS-007 A limits reset no truncation and bounded editor transcript
+PASS PSS-007 B opt-in one separate mentor question explicit confirmation and stale ticket
+PASS PSS-007 B strict JSON envelope errors cancellation sanitized no retry
+PASS PSS-007 B manual scoped lesson legacy session private save and twenty-call budget
+PASS PSS-007 C explicit detached public sanitized max20 no original leakage
+PASS PSS-007 C separate reviewed consent exact outbound max3 and immutable corpus
+PASS PSS-007 C malformed keyed suggestions stale and cancel never applied
+RESULT: 107 PASS; 0 FAIL
+PASS: build and console tests. Designer UI, actual LM Studio and Java parity need separate evidence.

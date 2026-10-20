@@ -1,0 +1,8 @@
+PASS PSS-005 offline kind cross-act exact provenance and source-peer namespaces
+PASS PSS-005 stable shortlist bounded 5k patterns 20k templates and cancellation
+PASS PSS-005 synonym and empty lexical results never prove semantic coverage
+FAIL PSS-005 one semantic POST exact schema model temperature and advisory only: Модельная экспертиза ещё не реализована.
+FAIL PSS-005 strict verdict set fields labels lengths and JSON failures: Парсер экспертизы ещё не реализован.
+FAIL PSS-005 rejects tools refusal truncation multi-choice and malformed envelopes: Expected [1], actual [0]
+FAIL PSS-005 HTTP failure codes sanitized no retries and no evidence: Модельная экспертиза ещё не реализована.
+RESULT: 3 PASS; 4 FAIL

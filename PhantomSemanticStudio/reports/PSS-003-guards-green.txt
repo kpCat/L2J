@@ -1,0 +1,5 @@
+PASS javac literal destdir: rejected before any Ant/scratch output
+PASS Java literal output: rejected before any Ant/scratch output
+PASS Java report JVM path: rejected before any Ant/scratch output
+PASS extra Java task in compile: rejected before any Ant/scratch output
+PASS missing JDK remains BLOCKED_JAVA

@@ -1,0 +1,4 @@
+SYNTHETIC_SELECTION_DISPATCH_MS=68; SOURCE_TEMPLATES=7500
+PASS PSS-006 A actual saved selection responsive latest identity cancel error close
+FAIL PSS-006 C real corpus controls import page explicit20 filter cancel session unchanged: Could not resolve type 'PhantomSemanticStudio.WinForms.ChatCorpusForm' in assembly 'PhantomSemanticStudio, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null'.
+CONTROL_CONTRACT_RESULT: 1 PASS; 1 FAIL; physical UI/DPI/VS NOT_TESTED

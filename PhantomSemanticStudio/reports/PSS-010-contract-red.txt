@@ -1,0 +1,17 @@
+TRACE привет preview=greeting.hello/greet.01 text=Привет, ТестовыйФантом. Рад тебя видеть.; lab=FUNCTIONAL_OR_MEMORY_UNSUPPORTED greeting.hello/greet.01 text=
+FAIL PSS-010 synthetic v1 привет safe second template public Core flow: Expected [PACK_CATALOG_APPROXIMATE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+TRACE как дела preview=mood.ask/mood.share.01 text=В целом спокойно. Сегодня хочется поговорить про [интерес не задан].; lab=FUNCTIONAL_OR_MEMORY_UNSUPPORTED mood.ask/mood.share.01 text=
+FAIL PSS-010 synthetic v1 как дела safe second template public Core flow: Expected [PACK_CATALOG_APPROXIMATE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+TRACE меня слили в пвп lab=NO_PACK_MATCH / world=UNKNOWN text=
+FAIL PSS-010 synthetic v1 legitimate no-match and advisory Cyrillic pvp: Expected [GAME], actual [UNKNOWN]
+FAIL PSS-010 unavailable and unknown placeholders retain pattern without fake values: Expected [TEMPLATE_CONTEXT_UNAVAILABLE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+PASS PSS-010 functional identity Fact Recall stay unsupported even with literals
+FAIL PSS-010 band register mature profanity and no eligible template gates: Expected [gated.09], actual [gated.04]
+PASS PSS-010 capture never invents aliases values or leaves placeholder tokens
+FAIL PSS-010 repeat fallback only displayed ids and transactional cancel stale queue: Expected [greet.02], actual [greet.01]
+PASS PSS-010 source drift cancels commit fingerprint and files independently
+MODEL_OFF POST=0; no transport attached; source/session/approval unchanged
+PASS PSS-010 dialogue does not alter source session approvals or model roles
+VALUE FUNCTIONAL_OR_MEMORY_UNSUPPORTED value.pattern/value.01 text=
+FAIL PSS-010 captured value raw/render contract prefix and suffix: Expected [PACK_CATALOG_APPROXIMATE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+RESULT: 4 PASS; 7 FAIL

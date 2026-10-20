@@ -1,0 +1,15 @@
+/goal Выполни PSS-005 по файлу:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-005\GOAL.md
+
+Рабочий root: C:\Users\ZBook\PhantomSemanticStudio\
+Модель: основная Codex; reasoning HIGH; новый диалог.
+Required Studio origin/main: 5d1aedaed38d048e3313c0d8be7d5f81f4db2df2.
+Прочитай AGENTS.md, PSS-004 отчёт, весь пакет PSS-005 и точные source owners.
+
+Создай два этапа проверки смысловых повторов: детерминированный offline shortlist всего humanized каталога (макс. 12 refs) и отдельную явную bounded Gemma экспертизу строгим JSON Schema через localhost LM Studio. Это только MODEL_ADVISORY_NOT_VERIFIED / COVERAGE_LIMITED: без автоматического одобрения/отклонения, без утверждений «все повторы исключены». Evidence сохранить только в own workspace, связать hashes с candidate/source/peers/shortlist, не сломать старые session/approvals.
+
+High Five/L2J — СТРОГО READ_ONLY. PSS-003 stager/Java oracle, PSS-004 selection, JSON review exporter не менять. Никакого XML install/Java из GUI, code execution, tools/retries и review ZIP. Designer standard controls; MainForm constructor только InitializeComponent.
+
+RED/GREEN, final Build-Verify, проверки безопасности и русской кодировки, UI/DPI честно, live LM не подменять fake tests. Отчёт PSS-005, UI evidence, owned inventory. Один нормальный commit и non-force push только в kpCat/PhantomSemanticStudio origin/main; проверить remote SHA. При блокере — честный статус и безопасный commit/push, никогда force.
+
+STOP после PSS-005; PSS-006 не начинать.

@@ -1,0 +1,7 @@
+PASS exact modal selection flow (static)
+PASS new static Designer controls handlers constructor resx nesting ID/filter safety and consent; NOT a VS round-trip or DPI test
+PASS PSS-005 static Designer actions and saved-candidate/fresh-source flow; VS/UI/DPI not implied
+PASS PSS-006 static Designer, six tabs, handlers/resx/nesting; offline UI, streaming/privacy/SQL guards. NOT VS/UI/DPI proof.
+PASS PSS-007 static Designer/handlers/ctor/resx/nesting/entry/default permissions; runtime no shell/model lifecycle. NOT physical UI/DPI/VS.
+PASS PSS-008 static Designer/ctor/resx/nesting/handlers; separate forms; default NO; complete proof preview; NOT physical UI/DPI/VS
+PASS PSS-009 static six-page sizes/scroll/anchors; six ctors/handlers/resx/nesting; NOT physical UI/DPI/VS

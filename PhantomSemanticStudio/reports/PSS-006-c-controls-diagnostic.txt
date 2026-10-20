@@ -1,0 +1,7 @@
+SYNTHETIC_SELECTION_DISPATCH_MS=64; SOURCE_TEMPLATES=7500
+PASS PSS-006 A actual saved selection responsive latest identity cancel error close
+VALIDATION_PUBLIC_STATE active=txtArchive; auto=EnablePreventFocusChange; validate=True
+SYNTHETIC_SEARCH_DIAGNOSTIC status=Локальная операция… отмена доступна.; count=0; searchEnabled=True
+SEARCH_PUBLIC_STATE clicks=1; visible=True; canSelect=True; formVisible=True
+PASS PSS-006 C real corpus controls import page explicit20 filter cancel session unchanged
+CONTROL_CONTRACT_RESULT: 2 PASS; 0 FAIL; physical UI/DPI/VS NOT_TESTED

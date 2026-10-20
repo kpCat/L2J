@@ -1,0 +1,2 @@
+PASS_JAVA_STAGED baselinePatterns=5310 baselineTemplates=20963 stagedPatterns=5311 stagedTemplates=20964 checkedIds=2 baselineHash=7e91c6eb2f962f70be6edb5f5ffaac5a56dc714803fed5fab002cedbd5c78311 stagedHash=479ba7e68e940fbff016a40ec50a091aff40f9617b2da7c584c13b8d2470b13f negative=DUPLICATE_REJECTED
+PASS source and stage SHA/bytes unchanged; copied=2497 files/28660382 bytes; Ant=0; probe=0; negative=3

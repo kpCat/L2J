@@ -1,0 +1,49 @@
+{
+  "task": "PSS-004",
+  "package_version": 1,
+  "repository": "kpCat/PhantomSemanticStudio",
+  "required_main_sha": "edc41128270c14578b9edf748a3c8bc0c6196623",
+  "description": "Task instructions only, no code or review artifacts.",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-004/ACCEPTANCE.md",
+      "bytes": 3349,
+      "sha256": "e2be1efeaed6c23152c0bd2240d0c2574555b17e203ad960b61964e6572c5e5d"
+    },
+    {
+      "path": "docs/tasks/PSS-004/ARCHITECTURE.md",
+      "bytes": 6166,
+      "sha256": "a73a94cbe7e0a4d83cfe029e976ff865494b40411b0a27b6bc34d45e9cef173d"
+    },
+    {
+      "path": "docs/tasks/PSS-004/CODEX_START_RU.txt",
+      "bytes": 1959,
+      "sha256": "b23a7dda18ddf8825b1c5d85cfff4ea95eb790f322b3409d13af62e820527d4a"
+    },
+    {
+      "path": "docs/tasks/PSS-004/GOAL.md",
+      "bytes": 13338,
+      "sha256": "89dc46f1a087ac904c751050bf346ce5fe3d4865669cc96ad5355e64cb9bcd80"
+    },
+    {
+      "path": "docs/tasks/PSS-004/HANDOFF.md",
+      "bytes": 1694,
+      "sha256": "a81addd873f36996d8bb954f38a6615ff8a32ff3d1b9027f601e0058372cedd2"
+    },
+    {
+      "path": "docs/tasks/PSS-004/SAFETY_AND_GIT.md",
+      "bytes": 3607,
+      "sha256": "fe58cb6e52c2d13589d0041cc53271d5f5c9c8d7638d880516486c786ff9e55e"
+    },
+    {
+      "path": "docs/tasks/PSS-004/SOURCE_AUDIT.md",
+      "bytes": 4140,
+      "sha256": "68508286b2c7cc1646e0889f52e28f150bdbabce6d1bb7db569dc310b0bde309"
+    },
+    {
+      "path": "docs/tasks/PSS-004/TEST_CASES.md",
+      "bytes": 5190,
+      "sha256": "6cdd14053f1e425ae02980fe113100c7484d1831eb0b7d2f322bc54981c8b06f"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+ACTUAL_V1_ONLY; two exact XML byte copies; no full 65-file catalog or Java parity claim
+TRACE привет preview=greeting.hello/greet.02 text=Привет! Как ты сегодня?; lab=PACK_CATALOG_APPROXIMATE greeting.hello/greet.02 text=Привет! Как ты сегодня?
+PASS PSS-010 actual readonly v1 привет safe second template public Core flow
+TRACE как дела preview=mood.ask/mood.share.02 text=Неплохо, спасибо. А у тебя как?; lab=PACK_CATALOG_APPROXIMATE mood.ask/mood.share.02 text=Неплохо, спасибо. А у тебя как?
+PASS PSS-010 actual readonly v1 как дела safe second template public Core flow
+TRACE меня слили в пвп lab=NO_PACK_MATCH / world=GAME text=
+PASS PSS-010 actual readonly v1 legitimate no-match and advisory Cyrillic pvp
+SOURCE_UNCHANGED semantic/humanized/high-five-ru-humanized-semantic-v1.xml bytes=10905 sha256=eb22698e078e6197331705d14b3d06d9ea85adbf80fa455dc23c927dc1f96347
+SOURCE_UNCHANGED conversation/humanized/high-five-ru-humanized-conversation-v1.xml bytes=14278 sha256=df347ed4f28b5bc37f7f50e875a4ef80dce530a80f27b66b03c5e7bd12d43e9f
+RESULT: 3 PASS; 0 FAIL

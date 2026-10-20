@@ -1,0 +1,3 @@
+COMMAND: dotnet build PhantomSemanticStudio.sln -c Release --nologo
+RESULT: dotnet: command not found
+COMPILATION_NOT_RUN; RUNTIME_TESTS_NOT_RUN; NO_BINARY_INCLUDED

@@ -1,0 +1,17 @@
+/goal Выполни PSS-010 из файла:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-010\GOAL.md
+
+Рабочий root: C:\Users\ZBook\PhantomSemanticStudio\
+Модель: основная Codex. Reasoning HIGH. НОВЫЙ диалог.
+Required origin/main SHA: 9d5399e65c6c260ea2026c2da006cb48ba7bffce
+Origin: https://github.com/kpCat/PhantomSemanticStudio.git
+
+Это USER-VERIFIED BUG из реального чата. В PSS-009 всё привели в порядок с WinForms, но DialogueLab отвечает FUNCTIONAL_OR_MEMORY_UNSUPPORTED на простые «привет» и «как дела», хотя оба PATTERN находятся и v1 содержит подходящие literal TEMPLATE без placeholders. Третья реплика «меня слили в пвп» закономерно может остаться NO_PACK_MATCH. Причина в PackPreview first-template/фейковых плейсхолдерах и DialogueLabSession шаблонной проверке скобок и raw/render mismatch. Требуется сначала воспроизвести RED, затем исправить real Core flow и дать GREEN, без правок Java/XML/L2J.
+
+Прочитай AGENTS.md, PSS-009 reports, ВСЁ содержимое PSS-010 task package и актуальные PackPreview.cs, DialogueLab.cs, реальные read-only v1 XML. Соблюдай TEST_CASES/ACCEPTANCE/SAFETY_GIT. Не уточняй уже указанные требования.
+
+Точный результат: реальные safe-ответы из каталога на «привет»/«как дела» без выдуманных значений; true functional/memory остаются unsupported; неизвестное «меня слили в пвп» честно показывает отсутствие совпадения без генерации, world GAME лишь advisory. Никаких автосохранений, approvals/XML, AI ответов за PACK, runtime Java parity claims.
+
+Сохраняй user dirt PhantomSemanticStudio.sln byte-for-byte, PSS-009 responsive Designer, работающий High Five strictly READ_ONLY, никакого Git/Ant/Java/server в L2J; никаких review ZIP/личных чатов в репозитории.
+
+Обязательны RED/GREEN включая negative mutation, Release Build-Verify, targeted --pss-010 и доступные legacy/UI regression, статусы честно. reports/PSS-010-plan.md, -final.md, -ui.md, -owned-files.txt, подтверждённое independent code review. Exact git add, ordinary commit, non-force push ТОЛЬКО origin HEAD:refs/heads/main, проверка публичного SHA. STOP после PSS-010, следующую задачу не начинать.

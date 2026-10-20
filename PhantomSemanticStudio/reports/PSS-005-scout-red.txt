@@ -1,0 +1,4 @@
+FAIL PSS-005 offline kind cross-act exact provenance and source-peer namespaces: Offline scout ещё не реализован.
+FAIL PSS-005 stable shortlist bounded 5k patterns 20k templates and cancellation: Offline scout ещё не реализован.
+FAIL PSS-005 synonym and empty lexical results never prove semantic coverage: Offline scout ещё не реализован.
+RESULT: 0 PASS; 3 FAIL

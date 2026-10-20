@@ -1,0 +1,53 @@
+{
+  "task": "PSS-010",
+  "required_base_sha": "9d5399e65c6c260ea2026c2da006cb48ba7bffce",
+  "repository": "kpCat/PhantomSemanticStudio",
+  "encoding": "UTF-8",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-010/ACCEPTANCE.md",
+      "sha256": "501f7609ed54959bcde58f6f431ab0244bf498aec3d79d633dd6b645d491e624",
+      "bytes": 2511
+    },
+    {
+      "path": "docs/tasks/PSS-010/CODEX_START_RU.txt",
+      "sha256": "d7631d16016ac7e22889f792bf807f4a5771dd061cdee890047ae8ef3b3131cc",
+      "bytes": 2853
+    },
+    {
+      "path": "docs/tasks/PSS-010/GOAL.md",
+      "sha256": "3c3b8feb1136f5dbe2f8014d901661179dfdcaa8732ac53cd829c56fde617f52",
+      "bytes": 6989
+    },
+    {
+      "path": "docs/tasks/PSS-010/HANDOFF.md",
+      "sha256": "34e98a9188f08e9df08132ac732576cc044069d1304662e61184d858453b1a34",
+      "bytes": 1169
+    },
+    {
+      "path": "docs/tasks/PSS-010/IMPLEMENTATION.md",
+      "sha256": "4442f2902333faf4f4427c7a9542cad22a46b75efa259201f94c872d77a5baa4",
+      "bytes": 5556
+    },
+    {
+      "path": "docs/tasks/PSS-010/REVIEW_CHECKLIST.md",
+      "sha256": "7638fc5e93be82681bc12a1dae9c4d20ff9e8e239f68d554080a2d14246ed24e",
+      "bytes": 1194
+    },
+    {
+      "path": "docs/tasks/PSS-010/ROOT_CAUSE.md",
+      "sha256": "496f3b51239407a8b77a20ec56e280b6783b81c1cede07f5ed9f0c6a64163b76",
+      "bytes": 3671
+    },
+    {
+      "path": "docs/tasks/PSS-010/SAFETY_GIT.md",
+      "sha256": "b7c8d07c8cb74c1ec43700d2bcec20c23f7fe7d5da73bc5c17c72dbf2d639c49",
+      "bytes": 2294
+    },
+    {
+      "path": "docs/tasks/PSS-010/TEST_CASES.md",
+      "sha256": "8536653ab79a5967185adf04441877513fc627559d9a74a9351b52c3369cdf40",
+      "bytes": 4093
+    }
+  ]
+}

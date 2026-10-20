@@ -1,0 +1,8 @@
+PASS PSS-005 offline kind cross-act exact provenance and source-peer namespaces
+PASS PSS-005 stable shortlist bounded 5k patterns 20k templates and cancellation
+PASS PSS-005 synonym and empty lexical results never prove semantic coverage
+PASS PSS-005 one semantic POST exact schema model temperature and advisory only
+PASS PSS-005 strict verdict set fields labels lengths and JSON failures
+PASS PSS-005 rejects tools refusal truncation multi-choice and malformed envelopes
+PASS PSS-005 HTTP failure codes sanitized no retries and no evidence
+RESULT: 7 PASS; 0 FAIL

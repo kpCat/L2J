@@ -1,0 +1,54 @@
+{
+  "task": "PSS-005",
+  "repository": "kpCat/PhantomSemanticStudio",
+  "requiredBase": "5d1aedaed38d048e3313c0d8be7d5f81f4db2df2",
+  "destination": "C:\\Users\\ZBook\\PhantomSemanticStudio\\",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-005/ACCEPTANCE.md",
+      "bytes": 2646,
+      "sha256": "9dc717c262a5b1a18aa60cf41861fc0ed8bfb5e665f57009b2aa45348d31e788"
+    },
+    {
+      "path": "docs/tasks/PSS-005/ARCHITECTURE.md",
+      "bytes": 9939,
+      "sha256": "62b5395661d55179b161b191ccd049f883afa7fe26cc3a8c225144ed59654260"
+    },
+    {
+      "path": "docs/tasks/PSS-005/CODEX_START_RU.txt",
+      "bytes": 1986,
+      "sha256": "edd384678214581fbee44af6857438ef3e8e7daaa4f7b0ded648fe8eb12e6b1a"
+    },
+    {
+      "path": "docs/tasks/PSS-005/GOAL.md",
+      "bytes": 8994,
+      "sha256": "bc02a3fe88652b6de09d82f367b3cf83af090080b7cdcca0cbc0eb8386206dc4"
+    },
+    {
+      "path": "docs/tasks/PSS-005/HANDOFF.md",
+      "bytes": 1711,
+      "sha256": "a274a263bed8c161d28ce8dfad5c9f3a725f674b44dc57454cde3dea6343c76c"
+    },
+    {
+      "path": "docs/tasks/PSS-005/IMPLEMENTATION.md",
+      "bytes": 7066,
+      "sha256": "d2b77b9324a34eda6c5291aad078a6c14f0fa02e08e424e9ea5c1074629b3c33"
+    },
+    {
+      "path": "docs/tasks/PSS-005/SAFETY_AND_GIT.md",
+      "bytes": 3582,
+      "sha256": "74c6680abcb30fea18da8e7f9dcb570b74e1ce88c09d0720d0f1613d610b6117"
+    },
+    {
+      "path": "docs/tasks/PSS-005/SOURCE_AUDIT.md",
+      "bytes": 3974,
+      "sha256": "ba79dd3aa2a9e4268205eff17f41a5dd9d14b70ef3404a1bd41af6e2afc4b420"
+    },
+    {
+      "path": "docs/tasks/PSS-005/TEST_CASES.md",
+      "bytes": 5038,
+      "sha256": "aa12c21208bd02bb985a6efdc2929caaedc5b4f4685b845ec67a39fc589460f5"
+    }
+  ],
+  "note": "Task package only; no source/review ZIP; manifest does not hash itself."
+}

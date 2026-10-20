@@ -1,0 +1,4 @@
+SYNTHETIC_SELECTION_DISPATCH_MS=80; SOURCE_TEMPLATES=7500
+PASS PSS-006 A actual saved selection responsive latest identity cancel error close
+PASS PSS-006 C real corpus controls import page explicit20 filter cancel session unchanged
+CONTROL_CONTRACT_RESULT: 2 PASS; 0 FAIL; physical UI/DPI/VS NOT_TESTED

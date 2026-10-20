@@ -1,0 +1,2 @@
+BLOCKED_JAVA: stage outside own finished workspace
+Diagnostic=RuntimeException; line=89

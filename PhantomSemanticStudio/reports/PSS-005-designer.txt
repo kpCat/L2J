@@ -1,0 +1,2 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS PSS-005 static Designer actions and saved-candidate/fresh-source flow; VS/UI/DPI not implied

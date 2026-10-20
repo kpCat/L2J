@@ -1,0 +1,9 @@
+FAIL PSS-003 65-file stage preserves source session comments overrides and deterministic IDs: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 exact selection consent and stale approval fail entire batch without output: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 source drift blocks staging and preserves approval history: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 unsupported gender placeholders markup controls gameplay and profanity blocked: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 normalized peer duplicates invalid candidate IDs and XML ID collisions blocked: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 actual Java UTF8 UTF16 and custom schema file bounds fail closed: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 cancellation IO failure and reparse leave no finished or unrelated output: PSS-003 isolated staging is not implemented.
+FAIL PSS-003 target catalog capacity rejects whole batch at Java hard count: PSS-003 isolated staging is not implemented.
+RESULT: 0 PASS; 8 FAIL

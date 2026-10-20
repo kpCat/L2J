@@ -1,0 +1,11 @@
+PASS PSS-003 65-file stage preserves source session comments overrides and deterministic IDs
+PASS PSS-003 exact selection consent and stale approval fail entire batch without output
+PASS PSS-003 source drift blocks staging and preserves approval history
+PASS PSS-003 unsupported gender placeholders markup controls gameplay and profanity blocked
+PASS PSS-003 normalized peer duplicates invalid candidate IDs and XML ID collisions blocked
+PASS PSS-003 actual Java UTF8 UTF16 and custom schema file bounds fail closed
+PASS PSS-003 cancellation IO failure and reparse leave no finished or unrelated output
+PASS PSS-003 target catalog capacity rejects whole batch at Java hard count
+PASS PSS-003 Java template bucket limit rejects before finished stage
+PASS PSS-003 mid-copy source drift and cancellation clean only own partial
+RESULT: 10 PASS; 0 FAIL

@@ -1,0 +1,17 @@
+/goal Выполни PSS-009 по файлу:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-009\GOAL.md
+
+Рабочий каталог: C:\Users\ZBook\PhantomSemanticStudio\
+Основная модель Codex; reasoning HIGH; НОВЫЙ диалог.
+Required exact origin/main base: cddf9a65ffc5b052c110b264c4fe3973f8e6a37c
+Origin: https://github.com/kpCat/PhantomSemanticStudio.git
+
+Это реальный USER-VERIFIED BUG WinForms: в MainForm исчезла кнопка «Карта качества», библиотека расползлась вправо, конструктор и диалог вниз. MainForm.Designer.cs задаёт tabCandidates.Size, но не задаёт Size пяти остальных TabPages; вместе с Anchors это возможная корневая причина. Не угадывай: сперва reproduction real STA Bounds RED, затем proof root cause.
+
+Сделай один PSS-009 (A diagnosis/RED, B минимальный Designer-compatible fix, C live controls GREEN/regressions). Все 6 вкладок и пять отдельных modal forms проверить. Важные кнопки обязаны быть видимыми/достижимыми при первом и повторном переключении, нормальном/уменьшенном размере и DPI. Пытаться проверить настоящий физический экран/VS, но если недоступен — честное NOT_TESTED, не STATIC=>PASS.
+
+Сохранить обычный WinForms Designer, конструкторы только InitializeComponent, без циклов и runtime BuildUi в InitializeComponent. Никаких изменений LM, Semantic Pack, Core/Java/DB/runtime; L2J только READ_ONLY. Никаких private данных/скриншотов/chat.zip/SQLite в GitHub, никаких review ZIP.
+
+RED/GREEN, Final Release Build-Verify, legacy STA004/005/006/007/008, новых UI geometry тестов/negative mutation, UTF-8 и scope PASS. Reports PSS-009-plan/final/ui/owned-files, exact inventory.
+
+Обычный commit+non-force push ТОЛЬКО Studio origin HEAD:refs/heads/main, проверить SHA на удалённом/публичном GitHub и clean. При BLOCKED сохранить честный safe checkpoint. Без force/reset/clean/stash/rebase/amend/git add . и Git в L2J. STOP после PSS-009.

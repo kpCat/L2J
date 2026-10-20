@@ -1,0 +1,6 @@
+PASS mojibake markers in changed files checked; strict UTF-8; files=36
+PASS escaped Cyrillic in changed files checked separately
+PASS incoming task SHA/bytes; user .sln and all Designer/resx unchanged (13 guards)
+PASS bounded owner/privacy allowlist=36
+PASS exact artifact scope vs required base=9d5399e65c6c260ea2026c2da006cb48ba7bffce; files=36; only protected .sln excluded
+PASS exact staged allowlist=36; user .sln excluded

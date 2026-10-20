@@ -1,0 +1,7 @@
+PASS exact modal selection flow (static)
+PASS new static Designer controls handlers constructor resx nesting ID/filter safety and consent; NOT a VS round-trip or DPI test
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS mojibake markers in changed files checked (strict UTF-8)
+PASS escaped Cyrillic in changed files checked separately
+PASS task package payload exact SHA/bytes unchanged
+PASS initial readonly production/task SHA/bytes: 17; actual L2J import NOT_RUN

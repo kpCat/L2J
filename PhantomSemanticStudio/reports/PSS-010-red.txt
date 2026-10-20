@@ -1,0 +1,9 @@
+TRACE привет preview=greeting.hello/greet.01 text=Привет, ТестовыйФантом. Рад тебя видеть.; lab=FUNCTIONAL_OR_MEMORY_UNSUPPORTED greeting.hello/greet.01 text=
+FAIL PSS-010 synthetic v1 привет safe second template public Core flow: Expected [PACK_CATALOG_APPROXIMATE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+TRACE как дела preview=mood.ask/mood.share.01 text=В целом спокойно. Сегодня хочется поговорить про [интерес не задан].; lab=FUNCTIONAL_OR_MEMORY_UNSUPPORTED mood.ask/mood.share.01 text=
+FAIL PSS-010 synthetic v1 как дела safe second template public Core flow: Expected [PACK_CATALOG_APPROXIMATE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+TRACE меня слили в пвп lab=NO_PACK_MATCH / world=UNKNOWN text=
+FAIL PSS-010 synthetic v1 legitimate no-match and advisory Cyrillic pvp: Expected [GAME], actual [UNKNOWN]
+VALUE FUNCTIONAL_OR_MEMORY_UNSUPPORTED value.pattern/value.01 text=
+FAIL PSS-010 captured value raw/render contract prefix and suffix: Expected [PACK_CATALOG_APPROXIMATE], actual [FUNCTIONAL_OR_MEMORY_UNSUPPORTED]
+RESULT: 0 PASS; 4 FAIL

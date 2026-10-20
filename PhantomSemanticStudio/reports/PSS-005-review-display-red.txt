@@ -1,0 +1,7 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+Fresh display can be overwritten with unconditional current=true
+At C:\Users\ZBook\PhantomSemanticStudio\scripts\Verify-PSS005.ps1:19 char:138
++ ...  true\)') { throw 'Fresh display can be overwritten with unconditiona ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Fresh display c...al current=true:String) [], RuntimeException
+    + FullyQualifiedErrorId : Fresh display can be overwritten with unconditional current=true

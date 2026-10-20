@@ -1,0 +1,6 @@
+FAIL PSS-008 A declared empty topic act and template-only act remain visible: Assertion failed
+PASS PSS-008 A missing responses clean diversity provenance and no template topic
+PASS PSS-008 A actual segment capacity normalized duplicates deterministic ordering
+SYNTHETIC_ANALYSIS entries=25000 elapsedMs=130 lexicalComparisons=2012
+PASS PSS-008 A 5k 20k bounded lexical sample cancellation and index caps
+RESULT: 3 PASS; 1 FAIL

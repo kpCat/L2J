@@ -1,0 +1,4 @@
+  Определение проектов для восстановления...
+  Восстановлен C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.Core\PhantomSemanticStudio.Core.csproj (за 878 мс).
+  Восстановлен C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\PhantomSemanticStudio.WinForms.csproj (за 878 мс).
+  Восстановлен C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\PhantomSemanticStudio.Tests.csproj (за 878 мс).

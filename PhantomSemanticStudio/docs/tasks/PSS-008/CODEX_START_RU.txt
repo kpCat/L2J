@@ -1,0 +1,18 @@
+/goal Выполни PSS-008 из файла:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-008\GOAL.md
+
+Рабочая папка: C:\Users\ZBook\PhantomSemanticStudio\
+Модель: основная Codex, reasoning HIGH. НОВЫЙ диалог, одна КРУПНАЯ задача с A/B/C и внутренними RED/GREEN gates.
+Required base (origin/main): 0344c9c0671d53a7bb757db7a92b1dfd03246e9c
+Единственный разрешённый Git origin: https://github.com/kpCat/PhantomSemanticStudio.git
+
+Прочитай AGENTS.md, PSS-007 final/UI/review, все документы PSS-008 и реальный код.
+A: карта покрытия/качества и Designer UI, офлайн без изменения approvals.
+B: 1–20 одобренных → точно выбранная СУЩЕСТВУЮЩАЯ пара v3 manifest → append только в отдельном workspace stage, manifest/v1/v2/custom и исходный L2J без изменений; два отдельных согласия.
+C: отдельный операторский Java oracle в физическом shadow, exact hashes/ID/negative; после доказанного PASS и третьего согласия только OFFLINE RELEASE HANDOFF folder с backup+manifest+manual checklist. Никакой установки.
+
+C:\Users\ZBook\L2J_Mobius\ — СТРОГО READ_ONLY, включая Git, Ant/build/server/client/DB/все XML. Публиковать/устанавливать пак ЗАПРЕЩЕНО. В GUI нельзя запускать Java/Ant/shell.
+WinForms Designer обычный .Designer.cs/.resx, ctor только InitializeComponent(), никаких циклов, IO, LINQ, фабрик в методе. Privacy: ни один настоящий chat/PII/raw XML/token/prompts/SQL DB в Git/report. Review/source ZIP не создавать.
+
+RED/GREEN по A/B/C, Release Build-Verify, static/STA Designer; реальный Java native gate если доступен, иначе BLOCKED_JAVA; manual DPI/VS/live LM не считать PASS без выполнения. Отчёты PSS-008-final.md, PSS-008-ui.md, exact owned-files, все статусы. Обычные локальные checkpoint commits можно; обязательный non-force push только origin/main, exact remote/public SHA proof.
+STOP после PSS-008. Никакого PSS-009 без моего ревью.

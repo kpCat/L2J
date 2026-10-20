@@ -1,0 +1,28 @@
+# B — Отдельный v3 staging без изменений рабочего High Five
+
+## ВАЖНО: этот этап не устанавливает паки
+
+Existing `IsolatedPackStager` PSS003 appends **only six custom overlay scheme (two target files)** inside own shadow and passed its own Java proof. The new v3 proposal is a **different** contract. Do NOT retrofit by faking custom roots, changing PSS003 IDs, weakening `StageBatchSelection`, writing v3 in source, or pretending a custom Java oracle covers v3.
+
+## Scope and provenance
+
+1. Use `StageBatchSelection.SelectExactIds` and `CandidateReview.IsCurrent`, full allPeers validation, source fingerprint + each source SHA before/pre-copy/post-stage; batch **1–20**. All selected candidates must be valid for one exact existing **declared v3 semantic+conversation segment pair** and already existing topic+act mapping. If no unique/compatible category, explicit operator choice followed by strict matching; otherwise `BLOCKED_SCOPE`, not random category. A user-selectable named category must come **only** from exact manifest entries, and both paths must be paired.
+2. **No new manifest paths or symbols in PSS008.** The public reference manifest has 52/64 declared files; append only to two already listed XML files, or one when only PATTERN or TEMPLATE selected. Do not silently create segment #53. Original manifest bytes/stamps unchanged in staged copy. No new `act`, `topic`, identity, functionality, aliases, profanity, mature, fact, recall, placeholders, role-based character assignment or behavioural game rules.
+3. C# preflight must follow **actual Java loader contract** from checked High Five source: `KEY ^[a-z][a-z0-9_.-]{0,63}$`; per-file 1MiB, v3 total 32MiB; manifest max 64; global 8192 patterns/32768 templates/2048 aliases/1024 profanity; indexed pattern bucket<=256, clean template bucket<=4096; exact normalized duplicates/ID collision/cross-act ambiguity; pattern length <=160 UTF-16 units after Java-style normalization; template UTF-8 text<=240 bytes. No raising limits or truncating strings.
+4. Determine destination from manifest and actual v3 **source provenance**: for PATTERN require selected topic+act attested by existing pattern(s) within selected semantic segment; for TEMPLATE require that same topic+act is attested in matching semantic segment and eligible act exists/valid in counterpart conversation segment. If an act appears in many pairs, do not silently route it; fail unless explicit unique category picked. Do not use `PackEntry.Topic` on templates as runtime proof. Handle non-v3-only acts as `BLOCKED_SCOPE` and suggest existing custom staging separately.
+5. New v3 IDs stable valid e.g. `pss.v3.p.<32hex>` and `pss.v3.t.<32hex>`, collision-checked globally, no `override` attribute (NOT ALLOWED in v3 elements). Use `salience=0`, `ttlMinutes=0`, `priority=500` for non-memory PATTERN unless exact runtime audit requires other safe values. TEMPLATE `act/band/register/profanity="NONE"/text`; root conversation `mature=false` only. `Gender` must be `ANY` and manual editorial attestation that grammatical gender is broadly valid. Reject all unicode hidden controls, suspicious markup, unsupported memory/gameplay/action claims.
+6. Two separate default-NO manual consents: (a) exact IDs/full texts/target category with selected output file paths, (b) editorial truth/mature/profanity/gender/action confirmation and acknowledgment NOT_FOR_INSTALLATION. Reject all on any unsupported candidate; no skip, auto-approval, auto-rewrite, deletion or replacement.
+7. Staging physically in `workspace/v3-proposals/<GUID>.partial` → `<GUID>`, **not** `workspace/proposals` (reserved PSS003 custom), with `module/dist/game/data/phantoms` copied from source by bounded read/checked stamps. Only 1-2 named existing v3 segments may differ. Preserve full XML root/namespace/category/id/version, attributes, comments, existing records, whitespace semantics, existing manifest/custom exact SHA. Source completely unchanged.
+8. Atomic final directory rename on one volume after strict source recheck/cancellation and approval hash check. All buffers bounded; reparse/junction/relative traversal/partial cleanup only own. Receipt JSON in proposal own folder: `STAGED_V3_UNVALIDATED`, `JavaStatus=NOT_RUN`, NOT_FOR_INSTALLATION true, all baseline/staged per-file hashes, selected IDs/approval hashes/source fingerprint/target pairs, no secret/PII/raw model output, no L2J commit/DB/server.
+
+## User flow
+
+From UI (new Designer-editable form or small handler): current `PackSnapshot` required → manual select 1–20 CURRENT APPROVED (reuse StageSelectionForm), choose exact paired manifest category → two explicit confirmations → worker stage → visible path/status and "не устанавливать". Button independent from existing "isolated custom XML" path.
+
+## Test cases
+
+- Both-kind and pattern-only/template-only synthetic v3 paired fixture: exact selected ID delta; detached current approved; no changes in 63 other stamped files; manifest and six custom unchanged.
+- Unknown/nonunique source mapping, v1/v2-only topic-act, mismatched segment pair, gender-specific text, mature/profanity, new act/topic, template 240 UTF8, pattern 160 UTF16, target 1MiB, 64 segment, bucket cap, 8192/32768 counts, duplicate ID and normalized phrase, malformed v3 XML DTD, stale fingerprint, staged partial, cancellation/reparse. Every negative must show **zero finished** new stage and unchanged source/session.
+- No unvalidated stage may obtain Java PASS or release artifact. Keep PSS003 custom stager/tests unmodified and passing.
+
+Exit B: `STAGED_V3_UNVALIDATED` proposal ONLY; Java verification is separate operator C, not a success of B.

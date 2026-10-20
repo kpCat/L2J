@@ -1,0 +1,2 @@
+Import=PASS; files=65; patterns=5310; templates=20963; fingerprint=43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322
+Source before/after equal=True; LM=BLOCKED_LM; SERVER_OFFLINE: Локальный API не принимает соединение. LM Studio → Developer → API Server → Start; затем проверьте порт и точный API identifier модели. Программа не запускает сервер и не загружает модель.;

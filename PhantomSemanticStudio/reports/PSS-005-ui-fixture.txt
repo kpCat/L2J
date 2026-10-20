@@ -1,0 +1,1 @@
+SYNTHETIC_UI_FIXTURE=C:\Users\ZBook\PhantomSemanticStudio\artifacts\PSS-005\ui-run; source=C:\Users\ZBook\AppData\Local\Temp\pss-tests-6fccc1a75abc461297cb94743794a37f\L2J_Mobius_CT_2.6_HighFive; candidates=1; actual L2J/model calls=0

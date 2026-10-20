@@ -1,0 +1,2 @@
+FAIL PSS-007 A real STA lab roles trace three turns cancel input and layout: Assertion failed
+CONTROL_CONTRACT_RESULT: 0 PASS; 1 FAIL; physical UI/DPI/VS NOT_TESTED

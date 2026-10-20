@@ -1,0 +1,63 @@
+SCREEN bounds={X=0,Y=0,Width=1920,Height=1080} workArea={X=0,Y=0,Width=1920,Height=1040}; physical visual observation NOT_TESTED
+TRANSITION constructed formClient={Width=1260, Height=850} dpi=96 fontHeight=18 display={X=4,Y=36,Width=1252,Height=712}
+PAGE tabGenerate client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabChat client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabLibrary client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabCandidates client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabExport client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabSettings client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+CONTROL grpRequest bounds={X=16,Y=54,Width=764,Height=538} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnGenerate bounds={X=16,Y=614,Width=294,Height=40} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnPreview bounds={X=1060,Y=402,Width=166,Height=70} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnPackQuality bounds={X=866,Y=58,Width=360,Height=30} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL gridLibrary bounds={X=16,Y=96,Width=1210,Height=350} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnSemanticReview bounds={X=908,Y=640,Width=318,Height=38} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnV3Proposal bounds={X=504,Y=266,Width=470,Height=36} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnChatCorpus bounds={X=876,Y=500,Width=204,Height=36} parent={X=0,Y=0,Width=1252,Height=712}
+TRANSITION shown formClient={Width=1260, Height=850} dpi=96 fontHeight=18 display={X=4,Y=36,Width=1252,Height=712}
+PAGE tabGenerate client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabChat client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabLibrary client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabCandidates client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabExport client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+PAGE tabSettings client={X=0,Y=0,Width=1252,Height=712} bounds={X=4,Y=36,Width=1252,Height=712}
+CONTROL grpRequest bounds={X=16,Y=54,Width=764,Height=538} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnGenerate bounds={X=16,Y=614,Width=294,Height=40} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnPreview bounds={X=1060,Y=402,Width=166,Height=70} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnPackQuality bounds={X=866,Y=58,Width=360,Height=30} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL gridLibrary bounds={X=16,Y=96,Width=1210,Height=350} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnSemanticReview bounds={X=908,Y=640,Width=318,Height=38} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnV3Proposal bounds={X=504,Y=266,Width=470,Height=36} parent={X=0,Y=0,Width=1252,Height=712}
+CONTROL btnChatCorpus bounds={X=876,Y=500,Width=204,Height=36} parent={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=1 page=tabGenerate client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=1 page=tabChat client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=1 page=tabLibrary client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=1 page=tabCandidates client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=1 page=tabExport client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=1 page=tabSettings client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=2 page=tabSettings client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=2 page=tabExport client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=2 page=tabCandidates client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=2 page=tabLibrary client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=2 page=tabChat client={X=0,Y=0,Width=1252,Height=712}
+SELECT pass=2 page=tabGenerate client={X=0,Y=0,Width=1252,Height=712}
+PASS PSS-009 MainForm first and repeated tab selection actual parent bounds
+MATRIX MainForm state=Normal outer={Width=1276, Height=889} dpi=96 tabs=6 defects=0
+MATRIX MainForm state=Maximized outer={Width=1936, Height=1056} dpi=96 tabs=6 defects=0
+GROW main grid={Width=1870, Height=517} request={Width=1424, Height=705} conversation={Width=1444, Height=487}
+MATRIX MainForm state=Normal outer={Width=1276, Height=889} dpi=96 tabs=6 defects=0
+PASS PSS-009 main default maximize restore and responsive geometry
+GROW StageSelectionForm/listCandidates actual={Width=1450, Height=559} design={Width=650, Height=282}
+PASS PSS-009 StageSelectionForm all controls default maximize restore geometry
+MATRIX DialogueLabForm first outer={Width=1296, Height=879} dpi=96 tabs=3 defects=0
+MATRIX DialogueLabForm state=Maximized outer={Width=1936, Height=1056} dpi=96 tabs=3 defects=0
+GROW DialogueLabForm/tabsLab actual={Width=1896, Height=867} design={Width=1256, Height=690}
+MATRIX DialogueLabForm state=Normal outer={Width=1296, Height=879} dpi=96 tabs=3 defects=0
+PASS PSS-009 DialogueLabForm all controls default maximize restore geometry
+GROW ChatCorpusForm/listRows actual={Width=1440, Height=501} design={Width=800, Height=318}
+PASS PSS-009 ChatCorpusForm all controls default maximize restore geometry
+GROW PackQualityForm/listRows actual={Width=1888, Height=607} design={Width=948, Height=320}
+PASS PSS-009 PackQualityForm all controls default maximize restore geometry
+GROW V3ProposalForm/txtPreview actual={Width=1888, Height=405} design={Width=948, Height=198}
+PASS PSS-009 V3ProposalForm all controls default maximize restore geometry
+LAYOUT_CONTRACT_RESULT: 7 PASS; 0 FAIL; PHYSICAL_UI_NOT_TESTED; PHYSICAL_DPI_NOT_TESTED; VS_DESIGNER_NOT_TESTED

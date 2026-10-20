@@ -1,0 +1,3 @@
+SOURCE_READONLY_SMOKE: files=65; patterns=5310; templates=20963
+SCOUT: considered=20963; scope=6; shortlist=12; excludedFromModel=20951
+COVERAGE_LIMITED; model POST=0; source SHA/bytes unchanged=True; fingerprint=43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322

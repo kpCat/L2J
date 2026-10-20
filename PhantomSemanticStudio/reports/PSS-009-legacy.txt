@@ -1,0 +1,40 @@
+Legacy STA controls on final responsive Designer. All routes executed separately, exit0.
+
+--pss-004-controls
+PASS PSS-004 actual controls empty default and bounded 5000 approval view
+PASS PSS-004 actual ItemCheck keeps hidden IDs full preview and checkbox state through filters
+PASS PSS-004 actual controls stale baseline and 21 checks block without silent unchecking
+PASS PSS-004 actual confirmation full exact texts default No and explicit OK returns detached IDs
+CONTROL_CONTRACT_RESULT: 4 PASS; 0 FAIL; interactive UI/DPI/VS NOT_TESTED
+
+--pss-005-controls
+PASS PSS-005 actual controls semantic buttons nonoverlap at minimum and resized layout
+PASS PSS-005 actual offline action saved advisory stale editor and edit clears approval
+PASS PSS-005 actual saved report source drift and invalid UTF8 select as STALE without crash
+CONTROL_CONTRACT_RESULT: 3 PASS; 0 FAIL; interactive UI/DPI/VS NOT_TESTED
+
+--pss-006-controls
+SYNTHETIC_SELECTION_DISPATCH_MS=107; SOURCE_TEMPLATES=7500
+PASS PSS-006 A actual saved selection responsive latest identity cancel error close
+PASS PSS-006 C real corpus controls import page explicit20 filter cancel session unchanged
+CONTROL_CONTRACT_RESULT: 2 PASS; 0 FAIL; physical UI/DPI/VS NOT_TESTED
+
+--pss-007-controls
+SYNTHETIC_A_TURN count=1; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=2; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=3; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+PASS PSS-007 A real STA lab roles trace three turns cancel input and layout
+PASS PSS-007 B STA separate opt-in preview confirmation lesson and private history
+SYNTHETIC_C_STAGE transfer=2
+SYNTHETIC_C_STAGE calls=1; status=Один отдельный corpus POST. AI-предложения только черновые заметки; corpus/пак не изменены.
+PASS PSS-007 C STA explicit transfer separate consent manual mask suggestion to scoped lesson
+PASS PSS-007 review scope consent expires after band or register changes
+PASS PSS-007 review revoking mentor and corpus consent during preflight prevents POST
+PASS PSS-007 review suggestion insertion Cancel preserves dirty editor note
+PASS PSS-007 review clear selection during corpus preflight revokes transfer
+CONTROL_CONTRACT_RESULT: 7 PASS; 0 FAIL; physical UI/DPI/VS NOT_TESTED
+
+--pss-008-controls
+PASS PSS-008 A real STA quality analysis filters cancel and resize without mutation
+PASS PSS-008 B real STA separate proposal exact pair default NO gates and layout
+RESULT: 2 PASS; 0 FAIL

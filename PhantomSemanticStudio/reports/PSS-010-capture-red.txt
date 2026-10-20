@@ -1,0 +1,18 @@
+TRACE привет preview=greeting.hello/greet.02 text=Привет! Как ты сегодня?; lab=PACK_CATALOG_APPROXIMATE greeting.hello/greet.02 text=Привет! Как ты сегодня?
+PASS PSS-010 synthetic v1 привет safe second template public Core flow
+TRACE как дела preview=mood.ask/mood.share.02 text=Неплохо, спасибо. А у тебя как?; lab=PACK_CATALOG_APPROXIMATE mood.ask/mood.share.02 text=Неплохо, спасибо. А у тебя как?
+PASS PSS-010 synthetic v1 как дела safe second template public Core flow
+TRACE меня слили в пвп lab=NO_PACK_MATCH / world=GAME text=
+PASS PSS-010 synthetic v1 legitimate no-match and advisory Cyrillic pvp
+PASS PSS-010 unavailable and unknown placeholders retain pattern without fake values
+PASS PSS-010 functional identity Fact Recall stay unsupported even with literals
+PASS PSS-010 band register mature profanity and no eligible template gates
+FAIL PSS-010 capture never invents aliases values or leaves placeholder tokens: Expected [], actual [Интерес: книги.]
+PASS PSS-010 repeat fallback only displayed ids and transactional cancel stale queue
+PASS PSS-010 source drift cancels commit fingerprint and files independently
+MODEL_OFF POST=0; no transport attached; source/session/approval unchanged
+PASS PSS-010 dialogue does not alter source session approvals or model roles
+VALUE PACK_CATALOG_APPROXIMATE value.pattern/value.01 text=Интерес: книги.
+VALUE PACK_CATALOG_APPROXIMATE value.pattern/value.01 text=Интерес: книги.
+PASS PSS-010 captured value raw/render contract prefix and suffix
+RESULT: 10 PASS; 1 FAIL

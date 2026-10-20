@@ -1,0 +1,8 @@
+FAIL PSS-002 single kind schema and local whole batch rejection: Expected [1], actual [2]
+FAIL PSS-002 MIXED legacy requests lessons and invalid enum: Expected async failure
+FAIL PSS-002 HTTP categories redact body token and exception: Assertion failed
+FAIL PSS-002 catalogue rejects malformed duplicate fields and oversize: Assertion failed
+FAIL PSS-002 envelope rejects duplicate refusal non-string and multi-choice: Expected async failure
+FAIL PSS-002 failed generation preserves saved session and approval: Expected async failure
+FAIL PSS-002 external cancel and timeout are distinct without retry: Assertion failed
+RESULT: 0 PASS; 7 FAIL

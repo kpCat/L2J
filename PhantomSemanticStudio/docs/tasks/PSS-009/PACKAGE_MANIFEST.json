@@ -1,0 +1,64 @@
+{
+  "task": "PSS-009",
+  "required_origin_main": "cddf9a65ffc5b052c110b264c4fe3973f8e6a37c",
+  "origin": "https://github.com/kpCat/PhantomSemanticStudio.git",
+  "description": "Physical WinForms layout defect from user screenshots, read-first + real red-green geometry fix",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-009/ACCEPTANCE.md",
+      "sha256": "09befb37ff472759e9092538c24bf48ae53911cc7d58b26f6d9b4cc04bf1eb6e",
+      "bytes": 3581
+    },
+    {
+      "path": "docs/tasks/PSS-009/BASELINE_ROOT_CAUSE.md",
+      "sha256": "e1cb5e6b1aea15ae5f823276d7f788e26639eae661ae38774fee3ebe72f92530",
+      "bytes": 5856
+    },
+    {
+      "path": "docs/tasks/PSS-009/CODEX_START_RU.txt",
+      "sha256": "62bf827e2be0f808257073b016489c7a202e3be0374e5345013a39677c27a128",
+      "bytes": 2476
+    },
+    {
+      "path": "docs/tasks/PSS-009/FORM_MATRIX.md",
+      "sha256": "6840327de1afb65590fbd7f93c5495c1c21f70b7646926bc054677f7d8d62499",
+      "bytes": 3072
+    },
+    {
+      "path": "docs/tasks/PSS-009/GOAL.md",
+      "sha256": "72409f0b153f7ecf8c6a5b4eaf0eb0b6bcad06405d4d655d08c27db614311d01",
+      "bytes": 10760
+    },
+    {
+      "path": "docs/tasks/PSS-009/HANDOFF.md",
+      "sha256": "517f616c239f5c912657a345c01c2ccee89ce69c4466e01f3a4cf75b1f77768f",
+      "bytes": 1804
+    },
+    {
+      "path": "docs/tasks/PSS-009/IMPLEMENTATION_STEPS.md",
+      "sha256": "8c8c217e6ca6bb6ca2f822147cb2b567a13e5b7dd9c9f702c256ff6c192c5a14",
+      "bytes": 4351
+    },
+    {
+      "path": "docs/tasks/PSS-009/LAYOUT_DESIGN.md",
+      "sha256": "c515c24d8d3f333626803314cb495da35118f00fb4e6fa6ccaf48b7d2e98a989",
+      "bytes": 4242
+    },
+    {
+      "path": "docs/tasks/PSS-009/MANUAL_CHECKLIST.md",
+      "sha256": "3cb440e604448e3ded92e343764e8c50aa9495ca5506bd5bd065139dfe8c1d48",
+      "bytes": 3432
+    },
+    {
+      "path": "docs/tasks/PSS-009/SECURITY_GIT.md",
+      "sha256": "f190d03c86598654401d50b5bbe43d3f29dd6d1266953824c245431272cfa098",
+      "bytes": 3231
+    },
+    {
+      "path": "docs/tasks/PSS-009/TEST_CASES.md",
+      "sha256": "57b3cd635a7666b6b31862d91ca9108480671c946417a4dbff9cd53f226c8126",
+      "bytes": 4691
+    }
+  ],
+  "note": "Manifest lists payload only; this manifest cannot include its own checksum."
+}

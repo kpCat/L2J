@@ -1,0 +1,2 @@
+Import=PASS; files=65; patterns=5310; templates=20963; fingerprint=43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322
+Source before/after equal=True; LM=BLOCKED_LM; HttpRequestException: Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение. (127.0.0.1:1234); 

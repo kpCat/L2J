@@ -1,0 +1,55 @@
+{
+  "package": "PSS-003",
+  "repo": "https://github.com/kpCat/PhantomSemanticStudio.git",
+  "branch": "main",
+  "required_base_sha": "60d48348687467c3724ae2bb010ef62987c58d4e",
+  "unpack_root": "C:\\Users\\ZBook\\PhantomSemanticStudio",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-003/ACCEPTANCE.md",
+      "sha256": "1b3a376d3c2a96b5a19ab96dc8ada7aadff4aacbbc1a0250c52a2d4ce6bd3ec7",
+      "bytes": 3075
+    },
+    {
+      "path": "docs/tasks/PSS-003/ARCHITECTURE.md",
+      "sha256": "95896c1e98d43c67c5035bf4b014efa0ba7f6fdb986c8ee5ec1309acbb952c7e",
+      "bytes": 6243
+    },
+    {
+      "path": "docs/tasks/PSS-003/CODEX_START_RU.txt",
+      "sha256": "10a3160e31efa835ff95dbbe5822bde4528df03d074698369b9eba4ffd228acb",
+      "bytes": 2029
+    },
+    {
+      "path": "docs/tasks/PSS-003/GOAL.md",
+      "sha256": "6a1962ec10a7eb75623bb4b6949d6da0a24552883aa008057ce315e2acb1cf12",
+      "bytes": 10425
+    },
+    {
+      "path": "docs/tasks/PSS-003/HANDOFF.md",
+      "sha256": "3dee0506380c6f5b880c9e221b84157cf219c8a584db5caa6e3cd37fde3c2f92",
+      "bytes": 2075
+    },
+    {
+      "path": "docs/tasks/PSS-003/SAFETY.md",
+      "sha256": "3f7a2eaf364d089152c424617c3f87d10bbb327d1c7c3a81e9a7920363afe047",
+      "bytes": 3818
+    },
+    {
+      "path": "docs/tasks/PSS-003/SOURCE_CONTRACT.md",
+      "sha256": "52ec9efb1399ae9b700a4659822eb0cdd28eba515b14c9bf9a04cc4a1570d531",
+      "bytes": 3523
+    },
+    {
+      "path": "docs/tasks/PSS-003/TEST_CASES.md",
+      "sha256": "8fb96a3974604e7efb161becbca9e31d9b91681c6ce81700044efd8763f79b8d",
+      "bytes": 5178
+    },
+    {
+      "path": "docs/tasks/PSS-003/VALIDATION_RULES.md",
+      "sha256": "1a76b23414d559b7433154bc4f700ad74d8041facf604aed4e9310318a13f6fd",
+      "bytes": 6996
+    }
+  ],
+  "manifest_note": "Manifest does not recursively hash itself. Existing project files must not be overwritten."
+}

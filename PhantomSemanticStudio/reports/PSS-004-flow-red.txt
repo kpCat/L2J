@@ -1,0 +1,6 @@
+PSS-004 RED: StageXml_Click implicitly selects all APPROVED and blocks >20.
+At C:\Users\ZBook\PhantomSemanticStudio\scripts\Verify-PSS004.ps1:7 char:61
++ ... OVED"\)') { throw 'PSS-004 RED: StageXml_Click implicitly selects all ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (PSS-004 RED: St...and blocks >20.:String) [], RuntimeException
+    + FullyQualifiedErrorId : PSS-004 RED: StageXml_Click implicitly selects all APPROVED and blocks >20.

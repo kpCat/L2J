@@ -1,0 +1,15 @@
+/goal Выполни PSS-003 по файлу:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-003\GOAL.md
+
+Рабочий корень: C:\Users\ZBook\PhantomSemanticStudio\
+Codex: основная coding-модель, reasoning HIGH, новый диалог.
+
+Required public base: kpCat/PhantomSemanticStudio origin/main = 60d48348687467c3724ae2bb010ef62987c58d4e. До работы read-first, verify base/remote/user dirt, затем читай ВСЕ файлы docs/tasks/PSS-003 и AGENTS.md.
+
+Задача: staged XML из исключительно одобренных кандидатов в собственном workspace с явным подтверждением, строгими Java-bound/security gates, реальный Java oracle ТОЛЬКО на физической копии в workspace. Никакой XML/сборки/логов/изменений в L2J. Вся локальная папка C:\Users\ZBook\L2J_Mobius\ и kpCat/L2J — READ_ONLY. Не исполняй код от Gemma.
+
+Обнови AGENTS.md: больше НИКАКИХ review/source ZIP от Codex. Ассистент проверяет только GitHub main/diff/report. Task ZIP — лишь средство передачи этого GOAL.
+
+WinForms Designer не ломать: MainForm() только InitializeComponent(), никаких циклов, runtime UI factory, I/O в InitializeComponent. Никаких install/autoapprove/autopublish, raw model text и секретов в Git. Java PASS не равен server-ready.
+
+Финал: отчёты reports/PSS-003-*, точные PASS/FAIL/NOT_TESTED и отдельный Java status, source SHA equality, bounded tests, ordinary commit и normal non-force push только https://github.com/kpCat/PhantomSemanticStudio.git в origin/main, remote SHA verification. При BLOCKED безопасную часть и честный report всё равно commit/push. Не пересобирать review ZIP и не начинать PSS-004. STOP.

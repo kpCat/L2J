@@ -1,0 +1,12 @@
+Phantom Semantic Studio 0.1 — исходный стартовый проект
+
+1. Распаковать содержимое в C:\Users\ZBook\PhantomSemanticStudio\.
+2. Отдельный ZIP PSS-001 распаковать В ЭТУ ЖЕ ПАПКУ.
+3. Запустить новый диалог Codex из этой папки и передать текст /goal.
+4. Codex должен сначала собрать и проверить приложение, не менять L2J.
+
+Самостоятельная сборка: PhantomSemanticStudio.sln → Visual Studio 2026 / .NET 10.
+Проверка: powershell -ExecutionPolicy Bypass -File .\scripts\Build-Verify.ps1
+
+Это исходники, а не проверенный бинарный релиз. Windows Designer и реальная Gemma в среде автора не запускались.
+Рабочий Semantic Pack приложение НЕ ПЕРЕЗАПИСЫВАЕТ. Экспорт только для ревью, установка на сервер отсутствует.

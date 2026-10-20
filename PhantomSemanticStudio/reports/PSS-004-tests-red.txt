@@ -1,0 +1,9 @@
+FAIL PSS-004 empty selection never defaults to 25 500 or 5000 approvals: PSS-004 exact selection is not implemented.
+FAIL PSS-004 exact Ordinal subset includes last approval and preserves inputs: PSS-004 exact selection is not implemented.
+FAIL PSS-004 exactly 20 accepted and 21 rejected without truncation: PSS-004 exact selection is not implemented.
+FAIL PSS-004 malformed IDs and duplicate peers fail the entire selection: PSS-004 exact selection is not implemented.
+FAIL PSS-004 stale fields DRAFT and REJECTED block all selected IDs: PSS-004 exact selection is not implemented.
+FAIL PSS-004 real stage selects only 2 of 25 approvals XML receipt source and session preserved: PSS-004 exact selection is not implemented.
+FAIL PSS-004 consent cancellation and invalid subset leave zero stages and unchanged session: PSS-004 exact selection is not implemented.
+FAIL PSS-004 stager rechecks approval source drift peers and incompatible selected item: PSS-004 exact selection is not implemented.
+RESULT: 0 PASS; 8 FAIL

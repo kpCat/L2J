@@ -1,0 +1,2 @@
+PASS PSS-008 A real STA quality analysis filters cancel and resize without mutation
+RESULT: 1 PASS; 0 FAIL

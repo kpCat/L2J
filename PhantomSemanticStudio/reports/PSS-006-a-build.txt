@@ -1,0 +1,9 @@
+  PhantomSemanticStudio.Core -> C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.Core\bin\Release\net10.0\PhantomSemanticStudio.Core.dll
+  PhantomSemanticStudio.WinForms -> C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\bin\Release\net10.0-windows\PhantomSemanticStudio.dll
+  PhantomSemanticStudio.Tests -> C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\bin\Release\net10.0\PhantomSemanticStudio.Tests.dll
+
+Сборка успешно завершена.
+    Предупреждений: 0
+    Ошибок: 0
+
+Прошло времени 00:00:03.43

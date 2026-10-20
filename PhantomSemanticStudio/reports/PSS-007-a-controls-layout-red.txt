@@ -1,0 +1,5 @@
+SYNTHETIC_A_TURN count=1; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=2; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=3; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+FAIL PSS-007 A real STA lab roles trace three turns cancel input and layout: Outside parent: txtTranscript; bounds={X=10,Y=12,Width=1726,Height=993}; parent={X=0,Y=0,Width=1152,Height=583}
+CONTROL_CONTRACT_RESULT: 0 PASS; 1 FAIL; physical UI/DPI/VS NOT_TESTED

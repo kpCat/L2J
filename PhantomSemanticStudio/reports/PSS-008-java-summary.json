@@ -1,0 +1,62 @@
+{
+  "JavaStatus": "PASS_JAVA_STAGED_V3",
+  "Status": "JAVA_CONTENT_ONLY_NOT_RUNTIME_READY",
+  "AntExitCode": 0,
+  "CompileExitCode": 0,
+  "ProbeExitCode": 0,
+  "NegativeExitCode": 3,
+  "SchemaNegativeExitCode": 3,
+  "CopyFiles": 2497,
+  "CopyBytes": 28660382,
+  "SourceEqual": true,
+  "SourceFingerprint": "43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322",
+  "ScriptHash": "384d7b39f64ba22e6053b8cd36d02a4a2dd027cf9dbd47d992eab7d8a843f956",
+  "BridgeHash": "592997d068578fb048a79053d970a69e2bfeed8d62b6dce69644ca641a43c4ab",
+  "InputInventoryHash": "128f91478189b6a164eb8df7b485de662d09041967f8d6ba0165f6b588d40076",
+  "ExpectedIdsSha256": "883d5a23c866cbcc898cd4e49ef88afd1735f40f2b4c714716af22672b398e1c",
+  "ProbeEvidence": "PASS_JAVA_STAGED_V3 baselinePatterns=5310 baselineTemplates=20963 stagedPatterns=5311 stagedTemplates=20964 checkedIds=2 baselineHash=7e91c6eb2f962f70be6edb5f5ffaac5a56dc714803fed5fab002cedbd5c78311 stagedHash=d0aeaad3e6f7a0740ac3bf40c073bc03d8f74b5be33f512799a91e7a8ecfbe71 negative=DUPLICATE_AND_SCHEMA_REJECTED",
+  "Jdk": "javac 25.0.4.1",
+  "Ant": "Apache Ant(TM) version 1.10.17 compiled on April 6 2026",
+  "Logs": [
+    {
+      "RelativePath": "ant-content.txt",
+      "Sha256": "627768227fa1050db750c735faee0d53399cc9c40f779a60c4f0454835a3187c",
+      "Bytes": 3824
+    },
+    {
+      "RelativePath": "probe.txt",
+      "Sha256": "45a9c40075ce9bbf28d53691a5c87adc66e483b9912d22d78c00006583373b89",
+      "Bytes": 967
+    },
+    {
+      "RelativePath": "negative.txt",
+      "Sha256": "f6eea318db0293e95eaafc5e1331d37bb9755e896512658aa9e449b8911940cc",
+      "Bytes": 601
+    },
+    {
+      "RelativePath": "negative-schema.txt",
+      "Sha256": "f6eea318db0293e95eaafc5e1331d37bb9755e896512658aa9e449b8911940cc",
+      "Bytes": 601
+    },
+    {
+      "RelativePath": "probe-compile.txt",
+      "Sha256": "884520ded268c13837d35cdb4f7356b21c7789a7915dc915b2a26417df5f5732",
+      "Bytes": 580
+    },
+    {
+      "RelativePath": "java-version.txt",
+      "Sha256": "3287029881178560ed54b958afe18fe4517a85a7664fe1aea655576e6941f49d",
+      "Bytes": 596
+    },
+    {
+      "RelativePath": "ant-version.txt",
+      "Sha256": "70ae1784a128128b55417294ed78ad6bd6d6a013fc303faba346a43ef2ba359c",
+      "Bytes": 635
+    }
+  ],
+  "LocalAttestation": "VERIFIED_BY_HANDOFF",
+  "AttestationSha256": "d6ad3d3533066dc69c06838a7524f0374f8e9d722aaecdda359c5c8fa8c33358",
+  "SelectorNegative": [
+    "SELECTOR_NEGATIVE wrongAct=CHECKED register=CHECKED band=NOT_APPLICABLE"
+  ]
+}

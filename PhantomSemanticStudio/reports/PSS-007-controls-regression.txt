@@ -1,0 +1,19 @@
+ROUTE=--pss-004-controls
+PASS PSS-004 actual controls empty default and bounded 5000 approval view
+PASS PSS-004 actual ItemCheck keeps hidden IDs full preview and checkbox state through filters
+PASS PSS-004 actual controls stale baseline and 21 checks block without silent unchecking
+PASS PSS-004 actual confirmation full exact texts default No and explicit OK returns detached IDs
+CONTROL_CONTRACT_RESULT: 4 PASS; 0 FAIL; interactive UI/DPI/VS NOT_TESTED
+EXIT_CODE=0
+ROUTE=--pss-005-controls
+PASS PSS-005 actual controls semantic buttons nonoverlap at minimum and resized layout
+PASS PSS-005 actual offline action saved advisory stale editor and edit clears approval
+PASS PSS-005 actual saved report source drift and invalid UTF8 select as STALE without crash
+CONTROL_CONTRACT_RESULT: 3 PASS; 0 FAIL; interactive UI/DPI/VS NOT_TESTED
+EXIT_CODE=0
+ROUTE=--pss-006-controls
+SYNTHETIC_SELECTION_DISPATCH_MS=54; SOURCE_TEMPLATES=7500
+PASS PSS-006 A actual saved selection responsive latest identity cancel error close
+PASS PSS-006 C real corpus controls import page explicit20 filter cancel session unchanged
+CONTROL_CONTRACT_RESULT: 2 PASS; 0 FAIL; physical UI/DPI/VS NOT_TESTED
+EXIT_CODE=0

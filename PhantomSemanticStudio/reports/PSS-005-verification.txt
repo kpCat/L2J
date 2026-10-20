@@ -1,0 +1,6 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS PSS-005 static Designer actions and saved-candidate/fresh-source flow; VS/UI/DPI not implied
+PASS mojibake markers in changed files checked (strict UTF-8)
+PASS escaped Cyrillic in changed files checked separately
+PASS unchanged task package SHA/bytes
+PASS unchanged protected owners SHA/bytes: 17

@@ -1,0 +1,15 @@
+ROUTE=--pss-007-a EXIT=0
+PASS PSS-007 A catalog-only exact reply provenance unsupported and no mutation
+PASS PSS-007 A scope histories cancellation stale source and transactional repeat queue
+PASS PSS-007 A limits reset no truncation and bounded editor transcript
+RESULT: 3 PASS; 0 FAIL
+ROUTE=--pss-007-b EXIT=0
+PASS PSS-007 B opt-in one separate mentor question explicit confirmation and stale ticket
+PASS PSS-007 B strict JSON envelope errors cancellation sanitized no retry
+PASS PSS-007 B manual scoped lesson legacy session private save and twenty-call budget
+RESULT: 3 PASS; 0 FAIL
+ROUTE=--pss-007-c EXIT=0
+PASS PSS-007 C explicit detached public sanitized max20 no original leakage
+PASS PSS-007 C separate reviewed consent exact outbound max3 and immutable corpus
+PASS PSS-007 C malformed keyed suggestions stale and cancel never applied
+RESULT: 3 PASS; 0 FAIL

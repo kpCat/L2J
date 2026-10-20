@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "task": "PSS-006",
+  "required_base": "f92431aa5594a62210916e94bc6b617ec51f4bdc",
+  "repository": "kpCat/PhantomSemanticStudio",
+  "root": "C:/Users/ZBook/PhantomSemanticStudio",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-006/ACCEPTANCE.md",
+      "bytes": 3119,
+      "sha256": "b13542a8a064fa69cd710c74baa76758990cb8deecf21e94be016cd190162bdd"
+    },
+    {
+      "path": "docs/tasks/PSS-006/CHAT_FORMAT_AND_PRIVACY.md",
+      "bytes": 5230,
+      "sha256": "1b60a0952c634853b03f7bb9a2e1d1f07b2424b9bb3ae5ad6340c84b6c86752a"
+    },
+    {
+      "path": "docs/tasks/PSS-006/CODEX_START_RU.txt",
+      "bytes": 2493,
+      "sha256": "4191a477ae061b8679e2ac6d135d2e3406582a1378ad05812423628ceb7bbcbf"
+    },
+    {
+      "path": "docs/tasks/PSS-006/DESIGN.md",
+      "bytes": 6436,
+      "sha256": "a902d6c0f56526a4301b6edbc9f716daf7233a33e45744847ee78560d860dda4"
+    },
+    {
+      "path": "docs/tasks/PSS-006/GOAL.md",
+      "bytes": 12923,
+      "sha256": "e7249fef3360a27077ecdbca76e8bc3a26c6640889c5e85d35b236c7e761b299"
+    },
+    {
+      "path": "docs/tasks/PSS-006/HANDOFF.md",
+      "bytes": 1705,
+      "sha256": "3ab9abdb22045db74af29056f35cc83c2b05c2105e2028d0c4500d6a0872e46e"
+    },
+    {
+      "path": "docs/tasks/PSS-006/IMPLEMENTATION.md",
+      "bytes": 4989,
+      "sha256": "c692f8a9cb9206fbd462eebb2c1ce66ebaa9f92aa427cdc310430e1daa85a3d8"
+    },
+    {
+      "path": "docs/tasks/PSS-006/SAFETY_AND_GIT.md",
+      "bytes": 2935,
+      "sha256": "6a66b70337a8ab08e858359921144a5094b822819af0ab895ea0e9c41d29a7f5"
+    },
+    {
+      "path": "docs/tasks/PSS-006/TEST_CASES.md",
+      "bytes": 2606,
+      "sha256": "32347b7c9efe9a1adc9dddc68be512f71a3cb3ef602eaddef47a59a84f04601a"
+    }
+  ]
+}

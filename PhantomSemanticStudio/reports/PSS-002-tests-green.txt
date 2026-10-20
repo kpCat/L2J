@@ -1,0 +1,10 @@
+PASS PSS-002 single kind schema and local whole batch rejection
+PASS PSS-002 MIXED legacy requests lessons and invalid enum
+PASS PSS-002 HTTP categories redact body token and exception
+PASS PSS-002 catalogue rejects malformed duplicate fields and oversize
+PASS PSS-002 exact catalogue check is advisory GET only and endpoint guards
+PASS PSS-002 positive drafts duplicate warnings and JSON review only
+PASS PSS-002 envelope rejects duplicate refusal non-string and multi-choice
+PASS PSS-002 failed generation preserves saved session and approval
+PASS PSS-002 external cancel and timeout are distinct without retry
+RESULT: 9 PASS; 0 FAIL

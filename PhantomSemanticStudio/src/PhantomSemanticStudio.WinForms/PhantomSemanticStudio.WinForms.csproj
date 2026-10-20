@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationDefaultFont>Segoe UI, 10pt</ApplicationDefaultFont>
+    <AssemblyName>PhantomSemanticStudio</AssemblyName>
+    <Version>0.1.0</Version>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\PhantomSemanticStudio.Core\PhantomSemanticStudio.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Compile Update="V3ProposalForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="V3ProposalForm.Designer.cs"><DependentUpon>V3ProposalForm.cs</DependentUpon></Compile>
+    <EmbeddedResource Update="V3ProposalForm.resx"><DependentUpon>V3ProposalForm.cs</DependentUpon></EmbeddedResource>
+    <Compile Update="PackQualityForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="PackQualityForm.Designer.cs"><DependentUpon>PackQualityForm.cs</DependentUpon></Compile>
+    <EmbeddedResource Update="PackQualityForm.resx"><DependentUpon>PackQualityForm.cs</DependentUpon></EmbeddedResource>
+    <Compile Update="DialogueLabForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="DialogueLabForm.Designer.cs"><DependentUpon>DialogueLabForm.cs</DependentUpon></Compile>
+    <EmbeddedResource Update="DialogueLabForm.resx"><DependentUpon>DialogueLabForm.cs</DependentUpon></EmbeddedResource>
+    <Compile Update="MainForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="MainForm.Designer.cs"><DependentUpon>MainForm.cs</DependentUpon></Compile>
+    <EmbeddedResource Update="MainForm.resx"><DependentUpon>MainForm.cs</DependentUpon></EmbeddedResource>
+    <Compile Update="StageSelectionForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="StageSelectionForm.Designer.cs"><DependentUpon>StageSelectionForm.cs</DependentUpon></Compile>
+    <EmbeddedResource Update="StageSelectionForm.resx"><DependentUpon>StageSelectionForm.cs</DependentUpon></EmbeddedResource>
+    <Compile Update="ChatCorpusForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="ChatCorpusForm.Designer.cs"><DependentUpon>ChatCorpusForm.cs</DependentUpon></Compile>
+    <EmbeddedResource Update="ChatCorpusForm.resx"><DependentUpon>ChatCorpusForm.cs</DependentUpon></EmbeddedResource>
+  </ItemGroup>
+</Project>

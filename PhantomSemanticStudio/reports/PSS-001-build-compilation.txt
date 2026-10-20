@@ -1,0 +1,16 @@
+  Определение проектов для восстановления...
+  Восстановлен C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\PhantomSemanticStudio.WinForms.csproj (за 93 мс).
+  Восстановлен C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.Core\PhantomSemanticStudio.Core.csproj (за 84 мс).
+  Восстановлен C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\PhantomSemanticStudio.Tests.csproj (за 93 мс).
+  PhantomSemanticStudio.Core -> C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.Core\bin\Release\net10.0\PhantomSemanticStudio.Core.dll
+  PhantomSemanticStudio.Tests -> C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\bin\Release\net10.0\PhantomSemanticStudio.Tests.dll
+C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\MainForm.Designer.cs(5,45): warning CS8669: Заметка к ссылочным типам, допускающим значение NULL, должна использоваться в коде только в контексте заметок "#nullable". Автоматически создаваемый исходный код требует директиву "#nullable" в явном виде. [C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\PhantomSemanticStudio.WinForms.csproj]
+  PhantomSemanticStudio.WinForms -> C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\bin\Release\net10.0-windows\PhantomSemanticStudio.dll
+
+Сборка успешно завершена.
+
+C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\MainForm.Designer.cs(5,45): warning CS8669: Заметка к ссылочным типам, допускающим значение NULL, должна использоваться в коде только в контексте заметок "#nullable". Автоматически создаваемый исходный код требует директиву "#nullable" в явном виде. [C:\Users\ZBook\PhantomSemanticStudio\src\PhantomSemanticStudio.WinForms\PhantomSemanticStudio.WinForms.csproj]
+    Предупреждений: 1
+    Ошибок: 0
+
+Прошло времени 00:00:04.40

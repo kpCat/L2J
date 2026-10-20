@@ -1,0 +1,16 @@
+/goal Выполни PSS-004 по файлу:
+C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-004\GOAL.md
+
+Рабочий root: C:\Users\ZBook\PhantomSemanticStudio\
+Модель: основная Codex; reasoning HIGH. Новый диалог, одна задача, без повторного согласования.
+Required base origin/main kpCat/PhantomSemanticStudio: edc41128270c14578b9edf748a3c8bc0c6196623.
+
+Read first AGENTS.md, PSS-003 final/evidence, весь PSS-004 package и реальный код. Сверь root/HEAD/origin, сохрани user dirt.
+
+Цель: устранить StageXml_Click all-APPROVED/>20 dead-end. Создай штатное Visual Studio Designer-compatible модальное окно: выбор РОВНО 1–20 явных APPROVED IDs из любого количества одобрений, поиск, сохранение выбора при фильтре, постоянная полная сводка выбранных IDs/текстов, отдельные подтверждения. Только exact selected IDs -> existing IsolatedPackStager; остальное без изменений.
+
+High Five / весь L2J строго READ_ONLY. Не создавать review ZIP / source ZIP. Ни GUI, ни новая кнопка не запускают Java, Ant, Git, модель или сервер и не публикуют XML. Staged status остаётся STAGED_UNVALIDATED/NOT_RUN.
+
+Сохрани MainForm Designer, 6 вкладок, новый StageSelectionForm с обычными .cs/.Designer.cs/.resx и constructor only InitializeComponent. RED→GREEN targeted tests, Build-Verify, UI/DPI если реально доступны, честные статусы.
+
+Отчёт PSS-004-final.md, PSS-004-ui.md, exact inventory; ordinary commit+push только https://github.com/kpCat/PhantomSemanticStudio.git main без force; remote SHA proof; STOP до PSS-005.

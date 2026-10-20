@@ -1,0 +1,5 @@
+SYNTHETIC_A_TURN count=1; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=2; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+SYNTHETIC_A_TURN count=3; status=Каталог проверен. WORLD_ADVISORY_ONLY; Java runtime не выполнялся.
+PASS PSS-007 A real STA lab roles trace three turns cancel input and layout
+CONTROL_CONTRACT_RESULT: 1 PASS; 0 FAIL; physical UI/DPI/VS NOT_TESTED

@@ -1,0 +1,2 @@
+PASS genuine native proof inspected; explicit SYNTHETIC operator handoff; proposed=2 backup=2 manifest=1 checklist=1; NOT_INSTALLED; source SHA unchanged
+PASS release negatives: consent NO, wrong reviewed proof hash, cancelled token; no additional release output

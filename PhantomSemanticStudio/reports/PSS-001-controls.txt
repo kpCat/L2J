@@ -1,0 +1,3 @@
+FAIL intentional assertion inside negative control must fail: Assertion failed
+FAIL intentional async assertion must fail: Intentional assertion
+RESULT: 0 PASS; 2 FAIL (intentional controls)

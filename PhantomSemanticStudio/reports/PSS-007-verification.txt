@@ -1,0 +1,13 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS exact modal selection flow (static)
+PASS new static Designer controls handlers constructor resx nesting ID/filter safety and consent; NOT a VS round-trip or DPI test
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.
+PASS PSS-005 static Designer actions and saved-candidate/fresh-source flow; VS/UI/DPI not implied
+PASS PSS-006 static Designer, six tabs, handlers/resx/nesting; offline UI, streaming/privacy/SQL guards. NOT VS/UI/DPI proof.
+PASS PSS-007 static Designer/handlers/ctor/resx/nesting/entry/default permissions; runtime no shell/model lifecycle. NOT physical UI/DPI/VS.
+PASS mojibake markers in changed files checked; strict UTF-8; files=66
+PASS escaped Cyrillic in changed files checked separately
+PASS unchanged task SHA/bytes and private corpus/history ignores; exact owned paths contain no user data artifacts
+PASS final artifact scope guard vs required base; tracked=66; untracked=0
+PASS exact staged allowlist=66; private/binary data excluded

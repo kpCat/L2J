@@ -1,0 +1,3 @@
+PASS exact modal selection flow (static)
+PASS new static Designer controls handlers constructor resx nesting ID/filter safety and consent; NOT a VS round-trip or DPI test
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.

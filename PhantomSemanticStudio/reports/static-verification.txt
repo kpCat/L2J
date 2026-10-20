@@ -1,0 +1,11 @@
+PASS Designer exists
+PASS No loops/LINQ/await/lambdas in InitializeComponent
+PASS Six designed tabs
+PASS No I/O in designer
+PASS XML PhantomSemanticStudio.WinForms.csproj
+PASS XML PhantomSemanticStudio.Core.csproj
+PASS XML PhantomSemanticStudio.Tests.csproj
+PASS Solution exists
+PASS Core runtime tests present
+PASS No DLL/EXE represented as tested builds
+10/10 PASS

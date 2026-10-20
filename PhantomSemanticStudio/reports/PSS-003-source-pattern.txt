@@ -1,0 +1,2 @@
+PASS source before/after: 65 SHA/bytes; fingerprint=43c49f49e298c7f35cfef8577f35a4dc50e585191d81073afc3f49ad3a81e322
+Stage=C:\Users\ZBook\PhantomSemanticStudio\artifacts\PSS-003\workspace\proposals\6ea4c7b0f15443df90e1519c1e8755cd; status=STAGED_UNVALIDATED; Java=NOT_RUN

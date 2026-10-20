@@ -1,0 +1,62 @@
+PASS normalize Cyrillic and punctuation
+PASS normalize preserves placeholders
+PASS normalize compatibility form
+PASS normalize distinguishes negation
+PASS endpoint accepts loopback
+PASS endpoint rejects remote
+PASS endpoint rejects credentials
+PASS endpoint rejects query
+PASS strict JSON valid
+PASS strict JSON rejects unknown keys
+PASS strict JSON rejects fenced output
+PASS strict JSON rejects duplicate keys
+PASS strict JSON rejects null
+PASS strict JSON rejects unknown kind
+PASS reader sees v3 plus base
+PASS fingerprint deterministic
+PASS reader accepts explicit custom override
+PASS DTD/XXE rejected
+PASS manifest traversal rejected
+PASS duplicate exact normalized blocked
+PASS unknown act blocked
+PASS action act blocked
+PASS invalid placeholder blocked
+PASS gender-specific kept as runtime warning
+PASS approval invalidated by edit
+PASS path excludes source
+PASS path excludes ancestor
+PASS sibling path allowed
+FAIL negative assertion controls reject a successful operation: Assertion failed
+FAIL approval binds manual note and review timestamp: Assertion failed
+FAIL unverified profanity and conditions never produce safe XML: Assertion failed
+FAIL reader diagnoses unsupported schema without silent loss: Assertion failed
+FAIL invalid custom override is rejected: Expected failure, but operation succeeded
+PASS workspace independent lock
+PASS workspace persists session
+PASS export refuses stale approval instead of silently dropping it
+PASS export rejects stale source
+PASS export writes only review ZIP outside source
+PASS HTTP parses expected model response
+PASS HTTP errors fail closed
+PASS HTTP cancellation respected
+RESULT: 36 PASS; 5 FAIL
+negative assertion controls reject a successful operation: Program+AssertionFailure: Assertion failed
+   at Program.True(Boolean value) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 154
+   at Program.<>c.<Main>b__3_28() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 71
+   at Program.Test(String name, Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 150
+approval binds manual note and review timestamp: Program+AssertionFailure: Assertion failed
+   at Program.True(Boolean value) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 154
+   at Program.<>c__DisplayClass3_0.<Main>b__29() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 78
+   at Program.Test(String name, Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 150
+unverified profanity and conditions never produce safe XML: Program+AssertionFailure: Assertion failed
+   at Program.True(Boolean value) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 154
+   at Program.<>c__DisplayClass3_0.<Main>b__30() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 86
+   at Program.Test(String name, Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 150
+reader diagnoses unsupported schema without silent loss: Program+AssertionFailure: Assertion failed
+   at Program.True(Boolean value) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 154
+   at Program.<>c__DisplayClass3_0.<Main>b__31() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 94
+   at Program.Test(String name, Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 150
+invalid custom override is rejected: Program+AssertionFailure: Expected failure, but operation succeeded
+   at Program.Throws(Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 155
+   at Program.<>c__DisplayClass3_0.<Main>b__32() in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 103
+   at Program.Test(String name, Action action) in C:\Users\ZBook\PhantomSemanticStudio\tests\PhantomSemanticStudio.Tests\Program.cs:line 150

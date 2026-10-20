@@ -1,0 +1,2 @@
+PASS actual Java pattern negative fixture: duplicate rejected
+PASS actual Java override negative fixture: duplicate rejected

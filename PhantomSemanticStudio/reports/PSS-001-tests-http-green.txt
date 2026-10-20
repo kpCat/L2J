@@ -1,0 +1,51 @@
+PASS normalize Cyrillic and punctuation
+PASS normalize preserves placeholders
+PASS normalize compatibility form
+PASS normalize distinguishes negation
+PASS endpoint accepts loopback
+PASS endpoint rejects remote
+PASS endpoint rejects credentials
+PASS endpoint rejects query
+PASS strict JSON valid
+PASS strict JSON rejects unknown keys
+PASS strict JSON rejects fenced output
+PASS strict JSON rejects duplicate keys
+PASS strict JSON rejects null
+PASS strict JSON rejects unknown kind
+PASS reader sees v3 plus base
+PASS fingerprint deterministic
+PASS reader accepts explicit custom override
+PASS DTD/XXE rejected
+PASS manifest traversal rejected
+PASS duplicate exact normalized blocked
+PASS unknown act blocked
+PASS action act blocked
+PASS invalid placeholder blocked
+PASS gender-specific kept as runtime warning
+PASS approval invalidated by edit
+PASS path excludes source
+PASS path excludes ancestor
+PASS sibling path allowed
+PASS negative assertion controls reject a successful operation
+PASS approval binds manual note and review timestamp
+PASS unverified profanity and conditions never produce safe XML
+PASS reader diagnoses unsupported schema without silent loss
+PASS invalid custom override is rejected
+PASS reader rejects malformed bytes, limits, missing segments and partial v2
+PASS path rejects absolute traversal and directory junction
+PASS batch duplicates conflict across acts and unknown scope is blocked
+PASS failed save preserves valid state and interrupted temporary file is ignored
+PASS conflicting aliases require exact explicit override
+PASS workspace independent lock
+PASS workspace persists session
+PASS saved scoped lesson survives restart without applying to every topic
+PASS export refuses stale approval instead of silently dropping it
+PASS export rejects stale source
+PASS export writes only review ZIP outside source
+PASS HTTP parses expected model response
+PASS HTTP errors fail closed
+PASS HTTP cancellation respected
+PASS HTTP generation rejects length tools bad JSON errors and response limits
+PASS HTTP refuses legacy function calls even with valid candidate content
+PASS HTTP timeout cancels a stalled request without retries
+RESULT: 50 PASS; 0 FAIL

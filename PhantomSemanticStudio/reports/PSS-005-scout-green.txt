@@ -1,0 +1,4 @@
+PASS PSS-005 offline kind cross-act exact provenance and source-peer namespaces
+PASS PSS-005 stable shortlist bounded 5k patterns 20k templates and cancellation
+PASS PSS-005 synonym and empty lexical results never prove semantic coverage
+RESULT: 3 PASS; 0 FAIL

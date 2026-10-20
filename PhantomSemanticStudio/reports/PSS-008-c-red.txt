@@ -1,0 +1,4 @@
+PASS PSS-008 C missing fake proof consent cancellation no release or stage mutation
+PASS PSS-008 C exact append-only stage verification rejects modified receipt and extra staged XML
+FAIL PSS-008 C synthetic exact proof yields only offline proposed and byte-equal backups: PSS-008 handoff pending
+RESULT: 2 PASS; 1 FAIL

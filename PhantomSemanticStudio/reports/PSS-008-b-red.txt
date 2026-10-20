@@ -1,0 +1,4 @@
+FAIL PSS-008 B exact mixed and single-kind v3 pair append preserve65 source session and manifest: Sequence contains no matching element
+FAIL PSS-008 B selection scope editorial UTF duplicate collision and consent reject whole batch: Sequence contains no elements
+FAIL PSS-008 B source schema drift cancellation and partial guards have zero output: Sequence contains no elements
+RESULT: 0 PASS; 3 FAIL

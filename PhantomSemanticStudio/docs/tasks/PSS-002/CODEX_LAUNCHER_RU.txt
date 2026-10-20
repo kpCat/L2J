@@ -1,0 +1,9 @@
+/goal Выполни PSS-002 из C:\Users\ZBook\PhantomSemanticStudio\docs\tasks\PSS-002\GOAL.md
+
+Модель: основная Codex, reasoning HIGH. Это НОВЫЙ диалог Codex.
+Ожидаемая база GitHub kpCat/PhantomSemanticStudio origin/main: 87755c86421c9a320c7bc1f5f7682fb13c95332e.
+Сначала прочитай AGENTS.md, отчёт PSS-001, весь пакет PSS-002 и реальный код/тесты. Не повторяй согласование. Выполни одну PSS-002 и остановись.
+L2J — СТРОГО READ_ONLY, никаких записей/Ant/server/DB/git в L2J. WinForms Designer не ломать: Constructor = InitializeComponent, никаких циклов, IO и runtime BuildUi в InitializeComponent.
+Сделай качественную локальную связку Gemma с диагностикой и явным PATTERN/TEMPLATE/MIXED; честные тесты, UI/DPI по возможности, JSON review-only без XML/install. Модель не пишет код.
+По окончании: reports/PSS-002-final.md, reports/PSS-002-ui.md, точный список изменённых файлов, готовый review ZIP. Коммит и обычный push только в https://github.com/kpCat/PhantomSemanticStudio.git main (допустимо git push origin HEAD:refs/heads/main), проверить удалённый SHA. Если origin отсутствует — добавь ТОЛЬКО этот проверенный URL; при неправильном origin — BLOCKED_REMOTE. Никакого force/reset/rebase/пуша в kpCat/L2J.
+Статусы LM/UI/Java разделяй; никакого фальшивого GREEN. STOP после PSS-002.

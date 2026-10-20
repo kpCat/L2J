@@ -1,0 +1,12 @@
+PASS PSS-005 offline kind cross-act exact provenance and source-peer namespaces
+PASS PSS-005 stable shortlist bounded 5k patterns 20k templates and cancellation
+PASS PSS-005 synonym and empty lexical results never prove semantic coverage
+PASS PSS-005 one semantic POST exact schema model temperature and advisory only
+PASS PSS-005 strict verdict set fields labels lengths and JSON failures
+PASS PSS-005 rejects tools refusal truncation multi-choice and malformed envelopes
+PASS PSS-005 HTTP failure codes sanitized no retries and no evidence
+PASS PSS-005 legacy session approval and atomic advisory round trip
+PASS PSS-005 evidence bounds reject corrupted state preserving old bytes
+FAIL PSS-005 candidate source stamp peer and referenced hash drift stale without approval changes: Assertion failed
+PASS PSS-005 physical source race and cancellation reject before atomic persistence
+RESULT: 10 PASS; 1 FAIL

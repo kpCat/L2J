@@ -1,0 +1,3 @@
+PASS_JAVA_STAGED_V3 baselinePatterns=5310 baselineTemplates=20963 stagedPatterns=5311 stagedTemplates=20964 checkedIds=2 baselineHash=7e91c6eb2f962f70be6edb5f5ffaac5a56dc714803fed5fab002cedbd5c78311 stagedHash=d0aeaad3e6f7a0740ac3bf40c073bc03d8f74b5be33f512799a91e7a8ecfbe71 negative=DUPLICATE_AND_SCHEMA_REJECTED
+PASS source and stage SHA/bytes unchanged; copied=2497 files/28660382 bytes; Ant=0; probe=0; negative=3
+JavaStatus=PASS_JAVA_STAGED_V3; Status=JAVA_CONTENT_ONLY_NOT_RUNTIME_READY; evidence=C:\Users\ZBook\PhantomSemanticStudio\artifacts\PSS-008\workspace\v3-proposals\836391ec8fa04d709cbaa3d5579c750b\oracle-1067d26420204fc2a3e11fe2dbd720f6

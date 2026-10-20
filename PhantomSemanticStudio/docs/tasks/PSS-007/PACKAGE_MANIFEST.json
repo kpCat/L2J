@@ -1,0 +1,58 @@
+{
+  "task": "PSS-007",
+  "repo": "kpCat/PhantomSemanticStudio",
+  "required_base": "8a583e5bc872d3f61b933f217baa985af5425e5f",
+  "purpose": "instructions_only_no_code_or_private_corpus",
+  "files": [
+    {
+      "path": "docs/tasks/PSS-007/ACCEPTANCE.md",
+      "bytes": 2753,
+      "sha256": "6e739316449916464c2c89083e4f6f542410e08bc7c692f4c88d8dc829ca5799"
+    },
+    {
+      "path": "docs/tasks/PSS-007/ARCHITECTURE.md",
+      "bytes": 6012,
+      "sha256": "356dfc3f2af45818de156d9fb19983692a8e529fb186e8f9ef4495f20961507e"
+    },
+    {
+      "path": "docs/tasks/PSS-007/A_DIALOGUE_CORE.md",
+      "bytes": 3214,
+      "sha256": "f88970a2b4b827f32ba098542a5e4f41808fc32065bf858905f9dea61976f0de"
+    },
+    {
+      "path": "docs/tasks/PSS-007/B_MENTOR_MEMORY.md",
+      "bytes": 3973,
+      "sha256": "291218d203007e53c6676980129526c22ec832806d7e5fb64d3e780371e5b74c"
+    },
+    {
+      "path": "docs/tasks/PSS-007/CODEX_START_RU.txt",
+      "bytes": 2820,
+      "sha256": "f25350e9cfdcf42aaa3772e421d0418f644af4851877f2dc10ed6c11cecec7ca"
+    },
+    {
+      "path": "docs/tasks/PSS-007/C_CORPUS_BRIDGE.md",
+      "bytes": 4005,
+      "sha256": "27ac606cdfdafe7f7176dd990cb9157efe3183ab374079f2fd3c772a64d0b668"
+    },
+    {
+      "path": "docs/tasks/PSS-007/GOAL.md",
+      "bytes": 8576,
+      "sha256": "2f11a11cf44506c7da07e386b7efa6cbf10a158f019681645711d2092a5fd621"
+    },
+    {
+      "path": "docs/tasks/PSS-007/HANDOFF.md",
+      "bytes": 1567,
+      "sha256": "72b544c65ae806a8ffa6f92ee3b8f816d14a6cba35813a2961fecec3948638fd"
+    },
+    {
+      "path": "docs/tasks/PSS-007/SAFETY_AND_GIT.md",
+      "bytes": 3266,
+      "sha256": "8687fbd096d37ff51f49a17199147651e5dee81d00f002932efca4d24b877457"
+    },
+    {
+      "path": "docs/tasks/PSS-007/TEST_CASES.md",
+      "bytes": 4009,
+      "sha256": "cd3d1839db4bd093d4da63162d44f735fb0fe08b4335c7d6b86ec73559ddf015"
+    }
+  ]
+}

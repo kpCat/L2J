@@ -1,0 +1,1 @@
+PASS: static Designer contract. This is NOT a Visual Studio Designer round-trip test.

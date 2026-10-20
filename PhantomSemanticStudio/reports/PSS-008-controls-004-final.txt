@@ -1,0 +1,5 @@
+PASS PSS-004 actual controls empty default and bounded 5000 approval view
+PASS PSS-004 actual ItemCheck keeps hidden IDs full preview and checkbox state through filters
+PASS PSS-004 actual controls stale baseline and 21 checks block without silent unchecking
+PASS PSS-004 actual confirmation full exact texts default No and explicit OK returns detached IDs
+CONTROL_CONTRACT_RESULT: 4 PASS; 0 FAIL; interactive UI/DPI/VS NOT_TESTED

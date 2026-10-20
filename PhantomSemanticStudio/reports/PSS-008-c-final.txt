@@ -1,0 +1,5 @@
+PASS PSS-008 C missing fake proof consent cancellation no release or stage mutation
+PASS PSS-008 C exact append-only stage verification rejects modified receipt and extra staged XML
+FORGED_METADATA_REJECTED; no release; successful packaging tested separately against genuine native proof
+PASS PSS-008 C forged full metadata with fake tooling fails even when local log hashes match
+RESULT: 3 PASS; 0 FAIL

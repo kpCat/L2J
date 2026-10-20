@@ -1,0 +1,3 @@
+FAILED_JAVA: Ant content target rejected shadow
+Diagnostic=RuntimeException; line=206
+JavaStatus=FAILED_JAVA; Status=FAILED_JAVA; evidence=C:\Users\ZBook\PhantomSemanticStudio\artifacts\PSS-008\workspace\v3-proposals\836391ec8fa04d709cbaa3d5579c750b\oracle-e93a2fe890154cea92ee25e5ad5411fb

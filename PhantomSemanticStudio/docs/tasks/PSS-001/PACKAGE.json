@@ -1,0 +1,13 @@
+{
+  "task": "PSS-001",
+  "project_root": "C:\\Users\\ZBook\\PhantomSemanticStudio",
+  "source_baseline_manifest_sha256": "191087dce21f3613feb892525ba9ad1604619d70e791e2a534fe15aff735faaa",
+  "reasoning": "high",
+  "model_policy": "main Codex model, not Spark",
+  "l2j_access": "READ_ONLY",
+  "server_publish": "FORBIDDEN",
+  "required_artifacts": [
+    "reports/PSS-001-final.md",
+    "artifacts/PhantomSemanticStudio-review-*.zip"
+  ]
+}

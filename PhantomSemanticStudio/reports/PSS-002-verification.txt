@@ -1,0 +1,5 @@
+PASS static minimum editor height: 62 px; mode selector/default. NOT a visual DPI test.
+PASS: mojibake markers in changed files checked (verifier marker literals excluded).
+PASS: escaped Cyrillic in changed files checked separately.
+PASS: final source SHA/bytes equality 65/65. Read-only.
+PASS: original user task package manifest SHA/bytes unchanged.

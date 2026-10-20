@@ -1,0 +1,9 @@
+PASS PSS-006 B privacy skip before persistence UTF8 timestamp triage and reopen
+PASS PSS-006 B language ambiguity and sensitive preview preserve original
+PASS PSS-006 B malformed counters normalized dedup independent ZIP order paged filters
+PASS PSS-006 B archive negative controls and cancelled import atomic old corpus
+PASS PSS-006 B encrypted symlink metadata limits physical corruption
+FAIL PSS-006 B CRC damaged archive cannot publish: Expected failure, but operation succeeded
+SYNTHETIC_100K elapsedMs=5583; sampledPeakPrivateBytes=50479104; privateDeltaBytes=13889536; archiveBytes=2209531; pages=100/100
+PASS PSS-006 B 100k streaming cancel retry bounded pages private memory
+RESULT: 6 PASS; 1 FAIL
