@@ -4751,8 +4751,19 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				final Player player = action.player();
 				final var point = new Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), arrival.id());
-				player.setXYZInvisible(point.x() + 8, point.y(), point.z());
-				PhantomAssertions.assertTrue(travel.arrive(profile.profileId(), goal), "Valid farmer movement inside its area was forced to exact XYZ.");
+				final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+				PhantomTopologyPoint local = null;
+				for (int[] offset : new int[][] {{8,0},{-8,0},{0,8},{0,-8}})
+				{
+					final int x = point.x() + offset[0], y = point.y() + offset[1];
+					if (!geo.hasGeo(x, y)) { continue; }
+					final var candidate = new PhantomTopologyPoint(x, y, geo.getHeight(x, y, point.z()), point.instanceId());
+					if (topology.findNode(arrival.nodeId()).orElseThrow().area().contains(candidate) && nativeBackend.canMoveDirect(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(point.x(), point.y(), point.z(), point.instanceId()), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(candidate.x(), candidate.y(), candidate.z(), candidate.instanceId()))) { local = candidate; break; }
+				}
+				PhantomAssertions.assertTrue(local != null, "INVALID_INPUT: no native adjacent in-area position for the independent position contract.");
+				context.record("m1.postArrivalPositionInput", "INDEPENDENT prepared position contract after actual async arrival; baseline=" + point + "; adjacent=" + local + "; old +8 unchanged-Z floor=" + geo.getHeight(point.x() + 8, point.y(), point.z()) + "; no earned-resource change or route rescue");
+				player.setXYZInvisible(local.x(), local.y(), local.z());
+				PhantomAssertions.assertTrue(travel.arrive(profile.profileId(), goal), "Valid farmer movement inside its area was forced to exact XYZ: " + travel.reason(profile.profileId()));
 				player.setXYZInvisible(point.x() + 10000, point.y(), point.z());
 				if (travel.arrive(profile.profileId(), goal)) { closeoutDefects.add("Old committed anchor admitted live Player outside its farm area"); }
 				travel.beforeMaterialize(profile.profileId(), objectId);
