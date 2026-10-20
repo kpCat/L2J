@@ -634,6 +634,15 @@ public final class PhantomProgressionModel
 		}
 	}
 
+	/** targetClass=-1 is the separate, main-class Noblesse operation. */
+	public record CareerRequest(long profileId, int fromClass, int targetClass, int nobleLevel, PhantomCancellationToken planOwnershipToken)
+	{
+		public CareerRequest
+		{
+			if (profileId <= 0 || fromClass < 0 || targetClass < -1 || nobleLevel < 76 || nobleLevel > 85 || planOwnershipToken == null) { throw new IllegalArgumentException("Invalid Phantom career request."); }
+		}
+	}
+
 	public record EquipItemRequest(long profileId, int itemObjectId, PhantomCancellationToken planOwnershipToken)
 	{
 		public EquipItemRequest

@@ -37,6 +37,12 @@ public interface PhantomProgressionBackend
 
 	Optional<ActorLease> tryAcquireActor(long profileId);
 
+	/** Native adapter releases its ACTION lease before entering the existing durable checkpoint. */
+	default OperationResult advanceCareer(PhantomProgressionModel.CareerRequest request, BooleanSupplier ownershipCurrent)
+	{
+		return OperationResult.rejected(PhantomProgressionModel.OperationStatus.INVALID_REQUEST);
+	}
+
 	interface ActorLease extends AutoCloseable
 	{
 		ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds);

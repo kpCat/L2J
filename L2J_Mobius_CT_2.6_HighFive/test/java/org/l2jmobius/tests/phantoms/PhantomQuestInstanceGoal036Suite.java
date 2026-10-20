@@ -130,6 +130,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private long _goalId = 3600;
 	private boolean _environmentInitialized;
 	private RateSnapshot _rateSnapshot;
+	private PhantomBackgroundSuite.ProductionAuthorityFixture _automaticProduction;
+	private org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService _automaticBackground;
 
 	public PhantomQuestInstanceGoal036Suite()
 	{
@@ -182,7 +184,14 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			_profiles = PhantomProfileRepository.open();
 			_profile = _profiles.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			_materialization = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+			if (Boolean.getBoolean("phantom.test.autoProfessions061"))
+			{
+				_automaticProduction = PhantomBackgroundSuite.ProductionAuthorityFixture.start();
+				_automaticBackground = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(_profiles, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles), PhantomIdentityLeaseRegistry.getInstance(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction(), _automaticProduction.authority(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(), _signals, () -> _materialization);
+				PhantomAssertions.assertTrue(_automaticBackground.start(), "Automatic career native Background owner did not start.");
+				_materialization = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector.none(), _automaticBackground, 5000, 10000);
+			}
+			else { _materialization = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1); }
 			PhantomAssertions.assertTrue(_materialization.start(), "Goal036 materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Goal036 Player did not materialize.");
 			_player = World.getInstance().getPlayer(_environment.primary().objectId());
@@ -215,6 +224,16 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (Boolean.getBoolean("phantom.test.autoProfessions061"))
+		{
+			registry.add("19-native-phantom-automatic-first-profession061", this::automaticProfession061);
+			registry.add("20-native-phantom-automatic-40-76-save-resume061", this::automaticLaterProfessions061);
+			registry.add("21-native-phantom-noblesse-threshold-idempotency061", this::automaticNoblesse061);
+			registry.add("22-native-tree-race-role-sex-and-subclass-guards061", this::automaticBranchGuards061);
+			registry.add("23-native-dwarf-automatic-catchup-20-40-76-061", context -> automaticRace061(context, 1));
+			registry.add("24-native-female-kamael-automatic-catchup-20-40-76-061", context -> automaticRace061(context, 2));
+			return;
+		}
 		if (Boolean.getBoolean("phantom.test.careerWalkObstacle061"))
 		{
 			registry.add("14t-native-career-observed-walk-obstacle061", this::localWalk061);
@@ -781,6 +800,199 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getBaseClass() == 1 && questState(401).isCompleted(), "Full native production career did not earn Warrior within its original episode: " + previous);
 		PhantomAssertions.assertEquals(0L, itemCount(1145), "Native master did not consume its earned mark.");
 		PhantomAssertions.assertTrue(_player.getActiveWeaponInstance() != null && _player.getActiveWeaponInstance().getObjectId() == originalWeaponObject, "Full native career lost its initial owned field weapon.");
+	}
+
+	private void automaticProfession061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 20);
+		ensureWeapon(68);
+		prepareAutomaticAutoGets061(); // Native AutoGet synchronization is part of declared TEST level preparation.
+		final var anchor = _automaticProduction.topology().findAnchor("generated.farm.bfb0335de417bc81a7e9b231.anchor").orElseThrow();
+		_player.decayMe(); _player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z()); _player.spawnMe(); _player.revalidateZone(true);
+		final long exp = _player.getExp(), sp = _player.getSp();
+		final var quest = _player.getQuestState("Q00401_PathOfTheWarrior");
+		final String questBefore = quest == null ? "ABSENT" : quest.getState() + ":" + quest.getCond();
+		final PhantomGoal root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", "20120"),
+			1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "20120@" + anchor.id())), new PhantomDomainRef("topology.anchor", anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "career061.automatic_input", 1);
+		_goals.store(_profile.profileId(), root);
+		new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles).insert(_profile.profileId(), root);
+		_player.storeMe();
+		PhantomAssertions.assertTrue(_player.hasOwnedStoreBoundary(), "Automatic profession must use the real production owned-store boundary.");
+		PhantomAssertions.assertTrue(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction().load(_profile.profileId()).successful(), "Declared ordinary farm root did not create a native owned baseline.");
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
+		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
+		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
+		PhantomAssertions.assertTrue(selected.candidate() != null, "Automatic career is absent from ordinary farm Decision.");
+		final var plan = selected.candidate().planFactory().create(planning);
+		final var step = plan.steps().getFirst();
+		final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(
+			_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED));
+		context.record("career061.automatic", "declared Fighter/main/20; class=" + _player.getActiveClass() + "; result=" + result);
+		PhantomAssertions.assertEquals(1, _player.getPlayerClass().level(), "Level20 Phantom is still blocked by a class quest.");
+		PhantomAssertions.assertTrue(_player.getBaseClass() == _player.getActiveClass() && _player.getLearningClass() == _player.getPlayerClass(), "Automatic class lifecycle left a stale base/learning class.");
+		PhantomAssertions.assertTrue(exp == _player.getExp() && sp == _player.getSp(), "Automatic profession fabricated EXP/SP.");
+		final var after = _player.getQuestState("Q00401_PathOfTheWarrior");
+		PhantomAssertions.assertEquals(questBefore, after == null ? "ABSENT" : after.getState() + ":" + after.getCond(), "Optional Q401 state was altered by automatic profession.");
+		final int earnedClass = _player.getActiveClass();
+		final var choice = _profiles.findComponent(_profile.profileId(), "career.choice").orElseThrow();
+		rematerialize();
+		PhantomAssertions.assertTrue(_player.getActiveClass() == earnedClass && _player.getBaseClass() == earnedClass && _player.getLearningClass() == _player.getPlayerClass(), "SameDB reload lost class/base/learning context.");
+		PhantomAssertions.assertEquals(choice, _profiles.findComponent(_profile.profileId(), "career.choice").orElseThrow(), "Reload changed the chosen career branch.");
+		PhantomAssertions.assertEquals(earnedClass, new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction().load(_profile.profileId()).state().identity().activeClassId(), "Background retained the previous profession after native save.");
+	}
+
+	private void automaticLaterProfessions061(PhantomTestContext context) throws Exception
+	{
+		final var choiceRow = _profiles.findComponent(_profile.profileId(), "career.choice").orElseThrow();
+		final var choice = org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.decode(choiceRow.payload());
+		for (int level : List.of(40, 76))
+		{
+			final int from = _player.getActiveClass(), next = choice.nextClass(from);
+			PhantomAssertions.assertTrue(next >= 0, "Native matrix lost its next chosen branch.");
+			// Each bracket is a separately declared lawful TEST level input; no claim that this EXP was earned.
+			_player.getStat().setExp(ExperienceData.getInstance().getExpForLevel(level - 1)); _player.getStat().setLevel((byte) (level - 1));
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.LEVEL_TOO_LOW,
+				_progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(_profile.profileId(), from, next, 80, NOT_CANCELLED)).status(), "Native profession accepted the previous level.");
+			_player.getStat().setExp(ExperienceData.getInstance().getExpForLevel(level)); _player.getStat().setLevel((byte) level); prepareAutomaticAutoGets061();
+			final var captured = _automaticProduction.authority().captureOwnedNative(_profile.profileId(), _player, _goals.load(_profile.profileId()).orElseThrow().goal(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction().load(_profile.profileId()).state()).state();
+			context.record("career061.prepare" + level, "runtime=" + _player.getActiveClass() + "/" + _player.getLevel() + "; durableClass=" + scalar("SELECT classid FROM characters WHERE charId=?", _player.getObjectId()) + "; durableLevel=" + scalar("SELECT level FROM characters WHERE charId=?", _player.getObjectId()) + "; auto=" + captured.autoGetSkills() + "; actual=" + _player.getAllSkills().stream().map(skill -> skill.getId() + ":" + skill.getLevel()).sorted().toList());
+			_player.storeMe();
+			context.record("career061.prepared" + level, "owned store completed before transition");
+			final long exp = _player.getExp(), sp = _player.getSp();
+			final var result = automaticDecisionStep061();
+			PhantomAssertions.assertTrue(_player.getActiveClass() == next && _player.getBaseClass() == next && _player.getLearningClass() == _player.getPlayerClass(), "Native threshold did not follow the one chosen edge: " + result);
+			PhantomAssertions.assertTrue(exp == _player.getExp() && sp == _player.getSp(), "Native profession changed prepared EXP/SP.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT,
+				_progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(_profile.profileId(), from, next, 80, NOT_CANCELLED)).status(), "Repeated transition was not idempotent.");
+			rematerialize();
+			PhantomAssertions.assertTrue(_player.getActiveClass() == next && exp == _player.getExp() && sp == _player.getSp(), "Native threshold did not survive sameDB reload.");
+			PhantomAssertions.assertEquals(choiceRow, _profiles.findComponent(_profile.profileId(), "career.choice").orElseThrow(), "Threshold/reload reselected a career.");
+			context.record("career061.native.level" + level, "prepared bracket; edge=" + from + "->" + next + "; EXP/SP conserved; owned save/reload/idempotent");
+		}
+	}
+
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult automaticDecisionStep061()
+	{
+		final var root = _goals.load(_profile.profileId()).orElseThrow().goal();
+		return automaticDecisionStep061(_service, _profile.profileId(), root);
+	}
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult automaticDecisionStep061(PhantomQuestInstanceService service, long profileId, PhantomGoal root)
+	{
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
+		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(service);
+		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(profileId, root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
+		PhantomAssertions.assertTrue(selected.candidate() != null, "Native threshold has no ordinary career Decision.");
+		final var plan = selected.candidate().planFactory().create(planning); final var step = plan.steps().getFirst();
+		return handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(profileId, root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED));
+	}
+
+	private void automaticRace061(PhantomTestContext context, int slot) throws Exception
+	{
+		final var fixture = _environment.createCampaign061CareerCompanion(context, slot);
+		final var anchor = _automaticProduction.topology().findAnchor("generated.farm.bfb0335de417bc81a7e9b231.anchor").orElseThrow();
+		final Player setup = Player.load(fixture.objectId());
+		try
+		{
+			// Entire level/resource input precedes profile admission and measurement.
+			setup.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
+			setup.getStat().setExp(ExperienceData.getInstance().getExpForLevel(80)); setup.getStat().setLevel((byte) 80);
+			for (int pass = 0; pass < 64 && !org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getAvailableAutoGetSkills(setup).isEmpty(); pass++) { setup.giveAvailableAutoGetSkills(); }
+			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.storeMe();
+		}
+		finally { _environment.cleanupLoadedPlayer(setup); }
+		final long id = _profiles.create(fixture.objectId()).profileId();
+		final var goals = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles);
+		final var root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "20120"), 1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "20120@" + anchor.id())), new PhantomDomainRef("topology.anchor", anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "career061.declared_race_input", 1);
+		goals.insert(id, root);
+		final var materialized = new java.util.concurrent.atomic.AtomicReference<PhantomMaterializationService>();
+		final var background = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(_profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction(), _automaticProduction.authority(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(), _signals, materialized::get);
+		final var metrics = new PhantomMetrics();
+		final var actors = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector.none(), background, 5000, 10000);
+		materialized.set(actors); background.start(); actors.start();
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(actors, Path.of("."), () -> _knowledge.query()), PhantomProgressionPolicy.productionDefaults());
+		progression.start();
+		final var service = new PhantomQuestInstanceService(goals, _catalog, _acquisitions, new L2jPhantomQuestInstanceBackend(actors, _catalog, () -> _knowledge.query()), _combat, _navigation, progression, _signals);
+		service.enableAutonomous(_profiles, actors, (_, _) -> true, _ -> true, _ -> slot == 1 ? org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.ECONOMY : org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.DAMAGE, _careerPolicy);
+		service.enableAutomaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy.defaults()); service.start();
+		try
+		{
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, actors.materialize(id).status(), "Native race fixture admission failed.");
+			Player player = World.getInstance().getPlayer(fixture.objectId()); player.storeMe();
+			final long exp = player.getExp(), sp = player.getSp();
+			for (int tier = 1; tier <= 3; tier++)
+			{
+				final int from = player.getActiveClass(); final var result = automaticDecisionStep061(service, id, root);
+				PhantomAssertions.assertEquals(tier, player.getPlayerClass().level(), "Native catchup skipped/failed its edge: " + result);
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(from, player.getActiveClass(), slot == 2, 0) && player.getExp() == exp && player.getSp() == sp, "Native race transition violated branch or EXP/SP.");
+			}
+			if (slot == 2) { PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.INVALID_REQUEST, progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(id, 123, 125, 80, NOT_CANCELLED)).status(), "Female native Player accepted a male branch."); }
+			final int terminal = player.getActiveClass(); final var choice = _profiles.findComponent(id, "career.choice").orElseThrow();
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, actors.dematerialize(id).status(), "Native race fixture save failed.");
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, actors.materialize(id).status(), "Native race fixture reload failed.");
+			player = World.getInstance().getPlayer(fixture.objectId());
+			PhantomAssertions.assertTrue(player.getActiveClass() == terminal && player.getBaseClass() == terminal && player.getLearningClass() == player.getPlayerClass() && player.getExp() == exp && player.getSp() == sp, "Native race sameDB resume diverged.");
+			PhantomAssertions.assertEquals(choice, _profiles.findComponent(id, "career.choice").orElseThrow(), "Native race reload changed its chosen future.");
+			context.record("career061.native.race" + slot, "native created root=" + (slot == 1 ? 53 : 124) + "; declared level80;3 adjacent native edges; terminal=" + terminal + "; owned save/reload; EXP/SP conserved");
+		}
+		finally
+		{
+			service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Native race career did not drain.");
+			progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Native race progression did not drain.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, actors.shutdown().state(), "Native race owner did not stop.");
+			background.beginStop(); PhantomAssertions.assertTrue(background.finishStop(), "Native race background did not stop.");
+			_profiles.find(id).ifPresent(profile -> _profiles.delete(id, profile.rowVersion()));
+		}
+	}
+
+	private void automaticNoblesse061(PhantomTestContext context) throws Exception
+	{
+		PhantomAssertions.assertFalse(_player.isNoble(), "Noblesse fixture must start without its reward.");
+		_player.getStat().setExp(ExperienceData.getInstance().getExpForLevel(79)); _player.getStat().setLevel((byte) 79);
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.LEVEL_TOO_LOW, _progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(_profile.profileId(), _player.getActiveClass(), -1, 80, NOT_CANCELLED)).status(), "Noblesse accepted level79.");
+		_player.getStat().setExp(ExperienceData.getInstance().getExpForLevel(80)); _player.getStat().setLevel((byte) 80); prepareAutomaticAutoGets061(); _player.storeMe();
+		final long exp = _player.getExp(), sp = _player.getSp(); final int current = _player.getActiveClass();
+		automaticDecisionStep061();
+		PhantomAssertions.assertTrue(_player.isNoble() && _player.getSubClasses().isEmpty(), "Phantom Noblesse still requires subclass75 or a quest.");
+		for (var skill : org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getNobleSkillTree().values()) { PhantomAssertions.assertTrue(_player.getSkillLevel(skill.getId()) >= skill.getLevel(), "Native Noble skill is absent."); }
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT, _progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(_profile.profileId(), current, -1, 80, NOT_CANCELLED)).status(), "Noblesse duplicated its reward.");
+		rematerialize();
+		PhantomAssertions.assertTrue(_player.isNoble() && _player.getExp() == exp && _player.getSp() == sp, "SameDB Noblesse reload lost reward or changed EXP/SP.");
+		context.record("career061.noble", "main80/native setNoble; skills; no subclass; sameDB reload; repeated application idempotent");
+	}
+
+	private void automaticBranchGuards061(PhantomTestContext context)
+	{
+		final var roles = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.values();
+		for (int root : List.of(0, 10, 18, 25, 31, 38, 44, 49, 53, 123, 124))
+		{
+			for (var role : roles)
+			{
+				final boolean female = root == 124;
+				final var chosen = org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(610061, root, female, role);
+				PhantomAssertions.assertEquals(chosen, org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(610061, root, female, role), "Deterministic role choice changed.");
+				int current = root, edges = 0;
+				while (chosen.nextClass(current) >= 0) { final int next = chosen.nextClass(current); PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(current, next, female, 0), "Chosen race/sex branch has an illegal edge."); current = next; edges++; }
+				PhantomAssertions.assertTrue(edges == 3 && current == chosen.terminalClass() && current != 136, "Main career skipped a tier or selected subclass-only Judicator.");
+			}
+		}
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(123, 125, true, 0), "Male Kamael branch accepted a female.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(0, 1, false, 1), "Main career accepted a subclass index.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(0, 19, false, 0), "Career accepted a foreign race.");
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.ACTOR_NOT_MATERIALIZED, _progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(Long.MAX_VALUE, 0, 1, 80, NOT_CANCELLED)).status(), "An ordinary unowned Player can enter Phantom automatic career.");
+		context.record("career061.branchMatrix", "11 roots x6 existing preferences;3 native edges; race/sex/subclass/foreign actor negatives; tree checks, not native race gameplay");
+	}
+	private void prepareAutomaticAutoGets061()
+	{
+		for (int pass = 0; pass < 64 && !org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getAvailableAutoGetSkills(_player).isEmpty(); pass++) { _player.giveAvailableAutoGetSkills(); }
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getAvailableAutoGetSkills(_player).isEmpty(), "Declared TEST level failed to synchronize native AutoGet floors.");
 	}
 
 	private void autonomousCareer061(PhantomTestContext context) throws Exception
@@ -1592,6 +1804,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	{
 		final PhantomQuestInstanceService service = new PhantomQuestInstanceService(_goals, _catalog, _acquisitions, _backend, _combat, _navigation, _progression, _signals);
 		if (_careerPolicy != null) { service.enableAutonomous(_profiles, _materialization, (_, _) -> true, _ -> _careerAllowed.get(), _ -> _careerPreference.get(), _careerPolicy); }
+		if (Boolean.getBoolean("phantom.test.autoProfessions061")) { service.enableAutomaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy.defaults()); }
 		PhantomAssertions.assertTrue(service.start(), "Goal036 service did not start.");
 		return service;
 	}
@@ -1966,6 +2179,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			{
 				_profiles.find(_profile.profileId()).ifPresent(profile -> _profiles.delete(profile.profileId(), profile.rowVersion()));
 			}
+			if (_automaticBackground != null) { _automaticBackground.beginStop(); PhantomAssertions.assertTrue(_automaticBackground.finishStop(), "Automatic career Background did not stop."); }
+			if (_automaticProduction != null) { _automaticProduction.close(); }
 			if (_knowledge != null)
 			{
 				_knowledge.beginStop();

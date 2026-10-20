@@ -585,6 +585,9 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 		{
 			return inconsistent(snapshot, "profile.link_mismatch");
 		}
+		// Persist the chosen future before publishing READY; retries reuse this exact choice.
+		org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.ensure(_profiles, profile.profileId(), snapshot.state().classId(), snapshot.state().female(),
+			_catalog.chooseArchetype(snapshot.state().deterministicSeed(), snapshot.state().creationOrdinal()));
 		snapshot = updateState(snapshot, snapshot.state().ready());
 		_failureInjector.after(FaultPoint.READY_COMPONENT_UPDATE, snapshot.profile().profileId(), 0);
 		return new CreationResult(CreationOutcome.READY, snapshot);

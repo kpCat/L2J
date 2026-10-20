@@ -1,5 +1,17 @@
 # DESIGN / IMPLEMENTATION061 — две сквозные игровые вертикали
 
+## Поправка владельца20.10.2026: общая автоматическая карьера
+
+Полный Q401 заменён обязательным Phantom-only повышением по PlayerClass20/40/76. Старые QuestState/items и raw FAIL сохраняются. Дополнительного бюджета нет; финальный резерв начинается не позже05:17UTC, дедлайн06:47UTC.
+
+Согласованный срез может превышать10 файлов: существующий career Decision выбирает следующий edge; Progression сериализует native Player/class/noble операцию; существующий background owned-store attests этот же edge. Это одна вертикаль, без нового AI, таймера или хранилища.
+
+- `career.choice` — неизменный выбор конечной ветки в ProfileRepository, до публикации READY у новых профилей, лениво из текущего класса у старых. PlayerClass задаёт дерево и пол Kamael; native CategoryData задаёт предпочтения ролей. Hashed population catalog и веса55/8/8/12/7/10 не меняются. Недоступный старой специализации архетип не разрешает сменить уже выбранную ветку; выбирается законное продолжение.
+- Существующий `career.intent` хранит короткую следующую операцию и root/object/class/index witnesses. Перед Player.setPlayerClass проверяются branch/level/ownership/native busy guards; после освобождения ACTION lease выполняется существующий owned checkpoint. Новая операция не обходит сохранение, main/subclass и capacity.
+- Receipt остаётся совместимым POS1/POZ1. Вместо исключения только0→1 принимается соседний native edge с сохранённым career.choice и текущим root/child. Старый Q401 attestation сохранён для необязательных legacy/native проверок.
+- Отдельный Phantom-only XML управляет профессиями и Noblesse (default main80). Native setNoble/skills/save, без предметной повторяемой награды. ClassMaster.xml/global AutoNoblesse/люди не меняются.
+- Проверки: RED текущего producer; RED общего receipt20/40/76; native Decision→owned save→sameDB reload, idempotency/underlevel/branch guards, затем реальная жизнь из целой committed поставки. Подготовленные TEST уровни не считаются заработанными.
+
 > Исполнять inline по executing-plans, без субагентов. /goal пользователя утверждает этот brief. Реализация должна следовать проверенным интерфейсам текущего кода, а не выдуманным сигнатурам. Сначала read-first нужного узла, затем тест/правка/проверка/публикация.
 
 **Goal:** обычный запуск даёт реальную автономную жизнь; карьера сама проводит персонажа через профессию и продолжает развитие.

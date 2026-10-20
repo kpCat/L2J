@@ -1,5 +1,9 @@
 # SOURCE_MAP061 — проверенные источники и ограниченный read-first
 
+Поправка20.10.2026 для общей автоматической карьеры: прочитаны native `model/actor/enums/player/PlayerClass.java` (parent/root/nextClasses и Kamael Inspector), `data/categoryData.xml`/CategoryData (роли), `Player.setPlayerClass/setNoble/rewardSkills/giveAvailableAutoGetSkills/storeMe`, `VillageMaster` (Inspector — особый subclass), `PhantomPopulationStore.verifyAndLink`, `PhantomAutonomousCareer`, `PhantomProgressionService`/`L2jProgressionBackend`, `PhantomOwnedStoreIntent`/`PhantomBackgroundTransaction.prepareOwnedStore`. Общий дополнительный barrier найден в receipt: разрешал только0→1/Q401; теперь general native edge подтверждается прежним owned-store и сохранённым `career.choice`/root/child. Обычный class handler и global AutoNoblesse не меняются.
+
+Новый read-first вывод: класс выбирается из authoritative дерева и native категорий, не из пяти quest whitelist entries. `career.choice` — данные существующего ProfileRepository, `career.intent` — прежний дочерний owner, Progression — прежняя сериализация операций; отдельного AI/таймера/хранилища нет. Native AutoGet при большом подготовленном level gap может требовать более одного штатного прохода; ограниченная синхронизация достигает native floors без paid skill/SP grants. Историческая Q401 ветка и её доказательства остаются доступными, но production producer использует отдельную Phantom-only профессию.
+
 Проверено при подготовке18.10.2026: remote branch `experiment/m1-candidate007-observe008` указывает на `18a5c70839a7b1a4f7ca2c57c717820b9c6c26db`. Локальное состояние Windows/БД здесь не измерялось. Пути ниже относительно High Five; диапазоны относятся к BASE, после изменений искать symbols.
 
 ## Что прочитано, что из этого следует

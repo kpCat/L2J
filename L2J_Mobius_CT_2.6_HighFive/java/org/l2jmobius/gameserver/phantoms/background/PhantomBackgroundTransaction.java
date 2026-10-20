@@ -412,7 +412,7 @@ public final class PhantomBackgroundTransaction
 				final Canonical canonical = lockCanonical(connection, beforeIdentity);
 				if ((previousContext != null) && !previousContext.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				final List<ItemRow> items = lockItems(connection, objectId);
-				if (classChange) { requireNativeWarriorOwner(connection, captured, goal, items); }
+				if (classChange) { requireNativeProfessionOwner(connection, previous, captured, goal, items); }
 				final Map<Integer, Integer> skills = lockSkills(connection, captured.identity());
 				if ((canonical.classId() != beforeIdentity.activeClassId()) || (canonical.raceOrdinal() != captured.identity().raceOrdinal()) || (captured.position().instanceId() != 0)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				// BEFORE is an exact canonical witness, not an assertion that native skills have already caught up with the stored level.
@@ -457,11 +457,26 @@ public final class PhantomBackgroundTransaction
 		finally { publishFirstItemWitness(itemWitness); }
 	}
 
-	private void requireNativeWarriorOwner(Connection connection, PhantomBackgroundState captured, PhantomGoal root, List<ItemRow> items) throws SQLException
+	private void requireNativeProfessionOwner(Connection connection, PhantomBackgroundState previous, PhantomBackgroundState captured, PhantomGoal root, List<ItemRow> items) throws SQLException
 	{
 		final var component = lockComponent(connection, captured.identity().profileId(), "career.intent");
 		if (component == null || component.schemaVersion() != 1) { throw new StateConflict(Status.STATE_CONFLICT); }
 		final var child = _goalCodec.decode(component.payload());
+		if (child.target() != null && "career.native".equals(child.target().namespace()))
+		{
+			final var saved = lockComponent(connection, captured.identity().profileId(), org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.COMPONENT);
+			if (saved == null || saved.schemaVersion() != 1) { throw new StateConflict(Status.STATE_CONFLICT); }
+			final var choice = org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.decode(saved.payload());
+			final int from = previous.identity().activeClassId(), to = captured.identity().activeClassId();
+			if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || child.status() != PhantomGoalStatus.ACTIVE
+				|| !"class.transfer".equals(child.goalType()) || !"career.autonomous".equals(child.purposeKey()) || !"profession".equals(child.target().key())
+				|| child.goalId() != root.goalId() || !child.subject().equals(root.subject()) || child.constraints().getOrDefault("owner.revision", -1L) != root.revision()
+				|| child.constraints().getOrDefault("owner.object", -1L) != captured.identity().characterObjectId() || child.constraints().getOrDefault("class.index", -1L) != 0
+				|| child.constraints().getOrDefault("class.from", -1L) != from || child.constraints().getOrDefault("class.to", -1L) != to
+				|| child.constraints().getOrDefault("career.terminal", -1L) != choice.terminalClass() || choice.nextClass(from) != to
+				|| !org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(from, to, choice.female(), 0)) { throw new StateConflict(Status.STATE_CONFLICT); }
+			return;
+		}
 		if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
 			|| child.status() != PhantomGoalStatus.ACTIVE || !"class.transfer".equals(child.goalType()) || !"career.autonomous".equals(child.purposeKey())
 			|| child.goalId() != root.goalId() || !child.subject().equals(root.subject()) || child.target() == null

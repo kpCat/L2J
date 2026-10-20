@@ -247,31 +247,36 @@ public final class PhantomProgressionService
 		});
 	}
 
-	private OperationResult executeOperation(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token, boolean learn, java.util.function.Function<java.util.function.BooleanSupplier, OperationResult> action)
+	public OperationResult advanceCareer(PhantomProgressionModel.CareerRequest request)
 	{
-		_metrics.recordOperationRequested(learn);
+		return executeOperation(request.profileId(), request.planOwnershipToken(), null, ownership -> _backend.advanceCareer(request, ownership));
+	}
+
+	private OperationResult executeOperation(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token, Boolean learn, java.util.function.Function<java.util.function.BooleanSupplier, OperationResult> action)
+	{
+		if (learn != null) { _metrics.recordOperationRequested(learn); }
 		final OperationSlot slot;
 		synchronized (this)
 		{
 			if (_state != State.RUNNING)
 			{
-				_metrics.recordOperationRejected(learn);
+				if (learn != null) { _metrics.recordOperationRejected(learn); }
 				return OperationResult.rejected(OperationStatus.SERVICE_NOT_RUNNING);
 			}
 			if (token.isCancelled())
 			{
 				_metrics.recordCancellation();
-				_metrics.recordOperationRejected(learn);
+				if (learn != null) { _metrics.recordOperationRejected(learn); }
 				return OperationResult.rejected(OperationStatus.CANCELLED);
 			}
 			slot = new OperationSlot(++_generation, token);
 			if (_operations.putIfAbsent(profileId, slot) != null)
 			{
-				_metrics.recordOperationRejected(learn);
+				if (learn != null) { _metrics.recordOperationRejected(learn); }
 				return OperationResult.rejected(OperationStatus.OPERATION_IN_PROGRESS);
 			}
 			_peakOperations = Math.max(_peakOperations, _operations.size());
-			_metrics.recordOperationAccepted();
+			if (learn != null) { _metrics.recordOperationAccepted(); }
 		}
 		final java.util.function.BooleanSupplier ownership = () ->
 		{
@@ -294,13 +299,12 @@ public final class PhantomProgressionService
 					}
 				}
 			}
-			recordOperationResult(learn, result);
+			if (learn != null) { recordOperationResult(learn, result); }
 			return result;
 		}
 		catch (RuntimeException e)
 		{
-			_metrics.recordOperationFailure(learn);
-			_metrics.recordOperationRejected(learn);
+			if (learn != null) { _metrics.recordOperationFailure(learn); _metrics.recordOperationRejected(learn); }
 			return OperationResult.rejected(OperationStatus.BACKEND_FAILURE);
 		}
 		finally

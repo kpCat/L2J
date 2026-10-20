@@ -1,5 +1,19 @@
 # ACCEPTANCE061 — конечные факты до начала работы
 
+## Актуальная поправка владельца20.10.2026
+
+W0/W1/W2, сохранность, frozen111 и поставка остаются обязательными. Прежние строки C20, требовавшие полный Q401, сохранены ниже как исторический контракт; их квестовая часть теперь OPTIONAL и не блокирует B. Никакие старые FAIL не удаляются. Вместо неё обязательны:
+
+| ID | Актуальный core061 B | Ограничение доказательства |
+|---|---|---|
+| AUTO-CHOICE | Детерминированная совместимая конечная ветка из PlayerClass/native roles; сохранение при создании и для существующих актёров, unchanged hashed population/weights | Пересчёт при restart, ручной справочник переходов или смена старой специализации не PASS |
+| AUTO-20-40-76 | Только Phantom, последовательно по одному законному edge, native Player/class/skills/save, idempotency и sameDB resume; representative native race/branch matrix и реальные полезные действия после профессии | Подготовленный TEST EXP не заработанный; дерево/fixture отдельно не доказывает ordinary жизнь A |
+| AUTO-GUARDS | Wrong race/branch/sex/level/index, busy/native ownership/root, duplicate/restart и обычный человек остаются защищены | Ослабление транзакций/capacity/Player lifecycle не PASS |
+| AUTO-NOBLE | Phantom-only configurable threshold, default main80, native Noble skills/save, однократно, без обязательного subclass75/quest | Глобальный AutoNoblesse/ClassMaster/клиент не менять; Olympiad вне scope |
+| QUEST-PRESERVE | Текущий безопасный эпизод штатно сохранён; старые Q401 states/items/EXP/SP/raw FAIL остаются; новых обязательных quest марафонов нет | Автоматический класс не объявлять завершённым Q401 |
+
+Полная М7 этими строками не объявляется. Если в остатке бюджета A/B не доказаны полностью, результат PARTIAL с точным HANDOFF и coherent committed поставкой.
+
 Это конечный контракт TASK061; нельзя расширять обязательные требования после получения результата или удалять проваленные строки. Полнота всей М7 по-прежнему определяется исходным roadmap, не таблицей этой кампании.
 
 | ID | Требуется для core061 | Что не является PASS |

@@ -53,6 +53,7 @@ final class PhantomAutonomousCareer
 	private final LongPredicate _allowed;
 	private final LongFunction<CareerArchetype> _preference;
 	private final PhantomAutonomousCareerPolicy _policy;
+	private org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy _professions;
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
 	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
@@ -91,6 +92,7 @@ final class PhantomAutonomousCareer
 	}
 
 	void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
+	void automaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy policy) { _professions = Objects.requireNonNull(policy); }
 	void deferWhen(BiPredicate<Long, PhantomGoal> predicate) { _defer = Objects.requireNonNull(predicate); }
 	void requireField(BiPredicate<PhantomGoal, Player> predicate) { _fieldReady = Objects.requireNonNull(predicate); }
 	void useFieldReturn(java.util.function.BiFunction<PhantomStepContext, PhantomGoal, PhantomStepResult> action) { _fieldReturn = Objects.requireNonNull(action); }
@@ -99,7 +101,7 @@ final class PhantomAutonomousCareer
 
 	private Optional<PhantomGoal> proposal(long profileId, PhantomGoal root)
 	{
-		if (!_policy.enabled() || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return unavailable(profileId, "career.policy_or_owner"); }
+		if ((_professions == null ? !_policy.enabled() : !_professions.enabled()) || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return unavailable(profileId, "career.policy_or_owner"); }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if (lease == null) { return unavailable(profileId, "career.actor_pending"); }
@@ -112,6 +114,7 @@ final class PhantomAutonomousCareer
 			final long now = System.currentTimeMillis();
 			// Finish an admitted native combat/leg before yielding to a critical supply child.
 			if (!_service.hasOwnedWork(profileId) && _defer.test(profileId, root)) { return unavailable(profileId, "career.supply_priority"); }
+			if (_professions != null) { return automaticProposal(profileId, root, player, cached, now); }
 			if (bound(cached.goal, root, player))
 			{
 				if (PhantomJourneyLifetime.alive(cached.goal, now)) { return Optional.of(cached.goal); }
@@ -148,6 +151,7 @@ final class PhantomAutonomousCareer
 	private PhantomStepResult advance(PhantomStepContext context)
 	{
 		if (context.cancellationToken().isCancelled() || !_allowed.test(context.profileId())) { return PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, "career.native.cancelled"); }
+		if (_professions != null) { return advanceAutomatic(context); }
 		final var cached = cached(context.profileId());
 		PhantomGoal intent = cached.goal;
 		try (var lease = _materialization.tryAcquireAction(context.profileId()).orElse(null))
@@ -279,8 +283,9 @@ final class PhantomAutonomousCareer
 	{
 		// Preserve the existing HOLD contract: this read reports accepted authority, not permission to act.
 		// proposal, advance, requiresNativeContext and permitsOwnedCombat separately retain their _allowed gates.
-		if (!_policy.enabled() || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return false; }
+		if ((_professions == null ? !_policy.enabled() : !_professions.enabled()) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return false; }
 		final var intent = cached(profileId).goal;
+		if (_professions != null && !automaticIntent(intent)) { return false; }
 		if (!boundRoot(intent, root) || !PhantomJourneyLifetime.alive(intent, System.currentTimeMillis())) { return false; }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
@@ -293,13 +298,14 @@ final class PhantomAutonomousCareer
 	{
 		final Cached current; synchronized (this) { current = _cache.get(profileId); }
 		final var intent = current == null ? null : current.goal;
-		return _policy.enabled() && _allowed.test(profileId) && intent != null && "career.autonomous".equals(intent.purposeKey()) && PhantomJourneyLifetime.alive(intent, System.currentTimeMillis())
+		if (_professions != null && !automaticIntent(intent)) { return false; }
+		return (_professions == null ? _policy.enabled() : _professions.enabled()) && _allowed.test(profileId) && intent != null && "career.autonomous".equals(intent.purposeKey()) && PhantomJourneyLifetime.alive(intent, System.currentTimeMillis())
 			&& (rootId == 0 || intent.goalId() == rootId && intent.constraints().getOrDefault("owner.revision", -1L) == rootRevision);
 	}
 
 	void pause(long profileId, PhantomGoal root, Player player)
 	{
-		noticeNativeDeath(profileId, root, player);
+		if (_professions == null) { noticeNativeDeath(profileId, root, player); }
 		final var cached = cached(profileId); final var goal = cached.goal;
 		if (!bound(goal, root, player)) { return; }
 		final var paused = PhantomJourneyLifetime.pause(goal, System.currentTimeMillis());
@@ -414,6 +420,9 @@ final class PhantomAutonomousCareer
 	/** Resume an accepted compatible child; this never proposes new work for a stored Player. */
 	synchronized void resumeAccepted(long now)
 	{
+		// Automatic transitions are short native operations. Stored actors wait for ordinary admission;
+		// their immutable choice and unfinished edge remain in the same profile store.
+		if (_professions != null) { return; }
 		if (!_policy.enabled() || now < _nextResumeMillis) { return; }
 		_nextResumeMillis = now + TimeUnit.SECONDS.toMillis(30);
 		final var page = _profiles.listManagedAfter(COMPONENT, _resumeCursor, 8);
@@ -446,6 +455,63 @@ final class PhantomAutonomousCareer
 			}
 			catch (IllegalArgumentException invalid) { /* Malformed persisted input cannot activate a Player. */ }
 		}
+	}
+
+	private static boolean automaticIntent(PhantomGoal goal) { return goal != null && goal.target() != null && "career.native".equals(goal.target().namespace()); }
+
+	private Optional<PhantomGoal> automaticProposal(long profileId, PhantomGoal root, Player player, Cached cached, long now)
+	{
+		if (_service.hasOwnedWork(profileId)) { return unavailable(profileId, "career.previous_native_work"); }
+		if (automaticIntent(cached.goal) && "noblesse".equals(cached.goal.target().key()) && !_professions.autoNoblesse() && cached.goal.status() == PhantomGoalStatus.ACTIVE) { return unavailable(profileId, "career.native.noblesse_disabled"); }
+		if (automaticIntent(cached.goal) && bound(cached.goal, root, player) && cached.goal.status() == PhantomGoalStatus.ACTIVE && PhantomJourneyLifetime.alive(cached.goal, now)) { return Optional.of(cached.goal); }
+		if (automaticIntent(cached.goal) && cached.goal.status() == PhantomGoalStatus.FAILED && cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return unavailable(profileId, "career.native.automatic_retry_after"); }
+		if (automaticIntent(cached.goal) && cached.goal.status() == PhantomGoalStatus.ACTIVE && bound(cached.goal, root, player))
+		{
+			final var expired = cached.goal; final var constraints = new LinkedHashMap<>(expired.constraints()); constraints.put("retry.after", now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()));
+			store(profileId, cached, new PhantomGoal(expired.goalId(), expired.goalType(), PhantomGoalStatus.FAILED, expired.subject(), expired.target(), expired.requiredAmount(), expired.currentAmount(), expired.acquisitionMethod(), expired.validSources(), expired.selectedAnchor(), expired.purposeKey(), expired.priority(), expired.riskBudget(), expired.expenseBudget(), expired.deadlineEpochMillis(), constraints, "career.native.automatic_deadline", Math.addExact(expired.revision(), 1), expired.payloadText()));
+			return unavailable(profileId, "career.native.automatic_deadline");
+		}
+		if (!_fieldReady.test(root, player)) { return unavailable(profileId, "career.preparation_field_pending"); }
+		if (cached.choice == null)
+		{
+			cached.choice = org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.ensure(_profiles, profileId, player.getActiveClass(), player.getAppearance().isFemale(), _preference.apply(profileId));
+		}
+		final int next = cached.choice.nextClass(player.getActiveClass());
+		final boolean profession = next >= 0 && player.getLevel() >= org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.minimumLevel(org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(next));
+		final boolean noble = _professions.autoNoblesse() && !player.isNoble() && player.getLevel() >= _professions.nobleLevel();
+		if (!profession && !noble) { return unavailable(profileId, "career.native.threshold_pending"); }
+		final var constraints = new LinkedHashMap<String, Long>();
+		constraints.put("owner.revision", root.revision()); constraints.put("owner.object", (long) player.getObjectId()); constraints.put("class.index", 0L);
+		constraints.put("class.from", (long) player.getActiveClass()); constraints.put("class.to", profession ? (long) next : (long) player.getActiveClass());
+		constraints.put("career.noble", profession ? 0L : 1L); constraints.put("career.terminal", (long) cached.choice.terminalClass());
+		return Optional.of(PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomQuestInstanceService.CLASS_GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(),
+			new PhantomDomainRef("career.native", profession ? "profession" : "noblesse"), 1, 0, null, List.of(), root.selectedAnchor(), "career.autonomous", 700, 0, 0, now + 60_000,
+			constraints, "career.native.automatic_eligible", cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1), null), now));
+	}
+
+	private PhantomStepResult advanceAutomatic(PhantomStepContext context)
+	{
+		final var cached = cached(context.profileId());
+		PhantomGoal intent;
+		try (var lease = _materialization.tryAcquireAction(context.profileId()).orElse(null))
+		{
+			if (lease == null) { return PhantomStepResult.retry(500, "career.native.actor_pending"); }
+			intent = proposal(context.profileId(), context.goal()).orElse(null);
+			if (intent == null) { return PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "career.native.automatic_no_need"); }
+			if (!intent.equals(cached.goal)) { store(context.profileId(), cached, intent); }
+		}
+		if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "career.native.finish_current_target"); }
+		final int from = intent.constraints().get("class.from").intValue();
+		final int to = intent.constraints().get("career.noble") == 1 ? -1 : intent.constraints().get("class.to").intValue();
+		final var result = _progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(context.profileId(), from, to, _professions.nobleLevel(), context.cancellationToken()));
+		if (result.status() != OperationStatus.SUCCESS && result.status() != OperationStatus.IDEMPOTENT)
+		{
+			return PhantomStepResult.retry(500, "career.native.automatic_pending." + result.status().name().toLowerCase(java.util.Locale.ROOT));
+		}
+		store(context.profileId(), cached, new PhantomGoal(intent.goalId(), intent.goalType(), PhantomGoalStatus.COMPLETED, intent.subject(), intent.target(), 1, 1, intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), intent.constraints(),
+			to < 0 ? "career.native.noblesse_saved" : "career.native.profession_saved", Math.addExact(intent.revision(), 1), intent.payloadText()));
+		_progression.observeActor(context.profileId());
+		return PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, to < 0 ? "career.native.noblesse_saved" : "career.native.profession_saved");
 	}
 
 	private synchronized Cached cached(long profileId)
@@ -485,6 +551,7 @@ final class PhantomAutonomousCareer
 		private volatile PhantomGoal goal;
 		private volatile long row;
 		private volatile String proposalReason = "career.unobserved";
+		private volatile org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice choice;
 		private Cached(PhantomGoal goal, long row) { this.goal = goal; this.row = row; }
 	}
 }

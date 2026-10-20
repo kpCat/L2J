@@ -35,13 +35,23 @@ public record PhantomOwnedStoreIntent(long preparedRowVersion, long materialized
 		}
 	}
 
-	/** Receipt shape only; prepare additionally attests the current career owner and native quest. */
+	/** Compatibility name retained for existing callers; all native next-edge receipt shapes are supported. */
 	public static boolean nativeWarriorTransition(PhantomBackgroundState before, PhantomBackgroundState after)
 	{
+		return nativeProfessionTransition(before, after);
+	}
+
+	/** Receipt shape only; prepare additionally attests the current career owner and saved branch. */
+	public static boolean nativeProfessionTransition(PhantomBackgroundState before, PhantomBackgroundState after)
+	{
 		final var from = before.identity(); final var to = after.identity();
+		final var current = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(from.activeClassId());
+		final var target = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(to.activeClassId());
 		return from.profileId() == to.profileId() && from.characterObjectId() == to.characterObjectId()
-			&& from.classIndex() == 0 && to.classIndex() == 0 && from.raceOrdinal() == 0 && to.raceOrdinal() == 0
-			&& from.activeClassId() == 0 && to.activeClassId() == 1 && after.progress().level() >= 20;
+			&& from.classIndex() == 0 && to.classIndex() == 0 && from.raceOrdinal() == to.raceOrdinal() && current != null && target != null
+			&& current.getRace().ordinal() == from.raceOrdinal() && target.getRace() == current.getRace() && current.getNextClasses().contains(target)
+			&& target != org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.INSPECTOR
+			&& after.progress().level() >= org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.minimumLevel(target);
 	}
 
 	public byte[] encode()

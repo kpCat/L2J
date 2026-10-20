@@ -40,11 +40,31 @@ public final class PhantomOwnedStoreIntentCodecChecks implements PhantomTestSuit
 		registry.add("01-component-bound-and-lossless-legacy", _ -> conservation());
 		registry.add("02-strict-malformed-and-inflation-bound", _ -> malformed());
 		registry.add("03-original-intent-guards", _ -> guards());
+		registry.add("04-native-profession-receipt-edges061", _ -> professionEdges());
 	}
 	public static void main(String[] args) throws Exception
 	{
-		conservation(); malformed(); guards();
-		System.out.println("OWNED_STORE_INTENT_CODEC_PASS groups=3 nativeSqlAndWorld=REQUIRED");
+		conservation(); malformed(); guards(); professionEdges();
+		System.out.println("OWNED_STORE_INTENT_CODEC_PASS groups=4 nativeSqlAndWorld=REQUIRED");
+	}
+	private static void professionEdges()
+	{
+		for (int[] edge : List.of(new int[] { 0, 1, 20, 0 }, new int[] { 1, 2, 40, 0 }, new int[] { 2, 88, 76, 0 }, new int[] { 53, 54, 20, 4 }, new int[] { 124, 126, 20, 5 }))
+		{
+			final var before = careerState(edge[0], edge[2], edge[3], 0);
+			final var after = careerState(edge[1], edge[2], edge[3], 0);
+			PhantomAssertions.assertTrue(PhantomOwnedStoreIntent.nativeWarriorTransition(before, after), "Owned checkpoint rejects a legal native profession edge: " + Arrays.toString(edge));
+			PhantomAssertions.assertEquals(intent(before, after), PhantomOwnedStoreIntent.decode(intent(before, after).encode()), "Career receipt changed during save/reload.");
+		}
+		for (int[] edge : List.of(new int[] { 0, 2, 40, 0, 0 }, new int[] { 0, 1, 19, 0, 0 }, new int[] { 18, 1, 20, 1, 0 }, new int[] { 0, 1, 20, 0, 1 }, new int[] { 126, 135, 40, 5, 0 }))
+		{
+			PhantomAssertions.assertFalse(PhantomOwnedStoreIntent.nativeWarriorTransition(careerState(edge[0], edge[2], edge[3], edge[4]), careerState(edge[1], edge[2], edge[3], edge[4])), "Illegal profession receipt accepted: " + Arrays.toString(edge));
+		}
+	}
+	private static PhantomBackgroundState careerState(int classId, int level, int race, int index)
+	{
+		final var base = state(false, false);
+		return new PhantomBackgroundState(base.state(), new Identity(base.identity().profileId(), base.identity().characterObjectId(), index, classId, race), new Progress(level, base.progress().experience(), base.progress().skillPoints(), base.progress().experienceBeforeDeath()), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
 	}
 
 	private static void conservation() throws Exception

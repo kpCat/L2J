@@ -681,10 +681,11 @@ public final class PhantomSystem
 					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
 					profileId -> _populationManager.careerArchetype(profileId).orElse(null),
 					org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-career-v1.xml").toPath()));
+				_questInstanceService.enableAutomaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-automatic-professions-v1.xml").toPath()));
 				_learningJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_supplyJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_questInstanceService.requireField(_historicalBackgroundService::canStartNativeJourney);
-				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || !_questInstanceService.ownsAutonomousIntent(profileId, root) && _learningJourney.needsOrOwnsAutomaticIntent(profileId, root));
+				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.ownsAutomaticIntent(profileId, root) || _learningJourney.ownsAutomaticIntent(profileId, root));
 				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()), _learningJourney::suspendCareerReturn);
 				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root));
 				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService)));

@@ -1,5 +1,5 @@
 param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards,[switch]$LivingOfflineStore,[switch]$SupplyReturnGuards,[switch]$SupplyManufactureGuards,[switch]$LivingManufacture,[switch]$LivingGatekeeper,[switch]$SupplyGatekeeperGuards,[switch]$SupplyResumeGuards,[switch]$LivingResumeSave,[switch]$LivingResumeContinue,[ValidatePattern('^living-resume060-[1-9][0-9]?$')][string]$ResumeReceipt='living-resume060-1',[switch]$DeathCpGuards,[switch]$PetSupport,[switch]$SupplyAmmunitionGuards,[switch]$LivingBow,[switch]$AreaAggro,[switch]$AggroReadiness,[switch]$Campaign061,[switch]$CareerProducer,[switch]$Frozen061,
- [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061,[switch]$JourneyLifecycle061,[switch]$LoadoutGuards061)
+ [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061,[switch]$JourneyLifecycle061,[switch]$LoadoutGuards061,[switch]$AutoProfessions061)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -20,6 +20,7 @@ if ($Campaign061 -and ($Campaign060 -or !($frozenMatch061 -or ($Mode -ceq 'quest
 if ($Campaign061 -and $SupplyGuards -and @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','SupplyAmmunitionGuards','SupplyReturnGuards','SupplyResumeGuards','SupplyManufactureGuards','SupplyGatekeeperGuards','LoadoutGuards061')}).Count) {throw 'TASK061 supply continuation has an unrelated flag'}
 if($LoadoutGuards061 -and (!$Campaign061 -or !$SupplyGuards -or @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','LoadoutGuards061')}).Count)){throw 'Native loadout guards require separate exact061 supply mode'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
+if ($AutoProfessions061 -and (!$Campaign061 -or !$CareerProducer -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Automatic professions require exact TASK061 native career authority/mode/seed'}
 if($LearningLong061 -and (!$Campaign061 -or !$PaidAutoGetGuards -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)){throw 'Observed learning route requires separate exact061 paid guard mode/seed'}
 if ($CareerFull061 -and (!$Campaign061 -or !$CareerProducer -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Full career requires separate exact061 producer mode/seed'}
 if($PSBoundParameters.ContainsKey('CareerFullMinutes061') -and !$CareerFull061){throw 'Strict new episode bound requires full061 TEST mode'}
@@ -54,7 +55,7 @@ if ($Campaign061) {
   $compiledRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled'
   $package061=Get-Content -LiteralPath 'D:\PhantomWorld\World-Career-061-candidate\BUILD_INFO.json' -Raw | ConvertFrom-Json
   if($null -ne $package061.PSObject.Properties['cleanCompiledRoot061']){
-   $allowedRoots061=@('correction1','correction2','lifecycle1','career1','career2','career3','final1','final2','career4','career5','career6','career7','career8','career9','career10','career11','career12','career13','career14','career15','career16','career17','career18') | ForEach-Object {Join-Path $hf059 ('.phantom-local/contract058a/build/release061-'+$_+'/compiled')}
+   $allowedRoots061=@('correction1','correction2','lifecycle1','career1','career2','career3','final1','final2','career4','career5','career6','career7','career8','career9','career10','career11','career12','career13','career14','career15','career16','career17','career18','career19') | ForEach-Object {Join-Path $hf059 ('.phantom-local/contract058a/build/release061-'+$_+'/compiled')}
    if($package061.cleanCompiledRoot061 -cnotin $allowedRoots061){throw 'Unknown corrective clean061 build root'}
    $compiledRoot061=$package061.cleanCompiledRoot061
   }
@@ -76,6 +77,7 @@ $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstde
 $args059+='-Dphantom.test.freshIdentities059=true'
 if ($JourneyLifecycle061) {$args059+='-Dphantom.test.journeyLifecycle061=true'}
 if ($CareerProducer) {$args059+='-Dphantom.test.careerProducer061=true'}
+if ($AutoProfessions061) {$args059+='-Dphantom.test.autoProfessions061=true'}
 if ($CareerFull061) {$args059+='-Dphantom.test.careerFull061=true';$args059+=('-Dphantom.test.careerFullMinutes061='+$CareerFullMinutes061)}
 if ($CareerRouteProbe061) {$args059+='-Dphantom.test.careerRouteProbe061=true'}
 if ($CareerWalkStep061) {$args059+='-Dphantom.test.careerWalkStep061=true'}

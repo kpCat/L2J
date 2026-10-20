@@ -89,6 +89,10 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		}
 	}
 
+	public void enableAutomaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy policy)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Automatic professions must bind before start."); } _automatic.automaticProfessions(policy); }
+	}
 	void registerAutonomousCandidates(org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry registry) { if (_automatic != null) { _automatic.registerCandidates(registry); } }
 	void registerAutonomousHandlers(org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry registry) { if (_automatic != null) { _automatic.registerHandlers(registry); } }
 	public boolean ownsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }

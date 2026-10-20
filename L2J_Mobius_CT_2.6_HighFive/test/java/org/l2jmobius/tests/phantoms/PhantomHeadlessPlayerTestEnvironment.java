@@ -445,10 +445,15 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private PhantomHeadlessPlayerFixture createFixture(String characterName, long itemBaseline) throws Exception
 	{
-		final PlayerTemplate template = PlayerTemplateData.getInstance().getTemplate(0);
+		return createFixture(characterName, itemBaseline, 0, false);
+	}
+
+	private PhantomHeadlessPlayerFixture createFixture(String characterName, long itemBaseline, int classId, boolean female) throws Exception
+	{
+		final PlayerTemplate template = PlayerTemplateData.getInstance().getTemplate(classId);
 		PhantomAssertions.assertTrue(template != null, "Human Fighter template 0 is unavailable.");
 
-		final Player player = Player.create(template, _accountName, characterName, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		final Player player = Player.create(template, _accountName, characterName, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, female));
 		PhantomAssertions.assertTrue(player != null, "Canonical Player.create failed for " + characterName + ".");
 
 		final Location creationPoint = template.getCreationPoint();
@@ -520,6 +525,15 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	public PhantomHeadlessPlayerFixture observer()
 	{
 		return _observer;
+	}
+
+	/** Two predeclared TASK061 native race fixtures, allocated/cleaned by the existing account owner. */
+	public PhantomHeadlessPlayerFixture createCampaign061CareerCompanion(PhantomTestContext context, int slot) throws Exception
+	{
+		if (context.seed() != 36003601 || !Boolean.getBoolean("phantom.test.autoProfessions061") || slot < 1 || slot > 2 || _primary == null
+			|| !_accountName.equals("phantom_t004_" + context.seed()) || !_additional058FixtureSlots.add(400 + slot)) { throw new IllegalArgumentException("Exact TASK061 career fixture required."); }
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		return createFixture("PhT061C" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE, slot == 1 ? 53 : 124, slot == 2);
 	}
 
 	/** At most two extra companions, under the same strictly owned058t account and cleanup. */

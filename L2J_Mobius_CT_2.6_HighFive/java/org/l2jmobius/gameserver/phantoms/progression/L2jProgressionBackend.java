@@ -621,6 +621,88 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		return _materialization.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease, _skillLearningTransaction));
 	}
 
+	@Override
+	public OperationResult advanceCareer(PhantomProgressionModel.CareerRequest request, BooleanSupplier ownershipCurrent)
+	{
+		if (_materialization == null) { return OperationResult.rejected(OperationStatus.ACTOR_NOT_MATERIALIZED); }
+		final Player player;
+		final org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Owner owner;
+		final boolean idempotent;
+		final long sp;
+		try (var action = _materialization.tryAcquireAction(request.profileId()).orElse(null))
+		{
+			if (action == null) { return OperationResult.rejected(OperationStatus.ACTOR_NOT_MATERIALIZED); }
+			player = action.player(); owner = player.getNativeWorkOwner(); sp = player.getSp();
+			synchronized (player)
+			{
+				if (!ownershipCurrent.getAsBoolean() || request.planOwnershipToken().isCancelled()) { return OperationResult.rejected(OperationStatus.CANCELLED); }
+				if (owner == null || !owner.isCurrent() || owner.player() != player || !owner.nativeObservationHealthy() || World.getInstance().getPlayer(player.getObjectId()) != player
+					|| player.getClassIndex() != 0 || player.isSubClassActive() || player.getBaseClass() != player.getActiveClass() || player.isChangingClass() || player.isAlikeDead()
+					|| player.isTransformed() || player.isMounted() || player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()
+					|| player.isTeleporting() || player.isMoving() || player.hasPendingOwnedStore()) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
+				final var profiles = org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.open();
+				if (profiles.find(request.profileId()).map(value -> value.characterObjectId() != null && value.characterObjectId() == player.getObjectId()).orElse(false) == false
+					|| profiles.findComponent(request.profileId(), PhantomCareerChoice.COMPONENT).isEmpty()) { return OperationResult.rejected(OperationStatus.INVALID_REQUEST); }
+				final var choice = PhantomCareerChoice.ensure(profiles, request.profileId(), player.getActiveClass(), player.getAppearance().isFemale(), org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.DAMAGE);
+				if (request.targetClass() < 0)
+				{
+					if (player.getActiveClass() != request.fromClass() || player.getLevel() < request.nobleLevel()) { return OperationResult.rejected(OperationStatus.LEVEL_TOO_LOW); }
+					idempotent = player.isNoble();
+					if (!careerOwner(profiles, request, player, idempotent)) { return OperationResult.rejected(OperationStatus.INVALID_REQUEST); }
+					if (!idempotent) { player.setNoble(true); }
+				}
+				else
+				{
+					final var target = PlayerClass.getPlayerClass(request.targetClass());
+					if (!PhantomCareerChoice.legalEdge(request.fromClass(), request.targetClass(), player.getAppearance().isFemale(), player.getClassIndex())
+						|| choice.nextClass(request.fromClass()) != request.targetClass() || player.getRace() != target.getRace()) { return OperationResult.rejected(OperationStatus.INVALID_REQUEST); }
+					if (player.getLevel() < PhantomCareerChoice.minimumLevel(target)) { return OperationResult.rejected(OperationStatus.LEVEL_TOO_LOW); }
+					idempotent = player.getActiveClass() == request.targetClass();
+					if (!idempotent && player.getActiveClass() != request.fromClass()) { return OperationResult.rejected(OperationStatus.INVALID_REQUEST); }
+					if (!careerOwner(profiles, request, player, idempotent)) { return OperationResult.rejected(OperationStatus.INVALID_REQUEST); }
+					if (!idempotent) { player.setPlayerClass(request.targetClass()); }
+					if (player.getActiveClass() != request.targetClass()) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
+					player.setBaseClass(player.getActiveClass());
+					player.setLearningClass(player.getPlayerClass());
+					// A prepared/overlevel actor may expose several AutoGet ranks at once. Native
+					// iteration is unordered; reach its finite fixed point without granting paid skills.
+					int passes = 0;
+					while (!SkillTreeData.getInstance().getAvailableAutoGetSkills(player).isEmpty() && passes++ < 64) { player.giveAvailableAutoGetSkills(); }
+					if (!SkillTreeData.getInstance().getAvailableAutoGetSkills(player).isEmpty()) { return OperationResult.rejected(OperationStatus.RECONCILIATION_FAILED); }
+					player.broadcastUserInfo();
+				}
+			}
+		}
+		// Checkpoint drains native work, so it must run after closing the caller's ACTION ticket.
+		if (!owner.isCurrent() || player.getNativeWorkOwner() != owner) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
+		player.storeMe();
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT classid,base_class,nobless FROM characters WHERE charId=?"))
+		{
+			statement.setQueryTimeout(10); statement.setInt(1, player.getObjectId());
+			try (var rows = statement.executeQuery())
+			{
+				if (!rows.next() || rows.getInt(1) != player.getActiveClass() || rows.getInt(2) != player.getBaseClass() || rows.getBoolean(3) != player.isNoble()) { return OperationResult.rejected(OperationStatus.RECONCILIATION_FAILED); }
+			}
+		}
+		catch (java.sql.SQLException failure) { return OperationResult.rejected(OperationStatus.BACKEND_FAILURE); }
+		return new OperationResult(idempotent ? OperationStatus.IDEMPOTENT : OperationStatus.SUCCESS, sp, player.getSp(), Map.of(), Map.of(), 0, true);
+	}
+
+	private static boolean careerOwner(org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles, PhantomProgressionModel.CareerRequest request, Player player, boolean idempotent)
+	{
+		final var component = profiles.findComponent(request.profileId(), "career.intent").orElse(null);
+		final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(profiles).load(request.profileId()).orElse(null);
+		if (component == null || component.componentSchemaVersion() != 1 || root == null) { return false; }
+		final var child = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(component.payload());
+		return (child.status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE || idempotent && child.status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.COMPLETED)
+			&& root.goal().status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE && "farm.background".equals(root.goal().goalType())
+			&& child.goalId() == root.goal().goalId() && child.subject().equals(root.goal().subject()) && "career.autonomous".equals(child.purposeKey())
+			&& child.target() != null && "career.native".equals(child.target().namespace()) && (request.targetClass() < 0 ? "noblesse" : "profession").equals(child.target().key())
+			&& child.constraints().getOrDefault("owner.revision", -1L) == root.goal().revision() && child.constraints().getOrDefault("owner.object", -1L) == player.getObjectId()
+			&& child.constraints().getOrDefault("class.index", -1L) == 0 && child.constraints().getOrDefault("class.from", -1L) == request.fromClass()
+			&& child.constraints().getOrDefault("class.to", -1L) == (request.targetClass() < 0 ? request.fromClass() : request.targetClass());
+	}
+
 	private static IllegalStateException failure(String category, String message)
 	{
 		return new ProgressionBackendException(category, message);
