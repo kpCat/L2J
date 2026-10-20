@@ -293,7 +293,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			_repository = PhantomProfileRepository.open();
 			deleteStaleTestProfile(_environment.primary().objectId());
 			deleteStaleTestProfile(_environment.observer().objectId());
-			context.record("background.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
+			context.record("background.database", PhantomCampaign058DatabaseLane.enabled() ? PhantomCampaign058DatabaseLane.databaseName() : PhantomTestDatabaseGuard.TARGET_DATABASE);
 			if ((_mode == Mode.AUTHORITATIVE_SHOTS) || ((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))))
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
@@ -4414,7 +4414,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final var from = topology.findAnchor(value.fromAnchorId()).orElseThrow();
 			final var to = topology.findAnchor(value.toAnchorId()).orElseThrow();
 			final double distance = Math.hypot((long) from.point().x() - to.point().x(), (long) from.point().y() - to.point().y());
-			return (from.role() == PhantomTopologyAnchorRole.ROUTE) && (to.role() == PhantomTopologyAnchorRole.FARMING) && (distance > 50) && (distance < 180);
+			if ((from.role() != PhantomTopologyAnchorRole.ROUTE) || (to.role() != PhantomTopologyAnchorRole.FARMING) || (distance <= 50) || (distance >= 700)) { return false; }
+			final var origin = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(from, 0).orElse(null);
+			final var destination = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(to, 0).orElse(null);
+			if (origin == null || destination == null || topology.findNode(to.nodeId()).orElseThrow().area().contains(new PhantomTopologyPoint(origin.x(), origin.y(), origin.z(), origin.instanceId()))) { return false; }
+			return new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend().canMoveDirect(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(origin.x(), origin.y(), origin.z(), origin.instanceId()), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(destination.x(), destination.y(), destination.z(), destination.instanceId()));
 		}).sorted(Comparator.comparing(PhantomTopologyEdge::id)).findFirst().orElseThrow();
 		final var departure = topology.findAnchor(edge.fromAnchorId()).orElseThrow();
 		final var arrival = topology.findAnchor(edge.toAnchorId()).orElseThrow();
@@ -4445,6 +4449,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, goal).status(), "Visible travel baseline failed.");
 			playerFixture.releaseRuntime();
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Visible travel did not materialize.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(L2jPhantomBackgroundAuthority.livePositionAllowed(topology, action.player(), arrival), "INVALID_INPUT: travel fixture already lies inside the lawful destination farm.");
+				context.record("m1.travel.preparedEdge", "existing edge=" + edge.id() + "; source=" + departure.id() + "; destination=" + arrival.id() + "; nativeDirect=true; sourceOutsideFarm=true; unchanged attempt and async deadlines");
+			}
 			if (_mode == Mode.NATIVE_LIFECYCLE) { PhantomM1TravelChecks.run(context, profile.profileId(), _repository, materialization, background, routeQuery, goal, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), noSignals()); }
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 			{
