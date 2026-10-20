@@ -32,6 +32,12 @@ Checkpoint2 `9317c8b99df4ee744918c671452b6ac98dcb210e` опубликован no
 
 Третий ordinary цикл на9317, synthetic OFF: Login9088/Game19340, затем оба stock STOP exit0. После sameDB START профиль5 сам выбрал supply journey, прошёл к stock merchant30004 и вернулся к фарму. Durable receipt `b5145d8d31528b67fb11873fa465ce4e82180b2f370c58cdd9571cb29d1d7880`: COMMITTED BUY1835x5, адена59→19, стоимость40. В этой эпохе World EXP385→420/SP22→24; после STOP БД сохранила420/24, адену19 и SS1. Четыре купленных SS израсходованы. Это реальное полезное продолжение; число убийств не выводится из EXP. Native evidence ранее отметил PHASE_DEADLINE регенерации, поэтому G4 не закрыт. EXP385/SP22 были уже в первом snapshot этой эпохи и не объявлены новым заработком.
 
+M5 raid01 на9317: full9 legal79/Party, readiness READY_AT_STAGING, настоящий25199 и4 minions/fullHP. Native buff/dance/recharge/aggro подтверждены, aggro удержан15.2s; heal не наблюдался, несколько участников погибли, терминал ABORTED/raid.retreat.complete,0/1 exit1. Изменение HP/rates/roster во время боя не выполнялось. Нельзя объявить победу или полное М5.
+
+В raid/party owners найден общий дефект завершения support lease при pending native CAST/approach. Focused RED9/10→GREEN10/10; review дополнительно обнаружил возможность удержать lease после deadline. Второй RED10/11→GREEN11/11: общий метод существующего Tactics сохраняет pending action до прежнего deadline, затем close отменяет только owned action ровно один раз. Party-tactics2/2 прошли. Native влияние на рейд ещё не проверено.
+
+Native query trace03 на09cb/C11A9CB8EF4E4E062678C7BA82D5F4558505CF13A04F27CDB47CC8FF0F4D454C: полный Giran запрос требует512 при native max500; затем32 queries/512 edges, SEARCH_LIMIT. Добавлен один projected3000 checkpoint по существующему journey pattern, сохраняя Oracle proofs и обратные направления. Focused buffer RED→GREEN4/4 и navigation-core51/51; новый native full-flow пока NOT_RUN.
+
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 
 Git используется по прямому разрешению пользователя и AUTHORITY064: bounded branch/HEAD/status/ancestry/live-remote/diff inspection; последующие exact-path commits и normal push разрешены. Force/reset/clean/rebase/amend не выполнялись.

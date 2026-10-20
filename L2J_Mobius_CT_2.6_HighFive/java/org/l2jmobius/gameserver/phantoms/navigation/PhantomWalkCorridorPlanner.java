@@ -106,6 +106,13 @@ public final class PhantomWalkCorridorPlanner
 				if (current.point.equals(request.destination())) { return result(Status.FOUND, points(current)); }
 				final List<PhantomNavigationPoint> candidates = new ArrayList<>();
 				if (local(current.point, request.destination())) { candidates.add(request.destination()); }
+				else
+				{
+					// Match the existing journey checkpoint span without requiring a larger native buffer.
+					final double bearing = Math.atan2((double) request.destination().y() - current.point.y(), (double) request.destination().x() - current.point.x());
+					final var checkpoint = _oracle.project(current.point.x() + (int) Math.round(LOCAL_SPAN * Math.cos(bearing)), current.point.y() + (int) Math.round(LOCAL_SPAN * Math.sin(bearing)), current.point);
+					if (checkpoint != null && !checkpoint.equals(current.point)) { candidates.add(checkpoint); }
+				}
 				for (int[] direction : DIRECTIONS)
 				{
 					final var candidate = _oracle.project(current.point.x() + direction[0] * STRIDE, current.point.y() + direction[1] * STRIDE, current.point);

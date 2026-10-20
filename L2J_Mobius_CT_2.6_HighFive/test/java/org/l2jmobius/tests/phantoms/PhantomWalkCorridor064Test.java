@@ -56,6 +56,19 @@ public final class PhantomWalkCorridor064Test
 		PhantomAssertions.assertEquals(point(-1024, 0), detour.points().getFirst(), "A lawful first leg may move away from the goal.");
 		PhantomAssertions.assertTrue(detour.nodes() <= 128 && detour.edges() <= 512 && detour.queries() <= 32 && detour.labels() <= 4096, "Existing shared search budgets remain bounded.");
 		System.out.println("PASS corridor064.fallback-backtracking-and-shared-budget");
+
+		final var checkpoint = point(3000, 0);
+		final var corner = point(0, 512); final var approach = point(3000, 512);
+		final var finiteBuffer = new PhantomWalkCorridorPlanner.Oracle()
+		{
+			@Override public PhantomNavigationPoint project(int x, int y, PhantomNavigationPoint surface) { return x == checkpoint.x() && y == checkpoint.y() ? checkpoint : null; }
+			@Override public boolean direct(PhantomNavigationPoint a, PhantomNavigationPoint b) { return a.equals(from) && b.equals(corner) || a.equals(corner) && b.equals(approach) || a.equals(approach) && b.equals(checkpoint) || a.equals(checkpoint) && b.equals(to); }
+			@Override public List<PhantomNavigationPoint> path(PhantomNavigationPoint a, PhantomNavigationPoint b) { return a.equals(from) && b.equals(checkpoint) ? List.of(corner, approach, checkpoint) : null; }
+		};
+		final var boundedNative = plan(finiteBuffer, from, to);
+		PhantomAssertions.assertEquals(PhantomWalkCorridorPlanner.Status.FOUND, boundedNative.status(), "A full query beyond native buffer capacity must retain a proven3000-unit checkpoint before coarse short edges.");
+		PhantomAssertions.assertTrue(boundedNative.queries() <= 32 && boundedNative.edges() <= 512 && boundedNative.points().getLast().equals(to), "Native checkpoint escaped the original budget or lost the destination.");
+		System.out.println("PASS corridor064.native-buffer-capacity-checkpoint");
 	}
 
 	private static PhantomWalkCorridorPlanner.Result plan(PhantomWalkCorridorPlanner.Oracle oracle, PhantomNavigationPoint from, PhantomNavigationPoint to)
