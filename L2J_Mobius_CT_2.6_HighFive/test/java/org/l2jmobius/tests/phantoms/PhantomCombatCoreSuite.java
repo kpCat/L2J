@@ -368,6 +368,16 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		fixture.dispatcher.runNext();
 		PhantomAssertions.assertEquals(1, fixture.lease.attackCount, "Physical fallback did not issue a normal attack.");
 		fixture.stop();
+		final Fixture nativeOnly = fixture(1);
+		nativeOnly.capabilities = List.of();
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, nativeOnly.start(1, PhantomCombatMode.MELEE_PHYSICAL).status(), "Native ordinary attack was blocked by absent authored skill metadata.");
+		nativeOnly.dispatcher.runNext();
+		PhantomAssertions.assertEquals(1, nativeOnly.lease.attackCount, "Native-only ordinary attack did not reach the existing backend.");
+		nativeOnly.stop();
+		final Fixture magic = fixture(1);
+		magic.capabilities = List.of();
+		PhantomAssertions.assertEquals(StartStatus.UNSUPPORTED_LOADOUT, magic.start(1, PhantomCombatMode.RANGED_MAGIC).status(), "Missing magic capability fabricated a native offensive skill.");
+		magic.stop();
 	}
 
 	private static void testSelectedSkillBound()

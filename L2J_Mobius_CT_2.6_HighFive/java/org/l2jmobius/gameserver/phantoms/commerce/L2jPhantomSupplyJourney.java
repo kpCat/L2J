@@ -451,9 +451,18 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private long fee(Player player, PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
-		if (from.instanceId() != 0 || to.instanceId() != 0) { return -1; }
-		if (from.distanceTo(to) <= _navigation.policy().maximumLocalStraightDistance()) { return 0; }
-		return _travel.legs().stream().filter(leg -> Math.hypot((long) from.x() - leg.sourceX(), (long) from.y() - leg.sourceY()) <= _navigation.policy().maximumLocalStraightDistance() && Math.hypot((long) to.x() - leg.destinationX(), (long) to.y() - leg.destinationY()) <= _navigation.policy().maximumLocalStraightDistance() && PhantomNativeTravelActions.available(leg)).mapToLong(leg -> PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000)).min().orElse(-1);
+		final double speed = player.getMoveSpeed();
+		if (from.instanceId() != 0 || to.instanceId() != 0 || !Double.isFinite(speed) || speed <= 0) { return -1; }
+		// Admission estimates a whole finite round trip, not one Navigation segment.
+		// This lower bound grants no route authority: every checkpoint still needs native Geo/PathFinding.
+		final long oneWayMillis = Math.max(0, (TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()) - 30_000) / 2);
+		final double maximumWalkingDistance = Math.min(_navigation.policy().maximumRouteDistance(), speed * oneWayMillis / 1000.0);
+		if (from.distanceTo(to) <= maximumWalkingDistance) { return 0; }
+		return _travel.legs().stream().filter(leg ->
+		{
+			final double walking = Math.hypot((long) from.x() - leg.sourceX(), (long) from.y() - leg.sourceY()) + Math.hypot((long) to.x() - leg.destinationX(), (long) to.y() - leg.destinationY());
+			return walking <= maximumWalkingDistance && PhantomNativeTravelActions.available(leg);
+		}).mapToLong(leg -> PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000)).min().orElse(-1);
 	}
 
 	private PhantomStepResult advance(PhantomStepContext context)

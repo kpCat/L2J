@@ -99,11 +99,12 @@ public final class PhantomCombatCapabilityResolver
 		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
 		final boolean normalFallback = lease.supportsNormalAttack(mode);
-		if (matching.isEmpty() || (!normalFallback && selected.isEmpty()))
+		if (!normalFallback && selected.isEmpty())
 		{
 			return Optional.empty();
 		}
-		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
+		// Authored skill metadata ranks learned actions; it does not grant the native ordinary attack.
+		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElse(1);
 		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
 	}
 

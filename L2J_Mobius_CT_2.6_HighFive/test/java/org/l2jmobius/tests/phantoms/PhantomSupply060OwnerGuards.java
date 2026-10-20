@@ -110,8 +110,18 @@ final class PhantomSupply060OwnerGuards
 	{
 		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, false, true, false, true);
 	}
+	static void longApproach(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, true, false, false, false, true);
+	}
 	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid, boolean unarmed) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, ammunition, blessed, equipment, paid, unarmed, false);
+	}
+	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid, boolean unarmed, boolean longApproach) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final long baselineAdena = player.getAdena();
@@ -127,8 +137,10 @@ final class PhantomSupply060OwnerGuards
 		{
 			player.getInventory().addItem(ItemProcessType.REWARD, 2509, 100, null, PhantomSupply060OwnerGuards.class);
 			// Independent, declared native route input from ordinary18; no relocation after measurement begins.
-			final int ground = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(-88024, 251400, -3656);
-			player.decayMe(); player.setXYZInvisible(-88024, 251400, ground); player.spawnMe(); player.revalidateZone(true);
+			final int inputX = longApproach ? -125531 : -88024, inputY = longApproach ? 37944 : 251400, inputZ = longApproach ? 1176 : -3656;
+			final int ground = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(inputX, inputY, inputZ);
+			player.decayMe(); player.setXYZInvisible(inputX, inputY, ground); player.spawnMe(); player.revalidateZone(true);
+			if (longApproach) { context.record("supply061.longApproachInput", "Independent TEST Mystic5/nativeNG6/regularSpS100/A+10000 at ordinary12 Kamael field(-125531,37944,1176); native shops beyond one Navigation segment; finite eight-minute journey, unchanged resources during measurement"); }
 			context.record("supply061.observedRouteInput", "Independent TEST Mystic5/NG6 at ordinary18 original field(-88024,251400," + ground + "); native source selection and unchanged eight-minute journey; no ordinary state mutation");
 			final var data = org.l2jmobius.gameserver.data.xml.ItemData.getInstance();
 			PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.compatible(player, data.getTemplate(3947)), "Native NG blessed spiritshot is unavailable.");

@@ -190,6 +190,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 				_automaticBackground = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(_profiles, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles), PhantomIdentityLeaseRegistry.getInstance(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction(), _automaticProduction.authority(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(), _signals, () -> _materialization);
 				PhantomAssertions.assertTrue(_automaticBackground.start(), "Automatic career native Background owner did not start.");
 				_materialization = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector.none(), _automaticBackground, 5000, 10000);
+				_materialization.requireOffensiveShots();
 			}
 			else { _materialization = new PhantomMaterializationService(_profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1); }
 			PhantomAssertions.assertTrue(_materialization.start(), "Goal036 materialization service did not start.");
@@ -809,6 +810,34 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		prepareAutomaticAutoGets061(); // Native AutoGet synchronization is part of declared TEST level preparation.
 		final var anchor = _automaticProduction.topology().findAnchor("generated.farm.bfb0335de417bc81a7e9b231.anchor").orElseThrow();
 		_player.decayMe(); _player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z()); _player.spawnMe(); _player.revalidateZone(true);
+		// Finite TEST input declared before the career episode; these resources/levels are not earned.
+		_player.setSp(5000);
+		for (int itemId : List.of(24, 31))
+		{
+			final Item armor = _player.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, _player, this);
+			PhantomAssertions.assertTrue(armor != null, "Declared native TEST armor is unavailable.");
+			_player.getInventory().equipItem(armor);
+		}
+		_player.getInventory().addItem(ItemProcessType.REWARD, 1835, 300, _player, this);
+		_player.getInventory().addItem(ItemProcessType.REWARD, 1061, 3, _player, this);
+		_player.setInvul(false); _player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
+		final var trainers = new ArrayList<org.l2jmobius.gameserver.model.actor.instance.Trainer>();
+		for (var branch : _player.getPlayerClass().getNextClasses())
+		{
+			final var template = NpcData.getInstance().getTemplates(value -> "Trainer".equals(value.getType()) && value.canTeach(branch)).stream().min(Comparator.comparingInt(NpcTemplate::getId)).orElseThrow(() -> new AssertionError("No native TEST trainer for branch " + branch));
+			final var trainer = new org.l2jmobius.gameserver.model.actor.instance.Trainer(template);
+			trainer.spawnMe(_player.getX() + 10, _player.getY(), _player.getZ()); _fixtures.add(trainer); trainers.add(trainer);
+		}
+		final var targetTemplate = NpcData.getInstance().getTemplates(value -> "Monster".equals(value.getType()) && value.getLevel() >= 15 && value.getLevel() <= 17 && !value.isAggressive() && (value.getClans() == null || value.getClans().isEmpty()) && value.getExp() > 0).stream().min(Comparator.comparingInt(NpcTemplate::getId)).orElseThrow(() -> new AssertionError("No passive native TEST target in declared level15-17 bracket"));
+		final var targets = new ArrayList<Monster>();
+		for (int offset : List.of(30, 60))
+		{
+			final var target = new Monster(targetTemplate);
+			final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(targetTemplate);
+			spawn.setXYZ(_player.getX() + offset, _player.getY(), _player.getZ()); target.setSpawn(spawn);
+			target.spawnMe(_player.getX() + offset, _player.getY(), _player.getZ()); _fixtures.add(target); targets.add(target);
+		}
+		context.record("career061.farmInput", "prepared Fighter20/SP5000/native68+24+31/SS300/heal3; invul=false; strictShots=true; native mobs=" + targetTemplate.getId() + " x2; no runtime target HP/stat changes");
 		final long exp = _player.getExp(), sp = _player.getSp();
 		final var quest = _player.getQuestState("Q00401_PathOfTheWarrior");
 		final String questBefore = quest == null ? "ABSENT" : quest.getState() + ":" + quest.getCond();
@@ -844,6 +873,48 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(_player.getActiveClass() == earnedClass && _player.getBaseClass() == earnedClass && _player.getLearningClass() == _player.getPlayerClass(), "SameDB reload lost class/base/learning context.");
 		PhantomAssertions.assertEquals(choice, _profiles.findComponent(_profile.profileId(), "career.choice").orElseThrow(), "Reload changed the chosen career branch.");
 		PhantomAssertions.assertEquals(earnedClass, new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction().load(_profile.profileId()).state().identity().activeClassId(), "Background retained the previous profession after native save.");
+		automaticPaidSkillAndFarm061(context, trainers, targets);
+	}
+
+	private void automaticPaidSkillAndFarm061(PhantomTestContext context, List<org.l2jmobius.gameserver.model.actor.instance.Trainer> trainers, List<Monster> targets) throws Exception
+	{
+		final var trainer = trainers.stream().filter(value -> value.getTemplate().canTeach(_player.getLearningClass())).findFirst().orElseThrow();
+		_player.setLastFolkNPC(trainer);
+		final var learn = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getAvailableSkills(_player, _player.getLearningClass(), false, false).stream()
+			.filter(value -> value.isLearnedByNpc() && !value.isAutoGet() && value.getGetLevel() >= 20 && value.getRequiredItems().isEmpty())
+			.filter(value -> value.getCalculatedLevelUpSp(_player.getPlayerClass(), _player.getLearningClass()) > 0 && value.getCalculatedLevelUpSp(_player.getPlayerClass(), _player.getLearningClass()) <= _player.getSp())
+			.min(Comparator.comparingInt(org.l2jmobius.gameserver.model.skill.holders.SkillLearn::getSkillId).thenComparingInt(org.l2jmobius.gameserver.model.skill.holders.SkillLearn::getSkillLevel)).orElseThrow();
+		final long sp = _player.getSp(), exp = _player.getExp();
+		final long cost = learn.getCalculatedLevelUpSp(_player.getPlayerClass(), _player.getLearningClass());
+		final var learned = _progression.learnClassSkill(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest(_profile.profileId(), trainer.getObjectId(), org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind.CLASS, learn.getSkillId(), learn.getSkillLevel(), NOT_CANCELLED));
+		PhantomAssertions.assertTrue(learned.status() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS && _player.getSkillLevel(learn.getSkillId()) == learn.getSkillLevel() && _player.getSp() == sp - cost && _player.getExp() == exp, "Post-profession paid native learning failed: " + learned);
+		final long shots = itemCount(1835), farmSp = _player.getSp();
+		for (var target : targets)
+		{
+			final var started = _combat.startSession(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(_profile.profileId(), target.getObjectId(), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, true, true, 60_000, NOT_CANCELLED));
+			PhantomAssertions.assertTrue(started.accepted(), "Post-profession native farm was refused: " + started);
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(65);
+			while (_combat.find(_profile.profileId()).map(value -> !value.result().terminal()).orElse(false) && System.nanoTime() < deadline) { Thread.sleep(25); }
+			final var terminal = _combat.find(_profile.profileId()).orElseThrow();
+			PhantomAssertions.assertTrue(target.isAlikeDead() && !_player.isAlikeDead(), "Post-profession native fight did not finish alive: " + terminal);
+			_combat.consumeTerminal(_profile.profileId());
+			await(() -> !_player.isAttackingNow() && !_player.isCastingNow(), "Post-profession native attack did not settle.");
+		}
+		PhantomAssertions.assertTrue(_player.getExp() > exp && _player.getSp() > farmSp && itemCount(1835) < shots && !_player.isInvul(), "Post-profession farm lacks real rewards/paid shots/native risk.");
+		final long earnedExp = _player.getExp(), earnedSp = _player.getSp(), remainingShots = itemCount(1835);
+		context.record("career061.nativeFarmBeforeSave", "EXP=" + exp + "->" + earnedExp + "; SP=" + farmSp + "->" + earnedSp + "; SS=" + shots + "->" + remainingShots + "; alive; two native kills; combat=" + _player.isInCombat());
+		if (_player.isInCombat())
+		{
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.ACTOR_STATE_REJECTED,
+				_progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(_profile.profileId(), _player.getActiveClass(), -1, 80, NOT_CANCELLED)).status(), "Busy native Player entered the career mutation boundary.");
+		}
+		// Wait for the real 15-second native attack stance; no timer/flag reset or store guard exception.
+		await(() -> !_player.isInCombat(), "Native combat stance did not expire before the post-farm owned save.");
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.INVALID_REQUEST,
+			_progression.advanceCareer(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CareerRequest(_profile.profileId(), _player.getActiveClass(), 118, 80, NOT_CANCELLED)).status(), "Actual Human Player accepted a foreign Dwarf branch.");
+		_player.storeMe(); rematerialize();
+		PhantomAssertions.assertTrue(_player.getExp() == earnedExp && _player.getSp() == earnedSp && itemCount(1835) == remainingShots && _player.getSkillLevel(learn.getSkillId()) == learn.getSkillLevel(), "SameDB reload lost paid skill or actual farm earnings/resources.");
+		context.record("career061.paidSkillAndFarm", "class=" + _player.getActiveClass() + "; skill=" + learn.getSkillId() + ":" + learn.getSkillLevel() + "; native SP cost=" + cost + "; EXP=" + exp + "->" + earnedExp + "; SP after learning=" + farmSp + "->" + earnedSp + "; SS=" + shots + "->" + remainingShots + "; native two kills; saved/reloaded");
 	}
 
 	private void automaticLaterProfessions061(PhantomTestContext context) throws Exception

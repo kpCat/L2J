@@ -55,7 +55,7 @@ if ($Campaign061) {
   $compiledRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled'
   $package061=Get-Content -LiteralPath 'D:\PhantomWorld\World-Career-061-candidate\BUILD_INFO.json' -Raw | ConvertFrom-Json
   if($null -ne $package061.PSObject.Properties['cleanCompiledRoot061']){
-   $allowedRoots061=@('correction1','correction2','lifecycle1','career1','career2','career3','final1','final2','career4','career5','career6','career7','career8','career9','career10','career11','career12','career13','career14','career15','career16','career17','career18','career19') | ForEach-Object {Join-Path $hf059 ('.phantom-local/contract058a/build/release061-'+$_+'/compiled')}
+   $allowedRoots061=@('correction1','correction2','lifecycle1','career1','career2','career3','final1','final2','career4','career5','career6','career7','career8','career9','career10','career11','career12','career13','career14','career15','career16','career17','career18','career19','career20','career21') | ForEach-Object {Join-Path $hf059 ('.phantom-local/contract058a/build/release061-'+$_+'/compiled')}
    if($package061.cleanCompiledRoot061 -cnotin $allowedRoots061){throw 'Unknown corrective clean061 build root'}
    $compiledRoot061=$package061.cleanCompiledRoot061
   }
