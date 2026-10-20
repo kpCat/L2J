@@ -1907,7 +1907,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
 				return (skill != null) && (skill.getItemConsumeId() <= 0) && (skill.getMpConsume() > 0);
 			}).findFirst().orElseThrow();
-		final int preparedRank = preferredClass == 97 && capabilityKey.equals("combat.buff") ? 6 : preferredClass == 105 && capabilityKey.equals("combat.heal") ? 33 : Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
+		final boolean currentCardinalHeal = (_mode == Mode.COMPANION_ROLE_MATRIX_058) && (preferredClass == 97) && capabilityKey.equals("combat.heal") && (rule.actionSkill().skillId() == 1217);
+		final int preparedRank = preferredClass == 97 && capabilityKey.equals("combat.buff") ? 6 : currentCardinalHeal || preferredClass == 105 && capabilityKey.equals("combat.heal") ? 33 : Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
 		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), preparedRank);
 		PhantomAssertions.assertTrue(skill != null && skill.getLevel() == preparedRank, "Declared stock support rank is unavailable.");
 		// Explicit TEST preparation before the episode; no natural career or product grant claim.
