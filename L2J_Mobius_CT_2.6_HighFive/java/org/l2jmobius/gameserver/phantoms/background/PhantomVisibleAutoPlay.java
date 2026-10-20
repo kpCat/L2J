@@ -340,7 +340,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	/** Exact session policy uses stock sit/stand and existing regeneration; useful farm debt is never renewed by rest. */
 	private boolean resourcePause(Session session, Player player)
 	{
-		if (!player.getPlayerClass().isMage()) { return false; }
 		if (player.isCastingNow() || player.isAttackingNow()) { return false; }
 		final long now = _clock.getAsLong();
 		synchronized (session)
@@ -359,7 +358,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final double nativeCost = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
 			if (nativeCost > 0) { cost = Math.min(cost, nativeCost); }
 		}
-		if (!Double.isFinite(cost)) { return false; }
+		if (!player.getPlayerClass().isMage() || !Double.isFinite(cost)) { cost = 0; }
 		final double mp = player.getCurrentMp();
 		final double maximumMp = player.getMaxMp();
 		final boolean sitting = player.isSitting();
@@ -370,7 +369,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			if (!session._current.get()) { return false; }
 			session._resourceCost = cost;
-			if (!session._recovering && mp >= cost)
+			if (!session._recovering && org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), mp, cost, false))
 			{
 				session._resourceSince = 0; session._resourceExpired = false;
 				if (!sitting) { return false; }
@@ -384,7 +383,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				stand = sitting; sit = false; pause = session._resourceExpired;
 				session._recovering = false; session._resourceReason = threatened ? "resource.native_threat" : "resource.bounded_unavailable";
 			}
-			else if (session._recovering && mp >= Math.min(maximumMp, cost * 2))
+			else if (session._recovering && org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), mp, Math.min(maximumMp, cost * 2), true))
 			{
 				stand = sitting; sit = false; pause = stand;
 				session._recovering = stand; session._resourceReason = stand ? "resource.native_stand_pending" : "resource.affordable";

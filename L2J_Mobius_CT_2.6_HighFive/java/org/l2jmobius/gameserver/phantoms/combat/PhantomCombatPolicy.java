@@ -6,6 +6,15 @@ package org.l2jmobius.gameserver.phantoms.combat;
 public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPulse, int maximumThreatEntries, int maximumSelectedSkills, int maximumObservedAttackers, int maximumLootCandidates, int maximumRememberedLootIds, int maximumAcquisitionDistance, int maximumLootDistance, long pulseIntervalMillis, long defaultTimeoutMillis, long maximumTimeoutMillis, long lootTimeoutMillis, int lowHpPercent, int minimumMpReservePercent)
 {
 	public static final long MAXIMUM_TIMEOUT_MILLIS = 120_000;
+	public static final int PVE_CROWD_RETREAT_HP_PERCENT = 70;
+	public static final int PVE_RECOVERY_HP_PERCENT = 80;
+
+	/** New encounters stay above crowd withdrawal; native rest retains its recovery hysteresis. */
+	public static boolean pveResourcesReady(double hp, double maximumHp, double mp, double requiredMp, boolean recovering)
+	{
+		return maximumHp > 0 && Double.isFinite(maximumHp) && Double.isFinite(hp) && Double.isFinite(mp) && Double.isFinite(requiredMp) && requiredMp >= 0
+			&& (recovering ? hp * 100 >= maximumHp * PVE_RECOVERY_HP_PERCENT : hp * 100 > maximumHp * PVE_CROWD_RETREAT_HP_PERCENT) && mp >= requiredMp;
+	}
 
 	public PhantomCombatPolicy
 	{

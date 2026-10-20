@@ -1338,12 +1338,12 @@ public final class PhantomCombatService
 				return;
 			}
 			final boolean nativePve = session._pvpRequest == null && session._raidRequest == null && session._siegeRequest == null;
-			if (nativePve && percent(actor.currentHp(), actor.maximumHp()) <= 70 && session._actorLease.useHealingPotion())
+			if (nativePve && percent(actor.currentHp(), actor.maximumHp()) <= PhantomCombatPolicy.PVE_CROWD_RETREAT_HP_PERCENT && session._actorLease.useHealingPotion())
 			{
 				actor = session._actorLease.actorSnapshot();
 			}
 			final boolean lowHp = percent(actor.currentHp(), actor.maximumHp()) <= _policy.lowHpPercent();
-			final boolean surrounded = nativePve && percent(actor.currentHp(), actor.maximumHp()) <= 70 && boundedAttackers(session._actorLease.observedAttackers(_policy.maximumObservedAttackers())).size() > 1;
+			final boolean surrounded = nativePve && percent(actor.currentHp(), actor.maximumHp()) <= PhantomCombatPolicy.PVE_CROWD_RETREAT_HP_PERCENT && boundedAttackers(session._actorLease.observedAttackers(_policy.maximumObservedAttackers())).size() > 1;
 			if (nativePve && (lowHp || surrounded || session._phase == PhantomCombatPhase.RETREATING))
 			{
 				if (session._phase != PhantomCombatPhase.RETREATING)

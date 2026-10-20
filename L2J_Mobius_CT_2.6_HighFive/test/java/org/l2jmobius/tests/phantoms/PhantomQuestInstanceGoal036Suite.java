@@ -660,14 +660,14 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		_player.decayMe(); _player.setXYZInvisible(home.x() + 64, home.y(), home.z()); _player.spawnMe(); _player.revalidateZone(true);
 		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
 		quest.setState(org.l2jmobius.gameserver.model.script.State.STARTED); quest.setCond(2, false);
-		_player.setCurrentHp(_player.getMaxHp() * 0.4);
+		_player.setCurrentHp(_player.getMaxHp() * 0.65);
 		installGoal("class.warrior-q401", PhantomQuestInstanceService.CLASS_GOAL_TYPE);
 		final long exp = _player.getExp(), sp = _player.getSp(), adena = itemCount(57);
 		final double hp = _player.getCurrentHp();
 		advance(PhantomActivityState.BACKGROUND);
 		PhantomAssertions.assertFalse(_player.isSitting(), "BACKGROUND content invoked native rest.");
 		final var result = advance(PhantomActivityState.ACTIVE);
-		context.record("career061.rest.input", "Independent mechanism-only TEST: safe native Simplon; cond2/no collection grants; initial40%HP before measurement; natural regeneration only after advance; not full Q401.");
+		context.record("career061.rest.input", "Independent mechanism-only TEST: safe native Simplon; cond2/no collection grants; initial65%HP is below existing Combat crowd-retreat70%; natural regeneration only after advance; not full Q401.");
 		PhantomAssertions.assertTrue(result.reasonKey().equals("questinstance.combat.native_rest") && _player.isSitting(), "Career started another combat/navigation instead of native resource rest: " + result);
 		Thread.sleep(8_000);
 		PhantomAssertions.assertTrue(_player.getCurrentHp() > hp, "Stock seated regeneration did not recover native HP.");

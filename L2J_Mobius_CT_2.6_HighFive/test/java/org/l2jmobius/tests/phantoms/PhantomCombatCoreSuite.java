@@ -249,6 +249,15 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			final ActorSnapshot snapshot = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 150, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 			PhantomAssertions.assertTrue(Double.compare(snapshot.currentCp(), 150) == 0, "Snapshot normalized exact canonical CP.");
 		});
+		registry.add("061-shared-native-pve-resource-recovery-hysteresis", _ ->
+		{
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveResourcesReady(65, 100, 100, 20, false), "Preparation admitted below Combat crowd withdrawal.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveResourcesReady(70, 100, 0, 0, false), "Physical ordinary farm ignored low HP because no spell was selected.");
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveResourcesReady(75, 100, 20, 20, false), "Healthy ready actor was held unnecessarily.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveResourcesReady(75, 100, 20, 20, true), "Native recovery lost its hysteresis.");
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveResourcesReady(80, 100, 20, 20, true), "Recovered native actor cannot resume.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveResourcesReady(100, 100, 19, 20, false), "Magic readiness ignored its real MP cost.");
+		});
 		registry.add("061-content-critical-health-retains-owned-care-and-bounded-retreat", _ ->
 		{
 			final Fixture escaping = fixture(1);
