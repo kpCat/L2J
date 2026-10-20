@@ -3935,7 +3935,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var centre064 = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(78900, 150200, GeoEngine.getInstance().getHeight(78900, 150200, -3560), 0);
 			// Multiple regional aliases can share one town point; separate towns before the24-candidate cap.
 			final var respawns064 = townPerimeter064
-				? _topology.snapshot().anchorsByRole().getOrDefault(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, List.of()).stream().filter(anchor -> anchor.point().instanceId() == 0 && anchor.point().distanceSquared2D(centre064) <= 100_000L * 100_000L).sorted(Comparator.comparingLong((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> anchor.point().distanceSquared2D(centre064)).thenComparing(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor::id)).toList()
+				? java.util.stream.Stream.of(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER).flatMap(role -> _topology.snapshot().anchorsByRole().getOrDefault(role, List.of()).stream()).filter(anchor -> anchor.point().instanceId() == 0 && anchor.point().distanceSquared2D(centre064) <= 200_000L * 200_000L).sorted(Comparator.comparingLong((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> anchor.point().distanceSquared2D(centre064)).thenComparing(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor::id)).toList()
 				: _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, 1, 100_000);
 			final var landmarks064 = respawns064.isEmpty() ? _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000) : respawns064;
 			PhantomAssertions.assertTrue(!landmarks064.isEmpty(), "INVALID_INPUT: no canonical protected landmark for the independent perimeter control.");
@@ -3953,19 +3953,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				for (int direction064 = 0; direction064 < 8; direction064++)
 				{
 					final double angle064 = Math.PI * direction064 / 4;
-					preparedInputs064.add(new int[] {anchor064.x() + (int) Math.round(radius064 * Math.cos(angle064)), anchor064.y() + (int) Math.round(radius064 * Math.sin(angle064))});
+					preparedInputs064.add(new int[] {anchor064.x() + (int) Math.round(radius064 * Math.cos(angle064)), anchor064.y() + (int) Math.round(radius064 * Math.sin(angle064)), anchor064.z()});
 				}
 			}
 			}
 			context.record("pvp064.preparedGeometry", "Independent supported-perimeter TEST; canonical anchors=" + selected064 + "; at most24 pre-measurement native candidates; original04 and Giran07 FAIL retained; unchanged actors/resources/policy30s; no geometry change during measurement");
 		}
-		else { preparedInputs064.add(new int[] {78900, 150200}); }
+		else { preparedInputs064.add(new int[] {78900, 150200, -3560}); }
 		// The original04 input stays fixed; the opt-in07 control declares its geometry before measurement.
 		for (int[] input : preparedInputs064)
 		{
 			final int x = input[0], y = input[1];
 			{
-				final int z = GeoEngine.getInstance().getHeight(x, y, -3560);
+				final int z = GeoEngine.getInstance().getHeight(x, y, input[2]);
 				final boolean forbidden = ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null || ZoneManager.getInstance().getZone(x, y, z, NoPvPZone.class) != null || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null;
 				if (!GeoEngine.getInstance().hasGeo(x, y) || forbidden) { System.out.println("PVP059 preflight=" + x + ',' + y + ',' + z + "; geo=" + GeoEngine.getInstance().hasGeo(x, y) + "; forbidden=" + forbidden); continue; }
 				if (!GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 64, y, GeoEngine.getInstance().getHeight(x + 64, y, z), 0)) { continue; }
