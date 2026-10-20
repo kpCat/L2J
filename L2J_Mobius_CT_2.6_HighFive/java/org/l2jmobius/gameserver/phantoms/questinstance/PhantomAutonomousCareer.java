@@ -138,7 +138,7 @@ final class PhantomAutonomousCareer
 			constraints.put("owner.revision", root.revision()); constraints.put("owner.object", (long) player.getObjectId());
 			constraints.put("class.from", (long) route.fromClass()); constraints.put("class.to", (long) route.toClass()); constraints.put("class.index", (long) player.getClassIndex());
 			constraints.put("field.x", (long) player.getX()); constraints.put("field.y", (long) player.getY()); constraints.put("field.z", (long) player.getZ()); constraints.put("retry.after", 0L);
-			final var weapon = player.getActiveWeaponInstance(); constraints.put("weapon.object", weapon == null ? 0L : (long) weapon.getObjectId());
+			final var weapon = returnWeapon(player, content); constraints.put("weapon.object", weapon == null ? 0L : (long) weapon.getObjectId());
 			return Optional.of(PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomQuestInstanceService.CLASS_GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(),
 				new PhantomDomainRef(PhantomQuestInstanceService.TARGET_NAMESPACE, route.contentId()), 1, 0, null, List.of(), root.selectedAnchor(), "career.autonomous", 700, 0, 0,
 				now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), constraints, "career.native.eligible", cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1), content.contentHash()), now));
@@ -164,7 +164,28 @@ final class PhantomAutonomousCareer
 				final var resumed = PhantomJourneyLifetime.resume(intent, System.currentTimeMillis());
 				if (!resumed.equals(intent)) { store(context.profileId(), cached, resumed); intent = resumed; }
 			}
-			noticeNativeDeath(context.profileId(), context.goal(), lease.player());
+			// A legacy retry may have captured an owned trial weapon before its native quest consumes it.
+			// Refine that witness only while no physical child owns it; missing/foreign items stay failures.
+			final Player player = lease.player();
+			final String contentHash = intent.payloadText();
+			final var content = _catalog.content(intent.target().key()).filter(value -> value.contentHash().equals(contentHash)).orElse(null);
+			final long witnessed = intent.constraints().getOrDefault("weapon.object", 0L);
+			if (content != null && player.getActiveClass() == intent.constraints().getOrDefault("class.from", -1L) && !_service.hasOwnedWork(context.profileId())
+				&& witnessed > 0 && witnessed <= Integer.MAX_VALUE)
+			{
+				final var held = player.getInventory().getItemByObjectId((int) witnessed);
+				if (held != null && trialWeapon(content, held.getId()))
+				{
+					final var permanent = returnWeapon(player, content);
+					if (permanent != null)
+					{
+						final var constraints = new LinkedHashMap<>(intent.constraints()); constraints.put("weapon.object", (long) permanent.getObjectId());
+						intent = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints, intent.reasonKey(), Math.addExact(intent.revision(), 1), intent.payloadText());
+						store(context.profileId(), cached, intent);
+					}
+				}
+			}
+			noticeNativeDeath(context.profileId(), context.goal(), player);
 			intent = cached.goal;
 		}
 		if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "career.native.finish_current_target"); }
@@ -350,6 +371,21 @@ final class PhantomAutonomousCareer
 		store(context.profileId(), cached, new PhantomGoal(intent.goalId(), intent.goalType(), PhantomGoalStatus.FAILED, intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints, reason, Math.addExact(intent.revision(), 1), intent.payloadText()));
 		_service.finishAutonomousJourney(context.profileId());
 		return PhantomStepResult.of(PhantomStepResult.Type.REPLAN, reason);
+	}
+
+	private static boolean trialWeapon(PhantomQuestInstanceCatalog.Content content, int itemId)
+	{
+		return content.steps().stream().anyMatch(step -> step.operation() == PhantomQuestInstanceCatalog.Operation.EQUIP && step.itemId() == itemId);
+	}
+
+	private static org.l2jmobius.gameserver.model.item.instance.Item returnWeapon(Player player, PhantomQuestInstanceCatalog.Content content)
+	{
+		final var current = player.getActiveWeaponInstance();
+		if (current != null && !trialWeapon(content, current.getId())) { return current; }
+		return player.getInventory().getItems().stream().filter(item -> item.getTemplate() instanceof org.l2jmobius.gameserver.model.item.Weapon && !trialWeapon(content, item.getId()))
+			.filter(item -> org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.compatible(player, item.getTemplate()))
+			.sorted(java.util.Comparator.comparing(org.l2jmobius.gameserver.model.item.instance.Item::getTemplate, org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.preference(player)))
+			.findFirst().orElse(null);
 	}
 
 	/** Native child work outlives a single Decision plan, but never its current owner or HOLD. */

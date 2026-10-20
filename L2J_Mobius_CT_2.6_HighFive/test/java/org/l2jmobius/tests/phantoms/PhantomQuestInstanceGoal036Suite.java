@@ -240,7 +240,11 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 				registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
 				registry.add("14s-native-career-free-local-walk061", this::localWalk061);
 			}
-			else { registry.add("14r-native-career-reverse-walk-proof061", this::reverseRoute061); }
+			else
+			{
+				registry.add("14r-native-career-reverse-walk-proof061", this::reverseRoute061);
+				registry.add("14t-observed-ordinary061-native-route-cause", this::observedRouteCause061);
+			}
 			return;
 		}
 		if (Boolean.getBoolean("phantom.test.careerFull061"))
@@ -345,6 +349,36 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			if (completed.get().route() != null) { found = true; break; }
 		}
 		PhantomAssertions.assertTrue(found, "The observed Q401 field has no complete reverse native WALK corridor to any supported Simplon approach within existing bounds.");
+	}
+
+	private void observedRouteCause061(PhantomTestContext context)
+	{
+		final var nativePaths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		final var policy = _navigation.policy();
+		final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+		final long exp = _player.getExp(), sp = _player.getSp(), adena = _player.getAdena();
+		final int[][] routes = {{-82008,149592,-3128,-78936,150888,-3024},{-88024,251400,-3656,-84263,240462,-3720}};
+		for (int index = 0; index < routes.length; index++)
+		{
+			final var row = routes[index];
+			final var from = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(row[0],row[1],row[2],0);
+			final var to = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(row[3],row[4],geo.getHeight(row[3],row[4],row[5]),0);
+			final var token = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken();
+			long now = System.nanoTime();
+			var request = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(),from,to,now,now+policy.defaultRequestDeadlineNanos(),policy.maximumRouteDistance());
+			final var raw = nativePaths.findPath(request,token);
+			final var rawProof = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.normalize(from,to,raw,policy,policy.maximumRouteDistance(),nativePaths::canWalkDirect,()->org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.PATH_FOUND);
+			now = System.nanoTime();
+			request = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(),from,to,now,now+policy.defaultRequestDeadlineNanos(),policy.maximumRouteDistance());
+			final var full = nativePaths.findWalkCorridor(request,token,policy,System::nanoTime);
+			final double bearing = Math.atan2((double)to.y()-from.y(),(double)to.x()-from.x());
+			final int x = from.x()+(int)Math.round(1500*Math.cos(bearing)), y=from.y()+(int)Math.round(1500*Math.sin(bearing));
+			final var hop = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x,y,geo.getHeight(x,y,from.z()),0);
+			now = System.nanoTime();
+			final var partial = nativePaths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(),from,hop,now,now+policy.defaultRequestDeadlineNanos(),policy.maximumRouteDistance()),token,policy,System::nanoTime);
+			context.record("routeCause061."+index,"READ_ONLY_NATIVE_GEOMETRY; from="+from+";to="+to+";direct="+nativePaths.canWalkDirect(from,to)+";rawPoints="+(raw==null?-1:raw.size())+";rawProof="+rawProof.status()+";full="+full+";hop="+hop+";hopProof="+partial);
+		}
+		PhantomAssertions.assertTrue(_player.getExp()==exp && _player.getSp()==sp && _player.getAdena()==adena,"Read-only native geometry changed actor resources.");
 	}
 
 	private void careerHealingSupply061(PhantomTestContext context)
@@ -751,6 +785,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private void autonomousCareer061(PhantomTestContext context) throws Exception
 	{
 		preparePlayer(0, 0, 19);
+		final var returnWeapon = ensureWeapon(68); // Declared native TEST owned loadout, never an ordinary quest reward.
 		PhantomAssertions.assertTrue(_backend.observe(_profile.profileId(), _catalog.content("class.warrior-q401").orElseThrow()).quest().status() == org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.QuestStatus.ABSENT && itemCount(1145) == 0 && _player.getClassIndex() == 0, "Career061 requires an unstarted native Fighter quest, no mark and main class.");
 		final PhantomGoal root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE,
 			new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_normalWorldCombatPoint.npcId())),
@@ -774,6 +809,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		preparePlayer(18, 18, 19);
 		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "Career forced another native race/class into Q401.");
 		preparePlayer(0, 0, 19);
+		ensureWeapon(1142); // Independent producer input: a resumed trial may still hold its temporary native weapon.
 		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
 		context.record("career061.producer", "native Fighter0/main/19; Q401 absent; no class goal supplied by fixture; selection=" + selected);
 		PhantomAssertions.assertTrue(selected.candidate() != null, "Eligible native farm Decision has no autonomous supported profession producer.");
@@ -785,6 +821,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED));
 		final var stored = _profiles.findComponent(_profile.profileId(), "career.intent").orElseThrow(() -> new AssertionError("Production did not persist its selected career child."));
 		final var intent = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(stored.payload());
+		PhantomAssertions.assertTrue(intent.constraints().getOrDefault("weapon.object", 0L) == returnWeapon.getObjectId() && _player.getActiveWeaponInstance().getId() == 1142,
+			"Career producer bound consumable trial equipment as the permanent return weapon or mutated native equipment.");
 		PhantomAssertions.assertEquals("class.transfer", intent.goalType(), "Producer selected the wrong kind of intent.");
 		PhantomAssertions.assertEquals("class.warrior-q401", intent.target().key(), "Producer selected unsupported content.");
 		PhantomAssertions.assertEquals(root, _goals.load(_profile.profileId()).orElseThrow().goal(), "Career producer replaced the farm continuation.");
@@ -805,6 +843,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			&& _player.getActiveClass() == 0 && _player.getExp() == exp && _player.getSp() == sp && itemCount(1145) == 0, "Stale career callback changed native progress or the replacement root: " + stale);
 		context.record("career061.guards", "HOLD preserved child; Tank/wrong native class/race/level refused; changed-root callback rejected without class/mark/EXP/SP mutation; not full Q401 proof");
 		PhantomAssertions.assertTrue(_signals.submits > signalsBeforeActiveAdvance, "An ongoing ACTIVE native career did not refresh its bounded relevance signal before travelling outside locality.");
+		ensureWeapon(68); // The next independent TEST case retains the ordinary owned loadout.
 	}
 
 	private void careerTravel061(PhantomTestContext context, boolean proveCorridor) throws Exception
