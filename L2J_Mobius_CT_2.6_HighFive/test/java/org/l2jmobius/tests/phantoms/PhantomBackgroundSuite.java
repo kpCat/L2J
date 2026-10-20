@@ -4822,10 +4822,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					PhantomAssertions.assertTrue(autoPlay.running(profile.profileId(), goal), "Native tick stopped the session before absence could be measured.");
 					PhantomAssertions.assertTrue(autoPlay.start(profile.profileId(), goal), "Repeated visible start lost native session.");
 					visibleClock.addAndGet(2_000_000_000L);
+					final org.l2jmobius.gameserver.ai.Intention busyIntention;
+					try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { busyIntention = action.player().getAI().getIntention(); }
 					PhantomAssertions.assertFalse(autoPlay.noTargetExpired(profile.profileId(), goal), "First native absence recovery prematurely terminated at31s.");
 					try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 					{
-						PhantomAssertions.assertEquals(org.l2jmobius.gameserver.ai.Intention.IDLE, action.player().getAI().getIntention(), "Missing-target31s recovery did not perform original native IDLE repair.");
+						PhantomAssertions.assertTrue(action.player().isCastingNow(), "Missing-target31s repair interrupted the declared in-flight guard.");
+						PhantomAssertions.assertEquals(busyIntention, action.player().getAI().getIntention(), "Missing-target31s repair replaced an in-flight intention.");
+						context.record("T06.absence31.boundary", "TEST busy flag/unchanged intention retained at31s; this is an in-flight admission guard, not a native CAST effect claim; original91s independent debt assertion remains");
 						context.record("T06.absence31.native", action.player().getNativeWorkOwner().evidence().snapshot());
 					}
 					visibleClock.addAndGet(60_000_000_000L);
