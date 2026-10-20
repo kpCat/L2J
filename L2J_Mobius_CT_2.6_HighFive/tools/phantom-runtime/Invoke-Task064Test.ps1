@@ -47,6 +47,7 @@ if($NativeFocus){
 }
 if('PvpFlowOnly' -in $Features){$options064+='-Dphantom.test.pvpFlow059=true'}
 if('RiftLifecycle' -in $Features){$options064+='-Dphantom.test.riftFlow059=true'}
+if('AutoProfessions061' -in $Features -and 'CareerProducer' -notin $Features){$options064+='-Dphantom.test.careerProducer061=true'}
 if(@($Features | Where-Object {$_ -in @('RaidStaging','RaidLevelGuard','RaidMinionGuard','RaidTriggerGuard')}).Count){$options064+='-Dphantom.test.raidFlow059=true'}
 New-Item -ItemType Directory -Path $report064 | Out-Null
 [ordered]@{format=1;sourceCommit=$info064.codeCommit;sourceArchiveSha256=$info064.sourceArchiveSha256;testTreeSha256=$tests064;buildReceiptSha256=(Get-FileHash -LiteralPath $receipt064).Hash;jar=$jar064;jarSha256=$hash064;schema='l2jmobiush5_phantom_test_064';owner='TASK064_CAMPAIGN';mode=$Mode;seed=$Seed;features=$Features;nativeFocus=$NativeFocus;startedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $report064 'EPISODE064.json') -Encoding UTF8

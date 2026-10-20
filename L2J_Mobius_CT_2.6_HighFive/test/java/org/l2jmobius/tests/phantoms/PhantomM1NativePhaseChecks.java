@@ -308,7 +308,8 @@ public final class PhantomM1NativePhaseChecks
 	/** Caller supplies a fresh non-AutoPlay managed mage, known stock1177 and a factual core-AI-disabled20534. */
 	public static void regen(PhantomTestContext context, Player player, PhantomMaterializationService service, long profileId, Monster target, Skill skill) throws Exception
 	{
-		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Native phase proof requires guarded headless TEST.");
+		if (PhantomCampaign058DatabaseLane.task064Enabled()) { PhantomCampaign058DatabaseLane.assertActiveFixture(context); }
+		else { PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Native phase proof requires guarded headless TEST."); }
 		PhantomAssertions.assertTrue(PlayerNativeWork.inheritedPlayer() == null && player.getNativeWorkOwner() instanceof PhantomNativeWorkScope, "INVALID REGEN: exact managed root lifetime required.");
 		final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner(); final var evidence = scope.evidence();
 		PhantomAssertions.assertTrue(exact(player, scope) && scope.open() && scope.outstanding() == 0 && evidence != null && evidence.matches(player.getObjectId(), scope.epoch())

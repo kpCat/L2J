@@ -60,6 +60,12 @@ Coverage уточнён focused case13: required healer с узким buff на�
 
 На source05 существующие M1 native timer controls `m1-earned-timers02`, seed15001501:5/5 exit0, actual QuestTimer/TimerHolder bodies, pending cancel, repeat и earned child/grandchild с однократным reward/owned drain. Предшествующий wrong-seed preflight FAIL сохранён, до DB/native effects. Это regression earned boundary, не G4/G6 закрытие.
 
+Clean source06 `04804fb7309bb17d58a7494946201dc76b320948`, Game JAR `D8D9D95A0653CA2487E53C5849280387FE32B7310F4096DB63E201622B8326A0`: Ant jar/compile-tests PASS и unit66/66. Pailaka green03 прошла2/2 exit0, включая исходные Q128 callbacks/reward, отдельные ambient/earned controls и чистый afterAll drain. Full stock Pailaka battle этим не доказан.
+
+На source06 raid03 все heal/recharge/buff/dance/aggro подтверждены, tank удерживал boss48.45s; затем native minions25200/25201 нанесли смертельный урон, ABORTED0/1. Town02 до боя проверил только Giran: первые8 respawn aliases совпали. TEST-only отбор разных физических town anchors исправлен, прежние24 candidates/30s/proofs сохранены; native повтор pending.
+
+Rift lifecycle03 на source06 остановился до входа: live readiness не вмещал полное paperdoll evidence в существующие512 символов. Новый focused regression воспроизвёл RED3/4; полное длинное evidence теперь SHA-256, короткое неизменно, лимит модели сохранён. GREEN4/4 проверяет также изменение последнего equipment record; native повтор pending. M7 professions01 остановился до cases из-за отсутствия обязательного CareerProducer flag; professions02 с обеими существующими flags прошла6/6 exit0:20/40/76/save/resume/Noble80/tree guards/Dwarf/Kamael. Near-level fixtures не являются заработанной карьерой.
+
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 
 Git используется по прямому разрешению пользователя и AUTHORITY064: bounded branch/HEAD/status/ancestry/live-remote/diff inspection; последующие exact-path commits и normal push разрешены. Force/reset/clean/rebase/amend не выполнялись.
