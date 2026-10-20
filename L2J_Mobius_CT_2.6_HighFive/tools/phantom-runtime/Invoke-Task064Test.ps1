@@ -2,6 +2,7 @@
 param([Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Mode,
       [Parameter(Mandatory)][long]$Seed,[Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Label,
       [string[]]$Features=@(),[ValidateSet('timers','producer','native-phase')][string]$NativeFocus,
+      [ValidateSet(0,10,25,44,53)][int]$LivingClass,
       [ValidateSet('build','build-final')][string]$Build='build',[switch]$ValidateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $module064=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -45,12 +46,16 @@ if($NativeFocus){
     if($Mode -cne 'm1-native-lifecycle'){throw 'Native focus requires the existing M1 lifecycle mode.'}
     $options064+=('-Dphantom.m1.native.focus='+$NativeFocus)
 }
+if($PSBoundParameters.ContainsKey('LivingClass')){
+    if($Mode -cne 'earned-learning-native058' -or 'Living' -notin $Features){throw 'LivingClass requires the existing living native scenario.'}
+    $options064+=('-Dphantom.test.livingClass060='+$LivingClass)
+}
 if('PvpFlowOnly' -in $Features){$options064+='-Dphantom.test.pvpFlow059=true'}
 if('RiftLifecycle' -in $Features){$options064+='-Dphantom.test.riftFlow059=true'}
 if('AutoProfessions061' -in $Features -and 'CareerProducer' -notin $Features){$options064+='-Dphantom.test.careerProducer061=true'}
 if(@($Features | Where-Object {$_ -in @('RaidStaging','RaidLevelGuard','RaidMinionGuard','RaidTriggerGuard')}).Count){$options064+='-Dphantom.test.raidFlow059=true'}
 New-Item -ItemType Directory -Path $report064 | Out-Null
-[ordered]@{format=1;sourceCommit=$info064.codeCommit;sourceArchiveSha256=$info064.sourceArchiveSha256;testTreeSha256=$tests064;buildReceiptSha256=(Get-FileHash -LiteralPath $receipt064).Hash;jar=$jar064;jarSha256=$hash064;schema='l2jmobiush5_phantom_test_064';owner='TASK064_CAMPAIGN';mode=$Mode;seed=$Seed;features=$Features;nativeFocus=$NativeFocus;startedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $report064 'EPISODE064.json') -Encoding UTF8
+[ordered]@{format=1;sourceCommit=$info064.codeCommit;sourceArchiveSha256=$info064.sourceArchiveSha256;testTreeSha256=$tests064;buildReceiptSha256=(Get-FileHash -LiteralPath $receipt064).Hash;jar=$jar064;jarSha256=$hash064;schema='l2jmobiush5_phantom_test_064';owner='TASK064_CAMPAIGN';mode=$Mode;seed=$Seed;features=$Features;nativeFocus=$NativeFocus;livingClass=if($PSBoundParameters.ContainsKey('LivingClass')){$LivingClass}else{$null};startedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $report064 'EPISODE064.json') -Encoding UTF8
 $classpath064="$jar064;$build064/phantom-test/bin;$build064/phantom-test/resources;$module064/dist/libs/*"
 Write-Output "TASK064_TEST label=$Label; mode=$Mode; seed=$Seed; JAR=$hash064"
 Push-Location (Join-Path $runtime064 'game')

@@ -4066,6 +4066,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20);
 			}
 			riskWitness |= Math.round(_player.getCurrentHp() * 100 / _player.getMaxHp()) <= policy.limits().retreatHpPercent() || Math.round((_player.getCurrentHp() + _player.getCurrentCp()) * 100 / (_player.getMaxHp() + _player.getMaxCp())) <= policy.limits().retreatEffectivePoolPercent();
+			context.record("pvp064.resourceOutcome", "risk=" + riskWitness + "; owner=" + pvp.snapshot() + "; actors=" + List.of(_player, human, enemy).stream().map(actor ->
+			{
+				final var ai = actor.getAI(); final var attackTarget = ai.getAttackTarget(); final var selected = actor.getTarget();
+				return actor.getObjectId() + ":xyz=" + actor.getX() + ',' + actor.getY() + ',' + actor.getZ() + ":HP=" + actor.getCurrentHp() + ":CP=" + actor.getCurrentCp() + ":AI=" + ai.getIntention() + ":attackTarget=" + (attackTarget == null ? 0 : attackTarget.getObjectId()) + ":selected=" + (selected == null ? 0 : selected.getObjectId()) + ":peace=" + actor.isInsideZone(ZoneId.PEACE) + ":arrows=" + actor.getInventory().getInventoryItemCount(1345, -1);
+			}).toList());
 			PhantomAssertions.assertTrue(!_player.isDead() && riskWitness && _player.getCurrentHp() > _player.getMaxHp() * .15, "Declared resource transition did not enter the native rounded risk/combat15% interval; HP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; CP=" + _player.getCurrentCp());
 			enemy.getAI().setIntention(Intention.MOVE_TO, new Location(enemy.getX() - 600, enemy.getY(), enemy.getZ()));
 			final int retreatX = _player.getX(), retreatY = _player.getY();
@@ -5620,7 +5625,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertFalse(party.isInDimensionalRift(), "Missing fragments entered Rift.");
 			// Preparation for the separate positive entry, before enrollment; not post-outcome rescue.
 			for (Player actor : actors) { actor.getInventory().addItem(ItemProcessType.REWARD, 7079, entry.entryItemCount() + 1, null, this); }
-			if (lifecycle064) { assertRiftReadiness064(context); }
+			if (lifecycle064)
+			{
+				for (Player actor : actors) { placeInstanceInput058(actor, entry.destinationX(), entry.destinationY(), entry.destinationZ()); }
+				assertRiftReadiness064(context);
+				context.record("rift064.readinessPosition", "PREPARED positive after independent negatives: native waiting destination/finite fragments; unchanged regroup radius300; NPC interaction pose is separate TEST setup, not an autonomous readiness-to-entry owner");
+				for (Player actor : actors) { placeInstanceInput058(actor, npc.getX() + 20, npc.getY(), npc.getZ()); }
+			}
 			handler.onCommand("enterrift 1", _player, npc); acknowledgeInstance058(actors);
 			final long entered064 = System.nanoTime();
 			PhantomAssertions.assertTrue(party.isInDimensionalRift(), "Native guarded Rift entry failed.");
