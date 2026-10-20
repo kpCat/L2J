@@ -815,7 +815,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.COMPANION_ROLE_MATRIX_058)
 		{
-			registry.add("01-real-led-heal-hp-and-native-cost", context -> testCompanionNativeRole058(context, "combat.heal"));
+			registry.add("01-real-led-heal-hp-and-native-cost", context -> testCompanionNativeRole058(context, "combat.heal", 97));
 			registry.add("02-real-led-recharge-mp-and-native-cost", context -> testCompanionNativeRole058(context, "combat.recharge"));
 			registry.add("03-real-led-resurrection-request-test-accept-and-stand-up", context -> testCompanionNativeRole058(context, "combat.resurrection"));
 			return;
