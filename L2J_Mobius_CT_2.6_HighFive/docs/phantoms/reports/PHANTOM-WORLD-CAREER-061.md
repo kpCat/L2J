@@ -1,6 +1,6 @@
 # RESULT061 — CORE_INCOMPLETE, М7 PARTIAL
 
-Delta после final22: ordinary RED final22-life21-01..03 показал два actual World actor, но LOCAL_FARM_UNAVAILABLE до Decision. Общий gate ошибочно допускал только возврат к уже committed anchor; теперь передаёт подходящую сохранённую цель другому существующему native travel owner. departure не объявляется arrival, native route/time/ownership/authority guards прежние. Текущие native ownership/lifecycle C60/C61 прошли2/2; ordinary GREEN проверяется после coherent build. Frozen111 и native career6/6 на A0B0 reuse для этой изолированной gate-дельты; прежние результаты не переписаны.
+Ordinary23 доказал самостоятельную дорогу к назначенному полю, supply Decision, настоящую покупку11SS за88 Adena и возврат6. После этого learning3:1 повторялся rev1/5/13 без SP debit; прогон штатно остановлен05:32:21.496Z/9.664s/exit0/force0. Общая коррекция Learning/Supply сначала передаёт полную цель native PathFinding в действующем policy limit, затем прежние finite checkpoints; время использует MoveSpeed. Failure context сохраняется в прежнем learning.intent и предотвращает неизменный окончательно неуспешный повтор после компенсационного возврата; transient capacity остаётся retry. Совместимые native learning/lifecycle guards прошли10/10, включая codec/failure-memory/native-target-first contracts. Полный A ещё не объявлен.
 
 Тот же TASK061, продолжение по решению владельца. Дополнительный бюджет:19октября14:47UTC →20октября06:47UTC; финальный резерв минимум90мин с05:17UTC. Полный Q401 теперь OPTIONAL. B — общие Phantom-only профессии20/40/76, сохранённая ветка, paid skill/фарм и configurable main80 Noblesse. A остаётся обычной автономной жизнью с обучением и sameDB продолжением.
 
@@ -9,7 +9,7 @@ Ordinary final22 дал actual World2, но наблюдавшиеся6/21 ос�
 ## Поставка и сохранность
 
 - `D:\PhantomWorld\World-Career-061-candidate`, `l2jmobiush5_phantom_release_061a`, Login2106/Game7841/control9141.
-- Functional commit `da5efb8fc75681544973a3a4643431d642f9d646`, clean whole GameSHA `A0B0E6D7CDCF97E292FB496B018B355E335FAFB88AEF69B7DD4D6F685B88D442`. Все4482 production class bytes равны native-проверенному Task JAR. Build input — committed archive, без overlays; прежние manifest/preimages сохранены, DB_WRITES=0.
+- Functional commit `d96f0c258a3b0e6c1c75747f84b7965bd12e36c9`, clean whole GameSHA `5358204F424C291E7BC2E537378713786C68F74C55A87781712E2EEECC98CE6A`. Все4482 production class bytes равны native-проверенному Task JAR. Build input — committed archive, без overlays; прежние manifest/preimages сохранены, DB_WRITES=0.
 - База получена одним consistent stopped export058a:124 таблицы, проверенные engine/counter/collation/checksum. Повторного reset/bootstrap/reimport нет; дальнейшие изменения — штатная жизнь и ранее проверенные неразрушающие owned-context миграции.
 - Защищённые057–060, MAIN/PLAY/прочие worktrees, backups, общая MariaDB, клиент и OS settings не менялись. Старые orphan/quarantine/raw/FAIL сохранены. Attach/jcmd/jstack/jmap, kill/crash/platform bypass не применялись.
 - Финальные HEAD=remote, CMD receipts и STOPPED состояния фиксируются после завершающей ordinary проверки в BUILD_INFO/ACCEPTANCE_STATUS и этой матрице.

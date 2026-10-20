@@ -258,7 +258,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 					final var destinations = returning ? List.of(field) : approaches(player, trainer);
 					if (destinations.isEmpty()) { return fail("learning.trainer.no_approach"); }
 					final long remaining = PhantomJourneyLifetime.remaining(intent, System.currentTimeMillis());
-					final long budget = Math.min(remaining, walkingBudgetMillis(player.calculateDistance3D(destinations.getFirst().x(), destinations.getFirst().y(), destinations.getFirst().z()), player.getRunSpeed()));
+					final long budget = Math.min(remaining, walkingBudgetMillis(player.calculateDistance3D(destinations.getFirst().x(), destinations.getFirst().y(), destinations.getFirst().z()), player.getMoveSpeed()));
 					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MILLISECONDS.toNanos(Math.max(1, budget)), 0, List.of(), 0, trainerOptions, 0, 0, null);
 					if (!put(profileId, travel)) { return retry("learning.capacity"); }
 				}
@@ -461,6 +461,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		expected.addAll(Set.of("owner.revision", "owner.object", "retry.after"));
 		if (goal.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)) { expected.addAll(PhantomJourneyLifetime.KEYS); }
 		if (goal.constraints().containsKey("journey.return")) { if (goal.constraints().get("journey.return") < 1 || goal.constraints().get("journey.return") > 2) { return false; } expected.add("journey.return"); }
+		if (goal.constraints().containsKey("route.context")) { expected.add("route.context"); }
 		return "learning.autonomous".equals(goal.purposeKey()) && goal.constraints().keySet().equals(expected) && goal.constraints().get("owner.revision") >= 0 && goal.constraints().get("owner.object") > 0 && goal.constraints().get("retry.after") >= 0;
 	}
 
@@ -473,14 +474,30 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		if (distance <= _navigation.arrivalRadius()) { return Optional.empty(); }
 		final long now = System.currentTimeMillis(); final var values = new java.util.LinkedHashMap<>(failed.constraints());
 		PhantomJourneyLifetime.KEYS.forEach(values::remove); values.put("journey.return", 1L);
-		final var recovery = new PhantomGoal(failed.goalId(), failed.goalType(), PhantomGoalStatus.FAILED, failed.subject(), failed.target(), failed.requiredAmount(), failed.currentAmount(), failed.acquisitionMethod(), failed.validSources(), failed.selectedAnchor(), failed.purposeKey(), failed.priority(), failed.riskBudget(), failed.expenseBudget(), now + walkingBudgetMillis(distance, player.getRunSpeed()), values, failed.reasonKey(), Math.addExact(failed.revision(), 1), failed.payloadText());
+		final var recovery = new PhantomGoal(failed.goalId(), failed.goalType(), PhantomGoalStatus.FAILED, failed.subject(), failed.target(), failed.requiredAmount(), failed.currentAmount(), failed.acquisitionMethod(), failed.validSources(), failed.selectedAnchor(), failed.purposeKey(), failed.priority(), failed.riskBudget(), failed.expenseBudget(), now + walkingBudgetMillis(distance, player.getMoveSpeed()), values, failed.reasonKey(), Math.addExact(failed.revision(), 1), failed.payloadText());
 		return Optional.of(PhantomJourneyLifetime.start(recovery, now));
 	}
 
 	long roundTripBudgetMillis(Player player, long minimum)
 	{
 		final double distance = _trainers.stream().filter(spawn -> NpcData.getInstance().getTemplate(spawn.npcId()).canTeach(player.getLearningClass())).mapToDouble(spawn -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z())).min().orElse(0);
-		return Math.min(TimeUnit.MINUTES.toMillis(30), Math.max(minimum, 2 * walkingBudgetMillis(distance, player.getRunSpeed()) + 60_000));
+		return Math.min(TimeUnit.MINUTES.toMillis(30), Math.max(minimum, 2 * walkingBudgetMillis(distance, player.getMoveSpeed()) + 60_000));
+	}
+
+	/** Stable across restart/root revisions and SP earnings; native route inputs may reopen a failed trip. */
+	long routeContext(Player player, PhantomGoal root)
+	{
+		final String text = "native-walk2:" + _knowledgeHash + ':' + _navigation.policy() + ':' + root.selectedAnchor() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getMoveSpeed();
+		long hash = 0xcbf29ce484222325L;
+		for (int i = 0; i < text.length(); i++) { hash = (hash ^ text.charAt(i)) * 0x100000001b3L; }
+		return hash;
+	}
+
+	/** Failure memory belongs to the existing durable intent, not an in-memory retry timer. */
+	public static boolean unchangedRouteFailure(PhantomGoal goal, long context)
+	{
+		return goal != null && goal.status() == PhantomGoalStatus.FAILED && goal.constraints().containsKey("route.context") && goal.constraints().get("route.context") == context
+			&& Set.of("learning.route.no_path", "learning.route.route_budget_exceeded", "learning.route.no_local_approach", "learning.route.deadline", "learning.trainer.unsupported", "learning.trainer.no_approach").contains(goal.reasonKey());
 	}
 
 	/** Two traversals of the straight distance allow a bounded detour; each native local leg also costs decision/arrival work. */
@@ -514,7 +531,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	/** Same bounded native WALK pattern as class journeys; original trip deadline and fee checks stay intact. */
 	private List<PhantomNavigationPoint> localDestinations(Travel travel)
 	{
-		return PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(travel.actor()), travel.destination());
+		return PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(travel.actor()), travel.destination(), _navigation.policy().maximumLocalStraightDistance());
 	}
 
 	private record Travel(Player actor, long goalId, long goalRevision, Request request, boolean returning, int trainerNpcId, List<PhantomNavigationPoint> destinations, int destinationIndex, long deadlineNanos, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint, List<SpawnFact> trainerOptions, int trainerIndex, int segmentAttempt, PhantomNativeTravelActions.OwnedWalk issuedWalk)

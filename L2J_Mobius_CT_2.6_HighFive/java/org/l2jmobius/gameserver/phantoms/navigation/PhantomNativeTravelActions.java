@@ -77,12 +77,17 @@ public final class PhantomNativeTravelActions
 	/** Existing finite journey owners prove these local checkpoints through Navigation before moving. */
 	public static List<PhantomNavigationPoint> localWalkDestinations(PhantomNavigationPoint from, PhantomNavigationPoint target)
 	{
+		return localWalkDestinations(from, target, LOCAL_WALK_DISTANCE);
+	}
+	/** Let the existing native pathfinder find detours before trying greedy checkpoints. */
+	public static List<PhantomNavigationPoint> localWalkDestinations(PhantomNavigationPoint from, PhantomNavigationPoint target, int nativePathDistance)
+	{
 		if (from.instanceId() != target.instanceId()) { return List.of(); }
 		final double distance = from.distanceTo(target);
 		if (distance <= 187) { return List.of(target); }
 		final double bearing = Math.atan2((double) target.y() - from.y(), (double) target.x() - from.x());
 		final List<PhantomNavigationPoint> points = new java.util.ArrayList<>(); final var geo = GeoEngine.getInstance();
-		if (distance <= LOCAL_WALK_DISTANCE) { points.add(target); }
+		if (distance <= nativePathDistance) { points.add(target); }
 		for (int stride : new int[] {LOCAL_WALK_DISTANCE, 1500, 750, 375, 187})
 		{
 			for (double turn : stride >= 750 ? new double[] {0, -Math.PI / 6, Math.PI / 6, -Math.PI / 3, Math.PI / 3} : new double[] {0})

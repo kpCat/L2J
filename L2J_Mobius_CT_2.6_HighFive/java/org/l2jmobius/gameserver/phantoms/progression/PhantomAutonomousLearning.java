@@ -101,6 +101,9 @@ final class PhantomAutonomousLearning
 				if (returning.isPresent()) { return returning; }
 				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return Optional.empty(); }
 			}
+			if (cached.goal != null && cached.goal.constraints().getOrDefault("owner.object", -1L) == player.getObjectId()
+				&& cached.goal.constraints().getOrDefault("class.id", -1L) == player.getActiveClass() && cached.goal.constraints().getOrDefault("class.index", -1L) == player.getClassIndex()
+				&& !PhantomJourneyLifetime.continuing(cached.goal) && L2jPhantomLearningJourney.unchangedRouteFailure(cached.goal, _journey.routeContext(player, root))) { return Optional.empty(); }
 			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.hasPendingOwnedStore() || player.getInstanceId() != 0 || player.isChangingClass() || player.isTransformed() || player.isMounted()) { return Optional.empty(); }
 			// A future need may be selected during farming; its executor still waits for native combat to settle.
 			if (_defer.test(profileId, root)) { return Optional.empty(); }
@@ -118,6 +121,7 @@ final class PhantomAutonomousLearning
 			constraints.put("class.id", (long) player.getActiveClass()); constraints.put("class.index", (long) player.getClassIndex());
 			constraints.put("field.x", (long) player.getX()); constraints.put("field.y", (long) player.getY()); constraints.put("field.z", (long) player.getZ()); constraints.put("field.instance", 0L);
 			constraints.put("owner.revision", root.revision()); constraints.put("owner.object", (long) player.getObjectId()); constraints.put("retry.after", 0L);
+			constraints.put("route.context", _journey.routeContext(player, root));
 			cached.offer = PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), L2jPhantomLearningJourney.GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("skill", learn.getSkillId() + ":" + learn.getSkillLevel()), 1, 0, null, List.of(), root.selectedAnchor(), "learning.autonomous", 600, 0, 0, now + _journey.roundTripBudgetMillis(player, TimeUnit.MINUTES.toMillis(_policy.journeyMinutes())), constraints, "learning.native.affordable", cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1)), now);
 			return Optional.of(cached.offer);
 		}

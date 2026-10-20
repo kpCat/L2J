@@ -784,7 +784,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				trip.origin = PhantomNativeTravelActions.point(player);
 				trip.requestDeadline = now + _navigation.policy().defaultRequestDeadlineNanos();
-				final var checkpoints = trip.localAttempt < 0 ? List.<PhantomNavigationPoint>of() : PhantomNativeTravelActions.localWalkDestinations(trip.origin, trip.destination());
+				final var checkpoints = trip.localAttempt < 0 ? List.<PhantomNavigationPoint>of() : PhantomNativeTravelActions.localWalkDestinations(trip.origin, trip.destination(), _navigation.policy().maximumLocalStraightDistance());
 				if (trip.localAttempt >= checkpoints.size() && trip.localAttempt >= 0) { return "supplies.navigation.no_local_approach"; }
 				trip.requestDestination = trip.localAttempt < 0 ? trip.destination() : checkpoints.get(trip.localAttempt);
 				final var nativeOptions = PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, (trip.deadline - now) / 1_000_000));
@@ -856,7 +856,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if ((trip.localAttempt >= 0 || trip.origin.distanceTo(trip.destination()) > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
 				&& Set.of(PhantomNavigationResult.Status.NO_PATH, PhantomNavigationResult.Status.ROUTE_OBSTRUCTED, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()))
 			{
-				final var checkpoints = PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(trip.player), trip.destination());
+				final var checkpoints = PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(trip.player), trip.destination(), _navigation.policy().maximumLocalStraightDistance());
 				if (trip.localAttempt + 1 < checkpoints.size())
 				{
 					clearRoute(profileId, trip); trip.localAttempt++;

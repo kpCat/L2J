@@ -4797,6 +4797,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(loaded, 87_400_000), "Repeated suspension bypassed the finite calendar bound.");
 		PhantomAssertions.assertEquals(legacy, org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(legacy, 1_020_000), "An expired historical episode was revived during migration.");
 		PhantomAssertions.assertEquals(680_000L, org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.walkingBudgetMillis(30_000, 100), "A thirty-kilometer native WALK still uses a fixed two-minute deadline.");
+		final var from = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player);
+		final var target = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(from.x() + 4000, from.y(), from.z(), from.instanceId());
+		final var destinations = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.localWalkDestinations(from, target, 12000);
+		PhantomAssertions.assertEquals(target, destinations.getFirst(), "Native pathfinding was bypassed by greedy checkpoints on a supported four-kilometer route.");
+		PhantomAssertions.assertTrue(destinations.size() <= 17, "Native target preference enlarged the finite fallback budget.");
+		final var failed = new PhantomGoal(legacy.goalId(), legacy.goalType(), PhantomGoalStatus.FAILED, legacy.subject(), legacy.target(), 1, 0, null, List.of(), null, legacy.purposeKey(), 600, 0, 0, legacy.deadlineEpochMillis(), Map.of("route.context", 7L), "learning.route.no_path", 9);
+		final var savedFailure = codec.decode(codec.encode(failed));
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.unchangedRouteFailure(savedFailure, 7), "Restart lost the unchanged route failure memory.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.unchangedRouteFailure(savedFailure, 8), "Changed native route conditions could not reopen learning.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.unchangedRouteFailure(legacy, 7), "Compatible legacy intent without route memory was blocked.");
+		final var transientFailure = new PhantomGoal(failed.goalId(), failed.goalType(), PhantomGoalStatus.FAILED, failed.subject(), failed.target(), 1, 0, null, List.of(), null, failed.purposeKey(), 600, 0, 0, failed.deadlineEpochMillis(), failed.constraints(), "learning.route.capacity_exceeded", failed.revision());
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.unchangedRouteFailure(transientFailure, 7), "Transient pathfinding capacity failure permanently blocked learning.");
 		context.record("journey061.clock", "compatible Goal codec; one-hour offline wait preserves9000ms; active exhaustion and24h calendar refused; expired legacy unchanged;30000distance/100speed budget680000ms");
 	}
 
