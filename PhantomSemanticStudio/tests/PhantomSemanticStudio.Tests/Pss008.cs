@@ -232,10 +232,13 @@ internal static partial class Program
     {
         if (args.Length != 3 || args[2] is not ("--synthetic-operator-review" or "--synthetic-forgery-negative")) throw new ArgumentException("--pss-008-handoff <genuine proof> --synthetic-operator-review|--synthetic-forgery-negative");
         var studio = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../")); var proof = PathSafety.Canonical(args[1]);
-        var workspace = Path.Combine(studio, "artifacts/PSS-008/workspace"); var stage = Path.GetDirectoryName(Path.GetDirectoryName(proof))!;
-        True(PathSafety.IsWithin(stage, Path.Combine(workspace, "v3-proposals")));
-        using var store = new WorkspaceStore(workspace, new StudioSettings().HighFiveRoot);
-        var receipt = V3ProposalContract.ReadStage(store.Root, stage); var source = new PackReader().Load(receipt.SourceModule);
+        var stage = Path.GetDirectoryName(Path.GetDirectoryName(proof))!; var workspace = Path.GetDirectoryName(Path.GetDirectoryName(stage))!;
+        var localWorkspace = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio", "workspace");
+        True((PathSafety.IsWithin(workspace, Path.Combine(studio, "artifacts")) || PathSafety.IsWithin(workspace, localWorkspace))
+            && Path.GetFileName(workspace) == "workspace" && PathSafety.IsWithin(stage, Path.Combine(workspace, "v3-proposals")));
+        var receipt = V3ProposalContract.ReadStage(workspace, stage);
+        using var store = new WorkspaceStore(workspace, receipt.SourceModule);
+        var source = new PackReader().Load(receipt.SourceModule);
         var hash = V3ReleaseHandoff.InspectProof(store, stage, proof);
         // This route is only for the two hard-coded SYNTHETIC source fixture IDs/text hashes, never a user's batch.
         True(receipt.Candidates.Count == 2 && receipt.Candidates.Single(c => c.Kind == "PATTERN").TextHash == TextRules.Hash("проверка студии восемь тихий вечер без действий")
@@ -271,6 +274,17 @@ internal static partial class Program
             finally { foreach (var log in originals) File.WriteAllBytes(Path.Combine(oracle, log.Key), log.Value); File.WriteAllBytes(proof, saved); if (savedAttestation != null) File.WriteAllBytes(attestationPath, savedAttestation); }
             return 0;
         }
+        // Native-proof regression: change only this synthetic stage/oracle, then restore exact bytes.
+        foreach (var path in new[] { Path.Combine(stage, "module/dist/game/data/phantoms", receipt.Pair.SemanticPath),
+            Path.Combine(Path.GetDirectoryName(proof)!, "probe.txt"), Path.Combine(Path.GetDirectoryName(proof)!, "operator.ps1"),
+            Path.Combine(Path.GetDirectoryName(proof)!, "java-attestation.json") })
+        {
+            var original = File.ReadAllBytes(path);
+            try { File.AppendAllText(path, "\nTASK063 tamper"); Throws(() => V3ReleaseHandoff.InspectProof(store, stage, proof)); }
+            finally { File.WriteAllBytes(path, original); }
+            Equal(hash, V3ReleaseHandoff.InspectProof(store, stage, proof));
+        }
+        Console.WriteLine("PASS native proof import; changed stage/log/operator/attestation rejected; original bytes restored");
         Throws(() => V3ReleaseHandoff.Prepare(store, stage, proof, hash, false));
         Throws(() => V3ReleaseHandoff.Prepare(store, stage, proof, new string('f', 64), true));
         using var cancel = new CancellationTokenSource(); cancel.Cancel(); Throws(() => V3ReleaseHandoff.Prepare(store, stage, proof, hash, true, cancel.Token));

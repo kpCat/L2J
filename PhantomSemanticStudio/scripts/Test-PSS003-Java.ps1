@@ -54,6 +54,8 @@ function Native([string]$Tool, [string[]]$Arguments, [string]$Log) {
     finally { $ErrorActionPreference = $previous }
 }
 function SafeBuild([string]$Path) {
+    # TASK063: exact db375d6 baseline, CRLF/LF checkouts; task/classpath pins below stay unchanged.
+    if ((HashFile $Path) -notin @('f6bebf5452655de3e08d8941134307650b830c2d0c1f31ded1cc1d0f2bd5fdc1','dafce95145d8d722138dfa16515aac0271110cd80254c204e308a03f78ecddca')) { throw 'BLOCKED_JAVA: unaudited build contract' }
     $settings = New-Object Xml.XmlReaderSettings; $settings.DtdProcessing = [Xml.DtdProcessing]::Prohibit; $settings.XmlResolver = $null
     # Stock Ant build has exactly this empty DOCTYPE; no DTD/entity is resolved.
     $text = [IO.File]::ReadAllText($Path).Replace('<!DOCTYPE xml>', '')
@@ -133,6 +135,8 @@ try {
     # Exact copy allowlist; no data/config/DB/credentials/.git/runtime files.
     $inventory = New-Object 'Collections.Generic.List[object]'
     $buildPath = Join-Path $source 'build.xml'; NoLinks $buildPath; SafeBuild $buildPath
+    $catalogPath = Relative $source 'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java'
+    if ((HashFile $catalogPath) -notin @('ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840','a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335')) { throw 'BLOCKED_JAVA: unaudited catalog contract' }
     $inventory.Add([pscustomobject]@{ RelativePath = 'build.xml'; Sha256 = (HashFile $buildPath); Bytes = (Get-Item -LiteralPath $buildPath).Length })
     foreach ($family in @('java','test/java','test/resources','dist/libs')) {
         foreach ($file in FilesWithoutLinks (Relative $source $family)) {
@@ -140,7 +144,8 @@ try {
             if ($family -eq 'dist/libs' -and $file.Name -match '^(GameServer|LoginServer)\.jar$|-sources\.jar$') { continue }
             $allowed = (($family -in @('java','test/java')) -and $file.Extension -eq '.java') -or
                 ($family -eq 'dist/libs' -and $file.Extension -eq '.jar' -and $file.Name -notmatch '^(GameServer|LoginServer)\.jar$|-sources\.jar$') -or
-                ($family -eq 'test/resources' -and ($file.Extension -in @('.sql','.tsv') -or $relative -eq 'test/resources/phantoms/scenarios/harness-smoke.properties'))
+                ($family -eq 'test/resources' -and ($file.Extension -in @('.sql','.tsv') -or $relative -in @('test/resources/phantoms/scenarios/harness-smoke.properties',
+                    'test/resources/phantoms/party-state-v1.base64','test/resources/phantoms/M1TimerBootstrap.java','test/resources/phantoms/M1Q266Bootstrap.java','test/resources/phantoms/M1NativeEvidenceContract.java')))
             if (-not $allowed) { throw 'BLOCKED_JAVA: unexpected file in copy allowlist' }
             $inventory.Add([pscustomobject]@{ RelativePath = $relative; Sha256 = (HashFile $file.FullName); Bytes = $file.Length })
         }
@@ -170,11 +175,12 @@ catch {
 
 $savedJavaHome = $env:JAVA_HOME; $savedJavaOptions = $env:JAVA_TOOL_OPTIONS; $savedAntOptions = $env:ANT_OPTS
 $savedJdkOptions = $env:JDK_JAVA_OPTIONS; $savedUnderscoreOptions = $env:_JAVA_OPTIONS; $savedAntArgs = $env:ANT_ARGS
+$savedClasspath = $env:CLASSPATH
 $exit = 2
 try {
     $env:JAVA_HOME = Split-Path (Split-Path $javac -Parent) -Parent
     $env:JAVA_TOOL_OPTIONS = '-Djava.io.tmpdir="' + $temp + '"'
-    $env:ANT_OPTS = '-Xmx2g'; $env:JDK_JAVA_OPTIONS = $null; $env:_JAVA_OPTIONS = $null; $env:ANT_ARGS = $null
+    $env:ANT_OPTS = '-Xmx2g'; $env:JDK_JAVA_OPTIONS = $null; $env:_JAVA_OPTIONS = $null; $env:ANT_ARGS = $null; $env:CLASSPATH = $null
     $javaVersionLog = Join-Path $scratch 'java-version.txt'; $antVersionLog = Join-Path $scratch 'ant-version.txt'
     if ((Native $javac @('-version') $javaVersionLog) -ne 0 -or (Get-Content -LiteralPath $javaVersionLog -Raw) -notmatch 'javac 25\.') { throw 'BLOCKED_JAVA: JDK25 required' }
     if ((Native $ant @('-version') $antVersionLog) -ne 0) { throw 'BLOCKED_JAVA: Ant unavailable' }
@@ -232,6 +238,7 @@ catch {
 finally {
     $env:JAVA_HOME = $savedJavaHome; $env:JAVA_TOOL_OPTIONS = $savedJavaOptions; $env:ANT_OPTS = $savedAntOptions
     $env:JDK_JAVA_OPTIONS = $savedJdkOptions; $env:_JAVA_OPTIONS = $savedUnderscoreOptions; $env:ANT_ARGS = $savedAntArgs
+    $env:CLASSPATH = $savedClasspath
     NoLinks $scratch
     [IO.File]::WriteAllText((Join-Path $scratch 'java-validation.json'), ($result | ConvertTo-Json -Depth 12), (New-Object Text.UTF8Encoding $false))
     Write-Output "JavaStatus=$($result.JavaStatus); Status=$($result.Status); evidence=$scratch"

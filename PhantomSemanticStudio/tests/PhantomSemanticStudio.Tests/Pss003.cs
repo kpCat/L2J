@@ -225,10 +225,12 @@ internal static partial class Program
 
     private static int Pss003Source(string[] args)
     {
-        if (args.Length is < 3 or > 4 || args.Length == 4 && args[3] != "--pattern-only") throw new ArgumentException("--pss-003-source <HighFive root> <own workspace under Studio artifacts> [--pattern-only]");
+        if (args.Length is < 3 or > 4 || args.Length == 4 && args[3] != "--pattern-only") throw new ArgumentException("--pss-003-source <HighFive root> <fresh own workspace> [--pattern-only]");
         var patternOnly = args.Length == 4;
         var studio = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
-        if (!PathSafety.IsWithin(args[2], Path.Combine(studio, "artifacts"))) throw new InvalidDataException("Test workspace must be in Studio artifacts.");
+        var localWorkspace = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio", "workspace");
+        if (!(PathSafety.IsWithin(args[2], Path.Combine(studio, "artifacts")) || PathSafety.IsWithin(args[2], localWorkspace))
+            || Path.GetFileName(args[2]) != "workspace" || Directory.Exists(args[2])) throw new InvalidDataException("Test workspace must be fresh and inside own workspace.");
         var pack = new PackReader().Load(args[1]);
         var scope = pack.Entries.First(e => e.Kind == "PATTERN" && e.Topic == "greeting" && e.Act == "greet.reply");
         var candidates = StageCandidates(pack); if (patternOnly) candidates = candidates.Where(c => c.Kind == "PATTERN").ToList();
@@ -237,7 +239,7 @@ internal static partial class Program
         var result = new IsolatedPackStager().Create(store, pack, candidates, candidates.Select(c => c.Id).ToArray(), true, true);
         var after = new PackReader().Load(pack.ModuleRoot); True(pack.Files.SequenceEqual(after.Files));
         var evidence = new { pack.ModuleRoot, pack.Fingerprint, Before = pack.Files, After = after.Files, SourceEqual = true, StageRoot = result.Root, result.Status, Candidates = candidates.Select(c => new { c.Id, c.Kind }), JavaStatus = "NOT_RUN" };
-        File.WriteAllText(Path.Combine(studio, patternOnly ? "reports/PSS-003-source-pattern.json" : "reports/PSS-003-source.json"), JsonSerializer.Serialize(evidence, WorkspaceStore.JsonOptions), new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(store.Root, patternOnly ? "PSS-003-source-pattern.json" : "PSS-003-source.json"), JsonSerializer.Serialize(evidence, WorkspaceStore.JsonOptions), new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(store.Root, patternOnly ? "test-stage-pattern-path.txt" : "test-stage-path.txt"), result.Root);
         Console.WriteLine($"PASS source before/after: {pack.Files.Count} SHA/bytes; fingerprint={pack.Fingerprint}");
         Console.WriteLine("Stage=" + result.Root + "; status=" + result.Status + "; Java=NOT_RUN"); return 0;

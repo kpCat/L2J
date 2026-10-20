@@ -101,13 +101,16 @@ public static class V3ReleaseHandoff
         V3ProposalContract.Require(inventory.Count is > 0 and <= 4000 && inventory.Count == proof.GetProperty("CopyFiles").GetInt32()
             && inventory.Sum(f => f.Bytes) == proof.GetProperty("CopyBytes").GetInt64() && inventory.Sum(f => f.Bytes) <= 268435456
             && inventory.Select(f => f.RelativePath).Distinct(StringComparer.Ordinal).Count() == inventory.Count, "ORACLE_INVENTORY");
-        V3ProposalContract.Require(inventory.Any(f => f.RelativePath == "build.xml" && f.Sha256 == "048a16cd53f694d85803b16af631e14fb20c0c3b49f400a749a328d572c63114")
-            && inventory.Any(f => f.RelativePath == "java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java" && f.Sha256 == "b7876a52a487bc1e1bc469c9c71b47de805b31993e589b4be7ca55182c640970"), "UNAUDITED_ORACLE_BUILD");
+        // TASK063 audited db375d6 baseline; exact CRLF/LF bytes, never an arbitrary build or catalog.
+        V3ProposalContract.Require(inventory.Any(f => f.RelativePath == "build.xml" && (f.Sha256 is "f6bebf5452655de3e08d8941134307650b830c2d0c1f31ded1cc1d0f2bd5fdc1" or "dafce95145d8d722138dfa16515aac0271110cd80254c204e308a03f78ecddca"))
+            && inventory.Any(f => f.RelativePath == "java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java" && (f.Sha256 is "ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840" or "a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335")), "UNAUDITED_ORACLE_BUILD");
         foreach (var stamp in inventory)
         {
             token.ThrowIfCancellationRequested(); var relative = stamp.RelativePath;
             V3ProposalContract.Require(relative == "build.xml" || (relative.StartsWith("java/", StringComparison.Ordinal) || relative.StartsWith("test/java/", StringComparison.Ordinal)) && relative.EndsWith(".java", StringComparison.Ordinal)
-                || relative.StartsWith("test/resources/", StringComparison.Ordinal) && (relative.EndsWith(".sql", StringComparison.Ordinal) || relative.EndsWith(".tsv", StringComparison.Ordinal) || relative == "test/resources/phantoms/scenarios/harness-smoke.properties")
+                || relative.StartsWith("test/resources/", StringComparison.Ordinal) && (relative.EndsWith(".sql", StringComparison.Ordinal) || relative.EndsWith(".tsv", StringComparison.Ordinal)
+                    || relative is "test/resources/phantoms/scenarios/harness-smoke.properties" or "test/resources/phantoms/party-state-v1.base64"
+                        or "test/resources/phantoms/M1TimerBootstrap.java" or "test/resources/phantoms/M1Q266Bootstrap.java" or "test/resources/phantoms/M1NativeEvidenceContract.java")
                 || relative.StartsWith("dist/libs/", StringComparison.Ordinal) && relative.EndsWith(".jar", StringComparison.Ordinal) && !Regex.IsMatch(relative, "(GameServer|LoginServer)\\.jar$|-sources\\.jar$"), "ORACLE_ALLOWLIST");
             var file = PathSafety.ResolveRelative(receipt.SourceModule, relative); using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
             V3ProposalContract.Require(stream.Length == stamp.Bytes && stamp.Bytes is > 0 and <= 268435456 && CorpusStore.HashStream(stream, token) == stamp.Sha256, "ORACLE_SOURCE_DRIFT");
