@@ -744,7 +744,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RIFT_NATIVE_058)
 		{
-			registry.add(Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
+			registry.add(Boolean.getBoolean("phantom.test.riftDeparture064") ? "04-canonical-rift-managed-logout-native-death-disband-and-reload064" : Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
 			return;
 		}
 		if (_mode == Mode.INSTANCES_058)
@@ -5663,6 +5663,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final Monster target = room.getSpawns().stream().map(Spawn::getLastSpawn).filter(value -> value instanceof Monster monster && !monster.isRaid() && _query.findNpc(monster.getId()).filter(fact -> fact.kind() == NpcKind.MONSTER && fact.exp() > 0 && fact.sp() > 0).isPresent()).map(value -> (Monster) value).sorted(Comparator.comparingInt(Monster::getId)).findFirst().orElseThrow();
 			context.record("instance058.rift.target", "stock=" + target.getId() + "; nativeType=" + target.getClass().getSimpleName() + "; knowledge=" + _query.findNpc(target.getId()));
 			PhantomAssertions.assertEquals(NpcKind.MONSTER, _query.findNpc(target.getId()).orElseThrow().kind(), "Native RiftInvader was not classified as its actual Monster base.");
+			if (Boolean.getBoolean("phantom.test.riftDeparture064")) { assertRiftDeparture064(context, actors, profiles059, party, rift, room, target); return; }
 			final long exp = _player.getExp(); final double hp = target.getCurrentHp();
 			final Map<Integer, Long> expBefore059 = new java.util.HashMap<>(); for (Player actor : actors) { expBefore059.put(actor.getObjectId(), actor.getExp()); }
 			for (long profile : profiles059) { PhantomAssertions.assertTrue(_combat.startContentSession(new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, 90_000, () -> false), "instance058.rift.combat").accepted(), "Native Rift common combat refused its same-room stock target."); }
@@ -5695,6 +5696,66 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			for (long profile : profiles059) { _combat.cancel(profile); } consumeTerminal();
 			for (Player actor : actors) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } }
+		}
+	}
+
+	private void assertRiftDeparture064(PhantomTestContext context, List<Player> actors, List<Long> profiles, Party party, org.l2jmobius.gameserver.model.sevensigns.DimensionalRift rift, org.l2jmobius.gameserver.model.sevensigns.DimensionalRiftRoom room, Monster target) throws Exception
+	{
+		PhantomAssertions.assertTrue(actors.size() == 4 && profiles.size() == 3 && actors.stream().noneMatch(Player::isDead), "INVALID_INPUT: departure control requires the same living four-member legal roster.");
+		context.record("rift064.departureInput", "INDEPENDENT native case04 after the same canonical consent/READY/fees/stock entry: unchanged four34/D/full initial vitals/finite stock; existing materialization terminal cleanup, one stock NPC attack and canonical Party leave only; no resource/stat/teleport rescue; timed room progression belongs to separate03");
+		final var spawned = new java.util.concurrent.CountDownLatch(1);
+		rift.getSpawnTimer().schedule(new java.util.TimerTask() { @Override public void run() { spawned.countDown(); } }, 0);
+		PhantomAssertions.assertTrue(spawned.await(10, TimeUnit.SECONDS), "Departure input stock spawn body did not settle.");
+		final Player departed = actors.get(1), victim = actors.get(2), human = actors.getLast();
+		final long departedProfile = profiles.get(1);
+		final int objectId = departed.getObjectId(), classId = departed.getActiveClass();
+		final long fragments = departed.getInventory().getInventoryItemCount(7079, -1);
+		PhantomAssertions.assertEquals(1L, fragments, "Departure input lacks the exact remaining native entry fragment.");
+		final var cleanup = _materialization.dematerialize(departedProfile);
+		context.record("rift064.managedLogout", cleanup + "; remainingParty=" + party.getMemberCount() + "; departedWaiting=" + DimensionalRiftManager.getInstance().checkIfInPeaceZone(departed.getX(), departed.getY(), departed.getZ()));
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, cleanup.status(), "Existing native terminal owner did not complete managed Rift logout.");
+		PhantomAssertions.assertTrue(World.getInstance().getPlayer(objectId) == null && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == null && !departed.isInParty(), "Managed Rift logout retained World/identity/Party ownership.");
+		PhantomAssertions.assertTrue(party.isInDimensionalRift() && party.getMemberCount() == 3 && room.isPartyInside(), "One managed logout closed the remaining legal native Rift party.");
+		_environment.assertDatabaseOnline(objectId, 0);
+		assertStoredRiftWaiting064(context, objectId);
+
+		PhantomAssertions.assertTrue(!victim.isDead() && !target.isDead() && target.getInstanceId() == victim.getInstanceId() && room.checkIfInZone(victim.getX(), victim.getY(), victim.getZ()), "INVALID_INPUT: native death control lost its live same-room stock actors.");
+		final double beforeHp = victim.getCurrentHp();
+		target.getAI().setIntention(Intention.ATTACK, victim);
+		final boolean died = waitFor(() -> victim.isDead() && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), 90_000);
+		context.record("rift064.nativeDeath", "stockNpc=" + target.getId() + "; victim=" + victim.getObjectId() + "; HP=" + beforeHp + "->" + victim.getCurrentHp() + "; dead=" + died + "; registered=" + rift.getDeadMemberList().contains(victim));
+		PhantomAssertions.assertTrue(died && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), "Stock Rift NPC did not produce actual native death/dead-member registration within90s; no HP rescue applied.");
+		PartyInvitationService.getInstance().leave(human);
+		PartyInvitationService.getInstance().leave(_player);
+		PhantomAssertions.assertTrue(waitFor(() -> { acknowledgeInstance058(actors); return !party.isInDimensionalRift() && !room.isPartyInside() && actors.stream().allMatch(actor -> !actor.isTeleporting() && DimensionalRiftManager.getInstance().checkIfInPeaceZone(actor.getX(), actor.getY(), actor.getZ())); }, 10_000), "Native departure/death/disband did not return every exact actor and release the room.");
+		PhantomAssertions.assertTrue(rift.getSpawnTimer() == null && rift.getTeleportTimer() == null && rift.getSpawnTimerTask() == null && rift.getTeleportTimerTask() == null, "Native Rift closing retained a stock timer owner.");
+		for (Player actor : actors)
+		{
+			if (actor != departed)
+			{
+				actor.storeMe(); assertStoredRiftWaiting064(context, actor.getObjectId());
+				PhantomAssertions.assertEquals(1L, actor.getInventory().getInventoryItemCount(7079, -1), "Departure/death replayed or refunded the one native entry debit.");
+			}
+		}
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(departedProfile).status(), "Same saved Rift identity did not rematerialize after native logout.");
+		final Player reloaded = World.getInstance().getPlayer(objectId);
+		PhantomAssertions.assertTrue(reloaded != null && reloaded != departed && reloaded.getActiveClass() == classId && reloaded.getInventory().getInventoryItemCount(7079, -1) == fragments && !reloaded.isInParty() && DimensionalRiftManager.getInstance().checkIfInPeaceZone(reloaded.getX(), reloaded.getY(), reloaded.getZ()), "Saved Rift return/class/fragments or exact identity were not preserved on reload.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(departedProfile).status(), "Reloaded Rift identity did not finish its native cleanup.");
+		context.record("rift064.departureResult", "managed native logout/saved waiting/World+identity release; actual stock NPC death/dead-list; canonical disband/native room+timer release; exact entry debit and same identity reload; no network-client logout or autonomous-entry/full-multiroom claim");
+	}
+
+	private void assertStoredRiftWaiting064(PhantomTestContext context, int objectId) throws Exception
+	{
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT x,y,z FROM characters WHERE charId=?"))
+		{
+			statement.setInt(1, objectId);
+			try (var result = statement.executeQuery())
+			{
+				PhantomAssertions.assertTrue(result.next(), "Saved Rift actor row is missing.");
+				final int x = result.getInt(1), y = result.getInt(2), z = result.getInt(3);
+				context.record("rift064.savedWaiting." + objectId, x + "," + y + "," + z);
+				PhantomAssertions.assertTrue(DimensionalRiftManager.getInstance().checkIfInPeaceZone(x, y, z), "Native logout/disband saved a stale combat-room position.");
+			}
 		}
 	}
 
