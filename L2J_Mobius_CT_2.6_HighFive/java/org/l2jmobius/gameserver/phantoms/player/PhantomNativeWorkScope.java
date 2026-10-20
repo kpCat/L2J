@@ -199,11 +199,12 @@ public final class PhantomNativeWorkScope implements Owner
 	@Override public boolean prepareOffensiveShot(boolean magic)
 	{
 		if (!_requiresOffensiveShots) { return true; }
-		if (!isCurrent() || _player.hasPendingOwnedStore()) { return false; }
-		// Charging belongs to the existing Combat/AutoPlay controllers and native recharge.
-		// This constant-time admission only reads the current weapon's already paid charge.
-		return magic ? _player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.SPIRITSHOTS) || _player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.BLESSED_SPIRITSHOTS)
-			: _player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.SOULSHOTS);
+		if (!isCurrent() || _state != State.OPEN || _player.hasPendingOwnedStore()) { return false; }
+		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(_player, _player, magic);
+	}
+	@Override public boolean prepareSummonOffensiveShot(org.l2jmobius.gameserver.model.actor.Summon summon, boolean magic)
+	{
+		return !_requiresOffensiveShots || isCurrent() && _state == State.OPEN && !_player.hasPendingOwnedStore() && org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(summon, _player, magic);
 	}
 	@Override public PlayerNativeEvidence evidence() { return _evidence; }
 	@Override public boolean nativeObservationHealthy() { return _failure.isEmpty() && !_player.hasPendingOwnedStore(); }

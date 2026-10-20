@@ -36,15 +36,7 @@ public final class PhantomNativeShotControl implements AutoCloseable
 			final int perHit = magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
 			if (perHit <= 0) { return ShotOutcome.UNAVAILABLE; }
 			final ActionType action = magic ? ActionType.SPIRITSHOT : ActionType.SOULSHOT;
-			Item selected = null;
-			// One linear inventory pass; no per-pulse sort or second supply catalog.
-			for (var item : _player.getInventory().getItems())
-			{
-				if (item.getEtcItem() == null || item.getCount() < perHit || item.getTemplate().getDefaultAction() != action
-					|| item.getTemplate().getCrystalType() != weapon.getCrystalTypePlus() || !_player.getInventory().canManipulateWithItemId(item.getId())
-					|| ItemHandler.getInstance().getHandler(item.getEtcItem()) == null) { continue; }
-				if (selected == null || preferred(item, selected, magic)) { selected = item; }
-			}
+			final Item selected = select(_player, weapon, magic);
 			if (selected == null) { return charged(magic) ? ShotOutcome.ACTIVATED : ShotOutcome.UNAVAILABLE; }
 			final boolean preferredCharged = magic && selected.getEtcItem().isBlessed() ? _player.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) : charged(magic);
 			if (!preferredCharged && !(ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(_player, selected, false) && charged(magic)))
@@ -55,7 +47,7 @@ public final class PhantomNativeShotControl implements AutoCloseable
 			{
 				if (active == selected.getId()) { continue; }
 				final var template = ItemData.getInstance().getTemplate(active);
-				if (template != null && (template.getDefaultAction() == ActionType.SOULSHOT || template.getDefaultAction() == ActionType.SPIRITSHOT) && _player.removeAutoSoulShot(active))
+				if (template != null && template.getDefaultAction() == action && _player.removeAutoSoulShot(active))
 				{
 					if (!_added.remove(active)) { _suspended.add(active); }
 				}
@@ -70,6 +62,54 @@ public final class PhantomNativeShotControl implements AutoCloseable
 	{
 		if (magic && candidate.getEtcItem().isBlessed() != selected.getEtcItem().isBlessed()) { return candidate.getEtcItem().isBlessed(); }
 		return candidate.getId() < selected.getId() || candidate.getId() == selected.getId() && candidate.getObjectId() < selected.getObjectId();
+	}
+
+	private static Item select(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon, boolean magic)
+	{
+		final int count = magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+		final ActionType action = magic ? ActionType.SPIRITSHOT : ActionType.SOULSHOT;
+		Item selected = null;
+		// Shared linear selection, without sorting or a parallel item catalog.
+		for (var item : player.getInventory().getItems())
+		{
+			if (count <= 0 || item.getCount() < count || item.getEtcItem() == null || item.getTemplate().getDefaultAction() != action || item.getTemplate().getCrystalType() != weapon.getCrystalTypePlus() || !player.getInventory().canManipulateWithItemId(item.getId()) || ItemHandler.getInstance().getHandler(item.getEtcItem()) == null) { continue; }
+			if (selected == null || preferred(item, selected, magic)) { selected = item; }
+		}
+		return selected;
+	}
+
+	/** Last native action boundary: action type, never character archetype, determines the paid charge. */
+	public static boolean chargeOffensive(org.l2jmobius.gameserver.model.actor.Creature actor, Player owner, boolean magic)
+	{
+		if (actor instanceof org.l2jmobius.gameserver.model.actor.Summon summon && (owner.getSummon() != summon || summon.isAlikeDead())) { return false; }
+		if (magic ? actor.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) || actor.isChargedShot(ShotType.SPIRITSHOTS) : actor.isChargedShot(ShotType.SOULSHOTS)) { return true; }
+		try
+		{
+			if (actor instanceof org.l2jmobius.gameserver.model.actor.Summon summon)
+			{
+				if (owner.getSummon() != summon || summon.isAlikeDead()) { return false; }
+				// Owner explicitly permits finite unpacked beast-shot stock for Phantom companions.
+				// Native H5 handlers consume the owner's inventory for pets and servitors alike.
+				final int id = magic ? 6647 : 6645;
+				final int perHit = magic ? summon.getSpiritShotsPerHit() : summon.getSoulShotsPerHit();
+				if (perHit <= 0 || perHit > 100) { return false; }
+				final var template = ItemData.getInstance().getTemplate(id);
+				if (template == null || template.getDefaultAction() != (magic ? ActionType.SUMMON_SPIRITSHOT : ActionType.SUMMON_SOULSHOT)) { return false; }
+				var item = owner.getInventory().getItemByItemId(id);
+				if (item == null || item.getCount() < perHit)
+				{
+					final int count = perHit * 60;
+					if (!owner.getInventory().validateWeight(Math.multiplyExact(count, template.getWeight())) || item == null && !owner.getInventory().validateCapacity(1)) { return false; }
+					item = owner.addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, id, count, summon, false);
+				}
+				return item != null && ItemHandler.getInstance().getHandler(item.getEtcItem()) != null && ItemHandler.getInstance().getHandler(item.getEtcItem()).onItemUse(owner, item, false);
+			}
+			final var weapon = owner.getActiveWeaponItem();
+			if (actor != owner || weapon == null || owner.getActiveWeaponInstance() == null || weapon == owner.getFistsWeaponItem()) { return false; }
+			final Item selected = select(owner, weapon, magic);
+			return selected != null && ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(owner, selected, false);
+		}
+		catch (RuntimeException failure) { return false; }
 	}
 
 	private boolean charged(boolean magic)

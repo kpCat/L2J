@@ -1,11 +1,13 @@
-# Неподтверждённое и ограничения061
+# Ограничения061
 
-- CORE061 остаётся INCOMPLETE: полный ordinary Q401→Warrior→оплаченный новый skill→два полезных фарм-цикла не доказан. М7 частичная; пути40/76 не закрыты.
-- Source058a Stop11/12 завершили процессы, но внутренний drain был неполным. У36 наблюдавшиеся1020121EXP/541SP не сохранились; канонический checkpoint остался1009460EXP/92SP. Потерянный результат не реконструировался и предметы не выдавались повторно.
-- Связанный дефект передачи Combat ActionLease между потоками получил причинные native RED2/2→GREEN2/2. Последующие ordinary061 STOP сохраняли exact earned EXP/SP, но прежняя потеря Stop12 не реконструировалась и не превращается в PASS задним числом.
-- Календарь и locality действуют. Существующие evening33–36 ночью законно недоступны. Нельзя считать sample0 доказательством отсутствия всех Player или обещать, что партнёр всегда стоит на сохранённом месте.
-- Frozen060: сохранены все исходные111 case IDs. Они прошли23 suites на предыдущем coherent061 JAR `5EA882E0`; на конечном `96F4E84B` заново прошли затронутые learning проверки9/9, включая исходный earned-learning case. Остальные110 frozen и24 affected checks reuse только по неизменным owners/code/data. Полная таблица версий и raw указана в RESULT; это не подтверждение всей М7.
-- Дополнительные старые8 Goal036 gameplay controls прошли8/8, но after-all оставил4 native earned Pailaka BLOOM timers и получил DRAIN_TIMEOUT. Эта отдельная lifecycle граница OPEN; guard не ослаблен, orphan/quarantine сохранены.
-- На конечном96 у6/25 ACTIVE learning child не обеспечил непрерывную materialization вне locality. Последний sameDB resume сохранил identity/EXP/SP/child, но дал LOCAL_FARM_UNAVAILABLE без оплаты/нового навыка. Реальный ordinary фарм и useful resume26 подтверждены; весь A по ним не объявляется.
-- Полные native Q401 эпизоды01–05 получали настоящие quest items в бою, но не завершили перевод: смерть либо отказ обратного маршрута. Последний05 на конечном96 погиб наcond2, terminalclass0/EXP1016827/SP399. Focused исправления пути/отдыха/защиты не заменяют полный обычный B. В ordinary у6 наблюдался LOCAL_FARM_UNAVAILABLE, у25 прежний paid-learning маршрут отказал;21 на конечном96 сам выбралWindStrike2, но дошёл лишь до исходного deadline, безSP-debit/нового навыка. Отрицательные эпизоды сохранены.
-- М1 остаётся OPEN/ACCEPTED_WITH_DEFERRED_GATES; G4 DEFERRED_BY_OWNER_NOT_PROVEN, G6 BLOCKED_PLATFORM_DEFERRED. Attach/fault/crash испытания не выполнялись.
+- CORE061 остаётся INCOMPLETE до полного current ordinary A с оплаченным обучением и последующим полезным фармом. Настоящие World/закупка/бой/save/restart подтверждены по отдельным эпизодам; они не заменяют недостающий сквозной исход.
+- По решению владельца Q401 OPTIONAL. Общие автоматические профессии20/40/76, оплаченный skill и полезный native фарм проверены на representative TEST-сценариях. Подготовленные уровни/SP не заработанные; один путь не полный М7.
+- Обычные12/18 встретили реальные native no_path/route_budget_exceeded. Это конкретные неуспешные пути; условия и raw FAIL сохранены, координаты/таймауты ради PASS не подменялись.
+- У старых6/21 нет запаса сосок и Adena ниже установленного резерва закупки500. Строгий запрет незаряженных атак выявляет этот ресурсный тупик. Оружейные соски бесплатно не выданы; завершённое общее решение бедного старта не заявлено.
+- Календарь, readiness, locality и capacity продолжают действовать. Присутствие конкретного партнёра на saved XYZ не гарантируется; observer sample не полный census.
+- Старые Q401 states/items/EXP/SP сохранены. Незавершённые35/36 не получили искусственного класса/marks/cond. Первоначальная потеря несохранённого36 при старом Stop12 не реконструировалась: канонический checkpoint1009460EXP/92SP, не прежний live1020121/541.
+- Передача Combat ActionLease между потоками исправлена и проверена RED/GREEN; последующие ordinary STOP сохраняли заработанное. Это не превращает старую потерю в PASS.
+- Дополнительные старые8 Goal036 gameplay controls прошли8/8, но after-all оставил4 native earned Pailaka BLOOM timers и DRAIN_TIMEOUT. Эта отдельная граница OPEN; guard не ослаблен, orphan/quarantine сохранены.
+- Beast-shot пополнение разрешено владельцем только для Phantom-companions. Штатный handler хранит/расходует stock у владельца; перенос в сумку servitor не реализуется вопреки native H5.
+- Актуальные frozen111/affected результаты, версии и ссылки на raw — в единственной acceptance-матрице и RESULT. Старые FAIL не удалены.
+- М7 PARTIAL. М1 OPEN/ACCEPTED_WITH_DEFERRED_GATES; G4 DEFERRED_BY_OWNER_NOT_PROVEN, G6 BLOCKED_PLATFORM_DEFERRED. Attach/fault/crash/force kill не выполнялись.

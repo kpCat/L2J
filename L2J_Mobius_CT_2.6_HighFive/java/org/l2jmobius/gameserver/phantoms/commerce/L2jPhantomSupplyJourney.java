@@ -248,10 +248,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final boolean ammunitionNeeded = !ammunition.isEmpty() && ammunition.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < _policy.lowWaterHits();
 			final long healingStock = _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
 			final boolean healingNeeded = player.getLevel() >= 18 && healingStock < 3;
-			final int perHit = healingNeeded || ammunitionNeeded ? 1 : player.isMageClass() ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount();
+			final ActionType shotAction = neededShotAction(player, player.getActiveWeaponItem());
+			final int perHit = healingNeeded || ammunitionNeeded ? 1 : shotAction == ActionType.SPIRITSHOT ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount();
 			if (perHit <= 0 || perHit > 100) { return Optional.empty(); }
-			final var compatibleItems = healingNeeded ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammunitionNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
-			final var blessed = !healingNeeded && !ammunitionNeeded && player.isMageClass() ? compatibleItems.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
+			final var compatibleItems = healingNeeded ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammunitionNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == shotAction && compatible(player, item)).toList();
+			final var blessed = !healingNeeded && !ammunitionNeeded && shotAction == ActionType.SPIRITSHOT ? compatibleItems.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
 			var items = blessed.isEmpty() ? compatibleItems : blessed;
 			long stock = items.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
 			if (stock >= (long) perHit * _policy.lowWaterHits()) { return Optional.empty(); }
@@ -318,11 +319,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final long reserve = ownedItem == null ? gearChoices.getFirst().price : 0;
 			if (item instanceof org.l2jmobius.gameserver.model.item.Weapon weapon)
 			{
-				final int perHit = player.isMageClass() ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-				var charges = _commerce.catalog().supplies().stream().filter(value -> value.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(value -> ItemData.getInstance().getTemplate(value.itemId())).filter(value -> compatible(player, value, weapon)).toList();
+				final ActionType shotAction = neededShotAction(player, weapon);
+				final int perHit = shotAction == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+				var charges = _commerce.catalog().supplies().stream().filter(value -> value.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(value -> ItemData.getInstance().getTemplate(value.itemId())).filter(value -> value.getDefaultAction() == shotAction && compatible(player, value, weapon)).toList();
 				final var allCharges = charges;
 				long stock = charges.stream().mapToLong(value -> player.getInventory().getInventoryItemCount(value.getId(), -1)).sum();
-				final var blessed = player.isMageClass() ? charges.stream().filter(value -> value instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
+				final var blessed = shotAction == ActionType.SPIRITSHOT ? charges.stream().filter(value -> value instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
 				if (!blessed.isEmpty()) { charges = blessed; }
 				boolean ammunition = false;
 				if (stock >= (long) perHit * _policy.lowWaterHits() && weapon.isRange())
@@ -349,9 +351,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private boolean weaponResources(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon)
 	{
 		if (weapon == null) { return false; }
-		final long shots = player.getInventory().getItems().stream().filter(item -> item.getTemplate().getDefaultAction() == (player.isMageClass() ? ActionType.SPIRITSHOT : ActionType.SOULSHOT) && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum();
-		final int consumed = player.isMageClass() ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-		if (consumed <= 0 || shots < (long) consumed * _policy.lowWaterHits()) { return false; }
+		for (ActionType action : shotActions(player))
+		{
+			final long shots = player.getInventory().getItems().stream().filter(item -> item.getTemplate().getDefaultAction() == action && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum();
+			final int consumed = action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+			if (consumed <= 0 || shots < (long) consumed * _policy.lowWaterHits()) { return false; }
+		}
 		return !weapon.isRange() || player.getInventory().getItems().stream().filter(item -> item.getEtcItem() != null && (item.getEtcItem().getItemType() == EtcItemType.ARROW || item.getEtcItem().getItemType() == EtcItemType.BOLT) && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum() >= _policy.lowWaterHits();
 	}
 
@@ -384,7 +389,27 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			return item.getCrystalTypePlus() == weapon.getCrystalTypePlus() && (weapon.isBow() && etc.getItemType() == EtcItemType.ARROW || weapon.isCrossBow() && etc.getItemType() == EtcItemType.BOLT);
 		}
-		return item.getCrystalType() == weapon.getCrystalTypePlus() && item.getDefaultAction() == (player.isMageClass() ? ActionType.SPIRITSHOT : ActionType.SOULSHOT) && ItemHandler.getInstance().getHandler(etc) != null;
+		return item.getCrystalType() == weapon.getCrystalTypePlus() && (item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT) && ItemHandler.getInstance().getHandler(etc) != null;
+	}
+
+	private static List<ActionType> shotActions(Player player)
+	{
+		if (player.isMageClass()) { return List.of(ActionType.SPIRITSHOT); }
+		final boolean magic = player.getAllSkills().stream().anyMatch(skill -> !skill.isPassive() && skill.isMagic() && (skill.isDamage() || skill.hasNegativeEffect()));
+		return magic ? List.of(ActionType.SOULSHOT, ActionType.SPIRITSHOT) : List.of(ActionType.SOULSHOT);
+	}
+
+	private ActionType neededShotAction(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon)
+	{
+		final var actions = shotActions(player);
+		for (ActionType action : actions)
+		{
+			final int consumed = action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+			final var items = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == action && compatible(player, item, weapon)).toList();
+			final var preferred = action == ActionType.SPIRITSHOT ? items.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
+			if ((preferred.isEmpty() ? items : preferred).stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < (long) consumed * _policy.lowWaterHits()) { return action; }
+		}
+		return actions.getFirst();
 	}
 
 	private static boolean healingPotion(ItemTemplate item)

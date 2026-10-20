@@ -40,6 +40,7 @@ public final class PlayerNativeWork
 		default boolean nativeObservationHealthy() { return true; }
 		default boolean requiresOffensiveShots() { return false; }
 		default boolean prepareOffensiveShot(boolean magic) { return !requiresOffensiveShots(); }
+		default boolean prepareSummonOffensiveShot(Summon summon, boolean magic) { return !requiresOffensiveShots(); }
 		TimerRegistration registerTimer(Ticket parent, String kind, boolean repeating, Runnable stop);
 	}
 	public interface Ticket
@@ -347,9 +348,10 @@ public final class PlayerNativeWork
 	/** Only explicitly configured Phantom owners require a paid native charge. Ordinary actors bypass this policy. */
 	public static boolean prepareOffensiveShot(Creature actor, boolean magic)
 	{
-		if (!(actor instanceof Player player)) { return true; }
+		final Player player = actor instanceof Player direct ? direct : actor instanceof Summon summon ? summon.getOwner() : null;
+		if (player == null) { return true; }
 		final Owner owner = player.getNativeWorkOwner();
-		return owner == null || !owner.requiresOffensiveShots() || owner.isCurrent() && owner.prepareOffensiveShot(magic);
+		return owner == null || !owner.requiresOffensiveShots() || owner.isCurrent() && (actor instanceof Summon summon ? owner.prepareSummonOffensiveShot(summon, magic) : owner.prepareOffensiveShot(magic));
 	}
 
 	/** A new stock attack/cast cannot borrow another running callback's drain admission. */

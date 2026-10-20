@@ -666,6 +666,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("061-native-supply-long-walk-admission-with-finite-budget", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.longApproach(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					registry.add("061-native-equipment-paid-npc-receipt-and-equip", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.equipmentPaid(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					registry.add("061-native-supply-prefers-blessed-despite-regular-stock", context -> { PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native shot control did not leave combat stance."); prepareLearningField059(context); PhantomSupply060OwnerGuards.blessed(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
+					registry.add("061-native-hybrid-and-controlled-actor-paid-shots", this::testHybridShots061);
 					return;
 				}
 				if (Boolean.getBoolean("phantom.test.supplyAmmunitionGuards060")) { registry.add("33-native-ammunition-grade-owner-and-stock-guards", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.run(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId(), true); }); registry.add("34-unmodeled-ammunition-requires-native-farm", context -> PhantomSupply060OwnerGuards.ammunitionPolicy(context, _player, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog())); return; }
@@ -6076,9 +6077,48 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		consumeTerminal();
 	}
 
+	private void testHybridShots061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous action remains in combat.");
+		prepareLearningField059(context);
+		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
+		_player.addSkill(SkillData.getInstance().getSkill(1177, 1), false);
+		final var physical = _player.getInventory().addItem(ItemProcessType.REWARD, 1835, 30, _player, this);
+		final var magical = _player.getInventory().addItem(ItemProcessType.REWARD, 3947, 30, _player, this);
+		try
+		{
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.compatible(_player, magical.getTemplate()), "Physical class with a known native offensive magic skill cannot replenish BSS.");
+			try (var shots = new org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl(_player))
+			{
+				PhantomAssertions.assertEquals(ShotOutcome.ACTIVATED, shots.activate(false), "Hybrid SS failed.");
+				PhantomAssertions.assertEquals(ShotOutcome.ACTIVATED, shots.activate(true), "Hybrid BSS failed.");
+				PhantomAssertions.assertTrue(_player.getAutoSoulShot().contains(1835) && _player.getAutoSoulShot().contains(3947), "Magic charge removed physical recharge preference.");
+			}
+			final var summon = new org.l2jmobius.gameserver.model.actor.instance.Servitor(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(14839), _player);
+			summon.setReferenceSkill(10); summon.setLifeTime(60_000); summon.fullRestore(); summon.setXYZ(_player.getX() + 10, _player.getY(), _player.getZ()); _player.setPet(summon); summon.spawnMe();
+			final var target = spawnExactPointMonster(20035, Double.MAX_VALUE); final double hp = target.getCurrentHp();
+			try
+			{
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, true) && summon.isChargedShot(ShotType.BLESSED_SPIRITSHOTS), "Controlled actor has no native paid beast BSS.");
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, false) && summon.isChargedShot(ShotType.SOULSHOTS), "Controlled actor has no native paid beast SS.");
+				final long before = _player.getInventory().getInventoryItemCount(6645, -1);
+				summon.setTarget(target); summon.getAI().setIntention(Intention.ATTACK, target);
+				PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < hp && _player.getInventory().getInventoryItemCount(6645, -1) <= before - 2L * summon.getSoulShotsPerHit(), 20_000), "Continuous controlled-actor attack did not consume beast SS across native hits: spawned=" + summon.isSpawned() + "; current=" + (_player.getSummon() == summon) + "; hp=" + target.getCurrentHp() + '/' + hp + "; stock=" + _player.getInventory().getInventoryItemCount(6645, -1) + '/' + before + "; AI=" + summon.getAI().getIntention());
+				summon.abortAttack(); summon.getAI().setIntention(Intention.IDLE); _player.setPet(null);
+				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, true), "Detached already charged summon borrowed the current owner's admission.");
+				context.record("shots061.hybridAndSummon", "Physical class retains SS+BSS recharge; exact NG native BSS compatibility; native servitor14839 charged by owner inventory, repeated real hits consume6645; beast BSS6647 native handler; finite authorized stock top-up only");
+			}
+			finally { summon.abortAttack(); summon.getAI().setIntention(Intention.IDLE); _player.setPet(null); summon.deleteMe(); target.deleteMe(); }
+		}
+		finally { destroyInventoryItem(physical); destroyInventoryItem(magical); _player.removeSkill(1177); for (int id : new int[] {6645, 6647}) { final var item = _player.getInventory().getItemByItemId(id); if (item != null) { destroyInventoryItem(item); } } }
+	}
+
 	private void testMandatoryShots061(PhantomTestContext context) throws Exception
 	{
 		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous controlled-actor action did not leave native combat stance.");
 		prepareLearningField059(context);
 		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
 		final var preferences = List.copyOf(_player.getAutoSoulShot()); for (int item : preferences) { _player.removeAutoSoulShot(item); }
