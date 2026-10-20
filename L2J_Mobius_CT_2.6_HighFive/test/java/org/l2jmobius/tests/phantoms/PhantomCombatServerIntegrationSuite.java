@@ -3933,7 +3933,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		if (Boolean.getBoolean("phantom.test.pvpPerimeter064") || townPerimeter064)
 		{
 			final var centre064 = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(78900, 150200, GeoEngine.getInstance().getHeight(78900, 150200, -3560), 0);
-			final var respawns064 = _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, townPerimeter064 ? 8 : 1, 100_000);
+			// Multiple regional aliases can share one town point; separate towns before the24-candidate cap.
+			final var respawns064 = townPerimeter064
+				? _topology.snapshot().anchorsByRole().getOrDefault(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, List.of()).stream().filter(anchor -> anchor.point().instanceId() == 0 && anchor.point().distanceSquared2D(centre064) <= 100_000L * 100_000L).sorted(Comparator.comparingLong((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> anchor.point().distanceSquared2D(centre064)).thenComparing(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor::id)).toList()
+				: _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, 1, 100_000);
 			final var landmarks064 = respawns064.isEmpty() ? _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000) : respawns064;
 			PhantomAssertions.assertTrue(!landmarks064.isEmpty(), "INVALID_INPUT: no canonical protected landmark for the independent perimeter control.");
 			final var selected064 = new ArrayList<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint>();
