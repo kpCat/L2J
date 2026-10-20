@@ -1,6 +1,6 @@
 # Exact functional file inventory; repository-relative paths
 # BASE=18a5c70839a7b1a4f7ca2c57c717820b9c6c26db
-# CODE=da5efb8fc75681544973a3a4643431d642f9d646
+# CODE=f7b8883c8456f92f25b6fcda9c0037a1f3cae492
 # Documentation and private runtime/evidence files are separate from this functional inventory.
 L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/LocalPlayPilot.ini
 L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/life/high-five-automatic-professions-v1.xml
@@ -23,6 +23,7 @@ L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/Pha
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomOrdinaryDeathRecovery.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomOwnedStoreIntent.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatActorLease.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatCapabilityResolver.java
