@@ -250,6 +250,55 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, fixture.lease.pvpAttacks, "Melee PvP path changed.");
 			}
 		});
+		registry.add("06-known-unmapped-retreat-and-instance-guards", _ -> testUnmappedRetreat());
+	}
+
+	private static void testUnmappedRetreat()
+	{
+		final var backend = new PhantomTopologyCoreSuite.TestBackend();
+		final var safe = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, 0, 0);
+		final var snapshot = PhantomTopologyCoreSuite.create(PhantomTopologyCoreSuite.baseNodes(), List.of(PhantomTopologyCoreSuite.anchor("retreat.safe", "dungeon", safe, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN)), List.of(), backend);
+		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long profileId, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+			@Override public SignalDelivery withdraw(long profileId, String sourceKey, long sequence) { return SignalDelivery.ACCEPTED; }
+		};
+		final var topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(snapshot, backend, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy.productionDefaults(), signals);
+		try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
+		{
+			final var navigationBackend = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return new CapabilitySnapshot(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_PATHFINDING, 1); }
+				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return from.instanceId() == to.instanceId(); }
+				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation) { return List.of(request.destination()); }
+			};
+			final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), navigationBackend, worker -> { worker.run(); return true; }, fixture.clock::get, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
+			final var retreat = new org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator(navigation, topology, fixture.service, fixture.clock::get);
+			try
+			{
+				PhantomAssertions.assertTrue(topology.start() && navigation.start(), "Retreat fixtures did not start.");
+				topology.registerProfile(1); topology.registerProfile(2);
+				PhantomAssertions.assertEquals("pvp.retreat.position_stale", retreat.start(2, HASH, 30 * SECOND).reasonKey(), "Absent coordinates admitted a retreat.");
+				final var outside = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(2000, 2000, 0, 0);
+				topology.updateProfile(1, outside, 1);
+				PhantomAssertions.assertFalse(topology.findProfile(1).orElseThrow().resolved(), "Fixture must be outside every authored topology node.");
+				fixture.lease.movementAllowed = true;
+				PhantomAssertions.assertFalse(retreat.start(1, HASH, 30 * SECOND).terminal(), "Known coordinates outside authored nodes were mistaken for stale position.");
+				PhantomAssertions.assertEquals("pvp.retreat.authority_stale", retreat.advance(1, "B".repeat(64)).reasonKey(), "Foreign authority advanced the retreat.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.MOVING, retreat.advance(1, HASH).status(), "Unmapped route origin could not acquire ordinary movement.");
+				PhantomAssertions.assertEquals(1, fixture.lease.movements, "Movement did not cross the existing combat lease.");
+				topology.updateProfile(1, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(2000, 2000, 0, 1), 2);
+				PhantomAssertions.assertEquals("pvp.retreat.position_stale", retreat.advance(1, HASH).reasonKey(), "Instance change retained the old retreat.");
+				PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Instance cancellation leaked movement ownership.");
+				topology.updateProfile(1, outside, 3);
+				PhantomAssertions.assertFalse(retreat.start(1, HASH, 30 * SECOND).terminal(), "Fresh same-instance retreat did not start.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.MOVING, retreat.advance(1, HASH).status(), "Fresh movement was not issued.");
+				topology.updateProfile(1, safe, 4);
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.ARRIVED, retreat.advance(1, HASH).status(), "Protected anchor arrival did not settle the retreat.");
+				PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Completed retreat leaked its combat lease.");
+			}
+			finally { retreat.finishStop(); navigation.beginStop(); navigation.finishStop(); topology.beginStop(); PhantomAssertions.assertTrue(topology.finishStop(), "Retreat topology did not stop."); }
+		}
 	}
 
 	private static void cp(PhantomTestRegistry registry)
@@ -445,6 +494,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private boolean lastForceUse;
 		private ActionOutcome spacing = ActionOutcome.UNAVAILABLE;
 		private int spacingCalls;
+		private boolean movementAllowed;
+		private int movements;
 
 		private FakeLease(double cp)
 		{
@@ -455,6 +506,14 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		public ActorSnapshot actorSnapshot()
 		{
 			return actor;
+		}
+
+		@Override
+		public ActionOutcome moveTo(int x, int y, int z, int instanceId)
+		{
+			if (!movementAllowed || instanceId != actor.instanceId()) { return ActionOutcome.UNAVAILABLE; }
+			movements++;
+			return ActionOutcome.ISSUED;
 		}
 
 		@Override

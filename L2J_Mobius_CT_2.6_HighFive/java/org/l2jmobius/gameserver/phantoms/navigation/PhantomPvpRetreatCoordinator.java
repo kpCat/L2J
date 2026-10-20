@@ -92,7 +92,8 @@ public final class PhantomPvpRetreatCoordinator
 		}
 		final ProfileTopologySnapshot profile = _topology.findProfile(profileId).orElse(null);
 		final var query = _topology.query();
-		if ((profile == null) || !profile.resolved() || (profile.topologyGeneration() != query.snapshot().generation()))
+		// Wilderness coordinates need no authored node; native navigation still proves every leg.
+		if ((profile == null) || (profile.point() == null) || (profile.topologyGeneration() != query.snapshot().generation()))
 		{
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.position_stale");
 		}
@@ -195,7 +196,7 @@ public final class PhantomPvpRetreatCoordinator
 			}
 		}
 		final ProfileTopologySnapshot profile = _topology.findProfile(profileId).orElse(null);
-		if ((profile == null) || !profile.resolved() || (profile.topologyGeneration() != pending._topologyGeneration) || (profile.point().instanceId() != pending._destination.instanceId()))
+		if ((profile == null) || (profile.point() == null) || (profile.topologyGeneration() != pending._topologyGeneration) || (profile.point().instanceId() != pending._destination.instanceId()))
 		{
 			remove(profileId, pending, true);
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.position_stale");
