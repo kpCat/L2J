@@ -38,6 +38,12 @@ M5 raid01 на9317: full9 legal79/Party, readiness READY_AT_STAGING, насто�
 
 Native query trace03 на09cb/C11A9CB8EF4E4E062678C7BA82D5F4558505CF13A04F27CDB47CC8FF0F4D454C: полный Giran запрос требует512 при native max500; затем32 queries/512 edges, SEARCH_LIMIT. Добавлен один projected3000 checkpoint по существующему journey pattern, сохраняя Oracle proofs и обратные направления. Focused buffer RED→GREEN4/4 и navigation-core51/51; новый native full-flow пока NOT_RUN.
 
+Checkpoint5 `89c4ff209c3e03f4ce1066df40a129738b0f99c1` опубликован normal push. Clean committed Game JAR `175ABBE0131017BB98F9C3A2622F716AA962D50040262543FF64A10F5662076C`, обе собственные STOPPED runtime-копии сверены. Исходный M4 Giran flow04 вновь SEARCH_LIMIT: projected3000 query требует422, но native path отсутствует. Этот FAIL сохранён; независимый perimeter TEST объявляет другую геометрию до измерения, сохраняя исходный case04, native legality и30s policy.
+
+M5 raid02 на89c4: stock25199/full9 и неизменённые входы, ABORTED после44s боя,0/1 exit1. Реальные Major Heal1401:11 и recharge1217 с native cost наблюдались; буфер и танцор оставались без выбранного навыка. Найдена общая причина: выбор более узкого provider по profileId и расход maintenance budget до фильтра assigned/held providers. Focused case12 воспроизводит starvation на прежнем JAR11/12; выбор максимального distinct learned coverage и фильтр до budget дают12/12. Required providers, обычная party policy, prep deadline и budgets сохранены. Native повтор нового исправления ещё NOT_RUN.
+
+M6 текущий Kamaloka57 на89c4: босс побеждён, все6 участников живы; сейчас выполняется штатное5-минутное закрытие. PASS до terminal/reuse/drain не заявлен.
+
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 
 Git используется по прямому разрешению пользователя и AUTHORITY064: bounded branch/HEAD/status/ancestry/live-remote/diff inspection; последующие exact-path commits и normal push разрешены. Force/reset/clean/rebase/amend не выполнялись.

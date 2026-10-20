@@ -142,6 +142,26 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 				finally { fixture.stop(); }
 			}
 		});
+		registry.add("12-maintenance-reserves-distinct-skill-coverage-before-budget064", _ ->
+		{
+			final var fixture = new RuntimeFixture(true);
+			try
+			{
+				final var roster = phantoms(1, 3); final var snapshots = snapshots(roster);
+				final var narrow = List.of(maintenance(100), maintenance(101));
+				final var broad = List.of(maintenance(200), maintenance(201), maintenance(202));
+				snapshots.put(roster.get(0), member(roster.get(0), false, 100, narrow, List.of()));
+				snapshots.put(roster.get(1), member(roster.get(1), false, 100, broad, List.of()));
+				snapshots.put(roster.get(2), member(roster.get(2), false, 100, List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true)), List.of()));
+				fixture.party.suppliedTarget = roster.get(2).characterObjectId();
+				fixture.party.suppliedCapabilities.put(roster.get(0), narrow); fixture.party.suppliedCapabilities.put(roster.get(1), broad);
+				final var profile = openProfile(List.of()); final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+				fixture.runtime.advanceEngagement(new EngagementContext(AUTHORITY, profile, target, 1000, Long.MAX_VALUE, () -> false), force(List.of(roster), snapshots));
+				PhantomAssertions.assertTrue(fixture.lease(2).supportCasts > 0, "The broader reserved native provider was starved by an earlier unassigned actor before the maintenance budget.");
+				PhantomAssertions.assertEquals(0, fixture.lease(1).supportCasts, "An unassigned narrower provider spent the reserved maintenance slot.");
+			}
+			finally { fixture.stop(); }
+		});
 		registry.add("09-precombat-support-completes-before-offense-and-is-bounded", _ ->
 		{
 			for (int phase = 0; phase < 3; phase++)
@@ -419,6 +439,10 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 	private static MemberCapability capability(String key, boolean readyNow)
 	{
 		return new MemberCapability(key, "test", 900, 100, 1, "SINGLE_TARGET", true, true, readyNow, readyNow ? "ready" : "cooldown", 100, "goal026d");
+	}
+	private static MemberCapability maintenance(int skillId)
+	{
+		return new MemberCapability("combat.buff", "native" + skillId, 900, skillId, 1, "SINGLE_TARGET", true, true, true, "ready", 100, "task064");
 	}
 
 	private static CapabilityRequirement requirement(String key)

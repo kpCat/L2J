@@ -56,7 +56,12 @@ public final class PhantomPartyTactics
 
 	public List<TacticalDirective> plan(MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots)
 	{
-		if ((roster == null) || (roster.size() > 9) || (snapshots == null) || (snapshots.size() > 9))
+		return plan(leader, roster, snapshots, _ -> true);
+	}
+
+	public List<TacticalDirective> plan(MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, java.util.function.Predicate<TacticalDirective> permitted)
+	{
+		if ((roster == null) || (roster.size() > 9) || (snapshots == null) || (snapshots.size() > 9) || (permitted == null))
 		{
 			throw new IllegalArgumentException("Party tactics input is outside bounds.");
 		}
@@ -109,7 +114,7 @@ public final class PhantomPartyTactics
 				candidates.add(new TacticalDirective(DirectiveKind.ASSIST_TARGET, actor, leader, leaderSnapshot.targetObjectId(), "", "", "", 0, 0, "leader.target", 6000));
 			}
 		}
-		final List<TacticalDirective> ordered = candidates.stream().sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(TacticalDirective::targetObjectId).thenComparingInt(TacticalDirective::actionSkillId)).toList();
+		final List<TacticalDirective> ordered = candidates.stream().filter(permitted).sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(TacticalDirective::targetObjectId).thenComparingInt(TacticalDirective::actionSkillId)).toList();
 		final List<TacticalDirective> result = new ArrayList<>();
 		final Set<String> maintenance = new java.util.HashSet<>();
 		int maintenanceCount = 0;

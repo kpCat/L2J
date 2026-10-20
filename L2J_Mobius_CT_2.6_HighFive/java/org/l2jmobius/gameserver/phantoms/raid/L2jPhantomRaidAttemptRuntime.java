@@ -409,10 +409,10 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		}
 		for (String capabilityKey : MAINTENANCE_CAPABILITIES.stream().sorted().toList())
 		{
-			final List<MemberSnapshot> candidates = force.members().stream().filter(member -> (member.ref().kind() == MemberKind.PHANTOM) && !member.dead()).filter(member -> usableCapability(member, capabilityKey, 1).isPresent()).sorted(Comparator.comparing(member -> member.ref().stableKey())).toList();
+			final List<MemberSnapshot> candidates = force.members().stream().filter(member -> (member.ref().kind() == MemberKind.PHANTOM) && !member.dead()).filter(member -> maintenanceCoverage(member, capabilityKey) > 0).sorted(Comparator.<MemberSnapshot>comparingInt(member -> maintenanceCoverage(member, capabilityKey)).reversed().thenComparing(member -> member.ref().stableKey())).toList();
 			if (!candidates.isEmpty())
 			{
-				selected.putIfAbsent(capabilityKey, Set.of(candidates.getFirst().ref().profileId()));
+				selected.computeIfAbsent(capabilityKey, _ -> new LinkedHashSet<>()).add(candidates.getFirst().ref().profileId());
 			}
 		}
 		state._providers.clear();
@@ -439,7 +439,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			{
 				return RuntimeStatus.INVALID;
 			}
-			for (TacticalDirective directive : _tactics.plan(party.leader(), party.members(), partySnapshots))
+			for (TacticalDirective directive : _tactics.plan(party.leader(), party.members(), partySnapshots, directive -> supportDirective(directive.kind()) && assignedSupport(state, directive) && !state._supportLeases.containsKey(directive.actor().profileId())))
 			{
 				if (!supportDirective(directive.kind()) || !assignedSupport(state, directive))
 				{
@@ -618,6 +618,11 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	private static Optional<MemberCapability> usableCapability(MemberSnapshot member, String capabilityKey, int minimumRank)
 	{
 		return member.capabilities().stream().filter(capability -> capability.capabilityKey().equals(capabilityKey) && (capability.rank() >= minimumRank) && capability.intrinsic() && capability.learned() && (capability.actionSkillId() > 0) && (capability.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::rank).reversed().thenComparing(MemberCapability::identity)).findFirst();
+	}
+
+	private static int maintenanceCoverage(MemberSnapshot member, String key)
+	{
+		return (int) member.capabilities().stream().filter(capability -> capability.capabilityKey().equals(key) && capability.intrinsic() && capability.learned() && capability.rank() > 0 && capability.actionSkillId() > 0 && capability.actionSkillLevel() > 0 && Set.of("SINGLE_TARGET", "ALLY", "PARTY", "PARTY_MEMBER").contains(capability.targetScope())).map(MemberCapability::actionSkillId).distinct().count();
 	}
 
 	private static boolean providesCapability(MemberSnapshot member, String capabilityKey, int minimumRank)
