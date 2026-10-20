@@ -61,6 +61,7 @@ public final class PhantomPvpRetreatCoordinator
 	private final PhantomTopologyService _topology;
 	private final PhantomCombatService _combat;
 	private final LongSupplier _clock;
+	private final java.util.function.BiFunction<PhantomNavigationPoint, Integer, java.util.Optional<PhantomNavigationPoint>> _walkSurface;
 	private final Map<Long, Pending> _pending = new HashMap<>();
 
 	public PhantomPvpRetreatCoordinator(PhantomNavigationService navigation, PhantomTopologyService topology, PhantomCombatService combat)
@@ -70,10 +71,16 @@ public final class PhantomPvpRetreatCoordinator
 
 	public PhantomPvpRetreatCoordinator(PhantomNavigationService navigation, PhantomTopologyService topology, PhantomCombatService combat, LongSupplier clock)
 	{
+		this(navigation, topology, combat, clock, new L2jNavigationBackend()::walkSurface);
+	}
+
+	public PhantomPvpRetreatCoordinator(PhantomNavigationService navigation, PhantomTopologyService topology, PhantomCombatService combat, LongSupplier clock, java.util.function.BiFunction<PhantomNavigationPoint, Integer, java.util.Optional<PhantomNavigationPoint>> walkSurface)
+	{
 		_navigation = Objects.requireNonNull(navigation);
 		_topology = Objects.requireNonNull(topology);
 		_combat = Objects.requireNonNull(combat);
 		_clock = Objects.requireNonNull(clock);
+		_walkSurface = Objects.requireNonNull(walkSurface);
 	}
 
 	public RetreatResult start(long profileId, String authorityHash, long maximumDurationNanos)
@@ -112,7 +119,13 @@ public final class PhantomPvpRetreatCoordinator
 		{
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.deadline_invalid");
 		}
-		final Pending pending = new Pending(profileId, authorityHash, destination.point(), query.snapshot().generation(), deadline);
+		final var surface = _walkSurface.apply(point(destination.point()), destination.validationTolerance());
+		final PhantomNavigationPoint target = surface == null ? null : surface.orElse(null);
+		if (target == null || target.x() != destination.point().x() || target.y() != destination.point().y() || target.instanceId() != destination.point().instanceId() || Math.abs((long) target.z() - destination.point().z()) > destination.validationTolerance())
+		{
+			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.safe_surface_unavailable");
+		}
+		final Pending pending = new Pending(profileId, authorityHash, new PhantomTopologyPoint(target.x(), target.y(), target.z(), target.instanceId()), query.snapshot().generation(), deadline);
 		synchronized (_monitor)
 		{
 			if (_pending.putIfAbsent(profileId, pending) != null)
@@ -121,7 +134,6 @@ public final class PhantomPvpRetreatCoordinator
 			}
 		}
 		final PhantomNavigationPoint origin = point(profile.point());
-		final PhantomNavigationPoint target = point(destination.point());
 		final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, origin, target, now, deadline, MAXIMUM_DISTANCE));
 		final boolean owned;
 		synchronized (_monitor)

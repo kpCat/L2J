@@ -250,14 +250,17 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, fixture.lease.pvpAttacks, "Melee PvP path changed.");
 			}
 		});
-		registry.add("06-known-unmapped-retreat-and-instance-guards", _ -> testUnmappedRetreat());
+		registry.add("06-known-unmapped-retreat-and-instance-guards", _ -> testUnmappedRetreat(false));
+		registry.add("07-retreat-resolves-authored-anchor-native-floor", _ -> testUnmappedRetreat(true));
 	}
 
-	private static void testUnmappedRetreat()
+	private static void testUnmappedRetreat(boolean resolveFloor)
 	{
 		final var backend = new PhantomTopologyCoreSuite.TestBackend();
 		final var safe = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, 0, 0);
-		final var snapshot = PhantomTopologyCoreSuite.create(PhantomTopologyCoreSuite.baseNodes(), List.of(PhantomTopologyCoreSuite.anchor("retreat.safe", "dungeon", safe, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN)), List.of(), backend);
+		final var anchor = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("retreat.safe", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, "dungeon", safe, null, null, 256, List.of(), List.of());
+		final var actualSafe = resolveFloor ? new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, -120, 0) : safe;
+		final var snapshot = PhantomTopologyCoreSuite.create(PhantomTopologyCoreSuite.baseNodes(), List.of(anchor), List.of(), backend);
 		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
 		{
 			@Override public SignalDelivery submit(long profileId, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
@@ -266,14 +269,27 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		final var topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(snapshot, backend, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy.productionDefaults(), signals);
 		try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
 		{
+			final var requestedDestination = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint>();
 			final var navigationBackend = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
 			{
 				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return new CapabilitySnapshot(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_PATHFINDING, 1); }
-				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return from.instanceId() == to.instanceId(); }
+				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { requestedDestination.set(to); return from.instanceId() == to.instanceId(); }
 				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation) { return List.of(request.destination()); }
 			};
 			final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), navigationBackend, worker -> { worker.run(); return true; }, fixture.clock::get, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
-			final var retreat = new org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator(navigation, topology, fixture.service, fixture.clock::get);
+			final var surfaceMode = new java.util.concurrent.atomic.AtomicInteger();
+			final var retreat = new org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator(navigation, topology, fixture.service, fixture.clock::get, (hint, tolerance) ->
+			{
+				PhantomAssertions.assertEquals(256, tolerance, "Retreat changed the selected anchor validation tolerance.");
+				return switch (surfaceMode.get())
+				{
+					case 1 -> java.util.Optional.empty();
+					case 2 -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(hint.x() + 1, hint.y(), hint.z(), hint.instanceId()));
+					case 3 -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(hint.x(), hint.y(), hint.z(), 1));
+					case 4 -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(hint.x(), hint.y(), hint.z() - 257, hint.instanceId()));
+					default -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(actualSafe.x(), actualSafe.y(), actualSafe.z(), actualSafe.instanceId()));
+				};
+			});
 			try
 			{
 				PhantomAssertions.assertTrue(topology.start() && navigation.start(), "Retreat fixtures did not start.");
@@ -284,6 +300,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(topology.findProfile(1).orElseThrow().resolved(), "Fixture must be outside every authored topology node.");
 				fixture.lease.movementAllowed = true;
 				PhantomAssertions.assertFalse(retreat.start(1, HASH, 30 * SECOND).terminal(), "Known coordinates outside authored nodes were mistaken for stale position.");
+				PhantomAssertions.assertEquals(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(actualSafe.x(), actualSafe.y(), actualSafe.z(), actualSafe.instanceId()), requestedDestination.get(), "Retreat requested raw anchor Z instead of its confirmed native floor.");
 				PhantomAssertions.assertEquals("pvp.retreat.authority_stale", retreat.advance(1, "B".repeat(64)).reasonKey(), "Foreign authority advanced the retreat.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.MOVING, retreat.advance(1, HASH).status(), "Unmapped route origin could not acquire ordinary movement.");
 				PhantomAssertions.assertEquals(1, fixture.lease.movements, "Movement did not cross the existing combat lease.");
@@ -293,9 +310,18 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				topology.updateProfile(1, outside, 3);
 				PhantomAssertions.assertFalse(retreat.start(1, HASH, 30 * SECOND).terminal(), "Fresh same-instance retreat did not start.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.MOVING, retreat.advance(1, HASH).status(), "Fresh movement was not issued.");
-				topology.updateProfile(1, safe, 4);
+				topology.updateProfile(1, actualSafe, 4);
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.ARRIVED, retreat.advance(1, HASH).status(), "Protected anchor arrival did not settle the retreat.");
 				PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Completed retreat leaked its combat lease.");
+				if (resolveFloor)
+				{
+					for (int mode = 1; mode <= 4; mode++)
+					{
+						surfaceMode.set(mode);
+						PhantomAssertions.assertEquals("pvp.retreat.safe_surface_unavailable", retreat.start(1, HASH, 30 * SECOND).reasonKey(), "Absent/changed XY/instance/out-of-tolerance surface admitted a retreat: " + mode);
+						PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Invalid anchor surface acquired movement ownership.");
+					}
+				}
 			}
 			finally { retreat.finishStop(); navigation.beginStop(); navigation.finishStop(); topology.beginStop(); PhantomAssertions.assertTrue(topology.finishStop(), "Retreat topology did not stop."); }
 		}

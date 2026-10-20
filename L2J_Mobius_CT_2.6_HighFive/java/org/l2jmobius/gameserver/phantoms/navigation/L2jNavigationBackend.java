@@ -70,6 +70,18 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		return GeoEngine.getInstance().canMoveToTarget(origin.x(), origin.y(), origin.z(), destination.x(), destination.y(), destination.z(), origin.instanceId());
 	}
 
+	/** Resolve only the authored XY/instance within its existing vertical validation tolerance. */
+	public java.util.Optional<PhantomNavigationPoint> walkSurface(PhantomNavigationPoint hint, int verticalTolerance)
+	{
+		if (hint == null || verticalTolerance < 0 || verticalTolerance > 500) { return java.util.Optional.empty(); }
+		final var geo = GeoEngine.getInstance();
+		// Preserve Navigation's existing NO_GEODATA policy when no surface is known.
+		if (!geo.hasGeo(hint.x(), hint.y())) { return java.util.Optional.of(hint); }
+		final int z = geo.getHeight(hint.x(), hint.y(), hint.z());
+		if (Math.abs((long) z - hint.z()) > verticalTolerance || geo.getHeight(hint.x(), hint.y(), z) != z || ZoneManager.getInstance().getZone(hint.x(), hint.y(), z, WaterZone.class) != null) { return java.util.Optional.empty(); }
+		return java.util.Optional.of(new PhantomNavigationPoint(hint.x(), hint.y(), z, hint.instanceId()));
+	}
+
 	/** The existing visible-travel dry-cell/height contract, plus factual doors/NSWE. */
 	public boolean canWalkDirect(PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
