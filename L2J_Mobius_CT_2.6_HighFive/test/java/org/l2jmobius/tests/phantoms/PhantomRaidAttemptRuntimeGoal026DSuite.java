@@ -162,6 +162,26 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 			}
 			finally { fixture.stop(); }
 		});
+		registry.add("13-healer-reservation-does-not-steal-maintenance-provider-budget064", _ ->
+		{
+			final var fixture = new RuntimeFixture(true);
+			try
+			{
+				final var roster = phantoms(1, 3); final var snapshots = snapshots(roster);
+				final var narrow = List.of(maintenance(100), maintenance(101), capability("combat.heal", true));
+				final var broad = List.of(maintenance(200), maintenance(201), maintenance(202));
+				snapshots.put(roster.get(0), member(roster.get(0), false, 100, narrow, List.of()));
+				snapshots.put(roster.get(1), member(roster.get(1), false, 100, broad, List.of()));
+				snapshots.put(roster.get(2), member(roster.get(2), false, 100, List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true)), List.of()));
+				fixture.party.suppliedTarget = roster.get(2).characterObjectId();
+				fixture.party.suppliedCapabilities.put(roster.get(0), narrow); fixture.party.suppliedCapabilities.put(roster.get(1), broad);
+				final var profile = openProfile(List.of(requirement("combat.heal"))); final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+				fixture.runtime.advanceEngagement(new EngagementContext(AUTHORITY, profile, target, 1000, Long.MAX_VALUE, () -> false), force(List.of(roster), snapshots));
+				PhantomAssertions.assertTrue(fixture.lease(2).supportCasts > 0, "A healer-only reservation stole the assigned broader maintenance provider's budget.");
+				PhantomAssertions.assertEquals(0, fixture.lease(1).supportCasts, "Maintenance used the emergency support fallback instead of its exact reservation.");
+			}
+			finally { fixture.stop(); }
+		});
 		registry.add("09-precombat-support-completes-before-offense-and-is-bounded", _ ->
 		{
 			for (int phase = 0; phase < 3; phase++)

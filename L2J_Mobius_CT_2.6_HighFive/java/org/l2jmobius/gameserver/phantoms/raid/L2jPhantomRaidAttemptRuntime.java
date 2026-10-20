@@ -457,6 +457,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	private static boolean assignedSupport(RuntimeAttempt state, TacticalDirective directive)
 	{
 		if (state._providers.getOrDefault(directive.capabilityKey(), Set.of()).contains(directive.actor().profileId())) { return true; }
+		if (MAINTENANCE_CAPABILITIES.contains(directive.capabilityKey())) { return false; }
 		// Reservation excludes offense; each alternate support action is still revalidated by native tactics.
 		return SUPPORT_CAPABILITIES.contains(directive.capabilityKey()) && SUPPORT_CAPABILITIES.stream().anyMatch(key -> state._providers.getOrDefault(key, Set.of()).contains(directive.actor().profileId()));
 	}

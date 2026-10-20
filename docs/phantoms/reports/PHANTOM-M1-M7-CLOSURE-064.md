@@ -50,6 +50,16 @@ Pailaka RED на том же89c4, `m6-pailaka-red01`, seed36003601:7/9, launcher
 
 Rift current01 на89c4:0/1 exit1 до боя. TEST выбирал минимальный `Monster` subclass и попал в Chest18287/EXP0, корректно классифицированный OTHER_ATTACKABLE; это дефект выбора prepared target, не RiftInvader knowledge. Выбор до combat ограничен реальным canonical MONSTER с положительными EXP/SP, без изменения NPC/rates; прежний FAIL сохранён. Timed/consent/death/logout lifecycle пока открыт.
 
+Clean source05 `72fe2cfdc94b504b9aa1f44abe74ea54186c590f`, JAR `2F59348F7768FE3C72D8401A630223C509573F13E8B55F6D8441460EEA5744F8`, archive `F95ACB2D6CC49E5AF3F4884C435139ACDD44847CE5C5FA8F6FC2677FDA4416F4`. Собственные среды STOPPED обновлены целиком с preimages. Ошибка переменной private update остановила TEST update после JAR; exact completion/validation выполнен до какого-либо START. Candidate/защищённые среды не затронуты этим сбоем.
+
+На source05: PvP perimeter01/07 остановился до боя — все24 подготовленные точки native forbidden. Новый отдельный08 выбирает до3 разнесённых canonical town anchors, сохраняя24/30s/proofs и все FAIL; native NOT_RUN. Rift target02 выбрал настоящий21679/HP5726, снял4388HP, TEST healer погиб,0/1 exit1; full room result не достигнут. Новый отдельный03 заранее объявляет34/те же4роли, canonical consent/live readiness и штатный480..600s timer, без resource rescue; это расширенный TEST control, не новый автономный owner.
+
+Pailaka green02 фактически FAIL до измерения: loader отверг raw script SHA, тогда как существующий `PhantomUtf8SourceHash` канонизирует EOL. Исправлен именно pinned identity на canonical `7c063fc36c769a14491c25eccc98a3a3abb075c7635f3f09628c209273939dcc`; guards не обходились, native GREEN пока отсутствует. Исходный raw SHA и FAIL сохранены.
+
+Coverage уточнён focused case13: required healer с узким buff набором проходил emergency fallback и снова занимал budget buffer. На source05 RED12/13, после exact maintenance reservation GREEN13/13. Emergency heal/resurrection/recharge fallback и required providers сохранены; read-only review без замечаний. Native рейд следующего чистого JAR pending.
+
+На source05 существующие M1 native timer controls `m1-earned-timers02`, seed15001501:5/5 exit0, actual QuestTimer/TimerHolder bodies, pending cancel, repeat и earned child/grandchild с однократным reward/owned drain. Предшествующий wrong-seed preflight FAIL сохранён, до DB/native effects. Это regression earned boundary, не G4/G6 закрытие.
+
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 
 Git используется по прямому разрешению пользователя и AUTHORITY064: bounded branch/HEAD/status/ancestry/live-remote/diff inspection; последующие exact-path commits и normal push разрешены. Force/reset/clean/rebase/amend не выполнялись.
