@@ -3912,6 +3912,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(enemy.getInventory().addItem(ItemProcessType.REWARD, 1345, 200, null, this) != null, "Declared TEST archer has no native S arrows.");
 		_player.setRunning(); _player.standUp();
 		final var nativeNavigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		final org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend pathSource = !Boolean.getBoolean("phantom.test.pvpRouteProbe064") ? nativeNavigation : new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+		{
+			private int sequence;
+			@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return nativeNavigation.capability(from, to); }
+			@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return nativeNavigation.canMoveDirect(from, to); }
+			@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation)
+			{
+				final var path = nativeNavigation.findPath(request, cancellation);
+				final var proof = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.normalize(request.origin(), request.destination(), path, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), request.maximumRouteDistance(), nativeNavigation::canWalkDirect, () -> org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.PATH_FOUND);
+				context.record("pvp064.nativeQuery." + (++sequence), "from=" + request.origin() + "; to=" + request.destination() + "; requiredNativeBuffer=" + (64 + 2 * Math.max(Math.abs(GeoEngine.getGeoX(request.origin().x()) - GeoEngine.getGeoX(request.destination().x())), Math.abs(GeoEngine.getGeoY(request.origin().y()) - GeoEngine.getGeoY(request.destination().y())))) + "; points=" + (path == null ? "null" : path.size() + ":" + path.stream().limit(8).toList()) + "; proof=" + proof.status());
+				return path;
+			}
+		};
 		Location flowInput = null;
 		// Retain the blocked full-flow contract. No runtime navigation changes are justified by an unproven route.
 		for (int[] input : new int[][] {{78900,150200}})
@@ -3929,7 +3942,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final var landmark = landmarks.getFirst().point();
 				final var safe = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(landmark.x(), landmark.y(), GeoEngine.getInstance().getHeight(landmark.x(), landmark.y(), landmark.z()), 0);
 				final long now = System.nanoTime();
-				final var plan = nativeNavigation.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), origin, safe, now, now + TimeUnit.SECONDS.toNanos(1), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
+				final var plan = nativeNavigation.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), origin, safe, now, now + TimeUnit.SECONDS.toNanos(1), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime, pathSource);
+				context.record("pvp064.corridor", plan);
 				double length = 0; var previous = origin;
 				for (var waypoint : plan.points()) { length += previous.distanceTo(waypoint); previous = waypoint; }
 				final double eta = length / _player.getStat().getMoveSpeed();

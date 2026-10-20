@@ -28,6 +28,10 @@ M4 full-flow воспроизведён на том же JAR:0/1 exit1, Giran→
 
 Read-only review второго checkpoint обнаружил JDBC `DBNAME` override и ошибочную attribution нового test JAR старому runtime commit. Оба исправлены до публикации: закрытый список JDBC параметров переиспользован из fixture guard; сохранены RED и GREEN Java/WinPS controls без JDBC. Новый clean-build receipt связывает committed archive, фактический JAR и полный test binary/resource tree; runner проверяет их до native запуска. Положительный и отрицательные tampered JAR/test tree/missing receipt controls прошли. Текущий ant unit66/66 также прошёл.
 
+Checkpoint2 `9317c8b99df4ee744918c671452b6ac98dcb210e` опубликован normal push; clean Game JAR `5E98E6DD370B769B151C9068A49B0B5E92526C7064A44779778420BD71F4863F`. Повторный M4 full-flow02 сохранил исходный SEARCH_LIMIT,0/1 exit1. Добавляется только opt-in tracing тех же native queries; буферы/rates/геоданные не меняются.
+
+Третий ordinary цикл на9317, synthetic OFF: Login9088/Game19340, затем оба stock STOP exit0. После sameDB START профиль5 сам выбрал supply journey, прошёл к stock merchant30004 и вернулся к фарму. Durable receipt `b5145d8d31528b67fb11873fa465ce4e82180b2f370c58cdd9571cb29d1d7880`: COMMITTED BUY1835x5, адена59→19, стоимость40. В этой эпохе World EXP385→420/SP22→24; после STOP БД сохранила420/24, адену19 и SS1. Четыре купленных SS израсходованы. Это реальное полезное продолжение; число убийств не выводится из EXP. Native evidence ранее отметил PHASE_DEADLINE регенерации, поэтому G4 не закрыт. EXP385/SP22 были уже в первом snapshot этой эпохи и не объявлены новым заработком.
+
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 
 Git используется по прямому разрешению пользователя и AUTHORITY064: bounded branch/HEAD/status/ancestry/live-remote/diff inspection; последующие exact-path commits и normal push разрешены. Force/reset/clean/rebase/amend не выполнялись.

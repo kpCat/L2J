@@ -2293,6 +2293,8 @@ public final class PhantomSystem
 		final Map<String, String> result = new java.util.LinkedHashMap<>();
 		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
 		if (configured._visibleAutoPlay != null) { result.put("native.autoplay", configured._visibleAutoPlay.snapshotContinuation(profileId).scalarMap().toString()); }
+		final var commerce = configured._commerceReceiptStore == null ? null : configured._commerceReceiptStore.find(profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+		if (commerce != null) { result.put("commerce", commerce.toString()); }
 		if (configured._materializationService != null)
 		{
 			final var entry = configured._materializationService.find(profileId).orElse(null);
@@ -2307,6 +2309,7 @@ public final class PhantomSystem
 					final String value = fields.getOrDefault(key, ""); bounded.put(key, value.substring(0, Math.min(256, value.length())));
 				}
 				result.put("native.owner", bounded.toString());
+				result.put("native.economy", "EXP=" + player.getExp() + ";SP=" + player.getSp() + ";adena=" + player.getAdena() + ";receiptItem=" + (commerce == null ? 0 : commerce.request().itemId()) + ";receiptStock=" + (commerce == null ? 0 : player.getInventory().getInventoryItemCount(commerce.request().itemId(), -1)));
 			}
 		}
 		if (configured._ordinaryDeathRecovery != null)
@@ -2321,7 +2324,7 @@ public final class PhantomSystem
 			result.put("historical.visibleRecovery", configured._historicalBackgroundService.visibleRecoveryReason(profileId));
 		}
 		if (configured._learningJourney != null) { result.put("learning", configured._learningJourney.automaticIntent(profileId).toString()); }
-		if (configured._supplyJourney != null) { result.put("supply", configured._supplyJourney.automaticIntent(profileId).toString()); }
+		if (configured._supplyJourney != null) { result.put("supply", configured._supplyJourney.automaticIntent(profileId).toString()); result.put("supply.reason", configured._supplyJourney.reason(profileId)); }
 		if (configured._questInstanceService != null)
 		{
 			result.put("career", configured._questInstanceService.autonomousIntent(profileId).toString());
