@@ -55,6 +55,20 @@ public final class PhantomRaidCombatGoal026Checkpoint5Suite implements PhantomTe
 			PhantomAssertions.assertFalse(absentParent.validFor(actor(0), request, 2000), "Dead/missing/noncanonical parent was accepted.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomRaidCombatRequest(1, 8001, 0, 0, ContentKind.RAID, NpcKind.MONSTER, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, true, 79, 60_000, token, 7001, 25199), "Minion requested boss collector/loot ownership.");
 		});
+		registry.add("06-area-aggro-requires-exact-live-family-authority064", _ ->
+		{
+			final var authority = new PhantomRaidCombatRequest(1, 7001, 25199, 0, ContentKind.RAID, NpcKind.RAID_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, true, 79, 60_000, () -> false);
+			final var child = new RaidTargetSnapshot(8001, 25200, 0, 100, 100, false, false, true, true, false, true, NpcKind.MONSTER, 100, false, true, 7001, 25199, 79, NpcKind.RAID_BOSS);
+			PhantomAssertions.assertTrue(child.validAggroRecipientFor(actor(0), authority, 2000, 79), "An admitted boss could not authorize its live canonical minion for defense.");
+			PhantomAssertions.assertTrue(raidTarget(7001, 25199, 0, NpcKind.RAID_BOSS, false).validAggroRecipientFor(actor(0), authority, 2000, 79), "The same area list lost its admitted boss.");
+			PhantomAssertions.assertFalse(child.validAggroRecipientFor(actor(1), authority, 2000, 79), "Area aggression crossed instance identity.");
+			PhantomAssertions.assertFalse(child.validAggroRecipientFor(actor(0), authority, 2000, 80), "Area aggression bypassed native minion curse ceiling.");
+			PhantomAssertions.assertFalse(child.validAggroRecipientFor(actor(0), null, 2000, 79), "Ordinary tactics admitted raid recipients without authority.");
+			final var foreign = new PhantomRaidCombatRequest(1, 7002, 25199, 0, ContentKind.RAID, NpcKind.RAID_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 79, 60_000, () -> false);
+			PhantomAssertions.assertFalse(child.validAggroRecipientFor(actor(0), foreign, 2000, 79), "Same NPC id authorized another boss object's minion.");
+			final var cancelled = new PhantomRaidCombatRequest(1, 7001, 25199, 0, ContentKind.RAID, NpcKind.RAID_BOSS, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 79, 60_000, () -> true);
+			PhantomAssertions.assertFalse(child.validAggroRecipientFor(actor(0), cancelled, 2000, 79), "Cancelled raid authority retained area control.");
+		});
 	}
 
 	private static void testExactEpicAuthority()

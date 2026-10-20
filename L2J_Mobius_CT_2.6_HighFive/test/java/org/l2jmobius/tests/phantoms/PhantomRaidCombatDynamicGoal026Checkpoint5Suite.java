@@ -124,6 +124,20 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 			}
 			finally { fixture.stop(); }
 		});
+		registry.add("09-raid-aggro-retains-exact-session-authority064", _ ->
+		{
+			final Fixture fixture = new Fixture();
+			try
+			{
+				fixture.lease.aggroReady = true;
+				final var request = fixture.request(1, false, 48);
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(request).accepted(), "Raid authority input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(request, fixture.lease.aggroAuthority, "NPC aggression lost its admitted raid identity/cancellation authority.");
+				PhantomAssertions.assertEquals(1, fixture.lease.raidAggroCasts, "Raid aggression used the ordinary NPC mutation frontend.");
+			}
+			finally { fixture.stop(); }
+		});
 	}
 
 	private static void exactLiveDeathVictory()
@@ -339,6 +353,8 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		private boolean busy;
 		private boolean aggroReady;
 		private int aggroCasts;
+		private int raidAggroCasts;
+		private PhantomRaidCombatRequest aggroAuthority;
 		private int raidCasts;
 		private int spacingCalls;
 		private ActionOutcome spacing = ActionOutcome.UNAVAILABLE;
@@ -377,6 +393,8 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		@Override public int knownSkillLevel(int skillId) { return skillId == 123 ? learnedRank : 0; }
 		@Override public Optional<SelectedSkill> npcAggroSkill(int targetObjectId) { return aggroReady ? Optional.of(new SelectedSkill(28, 3)) : Optional.empty(); }
 		@Override public ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill skill) { aggroCasts++; return ActionOutcome.ISSUED; }
+		@Override public Optional<SelectedSkill> npcRaidAggroSkill(PhantomRaidCombatRequest request) { aggroAuthority = request; return npcAggroSkill(request.targetObjectId()); }
+		@Override public ActionOutcome castNpcRaidAggro(PhantomRaidCombatRequest request, SelectedSkill skill) { aggroAuthority = request; raidAggroCasts++; return castNpcAggro(request.targetObjectId(), skill); }
 		@Override public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { spacingCalls++; return spacing; }
 		@Override public ActionOutcome castRaid(int targetObjectId, SelectedSkill skill, PhantomRaidCombatRequest request) { raidCasts++; lastRaidSkill = skill; return ActionOutcome.ISSUED; }
 

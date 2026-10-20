@@ -606,48 +606,78 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public Optional<SelectedSkill> npcAggroSkill(int targetObjectId)
 		{
+			return npcAggroSkill(targetObjectId, null);
+		}
+
+		@Override
+		public Optional<SelectedSkill> npcRaidAggroSkill(PhantomRaidCombatRequest request)
+		{
+			return request == null ? Optional.empty() : npcAggroSkill(request.targetObjectId(), request);
+		}
+
+		private Optional<SelectedSkill> npcAggroSkill(int targetObjectId, PhantomRaidCombatRequest request)
+		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
 			final ActorSnapshot actor = actorSnapshot();
-			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !validNpcTacticTarget(target, actor))
+			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !(request == null ? validNpcTacticTarget(target, actor) : validRaidAggroRecipient(target, actor, request)))
 			{
 				return Optional.empty();
 			}
+			// GetAgro can recruit a native clan beyond the admitted encounter, even for ONE.
+			if (request != null && target.getTemplate().getClans() != null && !target.getTemplate().getClans().isEmpty()) { return Optional.empty(); }
 			final Creature victim = target.getMostHated();
-			if ((victim == _player) && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player))
-			{
-				return Optional.empty();
-			}
+			final boolean primaryHeld = victim == _player && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player);
+			if (request == null && primaryHeld) { return Optional.empty(); }
 			if ((victim != null) && (victim != _player) && ((victim.asPlayer() == null) || (_player.getParty() == null) || (victim.asPlayer().getParty() != _player.getParty())))
 			{
 				return Optional.empty();
 			}
-			return _player.getAllSkills().stream().filter(skill -> PhantomCombatSkillSafety.supportsNpcAggro(skill, _player.isTransformed()) || !npcAreaAggroTargets(skill, target, actor).isEmpty())
+			return _player.getAllSkills().stream().filter(skill -> (!primaryHeld && PhantomCombatSkillSafety.supportsNpcAggro(skill, _player.isTransformed())) || !npcAreaAggroTargets(skill, target, actor, request).isEmpty())
 				.filter(skill -> !_player.isSkillDisabled(skill) && (_player.getCurrentMp() >= Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill))) && (_player.getCharges() >= skill.getChargeConsumeCount()) && ((skill.getItemConsumeCount() <= 0) || (_player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) >= skill.getItemConsumeCount())) && skill.checkCondition(_player, target, false))
 				.sorted(Comparator.<Skill>comparingInt(skill -> PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed()) ? 0 : 1).thenComparingInt(Skill::getEffectPoint).thenComparing(Comparator.comparingInt(Skill::getLevel).reversed()).thenComparingInt(Skill::getId)).findFirst().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel()));
 		}
 
-		private List<WorldObject> npcAreaAggroTargets(Skill skill, Monster primary, ActorSnapshot actor)
+		private List<WorldObject> npcAreaAggroTargets(Skill skill, Monster primary, ActorSnapshot actor, PhantomRaidCombatRequest request)
 		{
 			// The frozen-list native cast must not bypass PlayerAI movement, bow-reuse or REST admission.
 			if (!PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed()) || _player.isMoving() || (_player.getBowAttackEndTime() > GameTimeTaskManager.getInstance().getGameTicks()) || (skill.isMagic() && _player.hasAI() && (_player.getAI().getIntention() == Intention.REST))) { return List.of(); }
 			final List<WorldObject> recipients = skill.getTargetList(_player, false, primary);
 			if ((recipients == null) || (recipients.size() < 2) || (recipients.size() > 16) || !recipients.contains(primary)) { return List.of(); }
+			boolean needsDefense = false;
 			for (WorldObject recipient : recipients)
 			{
-				if (!(recipient instanceof Monster monster) || !isNormalMonster(monster) || !targetSnapshot(monster).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE) || (World.getInstance().findObject(monster.getObjectId()) != monster)) { return List.of(); }
+				if (!(recipient instanceof Monster monster) || !(request == null ? isNormalMonster(monster) && targetSnapshot(monster).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE) : validRaidAggroRecipient(monster, actor, request)) || (World.getInstance().findObject(monster.getObjectId()) != monster)) { return List.of(); }
 				// Native GetAgro also calls clan assistance beyond the Aura recipients. Keep that unsupported.
 				final var clans = monster.getTemplate().getClans();
 				if ((clans != null) && !clans.isEmpty()) { return List.of(); }
 				final Creature victim = monster.getMostHated();
 				if ((victim == null) || ((victim != _player) && ((victim.asPlayer() == null) || (_player.getParty() == null) || (victim.asPlayer().getParty() != _player.getParty()))) || ((monster.getTarget() != victim) && (!monster.hasAI() || (monster.getAI().getAttackTarget() != victim)))) { return List.of(); }
+				needsDefense |= victim != _player;
 			}
-			return recipients;
+			return request == null || needsDefense ? recipients : List.of();
+		}
+
+		private boolean validRaidAggroRecipient(Monster monster, ActorSnapshot actor, PhantomRaidCombatRequest request)
+		{
+			final RaidTargetSnapshot snapshot = raidTargetSnapshot(monster);
+			return snapshot != null && snapshot.validAggroRecipientFor(actor, request, MAXIMUM_ACQUISITION_DISTANCE, _player.getLevel());
 		}
 
 		@Override
 		public ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill selected)
 		{
-			if ((selected == null) || _player.isCastingNow() || _player.isAttackingNow() || npcAggroSkill(targetObjectId).filter(selected::equals).isEmpty())
+			return castNpcAggro(targetObjectId, selected, null);
+		}
+
+		@Override
+		public ActionOutcome castNpcRaidAggro(PhantomRaidCombatRequest request, SelectedSkill selected)
+		{
+			return request == null ? ActionOutcome.REJECTED : castNpcAggro(request.targetObjectId(), selected, request);
+		}
+
+		private ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill selected, PhantomRaidCombatRequest request)
+		{
+			if ((selected == null) || _player.isCastingNow() || _player.isAttackingNow() || npcAggroSkill(targetObjectId, request).filter(selected::equals).isEmpty())
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -663,7 +693,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			if (PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed()))
 			{
-				final List<WorldObject> recipients = npcAreaAggroTargets(skill, (Monster) target, actorSnapshot());
+				final List<WorldObject> recipients = npcAreaAggroTargets(skill, (Monster) target, actorSnapshot(), request);
 				if (recipients.isEmpty()) { return ActionOutcome.REJECTED; }
 				if (!_player.checkDoCastConditions(skill) || !skill.checkCondition(_player, target, false)) { return ActionOutcome.UNAVAILABLE; }
 				_player.setTarget(target);

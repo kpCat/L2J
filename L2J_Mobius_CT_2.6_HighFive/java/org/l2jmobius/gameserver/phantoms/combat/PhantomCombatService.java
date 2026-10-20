@@ -1560,10 +1560,10 @@ public final class PhantomCombatService
 			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
 			return;
 		}
-		final Optional<SelectedSkill> aggression = session._actorLease.npcAggroSkill(session._request.targetObjectId());
+		final Optional<SelectedSkill> aggression = session._actorLease.npcRaidAggroSkill(session._raidRequest);
 		if (aggression.isPresent())
 		{
-			final ActionOutcome outcome = session._actorLease.castNpcAggro(session._request.targetObjectId(), aggression.orElseThrow());
+			final ActionOutcome outcome = session._actorLease.castNpcRaidAggro(session._raidRequest, aggression.orElseThrow());
 			if (outcome == ActionOutcome.ISSUED)
 			{
 				session._ownedAction = session._ownedAction.withSelectedSkill(aggression.orElseThrow());

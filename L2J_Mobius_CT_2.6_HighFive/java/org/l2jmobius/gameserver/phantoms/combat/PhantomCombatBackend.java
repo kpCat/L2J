@@ -123,6 +123,19 @@ public interface PhantomCombatBackend
 		{
 			return request.minionParentObjectId() > 0 ? Math.min(request.maximumActorLevel(), minionMaximumActorLevel) : request.maximumActorLevel();
 		}
+
+		/** Reuses exact target admission for each member of an already admitted raid family. */
+		public boolean validAggroRecipientFor(ActorSnapshot actor, PhantomRaidCombatRequest authority, int maximumDistance, int actorLevel)
+		{
+			if (authority == null || authority.planOwnershipToken().isCancelled() || actorLevel < 1) { return false; }
+			final int parentObjectId = authority.minionParentObjectId() > 0 ? authority.minionParentObjectId() : authority.targetObjectId();
+			final int parentNpcId = authority.minionParentNpcId() > 0 ? authority.minionParentNpcId() : authority.targetNpcId();
+			final NpcKind parentKind = authority.contentKind() == ContentKind.RAID ? NpcKind.RAID_BOSS : NpcKind.GRAND_BOSS;
+			final boolean parent = objectId == parentObjectId && npcId == parentNpcId && knowledgeKind == parentKind && minionParentObjectId == 0;
+			if (!parent && (minionParentObjectId != parentObjectId || minionParentNpcId != parentNpcId || knowledgeKind != NpcKind.MONSTER)) { return false; }
+			final var recipient = new PhantomRaidCombatRequest(authority.profileId(), objectId, parent ? parentNpcId : 0, authority.targetInstanceId(), authority.contentKind(), parent ? parentKind : NpcKind.MONSTER, authority.attemptAuthorityHash(), authority.mode(), authority.useShotsIfAvailable(), false, authority.maximumActorLevel(), authority.timeoutMillis(), authority.planOwnershipToken(), parent ? 0 : parentObjectId, parent ? 0 : parentNpcId);
+			return actorLevel <= maximumActorLevel(recipient) && validFor(actor, recipient, maximumDistance);
+		}
 	}
 
 	record PvpTargetSnapshot(int objectId, int classId, int instanceId, int level, int hpBand, int effectivePoolBand, double distance, boolean player, boolean exactKnowledge, boolean targetable, boolean invisible, boolean dead, boolean alikeDead, boolean surroundingRegion, boolean peaceRestricted, boolean sameParty, boolean self, boolean unmanagedEvent, boolean olympiad, boolean duel, boolean siege, boolean jailed, boolean festival, boolean boatOrAirship, boolean autoAttackable, boolean invulnerable, boolean reachable)

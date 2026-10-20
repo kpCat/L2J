@@ -213,6 +213,17 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return ActionOutcome.REJECTED;
 	}
 
+	/** The admitted raid owner supplies its exact encounter authority to NPC tactics. */
+	default Optional<SelectedSkill> npcRaidAggroSkill(PhantomRaidCombatRequest request)
+	{
+		return npcAggroSkill(request.targetObjectId());
+	}
+
+	default ActionOutcome castNpcRaidAggro(PhantomRaidCombatRequest request, SelectedSkill skill)
+	{
+		return castNpcAggro(request.targetObjectId(), skill);
+	}
+
 
 	default boolean supportsPvpSkill(SelectedSkill skill, PhantomCombatMode mode)
 	{
