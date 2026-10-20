@@ -32,7 +32,7 @@ public final class PhantomProgressionOperationSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
-		context.record("progressionOperations.cases", CASES + 1);
+		context.record("progressionOperations.cases", CASES + 2);
 	}
 
 	@Override
@@ -58,6 +58,7 @@ public final class PhantomProgressionOperationSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "world.object", "3:2", valid)).isEmpty(), "Trainer identity replaced the explicit skill target.");
 			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "skill", "3:0", valid)).isEmpty(), "Invalid rank accepted.");
 		});
+		registry.add("38-learning-bounded-reachable-trainer-alternatives", org.l2jmobius.gameserver.phantoms.progression.PhantomLearningAlternativesChecks::assertContract);
 	}
 
 	private static PhantomGoal learningGoal(String type, String namespace, String key, Map<String, Long> constraints)

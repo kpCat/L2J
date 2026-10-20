@@ -251,15 +251,17 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 				{
 					if (player.isMoving()) { return retry("learning.foreign_movement"); }
 					final List<SpawnFact> trainerOptions = returning ? List.of() : _trainers.stream().filter(spawn -> NpcData.getInstance().getTemplate(spawn.npcId()).canTeach(player.getLearningClass())).sorted(Comparator.comparingDouble((SpawnFact spawn) -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z())).thenComparingInt(SpawnFact::npcId)).distinct().limit(3).toList();
-					final SpawnFact trainer = trainerOptions.isEmpty() ? null : trainerOptions.getFirst();
-					if (!returning && trainer == null) { return fail("learning.trainer.unsupported"); }
+					if (!returning && trainerOptions.isEmpty()) { return fail("learning.trainer.unsupported"); }
+					final var trainerApproach = returning ? null : trainerApproach(trainerOptions, 0, spawn -> approaches(player, spawn));
+					if (!returning && trainerApproach == null) { return fail("learning.trainer.no_approach"); }
+					final SpawnFact trainer = returning ? null : trainerOptions.get(trainerApproach.index());
 					final var field = returning ? returnDestination(request.field()).orElse(null) : null;
 					if (returning && field == null) { return fail("learning.field.floor_unavailable"); }
-					final var destinations = returning ? List.of(field) : approaches(player, trainer);
+					final var destinations = returning ? List.of(field) : trainerApproach.points();
 					if (destinations.isEmpty()) { return fail("learning.trainer.no_approach"); }
 					final long remaining = PhantomJourneyLifetime.remaining(intent, System.currentTimeMillis());
 					final long budget = Math.min(remaining, walkingBudgetMillis(player.calculateDistance3D(destinations.getFirst().x(), destinations.getFirst().y(), destinations.getFirst().z()), player.getMoveSpeed()));
-					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MILLISECONDS.toNanos(Math.max(1, budget)), 0, List.of(), 0, trainerOptions, 0, 0, null);
+					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MILLISECONDS.toNanos(Math.max(1, budget)), 0, List.of(), 0, trainerOptions, returning ? 0 : trainerApproach.index(), 0, null);
 					if (!put(profileId, travel)) { return retry("learning.capacity"); }
 				}
 				if (!returning)
@@ -373,6 +375,23 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		return List.copyOf(points);
 	}
 
+	static record TrainerApproach(int index, List<PhantomNavigationPoint> points)
+	{
+		TrainerApproach { points = List.copyOf(points); }
+	}
+
+	/** Select only within the existing three-trainer pool; every point still requires Navigation proof. */
+	static TrainerApproach trainerApproach(List<SpawnFact> trainers, int first, java.util.function.Function<SpawnFact, List<PhantomNavigationPoint>> approaches)
+	{
+		if (first < 0 || first > trainers.size() || trainers.size() > 3) { throw new IllegalArgumentException("Invalid bounded trainer selection."); }
+		for (int index = first; index < trainers.size(); index++)
+		{
+			final var points = approaches.apply(trainers.get(index));
+			if (!points.isEmpty()) { return new TrainerApproach(index, points); }
+		}
+		return null;
+	}
+
 	private PhantomStepResult routeFailure(long profileId, Travel travel, PhantomNavigationResult result)
 	{
 		if (result.status() == PhantomNavigationResult.Status.COOLDOWN)
@@ -392,8 +411,8 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		}
 		if (!travel.returning() && Set.of(PhantomNavigationResult.Status.NO_PATH,PhantomNavigationResult.Status.ROUTE_OBSTRUCTED,PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()) && travel.trainerIndex()+1 < travel.trainerOptions().size())
 		{
-			final var alternative = approaches(travel.actor(), travel.trainerOptions().get(travel.trainerIndex()+1));
-			if (!alternative.isEmpty())
+			final var alternative = trainerApproach(travel.trainerOptions(), travel.trainerIndex()+1, spawn -> approaches(travel.actor(), spawn));
+			if (alternative != null)
 			{
 				_navigation.consume(result.requestId());
 				return put(profileId, travel.nextTrainer(alternative)) ? retry("learning.trainer.alternative") : PhantomStepResult.of(Type.CANCELLED, "learning.stopping");
@@ -534,13 +553,13 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		return PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(travel.actor()), travel.destination(), _navigation.policy().maximumLocalStraightDistance());
 	}
 
-	private record Travel(Player actor, long goalId, long goalRevision, Request request, boolean returning, int trainerNpcId, List<PhantomNavigationPoint> destinations, int destinationIndex, long deadlineNanos, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint, List<SpawnFact> trainerOptions, int trainerIndex, int segmentAttempt, PhantomNativeTravelActions.OwnedWalk issuedWalk)
+	record Travel(Player actor, long goalId, long goalRevision, Request request, boolean returning, int trainerNpcId, List<PhantomNavigationPoint> destinations, int destinationIndex, long deadlineNanos, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint, List<SpawnFact> trainerOptions, int trainerIndex, int segmentAttempt, PhantomNativeTravelActions.OwnedWalk issuedWalk)
 	{
 		private PhantomNavigationPoint destination() { return destinations.get(destinationIndex); }
 		private Travel route(long id, List<PhantomNavigationPoint> points) { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, id, List.copyOf(points), 0, trainerOptions, trainerIndex, segmentAttempt, issuedWalk); }
 		private Travel next() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, requestId, waypoints, waypoint + 1, trainerOptions, trainerIndex, segmentAttempt, issuedWalk); }
 		private Travel nextDestination() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex+1, deadlineNanos, 0, List.of(), 0, trainerOptions, trainerIndex, 0, issuedWalk); }
-		private Travel nextTrainer(List<PhantomNavigationPoint> alternatives) { return new Travel(actor, goalId, goalRevision, request, false, trainerOptions.get(trainerIndex+1).npcId(), alternatives, 0, deadlineNanos, 0, List.of(), 0, trainerOptions, trainerIndex+1, 0, issuedWalk); }
+		Travel nextTrainer(TrainerApproach alternative) { return new Travel(actor, goalId, goalRevision, request, false, trainerOptions.get(alternative.index()).npcId(), alternative.points(), 0, deadlineNanos, 0, List.of(), 0, trainerOptions, alternative.index(), 0, issuedWalk); }
 		private Travel nextSegment() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, 0, List.of(), 0, trainerOptions, trainerIndex, segmentAttempt+1, issuedWalk); }
 		private Travel localArrived() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, 0, List.of(), 0, trainerOptions, trainerIndex, 0, issuedWalk); }
 		private Travel walk(PhantomNativeTravelActions.OwnedWalk issued) { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, requestId, waypoints, waypoint, trainerOptions, trainerIndex, segmentAttempt, issued); }
