@@ -44,13 +44,18 @@ public class QuestTimer
 
 	QuestTimer(Quest quest, String name, long time, Npc npc, Player player, boolean repeating, boolean deferred)
 	{
+		this(quest, name, time, npc, player, repeating, deferred, false);
+	}
+
+	QuestTimer(Quest quest, String name, long time, Npc npc, Player player, boolean repeating, boolean deferred, boolean ambientNpc)
+	{
 		_quest = quest;
 		_name = name;
 		_npc = npc;
 		_player = player;
 		_isRepeating = repeating;
 		_time = time;
-		_nativeTimer = new PlayerNativeTimer(player, "quest-timer:" + name, repeating, this::removeNative);
+		_nativeTimer = ambientNpc ? PlayerNativeTimer.ambient(null, "quest-timer:" + name, this::removeNative) : new PlayerNativeTimer(player, "quest-timer:" + name, repeating, this::removeNative);
 		if (!_nativeTimer.accepted()) { return; }
 		
 		if (npc != null)

@@ -37,7 +37,7 @@
 	</content>
 	<content id="instance.pailaka-128" kind="PAILAKA" minLevel="36" maxLevel="42" races="*" classes="*" questId="128" instanceTemplateId="43" acquisitionRuleId="-">
 		<owners>
-			<owner role="instance" questId="-1" scriptName="PailakaSongOfIceAndFire" className="instances.PailakaSongOfIceAndFire.PailakaSongOfIceAndFire" source="data/scripts/instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java" sourceSha256="d682835136e6a72eddbe7e35a6d21fed46c3d6024ffa9122456249f134ae6798" />
+			<owner role="instance" questId="-1" scriptName="PailakaSongOfIceAndFire" className="instances.PailakaSongOfIceAndFire.PailakaSongOfIceAndFire" source="data/scripts/instances/PailakaSongOfIceAndFire/PailakaSongOfIceAndFire.java" sourceSha256="4dcecccc30753447e1a916ec9e750c8af4ab2236806616306d5ad7b71f3a2b1e" />
 			<owner role="quest" questId="128" scriptName="Q00128_PailakaSongOfIceAndFire" className="quests.Q00128_PailakaSongOfIceAndFire.Q00128_PailakaSongOfIceAndFire" source="data/scripts/quests/Q00128_PailakaSongOfIceAndFire/Q00128_PailakaSongOfIceAndFire.java" sourceSha256="6be37daff54269321273677ea71072141da42fd983b74bbeaf695675e9585b49" />
 		</owners>
 		<steps>

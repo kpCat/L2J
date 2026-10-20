@@ -473,6 +473,19 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 	 */
 	public void startQuestTimer(String name, long time, Npc npc, Player player, boolean repeating)
 	{
+		startQuestTimer(name, time, npc, player, repeating, false);
+	}
+
+	/** NPC-only optional producer, without a deferred Player reward obligation.
+	 * The running callback still belongs to the captured native owner and drains normally. */
+	public final void startNpcAmbientTimer(String name, long time, Npc npc)
+	{
+		if (npc == null) { throw new IllegalArgumentException("An ambient NPC timer requires its native NPC."); }
+		startQuestTimer(name, time, npc, null, false, true);
+	}
+
+	private void startQuestTimer(String name, long time, Npc npc, Player player, boolean repeating, boolean ambientNpc)
+	{
 		if (name == null)
 		{
 			return;
@@ -489,7 +502,7 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 			// If there exists a timer with this name, allow the timer only if the [npc, player] set is unique nulls act as wildcards.
 			if (getQuestTimer(name, npc, player) == null)
 			{
-				created = new QuestTimer(this, name, time, npc, player, repeating, true);
+				created = new QuestTimer(this, name, time, npc, player, repeating, true, ambientNpc);
 				if (created.accepted()) { _questTimers.get(name).add(created); }
 			}
 		}

@@ -36,7 +36,7 @@ public final class PhantomM1TimerChecks
 	/** Caller owns the RuntimeFixture and a BEFORE_STORE_OPERATION latch/await failure hook. */
 	public static void run(PhantomTestContext context, Player player, PhantomMaterializationService materialization, long profileId, CountDownLatch beforeStore, CountDownLatch releaseBeforeStore) throws Exception
 	{
-		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Q06 requires the initialized allowlisted headless TEST environment.");
+		guard(context, player);
 		PhantomAssertions.assertTrue(player.isNativeWorkManaged(), "Q06 requires the exact managed materialized Player.");
 		PhantomAssertions.assertEquals(1.0f, RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER, "Q06 requires the existing stock TEST quest item amount multiplier.");
 		PhantomAssertions.assertEquals(1L, beforeStore.getCount(), "Q06 BEFORE_STORE barrier must start closed.");
@@ -343,9 +343,10 @@ public final class PhantomM1TimerChecks
 		}
 	}
 
-	private static void guard(PhantomTestContext context, Player player)
+	private static void guard(PhantomTestContext context, Player player) throws Exception
 	{
-		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Native timer checks require guarded TEST bootstrap.");
+		if (PhantomCampaign058DatabaseLane.task064Enabled()) { PhantomCampaign058DatabaseLane.assertActiveFixture(context); }
+		else { PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Native timer checks require guarded TEST bootstrap."); }
 		PhantomAssertions.assertTrue(player.isNativeWorkManaged() && (player.getNativeWorkOwner() != null), "Native timer checks require exact owned Player.");
 		PhantomAssertions.assertEquals(1.0f, RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER, "Native timer checks require stock amount rate.");
 	}

@@ -211,7 +211,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			_service = createService();
 			preparePlayer(0, 0, 20);
 			ensureWeapon();
-			context.record("goal036.database", "127.0.0.1:3308/l2jmobiush5_phantom_test");
+			context.record("goal036.database", context.measurements().get("headless.database"));
 			context.record("goal036.catalogHash", _catalog.catalogHash());
 			context.record("goal037.rateProfile", _mode == Mode.GOAL036 ? "1x/default" : "questItem=3,reward=5,xp=2,sp=3,adena=4");
 		}
@@ -225,6 +225,12 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (Boolean.getBoolean("phantom.test.pailakaOnly064"))
+		{
+			registry.add("25-npc-ambient-cancellation-retains-earned-timer-guard064", this::ambientNpcTimer064);
+			registry.add("07-pailaka-128-native-lifecycle-and-rewards", this::pailakaLifecycle);
+			return;
+		}
 		if (Boolean.getBoolean("phantom.test.autoProfessions061"))
 		{
 			registry.add("19-native-phantom-automatic-first-profession061", this::automaticProfession061);
@@ -1797,6 +1803,26 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		InstanceManager.getInstance().destroyInstance(instanceId);
 		await(() -> _player.getInstanceId() == 0, "Kamaloka fixture did not leave the destroyed native instance.");
 		_player.setParty(null);
+	}
+
+	private void ambientNpcTimer064(PhantomTestContext context) throws Exception
+	{
+		final Quest quest = org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getScript("PailakaSongOfIceAndFire");
+		PhantomAssertions.assertTrue(quest != null, "The actual Pailaka NPC owner is absent.");
+		final Npc npc = spawnNpc(32497);
+		final String ambient = "TASK064_OPTIONAL_NPC", earned = "TASK064_EARNED_CONTROL";
+		final var outcome = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary(_player, List.of(_player), "task064-timer-classification", () ->
+		{
+			quest.startNpcAmbientTimer(ambient, 60_000, npc);
+			quest.getQuestTimer(ambient, npc, null).cancel();
+			PhantomAssertions.assertEquals(null, quest.getQuestTimer(ambient, npc, null), "Optional NPC producer inherited an earned obligation.");
+			quest.startQuestTimer(earned, 1000, npc, _player);
+			quest.getQuestTimer(earned, npc, _player).cancel();
+			PhantomAssertions.assertTrue(quest.getQuestTimer(earned, npc, _player) != null, "Default pending earned timer cancellation lost its native registration.");
+		});
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.NativeBoundaryOutcome.EXECUTED, outcome, "Exact managed timer classification boundary was refused.");
+		await(() -> quest.getQuestTimer(earned, npc, _player) == null, "The preserved earned timer did not finish normally.");
+		context.record("task064.npcTimer", "actual QuestTimer/native owner: optional pending cancel removes all registries; default earned pending cancel refused; earned body completes normally; ordinary timer path unchanged");
 	}
 
 	private void pailakaLifecycle(PhantomTestContext context) throws Exception

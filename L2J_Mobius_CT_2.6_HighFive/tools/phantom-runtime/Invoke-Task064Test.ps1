@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Mode,
       [Parameter(Mandatory)][long]$Seed,[Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Label,
-      [string[]]$Features=@(),[ValidateSet('build','build-final')][string]$Build='build',[switch]$ValidateOnly)
+      [string[]]$Features=@(),[ValidateSet('timers','producer','native-phase')][string]$NativeFocus,
+      [ValidateSet('build','build-final')][string]$Build='build',[switch]$ValidateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $module064=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $task064=Join-Path $module064 '.phantom-local/task064'
@@ -29,9 +30,10 @@ if($ValidateOnly){Write-Output "TASK064_TEST_BINDING_PASS commit=$($info064.code
 $flags064=@{
     PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';
     RaidFlow='raidFlow059';RaidStaging='raidStagingOnly059';RaidLevelGuard='raidLevelGuard059';RaidMinionGuard='raidMinionGuard059';RaidTriggerGuard='raidTriggerGuard059';
-    KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';LearningJourney='learningJourney059';
+    KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';PailakaOnly='pailakaOnly064';LearningJourney='learningJourney059';
     CareerProducer='careerProducer061';AutoProfessions061='autoProfessions061';
     AutonomousLearning='autonomousLearning060';AutonomousLearningGuards='autonomousLearningGuards060';JourneyLifecycle061='journeyLifecycle061';LearningLong061='learningLong061';
+    Living='living060';LivingMage='livingMage060';LivingDwarf='livingDwarf060';LivingSupply='livingSupply060';LivingRelocate='livingRelocate060';
     SupplyGuards='supplyGuards060';LoadoutGuards061='loadoutGuards061';LowFunds061='lowFunds061';
     Commands='commands059';Authority='commandAuthority059';BusyHold='busyHold059';SocialContexts='socialContexts059';CardinalBuff='cardinalBuff059';SupportKinds='supportKinds059';SupportRequests='supportRequests059'
 }
@@ -39,10 +41,14 @@ $options064=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Ds
 # The historical ownership suite is pure and deliberately exercises its unchanged058 contracts.
 if($Mode -cne 'campaign058-ownership'){$options064+="-Dphantom.task064.manifest=$task064/test/owned.properties"}
 foreach($feature064 in $Features){if(!$flags064.ContainsKey($feature064)){throw 'Unknown exact native feature flag.'};$options064+=('-Dphantom.test.'+$flags064[$feature064]+'=true')}
+if($NativeFocus){
+    if($Mode -cne 'm1-native-lifecycle'){throw 'Native focus requires the existing M1 lifecycle mode.'}
+    $options064+=('-Dphantom.m1.native.focus='+$NativeFocus)
+}
 if('PvpFlowOnly' -in $Features){$options064+='-Dphantom.test.pvpFlow059=true'}
 if(@($Features | Where-Object {$_ -in @('RaidStaging','RaidLevelGuard','RaidMinionGuard','RaidTriggerGuard')}).Count){$options064+='-Dphantom.test.raidFlow059=true'}
 New-Item -ItemType Directory -Path $report064 | Out-Null
-[ordered]@{format=1;sourceCommit=$info064.codeCommit;sourceArchiveSha256=$info064.sourceArchiveSha256;testTreeSha256=$tests064;buildReceiptSha256=(Get-FileHash -LiteralPath $receipt064).Hash;jar=$jar064;jarSha256=$hash064;schema='l2jmobiush5_phantom_test_064';owner='TASK064_CAMPAIGN';mode=$Mode;seed=$Seed;features=$Features;startedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $report064 'EPISODE064.json') -Encoding UTF8
+[ordered]@{format=1;sourceCommit=$info064.codeCommit;sourceArchiveSha256=$info064.sourceArchiveSha256;testTreeSha256=$tests064;buildReceiptSha256=(Get-FileHash -LiteralPath $receipt064).Hash;jar=$jar064;jarSha256=$hash064;schema='l2jmobiush5_phantom_test_064';owner='TASK064_CAMPAIGN';mode=$Mode;seed=$Seed;features=$Features;nativeFocus=$NativeFocus;startedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $report064 'EPISODE064.json') -Encoding UTF8
 $classpath064="$jar064;$build064/phantom-test/bin;$build064/phantom-test/resources;$module064/dist/libs/*"
 Write-Output "TASK064_TEST label=$Label; mode=$Mode; seed=$Seed; JAR=$hash064"
 Push-Location (Join-Path $runtime064 'game')

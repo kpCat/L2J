@@ -105,13 +105,13 @@ public class PailakaSongOfIceAndFire extends InstanceScript
 			}
 			case "BLOOM_TIMER":
 			{
-				startQuestTimer("BLOOM_TIMER2", getRandom(2, 4) * 60 * 1000, npc, null);
+				startNpcAmbientTimer("BLOOM_TIMER2", getRandom(2, 4) * 60 * 1000, npc);
 				break;
 			}
 			case "BLOOM_TIMER2":
 			{
 				npc.setInvisible(!npc.isInvisible());
-				startQuestTimer("BLOOM_TIMER", 5000, npc, null);
+				startNpcAmbientTimer("BLOOM_TIMER", 5000, npc);
 				break;
 			}
 		}
@@ -194,7 +194,7 @@ public class PailakaSongOfIceAndFire extends InstanceScript
 	public void onSpawn(Npc npc)
 	{
 		npc.setInvisible(true);
-		startQuestTimer("BLOOM_TIMER", 1000, npc, null);
+		startNpcAmbientTimer("BLOOM_TIMER", 1000, npc);
 	}
 	
 	public static void main(String[] args)

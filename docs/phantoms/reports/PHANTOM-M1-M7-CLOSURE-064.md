@@ -42,7 +42,13 @@ Checkpoint5 `89c4ff209c3e03f4ce1066df40a129738b0f99c1` опубликован no
 
 M5 raid02 на89c4: stock25199/full9 и неизменённые входы, ABORTED после44s боя,0/1 exit1. Реальные Major Heal1401:11 и recharge1217 с native cost наблюдались; буфер и танцор оставались без выбранного навыка. Найдена общая причина: выбор более узкого provider по profileId и расход maintenance budget до фильтра assigned/held providers. Focused case12 воспроизводит starvation на прежнем JAR11/12; выбор максимального distinct learned coverage и фильтр до budget дают12/12. Required providers, обычная party policy, prep deadline и budgets сохранены. Native повтор нового исправления ещё NOT_RUN.
 
-M6 текущий Kamaloka57 на89c4: босс побеждён, все6 участников живы; сейчас выполняется штатное5-минутное закрытие. PASS до terminal/reuse/drain не заявлен.
+M6 текущий Kamaloka57 на89c4, `m6-kamaloka01`, seed58005831:1/1 exit0. Полный stock HP163178, EXP всех6/расход SS/reuse, естественное5-минутное closing, все исходные identities/Party сохранены; saved state и cooldown retry не создали второй инстанс. Product/service/native cleanup прошёл. Это самостоятельное серверное доказательство KAMA, не полный М6.
+
+Pailaka RED на том же89c4, `m6-pailaka-red01`, seed36003601:7/9, launcher exit3. Q128 callbacks/rewards прошли, afterAll сохранил DRAIN_TIMEOUT/outstanding4/pendingTimers4 `quest-timer:BLOOM_TIMER*`. Также отдельный Q401 Simplon move.active FAIL; он сохранён и не объявлен новым обязательным profession gate. Existing Goal036 использует подготовленные HP1 kill fixtures, поэтому его PASS означает callbacks/reward/drain, а не full stock boss fight.
+
+Изменение Pailaka ограничено3 NPC-only BLOOM producers: explicit `Quest.startNpcAmbientTimer` переиспользует существующий `PlayerNativeTimer.ambient`. Default earned semantics, pending-earned cancel refusal, native owner, running-body drain и публикация во все registries сохранены. Writer inventory: меняется регистрация optional timer, тело меняет только NPC visibility; quest rewards/Player teleport/DELETE/GARGOS/SQL writers не изменены. Pinned script SHA обновлён. Новые focused assertions проверяют ambient cancel и отказ earned cancel; прежние M1 timer controls подключены к exact064 fixture guard. javac PASS, review без замечаний; clean native GREEN pending.
+
+Rift current01 на89c4:0/1 exit1 до боя. TEST выбирал минимальный `Monster` subclass и попал в Chest18287/EXP0, корректно классифицированный OTHER_ATTACKABLE; это дефект выбора prepared target, не RiftInvader knowledge. Выбор до combat ограничен реальным canonical MONSTER с положительными EXP/SP, без изменения NPC/rates; прежний FAIL сохранён. Timed/consent/death/logout lifecycle пока открыт.
 
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 
