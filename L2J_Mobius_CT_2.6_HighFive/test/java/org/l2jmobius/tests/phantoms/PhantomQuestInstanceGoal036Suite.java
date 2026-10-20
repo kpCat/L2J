@@ -454,6 +454,9 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		_player.setInvul(false); _player.setCurrentHp(_player.getMaxHp());
 		final double hp = _player.getCurrentHp(); final long exp = _player.getExp(), sp = _player.getSp();
 		context.record("career061.returnDefenseInput", "Independent saved preparation-return fixture, not Q401 progress evidence; Fighter19/native owned2499/native skills/full HP before measurement, one real" + pursuer.getId() + " pursuer; no changed quest stage/items/class during measurement; no Monster.setTarget");
+		final long adenaBefore = _player.getAdena();
+		final Item groundInput = overlevel ? null : pursuer.dropItem(_player, 57, 20);
+		if (!overlevel) { PhantomAssertions.assertTrue(groundInput != null && groundInput.isSpawned(), "Declared native ground loot input is unavailable."); context.record("career061.lootInput", "Independent premeasurement native ground20A; actor inventory unchanged; no quest item/reward/kill callback grant; ordinary income not claimed by this guard"); }
 		pursuer.addDamageHate(_player, 0, 100); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player); pursuer.doAttack(_player);
 		try
 		{
@@ -469,11 +472,27 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			}
 			PhantomAssertions.assertTrue(combat.targetObjectId() == pursuer.getObjectId() && combat.phase() != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPhase.RETREATING, "Recovered preparation return still runs from a manageable native pursuer: " + result + "; " + combat);
 			await(() -> pursuer.isDead() && _player.getExp() > exp && _player.getSp() > sp, "Return defense did not finish a real native pursuer.");
+			await(() -> World.getInstance().findObject(groundInput.getObjectId()) == null && _player.getAdena() >= adenaBefore + 20, "Career victory left its eligible native ground loot behind.");
 			PhantomAssertions.assertEquals(root, _goals.load(_profile.profileId()).orElseThrow().goal(), "Return defense replaced its current farm root.");
 			PhantomAssertions.assertTrue(_player.getActiveClass() == 0 && itemCount(1145) == 0, "Preparation defense granted a class or quest mark.");
 			context.record("career061.returnDefenseObserved", "Native pursuer killed, EXP=" + exp + "->" + _player.getExp() + "; SP=" + sp + "->" + _player.getSp() + "; same root=true; no class/mark grant; not full career/ordinary A/B");
 		}
-		finally { pursuer.deleteMe(); restartService(); }
+		finally
+		{
+			pursuer.deleteMe(); restartService();
+			if (groundInput != null)
+			{
+				if (World.getInstance().findObject(groundInput.getObjectId()) == groundInput && groundInput.isSpawned())
+				{
+					groundInput.resetOwnerTimer(); groundInput.decayMe();
+					org.l2jmobius.gameserver.managers.ItemManager.destroyItem(ItemProcessType.DESTROY, groundInput, null, this);
+				}
+				else if (_player.getAdena() >= adenaBefore + 20)
+				{
+					PhantomAssertions.assertTrue(_player.getInventory().destroyItem(ItemProcessType.DESTROY, _player.getInventory().getItemByItemId(57), 20, _player, this) != null, "Exact injected ground loot cleanup failed after owner drain.");
+				}
+			}
+		}
 	}
 
 	private void careerNativeOverlevel061(PhantomTestContext context) throws Exception

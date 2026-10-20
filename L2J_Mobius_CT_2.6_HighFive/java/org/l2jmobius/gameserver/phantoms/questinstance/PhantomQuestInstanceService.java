@@ -644,7 +644,9 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, int npcId, Observation observation, PhantomCancellationToken token, boolean retreat)
 	{
 		final String owner = combatOwner(content);
-		final var request = new PhantomCombatRequest(profileId, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, !retreat, false, COMBAT_TIMEOUT_MILLIS, token);
+		// Career preparation consumes ordinary resources; retain the existing native
+		// victory/pickup pipeline for its owned PvE. Retreat never waits for loot.
+		final var request = new PhantomCombatRequest(profileId, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, !retreat, !retreat && content.kind() == Kind.CLASS_PATH, COMBAT_TIMEOUT_MILLIS, token);
 		final var started = retreat ? _combat.startContentRetreatSession(request, owner) : _combat.startContentSession(request, owner);
 		if ((started.status() == StartStatus.ACCEPTED) || (started.status() == StartStatus.IDEMPOTENT))
 		{
