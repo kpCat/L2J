@@ -1,5 +1,7 @@
 # Phantom Semantic Studio — план реализации
 
+План ниже описывает исходную стартовую версию. После TASK062 исходники поддерживаются в `PhantomSemanticStudio/` общего kpCat/L2J на `feature/phantom-world`; правила и текущие команды — корневой AGENTS.md и README_RU.md. Запрет записи рабочего Semantic Pack сохраняется; запрет размещения исходников Studio внутри общего repository более не действует.
+
 **Цель:** поставляемый стартовый исходный проект и отдельный этап доработки Codex.
 **Архитектура:** read-only reader → immutable snapshot → кандидаты в собственном workspace → review-only ZIP.
 **Стек:** .NET 10 / WinForms / встроенные библиотеки.

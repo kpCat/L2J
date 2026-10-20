@@ -1,12 +1,14 @@
 # Phantom Semantic Studio · 0.1
 
+TASK062: исходники находятся в `PhantomSemanticStudio/` общего kpCat/L2J, основная ветка — `feature/phantom-world`. Происхождение и точный snapshot — [IMPORT_ORIGIN.md](IMPORT_ORIGIN.md); общие правила — [../AGENTS.md](../AGENTS.md). Исторические checkpoint reports ниже сохранены и не являются новой приёмкой TASK062.
+
 Отдельная C# WinForms-программа для расширения **разговорного** Semantic Pack High Five под контролем редактора. Текущий checkpoint PSS-010: [reports/PSS-010-final.md](reports/PSS-010-final.md), [UI evidence](reports/PSS-010-ui.md); Java content evidence прежнего PSS-003: [reports/PSS-003-final.md](reports/PSS-003-final.md).
 
 В исходной поставке сборка C#, Visual Studio Designer, LM Studio и Java runtime не запускались. Этот исторический статус сохранён в BASELINE_VERIFICATION.md. PSS-001 выполняет реальные Windows-проверки; LM, Designer, runtime UI/DPI и Java имеют отдельные статусы в итоговом отчёте. Статические проверки структуры не заменяют компиляцию.
 
-## Где распаковать
-Создайте `C:\Users\ZBook\PhantomSemanticStudio\` и распакуйте содержимое ZIP туда. В этой папке сразу должны лежать `PhantomSemanticStudio.sln`, `src`, `tests`, `scripts`.
-Не распаковывайте программу в `L2J_Mobius` и не заменяйте ею игровой пак.
+## Расположение
+Редактор уже входит в общий repository рядом с `L2J_Mobius_CT_2.6_HighFive/`. Внутри `PhantomSemanticStudio/` находятся solution, src, tests и scripts; отдельный ZIP или вложенный .git не нужен. Старый отдельный repository сохранён как источник происхождения.
+Размещение исходников рядом с сервером не разрешает runtime-запись в сервер: весь L2J защищён, workspace остаётся во внешнем `%LOCALAPPDATA%\PhantomSemanticStudio\workspace`.
 
 ## Открыть и собрать
 Откройте `PhantomSemanticStudio.sln` в Visual Studio 2026 с .NET 10 / .NET desktop development. Startup project: `PhantomSemanticStudio.WinForms`.
@@ -23,7 +25,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-Verify.ps1
 После успешной сборки запускайте F5 или `Start.cmd`. Скрипты ничего не устанавливают в L2J.
 
 ## Первый сценарий
-1. «Настройки»: уже вписан `C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive` и `http://127.0.0.1:1234/v1`.
+1. «Настройки»: source build автоматически предлагает соседний `L2J_Mobius_CT_2.6_HighFive` относительно расположения сборки, независимо от cwd и имени пользователя. Явная сохранённая настройка сохраняет приоритет. Endpoint по умолчанию — `http://127.0.0.1:1234/v1`.
 2. В LM Studio запустите локальный API server и загрузите свою модель. Identifier по умолчанию: `gemma-4-26b-a4b-it-ultra-uncensored-heretic`. При включённой авторизации введите token; он остаётся только в памяти процесса.
 3. «Проверить LM Studio / модель» делает один GET /v1/models. CHECKED_MODEL_LIST означает только наличие точного ID: при JIT список может содержать скачанную, ещё не загруженную модель. Успешная генерация и качество проверяются отдельно. При SERVER_OFFLINE: LM Studio → Developer → API Server → Start, затем проверьте порт и точный API identifier. AUTH — проверьте token вручную; ENDPOINT — локальный путь /v1; MODEL_NOT_LISTED — исправьте ID вручную. TIMEOUT и CANCELLED различаются; BAD_RESPONSE отклоняет всю партию. Повторов и автоматической подмены модели нет.
 4. «Импортировать пак»: читаются имеющиеся humanized v1/v2/v3/custom. Функциональный Semantic Pack не редактируется.
@@ -40,6 +42,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-PSS003-Java.p
 Скрипт требует JDK25/Ant и локальные libs; ничего не загружает. Физический scratch внутри stage получает только build.xml/java/test/java/test/resources и dependency JAR (без GameServer/LoginServer/sources JAR). Запускаются штатный `phantom-humanized-v3-content-validate` и узкий `loadV3(..., true)` bridge с baseline/stage counters/hash/ID assertions и отдельной corrupt-копией. Все build/temp/reports только внутри scratch. Копирование ограничено 4000 файлами/256 MiB, свободный scratch budget минимум 512 MiB. Доказательство сохраняется в `oracle-<id>/java-validation.json`, связано с exact staged hashes; исходный receipt остаётся STAGED_UNVALIDATED, GUI не присваивает Java PASS автоматически.
 
 **PASS_JAVA_STAGED / JAVA_CONTENT_VALIDATED_NOT_SERVER_READY** означает только успешную загрузку именно этой физической копии. При недоступном окружении **BLOCKED_JAVA**, при отказе loader **FAILED_JAVA**. Изменившиеся source/stage требуют нового staging и проверки. Ни один статус не разрешает установку или публикацию на сервер.
+
+Оба Java operator scripts определяют защищённый repository относительно Studio и сохраняют прежние pinned build/copy contracts. Продвинутый TASK061 build отличается от исторического PSS-003 contract: BLOCKED_JAVA нельзя обходить заменой hash или расширением copy allowlist без отдельного аудита. Прямой `ant phantom-humanized-v3-content-validate` в изолированном High Five проверяет текущий исходный пак, но не заменяет проверку конкретного staged XML.
+
+Для безопасной синтетической операторской сцены существующий runner `--pss-008-source <absolute HighFive> <new workspace>` допускает новый каталог с именем `workspace` под внешним LocalAppData/PhantomSemanticStudio/workspace. Пример отдельного task-каталога: `.../workspace/task062-isolated/workspace`. Receipt, stage path и source-check JSON сохраняются только там; реальный workspace пользователя не переиспользовать. Затем передать exact stage path в Test-PSS008-V3-Java.ps1 и учитывать его реальный статус. Это тестовые фиксированные фразы, без LM и без установки.
 
 ## Диалоговое обучение
 

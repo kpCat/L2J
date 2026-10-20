@@ -1,41 +1,27 @@
-Работай только в модуле L2J_Mobius_CT_2.6_HighFive и ветке feature/phantom-world.
+Работай в общем kpCat/L2J на основной ветке feature/phantom-world.
+Не начинай новую кампанию от experiment/m1-candidate007-observe008 или старой codex-ветки.
+master, origin/master, upstream/master и GitHub default branch неприкосновенны.
 
-Phantom World принят в статусе FEATURE_COMPLETE_FOR_DECLARED_SCOPE.
-Goal039 — ACCEPT; Roadmap v5 FINISHED. Goal034, Goal035, Goal036, Goal037 и
-Goal038 — SUCCESS. No automatic Goal040; Resume10/Goal040 не создавать.
+Сначала найди фактический Git root и прочитай корневой AGENTS.md, текущую задачу,
+docs/phantoms/PHANTOM_CURRENT_STATUS.md и релевантные bounded части кода.
 
-Финальный Goal039 required parent:
-f01401d79d5f41aac87cd8425b78a2f00abbf417.
+L2J_Mobius_CT_2.6_HighFive/ — игровой сервер Java25/Ant.
+PhantomSemanticStudio/ — редактор C# WinForms/.NET10, настоящий исходный snapshot
+рядом с сервером, без submodule. Для него действуют собственный AGENTS.md и README_RU.md.
 
-Authoritative artifacts:
-- historical Goal030 matrix: test/resources/phantoms/release/goal030-release-coverage.tsv, 20/20 PASS;
-- final Goal039 matrix: test/resources/phantoms/release/goal039-full-vision-coverage.tsv, 28/28 accepted;
-- final report: docs/phantoms/reports/039-final-full-vision-release-gate.md;
-- freeze: docs/phantoms/PHANTOM_FEATURE_COMPLETE_FREEZE.md;
-- current status: docs/phantoms/PHANTOM_CURRENT_STATUS.md.
+Финальная TASK061: d0993c1933951f020fde5883c7079c437b97cf3c,
+CORE061=PASS, M7=PARTIAL. Канонический отчёт:
+docs/phantoms/reports/PHANTOM-WORLD-CAREER-061.md.
+TASK062 меняет структуру и окружение, не игровое поведение;
+итоги и локальные блокеры описаны в корневом RESULT062.md.
 
-Resume 9 исправил только historical byte-source Goal016 verifier: historical
-accepted/descendant mode читает exact manifest и payload bytes из unique
-completion commit через binary-safe git show; implementation-HEAD working mode
-сохранён. Alternate CRLF hash и EOL normalization не разрешены. Goal039 static
-case 08 защищает этот контракт; static 8/8 и documentation 2/2.
+Живой Semantic Pack — dist/game/data/phantoms/{semantic,conversation}/ в High Five.
+Канонический loader — PhantomHumanizedCatalog.java; новый Semantic Engine не создавать.
+Studio читает источник и работает во внешнем LocalAppData workspace. Proposal,
+approval и Java content-check не дают автоматического разрешения установки.
 
-Финальная evidence chain:
-- один fresh ant verify — PASS, 30m41s;
-- standalone final ant -q jar — PASS;
-- LoginServer final JAR SHA-256 64a3e616b4be6373749fde73d4a91af61d5a8e03a578dfd27521709a087ab67a, 313193 bytes;
-- GameServer final JAR SHA-256 fe1c82b4d2968f502189eb3e783d2486bf25c9201e1e51e1abc8799d83e82986, 8954943 bytes;
-- fresh Goal034 run 20260912-211821-7f37cc56 — PASS: gen1/gen2 5/5/5, два native restart, identity/ecology continuity, cleanup.forced=false, orphans.none=true, working.integrity=true; final JAR hashes unchanged.
-
-Использовалась только guarded test DB
-127.0.0.1:3308/l2jmobiush5_phantom_test с test user. Production DB used: NO.
-prepare-phantom-test-db: NOT RUN.
-
-Accepted scope остаётся bounded: Giran castleId=3; Q102/Q152; Q401
-Fighter→Warrior; Kamaloka 57; Pailaka Q128/template 43. Universal quest solver,
-open-domain LLM и universal multi-castle AI не заявлены. Без geodata navigation
-может работать в documented DEGRADED mode. Shipped system/population/ACTIVE,
-diagnostics и mature conversation остаются OFF/0.
-
-Не начинай следующий goal автоматически. Дальнейшая работа допустима только как
-proven bugfix/regression либо новая явно запрошенная пользователем feature.
+Сохраняй пользовательский dirt. Защищённые release057–061, их БД, MAIN/PLAY,
+клиент, общую MariaDB и старые worktrees не запускать и не менять.
+Java/C# команды и безопасный DB-free сценарий указаны в корневом AGENTS.md.
+Не выдавай статические проверки за GUI, Designer или работающий игровой сервер.
+Не начинай следующий Goal автоматически: scope и разрешения задаёт текущий task.

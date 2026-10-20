@@ -1,5 +1,7 @@
 # Phantom Semantic Studio — стартовая версия 0.1
 
+Текущее размещение после TASK062: `PhantomSemanticStudio/` в общем kpCat/L2J на feature/phantom-world. Это самостоятельное WinForms-приложение рядом с High Five; исходный Git root защищён от runtime-записи. Source build использует соседний High Five, пользовательский workspace остаётся вне repository в LocalAppData. Действующие команды и ограничения — README_RU.md и корневой AGENTS.md; исторические baseline reports не переписываются.
+
 ## Цель
 Отдельное WinForms-приложение для контролируемого обогащения разговорного Semantic Pack High Five при помощи локальной Gemma. Пользователь работает с кандидатами и объяснениями, модель не пишет и не исполняет код.
 
@@ -16,7 +18,7 @@
 Отдельная вкладка: приблизительный предпросмотр по локальному каталогу → замечание пользователя → новые кандидаты. Это не эмуляция Java-сервера и не обучение весов Gemma.
 
 ## Технологии
-.NET 10, WinForms, System.Text.Json, System.Xml.Linq, HttpClient. Без сторонних NuGet-пакетов. В стартовой версии workspace хранится в атомарно заменяемых JSON-файлах, а не SQLite: меньше зависимостей для первого запуска. Замена хранилища возможна позже через WorkspaceStore.
+.NET10, C#14, WinForms, System.Text.Json, System.Xml.Linq, HttpClient. Текущий проект уже использует Microsoft.Data.Sqlite10.0.12 для корпуса; TASK062 зависимости не меняет. Основной session workspace сохраняется через существующий WorkspaceStore в атомарно заменяемых JSON-файлах; приватные корпуса и SQLite-файлы не входят в Git.
 
 ## Проверки
 C# консольный test runner без test-framework зависимостей: нормализация, дубли, строгий JSON, XML/XXE, path traversal, reparse points, журнал одобрения, source drift, экспорт, отмена и ошибочные ответы HTTP. Статическая проверка архива/Designer не заменяет компиляцию и открытие Visual Studio Designer.

@@ -1,3 +1,19 @@
+# Phantom World — High Five и Semantic Studio
+
+Основная ветка разработки — **feature/phantom-world**. `master` хранит исходный Mobius и не изменяется. Начиная с TASK062 рабочее дерево содержит одну хронику и исходники редактора:
+
+- `L2J_Mobius_CT_2.6_HighFive/` — игровой сервер Java25/Ant и канонический Semantic Engine.
+- `PhantomSemanticStudio/` — редактор C# WinForms/.NET10; см. [происхождение](PhantomSemanticStudio/IMPORT_ORIGIN.md).
+- `Account_Manager/` — общий PHP-инструмент аккаунтов; `.idea/` — настройки IDE.
+
+Перед разработкой прочитайте [AGENTS.md](AGENTS.md). Команды Java/C# и безопасного DB-free content-check находятся там; запуск редактора — в [README Studio](PhantomSemanticStudio/README_RU.md). Результаты консолидации и локальные ограничения — [RESULT062](RESULT062.md).
+
+Studio читает соседний High Five, сохраняет работу во внешнем LocalAppData workspace и не устанавливает предложения в рабочий Semantic Pack автоматически. Java-сервер не зависит от процесса Studio или модели. Для сборок используйте отдельный исходный checkout; защищённые поставки и их БД не затрагивайте.
+
+Ниже сохранены исходное описание Mobius, лицензирование и сведения об upstream. Описание нескольких хроник относится к исходному Mobius и его истории; в текущей рабочей ветке оставлен High Five.
+
+---
+
 # L2jMobius - An Open-Source Server Emulator
 
 ## Features

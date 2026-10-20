@@ -1,5 +1,7 @@
 # Phantom World: текущий статус
 
+20.10.2026: основной baseline новых задач — `feature/phantom-world`, включающий финальную TASK061 `d0993c1933951f020fde5883c7079c437b97cf3c`. Итог TASK061 — **CORE061=PASS, М7=PARTIAL**, без объявления полного М1/G4/G6; точная приёмка — [RESULT061](reports/PHANTOM-WORLD-CAREER-061.md). TASK062 консолидирует структуру High Five + `PhantomSemanticStudio/`, не добавляя игровых возможностей. Правила работы и проверки — корневой `AGENTS.md`, результаты — корневой `RESULT062.md`. Experiment не является рабочей веткой по умолчанию. Срезы ниже сохранены как история и не заменяют текущий RESULT061.
+
 16.10.2026 TASK058: **М2 SERVER_VERIFIED для объявленного native scope**, личная клиентская приёмка QA_PENDING; ordinary current JAR smoke и sameDB restart прошли. Разрешён следующий М3; текущая матрица и сохранённые ограничения — в [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md). М1/G4/G6 этой проверкой не закрываются.
 
 Актуальная поправка владельца от 16.10.2026: М1 остаётся OPEN и принят как база разработки с отложенными G4/G6/полной личной приёмкой; М2–М7 разрешены утверждённым [AUTHORITY058](tasks/PHANTOM-M2-M7-CAMPAIGN-058/AUTHORITY.md). Точные статусы и границы — в [RELEASE_CONTRACT](RELEASE_CONTRACT.md), текущая кампания — в [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md). Сохранённый ниже срез сентября не является приёмкой игровых milestones М2–М7.
