@@ -264,7 +264,9 @@ public final class PhantomRiftReadinessService
 
 	private static DimensionEvidence dimension(ReadinessDimension dimension, boolean ready, String reason, String evidence)
 	{
-		return new DimensionEvidence(dimension, ready, ready ? reason + ".ready" : reason + ".not_ready", evidence);
+		// Live paperdoll/role evidence can exceed the public model's512-character bound.
+		// Hash the complete value rather than truncating facts or increasing that bound.
+		return new DimensionEvidence(dimension, ready, ready ? reason + ".ready" : reason + ".not_ready", evidence.length() <= 512 ? evidence : "sha256:" + PhantomPartyModel.sha256(evidence));
 	}
 
 	private static MemberSnapshot potential(MemberSnapshot member)

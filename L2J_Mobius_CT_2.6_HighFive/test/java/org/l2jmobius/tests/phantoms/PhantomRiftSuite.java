@@ -110,6 +110,7 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 			{
 				registry.add("solo-minimum-mixed-full", this::rosterSizes);
 				registry.add("stale-and-duplicate-evidence", this::rosterNegative);
+				registry.add("full-equipment-evidence-remains-bounded064", this::fullEquipmentEvidence064);
 			}
 			case ROLE_COMPOSITION ->
 			{
@@ -424,6 +425,23 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 		}
 		context.record("rift.restartReconciliations", 10000);
 		context.record("rift.refusalCooldownChecks", 10000);
+	}
+
+	private void fullEquipmentEvidence064(PhantomTestContext context) throws Exception
+	{
+		final Fixture fixture = fixture(context);
+		final MemberFacts tank = member(1, "combat.tank");
+		final List<EquipmentFact> equipment = new ArrayList<>();
+		for (int slot = 0; slot < 12; slot++) { equipment.add(new EquipmentFact(268480000 + slot, 2400 + slot, slot, "armor-heavy", "D")); }
+		assertTrue(equipment.toString().length() > 512, "Regression input must reproduce the live equipment evidence overflow.");
+		fixture.backend.roster(new MemberFacts(tank.member(), tank.level(), equipment, tank.requestedItemCounts(), tank.shotSupplies(), tank.activeWeaponItemId(), tank.soulshotsPerHit(), tank.spiritshotsPerHit(), 3, tank.evidenceHash()), member(2, "combat.heal"), member(3, "combat.melee_damage"));
+		final var first = fixture.readiness.evaluate(1, 1);
+		assertEquals(Status.READY_TO_ENTER, first.status(), "Legal full equipment must not crash or weaken readiness.");
+		assertTrue(first.members().stream().flatMap(value -> value.dimensions().stream()).allMatch(value -> value.evidence().length() <= 512), "Readiness exceeded its existing evidence bound.");
+		final var previous = fixture.backend.facts.get(tank.member().ref());
+		equipment.set(11, new EquipmentFact(268480999, 2499, 11, "armor-heavy", "D"));
+		fixture.backend.facts.put(tank.member().ref(), new MemberFacts(previous.member(), previous.level(), equipment, previous.requestedItemCounts(), previous.shotSupplies(), previous.activeWeaponItemId(), previous.soulshotsPerHit(), previous.spiritshotsPerHit(), previous.canonicalPartySize(), previous.evidenceHash()));
+		assertFalse(first.evidenceHash().equals(fixture.readiness.evaluate(1, 1).evidenceHash()), "Bounded evidence lost equipment changes beyond the previous limit.");
 	}
 
 	private static Fixture fixture(PhantomTestContext context) throws Exception
