@@ -545,6 +545,8 @@ public class GameServer
 	
 	public static void main(String[] args) throws Exception
 	{
+		org.l2jmobius.commons.util.LocalRuntimeShutdown.validateLaunch("GameServer");
 		new GameServer();
+		org.l2jmobius.commons.util.LocalRuntimeShutdown.start("GameServer", () -> Shutdown.getInstance().startShutdown(null, 0, false));
 	}
 }

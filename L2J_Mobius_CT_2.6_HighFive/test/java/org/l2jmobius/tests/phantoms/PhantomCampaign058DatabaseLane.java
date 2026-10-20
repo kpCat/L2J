@@ -23,6 +23,18 @@ public final class PhantomCampaign058DatabaseLane
 
 	static void validateIdentity(Path module, Path config, Path manifest, Path runtime, Properties owner, Properties settings)
 	{
+		if ("TASK064_CAMPAIGN".equals(owner.getProperty("owner")) || "l2jmobiush5_phantom_test_064".equals(owner.getProperty("database")))
+		{
+			final Path currentModule = Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
+			final Path lane064 = currentModule.resolve(".phantom-local/task064");
+			if (!currentModule.equals(module) || !lane064.resolve("test/Database.test.ini").equals(config) || !lane064.resolve("test/owned.properties").equals(manifest) || !lane064.resolve("runtime/game").equals(runtime)
+				|| !"TASK064_CAMPAIGN".equals(owner.getProperty("owner")) || !"MUTABLE_FIXTURE".equals(owner.getProperty("role")) || !"l2jmobiush5_phantom_test_064".equals(owner.getProperty("database"))
+				|| !settings.getProperty("URL", "").matches("jdbc:(mysql|mariadb)://127\\.0\\.0\\.1:3308/l2jmobiush5_phantom_test_064\\?useSSL=false(?:&allowPublicKeyRetrieval=true)?(?:&serverTimezone=UTC)?(?:&characterEncoding=UTF-8)?") || !"4".equals(settings.getProperty("MaximumDatabaseConnections")))
+			{
+				throw new IllegalArgumentException("Exact TASK064 fixture root/schema/owner/config and bounded pool required.");
+			}
+			return;
+		}
 		final Path lane = MODULE.resolve(".phantom-local/contract058t");
 		if (!MODULE.equals(module) || !lane.resolve("test/Database.test.ini").equals(config) || !lane.resolve("test/owned.properties").equals(manifest) || !lane.resolve("runtime/game").equals(runtime))
 		{
@@ -41,8 +53,12 @@ public final class PhantomCampaign058DatabaseLane
 
 	public static boolean enabled()
 	{
-		return System.getProperty("phantom.contract058.manifest") != null;
+		return task064Enabled() || System.getProperty("phantom.contract058.manifest") != null;
 	}
+
+	static boolean task064Enabled() { return System.getProperty("phantom.task064.manifest") != null; }
+	static String databaseName() { return task064Enabled() ? "l2jmobiush5_phantom_test_064" : DATABASE; }
+	private static Path manifestPath() { return Path.of(System.getProperty(task064Enabled() ? "phantom.task064.manifest" : "phantom.contract058.manifest")); }
 
 	private static Properties read(Path path) throws Exception
 	{
@@ -57,10 +73,11 @@ public final class PhantomCampaign058DatabaseLane
 	private static Properties validateFiles(Path module, Path config, Path manifest) throws Exception
 	{
 		final Properties settings = read(config);
+		if (task064Enabled() && !"TASK064_CAMPAIGN".equals(read(manifest).getProperty("owner"))) { throw new IllegalArgumentException("TASK064 cannot inherit a historical fixture owner."); }
 		validateIdentity(module.toRealPath(), config.toRealPath(), manifest.toRealPath(), Path.of("").toRealPath(), read(manifest), settings);
 		for (String property : System.getProperties().stringPropertyNames())
 		{
-			if (property.startsWith("phantom.") && property.endsWith(".manifest") && !property.equals("phantom.contract058.manifest"))
+			if (property.startsWith("phantom.") && property.endsWith(".manifest") && !property.equals(task064Enabled() ? "phantom.task064.manifest" : "phantom.contract058.manifest"))
 			{
 				throw new IllegalArgumentException("A second owned lane cannot accompany TASK058.");
 			}
@@ -70,13 +87,13 @@ public final class PhantomCampaign058DatabaseLane
 
 	public static void initialize(Path module, Path config) throws Exception
 	{
-		final Path manifest = Path.of(System.getProperty("phantom.contract058.manifest"));
+		final Path manifest = manifestPath();
 		validateFiles(module, config, manifest);
 		PhantomAssertions.assertEquals(PhantomTestSchemaManifest.current(module).aggregateSha256(), read(manifest).getProperty("schemaAggregateSha256"), "TASK058 bootstrap source schema differs.");
 		DatabaseFactory.initFromConfig(config.toString());
 		try (var connection = DatabaseFactory.getConnection())
 		{
-			PhantomAssertions.assertEquals(DATABASE, connection.getCatalog(), "TASK058 connected catalog differs.");
+			PhantomAssertions.assertEquals(databaseName(), connection.getCatalog(), "Owned fixture connected catalog differs.");
 		}
 	}
 
@@ -87,10 +104,10 @@ public final class PhantomCampaign058DatabaseLane
 		{
 			throw new IllegalArgumentException("An initialized exact058t fixture is required.");
 		}
-		validateFiles(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config")), Path.of(System.getProperty("phantom.contract058.manifest")));
+		validateFiles(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config")), manifestPath());
 		try (var connection = DatabaseFactory.getConnection())
 		{
-			PhantomAssertions.assertEquals(DATABASE, connection.getCatalog(), "Additional058 fixture connected catalog differs.");
+			PhantomAssertions.assertEquals(databaseName(), connection.getCatalog(), "Additional owned fixture connected catalog differs.");
 		}
 	}
 

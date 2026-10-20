@@ -1,0 +1,19 @@
+TASK064 — запуск в новом диалоге Codex
+
+Репозиторий: D:\Codex\repos\L2J-phantom-world
+Ветка: feature/phantom-world
+Baseline на момент создания: fe2a24d389ed4af622cb14bc15a615b4b69e28f1
+
+Этот ZIP распаковывается В КОРЕНЬ НОВОГО АКТУАЛЬНОГО РЕПОЗИТОРИЯ:
+D:\Codex\repos\L2J-phantom-world\
+
+В результате должен появиться файл:
+L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-M7-CLOSURE-064\TASK.md
+
+НЕ распаковывать в C:\Users\ZBook\L2J_Mobius (устаревший пользовательский checkout с 1852 изменениями) и НЕ в D:\PhantomWorld\release-кандидаты.
+
+Новый диалог Codex: выбрать repo D:\Codex\repos\L2J-phantom-world и вставить:
+
+Выполни TASK064 из L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-M7-CLOSURE-064/TASK.md. Сначала проверь PACKAGE_SHA256.txt и текущую ветку feature/phantom-world, прочитай все документы пакета. Владелец заранее разрешил весь описанный scope на максимум 12 часов; промежуточного согласования обычного плана/тестов/исправлений/commit/push не требуется. Обязательные ограничения платформы соблюдать. Начни с короткого read-only preflight текущего Java/Ant/MariaDB и существующих GeoData/конфигов из старого C: checkout и защищённых релизов; найденное использовать только в собственной изолированной TASK064-среде, не копировать старый Java/семантику поверх актуального HEAD. Затем автономно выполняй M1–M7 server integration, готовь честную отдельную поставку и normal non-force push в feature/phantom-world. Без дополнительных вопросов, если действие уже явно разрешено.
+
+После распаковки сами документы нового task можно добавить первым exact-path коммитом по правилам scope, не включая локальные GeoData/секреты.

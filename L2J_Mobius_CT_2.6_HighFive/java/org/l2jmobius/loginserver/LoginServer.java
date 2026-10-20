@@ -396,8 +396,10 @@ public class LoginServer
 	 * Application entry point for the login server process.
 	 * @param args The command line arguments.
 	 */
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
+		org.l2jmobius.commons.util.LocalRuntimeShutdown.validateLaunch("LoginServer");
 		_instance = new LoginServer();
+		org.l2jmobius.commons.util.LocalRuntimeShutdown.start("LoginServer", () -> _instance.shutdown(false));
 	}
 }

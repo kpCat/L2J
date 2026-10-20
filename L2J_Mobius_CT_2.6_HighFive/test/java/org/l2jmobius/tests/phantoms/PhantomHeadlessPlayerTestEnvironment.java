@@ -300,7 +300,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		}
 		if (PhantomCampaign058DatabaseLane.enabled())
 		{
-			context.record("headless.database", PhantomCampaign058DatabaseLane.DATABASE);
+			context.record("headless.database", PhantomCampaign058DatabaseLane.databaseName());
 		}
 		context.record("headless.schemaAggregateSha256", ((PhantomCampaign058DatabaseLane.enabled() || PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());

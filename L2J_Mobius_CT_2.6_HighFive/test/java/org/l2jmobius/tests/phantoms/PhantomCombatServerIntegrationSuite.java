@@ -575,7 +575,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertTrue(_acquisition.start(), "Full acquisition integration service did not start.");
 			}
 
-			context.record("combatIntegration.database", System.getProperty("phantom.contract058.manifest") == null ? PhantomTestDatabaseGuard.TARGET_DATABASE : PhantomCampaign058DatabaseLane.DATABASE);
+			context.record("combatIntegration.database", PhantomCampaign058DatabaseLane.enabled() ? PhantomCampaign058DatabaseLane.databaseName() : PhantomTestDatabaseGuard.TARGET_DATABASE);
 			context.record("combatIntegration.profileId", _profile.profileId());
 			context.record("combatIntegration.actorObjectId", _player.getObjectId());
 			context.record("combatIntegration.normalNpcId", _combatPoint.npcId());
@@ -929,6 +929,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static boolean campaign058JarAllowed(Path supplied)
 	{
+		if (PhantomCampaign058DatabaseLane.task064Enabled())
+		{
+			final Path task064 = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().resolve(".phantom-local/task064");
+			return List.of(task064.resolve("build/dist/libs/GameServer.jar"), task064.resolve("build-final/dist/libs/GameServer.jar")).contains(supplied);
+		}
 		if (PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task061/build/dist/libs/GameServer.jar").equals(supplied)) { return true; }
 		if (Path.of("D:/PhantomWorld/World-Career-061-candidate/libs/GameServer.jar").equals(supplied)) { return true; }
 		return List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release059/compiled/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task060/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release060/compiled/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar")).contains(supplied);
