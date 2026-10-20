@@ -701,6 +701,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("061-career-native-town-return-without-class-grant", context -> testNativeReturn061(context, true, true));
 					registry.add("061-native-owned-walk-lifecycle-handoff-preserves-foreign-movement", context -> testNativeReturn061(context, true, false, true));
 					registry.add("061-native-town-learning-producer-retains-owner-and-sp-guards", context -> testAutonomousLearning060(context, true));
+					registry.add("061-learning-producer-rejects-native-weapon-mismatch", context -> testAutonomousLearning060(context, true, true));
 				}
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
@@ -4796,9 +4797,25 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testAutonomousLearning060(PhantomTestContext context, boolean townBase) throws Exception
 	{
+		testAutonomousLearning060(context, townBase, false);
+	}
+
+	private void testAutonomousLearning060(PhantomTestContext context, boolean townBase, boolean loadoutGuard) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final var previousStrike = _player.getKnownSkill(3);
+		final int previousWeapon = _player.getActiveWeaponInstance() == null ? 0 : _player.getActiveWeaponInstance().getObjectId();
+		final long startingSp = loadoutGuard ? 200 : 100;
 		final var goals = new PhantomGoalStateStore(_repository);
-		_player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 20); _player.setSp(100);
+		_player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 20); _player.setSp(startingSp);
+		final var sword = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, null, this);
+		_player.getInventory().equipItem(sword);
+		if (loadoutGuard)
+		{
+			_player.addSkill(SkillData.getInstance().getSkill(3, 3), false);
+			PhantomAssertions.assertFalse(SkillData.getInstance().getSkill(16, 1).checkCondition(_player, _player, false), "Native sword input unexpectedly allows a dagger attack.");
+			context.record("learning061.loadoutInput", "Independent TEST before measurement: Fighter20/Sword68/PowerStrike3/SP200; cheap dagger/bow attacks unavailable, native passive affordable; no ordinary grants/payment");
+		}
 		_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
 		if (townBase)
 		{
@@ -4811,7 +4828,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_combatPoint.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, _combatPoint.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.learning.owner_guards", 1);
 		goals.insert(_profile.profileId(), root);
 		final var allowed = new java.util.concurrent.atomic.AtomicBoolean(false);
-		context.record("career060.ownerGuardInput", "SEPARATE PREMEASUREMENT own060 fixture; class0/20/SP100; one root=" + root + "; no paid effect expected; own learning.intent/goal rows are cleaned only after exact owner drain");
+		context.record("career060.ownerGuardInput", "SEPARATE PREMEASUREMENT own060 fixture; class0/20/Sword68/SP" + startingSp + "; one root=" + root + "; no paid effect expected; own learning.intent/goal rows are cleaned only after exact owner drain");
 		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
 		progression.start();
 		final var navigation = new PhantomNavigationService(new PhantomMetrics());
@@ -4858,11 +4875,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), replacement, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
 			final var outcome = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 			final var intent = journey.automaticIntent(_profile.profileId()).orElseThrow();
+			if (loadoutGuard)
+			{
+				final var selectedSkill = org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.request(intent).orElseThrow();
+				PhantomAssertions.assertTrue(SkillData.getInstance().getSkill(selectedSkill.skillId(), selectedSkill.skillLevel()).checkCondition(_player, _player, false), "Learning producer selected an attack rejected by native equipped-weapon conditions: " + selectedSkill);
+			}
 			context.record("career060.ownerGuardIntent", "outcome=" + outcome + "; intent=" + intent);
 			PhantomAssertions.assertEquals("learning.actor.busy", outcome.reasonKey(), "Selecting a future lesson must preserve the native combat execution guard.");
 			PhantomAssertions.assertFalse(_player.isMoving(), "Combat stance control started trainer travel.");
 			PhantomAssertions.assertEquals(replacement.revision(), intent.constraints().get("owner.revision").longValue(), "A cached offer from an old root revision created a stale learning intent.");
-			PhantomAssertions.assertEquals(100L, _player.getSp(), "Owner guard control spent SP before any trainer effect.");
+			PhantomAssertions.assertEquals(startingSp, _player.getSp(), "Owner guard control spent SP before any trainer effect.");
 			if (Boolean.getBoolean("phantom.test.journeyLifecycle061"))
 			{
 				_player.getAI().clientStopAutoAttack(); _player.abortAttack(); _player.stopMove(null); _player.getAI().setIntention(Intention.IDLE);
@@ -4905,7 +4927,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(PhantomGoalStatus.FAILED, journey.automaticIntent(_profile.profileId()).orElseThrow().status(), "Expired restored intent waited forever for its captured target.");
 			PhantomAssertions.assertEquals("learning.native.deadline", expiredResult.reasonKey(), "Expired intent did not retain its terminal cause.");
 			PhantomAssertions.assertTrue(selector.select(renewedCandidates.snapshot(), currentPlanning).candidate() == null, "Expired intent ignored its durable backoff.");
-			PhantomAssertions.assertEquals(100L, _player.getSp(), "Expired intent charged native SP.");
+			PhantomAssertions.assertEquals(startingSp, _player.getSp(), "Expired intent charged native SP.");
 		}
 		finally
 		{
@@ -4930,6 +4952,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				_repository.deleteComponent(_profile.profileId(), "learning.intent", intentComponent.rowVersion());
 			}
 			goals.delete(_profile.profileId(), current.rowVersion());
+			if (loadoutGuard)
+			{
+				if (previousStrike == null) { _player.removeSkill(3, false); } else { _player.addSkill(previousStrike, false); }
+				PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat() && !_player.isAttackingNow() && !_player.isCastingNow(), 20_000), "Native loadout-only guard did not release its combat stance.");
+			}
+			final var oldWeapon = _player.getInventory().getItemByObjectId(previousWeapon);
+			if (oldWeapon != null) { _player.getInventory().equipItem(oldWeapon); }
 		}
 	}
 

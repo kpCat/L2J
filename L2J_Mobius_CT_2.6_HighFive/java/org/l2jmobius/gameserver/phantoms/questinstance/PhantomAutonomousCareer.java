@@ -296,7 +296,7 @@ final class PhantomAutonomousCareer
 
 	private static long preparation(Player player)
 	{
-		final long skills = player.getAllSkills().stream().filter(skill -> org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supports(skill, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, player.isTransformed())).mapToLong(skill -> skill.getLevel()).sum();
+		final long skills = player.getAllSkills().stream().filter(skill -> org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supports(skill, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, player.isTransformed()) && skill.checkCondition(player, player, false)).mapToLong(skill -> skill.getLevel()).sum();
 		return ((long) Math.min(127, player.getLevel()) << 56) | (Math.min(0xffffffL, Math.max(0, Math.round(player.getPAtk(null) * 10))) << 32)
 			| (Math.min(0xffffL, Math.max(0, Math.round(player.getPDef(null) * 10))) << 16) | (Math.min(2047, skills) << 5)
 			| Math.min(31, org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend.ownedHealingStock(player));

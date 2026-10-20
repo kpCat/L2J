@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.function.LongPredicate;
 
+import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
@@ -105,7 +106,8 @@ final class PhantomAutonomousLearning
 			if (_defer.test(profileId, root)) { return Optional.empty(); }
 			// The shared field admission also owns legitimate native preparation bases.
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
-			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getSp();
+			final var weapon = player.getActiveWeaponInstance();
+			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getSp() + ':' + (weapon == null ? 0 : weapon.getObjectId()) + ':' + player.getInventory().getWearedMask();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
 			cached.facts = facts;
 			cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds());
@@ -125,6 +127,11 @@ final class PhantomAutonomousLearning
 	{
 		final int cost = learn.getCalculatedLevelUpSp(player.getPlayerClass(), player.getLearningClass());
 		if (!learn.isLearnedByNpc() || cost <= 0 || cost > player.getSp() - _policy.minimumSpReserve() || usefulness(learn) <= 0 || learn.getPreReqSkills().stream().anyMatch(required -> player.getSkillLevel(required.getSkillId()) < required.getSkillLevel())) { return false; }
+		// Reuse the native readiness probe's actor context. Do not spend SP on an action
+		// whose native conditions already reject the current loadout; target-specific or
+		// temporary conditions can be reconsidered by the existing bounded proposal cache.
+		final var skill = SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel());
+		if (skill == null || skill.isActive() && !skill.checkCondition(player, player, false)) { return false; }
 		return learn.getRequiredItems().size() <= 1 && learn.getRequiredItems().stream().allMatch(required -> player.getInventory().getAllItemsByItemId(required.getId(), false).stream().anyMatch(item -> item.getOwnerId() == player.getObjectId() && item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY && item.getCount() >= required.getCount()));
 	}
 
