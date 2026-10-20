@@ -425,10 +425,8 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		state._maintenancePending = false;
 		for (var entry : new ArrayList<>(state._supportLeases.entrySet()))
 		{
-			final var actor = entry.getValue().actorSnapshot();
-			if ((actor == null) || (!actor.attacking() && !actor.casting()))
+			if (PhantomPartyTactics.releaseFinishedAction(entry.getValue(), _logicalClock.getAsLong()))
 			{
-				entry.getValue().complete();
 				state._supportLeases.remove(entry.getKey());
 			}
 		}

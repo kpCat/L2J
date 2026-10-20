@@ -172,6 +172,16 @@ public final class PhantomPartyTactics
 		return result.stream().sorted(Comparator.comparing(value -> value.targetMember().stableKey())).limit(limit).toList();
 	}
 
+	/** Retain a pending native approach/cast until completion within the original action deadline. */
+	public static boolean releaseFinishedAction(ExternalActionLease lease, long logicalNowNanos)
+	{
+		if (lease.expired(logicalNowNanos)) { lease.close(); return true; }
+		final var actor = lease.actorSnapshot();
+		if (actor != null && (actor.attacking() || actor.casting() || actor.moving() || "CAST".equals(actor.intention()))) { return false; }
+		lease.complete();
+		return true;
+	}
+
 	public Optional<ExternalActionLease> dispatch(TacticalDirective directive, String operationKey, long deadlineLogicalNanos, PhantomCancellationToken token)
 	{
 		return dispatch(directive, operationKey, deadlineLogicalNanos, token, false);

@@ -91,6 +91,57 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		registry.add("03-real-required-provider-counts-without-control", _ -> realProvider());
 		registry.add("04-stable-phantom-support-reservation-excludes-offense", _ -> supportReservation());
 		registry.add("08-reserved-support-retains-current-heal-and-resurrection", _ -> reservedSupportCoverage());
+		registry.add("10-pending-native-support-cast-retains-owner064", _ ->
+		{
+			for (boolean approaching : new boolean[] {false, true})
+			{
+				final var fixture = new RuntimeFixture(true);
+				try
+				{
+					final var roster = phantoms(1, 2); final var snapshots = snapshots(roster);
+					final var buff = capability("combat.buff", true);
+					snapshots.put(roster.getFirst(), member(roster.getFirst(), false, 100, List.of(buff), List.of()));
+					snapshots.put(roster.get(1), member(roster.get(1), false, 100, List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true)), List.of()));
+					fixture.party.suppliedTarget = roster.get(1).characterObjectId();
+					fixture.party.suppliedCapabilities.put(roster.getFirst(), List.of(buff));
+					final var profile = openProfile(List.of());
+					final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+					final var context = new EngagementContext(AUTHORITY, profile, target, 1000, Long.MAX_VALUE, () -> false);
+					fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+					fixture.lease(1).intention = "CAST"; fixture.lease(1).moving = approaching;
+					fixture.party.effectsHealthy = true;
+					fixture.party.suppliedCapabilities.put(roster.getFirst(), List.of());
+					fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+					PhantomAssertions.assertEquals(0, fixture.lease(2).raidTargetReads, "Pending native CAST/approach lost support ownership before its body finished.");
+					PhantomAssertions.assertEquals(1, fixture.lease(1).supportCasts, "Pending native support was reissued.");
+					fixture.lease(1).intention = "IDLE"; fixture.lease(1).moving = false;
+					fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+					PhantomAssertions.assertTrue(fixture.lease(2).raidTargetReads > 0, "Completed native support did not release offense.");
+				}
+				finally { fixture.stop(); }
+			}
+		});
+		registry.add("11-pending-party-action-expires-and-cancels-exactly-once064", _ ->
+		{
+			for (boolean approaching : new boolean[] {false, true})
+			{
+				final var fixture = new RuntimeFixture(true);
+				try
+				{
+					final var request = new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_SUPPORT, "party064.pending", 10, () -> false);
+					final var lease = fixture.combat.acquireExternalAction(request).lease();
+					PhantomAssertions.assertTrue(lease != null, "Pending support did not acquire its exact actor.");
+					lease.castSupport(new PhantomPartySupportAction("combat.heal", "heal", "SINGLE_TARGET", 1002, new SelectedSkill(1001, 1)));
+					fixture.lease(1).intention = "CAST"; fixture.lease(1).moving = approaching;
+					PhantomAssertions.assertFalse(PhantomPartyTactics.releaseFinishedAction(lease, 9), "Unexpired pending action was released.");
+					PhantomAssertions.assertTrue(PhantomPartyTactics.releaseFinishedAction(lease, 10), "Pending CAST/movement retained its actor after the original deadline.");
+					PhantomAssertions.assertFalse(fixture.combat.hasClaim(1), "Expired support retained an external claim.");
+					PhantomPartyTactics.releaseFinishedAction(lease, 11);
+					PhantomAssertions.assertEquals(1, fixture.lease(1).externalCancels, "Expired owned action cancellation was lost or duplicated.");
+				}
+				finally { fixture.stop(); }
+			}
+		});
 		registry.add("09-precombat-support-completes-before-offense-and-is-bounded", _ ->
 		{
 			for (int phase = 0; phase < 3; phase++)
@@ -484,12 +535,15 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 	{
 		private final long profileId;
 		private int supportCasts;
+		private int externalCancels;
 		private int raidTargetReads;
 		private int monsterTargetReads;
 		private int lastMonsterTarget;
 		private boolean casting;
+		private boolean moving;
+		private String intention = "IDLE";
 		private FakeLease(long profileId) { this.profileId = profileId; }
-		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(1000 + (int) profileId, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, false, 0, "IDLE", 0, 0); }
+		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(1000 + (int) profileId, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, intention, 0, 0); }
 		@Override public TargetSnapshot targetSnapshot(int targetObjectId) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return targetObjectId==8001?new TargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,false,true,100,false,true):null; }
 		@Override public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId) { raidTargetReads++; if (targetObjectId==8001) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return new RaidTargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,true,NpcKind.MONSTER,100,false,true,7001,29020,80,NpcKind.RAID_BOSS); } return new RaidTargetSnapshot(7001, 29020, 0, 100, 100, false, false, true, true, false, true, NpcKind.RAID_BOSS, 100, false, true); }
 		@Override public int raidActorLevel() { return 80; }
@@ -504,6 +558,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		@Override public ActionOutcome castSupport(PhantomPartySupportAction action) { supportCasts++; return ActionOutcome.ISSUED; }
 		@Override public ActionOutcome pickUp(int objectId) { return ActionOutcome.REJECTED; }
 		@Override public void cancelOwnedAction(PhantomOwnedAction action) { }
+		@Override public void cancelExternalAction(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction action) { externalCancels++; }
 		@Override public RespawnOutcome respawnTown() { return RespawnOutcome.REJECTED; }
 		@Override public void close() { }
 	}

@@ -2165,10 +2165,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			return;
 		}
-		final org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot actor = lease.actorSnapshot();
-		if ((actor == null) || (!actor.attacking() && !actor.casting()))
+		if (PhantomPartyTactics.releaseFinishedAction(lease, _clock.getAsLong()))
 		{
-			lease.complete();
 			_tacticalActions.remove(profileId, lease);
 		}
 		else
