@@ -477,6 +477,10 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		}
 		boolean capacityLimited = false;
 		int attackerIndex = 0;
+		if (focus && !attackers.isEmpty() && !attackers.contains(state._focusedAttackerObjectId))
+		{
+			state._focusedAttackerObjectId = attackers.getFirst();
+		}
 		for (MemberSnapshot member : offense)
 		{
 			if (state._mechanicClaims.containsKey(member.ref().profileId()) || attackers.isEmpty() || (!focus && attackerIndex >= attackers.size()))
@@ -488,7 +492,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			{
 				continue;
 			}
-			final int targetObjectId = attackers.get(focus ? 0 : attackerIndex++);
+			final int targetObjectId = focus ? state._focusedAttackerObjectId : attackers.get(attackerIndex++);
 			PhantomRaidCombatRequest minionRequest = focus ? new PhantomRaidCombatRequest(member.ref().profileId(), targetObjectId, 0, engagement.target().instanceId(), engagement.profile().contentKind(), org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER, engagement.attemptAuthorityHash(), mode, true, false, engagement.maximumActorLevel(), COMBAT_TIMEOUT_MILLIS, token, engagement.target().objectId(), engagement.target().npcId()) : null;
 			StartResult started = minionRequest == null ? null : _combat.startRaidSession(minionRequest);
 			if (started == null || started.status() == StartStatus.REJECTED_TARGET)
@@ -751,6 +755,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		private long _supportPreparationStarted;
 		private int _instanceId;
 		private int _mechanicCandleObjectId;
+		private int _focusedAttackerObjectId;
 		private int _interactionRetries;
 		private int _targetObjectId;
 		private int _targetNpcId;

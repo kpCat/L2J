@@ -182,6 +182,32 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 			}
 			finally { fixture.stop(); }
 		});
+		registry.add("14-live-minion-focus-survives-bounded-session-renewal064", _ ->
+		{
+			final var fixture = new RuntimeFixture(false);
+			try
+			{
+				final var roster = phantoms(1, 3); final Map<MemberRef, MemberSnapshot> snapshots = new LinkedHashMap<>();
+				for (var ref : roster) { snapshots.put(ref, new MemberSnapshot(ref, 88, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(capability(ref.profileId() == 1 ? "combat.tank" : PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true)), "B".repeat(64))); }
+				final var profile = openProfile(List.of()); final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+				final var context = new EngagementContext(AUTHORITY, profile, target, 1000, Long.MAX_VALUE, () -> false);
+				final var member = snapshots.get(roster.get(1)); final var other = snapshots.get(roster.get(2));
+				snapshots.put(member.ref(), new MemberSnapshot(member.ref(), 88, 0, 0, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(8001), member.capabilities(), "B".repeat(64)));
+				snapshots.put(other.ref(), new MemberSnapshot(other.ref(), 88, 0, 0, 0, 0, 60, 100, 100, false, false, false, false, 0, List.of(8002), other.capabilities(), "B".repeat(64)));
+				fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+				PhantomAssertions.assertEquals(8001, fixture.combat.find(2).orElseThrow().targetObjectId(), "Initial shared minion focus differs.");
+				fixture.clock.set(java.util.concurrent.TimeUnit.SECONDS.toNanos(61)); fixture.dispatcher.runNext();
+				snapshots.put(member.ref(), new MemberSnapshot(member.ref(), 88, 0, 0, 0, 0, 60, 100, 100, false, false, false, false, 0, List.of(8001), member.capabilities(), "B".repeat(64)));
+				snapshots.put(other.ref(), new MemberSnapshot(other.ref(), 88, 0, 0, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(8002), other.capabilities(), "B".repeat(64)));
+				fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+				PhantomAssertions.assertEquals(8001, fixture.combat.find(2).orElseThrow().targetObjectId(), "A bounded Combat timeout abandoned the same still-live attacker after threat priority changed.");
+				fixture.clock.addAndGet(java.util.concurrent.TimeUnit.SECONDS.toNanos(61)); fixture.dispatcher.runNext();
+				snapshots.put(member.ref(), new MemberSnapshot(member.ref(), 88, 0, 0, 0, 0, 60, 100, 100, false, false, false, false, 0, List.of(), member.capabilities(), "B".repeat(64)));
+				fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+				PhantomAssertions.assertEquals(8002, fixture.combat.find(2).orElseThrow().targetObjectId(), "A stale threat retained focus after leaving the current live attacker set.");
+			}
+			finally { fixture.stop(); }
+		});
 		registry.add("09-precombat-support-completes-before-offense-and-is-bounded", _ ->
 		{
 			for (int phase = 0; phase < 3; phase++)
@@ -589,7 +615,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		private FakeLease(long profileId) { this.profileId = profileId; }
 		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(1000 + (int) profileId, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, intention, 0, 0); }
 		@Override public TargetSnapshot targetSnapshot(int targetObjectId) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return targetObjectId==8001?new TargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,false,true,100,false,true):null; }
-		@Override public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId) { raidTargetReads++; if (targetObjectId==8001) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return new RaidTargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,true,NpcKind.MONSTER,100,false,true,7001,29020,80,NpcKind.RAID_BOSS); } return new RaidTargetSnapshot(7001, 29020, 0, 100, 100, false, false, true, true, false, true, NpcKind.RAID_BOSS, 100, false, true); }
+		@Override public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId) { raidTargetReads++; if (targetObjectId==8001 || targetObjectId==8002) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return new RaidTargetSnapshot(targetObjectId,20001,0,100,100,false,false,true,true,false,true,NpcKind.MONSTER,100,false,true,7001,29020,80,NpcKind.RAID_BOSS); } return new RaidTargetSnapshot(7001, 29020, 0, 100, 100, false, false, true, true, false, true, NpcKind.RAID_BOSS, 100, false, true); }
 		@Override public int raidActorLevel() { return 80; }
 		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
 		@Override public List<ThreatObservation> observedAttackers(int limit) { return List.of(); }
