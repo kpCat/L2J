@@ -33,7 +33,7 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_catalog = _fixture.start(context);
-		context.record("progressionParity.cases", 32);
+		context.record("progressionParity.cases", 33);
 		context.record("progressionParity.hash", _catalog.combinedHash());
 		context.record("progressionParity.classGraphHash", _catalog.hashes().classGraphHash());
 		context.record("progressionParity.skillLearningHash", _catalog.hashes().skillLearningHash());
@@ -92,6 +92,20 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 		registry.add("30-capability-hash-width", _ -> PhantomAssertions.assertEquals(64, _catalog.hashes().capabilityRulesHash().length(), "Capability hash is not SHA-256."));
 		registry.add("31-service-loader-build", _ -> PhantomAssertions.assertEquals(1L, _fixture.service().snapshot().metrics().catalogBuilds(), "Service did not publish one loader snapshot."));
 		registry.add("32-no-loader-workers", _ -> PhantomAssertions.assertEquals(0, _fixture.service().snapshot().currentOperations(), "Loader build created an operation."));
+		registry.add("33-learned-magic-defense-support", _ -> assertMagicDefenseSupport());
+	}
+
+	private void assertMagicDefenseSupport()
+	{
+		for (int skillId : Set.of(1036, 1189))
+		{
+			final int level = skillId == 1036 ? 2 : 3;
+			final var rules = _catalog.capabilities(98).stream().filter(rule -> rule.capabilityKey().equals("combat.buff") && rule.actionSkill().skillId() == skillId).toList();
+			PhantomAssertions.assertEquals(1, rules.size(), "Learned Hierophant magic defense is unavailable to the existing support owner: " + skillId);
+			final var rule = rules.getFirst();
+			PhantomAssertions.assertTrue(rule.actionSkill().skillLevel() == level && rule.targetScope() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.TargetScope.PARTY
+				&& _catalog.classSkillLearns(98).stream().anyMatch(learn -> learn.skillId() == skillId && learn.skillLevel() == level && learn.minimumCharacterLevel() <= 79), "Magic-defense rule lacks the native inherited level79 class-tree fact.");
+		}
 	}
 
 	private void assertClassIdentities()

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Mode,
       [Parameter(Mandatory)][long]$Seed,[Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Label,
-      [string[]]$Features=@(),[ValidateSet('timers','producer','native-phase')][string]$NativeFocus,
+      [string[]]$Features=@(),[ValidateSet('timers','producer','native-phase','travel')][string]$NativeFocus,
       [ValidateSet(0,10,25,44,53)][int]$LivingClass,
       [ValidateSet('build','build-final')][string]$Build='build',[switch]$ValidateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
