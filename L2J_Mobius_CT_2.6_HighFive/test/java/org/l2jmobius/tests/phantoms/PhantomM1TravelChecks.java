@@ -32,14 +32,19 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 /** Focused checks over the caller's existing guarded native travel fixture. */
 public final class PhantomM1TravelChecks
 {
+	public enum Check { DEADLINE, TRANSIENT, PROTOCOL, SHUTDOWN }
+
 	private PhantomM1TravelChecks() { }
 
-	public static void run(PhantomTestContext context, long profileId, PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel route, PhantomGoal goal, PhantomHistoricalBackgroundPlanner planner, PhantomRelevanceSignalPort signals) throws Exception
+	public static void run(PhantomTestContext context, long profileId, PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel route, PhantomGoal goal, PhantomHistoricalBackgroundPlanner planner, PhantomRelevanceSignalPort signals, Check check) throws Exception
 	{
-		deadlineBudget(context, profileId, profiles, materialization, background, route, goal, planner, signals);
-		transientBudget(context, profileId, profiles, materialization, background, route, goal, planner, signals);
-		protocolAndShutdown(context, profileId, profiles, materialization, background, route, goal, planner, signals, false);
-		protocolAndShutdown(context, profileId, profiles, materialization, background, route, goal, planner, signals, true);
+		switch (check)
+		{
+			case DEADLINE -> deadlineBudget(context, profileId, profiles, materialization, background, route, goal, planner, signals);
+			case TRANSIENT -> transientBudget(context, profileId, profiles, materialization, background, route, goal, planner, signals);
+			case PROTOCOL -> protocolAndShutdown(context, profileId, profiles, materialization, background, route, goal, planner, signals, false);
+			case SHUTDOWN -> protocolAndShutdown(context, profileId, profiles, materialization, background, route, goal, planner, signals, true);
+		}
 	}
 
 	/** The caller reuses its native fixture factory at a factual GK source, before catch-up. */

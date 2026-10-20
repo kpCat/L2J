@@ -4405,8 +4405,19 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void testVisibleNativeTravel(PhantomTestContext context) throws Exception
 	{
+		// Each historical owner binds once to its own Background lifetime.
+		if (_mode == Mode.NATIVE_LIFECYCLE)
+		{
+			for (var check : PhantomM1TravelChecks.Check.values()) { testVisibleNativeTravel(context, check, false); }
+		}
+		testVisibleNativeTravel(context, null, false);
+		testVisibleNativeTravel(context, null, true);
+	}
+
+	private void testVisibleNativeTravel(PhantomTestContext context, PhantomM1TravelChecks.Check check, boolean continuation) throws Exception
+	{
 		final var topology = _production.topology();
-		if (_mode == Mode.NATIVE_LIFECYCLE) { PhantomM1GeometryChecks.measure(context, topology); }
+		if ((_mode == Mode.NATIVE_LIFECYCLE) && (check == null) && !continuation) { PhantomM1GeometryChecks.measure(context, topology); }
 		final var routeQuery = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
 		final var authority = new L2jPhantomBackgroundAuthority(_production::knowledge, _production::topology, _production::progression, _production::commerce, routeQuery);
 		final var edge = topology.snapshot().edges().stream().filter(value -> value.backgroundEligible() && (value.fromAnchorId() != null) && (value.toAnchorId() != null)).filter(value ->
@@ -4454,7 +4465,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(L2jPhantomBackgroundAuthority.livePositionAllowed(topology, action.player(), arrival), "INVALID_INPUT: travel fixture already lies inside the lawful destination farm.");
 				context.record("m1.travel.preparedEdge", "existing edge=" + edge.id() + "; source=" + departure.id() + "; destination=" + arrival.id() + "; nativeDirect=true; sourceOutsideFarm=true; unchanged attempt and async deadlines");
 			}
-			if (_mode == Mode.NATIVE_LIFECYCLE) { PhantomM1TravelChecks.run(context, profile.profileId(), _repository, materialization, background, routeQuery, goal, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), noSignals()); }
+			context.record("m1.travel.lifetime." + (check == null ? continuation ? "continuation" : "terminal" : check.name()), "profile=" + profile.profileId() + "; object=" + objectId + "; fresh Background and materialization; one historical binding per lifetime");
+			if (check != null)
+			{
+				PhantomM1TravelChecks.run(context, profile.profileId(), _repository, materialization, background, routeQuery, goal, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), noSignals(), check);
+				return;
+			}
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 			{
 				final Player phantom = action.player();
@@ -4483,6 +4499,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 		PhantomAssertions.assertTrue(navigation.start(), "Visible travel navigation did not start.");
 		final List<String> closeoutDefects = new ArrayList<>();
+		if (!continuation)
+		{
 		final var stuckClock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
 		final var stuckNavigation = new PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(), worker -> { worker.run(); return true; }, stuckClock::get, new PhantomMetrics());
 		stuckNavigation.start();
@@ -4531,6 +4549,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			finally { try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { action.player().setCastingNow(false); } busyTravel.beforeMaterialize(profile.profileId(), objectId); }
 		}
 		finally { stuckTravel.beforeMaterialize(profile.profileId(), objectId); stuckNavigation.beginStop(); stuckNavigation.finishStop(); }
+		}
 			final var travelHold = new java.util.concurrent.atomic.AtomicBoolean();
 			final var failureSignals = new PhantomRelevanceSignalPort()
 			{
@@ -4741,6 +4760,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 			context.record("m1.closeoutTravelDefects", closeoutDefects);
 			PhantomAssertions.assertEquals(List.of(), closeoutDefects, "Closeout native travel contracts failed.");
+			if (!continuation) { return; }
 			final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority);
 			PhantomAssertions.assertFalse(planner.remainsSuitable(state, goal), "Fixture must have a persisted target outgrown by its live Player.");
 			final var generation = planner.generation();
