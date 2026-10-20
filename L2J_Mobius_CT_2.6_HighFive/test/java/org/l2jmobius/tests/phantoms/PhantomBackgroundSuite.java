@@ -6265,7 +6265,17 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 			for (int tick = 1; tick <= ticks; tick++)
 			{
-				final var result = runtime.background().farm(runtime.profileId(), runtime.goal(), 1, tick, PhantomActivityState.BACKGROUND, tick);
+				final var before = runtime.transaction().load(runtime.profileId()).state();
+				var result = runtime.background().farm(runtime.profileId(), runtime.goal(), 1, tick, PhantomActivityState.BACKGROUND, tick);
+				if ((result.status() == OperationStatus.RETRY) && result.reason().equals("farm.inventory_projection_refreshed"))
+				{
+					final var refreshed = runtime.transaction().load(runtime.profileId()).state();
+					PhantomAssertions.assertEquals(before.progress(), refreshed.progress(), "Inventory projection granted progress before its farm tick.");
+					PhantomAssertions.assertEquals(before.vitals(), refreshed.vitals(), "Inventory projection changed native vitals.");
+					PhantomAssertions.assertEquals(before.position(), refreshed.position(), "Inventory projection moved the stored Player.");
+					PhantomAssertions.assertEquals(before.clock(), refreshed.clock(), "Inventory projection consumed productive farm time.");
+					result = runtime.background().farm(runtime.profileId(), runtime.goal(), 1, tick, PhantomActivityState.BACKGROUND, tick);
+				}
 				PhantomAssertions.assertTrue(result.successful(), "Background tick failed: " + tick + " " + result.reason());
 			}
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Final promotion failed.");
