@@ -34,7 +34,7 @@ $flags064=@{
     KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';RiftLifecycle='riftLifecycle064';PailakaOnly='pailakaOnly064';LearningJourney='learningJourney059';
     CareerProducer='careerProducer061';AutoProfessions061='autoProfessions061';
     AutonomousLearning='autonomousLearning060';AutonomousLearningGuards='autonomousLearningGuards060';JourneyLifecycle061='journeyLifecycle061';LearningLong061='learningLong061';
-    Living='living060';LivingMage='livingMage060';LivingDwarf='livingDwarf060';LivingSupply='livingSupply060';LivingRelocate='livingRelocate060';
+    Living='living060';LivingMage='livingMage060';LivingDwarf='livingDwarf060';LivingSupply='livingSupply060';LivingRelocate='livingRelocate060';LivingRouteProbe='livingRouteProbe064';LivingGatekeeper='livingGatekeeper060';
     SupplyGuards='supplyGuards060';LoadoutGuards061='loadoutGuards061';LowFunds061='lowFunds061';
     Commands='commands059';Authority='commandAuthority059';BusyHold='busyHold059';SocialContexts='socialContexts059';CardinalBuff='cardinalBuff059';SupportKinds='supportKinds059';SupportRequests='supportRequests059'
 }

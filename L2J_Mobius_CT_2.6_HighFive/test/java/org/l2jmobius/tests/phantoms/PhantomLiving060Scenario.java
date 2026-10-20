@@ -404,6 +404,10 @@ final class PhantomLiving060Scenario
 		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
 		final var rejected = new ArrayList<String>();
 		final var stages = new java.util.TreeMap<String, Integer>();
+		final boolean routeProbe064 = Boolean.getBoolean("phantom.test.livingRouteProbe064");
+		final int maximumNativeBuffer064 = routeProbe064 ? java.util.Arrays.stream(org.l2jmobius.gameserver.config.GeoEngineConfig.PATHFIND_BUFFERS.split(";")).mapToInt(value -> Integer.parseInt(value.split("x")[0])).max().orElseThrow() : 0;
+		int routeProbes064 = 0;
+		if (routeProbe064) { context.record("life064.routeBoundary." + setup.getActiveClass(), "Read-only trace of unchanged local TEST preflight:32 anchor candidates, nearest compatible NPC and one112 approach per point. Production learning separately permits3 trainer alternatives and up to17 approaches. No GK attempt or global unreachability claim; same query/time/route budgets."); }
 		for (var candidate : anchors)
 		{
 			if (!geo.hasGeo(candidate.point().x(), candidate.point().y())) { continue; }
@@ -450,6 +454,11 @@ final class PhantomLiving060Scenario
 				final var outbound = backend.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(id, from, to, now, now + TimeUnit.SECONDS.toNanos(2), 50_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), policy, System::nanoTime);
 				final long backNow = System.nanoTime();
 				final var inbound = backend.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(id, to, from, backNow, backNow + TimeUnit.SECONDS.toNanos(2), 50_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), policy, System::nanoTime);
+				if (routeProbe064)
+				{
+					final int requiredBuffer064 = 64 + 2 * Math.max(Math.abs(GeoEngine.getGeoX(from.x()) - GeoEngine.getGeoX(to.x())), Math.abs(GeoEngine.getGeoY(from.y()) - GeoEngine.getGeoY(to.y())));
+					context.record("life064.routeProbe." + setup.getActiveClass() + '.' + (++routeProbes064), "anchor=" + local.spec().anchorId() + "; from=" + from + "; trainer=" + trainer.npcId() + "; to=" + to + "; learningClass=" + setup.getLearningClass().getId() + "; canTeach=" + NpcData.getInstance().getTemplate(trainer.npcId()).canTeach(setup.getLearningClass()) + "; primaryNativeBuffer=" + requiredBuffer064 + '/' + maximumNativeBuffer064 + "; directForward=" + backend.canMoveDirect(from, to) + "; directBack=" + backend.canMoveDirect(to, from) + "; outbound=" + outbound.status() + ":nodes=" + outbound.nodes() + ":edges=" + outbound.edges() + ":queries=" + outbound.queries() + ":labels=" + outbound.labels() + "; inbound=" + inbound.status() + ":nodes=" + inbound.nodes() + ":edges=" + inbound.edges() + ":queries=" + inbound.queries() + ":labels=" + inbound.labels());
+				}
 				if (outbound.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND || inbound.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND)
 				{
 					if (rejected.size() < 8) { rejected.add(local.spec().anchorId() + ':' + outbound.status() + '/' + inbound.status()); } continue;

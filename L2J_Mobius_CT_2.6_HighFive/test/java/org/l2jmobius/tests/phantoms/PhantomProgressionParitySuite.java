@@ -33,7 +33,7 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_catalog = _fixture.start(context);
-		context.record("progressionParity.cases", 33);
+		context.record("progressionParity.cases", 36);
 		context.record("progressionParity.hash", _catalog.combinedHash());
 		context.record("progressionParity.classGraphHash", _catalog.hashes().classGraphHash());
 		context.record("progressionParity.skillLearningHash", _catalog.hashes().skillLearningHash());
@@ -93,6 +93,72 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 		registry.add("31-service-loader-build", _ -> PhantomAssertions.assertEquals(1L, _fixture.service().snapshot().metrics().catalogBuilds(), "Service did not publish one loader snapshot."));
 		registry.add("32-no-loader-workers", _ -> PhantomAssertions.assertEquals(0, _fixture.service().snapshot().currentOperations(), "Loader build created an operation."));
 		registry.add("33-learned-magic-defense-support", _ -> assertMagicDefenseSupport());
+		registry.add("34-all-native-class-learning-records", this::assertLearningRecords);
+		registry.add("35-all-native-career-race-sex-index-contracts", this::assertCareerEdges);
+		registry.add("36-npc-learnable-class-trainer-templates", this::assertTrainerTemplates);
+	}
+
+	private void assertLearningRecords(PhantomTestContext context)
+	{
+		long checked = 0;
+		for (PlayerClass playerClass : PlayerClass.values())
+		{
+			final var facts = _catalog.classSkillLearns(playerClass.getId()).stream().collect(java.util.stream.Collectors.toMap(fact -> fact.skillId() + ":" + fact.skillLevel(), java.util.function.Function.identity()));
+			for (var learn : SkillTreeData.getInstance().getCompleteClassSkillTree(playerClass).values())
+			{
+				final String identity = playerClass.getId() + "/" + learn.getSkillId() + ':' + learn.getSkillLevel();
+				final var fact = facts.get(learn.getSkillId() + ":" + learn.getSkillLevel());
+				PhantomAssertions.assertTrue(fact != null && fact.minimumCharacterLevel() == learn.getGetLevel() && fact.baseSpCost() == learn.getLevelUpSp()
+					&& fact.learnedByNpc() == learn.isLearnedByNpc() && fact.learnedByForgottenScroll() == learn.isLearnedByFS(), "Native CLASS learning identity/cost/conditions differ: " + identity);
+				final var items = learn.getRequiredItems().stream().map(item -> new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.RequiredItem(item.getId(), item.getCount())).collect(java.util.stream.Collectors.toSet());
+				final var prerequisites = learn.getPreReqSkills().stream().map(skill -> new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef(skill.getSkillId(), skill.getSkillLevel())).collect(java.util.stream.Collectors.toSet());
+				PhantomAssertions.assertEquals(items, Set.copyOf(fact.requiredItems()), "Native required items differ: " + identity);
+				PhantomAssertions.assertEquals(prerequisites, Set.copyOf(fact.prerequisiteSkills()), "Native prerequisite skills differ: " + identity);
+				checked++;
+			}
+		}
+		context.record("progressionParity.exhaustiveLearningRecords", checked);
+	}
+
+	private void assertCareerEdges(PhantomTestContext context)
+	{
+		long checked = 0;
+		for (PlayerClass from : PlayerClass.values())
+		{
+			PhantomAssertions.assertEquals(from.getRace().name(), _catalog.classFact(from.getId()).race(), "Native class race differs: " + from);
+			for (PlayerClass target : PlayerClass.values())
+			{
+				for (boolean female : new boolean[] {false, true})
+				{
+					final int root = female ? PlayerClass.FEMALE_SOLDIER.getId() : PlayerClass.MALE_SOLDIER.getId();
+					final boolean nativeEdge = from.getNextClasses().contains(target) && target.getParent() == from && from.getRace() == target.getRace();
+					final boolean sexCompatible = from.getRace() != org.l2jmobius.gameserver.model.actor.enums.creature.Race.KAMAEL || from.getRootClass().getId() == root && target.getRootClass().getId() == root;
+					final boolean expected = nativeEdge && sexCompatible && target != PlayerClass.INSPECTOR;
+					PhantomAssertions.assertEquals(expected, org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(from.getId(), target.getId(), female, 0), "Native career branch/race/sex differs: " + from + '/' + target + "/female=" + female);
+					PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.legalEdge(from.getId(), target.getId(), female, 1), "Main-career transfer accepted a subclass index.");
+					checked++;
+				}
+			}
+		}
+		context.record("progressionParity.exhaustiveCareerPairs", checked);
+	}
+
+	private void assertTrainerTemplates(PhantomTestContext context)
+	{
+		final var trainers = org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplates(template -> "Trainer".equals(template.getType()));
+		final var missing = new java.util.ArrayList<Integer>();
+		int classes = 0;
+		for (PlayerClass playerClass : PlayerClass.values())
+		{
+			if (_catalog.classSkillLearns(playerClass.getId()).stream().noneMatch(fact -> fact.learnedByNpc())) { continue; }
+			classes++;
+			final var compatible = trainers.stream().filter(template -> template.canTeach(playerClass)).map(template -> template.getId()).sorted().toList();
+			context.record("progressionParity.trainerTemplates." + playerClass.getId(), compatible);
+			if (compatible.isEmpty()) { missing.add(playerClass.getId()); }
+		}
+		context.record("progressionParity.npcLearnableClasses", classes);
+		context.record("progressionParity.trainerBoundary", "Native templates/canTeach only; runtime spawn, interaction and route require separate bounded native evidence.");
+		PhantomAssertions.assertEquals(java.util.List.of(), missing, "NPC-learnable classes lack a compatible native Trainer template.");
 	}
 
 	private void assertMagicDefenseSupport()
