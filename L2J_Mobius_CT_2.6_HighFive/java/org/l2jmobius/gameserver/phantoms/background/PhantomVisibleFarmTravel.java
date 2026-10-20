@@ -70,13 +70,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		_routeExclusions = Objects.requireNonNull(exclusions);
 	}
 
-	boolean permitsCurrentAnchorReturn(String anchorId, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint live, Player player)
+	boolean permitsPlannedFarmTravel(PhantomGoal goal, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint live, Player player)
 	{
-		final var anchor = _travel.topology().findAnchor(anchorId).orElse(null);
+		final var anchor = _travel.topology().findAnchor(PhantomBackgroundGoalSpec.parse(goal).anchorId()).orElse(null);
 		if (anchor == null || anchor.point().instanceId() != live.instanceId()) { return false; }
 		if (Math.hypot((long) live.x()-anchor.point().x(),(long) live.y()-anchor.point().y()) <= _navigation.policy().maximumLocalStraightDistance()) { return true; }
 		if (player == null || !PhantomNativeTravelActions.ordinary(player)) { return false; }
-		// Admission is only a proposal. The existing worker must prove the full physical itinerary.
+		// The stored position is the departure, not the assigned destination. Admission is
+		// only a proposal: the existing worker must prove the full physical itinerary/arrival.
 		return _travel.legs().stream().anyMatch(leg -> Math.hypot((long)leg.sourceX()-live.x(),(long)leg.sourceY()-live.y()) <= _navigation.policy().maximumLocalStraightDistance()
 			&& Math.hypot((long)leg.destinationX()-anchor.point().x(),(long)leg.destinationY()-anchor.point().y()) <= _navigation.policy().maximumLocalStraightDistance()
 			&& PhantomNormalGatekeeperTravel.fee(leg,player.getClassIndex(),player.getLevel(),java.time.Instant.now().toEpochMilli()/60000) <= player.getAdena());

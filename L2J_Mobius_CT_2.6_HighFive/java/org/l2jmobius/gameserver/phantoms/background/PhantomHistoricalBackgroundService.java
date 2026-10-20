@@ -1263,10 +1263,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())))
 			{
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
-				// An existing off-anchor native return keeps its current eligible goal until factual arrival.
+				// A lawful assigned farm may differ from the last committed departure anchor.
+				// Keep that goal for the existing native travel owner; never claim arrival here.
 				if (local ? _planner.remainsVisibleSuitable(projected, stored.goal(), live)
-					: (_visibleTravel != null) && _visibleTravel.permitsCurrentAnchorReturn(baseline.position().committedAnchorId(), live, player)
-						&& baseline.position().committedAnchorId().equals(PhantomBackgroundGoalSpec.parse(stored.goal()).anchorId()) && _planner.remainsSuitable(projected, stored.goal())) { return true; }
+					: (_visibleTravel != null) && _planner.remainsSuitable(projected, stored.goal())
+						&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)) { return true; }
 			}
 			if (_acceptedIntent.test(profileId, stored.goal())) { return false; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
