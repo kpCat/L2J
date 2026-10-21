@@ -12,3 +12,6 @@ dist/game/data/phantoms/conversation/high-five-ru-conversation-v3.xml text eol=l
 dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml text eol=lf
 dist/game/data/phantoms/semantic/high-five-ru-semantic-v3.xml text eol=lf
 dist/game/data/phantoms/semantic/high-five-ru-corpus-v3.tsv text eol=lf
+# Owner-supplied TASK065 hashes describe exact bytes, including line endings.
+docs/phantoms/tasks/PHANTOM-LIVING-PRESENCE-065/* -text
+docs/phantoms/PHANTOM_WORLD_ROADMAP_REVISED_2026-10-21.md -text
