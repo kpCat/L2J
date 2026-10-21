@@ -4963,7 +4963,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var preparedTarget = monster;
 				damageListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(monster, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) -> { if (event.getTarget() == preparedTarget && event.getAttacker() == nativeActor.get() && event.getDamage() > 0) { nativeDamage.add(event.getDamage()); } }, this);
 				monster.addListener(damageListener);
-				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(targetPoint.x(), targetPoint.y(), targetPoint.z()); monster.setSpawn(spawn); monster.spawnMe(targetPoint.x(), targetPoint.y(), targetPoint.z());
+				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(targetPoint.x(), targetPoint.y(), targetPoint.z()); monster.setSpawn(spawn); monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(targetPoint.x(), targetPoint.y(), targetPoint.z());
 				final double initialHp = monster.getCurrentHp();
 				PhantomAssertions.assertTrue(initialHp == monster.getMaxHp(), "INVALID_INPUT: continuation target is not a full native template.");
 				final var generation = planner.generation(); final var catchup = new PhantomBackgroundCatchupStore(_repository, goals);
