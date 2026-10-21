@@ -6083,6 +6083,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			context.record("raid059.bardCapabilities", backend.capabilities(MemberRef.phantom(profileIds.get(7), actors.get(7).getObjectId()), _player.getObjectId()).stream().filter(value -> Set.of("combat.buff","combat.dance").contains(value.capabilityKey())).map(value -> value.capabilityKey() + ':' + value.actionSkillId() + ':' + value.actionSkillLevel() + ':' + value.readinessReason()).toList());
 			try
 			{
+				context.record("raid064.assemblyInput", "boss=" + boss.getLocation() + "; nativeFloor=" + geo.getHeight(boss.getX(), boss.getY(), boss.getZ()) + "; preparedStaging=" + _player.getLocation());
 				var assembled = assembly.advance(_profile.profileId(), goalId, 0);
 				final long gatherDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
 				long nextGatherProgress = 0;
@@ -6095,6 +6096,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				}
 				human.getAI().setIntention(Intention.IDLE);
 				context.record("raid059.assembly", assembled.status() + "/" + assembled.reasonKey() + "; native members=" + nativeParty.getMemberCount());
+				context.record("raid064.assemblyResult", "boss=" + boss.getLocation() + "; actor=" + _player.getLocation() + "; nativeRequests=" + java.util.stream.LongStream.rangeClosed(1, 8).mapToObj(navigation::find).flatMap(Optional::stream).toList());
 				PhantomAssertions.assertTrue(assembled.readyReceipt() != null && nativeParty.getMemberCount() == 9, "Full9 native assembly did not produce an exact ready receipt.");
 				final double hpBefore = boss.getCurrentHp(); final long expBefore = roster.stream().mapToLong(Player::getExp).sum();
 				final long tankExpBefore = _player.getExp();
