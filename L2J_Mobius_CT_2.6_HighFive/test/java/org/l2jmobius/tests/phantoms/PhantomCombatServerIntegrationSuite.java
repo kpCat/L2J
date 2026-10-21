@@ -639,6 +639,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.farmEconomy066Maintenance"))
+			{
+				registry.add("066-native-autonomous-sale-bank-return", this::testMaintenanceJourney066);
+				return;
+			}
 			if (Boolean.getBoolean("phantom.test.farmEconomy066Loot"))
 			{
 				registry.add("066-native-ground-pickup-receipt-is-exact", this::testExactPickup066);
@@ -6702,6 +6707,80 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(before, _player.getInventory().getInventoryItemCount(SOULSHOT_ITEM_ID, -1), "Missing shot path fabricated inventory.");
 		PhantomAssertions.assertFalse(_player.isChargedShot(ShotType.SOULSHOTS), "Missing shot path fabricated charge.");
 		destroyInventoryItem(_player.getInventory().getItemByItemId(WEAPON_ITEM_ID));
+	}
+
+	private void testMaintenanceJourney066(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 5); _player.setRunning(); _player.standUp();
+		final var before = new java.util.HashMap<Integer, Long>(); for (var item : _player.getInventory().getItems()) { before.merge(item.getId(), item.getCount(), Long::sum); }
+		final var loaded = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load();
+		org.l2jmobius.gameserver.data.MerchantPriceConfigTable.getInstance().loadInstances(); org.l2jmobius.gameserver.data.MerchantPriceConfigTable.getInstance().updateReferences();
+		final var nativeItems = org.l2jmobius.gameserver.data.xml.ItemData.getInstance();
+		final var facts = _query.snapshot().spawnFactsByNpc().values().stream().flatMap(List::stream).filter(value -> value.pointKind() == SpawnPointKind.EXACT && value.instanceId() == 0 && value.amount() > 0 && GeoEngine.getInstance().hasGeo(value.x(), value.y())).toList();
+		final var merchants = facts.stream().filter(value -> "Merchant".equals(NpcData.getInstance().getTemplate(value.npcId()).getType()) && loaded.catalog().buyOffers().stream().anyMatch(offer -> offer.npcIds().contains(value.npcId()))).sorted(Comparator.comparingInt(value -> value.npcId())).toList();
+		final var banks = facts.stream().filter(value -> "Warehouse".equals(NpcData.getInstance().getTemplate(value.npcId()).getType())).toList();
+		org.l2jmobius.gameserver.model.actor.Npc merchant = null, bank = null; PhantomNavigationPoint field = null;
+		for (var source : merchants)
+		{
+			final var nearby = banks.stream().filter(value -> Math.hypot((long) value.x() - source.x(), (long) value.y() - source.y()) < 1500 && Math.abs(value.z() - source.z()) < 128).min(Comparator.comparingDouble(value -> Math.hypot((long) value.x() - source.x(), (long) value.y() - source.y()))).orElse(null);
+			if (nearby == null) { continue; }
+			for (int[] offset : new int[][] {{500,0},{-500,0},{0,500},{0,-500}})
+			{
+				final int x = source.x() + offset[0], y = source.y() + offset[1], z = GeoEngine.getInstance().getHeight(x, y, source.z());
+				if (!GeoEngine.getInstance().hasGeo(x, y) || !GeoEngine.getInstance().canMoveToTarget(x, y, z, source.x(), source.y(), source.z(), 0) || !GeoEngine.getInstance().canMoveToTarget(source.x(), source.y(), source.z(), nearby.x(), nearby.y(), nearby.z(), 0)) { continue; }
+				merchant = new org.l2jmobius.gameserver.model.actor.instance.Merchant(NpcData.getInstance().getTemplate(source.npcId())); merchant.spawnMe(source.x(), source.y(), source.z());
+				bank = new org.l2jmobius.gameserver.model.actor.instance.Warehouse(NpcData.getInstance().getTemplate(nearby.npcId())); bank.spawnMe(nearby.x(), nearby.y(), nearby.z()); field = new PhantomNavigationPoint(x, y, z, 0); break;
+			}
+			if (field != null) { break; }
+		}
+		PhantomAssertions.assertTrue(field != null, "No factual stock Merchant/Warehouse pair with preflight native Geo corridor.");
+		placeInstanceInput058(_player, field.x(), field.y(), field.z());
+		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
+		final var disposition = org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.getInstance();
+		final var low = disposition.recipeRoles().entrySet().stream().filter(value -> disposition.category(nativeItems.getTemplate(value.getKey())) == org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.SELL_NPC).min(Map.Entry.comparingByKey()).orElseThrow();
+		final var high = disposition.recipeRoles().entrySet().stream().filter(value -> disposition.category(nativeItems.getTemplate(value.getKey())) == org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.MARKET_RESERVE && nativeItems.getTemplate(value.getKey()).isDepositable()).min(Map.Entry.comparingByKey()).orElseThrow();
+		final var sale = _player.getInventory().addItem(ItemProcessType.REWARD, low.getKey(), low.getValue().reserve() + 1, _player, this);
+		final var valuable = _player.getInventory().addItem(ItemProcessType.REWARD, high.getKey(), high.getValue().reserve() + 3, _player, this);
+		final var stock = _player.getWarehouse().addItem(ItemProcessType.REWARD, 1835, 600, _player, this);
+		_player.reduceAdena(ItemProcessType.DESTROY, _player.getAdena(), _player, false); _player.refreshOverloaded();
+		final var goals = new PhantomGoalStateStore(_repository); final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING).findFirst().orElseThrow();
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", "20539"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20539@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture066.maintenance.route", 1); goals.insert(_profile.profileId(), root);
+		final var store = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore(_repository, goals); final var receipts = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(_repository);
+		final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService(loaded, receipts, store, new org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend(_materialization, loaded.catalog(), java.time.Clock.systemUTC()));
+		final var navigation = new PhantomNavigationService(new PhantomMetrics());
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _topology);
+		final var journey = new org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney(store, goals, _materialization, commerce, receipts, navigation, () -> _query, routes, _ -> true, (_, _) -> true, (_, _) -> false, org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")));
+		journey.useInventoryMaintenance(_ -> true); navigation.start(); commerce.start(); journey.start();
+		final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
+		context.record("economy066.journeyInputs", "Stock spawn facts selected before measurement: merchant=" + merchant.getId() + '@' + merchant.getX() + ',' + merchant.getY() + "; bank=" + bank.getId() + '@' + bank.getX() + ',' + bank.getY() + "; field=" + field + "; TEST low/high parts=" + low.getKey() + '/' + high.getKey() + "; bank1835x600; cash0; no client/GM/packets/counter teleport during measurement");
+		try
+		{
+			PhantomAssertions.assertTrue(journey.needsOrOwns(_profile.profileId(), root) && journey.needsOrOwns(_profile.profileId(), root), "Maintenance proposal disappeared between selector and executor.");
+			long sequence = 0; double travelled = 0; final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(150);
+			while (System.nanoTime() < until)
+			{
+				final var planning = new PhantomPlanningContext(_profile.profileId(), root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), ++sequence);
+				final var candidate = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate(); PhantomAssertions.assertTrue(candidate != null, "Maintenance lost owning candidate."); final var plan = candidate.planFactory().create(planning);
+				handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, 1, sequence, System.nanoTime(), 1, () -> false));
+				travelled = Math.max(travelled, _player.calculateDistance3D(field.x(), field.y(), field.z()));
+				if (store.intent(_profile.profileId()).map(value -> value.goal().status() != PhantomGoalStatus.ACTIVE).orElse(false)) { break; } Thread.sleep(100);
+			}
+			final var result = store.intent(_profile.profileId()).orElseThrow().goal(); context.record("economy066.journeyResult", result + "; reason=" + journey.reason(_profile.profileId()) + "; travelled=" + travelled + "; cash=" + _player.getAdena());
+			PhantomAssertions.assertTrue(result.status() == PhantomGoalStatus.COMPLETED && travelled > 250 && _player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() + 1, "Autonomous native maintenance did not return: " + journey.reason(_profile.profileId()));
+			PhantomAssertions.assertEquals(sale.getReferencePrice() / 2L - 30, _player.getAdena(), "Autonomous sale/bank exact money ledger differs.");
+			PhantomAssertions.assertEquals(3L, _player.getWarehouse().getInventoryItemCount(valuable.getId(), -1), "Valuable surplus did not reach native bank.");
+			PhantomAssertions.assertTrue(_player.getInventory().getInventoryItemCount(stock.getId(), -1) > 0 && receipts.find(_profile.profileId()).orElseThrow().receipt().request().kind() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind.WAREHOUSE_WITHDRAW, "Existing bank need was ignored or bought again.");
+			PhantomAssertions.assertEquals(root, goals.load(_profile.profileId()).orElseThrow().goal(), "Housekeeping replaced its useful farm root.");
+		}
+		finally
+		{
+			journey.beginStop(); journey.finishStop(); commerce.beginStop(); commerce.finishStop(); navigation.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(20); }
+			merchant.deleteMe(); bank.deleteMe(); _player.getRefund().deleteMe(); for (var item : List.copyOf(_player.getWarehouse().getItems())) { _player.getWarehouse().destroyItem(ItemProcessType.DESTROY, item, _player, this); }
+			for (var item : List.copyOf(_player.getInventory().getItems())) { if (item.isEquipped()) { _player.getInventory().unEquipItemInSlotAndRecord(item.getLocationSlot()); } before.putIfAbsent(item.getId(), 0L); } restorePickupBaseline066(_player, before);
+			for (String component : List.of("supply.intent", org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE)) { final var value = _repository.findComponent(_profile.profileId(), component).orElse(null); if (value != null) { _repository.deleteComponent(_profile.profileId(), component, value.rowVersion()); } }
+			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
+		}
 	}
 
 	private Item freeGround066(int itemId, long count, int x, int y, int z)

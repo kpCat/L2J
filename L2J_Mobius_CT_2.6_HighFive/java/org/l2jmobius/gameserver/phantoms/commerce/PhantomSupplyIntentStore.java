@@ -87,6 +87,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	}
 	private static boolean supported(PhantomGoal goal)
 	{
+		if (PhantomInventoryMaintenanceIntent.isMaintenance(goal)) { PhantomInventoryMaintenanceIntent.parse(goal); return true; }
 		return goal != null && ((PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(goal.goalType()) && "supplies.autonomous".equals(goal.purposeKey())) || social(goal));
 	}
 

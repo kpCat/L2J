@@ -83,6 +83,15 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private final Set<Long> _active = new HashSet<>();
 	private final L2jNavigationBackend _native = new L2jNavigationBackend();
 	private List<SpawnFact> _merchants = List.of();
+	private List<SpawnFact> _warehouses = List.of();
+	private Map<Integer, Integer> _sellLists = Map.of();
+	private LongPredicate _maintenanceAllowed = _ -> false;
+
+	public void useInventoryMaintenance(LongPredicate allowed)
+	{
+		if (_state != State.NEW) { throw new IllegalStateException("Inventory maintenance must bind before start."); }
+		_maintenanceAllowed = java.util.Objects.requireNonNull(allowed);
+	}
 	private List<ItemTemplate> _healingItems = List.of();
 	private String _knowledgeHash;
 	private volatile State _state = State.NEW;
@@ -200,6 +209,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final var facts = _knowledge.get().snapshot();
 		_merchants = facts.spawnFactsByNpc().entrySet().stream().filter(entry -> { final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && "Merchant".equals(npc.getType()); }).flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.pointKind() == SpawnPointKind.EXACT && spawn.instanceId() == 0 && spawn.amount() > 0).toList();
 		if (_merchants.isEmpty() || _merchants.size() > 4096) { throw new IllegalStateException("Supply requires bounded authoritative Merchant spawns."); }
+		_warehouses = facts.spawnFactsByNpc().entrySet().stream().filter(entry -> { final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && "Warehouse".equals(npc.getType()); }).flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.pointKind() == SpawnPointKind.EXACT && spawn.instanceId() == 0 && spawn.amount() > 0).toList();
+		if (_warehouses.size() > 4096) { throw new IllegalStateException("Warehouse spawn index exceeds the supply owner bound."); }
+		final var lists = new java.util.HashMap<Integer, Integer>();
+		for (var offer : _commerce.catalog().buyOffers()) { for (int npc : offer.npcIds()) { lists.merge(npc, offer.listId(), Math::min); } }
+		_sellLists = Map.copyOf(lists);
 		_healingItems = _commerce.catalog().buyOffers().stream().map(PhantomCommerceCatalog.BuyOffer::itemId).distinct().map(id -> ItemData.getInstance().getTemplate(id)).filter(L2jPhantomSupplyJourney::healingPotion).toList();
 		_equipment = _commerce.catalog().buyOffers().stream().map(PhantomCommerceCatalog.BuyOffer::itemId).distinct().map(id -> ItemData.getInstance().getTemplate(id)).filter(item -> item instanceof org.l2jmobius.gameserver.model.item.Weapon || item instanceof org.l2jmobius.gameserver.model.item.Armor).toList();
 		_knowledgeHash = facts.combinedHash(); _state = State.RUNNING; return true;
@@ -243,33 +257,25 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			}
 			if (_learningOwns.test(profileId, root)) { return Optional.empty(); }
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
+			final var maintenance = maintenanceProposal(profileId, root, player, cached, now);
+			if (maintenance.isPresent()) { return maintenance; }
 			final var equipment = equipmentProposal(profileId, root, player, cached, now);
 			if (equipment.isPresent()) { return equipment; }
 			if (player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return Optional.empty(); }
-			final var ammunition = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
-			final boolean ammunitionNeeded = !ammunition.isEmpty() && ammunition.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < _policy.lowWaterHits();
-			final long healingStock = _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
-			final boolean healingNeeded = player.getLevel() >= 18 && healingStock < 3;
-			final ActionType shotAction = neededShotAction(player, player.getActiveWeaponItem());
-			final int perHit = healingNeeded || ammunitionNeeded ? 1 : shotAction == ActionType.SPIRITSHOT ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount();
-			if (perHit <= 0 || perHit > 100) { return Optional.empty(); }
-			final var compatibleItems = healingNeeded ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammunitionNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == shotAction && compatible(player, item)).toList();
-			final var blessed = !healingNeeded && !ammunitionNeeded && shotAction == ActionType.SPIRITSHOT ? compatibleItems.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
-			var items = blessed.isEmpty() ? compatibleItems : blessed;
-			long stock = items.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
-			if (stock >= (long) perHit * _policy.lowWaterHits()) { return Optional.empty(); }
+			final var need = supplyNeed(player); if (need == null) { return Optional.empty(); }
+			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
 			cached.facts = facts; cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.offer = null;
-			final long targetStock = healingNeeded ? 20 : Math.min(600, (long) perHit * _policy.targetHits());
+			final long targetStock = need.targetStock();
 			var choices = choices(player, items, stock, perHit, targetStock);
-			if (choices.isEmpty() && !blessed.isEmpty())
+			if (choices.isEmpty() && !need.fallback().equals(items))
 			{
-				final long fallbackStock = compatibleItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
+				final long fallbackStock = need.fallbackStock();
 				if (fallbackStock < (long) perHit * _policy.lowWaterHits())
 				{
-					final var fallback = choices(player, compatibleItems, fallbackStock, perHit, targetStock);
-					if (!fallback.isEmpty()) { items = compatibleItems; stock = fallbackStock; choices = fallback; }
+					final var fallback = choices(player, need.fallback(), fallbackStock, perHit, targetStock);
+					if (!fallback.isEmpty()) { items = need.fallback(); stock = fallbackStock; choices = fallback; }
 				}
 			}
 			final var sources = new ArrayList<PhantomDomainRef>();
@@ -296,6 +302,104 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			cached.offer = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("item", Integer.toString(first.itemId)), first.count, 0, "commerce.buy", sources, root.selectedAnchor(), ACTION, 700, 0, player.getAdena() - purchaseReserve(player, ItemData.getInstance().getTemplate(first.itemId)), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), Map.of("source.index", 0L), "supplies.native.low_stock", revision, binding.encode()), now);
 			return Optional.of(cached.offer);
 		}
+	}
+
+	private record SupplyNeed(List<ItemTemplate> preferred, List<ItemTemplate> fallback, long stock, long fallbackStock, int perHit, long targetStock) { }
+	private SupplyNeed supplyNeed(Player player)
+	{
+		final var weapon = player.getActiveWeaponItem();
+		if (weapon == null || player.getActiveWeaponInstance() == null || weapon == player.getFistsWeaponItem()) { return null; }
+		final var ammunition = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
+		final boolean ammoNeeded = !ammunition.isEmpty() && ammunition.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < _policy.lowWaterHits();
+		final boolean healing = player.getLevel() >= 18 && _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
+		final var action = neededShotAction(player, weapon); final int perHit = healing || ammoNeeded ? 1 : action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+		if (perHit <= 0 || perHit > 100) { return null; }
+		final var all = healing ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammoNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == action && compatible(player, item)).toList();
+		final long allStock = all.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
+		// Existing regular amplification is useful stock; optional blessed preference must not duplicate it.
+		if (allStock >= (long) perHit * _policy.lowWaterHits()) { return null; }
+		final var blessed = !healing && !ammoNeeded && action == ActionType.SPIRITSHOT ? all.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
+		final var preferred = blessed.isEmpty() ? all : blessed;
+		return new SupplyNeed(preferred, all, preferred.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum(), allStock, perHit, healing ? 20 : Math.min(600, (long) perHit * _policy.targetHits()));
+	}
+
+	private Set<Integer> maintenanceNeeds(Player player)
+	{
+		final var needs = new HashSet<Integer>();
+		player.getAllSkills().stream().mapToInt(org.l2jmobius.gameserver.model.skill.Skill::getItemConsumeId).filter(id -> id > 0).forEach(needs::add);
+		final var need = supplyNeed(player); if (need != null) { need.fallback().forEach(item -> needs.add(item.getId())); }
+		return Set.copyOf(needs);
+	}
+
+	private Optional<PhantomGoal> maintenanceProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
+	{
+		if (now < cached.nextMaintenanceCheck) { return PhantomSupplyIntentStore.bound(cached.maintenanceOffer, root) && matches(cached.maintenanceOffer, player) && alive(cached.maintenanceOffer, now) ? Optional.of(cached.maintenanceOffer) : Optional.empty(); }
+		cached.maintenanceOffer = null;
+		cached.nextMaintenanceCheck = now + Math.max(30_000, TimeUnit.SECONDS.toMillis(_policy.retrySeconds()));
+		if (!_maintenanceAllowed.test(id) || _equipmentWeaponProtected.test(id, root)) { return Optional.empty(); }
+		final long slots = player.getInventory().getSize() * 100L / Math.max(1, player.getInventoryLimit()), weight = player.getCurrentLoad() * 100L / Math.max(1, player.getMaxLoad());
+		cached.maintenancePressure = cached.maintenancePressure ? slots > 65 || weight > 65 : slots >= 80 || weight >= 80;
+		final var origin = PhantomNativeTravelActions.point(player); final var needs = maintenanceNeeds(player);
+		final var bank = nearestMaintenanceNpc(player, true); final var merchant = nearestMaintenanceNpc(player, false);
+		final var operations = new ArrayList<PhantomInventoryMaintenanceIntent.Operation>();
+		final var need = supplyNeed(player);
+		final var bankNeed = bank == null ? null : player.getWarehouse().getItems().stream().filter(item -> item.getCount() > 0).sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256)
+			.filter(item -> need != null && need.fallback().stream().anyMatch(template -> template.getId() == item.getId()) || org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate()))
+			.filter(item -> player.getInventory().validateCapacity(item.isStackable() && player.getInventory().getItemByItemId(item.getId()) != null ? 0 : 1) && player.getInventory().validateWeight((long) item.getTemplate().getWeight())).findFirst().orElse(null);
+		final boolean housekeeping = cached.maintenancePressure || player.getAdena() < _policy.minimumAdenaReserve() || PhantomNativeTravelActions.safePreparationTown(player);
+		long funds = player.getAdena();
+		if (housekeeping)
+		{
+			final var decisions = new LinkedHashMap<org.l2jmobius.gameserver.model.item.instance.Item, PhantomLootDispositionPolicy.Decision>();
+			player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256).forEach(item -> decisions.put(item, PhantomLootDispositionPolicy.getInstance().evaluate(player, item, needs, false, cached.maintenancePressure)));
+			if (merchant != null && !org.l2jmobius.gameserver.config.custom.MerchantZeroSellPriceConfig.MERCHANT_ZERO_SELL_PRICE)
+			{
+				final var sale = decisions.entrySet().stream().filter(entry -> entry.getValue().disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC).max(Comparator.comparingLong(entry -> Math.multiplyExact(entry.getKey().getReferencePrice() / 2L, entry.getValue().count()))).orElse(null);
+				if (sale != null)
+				{
+					final var item = sale.getKey(); operations.add(new PhantomInventoryMaintenanceIntent.Operation(OperationKind.SELL, merchant.getId(), merchant.getObjectId(), _sellLists.get(merchant.getId()), item.getId(), item.getObjectId(), sale.getValue().count()));
+					funds = Math.addExact(funds, Math.multiplyExact(item.getReferencePrice() / 2L, sale.getValue().count()));
+				}
+			}
+			if (bank != null && funds >= 30)
+			{
+				final var deposit = decisions.entrySet().stream().filter(entry -> entry.getValue().disposition() == PhantomLootDispositionPolicy.Disposition.WAREHOUSE || entry.getValue().disposition() == PhantomLootDispositionPolicy.Disposition.MARKET_RESERVE)
+					.filter(entry -> entry.getKey().isDepositable(true) && player.getWarehouse().validateCapacity(entry.getKey().isStackable() && player.getWarehouse().getItemByItemId(entry.getKey().getId()) != null ? 0 : 1))
+					.max(Comparator.comparingLong(entry -> Math.multiplyExact((long) entry.getKey().getReferencePrice(), entry.getValue().count()))).orElse(null);
+				if (deposit != null) { final var item = deposit.getKey(); operations.add(new PhantomInventoryMaintenanceIntent.Operation(OperationKind.WAREHOUSE_DEPOSIT, bank.getId(), bank.getObjectId(), 0, item.getId(), item.getObjectId(), deposit.getValue().count())); }
+			}
+			if (bankNeed == null && operations.size() < 3)
+			{
+				final var crystal = decisions.entrySet().stream().filter(entry -> entry.getValue().disposition() == PhantomLootDispositionPolicy.Disposition.CRYSTALLIZE).findFirst().orElse(null);
+				if (crystal != null) { final var item = crystal.getKey(); operations.add(new PhantomInventoryMaintenanceIntent.Operation(OperationKind.CRYSTALLIZE, 0, 0, 0, item.getId(), item.getObjectId(), 1)); }
+			}
+		}
+		if (bankNeed != null && operations.size() < 3)
+		{
+			final long wanted = need != null && need.fallback().stream().anyMatch(item -> item.getId() == bankNeed.getId()) ? Math.max(1, need.targetStock() - need.fallbackStock()) : 1;
+			operations.add(new PhantomInventoryMaintenanceIntent.Operation(OperationKind.WAREHOUSE_WITHDRAW, bank.getId(), bank.getObjectId(), 0, bankNeed.getId(), bankNeed.getObjectId(), Math.min(600, Math.min(wanted, bankNeed.getCount()))));
+		}
+		if (operations.isEmpty()) { return Optional.empty(); }
+		final var receipt = _receipts.find(id).orElse(null);
+		if (receipt != null && (!receipt.receipt().state().terminal() || receipt.receipt().state() == PhantomCommerceReceipt.State.INCONSISTENT)) { return Optional.empty(); }
+		long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
+		if (receipt != null && receipt.receipt().goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.receipt().goalRevision(), 1)); }
+		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), origin, 0);
+		cached.maintenanceOffer = PhantomInventoryMaintenanceIntent.create(root, binding, operations, revision, player.getAdena(), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), now, cached.maintenancePressure);
+		return Optional.of(cached.maintenanceOffer);
+	}
+
+	private Npc nearestMaintenanceNpc(Player player, boolean warehouse)
+	{
+		final var origin = PhantomNativeTravelActions.point(player);
+		return (warehouse ? _warehouses : _merchants).stream().filter(spawn -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z()) <= _navigation.policy().maximumRouteDistance()).sorted(Comparator.comparingDouble(spawn -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z()))).limit(16)
+			.map(spawn -> warehouse ? warehouseAt(spawn) : merchantAt(spawn)).filter(java.util.Objects::nonNull).filter(npc -> warehouse || _sellLists.containsKey(npc.getId()))
+			.filter(npc -> { final long out = fee(player, origin, new PhantomNavigationPoint(npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId())); return out >= 0 && out <= player.getAdena(); }).findFirst().orElse(null);
+	}
+	private static Npc warehouseAt(SpawnFact spawn)
+	{
+		final var region = World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z());
+		return region == null ? null : region.getVisibleObjects().stream().filter(object -> object instanceof Npc).map(object -> (Npc) object).filter(npc -> npc.isWarehouse() && npc.getId() == spawn.npcId() && npc.getInstanceId() == 0 && npc.isSpawned() && !npc.isAlikeDead() && Math.hypot((long) npc.getX() - spawn.x(), (long) npc.getY() - spawn.y()) <= 200).findFirst().orElse(null);
 	}
 
 	private Optional<PhantomGoal> equipmentProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
@@ -496,7 +600,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				if (intent == null) { return PhantomStepResult.of(Type.REPLAN, "supplies.no_need"); }
 				save(profileId, context.goal(), cached, intent);
 			}
-			if (!alive(intent, System.currentTimeMillis())) { return terminal(profileId, context.goal(), cached, false, "supplies.deadline"); }
+			if (!alive(intent, System.currentTimeMillis()))
+			{
+				if (PhantomInventoryMaintenanceIntent.isMaintenance(intent) && _receipts.find(profileId).map(value -> !value.receipt().state().terminal() || value.receipt().state() == PhantomCommerceReceipt.State.INCONSISTENT).orElse(false)) { return retry("maintenance.deadline.receipt_requires_resolution"); }
+				return terminal(profileId, context.goal(), cached, false, "supplies.deadline");
+			}
 			try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
 				if (lease != null && matches(intent, lease.player()))
@@ -511,6 +619,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (!_store.intent(profileId).map(value -> value.goal().equals(currentIntent)).orElse(false)) { cleanup(profileId); synchronized (this) { _cache.remove(profileId); } return PhantomStepResult.of(Type.REPLAN, "supplies.intent.changed"); }
 			if (!_pauseFarm.test(profileId, intent.deadlineEpochMillis())) { return retry("supplies.finish_current_target"); }
 			final var binding = Binding.parse(intent);
+			if (PhantomInventoryMaintenanceIntent.isMaintenance(intent)) { return advanceMaintenance(context, cached, intent, binding); }
 			if (PhantomSupplyIntentStore.social(intent)) { return advanceOffline(context, cached, intent, binding); }
 			try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
@@ -575,6 +684,86 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			}
 		}
 		finally { synchronized (this) { _active.remove(profileId); } }
+	}
+
+	private PhantomStepResult advanceMaintenance(PhantomStepContext context, Cached cached, PhantomGoal intent, Binding binding)
+	{
+		final long id = context.profileId(); final var spec = PhantomInventoryMaintenanceIntent.parse(intent);
+		Player actor; PhantomCommerceService.OperationIntent request;
+		try (var lease = _materialization.tryAcquireAction(id).orElse(null))
+		{
+			if (lease == null) { return retry("maintenance.actor.pending"); }
+			actor = lease.player();
+			if (!matches(intent, actor) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return maintenanceReturn(id, context.goal(), cached, "maintenance.actor_or_catalog.changed"); }
+			if (actor.isSitting() && !actor.isInCombat() && !actor.isCastingNow()) { actor.standUp(); return retry("maintenance.stand_pending"); }
+			if (!PhantomNativeTravelActions.ordinary(actor) || actor.hasPendingOwnedStore() || actor.isChangingClass() || actor.isTransformed() || actor.isMounted()) { return retry("maintenance.native.busy"); }
+			if (spec.returning())
+			{
+				if (!spec.failed() && !spec.buyChecked())
+				{
+					final var operations = new ArrayList<>(spec.operations()); final var need = supplyNeed(actor);
+					if (need != null && operations.size() < PhantomInventoryMaintenanceIntent.MAXIMUM_OPERATIONS)
+					{
+						var offers = choices(actor, need.preferred(), need.stock(), need.perHit(), need.targetStock());
+						if (offers.isEmpty() && !need.fallback().equals(need.preferred())) { offers = choices(actor, need.fallback(), need.fallbackStock(), need.perHit(), need.targetStock()); }
+						if (!offers.isEmpty()) { final var offer = offers.getFirst(); operations.add(new PhantomInventoryMaintenanceIntent.Operation(OperationKind.BUY, offer.npcId(), offer.objectId(), offer.listId(), offer.itemId(), 0, offer.count())); }
+					}
+					save(id, context.goal(), cached, PhantomInventoryMaintenanceIntent.advance(intent, new PhantomInventoryMaintenanceIntent.Spec(operations, spec.index(), false, true), actor.getAdena(), "maintenance.supplies.rechecked_after_bank"));
+					cleanup(id); return retry("maintenance.supplies.rechecked_after_bank");
+				}
+				if (returnDestination(binding.field()).map(point -> actor.calculateDistance3D(point.x(), point.y(), point.z()) <= _navigation.arrivalRadius()).orElse(false)) { return terminal(id, context.goal(), cached, !spec.failed(), spec.failed() ? intent.reasonKey() : "maintenance.native.returned_to_farm"); }
+				return travel(id, context, cached, intent, binding, actor, null, true);
+			}
+			final var operation = spec.current(); final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+			final boolean same = receipt != null && receipt.goalId() == intent.goalId() && receipt.goalRevision() == intent.revision();
+			if (same && !operation.matches(receipt.request())) { return retry("maintenance.receipt.identity_changed"); }
+			if (receipt != null && receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT) { return retry("maintenance.receipt.fail_stop"); }
+			if (same && receipt.state() == PhantomCommerceReceipt.State.COMMITTED)
+			{
+				save(id, context.goal(), cached, PhantomInventoryMaintenanceIntent.advance(intent, new PhantomInventoryMaintenanceIntent.Spec(spec.operations(), spec.index() + 1, spec.failed(), spec.buyChecked()), actor.getAdena(), "maintenance.native.operation_confirmed"));
+				cleanup(id); return retry("maintenance.native.operation_confirmed");
+			}
+			if (!same && receipt != null && !receipt.state().terminal()) { return retry("maintenance.preexisting_receipt.pending"); }
+			final var counterObject = operation.npcObjectId() == 0 ? null : World.getInstance().findObject(operation.npcObjectId());
+			final Npc counter = counterObject instanceof Npc npc && npc.getId() == operation.npcId() && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 ? npc : null;
+			if (operation.kind() != OperationKind.CRYSTALLIZE && counter == null) { return maintenanceReturn(id, context.goal(), cached, "maintenance.counter.unavailable"); }
+			if (counter != null && !counter.canInteract(actor)) { return travel(id, context, cached, intent, binding, actor, counter, false); }
+			cleanup(id); if (actor.isMoving()) { return retry("maintenance.counter.movement_pending"); }
+			if (!same)
+			{
+				if (!_maintenanceAllowed.test(id) || _equipmentWeaponProtected.test(id, context.goal())) { return maintenanceReturn(id, context.goal(), cached, "maintenance.owner.protected"); }
+				if (operation.kind() == OperationKind.SELL || operation.kind() == OperationKind.WAREHOUSE_DEPOSIT || operation.kind() == OperationKind.CRYSTALLIZE)
+				{
+					final var item = actor.getInventory().getItemByObjectId(operation.itemObjectId());
+					final var decision = PhantomLootDispositionPolicy.getInstance().evaluate(actor, item, maintenanceNeeds(actor), false, intent.constraints().get("maintenance.pressure") == 1);
+					final boolean allowed = switch (operation.kind()) { case SELL -> decision.disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC; case WAREHOUSE_DEPOSIT -> decision.disposition() == PhantomLootDispositionPolicy.Disposition.WAREHOUSE || decision.disposition() == PhantomLootDispositionPolicy.Disposition.MARKET_RESERVE; case CRYSTALLIZE -> decision.disposition() == PhantomLootDispositionPolicy.Disposition.CRYSTALLIZE; default -> false; };
+					if (!allowed || operation.count() > decision.count()) { return maintenanceReturn(id, context.goal(), cached, "maintenance.item.became_protected"); }
+				}
+			}
+			if (counter != null) { if (actor.getTarget() != counter) { counter.onAction(actor, false); } counter.onAction(actor); }
+			final long returnFee = fee(actor, PhantomNativeTravelActions.point(actor), binding.field());
+			if (returnFee < 0) { return maintenanceReturn(id, context.goal(), cached, "maintenance.return.unproven"); }
+			request = operation.intent(Math.max(0, actor.getAdena() - returnFee));
+		}
+		// Release ACTION before acquiring the existing quiescent checkpoint; never drain one's own work.
+		final long deadline = intent.deadlineEpochMillis(); final var outcome = _commerce.execute(id, intent.goalId(), intent.revision(), request, () -> cancelled(context, binding, actor, deadline));
+		return switch (outcome.status())
+		{
+			case SUCCESS, IDEMPOTENT -> retry("maintenance.native.receipt_committed");
+			case RETRY -> retry("maintenance.commerce." + outcome.reason().name().toLowerCase(java.util.Locale.ROOT));
+			case INCONSISTENT -> retry("maintenance.commerce.inconsistent");
+			case CANCELLED -> PhantomStepResult.of(Type.CANCELLED, "maintenance.cancelled");
+			case REPLAN -> maintenanceReturn(id, context.goal(), cached, "maintenance.commerce." + outcome.reason().name().toLowerCase(java.util.Locale.ROOT));
+		};
+	}
+
+	private PhantomStepResult maintenanceReturn(long id, PhantomGoal root, Cached cached, String reason)
+	{
+		final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+		if (receipt != null && !receipt.state().terminal()) { return retry("maintenance.receipt.pending_requires_resolution"); }
+		cleanup(id); final var spec = PhantomInventoryMaintenanceIntent.parse(cached.goal);
+		save(id, root, cached, PhantomInventoryMaintenanceIntent.advance(cached.goal, new PhantomInventoryMaintenanceIntent.Spec(spec.operations(), spec.operations().size(), true, true), cached.goal.expenseBudget(), reason));
+		return retry(reason);
 	}
 
 	private PhantomStepResult travel(long profileId, PhantomStepContext context, Cached cached, PhantomGoal intent, Binding binding, Player player, WorldObject merchant, boolean returning)
@@ -699,6 +888,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private PhantomStepResult alternative(long profileId, PhantomGoal root, Cached cached, String reason, boolean returning)
 	{
+		if (PhantomInventoryMaintenanceIntent.isMaintenance(cached.goal)) { return returning ? terminal(profileId, root, cached, false, reason) : maintenanceReturn(profileId, root, cached, reason); }
 		cleanup(profileId);
 		if (PhantomSupplyIntentStore.social(cached.goal)) { return terminal(profileId, root, cached, false, reason); }
 		final var intent = cached.goal;
@@ -966,6 +1156,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		private long nextEquipmentCheck;
 		private PhantomGoal equipmentOffer;
 		private long nextCheck;
+		private long nextMaintenanceCheck;
+		private PhantomGoal maintenanceOffer;
+		private boolean maintenancePressure;
 		private Cached(PhantomGoal value, long version) { goal = value; row = version; }
 	}
 	private static final class Trip

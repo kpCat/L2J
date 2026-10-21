@@ -98,6 +98,11 @@ public final class PhantomLootDispositionPolicy
 
 	public Decision evaluate(Player player, Item item, Set<Integer> neededItems, boolean reserved)
 	{
+		return evaluate(player, item, neededItems, reserved, false);
+	}
+
+	public Decision evaluate(Player player, Item item, Set<Integer> neededItems, boolean reserved, boolean inventoryPressure)
+	{
 		if (player == null || item == null || reserved || item.getOwnerId() != player.getObjectId() || item.getItemLocation() != ItemLocation.INVENTORY
 			|| item.isEquipped() || item.getEnchantLevel() > 0 || item.isAugmented() || item.isShadowItem() || item.isTimeLimitedItem()
 			|| item.getElementals() != null && item.getElementals().length > 0 || !item.isAvailable(player, false, true)
@@ -106,9 +111,13 @@ public final class PhantomLootDispositionPolicy
 			|| player.getDwarvenRecipeBook().stream().anyMatch(recipe -> java.util.Arrays.stream(recipe.getRecipes()).anyMatch(part -> part.getItemId() == item.getId()))
 			|| PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate())) { return keep("protected.need_or_replacement"); }
 		final var kind = category(item.getTemplate());
-		if (kind == Disposition.KEEP) { return keep("protected.unknown_or_conservative_category"); }
+		if (kind == Disposition.KEEP)
+		{
+			if (inventoryPressure && item.getTemplate().getItemType() == EtcItemType.MATERIAL && _roles.containsKey(item.getId()) && !_crystals.contains(item.getId()) && !protectedTemplate(item.getTemplate()) && item.isDepositable(true)) { return new Decision(Disposition.WAREHOUSE, Math.min(600, item.getCount()), "native.pressure.known_resources_to_bank"); }
+			return keep("protected.unknown_or_conservative_category");
+		}
 		final var role = _roles.get(item.getId());
-		final long count = Math.min(600, Math.max(0, item.getCount() - (role != null && role.keyPart() ? role.reserve() : 0)));
+		final long count = Math.min(600, Math.max(0, item.getCount() - (!inventoryPressure && role != null && role.keyPart() ? role.reserve() : 0)));
 		if (count <= 0) { return keep("protected.recipe_reserve"); }
 		if (kind == Disposition.SELL_NPC && !item.isStackable() && item.getCount() == 1 && item.getTemplate().getCrystalType().getLevel() > 0)
 		{

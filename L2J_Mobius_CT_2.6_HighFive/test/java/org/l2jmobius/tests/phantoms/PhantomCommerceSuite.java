@@ -312,7 +312,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			player = World.getInstance().getPlayer(_environment.primary().objectId()); if (player.isTeleporting()) { player.onTeleported(); }
 			for (var item : player.getInventory().getItems()) { baseline.merge(item.getId(), item.getCount(), Long::sum); }
 			PhantomAssertions.assertEquals(0, player.getWarehouse().getSize(), "Named066 fixture requires an empty original bank.");
-			player.setPlayerClass(56); player.getStat().setLevel((byte) 20);
+			player.setPlayerClass(56); player.setBaseClass(56); player.getStat().setLevel((byte) 20);
 			player.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(248, 1), true);
 			player.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(239, 1), true);
 			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.compatible(player, player.getFistsWeaponItem()), "Native zero-shot-cost weapon was rejected as an equipment capability.");
@@ -348,10 +348,12 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			context.record("economy066.inputs", "Explicit TEST Artisan56/level20/Crystallize1/Expertise1; D weapon primary/fallback=" + weapons.stream().map(org.l2jmobius.gameserver.model.item.ItemTemplate::getId).toList() + "; selected=" + weaponId + " equipped+surplus+enchanted; C negative=" + cWeapon.getId() + "; low part=" + low.getKey() + " reserve=" + low.getValue().reserve() + " sale=" + saleCount + "; high part=" + high.getKey() + " reserve=" + high.getValue().reserve() + "+3; bank FULL=" + limit + " with native filler, shots3, ore weight negative; Adena0; stock refund/zero-sell unchanged; named fixture counters, not autonomous travel");
 			final var backend = new L2jCommerceBackend(materialization, _production.catalog(), Clock.systemUTC());
 			final var deposit = new OperationIntent(OperationKind.WAREHOUSE_DEPOSIT, warehouse.getId(), warehouse.getObjectId(), 0, valuable.getId(), valuable.getObjectId(), 2, 0, "", 30);
+			engage(player, warehouse);
 			try (var actor = backend.tryAcquire(profile.profileId()).orElseThrow())
 			{
-				PhantomAssertions.assertFalse(actor.quote(deposit).accepted(), "FULL warehouse admitted a new stack.");
-				PhantomAssertions.assertFalse(actor.quote(new OperationIntent(OperationKind.WAREHOUSE_WITHDRAW, warehouse.getId(), warehouse.getObjectId(), 0, oreId, heavy.getObjectId(), heavyCount, 0, "", 0)).accepted(), "Native withdrawal ignored weight.");
+				PhantomAssertions.assertEquals(PhantomCommerceService.Reason.CAPACITY_LIMIT, actor.quote(deposit).reason(), "FULL warehouse admitted a new stack or reached the wrong refusal.");
+				PhantomAssertions.assertTrue(player.getInventory().validateCapacity(1) && !player.getInventory().validateWeight(heavyCount * items.getTemplate(oreId).getWeight()), "Declared native weight-only negative has the wrong capacity/weight input.");
+				PhantomAssertions.assertEquals(PhantomCommerceService.Reason.CAPACITY_LIMIT, actor.quote(new OperationIntent(OperationKind.WAREHOUSE_WITHDRAW, warehouse.getId(), warehouse.getObjectId(), 0, oreId, heavy.getObjectId(), heavyCount, 0, "", 0)).reason(), "Native withdrawal ignored weight or reached the wrong refusal.");
 			}
 			final var goals = new PhantomGoalStateStore(repository); final var receipts = new PhantomCommerceReceiptStore(repository); final long rootId = 6600663102L;
 			final var ledger = new ArrayList<String>(); long revision = 0;
@@ -400,6 +402,12 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 	private void executeMaintenance066(long profileId, long rootId, long revision, OperationIntent intent, PhantomGoalStateStore goals, PhantomCommerceReceiptStore receipts, L2jCommerceBackend backend, List<String> ledger)
 	{
+		if (intent.npcObjectId() > 0)
+		{
+			final var counter = World.getInstance().findObject(intent.npcObjectId());
+			PhantomAssertions.assertTrue(counter instanceof Npc && ((Npc) counter).getId() == intent.npcTemplateId(), "Declared native counter vanished before the fixture command.");
+			engage(World.getInstance().getPlayer(_environment.primary().objectId()), (Npc) counter);
+		}
 		final var root = goal(rootId, revision, "inventory.maintenance", new PhantomDomainRef("fixture.operation", intent.kind().name())); final var old = goals.load(profileId).orElse(null);
 		if (old == null) { goals.insert(profileId, root); } else { goals.replace(profileId, old.rowVersion(), root); }
 		for (int attempt = 0; attempt < 2; attempt++)
@@ -444,6 +452,21 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 	private void registerReceipt(PhantomTestRegistry registry)
 	{
+		registry.add("066-bounded-maintenance-child-survives-codec-and-return", _ ->
+		{
+			final var root = goal(660066, 1, "background.farm", new PhantomDomainRef("npc", "1"));
+			final var binding = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding(1, 2, 0, 0, 3, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 0, 0, 0), 0);
+			final var operation = new org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.Operation(OperationKind.SELL, 4, 5, 6, 7, 8, 600);
+			final var goal = org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.create(root, binding, List.of(operation), 2, 0, 120_000, 1, false);
+			final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
+			final var restored = codec.decode(codec.encode(goal));
+			PhantomAssertions.assertEquals(goal, restored, "Maintenance child changed across the existing durable codec.");
+			PhantomAssertions.assertEquals(operation, org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.parse(restored).current(), "Native item/object/count identity was not retained.");
+			final var returned = org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.advance(restored, new org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.Spec(List.of(operation), 1, false, true), 10, "maintenance.return");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.parse(codec.decode(codec.encode(returned))).returning(), "Completed operation was repeated instead of returning.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.Operation(OperationKind.SELL, 4, 5, 6, 7, 8, 601), "Unbounded native maintenance count admitted.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.Spec(List.of(operation, operation, operation, operation, operation), 0, false, false), "Unbounded maintenance series admitted.");
+		});
 		registry.add("066-maintenance-codec-fee-and-partial-output-contract", _ ->
 		{
 			final var before = new ConservationFacts(100, 20, 5, 0, 0, 0, 0);

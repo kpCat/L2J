@@ -35,7 +35,9 @@ L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/L2jPh
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomCommerceDecision.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomCommerceReceipt.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomCommerceService.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomInventoryMaintenanceIntent.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomLootDispositionPolicy.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomSupplyIntentStore.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java

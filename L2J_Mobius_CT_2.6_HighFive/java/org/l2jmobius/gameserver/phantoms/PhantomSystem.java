@@ -684,6 +684,7 @@ public final class PhantomSystem
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
+				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
 				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, _visibleAutoPlay::yieldAfterCurrentTarget,
 					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
 					profileId -> _populationManager.careerArchetype(profileId).orElse(null),
