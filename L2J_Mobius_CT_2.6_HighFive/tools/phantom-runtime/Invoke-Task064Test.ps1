@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Mode,
       [Parameter(Mandatory)][long]$Seed,[Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Label,
-      [string[]]$Features=@(),[ValidateSet('timers','producer','native-phase','travel','geometry')][string]$NativeFocus,
+      [string[]]$Features=@(),[ValidateSet('timers','producer','native-phase','travel','continuation','geometry')][string]$NativeFocus,
       [ValidateSet(0,10,25,44,53)][int]$LivingClass,
       [ValidateSet('build','build-final')][string]$Build='build',[switch]$ValidateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
@@ -33,6 +33,7 @@ if('RiftDeparturePressure' -in $Features -and ($Mode -cne 'rift-native058' -or '
 if('RiftDepartureNativePull' -in $Features -and ($Mode -cne 'rift-native058' -or 'RiftDeparturePressure' -notin $Features -or 'RiftDeparture' -notin $Features)){throw 'RiftDepartureNativePull requires its separate native stock room pressure control.'}
 if('RaidDefenseGuard' -in $Features -and $Mode -cne 'raid-tactics-native058'){throw 'RaidDefenseGuard requires its separate native raid mode.'}
 if('RaidPreparedFullMana' -in $Features -and ($Mode -cne 'raid-tactics-native058' -or 'RaidFlow' -notin $Features -or @($Features | Where-Object {$_ -in @('RaidStaging','RaidLevelGuard','RaidMinionGuard','RaidTriggerGuard','RaidDefenseGuard')}).Count)){throw 'RaidPreparedFullMana requires the independent full raid scenario without guard flags.'}
+if($NativeFocus -and $Mode -cne 'm1-native-lifecycle'){throw 'Native focus requires the existing M1 lifecycle mode.'}
 if($ValidateOnly){Write-Output "TASK064_TEST_BINDING_PASS commit=$($info064.codeCommit); jar=$hash064; DB_WRITES=0; PROCESS_ACTIONS=0";return}
 $flags064=@{
     PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';PvpTowns='pvpTownPerimeter064';PvpTownOutcome='pvpTownOutcome064';
@@ -49,7 +50,6 @@ $options064=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Ds
 if($Mode -cne 'campaign058-ownership'){$options064+="-Dphantom.task064.manifest=$task064/test/owned.properties"}
 foreach($feature064 in $Features){if(!$flags064.ContainsKey($feature064)){throw 'Unknown exact native feature flag.'};$options064+=('-Dphantom.test.'+$flags064[$feature064]+'=true')}
 if($NativeFocus){
-    if($Mode -cne 'm1-native-lifecycle'){throw 'Native focus requires the existing M1 lifecycle mode.'}
     $options064+=('-Dphantom.m1.native.focus='+$NativeFocus)
 }
 if($PSBoundParameters.ContainsKey('LivingClass')){

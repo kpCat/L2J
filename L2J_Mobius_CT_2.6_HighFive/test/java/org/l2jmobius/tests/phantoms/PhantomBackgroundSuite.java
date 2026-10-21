@@ -265,6 +265,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private PhantomProfileRepository _repository;
 	private ProductionAuthorityFixture _production;
 	private String _retainedSummonCompletion = "";
+	private String _retainedContinuationCleanup064 = "";
 
 	public PhantomBackgroundSuite(Mode mode)
 	{
@@ -298,7 +299,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if (((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))) || (_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
+			if (((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "travel", "continuation", "geometry", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))) || (_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
 			{
 				try
 				{
@@ -327,6 +328,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void afterAll(PhantomTestContext context) throws Exception
 	{
+		PhantomAssertions.assertTrue(_retainedContinuationCleanup064.isEmpty(), "CONTINUATION064_RETAINED_CLEANUP_REFUSED " + _retainedContinuationCleanup064);
 		requireSummonCleanupAdmissible(); PhantomM1NativePhaseChecks.requireNoRetainedCompletion(context);
 		PhantomAssertions.assertFalse(PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired(), "Q14 retained child/snapshot forbids native or canonical cleanup; private journal retained.");
 		if (_production != null)
@@ -482,6 +484,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void registerNativeLifecycle(PhantomTestRegistry registry, String focus)
 	{
+		if (focus.equals("continuation")) { registry.add("T064-native-local-history-continuation", this::testNativeLocalContinuation064); return; }
 		if (focus.equals("dead-mp056")) { registry.add("Q056-native-dead-level-loss-preserves-canonical-MP", this::testNativeDeadMp056); return; }
 		if (focus.equals("all")) { registry.add("Q056-native-dead-level-loss-preserves-canonical-MP", this::testNativeDeadMp056); }
 		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "timers", "producer", "queued", "p06", "p07", "teardown", "round3", "loot", "faults", "closure", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "codec", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
@@ -4916,6 +4919,105 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			if (profile != null) { deleteProfile(profile); }
 			if (playerFixture != null) { playerFixture.close(); }
 		}
+	}
+
+	private void testNativeLocalContinuation064(PhantomTestContext context) throws Exception
+	{
+		final var topology = _production.topology();
+		final var departure = topology.findAnchor("population.farming.elf.20534").orElseThrow();
+		final var arrival = topology.findAnchor("generated.farm.428b85922009e44829ae2db0.anchor").orElseThrow();
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
+		final var authority = new L2jPhantomBackgroundAuthority(_production::knowledge, _production::topology, _production::progression, _production::commerce, routes);
+		final var fixture = openProductionPlayerFixture(departure, 12, PlayerClass.ELVEN_FIGHTER, new ProductionFarmSelection(18342, arrival));
+		try
+		{
+			final var profile = _repository.create(fixture.player().getObjectId()); final long id = profile.profileId();
+			final var oldGoal = goal(18342, arrival.id()); final var goals = new PhantomGoalStateStore(_repository); goals.insert(id, oldGoal);
+			final var transaction = new PhantomBackgroundTransaction(); final var materializationRef = new AtomicReference<PhantomMaterializationService>();
+			final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
+			final var metrics = new PhantomMetrics(); final var lifecycle = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge();
+			final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, _ -> { }, lifecycle, 5_000, 10_000); materializationRef.set(materialization);
+			final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority);
+			final var history = new PhantomHistoricalBackgroundService(_repository, goals, planner, background, materialization);
+			final var navigation = new PhantomNavigationService(metrics); final var engineRef = new AtomicReference<PhantomDecisionEngine>();
+			final var autoPlay = new PhantomVisibleAutoPlay(materialization, engineRef::get, history::permitsNormalOperation);
+			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routes, navigation, history::permitsNormalOperation, noSignals(), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(history), System::nanoTime);
+			lifecycle.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(history, background), org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(autoPlay, travel)));
+			final var candidates = new PhantomCandidateRegistry(); final var handlers = new PhantomStepHandlerRegistry();
+			final var binding = PhantomBackgroundDecision.bindVisibleLife(background, travel, autoPlay, history, engineRef::get); binding.registerCandidates(candidates); binding.registerHandlers(handlers); candidates.seal(); handlers.seal();
+			final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1); engineRef.set(engine);
+			org.l2jmobius.gameserver.model.actor.instance.Monster monster = null;
+			final var nativeActor = new AtomicReference<Player>(); final var nativeDamage = new java.util.concurrent.atomic.DoubleAdder();
+			org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener damageListener = null;
+			try
+			{
+				PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start(), "Continuation services did not start."); engine.start(); engine.attach(id);
+				final var captured = authority.capture(id, fixture.player(), oldGoal, null); fixture.player().storeMe();
+				PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, oldGoal).status(), "Continuation baseline failed.");
+				final var baseline = transaction.load(id).state(); final var arrivalPoint = canonicalAnchorPosition(arrival, 0);
+				final var preflight = planner.replanVisibleLocal(id, baseline, oldGoal, context.seed(), 1, new PhantomTopologyPoint(arrivalPoint.x(), arrivalPoint.y(), arrivalPoint.z(), arrivalPoint.instanceId()), Set.of("18342@" + arrival.id()), Set.of());
+				PhantomAssertions.assertFalse(planner.remainsSuitable(baseline, oldGoal), "INVALID_INPUT: level12 still suits the old level1 target.");
+				PhantomAssertions.assertTrue(preflight.ready(), "INVALID_INPUT: no suitable local continuation before measurement: " + preflight.reasonKey());
+				final var targetAnchor = topology.findAnchor(preflight.spec().anchorId()).orElseThrow(); final var targetPoint = canonicalAnchorPosition(targetAnchor, 0);
+				monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(preflight.spec().npcId()));
+				final var preparedTarget = monster;
+				damageListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(monster, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) -> { if (event.getTarget() == preparedTarget && event.getAttacker() == nativeActor.get() && event.getDamage() > 0) { nativeDamage.add(event.getDamage()); } }, this);
+				monster.addListener(damageListener);
+				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(targetPoint.x(), targetPoint.y(), targetPoint.z()); monster.setSpawn(spawn); monster.spawnMe(targetPoint.x(), targetPoint.y(), targetPoint.z());
+				final double initialHp = monster.getCurrentHp();
+				PhantomAssertions.assertTrue(initialHp == monster.getMaxHp(), "INVALID_INPUT: continuation target is not a full native template.");
+				final var generation = planner.generation(); final var catchup = new PhantomBackgroundCatchupStore(_repository, goals);
+				catchup.claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "v".repeat(64), context.seed(), 0, 1, 1, 0, 1, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), oldGoal.goalId(), oldGoal.revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), ""));
+				fixture.releaseRuntime();
+				context.record("continuation064.input", "PREPARED ELF_FIGHTER12/full native target before measurement; old Gremlin18342; candidate=" + preflight.spec() + "; no level/resources/positions changed after this boundary; owner control, not ordinary autonomy");
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Continuation identity did not materialize.");
+				final Player player; try (var action = materialization.tryAcquireAction(id).orElseThrow()) { player = action.player(); }
+				nativeActor.set(player);
+				final long epoch = materialization.find(id).orElseThrow().materializedAtNanos(); final int startX = player.getX(), startY = player.getY();
+				PhantomAssertions.assertFalse(L2jPhantomBackgroundAuthority.livePositionAllowed(topology, player, arrival), "INVALID_INPUT: continuation starts inside the old farm.");
+				boolean arrived = false; final long arrivalDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(100);
+				while (!arrived && System.nanoTime() < arrivalDeadline) { arrived = travel.arrive(id, oldGoal); if (!arrived) { Thread.sleep(25); } }
+				PhantomAssertions.assertTrue(arrived, "Continuation native arrival failed: " + travel.reason(id) + '/' + navigation.snapshot());
+				PhantomAssertions.assertTrue(Math.hypot((long) player.getX() - startX, (long) player.getY() - startY) >= navigation.policy().minimumProgress(), "Continuation did not physically travel.");
+				PhantomAssertions.assertEquals(arrival.id(), transaction.load(id).state().position().committedAnchorId(), "Continuation did not commit its actual old arrival.");
+				final var actual = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+				final var actualPlan = planner.replanVisibleLocal(id, transaction.load(id).state(), oldGoal, context.seed(), 1, actual, Set.of("18342@" + arrival.id()), Set.of());
+				PhantomAssertions.assertTrue(actualPlan.ready() && actualPlan.spec().equals(preflight.spec()), "Actual arrival differs from the prepared local continuation context.");
+				PhantomAssertions.assertTrue(autoPlay.start(id, oldGoal), "Old continuation policy did not start.");
+				long tick = 0; final long continuationDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(100);
+				while (System.nanoTime() < continuationDeadline)
+				{
+					// Production prepares history outside the decision callback, preserving publication/reload ownership.
+					if (history.prepareVisibleDecision(id, engine)) { engine.accept(new org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem(id, PhantomActivityState.ACTIVE, 1, ++tick, System.nanoTime(), org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel.NORMAL)); }
+					if (goals.load(id).orElseThrow().goal().revision() == oldGoal.revision() + 1 && nativeDamage.sum() > 0 && monster.getCurrentHp() < initialHp) { break; }
+					Thread.sleep(25);
+				}
+				final var renewed = goals.load(id).orElseThrow().goal(); final var persisted = catchup.load(id).orElseThrow().state();
+				final double attributedDamage = nativeDamage.sum();
+				PhantomAssertions.assertEquals(actualPlan.spec(), PhantomBackgroundGoalSpec.parse(renewed), "History published another prepared continuation target.");
+				context.record("continuation064.result", "goal=" + renewed.goalId() + '/' + renewed.revision() + "; catchup=" + persisted.status() + '/' + persisted.goalRevision() + "; targetHP=" + initialHp + "->" + monster.getCurrentHp() + "; attributedDamage=" + attributedDamage + "; nativePlayer=" + player.getObjectId() + "; epoch=" + epoch + "; travel=" + travel.reason(id) + "; engine=" + engine.find(id));
+				PhantomAssertions.assertTrue(renewed.goalId() == oldGoal.goalId() && renewed.revision() == oldGoal.revision() + 1 && persisted.status() == PhantomBackgroundCatchupState.Status.COMPLETE && persisted.goalRevision() == renewed.revision(), "History did not atomically publish the matching continuation revision.");
+				PhantomAssertions.assertTrue(attributedDamage > 0 && monster.getCurrentHp() < initialHp && autoPlay.running(id, renewed), "Normal continuation binding did not perform attributed native work.");
+				try (var action = materialization.tryAcquireAction(id).orElseThrow()) { PhantomAssertions.assertTrue(action.player() == player && player.getLevel() == 12 && player.getNativeWorkOwner().isCurrent() && player.getNativeWorkOwner().epoch() == epoch, "Continuation replaced the Player/epoch or changed its prepared level."); }
+			}
+			finally
+			{
+				_retainedContinuationCleanup064 = "profile=" + id + "; object=" + profile.characterObjectId() + "; awaiting exact native drain";
+				autoPlay.stop(id); engine.beginStop(); engine.finishStop(); if (monster != null) { if (damageListener != null) { monster.removeListener(damageListener); } monster.deleteMe(); }
+				final long cleanupDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
+				navigation.beginStop(); boolean navigationStopped = navigation.finishStop();
+				while (!navigationStopped && System.nanoTime() < cleanupDeadline) { Thread.sleep(25); navigationStopped = navigation.finishStop(); }
+				PhantomAssertions.assertTrue(navigationStopped, "Continuation native navigation did not drain.");
+				var stopped = materialization.requestShutdown(cleanupDeadline);
+				while (stopped.state() == PhantomMaterializationService.ServiceState.STOPPING && System.nanoTime() < cleanupDeadline) { Thread.sleep(100); stopped = materialization.requestShutdown(cleanupDeadline); }
+				PhantomAssertions.assertTrue(stopped.state() == PhantomMaterializationService.ServiceState.STOPPED && stopped.failedProfileIds().isEmpty() && materialization.find(id).isEmpty()
+					&& World.getInstance().getPlayer(profile.characterObjectId()) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(profile.characterObjectId()) == null, "Continuation retained its native Player/store/identity: " + stopped);
+				background.beginStop(); PhantomAssertions.assertTrue(background.finishStop(), "Continuation Background did not stop.");
+				context.record("continuation064.cleanup", "native Store/drain STOPPED; no retained entry/World Player/identity; profile/fixture cleanup admitted");
+				deleteProfile(profile); _retainedContinuationCleanup064 = "";
+			}
+		}
+		finally { if (_retainedContinuationCleanup064.isEmpty()) { fixture.close(); } }
 	}
 
 	private void testProductionPositionTransition(PhantomTestContext context) throws Exception
