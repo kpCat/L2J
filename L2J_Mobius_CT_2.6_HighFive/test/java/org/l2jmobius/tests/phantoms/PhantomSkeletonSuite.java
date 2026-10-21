@@ -218,6 +218,13 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			final var malformed = readConfig("scheduler-malformed.ini", enabledConfig("PhantomSchedulerPulseMillis = +100\n"));
 			PhantomAssertions.assertFalse(malformed.enabled(), "Signed scheduler pulse did not fail closed.");
 		});
+		registry.add("066-burst-admission-allows-active-budget-above-soft-target", _ ->
+		{
+			final var burst = readConfig("burst066.ini", enabledConfig("MaxMaterializedPhantoms=2\nPhantomMaterializationBurstSlots=2\nPhantomPopulationTarget=4\nPhantomPopulationActiveTarget=4\n"));
+			PhantomAssertions.assertTrue(burst.enabled(), "Bounded burst was rejected by the old soft-only ACTIVE budget.");
+			PhantomAssertions.assertEquals(2, burst.maxMaterializedPhantoms(), "Burst overwrote the working soft target.");
+			PhantomAssertions.assertFalse(readConfig("burst066-overflow.ini", enabledConfig("MaxMaterializedPhantoms=9999\nMaxScheduledPhantomProfiles=10000\nPhantomMaterializationBurstSlots=2\n")).enabled(), "Physical ceiling above10000 did not fail closed.");
+		});
 		registry.add("config-party-budget-canonical-boundary", _ ->
 		{
 			final var defaultBudget = readConfig("party-budget-default.ini", enabledConfig(""));

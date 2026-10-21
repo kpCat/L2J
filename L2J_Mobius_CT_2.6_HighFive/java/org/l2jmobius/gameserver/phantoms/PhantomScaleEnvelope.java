@@ -105,7 +105,7 @@ public record PhantomScaleEnvelope(
 		}
 		return new PhantomScaleEnvelope(
 			settings.maxScheduledPhantomProfiles(),
-			settings.maxMaterializedPhantoms(),
+			settings.physicalMaterializationCeiling(),
 			settings.schedulerPulseMillis(),
 			settings.schedulerProfilesPerPulse(),
 			settings.populationTarget(),
@@ -133,7 +133,7 @@ public record PhantomScaleEnvelope(
 		checkMaximum(scheduler.due(), scheduledProfilesCap, Violation.SCHEDULER_DUE_EXCEEDED, violations);
 		checkMaximum(scheduler.scheduledTaskCount(), 1, Violation.SCHEDULER_SHARED_TASK_EXCEEDED, violations);
 
-		checkEqual(materialization.maximumMaterialized(), materializedCap, Violation.MATERIALIZATION_CAPACITY_MISMATCH, violations);
+		checkEqual(materialization.physicalCeiling(), materializedCap, Violation.MATERIALIZATION_CAPACITY_MISMATCH, violations);
 		checkMaximum(materialization.retainedEntries(), materializedCap, Violation.MATERIALIZATION_RETAINED_EXCEEDED, violations);
 		if ((materialization.availablePermits() < 0) || (materialization.availablePermits() > materializedCap))
 		{

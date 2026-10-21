@@ -67,14 +67,18 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 	private PhantomBackgroundSuite.ProductionAuthorityFixture _production;
 	private PhantomProfileRepository _repository;
 	private PhantomHeadlessPlayerFixture _incoming;
+	private final boolean _burst066;
+
+	public PhantomLivingPresence065NativeSuite() { this(false); }
+	public PhantomLivingPresence065NativeSuite(boolean burst066) { _burst066 = burst066; }
 
 	@Override
-	public String id() { return "living-presence-native065"; }
+	public String id() { return _burst066 ? "farm-economy-cap-native066" : "living-presence-native065"; }
 
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(SEED, context.seed(), "TASK065 native seed changed.");
+		PhantomAssertions.assertEquals(_burst066 ? 66006621L : SEED, context.seed(), "Native capacity episode seed changed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_incoming = _environment.createCampaign058Companion(context, 1);
@@ -92,6 +96,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		registry.add("01-native-town-envelope-and-actual-regions", this::testTownEnvelope);
 		registry.add("02-native-hard-hold-then-old-idle-cap-reclamation", this::testCapPressure);
 		registry.add("03-exact-epoch-and-native-work-soft-cleanup-guards", this::testSoftCleanupGuards);
+		if (_burst066) { registry.add("04-burst-loading-and-failed-retained-admissions", this::testBurstAdmission066); }
 	}
 
 	@Override
@@ -106,6 +111,65 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		final var point = _production.topology().findAnchor(id).orElseThrow().point();
 		PhantomAssertions.assertTrue(GeoEngine.getInstance().hasGeo(point.x(), point.y()), "Required native anchor GeoData is absent: " + id);
 		return new PhantomTopologyPoint(point.x(), point.y(), GeoEngine.getInstance().getHeight(point.x(), point.y(), point.z()), point.instanceId());
+	}
+
+	private void testBurstAdmission066(PhantomTestContext context) throws Exception
+	{
+		final var fixtures = List.of(_environment.primary(), _environment.observer(), _incoming);
+		for (var fixture : fixtures) { preparePosition(fixture, anchor("gludin.recovery.anchor")); }
+		final var profiles = fixtures.stream().map(fixture -> _repository.create(fixture.objectId())).toList();
+		final var entered = new CountDownLatch(2); final var release = new CountDownLatch(1); final var finished = new CountDownLatch(2);
+		final var failure = new AtomicReference<Throwable>(); final var failStore = new AtomicBoolean(); final var stores = new AtomicLong();
+		final var results = new java.util.concurrent.CopyOnWriteArrayList<PhantomMaterializationService.ResultStatus>();
+		final var metrics = new PhantomMetrics();
+		final var service = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, 1, point ->
+		{
+			if (point == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailurePoint.AFTER_PLAYER_LOAD)
+			{
+				entered.countDown();
+				try { if (!release.await(10, TimeUnit.SECONDS)) { throw new IllegalStateException("066 declared loading barrier timeout"); } }
+				catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IllegalStateException(interrupted); }
+			}
+			if (point == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailurePoint.BEFORE_STORE_OPERATION && failStore.get()) { throw new IllegalStateException("066 declared native pre-store failure"); }
+			if (point == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailurePoint.AFTER_NATIVE_STORE) { stores.incrementAndGet(); }
+		}, PhantomMaterializationLifecyclePort.none(), 5000, 10000);
+		try
+		{
+			PhantomAssertions.assertTrue(service.start(), "Burst admission service did not start.");
+			for (var profile : profiles.subList(0, 2))
+			{
+				org.l2jmobius.commons.threads.ThreadPool.execute(() ->
+				{
+					try { results.add(service.materialize(profile.profileId()).status()); }
+					catch (Throwable thrown) { failure.compareAndSet(null, thrown); }
+					finally { finished.countDown(); }
+				});
+			}
+			PhantomAssertions.assertTrue(entered.await(8, TimeUnit.SECONDS), "Two concurrent native loads did not reach the declared barrier.");
+			PhantomAssertions.assertEquals(2, service.snapshot().reservedEntries(), "Loading owners are absent from the reserved gauge.");
+			PhantomAssertions.assertEquals(2, service.snapshot().occupiedSlots(), "Loading owners do not occupy physical admissions.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CAPACITY_REACHED, service.materialize(profiles.get(2).profileId()).status(), "Concurrent loading exceeded soft1+burst1.");
+			release.countDown(); PhantomAssertions.assertTrue(finished.await(8, TimeUnit.SECONDS), "Concurrent native loads did not finish.");
+			PhantomAssertions.assertEquals(null, failure.get(), "Concurrent native admission threw.");
+			PhantomAssertions.assertTrue(results.size() == 2 && results.stream().allMatch(status -> status == PhantomMaterializationService.ResultStatus.SUCCESS), "Concurrent native admissions failed: " + results);
+			failStore.set(true);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, service.dematerialize(profiles.get(0).profileId()).status(), "Declared pre-store failure did not retain its owner.");
+			PhantomAssertions.assertEquals(2, service.snapshot().occupiedSlots(), "Failed cleanup returned a fictitious permit.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CAPACITY_REACHED, service.materialize(profiles.get(2).profileId()).status(), "Failed-retained owner was ignored by physical ceiling.");
+			failStore.set(false);
+			await(() -> { service.retryCleanup(profiles.get(0).profileId()); return service.find(profiles.get(0).profileId()).isEmpty(); }, 5000, "Normal retry failed to finish the declared pre-store incident.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, service.materialize(profiles.get(2).profileId()).status(), "Actual cleanup failed to return exactly one admission.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, service.shutdown().state(), "Burst admission cleanup did not stop.");
+			PhantomAssertions.assertEquals(3L, stores.get(), "Successful native store was skipped or duplicated across failed retry.");
+			context.record("task066.physicalAdmission", "Concurrent loading reserved2/occupied2 at soft1+burst1; third refused; failed native pre-store retains permit; normal retry then third admission; three successful stores exactly once; shutdown0 owners");
+		}
+		finally
+		{
+			release.countDown(); failStore.set(false); finished.await(10, TimeUnit.SECONDS);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, service.shutdown().state(), "Burst fixture retained native owners.");
+			for (var profile : profiles) { _repository.find(profile.profileId()).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion())); }
+			for (var fixture : fixtures) { _environment.assertClean(fixture, null); }
+		}
 	}
 
 	private void testTownEnvelope(PhantomTestContext context)
@@ -150,8 +214,11 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		final var newPoint = anchor("giran.city.center");
 		preparePosition(_environment.primary(), oldPoint);
 		preparePosition(_incoming, newPoint);
+		if (_burst066) { preparePosition(_environment.observer(), oldPoint); }
 		final var oldProfile = _repository.create(_environment.primary().objectId());
 		final var newProfile = _repository.create(_incoming.objectId());
+		final var secondOld = _burst066 ? _repository.create(_environment.observer().objectId()) : null;
+		final var profiles = secondOld == null ? List.of(oldProfile, newProfile) : List.of(oldProfile, secondOld, newProfile);
 		final long oldId = oldProfile.profileId(), newId = newProfile.profileId();
 		final var metrics = new PhantomMetrics();
 		final var trace = new PhantomDiagnosticTrace(false, 64, 16, metrics);
@@ -160,7 +227,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		final var goals = new PhantomGoalStateStore(_repository);
 		final var transaction = new PhantomBackgroundTransaction();
 		final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
-		final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, trace, 1, _ -> {}, lifecycle, 5000, 10000);
+		final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, trace, _burst066 ? 2 : 1, _burst066 ? 2 : 0, _ -> {}, lifecycle, 5000, 10000);
 		materializationRef.set(materialization);
 		final var historical = new PhantomHistoricalBackgroundService(_repository, goals, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), _production.authority()), background, materialization);
 		lifecycle.install(PhantomMaterializationLifecyclePort.chain(historical, background));
@@ -170,9 +237,9 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		final var ecologyStore = new PhantomPopulationEcologyStore(_repository);
 		final long minute = NOW.toEpochMilli() / 60_000;
 		final var cohort = new HashMap<Long, ManagedSnapshot>();
-		final var presence = new PhantomPresenceRegistry(2);
+		final var presence = new PhantomPresenceRegistry(profiles.size());
 		final var seedMetadata = new PhantomPopulationTestDoubles.MemoryStore(population.hash());
-		for (var profile : List.of(oldProfile, newProfile))
+		for (var profile : profiles)
 		{
 			final var state = seedMetadata.seedReady(profile.profileId(), 1).state().initialized(profile.characterObjectId(), "2".repeat(64)).ready();
 			final var component = _repository.insertComponent(profile.profileId(), PhantomPopulationState.COMPONENT_TYPE, PhantomPopulationState.SCHEMA_VERSION, new PhantomPopulationStateCodec().encode(state));
@@ -183,7 +250,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			presence.schedule(profile.profileId(), population.evaluate(state.scheduleTemplate(), NOW, ZoneOffset.UTC, state.schedulePhaseMinutes()).state());
 			PhantomAssertions.assertTrue(presence.isOnline(profile.profileId()), "Native episode is not calendar eligible.");
 		}
-		final var ecology = new PhantomPopulationEcologyService(ecologyCatalog, population, ecologyStore, historical, id -> materialization.find(id).isPresent(), _ -> "", Clock.fixed(NOW, ZoneOffset.UTC), ZoneOffset.UTC, Preset.LIVING, 0, 2);
+		final var ecology = new PhantomPopulationEcologyService(ecologyCatalog, population, ecologyStore, historical, id -> materialization.find(id).isPresent(), _ -> "", Clock.fixed(NOW, ZoneOffset.UTC), ZoneOffset.UTC, Preset.LIVING, 0, profiles.size());
 		ecology.enablePeriodicDueMode();
 		ecology.installRuntime(id -> Optional.ofNullable(cohort.get(id)), new PhantomPopulationEcologyService.PopulationEvents()
 		{
@@ -206,7 +273,8 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			final Player player = snapshot == null ? null : World.getInstance().getPlayer(snapshot.characterObjectId());
 			final var nativeOwner = player == null ? null : player.getNativeWorkOwner();
 			return player == null || !snapshot.worldPresent() || player.getObjectId() != snapshot.characterObjectId() || nativeOwner == null || nativeOwner.epoch() != snapshot.materializedAtNanos() || !nativeOwner.isCurrent() ? new PhantomMaterializationRetentionPolicy.Facts(false, false, false, false, false) : PhantomMaterializationRetentionPolicy.Facts.nativeFacts(player, locality.isLocal(id), locality.isNativeVisible(id), snapshot.admittedActionCount());
-		}, retentionClock::get, 60000);
+		}, _burst066 ? System::nanoTime : retentionClock::get, 60000);
+		if (_burst066) { materialization.installSoftCleanupAdmission(id -> !PhantomNativeLocalityEnvelope.prewarm(observer.get(), id == newId ? newPoint : oldPoint)); }
 		ecology.installMaterializationDemand(locality::isCurrentLocal);
 		locality.installPreparationDemand(ecology::updateMaterializationDemand, () -> materialization.snapshot().availablePermits() + (int)materialization.snapshot().materializations().stream().filter(entry -> entry.worldPresent() && retention.observe(entry.profileId()).reclaimable()).count());
 		final var boundary = new PhantomMaterializationServiceActivityPort(materialization, true);
@@ -222,24 +290,42 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			return snapshot.materializations().stream().filter(entry -> entry.profileId() == selected && entry.worldPresent()).findFirst()
 				.map(entry -> new org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection(entry.profileId(), entry.materializedAtNanos()))
 				.orElseGet(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection::none);
-		}, id -> retention.observe(id).reclaimable(), locality::isCurrentLocal);
-		final var scheduler = new PhantomScheduler(2, 100, 2, metrics, trace, gate, _ -> {});
+		}, id -> retention.observe(id).reclaimable() && (!_burst066 || !retention.observe(id).retained()), locality::isCurrentLocal);
+		final var scheduler = new PhantomScheduler(profiles.size(), 100, profiles.size(), metrics, trace, gate, _ -> {});
 		schedulerRef.set(scheduler);
-		scheduler.installLocalControlPort(locality);
+		scheduler.installLocalControlPort(() ->
+		{
+			locality.onPulse();
+			if (_burst066)
+			{
+				retention.refresh(materialization.list().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList());
+				for (var entry : materialization.list())
+				{
+					if (entry.worldPresent() && !retention.observe(entry.profileId()).retained()) { scheduler.requestIdleRetirement(entry.profileId(), entry.materializedAtNanos()); }
+				}
+			}
+		});
 		Throwable primaryFailure = null;
 		try
 		{
 			PhantomAssertions.assertTrue(background.start() && materialization.start() && topology.start(), "Native owners did not start.");
-			for (var entry : Map.of(oldId, oldPoint, newId, newPoint).entrySet())
+			final var points = new HashMap<>(Map.of(oldId, oldPoint, newId, newPoint));
+			if (secondOld != null) { points.put(secondOld.profileId(), oldPoint); }
+			for (var entry : points.entrySet())
 			{
 				topology.registerProfile(entry.getKey()); topology.updateProfile(entry.getKey(), entry.getValue(), 1);
 			}
 			cohort.values().forEach(ecology::register);
 			await(() -> { ecology.onPopulationPulse(); return ecology.inventoryReady() && ecology.dueSnapshot(oldId).complete() && ecology.dueSnapshot(newId).complete(); }, 10000, "Native ecology current-cursor readiness failed.");
 			PhantomAssertions.assertTrue(scheduler.start(), "Native pressure scheduler did not start.");
-			scheduler.register(oldId); scheduler.register(newId);
+			profiles.forEach(profile -> scheduler.register(profile.profileId()));
 			// Existing autonomous activity keeps this old owner from naturally idling out during the bounded episode.
 			scheduler.submitSignal(oldId, new PhantomRelevanceSignal("test.existing.life", 1, PhantomActivityState.ACTIVE, 120000));
+			if (secondOld != null)
+			{
+				scheduler.submitSignal(secondOld.profileId(), new PhantomRelevanceSignal("test.existing.life", 1, PhantomActivityState.ACTIVE, 180000));
+				await(() -> materialization.find(secondOld.profileId()).map(entry -> entry.worldPresent() && entry.actionAdmissionOpen()).orElse(false), 12000, "Second soft target slot did not admit its real Player.");
+			}
 			await(() -> materialization.find(oldId).map(entry ->
 			{
 				final Player current = World.getInstance().getPlayer(entry.characterObjectId());
@@ -253,21 +339,54 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			try
 			{
 				observer.set(newPoint);
-				retentionClock.addAndGet(TimeUnit.SECONDS.toNanos(61));
+				if (!_burst066) { retentionClock.addAndGet(TimeUnit.SECONDS.toNanos(61)); }
 				await(() -> locality.isCurrentLocal(newId) && !locality.isLocal(oldId), 3000, "Observer demand failed to move between real towns.");
 				context.record("task065.before", "old=" + oldLifetime + " incoming=" + newId + " preparation=" + ecology.preparationSnapshot() + " due=" + ecology.dueSnapshot(newId));
+				if (_burst066)
+				{
+					final long arrivalStart = System.nanoTime();
+					await(() -> materialization.find(newId).map(entry -> entry.worldPresent() && entry.actionAdmissionOpen()).orElse(false), 10000, "Ready local actor waited for old cleanup despite burst reserve.");
+					PhantomAssertions.assertTrue(materialization.find(oldId).orElseThrow().worldPresent() && materialization.find(secondOld.profileId()).orElseThrow().worldPresent(), "Burst admission evicted an old owner before grace.");
+					PhantomAssertions.assertEquals(3, materialization.snapshot().occupiedSlots(), "Burst must count3 actual owners against separate soft2/ceiling4.");
+					context.record("task066.arrivalMillis", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - arrivalStart));
+					context.record("task066.arrival", "soft2,burst2,ceiling4,occupied3,excess1; incoming admitted while admitted hard action and both old native epochs remain");
+				}
 				final long heldUntil = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(2200);
 				while (System.nanoTime() < heldUntil)
 				{
 					PhantomAssertions.assertTrue(materialization.find(oldId).map(entry -> entry.worldPresent() && entry.materializedAtNanos() == oldLifetime.materializedAtNanos()).orElse(false), "Native admitted action was evicted.");
-					PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(_incoming.objectId()), "Full hard-held cap admitted a duplicate owner.");
+					if (!_burst066) { PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(_incoming.objectId()), "Full hard-held cap admitted a duplicate owner."); }
 					assertCap(materialization); Thread.sleep(25);
 				}
 				PhantomAssertions.assertTrue(retention.observe(oldId).hard(), "Admitted native action lacks hard hold.");
-				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CAPACITY_REACHED, boundary.diagnosticFailures().get(newId), "Hard-held negative did not reach the actual native capacity boundary.");
+				if (!_burst066) { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CAPACITY_REACHED, boundary.diagnosticFailures().get(newId), "Hard-held negative did not reach the actual native capacity boundary."); }
 				context.record("task065.hardHeld", "same native epoch; incoming remains pending; no eviction for admitted action");
 			}
 			finally { hardAction.close(); }
+			if (_burst066)
+			{
+				observer.set(oldPoint);
+				await(() -> locality.isCurrentLocal(oldId) && retention.observe(oldId).humanLocal(), 3000, "Return observation did not restore old local hold.");
+				PhantomAssertions.assertEquals(oldLifetime.materializedAtNanos(), materialization.find(oldId).orElseThrow().materializedAtNanos(), "Return before seal duplicated the old identity.");
+				retention.observe(secondOld.profileId());
+				observer.set(newPoint);
+				await(() -> !locality.isLocal(oldId) && locality.isCurrentLocal(newId), 3000, "Second departure did not reach actual local control.");
+				final long departure = System.nanoTime();
+				context.record("task066.cleanupExpected", "Real monotonic human grace60s + native scheduler/drain, idle deadline120s; no further cap-pressure demand, occupied3<ceiling4");
+				while (System.nanoTime() - departure < TimeUnit.SECONDS.toNanos(58))
+				{
+					PhantomAssertions.assertTrue(materialization.find(oldId).map(entry -> entry.worldPresent() && entry.materializedAtNanos() == oldLifetime.materializedAtNanos()).orElse(false), "Old lifetime was evicted within its returned human grace.");
+					assertCap(materialization); Thread.sleep(50);
+				}
+				await(() -> materialization.find(oldId).isEmpty() && materialization.find(secondOld.profileId()).isEmpty(), 62000, "Expired idle native owners stayed forever without cap pressure.");
+				PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(_environment.primary().objectId()), "Lazy cleanup retained primary in actual World.");
+				PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(_environment.observer().objectId()), "Lazy cleanup retained second old Player.");
+				PhantomAssertions.assertEquals(1, materialization.snapshot().occupiedSlots(), "Lazy cleanup did not release both physical permits.");
+				PhantomAssertions.assertEquals(0, materialization.snapshot().excessSlots(), "Excess did not drain after grace.");
+				context.record("task066.cleanupMillis", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - departure));
+				context.record("task066.cleanup", "Same old epoch survived observation return; two old identities stored/deleted/released; incoming remains native; occupied3->1,excess1->0; no accelerated native clock");
+				return;
+			}
 			PhantomAssertions.assertFalse(retention.observe(oldId).hard() || retention.observe(oldId).humanLocal() || retention.observe(oldId).reasons().contains(PhantomMaterializationRetentionPolicy.Reason.RECENT_HUMAN), "Old idle fixture is not the expired human hold regression.");
 			final long started = System.nanoTime();
 			final long startPulse = scheduler.snapshot().pulseSequence();
@@ -312,7 +431,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			cleanupFailure = cleanupStep(cleanupFailure, () -> { ecology.beginStop(); await(ecology::finishStop, 5000, "Native pressure ecology did not drain."); });
 			cleanupFailure = cleanupStep(cleanupFailure, () -> { background.beginStop(); PhantomAssertions.assertTrue(background.finishStop(), "Native background owner did not stop."); });
 			cleanupFailure = cleanupStep(cleanupFailure, () -> { topology.beginStop(); PhantomAssertions.assertTrue(topology.finishStop(), "Native topology owner did not stop."); });
-			for (var profile : List.of(oldProfile, newProfile))
+			for (var profile : profiles)
 			{
 				cleanupFailure = cleanupStep(cleanupFailure, () ->
 				{
@@ -322,6 +441,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			}
 			cleanupFailure = cleanupStep(cleanupFailure, () -> _environment.assertClean(_environment.primary(), null));
 			cleanupFailure = cleanupStep(cleanupFailure, () -> _environment.assertClean(_incoming, null));
+			if (_burst066) { cleanupFailure = cleanupStep(cleanupFailure, () -> _environment.assertClean(_environment.observer(), null)); }
 			if (cleanupFailure != null)
 			{
 				context.record("task065.cleanupFailure", cleanupFailure.toString());
@@ -354,6 +474,8 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		final var metrics = new PhantomMetrics();
 		final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1);
 		final var boundary = new PhantomMaterializationServiceActivityPort(materialization);
+		final var sealAdmission = new AtomicBoolean(true);
+		if (_burst066) { materialization.installSoftCleanupAdmission(_ -> sealAdmission.get()); }
 		try
 		{
 			PhantomAssertions.assertTrue(materialization.start(), "Guard fixture service did not start.");
@@ -362,6 +484,12 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			final Player player = World.getInstance().getPlayer(first.characterObjectId());
 			final var owner = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
 			final long epoch = first.materializedAtNanos();
+			if (_burst066)
+			{
+				sealAdmission.set(false);
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch).outcome(), "Return at the native seal did not cancel stale retirement.");
+				assertSoftGuardRetained(materialization, id, player, epoch); sealAdmission.set(true);
+			}
 			final long requester = id + 1;
 			final var currentDemand = new AtomicBoolean(true);
 			final var demandGate = new PhantomReconcileFirstActivityPort(boundary);
@@ -511,7 +639,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 	private static void assertCap(PhantomMaterializationService materialization)
 	{
 		final var snapshot = materialization.snapshot();
-		PhantomAssertions.assertTrue(snapshot.availablePermits() >= 0 && snapshot.materializations().stream().filter(entry -> entry.worldPresent()).count() <= 1, "Native hard cap was exceeded.");
+		PhantomAssertions.assertTrue(snapshot.availablePermits() >= 0 && snapshot.occupiedSlots() <= snapshot.physicalCeiling() && snapshot.materializations().stream().filter(entry -> entry.worldPresent()).count() <= snapshot.physicalCeiling(), "Native physical ceiling was exceeded.");
 	}
 
 	private static void await(BooleanSupplier condition, long timeoutMillis, String failure) throws Exception

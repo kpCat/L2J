@@ -50,6 +50,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
@@ -166,6 +167,45 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("30-calendar-sleeping-denies-locality-and-background-work", this::testSleepingCalendarLocality);
 		registry.add("31-old-unseen-owner-reclaims-without-recent-human-pin", _ -> testSoftReclamation(true));
 		registry.add("32-soft-reclaimed-owner-waits-one-grace-before-return", _ -> testSoftReclamation(false, true));
+		registry.add("066-idle-retirement-rechecks-return-and-current-epoch", _ ->
+		{
+			final var clock = new ManualClock(); clock.advanceMillis(1);
+			final var delegate = new FakeMaterializationPort();
+			final var local = new java.util.HashSet<Long>(Set.of(1L));
+			final var retention = new PhantomMaterializationRetentionPolicy(id -> new PhantomMaterializationRetentionPolicy.Facts(delegate.isMaterialized(id), local.contains(id), false, false, false), clock::nanoTime, 60000);
+			final var port = new PhantomReconcileFirstActivityPort(new PhantomActivityMaterializationPort()
+			{
+				@Override public TransitionOutcome materialize(long id) { return delegate.materialize(id); }
+				@Override public TransitionOutcome dematerialize(long id) { return delegate.dematerialize(id); }
+				@Override public TransitionOutcome reclaimSoft(long id, long epoch) { return epoch == 66 ? delegate.dematerialize(id) : TransitionOutcome.deferred("wrong.epoch"); }
+				@Override public TransitionOutcome retryCleanup(long id) { return delegate.retryCleanup(id); }
+				@Override public boolean isMaterialized(long id) { return delegate.isMaterialized(id); }
+				@Override public boolean hasLifecycleOwnership(long id) { return delegate.hasLifecycleOwnership(id); }
+			});
+			port.install(local::contains);
+			port.installRetention(id -> retention.observe(id).retained());
+			port.installSoftReclamation(_ -> 0, id -> !retention.observe(id).retained());
+			final var metrics = new PhantomMetrics();
+			final var scheduler = new PhantomScheduler(1, 100, 1, PhantomSchedulerPolicy.productionDefaults(100), clock, (_pulse, _period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, PhantomActivityWorkSink.noop());
+			scheduler.start();
+			try
+			{
+				scheduler.register(1); scheduler.submitSignal(1, signal("life", 1, PhantomActivityState.ACTIVE, 180000)); scheduler.pulse();
+				PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Idle retirement input was not admitted through readiness.");
+				retention.observe(1); local.clear(); clock.advanceMillis(61000);
+				PhantomAssertions.assertTrue(scheduler.requestIdleRetirement(1, 66), "Idle retirement was not queued without pressure.");
+				local.add(1L); scheduler.pulse();
+				PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Return before execution failed to cancel retirement.");
+				local.clear(); clock.advanceMillis(61000);
+				PhantomAssertions.assertTrue(scheduler.requestIdleRetirement(1, 65), "Stale epoch test was not queued."); scheduler.pulse();
+				PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Stale epoch removed the current lifetime.");
+				clock.advanceMillis(1000); scheduler.pulse();
+				PhantomAssertions.assertTrue(scheduler.requestIdleRetirement(1, 66), "Current epoch idle retirement was starved."); scheduler.pulse();
+				PhantomAssertions.assertFalse(delegate.isMaterialized(1), "Expired idle lifetime required another actor's pressure to retire.");
+				PhantomAssertions.assertFalse(scheduler.find(1).orElseThrow().effectiveState().requiresMaterialization(), "Retirement left false scheduler ownership.");
+			}
+			finally { stop(scheduler); }
+		});
 	}
 
 	private void testCalendarLocalityRelease(PhantomTestContext context)

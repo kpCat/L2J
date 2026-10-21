@@ -6720,6 +6720,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_observer = Player.load(_environment.observer().objectId());
 		PhantomAssertions.assertTrue(_observer != null, "Owned ordinary competing picker did not load.");
 		_observer.setXYZInvisible(_player.getX() + 10, _player.getY(), _player.getZ()); _observer.spawnMe();
+		final Map<Integer, Long> actorBefore = pickupBaseline066(_player, 57, 1865);
+		final Map<Integer, Long> observerBefore = pickupBaseline066(_observer, 57, 1865);
 		final Item first = freeGround066(1865, 1, _player.getX() + 15, _player.getY(), _player.getZ());
 		final Item second = freeGround066(1865, 1, _player.getX() + 20, _player.getY(), _player.getZ());
 		final long before = _player.getInventory().getInventoryItemCount(1865, -1);
@@ -6748,6 +6750,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		finally
 		{
 			for (Item item : List.of(first, second)) { if (item.isSpawned()) { item.decayMe(); ItemManager.destroyItem(ItemProcessType.DESTROY, item, _player, this); } }
+			restorePickupBaseline066(_player, actorBefore);
+			restorePickupBaseline066(_observer, observerBefore);
 		}
 	}
 
@@ -6784,6 +6788,27 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			autoPlay.stop(_profile.profileId()); engine.beginStop(); engine.finishStop();
 			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
 			for (Item item : items) { if (item.isSpawned()) { item.decayMe(); ItemManager.destroyItem(ItemProcessType.DESTROY, item, _player, this); } }
+			restorePickupBaseline066(_player, before);
+		}
+	}
+
+	private static Map<Integer, Long> pickupBaseline066(Player player, int... itemIds)
+	{
+		final Map<Integer, Long> result = new java.util.HashMap<>();
+		for (int itemId : itemIds) { result.put(itemId, player.getInventory().getInventoryItemCount(itemId, -1)); }
+		return result;
+	}
+
+	private void restorePickupBaseline066(Player player, Map<Integer, Long> baseline)
+	{
+		for (var entry : baseline.entrySet())
+		{
+			final long added = player.getInventory().getInventoryItemCount(entry.getKey(), -1) - entry.getValue();
+			if (added > 0)
+			{
+				PhantomAssertions.assertTrue(player.getInventory().destroyItemByItemId(ItemProcessType.DESTROY, entry.getKey(), added, player, this) != null, "Could not restore exact TEST066 pickup baseline.");
+			}
+			PhantomAssertions.assertEquals(entry.getValue(), player.getInventory().getInventoryItemCount(entry.getKey(), -1), "TEST066 native pickup teardown changed original inventory.");
 		}
 	}
 

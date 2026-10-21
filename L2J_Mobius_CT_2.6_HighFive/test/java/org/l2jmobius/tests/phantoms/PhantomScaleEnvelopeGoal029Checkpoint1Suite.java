@@ -282,8 +282,8 @@ public final class PhantomScaleEnvelopeGoal029Checkpoint1Suite implements Phanto
 		final String productionSuiteSource = Files.readString(moduleRoot.resolve(Path.of("test", "java", "org", "l2jmobius", "tests", "phantoms", "PhantomProductionMaterializationSuite.java")));
 
 		PhantomAssertions.assertTrue(configSource.contains("public static final int DEFAULT_MAX_MATERIALIZED_PHANTOMS = 32;"), "Canonical default materialization cap is not 32.");
-		PhantomAssertions.assertTrue(systemSource.contains("new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), lifecycleBridge)"), "PhantomSystem does not wire validated maxMaterializedPhantoms into the real service.");
-		PhantomAssertions.assertTrue(serviceSource.contains("_permits = new Semaphore(maximumMaterialized, true);"), "Real service does not construct the fair capacity semaphore.");
+		PhantomAssertions.assertTrue(systemSource.contains("new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), _settings.materializationBurstSlots(), lifecycleBridge)"), "PhantomSystem does not wire the separate validated soft target and burst into the real service.");
+		PhantomAssertions.assertTrue(serviceSource.contains("_physicalCeiling = maximumMaterialized + burstSlots;") && serviceSource.contains("_permits = new Semaphore(_physicalCeiling, true);"), "Real service does not construct the fair bounded physical admission semaphore.");
 		PhantomAssertions.assertTrue(serviceSource.contains("if (!_permits.tryAcquire())") && serviceSource.contains("return rejectMaterialization(ResultStatus.CAPACITY_REACHED);"), "Real materialization does not map failed permit admission to CAPACITY_REACHED.");
 		final int releaseStart = serviceSource.indexOf("private void releaseStoredEntry(Entry entry)");
 		final int releaseEnd = serviceSource.indexOf("public Optional<ActionLease> tryAcquireAction", releaseStart);

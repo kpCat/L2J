@@ -102,6 +102,8 @@ public final class PhantomMaterializationService
 	private final PhantomMetrics _metrics;
 	private final PhantomDiagnosticTrace _trace;
 	private final int _maximumMaterialized;
+	private final int _physicalCeiling;
+	private volatile java.util.function.LongPredicate _softCleanupAdmission = _ -> true;
 	private final Semaphore _permits;
 	private final ConcurrentHashMap<Long, Entry> _activeByProfile = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Entry> _activeByCharacter = new ConcurrentHashMap<>();
@@ -127,6 +129,11 @@ public final class PhantomMaterializationService
 		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, FailureInjector.none(), lifecyclePort, PhantomMaterializedPlayer.DEFAULT_ACTION_DRAIN_TIMEOUT_MILLIS, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS);
 	}
 
+	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, int burstSlots, PhantomMaterializationLifecyclePort lifecyclePort)
+	{
+		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, burstSlots, FailureInjector.none(), lifecyclePort, PhantomMaterializedPlayer.DEFAULT_ACTION_DRAIN_TIMEOUT_MILLIS, MAXIMUM_SHUTDOWN_TIMEOUT_MILLIS);
+	}
+
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, FailureInjector failureInjector, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
 	{
 		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, failureInjector, PhantomMaterializationLifecyclePort.none(), actionDrainTimeoutMillis, shutdownTimeoutMillis);
@@ -134,9 +141,18 @@ public final class PhantomMaterializationService
 
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, FailureInjector failureInjector, PhantomMaterializationLifecyclePort lifecyclePort, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
 	{
+		this(profileRepository, identityRegistry, metrics, trace, maximumMaterialized, 0, failureInjector, lifecyclePort, actionDrainTimeoutMillis, shutdownTimeoutMillis);
+	}
+
+	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized, int burstSlots, FailureInjector failureInjector, PhantomMaterializationLifecyclePort lifecyclePort, long actionDrainTimeoutMillis, long shutdownTimeoutMillis)
+	{
 		if ((maximumMaterialized < 1) || (maximumMaterialized > 10000))
 		{
 			throw new IllegalArgumentException("maximumMaterialized must be between 1 and 10000");
+		}
+		if (burstSlots < 0 || burstSlots > 9999 || maximumMaterialized + burstSlots > 10000)
+		{
+			throw new IllegalArgumentException("Soft target plus burst must fit10000 physical admissions.");
 		}
 		if (actionDrainTimeoutMillis <= 0)
 		{
@@ -152,11 +168,22 @@ public final class PhantomMaterializationService
 		_metrics = Objects.requireNonNull(metrics, "metrics");
 		_trace = Objects.requireNonNull(trace, "trace");
 		_maximumMaterialized = maximumMaterialized;
-		_permits = new Semaphore(maximumMaterialized, true);
+		_physicalCeiling = maximumMaterialized + burstSlots;
+		_permits = new Semaphore(_physicalCeiling, true);
 		_failureInjector = Objects.requireNonNull(failureInjector, "failureInjector");
 		_lifecyclePort = Objects.requireNonNull(lifecyclePort, "lifecyclePort");
 		_actionDrainTimeoutMillis = actionDrainTimeoutMillis;
 		_shutdownTimeoutMillis = shutdownTimeoutMillis;
+	}
+
+	/** Composition-time native-only recheck, run at the admission seal without durable reads. */
+	public void installSoftCleanupAdmission(java.util.function.LongPredicate admission)
+	{
+		synchronized (_stateMonitor)
+		{
+			if (!_activeByProfile.isEmpty() || _state == ServiceState.STOPPING || _state == ServiceState.STOPPED) { throw new IllegalStateException("Soft cleanup admission must precede materialization."); }
+			_softCleanupAdmission = Objects.requireNonNull(admission);
+		}
 	}
 
 	public void requireOffensiveShots()
@@ -436,7 +463,7 @@ public final class PhantomMaterializationService
 		final DematerializeResult result;
 		try
 		{
-			if (!entry._materializedPlayer.tryPrepareSoftCleanup(expectedEpoch))
+			if (!entry._materializedPlayer.tryPrepareSoftCleanup(expectedEpoch, () -> _softCleanupAdmission.test(profileId)))
 			{
 				return new DematerializeResult(ResultStatus.SOFT_RECLAIM_DEFERRED, snapshot(entry));
 			}
@@ -601,6 +628,7 @@ public final class PhantomMaterializationService
 
 	private DematerializeResult performCleanupEntry(Entry entry, long deadlineNanos)
 	{
+			if (entry._cleanupStartedAtNanos == 0) { entry._cleanupStartedAtNanos = System.nanoTime(); }
 			try
 			{
 				entry._materializedPlayer.cleanup(deadlineNanos);
@@ -915,7 +943,9 @@ public final class PhantomMaterializationService
 		synchronized (_incidentMonitor)
 		{
 			return new ServiceSnapshot(_state, _maximumMaterialized, _permits.availablePermits(), _activeByProfile.size(), materializations,
-				List.copyOf(_cleanupIncidents.values()), _cleanupIncidentEvictions, _cleanupEvidenceIncomplete);
+				List.copyOf(_cleanupIncidents.values()), _cleanupIncidentEvictions, _cleanupEvidenceIncomplete, _physicalCeiling,
+				(int) _activeByProfile.values().stream().filter(entry -> entry._materializationCompletion.getCount() != 0).count(),
+				_activeByProfile.values().stream().filter(entry -> entry._cleanupStartedAtNanos != 0).mapToLong(entry -> Math.max(0, System.nanoTime() - entry._cleanupStartedAtNanos) / 1_000_000L).max().orElse(0));
 		}
 	}
 
@@ -1006,8 +1036,14 @@ public final class PhantomMaterializationService
 
 	public record CleanupIncidentArchiveEntry(long profileId, String incidentId, PhantomCleanupIncident first, PhantomCleanupIncident latest, boolean finished) { }
 
-	public record ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations, List<CleanupIncidentArchiveEntry> cleanupIncidents, long cleanupIncidentEvictions, boolean cleanupEvidenceIncomplete)
+	public record ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations, List<CleanupIncidentArchiveEntry> cleanupIncidents, long cleanupIncidentEvictions, boolean cleanupEvidenceIncomplete, int physicalCeiling, int reservedEntries, long oldestCleanupMillis)
 	{
+		public int occupiedSlots() { return physicalCeiling - availablePermits; }
+		public int excessSlots() { return Math.max(0, occupiedSlots() - maximumMaterialized); }
+		public ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations, List<CleanupIncidentArchiveEntry> cleanupIncidents, long cleanupIncidentEvictions, boolean cleanupEvidenceIncomplete)
+		{
+			this(state, maximumMaterialized, availablePermits, retainedEntries, materializations, cleanupIncidents, cleanupIncidentEvictions, cleanupEvidenceIncomplete, maximumMaterialized, 0, 0);
+		}
 		public ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations)
 		{
 			this(state, maximumMaterialized, availablePermits, retainedEntries, materializations, List.of(), 0, false);
@@ -1066,6 +1102,7 @@ public final class PhantomMaterializationService
 		private final CountDownLatch _materializationCompletion = new CountDownLatch(1);
 		private volatile Thread _materializationThread = Thread.currentThread();
 		private boolean _permitHeld;
+		private volatile long _cleanupStartedAtNanos;
 		private boolean _countedActive;
 		private boolean _released;
 		private volatile boolean _shutdownRequested;

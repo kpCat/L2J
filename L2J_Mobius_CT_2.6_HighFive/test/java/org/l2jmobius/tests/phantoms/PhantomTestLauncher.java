@@ -388,6 +388,7 @@ public final class PhantomTestLauncher
 			case "social-humanization-goal030b" -> new PhantomSocialHumanizationGoal030BSuite();
 			case "living-presence-calendar065" -> new PhantomLivingPresenceCalendar065Suite();
 			case "living-presence-native065" -> new PhantomLivingPresence065NativeSuite();
+			case "farm-economy-cap-native066" -> new PhantomLivingPresence065NativeSuite(true);
 			case "population-catalog" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CATALOG);
 			case "population-schedule" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SCHEDULE);
 			case "population-throughput" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.THROUGHPUT);

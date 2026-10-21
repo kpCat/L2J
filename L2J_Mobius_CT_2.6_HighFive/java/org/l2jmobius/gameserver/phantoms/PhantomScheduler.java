@@ -117,6 +117,7 @@ public final class PhantomScheduler
 		MATERIALIZE,
 		DEMATERIALIZE,
 		RECLAIM_SOFT,
+		RETIRE_IDLE,
 		OBSERVE_LIFECYCLE_RELEASE,
 		RETRY_MATERIALIZATION_CLEANUP,
 		RETRY_DEMATERIALIZATION_CLEANUP
@@ -604,6 +605,25 @@ public final class PhantomScheduler
 		}
 	}
 
+	public record CapacityWaitSnapshot(int waiting, long oldestWaitMillis, java.util.Map<String, Long> blockers) { }
+
+	public CapacityWaitSnapshot capacityWaitSnapshot()
+	{
+		synchronized (_monitor)
+		{
+			final long now = _clock.nanoTime();
+			final var blockers = new java.util.TreeMap<String, Long>();
+			long oldest = 0; int waiting = 0;
+			for (var slot : _slots.values())
+			{
+				if (slot._transitionWaitStartedNanos == 0 || slot._requestedState == slot._effectiveState) { continue; }
+				waiting++; oldest = Math.max(oldest, Math.max(0, now - slot._transitionWaitStartedNanos) / 1_000_000L);
+				blockers.merge(slot._lastTransitionReason.isEmpty() ? slot._transitionStatus.name() : slot._lastTransitionReason, 1L, Long::sum);
+			}
+			return new CapacityWaitSnapshot(waiting, oldest, java.util.Map.copyOf(blockers));
+		}
+	}
+
 	void pulse()
 	{
 		pulseSafely();
@@ -1018,9 +1038,11 @@ public final class PhantomScheduler
 		{
 			final var selection = slot._softReclaimSelection;
 			slot._softReclaimSelection = null;
+			final boolean idleRetirement = slot._idleRetirement;
+			slot._idleRetirement = false;
 			if (slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE))
 			{
-				return new TransitionPlan(slot._profileId, slot._generation, requested.requiresMaterialization() ? PhantomActivityState.WARM : requested, BoundaryAction.RECLAIM_SOFT, selection.materializedAtNanos(), selection.requestingProfileId());
+				return new TransitionPlan(slot._profileId, slot._generation, requested.requiresMaterialization() ? PhantomActivityState.WARM : requested, idleRetirement ? BoundaryAction.RETIRE_IDLE : BoundaryAction.RECLAIM_SOFT, selection.materializedAtNanos(), selection.requestingProfileId());
 			}
 		}
 		if (slot._retainedFailureKind != RetainedFailureKind.NONE)
@@ -1039,6 +1061,7 @@ public final class PhantomScheduler
 
 		if (requested == slot._effectiveState)
 		{
+			slot._transitionWaitStartedNanos = 0;
 			slot._demotionEligibleAtNanos = 0;
 			slot._retryDueNanos = 0;
 			slot._retryAttempt = 0;
@@ -1121,6 +1144,7 @@ public final class PhantomScheduler
 				}
 				case DEMATERIALIZE -> _materializationPort.dematerialize(plan._profileTargetId);
 				case RECLAIM_SOFT -> _materializationPort.reclaimSoft(plan._profileTargetId, plan._materializedEpoch, plan._requestingProfileId);
+				case RETIRE_IDLE -> _materializationPort.reclaimSoft(plan._profileTargetId, plan._materializedEpoch);
 				case OBSERVE_LIFECYCLE_RELEASE -> !_materializationPort.hasLifecycleOwnership(plan._profileTargetId) && !_materializationPort.isMaterialized(plan._profileTargetId)
 					? TransitionOutcome.success() : TransitionOutcome.deferred("lifecycle.still_owned");
 				case RETRY_MATERIALIZATION_CLEANUP, RETRY_DEMATERIALIZATION_CLEANUP ->
@@ -1151,6 +1175,24 @@ public final class PhantomScheduler
 		}
 	}
 
+	/** Enqueue an exact expired lifetime on the existing bounded ready queue; the port rechecks all holds. */
+	public boolean requestIdleRetirement(long profileId, long materializedAtNanos)
+	{
+		if (profileId <= 0 || materializedAtNanos == 0) { return false; }
+		final long now = _clock.nanoTime();
+		synchronized (_monitor)
+		{
+			final Slot candidate = _slots.get(profileId);
+			if ((_state != SchedulerState.RUNNING) || candidate == null || !candidate._effectiveState.requiresMaterialization()
+				|| candidate._processing || candidate._localProcessing || candidate._workInFlight || candidate._boundaryInFlight
+				|| candidate._softReclaimSelection != null || now < candidate._softReclaimCooldownUntilNanos
+				|| now < candidate._retryDueNanos || candidate._retainedFailureKind != RetainedFailureKind.NONE || !reserveReadyLocked(candidate)) { return false; }
+			candidate._softReclaimSelection = new SoftReclaimSelection(profileId, materializedAtNanos);
+			candidate._idleRetirement = true;
+			return true;
+		}
+	}
+
 	private void applyTransitionOutcomeLocked(Slot slot, TransitionPlan plan, TransitionOutcome outcome, long logicalNow)
 	{
 		PhantomRuntimeFlightRecorder.getInstance().record(slot._profileId, "SCHED_BOUNDARY_RESULT", plan._action.name(), outcome == null ? "NULL" : outcome.outcome().name(), outcome == null ? "" : outcome.reason(), plan._generation, logicalNow, 0);
@@ -1165,6 +1207,8 @@ public final class PhantomScheduler
 			return;
 		}
 		slot._lastTransitionReason = outcome.reason();
+		if (outcome.outcome() == Outcome.SUCCESS) { slot._transitionWaitStartedNanos = 0; }
+		else if (slot._transitionWaitStartedNanos == 0) { slot._transitionWaitStartedNanos = logicalNow; }
 		if (outcome.outcome() == Outcome.SUCCESS)
 		{
 			if ((plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.OBSERVE_LIFECYCLE_RELEASE))
@@ -1193,7 +1237,7 @@ public final class PhantomScheduler
 			}
 			final PhantomActivityState previous = slot._effectiveState;
 			setEffectiveStateLocked(slot, plan._targetState);
-			if (plan._action == BoundaryAction.RECLAIM_SOFT)
+			if (plan._action == BoundaryAction.RECLAIM_SOFT || plan._action == BoundaryAction.RETIRE_IDLE)
 			{
 				slot._softReclaimCooldownUntilNanos = saturatingAdd(Math.max(logicalNow, _clock.nanoTime()), millisToNanos(_policy.demotionGraceMillis()));
 			}
@@ -1542,6 +1586,8 @@ public final class PhantomScheduler
 		private boolean _unregisterRequested;
 		private boolean _explicitRetry;
 		private SoftReclaimSelection _softReclaimSelection;
+		private boolean _idleRetirement;
+		private long _transitionWaitStartedNanos;
 		private long _softReclaimCooldownUntilNanos;
 		private long _generation;
 		private long _boundaryGeneration;

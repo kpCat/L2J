@@ -365,7 +365,7 @@ public final class PhantomSystem
 				}
 				goalStateStore = new PhantomGoalStateStore(profileRepository);
 				lifecycleBridge = new PhantomMaterializationLifecycleBridge();
-				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), lifecycleBridge);
+				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), _settings.materializationBurstSlots(), lifecycleBridge);
 				_materializationService.requireOffensiveShots();
 				if (!_materializationService.start())
 				{
@@ -532,7 +532,7 @@ public final class PhantomSystem
 					_settings.populationTarget(),
 					_settings.populationActiveTarget(),
 					_settings.maxScheduledPhantomProfiles(),
-					_settings.maxMaterializedPhantoms(),
+					_settings.physicalMaterializationCeiling(),
 					_settings.populationCreationInFlight(),
 					_settings.populationBoundariesPerPulse());
 				_populationManager.installTopologyMembership(profileId ->
@@ -628,6 +628,7 @@ public final class PhantomSystem
 				}
 				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology, this::hasAcceptedNativeJourney);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
+				if (_settings.materializationBurstSlots() > 0) { _materializationService.installSoftCleanupAdmission(this::softCleanupHumanAbsent); }
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
@@ -828,6 +829,15 @@ public final class PhantomSystem
 					{
 						_nextRetentionRefreshNanos = now + 1_000_000_000L;
 						_materializationRetention.refresh(_materializationService.list().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList());
+						if (_settings.materializationBurstSlots() > 0)
+						{
+							int admitted = 0;
+							for (var entry : _materializationService.list())
+							{
+								if (entry.worldPresent() && !_materializationRetention.observe(entry.profileId()).retained() && safeSoftReclamation(entry.profileId(), productionGoals)
+									&& _scheduler.requestIdleRetirement(entry.profileId(), entry.materializedAtNanos()) && ++admitted >= 8) { break; }
+							}
+						}
 					}
 				}))
 				{
@@ -2499,7 +2509,7 @@ public final class PhantomSystem
 				break;
 			}
 			lastIncludedProfileId = entry.profileId();
-			if (count >= Math.min(24, configured._settings.maxMaterializedPhantoms()))
+			if (count >= Math.min(24, configured._settings.physicalMaterializationCeiling()))
 			{
 				nextProfileId = entry.profileId();
 				break;
@@ -2511,6 +2521,17 @@ public final class PhantomSystem
 		final var diagnostics = configured._materializationService.snapshot();
 		result.put("cleanupIncidentEvictions", Long.toString(diagnostics.cleanupIncidentEvictions()));
 		result.put("cleanupEvidenceIncomplete", Boolean.toString(diagnostics.cleanupEvidenceIncomplete()));
+		result.put("capacityTarget", Integer.toString(diagnostics.maximumMaterialized()));
+		result.put("capacityPhysicalCeiling", Integer.toString(diagnostics.physicalCeiling()));
+		result.put("capacityOccupied", Integer.toString(diagnostics.occupiedSlots()));
+		result.put("capacityReserved", Integer.toString(diagnostics.reservedEntries()));
+		result.put("capacityRetained", Integer.toString(diagnostics.retainedEntries()));
+		result.put("capacityExcess", Integer.toString(diagnostics.excessSlots()));
+		result.put("cleanupOldestMillis", Long.toString(diagnostics.oldestCleanupMillis()));
+		final var waiting = configured._scheduler.capacityWaitSnapshot();
+		result.put("capacityWaiting", Integer.toString(waiting.waiting()));
+		result.put("capacityOldestWaitMillis", Long.toString(waiting.oldestWaitMillis()));
+		result.put("capacityBlockers", waiting.blockers().toString());
 		return Map.copyOf(result);
 	}
 
@@ -2609,7 +2630,7 @@ public final class PhantomSystem
 			.filter(profile -> (profile.point() != null) && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(human, profile.point()))
 			.filter(profile -> configured._populationManager.admissionProfile(profile.profileId()).filter(state -> (state.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) && state.calendarOnline() && state.nextBoundary().isAfter(until)).isPresent())
 			.filter(profile -> configured._populationManager.presence().state(profile.profileId()) == PhantomPresenceRegistry.Presence.AVAILABLE)
-			.limit(configured._settings.maxMaterializedPhantoms()).count();
+			.limit(configured._settings.physicalMaterializationCeiling()).count();
 	}
 
 	public static synchronized OperatorEconomicAudit operatorEconomicAudit(long profileId)
@@ -2917,7 +2938,7 @@ public final class PhantomSystem
 			throw new IllegalArgumentException("The test materialization service must be running.");
 		}
 
-		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
+		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized(), serviceSnapshot.physicalCeiling() - serviceSnapshot.maximumMaterialized());
 		final PhantomSystem configured = new PhantomSystem(settings, false);
 		configured._scheduler = configured.createScheduler(PhantomActivityMaterializationPort.noop());
 		configured.startNavigationForTesting();
@@ -2957,7 +2978,7 @@ public final class PhantomSystem
 			throw new IllegalArgumentException("The test Phantom scheduler must be running.");
 		}
 
-		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized());
+		final PhantomPlayersConfig.Settings settings = new PhantomPlayersConfig.Settings(true, false, serviceSnapshot.maximumMaterialized(), serviceSnapshot.physicalCeiling() - serviceSnapshot.maximumMaterialized());
 		final PhantomSystem configured = new PhantomSystem(settings, false);
 		configured._scheduler = scheduler;
 		if (navigationService == null)
@@ -3077,7 +3098,8 @@ public final class PhantomSystem
 	{
 		try
 		{
-			if (!_materializationRetention.observe(profileId).reclaimable()) { return false; }
+			final var hold = _materializationRetention.observe(profileId);
+			if (!hold.reclaimable() || _settings.materializationBurstSlots() > 0 && hold.retained()) { return false; }
 			final var runtime = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
 			if ((runtime != null) && (runtime.inFlight() || runtime.persistenceInFlight())) { return false; }
 			final var stored = goals.load(profileId).orElse(null);
@@ -3117,6 +3139,16 @@ public final class PhantomSystem
 			|| hasAcceptedNativeJourney(profileId)
 			|| ((_combatService != null) && _combatService.find(profileId).isPresent());
 		return new PhantomMaterializationRetentionPolicy.Facts(true, nativeFacts.humanLocal(), nativeFacts.nativeVisible(), nativeFacts.realParty(), nativeFacts.activeAction() || protectedOwner);
+	}
+
+	/** Called under this actor's admission monitor: never enumerate other materialization monitors. */
+	private boolean softCleanupHumanAbsent(long profileId)
+	{
+		final var entry = _materializationService.find(profileId).orElse(null);
+		final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
+		if (player == null) { return false; }
+		final var point = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		return onlineHumanPoints().stream().noneMatch(human -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(human, point));
 	}
 
 	private Map<Long, PhantomTopologyPoint> liveMaterializedPoints()

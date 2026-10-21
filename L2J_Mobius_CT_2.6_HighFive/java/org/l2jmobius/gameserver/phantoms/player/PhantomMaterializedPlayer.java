@@ -608,7 +608,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		}
 	}
 
-	boolean tryPrepareSoftCleanup(long expectedEpoch)
+	boolean tryPrepareSoftCleanup(long expectedEpoch, java.util.function.BooleanSupplier admission)
 	{
 		synchronized (_actionMonitor)
 		{
@@ -625,7 +625,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				return false;
 			}
 			// The scope shares this monitor. Its idle seal invokes no registry callback or persistence.
-			if (!_nativeWork.trySealIdleTerminal(expectedEpoch)) { return false; }
+			if (!admission.getAsBoolean() || !_nativeWork.trySealIdleTerminal(expectedEpoch)) { return false; }
 			_actionAdmissionOpen = false;
 			return true;
 		}
