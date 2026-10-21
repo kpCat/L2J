@@ -147,7 +147,9 @@ public final class PhantomBackgroundModel
 				break;
 			}
 			final Loadout loadout = state.loadout();
-			if ((mp < loadout.skillMpPerEncounter()) || !has(counts, loadout.shotItemId(), loadout.shotsPerEncounter()) || !has(counts, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter()))
+			// Ordinary combat remains possible without an optional charge; mandatory skill/upkeep resources do not.
+			final int shots = request.mode() == BatchMode.ORDINARY_DEATH_DROP && !has(counts, loadout.shotItemId(), loadout.shotsPerEncounter()) ? 0 : loadout.shotsPerEncounter();
+			if ((mp < loadout.skillMpPerEncounter()) || !has(counts, loadout.shotItemId(), shots) || !has(counts, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter()))
 			{
 				reason = ResultReason.RESOURCE_RESERVE;
 				break;
@@ -200,7 +202,7 @@ public final class PhantomBackgroundModel
 			{
 				mergeDelta(prospectiveDeltas, request.manorFormula().seedItemId(), -consumedSeeds);
 			}
-			mergeDelta(prospectiveDeltas, loadout.shotItemId(), -loadout.shotsPerEncounter());
+			mergeDelta(prospectiveDeltas, loadout.shotItemId(), -shots);
 			mergeDelta(prospectiveDeltas, loadout.summonResourceItemId(), -loadout.summonResourcesPerEncounter());
 			if (request.mode() == BatchMode.ORDINARY_DEATH_DROP)
 			{
@@ -219,7 +221,7 @@ public final class PhantomBackgroundModel
 			acquisitionTargetDelta = Math.addExact(acquisitionTargetDelta, effectiveRoll.acquisitionCounts().getOrDefault(request.targetItemId(), 0L));
 
 			consume(counts, deltas, request.manorFormula() == null ? 0 : request.manorFormula().seedItemId(), consumedSeeds);
-			consume(counts, deltas, loadout.shotItemId(), loadout.shotsPerEncounter());
+			consume(counts, deltas, loadout.shotItemId(), shots);
 			consume(counts, deltas, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter());
 			mp -= loadout.skillMpPerEncounter();
 			final double seconds = encounterMillis / 1000d;

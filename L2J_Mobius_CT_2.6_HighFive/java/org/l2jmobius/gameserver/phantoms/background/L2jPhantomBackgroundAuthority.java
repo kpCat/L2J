@@ -963,7 +963,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			}
 			expectedCount = expectedAction == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
 		}
-		if ((expectedCount <= 0) || (expectedCount > 100) || (goal.shotsPerEncounter() != expectedCount) || (player.getInventory().getAllItemsByItemId(goal.shotItemId(), false).stream().mapToLong(Item::getCount).sum() < expectedCount))
+		if ((expectedCount <= 0) || (expectedCount > 100) || (goal.shotsPerEncounter() != expectedCount))
 		{
 			throw new IllegalArgumentException("Configured shot count does not match the bounded per-encounter model contract.");
 		}
@@ -1251,7 +1251,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
     public static String configuredSimulationFingerprint()
     {
-        return digest("ORDINARY_SCALAR_V2_NATIVE_TARGET_HP", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
+        return digest("ORDINARY_SCALAR_V2_NATIVE_TARGET_HP_OPTIONAL_SHOTS_066", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
             PlayerConfig.MAX_BONUS_SP, RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
             RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
             RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,

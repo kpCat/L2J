@@ -199,12 +199,12 @@ public final class PhantomNativeWorkScope implements Owner
 	@Override public boolean prepareOffensiveShot(boolean magic)
 	{
 		if (!_requiresOffensiveShots) { return true; }
-		if (!isCurrent() || _state != State.OPEN || _player.hasPendingOwnedStore()) { return false; }
-		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(_player, _player, magic);
+		if (!isCurrent() || _state != State.OPEN || !nativeObservationHealthy()) { return false; }
+		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(_player, _player, magic) != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.FAILED;
 	}
 	@Override public boolean prepareSummonOffensiveShot(org.l2jmobius.gameserver.model.actor.Summon summon, boolean magic)
 	{
-		return !_requiresOffensiveShots || isCurrent() && _state == State.OPEN && !_player.hasPendingOwnedStore() && org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(summon, _player, magic);
+		return !_requiresOffensiveShots || isCurrent() && _state == State.OPEN && nativeObservationHealthy() && org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(summon, _player, magic) != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.FAILED;
 	}
 	@Override public PlayerNativeEvidence evidence() { return _evidence; }
 	@Override public boolean nativeObservationHealthy() { return _failure.isEmpty() && !_player.hasPendingOwnedStore(); }

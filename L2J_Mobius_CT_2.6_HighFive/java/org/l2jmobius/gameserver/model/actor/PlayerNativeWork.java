@@ -345,7 +345,7 @@ public final class PlayerNativeWork
 	}
 	public enum Origin { NEW_NATIVE_ACTION, DELAYED_CONTINUATION }
 
-	/** Only explicitly configured Phantom owners require a paid native charge. Ordinary actors bypass this policy. */
+	/** Explicit Phantom charge preparation preserves owner fences; missing optional stock permits native combat. */
 	public static boolean prepareOffensiveShot(Creature actor, boolean magic)
 	{
 		final Player player = actor instanceof Player direct ? direct : actor instanceof Summon summon ? summon.getOwner() : null;

@@ -6474,6 +6474,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var target = spawnExactPointMonster(20035, Double.MAX_VALUE); final double hp = target.getCurrentHp();
 			try
 			{
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, true) && !summon.isChargedShot(ShotType.BLESSED_SPIRITSHOTS), "Empty beast BSS must allow an unboosted action without a charge.");
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, false) && !summon.isChargedShot(ShotType.SOULSHOTS), "Empty beast SS must allow an unboosted action without a charge.");
+				PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(6645, -1), "Native summon preparation fabricated beast SS.");
+				PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(6647, -1), "Native summon preparation fabricated beast BSS.");
+				// Explicit finite TEST input for the separate paid-charge measurement.
+				_player.getInventory().addItem(ItemProcessType.REWARD, 6645, 60, _player, this);
+				_player.getInventory().addItem(ItemProcessType.REWARD, 6647, 60, _player, this);
 				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, true) && summon.isChargedShot(ShotType.BLESSED_SPIRITSHOTS), "Controlled actor has no native paid beast BSS.");
 				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, false) && summon.isChargedShot(ShotType.SOULSHOTS), "Controlled actor has no native paid beast SS.");
 				final long before = _player.getInventory().getInventoryItemCount(6645, -1);
@@ -6481,7 +6488,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < hp && _player.getInventory().getInventoryItemCount(6645, -1) <= before - 2L * summon.getSoulShotsPerHit(), 20_000), "Continuous controlled-actor attack did not consume beast SS across native hits: spawned=" + summon.isSpawned() + "; current=" + (_player.getSummon() == summon) + "; hp=" + target.getCurrentHp() + '/' + hp + "; stock=" + _player.getInventory().getInventoryItemCount(6645, -1) + '/' + before + "; AI=" + summon.getAI().getIntention());
 				summon.abortAttack(); summon.getAI().setIntention(Intention.IDLE); _player.setPet(null);
 				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.prepareOffensiveShot(summon, true), "Detached already charged summon borrowed the current owner's admission.");
-				context.record("shots061.hybridAndSummon", "Physical class retains SS+BSS recharge; exact NG native BSS compatibility; native servitor14839 charged by owner inventory, repeated real hits consume6645; beast BSS6647 native handler; finite authorized stock top-up only");
+				context.record("shots066.hybridAndSummon", "Physical class retains SS+BSS recharge; exact NG native BSS compatibility; empty beast stock stays empty; finite TEST60each supplied before paid measurement; native servitor14839 repeated real hits consume6645; beast BSS6647 native handler");
 			}
 			finally { summon.abortAttack(); summon.getAI().setIntention(Intention.IDLE); _player.setPet(null); summon.deleteMe(); target.deleteMe(); }
 		}

@@ -10,7 +10,14 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/RUNTIME_
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/TASK.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/TEST_CASES.md
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/util/LocalRuntimeShutdown.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomNativeShotControl.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/commons/util/LocalRuntimeShutdownTest.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCampaign058DatabaseLane.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCombatServerIntegrationSuite.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java

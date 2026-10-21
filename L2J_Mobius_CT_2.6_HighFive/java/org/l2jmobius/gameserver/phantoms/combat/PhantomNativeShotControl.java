@@ -41,7 +41,7 @@ public final class PhantomNativeShotControl implements AutoCloseable
 			final boolean preferredCharged = magic && selected.getEtcItem().isBlessed() ? _player.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) : charged(magic);
 			if (!preferredCharged && !(ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(_player, selected, false) && charged(magic)))
 			{
-				return charged(magic) ? ShotOutcome.ACTIVATED : ShotOutcome.UNAVAILABLE;
+				return ShotOutcome.FAILED;
 			}
 			for (int active : List.copyOf(_player.getAutoSoulShot()))
 			{
@@ -78,38 +78,41 @@ public final class PhantomNativeShotControl implements AutoCloseable
 		return selected;
 	}
 
-	/** Last native action boundary: action type, never character archetype, determines the paid charge. */
-	public static boolean chargeOffensive(org.l2jmobius.gameserver.model.actor.Creature actor, Player owner, boolean magic)
+	/** Optional paid charge at the native boundary. Missing stock differs from a rejected/failed mutation. */
+	public static ShotOutcome chargeOffensive(org.l2jmobius.gameserver.model.actor.Creature actor, Player owner, boolean magic)
 	{
-		if (actor instanceof org.l2jmobius.gameserver.model.actor.Summon summon && (owner.getSummon() != summon || summon.isAlikeDead())) { return false; }
-		if (magic ? actor.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) || actor.isChargedShot(ShotType.SPIRITSHOTS) : actor.isChargedShot(ShotType.SOULSHOTS)) { return true; }
+		if (actor instanceof org.l2jmobius.gameserver.model.actor.Summon summon && (owner.getSummon() != summon || summon.isAlikeDead())) { return ShotOutcome.FAILED; }
+		if (charged(actor, magic)) { return ShotOutcome.ACTIVATED; }
 		try
 		{
 			if (actor instanceof org.l2jmobius.gameserver.model.actor.Summon summon)
 			{
-				if (owner.getSummon() != summon || summon.isAlikeDead()) { return false; }
-				// Owner explicitly permits finite unpacked beast-shot stock for Phantom companions.
-				// Native H5 handlers consume the owner's inventory for pets and servitors alike.
+				if (owner.getSummon() != summon || summon.isAlikeDead()) { return ShotOutcome.FAILED; }
+				// Native H5 handlers consume existing owner stock for pets and servitors alike.
 				final int id = magic ? 6647 : 6645;
 				final int perHit = magic ? summon.getSpiritShotsPerHit() : summon.getSoulShotsPerHit();
-				if (perHit <= 0 || perHit > 100) { return false; }
+				if (perHit <= 0) { return ShotOutcome.UNAVAILABLE; }
+				if (perHit > 100) { return ShotOutcome.FAILED; }
 				final var template = ItemData.getInstance().getTemplate(id);
-				if (template == null || template.getDefaultAction() != (magic ? ActionType.SUMMON_SPIRITSHOT : ActionType.SUMMON_SOULSHOT)) { return false; }
-				var item = owner.getInventory().getItemByItemId(id);
-				if (item == null || item.getCount() < perHit)
-				{
-					final int count = perHit * 60;
-					if (!owner.getInventory().validateWeight(Math.multiplyExact(count, template.getWeight())) || item == null && !owner.getInventory().validateCapacity(1)) { return false; }
-					item = owner.addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, id, count, summon, false);
-				}
-				return item != null && ItemHandler.getInstance().getHandler(item.getEtcItem()) != null && ItemHandler.getInstance().getHandler(item.getEtcItem()).onItemUse(owner, item, false);
+				if (template == null || template.getDefaultAction() != (magic ? ActionType.SUMMON_SPIRITSHOT : ActionType.SUMMON_SOULSHOT)) { return ShotOutcome.FAILED; }
+				final var item = owner.getInventory().getItemByItemId(id);
+				if (item == null || item.getCount() < perHit) { return ShotOutcome.UNAVAILABLE; }
+				final var handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
+				return handler != null && handler.onItemUse(owner, item, false) && charged(actor, magic) ? ShotOutcome.ACTIVATED : ShotOutcome.FAILED;
 			}
 			final var weapon = owner.getActiveWeaponItem();
-			if (actor != owner || weapon == null || owner.getActiveWeaponInstance() == null || weapon == owner.getFistsWeaponItem()) { return false; }
+			if (actor != owner) { return ShotOutcome.FAILED; }
+			if (weapon == null || owner.getActiveWeaponInstance() == null || weapon == owner.getFistsWeaponItem()) { return ShotOutcome.UNAVAILABLE; }
 			final Item selected = select(owner, weapon, magic);
-			return selected != null && ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(owner, selected, false);
+			if (selected == null) { return ShotOutcome.UNAVAILABLE; }
+			return ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(owner, selected, false) && charged(actor, magic) ? ShotOutcome.ACTIVATED : ShotOutcome.FAILED;
 		}
-		catch (RuntimeException failure) { return false; }
+		catch (RuntimeException failure) { return ShotOutcome.FAILED; }
+	}
+
+	private static boolean charged(org.l2jmobius.gameserver.model.actor.Creature actor, boolean magic)
+	{
+		return magic ? actor.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) || actor.isChargedShot(ShotType.SPIRITSHOTS) : actor.isChargedShot(ShotType.SOULSHOTS);
 	}
 
 	private boolean charged(boolean magic)

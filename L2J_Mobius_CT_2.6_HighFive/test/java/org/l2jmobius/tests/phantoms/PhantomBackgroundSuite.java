@@ -432,6 +432,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("07-grouped-ungrouped-occurrence-parity", _ -> testDropOccurrenceParity());
 		registry.add("08-ordinary-spoil-separate-from-death-drops", _ -> testOrdinarySpoil());
 		registry.add("09-mixed-rate-empty-random-occurrence-parity031", _ -> testMixedRateOccurrence031());
+		registry.add("066-ordinary-farm-continues-after-optional-shots-exhausted", _ -> testOptionalShots066());
 	}
 
 	private void registerTransaction(PhantomTestRegistry registry)
@@ -5712,6 +5713,22 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(-((long) first.encounters()), first.inventoryDelta().itemDeltas().get(shotItemId), "Soulshot/spiritshot consumption is not exact.");
 			PhantomAssertions.assertEquals(-((long) first.encounters()), first.inventoryDelta().itemDeltas().get(6645), "Summon-resource consumption is not exact.");
 			PhantomAssertions.assertTrue(first.vitals().currentMp() < state.vitals().currentMp(), "Selected-skill MP was not consumed.");
+		}
+	}
+
+	private void testOptionalShots066()
+	{
+		for (ModelKind kind : List.of(ModelKind.MELEE, ModelKind.MAGIC, ModelKind.SUMMON_PRIMARY))
+		{
+			for (int stock : List.of(0, 1))
+			{
+				final InventoryFacts inventory = InventoryFacts.sorted(List.of(1835), stock == 0 ? List.of() : List.of(new ItemObject(1, 1835, stock, true, ItemLocation.INVENTORY)), "optional066", stock, 100000, stock, 100);
+				final Loadout loadout = new Loadout(1, 1, 0, 0, 1835, 1, 0, 0);
+				final var state = state(1, 101, State.READY, 100, 100, inventory, combat(kind, 1, 1, 0), loadout);
+				final var result = new PhantomBackgroundModel().evaluate(request(state, target(1, 1, 0, List.of())));
+				PhantomAssertions.assertTrue(result.encounters() >= 2, "Optional shot exhaustion stopped ordinary background farm: " + kind + "/" + stock);
+				PhantomAssertions.assertEquals(-(long) stock, result.inventoryDelta().itemDeltas().getOrDefault(1835, 0L), "Background consumed absent optional shots or skipped finite stock.");
+			}
 		}
 	}
 

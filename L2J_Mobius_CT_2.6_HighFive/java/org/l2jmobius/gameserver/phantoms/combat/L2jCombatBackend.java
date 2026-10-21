@@ -1213,7 +1213,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			if (_player.getNativeWorkOwner() != null && _player.getNativeWorkOwner().requiresOffensiveShots() && activateShot(PhantomCombatMode.MELEE_PHYSICAL) != ShotOutcome.ACTIVATED) { return ActionOutcome.UNAVAILABLE; }
+			if (_player.getNativeWorkOwner() != null && _player.getNativeWorkOwner().requiresOffensiveShots() && activateShot(PhantomCombatMode.MELEE_PHYSICAL) == ShotOutcome.FAILED) { return ActionOutcome.UNAVAILABLE; }
 			_player.getAI().setIntention(Intention.ATTACK, target);
 			return ActionOutcome.ISSUED;
 		}
@@ -1246,7 +1246,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
-			if (_player.getNativeWorkOwner() != null && _player.getNativeWorkOwner().requiresOffensiveShots() && _shots.activate(skill.isMagic()) != ShotOutcome.ACTIVATED) { return ActionOutcome.UNAVAILABLE; }
+			if (_player.getNativeWorkOwner() != null && _player.getNativeWorkOwner().requiresOffensiveShots() && _shots.activate(skill.isMagic()) == ShotOutcome.FAILED) { return ActionOutcome.UNAVAILABLE; }
 			_player.getAI().setIntention(Intention.CAST, skill, target);
 			return ActionOutcome.ISSUED;
 		}
