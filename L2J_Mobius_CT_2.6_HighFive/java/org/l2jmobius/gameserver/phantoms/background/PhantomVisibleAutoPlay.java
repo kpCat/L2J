@@ -317,7 +317,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				else if (session.noTargetSince < 0) { session.noTargetSince = now; }
 				// A depleted local target set needs time for the existing alternate-goal route
 				// before useful debt expires. This requests replan without renewing earned progress.
-				expired = stalled(session, now) || (!target && !inFlight && (session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS));
+				expired = stalled(session, now) || (!target && !inFlight && (session.noTargetSince >= 0) && org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.pveNoTargetExpired(session._rewardedFarm, now - session.noTargetSince, RECOVERY_DELAY_NANOS, STALL_DELAY_NANOS));
 				repair = !expired && !inFlight && (session._engagement == null || !session._engagement.holdsMovement()) && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
 				if (repair) { session._repairAttempted = true; }
 				reportStall = expired && !session._stallReported;
@@ -423,6 +423,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		if ((progress.damageSequence() < session._damageSequence) || (progress.rewardSequence() < session._rewardSequence) || (progress.farmCycleSequence() < session._cycleSequence) || (progress.lootSequence() < session._lootSequence)) { return; }
 		// A reward on an undamaged target is not useful; concurrent loot makes its timestamp ambiguous.
 		final boolean reward = (progress.rewardSequence() > session._rewardSequence) && (progress.usefulProgressNanos() > session._nativeUsefulNanos) && (progress.lootSequence() == session._lootSequence);
+		if (reward || progress.farmCycleSequence() > session._cycleSequence) { session._rewardedFarm = true; }
 		if ((progress.damageSequence() > session._damageSequence) || (progress.farmCycleSequence() > session._cycleSequence) || reward)
 		{
 			session._usefulSince = now;
@@ -762,6 +763,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private long nextTargetCheck;
 		private long noTargetSince = -1;
 		private long _usefulSince;
+		private boolean _rewardedFarm;
 		private long _damageSequence;
 		private long _rewardSequence;
 		private long _cycleSequence;
@@ -796,7 +798,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				synchronized (previous)
 				{
-					_usefulSince = previous._usefulSince; noTargetSince = previous.noTargetSince;
+					_usefulSince = previous._usefulSince; noTargetSince = previous.noTargetSince; _rewardedFarm = previous._rewardedFarm;
 					_damageSequence = previous._damageSequence; _rewardSequence = previous._rewardSequence; _cycleSequence = previous._cycleSequence;
 					_lootSequence = previous._lootSequence; _nativeUsefulNanos = previous._nativeUsefulNanos; _nativeBaseline = previous._nativeBaseline;
 					_repairAttempted = previous._repairAttempted; _stallReported = previous._stallReported;

@@ -16,6 +16,11 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 			&& (recovering ? hp * 100 >= maximumHp * PVE_RECOVERY_HP_PERCENT : hp * 100 > maximumHp * PVE_CROWD_RETREAT_HP_PERCENT) && mp >= requiredMp;
 	}
 
+	public static boolean pveNoTargetExpired(boolean rewardedFarm, long absenceNanos, long initialWaitNanos, long usefulWaitNanos)
+	{
+		return absenceNanos >= (rewardedFarm ? usefulWaitNanos : initialWaitNanos);
+	}
+
 	public PhantomCombatPolicy
 	{
 		if ((maximumSessions < 1) || (maximumSessions > 1_000_000) || (maximumSessionsPerPulse != 64) || (maximumThreatEntries != 32) || (maximumSelectedSkills != 4) || (maximumObservedAttackers != 16) || (maximumLootCandidates != 32) || (maximumRememberedLootIds != 64) || (maximumAcquisitionDistance != 2000) || (maximumLootDistance < 200) || (maximumLootDistance > 1200) || (pulseIntervalMillis != 250) || (defaultTimeoutMillis != 30_000) || (maximumTimeoutMillis != MAXIMUM_TIMEOUT_MILLIS) || (lootTimeoutMillis != 5000) || (lowHpPercent != 15) || (minimumMpReservePercent != 10))

@@ -249,6 +249,12 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			final ActorSnapshot snapshot = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 150, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 			PhantomAssertions.assertTrue(Double.compare(snapshot.currentCp(), 150) == 0, "Snapshot normalized exact canonical CP.");
 		});
+		registry.add("066-rewarded-farm-retains-existing-respawn-window", _ ->
+		{
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveNoTargetExpired(true,35,30,90), "A productive field was abandoned before its existing useful-debt window.");
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveNoTargetExpired(false,35,30,90), "An unproven empty field lost its original short replan bound.");
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveNoTargetExpired(true,90,30,90), "A productive field gained unlimited idle time.");
+		});
 		registry.add("061-shared-native-pve-resource-recovery-hysteresis", _ ->
 		{
 			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveResourcesReady(65, 100, 100, 20, false), "Preparation admitted below Combat crowd withdrawal.");

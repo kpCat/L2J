@@ -103,7 +103,8 @@ public final class PhantomTask066DwarfSetup
 				player = Player.load(objectId); PhantomAssertions.assertTrue(player != null && !player.isGM() && player.getActiveClass() == 53 && player.getClient() == null, "Own066 native dwarf load differs.");
 				player.setPlayerClass(54); player.setBaseClass(54); player.setLearningClass(player.getPlayerClass()); player.getStat().setExp(player.getStat().getExpForLevel(20)); player.getStat().setLevel((byte)20); player.setSp(0); Thread.sleep(500); player.rewardSkills();
 				player.addSkill(SkillData.getInstance().getSkill(254,2),true);
-				for (int skill : List.of(42,248,239)) { player.addSkill(SkillData.getInstance().getSkill(skill,1),true); }
+				// Scavenger has no Crystallize capability; separate native Artisan tests own the G8 proof.
+				for (int skill : List.of(42,239)) { player.addSkill(SkillData.getInstance().getSkill(skill,1),true); }
 				player.setXYZInvisible(point.x(),point.y(),z); player.setOnlineStatus(true,false); player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp());
 				final var disposition = PhantomLootDispositionPolicy.getInstance(); final var items = ItemData.getInstance();
 				final var low = disposition.recipeRoles().entrySet().stream().filter(value -> value.getValue().keyPart() && value.getValue().highestProductGrade() >= 1 && value.getValue().highestProductGrade() <= 2 && disposition.category(items.getTemplate(value.getKey())) == PhantomLootDispositionPolicy.Disposition.SELL_NPC).min(Map.Entry.comparingByKey()).orElseThrow();
