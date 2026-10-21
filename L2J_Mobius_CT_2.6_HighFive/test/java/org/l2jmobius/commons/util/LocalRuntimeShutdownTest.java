@@ -1,6 +1,7 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.commons.util;
 
+import java.nio.file.Path;
 import java.util.Properties;
 
 /** Pure operator boundary checks, without starting or stopping a server. */
@@ -38,6 +39,11 @@ public final class LocalRuntimeShutdownTest
 		System.setProperty("phantom.task065.control", "true");
 		try
 		{
+			final Path module = Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
+			final Path candidate = module.getRoot().resolve("PhantomWorld/Living-Presence-065-candidate");
+			if (!LocalRuntimeShutdown.validTask065Root(candidate, module, false)
+				|| LocalRuntimeShutdown.validTask065Root(candidate.getParent().resolve("World-Integrated-064-candidate/Living-Presence-065-candidate"), module, false)
+				|| LocalRuntimeShutdown.validTask065Root(module.resolve("Living-Presence-065-candidate"), module, false)) { throw new AssertionError("Exact065 release root boundary failed."); }
 			final String own = "l2jmobiush5_phantom_release_065a";
 			if (!LocalRuntimeShutdown.validJdbc("jdbc:mysql://127.0.0.1:3308/" + own + "?useSSL=false", own)) { throw new AssertionError("Exact065 JDBC rejected."); }
 			if (LocalRuntimeShutdown.validJdbc(jdbc, schema)) { throw new AssertionError("TASK065 inherited protected064 JDBC authority."); }

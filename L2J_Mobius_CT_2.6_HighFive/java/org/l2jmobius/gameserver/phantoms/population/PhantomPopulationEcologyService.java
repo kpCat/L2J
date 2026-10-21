@@ -292,13 +292,36 @@ public final class PhantomPopulationEcologyService
 	private void rebuildAdmissionLocked()
 	{
 		_admittedPreparation.clear();
-		_demandFacts.values().stream().filter(fact -> { final Entry entry = _entries.get(fact.profileId()); return entry != null && entry._participating && !entry._liveOwner && !entry._terminal && needsWorkLocked(entry) && progressClock() >= entry._nextRetryPulse; })
-			.sorted(DEMAND_ORDER).limit(_preparationSlots).forEach(fact -> _admittedPreparation.add(fact.profileId()));
+		final List<DemandFact> candidates = preparationCandidatesLocked();
+		if ((_preparationSlots > 0) && !candidates.isEmpty())
+		{
+			final long focus = preferredPreparationFocusLocked(candidates);
+			_admittedPreparation.add(focus);
+			candidates.stream().filter(fact -> fact.profileId() != focus).limit(_preparationSlots - 1L).forEach(fact -> _admittedPreparation.add(fact.profileId()));
+		}
 		for (long id : List.copyOf(_materializationQueued))
 		{
 			if (!_admittedPreparation.contains(id)) { _materializationQueued.remove(id); _materializationDue.remove(id); queueLocked(id); }
 		}
 		for (long id : _admittedPreparation) { queueMaterializationLocked(id, false); }
+	}
+
+	private List<DemandFact> preparationCandidatesLocked()
+	{
+		return _demandFacts.values().stream().filter(fact -> { final Entry entry = _entries.get(fact.profileId()); return entry != null && entry._participating && !entry._liveOwner && !entry._terminal && needsWorkLocked(entry) && progressClock() >= entry._nextRetryPulse; }).sorted(DEMAND_ORDER).toList();
+	}
+
+	/** The existing focus cursor rotates over stable demand age after its bounded quantum. */
+	private long preferredPreparationFocusLocked(List<DemandFact> candidates)
+	{
+		if (candidates.isEmpty()) { return 0; }
+		final DemandFact closest = candidates.getFirst();
+		final DemandFact current = candidates.stream().filter(fact -> fact.profileId() == _focusId && fact.couldKnow() == closest.couldKnow()).findFirst().orElse(null);
+		if (current == null) { return closest.profileId(); }
+		if (_focusBatches < 8) { return current.profileId(); }
+		final Comparator<DemandFact> ageOrder = Comparator.comparingLong(DemandFact::firstDemandNanos).thenComparingLong(DemandFact::profileId);
+		final List<DemandFact> peers = candidates.stream().filter(fact -> fact.profileId() != current.profileId() && fact.couldKnow() == current.couldKnow()).sorted(ageOrder).toList();
+		return peers.stream().filter(fact -> ageOrder.compare(fact, current) > 0).findFirst().orElse(peers.isEmpty() ? current : peers.getFirst()).profileId();
 	}
 
 	/** One service timer, sharing the population budget; the wake itself never performs I/O. */
@@ -711,13 +734,8 @@ public final class PhantomPopulationEcologyService
 
 	private long selectFocusLocked()
 	{
-		final List<DemandFact> ranked = _demandFacts.values().stream().filter(fact -> _admittedPreparation.contains(fact.profileId())).sorted(DEMAND_ORDER).toList();
-		long selected = ranked.isEmpty() ? (_materializationDue.isEmpty() ? 0 : _materializationDue.peekFirst()) : ranked.getFirst().profileId();
-		if (!ranked.isEmpty() && (_focusBatches >= 8) && (_focusId == selected))
-		{
-			final DemandFact current = ranked.getFirst();
-			selected = ranked.stream().filter(fact -> fact.profileId() != _focusId && fact.couldKnow() == current.couldKnow()).min(Comparator.comparingLong(DemandFact::firstDemandNanos).thenComparingLong(DemandFact::profileId)).map(DemandFact::profileId).orElse(selected);
-		}
+		final long preferred = preferredPreparationFocusLocked(preparationCandidatesLocked());
+		final long selected = _admittedPreparation.contains(preferred) ? preferred : _materializationDue.isEmpty() ? 0 : _materializationDue.peekFirst();
 		if (selected != _focusId) { _focusId = selected; _focusBatches = 0; _focusStartedMillis = progressClock(); }
 		if (selected > 0) { _focusBatches++; }
 		return selected;

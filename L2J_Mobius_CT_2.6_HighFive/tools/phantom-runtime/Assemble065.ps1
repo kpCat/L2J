@@ -67,7 +67,7 @@ if($Kind -ceq 'Test'){
     if($output065 -ine (Join-Path $task065 'runtime')){throw 'TASK065: exact test root required.'}
     $schema065='l2jmobiush5_phantom_test_065';$role065='MUTABLE_FIXTURE';$ports065=@(2245,7945,9245)
 }else{
-    if((Split-Path $output065 -Leaf) -cne 'Living-Presence-065-candidate' -or $output065.StartsWith((Split-Path $module065 -Parent)+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'TASK065: external exact candidate name required.'}
+    if($output065 -ine (Join-Path ([IO.Path]::GetPathRoot($module065)) 'PhantomWorld/Living-Presence-065-candidate')){throw 'TASK065: exact authorized external candidate path required.'}
     $schema065='l2jmobiush5_phantom_release_065a';$role065='RELEASE_CANDIDATE';$ports065=@(2145,7845,9145)
 }
 $javaRelease065=Join-Path $JavaHome 'release'

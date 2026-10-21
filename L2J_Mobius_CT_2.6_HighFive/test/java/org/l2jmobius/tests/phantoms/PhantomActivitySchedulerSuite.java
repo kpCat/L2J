@@ -165,6 +165,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("29-calendar-active-releases-after-real-locality-expiry", this::testCalendarLocalityRelease);
 		registry.add("30-calendar-sleeping-denies-locality-and-background-work", this::testSleepingCalendarLocality);
 		registry.add("31-old-unseen-owner-reclaims-without-recent-human-pin", _ -> testSoftReclamation(true));
+		registry.add("32-soft-reclaimed-owner-waits-one-grace-before-return", _ -> testSoftReclamation(false, true));
 	}
 
 	private void testCalendarLocalityRelease(PhantomTestContext context)
@@ -579,6 +580,11 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 
 	private void testSoftReclamation(boolean oldUnseen)
 	{
+		testSoftReclamation(oldUnseen, false);
+	}
+
+	private void testSoftReclamation(boolean oldUnseen, boolean returnDuringGrace)
+	{
 		final var clock = new ManualClock();
 		final var delegate = new FakeMaterializationPort();
 		final Set<Long> local = new java.util.HashSet<>(Set.of(1L));
@@ -624,6 +630,19 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(delegate.isMaterialized(2), "Capacity reclamation did not admit the new human-nearby Player.");
 			PhantomAssertions.assertFalse(scheduler.find(1).orElseThrow().effectiveState().requiresMaterialization(), "Soft reclamation left scheduler falsely materialized.");
 			PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, scheduler.find(2).orElseThrow().effectiveState(), "New human promotion did not publish canonical ownership.");
+			if (returnDuringGrace)
+			{
+				policy.observe(2);
+				local.remove(2L); local.add(1L);
+				scheduler.submitSignal(1, signal("human.local", 2, PhantomActivityState.ACTIVE, 120_000));
+				for (int pulse = 0; pulse < 4; pulse++) { scheduler.pulse(); }
+				PhantomAssertions.assertFalse(delegate.isMaterialized(1), "A fresh signal bypassed soft reclamation hysteresis and ping-ponged the same slot.");
+				PhantomAssertions.assertTrue(delegate.isMaterialized(2), "One grace period evicted both owners.");
+				clock.advanceMillis(2_001);
+				for (int pulse = 0; pulse < 3; pulse++) { scheduler.pulse(); }
+				clock.advanceMillis(1_001); scheduler.pulse();
+				PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Soft cooldown permanently starved a new current-local request after its bounded grace.");
+			}
 		}
 		finally { stop(scheduler); }
 	}

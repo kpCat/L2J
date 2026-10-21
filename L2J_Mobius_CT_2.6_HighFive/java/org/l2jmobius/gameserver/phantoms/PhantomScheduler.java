@@ -37,6 +37,7 @@ import java.util.concurrent.ScheduledFuture;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.TransitionOutcome;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityResultCategory;
@@ -1013,12 +1014,13 @@ public final class PhantomScheduler
 
 	private TransitionPlan transitionPlanLocked(Slot slot, PhantomActivityState requested, long logicalNow)
 	{
-		if (slot._softReclaimRequested)
+		if (slot._softReclaimSelection != null)
 		{
-			slot._softReclaimRequested = false;
+			final var selection = slot._softReclaimSelection;
+			slot._softReclaimSelection = null;
 			if (slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE))
 			{
-				return new TransitionPlan(slot._profileId, slot._generation, requested.requiresMaterialization() ? PhantomActivityState.WARM : requested, BoundaryAction.RECLAIM_SOFT);
+				return new TransitionPlan(slot._profileId, slot._generation, requested.requiresMaterialization() ? PhantomActivityState.WARM : requested, BoundaryAction.RECLAIM_SOFT, selection.materializedAtNanos(), selection.requestingProfileId());
 			}
 		}
 		if (slot._retainedFailureKind != RetainedFailureKind.NONE)
@@ -1043,6 +1045,14 @@ public final class PhantomScheduler
 			slot._blockedTarget = null;
 			slot._explicitRetry = false;
 			slot._transitionStatus = slot._unregisterRequested ? PhantomActivityTransitionStatus.UNREGISTER_PENDING : PhantomActivityTransitionStatus.STABLE;
+			return null;
+		}
+		if (!slot._effectiveState.requiresMaterialization() && requested.requiresMaterialization() && logicalNow < slot._softReclaimCooldownUntilNanos)
+		{
+			// Fresh signals cannot immediately readmit the owner whose soft release supplied this slot.
+			slot._transitionStatus = PhantomActivityTransitionStatus.DEFERRED;
+			slot._blockedTarget = requested;
+			slot._retryDueNanos = slot._softReclaimCooldownUntilNanos;
 			return null;
 		}
 
@@ -1110,7 +1120,7 @@ public final class PhantomScheduler
 					yield outcome;
 				}
 				case DEMATERIALIZE -> _materializationPort.dematerialize(plan._profileTargetId);
-				case RECLAIM_SOFT -> _materializationPort.reclaimSoft(plan._profileTargetId);
+				case RECLAIM_SOFT -> _materializationPort.reclaimSoft(plan._profileTargetId, plan._materializedEpoch, plan._requestingProfileId);
 				case OBSERVE_LIFECYCLE_RELEASE -> !_materializationPort.hasLifecycleOwnership(plan._profileTargetId) && !_materializationPort.isMaterialized(plan._profileTargetId)
 					? TransitionOutcome.success() : TransitionOutcome.deferred("lifecycle.still_owned");
 				case RETRY_MATERIALIZATION_CLEANUP, RETRY_DEMATERIALIZATION_CLEANUP ->
@@ -1128,13 +1138,15 @@ public final class PhantomScheduler
 
 	private void requestSoftReclamation(long requestingProfileId)
 	{
-		final long profileId = _materializationPort.softReclaimCandidate(requestingProfileId);
+		final SoftReclaimSelection selection = _materializationPort.softReclaimSelection(requestingProfileId);
+		if (selection == null || selection.profileId() <= 0 || selection.profileId() == requestingProfileId) { return; }
+		final long logicalNow = _clock.nanoTime();
 		synchronized (_monitor)
 		{
-			final Slot candidate = _slots.get(profileId);
-			if ((_state == SchedulerState.RUNNING) && (candidate != null) && candidate._effectiveState.requiresMaterialization() && !candidate._processing && !candidate._localProcessing && !candidate._workInFlight && !candidate._boundaryInFlight && (candidate._retainedFailureKind == RetainedFailureKind.NONE) && reserveReadyLocked(candidate))
+			final Slot candidate = _slots.get(selection.profileId());
+			if ((_state == SchedulerState.RUNNING) && (candidate != null) && candidate._effectiveState.requiresMaterialization() && !candidate._processing && !candidate._localProcessing && !candidate._workInFlight && !candidate._boundaryInFlight && candidate._softReclaimSelection == null && logicalNow >= candidate._softReclaimCooldownUntilNanos && (candidate._retainedFailureKind == RetainedFailureKind.NONE) && reserveReadyLocked(candidate))
 			{
-				candidate._softReclaimRequested = true;
+				candidate._softReclaimSelection = selection;
 			}
 		}
 	}
@@ -1181,6 +1193,10 @@ public final class PhantomScheduler
 			}
 			final PhantomActivityState previous = slot._effectiveState;
 			setEffectiveStateLocked(slot, plan._targetState);
+			if (plan._action == BoundaryAction.RECLAIM_SOFT)
+			{
+				slot._softReclaimCooldownUntilNanos = saturatingAdd(Math.max(logicalNow, _clock.nanoTime()), millisToNanos(_policy.demotionGraceMillis()));
+			}
 			slot._retainedFailureKind = RetainedFailureKind.NONE;
 			slot._retryAttempt = 0;
 			slot._retryDueNanos = 0;
@@ -1525,7 +1541,8 @@ public final class PhantomScheduler
 		private boolean _boundaryInFlight;
 		private boolean _unregisterRequested;
 		private boolean _explicitRetry;
-		private boolean _softReclaimRequested;
+		private SoftReclaimSelection _softReclaimSelection;
+		private long _softReclaimCooldownUntilNanos;
 		private long _generation;
 		private long _boundaryGeneration;
 		private long _activityGeneration = 1;
@@ -1593,13 +1610,22 @@ public final class PhantomScheduler
 		private final long _generation;
 		private final PhantomActivityState _targetState;
 		private final BoundaryAction _action;
+		private final long _materializedEpoch;
+		private final long _requestingProfileId;
 
 		private TransitionPlan(long profileTargetId, long generation, PhantomActivityState targetState, BoundaryAction action)
+		{
+			this(profileTargetId, generation, targetState, action, 0, 0);
+		}
+
+		private TransitionPlan(long profileTargetId, long generation, PhantomActivityState targetState, BoundaryAction action, long materializedEpoch, long requestingProfileId)
 		{
 			_profileTargetId = profileTargetId;
 			_generation = generation;
 			_targetState = targetState;
 			_action = action;
+			_materializedEpoch = materializedEpoch;
+			_requestingProfileId = requestingProfileId;
 		}
 	}
 }

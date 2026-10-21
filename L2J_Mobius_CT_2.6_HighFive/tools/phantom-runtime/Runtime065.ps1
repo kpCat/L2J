@@ -39,7 +39,7 @@ if($schema065 -ceq 'l2jmobiush5_phantom_test_065'){
     if($role065 -cne 'MUTABLE_FIXTURE' -or $runtime065 -ine (Join-Path $module065 '.phantom-local/task065/runtime')){throw 'TASK065: exact fixture root required.'}
     $expectedPorts065=@(2245,7945,9245)
 }elseif($schema065 -ceq 'l2jmobiush5_phantom_release_065a'){
-    if($role065 -cne 'RELEASE_CANDIDATE' -or (Split-Path $runtime065 -Leaf) -cne 'Living-Presence-065-candidate' -or $runtime065.StartsWith((Split-Path $module065 -Parent)+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'TASK065: external exact candidate role/root required.'}
+    if($role065 -cne 'RELEASE_CANDIDATE' -or $runtime065 -ine (Join-Path ([IO.Path]::GetPathRoot($module065)) 'PhantomWorld/Living-Presence-065-candidate')){throw 'TASK065: exact authorized external candidate role/root required.'}
     $expectedPorts065=@(2145,7845,9145)
 }else{throw 'TASK065: historical/foreign schema forbidden.'}
 $manifest065=Read-Json065 (Join-Path $runtime065 'local-play.json')

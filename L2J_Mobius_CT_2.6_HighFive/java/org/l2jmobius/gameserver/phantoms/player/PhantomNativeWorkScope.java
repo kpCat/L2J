@@ -367,6 +367,21 @@ public final class PhantomNativeWorkScope implements Owner
 		}
 	}
 
+	/** Soft cleanup seals only a current idle lifetime; native timer callbacks remain outside this monitor. */
+	boolean trySealIdleTerminal(long expectedEpoch)
+	{
+		synchronized (_monitor)
+		{
+			if (expectedEpoch == 0 || _epoch != expectedEpoch || !isCurrent() || _state != State.OPEN || _permanentSeal || !_failure.isEmpty()
+				|| _checkpointThread != null || _ownedCheckpoint != null || _player.hasPendingOwnedStore() || !_outstanding.isEmpty()
+				|| PlayerNativeWork.current(this) != null) { return false; }
+			_permanentSeal = true;
+			_state = State.DRAINING;
+			_quiescentEnqueue = null;
+			return true;
+		}
+	}
+
 	/** Close roots without parking a shared worker needed by an earned descendant. */
 	boolean beginTerminalDrain()
 	{

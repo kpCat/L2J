@@ -631,15 +631,19 @@ public final class PhantomSystem
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
-				_reconcileMaterializationActivity.installSoftReclamation(requestingProfileId ->
+				_reconcileMaterializationActivity.installSoftReclamationEpochs(requestingProfileId ->
 				{
 					if (!_humanLocality.isLocal(requestingProfileId) && !hasAcceptedNativeJourney(requestingProfileId))
 					{
-						return 0;
+						return org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection.none();
 					}
 					final var snapshot = _materializationService.snapshot();
-					return snapshot.availablePermits() == 0 ? _materializationRetention.oldestSoft(snapshot.materializations().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList()) : 0;
-				}, profileId -> _materializationRetention.observe(profileId).reclaimable());
+					if (snapshot.availablePermits() != 0) { return org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection.none(); }
+					final long selected = _materializationRetention.oldestSoft(snapshot.materializations().stream().filter(entry -> entry.worldPresent() && safeSoftReclamation(entry.profileId(), productionGoals)).map(entry -> entry.profileId()).toList());
+					return snapshot.materializations().stream().filter(entry -> entry.profileId() == selected).findFirst()
+						.map(entry -> new org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection(entry.profileId(), entry.materializedAtNanos()))
+						.orElseGet(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection::none);
+				}, profileId -> safeSoftReclamation(profileId, productionGoals), requestingProfileId -> _humanLocality.isCurrentLocal(requestingProfileId) || hasAcceptedNativeJourney(requestingProfileId));
 				_backgroundService.installPeriodicFarm(profileId ->
 				{
 					if (periodicEcology == null)
@@ -3068,6 +3072,30 @@ public final class PhantomSystem
 		return java.util.List.copyOf(facts.values());
 	}
 
+	/** Durable owner reads belong only to cap-pressure selection/execution, never the native action hot path. */
+	private boolean safeSoftReclamation(long profileId, PhantomGoalStateStore goals)
+	{
+		try
+		{
+			if (!_materializationRetention.observe(profileId).reclaimable()) { return false; }
+			final var runtime = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
+			if ((runtime != null) && (runtime.inFlight() || runtime.persistenceInFlight())) { return false; }
+			final var stored = goals.load(profileId).orElse(null);
+			final var root = stored == null ? null : stored.goal();
+			if ((runtime != null) && (root == null ? runtime.goalId() != 0 : runtime.goalId() != root.goalId() || runtime.goalRevision() != root.revision() || runtime.goalStatus() != root.status())) { return false; }
+			if ((root != null) && (root.status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE)
+				&& ((_learningJourney != null && _learningJourney.protectsAutomaticRoot(profileId, root))
+					|| (_supplyJourney != null && _supplyJourney.ownsAutomaticIntent(profileId, root))
+					|| (_questInstanceService != null && _questInstanceService.ownsAutonomousIntent(profileId, root)))) { return false; }
+			return (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty();
+		}
+		catch (RuntimeException unavailable)
+		{
+			// An unavailable or ambiguous durable owner is a capacity wait, never eviction authority.
+			return false;
+		}
+	}
+
 	private PhantomMaterializationRetentionPolicy.Facts retentionFacts(long profileId)
 	{
 		final var snapshot = _materializationService.find(profileId).orElse(null);
@@ -3078,7 +3106,17 @@ public final class PhantomSystem
 		}
 		final var region = World.getInstance().getRegion(player);
 		final boolean visible = World.getInstance().getPlayers().stream().anyMatch(human -> human.isOnline() && !human.hasHeadlessOutboundSession() && (human.getInstanceId() == player.getInstanceId()) && (World.getInstance().getRegion(human) != null) && World.getInstance().getRegion(human).isSurroundingRegion(region));
-		return PhantomMaterializationRetentionPolicy.Facts.nativeFacts(player, _humanLocality.isLocal(profileId), visible, snapshot.admittedActionCount());
+		final var nativeFacts = PhantomMaterializationRetentionPolicy.Facts.nativeFacts(player, _humanLocality.isLocal(profileId), visible, snapshot.admittedActionCount());
+		final boolean protectedOwner = snapshot.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE
+			|| !snapshot.actionAdmissionOpen() || snapshot.firstCleanupIncident() != null || !player.hasHeadlessOutboundSession() || !player.isOnline() || player.isDead()
+			|| player.hasPendingOwnedStore() || player.isInStoreMode()
+			|| !(player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope)
+			|| scope.epoch() != snapshot.materializedAtNanos() || !scope.open() || scope.temporaryCheckpoint() || scope.firstNativeIncident() != null || scope.outstanding() != 0
+			|| ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId)))
+			|| ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId))
+			|| hasAcceptedNativeJourney(profileId)
+			|| ((_combatService != null) && _combatService.find(profileId).isPresent());
+		return new PhantomMaterializationRetentionPolicy.Facts(true, nativeFacts.humanLocal(), nativeFacts.nativeVisible(), nativeFacts.realParty(), nativeFacts.activeAction() || protectedOwner);
 	}
 
 	private Map<Long, PhantomTopologyPoint> liveMaterializedPoints()

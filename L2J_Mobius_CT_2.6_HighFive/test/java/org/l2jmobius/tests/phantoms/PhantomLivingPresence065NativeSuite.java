@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -89,6 +91,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 	{
 		registry.add("01-native-town-envelope-and-actual-regions", this::testTownEnvelope);
 		registry.add("02-native-hard-hold-then-old-idle-cap-reclamation", this::testCapPressure);
+		registry.add("03-exact-epoch-and-native-work-soft-cleanup-guards", this::testSoftCleanupGuards);
 	}
 
 	@Override
@@ -210,10 +213,20 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 		final var gate = new PhantomReconcileFirstActivityPort(boundary);
 		gate.installPopulationReadiness(presence, locality, ecology);
 		gate.installRetention(id -> schedulerRef.get().snapshot().state() == PhantomScheduler.SchedulerState.RUNNING && retention.observe(id).retained());
-		gate.installSoftReclamation(requester -> locality.isLocal(requester) && materialization.snapshot().availablePermits() == 0 ? retention.oldestSoft(materialization.snapshot().materializations().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList()) : 0, id -> retention.observe(id).reclaimable());
+		gate.installSoftReclamationEpochs(requester ->
+		{
+			if (!locality.isLocal(requester)) { return org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection.none(); }
+			final var snapshot = materialization.snapshot();
+			if (snapshot.availablePermits() != 0) { return org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection.none(); }
+			final long selected = retention.oldestSoft(snapshot.materializations().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList());
+			return snapshot.materializations().stream().filter(entry -> entry.profileId() == selected && entry.worldPresent()).findFirst()
+				.map(entry -> new org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection(entry.profileId(), entry.materializedAtNanos()))
+				.orElseGet(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection::none);
+		}, id -> retention.observe(id).reclaimable(), locality::isCurrentLocal);
 		final var scheduler = new PhantomScheduler(2, 100, 2, metrics, trace, gate, _ -> {});
 		schedulerRef.set(scheduler);
 		scheduler.installLocalControlPort(locality);
+		Throwable primaryFailure = null;
 		try
 		{
 			PhantomAssertions.assertTrue(background.start() && materialization.start() && topology.start(), "Native owners did not start.");
@@ -227,7 +240,13 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			scheduler.register(oldId); scheduler.register(newId);
 			// Existing autonomous activity keeps this old owner from naturally idling out during the bounded episode.
 			scheduler.submitSignal(oldId, new PhantomRelevanceSignal("test.existing.life", 1, PhantomActivityState.ACTIVE, 120000));
-			await(() -> materialization.find(oldId).map(entry -> entry.worldPresent()).orElse(false), 12000, "Initial old native actor failed production admission: " + boundary.diagnosticFailures());
+			await(() -> materialization.find(oldId).map(entry ->
+			{
+				final Player current = World.getInstance().getPlayer(entry.characterObjectId());
+				final var owner = current == null ? null : current.getNativeWorkOwner();
+				return entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE && entry.worldPresent() && entry.actionAdmissionOpen()
+					&& owner != null && owner.isCurrent() && owner.epoch() == entry.materializedAtNanos();
+			}).orElse(false), 12000, "Initial old native actor failed complete production admission: " + boundary.diagnosticFailures());
 			final var oldLifetime = materialization.find(oldId).orElseThrow();
 			retention.observe(oldId);
 			final var hardAction = materialization.tryAcquireAction(oldId).orElseThrow();
@@ -275,18 +294,207 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			}
 			context.record("task065.nativeOutcome", "old=" + oldId + "/" + oldLifetime.materializedAtNanos() + " World0; new=" + newId + "/" + newEpoch + " World1; cap1; no manual materialize/XYZ/EXP in measurement");
 		}
+		catch (Exception | Error failure)
+		{
+			primaryFailure = failure;
+			context.record("task065.primaryFailure", failure.getClass().getName() + ":" + failure.getMessage() + ":" + java.util.Arrays.toString(java.util.Arrays.copyOf(failure.getStackTrace(), Math.min(8, failure.getStackTrace().length))));
+			throw failure;
+		}
 		finally
 		{
-			scheduler.beginStop();
-			await(scheduler::finishStop, 5000, "Native pressure scheduler did not drain.");
-			ecology.beginStop(); await(ecology::finishStop, 5000, "Native pressure ecology did not drain.");
-			final var stopped = materialization.shutdown();
-			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, stopped.state(), "Native pressure materialization cleanup retained an owner: " + stopped);
-			background.beginStop(); PhantomAssertions.assertTrue(background.finishStop(), "Native background owner did not stop.");
-			topology.beginStop(); PhantomAssertions.assertTrue(topology.finishStop(), "Native topology owner did not stop.");
-			for (var profile : List.of(oldProfile, newProfile)) { _repository.find(profile.profileId()).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion())); }
-			_environment.assertClean(_environment.primary(), null); _environment.assertClean(_incoming, null);
+			Throwable cleanupFailure = cleanupStep(null, scheduler::beginStop);
+			cleanupFailure = cleanupStep(cleanupFailure, () ->
+			{
+				final var stopped = materialization.shutdown();
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, stopped.state(), "Native pressure materialization cleanup retained an owner: " + stopped);
+			});
+			cleanupFailure = cleanupStep(cleanupFailure, () -> await(scheduler::finishStop, 5000, "Native pressure scheduler did not drain after canonical cleanup."));
+			cleanupFailure = cleanupStep(cleanupFailure, () -> { ecology.beginStop(); await(ecology::finishStop, 5000, "Native pressure ecology did not drain."); });
+			cleanupFailure = cleanupStep(cleanupFailure, () -> { background.beginStop(); PhantomAssertions.assertTrue(background.finishStop(), "Native background owner did not stop."); });
+			cleanupFailure = cleanupStep(cleanupFailure, () -> { topology.beginStop(); PhantomAssertions.assertTrue(topology.finishStop(), "Native topology owner did not stop."); });
+			for (var profile : List.of(oldProfile, newProfile))
+			{
+				cleanupFailure = cleanupStep(cleanupFailure, () ->
+				{
+					PhantomAssertions.assertTrue(materialization.find(profile.profileId()).isEmpty(), "Retained native owner forbids fixture profile deletion.");
+					_repository.find(profile.profileId()).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion()));
+				});
+			}
+			cleanupFailure = cleanupStep(cleanupFailure, () -> _environment.assertClean(_environment.primary(), null));
+			cleanupFailure = cleanupStep(cleanupFailure, () -> _environment.assertClean(_incoming, null));
+			if (cleanupFailure != null)
+			{
+				context.record("task065.cleanupFailure", cleanupFailure.toString());
+				if (primaryFailure != null) { primaryFailure.addSuppressed(cleanupFailure); }
+				else if (cleanupFailure instanceof Exception exception) { throw exception; }
+				else { throw (Error) cleanupFailure; }
+			}
 		}
+	}
+
+	@FunctionalInterface
+	private interface CleanupStep { void run() throws Exception; }
+
+	private static Throwable cleanupStep(Throwable first, CleanupStep step)
+	{
+		try { step.run(); }
+		catch (Exception | Error failure)
+		{
+			if (first == null) { return failure; }
+			if (first != failure) { first.addSuppressed(failure); }
+		}
+		return first;
+	}
+
+	private void testSoftCleanupGuards(PhantomTestContext context) throws Exception
+	{
+		preparePosition(_environment.primary(), anchor("gludin.recovery.anchor"));
+		final var profile = _repository.create(_environment.primary().objectId());
+		final long id = profile.profileId();
+		final var metrics = new PhantomMetrics();
+		final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1);
+		final var boundary = new PhantomMaterializationServiceActivityPort(materialization);
+		try
+		{
+			PhantomAssertions.assertTrue(materialization.start(), "Guard fixture service did not start.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Guard fixture requires a canonical native Player.");
+			final var first = materialization.find(id).orElseThrow();
+			final Player player = World.getInstance().getPlayer(first.characterObjectId());
+			final var owner = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final long epoch = first.materializedAtNanos();
+			final long requester = id + 1;
+			final var currentDemand = new AtomicBoolean(true);
+			final var demandGate = new PhantomReconcileFirstActivityPort(boundary);
+			demandGate.installSoftReclamationEpochs(_ -> new org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.SoftReclaimSelection(id, epoch), _ -> true, requested -> requested == requester && currentDemand.get());
+			final var selected = demandGate.softReclaimSelection(requester);
+			PhantomAssertions.assertEquals(requester, selected.requestingProfileId(), "Soft selection lost the original requester.");
+			currentDemand.set(false);
+			final var withdrawn = demandGate.reclaimSoft(selected.profileId(), selected.materializedAtNanos(), selected.requestingProfileId());
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, withdrawn.outcome(), "Withdrawn incoming demand must preserve the idle victim.");
+			PhantomAssertions.assertEquals("materialization.soft_request_demand_stale", withdrawn.reason(), "Withdrawn request must have an explicit deferral reason.");
+			assertSoftGuardRetained(materialization, id, player, epoch);
+			currentDemand.set(true);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch - 1).outcome(), "Wrong incarnation must defer without a retained failure.");
+			assertSoftGuardRetained(materialization, id, player, epoch);
+			try (var action = materialization.tryAcquireAction(id).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, demandGate.reclaimSoft(id, epoch, requester).outcome(), "Current demand must still preserve an admitted native action.");
+				assertSoftGuardRetained(materialization, id, player, epoch);
+			}
+			testNativeHeldInputs(materialization, boundary, id, player, epoch);
+			final var earned = owner.reserve(null, "TASK065_GUARD_EARNED", org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics.EARNED);
+			PhantomAssertions.assertTrue(earned != null, "Exact native earned reservation was not admitted.");
+			try
+			{
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch).outcome(), "Reserved earned native work must reject soft cleanup.");
+				assertSoftGuardRetained(materialization, id, player, epoch);
+			}
+			finally
+			{
+				PhantomAssertions.assertTrue(earned.tryStart(), "Refusal cancelled the legitimate earned reservation.");
+				earned.complete(null);
+			}
+			final var entered = new CountDownLatch(1);
+			final var release = new CountDownLatch(1);
+			final var finished = new CountDownLatch(1);
+			final var failure = new AtomicReference<Throwable>();
+			org.l2jmobius.commons.threads.ThreadPool.execute(() ->
+			{
+				try
+				{
+					owner.checkpoint(() ->
+					{
+						entered.countDown();
+						try { if (!release.await(5, TimeUnit.SECONDS)) { throw new IllegalStateException("TASK065 checkpoint guard release timeout."); } }
+						catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IllegalStateException(interrupted); }
+						player.storeMe();
+						return null;
+					});
+				}
+				catch (Throwable thrown) { failure.set(thrown); }
+				finally { finished.countDown(); }
+			});
+			try
+			{
+				PhantomAssertions.assertTrue(entered.await(5, TimeUnit.SECONDS), "Actual native checkpoint did not enter.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch).outcome(), "Executing persistence checkpoint must reject soft cleanup.");
+				assertSoftGuardRetained(materialization, id, player, epoch);
+			}
+			finally
+			{
+				release.countDown();
+				PhantomAssertions.assertTrue(finished.await(5, TimeUnit.SECONDS), "Original persistence checkpoint did not finish.");
+			}
+			PhantomAssertions.assertEquals(null, failure.get(), "Soft refusal damaged the admitted native checkpoint.");
+			PhantomAssertions.assertTrue(owner.open(), "Original native owner did not reopen after its own successful checkpoint.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Ordinary cleanup before a new incarnation.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Canonical rematerialization after ordinary cleanup.");
+			final var second = materialization.find(id).orElseThrow();
+			final Player replacement = World.getInstance().getPlayer(second.characterObjectId());
+			PhantomAssertions.assertTrue(second.materializedAtNanos() != epoch && replacement != player, "Guard fixture reused the old native incarnation.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch).outcome(), "A stale selection must not clean the replacement incarnation.");
+			assertSoftGuardRetained(materialization, id, replacement, second.materializedAtNanos());
+			await(() -> boundary.reclaimSoft(id, second.materializedAtNanos()).outcome() == org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS, 3000, "Current idle incarnation never completed ordinary guarded cleanup.");
+			PhantomAssertions.assertTrue(materialization.find(id).isEmpty() && World.getInstance().getPlayer(second.characterObjectId()) == null && materialization.snapshot().availablePermits() == 1, "Current idle cleanup failed native ownership/permit conservation.");
+			context.record("task065.softGuards", "withdrawnRequester,wrongEpoch,admittedAction,nativeRealParty,nativePrivateStore,reservedEarned,persistenceCheckpoint,replacementEpoch=DEFERRED; original owners retained; currentIdle=STORED; permit=1");
+		}
+		finally
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, materialization.shutdown().state(), "Guard fixture retained a native owner.");
+			_repository.find(id).ifPresent(current -> _repository.delete(current.profileId(), current.rowVersion()));
+			_environment.assertClean(_environment.primary(), null);
+		}
+	}
+
+	private void testNativeHeldInputs(PhantomMaterializationService materialization, PhantomMaterializationServiceActivityPort boundary, long id, Player player, long epoch) throws Exception
+	{
+		final Player real = Player.load(_environment.observer().objectId());
+		PhantomAssertions.assertTrue(real != null && !real.hasHeadlessOutboundSession(), "Own ordinary native party fixture is unavailable.");
+		final var party = new org.l2jmobius.gameserver.model.groups.Party(real, org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS);
+		try
+		{
+			try (var action = materialization.tryAcquireAction(id).orElseThrow()) { real.setParty(party); player.joinParty(party); }
+			PhantomAssertions.assertTrue(player.getParty() == party && real.getParty() == party && party.getMembers().containsAll(List.of(real, player)), "Stock Party join did not retain both exact native Players.");
+			PhantomAssertions.assertTrue(PhantomMaterializationRetentionPolicy.Facts.nativeFacts(player, false, false, 0).realParty(), "Native mixed party lost its REAL_PARTY hold.");
+			await(() -> materialization.find(id).orElseThrow().admittedActionCount() == 0, 3000, "Party setup native work did not finish before the guard measurement.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch).outcome(), "Idle native party member must reject soft cleanup.");
+			assertSoftGuardRetained(materialization, id, player, epoch);
+			PhantomAssertions.assertTrue(player.getParty() == party && real.getParty() == party, "Soft refusal damaged stock Party membership.");
+		}
+		finally
+		{
+			try (var action = materialization.tryAcquireAction(id).orElseThrow())
+			{
+				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(player);
+				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(real);
+			}
+			finally { _environment.cleanupLoadedPlayer(real); }
+		}
+		PhantomAssertions.assertFalse(player.isInParty(), "Ordinary native party leave did not restore the original actor.");
+		_environment.assertClean(_environment.observer(), real);
+		final var stores = new org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService(_repository, materialization);
+		final long now = System.currentTimeMillis();
+		final var plan = new org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan(org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.Type.BUY, org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.State.REQUESTED,
+			"TASK065 guarded native BUY", List.of(new org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.Line(1865, 1865, 1, 0)), now + 60000);
+		try
+		{
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService.Result.OPENED, stores.open(id, PhantomActivityState.ACTIVE, plan, now), "Existing store owner did not open a canonical BUY list.");
+			PhantomAssertions.assertTrue(player.isInStoreMode() && player.getBuyList().getItemCount() == 1 && stores.blocksDecision(id), "Canonical private store/list/owner are absent.");
+			await(() -> materialization.find(id).orElseThrow().admittedActionCount() == 0, 3000, "Store setup native work did not finish before the guard measurement.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, boundary.reclaimSoft(id, epoch).outcome(), "Idle native private store owner must reject soft cleanup.");
+			assertSoftGuardRetained(materialization, id, player, epoch);
+			PhantomAssertions.assertTrue(player.isInStoreMode() && player.getBuyList().getItemCount() == 1 && stores.blocksDecision(id), "Soft refusal damaged the canonical private store.");
+		}
+		finally { await(() -> stores.close(id) == org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService.Result.CLOSED, 3000, "Existing private-store close did not release its exact owner."); }
+		PhantomAssertions.assertTrue(!player.isInStoreMode() && player.getBuyList().getItemCount() == 0 && !stores.blocksDecision(id), "Canonical private-store close retained its listing or owner.");
+	}
+
+	private static void assertSoftGuardRetained(PhantomMaterializationService materialization, long id, Player expected, long epoch)
+	{
+		final var snapshot = materialization.find(id).orElseThrow();
+		PhantomAssertions.assertTrue(snapshot.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE && snapshot.actionAdmissionOpen() && snapshot.worldPresent() && snapshot.materializedAtNanos() == epoch && World.getInstance().getPlayer(snapshot.characterObjectId()) == expected, "Soft refusal closed admission or replaced the exact native owner.");
+		PhantomAssertions.assertEquals(0, materialization.snapshot().availablePermits(), "Soft refusal released the occupied permit.");
+		PhantomAssertions.assertEquals(null, snapshot.firstCleanupIncident(), "Healthy soft refusal created a cleanup failure incident.");
 	}
 
 	private static Map<Long, PhantomTopologyPoint> livePoints(PhantomMaterializationService materialization)
@@ -309,8 +517,9 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 	private static void await(BooleanSupplier condition, long timeoutMillis, String failure) throws Exception
 	{
 		final long until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
-		while (!condition.getAsBoolean() && System.nanoTime() < until) { Thread.sleep(20); }
-		PhantomAssertions.assertTrue(condition.getAsBoolean(), failure);
+		boolean completed = condition.getAsBoolean();
+		while (!completed && System.nanoTime() < until) { Thread.sleep(20); completed = condition.getAsBoolean(); }
+		PhantomAssertions.assertTrue(completed, failure);
 	}
 
 	private static PhantomRelevanceSignalPort noSignals()

@@ -32,7 +32,7 @@ public final class PhantomMaterializationRetentionPolicy
 		}
 	}
 
-	public record Hold(Set<Reason> reasons, long lastHumanNanos, boolean humanLocal)
+	public record Hold(Set<Reason> reasons, long lastHumanNanos, boolean humanLocal, boolean materialized)
 	{
 		public Hold
 		{
@@ -51,7 +51,7 @@ public final class PhantomMaterializationRetentionPolicy
 
 		public boolean reclaimable()
 		{
-			return !humanLocal && !hard() && reasons.contains(Reason.RECENT_HUMAN);
+			return materialized && !humanLocal && !hard();
 		}
 	}
 
@@ -77,7 +77,7 @@ public final class PhantomMaterializationRetentionPolicy
 		if (!facts.materialized())
 		{
 			_lastHuman.remove(profileId);
-			return new Hold(Set.of(), 0, false);
+			return new Hold(Set.of(), 0, false, false);
 		}
 		final long now = _clock.getAsLong();
 		if (facts.humanLocal() || facts.nativeVisible())
@@ -102,7 +102,7 @@ public final class PhantomMaterializationRetentionPolicy
 		{
 			reasons.add(Reason.RECENT_HUMAN);
 		}
-		return new Hold(reasons, lastHuman == null ? 0 : lastHuman, facts.humanLocal());
+		return new Hold(reasons, lastHuman == null ? 0 : lastHuman, facts.humanLocal(), true);
 	}
 
 	/** Existing work retains its hard hold, but cannot itself renew permission for another ordinary root. */

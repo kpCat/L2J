@@ -81,7 +81,11 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 			return TransitionOutcome.success();
 		}
 		recordDiagnosticFailure(profileId, result);
-		if ((result.status() == ResultStatus.CAPACITY_REACHED) || (result.status() == ResultStatus.CATCHUP_FENCED))
+		if (result.status() == ResultStatus.CAPACITY_REACHED)
+		{
+			return TransitionOutcome.deferred("materialization.wait_capacity");
+		}
+		if (result.status() == ResultStatus.CATCHUP_FENCED)
 		{
 			return TransitionOutcome.deferred();
 		}
@@ -115,6 +119,19 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 	public TransitionOutcome dematerialize(long profileId)
 	{
 		return mapCleanup(profileId, _service.dematerialize(profileId));
+	}
+
+	@Override
+	public TransitionOutcome reclaimSoft(long profileId, long expectedEpoch)
+	{
+		final var result = _service.dematerializeIfCurrent(profileId, expectedEpoch);
+		if (result.status() == ResultStatus.SOFT_RECLAIM_DEFERRED) { return TransitionOutcome.deferred("materialization.soft_owner_busy_or_changed"); }
+		if ((result.status() == ResultStatus.SUCCESS || result.status() == ResultStatus.NOT_ACTIVE)
+			&& _service.find(profileId).map(snapshot -> snapshot.state() == State.ACTIVE && snapshot.materializedAtNanos() != expectedEpoch).orElse(false))
+		{
+			return TransitionOutcome.deferred("materialization.soft_owner_changed");
+		}
+		return mapCleanup(profileId, result);
 	}
 
 	@Override

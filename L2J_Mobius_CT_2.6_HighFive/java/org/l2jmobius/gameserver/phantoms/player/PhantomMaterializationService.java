@@ -87,6 +87,7 @@ public final class PhantomMaterializationService
 		MATERIALIZATION_FAILED_RETAINED,
 		CLEANUP_FAILED_RETAINED,
 		CLEANUP_PENDING,
+		SOFT_RECLAIM_DEFERRED,
 		BACKGROUND_RECONCILIATION_BLOCKED,
 		CATCHUP_FENCED,
 		NOT_ACTIVE
@@ -414,6 +415,37 @@ public final class PhantomMaterializationService
 	public DematerializeResult dematerialize(long profileId)
 	{
 		return cleanup(profileId, false);
+	}
+
+	/** Exact selection only; a busy lifetime remains healthy and keeps its occupied permit. */
+	public DematerializeResult dematerializeIfCurrent(long profileId, long expectedEpoch)
+	{
+		if (profileId <= 0) { throw new IllegalArgumentException("profileId must be positive"); }
+		if (_state != ServiceState.RUNNING) { return new DematerializeResult(ResultStatus.SERVICE_NOT_RUNNING, null); }
+		final Entry entry = _activeByProfile.get(profileId);
+		if (entry == null) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+		synchronized (entry)
+		{
+			if (expectedEpoch == 0 || _activeByProfile.get(profileId) != entry || entry._released || entry._cleanupInProgress
+				|| entry._controlCleanupQueued || entry._materializationCompletion.getCount() != 0)
+			{
+				return new DematerializeResult(ResultStatus.SOFT_RECLAIM_DEFERRED, snapshot(entry));
+			}
+			entry._cleanupInProgress = true;
+		}
+		final DematerializeResult result;
+		try
+		{
+			if (!entry._materializedPlayer.tryPrepareSoftCleanup(expectedEpoch))
+			{
+				return new DematerializeResult(ResultStatus.SOFT_RECLAIM_DEFERRED, snapshot(entry));
+			}
+			// Ordinary terminal drain/store/delete runs after the Entry and native admission locks are released.
+			result = performCleanupEntry(entry, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(_actionDrainTimeoutMillis));
+		}
+		finally { synchronized (entry) { entry._cleanupInProgress = false; } }
+		if (result.status() == ResultStatus.CLEANUP_FAILED_RETAINED) { registerDrainRetry(entry); }
+		return result;
 	}
 
 	/** One exact Entry control continuation; polling never waits for native work. */

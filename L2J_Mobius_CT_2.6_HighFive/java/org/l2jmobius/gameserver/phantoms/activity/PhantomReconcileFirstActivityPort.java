@@ -21,7 +21,8 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	private volatile LongFunction<TransitionOutcome> _readiness;
 	private volatile LongPredicate _retainNativeVisible;
 	private volatile LongPredicate _reclaimSoft;
-	private volatile LongUnaryOperator _softCandidate;
+	private volatile LongPredicate _currentRequestDemand;
+	private volatile LongFunction<SoftReclaimSelection> _softCandidate;
 
 	public PhantomReconcileFirstActivityPort(PhantomActivityMaterializationPort delegate)
 	{
@@ -94,11 +95,23 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 
 	public synchronized void installSoftReclamation(LongUnaryOperator candidate, LongPredicate reclaimable)
 	{
+		Objects.requireNonNull(candidate);
+		installSoftReclamationEpochs(profileId -> new SoftReclaimSelection(candidate.applyAsLong(profileId), 0), reclaimable);
+	}
+
+	public synchronized void installSoftReclamationEpochs(LongFunction<SoftReclaimSelection> candidate, LongPredicate reclaimable)
+	{
+		installSoftReclamationEpochs(candidate, reclaimable, _ -> true);
+	}
+
+	public synchronized void installSoftReclamationEpochs(LongFunction<SoftReclaimSelection> candidate, LongPredicate reclaimable, LongPredicate currentRequestDemand)
+	{
 		if (_softCandidate != null)
 		{
 			throw new IllegalStateException("Soft reclamation can only be installed once.");
 		}
 		_reclaimSoft = Objects.requireNonNull(reclaimable);
+		_currentRequestDemand = Objects.requireNonNull(currentRequestDemand);
 		_softCandidate = Objects.requireNonNull(candidate);
 	}
 
@@ -125,8 +138,15 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	@Override
 	public long softReclaimCandidate(long requestingProfileId)
 	{
-		final LongUnaryOperator candidate = _softCandidate;
-		return candidate == null ? 0 : candidate.applyAsLong(requestingProfileId);
+		return softReclaimSelection(requestingProfileId).profileId();
+	}
+
+	@Override
+	public SoftReclaimSelection softReclaimSelection(long requestingProfileId)
+	{
+		final var candidate = _softCandidate;
+		final var selected = candidate == null ? SoftReclaimSelection.none() : candidate.apply(requestingProfileId);
+		return selected == null || selected.profileId() <= 0 ? SoftReclaimSelection.none() : new SoftReclaimSelection(selected.profileId(), selected.materializedAtNanos(), requestingProfileId);
 	}
 
 	@Override
@@ -134,6 +154,25 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	{
 		final LongPredicate reclaimable = _reclaimSoft;
 		return ((reclaimable != null) && reclaimable.test(profileId)) ? _delegate.dematerialize(profileId) : TransitionOutcome.deferred();
+	}
+
+	@Override
+	public TransitionOutcome reclaimSoft(long profileId, long expectedEpoch)
+	{
+		// Epoch zero is retained only for the pre-existing scalar scheduler test seam.
+		if (expectedEpoch == 0) { return reclaimSoft(profileId); }
+		final LongPredicate reclaimable = _reclaimSoft;
+		return ((reclaimable != null) && reclaimable.test(profileId)) ? _delegate.reclaimSoft(profileId, expectedEpoch) : TransitionOutcome.deferred();
+	}
+
+	@Override
+	public TransitionOutcome reclaimSoft(long profileId, long expectedEpoch, long requestingProfileId)
+	{
+		final LongPredicate demand = _currentRequestDemand;
+		if (demand == null || !demand.test(requestingProfileId)) { return TransitionOutcome.deferred("materialization.soft_request_demand_stale"); }
+		if (expectedEpoch == 0) { return reclaimSoft(profileId); }
+		final LongPredicate reclaimable = _reclaimSoft;
+		return ((reclaimable != null) && reclaimable.test(profileId)) ? _delegate.reclaimSoft(profileId, expectedEpoch, requestingProfileId) : TransitionOutcome.deferred();
 	}
 
 	@Override

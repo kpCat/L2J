@@ -608,6 +608,29 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		}
 	}
 
+	boolean tryPrepareSoftCleanup(long expectedEpoch)
+	{
+		synchronized (_actionMonitor)
+		{
+			final Player player = _player;
+			if (expectedEpoch == 0 || _materializedAtNanos != expectedEpoch || _state != State.ACTIVE || !_actionAdmissionOpen
+				|| player == null || _identityLease == null || !_identityAttached || _outboundAttachment == null || _nativeWork == null
+				|| player.getNativeWorkOwner() != _nativeWork || !_nativeWork.isCurrent() || _nativeWork.epoch() != expectedEpoch
+				|| World.getInstance().getPlayer(_objectId) != player || World.getInstance().findObject(_objectId) != player
+				|| player.isAlikeDead() || player.isInParty() || player.isMoving() || player.isAttackingNow() || player.isCastingNow()
+				|| player.isTeleporting() || player.isInCombat() || player.isInStoreMode() || player.isProcessingTransaction()
+				|| player.isChangingClass() || player.hasPendingOwnedStore()
+				|| player.hasAI() && player.getAI().getIntention() == org.l2jmobius.gameserver.ai.Intention.FOLLOW)
+			{
+				return false;
+			}
+			// The scope shares this monitor. Its idle seal invokes no registry callback or persistence.
+			if (!_nativeWork.trySealIdleTerminal(expectedEpoch)) { return false; }
+			_actionAdmissionOpen = false;
+			return true;
+		}
+	}
+
 	boolean prepareCleanupDrain()
 	{
 		synchronized (_actionMonitor) { _actionAdmissionOpen = false; }

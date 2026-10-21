@@ -46,9 +46,31 @@ public interface PhantomActivityMaterializationPort
 		return 0;
 	}
 
+	default SoftReclaimSelection softReclaimSelection(long requestingProfileId)
+	{
+		return new SoftReclaimSelection(softReclaimCandidate(requestingProfileId), 0, requestingProfileId);
+	}
+
 	default TransitionOutcome reclaimSoft(long profileId)
 	{
 		return TransitionOutcome.deferred();
+	}
+
+	default TransitionOutcome reclaimSoft(long profileId, long expectedEpoch)
+	{
+		return expectedEpoch == 0 ? reclaimSoft(profileId) : TransitionOutcome.deferred("materialization.soft_epoch_unsupported");
+	}
+
+	default TransitionOutcome reclaimSoft(long profileId, long expectedEpoch, long requestingProfileId)
+	{
+		return reclaimSoft(profileId, expectedEpoch);
+	}
+
+	/** A production selection retains its original victim epoch and incoming demand owner. */
+	record SoftReclaimSelection(long profileId, long materializedAtNanos, long requestingProfileId)
+	{
+		public SoftReclaimSelection(long profileId, long materializedAtNanos) { this(profileId, materializedAtNanos, 0); }
+		public static SoftReclaimSelection none() { return new SoftReclaimSelection(0, 0, 0); }
 	}
 
 	enum Outcome

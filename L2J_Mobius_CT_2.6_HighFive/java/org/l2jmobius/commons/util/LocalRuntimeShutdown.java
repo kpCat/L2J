@@ -39,6 +39,11 @@ public final class LocalRuntimeShutdown
 	private static String taskNumber() { return "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
 	private static boolean ownSchema(String schema) { return schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
 
+	static boolean validTask065Root(Path root, Path module, boolean fixture)
+	{
+		return root.equals(fixture ? module.resolve(".phantom-local/task065/runtime") : module.getRoot().resolve("PhantomWorld/Living-Presence-065-candidate"));
+	}
+
 	/** Validate before ordinary Main can open a database or listener. Other runtimes remain disabled. */
 	public static void validateLaunch(String role) throws Exception
 	{
@@ -53,9 +58,7 @@ public final class LocalRuntimeShutdown
 		{
 			throw new IllegalArgumentException("TASK064 runtime root/schema/owner mismatch.");
 		}
-		if (taskNumber().equals("065") && !(schema.endsWith("test_065")
-			? root.equals(Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize().resolve(".phantom-local/task065/runtime"))
-			: root.getFileName().toString().equals("Living-Presence-065-candidate"))) { throw new IllegalArgumentException("TASK065 exact fixture/candidate root required."); }
+		if (taskNumber().equals("065") && !validTask065Root(root, Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize(), schema.endsWith("test_065"))) { throw new IllegalArgumentException("TASK065 exact fixture/candidate root required."); }
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
 		if (!validJdbc(database.getProperty("URL", ""), schema))
 		{

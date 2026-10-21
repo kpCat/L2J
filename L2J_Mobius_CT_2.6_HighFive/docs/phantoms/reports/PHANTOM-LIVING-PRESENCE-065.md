@@ -1,6 +1,6 @@
 # TASK065 — живое присутствие
 
-Статус этой промежуточной записи: IN_PROGRESS; CORE065 ещё не оценён. Работа начата 2026-10-21 06:04:58 UTC, рискованные эксперименты заканчиваются не позднее 11:04:58 UTC, общий предел 12:04:58 UTC. Финальная версия этого же отчёта заменит промежуточный статус.
+Статус этой промежуточной записи: SOURCE_GREEN / ORDINARY_PENDING; CORE065 ещё не оценён. Работа начата 2026-10-21 06:04:58 UTC, рискованные эксперименты заканчиваются не позднее 11:04:58 UTC, общий предел 12:04:58 UTC. Финальная версия этого же отчёта заменит промежуточный статус.
 
 Baseline/live origin `feature/phantom-world`: `5892949f89aa81e191705e67754aa1fd348186b6`. Все восемь исходных SHA пакета совпали. Переданные task package и новый roadmap — единственный исходный dirt. Исторический roadmap v5 и старые результаты сохраняются без переоценки.
 
@@ -12,7 +12,11 @@ OWN — независимый текущий checkout; Java25.0.4.1/Ant1.10.17/
 
 Operator control RED: exact065 JDBC отвергался старым064 binding; после адресного opt-in065 общий transport сохранил отрицательные064 проверки и получил GREEN. Первое исполнение теста выявило ошибку компиляции объявления `throws`, она исправлена до RED; это не product defect.
 
-Предварительная retention-причина: `reclaimable()` требует `RECENT_HUMAN`, поэтому давно невидимый свободный materialized owner не даёт preparation slot. Production retention пока не менялась: сначала требуется причинный native RED. Новые тесты и инструменты не являются PASS всей TASK065.
+Причинный native RED на исходном JAR: cap1 занят давно невидимым idle owner, входящий local profile остаётся CAPACITY_REACHED после 120 pulses/12s. Retention ошибочно требовал RECENT_HUMAN. Исправлены существующие retention/reconcile/scheduler/materialization owners: exact epoch/requester, повторная проверка persisted goal ownership, callback-free idle seal под native action monitor и существующая demotion grace. Single preparation slot получает ограниченную ротацию существующего focus.
+
+Focused GREEN разработки: scheduler34/34, handoff16/16, calendar3/3. Native dev02:3/3; old6/208359941869300 World0 → new7/208365124679700 World1 при cap1, 19pulses/1899ms. Wrong incarnation, снятый requester demand, ActionLease, настоящие Party/Store, earned ticket и persistence checkpoint сохранены. Первый dev01 наткнулся на гонку fixture до ACTIVE admission и ошибку повторного вызова one-shot finishStop в await; исправлена только подготовка/ожидание теста, raw RED/ошибки сохранены.
+
+Независимое read-only ревью не нашло оставшихся Critical/Important/Minor. Найденный Important exact-path guard устранён в Assemble/Runtime/Java/PersistentLane: candidate допускается только в разрешённом PhantomWorld, вложенный protected064 и repo-local путь отвергаются. Финальная committed source build и ordinary sameDB episode ещё предстоят.
 
 Чтение: root/module AGENTS, README, полный065 пакет; bounded workflow/current status/efficiency/master/release/task standard и раздел М1/сохранность064. Исходные аналоги: scheduler retention/reclamation tests, real headless fixtures/companions, native pendingLoad composition, stock SQL runner, Runtime064/Assemble064/Build064. Дополнительных AGENTS выше корня и в docs chain нет; отдельные code-map/pattern файлы не найдены. Read set расширен для доказательства native ownership, календарной совместимости и exact065 binding.
 
