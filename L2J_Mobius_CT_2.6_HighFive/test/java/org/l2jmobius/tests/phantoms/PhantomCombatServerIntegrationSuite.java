@@ -744,7 +744,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RIFT_NATIVE_058)
 		{
-			registry.add(Boolean.getBoolean("phantom.test.riftDeparture064") ? "04-canonical-rift-managed-logout-native-death-disband-and-reload064" : Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
+			registry.add(Boolean.getBoolean("phantom.test.riftDeparturePressure064") ? "05-canonical-rift-stock-room-pressure-death-and-departure064" : Boolean.getBoolean("phantom.test.riftDeparture064") ? "04-canonical-rift-managed-logout-native-death-disband-and-reload064" : Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
 			return;
 		}
 		if (_mode == Mode.INSTANCES_058)
@@ -755,7 +755,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RAID_TACTICS_058)
 		{
-			if (Boolean.getBoolean("phantom.test.raidTriggerGuard059")) { registry.add("06-native-trigger-expands-exact-earned-recipients-with-human-control", this::testRaidTrigger059); }
+			if (Boolean.getBoolean("phantom.test.raidDefenseGuard064")) { registry.add("07-native-self-defense-cast-exact-cancellation064", this::testRaidFull059); }
+			else if (Boolean.getBoolean("phantom.test.raidTriggerGuard059")) { registry.add("06-native-trigger-expands-exact-earned-recipients-with-human-control", this::testRaidTrigger059); }
 			else if (Boolean.getBoolean("phantom.test.raidMinionGuard059")) { registry.add("05-native-minion-parent-authority-effect-and-cost", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidLevelGuard059")) { registry.add("04-native-minion-ceiling-refuses-before-combat", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidStagingOnly059")) { registry.add("03-native-staging-geometry-preflight", this::testRaidFull059); }
@@ -5702,10 +5703,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void assertRiftDeparture064(PhantomTestContext context, List<Player> actors, List<Long> profiles, Party party, org.l2jmobius.gameserver.model.sevensigns.DimensionalRift rift, org.l2jmobius.gameserver.model.sevensigns.DimensionalRiftRoom room, Monster target) throws Exception
 	{
 		PhantomAssertions.assertTrue(actors.size() == 4 && profiles.size() == 3 && actors.stream().noneMatch(Player::isDead), "INVALID_INPUT: departure control requires the same living four-member legal roster.");
-		context.record("rift064.departureInput", "INDEPENDENT native case04 after the same canonical consent/READY/fees/stock entry: unchanged four34/D/full initial vitals/finite stock; existing materialization terminal cleanup, one stock NPC attack and canonical Party leave only; no resource/stat/teleport rescue; timed room progression belongs to separate03");
+		final boolean roomPressure = Boolean.getBoolean("phantom.test.riftDeparturePressure064");
+		context.record("rift064.departureInput", "INDEPENDENT native case" + (roomPressure ? "05" : "04") + " after the same canonical consent/READY/fees/stock entry: unchanged four34/D/full initial vitals/finite stock; existing materialization terminal cleanup, " + (roomPressure ? "at most16 existing stock room NPC attacks" : "one stock NPC attack") + " and canonical Party leave only; original90s death bound; no resource/stat/teleport rescue; timed room progression belongs to separate03");
 		final var spawned = new java.util.concurrent.CountDownLatch(1);
 		rift.getSpawnTimer().schedule(new java.util.TimerTask() { @Override public void run() { spawned.countDown(); } }, 0);
 		PhantomAssertions.assertTrue(spawned.await(10, TimeUnit.SECONDS), "Departure input stock spawn body did not settle.");
+		final List<Monster> pressure = roomPressure ? room.getSpawns().stream().map(Spawn::getLastSpawn).filter(value -> value instanceof Monster monster && !monster.isRaid() && !monster.isDead() && room.checkIfInZone(monster.getX(), monster.getY(), monster.getZ()) && _query.findNpc(monster.getId()).filter(fact -> fact.kind() == NpcKind.MONSTER && fact.exp() > 0 && fact.sp() > 0).isPresent()).map(value -> (Monster) value).sorted(Comparator.comparingInt(Monster::getObjectId)).limit(16).toList() : List.of(target);
+		PhantomAssertions.assertTrue(!pressure.isEmpty() && (!roomPressure || pressure.size() > 1), "INVALID_INPUT: stock room pressure has no admitted group.");
+		context.record("rift064.pressureInput", pressure.stream().map(monster -> monster.getId() + ":" + monster.getObjectId() + ":HP" + monster.getCurrentHp() + '/' + monster.getMaxHp()).toList());
 		final Player departed = actors.get(1), victim = actors.get(2), human = actors.getLast();
 		final long departedProfile = profiles.get(1);
 		final int objectId = departed.getObjectId(), classId = departed.getActiveClass();
@@ -5721,9 +5726,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 		PhantomAssertions.assertTrue(!victim.isDead() && !target.isDead() && target.getInstanceId() == victim.getInstanceId() && room.checkIfInZone(victim.getX(), victim.getY(), victim.getZ()), "INVALID_INPUT: native death control lost its live same-room stock actors.");
 		final double beforeHp = victim.getCurrentHp();
-		target.getAI().setIntention(Intention.ATTACK, victim);
+		for (Monster monster : pressure) { monster.getAI().setIntention(Intention.ATTACK, victim); }
 		final boolean died = waitFor(() -> victim.isDead() && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), 90_000);
-		context.record("rift064.nativeDeath", "stockNpc=" + target.getId() + "; victim=" + victim.getObjectId() + "; HP=" + beforeHp + "->" + victim.getCurrentHp() + "; dead=" + died + "; registered=" + rift.getDeadMemberList().contains(victim));
+		context.record("rift064.nativeDeath", "stockNpc=" + target.getId() + "; stockPressureCount=" + pressure.size() + "; victim=" + victim.getObjectId() + "; HP=" + beforeHp + "->" + victim.getCurrentHp() + "; dead=" + died + "; registered=" + rift.getDeadMemberList().contains(victim));
 		PhantomAssertions.assertTrue(died && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), "Stock Rift NPC did not produce actual native death/dead-member registration within90s; no HP rescue applied.");
 		PartyInvitationService.getInstance().leave(human);
 		PartyInvitationService.getInstance().leave(_player);
@@ -5942,6 +5947,35 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
 			final var authority = new org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAuthority();
 			final var readiness = new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidReadinessService(_query, backend, authority);
+			if (Boolean.getBoolean("phantom.test.raidDefenseGuard064"))
+			{
+				// Independent case07 preparation, before its native attack/cast measurement.
+				_player.setCurrentHp(_player.getMaxHp() * 0.55);
+				context.record("raid064.defenseGuardInput", "INDEPENDENT native backend cancellation control: stock25199/family and same legal79 learned110/D-or-S equipment; tank PREPARED55%HP before measurement; normal attack creates actual native incoming threat; no resource writes after this boundary; not a full-raid victory claim");
+				_player.setTarget(boss); _player.getAI().setIntention(Intention.ATTACK, boss);
+				PhantomAssertions.assertTrue(waitFor(() -> boss.getMostHated() == _player && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(boss, _player), 10_000), "Independent SELF defense control did not acquire actual native incoming threat.");
+				_player.abortAttack(); _player.getAI().setIntention(Intention.IDLE); _player.setTarget(boss);
+				final var request = new PhantomRaidCombatRequest(_profile.profileId(), boss.getObjectId(), boss.getId(), boss.getInstanceId(), org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind.RAID, NpcKind.RAID_BOSS, "64".repeat(32), PhantomCombatMode.MELEE_PHYSICAL, false, false, 79, 20_000, () -> false);
+				try (var lease = _backend.tryAcquireActor(_profile.profileId()))
+				{
+					PhantomAssertions.assertTrue(lease != null, "SELF defense lacks its native actor lease.");
+					final var foreign = new PhantomRaidCombatRequest(request.profileId() + 1, boss.getObjectId(), boss.getId(), boss.getInstanceId(), request.contentKind(), request.expectedNpcKind(), request.attemptAuthorityHash(), request.mode(), false, false, 79, 20_000, () -> false);
+					final var cancelled = new PhantomRaidCombatRequest(request.profileId(), boss.getObjectId(), boss.getId(), boss.getInstanceId(), request.contentKind(), request.expectedNpcKind(), request.attemptAuthorityHash(), request.mode(), false, false, 79, 20_000, () -> true);
+					PhantomAssertions.assertTrue(lease.npcRaidDefenseSkill(foreign).isEmpty() && lease.npcRaidDefenseSkill(cancelled).isEmpty(), "Foreign profile or cancelled plan admitted native SELF defense.");
+					final var selected = lease.npcRaidDefenseSkill(request).orElseThrow(() -> new AssertionError("Native learned SELF defense was not selected under actual pressure."));
+					PhantomAssertions.assertEquals(new SelectedSkill(110, _player.getKnownSkill(110).getLevel()), selected, "SELF defense chose another native family.");
+					PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castNpcRaidDefense(request, selected), "Native SELF defense CAST was refused.");
+					PhantomAssertions.assertTrue(_player.isCastingNow() && _player.getAI().getIntention() == Intention.CAST && _player.getAI().getCastTarget() == _player && _player.getCurrentSkill() != null && _player.getCurrentSkill().getSkillId() == selected.skillId() && _player.getCurrentSkill().getSkillLevel() == selected.skillLevel(), "Native SELF CAST did not retain its exact pending identity.");
+					lease.cancelOwnedAction(new org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction(1, boss.getObjectId(), new SelectedSkill(selected.skillId(), selected.skillLevel() + 1), 0));
+					PhantomAssertions.assertTrue(_player.isCastingNow(), "Mismatched skill identity cancelled the native SELF CAST.");
+					lease.cancelOwnedAction(new org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction(1, boss.getObjectId() + 1, selected, 0));
+					PhantomAssertions.assertTrue(_player.isCastingNow(), "Foreign combat target cancelled the native SELF CAST.");
+					lease.cancelOwnedAction(new org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction(1, boss.getObjectId(), selected, 0));
+					PhantomAssertions.assertTrue(!_player.isCastingNow() && _player.getAI().getIntention() == Intention.IDLE, "Exact owner cancellation retained native SELF CAST.");
+					context.record("raid064.defenseGuardResult", "actual native incoming raid threat; learned SELF selection; exact currentSkill/self castTarget; mismatched selectedSkill retained CAST; exact selectedSkill cancelled CAST to IDLE; no native buff removal or resource rescue");
+				}
+				return;
+			}
 			final var ready = readiness.assess(MemberRef.phantom(_profile.profileId(), _player.getObjectId()), "raid.25199");
 			context.record("raid059.preflight", "INDEPENDENT mobile full9/9 legal79 input (one human80 ONLY for guard case); stock boss=" + boss.getId() + "; fullHP=" + boss.getMaxHp() + "; minions=" + initialMinions.stream().map(value -> value.getId() + ":HP" + value.getCurrentHp() + '/' + value.getMaxHp()).toList() + "; minions25200/25201=71/native curse unchanged/max79; TEST roster=" + roster.stream().map(value -> value.getObjectId() + ":class" + value.getActiveClass() + ":level" + value.getLevel() + ":MDef" + value.getMDef(boss, null)).toList() + "; stock A/S gear +Tateossian jewellery/current class-tree skills<=actual level; one native grade SS3000+BSS1000 per member/S arrows2000/SpiritOre300/native autoSS+BSS; native load/movement guard before enrollment; human native assist tank target; readiness=" + ready.status() + '/' + ready.reason() + "; fixed45min encounter deadline; first90s combined boss+minion DPS/MP feasibility; no rescue/refill/HP edit/roster change during battle");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.ReadinessStatus.GROUP_READY, ready.status(), "Current native raid readiness cannot admit the declared high-level encounter.");
@@ -6064,6 +6098,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 						System.out.println("RAID064_SUPPORT " + List.of(actors.get(3), actors.get(4), actors.get(6), actors.get(7)).stream().map(actor -> actor.getObjectId() + ":AI=" + actor.getAI().getIntention() + ":casting=" + actor.isCastingNow() + ":moving=" + actor.isMoving() + ":target=" + (actor.getTarget() == null ? 0 : actor.getTarget().getObjectId()) + ":lastSkill=" + (actor.getLastSkillCast() == null ? "none" : actor.getLastSkillCast().getId() + ":" + actor.getLastSkillCast().getLevel())).toList());
 						System.out.println("RAID064_TANK lastSkill=" + (_player.getLastSkillCast() == null ? "none" : _player.getLastSkillCast().getId() + ":" + _player.getLastSkillCast().getLevel()) + "; liveMinionVictims=" + liveMinions.stream().map(value -> value.getId() + ":" + (value.getMostHated() == null ? 0 : value.getMostHated().getObjectId())).toList());
 						System.out.println("RAID064_MAGIC_DEFENSE tankMDef=" + _player.getMDef(boss, null) + "; native effects=" + java.util.stream.IntStream.of(1036, 1189).mapToObj(id -> { final Skill skill = actors.get(6).getKnownSkill(id); return id + ":" + (skill == null ? "NOT_LEARNED" : org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.status(_player, skill, 0)); }).toList());
+						final Skill selfDefense = _player.getKnownSkill(110);
+						System.out.println("RAID064_SELF_DEFENSE tankPDef=" + _player.getPDef(boss) + "; learned=" + (selfDefense == null ? "none" : selfDefense.getId() + ":" + selfDefense.getLevel()) + "; effect=" + (selfDefense == null ? "NOT_LEARNED" : org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.status(_player, selfDefense, 0)));
 						System.out.println("RAID064_HEAL_CAPABILITIES " + backend.capabilities(MemberRef.phantom(profileIds.get(3), actors.get(3).getObjectId()), _player.getObjectId()).stream().filter(value -> value.capabilityKey().equals("combat.heal")).map(value -> value.variantKey() + ':' + value.actionSkillId() + ':' + value.actionSkillLevel() + ':' + value.readyNow() + ':' + value.readinessReason()).toList());
 						System.out.flush(); nextProgress = now + TimeUnit.SECONDS.toNanos(30);
 					}
