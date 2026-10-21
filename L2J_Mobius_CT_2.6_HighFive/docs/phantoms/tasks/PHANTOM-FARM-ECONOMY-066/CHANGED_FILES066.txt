@@ -1,7 +1,11 @@
 L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/AutoPlay.ini
 L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/PhantomPlayers.ini
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/PHANTOM_CURRENT_STATUS.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/PHANTOM_WORLD_ROADMAP_REVISED_2026-10-21.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-FARM-ECONOMY-066.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/.gitattributes
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/ACCEPTANCE.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/ACCEPTANCE066.tsv
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/AUTHORITY.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/CHANGED_FILES066.txt
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/HANDOFF066.md

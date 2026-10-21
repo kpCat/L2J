@@ -2,6 +2,8 @@
 
 **Статус:** предложение владельцу для обсуждения, НЕ замена принятого `PHANTOM_DEVELOPMENT_MASTER_PLAN.md` или текущих матриц. Исходный HEAD `kpCat/L2J`, `feature/phantom-world`: `5892949f89aa81e191705e67754aa1fd348186b6`. Никаких изменений репозитория или runtime этим документом не выполняется.
 
+Факт TASK066 от21.10.2026: optional shots/loot/sweep, bounded soft+burst/lazy cleanup и native inventory maintenance реализованы; обычная S1 и useful continuation после sameDB restart подтверждены. CORE066 остаётся PARTIAL: linked dwarf S2 BLOCKED, последний impacted magic/ranged не весь GREEN. Candidate штатно STOPPED; [RESULT066](reports/PHANTOM-FARM-ECONOMY-066.md) содержит точную матрицу и привязку публикации. Этот факт не закрывает roadmap целиком и не переписывает прежние FAIL/DEFERRED.
+
 ## 0. Конечное видение и базовые правила
 
 **Продукт:** High Five мир с многочисленными автономными персонажами, настоящими группами, PK/PvP, торговлей/крафтом, экипировкой и узнаваемыми характерами. Игрок-владелец вправе включать персональные QoL-исключения без автоматической выдачи тех же исключений фантомам.

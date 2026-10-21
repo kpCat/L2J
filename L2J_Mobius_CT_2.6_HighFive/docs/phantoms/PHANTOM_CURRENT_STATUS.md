@@ -1,5 +1,7 @@
 # Phantom World: текущий статус
 
+21.10.2026 TASK066: **CORE066=PARTIAL**. Обычный автономный Main подтвердил6 native kills/rewards,4 inventory pickups и продолжение; sameDB restart сохранил48 identity/предметы/прежние receipts и полезную работу. Реализованы optional shots, bounded loot/sweep, soft+burst capacity/lazy cleanup и native maintenance. Связанная dwarf сцена и два последних focused magic/ranged случая не закрыты; полный G10 не GREEN. Candidate штатно STOPPED; привязки, публикация и ограничения — [RESULT066](reports/PHANTOM-FARM-ECONOMY-066.md). Исторические milestones ниже не пересматриваются.
+
 20.10.2026: основной baseline новых задач — `feature/phantom-world`, включающий финальную TASK061 `d0993c1933951f020fde5883c7079c437b97cf3c`. Итог TASK061 — **CORE061=PASS, М7=PARTIAL**, без объявления полного М1/G4/G6; точная приёмка — [RESULT061](reports/PHANTOM-WORLD-CAREER-061.md). TASK062 консолидирует структуру High Five + `PhantomSemanticStudio/`, не добавляя игровых возможностей. Правила работы и проверки — корневой `AGENTS.md`, результаты — корневой `RESULT062.md`. Experiment не является рабочей веткой по умолчанию. Срезы ниже сохранены как история и не заменяют текущий RESULT061.
 
 16.10.2026 TASK058: **М2 SERVER_VERIFIED для объявленного native scope**, личная клиентская приёмка QA_PENDING; ordinary current JAR smoke и sameDB restart прошли. Разрешён следующий М3; текущая матрица и сохранённые ограничения — в [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md). М1/G4/G6 этой проверкой не закрываются.
