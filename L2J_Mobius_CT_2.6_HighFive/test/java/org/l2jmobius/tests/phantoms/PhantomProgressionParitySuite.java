@@ -33,7 +33,7 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_catalog = _fixture.start(context);
-		context.record("progressionParity.cases", 38);
+		context.record("progressionParity.cases", 39);
 		context.record("progressionParity.hash", _catalog.combinedHash());
 		context.record("progressionParity.classGraphHash", _catalog.hashes().classGraphHash());
 		context.record("progressionParity.skillLearningHash", _catalog.hashes().skillLearningHash());
@@ -118,6 +118,13 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(rules.getFirst().actionSkill().skillLevel() == 3 && rules.getFirst().targetScope() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.TargetScope.PARTY
 					&& _catalog.classSkillLearns(98).stream().anyMatch(learn -> learn.skillId() == skillId && learn.skillLevel() == 3 && learn.minimumCharacterLevel() <= 79), "Physical support lacks its inherited native level79 class-tree fact.");
 			}
+		});
+		registry.add("39-learned-eva-saint-major-heal", _ ->
+		{
+			final var rules = _catalog.capabilities(105).stream().filter(rule -> rule.capabilityKey().equals("combat.heal") && rule.actionSkill().skillId() == 1401).toList();
+			PhantomAssertions.assertEquals(1, rules.size(), "Learned Eva Saint Major Heal is unavailable to the existing support owner.");
+			PhantomAssertions.assertTrue(rules.getFirst().actionSkill().skillLevel() == 1 && rules.getFirst().rank() == 1000
+				&& _catalog.classSkillLearns(105).stream().anyMatch(learn -> learn.skillId() == 1401 && learn.skillLevel() == 11 && learn.minimumCharacterLevel() == 74), "Eva Saint Major Heal capability differs from its native inherited learning contract.");
 		});
 	}
 
