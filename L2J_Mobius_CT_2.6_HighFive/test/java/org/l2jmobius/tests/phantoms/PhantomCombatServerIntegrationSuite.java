@@ -6056,7 +6056,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				finally { _combat.cancel(_profile.profileId()); consumeTerminal(); }
 				return;
 			}
-			final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+			final var navigationMetrics = new PhantomMetrics();
+			final var navigation = new PhantomNavigationService(navigationMetrics); navigation.start();
 			final var routes = new PhantomPartyRouteCoordinator(navigation, _combat);
 			final var goals = new PhantomGoalStateStore(_repository);
 			final long goalId = 58005830059L, deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(45);
@@ -6097,6 +6098,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				human.getAI().setIntention(Intention.IDLE);
 				context.record("raid059.assembly", assembled.status() + "/" + assembled.reasonKey() + "; native members=" + nativeParty.getMemberCount());
 				context.record("raid064.assemblyResult", "boss=" + boss.getLocation() + "; actor=" + _player.getLocation() + "; nativeRequests=" + java.util.stream.LongStream.rangeClosed(1, 8).mapToObj(navigation::find).flatMap(Optional::stream).toList());
+				// Terminal requests can already be consumed by the route owner; its counters remain factual.
+				context.record("raid064.assemblyNavigation", navigationMetrics.snapshot().navigation());
 				PhantomAssertions.assertTrue(assembled.readyReceipt() != null && nativeParty.getMemberCount() == 9, "Full9 native assembly did not produce an exact ready receipt.");
 				final double hpBefore = boss.getCurrentHp(); final long expBefore = roster.stream().mapToLong(Player::getExp).sum();
 				final long tankExpBefore = _player.getExp();
