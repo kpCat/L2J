@@ -98,6 +98,16 @@ public final class PhantomTask066Environment
 			int count = 0; final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
 			while (rows.next()) { if (++count > 64) { throw new IllegalStateException("Own066 root inventory bound exceeded."); } final var goal = codec.decode(rows.getBytes(2)); output.add("ROOT\t" + rows.getLong(1) + '\t' + goal.goalId() + '\t' + goal.revision() + '\t' + goal.goalType() + '\t' + goal.target() + '\t' + goal.status()); }
 		}
+		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT i.owner_id,i.object_id,i.item_id,i.`count`,i.loc,i.enchant_level FROM items i JOIN phantom_profiles p ON p.character_object_id=i.owner_id ORDER BY i.owner_id,i.object_id LIMIT 10001"))
+		{
+			int count = 0;
+			while (rows.next()) { if (++count > 10000) { throw new IllegalStateException("Own066 item evidence bound exceeded."); } output.add("ITEM\t" + rows.getInt(1) + '\t' + rows.getInt(2) + '\t' + rows.getInt(3) + '\t' + rows.getLong(4) + '\t' + rows.getString(5) + '\t' + rows.getInt(6)); }
+		}
+		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT profile_id,payload FROM phantom_profile_components WHERE component_type='commerce.operation' ORDER BY profile_id LIMIT 65"))
+		{
+			int count = 0;
+			while (rows.next()) { if (++count > 64) { throw new IllegalStateException("Own066 receipt evidence bound exceeded."); } output.add("RECEIPT\t" + rows.getLong(1) + '\t' + org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.decode(rows.getBytes(2))); }
+		}
 		for (String table : List.of("characters", "items", "character_skills", "phantom_profiles", "phantom_profile_components"))
 		{
 			final var hashes = new ArrayList<String>();

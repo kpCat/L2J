@@ -6476,10 +6476,6 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous action remains in combat.");
 		prepareLearningField059(context);
 		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
-		final var armor = new ArrayList<Item>();
-		for (int id : List.of(24,31)) { final var piece = _player.getInventory().addItem(ItemProcessType.REWARD,id,1,_player,this); _player.getInventory().equipItem(piece); armor.add(piece); }
-		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp());
-		context.record("shots066.input", "TEST Fighter19/Falchion68/Bone24+31/full native HP before first measurement; independent learned1177:1 cast input after class switch; no HP/stat/shot/Adena replenishment in combat observation");
 		_player.addSkill(SkillData.getInstance().getSkill(1177, 1), false);
 		final var physical = _player.getInventory().addItem(ItemProcessType.REWARD, 1835, 30, _player, this);
 		final var magical = _player.getInventory().addItem(ItemProcessType.REWARD, 3947, 30, _player, this);
@@ -6524,6 +6520,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous controlled-actor action did not leave native combat stance.");
 		prepareLearningField059(context);
 		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
+		for (int id : List.of(24,31)) { final var piece = _player.getInventory().addItem(ItemProcessType.REWARD,id,1,_player,this); _player.getInventory().equipItem(piece); }
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp());
+		context.record("shots066.input", "TEST Fighter19/Falchion68/Bone24+31/full native HP before first measurement; independent learned1177:1 cast input after class switch; no HP/stat/shot/Adena replenishment in combat observation");
 		final var preferences = List.copyOf(_player.getAutoSoulShot()); for (int item : preferences) { _player.removeAutoSoulShot(item); }
 		_player.setChargedShot(ShotType.SOULSHOTS, false); _player.setChargedShot(ShotType.SPIRITSHOTS, false); _player.setChargedShot(ShotType.BLESSED_SPIRITSHOTS, false);
 		final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner(); final boolean previousPolicy = scope.requiresOffensiveShots(); scope.requireOffensiveShots(true);
@@ -6535,11 +6534,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < hp, 8_000), "Empty shot stock blocked lawful native melee damage.");
 			_player.abortAttack(); _player.getAI().setIntention(Intention.IDLE);
 			_player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass());
+			PhantomAssertions.assertTrue(waitFor(() -> !_player.isChangingClass() && !_player.isAttackingNow() && !_player.isCastingNow() && scope.outstanding() == 0, 10_000), "Prior native action/class change did not drain before the separate CAST input.");
 			final var skill = SkillData.getInstance().getSkill(1177, 1); _player.addSkill(skill, false);
 			_player.setCurrentMp(_player.getMaxMp()); // Separate negative CAST input, before its measurement.
 			final int castMillis = org.l2jmobius.gameserver.model.stats.Formulas.calcAtkSpd(_player, skill, skill.getHitTime() + skill.getCoolTime());
 			PhantomAssertions.assertTrue(castMillis >= 0 && castMillis <= 30_000, "Unboosted TEST cast exceeds the declared native observation bound: " + castMillis);
-			final double mp = _player.getCurrentMp(), magicHp = target.getCurrentHp(); _player.setTarget(target); _player.doCast(skill);
+			final double mp = _player.getCurrentMp(), magicHp = target.getCurrentHp(); _player.setTarget(target); _player.getAI().setIntention(Intention.CAST, skill, target);
 			final boolean magicDamage = waitFor(() -> target.getCurrentHp() < magicHp && _player.getCurrentMp() < mp, Math.max(8_000, castMillis + 2_000));
 			final String diagnostic = "nativeCastMillis=" + castMillis + "; MAtkSpd=" + _player.getMAtkSpd() + "; targetHP=" + hp + "->" + magicHp + "->" + target.getCurrentHp() + "; dead=" + target.isDead() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; learned=" + _player.getSkillLevel(1177) + "; casting=" + _player.isCastingNow() + "; AI=" + _player.getAI().getIntention() + "; owner=" + scope.open() + '/' + scope.nativeObservationHealthy() + "; work=" + scope.diagnosticScalars() + "; evidence=" + scope.evidence().snapshot();
 			context.record("shots066.unboostedDiagnostic", diagnostic);
@@ -6551,7 +6551,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			while (!target.isDead() && continuationCasts++ < 8)
 			{
 				PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow() && !_player.isSkillDisabled(skill), 10_000), "Native unboosted cast/reuse did not retire before the next action.");
-				final double priorHp = target.getCurrentHp(); _player.setTarget(target); _player.doCast(skill);
+				final double priorHp = target.getCurrentHp(); _player.setTarget(target); _player.getAI().setIntention(Intention.CAST, skill, target);
 				final boolean progressed = waitFor(() -> target.isDead() || target.getCurrentHp() < priorHp, castMillis + 3_000);
 				final String step = "cast=" + continuationCasts + "; targetHP=" + priorHp + "->" + target.getCurrentHp() + "; actorHP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; actorMP=" + _player.getCurrentMp() + "; actorDead=" + _player.isDead() + "; target=" + _player.getTarget() + "; distance=" + _player.calculateDistance3D(target) + "; casting=" + _player.isCastingNow() + "; owner=" + scope.diagnosticScalars();
 				context.record("shots066.continuation." + continuationCasts, step);

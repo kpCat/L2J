@@ -9,6 +9,7 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/PACKAGE_
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/PLAN066.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/READ_SET.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/RUNTIME_INPUTS.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/START_HERE_066_RU.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/TASK.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/TEST_CASES.md
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/util/LocalRuntimeShutdown.java
@@ -32,6 +33,7 @@ L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/Phantom
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomNativeShotControl.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/L2jCommerceBackend.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/L2jPhantomSupplyJourney.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomAutonomousSupplyPolicy.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomCommerceDecision.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomCommerceReceipt.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomCommerceService.java

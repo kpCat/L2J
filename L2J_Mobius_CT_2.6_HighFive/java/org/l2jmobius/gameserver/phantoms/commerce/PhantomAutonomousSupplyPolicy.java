@@ -17,6 +17,13 @@ public record PhantomAutonomousSupplyPolicy(boolean enabled, int lowWaterHits, i
 		if (lowWaterHits < 1 || lowWaterHits > 10 || targetHits <= lowWaterHits || targetHits > 100 || minimumAdenaReserve < 0 || retrySeconds < 10 || retrySeconds > 300 || journeyMinutes < 2 || journeyMinutes > 20 || maximumProfiles < 1 || maximumProfiles > 128) { throw new IllegalArgumentException("Autonomous supply policy is outside hard bounds."); }
 	}
 
+	public boolean usefulPurchase(boolean optionalAmplifier, long stock, long count, int perHit)
+	{
+		if (stock < 0 || perHit <= 0 || count < perHit) { return false; }
+		// An optional amplifier must fund the configured restock deficit before it can displace useful farming.
+		return !optionalAmplifier || count >= Math.max(perHit, Math.multiplyExact((long) perHit, targetHits) - stock);
+	}
+
 	public static PhantomAutonomousSupplyPolicy load(Path path)
 	{
 		try

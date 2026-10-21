@@ -539,7 +539,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					final long price = (long) (offer.price() * (1 + merchant.getMpc().getBaseTaxRate()));
 					if (price <= 0 || budget < price) { continue; }
 					final long count = Math.min(wanted, budget / price);
-					if (count < perHit || !mobilePurchase(player, item, count)) { continue; }
+					final boolean optionalAmplifier = item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT;
+					if (!_policy.usefulPurchase(optionalAmplifier, stock, count, perHit) || !mobilePurchase(player, item, count)) { continue; }
 					choices.add(new Choice(merchant.getId(), merchant.getObjectId(), offer.listId(), item.getId(), count, player.calculateDistance3D(merchant), price));
 				}
 			}

@@ -499,6 +499,15 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		registry.add("03-explicit-sell-plan", _ -> testExplicitPlan("candidate.commerce.sell", sellGoal()));
 		registry.add("04-explicit-teleport-plan", _ -> testExplicitPlan("candidate.commerce.teleport", teleportGoal()));
 		registry.add("05-no-learn-skill-candidate", _ -> testNoLearnSkill());
+		registry.add("066-optional-amplifier-trip-needs-useful-budget", _ ->
+		{
+			final var policy = new org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy(true,3,60,500,30,8,128);
+			PhantomAssertions.assertFalse(policy.usefulPurchase(true,0,0,1), "No-budget optional purchase was admitted.");
+			PhantomAssertions.assertFalse(policy.usefulPurchase(true,0,4,1), "A four-shot micro-trip displaced available unboosted farming.");
+			PhantomAssertions.assertTrue(policy.usefulPurchase(true,0,60,1), "Changed sufficient funds did not permit a useful optional batch.");
+			PhantomAssertions.assertTrue(policy.usefulPurchase(true,57,3,1), "Existing stock was ignored when funding the target deficit.");
+			PhantomAssertions.assertTrue(policy.usefulPurchase(false,0,1,1), "Mandatory ammunition/healing lost affordable partial supply.");
+		});
 	}
 
 	private void registerServerIntegration(PhantomTestRegistry registry)
