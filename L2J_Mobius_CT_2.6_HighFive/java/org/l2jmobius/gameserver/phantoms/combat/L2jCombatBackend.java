@@ -162,7 +162,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	{
 		return _materializationService.tryAcquireAction(profileId).map(lease ->
 		{
-			final L2jActorLease actor = new L2jActorLease(lease, _knowledgeSupplier, _progressionCatalog);
+			final L2jActorLease actor = new L2jActorLease(profileId, lease, _knowledgeSupplier, _progressionCatalog);
 			lease.detachContext();
 			return actor;
 		}).orElse(null);
@@ -170,6 +170,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 
 	private static final class L2jActorLease implements PhantomCombatActorLease
 	{
+		private final long _profileId;
 		private final ActionLease _materializationLease;
 		private final Player _player;
 		private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
@@ -181,13 +182,16 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private long _nextServitorSkillAttemptNanos;
 		private int _controlledServitorObjectId;
 		private int _ownedSummonSkillId;
+		private SelectedSkill _ownedRaidSelfDefense;
+		private int _ownedRaidDefenseTargetObjectId;
 		private Location _ownedSpacing;
 		private int _ownedSpacingTargetObjectId;
 		private long _spacingStartedNanos;
 		private int _spacingAttempts;
 
-		private L2jActorLease(ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
+		private L2jActorLease(long profileId, ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
 		{
+			_profileId = profileId;
 			_materializationLease = materializationLease;
 			_player = materializationLease.player();
 			_shots = new PhantomNativeShotControl(_player);
@@ -613,6 +617,34 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		public Optional<SelectedSkill> npcRaidAggroSkill(PhantomRaidCombatRequest request)
 		{
 			return request == null ? Optional.empty() : npcAggroSkill(request.targetObjectId(), request);
+		}
+
+		@Override
+		public Optional<SelectedSkill> npcRaidDefenseSkill(PhantomRaidCombatRequest request)
+		{
+			if (request == null || request.profileId() != _profileId || request.planOwnershipToken().isCancelled() || _closed.get() || _materializationLease.isClosed() || World.getInstance().getPlayer(_player.getObjectId()) != _player) { return Optional.empty(); }
+			final ActorSnapshot actor = actorSnapshot();
+			final WorldObject object = World.getInstance().findObject(request.targetObjectId());
+			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.moving() || actor.currentHp() > actor.maximumHp() * 0.75 || !(object instanceof Monster target) || !validRaidAggroRecipient(target, actor, request) || target.getMostHated() != _player || !org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) { return Optional.empty(); }
+			if (actor.attacking() && (!_player.hasAI() || _player.getAI().getIntention() != Intention.ATTACK || _player.getAI().getAttackTarget() != target || _player.getTarget() != target)) { return Optional.empty(); }
+			return _player.getAllSkills().stream().filter(skill -> PhantomCombatSkillSafety.supportsRaidSelfDefense(skill, _player.isTransformed()))
+				.filter(skill -> !_player.isSkillDisabled(skill) && PhantomSupportEffectAuthority.status(_player, skill, 0) == PhantomSupportEffectAuthority.Status.MISSING && _player.getCurrentMp() >= Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill)) && _player.getCharges() >= skill.getChargeConsumeCount() && (skill.getItemConsumeCount() <= 0 || _player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) >= skill.getItemConsumeCount()) && skill.checkCondition(_player, _player, false))
+				.sorted(Comparator.comparingInt(Skill::getLevel).reversed().thenComparingInt(Skill::getId)).findFirst().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel()));
+		}
+
+		@Override
+		public ActionOutcome castNpcRaidDefense(PhantomRaidCombatRequest request, SelectedSkill selected)
+		{
+			if (selected == null || _player.isCastingNow() || _player.isAttackingNow() || npcRaidDefenseSkill(request).filter(selected::equals).isEmpty()) { return ActionOutcome.REJECTED; }
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			if (skill == null || skill.getLevel() != selected.skillLevel() || !_player.checkDoCastConditions(skill) || !skill.checkCondition(_player, _player, false)) { return ActionOutcome.UNAVAILABLE; }
+			if (request.planOwnershipToken().isCancelled() || _closed.get() || _materializationLease.isClosed()) { return ActionOutcome.REJECTED; }
+			_ownedRaidSelfDefense = selected;
+			_ownedRaidDefenseTargetObjectId = request.targetObjectId();
+			_player.setTarget(_player);
+			_player.setCurrentSkill(skill, false, false);
+			_player.getAI().setIntention(Intention.CAST, skill, _player);
+			return ActionOutcome.ISSUED;
 		}
 
 		private Optional<SelectedSkill> npcAggroSkill(int targetObjectId, PhantomRaidCombatRequest request)
@@ -1826,6 +1858,17 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final SkillUseHolder current = _player.getCurrentSkill();
 			final SelectedSkill selectedSkill = action.selectedSkill();
+			if (_ownedRaidSelfDefense != null && _ownedRaidSelfDefense.equals(selectedSkill) && _ownedRaidDefenseTargetObjectId == action.combatTargetObjectId())
+			{
+				if (_player.getAI().getIntention() == Intention.CAST && _player.getAI().getCastTarget() == _player && current != null && current.getSkillId() == selectedSkill.skillId() && current.getSkillLevel() == selectedSkill.skillLevel())
+				{
+					_player.abortCast();
+					_player.getAI().setIntention(Intention.IDLE);
+					cancelledOwnedAction = true;
+				}
+				_ownedRaidSelfDefense = null;
+				_ownedRaidDefenseTargetObjectId = 0;
+			}
 			if ((_player.getAI().getIntention() == Intention.CAST) && ownedCombatTarget(_player.getAI().getCastTarget(), action.combatTargetObjectId()) && (selectedSkill != null) && (current != null) && (current.getSkillId() == selectedSkill.skillId()) && (current.getSkillLevel() == selectedSkill.skillLevel()))
 			{
 				_player.abortCast();

@@ -1560,6 +1560,26 @@ public final class PhantomCombatService
 			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
 			return;
 		}
+		final Optional<SelectedSkill> defense = session._actorLease.npcRaidDefenseSkill(session._raidRequest);
+		if (defense.isPresent())
+		{
+			if (actor.attacking())
+			{
+				session._actorLease.cancelOwnedAction(session._ownedAction);
+				session._raidAttackIssued = false;
+				final ActorSnapshot afterCancel = session._actorLease.actorSnapshot();
+				if (afterCancel.attacking() || afterCancel.casting()) { return; }
+			}
+			final ActionOutcome outcome = session._actorLease.castNpcRaidDefense(session._raidRequest, defense.orElseThrow());
+			if (outcome == ActionOutcome.ISSUED)
+			{
+				session._raidAttackIssued = false;
+				session._ownedAction = session._ownedAction.withSelectedSkill(defense.orElseThrow());
+				_metrics.castIssued();
+				return;
+			}
+			if (outcome == ActionOutcome.ALREADY_OWNED) { return; }
+		}
 		final Optional<SelectedSkill> aggression = session._actorLease.npcRaidAggroSkill(session._raidRequest);
 		if (aggression.isPresent())
 		{

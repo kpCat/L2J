@@ -28,6 +28,25 @@ public final class PhantomCombatSkillSafety
 		return supportsNpcAggro(facts(skill, actorTransformed), skill.hasEffectType(EffectType.AGGRESSION));
 	}
 
+	/** SELF-only stationary native defense; never admits an area recipient or a foreign effect. */
+	public static boolean supportsRaidSelfDefense(Skill skill, boolean actorTransformed)
+	{
+		if (skill == null || actorTransformed || !skill.isActive() || skill.isPassive() || skill.isToggle() || skill.getTargetType() != TargetType.SELF || skill.getAbnormalType() != org.l2jmobius.gameserver.model.skill.AbnormalType.PD_UP_SPECIAL || skill.hasNegativeEffect() || skill.isPvPOnly() || skill.isSuicideAttack() || skill.isHeroSkill() || skill.isGMSkill() || skill.is7Signs() || skill.isTransformation() || skill.isChanneling() || skill.isSimultaneousCast()) { return false; }
+		boolean defense = false;
+		for (EffectScope scope : EffectScope.values())
+		{
+			final var effects = skill.getEffects(scope);
+			if (effects == null || effects.isEmpty()) { continue; }
+			if (scope != EffectScope.GENERAL) { return false; }
+			for (var effect : effects)
+			{
+				if (!"handlers.skill.effects.ImmobileBuff".equals(effect.getClass().getName())) { return false; }
+				defense = true;
+			}
+		}
+		return defense;
+	}
+
 	public static boolean supportsNpcAreaAggro(Skill skill, boolean actorTransformed)
 	{
 		Objects.requireNonNull(skill, "skill");

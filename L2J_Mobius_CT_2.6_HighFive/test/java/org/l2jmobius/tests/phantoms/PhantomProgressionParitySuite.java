@@ -33,7 +33,7 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_catalog = _fixture.start(context);
-		context.record("progressionParity.cases", 36);
+		context.record("progressionParity.cases", 37);
 		context.record("progressionParity.hash", _catalog.combinedHash());
 		context.record("progressionParity.classGraphHash", _catalog.hashes().classGraphHash());
 		context.record("progressionParity.skillLearningHash", _catalog.hashes().skillLearningHash());
@@ -96,6 +96,19 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 		registry.add("34-all-native-class-learning-records", this::assertLearningRecords);
 		registry.add("35-all-native-career-race-sex-index-contracts", this::assertCareerEdges);
 		registry.add("36-npc-learnable-class-trainer-templates", this::assertTrainerTemplates);
+		registry.add("37-native-raid-self-defense-rejects-offensive-self-root", _ ->
+		{
+			final var skills = org.l2jmobius.gameserver.data.xml.SkillData.getInstance();
+			final var defense = skills.getSkill(110, 2);
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsRaidSelfDefense(defense, false), "Native SELF Ultimate Defense is not admitted.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsRaidSelfDefense(defense, true), "Transformed actor admitted native SELF defense.");
+			for (int id : new int[] {313, 368, 18})
+			{
+				final var skill = skills.getSkill(id, 1);
+				PhantomAssertions.assertTrue(skill != null, "Native safety negative skill is absent: " + id);
+				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsRaidSelfDefense(skill, false), "Offensive self-root/area action was admitted as SELF defense: " + id);
+			}
+		});
 	}
 
 	private void assertLearningRecords(PhantomTestContext context)

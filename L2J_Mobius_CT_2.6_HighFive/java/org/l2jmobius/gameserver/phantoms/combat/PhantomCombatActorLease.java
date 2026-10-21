@@ -224,6 +224,17 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return castNpcAggro(request.targetObjectId(), skill);
 	}
 
+	/** Current learned SELF defense under this exact admitted raid authority. */
+	default Optional<SelectedSkill> npcRaidDefenseSkill(PhantomRaidCombatRequest request)
+	{
+		return Optional.empty();
+	}
+
+	default ActionOutcome castNpcRaidDefense(PhantomRaidCombatRequest request, SelectedSkill skill)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
 
 	default boolean supportsPvpSkill(SelectedSkill skill, PhantomCombatMode mode)
 	{

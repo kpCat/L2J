@@ -169,6 +169,37 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 			}
 			finally { unissued.stop(); }
 		});
+		registry.add("11-raid-self-defense-keeps-current-owner-and-resumes-offense064", _ ->
+		{
+			final Fixture fixture = new Fixture();
+			try
+			{
+				fixture.lease.sustainAttack = true;
+				final var request = fixture.request(1, false, 48);
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(request).accepted(), "Self defense input did not start.");
+				fixture.dispatcher.runNext();
+				fixture.lease.defenseReady = true;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.defenseCasts, "Own repeated ATTACK starved current native SELF defense.");
+				PhantomAssertions.assertEquals(request, fixture.lease.defenseAuthority, "SELF defense lost its raid authority.");
+				PhantomAssertions.assertEquals(1, fixture.lease.cancelCalls, "SELF defense did not cancel exactly its own issued attack.");
+				fixture.lease.busy = true; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.defenseCasts, "SELF defense interrupted an in-flight CAST.");
+				fixture.lease.busy = false; fixture.lease.defenseReady = false; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(2, fixture.lease.raidAttacks, "SELF defense did not resume ordinary raid offense.");
+			}
+			finally { fixture.stop(); }
+			final Fixture unissued = new Fixture();
+			try
+			{
+				unissued.lease.attacking = true; unissued.lease.defenseReady = true;
+				PhantomAssertions.assertTrue(unissued.service.startRaidSession(unissued.request(1, false, 48)).accepted(), "SELF defense unissued negative did not start.");
+				unissued.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, unissued.lease.defenseCasts, "SELF defense replaced another native ATTACK.");
+				PhantomAssertions.assertEquals(0, unissued.lease.cancelCalls, "SELF defense cancelled an unissued ATTACK.");
+			}
+			finally { unissued.stop(); }
+		});
 	}
 
 	private static void exactLiveDeathVictory()
@@ -387,6 +418,9 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		private int cancelCalls;
 		private PhantomOwnedAction lastCancelled;
 		private boolean aggroReady;
+		private boolean defenseReady;
+		private int defenseCasts;
+		private PhantomRaidCombatRequest defenseAuthority;
 		private int aggroCasts;
 		private int raidAggroCasts;
 		private PhantomRaidCombatRequest aggroAuthority;
@@ -430,6 +464,8 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		@Override public ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill skill) { aggroCasts++; return ActionOutcome.ISSUED; }
 		@Override public Optional<SelectedSkill> npcRaidAggroSkill(PhantomRaidCombatRequest request) { aggroAuthority = request; return npcAggroSkill(request.targetObjectId()); }
 		@Override public ActionOutcome castNpcRaidAggro(PhantomRaidCombatRequest request, SelectedSkill skill) { aggroAuthority = request; raidAggroCasts++; return castNpcAggro(request.targetObjectId(), skill); }
+		@Override public Optional<SelectedSkill> npcRaidDefenseSkill(PhantomRaidCombatRequest request) { defenseAuthority = request; return defenseReady ? Optional.of(new SelectedSkill(110, 2)) : Optional.empty(); }
+		@Override public ActionOutcome castNpcRaidDefense(PhantomRaidCombatRequest request, SelectedSkill skill) { defenseAuthority = request; defenseCasts++; return ActionOutcome.ISSUED; }
 		@Override public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { spacingCalls++; return spacing; }
 		@Override public ActionOutcome castRaid(int targetObjectId, SelectedSkill skill, PhantomRaidCombatRequest request) { raidCasts++; lastRaidSkill = skill; return ActionOutcome.ISSUED; }
 
