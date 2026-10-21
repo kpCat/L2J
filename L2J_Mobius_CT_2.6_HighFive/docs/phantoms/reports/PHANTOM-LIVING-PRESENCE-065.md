@@ -1,6 +1,6 @@
 # RESULT065 — живое присутствие и безопасная материализация
 
-**CORE065 = PARTIAL.** P0–P6 и P8 подтверждены; P7 = BLOCKED_INPUT_OUTSIDE065. Поставка готова, STOPPED; P9 ожидает normal push. **OWNER_CLIENT_QA_DEFERRED**: настоящей сетевой сессии владельца не было. Исторические M1/G4/G6 и прежние отчёты этим результатом не закрываются.
+**CORE065 = PARTIAL.** P0–P6, P8 и P9 подтверждены; P7 = BLOCKED_INPUT_OUTSIDE065. Проверенная поставка STOPPED, normal push подтверждён. **OWNER_CLIENT_QA_DEFERRED**: настоящей сетевой сессии владельца не было. Исторические M1/G4/G6 и прежние отчёты этим результатом не закрываются.
 
 Работа начата 2026-10-21 06:04:58 UTC. Предел экспериментов11:04:58 UTC, общий предел12:04:58 UTC; обе ordinary-сцены уже штатно остановлены к09:11 UTC, preservation завершён09:16 UTC. Новые направления, М5/М6, экономика и Studio не разрабатывались; optional066 не выполнялась.
 
@@ -78,4 +78,4 @@ Git использовался по прямому TASK065/AUTHORITY065: bounded
 
 Сборки: `ant -f build.xml -Dbuild=<own build> compile-tests`; `Build-Task065.ps1 -Label source065-verified -Build build-final` исполнил committed `jar compile-tests`, exit0. Tests: existing `PhantomTestLauncher <mode> <seed>`, exact modes/seeds/results/hashes в AFFECTED_GATES065/FROZEN_AFFECTED065/EPISODE065. Ordinary: `Runtime065.ps1 -Action Start|Status|Stop -RuntimeRoot <candidate065>`, два START/STOP exit0. Preservation helper exit0; encoding/scope guards exit0. Автоматических approval rejection не было.
 
-Публикация пока PENDING: после exact documentation commit выполнить `git push origin HEAD:refs/heads/feature/phantom-world` без force и сверить HEAD с live ls-remote. Финальная запись обновится после фактического push; PUBLICATION065.json сохранит конечный documentation HEAD отдельно от code/JAR SHA.
+Выполнен `git push origin HEAD:refs/heads/feature/phantom-world` без force: публикация `05c962457d058d8324893f08d7ca50a97d2f9705` подтверждена live `git ls-remote origin refs/heads/feature/phantom-world` и `git rev-parse HEAD`. Immutable receipt — EVIDENCE065/PUBLICATION_FIRST065.json. Финальный documentation HEAD после этой записи фиксируется отдельно в PUBLICATION065.json и ответе; code/JAR SHA410fc7a6b не меняется. История не переписывалась.
