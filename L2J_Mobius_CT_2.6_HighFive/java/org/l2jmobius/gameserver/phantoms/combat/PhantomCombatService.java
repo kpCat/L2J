@@ -1854,6 +1854,10 @@ public final class PhantomCombatService
 			{
 				session._lootAcquiredByActor++;
 			}
+			else if (observation == LootObservation.ACQUIRED_BY_PARTY)
+			{
+				session._lootAcquiredByParty++;
+			}
 			else
 			{
 				session._lootLostWithoutAcquisition++;
@@ -1906,7 +1910,7 @@ public final class PhantomCombatService
 
 	private static PhantomCombatResult lootResult(PhantomCombatSession session, boolean timedOut)
 	{
-		if (session._lootAcquiredByActor > 0)
+		if (session._lootAcquiredByActor > 0 || session._lootAcquiredByParty > 0)
 		{
 			return ((session._lootLostWithoutAcquisition > 0) || (timedOut && (session._lootAttempt != null))) ? PhantomCombatResult.VICTORY_LOOT_PARTIAL : PhantomCombatResult.VICTORY_LOOTED;
 		}

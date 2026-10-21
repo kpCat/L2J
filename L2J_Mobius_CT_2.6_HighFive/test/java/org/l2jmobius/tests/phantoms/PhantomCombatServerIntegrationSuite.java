@@ -382,7 +382,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
-			PhantomAssertions.assertEquals(Boolean.getBoolean("phantom.test.farmEconomy066Shots") ? 66006601L : 58005833L, context.seed(), "Earned learning used the wrong deterministic seed.");
+			PhantomAssertions.assertEquals(Boolean.getBoolean("phantom.test.farmEconomy066Loot") ? 66006611L : Boolean.getBoolean("phantom.test.farmEconomy066Shots") ? 66006601L : 58005833L, context.seed(), "Earned learning used the wrong deterministic seed.");
 			assertCampaign058Jar(context);
 		}
 		if (_mode == Mode.NATURAL_STOP_058)
@@ -639,9 +639,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.farmEconomy066Loot"))
+			{
+				registry.add("066-native-ground-pickup-receipt-is-exact", this::testExactPickup066);
+				registry.add("066-native-loot-series-survives-supply-yield", this::testLootYield066);
+				return;
+			}
 			if (Boolean.getBoolean("phantom.test.farmEconomy066Shots"))
 			{
 				registry.add("066-native-unboosted-melee-and-magic", this::testOptionalShots066);
+				if (Boolean.getBoolean("phantom.test.farmEconomy066UnboostedOnly")) { return; }
 				registry.add("066-native-finite-physical-charge", this::testContinuousShots061);
 				registry.add("066-native-paid-blessed-magic-grade", this::testBlessedShots061);
 				registry.add("066-native-paid-hybrid-and-summon-conservation", this::testHybridShots061);
@@ -6513,8 +6520,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass());
 			final var skill = SkillData.getInstance().getSkill(1177, 1); _player.addSkill(skill, false);
 			_player.setCurrentMp(_player.getMaxMp()); // Separate negative CAST input, before its measurement.
+			final int castMillis = org.l2jmobius.gameserver.model.stats.Formulas.calcAtkSpd(_player, skill, skill.getHitTime() + skill.getCoolTime());
+			PhantomAssertions.assertTrue(castMillis >= 0 && castMillis <= 30_000, "Unboosted TEST cast exceeds the declared native observation bound: " + castMillis);
 			final double mp = _player.getCurrentMp(), magicHp = target.getCurrentHp(); _player.setTarget(target); _player.doCast(skill);
-			PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < magicHp && _player.getCurrentMp() < mp, 8_000), "Empty shot stock blocked lawful native magic damage/MP cost.");
+			final boolean magicDamage = waitFor(() -> target.getCurrentHp() < magicHp && _player.getCurrentMp() < mp, Math.max(8_000, castMillis + 2_000));
+			final String diagnostic = "nativeCastMillis=" + castMillis + "; MAtkSpd=" + _player.getMAtkSpd() + "; targetHP=" + hp + "->" + magicHp + "->" + target.getCurrentHp() + "; dead=" + target.isDead() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; learned=" + _player.getSkillLevel(1177) + "; casting=" + _player.isCastingNow() + "; AI=" + _player.getAI().getIntention() + "; owner=" + scope.open() + '/' + scope.nativeObservationHealthy() + "; work=" + scope.diagnosticScalars() + "; evidence=" + scope.evidence().snapshot();
+			context.record("shots066.unboostedDiagnostic", diagnostic);
+			PhantomAssertions.assertTrue(magicDamage, "Unboosted magic not completed: " + diagnostic);
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(1835, -1), "Unboosted melee created shots.");
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(3947, -1), "Unboosted magic created BSS.");
 			context.record("shots066.optional", "native meleeHP=" + hp + "->" + magicHp + "; magicHP=" + magicHp + "->" + target.getCurrentHp() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; no stock granted");
@@ -6690,6 +6702,89 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(before, _player.getInventory().getInventoryItemCount(SOULSHOT_ITEM_ID, -1), "Missing shot path fabricated inventory.");
 		PhantomAssertions.assertFalse(_player.isChargedShot(ShotType.SOULSHOTS), "Missing shot path fabricated charge.");
 		destroyInventoryItem(_player.getInventory().getItemByItemId(WEAPON_ITEM_ID));
+	}
+
+	private Item freeGround066(int itemId, long count, int x, int y, int z)
+	{
+		final Item item = ItemManager.createItem(ItemProcessType.LOOT, itemId, count, _player, this);
+		PhantomAssertions.assertTrue(item != null, "Declared066 ground fixture could not be created.");
+		item.setOwnerId(ItemProcessType.LOOT, 0, _player, this);
+		item.dropMe(_player, x, y, z);
+		return item;
+	}
+
+	private void testExactPickup066(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); prepareLearningField059(context);
+		_observer = Player.load(_environment.observer().objectId());
+		PhantomAssertions.assertTrue(_observer != null, "Owned ordinary competing picker did not load.");
+		_observer.setXYZInvisible(_player.getX() + 10, _player.getY(), _player.getZ()); _observer.spawnMe();
+		final Item first = freeGround066(1865, 1, _player.getX() + 15, _player.getY(), _player.getZ());
+		final Item second = freeGround066(1865, 1, _player.getX() + 20, _player.getY(), _player.getZ());
+		final long before = _player.getInventory().getInventoryItemCount(1865, -1);
+		try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final var candidate = lease.lootCandidates(16, 600).stream().filter(value -> value.worldObjectId() == first.getObjectId()).findFirst().orElseThrow();
+			_observer.doPickupItem(first);
+			_player.doPickupItem(second);
+			PhantomAssertions.assertEquals(before + 1, _player.getInventory().getInventoryItemCount(1865, -1), "Separate native pickup did not merge the declared stack.");
+			PhantomAssertions.assertEquals(LootObservation.LOST_WITHOUT_ACQUISITION, lease.observeLoot(candidate), "Unrelated native stack gain falsely confirmed another picker's ground object.");
+			context.record("loot066.exact", "Two TEST ground1865x1 before measurement; ordinary own observer picked first; Phantom natively picked second and merged; first object remains LOST despite same-item gain");
+			final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party); _observer.joinParty(party);
+			final Item adena = freeGround066(57, 6, _player.getX() + 20, _player.getY(), _player.getZ());
+			final long actorAdena = _player.getAdena(), partyAdena = _observer.getAdena();
+			try
+			{
+				final var shared = lease.lootCandidates(16, 600).stream().filter(value -> value.worldObjectId() == adena.getObjectId()).findFirst().orElseThrow();
+				_player.doPickupItem(adena);
+				PhantomAssertions.assertEquals(actorAdena + 3, _player.getAdena(), "Native party Adena share for Phantom differs.");
+				PhantomAssertions.assertEquals(partyAdena + 3, _observer.getAdena(), "Native ordinary party recipient did not receive its exact share.");
+				PhantomAssertions.assertEquals(LootObservation.ACQUIRED_BY_PARTY, lease.observeLoot(shared), "Native party distribution was not confirmed from the exact source object.");
+				context.record("loot066.party", "Separate TEST ground57x6; native party split3+3, including ordinary recipient without Phantom evidence; exact source receipt; no duplicated ground/inventory ownership");
+			}
+			finally { party.disbandParty(); if (adena.isSpawned()) { adena.decayMe(); ItemManager.destroyItem(ItemProcessType.DESTROY, adena, _player, this); } }
+		}
+		finally
+		{
+			for (Item item : List.of(first, second)) { if (item.isSpawned()) { item.decayMe(); ItemManager.destroyItem(ItemProcessType.DESTROY, item, _player, this); } }
+		}
+	}
+
+	private void testLootYield066(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19); prepareLearningField059(context);
+		final var goals = new PhantomGoalStateStore(_repository);
+		final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING && value.point().instanceId() == 0).min(Comparator.comparingDouble(value -> Math.hypot(value.point().x() - _player.getX(), value.point().y() - _player.getY()))).orElseThrow();
+		final var farm = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_combatPoint.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, _combatPoint.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture066.loot_yield", 1);
+		goals.insert(_profile.profileId(), farm);
+		final var candidates = new PhantomCandidateRegistry(); final var handlers = new PhantomStepHandlerRegistry(); candidates.seal(); handlers.seal();
+		final var engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1); engine.start();
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(_profile.profileId()), "Loot input did not attach the real farm root.");
+		final var autoPlay = new PhantomVisibleAutoPlay(_materialization, () -> engine, _ -> true);
+		final int x = _player.getX(), y = _player.getY(), z = _player.getZ();
+		final boolean primary = GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 410, y, z, 0);
+		PhantomAssertions.assertTrue(primary || GeoEngine.getInstance().canMoveToTarget(x, y, z, x, y + 410, z, 0), "Both predeclared066 nearby ground corridors are unavailable.");
+		final List<Item> items = new ArrayList<>(); final Map<Integer, Long> before = new java.util.HashMap<>();
+		int offset = 350;
+		for (int itemId : List.of(57, 1865, 10)) { before.put(itemId, _player.getInventory().getInventoryItemCount(itemId, -1)); items.add(freeGround066(itemId, 1, primary ? x + offset : x, primary ? y : y + offset, z)); offset += 30; }
+		context.record("loot066.seriesInput", "Explicit TEST ground57/1865/10x1; distances350/380/410; primary=+X,fallback=+Y chosen before measurement; selected=" + (primary ? "+X" : "+Y") + "; native Geo; no Monster death claim");
+		try
+		{
+			PhantomAssertions.assertTrue(autoPlay.start(_profile.profileId(), farm), "Native AutoPlay loot registration failed.");
+			final long yieldDeadline = System.currentTimeMillis() + 20_000;
+			final boolean yielded = waitFor(() -> autoPlay.yieldAfterCurrentTarget(_profile.profileId(), yieldDeadline), 15_000);
+			PhantomAssertions.assertTrue(yielded && items.stream().noneMatch(Item::isSpawned), "Supply yield abandoned a bounded lawful ranged loot series.");
+			for (int itemId : before.keySet()) { PhantomAssertions.assertEquals(before.get(itemId) + 1, _player.getInventory().getInventoryItemCount(itemId, -1), "Native series did not conserve exact item=" + itemId); }
+			context.record("loot066.seriesObserved", "Three native acquisitions/stack merges before supply handoff; old200 radius exceeded; no per-actor pickup timer");
+		}
+		finally
+		{
+			autoPlay.stop(_profile.profileId()); engine.beginStop(); engine.finishStop();
+			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
+			for (Item item : items) { if (item.isSpawned()) { item.decayMe(); ItemManager.destroyItem(ItemProcessType.DESTROY, item, _player, this); } }
+		}
 	}
 
 	private void testCanonicalLoot() throws Exception

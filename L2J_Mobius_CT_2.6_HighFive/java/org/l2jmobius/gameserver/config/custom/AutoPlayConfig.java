@@ -43,6 +43,8 @@ public class AutoPlayConfig
 	public static boolean ENABLE_AUTO_ASSIST;
 	public static int AUTO_PLAY_SHORT_RANGE;
 	public static int AUTO_PLAY_LONG_RANGE;
+	public static int PHANTOM_PICKUP_RANGE;
+	public static int PHANTOM_PICKUP_BATCH_SIZE;
 	public static boolean AUTO_PLAY_PREMIUM;
 	public static Set<Integer> DISABLED_AUTO_SKILLS = new HashSet<>();
 	public static Set<Integer> DISABLED_AUTO_ITEMS = new HashSet<>();
@@ -60,6 +62,8 @@ public class AutoPlayConfig
 		ENABLE_AUTO_ASSIST = config.getBoolean("AssistLeader", false);
 		AUTO_PLAY_SHORT_RANGE = config.getInt("ShortRange", 600);
 		AUTO_PLAY_LONG_RANGE = config.getInt("LongRange", 1400);
+		PHANTOM_PICKUP_RANGE = Math.clamp(config.getInt("PhantomPickupRange", 600), 200, 1200);
+		PHANTOM_PICKUP_BATCH_SIZE = Math.clamp(config.getInt("PhantomPickupBatchSize", 3), 1, 8);
 		AUTO_PLAY_PREMIUM = config.getBoolean("AutoPlayPremium", false);
 		
 		DISABLED_AUTO_SKILLS.clear();

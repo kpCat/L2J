@@ -3400,7 +3400,7 @@ public class Player extends Playable
 		if (count > 0)
 		{
 			_inventory.addAdena(process, count, this, reference);
-			recordNativeLoot(process, _inventory.getAdenaInstance(), count, currentAdena);
+			recordNativeLoot(process, _inventory.getAdenaInstance(), count, currentAdena, reference);
 			
 			// Send update packet.
 			if (count == getAdena())
@@ -3628,7 +3628,7 @@ public class Player extends Playable
 					ward.activate(this, item);
 				}
 			}
-			recordNativeLoot(process, newitem, lootRequested, lootBefore);
+			recordNativeLoot(process, newitem, lootRequested, lootBefore, reference);
 		}
 	}
 	
@@ -3743,7 +3743,7 @@ public class Player extends Playable
 					}
 				}
 				
-				recordNativeLoot(process, createdItem, count, lootBefore);
+				recordNativeLoot(process, createdItem, count, lootBefore, reference);
 				return createdItem;
 			}
 		}
@@ -3753,20 +3753,26 @@ public class Player extends Playable
 
 	private long nativeLootBefore(ItemProcessType process, int itemId)
 	{
-		if ((process != ItemProcessType.LOOT) && (process != ItemProcessType.PICKUP)) { return -1; }
+		if ((process != ItemProcessType.LOOT) && (process != ItemProcessType.PICKUP) && (process != ItemProcessType.SWEEP)) { return -1; }
+		if (PlayerNativeEvidence.capturesPickup(itemId)) { return _inventory.getInventoryItemCount(itemId, -1); }
 		final var owner = getNativeWorkOwner();
 		if ((owner == null) || (owner.player() != this) || !owner.isCurrent() || (PlayerNativeWork.current(owner) == null) || (owner.evidence() == null)) { return -1; }
 		return _inventory.getInventoryItemCount(itemId, -1);
 	}
 
-	private void recordNativeLoot(ItemProcessType process, Item item, long requested, long before)
+	private void recordNativeLoot(ItemProcessType process, Item item, long requested, long before, WorldObject reference)
 	{
-		if ((before < 0) || (requested <= 0) || (item == null) || ((process != ItemProcessType.LOOT) && (process != ItemProcessType.PICKUP))
+		if ((before < 0) || (requested <= 0) || (item == null) || ((process != ItemProcessType.LOOT) && (process != ItemProcessType.PICKUP) && (process != ItemProcessType.SWEEP))
 			|| (item.getOwnerId() != getObjectId()) || (item.getItemLocation() != org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY) || item.getTemplate().hasExImmediateEffect()) { return; }
+		final long gain = Math.min(requested, Math.max(0, _inventory.getInventoryItemCount(item.getId(), -1) - before));
+		if (gain > 0) { PlayerNativeEvidence.pickupGain(getObjectId(), item.getId(), gain); }
 		final var owner = getNativeWorkOwner();
 		if ((owner == null) || (owner.player() != this) || !owner.isCurrent() || (PlayerNativeWork.current(owner) == null) || (owner.evidence() == null) || !owner.evidence().matches(getObjectId(), owner.epoch())) { return; }
-		final long gain = Math.min(requested, Math.max(0, _inventory.getInventoryItemCount(item.getId(), -1) - before));
-		if (gain > 0) { owner.evidence().loot(item.getObjectId(), item.getId(), gain); }
+		if (gain > 0)
+		{
+			owner.evidence().loot(item.getObjectId(), item.getId(), gain);
+			if (process == ItemProcessType.SWEEP && reference != null) { owner.evidence().swept(reference.getObjectId()); }
+		}
 	}
 	
 	/**
@@ -4798,7 +4804,13 @@ public class Player extends Playable
 		final Party party = getParty();
 		final List<Player> recipients = party == null ? List.of() : List.copyOf(party.getMembers());
 		// Admission precedes the original ground monitor; this same roster must select every native recipient.
-		PlayerNativeWork.run(this, recipients, "party-pickup", () -> doPickupItemNative(object, party, recipients));
+		PlayerNativeWork.run(this, recipients, "party-pickup", () ->
+		{
+			final var owner = getNativeWorkOwner();
+			final var evidence = owner != null && owner.isCurrent() && owner.player() == this ? owner.evidence() : null;
+			if (object instanceof Item item) { PlayerNativeEvidence.withPickupSource(evidence, item.getObjectId(), item.getId(), item.getCount(), () -> doPickupItemNative(object, party, recipients)); }
+			else { doPickupItemNative(object, party, recipients); }
+		});
 	}
 
 	private void doPickupItemNative(WorldObject object, Party party, List<Player> recipients)

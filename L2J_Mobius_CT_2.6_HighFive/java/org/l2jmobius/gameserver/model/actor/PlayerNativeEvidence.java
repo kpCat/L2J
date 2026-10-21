@@ -14,6 +14,75 @@ public final class PlayerNativeEvidence
 	public static final int MAX_TARGETS = 16;
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
 	private static final ThreadLocal<RewardFrame> REWARD_CONTEXT = new ThreadLocal<>();
+	private static final ThreadLocal<PickupFrame> PICKUP_CONTEXT = new ThreadLocal<>();
+	public record PickupReceipt(int sourceObjectId, int itemId, long count, long actorCount, long sequence) { }
+	private final Map<Integer, PickupReceipt> _pickups = new LinkedHashMap<>();
+	private long _pickupSequence;
+	private final Map<Integer, Long> _sweeps = new LinkedHashMap<>();
+	private long _sweepSequence;
+	private static final class PickupFrame
+	{
+		final PlayerNativeEvidence sink;
+		final int sourceObjectId, itemId;
+		final long maximum;
+		long count, actorCount;
+		PickupFrame(PlayerNativeEvidence sink, int sourceObjectId, int itemId, long maximum)
+		{
+			this.sink = sink; this.sourceObjectId = sourceObjectId; this.itemId = itemId; this.maximum = maximum;
+		}
+	}
+
+	/** Synchronous native pickup/party distribution only; no actor references or delayed authority escape this frame. */
+	public static void withPickupSource(PlayerNativeEvidence sink, int sourceObjectId, int itemId, long count, Runnable action)
+	{
+		if (sink == null || sourceObjectId <= 0 || itemId <= 0 || count <= 0) { action.run(); return; }
+		final PickupFrame previous = PICKUP_CONTEXT.get();
+		final PickupFrame frame = new PickupFrame(sink, sourceObjectId, itemId, count);
+		PICKUP_CONTEXT.set(frame);
+		try { action.run(); }
+		finally
+		{
+			if (previous == null) { PICKUP_CONTEXT.remove(); } else { PICKUP_CONTEXT.set(previous); }
+			if (frame.count > 0) { sink.publishPickup(frame); }
+		}
+	}
+
+	public static boolean capturesPickup(int itemId)
+	{
+		final var frame = PICKUP_CONTEXT.get();
+		return frame != null && frame.itemId == itemId && frame.count < frame.maximum;
+	}
+
+	/** Called after the actual inventory writer, including ordinary real-party recipients. */
+	public static void pickupGain(int recipientObjectId, int itemId, long actualGain)
+	{
+		final var frame = PICKUP_CONTEXT.get();
+		if (frame == null || frame.itemId != itemId || actualGain <= 0) { return; }
+		final long gain = Math.min(actualGain, frame.maximum - frame.count);
+		frame.count += gain;
+		if (recipientObjectId == frame.sink._objectId) { frame.actorCount += gain; }
+	}
+
+	private synchronized void publishPickup(PickupFrame frame)
+	{
+		if (_overflow) { return; }
+		_pickupSequence = add(_pickupSequence, 1);
+		if (_overflow) { return; }
+		_pickups.put(frame.sourceObjectId, new PickupReceipt(frame.sourceObjectId, frame.itemId, frame.count, frame.actorCount, _pickupSequence));
+		if (_pickups.size() > 32) { final var oldest = _pickups.keySet().iterator(); oldest.next(); oldest.remove(); }
+	}
+
+	public synchronized long pickupSequence() { return _pickupSequence; }
+	public synchronized PickupReceipt pickupReceipt(int sourceObjectId) { return _pickups.get(sourceObjectId); }
+	public synchronized void swept(int sourceObjectId)
+	{
+		if (_overflow || sourceObjectId <= 0) { return; }
+		_sweepSequence = add(_sweepSequence, 1);
+		if (_overflow) { return; }
+		_sweeps.put(sourceObjectId, _sweepSequence);
+		if (_sweeps.size() > 32) { final var oldest = _sweeps.keySet().iterator(); oldest.next(); oldest.remove(); }
+	}
+	public synchronized long sweepSequence(int sourceObjectId) { return _sweeps.getOrDefault(sourceObjectId, 0L); }
 	private final int _objectId;
 	private final long _epoch;
 	private final Map<Target, TargetState> _targets = new LinkedHashMap<>();

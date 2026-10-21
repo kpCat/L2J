@@ -35,6 +35,7 @@ public final class PhantomCombatSession
 	int _nextSkill;
 	int _lootPickupsIssued;
 	int _lootAcquiredByActor;
+	int _lootAcquiredByParty;
 	int _lootLostWithoutAcquisition;
 	LootCandidate _lootAttempt;
 	PhantomOwnedAction _ownedAction;

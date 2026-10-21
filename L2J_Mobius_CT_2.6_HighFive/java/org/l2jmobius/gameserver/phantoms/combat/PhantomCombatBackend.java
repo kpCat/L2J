@@ -51,6 +51,7 @@ public interface PhantomCombatBackend
 	{
 		PENDING,
 		ACQUIRED_BY_ACTOR,
+		ACQUIRED_BY_PARTY,
 		LOST_WITHOUT_ACQUISITION,
 		INELIGIBLE
 	}

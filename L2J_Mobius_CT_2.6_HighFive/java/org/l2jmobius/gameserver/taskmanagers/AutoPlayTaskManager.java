@@ -74,6 +74,8 @@ public class AutoPlayTaskManager
 		/** Advisory ranking only; it cannot grant or deny target admission. */
 		default int targetSelectionLoad(Creature target) { return 0; }
 		default TargetDirective targetDirective(Player player) { return new TargetDirective(TargetDirective.Mode.STOCK, null); }
+		/** Runs only under the same admitted tick/command lease, before target replacement. */
+		default boolean collectBeforeTarget(Player player) { return false; }
 		default void stopObserved(String reason) { }
 	}
 	public record TargetDirective(Mode mode, Creature target) { public enum Mode { STOCK, HOLD, USE_EXACT_TARGET } }
@@ -123,6 +125,7 @@ public class AutoPlayTaskManager
 				}
 				try (lease)
 				{
+				if (phantomPolicy != null && phantomPolicy.collectBeforeTarget(player)) { continue PLAY; }
 				
 				if (player.isSitting() || player.isCastingNow() || (player.getQueuedSkill() != null))
 				{

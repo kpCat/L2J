@@ -1,3 +1,4 @@
+L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/AutoPlay.ini
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/.gitattributes
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/ACCEPTANCE.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/AUTHORITY.md
@@ -10,12 +11,22 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/RUNTIME_
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/TASK.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066/TEST_CASES.md
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/util/LocalRuntimeShutdown.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/config/custom/AutoPlayConfig.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/L2jCombatBackend.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatBackend.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatPolicy.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatService.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatSession.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomNativeLootControl.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomNativeShotControl.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/commons/util/LocalRuntimeShutdownTest.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCampaign058DatabaseLane.java

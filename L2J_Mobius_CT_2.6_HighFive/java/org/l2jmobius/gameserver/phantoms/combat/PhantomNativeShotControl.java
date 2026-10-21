@@ -41,7 +41,7 @@ public final class PhantomNativeShotControl implements AutoCloseable
 			final boolean preferredCharged = magic && selected.getEtcItem().isBlessed() ? _player.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) : charged(magic);
 			if (!preferredCharged && !(ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(_player, selected, false) && charged(magic)))
 			{
-				return ShotOutcome.FAILED;
+				return charged(magic) ? ShotOutcome.ACTIVATED : ShotOutcome.FAILED;
 			}
 			for (int active : List.copyOf(_player.getAutoSoulShot()))
 			{
@@ -55,7 +55,12 @@ public final class PhantomNativeShotControl implements AutoCloseable
 			if (!_player.getAutoSoulShot().contains(selected.getId())) { _player.addAutoSoulShot(selected.getId()); _added.add(selected.getId()); }
 			return ShotOutcome.ACTIVATED;
 		}
-		catch (RuntimeException failure) { return ShotOutcome.FAILED; }
+		catch (RuntimeException failure)
+		{
+			final var owner = _player.getNativeWorkOwner();
+			if (owner != null && owner.isCurrent()) { owner.recordFailure(failure); }
+			return ShotOutcome.FAILED;
+		}
 	}
 
 	private static boolean preferred(Item candidate, Item selected, boolean magic)
@@ -107,7 +112,12 @@ public final class PhantomNativeShotControl implements AutoCloseable
 			if (selected == null) { return ShotOutcome.UNAVAILABLE; }
 			return ItemHandler.getInstance().getHandler(selected.getEtcItem()).onItemUse(owner, selected, false) && charged(actor, magic) ? ShotOutcome.ACTIVATED : ShotOutcome.FAILED;
 		}
-		catch (RuntimeException failure) { return ShotOutcome.FAILED; }
+		catch (RuntimeException failure)
+		{
+			final var nativeOwner = owner.getNativeWorkOwner();
+			if (nativeOwner != null && nativeOwner.isCurrent()) { nativeOwner.recordFailure(failure); }
+			return ShotOutcome.FAILED;
+		}
 	}
 
 	private static boolean charged(org.l2jmobius.gameserver.model.actor.Creature actor, boolean magic)

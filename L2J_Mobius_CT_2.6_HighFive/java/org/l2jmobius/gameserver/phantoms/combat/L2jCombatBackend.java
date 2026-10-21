@@ -135,7 +135,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	}
 
 	private static final int MAXIMUM_ACQUISITION_DISTANCE = 2000;
-	private static final int MAXIMUM_LOOT_DISTANCE = 300;
+	private static int maximumLootDistance()
+	{
+		final int configured = org.l2jmobius.gameserver.config.custom.AutoPlayConfig.PHANTOM_PICKUP_RANGE;
+		return configured >= 200 && configured <= 1200 ? configured : 600;
+	}
 	private static final long MINIMUM_SERVITOR_SKILL_ATTEMPT_NANOS = 3_000_000_000L;
 	private static final long RESUMMON_ATTEMPT_NANOS = 5_000_000_000L;
 	private static final ConditionPlayerCanSummon CAN_SUMMON_SERVITOR = new ConditionPlayerCanSummon(true);
@@ -177,6 +181,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 		private final AtomicBoolean _closed = new AtomicBoolean();
 		private final PhantomNativeShotControl _shots;
+		private final java.util.LinkedHashMap<Integer, Long> _lootBaselines = new java.util.LinkedHashMap<>();
 		private long _nextResummonAttemptNanos;
 		private long _nextSupportPetScanNanos;
 		private long _nextServitorSkillAttemptNanos;
@@ -1087,30 +1092,31 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 					}
 				}
 			}
+			final var owner = _player.getNativeWorkOwner();
+			final long sequence = owner == null || owner.evidence() == null ? -1 : owner.evidence().pickupSequence();
+			for (var candidate : candidates.values()) { _lootBaselines.putIfAbsent(candidate.worldObjectId(), sequence); }
+			while (_lootBaselines.size() > 64) { final var oldest = _lootBaselines.keySet().iterator(); oldest.next(); oldest.remove(); }
 			return List.copyOf(candidates.values());
 		}
 
 		@Override
 		public LootObservation observeLoot(LootCandidate candidate)
 		{
-			final Item exactInventoryItem = _player.getInventory().getItemByObjectId(candidate.worldObjectId());
-			if ((exactInventoryItem != null) && (exactInventoryItem.getOwnerId() == _player.getObjectId()) && ((exactInventoryItem.getItemLocation() == ItemLocation.INVENTORY) || (exactInventoryItem.getItemLocation() == ItemLocation.PAPERDOLL)))
+			final var owner = _player.getNativeWorkOwner();
+			final var sensor = owner != null && owner.isCurrent() && owner.player() == _player && owner.nativeObservationHealthy() ? owner.evidence() : null;
+			final var receipt = sensor == null ? null : sensor.pickupReceipt(candidate.worldObjectId());
+			final Long baseline = _lootBaselines.get(candidate.worldObjectId());
+			if (receipt != null && baseline != null && receipt.sequence() > baseline && receipt.itemId() == candidate.itemId() && receipt.count() == candidate.groundCount())
 			{
-				return LootObservation.ACQUIRED_BY_ACTOR;
+				return receipt.actorCount() == receipt.count() ? LootObservation.ACQUIRED_BY_ACTOR : LootObservation.ACQUIRED_BY_PARTY;
 			}
-
-			final long inventoryCount = _player.getInventory().getInventoryItemCount(candidate.itemId(), -1);
 			final WorldObject object = World.getInstance().findObject(candidate.worldObjectId());
 			if (object instanceof Item item)
 			{
 				if (item.isSpawned() && (item.getItemLocation() == ItemLocation.VOID))
 				{
-					return eligibleLoot(item, MAXIMUM_LOOT_DISTANCE) ? LootObservation.PENDING : LootObservation.INELIGIBLE;
+					return eligibleLoot(item, maximumLootDistance()) ? LootObservation.PENDING : LootObservation.INELIGIBLE;
 				}
-			}
-			if ((inventoryCount >= candidate.actorInventoryCountBefore()) && ((inventoryCount - candidate.actorInventoryCountBefore()) >= candidate.groundCount()))
-			{
-				return LootObservation.ACQUIRED_BY_ACTOR;
 			}
 			return LootObservation.LOST_WITHOUT_ACQUISITION;
 		}
@@ -1803,7 +1809,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		public ActionOutcome pickUp(int objectId)
 		{
 			final WorldObject object = World.getInstance().findObject(objectId);
-			if (!(object instanceof Item item) || !eligibleLoot(item, MAXIMUM_LOOT_DISTANCE))
+			if (!(object instanceof Item item) || !eligibleLoot(item, maximumLootDistance()))
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -1988,7 +1994,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 
 		private boolean eligibleLoot(Item item, int maximumDistance)
 		{
-			return item.isSpawned() && (item.getItemLocation() == ItemLocation.VOID) && (item.getInstanceId() == _player.getInstanceId()) && (distance(_player, item) <= maximumDistance) && (!item.isProtected() || (item.getOwnerId() == _player.getObjectId()));
+			return PhantomNativeLootControl.eligible(_player, item, Math.min(maximumDistance, maximumLootDistance()));
 		}
 
 	}

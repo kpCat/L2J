@@ -18,7 +18,7 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 
 	public PhantomCombatPolicy
 	{
-		if ((maximumSessions < 1) || (maximumSessions > 1_000_000) || (maximumSessionsPerPulse != 64) || (maximumThreatEntries != 32) || (maximumSelectedSkills != 4) || (maximumObservedAttackers != 16) || (maximumLootCandidates != 32) || (maximumRememberedLootIds != 64) || (maximumAcquisitionDistance != 2000) || (maximumLootDistance != 300) || (pulseIntervalMillis != 250) || (defaultTimeoutMillis != 30_000) || (maximumTimeoutMillis != MAXIMUM_TIMEOUT_MILLIS) || (lootTimeoutMillis != 5000) || (lowHpPercent != 15) || (minimumMpReservePercent != 10))
+		if ((maximumSessions < 1) || (maximumSessions > 1_000_000) || (maximumSessionsPerPulse != 64) || (maximumThreatEntries != 32) || (maximumSelectedSkills != 4) || (maximumObservedAttackers != 16) || (maximumLootCandidates != 32) || (maximumRememberedLootIds != 64) || (maximumAcquisitionDistance != 2000) || (maximumLootDistance < 200) || (maximumLootDistance > 1200) || (pulseIntervalMillis != 250) || (defaultTimeoutMillis != 30_000) || (maximumTimeoutMillis != MAXIMUM_TIMEOUT_MILLIS) || (lootTimeoutMillis != 5000) || (lowHpPercent != 15) || (minimumMpReservePercent != 10))
 		{
 			throw new IllegalArgumentException("Combat policy does not match the Goal 012 bounded contract.");
 		}
@@ -26,6 +26,7 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 
 	public static PhantomCombatPolicy productionDefaults(int maximumSessions)
 	{
-		return new PhantomCombatPolicy(maximumSessions, 64, 32, 4, 16, 32, 64, 2000, 300, 250, 30_000, MAXIMUM_TIMEOUT_MILLIS, 5000, 15, 10);
+		final int configured = org.l2jmobius.gameserver.config.custom.AutoPlayConfig.PHANTOM_PICKUP_RANGE;
+		return new PhantomCombatPolicy(maximumSessions, 64, 32, 4, 16, 32, 64, 2000, configured >= 200 && configured <= 1200 ? configured : 600, 250, 30_000, MAXIMUM_TIMEOUT_MILLIS, 5000, 15, 10);
 	}
 }

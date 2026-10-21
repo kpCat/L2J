@@ -184,6 +184,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			if (lease == null) { return false; }
 			final Player player = session.player();
+			if (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player) != null) { return false; }
 			if (!session._yieldRequested || session._yieldDeadlineEpochMillis != deadlineEpochMillis)
 			{
 				final var target = player.getTarget();
@@ -193,6 +194,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			}
 			if (session._yieldTarget != null && !session._yieldTarget.isAlikeDead()) { return false; }
 			if (player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()) { return false; }
+			if (session._loot.tick(player, _clock.getAsLong())) { return false; }
 			stop(profileId, session);
 			return true;
 		}
@@ -286,7 +288,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				// Earned progress belongs to this lifetime even when the next root must pause for native rest.
 				observeProgress(session, progress, _clock.getAsLong());
 			}
-			if (resourcePause(session, player))
+			if (!session._loot.pending(player, _clock.getAsLong()) && resourcePause(session, player))
 			{
 				synchronized (session) { return session._resourceExpired || stalled(session, _clock.getAsLong()); }
 			}
@@ -589,7 +591,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "native_combat_settlement_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "native_combat_settlement");
 				}
-				if (session != null && session._policy == this && resourcePause(session, player))
+				if (session != null && session._policy == this && !session._loot.pending(player, _clock.getAsLong()) && resourcePause(session, player))
 				{
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "resource_recovery");
@@ -650,6 +652,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			final Session session = _sessions.get(_profileId);
 			if (player != _player || session == null || session._policy != this || !session._current.get()) { return new TargetDirective(TargetDirective.Mode.HOLD, null); }
+			final Creature threat = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player);
+			if (threat != null) { return new TargetDirective(permitsTarget(threat) ? TargetDirective.Mode.USE_EXACT_TARGET : TargetDirective.Mode.HOLD, threat); }
+			if (session._loot.pending(player, _clock.getAsLong())) { return new TargetDirective(TargetDirective.Mode.HOLD, null); }
 			if (session._yieldRequested && System.currentTimeMillis() < session._yieldDeadlineEpochMillis)
 			{
 				final Creature target = session._yieldTarget;
@@ -673,10 +678,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			}
 			return load;
 		}
+
+		@Override public boolean collectBeforeTarget(Player player)
+		{
+			final Session session = _sessions.get(_profileId);
+			return session != null && session._policy == this && session._current.get() && session._loot.tick(player, _clock.getAsLong());
+		}
 		@Override
 		public boolean permitsTarget(Creature target)
 		{
-			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId);
+			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player));
 		}
 	}
 
@@ -722,6 +733,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			}
 			fields.put("continuationRead", "SESSION_TUPLE_OTHER_FIELDS_NONATOMIC");
 			fields.put("liveCommandGate", Boolean.toString(session._commandGate.get()));
+			fields.putAll(session._loot.snapshot());
 			if (session._engagement != null) { fields.putAll(session._engagement.snapshot()); }
 			if (session._policy instanceof Policy policy)
 			{
@@ -746,6 +758,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private final AtomicBoolean _commandGate;
 		private final PhantomEngagementController _engagement;
 		private final PhantomNativeShotControl _shots;
+		private final org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl _loot = new org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl();
 		private long nextTargetCheck;
 		private long noTargetSince = -1;
 		private long _usefulSince;
