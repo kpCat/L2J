@@ -32,10 +32,11 @@ if('RiftDeparture' -in $Features -and $Mode -cne 'rift-native058'){throw 'RiftDe
 if('RiftDeparturePressure' -in $Features -and ($Mode -cne 'rift-native058' -or 'RiftDeparture' -notin $Features)){throw 'RiftDeparturePressure requires its separate native departure control.'}
 if('RiftDepartureNativePull' -in $Features -and ($Mode -cne 'rift-native058' -or 'RiftDeparturePressure' -notin $Features -or 'RiftDeparture' -notin $Features)){throw 'RiftDepartureNativePull requires its separate native stock room pressure control.'}
 if('RaidDefenseGuard' -in $Features -and $Mode -cne 'raid-tactics-native058'){throw 'RaidDefenseGuard requires its separate native raid mode.'}
+if('RaidPreparedFullMana' -in $Features -and ($Mode -cne 'raid-tactics-native058' -or 'RaidFlow' -notin $Features -or @($Features | Where-Object {$_ -in @('RaidStaging','RaidLevelGuard','RaidMinionGuard','RaidTriggerGuard','RaidDefenseGuard')}).Count)){throw 'RaidPreparedFullMana requires the independent full raid scenario without guard flags.'}
 if($ValidateOnly){Write-Output "TASK064_TEST_BINDING_PASS commit=$($info064.codeCommit); jar=$hash064; DB_WRITES=0; PROCESS_ACTIONS=0";return}
 $flags064=@{
     PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';PvpTowns='pvpTownPerimeter064';PvpTownOutcome='pvpTownOutcome064';
-    RaidFlow='raidFlow059';RaidStaging='raidStagingOnly059';RaidLevelGuard='raidLevelGuard059';RaidMinionGuard='raidMinionGuard059';RaidTriggerGuard='raidTriggerGuard059';RaidDefenseGuard='raidDefenseGuard064';
+    RaidFlow='raidFlow059';RaidStaging='raidStagingOnly059';RaidLevelGuard='raidLevelGuard059';RaidMinionGuard='raidMinionGuard059';RaidTriggerGuard='raidTriggerGuard059';RaidDefenseGuard='raidDefenseGuard064';RaidPreparedFullMana='raidPreparedFullMana064';
     KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';RiftLifecycle='riftLifecycle064';RiftDeparture='riftDeparture064';RiftDeparturePressure='riftDeparturePressure064';RiftDepartureNativePull='riftDepartureNativePull064';PailakaOnly='pailakaOnly064';LearningJourney='learningJourney059';
     CareerProducer='careerProducer061';AutoProfessions061='autoProfessions061';
     AutonomousLearning='autonomousLearning060';AutonomousLearningGuards='autonomousLearningGuards060';JourneyLifecycle061='journeyLifecycle061';LearningLong061='learningLong061';

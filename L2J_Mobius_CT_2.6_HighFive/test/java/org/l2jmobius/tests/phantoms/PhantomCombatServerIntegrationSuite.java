@@ -760,6 +760,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			else if (Boolean.getBoolean("phantom.test.raidMinionGuard059")) { registry.add("05-native-minion-parent-authority-effect-and-cost", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidLevelGuard059")) { registry.add("04-native-minion-ceiling-refuses-before-combat", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidStagingOnly059")) { registry.add("03-native-staging-geometry-preflight", this::testRaidFull059); }
+			else if (Boolean.getBoolean("phantom.test.raidPreparedFullMana064")) { registry.add("08-declared-full-mana-native-raid-result064", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidFlow059")) { registry.add("02-current-supported-raid-readiness-to-full-native-result", this::testRaidFull059); }
 			else { registry.add("01-stock-live-raid-current-magic-tank-aggro-and-spacing", this::testRaidTactics058); }
 			return;
@@ -5657,7 +5658,29 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			handler.onCommand("enterrift 1", _player, npc); acknowledgeInstance058(actors);
 			final long entered064 = System.nanoTime();
 			PhantomAssertions.assertTrue(party.isInDimensionalRift(), "Native guarded Rift entry failed.");
-			final var rift = party.getDimensionalRift(); final var room = manager.getRoom(rift.getType(), rift.getCurrentRoom());
+			final var rift = party.getDimensionalRift();
+			final var initialRoom = manager.getRoom(rift.getType(), rift.getCurrentRoom());
+			if (Boolean.getBoolean("phantom.test.riftDepartureNativePull064") && initialRoom.isBossRoom())
+			{
+				final var initialSpawnSettled = new java.util.concurrent.CountDownLatch(1);
+				final var previousSpawnTimer = rift.getSpawnTimer(); final var previousTeleportTimer = rift.getTeleportTimer();
+				// Same stock Timer serializes this read-only observer after its original scheduled spawn body.
+				previousSpawnTimer.schedule(new java.util.TimerTask() { @Override public void run() { initialSpawnSettled.countDown(); } }, org.l2jmobius.gameserver.config.GeneralConfig.RIFT_SPAWN_DELAY + 1L);
+				PhantomAssertions.assertTrue(initialSpawnSettled.await(20, TimeUnit.SECONDS), "Initial native boss-room spawn body did not settle before canonical room closing.");
+				final var geo = GeoEngine.getInstance();
+				final Npc guardian = World.getInstance().getVisibleObjectsInRange(_player, Npc.class, 1_000).stream()
+					.filter(candidate -> candidate.getId() >= 31865 && candidate.getId() <= 31918 && candidate.getInstanceId() == _player.getInstanceId() && initialRoom.checkIfInZone(candidate.getX(), candidate.getY(), candidate.getZ()))
+					.filter(candidate -> geo.hasGeo(candidate.getX(), candidate.getY()) && geo.canMoveToTarget(_player.getX(), _player.getY(), _player.getZ(), candidate.getX(), candidate.getY(), candidate.getZ(), _player.getInstanceId()))
+					.min(Comparator.comparingDouble(candidate -> _player.calculateDistance3D(candidate))).orElseThrow(() -> new AssertionError("INVALID_INPUT: initial boss room has no reachable native Guardian for one lawful room alternative."));
+				final byte previousRoom = rift.getCurrentRoom();
+				_player.getAI().setIntention(Intention.MOVE_TO, new Location(guardian.getX(), guardian.getY(), guardian.getZ()));
+				PhantomAssertions.assertTrue(waitFor(() -> !_player.isMoving() && _player.calculateDistance3D(guardian) <= 150 && guardian.canInteract(_player), 10_000), "Native walk did not reach the actual room Guardian interaction range.");
+				_player.setTarget(guardian); handler.onCommand("changeriftroom", _player, guardian); acknowledgeInstance058(actors);
+				PhantomAssertions.assertTrue(rift.getCurrentRoom() != previousRoom && !initialRoom.isPartyInside() && manager.getRoom(rift.getType(), rift.getCurrentRoom()).isPartyInside() && !manager.getRoom(rift.getType(), rift.getCurrentRoom()).isBossRoom() && party.getMemberCount() == actors.size() && actors.stream().allMatch(actor -> actor.getParty() == party && !actor.isTeleporting()), "One canonical Guardian alternative did not release the initial boss room and preserve the exact native group.");
+				PhantomAssertions.assertTrue(rift.getSpawnTimer() != previousSpawnTimer && rift.getTeleportTimer() != previousTeleportTimer && rift.getSpawnTimerTask() != null && rift.getTeleportTimerTask() != null, "Canonical room transition did not replace its native timer owners.");
+				context.record("rift064.initialBossAlternative", "native room=" + previousRoom + "->" + rift.getCurrentRoom() + "; real Guardian=" + guardian.getId() + "; confirmed Geo/native WALK<=10s then canonical changeriftroom once; same Party and exact fee; no direct position/room/timer or random-state writes");
+			}
+			final var room = manager.getRoom(rift.getType(), rift.getCurrentRoom());
 			PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> (actor.getInstanceId() == 0) && room.checkIfInZone(actor.getX(), actor.getY(), actor.getZ()) && (actor.getInventory().getInventoryItemCount(7079, -1) == 1)), "Native Rift room/fee/identity mismatch.");
 			PhantomAssertions.assertTrue(waitFor(() -> room.getSpawns().stream().anyMatch(spawn -> spawn.getLastSpawn() instanceof Monster monster && !monster.isRaid() && _query.findNpc(monster.getId()).filter(fact -> fact.kind() == NpcKind.MONSTER && fact.exp() > 0 && fact.sp() > 0).isPresent()), 20_000), "Native Rift spawn delay produced no supported rewarding stock room monsters; room=" + rift.getCurrentRoom());
 			context.record("instance058.rift.roomSpawns", "room=" + rift.getCurrentRoom() + "; spawns=" + room.getSpawns().stream().map(spawn -> spawn.getLastSpawn() == null ? "pending" : spawn.getLastSpawn().getId() + ":" + spawn.getLastSpawn().getClass().getSimpleName() + ":raid=" + spawn.getLastSpawn().isRaid()).toList());
@@ -5892,6 +5915,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testRaidFull059(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final boolean preparedFullMana = Boolean.getBoolean("phantom.test.raidPreparedFullMana064");
 		final RaidBoss boss = RaidBossSpawnManager.getInstance().getBosses().get(25199);
 		PhantomAssertions.assertTrue((boss != null) && boss.isSpawned() && !boss.isDead() && !boss.isInvul() && (boss.getInstanceId() == 0) && (boss.getCurrentHp() >= boss.getMaxHp() * .99), "INVALID_INPUT: exact stock25199 is unavailable or not full HP.");
 		PhantomAssertions.assertTrue(waitFor(() -> boss.getMinionList().getSpawnedMinions().size() == 4, 15_000), "INVALID_INPUT: declared four stock raid minions did not spawn naturally.");
@@ -5949,7 +5973,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				if ((skill != null) && (actor.getSkillLevel(learn.skillId()) < learn.skillLevel())) { actor.addSkill(skill, true); }
 			}
 			actor.setInvul(false); actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
-			if (actor == actors.get(3)) { actor.setCurrentMp(actor.getMaxMp() * .30); }
+			if (actor == actors.get(3) && !preparedFullMana) { actor.setCurrentMp(actor.getMaxMp() * .30); }
 			// Same native spawn cell is the existing companion-composition input pattern; no player collision is fabricated.
 			final int actorX = stagingInput.getX(), actorY = stagingInput.getY(), actorZ = stagingInput.getZ();
 			PhantomAssertions.assertTrue(geo.canMoveToTarget(actorX, actorY, actorZ, centreX, centreY, centreZ, 0), "INVALID_INPUT: one declared raid member lacks a native approach before enrollment.");
@@ -5957,6 +5981,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		for (Player actor : roster) { actor.refreshOverloaded(); context.record("raid059.nativeLoad." + actor.getObjectId(), "load=" + actor.getCurrentLoad() + "; max=" + actor.getMaxLoad() + "; penalty=" + actor.getWeightPenalty() + "; overloaded=" + actor.isOverloaded() + "; movementDisabled=" + actor.isMovementDisabled()); }
 		PhantomAssertions.assertTrue(roster.stream().noneMatch(value -> value.isOverloaded() || value.isMovementDisabled()), "INVALID_INPUT: declared raid inventory or native state prevents ordinary movement before enrollment.");
+		if (preparedFullMana)
+		{
+			PhantomAssertions.assertTrue(roster.stream().allMatch(actor -> Math.abs(actor.getCurrentMp() - actor.getMaxMp()) < 0.01), "INVALID_INPUT: independent full-MP raid is not fully prepared before enrollment.");
+			context.record("raid064.preparedMana", "PREPARED_INPUT before enrollment only; same9/legal79/gear/stock25199+4minions and original45min/90s feasibility limits; initialMP=" + roster.stream().map(actor -> actor.getObjectId() + ":" + actor.getCurrentMp() + '/' + actor.getMaxMp()).toList() + "; original30% recovery case retained; no refill after this boundary");
+		}
 		human.addAutoSoulShot(1467);
 		final Party nativeParty = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(nativeParty);
 		for (Player actor : roster.subList(1, roster.size())) { actor.joinParty(nativeParty); }
@@ -6003,7 +6032,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var ready = readiness.assess(MemberRef.phantom(_profile.profileId(), _player.getObjectId()), "raid.25199");
 			context.record("raid059.preflight", "INDEPENDENT mobile full9/9 legal79 input (one human80 ONLY for guard case); stock boss=" + boss.getId() + "; fullHP=" + boss.getMaxHp() + "; minions=" + initialMinions.stream().map(value -> value.getId() + ":HP" + value.getCurrentHp() + '/' + value.getMaxHp()).toList() + "; minions25200/25201=71/native curse unchanged/max79; TEST roster=" + roster.stream().map(value -> value.getObjectId() + ":class" + value.getActiveClass() + ":level" + value.getLevel() + ":MDef" + value.getMDef(boss, null)).toList() + "; stock A/S gear +Tateossian jewellery/current class-tree skills<=actual level; one native grade SS3000+BSS1000 per member/S arrows2000/SpiritOre300/native autoSS+BSS; native load/movement guard before enrollment; human native assist tank target; readiness=" + ready.status() + '/' + ready.reason() + "; fixed45min encounter deadline; first90s combined boss+minion DPS/MP feasibility; no rescue/refill/HP edit/roster change during battle");
 			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.ReadinessStatus.GROUP_READY, ready.status(), "Current native raid readiness cannot admit the declared high-level encounter.");
-			context.record("raid059.recoveryInput", "Independent episode: healer starts with30% native MP before enrollment; TEST human assists tank and accepts only an actual native resurrection request; death keeps full9 denominator; final9 living regroup required; no direct revival/resource writes during measurement");
+			context.record("raid059.recoveryInput", "Independent episode: healer starts with" + (preparedFullMana ? "100% PREPARED native MP (separate case08; original30% recovery control retained)" : "30% native MP") + " before enrollment; TEST human assists tank and accepts only an actual native resurrection request; death keeps full9 denominator; final9 living regroup required; no direct revival/resource writes during measurement");
 			if (Boolean.getBoolean("phantom.test.raidMinionGuard059"))
 			{
 				final Monster child = initialMinions.stream().min(Comparator.comparingInt(Monster::getObjectId)).orElseThrow();
