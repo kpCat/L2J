@@ -346,12 +346,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final var bankNeed = bank == null ? null : player.getWarehouse().getItems().stream().filter(item -> item.getCount() > 0).sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256)
 			.filter(item -> need != null && need.fallback().stream().anyMatch(template -> template.getId() == item.getId()) || org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate()))
 			.filter(item -> player.getInventory().validateCapacity(item.isStackable() && player.getInventory().getItemByItemId(item.getId()) != null ? 0 : 1) && player.getInventory().validateWeight((long) item.getTemplate().getWeight())).findFirst().orElse(null);
-		final boolean housekeeping = cached.maintenancePressure || player.getAdena() < _policy.minimumAdenaReserve() || PhantomNativeTravelActions.safePreparationTown(player);
+		final var decisions = new LinkedHashMap<org.l2jmobius.gameserver.model.item.instance.Item, PhantomLootDispositionPolicy.Decision>();
+		player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256).forEach(item -> decisions.put(item, PhantomLootDispositionPolicy.getInstance().evaluate(player, item, needs, false, cached.maintenancePressure)));
+		final boolean housekeeping = cached.maintenancePressure || player.getAdena() < _policy.minimumAdenaReserve() || PhantomNativeTravelActions.safePreparationTown(player)
+			|| decisions.values().stream().anyMatch(decision -> decision.disposition() == PhantomLootDispositionPolicy.Disposition.CRYSTALLIZE);
 		long funds = player.getAdena();
 		if (housekeeping)
 		{
-			final var decisions = new LinkedHashMap<org.l2jmobius.gameserver.model.item.instance.Item, PhantomLootDispositionPolicy.Decision>();
-			player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256).forEach(item -> decisions.put(item, PhantomLootDispositionPolicy.getInstance().evaluate(player, item, needs, false, cached.maintenancePressure)));
 			if (merchant != null && !org.l2jmobius.gameserver.config.custom.MerchantZeroSellPriceConfig.MERCHANT_ZERO_SELL_PRICE)
 			{
 				final var sale = decisions.entrySet().stream().filter(entry -> entry.getValue().disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC).max(Comparator.comparingLong(entry -> Math.multiplyExact(entry.getKey().getReferencePrice() / 2L, entry.getValue().count()))).orElse(null);

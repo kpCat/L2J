@@ -1850,7 +1850,7 @@ public final class PhantomCombatService
 				}
 				return;
 			}
-			if (observation == LootObservation.ACQUIRED_BY_ACTOR)
+			if (observation == LootObservation.ACQUIRED_BY_ACTOR || observation == LootObservation.CONSUMED_NATIVE)
 			{
 				session._lootAcquiredByActor++;
 			}

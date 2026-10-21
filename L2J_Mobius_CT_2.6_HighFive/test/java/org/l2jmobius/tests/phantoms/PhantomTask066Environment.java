@@ -21,15 +21,27 @@ public final class PhantomTask066Environment
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length != 1 || !List.of("preflight", "preservation-final", "bootstrap-test", "bootstrap-release").contains(args[0])) { throw new IllegalArgumentException("Explicit TASK066 environment action required."); }
+		if (args.length != 1 || !List.of("preflight", "preservation-final", "bootstrap-test", "bootstrap-release", "inspect-release", "snapshot-release").contains(args[0])) { throw new IllegalArgumentException("Explicit TASK066 environment action required."); }
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		final Path task = module.getParent().resolve(".phantom-local/task066");
-		final boolean release = args[0].equals("bootstrap-release");
+		final boolean release = args[0].endsWith("-release");
 		final String schema = release ? "l2jmobiush5_phantom_release_066a" : "l2jmobiush5_phantom_test_066";
 		final Path config = task.resolve(release ? "release-input/Database.ini" : "test/Database.test.ini");
 		final Properties settings = read(config);
 		if (!settings.getProperty("URL", "").matches("jdbc:mysql://127\\.0\\.0\\.1:3308/" + schema + "\\?useSSL=false(?:&allowPublicKeyRetrieval=true)?(?:&serverTimezone=UTC)?(?:&characterEncoding=UTF-8)?") || !"4".equals(settings.getProperty("MaximumDatabaseConnections"))) { throw new IllegalArgumentException("Exact066 JDBC and bounded pool required."); }
 		Class.forName(settings.getProperty("Driver"));
+		if (args[0].equals("inspect-release") || args[0].equals("snapshot-release"))
+		{
+			final var owner = read(task.resolve("release-input/owned.properties"));
+			if (!"TASK066_FARM_ECONOMY".equals(owner.getProperty("owner")) || !schema.equals(owner.getProperty("database")) || !"RELEASE_CANDIDATE".equals(owner.getProperty("role"))) { throw new IllegalArgumentException("Exact own066 release read authority required."); }
+			try (var connection = DriverManager.getConnection(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password")))
+			{
+				if (!schema.equals(connection.getCatalog())) { throw new IllegalStateException("Own066 read connected catalog differs."); }
+				connection.setReadOnly(true); connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ); connection.setAutoCommit(false);
+				inspectRelease(connection, task, args[0].equals("snapshot-release")); connection.rollback();
+			}
+			return;
+		}
 		try (var admin = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3308/?useSSL=false", settings.getProperty("Login"), settings.getProperty("Password")))
 		{
 			if (args[0].equals("preflight") || args[0].equals("preservation-final"))
@@ -62,6 +74,50 @@ public final class PhantomTask066Environment
 			Files.writeString(task.resolve(args[0] + ".complete"), aggregate, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 			System.out.println("TASK066_BOOTSTRAP_COMPLETE schema=" + schema + "; scripts=" + scripts.size() + "; aggregate=" + aggregate);
 		}
+	}
+
+	private static void inspectRelease(Connection connection, Path task, boolean snapshot) throws Exception
+	{
+		long writers;
+		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB=DATABASE() AND ID<>CONNECTION_ID()")) { rows.next(); writers = rows.getLong(1); }
+		final var output = new ArrayList<String>(); output.add("TASK066_RELEASE_READ\totherConnections=" + writers + "\tconsistentRead=true");
+		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT p.profile_id,c.charId,c.char_name,c.classid,c.base_class,c.level,c.online,c.x,c.y,c.z FROM phantom_profiles p JOIN characters c ON c.charId=p.character_object_id ORDER BY p.profile_id LIMIT 65"))
+		{
+			int count = 0;
+			while (rows.next())
+			{
+				if (++count > 64) { throw new IllegalStateException("Own066 read exceeds bounded profile inventory."); }
+				final var fields = new ArrayList<String>(); for (int column = 1; column <= 10; column++) { fields.add(rows.getString(column)); }
+				output.add("IDENTITY\t" + String.join("\t", fields));
+				if (snapshot && rows.getInt(7) != 0) { throw new IllegalStateException("Own066 snapshot requires all own identities offline."); }
+			}
+		}
+		if (snapshot && writers != 0) { throw new IllegalStateException("Own066 snapshot requires stopped own schema with no other connections."); }
+		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT profile_id,payload FROM phantom_profile_components WHERE component_type='goal.runtime' ORDER BY profile_id LIMIT 65"))
+		{
+			int count = 0; final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
+			while (rows.next()) { if (++count > 64) { throw new IllegalStateException("Own066 root inventory bound exceeded."); } final var goal = codec.decode(rows.getBytes(2)); output.add("ROOT\t" + rows.getLong(1) + '\t' + goal.goalId() + '\t' + goal.revision() + '\t' + goal.goalType() + '\t' + goal.target() + '\t' + goal.status()); }
+		}
+		for (String table : List.of("characters", "items", "character_skills", "phantom_profiles", "phantom_profile_components"))
+		{
+			final var hashes = new ArrayList<String>();
+			try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT * FROM `" + table + "`"))
+			{
+				final int columns = rows.getMetaData().getColumnCount();
+				while (rows.next())
+				{
+					if (hashes.size() >= 10000) { throw new IllegalStateException("Own066 snapshot row bound exceeded."); }
+					final var digest = MessageDigest.getInstance("SHA-256");
+					for (int column = 1; column <= columns; column++) { final byte[] value = rows.getBytes(column); digest.update((byte) (value == null ? 0 : 1)); if (value != null) { digest.update(java.nio.ByteBuffer.allocate(4).putInt(value.length).array()); digest.update(value); } }
+					hashes.add(HexFormat.of().formatHex(digest.digest()));
+				}
+			}
+			hashes.sort(String::compareTo); output.add("TABLE\t" + table + '\t' + hashes.size() + '\t' + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(String.join("\n", hashes).getBytes(StandardCharsets.UTF_8))));
+		}
+		final String label = System.getProperty("phantom.task066.readLabel", "");
+		if (!label.matches("[a-z0-9-]{1,48}")) { throw new IllegalArgumentException("Unique bounded own066 read evidence label required."); }
+		Files.write(task.resolve(label + "-release-read.tsv"), output, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+		System.out.println("TASK066_RELEASE_READ snapshot=" + snapshot + "; otherConnections=" + writers + "; identities=" + output.stream().filter(line -> line.startsWith("IDENTITY")).count() + "; writes=0; label=" + label);
 	}
 
 	private static void requireAbsent(Connection connection, String schema) throws Exception

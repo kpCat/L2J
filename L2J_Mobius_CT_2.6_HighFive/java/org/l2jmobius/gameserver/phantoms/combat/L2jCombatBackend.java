@@ -1108,6 +1108,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final Long baseline = _lootBaselines.get(candidate.worldObjectId());
 			if (receipt != null && baseline != null && receipt.sequence() > baseline && receipt.itemId() == candidate.itemId() && receipt.count() == candidate.groundCount())
 			{
+				if (receipt.nativeConsumed()) { return LootObservation.CONSUMED_NATIVE; }
 				return receipt.actorCount() == receipt.count() ? LootObservation.ACQUIRED_BY_ACTOR : LootObservation.ACQUIRED_BY_PARTY;
 			}
 			final WorldObject object = World.getInstance().findObject(candidate.worldObjectId());

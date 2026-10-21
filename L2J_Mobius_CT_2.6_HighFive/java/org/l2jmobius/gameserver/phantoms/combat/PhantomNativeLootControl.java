@@ -22,7 +22,7 @@ public final class PhantomNativeLootControl
 	private int _objectId, _itemId, _attempts;
 	private long _count, _baseline, _deadline, _nextSeries;
 	private boolean _sweeping;
-	private long _acquired, _swept;
+	private long _acquired, _consumed, _swept;
 
 	public static boolean eligible(Player player, Item item, int range)
 	{
@@ -61,7 +61,7 @@ public final class PhantomNativeLootControl
 			final var receipt = sensor.pickupReceipt(_objectId);
 			if (!_sweeping && receipt != null && receipt.sequence() > _baseline && receipt.itemId() == _itemId && receipt.count() == _count)
 			{
-				_acquired++; _objectId = 0;
+				if (receipt.nativeConsumed()) { _consumed++; } else { _acquired++; } _objectId = 0;
 			}
 			else if (_sweeping && sensor.sweepSequence(_objectId) > _baseline) { _swept++; _objectId = 0; }
 			else if (now >= _deadline || current == null || !_sweeping && (!(current instanceof Item item) || !item.isSpawned()) || _sweeping && (!(current instanceof Monster body) || !body.isSweepActive()))
@@ -127,5 +127,5 @@ public final class PhantomNativeLootControl
 	}
 	private static boolean threatened(Player player) { return threat(player) != null; }
 
-	public Map<String, String> snapshot() { return Map.of("loot.pending", Integer.toString(_objectId), "loot.acquired", Long.toString(_acquired), "loot.swept", Long.toString(_swept), "loot.refusals", Integer.toString(_refusedUntil.size())); }
+	public Map<String, String> snapshot() { return Map.of("loot.pending", Integer.toString(_objectId), "loot.acquired", Long.toString(_acquired), "loot.consumed", Long.toString(_consumed), "loot.swept", Long.toString(_swept), "loot.refusals", Integer.toString(_refusedUntil.size())); }
 }

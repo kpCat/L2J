@@ -51,6 +51,7 @@ final class PhantomTask066PersistentLane
 	static void initialize(Path module, Path config) throws Exception
 	{
 		validate(module, config);
+		final Path runtime = Path.of(System.getProperty("phantom.task066.runtime")).toRealPath();
 		final String aggregate = PhantomTestSchemaManifest.current(module).aggregateSha256();
 		final Path bootstrap = module.getParent().resolve(".phantom-local/task066/bootstrap-release.complete");
 		if (!Files.isRegularFile(bootstrap, LinkOption.NOFOLLOW_LINKS) || !bootstrap.equals(bootstrap.toRealPath()) || Files.size(bootstrap) > 128) { throw new IllegalArgumentException("Own066 completed one-time bootstrap receipt required."); }
@@ -65,8 +66,16 @@ final class PhantomTask066PersistentLane
 				query.setString(1, DATABASE);
 				try (var rows = query.executeQuery()) { PhantomAssertions.assertTrue(rows.next() && rows.getLong(1) == 0, "TASK066 preparation requires a quiescent own schema."); }
 			}
-			// Check before native infrastructure can write any state; an existing release is never a fixture.
-			for (String table : List.of("accounts", "characters", "phantom_profiles", "phantom_profile_components"))
+			// Existing own population is allowed only for the two named premeasurement066 preparations.
+			final boolean preparation = Boolean.getBoolean("phantom.task066.viewpoint") || Boolean.getBoolean("phantom.task066.prepareDwarf");
+			if (preparation)
+			{
+				final Path observer = runtime.resolve("private/observer066.properties"); final var receipt = read(observer);
+				if (!"Task066View".equals(receipt.getProperty("name")) || !"false".equals(receipt.getProperty("actualNetworkSession")) || !"false".equals(receipt.getProperty("synthetic"))) { throw new IllegalArgumentException("Own066 original passive preparation receipt required."); }
+				try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*),SUM(online<>0),SUM(accesslevel<>0) FROM characters")) { rows.next(); if (rows.getLong(1) < 2 || rows.getLong(1) > 65 || rows.getLong(2) != 0 || rows.getLong(3) != 0) { throw new IllegalArgumentException("Own066 preparation requires bounded offline access0 identities."); } }
+				try (var query = connection.prepareStatement("SELECT COUNT(*) FROM characters WHERE charId=? AND char_name='Task066View' AND account_name='task066player' AND online=0 AND accesslevel=0 AND level=1")) { query.setInt(1, Integer.parseInt(receipt.getProperty("objectId"))); try (var rows = query.executeQuery()) { rows.next(); if (rows.getLong(1) != 1) { throw new IllegalArgumentException("Own066 original observer identity differs."); } } }
+			}
+			for (String table : preparation ? List.<String>of() : List.of("accounts", "characters", "phantom_profiles", "phantom_profile_components"))
 			{
 				try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM " + table)) { PhantomAssertions.assertTrue(rows.next() && rows.getLong(1) == 0, "TASK066 preparation refuses existing data: " + table); }
 			}

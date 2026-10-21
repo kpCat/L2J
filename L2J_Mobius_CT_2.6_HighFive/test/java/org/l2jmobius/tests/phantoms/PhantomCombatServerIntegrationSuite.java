@@ -646,11 +646,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.farmEconomy066Loot"))
 			{
+				if (Boolean.getBoolean("phantom.test.farmEconomy066ImmediateOnly")) { registry.add("066-native-immediate-pickup-records-stock-consumption", this::testImmediatePickup066); return; }
 				if (Boolean.getBoolean("phantom.test.farmEconomy066SpoilOnly")) { registry.add("066-native-stock-spoil-sweep-and-next-kill", this::testStockSpoil066); return; }
 				if (Boolean.getBoolean("phantom.test.farmEconomy066ForeignOnly")) { registry.add("066-native-foreign-death-drop-protection-and-boundaries", this::testForeignDrop066); return; }
 				registry.add("066-native-ground-pickup-receipt-is-exact", this::testExactPickup066);
+				registry.add("066-native-immediate-pickup-records-stock-consumption", this::testImmediatePickup066);
 				registry.add("066-native-foreign-death-drop-protection-and-boundaries", this::testForeignDrop066);
 				registry.add("066-native-loot-series-survives-supply-yield", this::testLootYield066);
+				registry.add("066-native-ranged-death-loot-beyond-old-radius", this::testRangedDeathLoot066);
 				registry.add("066-native-stock-spoil-sweep-and-next-kill", this::testStockSpoil066);
 				return;
 			}
@@ -6520,6 +6523,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var preferences = List.copyOf(_player.getAutoSoulShot()); for (int item : preferences) { _player.removeAutoSoulShot(item); }
 		_player.setChargedShot(ShotType.SOULSHOTS, false); _player.setChargedShot(ShotType.SPIRITSHOTS, false); _player.setChargedShot(ShotType.BLESSED_SPIRITSHOTS, false);
 		final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner(); final boolean previousPolicy = scope.requiresOffensiveShots(); scope.requireOffensiveShots(true);
+		final long originalMoney = _player.getAdena(); _player.reduceAdena(ItemProcessType.DESTROY, originalMoney, _player, false); final var initialNative = scope.evidence().snapshot();
 		final var target = spawnExactPointMonster(20035, Double.MAX_VALUE); final double hp = target.getCurrentHp();
 		try
 		{
@@ -6538,9 +6542,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(magicDamage, "Unboosted magic not completed: " + diagnostic);
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(1835, -1), "Unboosted melee created shots.");
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(3947, -1), "Unboosted magic created BSS.");
+			PhantomAssertions.assertEquals(0L, _player.getAdena(), "Zero-budget native combat acquired money without a pickup.");
+			PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow() && !_player.isSkillDisabled(skill), 10_000), "Native unboosted cast/reuse did not retire before the next action.");
+			_player.doCast(skill);
+			PhantomAssertions.assertTrue(waitFor(() -> target.isDead() && scope.evidence().snapshot().killSequence() > initialNative.killSequence() && scope.evidence().snapshot().rewardSequence() > initialNative.rewardSequence(), castMillis + 3_000), "Zero-stock, zero-Adena native continuation did not kill/reward the stock target.");
+			context.record("shots066.zeroBudgetKill", "TEST Adena0 before measurement; exact native stock20035 fullHP=" + hp + "; no shots granted; native=" + scope.evidence().snapshot());
 			context.record("shots066.optional", "native meleeHP=" + hp + "->" + magicHp + "; magicHP=" + magicHp + "->" + target.getCurrentHp() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; no stock granted");
 		}
-		finally { scope.requireOffensiveShots(previousPolicy); _player.abortAttack(); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); for (int item : preferences) { _player.addAutoSoulShot(item); } }
+		finally { scope.requireOffensiveShots(previousPolicy); _player.abortAttack(); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); for (int item : preferences) { _player.addAutoSoulShot(item); } if (_player.getAdena() < originalMoney) { _player.addAdena(ItemProcessType.REWARD, originalMoney - _player.getAdena(), _player, false); } else if (_player.getAdena() > originalMoney) { _player.reduceAdena(ItemProcessType.DESTROY, _player.getAdena() - originalMoney, _player, false); } }
 	}
 
 	private void testContinuousShots061(PhantomTestContext context) throws Exception
@@ -6796,6 +6805,26 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return item;
 	}
 
+	private void testImmediatePickup066(PhantomTestContext context) throws Exception
+	{
+		resetActor(true); prepareLearningField059(context);
+		final var herb = freeGround066(8600, 1, _player.getX() + 20, _player.getY(), _player.getZ());
+		final long before = _player.getInventory().getInventoryItemCount(herb.getId(), -1);
+		try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final var candidate = lease.lootCandidates(16, 600).stream().filter(value -> value.worldObjectId() == herb.getObjectId()).findFirst().orElseThrow();
+			_player.doPickupItem(herb);
+			PhantomAssertions.assertFalse(herb.isSpawned(), "Native herb did not leave ground ownership.");
+			PhantomAssertions.assertEquals(before, _player.getInventory().getInventoryItemCount(herb.getId(), -1), "Immediate effect fabricated inventory stock.");
+			final var receipt = _player.getNativeWorkOwner().evidence().pickupReceipt(herb.getObjectId());
+			PhantomAssertions.assertTrue(receipt != null && receipt.itemId() == herb.getId() && receipt.count() == 1 && receipt.actorCount() == 0, "Successful stock immediate consumption has no exact source receipt.");
+			PhantomAssertions.assertTrue(receipt.nativeConsumed(), "Immediate native consumption was credited as inventory/party stock.");
+			PhantomAssertions.assertEquals(LootObservation.CONSUMED_NATIVE, lease.observeLoot(candidate), "Combat observation classified native consumption as a lost or party inventory item.");
+			context.record("loot066.immediate", "TEST ground8600x1; stock Player pickup/handler/destruction; inventory unchanged; exact source consumption receipt=" + receipt);
+		}
+		finally { if (herb.isSpawned()) { herb.decayMe(); ItemManager.destroyItem(ItemProcessType.DESTROY, herb, _player, this); } }
+	}
+
 	private void testExactPickup066(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
@@ -6875,11 +6904,43 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 	}
 
+	private void testRangedDeathLoot066(PhantomTestContext context) throws Exception
+	{
+		resetActor(true); _player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte)19); prepareLearningField059(context);
+		for (var skill : List.copyOf(_player.getAllSkills())) { if (skill.hasNegativeEffect() && skill.getId() != 1177) { _player.removeSkill(skill.getId()); } } _player.addSkill(SkillData.getInstance().getSkill(1177,1),false);
+		final var baseline = new java.util.HashMap<Integer,Long>(); for (var item : _player.getInventory().getItems()) { baseline.merge(item.getId(),item.getCount(),Long::sum); }
+		for (int id : List.of(68,24,31)) { final var item = _player.getInventory().addItem(ItemProcessType.REWARD,id,1,_player,this); _player.getInventory().equipItem(item); }
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
+		final var choices = NpcData.getInstance().getTemplates(value -> value.getId() >= 20000 && value.getId() < 23000 && "Monster".equals(value.getType()) && value.getLevel() >= 12 && value.getLevel() <= 19 && value.getBaseAttackRange() >= 400 && value.getBaseHpMax() <= 550 && value.getBasePAtk() <= 50 && (value.getDropList() != null || value.getDropGroups() != null)).stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId)).limit(2).toList();
+		PhantomAssertions.assertTrue(choices.size() == 2,"Stock ranged NPC primary/fallback data missing."); final var template = choices.getFirst(); final int x = _player.getX(), y = _player.getY(), z = _player.getZ();
+		final boolean primary = GeoEngine.getInstance().canMoveToTarget(x,y,z,x+410,y,z,0); PhantomAssertions.assertTrue(primary || GeoEngine.getInstance().canMoveToTarget(x,y,z,x,y+410,z,0),"Both declared ranged stock corridors unavailable.");
+		final var target = new Monster(template); final var spawn = new Spawn(template); spawn.setXYZ(primary ? x+350 : x,primary ? y : y+350,z); target.setSpawn(spawn); target.spawnMe(primary ? x+350 : x,primary ? y : y+350,z); _worldFixtures.add(target);
+		final var goals = new PhantomGoalStateStore(_repository); final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING).findFirst().orElseThrow();
+		final var farm = new PhantomGoal(context.seed(),PhantomBackgroundGoalSpec.GOAL_TYPE,PhantomGoalStatus.ACTIVE,new PhantomDomainRef("profile",Long.toString(_profile.profileId())),new PhantomDomainRef("npc",Integer.toString(template.getId())),1,0,"background.farm",List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE,template.getId()+"@"+anchor.id())),new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE,anchor.id()),"farm.background",500,0,0,0,Map.of(),"fixture066.ranged_death",1); goals.insert(_profile.profileId(),farm);
+		final var candidates = new PhantomCandidateRegistry(); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); handlers.seal(); final var engine = new PhantomDecisionEngine(goals,candidates,handlers,new PhantomMetrics(),1); engine.start(); engine.attach(_profile.profileId()); final var autoplay = new PhantomVisibleAutoPlay(_materialization,()->engine,_ -> true);
+		final var evidence = _player.getNativeWorkOwner().evidence(); final long pickups = evidence.pickupSequence();
+		context.record("loot066.rangedInput","TEST Wizard10/L19/known1177:1/NG68+24+31, stock ranged primary/fallback="+choices.stream().map(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId).toList()+"; selected="+template.getId()+"; native attackRange="+template.getBaseAttackRange()+"; stock fullHP="+target.getMaxHp()+"; distance350; primary+X/fallback+Y="+primary+"; actual AutoPlay/AutoUse/PlayerAI, no stats/rates/refill/actor position writes in measurement");
+		try
+		{
+			PhantomAssertions.assertTrue(autoplay.start(_profile.profileId(),farm),"Ranged native controller did not attach.");
+			PhantomAssertions.assertTrue(waitFor(()->target.isDead() || _player.isDead(),70_000) && target.isDead() && !_player.isDead(),"Native stock ranged fight did not finish: "+autoplay.snapshotContinuation(_profile.profileId()));
+			final double distance = _player.calculateDistance2D(target); context.record("loot066.rangedDeathDistance",distance);
+			PhantomAssertions.assertTrue(distance > 200,"Declared stock ranged actor closed inside the old pickup radius before the kill.");
+			PhantomAssertions.assertTrue(waitFor(()->evidence.pickupSequence()>pickups,12_000),"Lawful native death loot beyond200 stayed unconfirmed.");
+			context.record("loot066.rangedObserved","actual death distance="+distance+"; exact source pickup sequence="+pickups+"->"+evidence.pickupSequence()+"; "+autoplay.snapshotContinuation(_profile.profileId()).scalarMap());
+		}
+		finally
+		{
+			autoplay.stop(_profile.profileId()); engine.beginStop(); engine.finishStop(); _player.abortAttack(); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE);
+			for (var item : List.copyOf(_player.getInventory().getItems())) { if (item.isEquipped()) { _player.getInventory().unEquipItemInSlotAndRecord(item.getLocationSlot()); } baseline.putIfAbsent(item.getId(),0L); } restorePickupBaseline066(_player,baseline); final var root = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(),root.rowVersion());
+		}
+	}
+
 	private void testForeignDrop066(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 5); prepareLearningField059(context);
-		_observer = ensureObserver(); _observer.setBaseClass(0); _observer.setPlayerClass(0); _observer.getStat().setLevel((byte) 5); _observer.setInvul(false);
+		_observer = ensureObserver(); _observer.setBaseClass(0); _observer.setPlayerClass(0); _observer.getStat().setExp(_observer.getStat().getExpForLevel(5)); _observer.getStat().setLevel((byte) 5); _observer.setInvul(false);
 		_observer.setOnlineStatus(true, false); _observer.teleToLocation(new Location(_player.getX(), _player.getY() + 20, _player.getZ())); if (_observer.isTeleporting()) { _observer.onTeleported(); } _observer.revalidateZone(true);
 		final var actorBefore = new java.util.HashMap<Integer, Long>(); for (var item : _player.getInventory().getItems()) { actorBefore.merge(item.getId(), item.getCount(), Long::sum); }
 		final var observerBefore = new java.util.HashMap<Integer, Long>(); for (var item : _observer.getInventory().getItems()) { observerBefore.merge(item.getId(), item.getCount(), Long::sum); }
@@ -6892,6 +6953,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		try
 		{
 			Item deathDrop = null; int kills = 0;
+			final long initialAdena = _observer.getAdena();
 			for (int attempt = 0; attempt < 6 && deathDrop == null; attempt++)
 			{
 				final var target = spawnExactPointMonster(sources.getFirst().getId(), Double.MAX_VALUE); _observer.setTarget(target); _observer.getAI().setIntention(Intention.ATTACK, target);
@@ -6900,16 +6962,23 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				context.record("loot066.foreignFightTrace." + attempt, trace);
 				PhantomAssertions.assertTrue(finished && target.isDead() && !_observer.isDead(), "Ordinary native stock fight did not finish: " + trace); kills++;
 				_observer.abortAttack(); _observer.getAI().setIntention(Intention.IDLE);
+				waitFor(() -> World.getInstance().getVisibleObjectsInRange(_player, Item.class, 600).stream().anyMatch(item -> !existing.contains(item.getObjectId()) && item.getId() == 57) || _observer.getAdena() > initialAdena, 2_000);
 				for (var item : World.getInstance().getVisibleObjectsInRange(_player, Item.class, 600)) { if (!existing.contains(item.getObjectId()) && !ground.contains(item)) { ground.add(item); } }
 				deathDrop = ground.stream().filter(item -> item.isSpawned() && item.getDropProtection().isProtected() && item.getDropProtection().getOwner() == _observer).findFirst().orElse(null);
 			}
-			PhantomAssertions.assertTrue(deathDrop != null, "Native RNG produced no protected ordinary death drop in six stock attempts."); final Item exact = deathDrop; final long before = _player.getInventory().getInventoryItemCount(exact.getId(), -1), count = exact.getCount();
+			final String dropTrace = "level=" + _observer.getLevel() + ";exp=" + _observer.getExp() + ";adena=" + initialAdena + "->" + _observer.getAdena() + ";autoLoot=" + org.l2jmobius.gameserver.config.PlayerConfig.AUTO_LOOT + ";autoIds=" + org.l2jmobius.gameserver.config.PlayerConfig.AUTO_LOOT_ITEM_IDS + ";ground=" + ground.stream().map(item -> item.getObjectId() + ":" + item.getId() + 'x' + item.getCount() + ":protected=" + item.getDropProtection().isProtected() + ":owner=" + (item.getDropProtection().getOwner() == null ? 0 : item.getDropProtection().getOwner().getObjectId())).toList();
+			context.record("loot066.foreignDropTrace", dropTrace);
+			PhantomAssertions.assertTrue(deathDrop != null, "Native RNG produced no protected ordinary death drop in six stock attempts: " + dropTrace); final Item exact = deathDrop; final long before = _player.getInventory().getInventoryItemCount(exact.getId(), -1), count = exact.getCount();
+			context.record("loot066.foreignExactSource", "source=" + exact.getObjectId() + "; item=" + exact.getId() + "; count=" + count + "; protected=" + exact.getDropProtection().isProtected() + "; observer=" + _observer.getObjectId());
 			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.eligible(_player, exact, 600), "Foreign protected death drop was eligible.");
 			_player.doPickupItem(exact); PhantomAssertions.assertTrue(exact.isSpawned() && _player.getInventory().getInventoryItemCount(exact.getId(), -1) == before, "Protected native pickup changed ownership/count.");
 			PhantomAssertions.assertTrue(waitFor(() -> !exact.getDropProtection().isProtected(), 18_000), "Stock native drop protection did not expire naturally.");
 			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.eligible(_player, exact, 600), "Lawful foreign death drop stayed unavailable after native expiry.");
-			_player.getAI().setIntention(Intention.PICK_UP, exact); PhantomAssertions.assertTrue(waitFor(() -> !exact.isSpawned() && _player.getNativeWorkOwner().evidence().pickupReceipt(exact.getObjectId()) != null && _player.getInventory().getInventoryItemCount(exact.getId(), -1) == before + count, 8_000), "Stock PlayerAI did not confirm the exact released foreign drop and count.");
-			PhantomAssertions.assertEquals(before + count, _player.getInventory().getInventoryItemCount(exact.getId(), -1), "Released native death-drop count was lost or duplicated.");
+			_player.getAI().setIntention(Intention.PICK_UP, exact); PhantomAssertions.assertTrue(waitFor(() -> !exact.isSpawned() && _player.getNativeWorkOwner().evidence().pickupReceipt(exact.getObjectId()) != null, 8_000), "Stock PlayerAI did not confirm the exact released foreign drop.");
+			final var pickup = _player.getNativeWorkOwner().evidence().pickupReceipt(exact.getObjectId());
+			PhantomAssertions.assertEquals(exact.getTemplate().hasExImmediateEffect(), pickup.nativeConsumed(), "Actual native foreign drop outcome changed kind.");
+			PhantomAssertions.assertEquals(before + (pickup.nativeConsumed() ? 0 : count), _player.getInventory().getInventoryItemCount(exact.getId(), -1), "Released native death-drop count was lost or duplicated.");
+			context.record("loot066.foreignOutcome", pickup);
 			final var wrongInstance = freeGround066(1865, 1, _player.getX() + 20, _player.getY(), _player.getZ()); wrongInstance.setInstanceId(instance); ground.add(wrongInstance);
 			final var wrongLayer = freeGround066(1865, 1, _player.getX() + 20, _player.getY(), _player.getZ()); wrongLayer.setXYZ(_player.getX() + 20, _player.getY(), _player.getZ() + 300); ground.add(wrongLayer);
 			final var heavy = freeGround066(1869, 5L * (_player.getMaxLoad() / org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(1869).getWeight() + 1L), _player.getX() + 20, _player.getY(), _player.getZ()); ground.add(heavy);

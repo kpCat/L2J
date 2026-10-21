@@ -4918,6 +4918,7 @@ public class Player extends Playable
 		// Auto use herbs - pick up
 		if (target.getTemplate().hasExImmediateEffect())
 		{
+			final long consumedCount = target.getCount();
 			if (PersonalPlayerControlService.getInstance().shouldApplyImmediateEffect(this, target.getTemplate()))
 			{
 				final IItemHandler handler = ItemHandler.getInstance().getHandler(target.getEtcItem());
@@ -4932,6 +4933,7 @@ public class Player extends Playable
 			}
 			
 			ItemManager.destroyItem(ItemProcessType.NONE, target, this, null);
+			PlayerNativeEvidence.pickupConsumed(target.getObjectId(), target.getId(), consumedCount);
 		}
 		// Cursed Weapons are not distributed
 		else if (CursedWeaponsManager.getInstance().isCursed(target.getId()))

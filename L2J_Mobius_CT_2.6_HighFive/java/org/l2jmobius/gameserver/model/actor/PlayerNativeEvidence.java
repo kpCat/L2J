@@ -15,7 +15,7 @@ public final class PlayerNativeEvidence
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
 	private static final ThreadLocal<RewardFrame> REWARD_CONTEXT = new ThreadLocal<>();
 	private static final ThreadLocal<PickupFrame> PICKUP_CONTEXT = new ThreadLocal<>();
-	public record PickupReceipt(int sourceObjectId, int itemId, long count, long actorCount, long sequence) { }
+	public record PickupReceipt(int sourceObjectId, int itemId, long count, long actorCount, long sequence, boolean nativeConsumed) { }
 	private final Map<Integer, PickupReceipt> _pickups = new LinkedHashMap<>();
 	private long _pickupSequence;
 	private final Map<Integer, Long> _sweeps = new LinkedHashMap<>();
@@ -26,6 +26,7 @@ public final class PlayerNativeEvidence
 		final int sourceObjectId, itemId;
 		final long maximum;
 		long count, actorCount;
+		boolean nativeConsumed;
 		PickupFrame(PlayerNativeEvidence sink, int sourceObjectId, int itemId, long maximum)
 		{
 			this.sink = sink; this.sourceObjectId = sourceObjectId; this.itemId = itemId; this.maximum = maximum;
@@ -63,12 +64,20 @@ public final class PlayerNativeEvidence
 		if (recipientObjectId == frame.sink._objectId) { frame.actorCount += gain; }
 	}
 
+	/** Called only after the exact stock immediate-effect item was picked and destroyed. No inventory credit. */
+	public static void pickupConsumed(int sourceObjectId, int itemId, long count)
+	{
+		final var frame = PICKUP_CONTEXT.get();
+		if (frame == null || frame.sourceObjectId != sourceObjectId || frame.itemId != itemId || frame.maximum != count || frame.count != 0) { return; }
+		frame.count = count; frame.nativeConsumed = true;
+	}
+
 	private synchronized void publishPickup(PickupFrame frame)
 	{
 		if (_overflow) { return; }
 		_pickupSequence = add(_pickupSequence, 1);
 		if (_overflow) { return; }
-		_pickups.put(frame.sourceObjectId, new PickupReceipt(frame.sourceObjectId, frame.itemId, frame.count, frame.actorCount, _pickupSequence));
+		_pickups.put(frame.sourceObjectId, new PickupReceipt(frame.sourceObjectId, frame.itemId, frame.count, frame.actorCount, _pickupSequence, frame.nativeConsumed));
 		if (_pickups.size() > 32) { final var oldest = _pickups.keySet().iterator(); oldest.next(); oldest.remove(); }
 	}
 
