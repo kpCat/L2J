@@ -1,0 +1,4 @@
+# Immutable task-input bytes; scoped to this task directory only.
+*.md -text
+PACKAGE_SHA256.txt -text
+.gitattributes -text

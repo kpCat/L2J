@@ -26,22 +26,28 @@ public final class LocalRuntimeShutdown
 
 	private static String controlOwner()
 	{
-		if (Boolean.getBoolean("phantom.task064.control") && Boolean.getBoolean("phantom.task065.control")) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if (Boolean.getBoolean("phantom.task066.control")) { return "TASK066_FARM_ECONOMY"; }
 		return Boolean.getBoolean("phantom.task065.control") ? "TASK065_LIVING_PRESENCE" : "TASK064_CAMPAIGN";
 	}
 
 	private static boolean enabled()
 	{
 		controlOwner();
-		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control");
+		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control");
 	}
 
-	private static String taskNumber() { return "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
+	private static String taskNumber() { return "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
 	private static boolean ownSchema(String schema) { return schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
 
 	static boolean validTask065Root(Path root, Path module, boolean fixture)
 	{
 		return root.equals(fixture ? module.resolve(".phantom-local/task065/runtime") : module.getRoot().resolve("PhantomWorld/Living-Presence-065-candidate"));
+	}
+
+	static boolean validTask066Root(Path root, Path module, boolean fixture)
+	{
+		return root.equals(fixture ? module.getParent().resolve(".phantom-local/task066/runtime") : module.getRoot().resolve("PhantomWorld/Farm-Economy-066-candidate"));
 	}
 
 	/** Validate before ordinary Main can open a database or listener. Other runtimes remain disabled. */
@@ -59,6 +65,7 @@ public final class LocalRuntimeShutdown
 			throw new IllegalArgumentException("TASK064 runtime root/schema/owner mismatch.");
 		}
 		if (taskNumber().equals("065") && !validTask065Root(root, Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize(), schema.endsWith("test_065"))) { throw new IllegalArgumentException("TASK065 exact fixture/candidate root required."); }
+		if (taskNumber().equals("066") && !validTask066Root(root, Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize(), schema.endsWith("test_066"))) { throw new IllegalArgumentException("TASK066 exact fixture/candidate root required."); }
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
 		if (!validJdbc(database.getProperty("URL", ""), schema))
 		{

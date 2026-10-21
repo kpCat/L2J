@@ -382,7 +382,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
-			PhantomAssertions.assertEquals(58005833L, context.seed(), "Earned learning used the wrong058 seed.");
+			PhantomAssertions.assertEquals(Boolean.getBoolean("phantom.test.farmEconomy066Shots") ? 66006601L : 58005833L, context.seed(), "Earned learning used the wrong deterministic seed.");
 			assertCampaign058Jar(context);
 		}
 		if (_mode == Mode.NATURAL_STOP_058)
@@ -639,6 +639,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.farmEconomy066Shots"))
+			{
+				registry.add("066-native-unboosted-melee-and-magic", this::testOptionalShots066);
+				registry.add("066-native-finite-physical-charge", this::testContinuousShots061);
+				registry.add("066-native-paid-blessed-magic-grade", this::testBlessedShots061);
+				registry.add("066-native-paid-hybrid-and-summon-conservation", this::testHybridShots061);
+				return;
+			}
 			if (Boolean.getBoolean("phantom.test.areaAggro060")) { registry.add("36-native-area-aggro-recipient-refusals", context -> testNativeAreaAggro060(context, true)); registry.add("37-native-area-aggro-real-party-threat", context -> testNativeAreaAggro060(context, false)); return; }
 			if (Boolean.getBoolean("phantom.test.petSupport060")) { registry.add("30-native-owned-buffalo-heal-and-control-lifecycle", context -> { prepareLearningField059(context); PhantomPet060NativeSupport.directHeal(context, _player); }); registry.add("32-production-native-kookaburra-recharge-and-food", context -> { _player.setCurrentHp(_player.getMaxHp()); prepareLearningField059(context); PhantomPet060NativeSupport.automaticMana(context, _player, _backend, _profile.profileId()); }); return; }
 			if (Boolean.getBoolean("phantom.test.paidAutoGetGuards060"))
@@ -661,7 +669,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					}
 					registry.add("04-canonical-shot-conservation-and-discharge", _ -> testCanonicalShot());
 					registry.add("05-missing-shot-does-not-fabricate", _ -> testMissingShot());
-					registry.add("061-native-mandatory-shots-refuse-unpaid-attack-and-cast", this::testMandatoryShots061);
+					registry.add("066-native-unboosted-melee-and-magic", this::testOptionalShots066);
 					registry.add("061-native-continuous-physical-shots-and-owned-cleanup", this::testContinuousShots061);
 					registry.add("061-native-blessed-magic-shots-prefer-exact-weapon-grade", this::testBlessedShots061);
 					registry.add("061-native-ordinary-autoplay-shares-shot-type-grade-and-quality", this::testOrdinaryShots061);
@@ -933,6 +941,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static boolean campaign058JarAllowed(Path supplied)
 	{
+		if (PhantomCampaign058DatabaseLane.task066Enabled())
+		{
+			final Path task = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().getParent().resolve(".phantom-local/task066");
+			return List.of(task.resolve("build/dist/libs/GameServer.jar"), task.resolve("build-final/dist/libs/GameServer.jar")).contains(supplied);
+		}
 		if (PhantomCampaign058DatabaseLane.task065Enabled())
 		{
 			final Path task065 = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().resolve(".phantom-local/task065");
@@ -6475,7 +6488,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		finally { destroyInventoryItem(physical); destroyInventoryItem(magical); _player.removeSkill(1177); for (int id : new int[] {6645, 6647}) { final var item = _player.getInventory().getItemByItemId(id); if (item != null) { destroyInventoryItem(item); } } }
 	}
 
-	private void testMandatoryShots061(PhantomTestContext context) throws Exception
+	private void testOptionalShots066(PhantomTestContext context) throws Exception
 	{
 		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
 		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous controlled-actor action did not leave native combat stance.");
@@ -6488,15 +6501,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		try
 		{
 			_player.setTarget(target); _player.doAttack(target);
-			Thread.sleep(2500);
-			PhantomAssertions.assertTrue(target.getCurrentHp() == hp && !_player.isAttackingNow(), "Phantom started an uncharged native ATTACK.");
+			PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < hp, 8_000), "Empty shot stock blocked lawful native melee damage.");
+			_player.abortAttack(); _player.getAI().setIntention(Intention.IDLE);
 			_player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass());
 			final var skill = SkillData.getInstance().getSkill(1177, 1); _player.addSkill(skill, false);
 			_player.setCurrentMp(_player.getMaxMp()); // Separate negative CAST input, before its measurement.
-			final double mp = _player.getCurrentMp(); _player.setTarget(target); _player.doCast(skill);
-			Thread.sleep(2500);
-			PhantomAssertions.assertTrue(target.getCurrentHp() == hp && _player.getCurrentMp() == mp && !_player.isCastingNow(), "Phantom started an uncharged native CAST or paid MP for a refused cast.");
-			context.record("shots061.mandatory", "real native attack/cast without a paid charge refused; no target damage/MP cost; native earned actions were not cancelled");
+			final double mp = _player.getCurrentMp(), magicHp = target.getCurrentHp(); _player.setTarget(target); _player.doCast(skill);
+			PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < magicHp && _player.getCurrentMp() < mp, 8_000), "Empty shot stock blocked lawful native magic damage/MP cost.");
+			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(1835, -1), "Unboosted melee created shots.");
+			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(3947, -1), "Unboosted magic created BSS.");
+			context.record("shots066.optional", "native meleeHP=" + hp + "->" + magicHp + "; magicHP=" + magicHp + "->" + target.getCurrentHp() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; no stock granted");
 		}
 		finally { scope.requireOffensiveShots(previousPolicy); _player.abortAttack(); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); for (int item : preferences) { _player.addAutoSoulShot(item); } }
 	}
