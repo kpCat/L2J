@@ -5729,7 +5729,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		for (Monster monster : pressure) { monster.getAI().setIntention(Intention.ATTACK, victim); }
 		final boolean died = waitFor(() -> victim.isDead() && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), 90_000);
 		context.record("rift064.nativeDeath", "stockNpc=" + target.getId() + "; stockPressureCount=" + pressure.size() + "; victim=" + victim.getObjectId() + "; HP=" + beforeHp + "->" + victim.getCurrentHp() + "; dead=" + died + "; registered=" + rift.getDeadMemberList().contains(victim));
-		PhantomAssertions.assertTrue(died && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), "Stock Rift NPC did not produce actual native death/dead-member registration within90s; no HP rescue applied.");
+		final boolean nativeDeathRegistered = died && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim);
+		// Preserve the original death failure while still measuring independent canonical closing/save/reload.
 		PartyInvitationService.getInstance().leave(human);
 		PartyInvitationService.getInstance().leave(_player);
 		PhantomAssertions.assertTrue(waitFor(() -> { acknowledgeInstance058(actors); return !party.isInDimensionalRift() && !room.isPartyInside() && actors.stream().allMatch(actor -> !actor.isTeleporting() && DimensionalRiftManager.getInstance().checkIfInPeaceZone(actor.getX(), actor.getY(), actor.getZ())); }, 10_000), "Native departure/death/disband did not return every exact actor and release the room.");
@@ -5746,7 +5747,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final Player reloaded = World.getInstance().getPlayer(objectId);
 		PhantomAssertions.assertTrue(reloaded != null && reloaded != departed && reloaded.getActiveClass() == classId && reloaded.getInventory().getInventoryItemCount(7079, -1) == fragments && !reloaded.isInParty() && DimensionalRiftManager.getInstance().checkIfInPeaceZone(reloaded.getX(), reloaded.getY(), reloaded.getZ()), "Saved Rift return/class/fragments or exact identity were not preserved on reload.");
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(departedProfile).status(), "Reloaded Rift identity did not finish its native cleanup.");
-		context.record("rift064.departureResult", "managed native logout/saved waiting/World+identity release; actual stock NPC death/dead-list; canonical disband/native room+timer release; exact entry debit and same identity reload; no network-client logout or autonomous-entry/full-multiroom claim");
+		context.record("rift064.departureResult", "managed native logout/saved waiting/World+identity release; nativeDeathRegistered=" + nativeDeathRegistered + "; canonical disband/native room+timer release; exact entry debit and same identity reload; no network-client logout or autonomous-entry/full-multiroom claim");
+		PhantomAssertions.assertTrue(nativeDeathRegistered, "Stock Rift NPC did not produce actual native death/dead-member registration within90s; independent closing/save/reload retained; no HP rescue applied.");
 	}
 
 	private void assertStoredRiftWaiting064(PhantomTestContext context, int objectId) throws Exception
@@ -5959,6 +5961,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				try (var lease = _backend.tryAcquireActor(_profile.profileId()))
 				{
 					PhantomAssertions.assertTrue(lease != null, "SELF defense lacks its native actor lease.");
+					context.record("raid064.defenseBeforeNativeSettle", lease.actorSnapshot().toString());
+					// abortAttack cancels the action, but the stock attack-end timer retires naturally.
+					PhantomAssertions.assertTrue(waitFor(() -> !_player.isAttackingNow() && !_player.isCastingNow() && !_player.isMoving(), 2_000), "Owned TEST attack did not naturally settle before SELF selection.");
+					final Skill defenseSkill = _player.getKnownSkill(110);
+					context.record("raid064.defenseAfterNativeSettle", lease.actorSnapshot() + "; AI=" + _player.getAI().getIntention() + "; incoming=" + (boss.getMostHated() == _player && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(boss, _player)) + "; learned=" + (defenseSkill == null ? "none" : defenseSkill.getId() + ":" + defenseSkill.getLevel()) + "; disabled=" + (defenseSkill != null && _player.isSkillDisabled(defenseSkill)) + "; condition=" + (defenseSkill != null && defenseSkill.checkCondition(_player, _player, false)));
 					final var foreign = new PhantomRaidCombatRequest(request.profileId() + 1, boss.getObjectId(), boss.getId(), boss.getInstanceId(), request.contentKind(), request.expectedNpcKind(), request.attemptAuthorityHash(), request.mode(), false, false, 79, 20_000, () -> false);
 					final var cancelled = new PhantomRaidCombatRequest(request.profileId(), boss.getObjectId(), boss.getId(), boss.getInstanceId(), request.contentKind(), request.expectedNpcKind(), request.attemptAuthorityHash(), request.mode(), false, false, 79, 20_000, () -> true);
 					PhantomAssertions.assertTrue(lease.npcRaidDefenseSkill(foreign).isEmpty() && lease.npcRaidDefenseSkill(cancelled).isEmpty(), "Foreign profile or cancelled plan admitted native SELF defense.");
@@ -6051,7 +6058,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final double[] previousMp = actors.stream().mapToDouble(Player::getCurrentMp).toArray();
 				double previousTankHp = _player.getCurrentHp(), previousTankMax = _player.getMaxHp(), previousHealerMaxMp = actors.get(3).getMaxMp();
 				boolean healed = false, recharged = false, aggroCast = false, buffed = false, danced = false; long aggroSince = 0, heldAggro = 0, humanDamage = 0;
-				long battleStart = 0; long nextProgress = System.nanoTime(); boolean feasibilityChecked = false;
+				long battleStart = 0; long nextProgress = System.nanoTime(); boolean feasibilityChecked = false, defensePressureRecorded = false;
 				var result = attempts.advance(_profile.profileId(), goalId, 0);
 				if (Boolean.getBoolean("phantom.test.raidLevelGuard059"))
 				{
@@ -6072,6 +6079,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					final long now = System.nanoTime();
 					if (battleStart == 0 && _combat.metrics().sessionsAccepted() > 0) { battleStart = now; context.record("raid059.combatClock", "first accepted native combat after bounded support preparation; whole episode45min deadline unchanged"); }
 					final double seconds = battleStart == 0 ? 0 : (now - battleStart) / 1_000_000_000.0;
+					if (!defensePressureRecorded && battleStart != 0 && _player.getCurrentHp() <= _player.getMaxHp() * 0.75)
+					{
+						defensePressureRecorded = true;
+						final var nativeAi = _player.getAI(); final var nativeTarget = _player.getTarget(); final var nativeAttackTarget = nativeAi.getAttackTarget();
+						context.record("raid064.firstDefensePressure", "seconds=" + seconds + "; HP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; AI=" + nativeAi.getIntention() + "; attacking=" + _player.isAttackingNow() + "; casting=" + _player.isCastingNow() + "; moving=" + _player.isMoving() + "; selected=" + (nativeTarget == null ? 0 : nativeTarget.getObjectId()) + "; attackTarget=" + (nativeAttackTarget == null ? 0 : nativeAttackTarget.getObjectId()) + "; exactSession=" + _combat.find(_profile.profileId()));
+					}
 					final double previousHealerMp = previousMp[3];
 					for (int index = 0; index < actors.size(); index++)
 					{
