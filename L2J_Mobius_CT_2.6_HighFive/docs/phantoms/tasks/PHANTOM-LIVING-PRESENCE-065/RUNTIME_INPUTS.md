@@ -1,0 +1,11 @@
+# RUNTIME_INPUTS065 — среда и безопасность
+
+**Рабочий Git root:** `D:\Codex\repos\L2J-phantom-world`. `master`, `upstream/master`, `experiment/*` не используют для новых коммитов. Старый `C:\Users\ZBook\L2J_Mobius` — dirty legacy, только read-only, 1852 файлов сохранены в backup предыдущих задач. Source code и каталог Phantom semantic из текущего Git, а не из C:.
+
+**Прежняя TASK064:** `D:\PhantomWorld\World-Integrated-064-candidate`, схема `l2jmobiush5_phantom_release_064a`, обе роли STOPPED по RESULT064; читать metadata/конфиг и GeoData можно, менять/запускать нельзя. Прежние057–063 среды, TEST_064 и глобальные процессы защищены. GeoData203 исходных регионов — read-only source; физический copy в новую065 среду только после сверки manifest SHA и source/destination paths. Не перезаписывать shared GeoData и не коммитить Geodata.
+
+**Новые опциональные resources:** `l2jmobiush5_phantom_test_065`, `l2jmobiush5_phantom_release_065a` с проверенной schema absence и собственными уникальными account/Player fixtures; `D:\PhantomWorld\Living-Presence-065-candidate` только если path отсутствует. Не создавать схему повторно. Для own ports выбрать незанятые три/три с проверкой foreign listeners до START. MariaDB11.4/127.0.0.1:3308, JDK25, Ant уже установлены — только verify, не менять service/users/grants/datadir.
+
+**Runtime protection:** `Runtime064`/`Build-Task064` привязаны к exact64 schema/owner. Прочитать, переиспользовать доказанные guards, но создать отдельный exact binding065 вместо отключения проверок или подмены `064` строк глобальным поиском. `START/STATUS/STOP` собственных JVM — штатный канал без attach/force, JAR/BUILD_INFO/source hash. В закрытом окне после STOP проверить unique PID/incarnation, port release, DB writers, state conservation. Не выполнять `ant verify`, если цель имеет сторонние DB-targets; использовать targeted affected, clean compile + JAR, не перезаписывать старые release.
+
+**На входе:** краткий read-only preflight HEAD/worktree/ports/schemas/secrets/Geo/state. Любой пункт, требующий OS/DB admin permission, глобальных настроек или уничтожения неизвестных данных, отдельный BLOCKED; независимая работа продолжается. Секреты никогда не входят в Git, журнал задач, ZIP или stdout.

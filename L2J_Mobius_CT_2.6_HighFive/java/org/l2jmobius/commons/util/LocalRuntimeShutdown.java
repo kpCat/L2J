@@ -24,20 +24,38 @@ public final class LocalRuntimeShutdown
 
 	private LocalRuntimeShutdown() { }
 
+	private static String controlOwner()
+	{
+		if (Boolean.getBoolean("phantom.task064.control") && Boolean.getBoolean("phantom.task065.control")) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		return Boolean.getBoolean("phantom.task065.control") ? "TASK065_LIVING_PRESENCE" : "TASK064_CAMPAIGN";
+	}
+
+	private static boolean enabled()
+	{
+		controlOwner();
+		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control");
+	}
+
+	private static String taskNumber() { return "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
+	private static boolean ownSchema(String schema) { return schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
+
 	/** Validate before ordinary Main can open a database or listener. Other runtimes remain disabled. */
 	public static void validateLaunch(String role) throws Exception
 	{
-		if (!Boolean.getBoolean("phantom.task064.control")) { return; }
+		if (!enabled()) { return; }
 		final Path root = runtimeRoot(role);
-		final Properties owner = read(root.resolve("ownership064.properties"));
+		final Properties owner = read(root.resolve("ownership" + taskNumber() + ".properties"));
 		final String schema = owner.getProperty("schema", "");
-		if (!"1".equals(owner.getProperty("version")) || !"TASK064_CAMPAIGN".equals(owner.getProperty("owner"))
-			|| !schema.matches("l2jmobiush5_phantom_(test_064|release_064a)")
-			|| !(schema.endsWith("test_064") ? "MUTABLE_FIXTURE" : "RELEASE_CANDIDATE").equals(owner.getProperty("role"))
+		if (!"1".equals(owner.getProperty("version")) || !controlOwner().equals(owner.getProperty("owner"))
+			|| !ownSchema(schema)
+			|| !(schema.endsWith("test_" + taskNumber()) ? "MUTABLE_FIXTURE" : "RELEASE_CANDIDATE").equals(owner.getProperty("role"))
 			|| !root.equals(Path.of(owner.getProperty("runtimeRoot", "")).toAbsolutePath().normalize()))
 		{
 			throw new IllegalArgumentException("TASK064 runtime root/schema/owner mismatch.");
 		}
+		if (taskNumber().equals("065") && !(schema.endsWith("test_065")
+			? root.equals(Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize().resolve(".phantom-local/task065/runtime"))
+			: root.getFileName().toString().equals("Living-Presence-065-candidate"))) { throw new IllegalArgumentException("TASK065 exact fixture/candidate root required."); }
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
 		if (!validJdbc(database.getProperty("URL", ""), schema))
 		{
@@ -53,7 +71,7 @@ public final class LocalRuntimeShutdown
 
 	public static void start(String role, Runnable stockShutdown) throws Exception
 	{
-		if (!Boolean.getBoolean("phantom.task064.control")) { return; }
+		if (!enabled()) { return; }
 		validateLaunch(role);
 		final Path root = runtimeRoot(role);
 		final String runtime = System.getProperty("phantom.localplay.runtime");
@@ -90,7 +108,7 @@ public final class LocalRuntimeShutdown
 
 	static boolean validJdbc(String url, String schema)
 	{
-		return schema.matches("l2jmobiush5_phantom_(test_064|release_064a)")
+		return ownSchema(schema)
 			&& url.matches("jdbc:(?:mysql|mariadb)://127\\.0\\.0\\.1:3308/" + schema + "\\?useSSL=false(?:&allowPublicKeyRetrieval=true)?(?:&serverTimezone=UTC)?(?:&characterEncoding=UTF-8)?");
 	}
 
@@ -99,7 +117,7 @@ public final class LocalRuntimeShutdown
 		try
 		{
 			final long deadline = Long.parseLong(request.getProperty("deadlineUtcMillis", ""));
-			return "1".equals(request.getProperty("version")) && "TASK064_CAMPAIGN".equals(request.getProperty("owner"))
+			return "1".equals(request.getProperty("version")) && controlOwner().equals(request.getProperty("owner"))
 				&& runtime.equals(request.getProperty("runtime")) && role.equals(request.getProperty("role"))
 				&& Long.toString(pid).equals(request.getProperty("pid")) && Long.toString(ticks).equals(request.getProperty("startTimeUtcTicks"))
 				&& (deadline >= now) && (deadline <= now + 120000);

@@ -6,7 +6,7 @@ import java.util.Properties;
 /** Pure operator boundary checks, without starting or stopping a server. */
 public final class LocalRuntimeShutdownTest
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
 		final String schema = "l2jmobiush5_phantom_release_064a";
 		final String jdbc = "jdbc:mysql://127.0.0.1:3308/" + schema + "?useSSL=false";
@@ -35,5 +35,21 @@ public final class LocalRuntimeShutdownTest
 			if (LocalRuntimeShutdown.validRequest(request, "a".repeat(64), "GameServer", 64, 64000, 100000)) { throw new AssertionError("Expired/unbounded request accepted."); }
 		}
 		System.out.println("PASS runtime064.expiry-and-bound");
+		System.setProperty("phantom.task065.control", "true");
+		try
+		{
+			final String own = "l2jmobiush5_phantom_release_065a";
+			if (!LocalRuntimeShutdown.validJdbc("jdbc:mysql://127.0.0.1:3308/" + own + "?useSSL=false", own)) { throw new AssertionError("Exact065 JDBC rejected."); }
+			if (LocalRuntimeShutdown.validJdbc(jdbc, schema)) { throw new AssertionError("TASK065 inherited protected064 JDBC authority."); }
+			request.setProperty("deadlineUtcMillis", "101000");
+			if (LocalRuntimeShutdown.validRequest(request, "a".repeat(64), "GameServer", 64, 64000, 100000)) { throw new AssertionError("TASK065 inherited064 shutdown owner."); }
+			request.setProperty("owner", "TASK065_LIVING_PRESENCE");
+			if (!LocalRuntimeShutdown.validRequest(request, "a".repeat(64), "GameServer", 64, 64000, 100000)) { throw new AssertionError("Exact065 shutdown rejected."); }
+			System.setProperty("phantom.task064.control", "true");
+			try { LocalRuntimeShutdown.validateLaunch("GameServer"); throw new AssertionError("Mixed runtime authority accepted."); }
+			catch (IllegalArgumentException expected) { }
+			System.out.println("PASS runtime065.exact-jdbc-owner-and-mixed-authority");
+		}
+		finally { System.clearProperty("phantom.task064.control"); System.clearProperty("phantom.task065.control"); }
 	}
 }

@@ -164,6 +164,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("28-source-view-overdue-read-does-not-expire", _ -> testOverdueSourceView());
 		registry.add("29-calendar-active-releases-after-real-locality-expiry", this::testCalendarLocalityRelease);
 		registry.add("30-calendar-sleeping-denies-locality-and-background-work", this::testSleepingCalendarLocality);
+		registry.add("31-old-unseen-owner-reclaims-without-recent-human-pin", _ -> testSoftReclamation(true));
 	}
 
 	private void testCalendarLocalityRelease(PhantomTestContext context)
@@ -573,6 +574,11 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 
 	private void testSoftReclamation()
 	{
+		testSoftReclamation(false);
+	}
+
+	private void testSoftReclamation(boolean oldUnseen)
+	{
 		final var clock = new ManualClock();
 		final var delegate = new FakeMaterializationPort();
 		final Set<Long> local = new java.util.HashSet<>(Set.of(1L));
@@ -603,6 +609,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			scheduler.pulse();
 			policy.observe(1);
 			local.remove(1L);
+			if (oldUnseen) { clock.advanceMillis(61_000); }
 			scheduler.submitSignal(2, signal("population.active", 1, PhantomActivityState.ACTIVE, 120_000));
 			scheduler.pulse();
 			scheduler.pulse();

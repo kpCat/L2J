@@ -386,6 +386,8 @@ public final class PhantomTestLauncher
 			case "acquisition-atomic-restart" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.ACQUISITION_ATOMIC_RESTART);
 			case "population-humanization-goal030a" -> new PhantomPopulationHumanizationGoal030ASuite();
 			case "social-humanization-goal030b" -> new PhantomSocialHumanizationGoal030BSuite();
+			case "living-presence-calendar065" -> new PhantomLivingPresenceCalendar065Suite();
+			case "living-presence-native065" -> new PhantomLivingPresence065NativeSuite();
 			case "population-catalog" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CATALOG);
 			case "population-schedule" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SCHEDULE);
 			case "population-throughput" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.THROUGHPUT);

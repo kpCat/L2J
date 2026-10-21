@@ -48,14 +48,16 @@ public final class PhantomPopulationEcologyCatalog
 	private final Map<Personality, PersonalityDefinition> _personalities;
 	private final Map<Preset, PresetDefinition> _presets;
 	private final Map<String, Integer> _socialTraitCodes;
+	private final Map<String, String> _newProfileSchedules;
 	private final String _hash;
 
-	private PhantomPopulationEcologyCatalog(Limits limits, Map<Personality, PersonalityDefinition> personalities, Map<Preset, PresetDefinition> presets, Map<String, Integer> socialTraitCodes, String hash)
+	private PhantomPopulationEcologyCatalog(Limits limits, Map<Personality, PersonalityDefinition> personalities, Map<Preset, PresetDefinition> presets, Map<String, Integer> socialTraitCodes, Map<String, String> newProfileSchedules, String hash)
 	{
 		_limits = limits;
 		_personalities = Collections.unmodifiableMap(new EnumMap<>(personalities));
 		_presets = Collections.unmodifiableMap(new EnumMap<>(presets));
 		_socialTraitCodes = Collections.unmodifiableMap(new TreeMap<>(socialTraitCodes));
+		_newProfileSchedules = Map.copyOf(newProfileSchedules);
 		_hash = hash;
 	}
 
@@ -107,7 +109,9 @@ public final class PhantomPopulationEcologyCatalog
 			}
 			final Map<Personality, PersonalityDefinition> personalities = parsePersonalities(sections.get(0), traitCodes.keySet());
 			final Map<Preset, PresetDefinition> presets = parsePresets(sections.get(1), personalities.keySet(), population.templates().keySet());
-			return new PhantomPopulationEcologyCatalog(limits, personalities, presets, traitCodes, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)));
+			final Map<String, String> newProfileSchedules = new LinkedHashMap<>();
+			population.templates().keySet().forEach(id -> newProfileSchedules.put(id, population.newProfileSchedule(id)));
+			return new PhantomPopulationEcologyCatalog(limits, personalities, presets, traitCodes, newProfileSchedules, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)));
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -129,7 +133,8 @@ public final class PhantomPopulationEcologyCatalog
 		final AgeBand ageBand = weighted(definition.ages(), generation, ordinal, deterministicSeed, 11);
 		final PaceEntry pace = weighted(definition.paces(), generation, ordinal, deterministicSeed, 23);
 		final PersonalityEntry personality = weighted(definition.personalities(), generation, ordinal, deterministicSeed, 37);
-		final ScheduleEntry schedule = fixedSchedule == null ? weighted(definition.schedules(), generation, ordinal, deterministicSeed, 53) : definition.schedules().stream().filter(value -> value.id().equals(fixedSchedule)).findFirst().orElseThrow(() -> new IllegalArgumentException("Existing population schedule is absent from ecology preset."));
+		final ScheduleEntry schedule = fixedSchedule == null ? weighted(definition.schedules(), generation, ordinal, deterministicSeed, 53) : definition.schedules().stream().filter(value -> value.id().equals(fixedSchedule) || _newProfileSchedules.get(value.id()).equals(fixedSchedule)).findFirst().orElseThrow(() -> new IllegalArgumentException("Existing population schedule is absent from ecology preset."));
+		final String scheduleId = fixedSchedule == null ? _newProfileSchedules.get(schedule.id()) : fixedSchedule;
 		final long ageMinutes;
 		if (replacesProfileId > 0)
 		{
@@ -147,7 +152,7 @@ public final class PhantomPopulationEcologyCatalog
 		final long minimumEligible = Math.max(nowEpochMinute, Math.addExact(join, definition.archiveMinimumDays() * 1440L));
 		final long delay = definition.archiveDelayDays() * 1440L;
 		final long eligible = Math.max(minimumEligible, Math.addExact(nowEpochMinute, delay + Math.floorMod(mix(deterministicSeed ^ 0x41524348L, ordinal), delay + 1L)));
-		return new PhantomPopulationEcologyState(_hash, preset, generation, ordinal, nowEpochMinute, join, join, nowEpochMinute, pace.pace(), pace.productiveShareBasisPoints(), _limits.productiveBlockMinutes(), personality.personality(), assignedTraits(personality.personality(), generation, ordinal, deterministicSeed), schedule.id(), Disposition.MANAGED, eligible, replacesProfileId, "", 0, 0, 0, "");
+		return new PhantomPopulationEcologyState(_hash, preset, generation, ordinal, nowEpochMinute, join, join, nowEpochMinute, pace.pace(), pace.productiveShareBasisPoints(), _limits.productiveBlockMinutes(), personality.personality(), assignedTraits(personality.personality(), generation, ordinal, deterministicSeed), scheduleId, Disposition.MANAGED, eligible, replacesProfileId, "", 0, 0, 0, "");
 	}
 
 	public boolean productive(PhantomPopulationEcologyState state, long blockOrdinal)

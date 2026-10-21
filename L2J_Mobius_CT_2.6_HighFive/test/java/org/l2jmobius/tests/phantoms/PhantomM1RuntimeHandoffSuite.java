@@ -48,6 +48,11 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("presenceFairness065"))
+		{
+			registry.add("18-single-preparation-slot-rotates-current-peers", this::singlePreparationSlot065);
+			return;
+		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("releasedOwner031"))
 		{
 			registry.add("16-released-native-owner-resumes-background-before-minute-refresh", this::releasedNativeOwner031);
@@ -69,6 +74,66 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		registry.add("13-protected-resize-rechecks-without-exhaustion", this::protectedResize);
 		registry.add("14-outer-save-failure-keeps-committed-budget", this::outerSaveBudget);
 		registry.add("15-mixed-recoverable-history-keeps-demand-and-ordinary-live", this::mixedRecoverableHistory);
+		registry.add("18-single-preparation-slot-rotates-current-peers", this::singlePreparationSlot065);
+	}
+
+	private void singlePreparationSlot065(PhantomTestContext context)
+	{
+		for (int control = 0; control < 3; control++)
+		{
+			final int count = control == 1 ? 3 : 2;
+			final boolean equalDistance = control == 2;
+			final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+			final var store = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+			final var history = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+			for (long id = 1; id <= count; id++)
+			{
+				final var initial = state(population.seedReady(id, 1));
+				final long target = initial.calendarCursorEpochMinute() + 1000;
+				final var begun = history.begin(id, initial.calendarCursorEpochMinute(), target, id);
+				store.insert(id, initial.beginRequest(begun.snapshot().state().requestId(), target));
+			}
+			final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW.plusSeconds(1000 * 60L));
+			final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+			ecology.installMaterializationDemand(_ -> true);
+			final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, count, count, 8, 4, 1, 64);
+			manager.installEcology(ecology);
+			PhantomAssertions.assertTrue(manager.start(), "Single-slot fairness fixture did not start.");
+			try
+			{
+				ecology.holdStartupPopulationPlan();
+				ecology.onPopulationPulse();
+				ecology.startupPopulationPlanApplied();
+				final var facts = new java.util.ArrayList<PhantomPopulationEcologyService.DemandFact>();
+				for (long id = 1; id <= count; id++)
+				{
+					facts.add(new PhantomPopulationEcologyService.DemandFact(id, 1, true, equalDistance ? 1 : id, equalDistance && id == 2 ? 0 : id));
+				}
+				final long first = equalDistance ? 2 : 1;
+				final var focused = new java.util.HashSet<Long>();
+				for (int batch = 1; batch <= 25; batch++)
+				{
+					final var before = new java.util.HashMap<Long, Long>();
+					for (long id = 1; id <= count; id++) { before.put(id, history.status(id).orElseThrow().state().cursorEpochMinute()); }
+					ecology.updateMaterializationDemand(facts, 1);
+					ecology.onPopulationPulse();
+					final var preparation = ecology.preparationSnapshot();
+					focused.add(preparation.focusId());
+					PhantomAssertions.assertEquals(1, preparation.admittedPreparationCount(), "Focus rotation exceeded the one-slot preparation budget.");
+					if (batch <= 8) { PhantomAssertions.assertEquals(first, preparation.focusId(), "A same-priority demand interrupted the existing eight-batch focus quantum."); }
+					if (batch == 9)
+					{
+						PhantomAssertions.assertTrue(preparation.focusId() != first, "One preparation slot permanently excluded a current same-priority peer.");
+						final long id = preparation.focusId();
+						PhantomAssertions.assertTrue(history.status(id).orElseThrow().state().cursorEpochMinute() - before.get(id) >= 12, "Peer received only ordinary work instead of its bounded focus slice.");
+					}
+					if (batch == 17) { PhantomAssertions.assertEquals(count, focused.size(), "An older waiting third peer never received a focus quantum."); }
+				}
+				PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= 4 && ecology.snapshot().maximumPulseIntervals() <= 16, "Focus fairness multiplied the existing worker budget.");
+				context.record("task065.singleSlot.control" + control, "focused=" + focused + "; equalDistance=" + equalDistance + "; sharedBudget=4/16");
+			}
+			finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
+		}
 	}
 
 	private void releasedNativeOwner031(PhantomTestContext context)

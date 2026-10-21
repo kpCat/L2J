@@ -1,6 +1,7 @@
 # Population fingerprints are persistent byte identities; preserve the committed LF catalogs.
 dist/game/data/phantoms/population/high-five-population-v1.xml text eol=lf
 dist/game/data/phantoms/population/high-five-population-v2.xml text eol=lf
+dist/game/data/phantoms/population/high-five-population-v3.xml text eol=lf
 dist/game/data/phantoms/population/high-five-ecology-v1.xml text eol=lf
 # Versioned language authority bytes must also survive clean commit archives.
 dist/game/data/phantoms/conversation/high-five-ru-conversation-v2.xml text eol=lf

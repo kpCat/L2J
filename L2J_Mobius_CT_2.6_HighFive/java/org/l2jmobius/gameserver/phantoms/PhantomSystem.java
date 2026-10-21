@@ -516,12 +516,13 @@ public final class PhantomSystem
 				final PhantomAcquisitionDecision acquisitionDecision = new PhantomAcquisitionDecision(_acquisitionService);
 				final PhantomEconomyDecision economyDecision = new PhantomEconomyDecision(_economyService);
 				final PhantomMultipartyEconomyDecision multipartyEconomyDecision = new PhantomMultipartyEconomyDecision(_multipartyEconomyService);
-				final File populationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v2.xml");
+				final File populationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v3.xml");
 				final File populationPredecessorFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v1.xml");
 				final PhantomPopulationCatalog populationCatalog = PhantomPopulationCatalog.load(populationCatalogFile.toPath(), _settings.populationTimeZone());
 				final PhantomPopulationCatalog populationPredecessor = PhantomPopulationCatalog.load(populationPredecessorFile.toPath(), _settings.populationTimeZone());
+				final PhantomPopulationCatalog populationV2Predecessor = PhantomPopulationCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v2.xml").toPath(), _settings.populationTimeZone());
 				_populationManager = new PhantomPopulationManager(
-					new PhantomPopulationStore(productionProfiles, populationCatalog, populationPredecessor, _settings.populationTimeZone()),
+					new PhantomPopulationStore(productionProfiles, populationCatalog, populationPredecessor, populationV2Predecessor, _settings.populationTimeZone()),
 					populationCatalog,
 					productionGoals,
 					_scheduler,

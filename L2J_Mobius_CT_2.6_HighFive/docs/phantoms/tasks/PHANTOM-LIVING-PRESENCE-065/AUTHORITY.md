@@ -1,0 +1,17 @@
+# AUTHORITY065 — непрерывное выполнение без промежуточных вопросов
+
+**Решение владельца:** утверждаю содержимое TASK065 как одну самостоятельную bounded задачу (максимум 6 часов). Это разрешение охватывает read-first, утверждение рабочего плана, изменения существующих общих owners в M1, адресные тесты, Java сборки, новые строго изолированные DB/runtime для065, штатный START/STATUS/STOP, review, exact-path commit и обычный non-force push. **Не просить промежуточных согласований** на каждый план, тест, исправление или коммит. Правила платформы с обязательным подтверждением остаются обязательными; если действие недоступно — отдельный BLOCKED и безопасное продолжение.
+
+**Обязательная последовательность:** validate package SHA → HEAD/status/safety preflight → causal native RED → минимальный production fix → focused GREEN → ordinary chain → финальные проверки/поставка. До часа резерва закончить рискованные эксперименты. Вести один короткий handoff-файл для context compaction и один отчёт вместо десятков служебных документов.
+
+**Может менять:** только доказанно необходимые High Five M1 owners, связанные календарные/локальные data, существующие тесты/скрипты для собственных065 сред, отчёты/матрицу. Разрешена общая причинная поправка нескольких файлов, но нет разрешения писать параллельный scheduler/engine или обходить канонические guards.
+
+**Владельческая безопасность:** `master`, `upstream/master`, оригинальный checkout `C:\Users\ZBook\L2J_Mobius` с1852 dirt, `phantom-dev`, другие worktrees и старые protected релизы057–064, их DB/schema/JAR/config/log/GeoData не менять и не запускать. Исходники Semantic Studio и её рабочие corpus не менять. Общий MariaDB service/datadir/users/grants не менять; существующую Test/PLAY/MAIN базу не использовать для write/cleanup.
+
+**Новый state:** при необходимости только свободные заранее проверенные имена `l2jmobiush5_phantom_test_065` и `l2jmobiush5_phantom_release_065a`. До записи проверить schema absent, доступ, ownership, SQL scripts и наличие других writer. Новый candidate path `D:\PhantomWorld\Living-Presence-065-candidate` допустим лишь если не существует; существующий candidate неприкосновенен. Выбор портов после проверки конфликтов, отдельные namespace/manifest/receipt. Используй проверенные baseline064 launchers как шаблоны, НЕ переиспользуй чужие064 DB/owners.
+
+**Материалы:** можно читать GeoData из `D:\PhantomWorld\World-Integrated-064-candidate`, `D:\PhantomWorld\World-Career-061-candidate` или старого C: checkout; физически копировать только в свою065 runtime с SHA. Исходный код/Phantom semantic/production config брать из актуального `feature/phantom-world`. Перенос credentials только в приватные новые065 config по допустимой изоляции; никаких секретов в Git, reports, echoed commands. GeoData в Git не коммитить.
+
+**Запрет:** `git clean`, `reset --hard`, force/stash/merge/rebase, широкое staging, force kill, diagnostic Attach/jcmd, глобальные OS/network/SQL изменения, удаление чужих профилей, reimport старых схем, незаявленный real client/GM test. Нельзя маскировать FAILED как PASS, отключать assertions и приближать персонажа к человеку телепортом ради визуального успеха.
+
+**Публикация:** в новый независимый пользовательский checkout `D:\Codex\repos\L2J-phantom-world` на текущую основную ветку, если он чист; иначе отдельная OWN ветка/worktree от latest origin, строго с non-force fast-forward публикацией. Никаких изменений GitHub default branch. Новый roadmap — предложение, не заменять официальные исторические contracts.

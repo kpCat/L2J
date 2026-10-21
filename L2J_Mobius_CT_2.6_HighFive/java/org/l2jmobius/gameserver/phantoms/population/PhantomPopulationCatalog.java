@@ -78,9 +78,10 @@ public final class PhantomPopulationCatalog
 	private final List<ClassEntry> _classes;
 	private final Map<CareerArchetype, ArchetypeEntry> _archetypes;
 	private final Map<String, ScheduleTemplate> _templates;
+	private final String _newProfileSuffix;
 	private final String _hash;
 
-	private PhantomPopulationCatalog(Names names, List<ClassEntry> classes, Map<CareerArchetype, ArchetypeEntry> archetypes, Map<String, ScheduleTemplate> templates, String hash)
+	private PhantomPopulationCatalog(Names names, List<ClassEntry> classes, Map<CareerArchetype, ArchetypeEntry> archetypes, Map<String, ScheduleTemplate> templates, String newProfileSuffix, String hash)
 	{
 		_nameStyles = List.copyOf(names.styles());
 		_primaryRoots = List.copyOf(names.primaryRoots());
@@ -90,6 +91,7 @@ public final class PhantomPopulationCatalog
 		_classes = List.copyOf(classes);
 		_archetypes = Collections.unmodifiableMap(new LinkedHashMap<>(archetypes));
 		_templates = Collections.unmodifiableMap(new LinkedHashMap<>(templates));
+		_newProfileSuffix = newProfileSuffix;
 		_hash = hash;
 	}
 
@@ -117,9 +119,10 @@ public final class PhantomPopulationCatalog
 			final Element root = document.getDocumentElement();
 			requireElement(root, "populationCatalog");
 			requireExactAttributes(root, Set.of("version"));
-			if (!"1".equals(root.getAttribute("version")))
+			final boolean versionedSchedules = "2".equals(root.getAttribute("version"));
+			if (!"1".equals(root.getAttribute("version")) && !versionedSchedules)
 			{
-				throw new IllegalArgumentException("Population catalog version must be 1.");
+				throw new IllegalArgumentException("Population catalog version must be 1 or 2.");
 			}
 			final List<Element> rootChildren = childElements(root);
 			if ((rootChildren.size() != 4) || !"names".equals(rootChildren.get(0).getTagName()) || !"classes".equals(rootChildren.get(1).getTagName()) || !"archetypes".equals(rootChildren.get(2).getTagName()) || !"schedules".equals(rootChildren.get(3).getTagName()))
@@ -129,9 +132,27 @@ public final class PhantomPopulationCatalog
 			final Names names = parseNames(rootChildren.get(0));
 			final List<ClassEntry> classes = parseClasses(rootChildren.get(1));
 			final Map<CareerArchetype, ArchetypeEntry> archetypes = parseArchetypes(rootChildren.get(2), classes);
-			final Map<String, ScheduleTemplate> templates = parseSchedules(rootChildren.get(3), zoneId);
+			final Element schedules = rootChildren.get(3);
+			requireExactAttributes(schedules, versionedSchedules ? Set.of("newProfileSuffix") : Set.of());
+			final String newProfileSuffix = versionedSchedules ? schedules.getAttribute("newProfileSuffix") : "";
+			if (versionedSchedules && !newProfileSuffix.matches("\\.[a-z][a-z0-9]{0,7}"))
+			{
+				throw new IllegalArgumentException("Versioned population schedules require a bounded new-profile suffix.");
+			}
+			final Map<String, ScheduleTemplate> templates = parseSchedules(schedules, zoneId);
+			if (versionedSchedules)
+			{
+				for (String id : templates.keySet())
+				{
+					final String counterpart = id.endsWith(newProfileSuffix) ? id.substring(0, id.length() - newProfileSuffix.length()) : id + newProfileSuffix;
+					if (!templates.containsKey(counterpart))
+					{
+						throw new IllegalArgumentException("Every versioned schedule must retain its legacy counterpart.");
+					}
+				}
+			}
 			final String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-			return new PhantomPopulationCatalog(names, classes, archetypes, templates, hash);
+			return new PhantomPopulationCatalog(names, classes, archetypes, templates, newProfileSuffix, hash);
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -256,7 +277,17 @@ public final class PhantomPopulationCatalog
 	}
 	public ScheduleTemplate chooseSchedule(long deterministicValue)
 	{
-		return weighted(new ArrayList<>(_templates.values()), deterministicValue, ScheduleTemplate::weight);
+		return weighted(_templates.values().stream().filter(template -> _newProfileSuffix.isEmpty() || template.id().endsWith(_newProfileSuffix)).toList(), deterministicValue, ScheduleTemplate::weight);
+	}
+
+	/** New identities use the current cohort; persisted template IDs remain authoritative. */
+	public String newProfileSchedule(String templateId)
+	{
+		if (!_templates.containsKey(templateId))
+		{
+			throw new IllegalArgumentException("Unknown population schedule template: " + templateId);
+		}
+		return _newProfileSuffix.isEmpty() || templateId.endsWith(_newProfileSuffix) ? templateId : templateId + _newProfileSuffix;
 	}
 
 	public ScheduleEvaluation evaluate(String templateId, Instant now, ZoneId zoneId, int phaseMinutes)
@@ -503,7 +534,6 @@ public final class PhantomPopulationCatalog
 	private static Map<String, ScheduleTemplate> parseSchedules(Element element, ZoneId zoneId)
 	{
 		requireElement(element, "schedules");
-		requireExactAttributes(element, Set.of());
 		final Map<String, ScheduleTemplate> templates = new LinkedHashMap<>();
 		for (Element child : childElements(element))
 		{
@@ -634,7 +664,7 @@ public final class PhantomPopulationCatalog
 	private static void evaluateZoneCompatibility(ScheduleTemplate template, ZoneId zoneId)
 	{
 		final Instant probe = Instant.parse("2026-01-01T00:00:00Z");
-		final PhantomPopulationCatalog temporary = new PhantomPopulationCatalog(new Names(List.of(), List.of(), List.of(), List.of(), Set.of()), List.of(), Map.of(), Map.of(template.id(), template), "");
+		final PhantomPopulationCatalog temporary = new PhantomPopulationCatalog(new Names(List.of(), List.of(), List.of(), List.of(), Set.of()), List.of(), Map.of(), Map.of(template.id(), template), "", "");
 		temporary.evaluate(template.id(), probe, zoneId, 0);
 	}
 

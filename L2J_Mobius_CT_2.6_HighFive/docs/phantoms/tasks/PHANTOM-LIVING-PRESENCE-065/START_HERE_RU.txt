@@ -1,0 +1,12 @@
+TASK065 — запуск для Codex
+
+1. Распаковать ZIP **в корень** актуального `D:\Codex\repos\L2J-phantom-world\`, сохранив структуру каталогов. Не распаковывать в `C:\Users\ZBook\L2J_Mobius`.
+2. Ожидаемые пути после распаковки:
+   `L2J_Mobius_CT_2.6_HighFive\docs\phantoms\PHANTOM_WORLD_ROADMAP_REVISED_2026-10-21.md`
+   `L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-LIVING-PRESENCE-065\TASK.md`
+3. Новый диалог Codex. Выбрать Git root `D:\Codex\repos\L2J-phantom-world`; команда:
+
+   Выполни TASK065 из `L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVING-PRESENCE-065/TASK.md` и связанные AUTHORITY, ACCEPTANCE, TEST_CASES, READ_SET, RUNTIME_INPUTS. Проверь PACKAGE_SHA256.txt, текущую feature/phantom-world и публикацию064. Владелец заранее разрешил все штатные действия внутри пакета, без промежуточных вопросов. Выполни end-to-end до согласованного результата или честного PARTIAL, не начиная другую задачу. Максимум6ч, последний1ч финализация.
+
+4. ZIP добавляет **только документы** в Git checkout. Codex должен проверить существующие tracked-файлы и stage только разрешённые exact paths. Это не автопубликация roadmap и не переписывание официального master plan.
+5. Если baseline изменился с 5892949f..., сначала сравнить новые изменения и принять актуальную ветку без force/rebase, не работать со старым HEAD как с истинным.
