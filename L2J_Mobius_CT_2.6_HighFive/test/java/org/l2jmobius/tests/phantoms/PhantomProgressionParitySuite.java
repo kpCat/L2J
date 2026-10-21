@@ -33,7 +33,7 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_catalog = _fixture.start(context);
-		context.record("progressionParity.cases", 37);
+		context.record("progressionParity.cases", 38);
 		context.record("progressionParity.hash", _catalog.combinedHash());
 		context.record("progressionParity.classGraphHash", _catalog.hashes().classGraphHash());
 		context.record("progressionParity.skillLearningHash", _catalog.hashes().skillLearningHash());
@@ -107,6 +107,16 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 				final var skill = skills.getSkill(id, 1);
 				PhantomAssertions.assertTrue(skill != null, "Native safety negative skill is absent: " + id);
 				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsRaidSelfDefense(skill, false), "Offensive self-root/area action was admitted as SELF defense: " + id);
+			}
+		});
+		registry.add("38-learned-physical-critical-support", _ ->
+		{
+			for (int skillId : Set.of(1077, 1242))
+			{
+				final var rules = _catalog.capabilities(98).stream().filter(rule -> rule.capabilityKey().equals("combat.buff") && rule.actionSkill().skillId() == skillId).toList();
+				PhantomAssertions.assertEquals(1, rules.size(), "Learned Hierophant physical support is unavailable to the existing support owner: " + skillId);
+				PhantomAssertions.assertTrue(rules.getFirst().actionSkill().skillLevel() == 3 && rules.getFirst().targetScope() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.TargetScope.PARTY
+					&& _catalog.classSkillLearns(98).stream().anyMatch(learn -> learn.skillId() == skillId && learn.skillLevel() == 3 && learn.minimumCharacterLevel() <= 79), "Physical support lacks its inherited native level79 class-tree fact.");
 			}
 		});
 	}

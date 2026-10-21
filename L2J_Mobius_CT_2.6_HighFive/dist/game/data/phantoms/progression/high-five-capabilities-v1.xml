@@ -30,6 +30,8 @@
 	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-might" rank="850" skillId="1068" skillLevel="3" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
 	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-shield" rank="850" skillId="1040" skillLevel="3" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
 	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-haste" rank="850" skillId="1086" skillLevel="2" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
+	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-focus" rank="850" skillId="1077" skillLevel="3" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
+	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-death-whisper" rank="850" skillId="1242" skillLevel="3" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
 	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-magic-barrier" rank="850" skillId="1036" skillLevel="2" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
 	<capabilityRule classId="98" capabilityKey="combat.buff" variantKey="hierophant-resist-wind" rank="850" skillId="1189" skillLevel="3" source="data/stats/players/skillTrees/2ndClass/Prophet.xml" />
 	<capabilityRule classId="107" capabilityKey="combat.dance" variantKey="spectral-dancer-warrior" rank="850" skillId="271" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/BladeDancer.xml" />
