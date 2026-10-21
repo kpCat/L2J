@@ -23,6 +23,18 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("01-exact-mutable-fixture-is-accepted", context -> validate(PhantomCampaign058DatabaseLane.MODULE, owner(), settings()));
+		registry.add("13-task065-build-jar-is-exact-and-isolated", context ->
+		{
+			final String previous = System.getProperty("phantom.task065.manifest");
+			System.setProperty("phantom.task065.manifest", context.moduleRoot().resolve(".phantom-local/task065/test/owned.properties").toString());
+			try
+			{
+				final Path task = context.moduleRoot().resolve(".phantom-local/task065");
+				for (String build : List.of("build", "build-final")) { PhantomAssertions.assertTrue(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(task.resolve(build + "/dist/libs/GameServer.jar")), "Exact065 whole JAR rejected."); }
+				for (Path foreign : List.of(task.resolve("build/dist/libs/Foreign.jar"), task.resolve("runtime/libs/GameServer.jar"), context.moduleRoot().resolve(".phantom-local/task064/build/dist/libs/GameServer.jar"))) { PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(foreign), "Foreign065 whole JAR accepted."); }
+			}
+			finally { if (previous == null) { System.clearProperty("phantom.task065.manifest"); } else { System.setProperty("phantom.task065.manifest", previous); } }
+		});
 		registry.add("12-continuation060-ordinary-jar-is-exact", context ->
 		{
 			for (String path : List.of(".phantom-local/contract058a/task060/build/dist/libs/GameServer.jar", ".phantom-local/contract058a/build/release060/compiled/dist/libs/GameServer.jar"))

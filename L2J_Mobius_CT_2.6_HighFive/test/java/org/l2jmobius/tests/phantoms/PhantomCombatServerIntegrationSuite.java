@@ -933,6 +933,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static boolean campaign058JarAllowed(Path supplied)
 	{
+		if (PhantomCampaign058DatabaseLane.task065Enabled())
+		{
+			final Path task065 = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().resolve(".phantom-local/task065");
+			return List.of(task065.resolve("build/dist/libs/GameServer.jar"), task065.resolve("build-final/dist/libs/GameServer.jar")).contains(supplied);
+		}
 		if (PhantomCampaign058DatabaseLane.task064Enabled())
 		{
 			final Path task064 = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().resolve(".phantom-local/task064");
