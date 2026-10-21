@@ -4787,6 +4787,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final var engine = new PhantomDecisionEngine(goals, engineCandidates, engineHandlers, new PhantomMetrics(), 1);
 			engine.start();
 			final var autoPlay = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true, visibleClock::get);
+			// Match production bindVisibleLife: the history owner must stop its own AutoPlay before publishing.
+			historical.bindVisibleRecovery(travel, autoPlay);
 			try
 			{
 				PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "Outgrown handoff did not attach its real goal store.");
