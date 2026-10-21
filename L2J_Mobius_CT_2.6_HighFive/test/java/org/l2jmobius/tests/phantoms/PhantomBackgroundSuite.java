@@ -4946,9 +4946,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final var candidates = new PhantomCandidateRegistry(); final var handlers = new PhantomStepHandlerRegistry();
 			final var binding = PhantomBackgroundDecision.bindVisibleLife(background, travel, autoPlay, history, engineRef::get); binding.registerCandidates(candidates); binding.registerHandlers(handlers); candidates.seal(); handlers.seal();
 			final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1); engineRef.set(engine);
-			org.l2jmobius.gameserver.model.actor.instance.Monster monster = null;
-			final var nativeActor = new AtomicReference<Player>(); final var nativeDamage = new java.util.concurrent.atomic.DoubleAdder();
-			org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener damageListener = null;
+			final Map<org.l2jmobius.gameserver.model.actor.instance.Monster, Double> initialHp = new java.util.LinkedHashMap<>();
+			final Map<org.l2jmobius.gameserver.model.actor.instance.Monster, java.util.concurrent.atomic.DoubleAdder> nativeDamage = new java.util.LinkedHashMap<>();
+			final Map<org.l2jmobius.gameserver.model.actor.instance.Monster, org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener> observations = new java.util.LinkedHashMap<>();
 			try
 			{
 				PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start(), "Continuation services did not start."); engine.start(); engine.attach(id);
@@ -4958,21 +4958,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var preflight = planner.replanVisibleLocal(id, baseline, oldGoal, context.seed(), 1, new PhantomTopologyPoint(arrivalPoint.x(), arrivalPoint.y(), arrivalPoint.z(), arrivalPoint.instanceId()), Set.of("18342@" + arrival.id()), Set.of());
 				PhantomAssertions.assertFalse(planner.remainsSuitable(baseline, oldGoal), "INVALID_INPUT: level12 still suits the old level1 target.");
 				PhantomAssertions.assertTrue(preflight.ready(), "INVALID_INPUT: no suitable local continuation before measurement: " + preflight.reasonKey());
-				final var targetAnchor = topology.findAnchor(preflight.spec().anchorId()).orElseThrow(); final var targetPoint = canonicalAnchorPosition(targetAnchor, 0);
-				monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(preflight.spec().npcId()));
-				final var preparedTarget = monster;
-				damageListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(monster, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) -> { if (event.getTarget() == preparedTarget && event.getAttacker() == nativeActor.get() && event.getDamage() > 0) { nativeDamage.add(event.getDamage()); } }, this);
-				monster.addListener(damageListener);
-				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(targetPoint.x(), targetPoint.y(), targetPoint.z()); monster.setSpawn(spawn); monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(targetPoint.x(), targetPoint.y(), targetPoint.z());
-				final double initialHp = monster.getCurrentHp();
-				PhantomAssertions.assertTrue(initialHp == monster.getMaxHp(), "INVALID_INPUT: continuation target is not a full native template.");
 				final var generation = planner.generation(); final var catchup = new PhantomBackgroundCatchupStore(_repository, goals);
 				catchup.claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "v".repeat(64), context.seed(), 0, 1, 1, 0, 1, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), oldGoal.goalId(), oldGoal.revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), ""));
 				fixture.releaseRuntime();
-				context.record("continuation064.input", "PREPARED ELF_FIGHTER12/full native target before measurement; old Gremlin18342; candidate=" + preflight.spec() + "; no level/resources/positions changed after this boundary; owner control, not ordinary autonomy");
+				context.record("continuation064.input", "PREPARED ELF_FIGHTER12; old Gremlin18342; center preflight=" + preflight.spec() + "; existing stock NPCs only; no level/resources/positions/spawns changed after this boundary; owner control, not ordinary autonomy");
 				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Continuation identity did not materialize.");
 				final Player player; try (var action = materialization.tryAcquireAction(id).orElseThrow()) { player = action.player(); }
-				nativeActor.set(player);
 				final long epoch = materialization.find(id).orElseThrow().materializedAtNanos(); final int startX = player.getX(), startY = player.getY();
 				PhantomAssertions.assertFalse(L2jPhantomBackgroundAuthority.livePositionAllowed(topology, player, arrival), "INVALID_INPUT: continuation starts inside the old farm.");
 				boolean arrived = false; final long arrivalDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(100);
@@ -4982,28 +4973,47 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(arrival.id(), transaction.load(id).state().position().committedAnchorId(), "Continuation did not commit its actual old arrival.");
 				final var actual = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 				final var actualPlan = planner.replanVisibleLocal(id, transaction.load(id).state(), oldGoal, context.seed(), 1, actual, Set.of("18342@" + arrival.id()), Set.of());
-				PhantomAssertions.assertTrue(actualPlan.ready() && actualPlan.spec().equals(preflight.spec()), "Actual arrival differs from the prepared local continuation context.");
+				context.record("continuation064.arrival", "actual=" + actual + "; level=" + player.getLevel() + "; stateProgress=" + transaction.load(id).state().progress() + "; preflight=" + preflight + "; actualPlan=" + actualPlan);
+				PhantomAssertions.assertTrue(actualPlan.ready(), "INVALID_INPUT: no local continuation at the actual native arrival: " + actualPlan.reasonKey());
+				final var targetAnchor = topology.findAnchor(actualPlan.spec().anchorId()).orElseThrow();
+				final var targetArea = topology.findNode(targetAnchor.nodeId()).orElseThrow().area();
+				// Native travel may commit a safe in-area standpoint rather than the representative center.
+				// Observe existing stock targets of its factual plan; never spawn or refill a target here.
+				final var targetRegion = World.getInstance().getRegion(targetAnchor.point().x(), targetAnchor.point().y(), targetAnchor.point().z());
+				for (var target : java.util.Arrays.stream(targetRegion.getSurroundingRegions()).flatMap(region -> region.getVisibleObjects().stream())
+					.filter(value -> value instanceof org.l2jmobius.gameserver.model.actor.instance.Monster).map(value -> (org.l2jmobius.gameserver.model.actor.instance.Monster) value)
+					.filter(value -> value.getId() == actualPlan.spec().npcId() && value.getSpawn() != null && !value.isDead() && value.getCurrentHp() == value.getMaxHp()
+						&& targetArea.contains(new PhantomTopologyPoint(value.getX(), value.getY(), value.getZ(), value.getInstanceId())))
+					.sorted(java.util.Comparator.comparingInt(value -> value.getObjectId())).limit(16).toList())
+				{
+					final var damage = new java.util.concurrent.atomic.DoubleAdder();
+					final var listener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(target, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) -> { if (event.getTarget() == target && event.getAttacker() == player && event.getDamage() > 0) { damage.add(event.getDamage()); } }, this);
+					initialHp.put(target, target.getCurrentHp()); nativeDamage.put(target, damage); observations.put(target, listener); target.addListener(listener);
+				}
+				PhantomAssertions.assertFalse(observations.isEmpty(), "INVALID_INPUT: no existing full native target in the actual continuation area.");
+				context.record("continuation064.observed", initialHp.entrySet().stream().map(value -> value.getKey().getObjectId() + ":npc=" + value.getKey().getId() + ":HP=" + value.getValue()).toList());
 				PhantomAssertions.assertTrue(autoPlay.start(id, oldGoal), "Old continuation policy did not start.");
 				long tick = 0; final long continuationDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(100);
 				while (System.nanoTime() < continuationDeadline)
 				{
 					// Production prepares history outside the decision callback, preserving publication/reload ownership.
 					if (history.prepareVisibleDecision(id, engine)) { engine.accept(new org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem(id, PhantomActivityState.ACTIVE, 1, ++tick, System.nanoTime(), org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel.NORMAL)); }
-					if (goals.load(id).orElseThrow().goal().revision() == oldGoal.revision() + 1 && nativeDamage.sum() > 0 && monster.getCurrentHp() < initialHp) { break; }
+					if (goals.load(id).orElseThrow().goal().revision() == oldGoal.revision() + 1 && nativeDamage.entrySet().stream().anyMatch(value -> value.getValue().sum() > 0 && value.getKey().getCurrentHp() < initialHp.get(value.getKey()))) { break; }
 					Thread.sleep(25);
 				}
 				final var renewed = goals.load(id).orElseThrow().goal(); final var persisted = catchup.load(id).orElseThrow().state();
-				final double attributedDamage = nativeDamage.sum();
+				final var damagedTargets = nativeDamage.entrySet().stream().filter(value -> value.getValue().sum() > 0 && value.getKey().getCurrentHp() < initialHp.get(value.getKey())).toList();
+				final double attributedDamage = damagedTargets.stream().mapToDouble(value -> value.getValue().sum()).sum();
 				PhantomAssertions.assertEquals(actualPlan.spec(), PhantomBackgroundGoalSpec.parse(renewed), "History published another prepared continuation target.");
-				context.record("continuation064.result", "goal=" + renewed.goalId() + '/' + renewed.revision() + "; catchup=" + persisted.status() + '/' + persisted.goalRevision() + "; targetHP=" + initialHp + "->" + monster.getCurrentHp() + "; attributedDamage=" + attributedDamage + "; nativePlayer=" + player.getObjectId() + "; epoch=" + epoch + "; travel=" + travel.reason(id) + "; engine=" + engine.find(id));
+				context.record("continuation064.result", "goal=" + renewed.goalId() + '/' + renewed.revision() + "; catchup=" + persisted.status() + '/' + persisted.goalRevision() + "; targetHP=" + damagedTargets.stream().map(value -> value.getKey().getObjectId() + ":" + initialHp.get(value.getKey()) + "->" + value.getKey().getCurrentHp()).toList() + "; attributedDamage=" + attributedDamage + "; nativePlayer=" + player.getObjectId() + "; epoch=" + epoch + "; travel=" + travel.reason(id) + "; engine=" + engine.find(id));
 				PhantomAssertions.assertTrue(renewed.goalId() == oldGoal.goalId() && renewed.revision() == oldGoal.revision() + 1 && persisted.status() == PhantomBackgroundCatchupState.Status.COMPLETE && persisted.goalRevision() == renewed.revision(), "History did not atomically publish the matching continuation revision.");
-				PhantomAssertions.assertTrue(attributedDamage > 0 && monster.getCurrentHp() < initialHp && autoPlay.running(id, renewed), "Normal continuation binding did not perform attributed native work.");
+				PhantomAssertions.assertTrue(attributedDamage > 0 && autoPlay.running(id, renewed), "Normal continuation binding did not perform attributed native work.");
 				try (var action = materialization.tryAcquireAction(id).orElseThrow()) { PhantomAssertions.assertTrue(action.player() == player && player.getLevel() == 12 && player.getNativeWorkOwner().isCurrent() && player.getNativeWorkOwner().epoch() == epoch, "Continuation replaced the Player/epoch or changed its prepared level."); }
 			}
 			finally
 			{
 				_retainedContinuationCleanup064 = "profile=" + id + "; object=" + profile.characterObjectId() + "; awaiting exact native drain";
-				autoPlay.stop(id); engine.beginStop(); engine.finishStop(); if (monster != null) { if (damageListener != null) { monster.removeListener(damageListener); } monster.deleteMe(); }
+				autoPlay.stop(id); engine.beginStop(); engine.finishStop(); observations.forEach((target, listener) -> target.removeListener(listener));
 				final long cleanupDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
 				navigation.beginStop(); boolean navigationStopped = navigation.finishStop();
 				while (!navigationStopped && System.nanoTime() < cleanupDeadline) { Thread.sleep(25); navigationStopped = navigation.finishStop(); }
