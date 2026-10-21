@@ -6516,7 +6516,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testOptionalShots066(PhantomTestContext context) throws Exception
 	{
-		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
+		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte) 19);
 		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous controlled-actor action did not leave native combat stance.");
 		prepareLearningField059(context);
 		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
