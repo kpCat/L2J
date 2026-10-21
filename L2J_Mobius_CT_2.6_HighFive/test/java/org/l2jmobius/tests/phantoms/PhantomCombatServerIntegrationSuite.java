@@ -744,7 +744,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RIFT_NATIVE_058)
 		{
-			registry.add(Boolean.getBoolean("phantom.test.riftDeparturePressure064") ? "05-canonical-rift-stock-room-pressure-death-and-departure064" : Boolean.getBoolean("phantom.test.riftDeparture064") ? "04-canonical-rift-managed-logout-native-death-disband-and-reload064" : Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
+			registry.add(Boolean.getBoolean("phantom.test.riftDepartureNativePull064") ? "06-canonical-rift-native-pull-death-and-departure064" : Boolean.getBoolean("phantom.test.riftDeparturePressure064") ? "05-canonical-rift-stock-room-pressure-death-and-departure064" : Boolean.getBoolean("phantom.test.riftDeparture064") ? "04-canonical-rift-managed-logout-native-death-disband-and-reload064" : Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
 			return;
 		}
 		if (_mode == Mode.INSTANCES_058)
@@ -5704,7 +5704,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		PhantomAssertions.assertTrue(actors.size() == 4 && profiles.size() == 3 && actors.stream().noneMatch(Player::isDead), "INVALID_INPUT: departure control requires the same living four-member legal roster.");
 		final boolean roomPressure = Boolean.getBoolean("phantom.test.riftDeparturePressure064");
-		context.record("rift064.departureInput", "INDEPENDENT native case" + (roomPressure ? "05" : "04") + " after the same canonical consent/READY/fees/stock entry: unchanged four34/D/full initial vitals/finite stock; existing materialization terminal cleanup, " + (roomPressure ? "at most16 existing stock room NPC attacks" : "one stock NPC attack") + " and canonical Party leave only; original90s death bound; no resource/stat/teleport rescue; timed room progression belongs to separate03");
+		final boolean nativePull = Boolean.getBoolean("phantom.test.riftDepartureNativePull064");
+		context.record("rift064.departureInput", "INDEPENDENT native case" + (nativePull ? "06" : roomPressure ? "05" : "04") + " after the same canonical consent/READY/fees/stock entry: unchanged four34/D/full initial vitals/finite stock; existing materialization terminal cleanup, " + (nativePull ? "ordinary Player attacks pull at most16 existing stock NPCs inside the original90s total death bound" : roomPressure ? "at most16 existing stock room NPC attack intentions" : "one stock NPC attack") + " and canonical Party leave only; no resource/stat/teleport rescue; timed room progression belongs to separate03");
 		final var spawned = new java.util.concurrent.CountDownLatch(1);
 		rift.getSpawnTimer().schedule(new java.util.TimerTask() { @Override public void run() { spawned.countDown(); } }, 0);
 		PhantomAssertions.assertTrue(spawned.await(10, TimeUnit.SECONDS), "Departure input stock spawn body did not settle.");
@@ -5726,8 +5727,24 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 		PhantomAssertions.assertTrue(!victim.isDead() && !target.isDead() && target.getInstanceId() == victim.getInstanceId() && room.checkIfInZone(victim.getX(), victim.getY(), victim.getZ()), "INVALID_INPUT: native death control lost its live same-room stock actors.");
 		final double beforeHp = victim.getCurrentHp();
-		for (Monster monster : pressure) { monster.getAI().setIntention(Intention.ATTACK, victim); }
-		final boolean died = waitFor(() -> victim.isDead() && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), 90_000);
+		final long deathDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90);
+		if (nativePull)
+		{
+			for (Monster monster : pressure)
+			{
+				if (victim.isDead() || System.nanoTime() >= deathDeadline) { break; }
+				if (monster.isDead()) { continue; }
+				victim.setTarget(monster); victim.getAI().setIntention(Intention.ATTACK, monster);
+				waitFor(() -> victim.isDead() || monster.isDead() || monster.getMostHated() == victim, Math.max(1, Math.min(3_000, TimeUnit.NANOSECONDS.toMillis(deathDeadline - System.nanoTime()))));
+				if (!victim.isDead() && victim.getAI().getIntention() == Intention.ATTACK && victim.getAI().getAttackTarget() == monster)
+				{
+					victim.abortAttack(); victim.getAI().setIntention(Intention.IDLE);
+				}
+				context.record("rift064.nativePull." + monster.getObjectId(), "npc=" + monster.getId() + "; NPC_HP=" + monster.getCurrentHp() + "; mostHatedVictim=" + (monster.getMostHated() == victim) + "; incoming=" + org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(monster, victim) + "; victimHP=" + victim.getCurrentHp());
+			}
+		}
+		else { for (Monster monster : pressure) { monster.getAI().setIntention(Intention.ATTACK, victim); } }
+		final boolean died = waitFor(() -> victim.isDead() && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim), Math.max(1, TimeUnit.NANOSECONDS.toMillis(deathDeadline - System.nanoTime())));
 		context.record("rift064.nativeDeath", "stockNpc=" + target.getId() + "; stockPressureCount=" + pressure.size() + "; victim=" + victim.getObjectId() + "; HP=" + beforeHp + "->" + victim.getCurrentHp() + "; dead=" + died + "; registered=" + rift.getDeadMemberList().contains(victim));
 		final boolean nativeDeathRegistered = died && victim.getCurrentHp() == 0 && rift.getDeadMemberList().contains(victim);
 		// Preserve the original death failure while still measuring independent canonical closing/save/reload.
