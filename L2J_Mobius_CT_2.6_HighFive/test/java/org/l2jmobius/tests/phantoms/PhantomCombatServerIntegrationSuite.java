@@ -6527,7 +6527,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var target = spawnExactPointMonster(20035, Double.MAX_VALUE); final double hp = target.getCurrentHp();
 		try
 		{
-			_player.setTarget(target); _player.doAttack(target);
+			_player.setTarget(target); _player.getAI().setIntention(Intention.ATTACK, target);
 			PhantomAssertions.assertTrue(waitFor(() -> target.getCurrentHp() < hp, 8_000), "Empty shot stock blocked lawful native melee damage.");
 			_player.abortAttack(); _player.getAI().setIntention(Intention.IDLE);
 			_player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass());
@@ -6543,8 +6543,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(1835, -1), "Unboosted melee created shots.");
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(3947, -1), "Unboosted magic created BSS.");
 			PhantomAssertions.assertEquals(0L, _player.getAdena(), "Zero-budget native combat acquired money without a pickup.");
-			PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow() && !_player.isSkillDisabled(skill), 10_000), "Native unboosted cast/reuse did not retire before the next action.");
-			_player.doCast(skill);
+			int continuationCasts = 0;
+			while (!target.isDead() && continuationCasts++ < 8)
+			{
+				PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow() && !_player.isSkillDisabled(skill), 10_000), "Native unboosted cast/reuse did not retire before the next action.");
+				final double priorHp = target.getCurrentHp(); _player.setTarget(target); _player.doCast(skill);
+				final boolean progressed = waitFor(() -> target.isDead() || target.getCurrentHp() < priorHp, castMillis + 3_000);
+				final String step = "cast=" + continuationCasts + "; targetHP=" + priorHp + "->" + target.getCurrentHp() + "; actorHP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; actorMP=" + _player.getCurrentMp() + "; actorDead=" + _player.isDead() + "; target=" + _player.getTarget() + "; distance=" + _player.calculateDistance3D(target) + "; casting=" + _player.isCastingNow() + "; owner=" + scope.diagnosticScalars();
+				context.record("shots066.continuation." + continuationCasts, step);
+				PhantomAssertions.assertTrue(progressed, "Lawful zero-stock continuation produced no native damage: " + step);
+			}
 			PhantomAssertions.assertTrue(waitFor(() -> target.isDead() && scope.evidence().snapshot().killSequence() > initialNative.killSequence() && scope.evidence().snapshot().rewardSequence() > initialNative.rewardSequence(), castMillis + 3_000), "Zero-stock, zero-Adena native continuation did not kill/reward the stock target.");
 			context.record("shots066.zeroBudgetKill", "TEST Adena0 before measurement; exact native stock20035 fullHP=" + hp + "; no shots granted; native=" + scope.evidence().snapshot());
 			context.record("shots066.optional", "native meleeHP=" + hp + "->" + magicHp + "; magicHP=" + magicHp + "->" + target.getCurrentHp() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; no stock granted");
@@ -7002,7 +7010,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testStockSpoil066(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
-		resetActor(true); _player.setBaseClass(54); _player.setPlayerClass(54); _player.getStat().setExp(_player.getStat().getExpForLevel(20)); _player.getStat().setLevel((byte) 20); prepareLearningField059(context);
+		resetActor(true); _player.setBaseClass(54); _player.setPlayerClass(54); _player.getStat().setExp(_player.getStat().getExpForLevel(20)); _player.getStat().setLevel((byte) 20);
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat() && !_player.isAttackingNow() && !_player.isCastingNow(), 30_000), "Prior TEST scene did not drain its native combat stance before the Spoil input.");
+		_player.setCurrentHp(_player.getMaxHp()); prepareLearningField059(context);
 		final var baseline = new java.util.HashMap<Integer, Long>(); for (var item : _player.getInventory().getItems()) { baseline.merge(item.getId(), item.getCount(), Long::sum); }
 		for (var skill : List.copyOf(_player.getAllSkills())) { if (skill.hasNegativeEffect() && skill.getId() != 254) { _player.removeSkill(skill.getId()); } }
 		for (int id : List.of(254, 42, 239)) { _player.addSkill(SkillData.getInstance().getSkill(id, 1), false); }

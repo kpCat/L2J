@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -59,10 +59,11 @@ public final class PhantomTask066DwarfSetup
 		{
 			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(66006632, module, module.getParent().resolve(".phantom-local/task066/reports/dwarf-preparation")));
 			final var repository = PhantomProfileRepository.open(); final var goals = new PhantomGoalStateStore(repository);
-			final var catalog = PhantomPopulationCatalog.load(Path.of("data/phantoms/population/high-five-population-v3.xml"), ZoneOffset.UTC);
-			final var managed = new PhantomPopulationStore(repository, catalog, ZoneOffset.UTC).loadManagedAfter(0, 64).stream()
+			final var zone = ZoneId.of("UTC"); // Match the candidate's configured Main authority token, including its zone ID.
+			final var catalog = PhantomPopulationCatalog.load(Path.of("data/phantoms/population/high-five-population-v3.xml"), zone);
+			final var managed = new PhantomPopulationStore(repository, catalog, zone).loadManagedAfter(0, 64).stream()
 				.filter(value -> value.state().state() == PhantomPopulationState.State.READY && value.state().classId() == 53 && value.profile().characterObjectId() != null)
-				.filter(value -> catalog.evaluate(value.state().scheduleTemplate(), Instant.now(), ZoneOffset.UTC, value.state().schedulePhaseMinutes()).state() == PhantomActivityState.ACTIVE)
+				.filter(value -> catalog.evaluate(value.state().scheduleTemplate(), Instant.now(), zone, value.state().schedulePhaseMinutes()).state() == PhantomActivityState.ACTIVE)
 				.filter(value -> repository.findComponent(value.profile().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty())
 				.filter(value -> repository.findComponent(value.profile().profileId(), org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.COMPONENT_TYPE).isEmpty() && repository.findComponent(value.profile().profileId(), "learning.intent").isEmpty())
 				.filter(value -> repository.findComponent(value.profile().profileId(), PhantomCommerceReceipt.COMPONENT_TYPE).map(row -> PhantomCommerceReceipt.decode(row.payload()).state() == PhantomCommerceReceipt.State.COMMITTED || PhantomCommerceReceipt.decode(row.payload()).state() == PhantomCommerceReceipt.State.ABORTED).orElse(true))

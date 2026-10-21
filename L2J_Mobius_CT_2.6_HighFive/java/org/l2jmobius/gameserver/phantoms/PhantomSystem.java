@@ -2325,6 +2325,7 @@ public final class PhantomSystem
 					final String value = fields.getOrDefault(key, ""); bounded.put(key, value.substring(0, Math.min(256, value.length())));
 				}
 				result.put("native.owner", bounded.toString());
+				result.put("native.vitals", "NONATOMIC;hp=" + player.getCurrentHp() + '/' + player.getMaxHp() + ";mp=" + player.getCurrentMp() + '/' + player.getMaxMp() + ";dead=" + player.isDead() + ";sitting=" + player.isSitting() + ";combat=" + player.isInCombat());
 				result.put("native.economy", "EXP=" + player.getExp() + ";SP=" + player.getSp() + ";adena=" + player.getAdena() + ";receiptItem=" + (commerce == null ? 0 : commerce.request().itemId()) + ";receiptStock=" + (commerce == null ? 0 : player.getInventory().getInventoryItemCount(commerce.request().itemId(), -1)));
 				result.put("native.inventory", "NONATOMIC_BOUNDED32=" + player.getInventory().getItems().stream().sorted(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(32).map(item -> item.getObjectId() + ":" + item.getId() + ':' + item.getCount() + ':' + item.getItemLocation() + ':' + item.isEquipped()).toList());
 				result.put("native.warehouse", "NONATOMIC_BOUNDED32=" + player.getWarehouse().getItems().stream().sorted(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(32).map(item -> item.getObjectId() + ":" + item.getId() + ':' + item.getCount() + ':' + item.getItemLocation()).toList());

@@ -335,6 +335,10 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			}).orElse(false), 12000, "Initial old native actor failed complete production admission: " + boundary.diagnosticFailures());
 			final var oldLifetime = materialization.find(oldId).orElseThrow();
 			retention.observe(oldId);
+			if (secondOld != null)
+			{
+				await(() -> locality.isLocal(secondOld.profileId()) && retention.observe(secondOld.profileId()).retained(), 3000, "Second old owner had no actual pre-departure human observation.");
+			}
 			final var hardAction = materialization.tryAcquireAction(oldId).orElseThrow();
 			try
 			{
