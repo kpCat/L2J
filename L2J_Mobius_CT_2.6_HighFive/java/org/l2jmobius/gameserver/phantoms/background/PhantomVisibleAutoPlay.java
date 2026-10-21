@@ -423,7 +423,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		if ((progress.damageSequence() < session._damageSequence) || (progress.rewardSequence() < session._rewardSequence) || (progress.farmCycleSequence() < session._cycleSequence) || (progress.lootSequence() < session._lootSequence)) { return; }
 		// A reward on an undamaged target is not useful; concurrent loot makes its timestamp ambiguous.
 		final boolean reward = (progress.rewardSequence() > session._rewardSequence) && (progress.usefulProgressNanos() > session._nativeUsefulNanos) && (progress.lootSequence() == session._lootSequence);
-		if (reward || progress.farmCycleSequence() > session._cycleSequence) { session._rewardedFarm = true; }
+		// A real kill/reward witness survives a concurrent lawful pickup; only timestamp-based debt renewal excludes it.
+		if (progress.rewardSequence() > session._rewardSequence && progress.killSequence() > 0 && progress.damageSequence() > 0) { session._rewardedFarm = true; }
 		if ((progress.damageSequence() > session._damageSequence) || (progress.farmCycleSequence() > session._cycleSequence) || reward)
 		{
 			session._usefulSince = now;
