@@ -2326,6 +2326,9 @@ public final class PhantomSystem
 				}
 				result.put("native.owner", bounded.toString());
 				result.put("native.economy", "EXP=" + player.getExp() + ";SP=" + player.getSp() + ";adena=" + player.getAdena() + ";receiptItem=" + (commerce == null ? 0 : commerce.request().itemId()) + ";receiptStock=" + (commerce == null ? 0 : player.getInventory().getInventoryItemCount(commerce.request().itemId(), -1)));
+				result.put("native.inventory", "NONATOMIC_BOUNDED32=" + player.getInventory().getItems().stream().sorted(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(32).map(item -> item.getObjectId() + ":" + item.getId() + ':' + item.getCount() + ':' + item.getItemLocation() + ':' + item.isEquipped()).toList());
+				result.put("native.warehouse", "NONATOMIC_BOUNDED32=" + player.getWarehouse().getItems().stream().sorted(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(32).map(item -> item.getObjectId() + ":" + item.getId() + ':' + item.getCount() + ':' + item.getItemLocation()).toList());
+				result.put("native.skills", "spoil=" + player.getSkillLevel(254) + ";sweep=" + player.getSkillLevel(42) + ";crystallize=" + player.getSkillLevel(248));
 			}
 		}
 		if (configured._ordinaryDeathRecovery != null)

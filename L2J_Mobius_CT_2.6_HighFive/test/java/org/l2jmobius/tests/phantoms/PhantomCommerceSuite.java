@@ -454,13 +454,14 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 	{
 		registry.add("066-bounded-maintenance-child-survives-codec-and-return", _ ->
 		{
-			final var root = goal(660066, 1, "background.farm", new PhantomDomainRef("npc", "1"));
+			final var root = goal(660066, 1, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE, new PhantomDomainRef("npc", "1"));
 			final var binding = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding(1, 2, 0, 0, 3, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 0, 0, 0), 0);
 			final var operation = new org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.Operation(OperationKind.SELL, 4, 5, 6, 7, 8, 600);
 			final var goal = org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.create(root, binding, List.of(operation), 2, 0, 120_000, 1, false);
 			final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
 			final var restored = codec.decode(codec.encode(goal));
 			PhantomAssertions.assertEquals(goal, restored, "Maintenance child changed across the existing durable codec.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(restored, root), "Restored maintenance lost its existing farm root authority.");
 			PhantomAssertions.assertEquals(operation, org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.parse(restored).current(), "Native item/object/count identity was not retained.");
 			final var returned = org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.advance(restored, new org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.Spec(List.of(operation), 1, false, true), 10, "maintenance.return");
 			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent.parse(codec.decode(codec.encode(returned))).returning(), "Completed operation was repeated instead of returning.");
