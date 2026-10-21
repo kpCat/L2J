@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceS
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -205,6 +206,27 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 				snapshots.put(member.ref(), new MemberSnapshot(member.ref(), 88, 0, 0, 0, 0, 60, 100, 100, false, false, false, false, 0, List.of(), member.capabilities(), "B".repeat(64)));
 				fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
 				PhantomAssertions.assertEquals(8002, fixture.combat.find(2).orElseThrow().targetObjectId(), "A stale threat retained focus after leaving the current live attacker set.");
+			}
+			finally { fixture.stop(); }
+		});
+		registry.add("15-idle-caster-self-maintenance-precedes-peer-targets064", _ ->
+		{
+			final var fixture = new RuntimeFixture(true);
+			try
+			{
+				final var roster = phantoms(1, 3); final var snapshots = snapshots(roster); final var caster = roster.getLast();
+				final var buffs = List.of(maintenance(1085), maintenance(1077), capability("combat.heal", true));
+				snapshots.put(caster, member(caster, false, 100, buffs, List.of()));
+				fixture.party.suppliedTarget = -1; fixture.party.suppliedCapabilities.put(caster, buffs);
+				final var tactics = new PhantomPartyTactics(fixture.combat, fixture.party);
+				final var idle = tactics.plan(roster.getFirst(), roster, snapshots);
+				PhantomAssertions.assertEquals(caster.characterObjectId(), idle.stream().filter(value -> value.kind() == DirectiveKind.PARTY_SUPPORT).findFirst().orElseThrow().targetObjectId(), "Idle caster left its own native preparation behind lower object-id peers.");
+				snapshots.put(roster.getFirst(), member(roster.getFirst(), false, 40, List.of(), List.of()));
+				PhantomAssertions.assertEquals(DirectiveKind.HEAL_MEMBER, tactics.plan(roster.getFirst(), roster, snapshots).getFirst().kind(), "Self maintenance displaced emergency native healing.");
+				snapshots.put(roster.getFirst(), member(roster.getFirst(), false, 100, List.of(), List.of()));
+				final var original = snapshots.get(caster);
+				snapshots.put(caster, new MemberSnapshot(caster, original.classId(), original.instanceId(), original.x(), original.y(), original.z(), 100, 100, 100, false, false, true, false, 0, List.of(), buffs, original.progressionHash()));
+				PhantomAssertions.assertEquals(roster.getFirst().characterObjectId(), tactics.plan(roster.getFirst(), roster, snapshots).stream().filter(value -> value.kind() == DirectiveKind.PARTY_SUPPORT).findFirst().orElseThrow().targetObjectId(), "Combat maintenance target ordering changed.");
 			}
 			finally { fixture.stop(); }
 		});
@@ -566,7 +588,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		@Override public MembershipOutcome transferLeader(MemberRef requester, MemberRef member) { throw new UnsupportedOperationException(); }
 		@Override public Optional<PartySnapshot> observe(MemberRef member) { return Optional.empty(); }
 		@Override public Optional<MemberSnapshot> memberSnapshot(MemberRef member) { return Optional.empty(); }
-		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { queriedActors.add(actor); targetsByActor.computeIfAbsent(actor, _ -> new LinkedHashSet<>()).add(exactTargetObjectId); return suppliedTarget==exactTargetObjectId?suppliedCapabilities.getOrDefault(actor,List.of()):List.of(); }
+		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { queriedActors.add(actor); targetsByActor.computeIfAbsent(actor, _ -> new LinkedHashSet<>()).add(exactTargetObjectId); return (suppliedTarget == -1 || suppliedTarget==exactTargetObjectId)?suppliedCapabilities.getOrDefault(actor,List.of()):List.of(); }
 		@Override public boolean materialize(long profileId) { return false; }
 		@Override public org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status supportEffectStatus(MemberRef actor, int target, MemberCapability capability, int window) { return effectsHealthy ? org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status.HEALTHY : org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status.MISSING; }
 	}

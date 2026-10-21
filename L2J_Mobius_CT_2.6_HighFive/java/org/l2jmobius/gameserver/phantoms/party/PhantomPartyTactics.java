@@ -114,7 +114,7 @@ public final class PhantomPartyTactics
 				candidates.add(new TacticalDirective(DirectiveKind.ASSIST_TARGET, actor, leader, leaderSnapshot.targetObjectId(), "", "", "", 0, 0, "leader.target", 6000));
 			}
 		}
-		final List<TacticalDirective> ordered = candidates.stream().filter(permitted).sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(TacticalDirective::targetObjectId).thenComparingInt(TacticalDirective::actionSkillId)).toList();
+		final List<TacticalDirective> ordered = candidates.stream().filter(permitted).sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(value -> value.kind() == DirectiveKind.PARTY_SUPPORT && value.reasonKey().endsWith(".idle") && value.actor().equals(value.targetMember()) ? 0 : 1).thenComparingInt(TacticalDirective::targetObjectId).thenComparingInt(TacticalDirective::actionSkillId)).toList();
 		final List<TacticalDirective> result = new ArrayList<>();
 		final Set<String> maintenance = new java.util.HashSet<>();
 		int maintenanceCount = 0;

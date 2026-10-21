@@ -111,10 +111,10 @@ public final class PhantomProgressionParitySuite implements PhantomTestSuite
 		});
 		registry.add("38-learned-physical-critical-support", _ ->
 		{
-			for (int skillId : Set.of(1077, 1242))
+			for (int skillId : Set.of(1077, 1242, 1085))
 			{
 				final var rules = _catalog.capabilities(98).stream().filter(rule -> rule.capabilityKey().equals("combat.buff") && rule.actionSkill().skillId() == skillId).toList();
-				PhantomAssertions.assertEquals(1, rules.size(), "Learned Hierophant physical support is unavailable to the existing support owner: " + skillId);
+				PhantomAssertions.assertEquals(1, rules.size(), "Learned Hierophant raid support is unavailable to the existing support owner: " + skillId);
 				PhantomAssertions.assertTrue(rules.getFirst().actionSkill().skillLevel() == 3 && rules.getFirst().targetScope() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.TargetScope.PARTY
 					&& _catalog.classSkillLearns(98).stream().anyMatch(learn -> learn.skillId() == skillId && learn.skillLevel() == 3 && learn.minimumCharacterLevel() <= 79), "Physical support lacks its inherited native level79 class-tree fact.");
 			}
