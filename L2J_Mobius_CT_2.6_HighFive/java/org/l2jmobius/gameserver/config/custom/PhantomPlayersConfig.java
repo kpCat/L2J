@@ -104,13 +104,15 @@ public final class PhantomPlayersConfig
 			final ConversationProfanity conversationProfanity = strictOptionalEnum(config.getValue("PhantomConversationProfanity"), ConversationProfanity.CONTEXTUAL, ConversationProfanity.class);
 			final ConversationVariation conversationVariation = strictOptionalEnum(config.getValue("PhantomConversationVariation"), ConversationVariation.HIGH, ConversationVariation.class);
 			final Boolean matureConversation = strictOptionalBoolean(config.getValue("EnablePhantomMatureConversation"), DEFAULT_MATURE_CONVERSATION);
+			final Integer starterShotLifetimeLimit = strictInteger(config.getValue("PhantomStarterShotLifetimeLimit"), 0, 5000, 0);
+			if (starterShotLifetimeLimit == null) { return Settings.disabled(); }
 			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null) || (ecologyEnabled == null) || (ecologyPreset == null) || (ecologyWorldAgeDays == null) || (ecologyArchiveLimit == null) || (humanizedConversation == null) || (customConversationPack == null) || (conversationRegister == null) || (conversationProfanity == null) || (conversationVariation == null) || (matureConversation == null))
 			{
 				return Settings.disabled();
 			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
 			final ConversationSettings conversation = new ConversationSettings(humanizedConversation, customConversationPack, conversationRegister, conversationProfanity, conversationVariation, matureConversation);
-			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, burstSlots);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, burstSlots, starterShotLifetimeLimit);
 		}
 		catch (RuntimeException e)
 		{
@@ -286,10 +288,17 @@ public final class PhantomPlayersConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots)
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots, int starterShotLifetimeLimit)
 	{
+		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots)
+		{
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, materializationBurstSlots, 0);
+		}
+
 		public Settings
 		{
+			if (starterShotLifetimeLimit < 0 || starterShotLifetimeLimit > 5000) { throw new IllegalArgumentException("Starter shot lifetime limit must be between0 and5000."); }
+			starterShotLifetimeLimit = enabled ? starterShotLifetimeLimit : 0;
 			diagnosticsEnabled = enabled && diagnosticsEnabled;
 			maxMaterializedPhantoms = enabled ? maxMaterializedPhantoms : 0;
 			materializationBurstSlots = enabled ? materializationBurstSlots : 0;

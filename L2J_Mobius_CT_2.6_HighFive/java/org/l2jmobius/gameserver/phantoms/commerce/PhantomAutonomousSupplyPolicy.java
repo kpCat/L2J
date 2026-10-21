@@ -20,8 +20,15 @@ public record PhantomAutonomousSupplyPolicy(boolean enabled, int lowWaterHits, i
 	public boolean usefulPurchase(boolean optionalAmplifier, long stock, long count, int perHit)
 	{
 		if (stock < 0 || perHit <= 0 || count < perHit) { return false; }
-		// An optional amplifier must fund the configured restock deficit before it can displace useful farming.
-		return !optionalAmplifier || count >= Math.max(perHit, Math.multiplyExact((long) perHit, targetHits) - stock);
+		return !optionalAmplifier || count >= Math.max(perHit, Math.multiplyExact((long) perHit, Math.max(lowWaterHits + 1, targetHits / 3)) - stock);
+	}
+
+	/** Nearby small purchases are useful; a long round trip needs enough charges to justify the travel. */
+	public boolean usefulPurchase(boolean optionalAmplifier, long stock, long count, int perHit, double distance, double speed)
+	{
+		if (stock < 0 || perHit <= 0 || count < perHit || !Double.isFinite(distance) || distance < 0 || !Double.isFinite(speed) || speed <= 0) { return false; }
+		final long usefulHits = distance <= 150 ? 1 : Math.min(targetHits, Math.max(lowWaterHits + 1, (long) Math.ceil(distance / speed)));
+		return !optionalAmplifier || count >= Math.max(perHit, Math.multiplyExact((long) perHit, usefulHits) - stock);
 	}
 
 	public static PhantomAutonomousSupplyPolicy load(Path path)

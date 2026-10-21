@@ -242,6 +242,10 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private Optional<PhantomGoal> proposal(long profileId, PhantomGoal root)
 	{
 		if (_state != State.RUNNING || !_policy.enabled() || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return Optional.empty(); }
+		final var entry = _materialization.find(profileId).orElse(null);
+		final var nativePlayer = entry == null || !entry.actionAdmissionOpen() ? null : World.getInstance().getPlayer(entry.characterObjectId());
+		// Quiescence is acquired before an action lease, as in the Commerce native boundary.
+		if (nativePlayer != null) { PhantomStarterShotService.grantIfNeeded(_profiles, profileId, nativePlayer); }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if (lease == null) { return Optional.empty(); }
@@ -259,10 +263,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final var maintenance = maintenanceProposal(profileId, root, player, cached, now);
 			if (maintenance.isPresent()) { return maintenance; }
-			final var equipment = equipmentProposal(profileId, root, player, cached, now);
-			if (equipment.isPresent()) { return equipment; }
-			if (player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return Optional.empty(); }
-			final var need = supplyNeed(player); if (need == null) { return Optional.empty(); }
+			if (player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return equipmentProposal(profileId, root, player, cached, now); }
+			final var need = supplyNeed(player); if (need == null) { return equipmentProposal(profileId, root, player, cached, now); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
@@ -540,7 +542,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					if (price <= 0 || budget < price) { continue; }
 					final long count = Math.min(wanted, budget / price);
 					final boolean optionalAmplifier = item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT;
-					if (!_policy.usefulPurchase(optionalAmplifier, stock, count, perHit) || !mobilePurchase(player, item, count)) { continue; }
+					if (!_policy.usefulPurchase(optionalAmplifier, stock, count, perHit, player.calculateDistance3D(merchant), player.getMoveSpeed()) || !mobilePurchase(player, item, count)) { continue; }
 					choices.add(new Choice(merchant.getId(), merchant.getObjectId(), offer.listId(), item.getId(), count, player.calculateDistance3D(merchant), price));
 				}
 			}
@@ -1136,7 +1138,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	}
 	public boolean finishStop() { beginStop(); synchronized (this) { if (!_active.isEmpty()) { return false; } _state = State.STOPPED; return true; } }
 	@Override public void beforeMaterialize(long profileId, int characterObjectId) { cleanup(profileId); synchronized (this) { _cache.remove(profileId); } }
-	@Override public void afterPlayerLoad(long profileId, Player player) { }
+	@Override public void afterPlayerLoad(long profileId, Player player) { PhantomStarterShotService.afterLoad(_profiles, profileId, player); }
 	@Override public void materializeSucceeded(long profileId, int characterObjectId) { }
 	@Override public void materializeAborted(long profileId, int characterObjectId) { beforeMaterialize(profileId, characterObjectId); }
 	@Override public void beforeStore(long profileId, Player player)

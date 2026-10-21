@@ -215,7 +215,9 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 				"",
 				"");
 			return _codec.encode(state);
-		}));
+		}, org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().starterShotLifetimeLimit() == 0 ? Map.of() : Map.of(
+			org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT,
+			org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.birth(org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().starterShotLifetimeLimit()).encode())));
 	}
 
 	public ManagedSnapshot reload(long profileId)

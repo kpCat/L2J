@@ -147,8 +147,8 @@ public final class PhantomBackgroundModel
 				break;
 			}
 			final Loadout loadout = state.loadout();
-			// Ordinary combat remains possible without an optional charge; mandatory skill/upkeep resources do not.
-			final int shots = request.mode() == BatchMode.ORDINARY_DEATH_DROP && !has(counts, loadout.shotItemId(), loadout.shotsPerEncounter()) ? 0 : loadout.shotsPerEncounter();
+			// An amplifier is optional in every supported encounter mode; skill/upkeep/seed costs remain mandatory.
+			final int shots = !has(counts, loadout.shotItemId(), loadout.shotsPerEncounter()) ? 0 : loadout.shotsPerEncounter();
 			if ((mp < loadout.skillMpPerEncounter()) || !has(counts, loadout.shotItemId(), shots) || !has(counts, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter()))
 			{
 				reason = ResultReason.RESOURCE_RESERVE;

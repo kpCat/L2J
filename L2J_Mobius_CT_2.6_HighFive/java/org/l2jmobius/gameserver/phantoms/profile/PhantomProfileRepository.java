@@ -148,8 +148,21 @@ public final class PhantomProfileRepository
 
 	public ManagedProfile createWithComponent(String componentType, int componentSchemaVersion, LongFunction<byte[]> payloadFactory)
 	{
+		return createWithComponent(componentType, componentSchemaVersion, payloadFactory, Map.of());
+	}
+
+	/** Birth-only components commit with the shell, never inferred later from a legacy character's level. */
+	public ManagedProfile createWithComponent(String componentType, int componentSchemaVersion, LongFunction<byte[]> payloadFactory, Map<String, byte[]> birthComponents)
+	{
 		PhantomProfileComponent.requireValidComponentType(componentType);
 		PhantomProfileComponent.requireValidSchemaVersion(componentSchemaVersion);
+		final Map<String, byte[]> initial = new java.util.TreeMap<>();
+		birthComponents.forEach((type, payload) ->
+		{
+			PhantomProfileComponent.requireValidComponentType(type);
+			if (type.equals(componentType)) { throw new IllegalArgumentException("Duplicate birth component."); }
+			initial.put(type, PhantomProfileComponent.copyPayload(payload));
+		});
 		if (payloadFactory == null)
 		{
 			throw new IllegalArgumentException("Managed component payload factory must not be null.");
@@ -187,6 +200,14 @@ public final class PhantomProfileRepository
 				if (statement.executeUpdate() != 1)
 				{
 					throw new SQLException("Managed component insert did not affect exactly one row.");
+				}
+			}
+			for (var entry : initial.entrySet())
+			{
+				try (PreparedStatement statement = connection.prepareStatement(INSERT_COMPONENT))
+				{
+					statement.setLong(1, profileId); statement.setString(2, entry.getKey()); statement.setInt(3, 1); statement.setBytes(4, entry.getValue());
+					if (statement.executeUpdate() != 1) { throw new SQLException("Birth component insert did not affect exactly one row."); }
 				}
 			}
 			return new ManagedProfile(requireProfile(connection, profileId), requireComponent(connection, profileId, componentType));

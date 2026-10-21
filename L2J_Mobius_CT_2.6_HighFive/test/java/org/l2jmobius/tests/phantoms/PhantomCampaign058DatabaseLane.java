@@ -23,6 +23,16 @@ public final class PhantomCampaign058DatabaseLane
 
 	static void validateIdentity(Path module, Path config, Path manifest, Path runtime, Properties owner, Properties settings)
 	{
+		if ("TASK066R2_FARM_ECONOMY".equals(owner.getProperty("owner")) || "l2jmobiush5_phantom_test_066r2".equals(owner.getProperty("database")))
+		{
+			final Path currentModule = Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
+			final Path lane = currentModule.getParent().resolve(".phantom-local/task066r2");
+			if (!currentModule.equals(module) || !lane.resolve("test/Database.test.ini").equals(config) || !lane.resolve("test/owned.properties").equals(manifest) || !lane.resolve("runtime/game").equals(runtime)
+				|| !"TASK066R2_FARM_ECONOMY".equals(owner.getProperty("owner")) || !"MUTABLE_FIXTURE".equals(owner.getProperty("role")) || !"l2jmobiush5_phantom_test_066r2".equals(owner.getProperty("database"))
+				|| !settings.getProperty("URL", "").matches("jdbc:(mysql|mariadb)://127\\.0\\.0\\.1:3308/l2jmobiush5_phantom_test_066r2\\?useSSL=false(?:&allowPublicKeyRetrieval=true)?(?:&serverTimezone=UTC)?(?:&characterEncoding=UTF-8)?") || !"4".equals(settings.getProperty("MaximumDatabaseConnections")))
+			{ throw new IllegalArgumentException("Exact R2 fixture root/schema/owner/config and bounded pool required."); }
+			return;
+		}
 		if ("TASK066_FARM_ECONOMY".equals(owner.getProperty("owner")) || "l2jmobiush5_phantom_test_066".equals(owner.getProperty("database")))
 		{
 			final Path currentModule = Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
@@ -77,14 +87,15 @@ public final class PhantomCampaign058DatabaseLane
 
 	public static boolean enabled()
 	{
-		return task066Enabled() || task065Enabled() || task064Enabled() || System.getProperty("phantom.contract058.manifest") != null;
+		return task066R2Enabled() || task066Enabled() || task065Enabled() || task064Enabled() || System.getProperty("phantom.contract058.manifest") != null;
 	}
+	static boolean task066R2Enabled() { return System.getProperty("phantom.task066r2.manifest") != null; }
 
 	static boolean task066Enabled() { return System.getProperty("phantom.task066.manifest") != null; }
 	static boolean task065Enabled() { return System.getProperty("phantom.task065.manifest") != null; }
 	static boolean task064Enabled() { return System.getProperty("phantom.task064.manifest") != null; }
-	static String databaseName() { return task066Enabled() ? "l2jmobiush5_phantom_test_066" : task065Enabled() ? "l2jmobiush5_phantom_test_065" : task064Enabled() ? "l2jmobiush5_phantom_test_064" : DATABASE; }
-	private static String manifestProperty() { return task066Enabled() ? "phantom.task066.manifest" : task065Enabled() ? "phantom.task065.manifest" : task064Enabled() ? "phantom.task064.manifest" : "phantom.contract058.manifest"; }
+	static String databaseName() { return task066R2Enabled() ? "l2jmobiush5_phantom_test_066r2" : task066Enabled() ? "l2jmobiush5_phantom_test_066" : task065Enabled() ? "l2jmobiush5_phantom_test_065" : task064Enabled() ? "l2jmobiush5_phantom_test_064" : DATABASE; }
+	private static String manifestProperty() { return task066R2Enabled() ? "phantom.task066r2.manifest" : task066Enabled() ? "phantom.task066.manifest" : task065Enabled() ? "phantom.task065.manifest" : task064Enabled() ? "phantom.task064.manifest" : "phantom.contract058.manifest"; }
 	private static Path manifestPath() { return Path.of(System.getProperty(manifestProperty())); }
 
 	private static Properties read(Path path) throws Exception
@@ -100,6 +111,7 @@ public final class PhantomCampaign058DatabaseLane
 	private static Properties validateFiles(Path module, Path config, Path manifest) throws Exception
 	{
 		final Properties settings = read(config);
+		if (task066R2Enabled() && !"TASK066R2_FARM_ECONOMY".equals(read(manifest).getProperty("owner"))) { throw new IllegalArgumentException("R2 cannot inherit a historical fixture owner."); }
 		if (task066Enabled() && !"TASK066_FARM_ECONOMY".equals(read(manifest).getProperty("owner"))) { throw new IllegalArgumentException("TASK066 cannot inherit a historical fixture owner."); }
 		if (task065Enabled() && !"TASK065_LIVING_PRESENCE".equals(read(manifest).getProperty("owner"))) { throw new IllegalArgumentException("TASK065 cannot inherit a historical fixture owner."); }
 		if (task064Enabled() && !"TASK064_CAMPAIGN".equals(read(manifest).getProperty("owner"))) { throw new IllegalArgumentException("TASK064 cannot inherit a historical fixture owner."); }

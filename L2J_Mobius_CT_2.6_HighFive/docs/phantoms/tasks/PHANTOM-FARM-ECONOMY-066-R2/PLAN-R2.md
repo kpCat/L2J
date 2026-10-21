@@ -1,0 +1,75 @@
+# PHANTOM-FARM-ECONOMY-066-R2 Implementation Plan
+
+> Исполнитель: текущий агент, executing-plans + test-driven-development. AUTHORITY.md прямо разрешает автономное исполнение и заменяет промежуточные согласования.
+
+**Goal:** пожизненные 5000 совместимых No-grade сосок новым фантомам, штатное расходование и приоритетная законная закупка; закрытие общих причин 066 с честными native/runtime gates.
+
+**Architecture:** существующие profile components и атомарный population shell; отдельная версия starter entitlement, legacy creation digest неизменен. Партии до 1000 при stock <100 в materialized native checkpoint; durable debit до выдачи, неоднозначная выдача fail-closed. Существующие Commerce/SupplyJourney, AutoPlay и Background authority остаются владельцами действий.
+
+**Tech Stack:** Java25, Ant, MariaDB11.4, PowerShell; без новых зависимостей.
+
+**Spec:** TASK.md, AUTHORITY.md, ACCEPTANCE.md, TEST_CASES.md, RUNTIME_INPUTS.md, READ_SET.md в этом пакете.
+
+## Global Constraints
+
+- Максимум12ч от 2026-10-21 23:19:39 UTC; freeze новых функций в09:49:39 UTC, окончание до11:19:39 UTC22.10.2026. Завершить раньше при результате.
+- Только feature/phantom-world, exact add/commit и non-force push. Baseline/live remote5f112172f31cbf36cd3e1c0e47da48ffc77ccbde проверен до mutation.
+- Все057–066 releases/БД read-only; собственные R2 root/schema/ports, штатный STOP без force. Не изменять CLIENT defaults и legacy birth hash.
+- Тесты focused в существующем runner, без ant verify. Native scenes без исправления данных во время измерения. Исторические FAIL сохраняются.
+- Bounded exception >10 файлов по AUTHORITY: одна цепочка birth entitlement → inventory/shot accounting → paid supply → native/background reward → isolated delivery. Exact CHANGED_FILES-R2.txt обновлять по факту.
+
+## Read-first / локальные аналоги
+
+Прочитаны root AGENTS/README, module Agents, focused sections master plan/current status/roadmap/workflow/release/task standard, все семь документов R2, отчёт066 и его acceptance/handoff. В родительских D:/, D:/Codex/, D:/Codex/repos/ AGENTS не обнаружен; дополнительных AGENTS в целевых java/test/tools/config не обнаружено. Отдельный code-map/pattern в root inventory не обнаружен.
+
+Аналоги: PhantomProfileRepository.createWithComponent (atomic shell), PhantomCareerChoice (versioned component), L2jCommerceBackend.flushAndVerify + PhantomNativeWorkScope (native writer/durable evidence), PhantomNativeShotControl (stock handlers), Runtime066/Build-Task066/Assemble066 (read-only packaging templates). Прочитаны PopulationStore/State seams, materialization lifecycle, supply policy/journey, BackgroundModel, близкие focused/native tests, build.xml и реальные item XML.
+
+## Review Focus
+
+1. Legacy/newborn boundary и crash между durable debit и inventory store: отсутствие ретрокредита/повторного кредита.
+2. Конкурентные claims, restart, смена класса/оружия: lifetime <=5000, compatible stock only, native weight/slots.
+3. Бесплатный фонд не превращается в Phantom SELL/private sell; человек сохраняет штатные права.
+4. Бедный actor: доступная частичная закупка соразмерна дороге, отсутствие денег не зацикливает SEEK_SHOTS.
+5. Optional shots во всех Background modes, mandatory MP/ammo/reagent/upkeep и World ownership fences сохраняются.
+
+### Task 1: Starter + supply priority
+
+Files: config/custom/PhantomPlayersConfig.java, PhantomPlayers.ini; profile/PhantomProfileRepository.java; population/PhantomPopulationStore.java; новый commerce/PhantomStarterShot*.java; materialization/supply lifecycle seam; commerce supply policy/journey, disposition/private-sale guards; существующие focused/native suites.
+
+- [ ] Focused RED: реалистичная частичная закупка; lifetime ledger/concurrency/ambiguous retry и legacy birth absence. Ожидание: точное нарушение текущего контракта.
+- [ ] Минимальная реализация атомарного нового entitlement; batch<=1000, stock<100, limit0..5000/default0, candidate5000; native compatibility/weight/slots. Не менять population initialization plan/version.
+- [ ] GREEN focused, source self-review ownership/перепродажа. Commit точных исходников перед clean JAR.
+
+Interfaces: существующие profile components/native checkpoint; отдельный version1 starter component, exact limit/issued/pending/type. Потребитель supply использует текущий материализованный Player и profileId.
+
+### Task 2: Native magic + Background parity
+
+Files: PhantomBackgroundModel.java, PhantomBackgroundSuite.java; native combat owners и PhantomCombatServerIntegrationSuite.java только по подтверждённому trace.
+
+- [ ] RED acquisition death/spoil zero-stock при сохранённых mandatory costs; затем общий optional-stock fix и GREEN.
+- [ ] Прочитать исходный G1 trace и реальный direct cast lifecycle; одна диагностическая native сцена, исправление общей доказанной причины. Не повторять fixture без нового диагноза.
+
+Interfaces: неизменный Loadout/BatchRequest и World/Background ownership; фактические HP/MP/item counters.
+
+### Task 3: Ranged + dwarf
+
+Files: существующие native suites/Task066 setup адаптировать в R2; product owners только при общем доказанном дефекте.
+
+- [ ] До сцены зафиксировать проверенный Geo primary+fallback; одна ranged kill>200/pickup сцена и сохранённые негативы.
+- [ ] Проверить class skill tree/spoil facts/topology. Spoiler Spoil→Sweep→loot, отдельный законный warehouse/merchant→return; Crystallize отдельно у native crafter. TEST_PREIMAGE до измерений.
+- [ ] Проверить exact receipts/deltas; результат PASS либо точный BLOCKED, без spot hacks.
+
+### Task 4: Delivery + ordinary Main + restart + publication
+
+Files: новые Build/Assemble/Runtime066R2 и ownership helpers по read-only066 аналогам; отчёт и handoff/acceptance/changed list; current status/roadmap только current R2 факт.
+
+- [ ] Создать private task066r2 и два exact-owned schemas; stopped066 consistent read-only clone в новую release schema; source preimage/hash preservation.
+- [ ] Clean committed source archive, последовательные jar compile-tests, focused/native проверки на actual JAR. Ожидание: exit0 или точные отдельные FAIL/BLOCKED.
+- [ ] Самостоятельный candidate START/STATUS/STOP, ordinary Main syntheticOFF/passive observer, два actor, один sameDB sameJAR штатный restart, до45мин наблюдения (max75).
+- [ ] STOP собственных JVM, PID/startTicks/6ports/writers и preservation; матрицаR0–R7, self-review точного diff, две отдельные encoding checks, diff --check.
+- [ ] Exact commits, push origin HEAD:refs/heads/feature/phantom-world, проверка live remote; report-only HEAD разрешён. CORE066R2=PASS только при всехR0–R7 PASS.
+
+## Progress
+
+- Read-only preflight: local/live HEAD совпадают; исходный dirt только R2 package. JVM/предлагаемые R2 ports в elevated read-only snapshot отсутствуют/свободны.
+- Native runtime/DB/item durability ещё не измерены. Никакой gate PASS заранее не присвоен.

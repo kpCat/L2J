@@ -266,7 +266,8 @@ public final class PhantomStoreService
 				for (PhantomStorePlan.Line line : plan.lines())
 				{
 					final Item item = player.getInventory().getItemByObjectId(line.objectOrRecipeId());
-					if ((item == null) || (item.getId() != line.itemId()) || (item.getCount() < line.count()) || !item.isTradeable())
+					if ((item == null) || (item.getId() != line.itemId()) || (item.getCount() < line.count()) || !item.isTradeable()
+						|| org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.protectedStock(player, item.getId()))
 					{
 						list.clear();
 						return false;

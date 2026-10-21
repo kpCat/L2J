@@ -499,11 +499,28 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		registry.add("03-explicit-sell-plan", _ -> testExplicitPlan("candidate.commerce.sell", sellGoal()));
 		registry.add("04-explicit-teleport-plan", _ -> testExplicitPlan("candidate.commerce.teleport", teleportGoal()));
 		registry.add("05-no-learn-skill-candidate", _ -> testNoLearnSkill());
+		registry.add("066r2-starter-lifetime-and-ambiguous-boundary", _ ->
+		{
+			var budget = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.birth(5000);
+			for (int batch = 1; batch <= 5; batch++)
+			{
+				final var pending = budget.reserve(1835, 0);
+				PhantomAssertions.assertEquals(batch * 1000, pending.issued(), "Starter debit did not count against the lifetime limit.");
+				PhantomAssertions.assertEquals(pending, org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(pending.encode()), "Pending starter debit did not survive serialization.");
+				PhantomAssertions.assertEquals(pending, pending.reserve(1835, 0), "Ambiguous starter mutation was credited twice.");
+				budget = pending.committed();
+			}
+			PhantomAssertions.assertEquals(budget, budget.reserve(1835, 0), "A sixth batch exceeded5000.");
+			final var fresh = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.birth(5000);
+			PhantomAssertions.assertEquals(fresh, fresh.reserve(1835, 100), "Starter threshold overwrote an existing reserve.");
+			PhantomAssertions.assertEquals(fresh, fresh.reserve(1463, 0), "Starter issued an advanced grade.");
+		});
 		registry.add("066-optional-amplifier-trip-needs-useful-budget", _ ->
 		{
 			final var policy = new org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy(true,3,60,500,30,8,128);
 			PhantomAssertions.assertFalse(policy.usefulPurchase(true,0,0,1), "No-budget optional purchase was admitted.");
 			PhantomAssertions.assertFalse(policy.usefulPurchase(true,0,4,1), "A four-shot micro-trip displaced available unboosted farming.");
+			PhantomAssertions.assertTrue(policy.usefulPurchase(true,0,24,1), "An affordable useful partial purchase required the entire60-hit deficit.");
 			PhantomAssertions.assertTrue(policy.usefulPurchase(true,0,60,1), "Changed sufficient funds did not permit a useful optional batch.");
 			PhantomAssertions.assertTrue(policy.usefulPurchase(true,57,3,1), "Existing stock was ignored when funding the target deficit.");
 			PhantomAssertions.assertTrue(policy.usefulPurchase(false,0,1,1), "Mandatory ammunition/healing lost affordable partial supply.");

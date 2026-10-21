@@ -81,5 +81,22 @@ public final class LocalRuntimeShutdownTest
 			System.out.println("PASS runtime066.exact-jdbc-owner-and-mixed-authority");
 		}
 		finally { System.clearProperty("phantom.task065.control"); System.clearProperty("phantom.task066.control"); }
+		System.setProperty("phantom.task066r2.control", "true");
+		try
+		{
+			final String own = "l2jmobiush5_phantom_release_066r2";
+			if (!LocalRuntimeShutdown.validJdbc("jdbc:mysql://127.0.0.1:3308/" + own + "?useSSL=false", own)) { throw new AssertionError("Exact066R2 JDBC rejected."); }
+			for (String historical : new String[] {"l2jmobiush5_phantom_release_066a", "l2jmobiush5_phantom_test_066", schema})
+			{
+				if (LocalRuntimeShutdown.validJdbc("jdbc:mysql://127.0.0.1:3308/" + historical + "?useSSL=false", historical)) { throw new AssertionError("R2 inherited protected schema authority."); }
+			}
+			request.setProperty("owner", "TASK066R2_FARM_ECONOMY");
+			if (!LocalRuntimeShutdown.validRequest(request, "a".repeat(64), "GameServer", 64, 64000, 100000)) { throw new AssertionError("Exact R2 STOP rejected."); }
+			System.setProperty("phantom.task066.control", "true");
+			try { LocalRuntimeShutdown.validateLaunch("GameServer"); throw new AssertionError("Mixed R2/066 authority accepted."); }
+			catch (IllegalArgumentException expected) { }
+			System.out.println("PASS runtime066r2.exact-jdbc-owner-and-mixed-authority");
+		}
+		finally { System.clearProperty("phantom.task066.control"); System.clearProperty("phantom.task066r2.control"); }
 	}
 }

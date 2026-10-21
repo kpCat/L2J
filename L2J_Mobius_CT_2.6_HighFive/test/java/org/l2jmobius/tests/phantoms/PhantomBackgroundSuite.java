@@ -5725,9 +5725,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final InventoryFacts inventory = InventoryFacts.sorted(List.of(1835), stock == 0 ? List.of() : List.of(new ItemObject(1, 1835, stock, true, ItemLocation.INVENTORY)), "optional066", stock, 100000, stock, 100);
 				final Loadout loadout = new Loadout(1, 1, 0, 0, 1835, 1, 0, 0);
 				final var state = state(1, 101, State.READY, 100, 100, inventory, combat(kind, 1, 1, 0), loadout);
-				final var result = new PhantomBackgroundModel().evaluate(request(state, target(1, 1, 0, List.of())));
-				PhantomAssertions.assertTrue(result.encounters() >= 2, "Optional shot exhaustion stopped ordinary background farm: " + kind + "/" + stock);
-				PhantomAssertions.assertEquals(-(long) stock, result.inventoryDelta().itemDeltas().getOrDefault(1835, 0L), "Background consumed absent optional shots or skipped finite stock.");
+				for (BatchMode mode : List.of(BatchMode.ORDINARY_DEATH_DROP, BatchMode.ACQUISITION_DEATH_DROP, BatchMode.ACQUISITION_SPOIL_SWEEP))
+				{
+					final var input = request(state, target(1, 1, 0, List.of()));
+					final var batch = new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, mode == BatchMode.ORDINARY_DEATH_DROP ? 0 : 57, mode == BatchMode.ORDINARY_DEATH_DROP ? 0 : 100, true);
+					final var result = new PhantomBackgroundModel().evaluate(batch);
+					PhantomAssertions.assertTrue(result.encounters() >= 2, "Optional shot exhaustion stopped background farm: " + mode + "/" + kind + "/" + stock);
+					PhantomAssertions.assertEquals(-(long) stock, result.inventoryDelta().itemDeltas().getOrDefault(1835, 0L), "Background consumed absent optional shots or skipped finite stock.");
+				}
 			}
 		}
 	}

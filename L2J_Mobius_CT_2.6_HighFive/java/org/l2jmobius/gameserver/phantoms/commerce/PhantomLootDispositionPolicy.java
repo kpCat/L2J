@@ -103,6 +103,7 @@ public final class PhantomLootDispositionPolicy
 
 	public Decision evaluate(Player player, Item item, Set<Integer> neededItems, boolean reserved, boolean inventoryPressure)
 	{
+		if (item != null && PhantomStarterShotService.protectedStock(player, item.getId())) { return keep("protected.starter_subsidy"); }
 		if (player == null || item == null || reserved || item.getOwnerId() != player.getObjectId() || item.getItemLocation() != ItemLocation.INVENTORY
 			|| item.isEquipped() || item.getEnchantLevel() > 0 || item.isAugmented() || item.isShadowItem() || item.isTimeLimitedItem()
 			|| item.getElementals() != null && item.getElementals().length > 0 || !item.isAvailable(player, false, true)

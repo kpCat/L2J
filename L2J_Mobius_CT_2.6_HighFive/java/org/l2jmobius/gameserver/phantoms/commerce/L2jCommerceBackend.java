@@ -273,7 +273,7 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			{
 				return Quote.rejected(Reason.ITEM_NOT_OWNED);
 			}
-			if (!item.isSellable())
+			if (!item.isSellable() || PhantomStarterShotService.protectedStock(_player, item.getId()))
 			{
 				return Quote.rejected(Reason.ITEM_NOT_SELLABLE);
 			}

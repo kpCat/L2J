@@ -1,0 +1,7 @@
+# SHA-256 for the 6 initial documents; checksum file intentionally excluded. UTF-8 / LF.
+3acf96e3bd7ba6418452b6e7816eb9abcee7c762e933df757b08f750052e15cd  ACCEPTANCE.md
+bc890f67f1047ffac2ba9aad0479d2f65bb323e3afae35f07a15a5a066c6f4cf  AUTHORITY.md
+7488c0f423b9bc1c07183ce1aa97dc3cb3ede70de1dc718d48b3a0bc0b091d70  READ_SET.md
+32db248cf4977cc31f685438cda773311d96a1cbd781a23ac1ebdfc0e8978df0  RUNTIME_INPUTS.md
+c8f2fa9a2fce331ecce30e21233aea6889e678d704e8d9f866e19e972098a509  TASK.md
+b678e5d9f7a3a8dbab98e6f4a77536214f374de9c44a2ca5afc8cbe488551786  TEST_CASES.md
