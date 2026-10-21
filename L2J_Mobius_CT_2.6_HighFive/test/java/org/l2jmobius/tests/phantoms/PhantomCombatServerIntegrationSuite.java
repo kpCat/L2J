@@ -6476,6 +6476,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous action remains in combat.");
 		prepareLearningField059(context);
 		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
+		final var armor = new ArrayList<Item>();
+		for (int id : List.of(24,31)) { final var piece = _player.getInventory().addItem(ItemProcessType.REWARD,id,1,_player,this); _player.getInventory().equipItem(piece); armor.add(piece); }
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp());
+		context.record("shots066.input", "TEST Fighter19/Falchion68/Bone24+31/full native HP before first measurement; independent learned1177:1 cast input after class switch; no HP/stat/shot/Adena replenishment in combat observation");
 		_player.addSkill(SkillData.getInstance().getSkill(1177, 1), false);
 		final var physical = _player.getInventory().addItem(ItemProcessType.REWARD, 1835, 30, _player, this);
 		final var magical = _player.getInventory().addItem(ItemProcessType.REWARD, 3947, 30, _player, this);
