@@ -64,7 +64,8 @@ try{
     if($LASTEXITCODE -ne 0){throw 'TASK066: committed source archive failed.'}
 }finally{Pop-Location}
 
-Expand-Archive -LiteralPath $archive066 -DestinationPath $source066
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[IO.Compression.ZipFile]::ExtractToDirectory($archive066,$source066)
 $committedModule066=Join-Path $source066 $relative066
 if(Test-Path -LiteralPath $receipt066){
     $previous066=Join-Path $task066r2 ($Label+'-previous-build-info.json')

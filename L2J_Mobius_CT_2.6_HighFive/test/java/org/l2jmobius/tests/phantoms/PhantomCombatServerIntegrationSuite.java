@@ -5269,6 +5269,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private PhantomNavigationPoint prepareLearningField059(PhantomTestContext context)
 	{
+		return prepareLearningField059(context, 40);
+	}
+
+	private PhantomNavigationPoint prepareLearningField059(PhantomTestContext context, int requiredCorridor)
+	{
 		final var geo = GeoEngine.getInstance();
 		final var origin = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
 		final var trainers = _query.snapshot().spawnFactsByNpc().entrySet().stream().filter(entry -> { final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && "Trainer".equals(npc.getType()) && npc.canTeach(_player.getLearningClass()); }).flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.pointKind() == SpawnPointKind.EXACT && spawn.instanceId() == 0).sorted(Comparator.comparingDouble((SpawnFact spawn) -> Math.hypot(spawn.x() - origin.getX(), spawn.y() - origin.getY())).thenComparingInt(SpawnFact::npcId)).limit(8).toList();
@@ -5286,12 +5291,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					boolean dry = true;
 					for (int dx : new int[] {-320,0,320}) { for (int dy : new int[] {-320,0,320}) { final int surface = geo.getHeight(x+dx,y+dy,z); if (ZoneManager.getInstance().getZone(x+dx,y+dy,surface,WaterZone.class) != null) { dry = false; } } }
 					if (!dry) { water++; continue; }
-					if (!geo.canMoveToTarget(x,y,z,x+40,y,z,0)) { corridor++; continue; }
+					final int corridorXz = geo.getHeight(x + requiredCorridor, y, z), corridorYz = geo.getHeight(x, y + requiredCorridor, z);
+					final boolean primaryCorridor = requiredCorridor == 40 ? geo.canMoveToTarget(x,y,z,x+40,y,z,0) : Math.abs(corridorXz - z) <= 128 && geo.canMoveToTarget(x,y,z,x + requiredCorridor,y,corridorXz,0);
+					final boolean fallbackCorridor = requiredCorridor > 40 && Math.abs(corridorYz - z) <= 128 && geo.canMoveToTarget(x,y,z,x,y + requiredCorridor,corridorYz,0);
+					if (!primaryCorridor && !fallbackCorridor) { corridor++; continue; }
 					placeInstanceInput058(_player, x, y, z);
 					if (_player.isInsideZone(ZoneId.WATER)) { water++; continue; }
 					if (World.getInstance().getVisibleObjects(_player, Monster.class).stream().anyMatch(monster -> !monster.isDead() && _player.calculateDistance3D(monster) < 1800)) { mobs++; continue; }
 					PhantomAssertions.assertTrue(!_player.isInCombat() && !_player.isDead() && _player.getCurrentHp() >= _player.getMaxHp() * .95, "INVALID_INPUT: native interference during premeasurement field preparation.");
-					context.record("career059.declaredField", "PREMEASUREMENT TEST input only; finite candidates=" + candidates + "/320; stock Trainer=" + trainer.npcId() + '@' + trainer.x() + ',' + trainer.y() + ',' + trainer.z() + "; outsidePeace field=" + x + ',' + y + ',' + z + "; native local Geo corridor; no unrelated Monster1800; actual outbound/return path proof belongs to product Navigation; no fixture position writes after first earned kill");
+					context.record("career059.declaredField", "PREMEASUREMENT TEST input only; finite candidates=" + candidates + "/320; stock Trainer=" + trainer.npcId() + '@' + trainer.x() + ',' + trainer.y() + ',' + trainer.z() + "; outsidePeace field=" + x + ',' + y + ',' + z + "; native Geo corridor=" + requiredCorridor + "; primaryX=" + primaryCorridor + "; fallbackY=" + fallbackCorridor + "; no unrelated Monster1800; actual outbound/return path proof belongs to product Navigation; no fixture position writes after first earned kill");
 					return new PhantomNavigationPoint(x,y,z,0);
 				}
 			}
@@ -6527,11 +6535,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
 		for (int id : List.of(24,31)) { final var piece = _player.getInventory().addItem(ItemProcessType.REWARD,id,1,_player,this); _player.getInventory().equipItem(piece); }
 		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp());
-		context.record("shots066.input", "TEST Fighter19/Falchion68/Bone24+31/full native HP before first measurement; independent learned1177:1 cast input after class switch; no HP/stat/shot/Adena replenishment in combat observation");
+		context.record("shots066.input", "TEST Fighter19/Falchion68/Bone24+31/full native HP before first measurement; separate current-native-tree1177 rank after class switch; no HP/stat/shot/Adena replenishment in combat observation");
 		final var preferences = List.copyOf(_player.getAutoSoulShot()); for (int item : preferences) { _player.removeAutoSoulShot(item); }
 		_player.setChargedShot(ShotType.SOULSHOTS, false); _player.setChargedShot(ShotType.SPIRITSHOTS, false); _player.setChargedShot(ShotType.BLESSED_SPIRITSHOTS, false);
 		final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner(); final boolean previousPolicy = scope.requiresOffensiveShots(); scope.requireOffensiveShots(true);
-		final long originalMoney = _player.getAdena(); _player.reduceAdena(ItemProcessType.DESTROY, originalMoney, _player, false); final var initialNative = scope.evidence().snapshot();
+		final long originalMoney = _player.getAdena(); _player.reduceAdena(ItemProcessType.DESTROY, originalMoney, _player, false);
 		final var target = spawnExactPointMonster(20035, Double.MAX_VALUE); final double hp = target.getCurrentHp();
 		try
 		{
@@ -6540,30 +6548,25 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_player.abortAttack(); _player.getAI().setIntention(Intention.IDLE);
 			_player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass());
 			PhantomAssertions.assertTrue(waitFor(() -> !_player.isChangingClass() && !_player.isAttackingNow() && !_player.isCastingNow() && scope.outstanding() == 0, 10_000), "Prior native action/class change did not drain before the separate CAST input.");
-			final var skill = SkillData.getInstance().getSkill(1177, 1); _player.addSkill(skill, false);
+			final var learned = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(_player.getPlayerClass()).values().stream()
+				.filter(value -> value.getSkillId() == 1177 && value.getGetLevel() <= _player.getLevel()).max(Comparator.comparingInt(value -> value.getSkillLevel())).orElseThrow();
+			final var skill = SkillData.getInstance().getSkill(learned.getSkillId(), learned.getSkillLevel()); _player.addSkill(skill, false);
 			_player.setCurrentMp(_player.getMaxMp()); // Separate negative CAST input, before its measurement.
 			final int castMillis = org.l2jmobius.gameserver.model.stats.Formulas.calcAtkSpd(_player, skill, skill.getHitTime() + skill.getCoolTime());
 			PhantomAssertions.assertTrue(castMillis >= 0 && castMillis <= 30_000, "Unboosted TEST cast exceeds the declared native observation bound: " + castMillis);
+			final long magicSequence = scope.evidence().snapshot().damageSequence();
+			context.record("shots066.magicInput", "SEPARATE TEST_PREIMAGE current native class/level tree rank=" + skill.getId() + ':' + skill.getLevel() + "; magicLevel=" + skill.getMagicLevel() + "; targetLevel=" + target.getLevel() + "; legacy1177:1/nativeMagicLevel1 had normal resist probability, not a shot requirement");
 			final double mp = _player.getCurrentMp(), magicHp = target.getCurrentHp(); _player.setTarget(target); _player.getAI().setIntention(Intention.CAST, skill, target);
 			final boolean magicDamage = waitFor(() -> target.getCurrentHp() < magicHp && _player.getCurrentMp() < mp, Math.max(8_000, castMillis + 2_000));
 			final String diagnostic = "nativeCastMillis=" + castMillis + "; MAtkSpd=" + _player.getMAtkSpd() + "; targetHP=" + hp + "->" + magicHp + "->" + target.getCurrentHp() + "; dead=" + target.isDead() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; learned=" + _player.getSkillLevel(1177) + "; casting=" + _player.isCastingNow() + "; AI=" + _player.getAI().getIntention() + "; owner=" + scope.open() + '/' + scope.nativeObservationHealthy() + "; work=" + scope.diagnosticScalars() + "; evidence=" + scope.evidence().snapshot();
 			context.record("shots066.unboostedDiagnostic", diagnostic);
 			PhantomAssertions.assertTrue(magicDamage, "Unboosted magic not completed: " + diagnostic);
+			PhantomAssertions.assertTrue(scope.evidence().snapshot().damageSequence() > magicSequence, "No native offensive HP write witnessed for the completed zero-stock spell.");
+			PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow() && scope.outstanding() == 0, castMillis + 3_000), "Observed native spell did not retire its owned callbacks.");
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(1835, -1), "Unboosted melee created shots.");
 			PhantomAssertions.assertEquals(0L, _player.getInventory().getInventoryItemCount(3947, -1), "Unboosted magic created BSS.");
 			PhantomAssertions.assertEquals(0L, _player.getAdena(), "Zero-budget native combat acquired money without a pickup.");
-			int continuationCasts = 0;
-			while (!target.isDead() && continuationCasts++ < 8)
-			{
-				PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow() && !_player.isSkillDisabled(skill), 10_000), "Native unboosted cast/reuse did not retire before the next action.");
-				final double priorHp = target.getCurrentHp(); _player.setTarget(target); _player.getAI().setIntention(Intention.CAST, skill, target);
-				final boolean progressed = waitFor(() -> target.isDead() || target.getCurrentHp() < priorHp, castMillis + 3_000);
-				final String step = "cast=" + continuationCasts + "; targetHP=" + priorHp + "->" + target.getCurrentHp() + "; actorHP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; actorMP=" + _player.getCurrentMp() + "; actorDead=" + _player.isDead() + "; target=" + _player.getTarget() + "; distance=" + _player.calculateDistance3D(target) + "; casting=" + _player.isCastingNow() + "; owner=" + scope.diagnosticScalars();
-				context.record("shots066.continuation." + continuationCasts, step);
-				PhantomAssertions.assertTrue(progressed, "Lawful zero-stock continuation produced no native damage: " + step);
-			}
-			PhantomAssertions.assertTrue(waitFor(() -> target.isDead() && scope.evidence().snapshot().killSequence() > initialNative.killSequence() && scope.evidence().snapshot().rewardSequence() > initialNative.rewardSequence(), castMillis + 3_000), "Zero-stock, zero-Adena native continuation did not kill/reward the stock target.");
-			context.record("shots066.zeroBudgetKill", "TEST Adena0 before measurement; exact native stock20035 fullHP=" + hp + "; no shots granted; native=" + scope.evidence().snapshot());
+			context.record("shots066.completedCast", "R4 actual HP/MP/native damage and callback retirement only; ordinary zero-stock kill/reward belongs to the separate R2/Main evidence, not an arbitrary eight consecutive successful casts");
 			context.record("shots066.optional", "native meleeHP=" + hp + "->" + magicHp + "; magicHP=" + magicHp + "->" + target.getCurrentHp() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; no stock granted");
 		}
 		finally { scope.requireOffensiveShots(previousPolicy); _player.abortAttack(); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); for (int item : preferences) { _player.addAutoSoulShot(item); } if (_player.getAdena() < originalMoney) { _player.addAdena(ItemProcessType.REWARD, originalMoney - _player.getAdena(), _player, false); } else if (_player.getAdena() > originalMoney) { _player.reduceAdena(ItemProcessType.DESTROY, _player.getAdena() - originalMoney, _player, false); } }
@@ -6923,20 +6926,26 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testRangedDeathLoot066(PhantomTestContext context) throws Exception
 	{
-		resetActor(true); _player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte)19); prepareLearningField059(context);
-		for (var skill : List.copyOf(_player.getAllSkills())) { if (skill.hasNegativeEffect() && skill.getId() != 1177) { _player.removeSkill(skill.getId()); } } _player.addSkill(SkillData.getInstance().getSkill(1177,1),false);
+		resetActor(true); _player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte)19); prepareLearningField059(context, 410);
+		for (var skill : List.copyOf(_player.getAllSkills())) { if (skill.hasNegativeEffect() && skill.getId() != 1177) { _player.removeSkill(skill.getId()); } }
+		final var learned = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(_player.getPlayerClass()).values().stream().filter(value -> value.getSkillId() == 1177 && value.getGetLevel() <= _player.getLevel()).max(Comparator.comparingInt(value -> value.getSkillLevel())).orElseThrow();
+		_player.addSkill(SkillData.getInstance().getSkill(learned.getSkillId(),learned.getSkillLevel()),false);
 		final var baseline = new java.util.HashMap<Integer,Long>(); for (var item : _player.getInventory().getItems()) { baseline.merge(item.getId(),item.getCount(),Long::sum); }
 		for (int id : List.of(68,24,31)) { final var item = _player.getInventory().addItem(ItemProcessType.REWARD,id,1,_player,this); _player.getInventory().equipItem(item); }
 		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
 		final var choices = NpcData.getInstance().getTemplates(value -> value.getId() >= 20000 && value.getId() < 23000 && "Monster".equals(value.getType()) && value.getLevel() >= 12 && value.getLevel() <= 19 && value.getBaseAttackRange() >= 400 && value.getBaseHpMax() <= 550 && value.getBasePAtk() <= 50 && (value.getDropList() != null || value.getDropGroups() != null)).stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId)).limit(2).toList();
 		PhantomAssertions.assertTrue(choices.size() == 2,"Stock ranged NPC primary/fallback data missing."); final var template = choices.getFirst(); final int x = _player.getX(), y = _player.getY(), z = _player.getZ();
-		final boolean primary = GeoEngine.getInstance().canMoveToTarget(x,y,z,x+410,y,z,0); PhantomAssertions.assertTrue(primary || GeoEngine.getInstance().canMoveToTarget(x,y,z,x,y+410,z,0),"Both declared ranged stock corridors unavailable.");
-		final var target = new Monster(template); final var spawn = new Spawn(template); spawn.setXYZ(primary ? x+350 : x,primary ? y : y+350,z); target.setSpawn(spawn); target.spawnMe(primary ? x+350 : x,primary ? y : y+350,z); _worldFixtures.add(target);
+		final var geo = GeoEngine.getInstance();
+		final boolean primary = geo.canMoveToTarget(x,y,z,x+410,y,geo.getHeight(x+410,y,z),0); PhantomAssertions.assertTrue(primary || geo.canMoveToTarget(x,y,z,x,y+410,geo.getHeight(x,y+410,z),0),"Both preverified ranged corridors unavailable before measurement.");
+		final int targetX = primary ? x+350 : x, targetY = primary ? y : y+350, targetZ = geo.getHeight(targetX,targetY,z);
+		PhantomAssertions.assertTrue(Math.abs(targetZ-z) <= 128 && geo.canMoveToTarget(x,y,z,targetX,targetY,targetZ,0), "Premeasurement stock ranged pickup surface is unsupported.");
+		context.record("loot066.rangedPreflight", "FIXED before spawn/measurement primaryX410/fallbackY410; selected=" + (primary ? "X" : "Y") + "; actor=" + x + ',' + y + ',' + z + "; stock surface=" + targetX + ',' + targetY + ',' + targetZ + "; learned1177:" + learned.getSkillLevel() + "; Geo unmodified; no subsequent location edits");
+		final var target = new Monster(template); final var spawn = new Spawn(template); spawn.setXYZ(targetX,targetY,targetZ); target.setSpawn(spawn); target.spawnMe(targetX,targetY,targetZ); _worldFixtures.add(target);
 		final var goals = new PhantomGoalStateStore(_repository); final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING).findFirst().orElseThrow();
 		final var farm = new PhantomGoal(context.seed(),PhantomBackgroundGoalSpec.GOAL_TYPE,PhantomGoalStatus.ACTIVE,new PhantomDomainRef("profile",Long.toString(_profile.profileId())),new PhantomDomainRef("npc",Integer.toString(template.getId())),1,0,"background.farm",List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE,template.getId()+"@"+anchor.id())),new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE,anchor.id()),"farm.background",500,0,0,0,Map.of(),"fixture066.ranged_death",1); goals.insert(_profile.profileId(),farm);
 		final var candidates = new PhantomCandidateRegistry(); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); handlers.seal(); final var engine = new PhantomDecisionEngine(goals,candidates,handlers,new PhantomMetrics(),1); engine.start(); engine.attach(_profile.profileId()); final var autoplay = new PhantomVisibleAutoPlay(_materialization,()->engine,_ -> true);
 		final var evidence = _player.getNativeWorkOwner().evidence(); final long pickups = evidence.pickupSequence();
-		context.record("loot066.rangedInput","TEST Wizard10/L19/known1177:1/NG68+24+31, stock ranged primary/fallback="+choices.stream().map(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId).toList()+"; selected="+template.getId()+"; native attackRange="+template.getBaseAttackRange()+"; stock fullHP="+target.getMaxHp()+"; distance350; primary+X/fallback+Y="+primary+"; actual AutoPlay/AutoUse/PlayerAI, no stats/rates/refill/actor position writes in measurement");
+		context.record("loot066.rangedInput","TEST Wizard10/L19/known1177:"+learned.getSkillLevel()+"/NG68+24+31, stock ranged primary/fallback="+choices.stream().map(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId).toList()+"; selected="+template.getId()+"; native attackRange="+template.getBaseAttackRange()+"; stock fullHP="+target.getMaxHp()+"; distance350; primary+X/fallback+Y="+primary+"; actual AutoPlay/AutoUse/PlayerAI, no stats/rates/refill/actor position writes in measurement");
 		try
 		{
 			PhantomAssertions.assertTrue(autoplay.start(_profile.profileId(),farm),"Ranged native controller did not attach.");

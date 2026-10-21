@@ -43,7 +43,6 @@ public final class PhantomStarterShotService
 			return;
 		}
 		player.getVariables().set(AVAILABLE, budget.state() == PhantomStarterShotBudget.State.READY && budget.issued() < budget.limit());
-		grantIfNeeded(profiles, profileId, player);
 	}
 
 	public static void grantIfNeeded(PhantomProfileRepository profiles, long profileId, Player player)

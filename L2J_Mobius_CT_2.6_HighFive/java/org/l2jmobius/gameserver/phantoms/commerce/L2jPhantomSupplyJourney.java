@@ -1139,7 +1139,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	public boolean finishStop() { beginStop(); synchronized (this) { if (!_active.isEmpty()) { return false; } _state = State.STOPPED; return true; } }
 	@Override public void beforeMaterialize(long profileId, int characterObjectId) { cleanup(profileId); synchronized (this) { _cache.remove(profileId); } }
 	@Override public void afterPlayerLoad(long profileId, Player player) { PhantomStarterShotService.afterLoad(_profiles, profileId, player); }
-	@Override public void materializeSucceeded(long profileId, int characterObjectId) { }
+	@Override public void materializeSucceeded(long profileId, int characterObjectId)
+	{
+		final var player = World.getInstance().getPlayer(characterObjectId);
+		if (player != null) { PhantomStarterShotService.grantIfNeeded(_profiles, profileId, player); }
+	}
 	@Override public void materializeAborted(long profileId, int characterObjectId) { beforeMaterialize(profileId, characterObjectId); }
 	@Override public void beforeStore(long profileId, Player player)
 	{

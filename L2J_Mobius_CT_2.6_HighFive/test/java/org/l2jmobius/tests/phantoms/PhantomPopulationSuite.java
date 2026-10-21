@@ -896,7 +896,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		{
 			@Override public void beforeMaterialize(long id, int objectId) { }
 			@Override public void afterPlayerLoad(long id, Player player) { org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.afterLoad(_profiles, id, player); }
-			@Override public void materializeSucceeded(long id, int objectId) { }
+			@Override public void materializeSucceeded(long id, int objectId) { org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles, id, World.getInstance().getPlayer(objectId)); }
 			@Override public void materializeAborted(long id, int objectId) { }
 			@Override public void beforeStore(long id, Player player) { }
 			@Override public void afterStore(long id, Player player) { }
@@ -924,6 +924,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				final long id = birth.profile().profileId();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Newborn materialization failed.");
 				final Player player = World.getInstance().getPlayer(birth.profile().characterObjectId());
+				context.record("starter066r2.input." + id, "NATIVE_BIRTH class=" + player.getActiveClass() + "; level=" + player.getLevel() + "; weapon=" + (player.getActiveWeaponItem() == null ? "none" : player.getActiveWeaponItem().getId()) + "; load=" + player.getCurrentLoad() + '/' + player.getMaxLoad() + "; headless=" + player.hasHeadlessOutboundSession() + "; owner=" + player.getNativeWorkOwner().isCurrent() + "; client=" + (player.getClient() != null));
 				final var budget = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(_profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow().payload());
 				PhantomAssertions.assertEquals(1000, budget.issued(), "First native grant must debit1000 of5000.");
 				final int shotId = budget.itemId(); final long before = player.getInventory().getInventoryItemCount(shotId, -1);
