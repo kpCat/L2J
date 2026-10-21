@@ -21,6 +21,7 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.Clock;
@@ -117,6 +118,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		DECISION("commerce-decision", false),
 		SERVER_INTEGRATION("commerce-server-integration", true),
 		HARDENING("commerce-hardening", true),
+		FARM_ECONOMY_066("farm-economy-native066", true),
 		PERFORMANCE("commerce-performance", true);
 
 		private final String _id;
@@ -147,12 +149,13 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		final long expectedSeed = _mode == Mode.HARDENING ? 14001401L : 140014L;
+		final long expectedSeed = _mode == Mode.FARM_ECONOMY_066 ? 66006631L : _mode == Mode.HARDENING ? 14001401L : 140014L;
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Commerce suite seed changed.");
 		if (_mode._productionData)
 		{
 			_environment = new PhantomHeadlessPlayerTestEnvironment();
 			_environment.initialize(context);
+			if (_mode == Mode.FARM_ECONOMY_066 && Boolean.getBoolean("phantom.test.repairRefundFixture066")) { repairKnownRefundFixture066(context); }
 			_production = new PhantomCommerceCatalogLoader(Path.of(".")).load();
 			context.record("commerce.buyOffers", _production.catalog().buyOffers().size());
 			context.record("commerce.multisellOffers", _production.catalog().multisellOffers().size());
@@ -195,7 +198,220 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			case DECISION -> registerDecision(registry);
 			case SERVER_INTEGRATION -> registerServerIntegration(registry);
 			case HARDENING -> registerHardening(registry);
+			case FARM_ECONOMY_066 ->
+			{
+				registry.add("066-stock-refund-sale-does-not-disable-commerce", this::testStockRefund066);
+				registry.add("066-data-driven-disposition-and-rare-protection", this::testDispositionData066);
+				registry.add("066-native-money-warehouse-crystal-receipts", this::testMaintenanceChain066);
+			}
 			case PERFORMANCE -> registerPerformance(registry);
+		}
+	}
+
+	private void repairKnownRefundFixture066(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		PhantomAssertions.assertEquals("l2jmobiush5_phantom_test_066", PhantomCampaign058DatabaseLane.databaseName(), "Exact066 repair lane required.");
+		final int objectId = 268435465;
+		final String report = Files.readString(context.moduleRoot().getParent().resolve(".phantom-local/task066/reports/native-economy-refund-red/farm-economy-native066.txt"));
+		PhantomAssertions.assertTrue(report.contains("primaryObjectId=" + objectId) && report.contains("Commerce integration touched a non-test database") && report.contains("seed=66006631"), "Exact failed066 fixture evidence differs.");
+		PhantomAssertions.assertTrue(objectId != _environment.primary().objectId() && objectId != _environment.observer().objectId() && World.getInstance().getPlayer(objectId) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == null, "Failed fixture is not an offline separate identity.");
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT account_name,online,accesslevel FROM characters WHERE charId=?"))
+		{
+			query.setInt(1, objectId);
+			try (var rows = query.executeQuery()) { PhantomAssertions.assertTrue(rows.next() && _environment.primary().accountName().equals(rows.getString(1)) && rows.getInt(2) == 0 && rows.getInt(3) == 0 && !rows.next(), "Exact failed066 account/offline/access identity differs."); }
+		}
+		final var repository = PhantomProfileRepository.open(); final var profile = repository.findByCharacterObjectId(objectId).orElseThrow();
+		repository.delete(profile.profileId(), profile.rowVersion());
+		context.record("economy066.fixtureRepair", "Removed only exact failed quote fixture profile for character268435465 after account/offline/lease/report verification; normal owned environment cleanup removes reusable character, account retained");
+	}
+
+	private void testStockRefund066(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		PhantomAssertions.assertTrue(GeneralConfig.ALLOW_REFUND && !MerchantZeroSellPriceConfig.MERCHANT_ZERO_SELL_PRICE, "Declared stock066 refund/zero-sell input differs; do not toggle it for PASS.");
+		final var repository = PhantomProfileRepository.open(); final var profile = repository.create(_environment.primary().objectId());
+		final var metrics = new PhantomMetrics();
+		final var materialization = new PhantomMaterializationService(repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		Player player = null; Merchant merchant = null; long before = -1; int itemId = 0;
+		try
+		{
+			final var buy = selectCanonicalBuy(); itemId = buy.offer().itemId();
+			PhantomAssertions.assertTrue(materialization.start() && materialization.materialize(profile.profileId()).status() == ResultStatus.SUCCESS, "066 sale actor did not load.");
+			player = World.getInstance().getPlayer(_environment.primary().objectId());
+			if (player.isTeleporting()) { player.onTeleported(); }
+			before = player.getInventory().getInventoryItemCount(itemId, -1);
+			final Item item = player.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, player, this);
+			merchant = new Merchant(NpcData.getInstance().getTemplate(buy.npcId())); merchant.spawnMe(player.getX() + 10, player.getY(), player.getZ());
+			engage(player, merchant);
+			context.record("economy066.redInput", "Explicit TEST sale item=" + itemId + "x1; native Merchant/list=" + buy.npcId() + '/' + buy.offer().listId() + "; stock AllowRefund=True,ZeroSell=False unchanged; quote before mutation");
+			try (var actor = new L2jCommerceBackend(materialization, _production.catalog(), Clock.systemUTC()).tryAcquire(profile.profileId()).orElseThrow())
+			{
+				final var quote = actor.quote(new OperationIntent(OperationKind.SELL, buy.npcId(), merchant.getObjectId(), buy.offer().listId(), itemId, item.getObjectId(), 1, 0, "", 0));
+				PhantomAssertions.assertTrue(quote.accepted(), "Stock AllowRefund blocks lawful native sale: " + quote.reason());
+			}
+		}
+		finally
+		{
+			if (player != null && before >= 0) { restoreItemCount(player, itemId, before); }
+			if (merchant != null) { merchant.deleteMe(); }
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, materialization.shutdown().state(), "066 sale teardown retained actor.");
+			deleteProfile(profile.profileId()); _environment.assertClean(_environment.primary(), player);
+		}
+	}
+
+	private void testDispositionData066(PhantomTestContext context)
+	{
+		final var policy = org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.getInstance();
+		final var recipes = org.l2jmobius.gameserver.data.xml.RecipeData.getInstance();
+		final var items = org.l2jmobius.gameserver.data.xml.ItemData.getInstance();
+		final var samples = new java.util.TreeMap<Integer, Integer>(); int checked = 0;
+		for (int recipeItem : recipes.getAllItemIds())
+		{
+			final var recipe = recipes.getRecipeByItemId(recipeItem); final var product = items.getTemplate(recipe.getItemId());
+			if (product == null) { continue; }
+			for (var ingredient : recipe.getRecipes())
+			{
+				final var role = policy.recipeRoles().get(ingredient.getItemId());
+				PhantomAssertions.assertTrue(role != null && role.highestProductGrade() >= product.getCrystalType().getLevel(), "Ingredient lost its senior product grade: " + ingredient.getItemId()); checked++;
+				final var template = items.getTemplate(ingredient.getItemId());
+				if (template != null && role.keyPart())
+				{
+					samples.merge(role.highestProductGrade(), ingredient.getItemId(), Math::min);
+					if (role.highestProductGrade() >= 3) { PhantomAssertions.assertTrue(policy.category(template) != org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.SELL_NPC, "NONE-grade ingredient with a senior recipe was cheap-sold."); }
+				}
+			}
+			if (recipe.getRareItemId() > 0) { PhantomAssertions.assertTrue(policy.protectedTemplate(items.getTemplate(recipe.getRareItemId())), "Rare recipe product lost protection."); }
+		}
+		PhantomAssertions.assertTrue(samples.keySet().containsAll(Set.of(0, 1, 2, 3, 4, 5)), "Stock data did not exercise NoGrade/D/C/B/A/S key-part roles.");
+		for (int id : List.of(1865, 1869, 1458, 1459, 6656, 6658, 6659, 6660))
+		{
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.KEEP, policy.category(items.getTemplate(id)), "Common resource/crystal/epic template entered liquidation: " + id);
+		}
+		int scrolls = 0;
+		for (var item : items.getAllItems())
+		{
+			if (item != null && item.getItemType() instanceof org.l2jmobius.gameserver.model.item.type.EtcItemType type && (type == org.l2jmobius.gameserver.model.item.type.EtcItemType.SCRL_ENCHANT_WP || type == org.l2jmobius.gameserver.model.item.type.EtcItemType.SCRL_ENCHANT_AM))
+			{
+				PhantomAssertions.assertTrue(policy.category(item) != org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.SELL_NPC, "Enchant scroll entered cheap sale."); scrolls++;
+			}
+		}
+		context.record("economy066.recipeRoles", "checked ingredient edges=" + checked + "; grade representatives=" + samples + "; protected scroll templates=" + scrolls + "; actual epic templates read only, no epic generated");
+	}
+
+	private void testMaintenanceChain066(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final var repository = PhantomProfileRepository.open(); final var profile = repository.create(_environment.primary().objectId());
+		final var metrics = new PhantomMetrics(); final var materialization = new PhantomMaterializationService(repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		final var items = org.l2jmobius.gameserver.data.xml.ItemData.getInstance(); final var policy = org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.getInstance();
+		final var baseline = new HashMap<Integer, Long>(); Player player = null, ordinary = null; Merchant merchant = null; Npc warehouse = null;
+		try
+		{
+			PhantomAssertions.assertTrue(materialization.start() && materialization.materialize(profile.profileId()).status() == ResultStatus.SUCCESS, "066 maintenance actor did not materialize.");
+			player = World.getInstance().getPlayer(_environment.primary().objectId()); if (player.isTeleporting()) { player.onTeleported(); }
+			for (var item : player.getInventory().getItems()) { baseline.merge(item.getId(), item.getCount(), Long::sum); }
+			PhantomAssertions.assertEquals(0, player.getWarehouse().getSize(), "Named066 fixture requires an empty original bank.");
+			player.setPlayerClass(56); player.getStat().setLevel((byte) 20);
+			player.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(248, 1), true);
+			player.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(239, 1), true);
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.compatible(player, player.getFistsWeaponItem()), "Native zero-shot-cost weapon was rejected as an equipment capability.");
+			final var weapons = java.util.Arrays.stream(items.getAllItems()).filter(java.util.Objects::nonNull).filter(item -> item instanceof org.l2jmobius.gameserver.model.item.Weapon weapon && !weapon.isMagicWeapon() && !weapon.isRange() && item.getCrystalType() == org.l2jmobius.gameserver.model.item.type.CrystalType.D && item.isCrystallizable() && item.isDepositable() && !item.isStackable() && !policy.protectedTemplate(item)).sorted(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).limit(2).toList();
+			PhantomAssertions.assertTrue(weapons.size() == 2, "No predeclared D weapon primary/fallback exists.");
+			final int weaponId = weapons.getFirst().getId();
+			final Item worn = player.getInventory().addItem(ItemProcessType.REWARD, weaponId, 1, player, this); player.getInventory().equipItem(worn);
+			final Item crystalSource = player.getInventory().addItem(ItemProcessType.REWARD, weaponId, 1, player, this);
+			final Item enchanted = player.getInventory().addItem(ItemProcessType.REWARD, weaponId, 1, player, this); enchanted.setEnchantLevel(1);
+			final var cWeapon = java.util.Arrays.stream(items.getAllItems()).filter(java.util.Objects::nonNull).filter(item -> item.isWeapon() && item.getCrystalType() == org.l2jmobius.gameserver.model.item.type.CrystalType.C && item.isCrystallizable() && !item.isStackable()).min(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+			final Item tooHigh = player.getInventory().addItem(ItemProcessType.REWARD, cWeapon.getId(), 1, player, this);
+			ordinary = Player.load(_environment.observer().objectId()); final Item noSkill = ordinary.getInventory().addItem(ItemProcessType.REWARD, weaponId, 1, ordinary, this);
+			final var low = policy.recipeRoles().entrySet().stream().filter(entry -> entry.getValue().keyPart() && entry.getValue().highestProductGrade() <= 2 && policy.category(items.getTemplate(entry.getKey())) == org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.SELL_NPC).min(Map.Entry.comparingByKey()).orElseThrow();
+			final var high = policy.recipeRoles().entrySet().stream().filter(entry -> entry.getValue().keyPart() && entry.getValue().highestProductGrade() >= 3 && policy.category(items.getTemplate(entry.getKey())) == org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.MARKET_RESERVE && items.getTemplate(entry.getKey()).isDepositable()).min(Map.Entry.comparingByKey()).orElseThrow();
+			final var buy = selectCanonicalBuy(); final long unit = items.getTemplate(low.getKey()).getReferencePrice() / 2L;
+			MerchantPriceConfigTable.getInstance().loadInstances(); MerchantPriceConfigTable.getInstance().updateReferences();
+			merchant = new Merchant(NpcData.getInstance().getTemplate(buy.npcId())); merchant.spawnMe(player.getX() + 10, player.getY(), player.getZ());
+			PhantomAssertions.assertEquals(0.0, merchant.getMpc().getCastleTaxRate(), "Declared native counter unexpectedly has an unsupported treasury writer.");
+			final long buyPrice = (long) (buy.offer().price() * (1 + merchant.getMpc().getBaseTaxRate()));
+			final long saleCount = (60 + buyPrice + unit) / unit;
+			final Item sale = player.getInventory().addItem(ItemProcessType.REWARD, low.getKey(), low.getValue().reserve() + saleCount, player, this);
+			final Item valuable = player.getInventory().addItem(ItemProcessType.REWARD, high.getKey(), high.getValue().reserve() + 3, player, this);
+			final Item bankShots = player.getWarehouse().addItem(ItemProcessType.REWARD, buy.offer().itemId(), 3, player, this);
+			final int oreId = 1869; final long heavyCount = player.getMaxLoad() / items.getTemplate(oreId).getWeight() + 1L;
+			final Item heavy = player.getWarehouse().addItem(ItemProcessType.REWARD, oreId, heavyCount, player, this);
+			final int limit = player.getWareHouseLimit(); PhantomAssertions.assertTrue(limit >= 4 && limit <= 160, "066 bank fixture capacity outside its declared bound.");
+			final var fillerTemplate = java.util.Arrays.stream(items.getAllItems()).filter(java.util.Objects::nonNull).filter(item -> item.isWeapon() && item.getCrystalType() == org.l2jmobius.gameserver.model.item.type.CrystalType.NONE && item.isDepositable() && !item.isStackable() && !policy.protectedTemplate(item)).min(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+			Item filler = null; while (player.getWarehouse().getSize() < limit) { filler = player.getWarehouse().addItem(ItemProcessType.REWARD, fillerTemplate.getId(), 1, player, this); }
+			player.reduceAdena(ItemProcessType.DESTROY, player.getAdena(), player, false);
+			final var warehouseTemplate = NpcData.getInstance().getTemplates(template -> "Warehouse".equals(template.getType())).stream().min(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId)).orElseThrow();
+			warehouse = new org.l2jmobius.gameserver.model.actor.instance.Warehouse(warehouseTemplate); warehouse.spawnMe(player.getX() + 20, player.getY(), player.getZ());
+			player.storeMe();
+			context.record("economy066.inputs", "Explicit TEST Artisan56/level20/Crystallize1/Expertise1; D weapon primary/fallback=" + weapons.stream().map(org.l2jmobius.gameserver.model.item.ItemTemplate::getId).toList() + "; selected=" + weaponId + " equipped+surplus+enchanted; C negative=" + cWeapon.getId() + "; low part=" + low.getKey() + " reserve=" + low.getValue().reserve() + " sale=" + saleCount + "; high part=" + high.getKey() + " reserve=" + high.getValue().reserve() + "+3; bank FULL=" + limit + " with native filler, shots3, ore weight negative; Adena0; stock refund/zero-sell unchanged; named fixture counters, not autonomous travel");
+			final var backend = new L2jCommerceBackend(materialization, _production.catalog(), Clock.systemUTC());
+			final var deposit = new OperationIntent(OperationKind.WAREHOUSE_DEPOSIT, warehouse.getId(), warehouse.getObjectId(), 0, valuable.getId(), valuable.getObjectId(), 2, 0, "", 30);
+			try (var actor = backend.tryAcquire(profile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(actor.quote(deposit).accepted(), "FULL warehouse admitted a new stack.");
+				PhantomAssertions.assertFalse(actor.quote(new OperationIntent(OperationKind.WAREHOUSE_WITHDRAW, warehouse.getId(), warehouse.getObjectId(), 0, oreId, heavy.getObjectId(), heavyCount, 0, "", 0)).accepted(), "Native withdrawal ignored weight.");
+			}
+			final var goals = new PhantomGoalStateStore(repository); final var receipts = new PhantomCommerceReceiptStore(repository); final long rootId = 6600663102L;
+			final var ledger = new ArrayList<String>(); long revision = 0;
+			executeMaintenance066(profile.profileId(), rootId, revision++, new OperationIntent(OperationKind.WAREHOUSE_WITHDRAW, warehouse.getId(), warehouse.getObjectId(), 0, filler.getId(), filler.getObjectId(), 1, 0, "", 0), goals, receipts, backend, ledger);
+			try (var actor = backend.tryAcquire(profile.profileId()).orElseThrow()) { PhantomAssertions.assertEquals(PhantomCommerceService.Reason.INSUFFICIENT_FUNDS, actor.quote(deposit).reason(), "No-money bank did not refuse before charging a fee."); }
+			PhantomAssertions.assertEquals(0L, player.getAdena(), "Refused bank/weight operations changed Adena.");
+			executeMaintenance066(profile.profileId(), rootId, revision++, new OperationIntent(OperationKind.SELL, merchant.getId(), merchant.getObjectId(), buy.offer().listId(), sale.getId(), sale.getObjectId(), saleCount, 0, "", 0), goals, receipts, backend, ledger);
+			PhantomAssertions.assertEquals(unit * saleCount, player.getAdena(), "Native sale did not create exactly the quoted Adena once.");
+			PhantomAssertions.assertEquals(saleCount, player.getRefund().getItems().stream().filter(item -> item.getId() == low.getKey()).mapToLong(Item::getCount).sum(), "Stock refund did not own the removed sale units.");
+			executeMaintenance066(profile.profileId(), rootId, revision++, deposit, goals, receipts, backend, ledger);
+			executeMaintenance066(profile.profileId(), rootId, revision++, new OperationIntent(OperationKind.WAREHOUSE_DEPOSIT, warehouse.getId(), warehouse.getObjectId(), 0, valuable.getId(), valuable.getObjectId(), 1, 0, "", 30), goals, receipts, backend, ledger);
+			PhantomAssertions.assertEquals((long) limit, (long) player.getWarehouse().getSize(), "Full warehouse stack merge consumed an extra slot.");
+			executeMaintenance066(profile.profileId(), rootId, revision++, new OperationIntent(OperationKind.WAREHOUSE_WITHDRAW, warehouse.getId(), warehouse.getObjectId(), 0, bankShots.getId(), bankShots.getObjectId(), 3, 0, "", 0), goals, receipts, backend, ledger);
+			executeMaintenance066(profile.profileId(), rootId, revision++, new OperationIntent(OperationKind.BUY, merchant.getId(), merchant.getObjectId(), buy.offer().listId(), buy.offer().itemId(), 0, 1, 0, "", buyPrice), goals, receipts, backend, ledger);
+			PhantomAssertions.assertEquals(unit * saleCount - 60 - buyPrice, player.getAdena(), "Sale/bank/buy money ledger differs.");
+			final var crystallization = org.l2jmobius.gameserver.qol.CrystallizationService.getInstance();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.qol.CrystallizationService.Status.SKILL_MISSING, crystallization.inspect(ordinary, noSkill.getObjectId(), 1).status(), "Ordinary actor without known skill obtained capability.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.qol.CrystallizationService.Status.SKILL_TOO_LOW, crystallization.inspect(player, tooHigh.getObjectId(), 1).status(), "Crystallize1 accepted C-grade conversion.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.KEEP, policy.evaluate(player, worn, Set.of(), false).disposition(), "Equipped item entered liquidation.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.KEEP, policy.evaluate(player, enchanted, Set.of(), false).disposition(), "Enchanted item entered liquidation.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.KEEP, policy.evaluate(player, crystalSource, Set.of(crystalSource.getId()), false).disposition(), "Active need was ignored.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.Disposition.KEEP, policy.evaluate(player, crystalSource, Set.of(), true).disposition(), "Reservation was ignored.");
+			final var inspection = crystallization.inspect(player, crystalSource.getObjectId(), 1); PhantomAssertions.assertTrue(inspection.eligible(), "Declared D surplus is not natively eligible: " + inspection.status());
+			final var preview = inspection.preview(); final long crystalsBefore = player.getInventory().getInventoryItemCount(preview.crystalItemId(), -1); final long moneyBeforeCrystal = player.getAdena();
+			executeMaintenance066(profile.profileId(), rootId, revision++, new OperationIntent(OperationKind.CRYSTALLIZE, 0, 0, 0, crystalSource.getId(), crystalSource.getObjectId(), 1, 0, "", 0), goals, receipts, backend, ledger);
+			PhantomAssertions.assertEquals(crystalsBefore + preview.crystalCount(), player.getInventory().getInventoryItemCount(preview.crystalItemId(), -1), "Native crystal yield differs.");
+			PhantomAssertions.assertEquals(null, player.getInventory().getItemByObjectId(crystalSource.getObjectId()), "Crystal source survived conversion.");
+			PhantomAssertions.assertEquals(moneyBeforeCrystal, player.getAdena(), "Crystal conversion changed Adena.");
+			context.record("economy066.ledger", ledger); context.record("economy066.crystal", "source=" + weaponId + "x1 -> " + preview.crystalItemId() + 'x' + preview.crystalCount() + "; repeated COMMITTED receipts reconstructed/idempotent; FULL/noFee/weight/skill/equipped/enchant/need/reservation negatives; no owner login");
+		}
+		finally
+		{
+			if (ordinary != null) { for (var item : List.copyOf(ordinary.getInventory().getItems())) { if (item.getId() != 57) { ordinary.getInventory().destroyItem(ItemProcessType.DESTROY, item, ordinary, this); } } _environment.cleanupLoadedPlayer(ordinary); }
+			if (player != null && (player.getNativeWorkOwner() == null || player.getNativeWorkOwner().nativeObservationHealthy()))
+			{
+				for (var item : List.copyOf(player.getWarehouse().getItems())) { player.getWarehouse().destroyItem(ItemProcessType.DESTROY, item, player, this); }
+				player.getRefund().deleteMe();
+				for (var item : List.copyOf(player.getInventory().getItems())) { if (item.isEquipped()) { player.getInventory().unEquipItemInSlotAndRecord(item.getLocationSlot()); } if (!baseline.containsKey(item.getId())) { player.getInventory().destroyItem(ItemProcessType.DESTROY, item, player, this); } }
+				for (var entry : baseline.entrySet()) { restoreItemCount(player, entry.getKey(), entry.getValue()); }
+			}
+			if (merchant != null) { merchant.deleteMe(); } if (warehouse != null) { warehouse.deleteMe(); }
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, materialization.shutdown().state(), "Maintenance native fixture retained owner.");
+			deleteProfile(profile.profileId()); _environment.assertClean(_environment.primary(), player);
+		}
+	}
+
+	private void executeMaintenance066(long profileId, long rootId, long revision, OperationIntent intent, PhantomGoalStateStore goals, PhantomCommerceReceiptStore receipts, L2jCommerceBackend backend, List<String> ledger)
+	{
+		final var root = goal(rootId, revision, "inventory.maintenance", new PhantomDomainRef("fixture.operation", intent.kind().name())); final var old = goals.load(profileId).orElse(null);
+		if (old == null) { goals.insert(profileId, root); } else { goals.replace(profileId, old.rowVersion(), root); }
+		for (int attempt = 0; attempt < 2; attempt++)
+		{
+			final var service = new PhantomCommerceService(_production, receipts, goals, backend); service.start();
+			try
+			{
+				final var outcome = service.execute(profileId, rootId, revision, intent, () -> false);
+				PhantomAssertions.assertEquals(attempt == 0 ? OperationStatus.SUCCESS : OperationStatus.IDEMPOTENT, outcome.status(), "Native maintenance/reconstructed receipt failed " + intent.kind() + ":" + outcome);
+				if (attempt == 0) { final var receipt = receipts.find(profileId).orElseThrow().receipt(); ledger.add(intent.kind() + ":" + receipt.before() + "->" + receipt.expectedAfter()); }
+			}
+			finally { service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Maintenance receipt service retained ownership."); }
 		}
 	}
 
@@ -228,6 +444,21 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 	private void registerReceipt(PhantomTestRegistry registry)
 	{
+		registry.add("066-maintenance-codec-fee-and-partial-output-contract", _ ->
+		{
+			final var before = new ConservationFacts(100, 20, 5, 0, 0, 0, 0);
+			for (var kind : List.of(OperationKind.WAREHOUSE_DEPOSIT, OperationKind.WAREHOUSE_WITHDRAW, OperationKind.CRYSTALLIZE))
+			{
+				final boolean crystal = kind == OperationKind.CRYSTALLIZE;
+				final var request = new OperationRequest(kind, crystal ? 0 : 1, crystal ? 0 : 2, 0, 4, 6, crystal ? 1 : 5, crystal ? 10 : kind == OperationKind.WAREHOUSE_DEPOSIT ? 30 : 0, crystal ? 1458 : 0, 0, 0, "", 0, 0, 0);
+				final var after = kind == OperationKind.WAREHOUSE_DEPOSIT ? new ConservationFacts(70, 15, 10, 0, 0, 0, 0) : kind == OperationKind.WAREHOUSE_WITHDRAW ? new ConservationFacts(100, 25, 0, 0, 0, 0, 0) : new ConservationFacts(110, 19, 4, 0, 0, 0, 0);
+				final var receipt = PhantomCommerceReceipt.prepared(1, 66, 0, request, before, after).withState(PhantomCommerceReceipt.State.COMMITTING);
+				PhantomAssertions.assertEquals(receipt, PhantomCommerceReceipt.decode(receipt.encode()), "Maintenance receipt lost its scalar conversion contract.");
+				PhantomAssertions.assertEquals(PhantomCommerceReceipt.Reconciliation.EXACT_AFTER, receipt.reconcile(after), "Confirmed native maintenance was not exact after.");
+				if (kind == OperationKind.WAREHOUSE_DEPOSIT) { PhantomAssertions.assertEquals(PhantomCommerceReceipt.Reconciliation.FIRST_EFFECT_ONLY, receipt.reconcile(new ConservationFacts(70, 20, 5, 0, 0, 0, 0)), "Paid bank fee could be charged twice on resume."); }
+				if (crystal) { PhantomAssertions.assertEquals(PhantomCommerceReceipt.Reconciliation.INCONSISTENT, receipt.reconcile(new ConservationFacts(100, 19, 4, 0, 0, 0, 0)), "Missing crystal output was converted into permission for blind compensation."); }
+			}
+		});
 		registry.add("01-codec-round-trip", _ -> testReceiptCodec());
 		registry.add("02-prepared-restart", _ -> testPreparedRestart());
 		registry.add("03-committing-restart", _ -> testCommittingRestart());
@@ -1137,6 +1368,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			case BUY -> new OperationRequest(kind, 1, 2, 3, 4, 0, 5, 10, 0, 0, 0, "", 0, 0, 0);
 			case SELL -> new OperationRequest(kind, 1, 2, 3, 4, 6, 5, 10, 0, 0, 0, "", 0, 0, 0);
 			case TELEPORT -> new OperationRequest(kind, 1, 2, 0, 0, 0, 0, 0, 57, 10, 0, "NORMAL", 100, 200, 300);
+			default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 		};
 	}
 
@@ -1147,6 +1379,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			case BUY -> new OperationIntent(kind, 1, 2, 3, 4, 0, 5, 0, "", 100);
 			case SELL -> new OperationIntent(kind, 1, 2, 3, 4, 6, 5, 0, "", 0);
 			case TELEPORT -> new OperationIntent(kind, 1, 2, 0, 0, 0, 0, 0, "NORMAL", 100);
+			default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 		};
 	}
 
@@ -1157,6 +1390,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			case BUY -> new ConservationFacts(100, 20, 20, 0, 0, 0, 0);
 			case SELL -> new ConservationFacts(100, 20, 5, 0, 0, 0, 0);
 			case TELEPORT -> new ConservationFacts(100, 0, 0, 0, 0, 0, 0);
+			default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 		};
 	}
 
@@ -1167,6 +1401,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			case BUY -> new ConservationFacts(90, 20, 20, 0, 0, 0, 0);
 			case SELL -> new ConservationFacts(100, 15, 0, 0, 0, 0, 0);
 			case TELEPORT -> new ConservationFacts(90, 0, 0, 0, 0, 0, 0);
+			default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 		};
 	}
 
@@ -1177,6 +1412,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			case BUY -> new ConservationFacts(90, 25, 25, 0, 0, 0, 0);
 			case SELL -> new ConservationFacts(110, 15, 0, 0, 0, 0, 0);
 			case TELEPORT -> new ConservationFacts(90, 0, 0, 0, 100, 200, 300);
+			default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 		};
 	}
 
@@ -1210,7 +1446,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 	{
 		try (Connection connection = DatabaseFactory.getConnection())
 		{
-			PhantomAssertions.assertEquals("l2jmobiush5_phantom_test", connection.getCatalog(), "Commerce integration touched a non-test database.");
+			PhantomAssertions.assertEquals(PhantomCampaign058DatabaseLane.enabled() ? PhantomCampaign058DatabaseLane.databaseName() : "l2jmobiush5_phantom_test", connection.getCatalog(), "Commerce integration touched a non-test database.");
 			try (PreparedStatement components = connection.prepareStatement("DELETE FROM phantom_profile_components WHERE profile_id = ?");
 				PreparedStatement profiles = connection.prepareStatement("DELETE FROM phantom_profiles WHERE profile_id = ?"))
 			{
@@ -1462,6 +1698,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 				case BUY -> new ConservationFacts(current.primaryCount() - 10, current.secondaryCount() + 5, current.objectCount() + 5, current.instanceId(), current.x(), current.y(), current.z());
 				case SELL -> new ConservationFacts(current.primaryCount() + 10, current.secondaryCount() - 5, current.objectCount() - 5, current.instanceId(), current.x(), current.y(), current.z());
 				case TELEPORT -> new ConservationFacts(current.primaryCount() - 10, 0, 0, 0, 100, 200, 300);
+				default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 			};
 			return Quote.accepted(request, current, expected, new ActorFacts(100, 20, 5, 0, 1000, 0, false, 0, false, false, false, false, false, 0, 0, 0, 0, 2, 2));
 		}
@@ -1481,6 +1718,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 				case BUY -> new ConservationFacts(current.primaryCount() - 10, current.secondaryCount(), current.objectCount(), current.instanceId(), current.x(), current.y(), current.z());
 				case SELL -> new ConservationFacts(current.primaryCount(), current.secondaryCount() - 5, current.objectCount() - 5, current.instanceId(), current.x(), current.y(), current.z());
 				case TELEPORT -> new ConservationFacts(current.primaryCount() - 10, 0, 0, current.instanceId(), current.x(), current.y(), current.z());
+				default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 			};
 			return true;
 		}
@@ -1494,6 +1732,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 				case BUY -> new ConservationFacts(current.primaryCount(), current.secondaryCount() + 5, current.objectCount() + 5, current.instanceId(), current.x(), current.y(), current.z());
 				case SELL -> new ConservationFacts(current.primaryCount() + 10, current.secondaryCount(), current.objectCount(), current.instanceId(), current.x(), current.y(), current.z());
 				case TELEPORT -> new ConservationFacts(current.primaryCount(), 0, 0, 0, 100, 200, 300);
+				default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 			};
 			return true;
 		}

@@ -219,6 +219,7 @@ public final class PhantomCommerceDecision
 		}
 		return switch (expectedKind)
 		{
+			case WAREHOUSE_DEPOSIT, WAREHOUSE_WITHDRAW, CRYSTALLIZE -> throw new IllegalArgumentException("Maintenance requires the bound inventory journey.");
 			case BUY ->
 				{
 					requireNamespace(source, "commerce.buy");

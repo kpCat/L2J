@@ -364,6 +364,7 @@ public final class PhantomTestLauncher
 			case "commerce-decision" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.DECISION);
 			case "commerce-server-integration" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.SERVER_INTEGRATION);
 			case "commerce-hardening" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.HARDENING);
+			case "farm-economy-native066" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.FARM_ECONOMY_066);
 			case "commerce-performance" -> new PhantomCommerceSuite(PhantomCommerceSuite.Mode.PERFORMANCE);
 			case "background-model" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.MODEL);
 			case "background-transaction" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.TRANSACTION);

@@ -104,7 +104,7 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 	{
 		return switch (request.kind())
 		{
-			case BUY -> (current.primaryCount() == expectedAfter.primaryCount()) //
+			case BUY, WAREHOUSE_DEPOSIT -> (current.primaryCount() == expectedAfter.primaryCount()) //
 				&& (current.secondaryCount() == before.secondaryCount()) //
 				&& (current.objectCount() == before.objectCount()) //
 				&& current.samePosition(before);
@@ -116,6 +116,7 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 				&& (current.secondaryCount() == before.secondaryCount()) //
 				&& (current.objectCount() == before.objectCount()) //
 				&& current.samePosition(before);
+			case WAREHOUSE_WITHDRAW, CRYSTALLIZE -> false; // Both native sides must agree; partial output is ambiguous, never a credit instruction.
 		};
 	}
 
@@ -207,7 +208,10 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 	{
 		BUY,
 		SELL,
-		TELEPORT
+		TELEPORT,
+		WAREHOUSE_DEPOSIT,
+		WAREHOUSE_WITHDRAW,
+		CRYSTALLIZE
 	}
 
 	public enum State
@@ -252,7 +256,7 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 		public OperationRequest
 		{
 			Objects.requireNonNull(kind, "Operation kind must not be null.");
-			if ((npcTemplateId <= 0) || (npcObjectId <= 0) || (count < 0) || (amount < 0) || (feeItemId < 0) || (feeCount < 0) || (ordinal < 0))
+			if ((npcTemplateId < 0) || (npcObjectId < 0) || (kind != OperationKind.CRYSTALLIZE && (npcTemplateId == 0 || npcObjectId == 0)) || (count < 0) || (amount < 0) || (feeItemId < 0) || (feeCount < 0) || (ordinal < 0))
 			{
 				throw new IllegalArgumentException("Operation request contains invalid numeric facts.");
 			}
@@ -282,6 +286,14 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 					{
 						throw new IllegalArgumentException("Invalid canonical teleport request.");
 					}
+				}
+				case WAREHOUSE_DEPOSIT, WAREHOUSE_WITHDRAW ->
+				{
+					if (listId != 0 || itemId <= 0 || itemObjectId <= 0 || count <= 0 || amount != (kind == OperationKind.WAREHOUSE_DEPOSIT ? 30 : 0) || feeItemId != 0 || feeCount != 0 || ordinal != 0 || !listName.isEmpty()) { throw new IllegalArgumentException("Invalid private warehouse request."); }
+				}
+				case CRYSTALLIZE ->
+				{
+					if (npcTemplateId != 0 || npcObjectId != 0 || listId != 0 || itemId <= 0 || itemObjectId <= 0 || count != 1 || amount <= 0 || feeItemId <= 0 || feeCount != 0 || ordinal != 0 || !listName.isEmpty()) { throw new IllegalArgumentException("Invalid native crystal request."); }
 				}
 			}
 		}

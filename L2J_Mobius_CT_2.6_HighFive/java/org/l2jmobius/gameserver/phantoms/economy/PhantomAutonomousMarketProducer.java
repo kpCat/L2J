@@ -285,7 +285,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			return false;
 		}
 		final ItemTemplate template = item.getTemplate();
-		if (template.isQuestItem() || template.isHeroItem() || (template.getTime() != -1) || ((state != null) && (state.targetItemId() == item.getId() || ((state.recipePlan() != null) && state.recipePlan().nodes().stream().anyMatch(node -> node.itemId() == item.getId())))))
+		if (org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.getInstance().protectedTemplate(template) || item.getEnchantLevel() > 0 || item.isAugmented() || item.getElementals() != null && item.getElementals().length > 0 || ((state != null) && (state.targetItemId() == item.getId() || ((state.recipePlan() != null) && state.recipePlan().nodes().stream().anyMatch(node -> node.itemId() == item.getId())))))
 		{
 			return false;
 		}

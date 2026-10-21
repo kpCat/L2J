@@ -338,13 +338,13 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 			final var hardAction = materialization.tryAcquireAction(oldId).orElseThrow();
 			try
 			{
+				final long arrivalStart = System.nanoTime();
 				observer.set(newPoint);
 				if (!_burst066) { retentionClock.addAndGet(TimeUnit.SECONDS.toNanos(61)); }
 				await(() -> locality.isCurrentLocal(newId) && !locality.isLocal(oldId), 3000, "Observer demand failed to move between real towns.");
 				context.record("task065.before", "old=" + oldLifetime + " incoming=" + newId + " preparation=" + ecology.preparationSnapshot() + " due=" + ecology.dueSnapshot(newId));
 				if (_burst066)
 				{
-					final long arrivalStart = System.nanoTime();
 					await(() -> materialization.find(newId).map(entry -> entry.worldPresent() && entry.actionAdmissionOpen()).orElse(false), 10000, "Ready local actor waited for old cleanup despite burst reserve.");
 					PhantomAssertions.assertTrue(materialization.find(oldId).orElseThrow().worldPresent() && materialization.find(secondOld.profileId()).orElseThrow().worldPresent(), "Burst admission evicted an old owner before grace.");
 					PhantomAssertions.assertEquals(3, materialization.snapshot().occupiedSlots(), "Burst must count3 actual owners against separate soft2/ceiling4.");
@@ -360,7 +360,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 				}
 				PhantomAssertions.assertTrue(retention.observe(oldId).hard(), "Admitted native action lacks hard hold.");
 				if (!_burst066) { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CAPACITY_REACHED, boundary.diagnosticFailures().get(newId), "Hard-held negative did not reach the actual native capacity boundary."); }
-				context.record("task065.hardHeld", "same native epoch; incoming remains pending; no eviction for admitted action");
+				context.record("task065.hardHeld", _burst066 ? "same old native epoch; incoming admitted in reserve; no eviction for admitted action" : "same native epoch; incoming remains pending; no eviction for admitted action");
 			}
 			finally { hardAction.close(); }
 			if (_burst066)
@@ -371,7 +371,7 @@ public final class PhantomLivingPresence065NativeSuite implements PhantomTestSui
 				retention.observe(secondOld.profileId());
 				observer.set(newPoint);
 				await(() -> !locality.isLocal(oldId) && locality.isCurrentLocal(newId), 3000, "Second departure did not reach actual local control.");
-				final long departure = System.nanoTime();
+				final long departure = retention.observe(oldId).lastHumanNanos();
 				context.record("task066.cleanupExpected", "Real monotonic human grace60s + native scheduler/drain, idle deadline120s; no further cap-pressure demand, occupied3<ceiling4");
 				while (System.nanoTime() - departure < TimeUnit.SECONDS.toNanos(58))
 				{

@@ -24,7 +24,7 @@ public final class PhantomNativeEquipmentPolicy
 		if (player == null || item == null || item.isQuestItem() || item.getCrystalType().getLevel() > Math.max(0, player.getExpertiseLevel()) || !item.checkCondition(player, player, false)) { return false; }
 		if (item instanceof Weapon weapon)
 		{
-			if ((player.isMageClass() ? weapon.getSpiritShotCount() : weapon.getSoulShotCount()) <= 0 || weapon.isMagicWeapon() != player.isMageClass()) { return false; }
+			if (weapon.isMagicWeapon() != player.isMageClass()) { return false; }
 			final var current = player.getActiveWeaponItem();
 			return player.isMageClass() || current == null || current == player.getFistsWeaponItem() || current.isMagicWeapon() || current.getItemType() == weapon.getItemType();
 		}

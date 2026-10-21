@@ -43,5 +43,15 @@ Module README.md, дополнительные AGENTS в docs-цепочке, о
 
 ## Evidence и продолжение
 
+## Адресный аудит C/D
+
+C: прочитаны MaterializationService/MaterializedPlayer, Retention/Reconcile/Scheduler, Locality, Settings/config, Population wiring и ScaleEnvelope consumers; аналоги065 native pressure/epoch guards и pure scheduler. Soft target отделён от physical target+burst; тот же permit удерживает loading/failed owner. Idle retirement использует existing ready queue и native seal, current human recheck не берёт admission monitors других actors. Burst0 сохраняет065 strict policy. Native C на committed8a5e9e73a, JAR EE63F05653D0E10251CFED83159BA95300677D309B2EC7C36080DF69CBD9D7F2; результат ожидается.
+
+D read-first: прочитаны CommerceService/Receipt/ReceiptStore/Backend, SupplyIntentStore/SupplyJourney proposal/advance/navigation/terminal, EconomyConflictPort/ReservationService, stock RequestSellItem и warehouse deposit/withdraw packets, PlayerWarehouse/ItemContainer.transferItem, CrystallizationService, RecipeData/RecipeList, NativeEquipmentPolicy, MarketProducer surplus и PricingAuthority. Дополнительные адресные Player Adena/store и NativeWorkScope checkpoint нужны для writer audit.
+
+Writer audit до D mutation: World rewards/pickup/party shares и автоиспользование принадлежат native work; autosave/store — checkpoint; Background — identity lease; market/trade/craft — economy reservations. Один ActionLease не сериализует этих writers. Новый maintenance writer должен сначала yield текущий combat/loot, затем закрыть собственный ActionLease, получить существующий native checkpoint и economy claim; receipt PREPARED/COMMITTING/COMMITTED проверяет точные conservation facts. Pending/inconsistent не компенсировать автоматически. Native inventory/warehouse flush предшествует подтверждению receipt. Нельзя drain из собственного native context.
+
+D намечен в том же SupplyJourney: bounded maintenance child в существующем Goal codec с root/class/epoch/field binding, source operations≤3, cooldown/low-high watermarks, существующие navigation и return. Recipe→product index один на процесс, highest grade/неоднозначность защищают ingredients; неизвестное, jewelry/rare, equipped/enchant/augmentation, active needs/reservations сохраняются. Warehouse stock проверяется до новой покупки. Stock AllowRefund=True не отключать; SELL должен использовать native transfer в Refund, затем штатную Adena. Warehouse fee30 за один object line, transfer/merge/capacity штатные; CrystallizationService inspect/crystallize с настоящим skill/yield. Всё это пока план, D implementation/RED/native results ещё NOT_RUN.
+
 Все полные логи/source/build/native evidence: `.phantom-local/task066/`. PLAN/HANDOFF хранят текущий шаг, blockers, exact commands/exit и own PID; acceptance не подменять старым evidence.
 Пока непроверено: environment versions/ports/resources, native results, полный writer set хозяйственных операций, final delivery/publication. Общий `ant verify` запрещён TASK066.

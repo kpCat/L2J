@@ -319,26 +319,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final var gearChoices = ownedItem == null ? choices(player, List.of(item), 0, 1, 1) : List.<Choice>of();
 			if (ownedItem == null && gearChoices.isEmpty()) { continue; }
 			final long reserve = ownedItem == null ? gearChoices.getFirst().price : 0;
-			if (item instanceof org.l2jmobius.gameserver.model.item.Weapon weapon)
+			if (item instanceof org.l2jmobius.gameserver.model.item.Weapon weapon && weapon.isRange())
 			{
-				final ActionType shotAction = neededShotAction(player, weapon);
-				final int perHit = shotAction == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-				var charges = _commerce.catalog().supplies().stream().filter(value -> value.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(value -> ItemData.getInstance().getTemplate(value.itemId())).filter(value -> value.getDefaultAction() == shotAction && compatible(player, value, weapon)).toList();
-				final var allCharges = charges;
-				long stock = charges.stream().mapToLong(value -> player.getInventory().getInventoryItemCount(value.getId(), -1)).sum();
-				final var blessed = shotAction == ActionType.SPIRITSHOT ? charges.stream().filter(value -> value instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
-				if (!blessed.isEmpty()) { charges = blessed; }
-				boolean ammunition = false;
-				if (stock >= (long) perHit * _policy.lowWaterHits() && weapon.isRange())
+				final var charges = _commerce.catalog().supplies().stream().filter(value -> value.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(value -> ItemData.getInstance().getTemplate(value.itemId())).filter(value -> compatible(player, value, weapon)).toList();
+				final long stock = charges.stream().mapToLong(value -> player.getInventory().getInventoryItemCount(value.getId(), -1)).sum();
+				if (stock < _policy.lowWaterHits())
 				{
-					charges = _commerce.catalog().supplies().stream().filter(value -> value.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(value -> ItemData.getInstance().getTemplate(value.itemId())).filter(value -> compatible(player, value, weapon)).toList();
-					stock = charges.stream().mapToLong(value -> player.getInventory().getInventoryItemCount(value.getId(), -1)).sum(); ammunition = true;
-				}
-				final int consumed = ammunition ? 1 : perHit;
-				if (stock < (long) consumed * _policy.lowWaterHits())
-				{
-					var supplies = choices(player, charges, stock, consumed, Math.min(600, (long) consumed * _policy.targetHits()), reserve);
-					if (supplies.isEmpty() && !ammunition && !blessed.isEmpty()) { supplies = choices(player, allCharges, stock, consumed, Math.min(600, (long) consumed * _policy.targetHits()), reserve); }
+					final var supplies = choices(player, charges, stock, 1, Math.min(600, _policy.targetHits()), reserve);
 					if (supplies.isEmpty()) { continue; }
 					cached.equipmentOffer = equipmentOffer(root, player, cached, supplies, Map.of("equipment.weapon", (long) weapon.getId(), "equipment.reserve", reserve), 0, now);
 					return Optional.ofNullable(cached.equipmentOffer);
@@ -353,12 +340,6 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private boolean weaponResources(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon)
 	{
 		if (weapon == null) { return false; }
-		for (ActionType action : shotActions(player))
-		{
-			final long shots = player.getInventory().getItems().stream().filter(item -> item.getTemplate().getDefaultAction() == action && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum();
-			final int consumed = action == ActionType.SPIRITSHOT ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-			if (consumed <= 0 || shots < (long) consumed * _policy.lowWaterHits()) { return false; }
-		}
 		return !weapon.isRange() || player.getInventory().getItems().stream().filter(item -> item.getEtcItem() != null && (item.getEtcItem().getItemType() == EtcItemType.ARROW || item.getEtcItem().getItemType() == EtcItemType.BOLT) && compatible(player, item.getTemplate(), weapon)).mapToLong(item -> item.getCount()).sum() >= _policy.lowWaterHits();
 	}
 

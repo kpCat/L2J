@@ -121,6 +121,12 @@ public final class PhantomCommerceService
 
 	public OperationResult execute(long profileId, long goalId, long goalRevision, OperationIntent intent, BooleanSupplier cancelled)
 	{
+		Objects.requireNonNull(intent); Objects.requireNonNull(cancelled);
+		return _backend.withNativeBoundary(profileId, intent, () -> executeBound(profileId, goalId, goalRevision, intent, cancelled));
+	}
+
+	private OperationResult executeBound(long profileId, long goalId, long goalRevision, OperationIntent intent, BooleanSupplier cancelled)
+	{
 		Objects.requireNonNull(intent);
 		Objects.requireNonNull(cancelled);
 		if (!beginOperation())
@@ -324,6 +330,7 @@ public final class PhantomCommerceService
 		{
 			saveReceipt(versioned.rowVersion(), receipt.withState(State.INCONSISTENT));
 		}
+		_backend.failClosed(receipt.profileId(), reason);
 		return OperationResult.inconsistent(reason);
 	}
 
@@ -470,6 +477,9 @@ public final class PhantomCommerceService
 	public interface Backend
 	{
 		Optional<ActorLease> tryAcquire(long profileId);
+
+		default OperationResult withNativeBoundary(long profileId, OperationIntent intent, Supplier<OperationResult> operation) { return operation.get(); }
+		default void failClosed(long profileId, Reason reason) { }
 	}
 
 	public interface ReceiptPersistence
@@ -498,7 +508,7 @@ public final class PhantomCommerceService
 		public OperationIntent
 		{
 			Objects.requireNonNull(kind);
-			if ((npcTemplateId <= 0) || (npcObjectId <= 0) || (listId < 0) || (itemId < 0) || (itemObjectId < 0) || (count < 0) || (ordinal < 0) || (expenseBudget < 0))
+			if ((npcTemplateId < 0) || (npcObjectId < 0) || (kind != OperationKind.CRYSTALLIZE && (npcTemplateId == 0 || npcObjectId == 0)) || (listId < 0) || (itemId < 0) || (itemObjectId < 0) || (count < 0) || (ordinal < 0) || (expenseBudget < 0))
 			{
 				throw new IllegalArgumentException("Commerce intent numeric facts are invalid.");
 			}
