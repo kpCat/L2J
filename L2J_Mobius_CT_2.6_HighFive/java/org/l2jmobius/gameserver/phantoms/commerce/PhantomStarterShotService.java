@@ -124,8 +124,9 @@ public final class PhantomStarterShotService
 
 	private static int compatibleItemId(Player player)
 	{
-		final var weapon = player.getActiveWeaponItem();
-		if (weapon == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponInstance().getEnchantLevel() > 0 || weapon == player.getFistsWeaponItem() || weapon.getCrystalTypePlus().getLevel() != 0) { return 0; }
+		final var instance = player.getActiveWeaponInstance();
+		final var weapon = instance == null ? null : instance.getWeaponItem();
+		if (weapon == null || instance.getEnchantLevel() > 0 || weapon == player.getFistsWeaponItem() || weapon.getCrystalTypePlus().getLevel() != 0) { return 0; }
 		final boolean magic = player.getAllSkills().stream().anyMatch(skill -> !skill.isPassive() && skill.isMagic() && skill.isDamage()) && weapon.getSpiritShotCount() > 0;
 		final int itemId = magic ? 3947 : 1835;
 		return L2jPhantomSupplyJourney.compatible(player, ItemData.getInstance().getTemplate(itemId)) && (magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount()) > 0 ? itemId : 0;

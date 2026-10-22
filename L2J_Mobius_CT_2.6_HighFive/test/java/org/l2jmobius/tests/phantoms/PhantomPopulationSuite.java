@@ -982,6 +982,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				}
 				else { first.start(); second.start(); start.countDown(); first.join(10_000); second.join(10_000); }
 				PhantomAssertions.assertFalse(first.isAlive() || second.isAlive(), "Native starter claims did not retire.");
+				PhantomAssertions.assertTrue(failures.isEmpty(), "Starter rejection must be a clean no-credit result, not an exception: "+failures);
 				final var budget = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(_profiles.findComponent(id,org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow().payload());
 				final long stock = player.getInventory().getInventoryItemCount(1835,-1) + player.getInventory().getInventoryItemCount(2509,-1) + player.getInventory().getInventoryItemCount(3947,-1);
 				PhantomAssertions.assertEquals(scene < 2 || scene == 6 ? 1000 : 0, budget.issued(), "Concurrent/ambiguous/historical/ineligible first debit differs.");
