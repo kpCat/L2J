@@ -137,6 +137,9 @@ public final class PrivateStoreService
 			{
 				return Result.REJECTED;
 			}
+			// Reject an unsafe owner listing before a durable pair observer begins observing effects.
+			final OwnerObserver ownerAdmission = _ownerObservers.get(owner.getObjectId());
+			if (ownerAdmission != null && !ownerAdmission.beforeTransaction(owner, list)) { return Result.REJECTED; }
 			final Observer observer = _observers.get(new Key(direction, actor.getObjectId(), owner.getObjectId()));
 			if ((observer != null) && !observer.beforeMutation(direction, actor, owner, list, beforeHash, requestHash, mode))
 			{
@@ -250,6 +253,7 @@ public final class PrivateStoreService
 	@FunctionalInterface
 	public interface OwnerObserver
 	{
+		default boolean beforeTransaction(Player owner, TradeList list) { return true; }
 		void afterTransaction(Player owner, TradeList list, boolean successful);
 	}
 

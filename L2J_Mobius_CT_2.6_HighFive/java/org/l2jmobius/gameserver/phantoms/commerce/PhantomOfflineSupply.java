@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.ToLongFunction;
+import java.util.function.LongUnaryOperator;
 
 import org.l2jmobius.gameserver.data.xml.RecipeData;
 import org.l2jmobius.gameserver.model.World;
@@ -36,6 +37,12 @@ public final class PhantomOfflineSupply
 	public Optional<PhantomGoal> offer(Player buyer, PhantomGoal root, Binding binding, long revision,
 			List<ItemTemplate> items, long wanted, long reserve, long deadline, long maximumUnitPrice, ToLongFunction<Player> roundTripFee)
 	{
+		return offer(buyer, root, binding, revision, items, wanted, deadline, maximumUnitPrice, roundTripFee, fees -> Math.max(0, buyer.getAdena() - reserve - fees));
+	}
+
+	public Optional<PhantomGoal> offer(Player buyer, PhantomGoal root, Binding binding, long revision,
+			List<ItemTemplate> items, long wanted, long deadline, long maximumUnitPrice, ToLongFunction<Player> roundTripFee, LongUnaryOperator availableBudget)
+	{
 		final var choices = new ArrayList<Choice>();
 		final var owners = World.getInstance().getVisibleObjectsInRange(buyer, Player.class, 6000).stream()
 			.filter(owner -> owner != buyer && offline(owner) && owner.getInstanceId() == buyer.getInstanceId())
@@ -43,7 +50,7 @@ public final class PhantomOfflineSupply
 		for (var owner : owners)
 		{
 			final long fees = roundTripFee.applyAsLong(owner);
-			final long budget = fees < 0 ? 0 : buyer.getAdena() - reserve - fees;
+			final long budget = fees < 0 ? 0 : availableBudget.applyAsLong(fees);
 			if (budget <= 0) { continue; }
 			if (owner.getPrivateStoreType() == PrivateStoreType.SELL)
 			{

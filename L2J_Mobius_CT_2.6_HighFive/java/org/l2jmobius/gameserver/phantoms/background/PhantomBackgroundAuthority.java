@@ -56,6 +56,23 @@ public interface PhantomBackgroundAuthority
 		return new NativeCapture(capture(profileId, player, goal, previous), new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN));
 	}
 
+	/** Optional only for legacy test authorities; production supplies native current-loadout facts. */
+	default Optional<PlanningCombat> planningCombat(Player player) { return Optional.empty(); }
+
+	default Optional<Target> planningTarget(int npcId) { return Optional.empty(); }
+	default boolean viableTarget(PlanningCombat combat, int npcId) { return true; }
+
+	record PlanningCombat(PhantomBackgroundState.CombatFacts combat, PhantomBackgroundState.Vitals vitals, double requiredMp)
+	{
+		public PlanningCombat
+		{
+			Objects.requireNonNull(combat, "combat"); Objects.requireNonNull(vitals, "vitals");
+			if (!Double.isFinite(requiredMp) || requiredMp < 0) { throw new IllegalArgumentException("Invalid native planning MP cost."); }
+		}
+		public boolean viable(Target target) { return PhantomBackgroundModel.viableEncounter(combat, vitals, requiredMp, target); }
+		public static PlanningCombat from(PhantomBackgroundState state) { return new PlanningCombat(state.combat(), state.vitals(), state.loadout().skillMpPerEncounter()); }
+	}
+
 	default NativeCapture captureOwnedNativeAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
 	{
 		return new NativeCapture(captureAcquisition(profileId, player, goal, previous, targetItemId), new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN));

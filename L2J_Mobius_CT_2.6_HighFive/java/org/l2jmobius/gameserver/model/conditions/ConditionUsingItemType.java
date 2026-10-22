@@ -46,6 +46,12 @@ public class ConditionUsingItemType extends Condition
 		_mask = mask;
 		_armor = (_mask & (ArmorType.MAGIC.mask() | ArmorType.LIGHT.mask() | ArmorType.HEAVY.mask())) != 0;
 	}
+
+	/** Read-only template projection; does not pretend that a candidate is already equipped. */
+	public boolean matchesItemType(ItemTemplate item)
+	{
+		return item != null && (_armor ? item.isArmor() : item.isWeapon()) && (_mask & item.getItemMask()) != 0;
+	}
 	
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, Skill skill, ItemTemplate item)

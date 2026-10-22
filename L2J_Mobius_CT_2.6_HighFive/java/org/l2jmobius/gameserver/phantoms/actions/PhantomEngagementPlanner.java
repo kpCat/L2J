@@ -15,6 +15,8 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 
 /** Bounded factual discovery; no movement, path search, ownership grant or combat execution. */
 public final class PhantomEngagementPlanner
@@ -22,11 +24,25 @@ public final class PhantomEngagementPlanner
 	public enum Kind { READY, NEED_APPROACH, UNAVAILABLE }
 	public record Opportunity(Kind kind, PlayerNativeEvidence.Target target, PhantomNavigationPoint targetPosition, int skillId, int range, boolean nativeDirect, List<PhantomNavigationPoint> positions) { }
 	private static final int[][] DIRECTIONS={{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
+	private static final int MAXIMUM_THREATS = org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.productionDefaults(1).maximumObservedAttackers();
 	public boolean eligible(Player player, Creature target, int npcId)
 	{
 		if(target==null||!target.isMonster()||target.isRaid()||target.isAlikeDead()||!target.isTargetable()||target.isInvul()||!target.asNpc().isShowName()||!target.isAutoAttackable(player)||target.getInstanceId()!=player.getInstanceId()||target.asNpc().getId()!=npcId){return false;}
 		if(player.getAutoPlaySettings().isRespectfulHunting()&&target.getTarget()!=null&&target.getTarget()!=player&&!(player.hasSummon()&&player.getSummon().getObjectId()==target.getTarget().getObjectId())){return false;}
-		return Math.abs((long)player.getZ()-target.getZ())<800 && player.calculateDistance2D(target)<=localRange(player);
+		return Math.abs((long)player.getZ()-target.getZ())<800 && player.calculateDistance2D(target)<=localRange(player) && viable(player,target);
+	}
+	/** Admission only; native AutoUse/attack remains the sole executor and resource consumer. */
+	public static boolean viable(Player player, Creature target)
+	{
+		if (target == null || !target.isMonster() || target.isRaid() || target.isAlikeDead()) { return false; }
+		final Skill skill = offensiveSkill(player, target);
+		final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, skill);
+		final var projected = L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
+		if (!combat.viable(projected)) { return false; }
+		final var threats = World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
+			.filter(other -> other != target && !other.isAlikeDead() && other.isAttackable() && other.getInstanceId() == player.getInstanceId() && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(other, player)).limit(MAXIMUM_THREATS + 1).toList();
+		if (threats.size() > MAXIMUM_THREATS || threats.stream().anyMatch(other -> !other.isMonster() || other.isRaid())) { return false; }
+		return threats.isEmpty() || PhantomBackgroundModel.viableEncounter(combat.combat(), combat.vitals(), combat.requiredMp(), projected, threats.stream().map(other -> L2jPhantomBackgroundAuthority.nativePlanningTarget(other, true)).toList());
 	}
 	private static int localRange(Player player) { return player.getAutoPlaySettings().isShortRange()?AutoPlayConfig.AUTO_PLAY_SHORT_RANGE:AutoPlayConfig.AUTO_PLAY_LONG_RANGE; }
 	public Opportunity inspect(Player player, int npcId, Set<PlayerNativeEvidence.Target> excluded, ToIntFunction<Creature> load)
@@ -68,7 +84,7 @@ public final class PhantomEngagementPlanner
 		points.sort(Comparator.comparingDouble(point->Math.hypot((long)point.x()-player.getX(),(long)point.y()-player.getY())));
 		return new Opportunity(direct||!points.isEmpty()?Kind.NEED_APPROACH:Kind.UNAVAILABLE,key(target),position,skill==null?0:skill.getId(),range,direct,List.copyOf(points));
 	}
-	private static Skill offensiveSkill(Player player, Creature target)
+	public static Skill offensiveSkill(Player player, Creature target)
 	{
 		final var skills=List.copyOf(player.getAutoUseSettings().getAutoSkills());
 		if(skills.isEmpty()){return null;}
@@ -80,7 +96,7 @@ public final class PhantomEngagementPlanner
 			if(skill==null||!skill.isActive()||skill.isPassive()||skill.isToggle()||!skill.hasNegativeEffect()||player.isSkillDisabled(skill)){continue;}
 			if(player.getCurrentMp()<Math.max(skill.getMpInitialConsume()+skill.getMpConsume(),player.getStat().getMpInitialConsume(skill)+player.getStat().getMpConsume(skill))||player.getCharges()<skill.getChargeConsumeCount()){continue;}
 			if(skill.getItemConsumeCount()>0&&player.getInventory().getInventoryItemCount(skill.getItemConsumeId(),-1)<skill.getItemConsumeCount()){continue;}
-			if(!skill.checkCondition(player,target,false)){continue;}
+			if(target!=null&&!skill.checkCondition(player,target,false)){continue;}
 			return skill;
 		}
 		return null;

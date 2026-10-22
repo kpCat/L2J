@@ -291,12 +291,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (_offline != null)
 			{
 				final long wanted = targetStock - stock;
-				cached.offer = _offline.offer(player, root, binding, revision, items, wanted, _policy.minimumAdenaReserve(), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), choices.isEmpty() ? Long.MAX_VALUE : choices.getFirst().price, owner ->
+				final boolean productive = items.stream().allMatch(L2jPhantomSupplyJourney::productiveSupply);
+				cached.offer = _offline.offer(player, root, binding, revision, items, wanted, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), choices.isEmpty() ? Long.MAX_VALUE : choices.getFirst().price, owner ->
 				{
 					final var destination = PhantomNativeTravelActions.point(owner);
 					final long out = fee(player, binding.field(), destination), back = fee(player, destination, binding.field());
 					return out < 0 || back < 0 ? -1 : Math.addExact(out, back);
-				}).orElse(null);
+				}, fees -> _policy.availableBudget(player.getAdena(), fees, 0, productive)).orElse(null);
 				if (cached.offer != null) { return Optional.of(cached.offer); }
 			}
 			if (choices.isEmpty()) { return equipmentProposal(profileId, root, player, cached, now); }
@@ -468,10 +469,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private long purchaseReserve(Player player, ItemTemplate item)
 	{
-		// Equipment keeps the full configured reserve. Combat consumables must remain
-		// affordable to native-born/poor actors: protect one quarter, capped at that reserve.
-		final boolean productive = item != null && (item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT || item instanceof EtcItem etc && (etc.getItemType() == EtcItemType.ARROW || etc.getItemType() == EtcItemType.BOLT));
-		return productive ? Math.min(_policy.minimumAdenaReserve(), player.getAdena() / 4) : _policy.minimumAdenaReserve();
+		return player.getAdena() - _policy.availableBudget(player.getAdena(), 0, 0, productiveSupply(item));
+	}
+	private static boolean productiveSupply(ItemTemplate item)
+	{
+		return item != null && (healingPotion(item) || item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT || item instanceof EtcItem etc && (etc.getItemType() == EtcItemType.ARROW || etc.getItemType() == EtcItemType.BOLT));
 	}
 
 	public static boolean compatible(Player player, ItemTemplate item)
@@ -537,7 +539,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					final var destination = new PhantomNavigationPoint(merchant.getX(), merchant.getY(), merchant.getZ(), merchant.getInstanceId());
 					final long outbound = fee(player, PhantomNativeTravelActions.point(player), destination), returning = fee(player, destination, PhantomNativeTravelActions.point(player));
 					if (outbound < 0 || returning < 0) { continue; }
-					final long budget = player.getAdena() - purchaseReserve(player, item) - outbound - returning - equipmentReserve;
+					final long budget = _policy.availableBudget(player.getAdena(), Math.addExact(outbound, returning), equipmentReserve, productiveSupply(item));
 					final long price = (long) (offer.price() * (1 + merchant.getMpc().getBaseTaxRate()));
 					if (price <= 0 || budget < price) { continue; }
 					final long count = Math.min(wanted, budget / price);
@@ -666,7 +668,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					if (player.isMoving()) { return retry("supplies.counter.movement_pending"); }
 					final var item = ItemData.getInstance().getTemplate(source.itemId);
 					final long returnFee = fee(player, PhantomNativeTravelActions.point(player), binding.field());
-					final long budget = Math.min(intent.expenseBudget(), returnFee < 0 ? 0 : player.getAdena() - purchaseReserve(player, item) - returnFee - intent.constraints().getOrDefault("equipment.reserve", 0L));
+					final long budget = Math.min(intent.expenseBudget(), returnFee < 0 ? 0 : _policy.availableBudget(player.getAdena(), returnFee, intent.constraints().getOrDefault("equipment.reserve", 0L), productiveSupply(item)));
 					final var future = intent.constraints().containsKey("equipment.weapon") ? ItemData.getInstance().getTemplate(intent.constraints().get("equipment.weapon").intValue()) : null;
 					final boolean suitable = intent.constraints().containsKey("equipment.weapon") ? future instanceof org.l2jmobius.gameserver.model.item.Weapon weapon && org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.compatible(player, weapon) && compatible(player, item, weapon) : compatible(player, item);
 					if (!suitable || !mobilePurchase(player, item, source.count) || budget <= 0 || returnFee < 0) { return terminal(profileId, context.goal(), cached, false, "supplies.counter.mobility_or_reserve"); }
@@ -832,7 +834,10 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			cleanup(profileId);
 			if (player.isMoving()) { return retry("supplies.offline.counter_movement_pending"); }
 			final long returnFee = fee(player, PhantomNativeTravelActions.point(player), binding.field());
-			if (returnFee < 0 || player.getAdena() - returnFee - _policy.minimumAdenaReserve() < intent.expenseBudget()) { return retry("supplies.offline.reserve_changed"); }
+			final boolean productive = spec instanceof org.l2jmobius.gameserver.phantoms.economy.PhantomSocialEconomyGoalSpec.StoreBuy buy
+				? buy.lines().stream().allMatch(line -> productiveSupply(ItemData.getInstance().getTemplate(line.itemId())))
+				: spec instanceof org.l2jmobius.gameserver.phantoms.economy.PhantomSocialEconomyGoalSpec.Manufacture craft && productiveSupply(ItemData.getInstance().getTemplate(craft.productItemId()));
+			if (returnFee < 0 || _policy.availableBudget(player.getAdena(), returnFee, 0, productive) < intent.expenseBudget()) { return terminal(profileId, context.goal(), cached, false, "supplies.offline.reserve_changed"); }
 		}
 		// Social economy requires an exclusive action lease, so release this movement lease first.
 		if (context.cancellationToken().isCancelled() || !_allowed.test(profileId)) { return retry("supplies.offline.owner_changed"); }

@@ -1254,7 +1254,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if (player.hasPendingOwnedStore() || (player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId())) { return false; }
 				if (player.isDead()) { return true; } // Existing native death/recovery remains the decision adapter's responsibility.
 				final var progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
-				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
+				// Planning reads current gear/resources; the persisted transaction baseline stays unchanged.
+				final var skill = org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.offensiveSkill(player, null);
+				final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, null, skill);
+				final var beforeLoadout = baseline.loadout();
+				final var loadout = new PhantomBackgroundState.Loadout(skill == null ? 0 : skill.getId(), skill == null ? 0 : skill.getLevel(), beforeLoadout.summonNpcId(), (int) Math.ceil(combat.requiredMp()), beforeLoadout.shotItemId(), beforeLoadout.shotsPerEncounter(), beforeLoadout.summonResourceItemId(), beforeLoadout.summonResourcesPerEncounter());
+				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, combat.vitals(), baseline.position(), combat.combat(), loadout, baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
 				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());

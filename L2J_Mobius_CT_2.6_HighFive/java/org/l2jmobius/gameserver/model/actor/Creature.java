@@ -6766,9 +6766,9 @@ public abstract class Creature extends WorldObject
 	
 	public void reduceCurrentHp(double amount, Creature attacker, boolean awake, boolean isDOT, Skill skill)
 	{
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && isChampion() && (ChampionMonstersConfig.CHAMPION_HP != 0))
+		if (isChampion() && (ChampionMonstersConfig.profile(this).hp() != 0))
 		{
-			_status.reduceHp(amount / ChampionMonstersConfig.CHAMPION_HP, attacker, awake, isDOT, false);
+			_status.reduceHp(amount / ChampionMonstersConfig.profile(this).hp(), attacker, awake, isDOT, false);
 		}
 		else
 		{

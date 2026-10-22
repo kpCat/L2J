@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.managers.RecipeManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService;
 import org.l2jmobius.gameserver.util.LocationUtil;
 
 /** Packet-independent entry into the current RecipeManager manufacture lifecycle. */
@@ -68,7 +69,16 @@ public final class ManufactureService
 		{
 			return Result.REJECTED_BEFORE_EFFECT;
 		}
-		return RecipeManager.getInstance().requestManufactureItem(manufacturer, recipeListId, customer, observer == null ? RecipeCraftObserver.NONE : observer) == RecipeManager.ManufactureStartResult.STARTED ? Result.STARTED : Result.REJECTED_BEFORE_EFFECT;
+		synchronized (manufacturer.getManufactureItems())
+		{
+			if (World.getInstance().getPlayer(manufacturerObjectId) != manufacturer || manufacturer.getPrivateStoreType() != PrivateStoreType.MANUFACTURE
+				|| !manufacturer.getManufactureItems().containsKey(recipeListId) || RecipeManager.getInstance().isMakingItem(manufacturer)
+				|| !PhantomOfflineMerchantService.permitsNativeManufacture(manufacturer, recipeListId))
+			{
+				return Result.REJECTED_BEFORE_EFFECT;
+			}
+			return RecipeManager.getInstance().requestManufactureItem(manufacturer, recipeListId, customer, observer == null ? RecipeCraftObserver.NONE : observer) == RecipeManager.ManufactureStartResult.STARTED ? Result.STARTED : Result.REJECTED_BEFORE_EFFECT;
+		}
 	}
 
 	public enum Result

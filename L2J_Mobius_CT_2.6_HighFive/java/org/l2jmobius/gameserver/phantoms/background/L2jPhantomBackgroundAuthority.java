@@ -39,6 +39,7 @@ import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
+import org.l2jmobius.gameserver.config.custom.ChampionMonstersConfig;
 import org.l2jmobius.gameserver.data.xml.DynamicExpRateData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ExperienceLossData;
@@ -53,6 +54,7 @@ import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.managers.CastleManager;
 import org.l2jmobius.gameserver.managers.TownManager;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
@@ -290,6 +292,51 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		validateShot(player, zeroResourceContract, capability);
 		validateSummonResource(player, zeroResourceContract, capability);
 		return new PlanningSnapshot(player.getLevel(), player.getActiveClass(), anchor.id(), 0, 0, 0, 0, 0);
+	}
+
+	@Override
+	public Optional<PlanningCombat> planningCombat(Player player)
+	{
+		final Skill skill = org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.offensiveSkill(player, null);
+		return Optional.of(nativePlanningCombat(player, null, skill));
+	}
+
+	@Override
+	public Optional<Target> planningTarget(int npcId)
+	{
+		final NpcTemplate template = NpcData.getInstance().getTemplate(npcId);
+		if (template == null || !(template.isType("Monster") || template.isType("RiftInvader"))) { return Optional.empty(); }
+		// Same detached native stat projection as vitality; no spawn, AI or World admission.
+		final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(template);
+		try
+		{
+			if (org.l2jmobius.gameserver.model.World.getInstance().findObject(monster.getObjectId()) != null) { return Optional.empty(); }
+			return Optional.of(nativePlanningTarget(monster, false));
+		}
+		finally { monster.deleteMe(); }
+	}
+
+	@Override
+	public boolean viableTarget(PlanningCombat combat, int npcId)
+	{
+		return planningTarget(npcId).map(combat::viable).orElse(false);
+	}
+
+	/** Native getters already include current equipment, passives, buffs and target-sensitive stats. */
+	public static PlanningCombat nativePlanningCombat(Player player, Creature target, Skill skill)
+	{
+		final double mp = skill == null ? 0 : Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
+		final ModelKind kind = skill != null && skill.isDamage() && skill.isMagic() ? ModelKind.MAGIC : ModelKind.MELEE;
+		final CombatFacts combat = new CombatFacts(kind, player.getPAtk(target), player.getMAtk(target, skill), player.getPDef(target), player.getMDef(target, skill), player.getPAtkSpd(), player.getMAtkSpd(), Formulas.calcHpRegen(player) / 3d, Formulas.calcMpRegen(player) / 3d, 1, 1, 0, 1, 1, 1, 1);
+		return new PlanningCombat(combat, new Vitals(player.getCurrentHp(), player.getMaxHp(), Math.min(player.getCurrentMp(), player.getMaxMp()), player.getMaxMp(), Math.min(player.getCurrentCp(), player.getMaxCp()), player.getMaxCp()), mp);
+	}
+
+	/** Champion HP is damage mitigation in Creature.reduceCurrentHp; maxHP alone hides it. */
+	public static Target nativePlanningTarget(Creature target, boolean remainingHp)
+	{
+		final double championHp = target.isChampion() ? ChampionMonstersConfig.profile(target).hp() : 1;
+		final double hp = Math.max(1, remainingHp ? target.getCurrentHp() : target.getMaxHp()) * Math.max(1, championHp);
+		return new Target(target.asNpc().getId(), target.getLevel(), target.isMonster() && !target.isRaid(), hp, target.getMaxMp(), target.getPAtk(null), target.getMAtk(null, null), target.getPDef(null), target.getMDef(null, null), target.getPAtkSpd(), target.getMAtkSpd(), 0, 0, List.of(), 1, (float) target.getMaxHp());
 	}
 
 	/** Stock death/level loss can retain MP above the new maximum; use the native-store bound. */

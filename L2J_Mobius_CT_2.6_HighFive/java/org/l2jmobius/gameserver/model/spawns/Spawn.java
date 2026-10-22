@@ -444,6 +444,13 @@ public class Spawn extends Location
 		}
 		
 		npc.stopAllEffects();
+
+		// Select before spawnMe so the initial native NPC_INFO carries this generation's tier.
+		if (npc.isAttackable())
+		{
+			npc.asAttackable().setChampion(false);
+			npc.asAttackable().setChampionType(ChampionMonstersConfig.select(npc, getInstanceId()));
+		}
 		
 		// Set the HP and MP of the Npc to the max
 		npc.setCurrentHpMp(npc.getMaxHp(), npc.getMaxMp());
@@ -502,17 +509,6 @@ public class Spawn extends Location
 		if (npc.isMonster() && NpcData.getMasterMonsterIDs().contains(npc.getId()))
 		{
 			npc.asMonster().getMinionList().spawnMinions(npc.getTemplate().getParameters().getMinionList("Privates"));
-		}
-		
-		if (npc.isAttackable())
-		{
-			npc.asAttackable().setChampion(false);
-		}
-		
-		// Set champion on next spawn
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && npc.isMonster() && !npc.isQuestMonster() && !_template.isUndying() && !npc.isRaid() && !npc.isRaidMinion() && (ChampionMonstersConfig.CHAMPION_FREQUENCY > 0) && (npc.getLevel() >= ChampionMonstersConfig.CHAMP_MIN_LEVEL) && (npc.getLevel() <= ChampionMonstersConfig.CHAMP_MAX_LEVEL) && (ChampionMonstersConfig.CHAMPION_ENABLE_IN_INSTANCES || (getInstanceId() == 0)) && (Rnd.get(100) < ChampionMonstersConfig.CHAMPION_FREQUENCY))
-		{
-			npc.asAttackable().setChampion(true);
 		}
 		
 		return npc;

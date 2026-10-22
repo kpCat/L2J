@@ -88,6 +88,12 @@ public class RecipeManager
 			maker.observeAbort();
 		}
 	}
+
+	/** Includes queued ALT_GAME_CREATION work after the constructor clears Player.isCrafting(). */
+	public boolean isMakingItem(Player player)
+	{
+		return player != null && (player.isCrafting() || _activeMakers.containsKey(player.getObjectId()));
+	}
 	
 	public void requestManufactureItem(Player manufacturer, int recipeListId, Player player)
 	{

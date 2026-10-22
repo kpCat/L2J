@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import org.l2jmobius.commons.util.ConfigReader;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyValuation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomAltBPriceCatalog;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketQuote.Policy;
 
 /** Strict startup-only operator policy for Phantom private-market price spread. */
@@ -13,6 +15,8 @@ public final class PhantomMarketConfig
 	public static final String FILE = "./config/Custom/PhantomMarket.ini";
 	private static volatile Policy _policy;
 	private static volatile AutonomousPolicy _autonomousPolicy;
+	private static volatile PhantomEconomyValuation.Policy _valuationPolicy;
+	private static volatile PhantomAltBPriceCatalog _altB = PhantomAltBPriceCatalog.empty();
 
 	private PhantomMarketConfig()
 	{
@@ -22,6 +26,10 @@ public final class PhantomMarketConfig
 	{
 		_policy = read(Path.of(FILE));
 		_autonomousPolicy = readAutonomous(Path.of(FILE));
+		_valuationPolicy = readValuation(Path.of(FILE));
+		if (_valuationPolicy == null) { _policy = null; }
+		try { _altB = PhantomAltBPriceCatalog.load(Path.of(".")); }
+		catch (Exception invalid) { _altB = PhantomAltBPriceCatalog.empty(); _policy = null; java.util.logging.Logger.getLogger(PhantomMarketConfig.class.getName()).warning("Phantom quotation disabled: Alt+B source snapshot rejected: " + invalid.getMessage()); }
 	}
 
 	public static Optional<Policy> policy()
@@ -32,6 +40,20 @@ public final class PhantomMarketConfig
 	public static Optional<AutonomousPolicy> autonomousPolicy()
 	{
 		return Optional.ofNullable(_autonomousPolicy);
+	}
+
+	public static Optional<PhantomEconomyValuation.Policy> valuationPolicy() { return Optional.ofNullable(_valuationPolicy); }
+	public static PhantomAltBPriceCatalog altBSources() { return _altB; }
+
+	public static PhantomEconomyValuation.Policy readValuation(Path file)
+	{
+		try
+		{
+			if (file == null || !Files.isRegularFile(file)) { return PhantomEconomyValuation.Policy.defaults(); }
+			final ConfigReader config = new ConfigReader(file.toString());
+			return new PhantomEconomyValuation.Policy(config.getDouble("PhantomMarketTargetMinutes", 30), config.getDouble("PhantomMarketKillsPerMinute", 4), config.getDouble("PhantomMarketConsumableCostPerKill", 0), config.getInt("PhantomMarketScarcityBasisPoints", 10000), config.getInt("PhantomMarketEpicPremiumBasisPoints", 50000), config.getLong("PhantomMarketManufactureMinimumFee", 100), config.getInt("PhantomMarketManufactureFeeBasisPoints", 200));
+		}
+		catch (RuntimeException invalid) { return null; }
 	}
 
 	public static Policy read(Path file)

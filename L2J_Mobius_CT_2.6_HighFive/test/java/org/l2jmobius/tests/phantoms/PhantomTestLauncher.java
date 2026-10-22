@@ -500,6 +500,15 @@ public final class PhantomTestLauncher
 			case "economy-checkpoint2-performance" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PERFORMANCE);
 			case "post001-enchant-cost" -> new PhantomPost001EnchantCostSuite();
 			case "post001-market-quote" -> new PhantomPost001MarketQuoteSuite();
+			case "champion068-policy" -> new ChampionMonsters068PolicySuite();
+			case "economy068-pricing" -> new PhantomEconomy068PricingSuite();
+			case "economy068-live-npc" -> new PhantomEconomy068LiveNpcSuite();
+
+			case "equipment068-policy" -> new PhantomEquipment068PolicySuite();
+
+			case "combat-viability068" -> new PhantomCombatViability068Checks();
+			case "combat-debt068" -> new PhantomCombatDebt068Checks();
+			case "champion068" -> new ChampionMonsters068Suite();
 			case "post001-recipe-cost" -> new PhantomPost001RecipeCostSuite();
 			case "post001-loot-fair-value" -> new PhantomPost001LootFairValueSuite();
 			case "post001-h5-source-matrix" -> new PhantomPost001H5SourceMatrixSuite();

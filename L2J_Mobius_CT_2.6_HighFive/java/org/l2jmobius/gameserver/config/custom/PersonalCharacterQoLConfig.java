@@ -110,6 +110,7 @@ public final class PersonalCharacterQoLConfig
 	{
 		final StringBuilder diagnostic = new StringBuilder();
 		final boolean solo = adventureSwitch(config, "EnablePersonalSoloInstanceEntry", diagnostic);
+		final boolean soloRift = adventureSwitch(config, "EnablePersonalSoloRift", diagnostic);
 		boolean cubic = adventureSwitch(config, "EnablePersonalWondrousCubicCooldown", diagnostic);
 		final boolean fishing = adventureSwitch(config, "EnablePersonalFishingAssist", diagnostic);
 		boolean augmentation = adventureSwitch(config, "EnablePersonalPositiveAugmentationMultiplier", diagnostic);
@@ -137,7 +138,7 @@ public final class PersonalCharacterQoLConfig
 			if (!Double.isFinite(augmentationMultiplier) || (augmentationMultiplier > 5.0)) { throw new IllegalArgumentException(); }
 		}
 		catch (IllegalArgumentException e) { augmentation = false; diagnostic.append("Augmentation disabled: multiplier must be 1.0..5.0. "); }
-		return new AdventureSettings(solo, cubic, cubicMinutes * 60000L, fishing, henna, augmentation, augmentationMultiplier, diagnostic.toString().trim());
+		return new AdventureSettings(solo, cubic, cubicMinutes * 60000L, fishing, henna, augmentation, augmentationMultiplier, diagnostic.toString().trim(), soloRift);
 	}
 
 	private static boolean adventureSwitch(ConfigReader config, String key, StringBuilder diagnostic)
@@ -160,8 +161,13 @@ public final class PersonalCharacterQoLConfig
 		}
 	}
 
-	public record AdventureSettings(boolean soloInstanceEntry, boolean wondrousCubicCooldown, long wondrousCubicCooldownMillis, boolean fishingAssist, HennaNegativeMode hennaNegativeMode, boolean positiveAugmentation, double positiveAugmentationMultiplier, String diagnostic)
+	public record AdventureSettings(boolean soloInstanceEntry, boolean wondrousCubicCooldown, long wondrousCubicCooldownMillis, boolean fishingAssist, HennaNegativeMode hennaNegativeMode, boolean positiveAugmentation, double positiveAugmentationMultiplier, String diagnostic, boolean soloRift)
 	{
+		public AdventureSettings(boolean soloInstanceEntry, boolean wondrousCubicCooldown, long wondrousCubicCooldownMillis, boolean fishingAssist, HennaNegativeMode hennaNegativeMode, boolean positiveAugmentation, double positiveAugmentationMultiplier, String diagnostic)
+		{
+			this(soloInstanceEntry, wondrousCubicCooldown, wondrousCubicCooldownMillis, fishingAssist, hennaNegativeMode, positiveAugmentation, positiveAugmentationMultiplier, diagnostic, false);
+		}
+
 		public static AdventureSettings disabled()
 		{
 			return new AdventureSettings(false, false, 3600000L, false, HennaNegativeMode.OFF, false, 1.0, "");

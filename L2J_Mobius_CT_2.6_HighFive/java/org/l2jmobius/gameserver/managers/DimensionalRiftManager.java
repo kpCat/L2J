@@ -42,12 +42,14 @@ import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.groups.Party;
+import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.sevensigns.DimensionalRift;
 import org.l2jmobius.gameserver.model.sevensigns.DimensionalRiftRoom;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.network.serverpackets.NpcHtmlMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * Dimensional Rift manager.
@@ -189,7 +191,7 @@ public class DimensionalRiftManager
 												z = riftRoom.getTeleportCoorinates().getZ();
 												if (_rooms.containsKey(type) && _rooms.get(type).containsKey(roomId))
 												{
-													final Spawn spawnDat = new Spawn(mobId);
+													final Spawn spawnDat = riftRoom.createSpawn(mobId);
 													spawnDat.setAmount(1);
 													spawnDat.setXYZ(x, y, z);
 													spawnDat.setHeading(-1);
@@ -257,29 +259,36 @@ public class DimensionalRiftManager
 		player.teleToLocation(getRoom((byte) 0, (byte) 0).getTeleportCoorinates());
 	}
 	
-	public synchronized void start(Player player, byte type, Npc npc)
+	public void start(Player player, byte type, Npc npc)
 	{
-		boolean canPass = true;
-		if (!player.isInParty())
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { startLocked(player, type, npc); }
+	}
+
+	private void startLocked(Player player, byte type, Npc npc)
+	{
+		if ((player == null) || (npc == null) || (type < 1) || (type > 6) || !entryReadiness(type).supported()) { return; }
+		final Party originalParty = player.getParty();
+		final boolean personalSolo = ((originalParty == null) || (originalParty.getMemberCount() == 1)) && PersonalCharacterQoLService.getInstance().isSoloRiftEnabled(player);
+		if ((originalParty == null) && !personalSolo)
 		{
 			showHtmlFile(player, "data/html/seven_signs/rift/NoParty.htm", npc);
 			return;
 		}
 		
-		final Party party = player.getParty();
-		if (party.getLeaderObjectId() != player.getObjectId())
+		if ((originalParty != null) && (originalParty.getLeader() != player))
 		{
 			showHtmlFile(player, "data/html/seven_signs/rift/NotPartyLeader.htm", npc);
 			return;
 		}
 		
-		if (party.isInDimensionalRift())
+		if ((originalParty != null) && originalParty.isInDimensionalRift())
 		{
 			handleCheat(player, npc);
 			return;
 		}
 		
-		if (party.getMemberCount() < GeneralConfig.RIFT_MIN_PARTY_SIZE)
+		final List<Player> members = originalParty == null ? List.of(player) : List.copyOf(originalParty.getMembers());
+		if (!personalSolo && (members.size() < GeneralConfig.RIFT_MIN_PARTY_SIZE))
 		{
 			final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
 			html.setFile(player, "data/html/seven_signs/rift/SmallParty.htm");
@@ -296,113 +305,81 @@ public class DimensionalRiftManager
 			return;
 		}
 		
-		for (Player p : party.getMembers())
+		for (Player p : members)
 		{
-			if (!checkIfInPeaceZone(p.getX(), p.getY(), p.getZ()))
+			if (!checkIfInPeaceZone(p.getX(), p.getY(), p.getZ()) || (p.getInstanceId() != 0))
 			{
-				canPass = false;
-				break;
+				showHtmlFile(player, "data/html/seven_signs/rift/NotInWaitingRoom.htm", npc);
+				return;
 			}
+			if (!p.isOnline() || !p.isSpawned() || p.isAlikeDead() || p.isProcessingTransaction() || ((originalParty != null) && (p.getParty() != originalParty))) { return; }
 		}
-		
-		if (!canPass)
-		{
-			showHtmlFile(player, "data/html/seven_signs/rift/NotInWaitingRoom.htm", npc);
-			return;
-		}
-		
-		Item i;
+
+		if ((player.getParty() != originalParty) || ((originalParty != null) && (originalParty.getPendingInvitation() || originalParty.getMemberCount() != members.size() || originalParty.getLeader() != player))) { return; }
 		final int count = getNeededItems(type);
-		for (Player p : party.getMembers())
+		for (Player p : members)
 		{
-			i = p.getInventory().getItemByItemId(DIMENSIONAL_FRAGMENT_ITEM_ID);
-			if (i == null)
+			final Item item = p.getInventory().getItemByItemId(DIMENSIONAL_FRAGMENT_ITEM_ID);
+			if ((item == null) || (item.getCount() < count))
 			{
-				canPass = false;
-				break;
-			}
-			
-			if (i.getCount() > 0)
-			{
-				if (i.getCount() < getNeededItems(type))
-				{
-					canPass = false;
-					break;
-				}
-			}
-			else
-			{
-				canPass = false;
-				break;
-			}
-		}
-		
-		if (!canPass)
-		{
-			final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
-			html.setFile(player, "data/html/seven_signs/rift/NoFragments.htm");
-			html.replace("%npc_name%", npc.getName());
-			html.replace("%count%", Integer.toString(count));
-			player.sendPacket(html);
-			return;
-		}
-		
-		for (Player p : party.getMembers())
-		{
-			i = p.getInventory().getItemByItemId(DIMENSIONAL_FRAGMENT_ITEM_ID);
-			if (!p.destroyItem(ItemProcessType.FEE, i, count, null, false))
-			{
-				final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
-				html.setFile(player, "data/html/seven_signs/rift/NoFragments.htm");
-				html.replace("%npc_name%", npc.getName());
-				html.replace("%count%", Integer.toString(count));
-				player.sendPacket(html);
+				showNoFragments(player, npc, count);
 				return;
 			}
 		}
-		
-		byte room;
-		List<Byte> emptyRooms;
-		do
+
+		final List<Byte> free = getFreeRooms(type);
+		if (free.isEmpty()) { return; }
+		final byte room = free.get(Rnd.get(free.size()));
+		final List<Player> charged = new ArrayList<>();
+		Party party = originalParty;
+		boolean opened = false;
+		try
 		{
-			emptyRooms = getFreeRooms(type);
-			room = emptyRooms.get(Rnd.get(1, emptyRooms.size()) - 1);
+			// All invitation admission/acceptance and native Party mutations share this monitor.
+			if (personalSolo && !PersonalCharacterQoLService.getInstance().isSoloRiftEnabled(player)) { return; }
+			for (Player p : members)
+			{
+				if (!p.destroyItemByItemId(ItemProcessType.FEE, DIMENSIONAL_FRAGMENT_ITEM_ID, count, null, false))
+				{
+					showNoFragments(player, npc, count);
+					return;
+				}
+				charged.add(p);
+			}
+			if (party == null)
+			{
+				party = new Party(player, PartyDistributionType.FINDERS_KEEPERS);
+				player.setParty(party);
+			}
+			new DimensionalRift(party, type, room, originalParty == null ? player : null, personalSolo);
+			opened = true;
 		}
-		
-		// find empty room
-		while (_rooms.get(type).get(room).isPartyInside());
-		new DimensionalRift(party, type, room);
+		catch (RuntimeException e)
+		{
+			LOGGER.log(Level.WARNING, "Dimensional Rift admission failed; refunding only successfully charged members.", e);
+		}
+		finally
+		{
+			if (!opened)
+			{
+				for (Player p : charged) { p.addItem(ItemProcessType.REFUND, DIMENSIONAL_FRAGMENT_ITEM_ID, count, null, false); }
+				if ((originalParty == null) && (party != null) && !party.isInDimensionalRift() && (party.getMemberCount() == 1) && (party.getLeader() == player) && (player.getParty() == party)) { party.disbandParty(); }
+			}
+		}
+	}
+
+	private void showNoFragments(Player player, Npc npc, int count)
+	{
+		final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
+		html.setFile(player, "data/html/seven_signs/rift/NoFragments.htm");
+		html.replace("%npc_name%", npc.getName());
+		html.replace("%count%", Integer.toString(count));
+		player.sendPacket(html);
 	}
 	
 	public void killRift(DimensionalRift d)
 	{
-		if (d.getTeleportTimerTask() != null)
-		{
-			d.getTeleportTimerTask().cancel();
-		}
-		
-		d.setTeleportTimerTask(null);
-		
-		if (d.getTeleportTimer() != null)
-		{
-			d.getTeleportTimer().cancel();
-		}
-		
-		d.setTeleportTimer(null);
-		
-		if (d.getSpawnTimerTask() != null)
-		{
-			d.getSpawnTimerTask().cancel();
-		}
-		
-		d.setSpawnTimerTask(null);
-		
-		if (d.getSpawnTimer() != null)
-		{
-			d.getSpawnTimer().cancel();
-		}
-		
-		d.setSpawnTimer(null);
+		if (d != null) { d.killRift(); }
 	}
 	
 	private int getNeededItems(byte type)

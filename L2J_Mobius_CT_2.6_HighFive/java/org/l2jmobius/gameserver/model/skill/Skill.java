@@ -1479,6 +1479,12 @@ public class Skill
 		}
 	}
 	
+	/** Immutable view of parsed native functions; reading it never equips an item or applies a skill. */
+	public List<FuncTemplate> getStatFunctionTemplates()
+	{
+		return _funcTemplates == null ? List.of() : Collections.unmodifiableList(_funcTemplates);
+	}
+
 	public void attach(FuncTemplate f)
 	{
 		if (_funcTemplates == null)

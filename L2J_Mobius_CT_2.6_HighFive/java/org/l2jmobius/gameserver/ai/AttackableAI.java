@@ -321,7 +321,7 @@ public class AttackableAI extends CreatureAI
 				return false;
 			}
 			
-			if (me.isChampion() && ChampionMonstersConfig.CHAMPION_PASSIVE)
+			if (me.isChampion() && ChampionMonstersConfig.profile(me).passive())
 			{
 				return false;
 			}

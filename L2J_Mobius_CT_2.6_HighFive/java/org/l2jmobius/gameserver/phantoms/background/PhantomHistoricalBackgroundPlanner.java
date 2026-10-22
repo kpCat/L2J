@@ -35,6 +35,7 @@ import java.util.Set;
 
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.PlanningSnapshot;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.PlanningCombat;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
@@ -78,7 +79,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result planInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)
 	{
 		final PlanningSnapshot facts = _authority.planningSnapshot(player);
-		return plan(profileId, facts.level(), facts.activeClassId(), facts.currentAnchorId(), facts.shotItemId(), facts.shotsPerEncounter(), facts.summonNpcId(), facts.summonResourceItemId(), facts.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, 0, 0);
+		return plan(profileId, facts.level(), facts.activeClassId(), facts.currentAnchorId(), facts.shotItemId(), facts.shotsPerEncounter(), facts.summonNpcId(), facts.summonResourceItemId(), facts.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, 0, 0, Set.of(), Set.of(), null, _authority.planningCombat(player).orElse(null));
 	}
 
 	public Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
@@ -89,7 +90,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
 		final PhantomBackgroundGoalSpec previous = PhantomBackgroundGoalSpec.parse(previousGoal);
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps);
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state));
 	}
 
 	public Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
@@ -101,14 +102,14 @@ public final class PhantomHistoricalBackgroundPlanner
 			return Result.blocked("planner.previous_goal.unsupported");
 		}
 		final PhantomBackgroundState.Loadout loadout = state.loadout();
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state));
 	}
 
 	/** Visible intent uses factual local anchors; native navigation still validates every leg. */
 	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
 		final var previous = PhantomBackgroundGoalSpec.parse(previousGoal);
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state));
 	}
 
 	public boolean isVisibleLocal(PhantomGoal goal, PhantomTopologyPoint live)
@@ -182,6 +183,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			final TargetFact target = page.values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
 			if (target != null)
 			{
+				if (!_authority.viableTarget(PlanningCombat.from(state), target.npc().npcId())) { return false; }
 				if (live != null)
 				{
 					final List<Candidate> local = new ArrayList<>(); addLocalCandidates(local, live, List.of(target));
@@ -198,17 +200,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		return false;
 	}
 
-	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision)
-	{
-		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, Set.of(), Set.of());
-	}
-
-	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps)
-	{
-		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, null);
-	}
-
-	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live)
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat)
 	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
@@ -221,6 +213,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
+		final Map<Integer, Boolean> viability = new java.util.HashMap<>();
 		for (int radius : LOWER_LEVEL_TIERS)
 		{
 			String cursor = null;
@@ -229,7 +222,7 @@ public final class PhantomHistoricalBackgroundPlanner
 				final KnowledgePage<TargetFact> page = targets(Math.max(1, level - radius), maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
 				if (live == null) { addCandidates(candidates, currentAnchorId, page.values()); }
 				else { addLocalCandidates(candidates, live, page.values()); }
-				candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains));
+				candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains) || (combat != null && !viability.computeIfAbsent(candidate.target().npc().npcId(), npcId -> _authority.viableTarget(combat, npcId))));
 				cursor = page.nextCursor();
 				if (cursor == null) { break; }
 			}

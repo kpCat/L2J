@@ -26,7 +26,8 @@ public final class LocalRuntimeShutdown
 
 	private static String controlOwner()
 	{
-		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066r2.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task067.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066r2.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task067.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task068.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if (Boolean.getBoolean("phantom.task068.control")) { return "TASK068_LIVING_ECONOMY"; }
 		if (Boolean.getBoolean("phantom.task067.control")) { return "TASK067_PERSONAL_ADVENTURE"; }
 		if (Boolean.getBoolean("phantom.task066r2.control")) { return "TASK066R2_FARM_ECONOMY"; }
 		if (Boolean.getBoolean("phantom.task066.control")) { return "TASK066_FARM_ECONOMY"; }
@@ -36,11 +37,11 @@ public final class LocalRuntimeShutdown
 	private static boolean enabled()
 	{
 		controlOwner();
-		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control") || Boolean.getBoolean("phantom.task066r2.control") || Boolean.getBoolean("phantom.task067.control");
+		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control") || Boolean.getBoolean("phantom.task066r2.control") || Boolean.getBoolean("phantom.task067.control") || Boolean.getBoolean("phantom.task068.control");
 	}
 
-	private static String taskNumber() { return "TASK067_PERSONAL_ADVENTURE".equals(controlOwner()) ? "067" : "TASK066R2_FARM_ECONOMY".equals(controlOwner()) ? "066r2" : "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
-	private static boolean ownSchema(String schema) { return taskNumber().equals("067") ? schema.matches("l2jmobiush5_personal_(test|release)_067") : taskNumber().equals("066r2") ? schema.matches("l2jmobiush5_phantom_(test|release)_066r2") : schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
+	private static String taskNumber() { return "TASK068_LIVING_ECONOMY".equals(controlOwner()) ? "068" : "TASK067_PERSONAL_ADVENTURE".equals(controlOwner()) ? "067" : "TASK066R2_FARM_ECONOMY".equals(controlOwner()) ? "066r2" : "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
+	private static boolean ownSchema(String schema) { return taskNumber().equals("068") ? schema.matches("l2jmobiush5_phantom_(test|release)_068") : taskNumber().equals("067") ? schema.matches("l2jmobiush5_personal_(test|release)_067") : taskNumber().equals("066r2") ? schema.matches("l2jmobiush5_phantom_(test|release)_066r2") : schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
 
 	static boolean validTask065Root(Path root, Path module, boolean fixture)
 	{
@@ -50,6 +51,11 @@ public final class LocalRuntimeShutdown
 	static boolean validTask066Root(Path root, Path module, boolean fixture)
 	{
 		return root.equals(fixture ? module.getParent().resolve(".phantom-local/task066/runtime") : module.getRoot().resolve("PhantomWorld/Farm-Economy-066-candidate"));
+	}
+
+	static boolean validTask068Root(Path root, Path module, boolean fixture)
+	{
+		return module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive") && root.equals(fixture ? module.getParent().resolve(".phantom-local/task068/runtime-test") : module.getRoot().resolve("PhantomWorld/Living-Economy-068-candidate"));
 	}
 
 	/** Validate before ordinary Main can open a database or listener. Other runtimes remain disabled. */
@@ -80,6 +86,11 @@ public final class LocalRuntimeShutdown
 			final Path expected = schema.endsWith("test_067") ? module.getParent().resolve(".phantom-local/task067/native-test") : module.getRoot().resolve("PhantomWorld/Personal-Adventure-067-candidate");
 			if (!root.equals(expected)) { throw new IllegalArgumentException("TASK067 exact fixture/candidate root required."); }
 		}
+		if (taskNumber().equals("068"))
+		{
+			final Path module = Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize();
+			if (!validTask068Root(root, module, schema.endsWith("test_068"))) { throw new IllegalArgumentException("TASK068 exact fixture/candidate root required."); }
+		}
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
 		if (!validJdbc(database.getProperty("URL", ""), schema))
 		{
@@ -94,6 +105,12 @@ public final class LocalRuntimeShutdown
 	}
 
 	public static void start(String role, Runnable stockShutdown) throws Exception
+	{
+		start(role, () -> true, stockShutdown);
+	}
+
+	/** Keep a valid operator request pending while its accepted native writers drain. */
+	public static void start(String role, java.util.function.BooleanSupplier drained, Runnable stockShutdown) throws Exception
 	{
 		if (!enabled()) { return; }
 		validateLaunch(role);
@@ -110,20 +127,27 @@ public final class LocalRuntimeShutdown
 		final Path directory = root.resolve("local-play/control");
 		if (!directory.equals(directory.toRealPath())) { throw new IllegalArgumentException("TASK064 control alias forbidden."); }
 		final AtomicBoolean requested = new AtomicBoolean();
+		final AtomicBoolean dispatched = new AtomicBoolean();
 		// One operator poll uses the existing shared pool, independently of Phantom population.
 		ThreadPool.scheduleAtFixedRate(() ->
 		{
-			if (requested.get()) { return; }
+			if (dispatched.get()) { return; }
 			final Path file = directory.resolve("stop-" + role + ".properties");
-			if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) { return; }
 			try
 			{
+				// Authorization is accepted once for this exact running incarnation. Its deadline
+				// governs admission, not the duration of already accepted native work.
+				if (requested.get())
+				{
+					if (drained.getAsBoolean() && dispatched.compareAndSet(false, true)) { ThreadPool.execute(stockShutdown); }
+					return;
+				}
+				if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) { return; }
 				final boolean accepted = validRequest(read(file), runtime, role, pid, ticks, System.currentTimeMillis());
 				Files.move(file, directory.resolve((accepted ? "accepted-" : "rejected-") + role + "-" + System.nanoTime() + ".properties"), StandardCopyOption.ATOMIC_MOVE);
 				if (accepted && requested.compareAndSet(false, true))
 				{
 					LOGGER.info("TASK064 identity-verified stock shutdown requested for " + role + ".");
-					ThreadPool.execute(stockShutdown);
 				}
 			}
 			catch (Exception exception) { LOGGER.fine("TASK064 shutdown request rejected: " + exception.getClass().getSimpleName()); }

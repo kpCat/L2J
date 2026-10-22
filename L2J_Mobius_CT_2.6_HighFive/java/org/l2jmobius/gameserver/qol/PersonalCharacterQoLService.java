@@ -72,6 +72,12 @@ public final class PersonalCharacterQoLService
 		return settings.adventureSettings().soloInstanceEntry() && isAdventureUser(player, settings);
 	}
 
+	public boolean isSoloRiftEnabled(Player player)
+	{
+		final Settings settings = settings();
+		return settings.adventureSettings().soloRift() && isAdventureUser(player, settings);
+	}
+
 	public boolean isWondrousCubicCooldownEnabled(Player player)
 	{
 		final Settings settings = settings();
@@ -135,7 +141,7 @@ public final class PersonalCharacterQoLService
 	public boolean isAnyFeatureEnabled(Player player)
 	{
 		final Settings settings = settings();
-		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled() || settings.partySupportEnabled() || (isAdventureUser(player, settings) && (settings.adventureSettings().soloInstanceEntry() || settings.adventureSettings().wondrousCubicCooldown() || settings.adventureSettings().fishingAssist() || settings.adventureSettings().hennaNegativeMode() != HennaNegativeMode.OFF || settings.adventureSettings().positiveAugmentation())));
+		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled() || settings.partySupportEnabled() || (isAdventureUser(player, settings) && (settings.adventureSettings().soloInstanceEntry() || settings.adventureSettings().soloRift() || settings.adventureSettings().wondrousCubicCooldown() || settings.adventureSettings().fishingAssist() || settings.adventureSettings().hennaNegativeMode() != HennaNegativeMode.OFF || settings.adventureSettings().positiveAugmentation())));
 	}
 
 	public boolean canOpenAlternativeSkillList(Player player, Npc trainer)

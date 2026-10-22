@@ -714,6 +714,8 @@ public final class LocalPlayPilotService
 			_observerPopulationStatus.setProperty("populationActiveCurrent", Long.toString(population.activeCurrent()));
 			_observerPopulationStatus.setProperty("populationActivityStates", population.activityStateCounts().toString());
 			_observerPopulationStatus.setProperty("populationEcology", population.ecology().toString());
+			final var merchants = org.l2jmobius.gameserver.phantoms.PhantomSystem.offlineMerchantSnapshot();
+			_observerPopulationStatus.setProperty("offlineMerchantRole", merchants == null ? "DISABLED" : merchants.toString());
 			// Bounded passive readiness facts distinguish missing local inputs from admission failures.
 			if (snapshot.point() != null)
 			{

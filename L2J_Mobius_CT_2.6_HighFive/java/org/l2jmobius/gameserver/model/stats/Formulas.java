@@ -261,9 +261,9 @@ public class Formulas
 		double hpRegenMultiplier = creature.isRaid() ? NpcConfig.RAID_HP_REGEN_MULTIPLIER : PlayerConfig.HP_REGEN_MULTIPLIER;
 		double hpRegenBonus = 0;
 		
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && creature.isChampion())
+		if (creature.isChampion())
 		{
-			hpRegenMultiplier *= ChampionMonstersConfig.CHAMPION_HP_REGEN;
+			hpRegenMultiplier *= ChampionMonstersConfig.profile(creature).hpRegen();
 		}
 		
 		if (creature.isPlayer())

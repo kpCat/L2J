@@ -97,7 +97,7 @@ public class Party extends AbstractPlayerGroup
 	private Set<Integer> _changeDistributionTypeAnswers = null;
 	private int _itemLastLoot = 0;
 	private CommandChannel _commandChannel = null;
-	private DimensionalRift _dr;
+	private volatile DimensionalRift _dr;
 	private Future<?> _positionBroadcastTask = null;
 	protected PartyMemberPosition _positionPacket;
 	private boolean _disbanding = false;
@@ -281,6 +281,11 @@ public class Party extends AbstractPlayerGroup
 	 */
 	public void addPartyMember(Player player)
 	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { addPartyMemberLocked(player); }
+	}
+
+	private void addPartyMemberLocked(Player player)
+	{
 		if (_members.contains(player))
 		{
 			return;
@@ -401,6 +406,11 @@ public class Party extends AbstractPlayerGroup
 	 * @param type the message type {@link PartyMessageType}.
 	 */
 	public void removePartyMember(Player player, PartyMessageType type)
+	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { removePartyMemberLocked(player, type); }
+	}
+
+	private void removePartyMemberLocked(Player player, PartyMessageType type)
 	{
 		if (_members.contains(player))
 		{
@@ -531,6 +541,11 @@ public class Party extends AbstractPlayerGroup
 	 */
 	public void disbandParty()
 	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { disbandPartyLocked(); }
+	}
+
+	private void disbandPartyLocked()
+	{
 		_disbanding = true;
 		broadcastPacket(new SystemMessage(SystemMessageId.THE_PARTY_HAS_DISPERSED));
 		for (Player member : _members)
@@ -553,6 +568,11 @@ public class Party extends AbstractPlayerGroup
 	
 	@Override
 	public void setLeader(Player player)
+	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { setLeaderLocked(player); }
+	}
+
+	private void setLeaderLocked(Player player)
 	{
 		if ((player != null) && !player.isInDuel())
 		{

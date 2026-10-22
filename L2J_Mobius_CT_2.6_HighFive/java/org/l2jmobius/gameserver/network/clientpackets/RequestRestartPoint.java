@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.managers.FortManager;
 import org.l2jmobius.gameserver.managers.TerritoryWarManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.sevensigns.DimensionalRift;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.actor.instance.SiegeFlag;
 import org.l2jmobius.gameserver.model.clan.Clan;
@@ -301,10 +302,19 @@ public class RequestRestartPoint extends ClientPacket
 		// Teleport and revive
 		if (loc != null)
 		{
+			synchronized (DimensionalRift.LIFECYCLE_LOCK)
+			{
+			final var party = player.getParty();
+			final var rift = party == null ? null : party.getDimensionalRift();
+			if (rift != null)
+			{
+				rift.usedTeleport(player);
+			}
 			player.setInstanceId(instanceId);
 			player.setIn7sDungeon(false);
 			player.setIsPendingRevive(true);
 			player.teleToLocation(loc, true);
+			}
 		}
 	}
 }

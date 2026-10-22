@@ -23,6 +23,16 @@ public record PhantomAutonomousSupplyPolicy(boolean enabled, int lowWaterHits, i
 		return !optionalAmplifier || count >= Math.max(perHit, Math.multiplyExact((long) perHit, Math.max(lowWaterHits + 1, targetHits / 3)) - stock);
 	}
 
+	/** Route fees and earmarks are obligations; the consumable reserve is only a savings target. */
+	public long availableBudget(long balance, long mandatoryFees, long earmarked, boolean productiveConsumable)
+	{
+		if (balance < 0 || mandatoryFees < 0 || earmarked < 0) { throw new IllegalArgumentException("Negative purchase budget input."); }
+		if (mandatoryFees > balance || earmarked > balance - mandatoryFees) { return 0; }
+		final long discretionary = balance - mandatoryFees - earmarked;
+		final long reserve = productiveConsumable ? Math.min(minimumAdenaReserve, discretionary / 4) : Math.min(minimumAdenaReserve, discretionary);
+		return discretionary - reserve;
+	}
+
 	/** Nearby small purchases are useful; a long round trip needs enough charges to justify the travel. */
 	public boolean usefulPurchase(boolean optionalAmplifier, long stock, long count, int perHit, double distance, double speed)
 	{

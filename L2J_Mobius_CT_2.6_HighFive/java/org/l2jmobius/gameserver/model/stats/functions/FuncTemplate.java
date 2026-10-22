@@ -99,6 +99,10 @@ public class FuncTemplate
 	{
 		return _value;
 	}
+
+	/** Native parsed conditions exposed for read-only equipment preference. */
+	public Condition getAttachCondition() { return _attachCond; }
+	public Condition getApplyCondition() { return _applyCond; }
 	
 	/**
 	 * Gets the functions for skills.

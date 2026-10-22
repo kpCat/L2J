@@ -250,11 +250,11 @@ public abstract class AbstractNpcInfo extends ServerPacket
 					t1 += " " + _title;
 				}
 				
-				_title = _npc.isChampion() ? ChampionMonstersConfig.CHAMP_TITLE + " " + t1 : t1;
+				_title = _npc.isChampion() ? ChampionMonstersConfig.profile(_npc).title() + " " + t1 : t1;
 			}
-			else if (ChampionMonstersConfig.CHAMPION_ENABLE && _npc.isChampion())
+			else if (_npc.isChampion())
 			{
-				_title = (ChampionMonstersConfig.CHAMP_TITLE); // On every subclass
+				_title = ChampionMonstersConfig.profile(_npc).title(); // On every subclass
 			}
 			
 			buffer.writeString(_title);

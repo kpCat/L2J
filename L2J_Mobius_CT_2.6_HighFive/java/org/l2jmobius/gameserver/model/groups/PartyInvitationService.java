@@ -20,6 +20,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.Preparation
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.TerminalOutcome;
 import org.l2jmobius.gameserver.model.groups.matching.PartyMatchRoom;
 import org.l2jmobius.gameserver.model.groups.matching.PartyMatchRoomList;
+import org.l2jmobius.gameserver.model.sevensigns.DimensionalRift;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.network.serverpackets.AskJoinParty;
@@ -182,6 +183,11 @@ public final class PartyInvitationService
 
 	public InviteResult invite(Player requester, Player target, int requestedDistributionTypeId)
 	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { return inviteLocked(requester, target, requestedDistributionTypeId); }
+	}
+
+	private InviteResult inviteLocked(Player requester, Player target, int requestedDistributionTypeId)
+	{
 		if (requester == null)
 		{
 			return new InviteResult(InviteOutcome.TARGET_NOT_FOUND, null);
@@ -318,6 +324,11 @@ public final class PartyInvitationService
 	}
 
 	public RespondResult respond(Player invitee, Response response, InvitationIdentity expectedIdentity)
+	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { return respondLocked(invitee, response, expectedIdentity); }
+	}
+
+	private RespondResult respondLocked(Player invitee, Response response, InvitationIdentity expectedIdentity)
 	{
 		Objects.requireNonNull(response, "Party invitation response must not be null.");
 		if (invitee == null)
@@ -812,6 +823,11 @@ public final class PartyInvitationService
 	}
 
 	private void clearDetached(PendingInvitation pending, TerminalOutcome outcome, String reasonKey)
+	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK) { clearDetachedLocked(pending, outcome, reasonKey); }
+	}
+
+	private void clearDetachedLocked(PendingInvitation pending, TerminalOutcome outcome, String reasonKey)
 	{
 		synchronized (pending)
 		{

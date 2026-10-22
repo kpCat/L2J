@@ -765,9 +765,9 @@ public class NpcTemplate extends CreatureTemplate
 					if (RatesConfig.RATE_DROP_CHANCE_BY_ID.get(itemId) != null)
 					{
 						rateChance *= RatesConfig.RATE_DROP_CHANCE_BY_ID.get(itemId);
-						if (champion && (itemId == Inventory.ADENA_ID))
+						if (champion)
 						{
-							rateChance *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_CHANCE;
+							rateChance *= ChampionMonstersConfig.dropChance(victim, itemId, true);
 						}
 						
 						if ((itemId == Inventory.ADENA_ID) && (rateChance > 100))
@@ -785,7 +785,7 @@ public class NpcTemplate extends CreatureTemplate
 					}
 					else
 					{
-						rateChance *= RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER * (champion ? ChampionMonstersConfig.CHAMPION_REWARDS_CHANCE : 1);
+						rateChance *= RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER * (champion ? ChampionMonstersConfig.dropChance(victim, itemId, false) : 1);
 					}
 					
 					// premium chance
@@ -911,7 +911,7 @@ public class NpcTemplate extends CreatureTemplate
 			}
 			
 			// champion extra drop
-			if (victim.isChampion() && (Rnd.get(100) < (victim.getLevel() < killer.getLevel() ? ChampionMonstersConfig.CHAMPION_REWARD_LOWER_LEVEL_ITEM_CHANCE : ChampionMonstersConfig.CHAMPION_REWARD_HIGHER_LEVEL_ITEM_CHANCE)))
+			if (victim.isChampion() && (Rnd.get(100) < (victim.getLevel() < killer.getLevel() ? ChampionMonstersConfig.profile(victim).lowerRewardChance() : ChampionMonstersConfig.profile(victim).higherRewardChance())))
 			{
 				// create list
 				if (calculatedDrops == null)
@@ -919,9 +919,9 @@ public class NpcTemplate extends CreatureTemplate
 					calculatedDrops = new ArrayList<>();
 				}
 				
-				if (!calculatedDrops.containsAll(ChampionMonstersConfig.CHAMPION_REWARD_ITEMS))
+				if (!calculatedDrops.containsAll(ChampionMonstersConfig.profile(victim).rewards()))
 				{
-					calculatedDrops.addAll(ChampionMonstersConfig.CHAMPION_REWARD_ITEMS);
+					calculatedDrops.addAll(ChampionMonstersConfig.profile(victim).rewards());
 				}
 			}
 		}
@@ -1014,7 +1014,7 @@ public class NpcTemplate extends CreatureTemplate
 		}
 		
 		// champion extra drop
-		if (victim.isChampion() && (Rnd.get(100) < (victim.getLevel() < killer.getLevel() ? ChampionMonstersConfig.CHAMPION_REWARD_LOWER_LEVEL_ITEM_CHANCE : ChampionMonstersConfig.CHAMPION_REWARD_HIGHER_LEVEL_ITEM_CHANCE)))
+		if (victim.isChampion() && (Rnd.get(100) < (victim.getLevel() < killer.getLevel() ? ChampionMonstersConfig.profile(victim).lowerRewardChance() : ChampionMonstersConfig.profile(victim).higherRewardChance())))
 		{
 			// create list
 			if (calculatedDrops == null)
@@ -1022,9 +1022,9 @@ public class NpcTemplate extends CreatureTemplate
 				calculatedDrops = new ArrayList<>();
 			}
 			
-			if (!calculatedDrops.containsAll(ChampionMonstersConfig.CHAMPION_REWARD_ITEMS))
+			if (!calculatedDrops.containsAll(ChampionMonstersConfig.profile(victim).rewards()))
 			{
-				calculatedDrops.addAll(ChampionMonstersConfig.CHAMPION_REWARD_ITEMS);
+				calculatedDrops.addAll(ChampionMonstersConfig.profile(victim).rewards());
 			}
 		}
 		
@@ -1053,9 +1053,9 @@ public class NpcTemplate extends CreatureTemplate
 			if (RatesConfig.RATE_DROP_AMOUNT_BY_ID.get(itemId) != null)
 			{
 				rateAmount *= RatesConfig.RATE_DROP_AMOUNT_BY_ID.get(itemId);
-				if (champion && (itemId == Inventory.ADENA_ID))
+				if (champion)
 				{
-					rateAmount *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_AMOUNT;
+					rateAmount *= ChampionMonstersConfig.dropAmount(victim, itemId, true);
 				}
 			}
 			else if (item.hasExImmediateEffect())
@@ -1068,7 +1068,7 @@ public class NpcTemplate extends CreatureTemplate
 			}
 			else
 			{
-				rateAmount *= RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER * (champion ? ChampionMonstersConfig.CHAMPION_REWARDS_AMOUNT : 1);
+				rateAmount *= RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER * (champion ? ChampionMonstersConfig.dropAmount(victim, itemId, false) : 1);
 			}
 			
 			// premium amount
@@ -1132,9 +1132,9 @@ public class NpcTemplate extends CreatureTemplate
 				if (RatesConfig.RATE_DROP_CHANCE_BY_ID.get(itemId) != null)
 				{
 					rateChance *= RatesConfig.RATE_DROP_CHANCE_BY_ID.get(itemId);
-					if (champion && (itemId == Inventory.ADENA_ID))
+					if (champion)
 					{
-						rateChance *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_CHANCE;
+						rateChance *= ChampionMonstersConfig.dropChance(victim, itemId, true);
 					}
 					
 					if ((itemId == Inventory.ADENA_ID) && (rateChance > 100))
@@ -1152,7 +1152,7 @@ public class NpcTemplate extends CreatureTemplate
 				}
 				else
 				{
-					rateChance *= RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER * (champion ? ChampionMonstersConfig.CHAMPION_REWARDS_CHANCE : 1);
+					rateChance *= RatesConfig.RATE_DEATH_DROP_CHANCE_MULTIPLIER * (champion ? ChampionMonstersConfig.dropChance(victim, itemId, false) : 1);
 				}
 				
 				// premium chance
@@ -1191,9 +1191,9 @@ public class NpcTemplate extends CreatureTemplate
 					if (RatesConfig.RATE_DROP_AMOUNT_BY_ID.get(itemId) != null)
 					{
 						rateAmount *= RatesConfig.RATE_DROP_AMOUNT_BY_ID.get(itemId);
-						if (champion && (itemId == Inventory.ADENA_ID))
+						if (champion)
 						{
-							rateAmount *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_AMOUNT;
+							rateAmount *= ChampionMonstersConfig.dropAmount(victim, itemId, true);
 						}
 					}
 					else if (item.hasExImmediateEffect())
@@ -1206,7 +1206,7 @@ public class NpcTemplate extends CreatureTemplate
 					}
 					else
 					{
-						rateAmount *= RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER * (champion ? ChampionMonstersConfig.CHAMPION_REWARDS_AMOUNT : 1);
+						rateAmount *= RatesConfig.RATE_DEATH_DROP_AMOUNT_MULTIPLIER * (champion ? ChampionMonstersConfig.dropAmount(victim, itemId, false) : 1);
 					}
 					
 					// premium amount
@@ -1249,7 +1249,7 @@ public class NpcTemplate extends CreatureTemplate
 			case SPOIL:
 			{
 				// chance
-				double rateChance = RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER;
+				double rateChance = RatesConfig.RATE_SPOIL_DROP_CHANCE_MULTIPLIER * (victim.isChampion() ? ChampionMonstersConfig.profile(victim).spoilChance() : 1);
 				
 				// premium chance
 				final Player player = killer.asPlayer();
@@ -1268,7 +1268,7 @@ public class NpcTemplate extends CreatureTemplate
 				if ((Rnd.nextDouble() * 100) < (dropItem.getChance() * rateChance))
 				{
 					// amount is calculated after chance returned success
-					double rateAmount = RatesConfig.RATE_SPOIL_DROP_AMOUNT_MULTIPLIER;
+					double rateAmount = RatesConfig.RATE_SPOIL_DROP_AMOUNT_MULTIPLIER * (victim.isChampion() ? ChampionMonstersConfig.profile(victim).spoilAmount() : 1);
 					
 					// premium amount
 					if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && (player != null) && player.hasPremiumStatus())

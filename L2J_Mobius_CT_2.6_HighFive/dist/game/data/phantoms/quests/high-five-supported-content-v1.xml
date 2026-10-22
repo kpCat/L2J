@@ -24,7 +24,7 @@
 	</content>
 	<content id="instance.kamaloka-57" kind="KAMALOKA" minLevel="18" maxLevel="28" races="*" classes="*" questId="0" instanceTemplateId="57" acquisitionRuleId="-">
 		<owners>
-			<owner role="instance" questId="-1" scriptName="Kamaloka" className="instances.Kamaloka.Kamaloka" source="data/scripts/instances/Kamaloka/Kamaloka.java" sourceSha256="f62484224522d4c9d05a721284aa65c9aa49b88cdad534e17bf826809f76191b" />
+			<owner role="instance" questId="-1" scriptName="Kamaloka" className="instances.Kamaloka.Kamaloka" source="data/scripts/instances/Kamaloka/Kamaloka.java" sourceSha256="f2100ed10a36b4ae9f8ad0caa9a09371eb7592acad56f65174bfaf776199e22b" />
 		</owners>
 		<steps>
 			<step id="combat.boss" operation="COMBAT" ownerRole="instance" npcIds="18554" event="-" itemId="0" />

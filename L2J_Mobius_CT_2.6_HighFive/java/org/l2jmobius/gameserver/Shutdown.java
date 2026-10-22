@@ -152,15 +152,13 @@ public class Shutdown extends Thread
 			case GM_SHUTDOWN:
 			{
 				getInstance().setMode(GM_SHUTDOWN);
-				startShutdownActions();
-				System.exit(0);
+				if (startShutdownActions()) { System.exit(0); }
 				break;
 			}
 			case GM_RESTART:
 			{
 				getInstance().setMode(GM_RESTART);
-				startShutdownActions();
-				System.exit(2);
+				if (startShutdownActions()) { System.exit(2); }
 				break;
 			}
 			case ABORT:
@@ -340,18 +338,25 @@ public class Shutdown extends Thread
 	/**
 	 * Actions performed when shutdown countdown completes.
 	 */
-	private void startShutdownActions()
+	private boolean startShutdownActions()
 	{
 		if (_countdownFinished)
 		{
-			return;
+			return true;
+		}
+		final long merchantDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
+		while (!PhantomSystem.beginOfflineMerchantStop())
+		{
+			if (System.nanoTime() >= merchantDeadline) { LOGGER.severe("STOP_BLOCKED: native offline manufacture is still draining; no persistence/disconnection/exit."); return false; }
+			try { Thread.sleep(50); }
+			catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return false; }
 		}
 		
 		_countdownFinished = true;
 		
 		final TimeCounter tc = new TimeCounter();
 		final TimeCounter tc1 = new TimeCounter();
-		
+
 		try
 		{
 			if ((OfflineTradeConfig.OFFLINE_TRADE_ENABLE || OfflineTradeConfig.OFFLINE_CRAFT_ENABLE) && OfflineTradeConfig.RESTORE_OFFLINERS && !OfflineTradeConfig.STORE_OFFLINE_TRADE_IN_REALTIME)
@@ -486,6 +491,7 @@ public class Shutdown extends Thread
 		}
 		
 		LOGGER.info("The server has been successfully shut down in " + (tc1.getEstimatedTime() / 1000) + "seconds.");
+		return true;
 	}
 	
 	/**

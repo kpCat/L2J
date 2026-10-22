@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.RecipeData;
@@ -33,10 +34,16 @@ public final class PhantomLootDispositionPolicy
 	{
 		public boolean keyPart() { return highestProductGrade >= 0 && !commonResource && !recipeProduct && productKinds > 0 && productKinds <= 4; }
 	}
+	public record MarketEvidence(boolean known, long fairValue, boolean productionDemand)
+	{
+		public MarketEvidence { if (fairValue < 0 || !known && fairValue != 0) { throw new IllegalArgumentException("Invalid surplus market evidence."); } }
+		public static MarketEvidence unknown() { return new MarketEvidence(false, 0, false); }
+	}
 	private static final Set<BodyPart> ORDINARY_ARMOR = Set.of(BodyPart.HEAD, BodyPart.CHEST, BodyPart.LEGS, BodyPart.FULL_ARMOR, BodyPart.GLOVES, BodyPart.FEET, BodyPart.L_HAND);
 	private final Map<Integer, RecipeRole> _roles;
 	private final Set<Integer> _rareProducts;
 	private final Set<Integer> _crystals;
+	private volatile IntFunction<MarketEvidence> _market = _ -> MarketEvidence.unknown();
 
 	private PhantomLootDispositionPolicy()
 	{
@@ -70,6 +77,23 @@ public final class PhantomLootDispositionPolicy
 	}
 
 	public Map<Integer, RecipeRole> recipeRoles() { return _roles; }
+	public void installMarketValuation(IntFunction<MarketEvidence> market) { _market = market == null ? _ -> MarketEvidence.unknown() : market; }
+
+	/** Grade and NPC reference price alone never establish that a recipe input is disposable. */
+	public static Disposition recipeSurplus(RecipeRole role, long npcPrice, MarketEvidence market, boolean warehouseFull)
+	{
+		if (role == null || market == null) { return Disposition.KEEP; }
+		if (role.commonResource() || role.recipeProduct() || role.productKinds() > 1 || role.highestProductGrade() >= CrystalType.B.getLevel()
+			|| !market.known() || market.productionDemand() || market.fairValue() > npcPrice) { return Disposition.MARKET_RESERVE; }
+		if (npcPrice > 0 && npcPrice <= 5000 && role.keyPart()) { return Disposition.SELL_NPC; }
+		return warehouseFull ? Disposition.KEEP : Disposition.WAREHOUSE;
+	}
+
+	private MarketEvidence market(int itemId)
+	{
+		try { final var result = _market.apply(itemId); return result == null ? MarketEvidence.unknown() : result; }
+		catch (RuntimeException unavailable) { return MarketEvidence.unknown(); }
+	}
 	public boolean protectedTemplate(ItemTemplate template)
 	{
 		return template == null || template.isQuestItem() || template.isHeroItem() || template.getTime() != -1 || _rareProducts.contains(template.getId())
@@ -84,9 +108,8 @@ public final class PhantomLootDispositionPolicy
 		{
 			if (switch (type) { case SCRL_ENCHANT_WP, SCRL_ENCHANT_AM, BLESS_SCRL_ENCHANT_WP, BLESS_SCRL_ENCHANT_AM, SCRL_ENCHANT_ATTR, SCRL_INC_ENCHANT_PROP_WP, SCRL_INC_ENCHANT_PROP_AM, ANCIENT_CRYSTAL_ENCHANT_WP, ANCIENT_CRYSTAL_ENCHANT_AM -> true; default -> false; }) { return Disposition.MARKET_RESERVE; }
 			final var role = _roles.get(template.getId());
-			if (type != EtcItemType.MATERIAL || role == null || !role.keyPart()) { return Disposition.KEEP; }
-			if (role.highestProductGrade() >= CrystalType.B.getLevel()) { return Disposition.MARKET_RESERVE; }
-			return template.isSellable() && template.getReferencePrice() > 1 && template.getReferencePrice() / 2 <= 5000 ? Disposition.SELL_NPC : Disposition.WAREHOUSE;
+			if (type != EtcItemType.MATERIAL || role == null) { return Disposition.KEEP; }
+			return recipeSurplus(role, template.isSellable() ? template.getReferencePrice() / 2L : 0, market(template.getId()), false);
 		}
 		if (template.isWeapon() || template.isArmor())
 		{
@@ -118,7 +141,7 @@ public final class PhantomLootDispositionPolicy
 			return keep("protected.unknown_or_conservative_category");
 		}
 		final var role = _roles.get(item.getId());
-		final long count = Math.min(600, Math.max(0, item.getCount() - (!inventoryPressure && role != null && role.keyPart() ? role.reserve() : 0)));
+		final long count = Math.min(600, Math.max(0, item.getCount() - (role != null ? role.reserve() : 0)));
 		if (count <= 0) { return keep("protected.recipe_reserve"); }
 		if (kind == Disposition.SELL_NPC && !item.isStackable() && item.getCount() == 1 && item.getTemplate().getCrystalType().getLevel() > 0)
 		{
@@ -129,7 +152,7 @@ public final class PhantomLootDispositionPolicy
 				if (crystal != null && (player.getInventory().getInventoryItemCount(preview.crystalItemId(), -1) < 500 || Math.multiplyExact((long) crystal.getReferencePrice() / 2, preview.crystalCount()) > item.getReferencePrice() / 2L)) { return new Decision(Disposition.CRYSTALLIZE, 1, "native.crystal_need_or_value"); }
 			}
 		}
-		return new Decision(kind, count, "data.recipe_product_grade_and_surplus");
+		return new Decision(kind, count, "data.recipe_demand_market_and_surplus");
 	}
 
 	private static Decision keep(String reason) { return new Decision(Disposition.KEEP, 0, reason); }

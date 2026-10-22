@@ -5046,19 +5046,19 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 		long minAmountWithBonus = (long) (minAmount * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
 		long maxAmountWithBonus = (long) (maxAmount * RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
 		double dropChanceWithBonus = dropChance;
-		if ((npc != null) && ChampionMonstersConfig.CHAMPION_ENABLE && npc.isChampion())
+		if ((npc != null) && npc.isChampion())
 		{
 			if ((itemId == Inventory.ADENA_ID) || (itemId == Inventory.ANCIENT_ADENA_ID))
 			{
-				dropChanceWithBonus *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_CHANCE;
-				minAmountWithBonus *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_AMOUNT;
-				maxAmountWithBonus *= ChampionMonstersConfig.CHAMPION_ADENAS_REWARDS_AMOUNT;
+				dropChanceWithBonus *= ChampionMonstersConfig.profile(npc).adenaChance();
+				minAmountWithBonus *= ChampionMonstersConfig.profile(npc).adenaAmount();
+				maxAmountWithBonus *= ChampionMonstersConfig.profile(npc).adenaAmount();
 			}
 			else
 			{
-				dropChanceWithBonus *= ChampionMonstersConfig.CHAMPION_REWARDS_CHANCE;
-				minAmountWithBonus *= ChampionMonstersConfig.CHAMPION_REWARDS_AMOUNT;
-				maxAmountWithBonus *= ChampionMonstersConfig.CHAMPION_REWARDS_AMOUNT;
+				dropChanceWithBonus *= ChampionMonstersConfig.dropChance(npc, itemId, false);
+				minAmountWithBonus *= ChampionMonstersConfig.dropAmount(npc, itemId, false);
+				maxAmountWithBonus *= ChampionMonstersConfig.dropAmount(npc, itemId, false);
 			}
 		}
 		

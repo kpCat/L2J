@@ -19,11 +19,15 @@ package org.l2jmobius.gameserver.model.sevensigns;
 import java.awt.Polygon;
 import java.awt.Shape;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.l2jmobius.commons.util.Rnd;
 import org.l2jmobius.gameserver.model.Location;
+import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
+import org.l2jmobius.gameserver.taskmanagers.RespawnTaskManager;
 
 /**
  * Dimensional Rift Room.
@@ -43,7 +47,7 @@ public class DimensionalRiftRoom
 	private final Shape _s;
 	private final boolean _isBossRoom;
 	private final List<Spawn> _roomSpawns = new ArrayList<>();
-	private boolean _partyInside = false;
+	private volatile Object _owner;
 	
 	public DimensionalRiftRoom(byte type, byte room, int xMin, int xMax, int yMin, int yMax, int zMin, int zMax, int xT, int yT, int zT, boolean isBossRoom)
 	{
@@ -111,6 +115,58 @@ public class DimensionalRiftRoom
 	{
 		return _roomSpawns;
 	}
+
+	/** A queued native respawn belongs to the room session which created its NPC. */
+	public Spawn createSpawn(int npcId) throws Exception
+	{
+		return new Spawn(npcId)
+		{
+			private Object _spawnOwner;
+			private final Set<Npc> _sessionNpcs = new HashSet<>();
+
+			@Override
+			public Npc doSpawn(boolean isSummonSpawn)
+			{
+				synchronized (DimensionalRift.LIFECYCLE_LOCK)
+				{
+					if (_owner == null) { return null; }
+					if (_spawnOwner != _owner) { _sessionNpcs.clear(); _spawnOwner = _owner; }
+					final Npc npc = super.doSpawn(isSummonSpawn);
+					if (npc != null) { _sessionNpcs.add(npc); }
+					return npc;
+				}
+			}
+
+			@Override
+			public void respawnNpc(Npc oldNpc)
+			{
+				synchronized (DimensionalRift.LIFECYCLE_LOCK)
+				{
+					if ((_owner == null) || (_spawnOwner != _owner) || !_sessionNpcs.contains(oldNpc)) { return; }
+					super.respawnNpc(oldNpc);
+				}
+			}
+
+			@Override
+			public void stopRespawn()
+			{
+				synchronized (DimensionalRift.LIFECYCLE_LOCK)
+				{
+					super.stopRespawn();
+					for (Npc npc : _sessionNpcs) { RespawnTaskManager.getInstance().cancel(npc); }
+					_sessionNpcs.clear();
+					_spawnOwner = null;
+				}
+			}
+
+			@Override
+			public void decreaseCount(Npc oldNpc)
+			{
+				// Queue publication must not race past the room's cancellation pass.
+				synchronized (DimensionalRift.LIFECYCLE_LOCK) { super.decreaseCount(oldNpc); }
+			}
+		};
+	}
 	
 	public void spawn()
 	{
@@ -141,15 +197,33 @@ public class DimensionalRiftRoom
 	 */
 	public boolean isPartyInside()
 	{
-		return _partyInside;
+		return _owner != null;
 	}
-	
-	/**
-	 * Sets the party inside.
-	 * @param partyInside
-	 */
-	public void setPartyInside(boolean partyInside)
+
+	public boolean tryAcquire(Object owner)
 	{
-		_partyInside = partyInside;
+		synchronized (DimensionalRift.LIFECYCLE_LOCK)
+		{
+		if ((owner == null) || (_owner != null)) { return false; }
+		_owner = owner;
+		return true;
+		}
+	}
+
+	public boolean isOwnedBy(Object owner)
+	{
+		return (owner != null) && (_owner == owner);
+	}
+
+	/** Unspawn and release are indivisible; an old session cannot clear a reused room. */
+	public boolean release(Object owner)
+	{
+		synchronized (DimensionalRift.LIFECYCLE_LOCK)
+		{
+		if (!isOwnedBy(owner)) { return false; }
+		unspawn();
+		_owner = null;
+		return true;
+		}
 	}
 }

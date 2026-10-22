@@ -46,6 +46,12 @@ import org.l2jmobius.gameserver.network.serverpackets.Earthquake;
  */
 public class DimensionalRift
 {
+	// One monitor prevents Party->session/session->Party lock inversion on exit.
+	public static final Object LIFECYCLE_LOCK = new Object();
+	private final Player _temporaryPartyOwner;
+	private final boolean _personalSolo;
+	private boolean _terminal;
+	private long _generation;
 	protected byte _type;
 	protected Party _party;
 	protected List<Byte> _completedRooms = new ArrayList<>();
@@ -66,12 +72,27 @@ public class DimensionalRift
 	
 	public DimensionalRift(Party party, byte type, byte room)
 	{
-		DimensionalRiftManager.getInstance().getRoom(type, room).setPartyInside(true);
-		
+		this(party, type, room, null, false);
+	}
+
+	public DimensionalRift(Party party, byte type, byte room, Player temporaryPartyOwner, boolean personalSolo)
+	{
+		_temporaryPartyOwner = temporaryPartyOwner;
+		_personalSolo = personalSolo;
 		_type = type;
 		_party = party;
 		_choosenRoom = room;
-		
+		synchronized (LIFECYCLE_LOCK)
+		{
+			final DimensionalRiftRoom first = DimensionalRiftManager.getInstance().getRoom(type, room);
+			if ((party == null) || party.isInDimensionalRift() || (first == null) || !first.tryAcquire(this)) { throw new IllegalStateException("Rift admission lost its native Party or room."); }
+			try { initialize(party, room); }
+			catch (RuntimeException e) { killRift(); throw e; }
+		}
+	}
+
+	private void initialize(Party party, byte room)
+	{
 		final Location coords = getRoomCoord(room);
 		party.setDimensionalRift(this);
 		for (Player p : party.getMembers())
@@ -95,6 +116,7 @@ public class DimensionalRift
 		}
 		
 		createSpawnTimer(_choosenRoom);
+		checkBossRoom(room);
 		createTeleporterTimer(true);
 	}
 	
@@ -110,7 +132,12 @@ public class DimensionalRift
 	
 	protected void createTeleporterTimer(boolean reasonTP)
 	{
-		if (_party == null)
+		synchronized (LIFECYCLE_LOCK) { createTeleporterTimerLocked(reasonTP); }
+	}
+
+	private void createTeleporterTimerLocked(boolean reasonTP)
+	{
+		if (_terminal || (_party == null))
 		{
 			return;
 		}
@@ -133,48 +160,18 @@ public class DimensionalRift
 			earthQuakeTask = null;
 		}
 		
-		teleporterTimer = new Timer();
+		final long generation = _generation;
+		teleporterTimer = new Timer("DimensionalRift-jump", true);
 		teleporterTimerTask = new TimerTask()
 		{
 			@Override
 			public void run()
 			{
-				if (_choosenRoom > -1)
+				synchronized (LIFECYCLE_LOCK)
 				{
-					DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom).unspawn().setPartyInside(false);
-				}
-				
-				// Check if there are still available jumps.
-				if (reasonTP && (currentJump < getMaxJumps()) && (_party.getMemberCount() > _deadPlayers.size()))
-				{
-					currentJump++;
-					
-					_completedRooms.add(_choosenRoom);
-					_choosenRoom = -1;
-					
-					for (Player p : _party.getMembers())
-					{
-						if (!_revivedInWaitingRoom.contains(p))
-						{
-							teleportToNextRoom(p);
-						}
-					}
-					
-					createTeleporterTimer(true);
-					createSpawnTimer(_choosenRoom);
-				}
-				else
-				{
-					for (Player p : _party.getMembers())
-					{
-						if (!_revivedInWaitingRoom.contains(p))
-						{
-							teleportToWaitingRoom(p);
-						}
-					}
-					
-					killRift();
-					cancel();
+					if (_terminal || (generation != _generation) || (teleporterTimerTask != this)) { return; }
+					if (reasonTP && (currentJump < getMaxJumps()) && hasParticipant()) { advanceRoom(); }
+					else { killRift(); }
 				}
 			}
 		};
@@ -186,14 +183,18 @@ public class DimensionalRift
 			
 			earthQuakeTask = ThreadPool.schedule(() ->
 			{
+				synchronized (LIFECYCLE_LOCK)
+				{
+				if (_terminal || (generation != _generation) || (_party == null)) { return; }
 				for (Player p : _party.getMembers())
 				{
-					if (!_revivedInWaitingRoom.contains(p))
+					if (isParticipant(p))
 					{
 						p.sendPacket(new Earthquake(p.getX(), p.getY(), p.getZ(), 65, 9));
 					}
 				}
-			}, jumpTime - 7000);
+				}
+			}, Math.max(0, jumpTime - 7000));
 		}
 		else
 		{
@@ -203,6 +204,12 @@ public class DimensionalRift
 	
 	public void createSpawnTimer(byte room)
 	{
+		synchronized (LIFECYCLE_LOCK) { createSpawnTimerLocked(room); }
+	}
+
+	private void createSpawnTimerLocked(byte room)
+	{
+		if (_terminal || (_party == null) || (room != _choosenRoom)) { return; }
 		if (spawnTimerTask != null)
 		{
 			spawnTimerTask.cancel();
@@ -215,13 +222,20 @@ public class DimensionalRift
 			spawnTimer = null;
 		}
 		
-		spawnTimer = new Timer();
+		final long generation = _generation;
+		spawnTimer = new Timer("DimensionalRift-spawn", true);
 		spawnTimerTask = new TimerTask()
 		{
 			@Override
 			public void run()
 			{
-				DimensionalRiftManager.getInstance().getRoom(_type, room).spawn();
+				synchronized (LIFECYCLE_LOCK)
+				{
+					if (_terminal || (generation != _generation) || (spawnTimerTask != this) || (room != _choosenRoom)) { return; }
+					cancelSpawn();
+					final DimensionalRiftRoom nativeRoom = DimensionalRiftManager.getInstance().getRoom(_type, room);
+					if ((nativeRoom != null) && nativeRoom.isOwnedBy(DimensionalRift.this) && hasParticipant()) { nativeRoom.spawn(); }
+				}
 			}
 		};
 		
@@ -235,6 +249,12 @@ public class DimensionalRift
 	
 	public void partyMemberExited(Player player)
 	{
+		synchronized (LIFECYCLE_LOCK) { partyMemberExitedLocked(player); }
+	}
+
+	private void partyMemberExitedLocked(Player player)
+	{
+		if (_terminal || (_party == null)) { return; }
 		// Party has already removed this member; the remaining-roster loop cannot return the leaver.
 		final DimensionalRiftRoom room = DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom);
 		if ((player.getInstanceId() == 0) && (room != null) && room.checkIfInZone(player.getX(), player.getY(), player.getZ()))
@@ -252,21 +272,22 @@ public class DimensionalRift
 			_revivedInWaitingRoom.remove(player);
 		}
 		
-		if ((_party.getMemberCount() < GeneralConfig.RIFT_MIN_PARTY_SIZE) || (_party.getMemberCount() == 1))
+		if ((_party.getMemberCount() < minimumPartySize()) || (!_personalSolo && (_party.getMemberCount() == 1)))
 		{
-			for (Player p : _party.getMembers())
-			{
-				teleportToWaitingRoom(p);
-			}
-			
 			killRift();
 		}
 	}
 	
 	public void manualTeleport(Player player, Npc npc)
 	{
+		synchronized (LIFECYCLE_LOCK) { manualTeleportLocked(player, npc); }
+	}
+
+	private void manualTeleportLocked(Player player, Npc npc)
+	{
+		if (_terminal || (_party == null)) { return; }
 		final Party party = player.getParty();
-		if ((party == null) || !party.isInDimensionalRift())
+		if ((party != _party) || (party.getDimensionalRift() != this))
 		{
 			return;
 		}
@@ -284,28 +305,20 @@ public class DimensionalRift
 			return;
 		}
 		
-		// Increase the jump counter.
-		currentJump++;
-		
-		DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom).unspawn().setPartyInside(false);
-		_completedRooms.add(_choosenRoom);
-		_choosenRoom = -1;
-		
-		for (Player p : _party.getMembers())
-		{
-			teleportToNextRoom(p);
-		}
-		
-		DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom).setPartyInside(true);
-		
-		createSpawnTimer(_choosenRoom);
-		createTeleporterTimer(true);
+		if (!hasParticipant()) { killRift(); return; }
+		advanceRoom();
 	}
 	
 	public void manualExitRift(Player player, Npc npc)
 	{
+		synchronized (LIFECYCLE_LOCK) { manualExitRiftLocked(player, npc); }
+	}
+
+	private void manualExitRiftLocked(Player player, Npc npc)
+	{
+		if (_terminal || (_party == null)) { return; }
 		final Party party = player.getParty();
-		if ((party == null) || !party.isInDimensionalRift())
+		if ((party != _party) || (party.getDimensionalRift() != this))
 		{
 			return;
 		}
@@ -316,41 +329,58 @@ public class DimensionalRift
 			return;
 		}
 		
-		for (Player p : party.getMembers())
-		{
-			teleportToWaitingRoom(p);
-		}
-		
 		killRift();
 	}
 	
-	protected void teleportToNextRoom(Player player)
+	private void advanceRoom()
 	{
-		if (_choosenRoom == -1)
+		_generation++;
+		cancelTeleporter();
+		cancelSpawn();
+		final DimensionalRiftManager manager = DimensionalRiftManager.getInstance();
+		final byte previous = _choosenRoom;
+		_completedRooms.add(previous);
+		final List<Byte> free = manager.getFreeRooms(_type);
+		final List<Byte> unvisited = new ArrayList<>(free);
+		unvisited.removeAll(_completedRooms);
+		final List<Byte> candidates = unvisited.isEmpty() ? free : unvisited;
+		if (candidates.isEmpty()) { killRift(); return; }
+		final byte next = candidates.get(Rnd.get(candidates.size()));
+		final DimensionalRiftRoom destination = manager.getRoom(_type, next);
+		if (!destination.tryAcquire(this)) { killRift(); return; }
+		final List<Player> participants = _party.getMembers().stream().filter(this::canTravel).toList();
+		final DimensionalRiftRoom old = manager.getRoom(_type, previous);
+		if (old != null) { old.release(this); }
+		_choosenRoom = next;
+		currentJump++;
+		checkBossRoom(next);
+		try
 		{
-			List<Byte> emptyRooms;
-			do
-			{
-				emptyRooms = DimensionalRiftManager.getInstance().getFreeRooms(_type);
-				
-				// Do not tp in the same room a second time
-				emptyRooms.removeAll(_completedRooms);
-				
-				// If no room left, find any empty
-				if (emptyRooms.isEmpty())
-				{
-					emptyRooms = DimensionalRiftManager.getInstance().getFreeRooms(_type);
-				}
-				
-				_choosenRoom = emptyRooms.get(Rnd.get(1, emptyRooms.size()) - 1);
-			}
-			while (DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom).isPartyInside());
+			for (Player player : participants) { player.teleToLocation(getRoomCoord(next)); }
+			createSpawnTimer(next);
+			createTeleporterTimer(true);
 		}
-		
-		DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom).setPartyInside(true);
-		checkBossRoom(_choosenRoom);
-		player.teleToLocation(getRoomCoord(_choosenRoom));
+		catch (RuntimeException e) { killRift(); throw e; }
 	}
+
+	private boolean isInCurrentRoom(Player player)
+	{
+		final DimensionalRiftRoom room = DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom);
+		return (player != null) && (player.getInstanceId() == 0) && (room != null) && room.isOwnedBy(this) && room.checkIfInZone(player.getX(), player.getY(), player.getZ());
+	}
+
+	private boolean isParticipant(Player player)
+	{
+		return canTravel(player) && !player.isAlikeDead();
+	}
+
+	private boolean canTravel(Player player)
+	{
+		return isInCurrentRoom(player) && player.isOnline() && (player.getParty() == _party) && !_revivedInWaitingRoom.contains(player);
+	}
+
+	private boolean hasParticipant() { return (_party != null) && _party.getMembers().stream().anyMatch(this::isParticipant); }
+	private int minimumPartySize() { return _personalSolo ? 1 : GeneralConfig.RIFT_MIN_PARTY_SIZE; }
 	
 	protected void teleportToWaitingRoom(Player player)
 	{
@@ -368,25 +398,46 @@ public class DimensionalRift
 	
 	public void killRift()
 	{
-		_completedRooms.clear();
-		
-		if (_party != null)
+		synchronized (LIFECYCLE_LOCK)
 		{
-			_party.setDimensionalRift(null);
+			if (_terminal) { return; }
+			_terminal = true;
+			_generation++;
+			cancelTeleporter();
+			cancelSpawn();
+			final Party party = _party;
+			try
+			{
+				if (party != null)
+				{
+					for (Player player : party.getMembers()) { if (isInCurrentRoom(player)) { teleportToWaitingRoom(player); } }
+				}
+			}
+			finally
+			{
+				final DimensionalRiftRoom room = DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom);
+				if (room != null) { room.release(this); }
+				if ((party != null) && (party.getDimensionalRift() == this)) { party.setDimensionalRift(null); }
+				_party = null;
+				_completedRooms.clear();
+				_deadPlayers.clear();
+				_revivedInWaitingRoom.clear();
+				if ((_temporaryPartyOwner != null) && (party != null) && (party.getMemberCount() == 1) && (party.getLeader() == _temporaryPartyOwner) && (_temporaryPartyOwner.getParty() == party) && !party.isInDimensionalRift()) { party.disbandParty(); }
+			}
 		}
-		
-		_party = null;
-		_revivedInWaitingRoom = null;
-		_deadPlayers = null;
-		
-		if (earthQuakeTask != null)
-		{
-			earthQuakeTask.cancel(false);
-			earthQuakeTask = null;
-		}
-		
-		DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom).unspawn().setPartyInside(false);
-		DimensionalRiftManager.getInstance().killRift(this);
+	}
+
+	private void cancelTeleporter()
+	{
+		if (teleporterTimerTask != null) { teleporterTimerTask.cancel(); teleporterTimerTask = null; }
+		if (teleporterTimer != null) { teleporterTimer.cancel(); teleporterTimer = null; }
+		if (earthQuakeTask != null) { earthQuakeTask.cancel(false); earthQuakeTask = null; }
+	}
+
+	private void cancelSpawn()
+	{
+		if (spawnTimerTask != null) { spawnTimerTask.cancel(); spawnTimerTask = null; }
+		if (spawnTimer != null) { spawnTimer.cancel(); spawnTimer = null; }
 	}
 	
 	public Timer getTeleportTimer()
@@ -443,58 +494,41 @@ public class DimensionalRift
 	
 	public void memberDead(Player player)
 	{
-		if (!_deadPlayers.contains(player))
+		synchronized (LIFECYCLE_LOCK)
 		{
+			if (_terminal || (_party == null) || !_party.containsPlayer(player)) { return; }
 			_deadPlayers.add(player);
+			if (_personalSolo && (_party.getMemberCount() == 1)) { killRift(); }
 		}
 	}
 	
 	public void memberRessurected(Player player)
 	{
-		if (_deadPlayers.contains(player))
+		synchronized (LIFECYCLE_LOCK)
 		{
-			_deadPlayers.remove(player);
+			if (!_terminal && isInCurrentRoom(player) && !_revivedInWaitingRoom.contains(player)) { _deadPlayers.remove(player); }
 		}
 	}
 	
 	public void usedTeleport(Player player)
 	{
-		if (!_revivedInWaitingRoom.contains(player))
+		synchronized (LIFECYCLE_LOCK)
 		{
+			if (_terminal || (_party == null) || !_party.containsPlayer(player)) { return; }
 			_revivedInWaitingRoom.add(player);
-		}
-		
-		if (!_deadPlayers.contains(player))
-		{
 			_deadPlayers.add(player);
-		}
-		
-		if ((_party.getMemberCount() - _revivedInWaitingRoom.size()) < GeneralConfig.RIFT_MIN_PARTY_SIZE)
-		{
-			// int pcm = _party.getMemberCount();
-			// int rev = revivedInWaitingRoom.size();
-			// int min = Config.RIFT_MIN_PARTY_SIZE;
-			
-			for (Player p : _party.getMembers())
-			{
-				if ((p != null) && !_revivedInWaitingRoom.contains(p))
-				{
-					teleportToWaitingRoom(p);
-				}
-			}
-			
-			killRift();
+			if ((_party.getMemberCount() - _revivedInWaitingRoom.size()) < minimumPartySize()) { killRift(); }
 		}
 	}
 	
 	public Collection<Player> getDeadMemberList()
 	{
-		return _deadPlayers;
+		return List.copyOf(_deadPlayers);
 	}
 	
 	public Collection<Player> getRevivedAtWaitingRoom()
 	{
-		return _revivedInWaitingRoom;
+		return List.copyOf(_revivedInWaitingRoom);
 	}
 	
 	public void checkBossRoom(byte room)

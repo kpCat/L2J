@@ -292,9 +292,9 @@ public class CreatureStat
 	public double getMAtk(Creature target, Skill skill)
 	{
 		float bonusAtk = 1;
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && _creature.isChampion())
+		if (_creature.isChampion())
 		{
-			bonusAtk = ChampionMonstersConfig.CHAMPION_ATK;
+			bonusAtk = ChampionMonstersConfig.profile(_creature).attack();
 		}
 		
 		if (_creature.isRaid())
@@ -312,9 +312,9 @@ public class CreatureStat
 	public int getMAtkSpd()
 	{
 		float bonusSpdAtk = 1;
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && _creature.isChampion())
+		if (_creature.isChampion())
 		{
-			bonusSpdAtk = ChampionMonstersConfig.CHAMPION_SPD_ATK;
+			bonusSpdAtk = ChampionMonstersConfig.profile(_creature).attackSpeed();
 		}
 		
 		double val = calcStat(Stat.MAGIC_ATTACK_SPEED, _creature.getTemplate().getBaseMAtkSpd() * bonusSpdAtk);
@@ -551,9 +551,9 @@ public class CreatureStat
 	public double getPAtk(Creature target)
 	{
 		float bonusAtk = 1;
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && _creature.isChampion())
+		if (_creature.isChampion())
 		{
-			bonusAtk = ChampionMonstersConfig.CHAMPION_ATK;
+			bonusAtk = ChampionMonstersConfig.profile(_creature).attack();
 		}
 		
 		if (_creature.isRaid())
@@ -570,9 +570,9 @@ public class CreatureStat
 	public double getPAtkSpd()
 	{
 		float bonusAtk = 1;
-		if (ChampionMonstersConfig.CHAMPION_ENABLE && _creature.isChampion())
+		if (_creature.isChampion())
 		{
-			bonusAtk = ChampionMonstersConfig.CHAMPION_SPD_ATK;
+			bonusAtk = ChampionMonstersConfig.profile(_creature).attackSpeed();
 		}
 		
 		return Math.round(calcStat(Stat.POWER_ATTACK_SPEED, _creature.getTemplate().getBasePAtkSpd() * bonusAtk, null, null));

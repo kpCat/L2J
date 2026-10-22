@@ -5791,9 +5791,11 @@ public class Player extends Playable
 			getSkillChannelized().abortChannelization();
 		}
 		
-		if (isInParty() && _party.isInDimensionalRift())
+		synchronized (org.l2jmobius.gameserver.model.sevensigns.DimensionalRift.LIFECYCLE_LOCK)
 		{
-			_party.getDimensionalRift().getDeadMemberList().add(this);
+			final Party party = _party;
+			final var rift = party == null ? null : party.getDimensionalRift();
+			if (rift != null) { rift.memberDead(this); }
 		}
 		
 		if (_agathionId != 0)
@@ -6660,7 +6662,8 @@ public class Player extends Playable
 	public void setPrivateStoreType(PrivateStoreType privateStoreType)
 	{
 		_privateStoreType = privateStoreType;
-		if (OfflineTradeConfig.OFFLINE_DISCONNECT_FINISHED && (privateStoreType == PrivateStoreType.NONE) && !hasHeadlessOutboundSession() && ((_client == null) || _client.isDetached()))
+		if (OfflineTradeConfig.OFFLINE_DISCONNECT_FINISHED && (privateStoreType == PrivateStoreType.NONE) && !hasHeadlessOutboundSession()
+			&& !org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.ownsNative(this) && ((_client == null) || _client.isDetached()))
 		{
 			OfflineTraderTable.getInstance().removeTrader(getObjectId());
 			Disconnection.of(this).storeAndDelete();
@@ -11611,9 +11614,11 @@ public class Player extends Playable
 			startFeed(_mountNpcId);
 		}
 		
-		if (isInParty() && _party.isInDimensionalRift() && !DimensionalRiftManager.getInstance().checkIfInPeaceZone(getX(), getY(), getZ()))
+		synchronized (org.l2jmobius.gameserver.model.sevensigns.DimensionalRift.LIFECYCLE_LOCK)
 		{
-			_party.getDimensionalRift().memberRessurected(this);
+			final Party party = _party;
+			final var rift = party == null ? null : party.getDimensionalRift();
+			if (rift != null && !DimensionalRiftManager.getInstance().checkIfInPeaceZone(getX(), getY(), getZ())) { rift.memberRessurected(this); }
 		}
 		
 		if (getInstanceId() > 0)

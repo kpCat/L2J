@@ -18,6 +18,12 @@ import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TargetDirective
 public final class PhantomEngagementController
 {
 	public enum Outcome { STOCK, NATIVE, WAIT_NAV, APPROACH, TRANSIENT, UNAVAILABLE, EXHAUSTED, REVOKED }
+	private enum AttemptAdmission { BUSY, EXPIRED, CONTINUE }
+	private static AttemptAdmission attemptAdmission(long started, long now, long maximum, boolean busy)
+	{
+		if (started != 0 && now - started >= maximum) { return AttemptAdmission.EXPIRED; }
+		return busy ? AttemptAdmission.BUSY : AttemptAdmission.CONTINUE;
+	}
 	private record Token(long profileId,int objectId,long epoch,long goalId,long revision,long sequence,PlayerNativeEvidence.Target target,PhantomNavigationPoint targetPosition,int skillId,int range) { }
 	private final PhantomNavigationService _navigation;
 	private final java.util.function.BooleanSupplier _current;
@@ -54,13 +60,27 @@ public final class PhantomEngagementController
 		{
 		_npcId=npcId;
 		if(player.isInParty()){clearRoute();return publish(Outcome.REVOKED,TargetDirective.Mode.HOLD,"action.party_takeover");}
-		if(player.isCastingNow()||player.isCastingSimultaneouslyNow()||player.isAttackingNow()||player.getQueuedSkill()!=null){return _outcome;}
+		// Paid native craft owns its continuation independently of the farm watchdog.
+		if(org.l2jmobius.gameserver.managers.RecipeManager.getInstance().isMakingItem(player)){return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.native_craft");}
 		final var selected=player.getTarget();
 		// Corpse processing belongs to stock Sweep; attack validity is never a universal predicate.
 		if(selected instanceof Creature corpse&&corpse.isAlikeDead()){clearRoute();_token=null;return publish(Outcome.STOCK,TargetDirective.Mode.STOCK,"action.stock_corpse");}
-		if(player.isSitting()||player.isTeleporting()||player.isMovementDisabled()||player.isAllSkillsDisabled()){return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.native_busy");}
 		final var evidence=player.getNativeWorkOwner().evidence();final var progress=evidence==null?null:evidence.snapshot();
-		if(progress!=null&&progress.damageSequence()>_progressSequence){_progressSequence=progress.damageSequence();_excluded.clear();_started=now;}
+		// Tiny repeated hits cannot renew the encounter forever; native kills complete useful work.
+		if(progress!=null&&progress.killSequence()>_progressSequence){_progressSequence=progress.killSequence();_excluded.clear();_started=now;}
+		final boolean busy=player.isCastingNow()||player.isCastingSimultaneouslyNow()||player.isAttackingNow()||player.getQueuedSkill()!=null;
+		if(_started==0&&busy){_started=now;}
+		final AttemptAdmission admission=attemptAdmission(_started,now,_navigation.policy().maximumAttemptDurationNanos(),busy);
+		if(admission==AttemptAdmission.EXPIRED)
+		{
+			// Caller holds this current session writer; earned hit tickets may still settle.
+			stopOwnedMove(player);clearRoute();player.abortAttack();player.abortCast();player.setQueuedSkill(null,false,false);
+			if(player.hasAI()){player.getAI().setIntention(Intention.IDLE);}
+			player.stopMove(null);_token=null;_positions=List.of();
+			return publish(Outcome.EXHAUSTED,TargetDirective.Mode.HOLD,"action.attempt_deadline");
+		}
+		if(admission==AttemptAdmission.BUSY){return _outcome;}
+		if(player.isSitting()||player.isTeleporting()||player.isMovementDisabled()||player.isAllSkillsDisabled()){return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.native_busy");}
 		Token token=_token; final var prior=restore(player,token);
 		if(token!=null&&(!matches(token,profileId,player,goal)||prior==null||!_planner.eligible(player,prior,npcId))){stopOwnedMove(player);clearRoute();_token=null;token=null;}
 		var opportunity=prior!=null&&token!=null?_planner.inspect(player,prior,npcId):_planner.inspect(player,npcId,_excluded,load);
@@ -75,7 +95,6 @@ public final class PhantomEngagementController
 			_token=token=new Token(profileId,player.getObjectId(),player.getNativeWorkOwner().epoch(),goal.goalId(),goal.revision(),++_sequence,opportunity.target(),opportunity.targetPosition(),opportunity.skillId(),opportunity.range());
 			_positions=opportunity.positions();_positionIndex=0;_nativeSince=now;_lastNativePosition=PhantomNativeTravelActions.point(player);
 		}
-		if(now-_started>=_navigation.policy().maximumAttemptDurationNanos()){stopOwnedMove(player);clearRoute();return publish(Outcome.EXHAUSTED,TargetDirective.Mode.HOLD,"action.attempt_deadline");}
 		final var target=restore(player,token);
 		if(target==null){clearRoute();return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.target_changed");}
 		if(!token.targetPosition().equals(opportunity.targetPosition())||token.skillId()!=opportunity.skillId()||token.range()!=opportunity.range())

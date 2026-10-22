@@ -61,10 +61,8 @@ public class RespawnTaskManager implements Runnable
 			while (iterator.hasNext())
 			{
 				entry = iterator.next();
-				if (currentTime > entry.getValue())
+				if ((currentTime > entry.getValue()) && PENDING_RESPAWNS.remove(entry.getKey(), entry.getValue()))
 				{
-					iterator.remove();
-					
 					final Npc npc = entry.getKey();
 					final Spawn spawn = npc.getSpawn();
 					if (spawn != null)
@@ -82,6 +80,20 @@ public class RespawnTaskManager implements Runnable
 	public void add(Npc npc, long time)
 	{
 		PENDING_RESPAWNS.put(npc, time);
+	}
+
+	/**
+	 * Cancel exactly one queued native respawn and its scheduled count.
+	 * A callback already claimed by run() keeps its count and must retain its own owner guard.
+	 * @param npc the exact retired NPC
+	 * @return true only if a queued entry was removed by this call
+	 */
+	public boolean cancel(Npc npc)
+	{
+		if ((npc == null) || (PENDING_RESPAWNS.remove(npc) == null)) { return false; }
+		final Spawn spawn = npc.getSpawn();
+		if (spawn != null) { spawn._scheduledCount--; }
+		return true;
 	}
 	
 	public static RespawnTaskManager getInstance()

@@ -547,6 +547,6 @@ public class GameServer
 	{
 		org.l2jmobius.commons.util.LocalRuntimeShutdown.validateLaunch("GameServer");
 		new GameServer();
-		org.l2jmobius.commons.util.LocalRuntimeShutdown.start("GameServer", () -> Shutdown.getInstance().startShutdown(null, 0, false));
+		org.l2jmobius.commons.util.LocalRuntimeShutdown.start("GameServer", PhantomSystem::beginOfflineMerchantStop, () -> Shutdown.getInstance().startShutdown(null, 0, false));
 	}
 }

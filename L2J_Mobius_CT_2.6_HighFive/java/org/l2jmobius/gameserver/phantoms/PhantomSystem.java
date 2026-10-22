@@ -263,6 +263,8 @@ public final class PhantomSystem
 	private PhantomMultipartyEconomyService _multipartyEconomyService;
 	private PhantomStoreService _phantomStoreService;
 	private PhantomAutonomousMarketProducer _autonomousMarketProducer;
+	private org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService _offlineMerchantService;
+	private volatile MarketPricingGeneration _marketPricingGeneration;
 	private PhantomBackgroundService _backgroundService;
 	private PhantomVisibleAutoPlay _visibleAutoPlay;
 	private PhantomVisibleFarmTravel _visibleFarmTravel;
@@ -445,7 +447,7 @@ public final class PhantomSystem
 				final var commerceGoals = new PhantomSupplyIntentStore(productionProfiles, productionGoals);
 				_multipartyEconomyService = new PhantomMultipartyEconomyService(economyPolicy, _economyReservations, _economyOffers, _materializationService, commerceGoals, productionProfiles);
 				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
-				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService, () -> new PhantomPrivateMarketPricingAuthority(_gameKnowledgeService.query().snapshot(), _commerceService.catalog(), PhantomRateAwareLootFairValue.Rates.capture(), PhantomMarketConfig.policy().orElseThrow(), World.getInstance().getVisibleObjects()));
+				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService, this::marketPricingAuthority);
 				PhantomMarketConfig.autonomousPolicy().ifPresent(policy -> _autonomousMarketProducer = new PhantomAutonomousMarketProducer(_materializationService, _scheduler, _phantomStoreService, productionGoals, acquisitionStore, _economyReservations, () -> _decisionEngine, policy));
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
@@ -455,6 +457,20 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
 				}
+				final var merchantPolicy = org.l2jmobius.gameserver.phantoms.economy.PhantomMerchantPolicy.load(new File(ServerConfig.DATAPACK_ROOT, org.l2jmobius.gameserver.phantoms.economy.PhantomMerchantPolicy.FILE).toPath());
+				if (merchantPolicy != null)
+				{
+					final var arrivals = _topologyService.query().snapshot().anchorsByNode().values().stream().flatMap(java.util.List::stream)
+						.filter(anchor -> anchor.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.GATEKEEPER)
+						.map(anchor -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(anchor.point().x(), anchor.point().y(), anchor.point().z(), anchor.point().instanceId())).toList();
+					_offlineMerchantService = new org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService(productionProfiles, merchantPolicy, this::marketPricingAuthority, arrivals);
+					_offlineMerchantService.start();
+				}
+				org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.getInstance().installMarketValuation(itemId ->
+				{
+					final var quote = marketPricingAuthority().quoteItem(itemId);
+					return new org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy.MarketEvidence(quote.priced(), quote.priced() ? quote.fair() : 0, _offlineMerchantService != null && _offlineMerchantService.hasBuyDemand(itemId));
+				});
 				final PhantomPartyParticipationPort.Bridge partyParticipation = PhantomPartyParticipationPort.bridge();
 				final PhantomNormalGatekeeperTravel travel = PhantomNormalGatekeeperTravel.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/travel/high-five-normal-gk.xml").toPath(), _topologyService.query());
 				final L2jPhantomBackgroundAuthority backgroundAuthority = new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog, travel);
@@ -818,6 +834,7 @@ public final class PhantomSystem
 				{
 					controlPorts.add(_autonomousMarketProducer);
 				}
+				if (_offlineMerchantService != null) { controlPorts.add(_offlineMerchantService); }
 				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(controlPorts)))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
@@ -1057,6 +1074,7 @@ public final class PhantomSystem
 
 	private boolean shutdownClaimed()
 	{
+		if (_offlineMerchantService != null && !_offlineMerchantService.beginStop()) { _metrics.recordShutdownFailure(); return false; }
 		if ((_stopProgress == null) && (_state != State.RUNNING)) { return shutdownLegacyFailureCleanup(); }
 		if (_stopProgress == null)
 		{
@@ -2754,6 +2772,29 @@ public final class PhantomSystem
 		final PhantomMaterializationService service = configuredMaterializationService();
 		return (service != null) && service.ownsCharacterObjectId(player.getObjectId());
 	}
+
+	/** Freeze dedicated merchants before the stock offline bulk-save step starts. */
+	public static synchronized boolean beginOfflineMerchantStop()
+	{
+		return _configuredInstance == null || _configuredInstance._offlineMerchantService == null || _configuredInstance._offlineMerchantService.beginStop();
+	}
+	public static synchronized org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.Snapshot offlineMerchantSnapshot()
+	{
+		return _configuredInstance == null || _configuredInstance._offlineMerchantService == null ? null : _configuredInstance._offlineMerchantService.snapshot();
+	}
+	private PhantomPrivateMarketPricingAuthority marketPricingAuthority()
+	{
+		final var knowledge = _gameKnowledgeService.query().snapshot();
+		final String hash = knowledge.hashes().combinedHash();
+		var generation = _marketPricingGeneration;
+		if (generation == null || !generation.knowledgeHash().equals(hash))
+		{
+			generation = new MarketPricingGeneration(hash, new PhantomPrivateMarketPricingAuthority(knowledge, _commerceService.catalog(), PhantomRateAwareLootFairValue.Rates.capture(), PhantomMarketConfig.policy().orElseThrow(), () -> World.getInstance().getVisibleObjects()));
+			_marketPricingGeneration = generation;
+		}
+		return generation.authority();
+	}
+	private record MarketPricingGeneration(String knowledgeHash, PhantomPrivateMarketPricingAuthority authority) { }
 
 	public static synchronized ConfiguredShutdownSnapshot configuredShutdownSnapshot()
 	{

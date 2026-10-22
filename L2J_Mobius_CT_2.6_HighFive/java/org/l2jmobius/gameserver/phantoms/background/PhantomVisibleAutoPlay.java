@@ -27,6 +27,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController;
+import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TargetDirective;
@@ -290,13 +291,25 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			}
 			if (!session._loot.pending(player, _clock.getAsLong()) && resourcePause(session, player))
 			{
-				synchronized (session) { return session._resourceExpired || stalled(session, _clock.getAsLong()); }
+				final boolean resourceExpired;
+				synchronized (session) { resourceExpired = session._resourceExpired || stalled(session, _clock.getAsLong()); }
+				return stopExpiredCombat(session, player, resourceExpired);
 			}
 			if (session._engagement != null)
 			{
 				final var outcome = session._engagement.advance(profileId, player, goal, npcId, session._policy::targetSelectionLoad, _clock.getAsLong());
-				if (outcome == PhantomEngagementController.Outcome.EXHAUSTED) { return true; }
+				if (outcome == PhantomEngagementController.Outcome.EXHAUSTED) { return stopExpiredCombat(session, player, true); }
 			}
+			final boolean checkDue, expiredBeforeCheck;
+			synchronized (session)
+			{
+				if (!session._current.get() || (_sessions.get(profileId) != session)) { return false; }
+				final long now = _clock.getAsLong();
+				checkDue = now >= session.nextTargetCheck;
+				expiredBeforeCheck = !checkDue && stalled(session, now);
+				if (checkDue) { session.nextTargetCheck = now + 1_000_000_000L; }
+			}
+			if (!checkDue) { return stopExpiredCombat(session, player, expiredBeforeCheck); }
 			final boolean repair;
 			final boolean expired;
 			final boolean reportStall;
@@ -305,11 +318,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				if (!session._current.get() || (_sessions.get(profileId) != session)) { return false; }
 				final long now = _clock.getAsLong();
-				if (now < session.nextTargetCheck)
-				{
-					return stalled(session, now);
-				}
-				session.nextTargetCheck = now + 1_000_000_000L;
 				final var selected = player.getTarget();
 				final boolean offensive = (player.isMoving() || player.isAttackingNow() || player.isCastingNow()) && (selected instanceof Creature creature) && selectableTarget(player, creature, npcId);
 				final boolean target = offensive || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(creature -> selectableTarget(player, creature, npcId));
@@ -333,10 +341,25 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				LOGGER.info("Phantom visible farm repair profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason);
 			}
 			if (reportStall) { LOGGER.warning("Phantom visible farm stalled profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason); }
-			return expired;
+			return stopExpiredCombat(session, player, expired);
 		}
 		}
 		finally { session._commandGate.set(false); }
+	}
+
+	/** Existing caller action lease owns this expiration; ordinary pauses do not stop native work. */
+	private boolean stopExpiredCombat(Session session, Player player, boolean expired)
+	{
+		if (!expired || org.l2jmobius.gameserver.managers.RecipeManager.getInstance().isMakingItem(player)) { return false; }
+		final var nativeOwner = player.getNativeWorkOwner();
+		if (!session._current.get() || _sessions.get(session._profileId) != session || session.player() != player || nativeOwner == null || !nativeOwner.isCurrent() || nativeOwner.epoch() != session._epoch) { return false; }
+		// A captured stock Sweep may finish before the existing replan quiet-boundary proceeds.
+		if (player.getTarget() instanceof Creature corpse && corpse.isAlikeDead()) { return true; }
+		if (session._engagement != null) { session._engagement.revoke(); }
+		player.abortAttack(); player.abortCast(); player.setQueuedSkill(null, false, false);
+		if (player.hasAI()) { player.getAI().setIntention(Intention.IDLE); }
+		player.stopMove(null);
+		return true;
 	}
 
 	/** Exact session policy uses stock sit/stand and existing regeneration; useful farm debt is never renewed by rest. */
@@ -360,7 +383,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final double nativeCost = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
 			if (nativeCost > 0) { cost = Math.min(cost, nativeCost); }
 		}
-		if (!player.getPlayerClass().isMage() || !Double.isFinite(cost)) { cost = 0; }
+		if (!Double.isFinite(cost)) { cost = 0; }
 		final double mp = player.getCurrentMp();
 		final double maximumMp = player.getMaxMp();
 		final boolean sitting = player.isSitting();
@@ -420,12 +443,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			session.baseline(progress);
 			return;
 		}
-		if ((progress.damageSequence() < session._damageSequence) || (progress.rewardSequence() < session._rewardSequence) || (progress.farmCycleSequence() < session._cycleSequence) || (progress.lootSequence() < session._lootSequence)) { return; }
-		// A reward on an undamaged target is not useful; concurrent loot makes its timestamp ambiguous.
-		final boolean reward = (progress.rewardSequence() > session._rewardSequence) && (progress.usefulProgressNanos() > session._nativeUsefulNanos) && (progress.lootSequence() == session._lootSequence);
+		if ((progress.damageSequence() < session._damageSequence) || (progress.killSequence() < session._killSequence) || (progress.rewardSequence() < session._rewardSequence) || (progress.farmCycleSequence() < session._cycleSequence) || (progress.lootSequence() < session._lootSequence)) { return; }
 		// A real kill/reward witness survives a concurrent lawful pickup; only timestamp-based debt renewal excludes it.
 		if (progress.rewardSequence() > session._rewardSequence && progress.killSequence() > 0 && progress.damageSequence() > 0) { session._rewardedFarm = true; }
-		if ((progress.damageSequence() > session._damageSequence) || (progress.farmCycleSequence() > session._cycleSequence) || reward)
+		if (earnedProgress(session._killSequence, session._rewardSequence, progress))
 		{
 			session._usefulSince = now;
 			session._repairAttempted = false;
@@ -435,6 +456,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			session._resourceSince = 0; session._resourceExpired = false;
 		}
 		session.baseline(progress);
+	}
+
+	private static boolean earnedProgress(long previousKills, long previousRewards, PlayerNativeEvidence.Snapshot progress)
+	{
+		return progress.damageSequence() > 0 && (progress.killSequence() > previousKills || progress.rewardSequence() > previousRewards);
 	}
 
 	private static boolean stalled(Session session, long now)
@@ -452,7 +478,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			return false;
 		}
-		return (Math.abs((long) player.getZ() - creature.getZ()) < 800) && GeoEngine.getInstance().canSeeTarget(player, creature) && GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), creature.getX(), creature.getY(), creature.getZ(), player.getInstanceId());
+		return PhantomEngagementPlanner.viable(player, creature) && (Math.abs((long) player.getZ() - creature.getZ()) < 800) && GeoEngine.getInstance().canSeeTarget(player, creature) && GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), creature.getX(), creature.getY(), creature.getZ(), player.getInstanceId());
 	}
 
 	private boolean current(long profileId, PhantomGoal goal)
@@ -598,6 +624,12 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "resource_recovery");
 				}
+				if (player.getTarget() instanceof Creature selected && !selected.isAlikeDead() && !PhantomEngagementPlanner.viable(player, selected)
+					&& player.hasAI() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && player.getAI().getIntention() == Intention.ATTACK)
+				{
+					// End the next stock attack intention under this writer; captured hit tickets still settle.
+					player.getAI().setIntention(Intention.IDLE);
+				}
 				if (session != null && session._policy == this && "AutoPlay".equals(source)) { session._shots.activate(player.isMageClass()); }
 				publishTick(source, new TickObservation(sequence, started, 0, "acquired"));
 				return new TickAdmission(TickStatus.ACQUIRED, () -> { try { lease.close(); } finally { publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "completed")); } }, "acquired");
@@ -689,7 +721,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		@Override
 		public boolean permitsTarget(Creature target)
 		{
-			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player));
+			// Corpse eligibility belongs to native Sweep, including retained valuable spoil.
+			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target));
 		}
 	}
 
@@ -766,6 +799,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private long _usefulSince;
 		private boolean _rewardedFarm;
 		private long _damageSequence;
+		private long _killSequence;
 		private long _rewardSequence;
 		private long _cycleSequence;
 		private long _lootSequence;
@@ -800,7 +834,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				synchronized (previous)
 				{
 					_usefulSince = previous._usefulSince; noTargetSince = previous.noTargetSince; _rewardedFarm = previous._rewardedFarm;
-					_damageSequence = previous._damageSequence; _rewardSequence = previous._rewardSequence; _cycleSequence = previous._cycleSequence;
+					_damageSequence = previous._damageSequence; _killSequence = previous._killSequence; _rewardSequence = previous._rewardSequence; _cycleSequence = previous._cycleSequence;
 					_lootSequence = previous._lootSequence; _nativeUsefulNanos = previous._nativeUsefulNanos; _nativeBaseline = previous._nativeBaseline;
 					_repairAttempted = previous._repairAttempted; _stallReported = previous._stallReported;
 					_recovering = previous._recovering; _resourceExpired = previous._resourceExpired;
@@ -813,7 +847,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private void baseline(PlayerNativeEvidence.Snapshot progress)
 		{
 			if (progress == null) { return; }
-			_damageSequence = progress.damageSequence(); _rewardSequence = progress.rewardSequence(); _cycleSequence = progress.farmCycleSequence();
+			_damageSequence = progress.damageSequence(); _killSequence = progress.killSequence(); _rewardSequence = progress.rewardSequence(); _cycleSequence = progress.farmCycleSequence();
 			_lootSequence = progress.lootSequence(); _nativeUsefulNanos = progress.usefulProgressNanos(); _nativeBaseline = true;
 		}
 

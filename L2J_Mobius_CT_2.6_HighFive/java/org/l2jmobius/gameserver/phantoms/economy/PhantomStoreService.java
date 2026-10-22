@@ -104,7 +104,7 @@ public final class PhantomStoreService
 				}
 				saved = save(profileId, plan.withState(PhantomStorePlan.State.REQUESTED));
 			}
-			if (!install(player, plan))
+			if (!installNative(player, plan))
 			{
 				return Result.REJECTED;
 			}
@@ -249,7 +249,8 @@ public final class PhantomStoreService
 		return new Snapshot(_opened.sum(), _closed.sum(), _ownerObservers.size());
 	}
 
-	private boolean install(Player player, PhantomStorePlan plan)
+	/** Listing adapter only; the materialized or dedicated offline caller retains its lifecycle fence. */
+	static boolean installNative(Player player, PhantomStorePlan plan)
 	{
 		if (player.isInStoreMode() && (player.getPrivateStoreType() != PrivateStoreType.NONE))
 		{

@@ -54,6 +54,7 @@ import org.l2jmobius.gameserver.managers.WalkingManager;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.enums.creature.InstanceType;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Team;
+import org.l2jmobius.gameserver.model.actor.enums.npc.ChampionType;
 import org.l2jmobius.gameserver.model.actor.enums.npc.DropType;
 import org.l2jmobius.gameserver.model.actor.holders.npc.AbsorberInfo;
 import org.l2jmobius.gameserver.model.actor.holders.npc.AggroInfo;
@@ -90,7 +91,7 @@ public class Attackable extends Npc
 	private boolean _isRaidMinion = false;
 	
 	//
-	private boolean _champion = false;
+	private ChampionType _championType = ChampionType.NORMAL;
 	private final Map<Creature, AggroInfo> _aggroList = new ConcurrentHashMap<>();
 	private boolean _canReturnToSpawnPoint = true;
 	private boolean _seeThroughSilentMove = false;
@@ -586,10 +587,10 @@ public class Attackable extends Npc
 							double exp = expSp[0];
 							double sp = expSp[1];
 							
-							if (ChampionMonstersConfig.CHAMPION_ENABLE && _champion)
+							if (isChampion())
 							{
-								exp *= ChampionMonstersConfig.CHAMPION_REWARDS_EXP_SP;
-								sp *= ChampionMonstersConfig.CHAMPION_REWARDS_EXP_SP;
+								exp *= ChampionMonstersConfig.profile(this).expSp();
+								sp *= ChampionMonstersConfig.profile(this).expSp();
 							}
 							
 							exp *= penalty;
@@ -701,10 +702,10 @@ public class Attackable extends Npc
 						double exp = expSp[0];
 						double sp = expSp[1];
 						
-						if (ChampionMonstersConfig.CHAMPION_ENABLE && _champion)
+						if (isChampion())
 						{
-							exp *= ChampionMonstersConfig.CHAMPION_REWARDS_EXP_SP;
-							sp *= ChampionMonstersConfig.CHAMPION_REWARDS_EXP_SP;
+							exp *= ChampionMonstersConfig.profile(this).expSp();
+							sp *= ChampionMonstersConfig.profile(this).expSp();
 						}
 						
 						exp *= partyMul;
@@ -1827,7 +1828,7 @@ public class Attackable extends Npc
 	 */
 	public boolean useVitalityRate()
 	{
-		return !_champion || ChampionMonstersConfig.CHAMPION_ENABLE_VITALITY;
+		return !isChampion() || ChampionMonstersConfig.profile(this).vitality();
 	}
 	
 	/** Return True if the Creature is RaidBoss or his minion. */
@@ -1878,17 +1879,26 @@ public class Attackable extends Npc
 	
 	public void setChampion(boolean champ)
 	{
-		_champion = champ;
-		if (ChampionMonstersConfig.SHOW_CHAMPION_AURA)
-		{
-			setTeam(champ ? Team.RED : Team.NONE);
-		}
+		setChampionType(champ ? ChampionType.RED : ChampionType.NORMAL);
+	}
+
+	public void setChampionType(ChampionType type)
+	{
+		_championType = type;
+		// Always clear the previous generation's aura, including after config disable.
+		final boolean aura = type == ChampionType.RED ? ChampionMonstersConfig.SHOW_CHAMPION_AURA : (type == ChampionType.BLUE) && ChampionMonstersConfig.profile(this).aura();
+		setTeam(aura ? type == ChampionType.BLUE ? Team.BLUE : Team.RED : Team.NONE);
+	}
+
+	public ChampionType getChampionType()
+	{
+		return _championType;
 	}
 	
 	@Override
 	public boolean isChampion()
 	{
-		return _champion;
+		return _championType != ChampionType.NORMAL;
 	}
 	
 	@Override

@@ -385,17 +385,26 @@ public final class PhantomBackgroundModel
 
 	private static long encounterMillis(CombatFacts combat, Target target, DeterministicRandom random)
 	{
+		return Math.clamp(Math.round(baseEncounterMillis(combat, target) * random.variance()), MIN_ENCOUNTER_MILLIS, MAX_ENCOUNTER_MILLIS);
+	}
+
+	private static long baseEncounterMillis(CombatFacts combat, Target target)
+	{
 		final boolean magic = combat.modelKind() == ModelKind.MAGIC;
 		final double offense = magic ? combat.magicOffense() : combat.physicalOffense();
 		final double targetDefense = magic ? target.magicDefense() : target.physicalDefense();
 		final double speed = magic ? combat.castSpeed() : combat.attackSpeed();
 		final double effectiveDamage = Math.max(1, offense * 100d / (targetDefense + 100d));
 		final double cyclesPerSecond = Math.max(0.1, speed / 500d);
-		final long base = Math.round((target.maximumHp() / (effectiveDamage * cyclesPerSecond)) * 1000d);
-		return Math.clamp(Math.round(base * random.variance()), MIN_ENCOUNTER_MILLIS, MAX_ENCOUNTER_MILLIS);
+		return Math.round((target.maximumHp() / (effectiveDamage * cyclesPerSecond)) * 1000d);
 	}
 
 	private static double incomingDamage(CombatFacts combat, Target target, long encounterMillis, DeterministicRandom random)
+	{
+		return incomingDamage(combat, target, encounterMillis) * random.variance();
+	}
+
+	private static double incomingDamage(CombatFacts combat, Target target, long encounterMillis)
 	{
 		final boolean targetMagic = target.magicOffense() > target.physicalOffense();
 		final double offense = targetMagic ? target.magicOffense() : target.physicalOffense();
@@ -403,8 +412,33 @@ public final class PhantomBackgroundModel
 		final double speed = targetMagic ? target.castSpeed() : target.attackSpeed();
 		final double perCycle = Math.max(1, offense * 100d / (defense + 100d));
 		final double cycles = (encounterMillis / 1000d) * Math.max(0.1, speed / 500d);
-		return perCycle * cycles * random.variance();
+		return perCycle * cycles;
 	}
+
+	/** Planning hint from the same approximation, without RNG or the simulation's time compression. */
+	public static EncounterEstimate estimateEncounter(CombatFacts combat, Target target)
+	{
+		Objects.requireNonNull(combat, "combat"); Objects.requireNonNull(target, "target");
+		final long millis = Math.max(MIN_ENCOUNTER_MILLIS, baseEncounterMillis(combat, target));
+		return new EncounterEstimate(millis, incomingDamage(combat, target, millis));
+	}
+
+	/** No predicted regeneration, consumables or free shots are credited before a native action. */
+	public static boolean viableEncounter(CombatFacts combat, Vitals vitals, double requiredMp, Target target)
+	{
+		return viableEncounter(combat, vitals, requiredMp, target, List.of());
+	}
+
+	public static boolean viableEncounter(CombatFacts combat, Vitals vitals, double requiredMp, Target target, List<Target> additionalThreats)
+	{
+		if (!Double.isFinite(requiredMp) || requiredMp < 0 || vitals.currentMp() < requiredMp || vitals.currentHp() <= 0 || !target.normalMonster()) { return false; }
+		final EncounterEstimate estimate = estimateEncounter(combat, target);
+		double incoming = estimate.incomingDamage();
+		for (Target threat : additionalThreats) { incoming += incomingDamage(combat, threat, estimate.durationMillis()); }
+		return estimate.durationMillis() <= org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS && Double.isFinite(incoming) && incoming < vitals.currentHp();
+	}
+
+	public record EncounterEstimate(long durationMillis, double incomingDamage) { }
 
 	private static DropRoll rollDrops(Target target, DeterministicRandom random)
 	{

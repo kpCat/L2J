@@ -262,6 +262,8 @@ public final class QoLSevenSignsAccessSuite implements PhantomTestSuite
 
 	private void nativeRiftLifecycle(PhantomTestContext context) throws Exception
 	{
+		_player.setOnlineStatus(true, false);
+		_observer.setOnlineStatus(true, false);
 		final DimensionalRiftManager manager = DimensionalRiftManager.getInstance();
 		final EntryReadinessSnapshot entry = manager.entryReadiness(RIFT_TYPE);
 		PhantomAssertions.assertTrue(entry.supported() && entry.entryCapacityAvailable(), "Recruit Rift entry snapshot is unavailable.");
@@ -285,12 +287,13 @@ public final class QoLSevenSignsAccessSuite implements PhantomTestSuite
 		PhantomAssertions.assertFalse(_party.isInDimensionalRift(), "A non-leader started the Rift.");
 
 		final List<Byte> freeRooms = List.copyOf(manager.getFreeRooms(RIFT_TYPE));
+		final Object capacityOwner = new Object();
 		PhantomAssertions.assertTrue(freeRooms.size() > 1, "Recruit Rift has insufficient rooms for the capacity/jump fixture.");
 		try
 		{
 			for (byte room : freeRooms)
 			{
-				manager.getRoom(RIFT_TYPE, room).setPartyInside(true);
+				PhantomAssertions.assertTrue(manager.getRoom(RIFT_TYPE, room).tryAcquire(capacityOwner), "Capacity fixture lost its native room reservation.");
 			}
 			manager.start(_player, RIFT_TYPE, _riftNpc);
 			PhantomAssertions.assertFalse(_party.isInDimensionalRift(), "Full Rift capacity was bypassed.");
@@ -299,7 +302,7 @@ public final class QoLSevenSignsAccessSuite implements PhantomTestSuite
 		{
 			for (byte room : freeRooms)
 			{
-				manager.getRoom(RIFT_TYPE, room).setPartyInside(false);
+				manager.getRoom(RIFT_TYPE, room).release(capacityOwner);
 			}
 		}
 
@@ -379,19 +382,19 @@ public final class QoLSevenSignsAccessSuite implements PhantomTestSuite
 		final String oracle = source(context, "dist/game/data/scripts/ai/others/OracleTeleport/OracleTeleport.java");
 		final String riftBypass = source(context, "dist/game/data/scripts/handlers/bypass/npc/Rift.java");
 		final String enterWorld = source(context, "java/org/l2jmobius/gameserver/network/clientpackets/EnterWorld.java");
-		PhantomAssertions.assertFalse(manager.contains("PersonalCharacterQoLService") || manager.contains("getPlayerCabal"), "Rift start acquired a personal/cabal bypass.");
-		assertContains(manager, "if (!player.isInParty())", "Rift party-required gate is absent.");
-		assertContains(manager, "party.getLeaderObjectId() != player.getObjectId()", "Rift start leader gate is absent.");
-		assertContains(manager, "party.getMemberCount() < GeneralConfig.RIFT_MIN_PARTY_SIZE", "Rift minimum-size gate is absent.");
+		PhantomAssertions.assertFalse(manager.contains("getPlayerCabal"), "Rift start acquired a cabal bypass.");
+		assertContains(manager, "(originalParty == null) && !personalSolo", "Ordinary Rift party-required gate is absent.");
+		assertContains(manager, "originalParty.getLeader() != player", "Rift start leader gate is absent.");
+		assertContains(manager, "!personalSolo && (members.size() < GeneralConfig.RIFT_MIN_PARTY_SIZE)", "Ordinary Rift minimum-size gate is absent.");
 		assertContains(manager, "if (!isAllowedEnter(type))", "Rift capacity gate is absent.");
 		assertContains(manager, "checkIfInPeaceZone", "Rift waiting-room presence gate is absent.");
 		assertContains(manager, "DIMENSIONAL_FRAGMENT_ITEM_ID = 7079", "Rift fragment item changed.");
-		assertContains(manager, "destroyItem(ItemProcessType.FEE", "Rift fragment debit is absent.");
-		assertContains(manager, "new DimensionalRift(party, type, room)", "Rift first-room session creation is absent.");
+		assertContains(manager, "destroyItemByItemId(ItemProcessType.FEE", "Rift fragment debit is absent.");
+		assertContains(manager, "new DimensionalRift(party, type, room,", "Rift first-room session creation is absent.");
 		PhantomAssertions.assertFalse(rift.contains("PersonalCharacterQoLService") || rift.contains("getPlayerCabal"), "Rift continuation acquired a personal/cabal bypass.");
 		assertContains(rift, "currentJump < getMaxJumps()", "Timed jump limit is absent.");
 		assertContains(rift, "createSpawnTimer(_choosenRoom)", "First/timed Rift rooms no longer schedule combat population.");
-		assertContains(rift, "createSpawnTimer(_choosenRoom);", "Manual Rift jump no longer schedules combat population.");
+		assertContains(rift, "createSpawnTimer(next);", "Manual Rift jump no longer schedules combat population.");
 		assertContains(rift, "public void manualTeleport", "Manual room transition is absent.");
 		assertContains(rift, "player.getObjectId() != party.getLeaderObjectId()", "Manual leader rule is absent.");
 		assertContains(rift, "partyMemberExited", "Low-member exit handling is absent.");
