@@ -96,6 +96,9 @@ public final class PhantomMerchant068Native
 			check(service.snapshot().nonemptyStores() >= target, "Target not reached: " + service.snapshot());
 			check(service.snapshot().combatOrMaterializationOwners() == 0, "Parked role registered combat work.");
 			check(service.characterIds().size() == Set.copyOf(service.characterIds()).size(), "Duplicate character ids.");
+			final var humanPoints = org.l2jmobius.gameserver.phantoms.PhantomSystem.onlineHumanPoints();
+			check(humanPoints.isEmpty(), "Native offline stores became human observers and suppressed the autonomous origin: " + humanPoints.size());
+			receipt.append("humanObservationPoints\t").append(humanPoints.size()).append("; native offline owners do not supply human demand\n");
 			final var before = service.snapshot();
 			customer = customer();
 			if (target == 200) { peer = customer("Market068Peer"); }

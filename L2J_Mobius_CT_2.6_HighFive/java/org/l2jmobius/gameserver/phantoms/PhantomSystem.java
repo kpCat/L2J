@@ -3173,7 +3173,7 @@ public final class PhantomSystem
 			return new PhantomMaterializationRetentionPolicy.Facts(false, false, false, false, false);
 		}
 		final var region = World.getInstance().getRegion(player);
-		final boolean visible = World.getInstance().getPlayers().stream().anyMatch(human -> human.isOnline() && !human.hasHeadlessOutboundSession() && (human.getInstanceId() == player.getInstanceId()) && (World.getInstance().getRegion(human) != null) && World.getInstance().getRegion(human).isSurroundingRegion(region));
+		final boolean visible = World.getInstance().getPlayers().stream().anyMatch(human -> humanObserver(human) && (human.getInstanceId() == player.getInstanceId()) && (World.getInstance().getRegion(human) != null) && World.getInstance().getRegion(human).isSurroundingRegion(region));
 		final var nativeFacts = PhantomMaterializationRetentionPolicy.Facts.nativeFacts(player, _humanLocality.isLocal(profileId), visible, snapshot.admittedActionCount());
 		final boolean protectedOwner = snapshot.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE
 			|| !snapshot.actionAdmissionOpen() || snapshot.firstCleanupIncident() != null || !player.hasHeadlessOutboundSession() || !player.isOnline() || player.isDead()
@@ -3333,10 +3333,19 @@ public final class PhantomSystem
 	/** The production locality supplier; bounded and independent of transport/identity kind. */
 	public static java.util.List<PhantomTopologyPoint> onlineHumanPoints()
 	{
-		final var humans = World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
+		final var humans = World.getInstance().getPlayers().stream().filter(PhantomSystem::humanObserver).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
 		if (!humans.isEmpty()) { return humans; }
 		final var autonomous = org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().autonomousObservationPoint();
 		return autonomous == null ? humans : java.util.List.of(autonomous);
+	}
+
+	/** Native offline owners remain online for trades, but cannot observe the world. */
+	private static boolean humanObserver(Player player)
+	{
+		if (!player.isOnline() || player.hasHeadlessOutboundSession()) { return false; }
+		final var client = player.getClient();
+		return client != null && !client.isDetached() && client.getPlayer() == player
+			|| PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == OwnerKind.LOCALPLAY_TEST_HUMAN;
 	}
 
 	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive, Map<String, String> nativeEvidence)
