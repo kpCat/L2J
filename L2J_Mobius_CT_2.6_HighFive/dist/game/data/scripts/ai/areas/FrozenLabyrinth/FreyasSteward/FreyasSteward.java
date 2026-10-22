@@ -37,9 +37,6 @@ public class FreyasSteward extends Script
 	// Location
 	private static final Location TELEPORT_LOC = new Location(103045, -124361, -2768);
 	
-	// Misc
-	private static final int MIN_LEVEL = 82;
-	
 	private FreyasSteward()
 	{
 		addStartNpc(FREYAS_STEWARD);
@@ -52,13 +49,8 @@ public class FreyasSteward extends Script
 	{
 		if (event.equalsIgnoreCase("ENTER"))
 		{
-			if (player.getLevel() >= MIN_LEVEL)
-			{
-				player.teleToLocation(TELEPORT_LOC);
-				return null;
-			}
-			
-			return "32029-1.html"; // This is beyond you. Wait for the right time.
+			player.teleToLocation(TELEPORT_LOC);
+			return null;
 		}
 		
 		return null;

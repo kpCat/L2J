@@ -141,6 +141,12 @@ public final class PhantomCampaign058DatabaseLane
 	/** Recheck existing fixture authority without reinitializing or provisioning the database. */
 	static void assertActiveFixture(PhantomTestContext context) throws Exception
 	{
+		if (PhantomTask069Lane.enabled() && Boolean.getBoolean("phantom.task069.mutable-fixture") && DatabaseFactory.isInitialized())
+		{
+			PhantomTask069Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config")));
+			try (var connection = DatabaseFactory.getConnection()) { PhantomAssertions.assertEquals(PhantomTask069Lane.SCHEMA, connection.getCatalog(), "Own069 fixture catalog differs."); }
+			return;
+		}
 		if (!enabled() || !DatabaseFactory.isInitialized())
 		{
 			throw new IllegalArgumentException("An initialized exact058t fixture is required.");

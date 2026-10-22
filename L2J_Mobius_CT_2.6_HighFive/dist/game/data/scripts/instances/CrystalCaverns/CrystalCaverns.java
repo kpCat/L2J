@@ -225,7 +225,6 @@ public class CrystalCaverns extends InstanceScript
 	
 	// Misc
 	private static final int TEMPLATE_ID = 10;
-	private static final int MIN_LEVEL = 78;
 	private static final int DOOR1 = 24220021;
 	private static final int DOOR2 = 24220024;
 	private static final int DOOR3 = 24220023;
@@ -537,14 +536,6 @@ public class CrystalCaverns extends InstanceScript
 		
 		for (Player partyMember : party.getMembers())
 		{
-			if (partyMember.getLevel() < MIN_LEVEL)
-			{
-				final SystemMessage sm = new SystemMessage(SystemMessageId.C1_S_LEVEL_DOES_NOT_CORRESPOND_TO_THE_REQUIREMENTS_FOR_ENTRY);
-				sm.addPcName(partyMember);
-				party.broadcastPacket(sm);
-				return false;
-			}
-			
 			final Item item = partyMember.getInventory().getItemByItemId(CONTAMINATED_CRYSTAL);
 			if (item == null)
 			{

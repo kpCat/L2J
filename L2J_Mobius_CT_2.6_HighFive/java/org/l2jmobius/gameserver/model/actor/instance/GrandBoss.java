@@ -37,7 +37,6 @@ import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
  */
 public class GrandBoss extends Monster
 {
-	private boolean _useRaidCurse = true;
 	
 	/**
 	 * Creates a grand boss.
@@ -109,14 +108,4 @@ public class GrandBoss extends Monster
 		return false;
 	}
 	
-	public void setUseRaidCurse(boolean value)
-	{
-		_useRaidCurse = value;
-	}
-	
-	@Override
-	public boolean giveRaidCurse()
-	{
-		return _useRaidCurse;
-	}
 }

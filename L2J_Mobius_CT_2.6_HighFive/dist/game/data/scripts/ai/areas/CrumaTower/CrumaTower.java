@@ -38,9 +38,6 @@ public class CrumaTower extends Script
 	private static final Location TELEPORT_LOC1 = new Location(17776, 113968, -11671);
 	private static final Location TELEPORT_LOC2 = new Location(17680, 113968, -11671);
 	
-	// Misc
-	private static final int MAX_LEVEL = 55;
-	
 	private CrumaTower()
 	{
 		addFirstTalkId(MOZELLA);
@@ -53,13 +50,8 @@ public class CrumaTower extends Script
 	{
 		if (event.equals("ENTER"))
 		{
-			if (player.getLevel() <= MAX_LEVEL)
-			{
-				player.teleToLocation(getRandomBoolean() ? TELEPORT_LOC1 : TELEPORT_LOC2);
-				return null;
-			}
-			
-			return "30483-1.html"; // Characters who are level 56 and above cannot enter the Cruma Tower.
+			player.teleToLocation(getRandomBoolean() ? TELEPORT_LOC1 : TELEPORT_LOC2);
+			return null;
 		}
 		
 		return null;

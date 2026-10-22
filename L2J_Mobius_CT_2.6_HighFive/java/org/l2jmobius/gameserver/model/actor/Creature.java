@@ -129,7 +129,6 @@ import org.l2jmobius.gameserver.model.skill.AbnormalType;
 import org.l2jmobius.gameserver.model.skill.AbnormalVisualEffect;
 import org.l2jmobius.gameserver.model.skill.BuffFinishTask;
 import org.l2jmobius.gameserver.model.skill.BuffInfo;
-import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.model.skill.EffectScope;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.SkillChannelized;
@@ -5329,25 +5328,6 @@ public abstract class Creature extends WorldObject
 		int damage = damageValue;
 		sendDamageMessage(target, damage, false, crit, miss);
 		
-		// Check Raidboss attack Creature will be petrified if attacking a raid that's more than 8 levels lower
-		if (target.isRaid() && target.giveRaidCurse() && !NpcConfig.RAID_DISABLE_CURSE && (getLevel() > (target.getLevel() + 8)))
-		{
-			final Skill skill = CommonSkill.RAID_CURSE2.getSkill();
-			if (skill != null)
-			{
-				abortAttack();
-				abortCast();
-				getAI().setIntention(Intention.IDLE);
-				skill.applyEffects(target, this);
-			}
-			else
-			{
-				LOGGER.warning("Skill 4515 at level 1 is missing in DP.");
-			}
-			
-			damage = 0; // prevents messing up drop calculation
-		}
-		
 		// If Creature target is a Player, send a system message
 		if (target.isPlayer())
 		{
@@ -6270,33 +6250,6 @@ public abstract class Creature extends WorldObject
 				
 				final Creature target = obj.asCreature();
 				
-				// Check raid monster attack and check buffing characters who attack raid monsters.
-				Creature targetsAttackTarget = null;
-				Creature targetsCastTarget = null;
-				if (target.hasAI())
-				{
-					targetsAttackTarget = target.getAI().getAttackTarget();
-					targetsCastTarget = target.getAI().getCastTarget();
-				}
-				
-				if (!NpcConfig.RAID_DISABLE_CURSE && ((target.isRaid() && target.giveRaidCurse() && (getLevel() > (target.getLevel() + 8))) || (!skill.hasNegativeEffect() && (targetsAttackTarget != null) && targetsAttackTarget.isRaid() && targetsAttackTarget.giveRaidCurse() && targetsAttackTarget.getAttackByList().contains(target) && (getLevel() > (targetsAttackTarget.getLevel() + 8))) || (!skill.hasNegativeEffect() && (targetsCastTarget != null) && targetsCastTarget.isRaid() && targetsCastTarget.giveRaidCurse() && targetsCastTarget.getAttackByList().contains(target) && (getLevel() > (targetsCastTarget.getLevel() + 8)))))
-				{
-					final CommonSkill curse = skill.isMagic() ? CommonSkill.RAID_CURSE : CommonSkill.RAID_CURSE2;
-					final Skill curseSkill = curse.getSkill();
-					if (curseSkill != null)
-					{
-						abortAttack();
-						abortCast();
-						getAI().setIntention(Intention.IDLE);
-						curseSkill.applyEffects(target, this);
-					}
-					else
-					{
-						LOGGER.warning("Skill ID " + curse.getId() + " level " + curse.getLevel() + " is missing in DP!");
-					}
-					return;
-				}
-				
 				// Check if over-hit is possible
 				if (skill.isOverhit() && target.isAttackable())
 				{
@@ -6443,16 +6396,6 @@ public abstract class Creature extends WorldObject
 							}
 						}
 						
-						// Players which are 9 levels above a Raid Boss and cast a skill nearby, are silenced with the Raid Curse skill.
-						if (!NpcConfig.RAID_DISABLE_CURSE && attackable.isRaid() && attackable.giveRaidCurse() && attackable.isInCombat() && ((player.getLevel() - attackable.getLevel()) > 8))
-						{
-							player.abortAttack();
-							player.abortCast();
-							player.getAI().setIntention(Intention.IDLE);
-							
-							final CommonSkill curse = skill.hasNegativeEffect() ? CommonSkill.RAID_CURSE2 : CommonSkill.RAID_CURSE;
-							curse.getSkill().applyEffects(attackable, player);
-						}
 					}
 				});
 			}
@@ -6942,14 +6885,6 @@ public abstract class Creature extends WorldObject
 	public boolean isCoreAIDisabled()
 	{
 		return _disabledAI;
-	}
-	
-	/**
-	 * @return true
-	 */
-	public boolean giveRaidCurse()
-	{
-		return true;
 	}
 	
 	/**

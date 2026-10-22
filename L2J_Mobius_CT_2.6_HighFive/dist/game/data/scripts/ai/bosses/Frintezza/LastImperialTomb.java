@@ -774,12 +774,6 @@ public class LastImperialTomb extends InstanceScript
 		
 		for (Player channelMember : channel.getMembers())
 		{
-			if (channelMember.getLevel() < 80)
-			{
-				party.broadcastPacket(new SystemMessage(SystemMessageId.C1_S_LEVEL_DOES_NOT_CORRESPOND_TO_THE_REQUIREMENTS_FOR_ENTRY).addPcName(channelMember));
-				return false;
-			}
-			
 			if (!LocationUtil.checkIfInRange(1000, player, channelMember, true))
 			{
 				party.broadcastPacket(new SystemMessage(SystemMessageId.C1_IS_IN_A_LOCATION_WHICH_CANNOT_BE_ENTERED_THEREFORE_IT_CANNOT_BE_PROCESSED).addPcName(channelMember));

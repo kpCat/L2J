@@ -259,6 +259,18 @@ public class MultisellData implements IXmlReader
 	 */
 	public void separateAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier)
 	{
+		// These stock custom lists remain on disk, but ready-made gear is not a CB source.
+		if ((listId == 600010) || (listId == 600014) || (listId == 600016))
+		{
+			player.setMultiSell(null);
+			return;
+		}
+		// Approved x1 retail/exchange prices cannot be scaled by a generic caller.
+		if (((listId == 91003) || (listId == 91004)) && ((productMultiplier != 1) || (ingredientMultiplier != 1)))
+		{
+			player.setMultiSell(null);
+			return;
+		}
 		if (PersonalPremiumQoLService.isShopList(listId) || PersonalProgressionShopService.isShopList(listId))
 		{
 			player.setMultiSell(null);

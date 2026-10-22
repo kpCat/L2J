@@ -120,8 +120,6 @@ public class CavernOfThePirateCaptain extends InstanceScript
 	};
 	
 	// Misc
-	private static final int MIN_LV_60 = 55;
-	private static final int MIN_LV_83 = 78;
 	private static final int PLAYERS_60_MIN = 9;
 	private static final int PLAYERS_60_MAX = 27;
 	private static final int PLAYERS_60_NIGHT_MIN = 72;
@@ -245,12 +243,6 @@ public class CavernOfThePirateCaptain extends InstanceScript
 		
 		for (Player groupMembers : members)
 		{
-			if (groupMembers.getLevel() < (is83 ? MIN_LV_83 : MIN_LV_60))
-			{
-				broadcastSystemMessage(player, groupMembers, SystemMessageId.C1_S_LEVEL_DOES_NOT_CORRESPOND_TO_THE_REQUIREMENTS_FOR_ENTRY, true);
-				return false;
-			}
-			
 			if (!player.isInsideRadius3D(groupMembers, 1000))
 			{
 				broadcastSystemMessage(player, groupMembers, SystemMessageId.C1_IS_IN_A_LOCATION_WHICH_CANNOT_BE_ENTERED_THEREFORE_IT_CANNOT_BE_PROCESSED, true);

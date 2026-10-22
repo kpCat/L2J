@@ -82,7 +82,8 @@ public class NpcConfig
 	public static double RAID_MINION_RESPAWN_TIMER;
 	public static Map<Integer, Integer> MINIONS_RESPAWN_TIME;
 	public static boolean FORCE_DELETE_MINIONS;
-	public static boolean RAID_DISABLE_CURSE;
+	/** Legacy read-only compatibility: raid level curses no longer exist. */
+	public static final boolean RAID_DISABLE_CURSE = true;
 	public static int RAID_CHAOS_TIME;
 	public static int GRAND_CHAOS_TIME;
 	public static int MINION_CHAOS_TIME;
@@ -193,7 +194,6 @@ public class NpcConfig
 		}
 		
 		FORCE_DELETE_MINIONS = config.getBoolean("ForceDeleteMinions", false);
-		RAID_DISABLE_CURSE = config.getBoolean("DisableRaidCurse", false);
 		RAID_CHAOS_TIME = config.getInt("RaidChaosTime", 10);
 		GRAND_CHAOS_TIME = config.getInt("GrandChaosTime", 10);
 		MINION_CHAOS_TIME = config.getInt("MinionChaosTime", 10);

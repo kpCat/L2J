@@ -41,7 +41,6 @@ import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 public class RaidBoss extends Monster
 {
 	private RaidBossStatus _raidStatus;
-	private boolean _useRaidCurse = true;
 	
 	/**
 	 * Creates a raid boss.
@@ -124,14 +123,4 @@ public class RaidBoss extends Monster
 		return PlayerConfig.RAIDBOSS_USE_VITALITY;
 	}
 	
-	public void setUseRaidCurse(boolean value)
-	{
-		_useRaidCurse = value;
-	}
-	
-	@Override
-	public boolean giveRaidCurse()
-	{
-		return _useRaidCurse;
-	}
 }

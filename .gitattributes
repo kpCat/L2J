@@ -1,0 +1,9 @@
+# Preserve the owner's immutable task069 input bytes in committed archives.
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/ACCEPTANCE.tsv -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/AUTHORITY.md -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/GOAL.txt -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/OWNER_DECISIONS.md -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/READ_SET.md -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/RELEASE_PROFILE.md -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/TASK.md -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/TEST_POLICY.md -text

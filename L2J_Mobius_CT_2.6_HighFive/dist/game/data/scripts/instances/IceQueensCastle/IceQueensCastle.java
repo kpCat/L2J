@@ -29,7 +29,6 @@ import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.network.NpcStringId;
-import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.enums.Movie;
 
@@ -60,7 +59,6 @@ public class IceQueensCastle extends InstanceScript
 	// Misc
 	private static final int TEMPLATE_ID = 137;
 	private static final int ICE_QUEEN_DOOR = 23140101;
-	private static final int MIN_LV = 82;
 	
 	private IceQueensCastle()
 	{
@@ -199,12 +197,6 @@ public class IceQueensCastle extends InstanceScript
 	@Override
 	protected boolean checkConditions(Player player)
 	{
-		if (player.getLevel() < MIN_LV)
-		{
-			player.sendPacket(SystemMessageId.C1_S_LEVEL_DOES_NOT_CORRESPOND_TO_THE_REQUIREMENTS_FOR_ENTRY);
-			return false;
-		}
-		
 		return true;
 	}
 	

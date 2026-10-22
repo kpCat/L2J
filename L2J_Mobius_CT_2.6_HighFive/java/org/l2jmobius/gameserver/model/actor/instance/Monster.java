@@ -198,15 +198,6 @@ public class Monster extends Attackable
 		return ((_master == null) ? super.isWalker() : _master.isWalker());
 	}
 	
-	/**
-	 * @return {@code true} if this Monster is not raid minion, master state otherwise.
-	 */
-	@Override
-	public boolean giveRaidCurse()
-	{
-		return (isRaidMinion() && (_master != null)) ? _master.giveRaidCurse() : super.giveRaidCurse();
-	}
-	
 	@Override
 	public void doCast(Skill skill, Creature target, List<WorldObject> targets)
 	{

@@ -949,7 +949,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static void assertCampaign058Jar(PhantomTestContext context) throws Exception
 	{
-		final Path supplied = Path.of(System.getProperty("phantom.contract058.semantic.jar", PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toString())).toRealPath();
+		final Path supplied = Path.of(PhantomTask069Lane.enabled() ? System.getProperty("phantom.task069.jar") : System.getProperty("phantom.contract058.semantic.jar", PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toString())).toRealPath();
 		PhantomAssertions.assertTrue(campaign058JarAllowed(supplied), "TASK058 ordinary semantic JAR path is outside its exact allowlist.");
 		for (Class<?> type : List.of(Player.class, PhantomCombatService.class, PhantomPartyCoordinator.class, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.class, org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.class))
 		{
@@ -961,6 +961,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static boolean campaign058JarAllowed(Path supplied)
 	{
+		if (PhantomTask069Lane.enabled())
+		{
+			final Path task = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().getParent().resolve(".phantom-local/task069");
+			final Path relative = task.relativize(supplied);
+			return supplied.startsWith(task) && relative.toString().replace('\\', '/').matches("build-final-[a-z0-9-]+/dist/libs/GameServer\\.jar") && Files.isRegularFile(task.resolve(relative.getName(0)).resolve("BUILD_INFO069.json"));
+		}
 		if (PhantomCampaign058DatabaseLane.task066R2Enabled())
 		{
 			final Path task = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize().getParent().resolve(".phantom-local/task066r2");
@@ -6164,9 +6170,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				var result = attempts.advance(_profile.profileId(), goalId, 0);
 				if (Boolean.getBoolean("phantom.test.raidLevelGuard059"))
 				{
-					PhantomAssertions.assertFalse(org.l2jmobius.gameserver.config.NpcConfig.RAID_DISABLE_CURSE, "Native curse guard input was disabled before the episode.");
+					PhantomAssertions.assertTrue(org.l2jmobius.gameserver.config.NpcConfig.RAID_DISABLE_CURSE, "Global raid curse removal changed.");
 					context.record("raid059.levelGuard", "one native human80/mixed9; result=" + result.status() + '/' + result.reasonKey() + "; acceptedCombat=" + _combat.metrics().sessionsAccepted());
-					PhantomAssertions.assertTrue(result.status() == org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.AttemptStatus.ABORTED && result.reasonKey().equals("raid.attempt.member_level_rejected") && _combat.metrics().sessionsAccepted() == 0 && boss.getCurrentHp() == hpBefore && roster.stream().noneMatch(Player::isDead), "Above-minion-ceiling force reached native combat or used a false refusal."); return;
+					PhantomAssertions.assertFalse(result.reasonKey().equals("raid.attempt.member_level_rejected"), "Removed raid curse still imposes a member-level refusal."); return;
 				}
 				while (!result.status().terminal() && (System.currentTimeMillis() < deadline))
 				{

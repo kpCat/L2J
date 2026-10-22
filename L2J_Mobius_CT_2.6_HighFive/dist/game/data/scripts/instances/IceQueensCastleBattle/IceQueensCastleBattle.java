@@ -151,7 +151,6 @@ public class IceQueensCastleBattle extends InstanceScript
 	// Misc
 	private static final int MAX_PLAYERS = 27;
 	private static final int MIN_PLAYERS = 10;
-	private static final int MIN_LEVEL = 82;
 	private static final int GLAKIAS_KILL_TIMER = 6; // Harcore Glakias Kill Timer in minutes
 	private static final int TEMPLATE_ID_EASY = 139; // Ice Queen's Castle
 	private static final int TEMPLATE_ID_HARD = 144; // Ice Queen's Castle (Epic)
@@ -1307,14 +1306,7 @@ public class IceQueensCastleBattle extends InstanceScript
 		
 		for (Player channelMember : channel.getMembers())
 		{
-			if (channelMember.getLevel() < MIN_LEVEL)
-			{
-				final SystemMessage sm = new SystemMessage(SystemMessageId.C1_S_LEVEL_DOES_NOT_CORRESPOND_TO_THE_REQUIREMENTS_FOR_ENTRY);
-				sm.addPcName(channelMember);
-				party.broadcastPacket(sm);
-				return false;
-			}
-			else if (!LocationUtil.checkIfInRange(1000, player, channelMember, true))
+			if (!LocationUtil.checkIfInRange(1000, player, channelMember, true))
 			{
 				final SystemMessage sm = new SystemMessage(SystemMessageId.C1_IS_IN_A_LOCATION_WHICH_CANNOT_BE_ENTERED_THEREFORE_IT_CANNOT_BE_PROCESSED);
 				sm.addPcName(channelMember);

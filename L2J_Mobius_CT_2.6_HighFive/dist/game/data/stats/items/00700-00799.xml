@@ -379,9 +379,6 @@
 		<conditions msgId="113" addName="1">
 			<player flyMounted="false" />
 		</conditions>
-		<conditions msgId="113" addName="1">
-			<player isPvpFlagged="false" />
-		</conditions>
 		<skills>
 			<skill id="10000" level="1" />
 		</skills>
@@ -416,9 +413,6 @@
 		<set name="for_npc" val="true" />
 		<conditions msgId="113" addName="1">
 			<player flyMounted="false" />
-		</conditions>
-		<conditions msgId="113" addName="1">
-			<player isPvpFlagged="false" />
 		</conditions>
 		<skills>
 			<skill id="10001" level="1" />

@@ -27,27 +27,23 @@ import java.util.logging.Logger;
 import org.l2jmobius.commons.time.TimeUtil;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.config.GrandBossConfig;
-import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.managers.GrandBossManager;
 import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Npc;
-import org.l2jmobius.gameserver.model.actor.Playable;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.script.Script;
-import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.zone.type.BossZone;
-import org.l2jmobius.gameserver.network.serverpackets.MagicSkillUse;
 import org.l2jmobius.gameserver.network.serverpackets.PlaySound;
 
 /**
  * Queen Ant grand boss AI handler.<br>
- * Controls boss lifecycle, minion healing, raid curse and nest constraints.
+ * Controls boss lifecycle, minion healing and nest constraints.
  * @author BazookaRpm
  */
 public class QueenAnt extends Script
@@ -100,8 +96,6 @@ public class QueenAnt extends Script
 	private static final int ACTION_INTERVAL_MILLIS = 10000;
 	private static final int DISTANCE_CHECK_INTERVAL_MILLIS = 5000;
 	private static final int QUEEN_LEASH_MAX_DISTANCE = 2000;
-	private static final int RAID_CURSE_LEVEL_DIFFERENCE = 8;
-	private static final int RAID_CURSE_CAST_TIME_MILLIS = 300;
 	
 	// Respawn related constants.
 	private static final long MILLIS_PER_HOUR = 3600000L;
@@ -138,7 +132,6 @@ public class QueenAnt extends Script
 	{
 		addSpawnId(MONITORED_NPC_IDS);
 		addKillId(MONITORED_NPC_IDS);
-		addAggroRangeEnterId(MONITORED_NPC_IDS);
 		addFactionCallId(NURSE_ID);
 		
 		_queenNestZone = ZoneManager.getInstance().getZoneById(12012, BossZone.class);
@@ -388,67 +381,6 @@ public class QueenAnt extends Script
 			{
 				npc.asAttackable().useMagic(healSkill);
 			}
-		}
-	}
-	
-	/**
-	 * Handles raid curse logic when a player or summon enters aggro range.
-	 */
-	@Override
-	public void onAggroRangeEnter(Npc npc, Player player, boolean isSummon)
-	{
-		if (npc == null)
-		{
-			return;
-		}
-		
-		if (player.isGM() && player.isInvisible())
-		{
-			return;
-		}
-		
-		boolean attackerIsMage;
-		Playable attackerCharacter;
-		
-		if (isSummon)
-		{
-			attackerIsMage = false;
-			attackerCharacter = player.getSummon();
-		}
-		else
-		{
-			attackerIsMage = player.isMageClass();
-			attackerCharacter = player;
-		}
-		
-		if (attackerCharacter == null)
-		{
-			return;
-		}
-		
-		if (!NpcConfig.RAID_DISABLE_CURSE && ((attackerCharacter.getLevel() - npc.getLevel()) > RAID_CURSE_LEVEL_DIFFERENCE))
-		{
-			Skill curse = null;
-			
-			if (attackerIsMage)
-			{
-				if (!attackerCharacter.isMuted() && (getRandom(4) == 0))
-				{
-					curse = CommonSkill.RAID_CURSE.getSkill();
-				}
-			}
-			else if (!attackerCharacter.isParalyzed() && (getRandom(4) == 0))
-			{
-				curse = CommonSkill.RAID_CURSE2.getSkill();
-			}
-			
-			if (curse != null)
-			{
-				npc.broadcastPacket(new MagicSkillUse(npc, attackerCharacter, curse.getId(), curse.getLevel(), RAID_CURSE_CAST_TIME_MILLIS, 0));
-				curse.applyEffects(npc, attackerCharacter);
-			}
-			
-			npc.asAttackable().stopHating(attackerCharacter);
 		}
 	}
 	

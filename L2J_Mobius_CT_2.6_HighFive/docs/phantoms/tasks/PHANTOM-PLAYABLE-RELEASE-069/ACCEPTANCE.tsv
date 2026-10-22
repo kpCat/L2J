@@ -1,0 +1,17 @@
+gate	importance	required	evidence	status_rules
+P0A	HARD	Mana728 usable at PvP flag, 100MP/500ms native, consumes1, Olympiad restriction unchanged; potion sold for exactly1000A x1	item XML + native use during PvP + native CB purchase	PASS / PARTIAL / FAIL
+P0B	HARD	Global Raid Curse never applies on melee/skill/heal/summon/QueenAnt; no `damage=0` just overlevel	read/search all consumers + focused native 4 roles including QueenAnt overlevel	PASS / PARTIAL / FAIL
+P0C	HARD	All genuine epic level-only entry barriers lifted, no fake Cruma instance, Frintezza lower-level legal where other native conditions met	entry audit TSV per named boss+negative stock fee/reuse/zone	PASS / PARTIAL / FAIL
+P0D	HARD	No raid/grandboss level-gap DROP/ADENA suppression vs QA70+, normal mobs retain stock penalty	NpcTemplate native drop chance policy/table comparison controlled seed	PASS / PARTIAL / FAIL
+M1	HARD	Useful materialized Phantom with native kills and BG/native handoff sameDB/sameJAR	ordinary Main native rewards before/after + ownership uniqueness	PASS_BOUNDED / PARTIAL
+M2	HARD	Native human+phantom party action, valid consent, follow/assist/heal/buff and release	short affected built-in native composition, no fake GameClient	PASS_BOUNDED / PARTIAL
+M3	SOFT	Existing scoped hold/resume and memory after restart retained	one targeted recall and sameDB recovery	PASS_BOUNDED / PARTIAL
+M4	SOFT	PvP PK threat/response native, karma and retreat without repeat-abuse	one short accepted and one refusal encounter	PASS_BOUNDED / PARTIAL
+M5	SOFT	Grouped raid tank/DD/healer/support useful actions, ordinary costs, terminal/retreat evidence	one bounded native encounter, 25199 victory not required	PASS_BOUNDED / PARTIAL
+M6	HARD	Known Kama/Lab/Rift entry-exit/reuse undamaged, epic level admission P0C	focused ordinary native Kamaloka/Rift and entry-audit; network logout deferred	PASS_BOUNDED / PARTIAL
+M7	HARD	Phantom legal class transfers20/40/76 and paid skills with owned gear; real human character persistence	bounded class-state matrix+normal save/restart before/after 	PASS_BOUNDED / PARTIAL
+ECON	SOFT	Protect D/C B+ spoil items; earned shots farm cause bounded; 200 merchant restore no duplicate	minimal native stages + one Main observation; reuse068 native merchant proof	PASS_BOUNDED / PARTIAL
+UI	HARD	Alt+B old common gear removed direct/visible, Mana sold, Wind Walk, Giran stone exchange 3/5/10, transparent OFF premium/QoL	server-rendered page + handler+stock transactions 3 cases	PASS / PARTIAL / FAIL
+SAFETY	HARD	No other DB/process/client/master writes, 203 Geo real, config/source hash preserved	pre/post manifest+own JAR/port/DB receipts	PASS / FAIL
+RELEASE	HARD	Standalone JDK25 START/STATUS/STOP and sameDB/sameJAR useful Main without owner client, correct x1 rates/champ exceptions	clean archive/JAR, 2 boots, reliable graceful shutdown and private readme	PASS / PARTIAL / FAIL
+OWNER_PLAY	HARD	All HARD gates PASS and no known data loss; can create new normal character without test account or privilege	consolidated operator receipt and documented remaining SOFT	READY_OWNER_PLAY / NOT_READY

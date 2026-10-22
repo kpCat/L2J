@@ -25,7 +25,6 @@ import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Playable;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.model.actor.instance.RaidBoss;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.instancezone.Instance;
 import org.l2jmobius.gameserver.model.instancezone.InstanceWorld;
@@ -103,11 +102,7 @@ public class Q00511_AwlUnderFoot extends Quest
 					spawnId = RAIDS3[getRandom(RAIDS3.length)];
 				}
 				
-				final Npc raid = addSpawn(spawnId, 53319, 245814, -6576, 0, false, 0, false, _world.getInstanceId());
-				if (raid instanceof RaidBoss)
-				{
-					((RaidBoss) raid).setUseRaidCurse(false);
-				}
+				addSpawn(spawnId, 53319, 245814, -6576, 0, false, 0, false, _world.getInstanceId());
 			}
 			catch (Exception e)
 			{

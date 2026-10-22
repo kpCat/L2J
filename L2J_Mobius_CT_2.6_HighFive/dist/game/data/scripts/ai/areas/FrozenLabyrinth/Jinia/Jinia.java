@@ -36,9 +36,6 @@ public class Jinia extends Script
 	private static final int FROZEN_CORE = 15469;
 	private static final int BLACK_FROZEN_CORE = 15470;
 	
-	// Misc
-	private static final int MIN_LEVEL = 82;
-	
 	private Jinia()
 	{
 		addStartNpc(JINIA);
@@ -79,7 +76,7 @@ public class Jinia extends Script
 	public String onFirstTalk(Npc npc, Player player)
 	{
 		final QuestState qs = player.getQuestState(Q10286_ReunionWithSirra.class.getSimpleName());
-		if ((qs != null) && (player.getLevel() >= MIN_LEVEL))
+		if (qs != null)
 		{
 			if (qs.isCond(5) || qs.isCond(6))
 			{

@@ -51,6 +51,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.sevensigns.SevenSigns;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.network.serverpackets.BuyList;
 import org.l2jmobius.gameserver.network.serverpackets.ExBuySellList;
@@ -78,6 +79,7 @@ public class HomeBoard implements IParseBoardHandler
 		PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && CommunityBoardConfig.COMMUNITY_PREMIUM_SYSTEM_ENABLED ? "_bbspremium" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS ? "_bbsexcmultisell" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS ? "_bbsmultisell" : null,
+		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS ? "_bbsconsumables" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS ? "_bbssell" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_TELEPORTS ? "_bbsteleport" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_BUFFS ? "_bbsbuff" : null,
@@ -161,6 +163,15 @@ public class HomeBoard implements IParseBoardHandler
 			{
 				returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/" + customPath + path);
 			}
+		}
+		else if (command.startsWith("_bbsconsumables;"))
+		{
+			if (!CommunityBoardConfig.CUSTOM_CB_ENABLED || !CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS || player.isProcessingTransaction() || player.isInventoryDisabled() || player.isAlikeDead() || player.isInStoreMode())
+			{
+				return false;
+			}
+			exchangeConsumables(command, player);
+			returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/Custom/merchant/main.html");
 		}
 		else if (command.startsWith("_bbsmultisell"))
 		{
@@ -304,6 +315,11 @@ public class HomeBoard implements IParseBoardHandler
 		}
 		else if (command.startsWith("_bbspremium"))
 		{
+			if (!PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED || !CommunityBoardConfig.COMMUNITY_PREMIUM_SYSTEM_ENABLED)
+			{
+				player.sendMessage("Премиум выключен. Покупка недоступна; обычные рейты сохраняются.");
+				return false;
+			}
 			final String fullBypass = command.replace("_bbspremium;", "");
 			final String[] buypassOptions = fullBypass.split(",");
 			final int premiumDays = Integer.parseInt(buypassOptions[0]);
@@ -327,6 +343,10 @@ public class HomeBoard implements IParseBoardHandler
 		
 		if (returnHtml != null)
 		{
+			if ((!PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED || !CommunityBoardConfig.COMMUNITY_PREMIUM_SYSTEM_ENABLED) && command.equals("_bbstop;premium/main.html"))
+			{
+				returnHtml = "<html><body><table><tr><td>%navigation%</td><td><center>Премиум выключен.<br>Покупка недоступна. Обычные рейты сохраняются.<br>Личные функции: раздел «Личная QoL-панель».</center></td></tr></table></body></html>";
+			}
 			if (CommunityBoardConfig.CUSTOM_CB_ENABLED)
 			{
 				returnHtml = returnHtml.replace("%navigation%", navigation);
@@ -336,6 +356,34 @@ public class HomeBoard implements IParseBoardHandler
 		}
 		
 		return false;
+	}
+
+	private static void exchangeConsumables(String command, Player player)
+	{
+		final String[] parts = command.split(";", -1);
+		if (parts.length != 3) { return; }
+		final long amount;
+		try { amount = Long.parseLong(parts[2]); }
+		catch (NumberFormatException exception) { return; }
+		// Bounded native purchase, including product/cost multiplication and current stack overflow.
+		if ((amount < 1) || (amount > 10000)) { return; }
+		final int currency;
+		final int product;
+		final long cost;
+		final long reward;
+		switch (parts[1])
+		{
+			case "mana": currency = 57; cost = amount * 1000; product = 728; reward = amount; break;
+			case "blue": currency = 6360; cost = amount; product = 5575; reward = SevenSigns.calcAncientAdenaReward(amount, 0, 0); break;
+			case "green": currency = 6361; cost = amount; product = 5575; reward = SevenSigns.calcAncientAdenaReward(0, amount, 0); break;
+			case "red": currency = 6362; cost = amount; product = 5575; reward = SevenSigns.calcAncientAdenaReward(0, 0, amount); break;
+			default: return;
+		}
+		synchronized (player.getInventory())
+		{
+			if (player.getInventory().getInventoryItemCount(product, -1) > (Long.MAX_VALUE - reward)) { return; }
+			player.exchangeItemsById(ItemProcessType.FEE, player, currency, cost, product, reward, true);
+		}
 	}
 	
 	/**
