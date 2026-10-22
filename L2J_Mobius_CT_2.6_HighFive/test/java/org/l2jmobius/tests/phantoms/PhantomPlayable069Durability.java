@@ -44,6 +44,8 @@ public final class PhantomPlayable069Durability
 				check(!Files.exists(baseline), "Preserve existing before image; no reseed.");
 				final Properties input = read(task.resolve("reports/ordinary069-input.properties"));
 				// Declared QA state, not earned levels/skills or quest completion. Commerce receipts are retained.
+				for (int id : new int[] {68, 24, 31}) { check(player.getInventory().getItemByItemId(id) == null, "Prepared gear already exists; preserve partial setup rather than issuing it twice."); }
+				for (int id : new int[] {68, 24, 31}) { player.getInventory().equipItem(player.addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, id, 1, player, false)); }
 				player.getStat().setExp(player.getStat().getExpForLevel(5)); player.getStat().setLevel((byte) 5);
 				player.addSkill(SkillData.getInstance().getSkill(3, 1), true);
 				player.getVariables().set("task069.persist", "Проверка сохранения 069"); player.getVariables().storeMe();
@@ -53,7 +55,7 @@ public final class PhantomPlayable069Durability
 				player.getInventory().updateDatabase(); player.storeMe(); Thread.sleep(500);
 				final Properties image = snapshot(objectId); image.setProperty("objectId", Integer.toString(objectId)); image.setProperty("characterName", "Buyer069"); image.setProperty("x", Integer.toString(player.getX())); image.setProperty("y", Integer.toString(player.getY())); image.setProperty("z", Integer.toString(player.getZ()));
 				try (var writer = Files.newBufferedWriter(baseline, StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW)) { image.store(writer, "Own069 normal access0 QA only; no owner account provisioned"); }
-				System.out.println("OWN069_NORMAL_PREPARED objectId=" + objectId + ";native buyer inventory preserved; fixture level5/skill3:1/quest-state declared; " + baseline);
+				System.out.println("OWN069_NORMAL_PREPARED objectId=" + objectId + ";native buyer inventory preserved; fixture level5/skill3:1/quest-state/equippedNG68+24+31 declared; " + baseline);
 			}
 			else
 			{
@@ -62,6 +64,7 @@ public final class PhantomPlayable069Durability
 				check(player.getLevel() == 5 && player.getActiveClass() == 0 && player.getSkillLevel(3) == 1 && "Проверка сохранения 069".equals(player.getVariables().getString("task069.persist", "")), "Native reloaded class/skill/variable differs.");
 				check(player.getQuestState("Q00102_SeaOfSporesFever") != null && "retained".equals(player.getQuestState("Q00102_SeaOfSporesFever").get("task069")), "Native quest state did not reload.");
 				check(player.getInventory().getInventoryItemCount(728, -1) == 1 && player.getInventory().getInventoryItemCount(5575, -1) == 54, "Actual CB purchase/exchange products were lost.");
+				for (int id : new int[] {68, 24, 31}) { check(player.getInventory().getItemByItemId(id) != null && player.getInventory().getItemByItemId(id).isEquipped(), "Persisted native equipment/slot was lost."); }
 				System.out.println("OWN069_NORMAL_DURABILITY_PASS objectId=" + objectId + "; inventory/equipment/skills/class/quests/variables exact; native reload PASS");
 			}
 		}
