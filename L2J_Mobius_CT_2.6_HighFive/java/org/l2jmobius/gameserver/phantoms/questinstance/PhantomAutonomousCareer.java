@@ -474,7 +474,13 @@ final class PhantomAutonomousCareer
 		if (!_fieldReady.test(root, player)) { return unavailable(profileId, "career.preparation_field_pending"); }
 		if (cached.choice == null)
 		{
-			cached.choice = org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.ensure(_profiles, profileId, player.getActiveClass(), player.getAppearance().isFemale(), _preference.apply(profileId));
+			final var component = _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.COMPONENT).orElse(null);
+			if (component != null && component.componentSchemaVersion() != 1) { throw new IllegalArgumentException("Unknown career choice version."); }
+			final var existing = component == null ? null : org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.decode(component.payload());
+			final var choice = proposalChoice(existing, player.getActiveClass(), player.getAppearance().isFemale(),
+				() -> org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.ensure(_profiles, profileId, player.getActiveClass(), player.getAppearance().isFemale(), _preference.apply(profileId)));
+			if (choice.isEmpty()) { return unavailable(profileId, "career.native.choice_identity_conflict"); }
+			cached.choice = choice.orElseThrow();
 		}
 		final int next = cached.choice.nextClass(player.getActiveClass());
 		final boolean profession = next >= 0 && player.getLevel() >= org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.minimumLevel(org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(next));
@@ -487,6 +493,23 @@ final class PhantomAutonomousCareer
 		return Optional.of(PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomQuestInstanceService.CLASS_GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(),
 			new PhantomDomainRef("career.native", profession ? "profession" : "noblesse"), 1, 0, null, List.of(), root.selectedAnchor(), "career.autonomous", 700, 0, 0, now + 60_000,
 			constraints, "career.native.automatic_eligible", cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1), null), now));
+	}
+
+	static Optional<org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice> proposalChoice(
+		org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice existing, int currentClass, boolean female,
+		java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice> ensure)
+	{
+		if (existing != null)
+		{
+			final var current = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(currentClass);
+			final var origin = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(existing.originClass());
+			final var terminal = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(existing.terminalClass());
+			// A valid immutable preference can be unavailable to a changed native identity.
+			// Decline only the new career proposal; never repair the choice or bypass ensure.
+			if (existing.female() != female || current == null || current != origin && !current.childOf(origin)
+				|| terminal != current && !terminal.childOf(current)) { return Optional.empty(); }
+		}
+		return Optional.of(ensure.get());
 	}
 
 	private PhantomStepResult advanceAutomatic(PhantomStepContext context)

@@ -44,6 +44,8 @@ Rollback по-прежнему восстанавливает **цены**, не
 
 Авторские параметры отделены от stock: target minutes, kills/minute, consumable cost/kill, scarcity basis points, epic premium. Значение 10000 bps означает 1x, 50000 bps — 5x. Обычные материалы не умножаются всем списком на время фарма. Эпики имеют отдельную классификацию и требуют реального boss loot source; NPC-цена B-grade Queen Ant не служит эпическим якорем. Отсутствие достоверного источника означает UNPRICED.
 
+Точные ключи профиля: `PhantomMarketTargetMinutes=30`, `PhantomMarketKillsPerMinute=4`, `PhantomMarketConsumableCostPerKill=0`, `PhantomMarketScarcityBasisPoints=10000`, `PhantomMarketEpicPremiumBasisPoints=50000`. Это поставляемый исходный профиль. Измените нужные значения на остановленном сервере перед новым Plan; его inputs и hashes включат выбранный профиль. Для отдельного предложения используйте `-Profile <absolute-profile.ini>` с теми же ключами, сохранив исходный файл.
+
 Плата производства: `max(PhantomMarketManufactureMinimumFee, ceil(source BOM per attempt * PhantomMarketManufactureFeeBasisPoints / 10000))`. По умолчанию минимум 100 Adena и 200 bps. Штатные ингредиенты, MP, шанс и списание обслуживает native craft path.
 
 ## Apply и Rollback

@@ -63,3 +63,9 @@ java -Xmx4g '-Dphantom.task068.release.prepare=true' -cp '<candidate>/libs/GameS
 ```
 
 READY сохраняет исходные codeSHA/gameJarSHA256/source и initialPendingPayloadBase64, добавляя continuationCodeSHA/continuationGameJarSHA256/continuationSource. Current runtime/JAR/helper provenance checks остаются обязательными; isolated helper вместо matching committed test build не допускается. Compile readiness исправленного helper: javac exit0. Native continuation пока NOT_RUN.
+
+### Native continuation завершена, 12:06 UTC
+
+Exact committed v5 `8afaaf189f09b0ff2bae6c2c6305a8d12c488d36` / GameServer `F07C79A787A5B21D1C01A66CAF1BAE00B5D5B7318CF690D6BDF4B7B4F580DA65`, matching v5 testbin и фактический candidate/game: native `resume-unlearned-skill` завершён exit0. `reports/release-mfg-preparation-v5-resume.log`: MFG_PREP_READY characterId268480990, nativeRecipe1, fee100; ThreadPool/Hikari штатно закрыты. Все preconditions прошли; durable skill172/rank1, SP0, recipebook1 и native offline MANUFACTURE listing проверены helper. Inventory/Adena/gear/materials остаются0; повторных credits/лечения/нового actor не было. Единственный ранее не выданный scroll1666 поглощён native Recipes handler. READY component CAS и candidate/MFG_PREP068.properties сохранены с original PENDING и отдельной continuation provenance.
+
+До ordinary START только actual268480990 добавлен в candidate MerchantPreparedOfflineCharacterIds. Preimages конфигов/guide/profile сохранены с SHA вне checkout, PROFILE068.json обновлён до измерения. Пассивный observer использует имя disabled-account maker, synthetic выключен/objectId0, autonomous origin отсутствует: он только публикует existing merchant snapshot, не создаёт и не управляет Player. Native ordinary restore/adoption и200target проверяются отдельно в следующем Main; READY preparation сама по себе их PASS не заменяет.
