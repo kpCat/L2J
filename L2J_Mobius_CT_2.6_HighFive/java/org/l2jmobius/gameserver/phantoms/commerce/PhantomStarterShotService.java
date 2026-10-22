@@ -29,8 +29,10 @@ public final class PhantomStarterShotService
 
 	public static void afterLoad(PhantomProfileRepository profiles, long profileId, Player player)
 	{
+		if (profiles == null || !(player.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner) || !owner.isCurrent()) { return; }
+		final var profile = profiles.find(profileId).orElseThrow();
+		if (profile.characterObjectId() == null || profile.characterObjectId() != player.getObjectId()) { return; }
 		player.getVariables().set(AVAILABLE, false);
-		if (profiles == null) { return; }
 		final var component = profiles.findComponent(profileId, PhantomStarterShotBudget.COMPONENT).orElse(null);
 		if (component == null) { return; }
 		if (component.componentSchemaVersion() != 1) { throw new IllegalStateException("Unknown starter entitlement version."); }
@@ -42,7 +44,8 @@ public final class PhantomStarterShotService
 			profiles.updateComponent(profileId, PhantomStarterShotBudget.COMPONENT, component.rowVersion(), 1, budget.inconsistent().encode());
 			return;
 		}
-		player.getVariables().set(AVAILABLE, budget.state() == PhantomStarterShotBudget.State.READY && budget.issued() < budget.limit());
+		player.getVariables().set(AVAILABLE, budget.state() == PhantomStarterShotBudget.State.READY && budget.issued() < budget.limit()
+			&& (budget.issued() > 0 || player.getLevel() == 1 && player.getPlayerClass().level() == 0));
 	}
 
 	public static void grantIfNeeded(PhantomProfileRepository profiles, long profileId, Player player)
@@ -67,7 +70,7 @@ public final class PhantomStarterShotService
 			final var component = profiles.findComponent(profileId, PhantomStarterShotBudget.COMPONENT).orElseThrow();
 			if (component.componentSchemaVersion() != 1) { throw new IllegalStateException("Unknown starter entitlement version."); }
 			final var budget = PhantomStarterShotBudget.decode(component.payload());
-			if (budget.issued() == 0 && player.getLevel() != 1) { return false; }
+			if (budget.issued() == 0 && (player.getLevel() != 1 || player.getPlayerClass().level() != 0)) { player.getVariables().set(AVAILABLE, false); return false; }
 			final long before = player.getInventory().getInventoryItemCount(itemId, -1);
 			final long compatibleStock = magic ? Math.addExact(before, player.getInventory().getInventoryItemCount(2509, -1)) : before;
 			final var pending = budget.reserve(itemId, compatibleStock);

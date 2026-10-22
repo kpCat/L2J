@@ -267,7 +267,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final var need = supplyNeed(player); if (need == null) { return equipmentProposal(profileId, root, player, cached, now); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
-			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
+			if (facts.equals(cached.facts) && cached.nextCheck > now) { return cached.offer == null ? equipmentProposal(profileId, root, player, cached, now) : Optional.of(cached.offer); }
 			cached.facts = facts; cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.offer = null;
 			final long targetStock = need.targetStock();
 			var choices = choices(player, items, stock, perHit, targetStock);
@@ -299,7 +299,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				}).orElse(null);
 				if (cached.offer != null) { return Optional.of(cached.offer); }
 			}
-			if (choices.isEmpty()) { return Optional.empty(); }
+			if (choices.isEmpty()) { return equipmentProposal(profileId, root, player, cached, now); }
 			final var first = choices.getFirst();
 			cached.offer = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("item", Integer.toString(first.itemId)), first.count, 0, "commerce.buy", sources, root.selectedAnchor(), ACTION, 700, 0, player.getAdena() - purchaseReserve(player, ItemData.getInstance().getTemplate(first.itemId)), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), Map.of("source.index", 0L), "supplies.native.low_stock", revision, binding.encode()), now);
 			return Optional.of(cached.offer);
@@ -1138,11 +1138,15 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	}
 	public boolean finishStop() { beginStop(); synchronized (this) { if (!_active.isEmpty()) { return false; } _state = State.STOPPED; return true; } }
 	@Override public void beforeMaterialize(long profileId, int characterObjectId) { cleanup(profileId); synchronized (this) { _cache.remove(profileId); } }
-	@Override public void afterPlayerLoad(long profileId, Player player) { PhantomStarterShotService.afterLoad(_profiles, profileId, player); }
+	@Override public void afterPlayerLoad(long profileId, Player player) { }
 	@Override public void materializeSucceeded(long profileId, int characterObjectId)
 	{
 		final var player = World.getInstance().getPlayer(characterObjectId);
-		if (player != null) { PhantomStarterShotService.grantIfNeeded(_profiles, profileId, player); }
+		if (player != null)
+		{
+			PhantomStarterShotService.afterLoad(_profiles, profileId, player);
+			PhantomStarterShotService.grantIfNeeded(_profiles, profileId, player);
+		}
 	}
 	@Override public void materializeAborted(long profileId, int characterObjectId) { beforeMaterialize(profileId, characterObjectId); }
 	@Override public void beforeStore(long profileId, Player player)

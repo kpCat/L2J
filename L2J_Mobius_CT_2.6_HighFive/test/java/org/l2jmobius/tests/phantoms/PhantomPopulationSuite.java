@@ -182,7 +182,8 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 	{
 		if (_mode == Mode.SERVER_INTEGRATION && Boolean.getBoolean("phantom.test.starter066r2"))
 		{
-			registry.add("066r2-native-born-fighter-mage-starter-rematerialization", this::testStarter066R2);
+			if (Boolean.getBoolean("phantom.test.starter066r2Safety")) { registry.add("066r2-native-starter-race-ambiguous-debit-and-ordinary-exclusion", this::testStarterSafety066R2); }
+			else { registry.add("066r2-native-born-fighter-mage-starter-rematerialization", this::testStarter066R2); }
 			return;
 		}
 		switch (_mode)
@@ -884,6 +885,84 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		context.record("population.publicationRestoredShells", store.size());
 	}
 
+	private void testStarterSafety066R2(PhantomTestContext context) throws Exception
+	{
+		PhantomAssertions.assertTrue(PhantomCampaign058DatabaseLane.task066R2Enabled(), "Starter safety requires only the R2 TEST lane.");
+		PhantomPlayersConfig.load();
+		PhantomAssertions.assertEquals(5000, PhantomPlayersConfig.settings().starterShotLifetimeLimit(), "Full starter allowance must be declared.");
+		org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
+		final var store = new PhantomPopulationStore(_profiles, _catalog); final var metrics = new PhantomMetrics();
+		final var lifecycle = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
+		{
+			@Override public void beforeMaterialize(long id, int objectId) { }
+			@Override public void afterPlayerLoad(long id, Player player) { }
+			@Override public void materializeSucceeded(long id, int objectId) { org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.afterLoad(_profiles, id, World.getInstance().getPlayer(objectId)); } // Declared TEST interleaving before the first grant.
+			@Override public void materializeAborted(long id, int objectId) { }
+			@Override public void beforeStore(long id, Player player) { }
+			@Override public void afterStore(long id, Player player) { }
+		};
+		final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(_profiles, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, lifecycle);
+		PhantomAssertions.assertTrue(materialization.start(), "Starter safety materialization did not start.");
+		try
+		{
+			for (int scene = 0; scene < 5; scene++)
+			{
+				var birth = store.createShell(1, 100 + scene, SEED);
+				for (int stage = 0; stage < 12 && birth.state().state() != PhantomPopulationState.State.READY; stage++) { final var result = store.advanceCreation(birth); birth = result.snapshot(); PhantomAssertions.assertTrue(result.outcome() != CreationOutcome.INCONSISTENT, "Safety birth failed."); }
+				PhantomAssertions.assertEquals(PhantomPopulationState.State.READY, birth.state().state(), "Safety birth did not reach READY.");
+				final long id = birth.profile().profileId(); final int objectId = birth.profile().characterObjectId();
+				final var ordinary = Player.load(_environment.observer().objectId());
+				try
+				{
+					final long before = ordinary.getInventory().getInventoryItemCount(1835,-1) + ordinary.getInventory().getInventoryItemCount(3947,-1);
+					final boolean ordinaryAvailable = ordinary.getVariables().getBoolean("phantom.starter.shots.available",false), ordinaryProtected = ordinary.getVariables().getBoolean("phantom.starter.shots.protected",false);
+					org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.afterLoad(_profiles,id,ordinary);
+					org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles,id,ordinary);
+					PhantomAssertions.assertEquals(before, ordinary.getInventory().getInventoryItemCount(1835,-1) + ordinary.getInventory().getInventoryItemCount(3947,-1), "Ordinary Player received a foreign phantom subsidy.");
+					PhantomAssertions.assertEquals(ordinaryAvailable, ordinary.getVariables().getBoolean("phantom.starter.shots.available",false), "Ordinary Player inherited a foreign starter availability marker.");
+					PhantomAssertions.assertEquals(ordinaryProtected, ordinary.getVariables().getBoolean("phantom.starter.shots.protected",false), "Ordinary Player metadata changed during a foreign starter callback.");
+					PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.protectedStock(ordinary,1835), "Ordinary Player inherited Phantom resale restrictions.");
+				}
+				finally { _environment.cleanupLoadedPlayer(ordinary); }
+				if (scene == 1)
+				{
+					final var row = _profiles.findComponent(id,org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow();
+					_profiles.updateComponent(id, row.componentType(), row.rowVersion(), 1, org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(row.payload()).reserve(1835,0).encode());
+				}
+				if (scene >= 2)
+				{
+					final Player input = Player.load(objectId);
+					try
+					{
+						if (scene == 2 || scene == 3)
+						{
+							final var weapon = input.getActiveWeaponInstance(); if (weapon != null) { input.getInventory().unEquipItemInSlotAndRecord(weapon.getLocationSlot()); }
+							if (scene == 2) { input.getInventory().equipItem(input.getInventory().addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD,69,1,input,"TEST_PREIMAGE_ADVANCED_GRADE")); }
+						}
+						if (scene == 4) { input.getStat().setExp(input.getStat().getExpForLevel(20)); input.getStat().setLevel((byte)20); }
+						input.storeMe();
+					}
+					finally { _environment.cleanupLoadedPlayer(input); }
+				}
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Safety materialization failed.");
+				final Player player = World.getInstance().getPlayer(objectId); final var failures = java.util.Collections.synchronizedList(new ArrayList<String>());
+				final var start = new CountDownLatch(1);
+				final Runnable claim = () -> { try { start.await(); org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles,id,player); } catch (Exception failure) { failures.add(failure.getClass().getSimpleName() + ':' + failure.getMessage()); } };
+				final Thread first = new Thread(claim,"starter-r2-first"), second = new Thread(claim,"starter-r2-second"); first.start(); second.start(); start.countDown(); first.join(10_000); second.join(10_000);
+				PhantomAssertions.assertFalse(first.isAlive() || second.isAlive(), "Native starter claims did not retire.");
+				final var budget = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(_profiles.findComponent(id,org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow().payload());
+				final long stock = player.getInventory().getInventoryItemCount(1835,-1) + player.getInventory().getInventoryItemCount(2509,-1) + player.getInventory().getInventoryItemCount(3947,-1);
+				PhantomAssertions.assertEquals(scene < 2 ? 1000 : 0, budget.issued(), "Concurrent/ambiguous/ineligible first debit differs.");
+				PhantomAssertions.assertEquals(scene == 0 ? 1000L : 0L, stock, "Ambiguous debit was replayed or concurrent claims minted twice.");
+				PhantomAssertions.assertEquals(scene == 1 ? org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.State.INCONSISTENT : org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.State.READY, budget.state(), "Ambiguous starter boundary did not fail closed.");
+				context.record("starter066r2.safety."+scene,"TEST_PREIMAGE " + List.of("two concurrent first native callers", "durable pending debit, no physical credit", "advanced D-grade weapon", "no equipped weapon", "advanced level20 before first claim").get(scene) + "; issued="+budget.issued()+"; stock="+stock+"; state="+budget.state()+"; callerFailures="+failures);
+				PhantomAssertions.assertTrue(player.getNativeWorkOwner().nativeObservationHealthy(), "Starter contention poisoned the native owner.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Safety owner failed to store.");
+			}
+		}
+		finally { materialization.shutdown(); }
+	}
+
 	private void testStarter066R2(PhantomTestContext context) throws Exception
 	{
 		PhantomAssertions.assertTrue(PhantomCampaign058DatabaseLane.task066R2Enabled(), "Starter test requires the isolated R2 fixture lane.");
@@ -895,8 +974,13 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		final var lifecycle = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
 		{
 			@Override public void beforeMaterialize(long id, int objectId) { }
-			@Override public void afterPlayerLoad(long id, Player player) { org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.afterLoad(_profiles, id, player); }
-			@Override public void materializeSucceeded(long id, int objectId) { org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles, id, World.getInstance().getPlayer(objectId)); }
+			@Override public void afterPlayerLoad(long id, Player player) { }
+			@Override public void materializeSucceeded(long id, int objectId)
+			{
+				final var player = World.getInstance().getPlayer(objectId);
+				org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.afterLoad(_profiles, id, player);
+				org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles, id, player);
+			}
 			@Override public void materializeAborted(long id, int objectId) { }
 			@Override public void beforeStore(long id, Player player) { }
 			@Override public void afterStore(long id, Player player) { }

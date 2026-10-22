@@ -72,4 +72,8 @@ Files: новые Build/Assemble/Runtime066R2 и ownership helpers по read-onl
 ## Progress
 
 - Read-only preflight: local/live HEAD совпадают; исходный dirt только R2 package. JVM/предлагаемые R2 ports в elevated read-only snapshot отсутствуют/свободны.
-- Native runtime/DB/item durability ещё не измерены. Никакой gate PASS заранее не присвоен.
+- Commit467a959: birth-only durable subsidy и optional-stock parity; commitfcf3e738: выдача после native admission, skill rank и Geo inputs.
+- На JAR14247C71: новые native-born Mage10/Fighter31 получили1000/5000, handler потратил1, dematerialize/rematerialize сохранил issued/stock. Native magic с реальным rank1177:5 дал HP/MP delta; первоначальный rank1 FAIL сохранён.
+- Ranged trace обнаружил пробел проверки: consumed herb не доказывает ordinary inventory pickup. Критерий усилен exact ordinary receipt/count; новый итог ещё не измерен. Старые protection/instance/Z/weight/capacity negatives прошли.
+- Следующий bounded slice: guards ordinary/advanced/concurrent/pending, poor paid supply, три новые R2 Main identities (fighter/mage level1 без fixture gear и явно помеченный Scavenger TEST input), затем ordinary Main/restart. Legacy48 и старые releases не изменяются подготовкой.
+- Self-review выявил связь lifecycle guard с ранним afterPlayerLoad: hydration целиком переносится в materializeSucceeded, когда native owner уже установлен. До native GREEN это не закрытый gate.

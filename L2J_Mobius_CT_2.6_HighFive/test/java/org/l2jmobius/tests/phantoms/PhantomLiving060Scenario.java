@@ -75,6 +75,8 @@ final class PhantomLiving060Scenario
 		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
 		final boolean relocation = Boolean.getBoolean("phantom.test.livingRelocate060");
 		final boolean supply = Boolean.getBoolean("phantom.test.livingSupply060");
+		final boolean poorR2 = Boolean.getBoolean("phantom.test.poorSupply066r2");
+		PhantomAssertions.assertTrue(!poorR2 || supply && classId == 0 && PhantomCampaign058DatabaseLane.task066R2Enabled(), "Poor supply input is restricted to the declared R2 native fighter scene.");
 		final boolean offlineStore = Boolean.getBoolean("phantom.test.livingOfflineStore060");
 		final boolean manufacture = Boolean.getBoolean("phantom.test.livingManufacture060");
 		final boolean gatekeeper = Boolean.getBoolean("phantom.test.livingGatekeeper060");
@@ -122,9 +124,11 @@ final class PhantomLiving060Scenario
 					setup.setSp(0);
 					if (bow) { setup.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, null, PhantomLiving060Scenario.class); context.record("life060.bowInput", "PREMEASUREMENT native NG Bow14/16woodenArrows17/600NGshots/10000Adena; low arrow need independent of sufficient shots; native equip/fire/MP/reuse untouched; bounded solo native preflight; actual finite full-HP fixture count recorded separately"); }
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, shotItemId, 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
-					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
+					if (poorR2 && setup.getAdena() > 0) { setup.reduceAdena(ItemProcessType.DESTROY, setup.getAdena(), setup, false); }
+					final long initialWallet = poorR2 ? 215 : 10_000;
+					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, initialWallet, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
 					if (manufacture) { setup.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, PhantomLiving060Scenario.class); setup.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, PhantomLiving060Scenario.class); }
-					context.record("life060.supplyInput", "PREMEASUREMENT finite16 native compatible charges item=" + shotItemId + ";10000 owned Adena; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
+					context.record("life060.supplyInput", "TEST_PREIMAGE finite16 native compatible charges item=" + shotItemId + "; actual starting Adena=" + setup.getAdena() + "; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
 				}
 				for (int itemId : bow ? new int[] {14, 24, 31} : manufacture ? new int[] {129, 352, 2378} : gatekeeper ? new int[] {129, 24, 31} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 				{
