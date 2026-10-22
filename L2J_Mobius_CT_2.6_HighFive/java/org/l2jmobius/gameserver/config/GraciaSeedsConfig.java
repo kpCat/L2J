@@ -36,7 +36,6 @@ public class GraciaSeedsConfig
 	public static long SOD_STAGE_2_LENGTH;
 	public static int MIN_TIAT_PLAYERS;
 	public static int MAX_TIAT_PLAYERS;
-	public static int MIN_TIAT_LEVEL;
 	public static int SOI_EKIMUS_KILL_COUNT;
 	public static int EROSION_ATTACK_MIN_PLAYERS;
 	public static int EROSION_ATTACK_MAX_PLAYERS;
@@ -54,7 +53,6 @@ public class GraciaSeedsConfig
 		SOD_STAGE_2_LENGTH = config.getLong("Stage2Length", 720) * 60000;
 		MIN_TIAT_PLAYERS = config.getInt("MinPlayers", 36);
 		MAX_TIAT_PLAYERS = config.getInt("MaxPlayers", 45);
-		MIN_TIAT_LEVEL = config.getInt("MinLevel", 75);
 		SOI_EKIMUS_KILL_COUNT = config.getInt("EkimusKillCount", 5);
 		EROSION_ATTACK_MIN_PLAYERS = config.getInt("MinEroAttPlayers", 18);
 		EROSION_ATTACK_MAX_PLAYERS = config.getInt("MaxEroAttPlayers", 27);

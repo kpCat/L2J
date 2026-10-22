@@ -10,7 +10,9 @@ try {
         if($LASTEXITCODE){throw 'Own069 scope inventory failed.'}
         $paths069=@($rows069 | ForEach-Object {$_.Substring(3)} | Where-Object {$_ -notlike '*PHANTOM-ALTB-VIEW-068V/*'})
         $scope069='L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/SOURCE_SCOPE069.tsv'
-        $paths069=@($paths069+$scope069 | Sort-Object -Unique)
+        $previous069=@()
+        if(Test-Path -LiteralPath $scope069){$previous069=@((Import-Csv -LiteralPath $scope069 -Delimiter "`t").path)}
+        $paths069=@($previous069+$paths069+$scope069 | Sort-Object -Unique)
         $paths069 | Set-Content -LiteralPath (Join-Path $task069 'code-scope.txt') -Encoding utf8
         $paths069 | ForEach-Object {[pscustomobject]@{path=$_}} | Export-Csv -LiteralPath $scope069 -Delimiter "`t" -NoTypeInformation -Encoding utf8
         & git -c core.whitespace=cr-at-eol diff --check -- @paths069

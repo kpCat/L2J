@@ -845,14 +845,6 @@ public class SeedOfDestruction extends Script
 		
 		for (Player channelMember : channel.getMembers())
 		{
-			if (channelMember.getLevel() < GraciaSeedsConfig.MIN_TIAT_LEVEL)
-			{
-				final SystemMessage sm = (new SystemMessage(SystemMessageId.C1_S_LEVEL_DOES_NOT_CORRESPOND_TO_THE_REQUIREMENTS_FOR_ENTRY));
-				sm.addPcName(channelMember);
-				channel.broadcastPacket(sm);
-				return false;
-			}
-			
 			if (!LocationUtil.checkIfInRange(1000, player, channelMember, true))
 			{
 				final SystemMessage sm = (new SystemMessage(SystemMessageId.C1_IS_IN_A_LOCATION_WHICH_CANNOT_BE_ENTERED_THEREFORE_IT_CANNOT_BE_PROCESSED));

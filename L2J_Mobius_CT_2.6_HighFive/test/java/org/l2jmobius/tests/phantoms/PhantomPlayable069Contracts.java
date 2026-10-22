@@ -27,6 +27,7 @@ public final class PhantomPlayable069Contracts implements PhantomTestSuite
 		registry.add("04-mana-price-and-seal-ratios", this::store);
 		registry.add("05-visible-merchant-does-not-offer-ready-gear", this::merchant);
 		registry.add("06-wind-walk-is-an-allowed-real-skill", this::windWalk);
+		registry.add("07-epic-families-have-no-level-only-admission", this::epics);
 	}
 
 	private void mana(PhantomTestContext context) throws Exception
@@ -128,5 +129,15 @@ public final class PhantomPlayable069Contracts implements PhantomTestSuite
 		final String config = Files.readString(root.resolve("dist/game/config/Custom/CommunityBoard.ini"));
 		PhantomAssertions.assertTrue(config.lines().filter(line -> line.startsWith("CommunityAvailableBuffs =")).anyMatch(line -> java.util.Arrays.asList(line.substring(line.indexOf('=') + 1).trim().split(",")).contains("1204")), "Wind Walk is not permitted.");
 		PhantomAssertions.assertTrue(Files.readString(root.resolve("dist/game/data/stats/skills/01200-01299.xml")).contains("<skill id=\"1204\" levels=\"2\""), "Unsupported Wind Walk rank.");
+	}
+
+	private void epics(PhantomTestContext context) throws Exception
+	{
+		final Path scripts = Path.of(System.getProperty("phantom.module.root"), "dist/game/data/scripts");
+		final var level = java.util.regex.Pattern.compile("(?:player|partyMember|channelMember|groupMembers)\\.getLevel\\(\\)");
+		for (String path : List.of("ai/areas/CrumaTower/CrumaTower.java", "ai/bosses/Frintezza/LastImperialTomb.java", "instances/CavernOfThePirateCaptain/CavernOfThePirateCaptain.java", "instances/IceQueensCastle/IceQueensCastle.java", "instances/IceQueensCastleBattle/IceQueensCastleBattle.java", "instances/CrystalCaverns/CrystalCaverns.java", "ai/areas/Gracia/instances/SeedOfDestruction/SeedOfDestruction.java", "ai/areas/Gracia/instances/HeartInfinityAttack/HeartInfinityAttack.java", "ai/areas/Gracia/instances/HeartInfinityDefence/HeartInfinityDefence.java"))
+		{
+			PhantomAssertions.assertFalse(level.matcher(Files.readString(scripts.resolve(path))).find(), "Epic level-only member guard remains: " + path);
+		}
 	}
 }

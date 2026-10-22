@@ -278,14 +278,6 @@ public class HeartInfinityAttack extends Script
 		
 		for (Player partyMember : party.getCommandChannel().getMembers())
 		{
-			if ((partyMember.getLevel() < 75) || (partyMember.getLevel() > 85))
-			{
-				final SystemMessage sm = new SystemMessage(2097);
-				sm.addPcName(partyMember);
-				party.getCommandChannel().broadcastPacket(sm);
-				return false;
-			}
-			
 			if (!LocationUtil.checkIfInRange(1000, player, partyMember, true))
 			{
 				final SystemMessage sm = new SystemMessage(2096);
