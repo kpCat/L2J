@@ -510,6 +510,7 @@ public final class PhantomTestLauncher
 			case "combat-debt068" -> new PhantomCombatDebt068Checks();
 			case "visible-itinerary068" -> new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks();
 			case "career-choice-admission068" -> new org.l2jmobius.gameserver.phantoms.questinstance.PhantomCareerChoiceAdmission068Checks();
+			case "historical-idle-visible068" -> new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalIdleVisible068Checks();
 			case "champion068" -> new ChampionMonsters068Suite();
 			case "post001-recipe-cost" -> new PhantomPost001RecipeCostSuite();
 			case "post001-loot-fair-value" -> new PhantomPost001LootFairValueSuite();

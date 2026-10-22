@@ -88,13 +88,34 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 		final var state = _background.acquisitionSnapshot(lifetime.profileId()).orElse(null);
 		if (state == null || state.identity().characterObjectId() != player.getObjectId()) { return false; }
-		final var departure = departure(player, state.position().committedAnchorId());
-		if (departure == null) { return false; }
-		final var route = _travel.route(departure.id(), anchor.id()).orElse(null);
 		// A topology itinerary admits work, never movement or arrival. Each segment still
 		// needs the existing physical planner, actual native action and owned checkpoint.
-		return route != null && itineraryStep(route, departure.id(), anchor.id()) != null
-			&& itineraryAffordable(route, player.getClassIndex(), player.getLevel(), java.time.Instant.now().toEpochMilli()/60000, player.getAdena());
+		return proposedStep(player, state.position().committedAnchorId(), anchor.id()) != null;
+	}
+
+	private PhantomNormalGatekeeperTravel.Step proposedStep(Player player, String committedAnchorId, String destination)
+	{
+		final var departure = departure(player, committedAnchorId);
+		final var committed = _travel.topology().findAnchor(committedAnchorId).orElse(null);
+		final String from = departure != null ? departure.id() : committed == null ? null : committed.id();
+		final var route = from == null ? null : _travel.route(from, destination).orElse(null);
+		if (route == null || !itineraryAffordable(route, player.getClassIndex(), player.getLevel(), java.time.Instant.now().toEpochMilli()/60000, player.getAdena())) { return null; }
+		final var canonical = departure == null && committed != null ? L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(committed, player.getHeading()).orElse(null) : null;
+		return resumeStep(route, departure == null ? null : departure.id(), canonical,
+			new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), destination);
+	}
+
+	static PhantomNormalGatekeeperTravel.Step resumeStep(List<PhantomNormalGatekeeperTravel.Step> route, String factualDeparture,
+		PhantomBackgroundState.Position committedTarget, PhantomTopologyPoint live, String destination)
+	{
+		if (factualDeparture != null) { return itineraryStep(route, factualDeparture, destination); }
+		if (committedTarget == null || committedTarget.instanceId() != live.instanceId()
+			|| Math.hypot((long) live.x() - committedTarget.x(), (long) live.y() - committedTarget.y()) > 4096
+			|| itineraryStep(route, committedTarget.committedAnchorId(), destination) == null) { return null; }
+		// A stored lineage is only a bounded WALK destination, never factual departure.
+		// The unchanged arrival/checkpoint owner must prove it before another segment.
+		final String current = committedTarget.committedAnchorId();
+		return new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + current, current, current, 0, null);
 	}
 
 	private PhantomTopologyAnchor departure(Player player, String committedAnchor)
@@ -327,9 +348,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				final var departure = departure(player, state.position().committedAnchorId());
-				final var route = departure == null ? null : _travel.route(departure.id(), spec.anchorId()).orElse(null);
-				final var step = route == null ? null : itineraryStep(route, departure.id(), spec.anchorId());
+				final var step = proposedStep(player, state.position().committedAnchorId(), spec.anchorId());
 				if (step == null)
 				{
 					fail(profileId, attempt, "", "travel.route_absent", Disposition.ROUTE_UNUSABLE);
@@ -523,7 +542,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
 			final var request = new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000);
-			final var submission = journey.plan == null
+			final var submission = journey.plan == null && !journey.currentAnchorReturn
 				? _navigation.submitTravelPlan(request, PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, (_navigation.policy().maximumAttemptDurationNanos() - (now - journey.attempt.startedNanos)) / 1_000_000), journey.attempt.blockedEdges))
 				: _navigation.submitWalkCorridor(request);
 			journey.requestId = submission.requestId();

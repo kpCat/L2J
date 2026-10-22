@@ -17,6 +17,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("01-canonical-small-farm-standpoint", _ -> canonicalFarm());
 		registry.add("02-composite-route-uses-first-leg-and-full-native-fees", _ -> itinerary());
 		registry.add("03-off-anchor-background-return-retains-current-lineage", _ -> localReturn());
+		registry.add("04-native-current-anchor-return-is-only-a-bounded-walk-proposal", _ -> nativeReturn());
 	}
 	public static void main(String[] args)
 	{
@@ -24,7 +25,36 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		canonicalFarm();
 		itinerary();
 		localReturn();
+		nativeReturn();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void nativeReturn()
+	{
+		final var current = new PhantomBackgroundState.Position(0, 10_000, 10_000, 0, 0, "current");
+		final var next = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "next", "current", "final", 1, null);
+		final var route = List.of(next);
+		for (int distance : List.of(0, 4096, 4097, 100_000))
+		{
+			final var live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(current.x() + distance, current.y(), current.z(), 0);
+			final var step = PhantomVisibleFarmTravel.resumeStep(route, null, current, live, "final");
+			if (distance > 4096)
+			{
+				PhantomAssertions.assertEquals(null, step, "An intended lineage outside the existing local-return bound cannot admit native travel.");
+				continue;
+			}
+			PhantomAssertions.assertTrue(step != null, "An off-anchor native actor needs a bounded return proposal before its original itinerary can resume.");
+			PhantomAssertions.assertEquals("current", step.fromAnchorId(), "A return preserves the committed lineage.");
+			PhantomAssertions.assertEquals("current", step.toAnchorId(), "A return cannot claim the distant final goal or skip its factual checkpoint.");
+			PhantomAssertions.assertTrue(step.id().startsWith("live.approach."), "The existing live approach worker owns the return.");
+			PhantomAssertions.assertEquals(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, step.type(), "The proposal cannot itself perform or charge a gatekeeper transition.");
+		}
+		final var live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(10_100, 10_000, 0, 0);
+		final var otherInstance = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(live.x(), live.y(), live.z(), 1);
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeStep(route, null, current, otherInstance, "final"), "A local return cannot cross instances.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeStep(route, null, null, live, "final"), "A return requires a proven canonical committed point.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeStep(List.of(), null, current, live, "final"), "A return cannot hide a missing subsequent itinerary.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeStep(route, "foreign", current, live, "final"), "An actual but disconnected departure cannot be replaced with lineage proximity.");
+		PhantomAssertions.assertEquals(next, PhantomVisibleFarmTravel.resumeStep(route, "current", current, live, "final"), "An already factual departure retains its original first itinerary leg.");
 	}
 	private static void localReturn()
 	{

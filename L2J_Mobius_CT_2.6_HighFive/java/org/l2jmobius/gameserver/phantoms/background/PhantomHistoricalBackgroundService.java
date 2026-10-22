@@ -1221,9 +1221,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if ((decision.reload(profileId) != PhantomDecisionEngine.ReloadResult.RELOADED) || !runtimeMatches(decision.find(profileId).orElse(null), stored)
 					|| !Objects.equals(stored, _goals.load(profileId).orElse(null)) || !permitsDecision(profileId)) { return false; }
 			}
-			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType())) { prepared = true; return true; }
+			final boolean historicalIdle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(stored.goal().goalType());
+			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = true; return true; }
+			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
-			if (_visibleIntent.test(profileId, stored.goal())) { prepared = true; return true; }
+			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal())) { prepared = true; return true; }
 			stage = "lifetime";
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime == null) { return false; }
@@ -1238,6 +1240,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (baseline == null) { return false; }
 			final Snapshot catchup = _store.load(profileId).orElse(null);
 			final var generation = _planner.generation();
+			if (historicalIdle)
+			{
+				stage = "historical_idle_claim";
+				if (catchup == null || catchup.state().status() != Status.COMPLETE || catchup.state().goalId() != stored.goal().goalId()
+					|| catchup.state().goalRevision() != stored.goal().revision() || !currentClaim(profileId, catchup)
+					|| baseline.state() != PhantomBackgroundState.State.MATERIALIZED || baseline.identity().characterObjectId() != lifetime.characterObjectId()
+					|| _acceptedIntent.test(profileId, stored.goal())) { return false; }
+			}
 			final boolean authorityRenewal = (catchup != null) && (catchup.state().status() == Status.COMPLETE)
 				&& ((catchup.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (catchup.state().topologyGeneration() != generation.topologyGeneration())
 					|| !catchup.state().authorityHashes().equals(generation.authorityHashes()) || !baseline.hashes().equals(generation.authorityHashes()));
@@ -1269,7 +1279,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if (action == null) { return false; }
 				player = action.player();
 				if (player.hasPendingOwnedStore() || (player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId())) { return false; }
-				if (player.isDead()) { prepared = true; return true; } // Existing native death/recovery remains the decision adapter's responsibility.
+				if (player.isDead()) { prepared = !historicalIdle; return prepared; } // Existing native farm death/recovery remains the decision adapter's responsibility.
 				final var progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 				// Planning reads current gear/resources; the persisted transaction baseline stays unchanged.
 				final var skill = org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.offensiveSkill(player, null);
@@ -1280,10 +1290,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			final boolean routeRecovery = (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
+			final boolean routeRecovery = !historicalIdle && (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
 			stage = "suitability_travel";
-			if (!authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())))
+			if (!historicalIdle && !authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())))
 			{
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
 				// A lawful assigned farm may differ from the last committed departure anchor.
@@ -1307,15 +1317,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			stage = "local_replan";
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
 			if (routeRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
-			else if (!authorityRenewal) { recovery.targets.add(targetKey(stored.goal())); }
+			else if (!authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
 			if ((recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now); return false; }
 			final var excluded = new java.util.HashSet<>(exclusions.targets()); excluded.addAll(recovery.targets);
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
 			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps());
 			if (!replacement.ready()) { recovery.unavailable(now); return false; }
-			if (authorityRenewal ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
+			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			final var state = catchup.state();
-			final var updated = new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), nextOrdinal, state.intervalOrdinal(), state.generation(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.goal().goalId(), replacement.goal().revision(), replacement.planIdentity(), state.modelVersion(), replacement.generation().authorityHashes(), state.failureReason());
+			final var updated = historicalIdle
+				? state.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.generation().authorityHashes())
+				: new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), nextOrdinal, state.intervalOrdinal(), state.generation(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.goal().goalId(), replacement.goal().revision(), replacement.planIdentity(), state.modelVersion(), replacement.generation().authorityHashes(), state.failureReason());
 			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal());
 			if (_visiblePublications.putIfAbsent(profileId, publication) != null) { return false; }
 			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
@@ -1326,7 +1338,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if ((persisted != null) && (persistedGoal != null) && persisted.state().equals(updated) && persistedGoal.goal().equals(replacement.goal()) && (persisted.rowVersion() == catchup.rowVersion() + 1) && (persistedGoal.rowVersion() == stored.rowVersion() + 1)) { publication.committed = new PlannedSnapshot(persisted, persistedGoal); }
 				else { _visiblePublications.remove(profileId, publication); return false; }
 			}
-			if (!authorityRenewal && !routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
+			if (!historicalIdle && !authorityRenewal && !routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
 			stage = "finish_publication";
 			prepared = finishVisiblePublication(profileId, decision, publication);
 			return prepared;

@@ -108,8 +108,20 @@ public final class PhantomHistoricalBackgroundPlanner
 	/** Visible intent uses factual local anchors; native navigation still validates every leg. */
 	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
-		final var previous = PhantomBackgroundGoalSpec.parse(previousGoal);
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state));
+		final var previous = visiblePredecessor(profileId, previousGoal);
+		final var loadout = state.loadout();
+		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state));
+	}
+	/** Historical idle is a predecessor only, never a visible farming candidate. */
+	static PhantomBackgroundGoalSpec visiblePredecessor(long profileId, PhantomGoal goal)
+	{
+		if (goal == null || goal.status() != PhantomGoalStatus.ACTIVE) { throw new IllegalArgumentException("Visible predecessor must be ACTIVE."); }
+		if (!PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goalType())) { return PhantomBackgroundGoalSpec.parse(goal); }
+		if (!new PhantomDomainRef("profile", Long.toString(profileId)).equals(goal.subject()) || goal.requiredAmount() != 1 || goal.currentAmount() != 0
+			|| !"background.history".equals(goal.purposeKey()) || !"background.idle".equals(goal.acquisitionMethod()))
+		{ throw new IllegalArgumentException("Noncanonical historical idle predecessor."); }
+		return PhantomBackgroundGoalSpec.parseLifecycle(goal);
 	}
 
 	public boolean isVisibleLocal(PhantomGoal goal, PhantomTopologyPoint live)
