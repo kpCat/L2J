@@ -24,7 +24,7 @@ public final class PhantomPlayable069Durability
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length != 1 || !List.of("prepare", "verify").contains(args[0]) || !PhantomTask069Lane.enabled()) { throw new IllegalArgumentException("Own069 prepare|verify required."); }
+		if (args.length != 1 || !List.of("prepare", "prepare-resume", "verify").contains(args[0]) || !PhantomTask069Lane.enabled()) { throw new IllegalArgumentException("Own069 prepare|prepare-resume|verify required."); }
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		final Path task = module.getParent().resolve(".phantom-local/task069").toRealPath();
 		final Path baseline = task.resolve("private/normal-player-baseline069.properties");
@@ -34,22 +34,33 @@ public final class PhantomPlayable069Durability
 			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(69006906L, module, task.resolve("reports/durability")));
 			InitialEquipmentData.getInstance(); InitialShortcutData.getInstance(); MapRegionData.getInstance();
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
-			ScriptEngine.getInstance().executeScript(Path.of("quests/Q00102_SeaOfSporesFever/Q00102_SeaOfSporesFever.java"));
+			// Constructor-only quests are instantiated by the stock master, not the single-file compiler.
+			ScriptEngine.getInstance().executeScript(Path.of("quests/QuestMasterHandler.java"));
+			final var questOwner = ScriptManager.getInstance().getQuest(102); check(questOwner != null, "Stock quest102 owner did not load; no fixture writes permitted.");
 			final int objectId;
 			try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT c.charId FROM characters c JOIN accounts a ON c.account_name=a.login WHERE c.account_name='task069buyer' AND c.char_name='Buyer069' AND c.accesslevel=0 AND a.accessLevel=-1"); var rows = query.executeQuery()) { check(rows.next(), "Actual ordinary native buyer missing."); objectId = rows.getInt(1); check(!rows.next(), "Ambiguous buyer."); }
 			player = Player.load(objectId);
 			check(player != null && player.getClient() == null && !player.hasHeadlessOutboundSession() && !player.isGM() && player.getNativeWorkOwner() == null, "Ordinary native buyer authority differs.");
-			if (args[0].equals("prepare"))
+			if (!args[0].equals("verify"))
 			{
 				check(!Files.exists(baseline), "Preserve existing before image; no reseed.");
 				final Properties input = read(task.resolve("reports/ordinary069-input.properties"));
 				// Declared QA state, not earned levels/skills or quest completion. Commerce receipts are retained.
-				for (int id : new int[] {68, 24, 31}) { check(player.getInventory().getItemByItemId(id) == null, "Prepared gear already exists; preserve partial setup rather than issuing it twice."); }
-				for (int id : new int[] {68, 24, 31}) { player.getInventory().equipItem(player.addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, id, 1, player, false)); }
-				player.getStat().setExp(player.getStat().getExpForLevel(5)); player.getStat().setLevel((byte) 5);
-				player.addSkill(SkillData.getInstance().getSkill(3, 1), true);
-				player.getVariables().set("task069.persist", "Проверка сохранения 069"); player.getVariables().storeMe();
-				final var quest = ScriptManager.getInstance().getQuest(102).getQuestState(player, true); quest.setState(State.STARTED); quest.setCond(1, false); quest.set("task069", "retained");
+				if (args[0].equals("prepare"))
+				{
+					for (int id : new int[] {68, 24, 31}) { check(player.getInventory().getItemByItemId(id) == null, "Prepared gear already exists; preserve partial setup rather than issuing it twice."); }
+					for (int id : new int[] {68, 24, 31}) { player.getInventory().equipItem(player.addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, id, 1, player, false)); }
+					player.getStat().setExp(player.getStat().getExpForLevel(5)); player.getStat().setLevel((byte) 5);
+					player.addSkill(SkillData.getInstance().getSkill(3, 1), true);
+					player.getVariables().set("task069.persist", "Проверка сохранения 069"); player.getVariables().storeMe();
+				}
+				else
+				{
+					check(player.getLevel() == 5 && player.getSkillLevel(3) == 1 && "Проверка сохранения 069".equals(player.getVariables().getString("task069.persist", "")), "Retained partial fixture differs; no replay/refund.");
+					for (int id : new int[] {68, 24, 31}) { check(player.getInventory().getInventoryItemCount(id, -1) == 1 && player.getInventory().getItemByItemId(id).isEquipped(), "Retained prepared equipment differs."); }
+				}
+				check(questOwner.getQuestState(player, false) == null, "Retain existing quest fixture; do not overwrite partial state.");
+				final var quest = questOwner.getQuestState(player, true); quest.setState(State.STARTED); quest.setCond(1, false); quest.set("task069", "retained");
 				player.setXYZInvisible(Integer.parseInt(input.getProperty("x")) + 200, Integer.parseInt(input.getProperty("y")), Integer.parseInt(input.getProperty("z")));
 				player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp());
 				player.getInventory().updateDatabase(); player.storeMe(); Thread.sleep(500);
