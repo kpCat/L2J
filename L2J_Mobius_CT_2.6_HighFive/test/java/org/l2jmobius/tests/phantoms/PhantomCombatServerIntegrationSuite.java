@@ -6927,7 +6927,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testRangedDeathLoot066(PhantomTestContext context) throws Exception
 	{
-		resetActor(true); _player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte)19); prepareLearningField059(context, 410);
+		resetActor(true); _player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte)19); prepareLearningField059(context, 1110);
 		for (var skill : List.copyOf(_player.getAllSkills())) { if (skill.hasNegativeEffect() && skill.getId() != 1177) { _player.removeSkill(skill.getId()); } }
 		final var learned = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(_player.getPlayerClass()).values().stream().filter(value -> value.getSkillId() == 1177 && value.getGetLevel() <= _player.getLevel()).max(Comparator.comparingInt(value -> value.getSkillLevel())).orElseThrow();
 		_player.addSkill(SkillData.getInstance().getSkill(learned.getSkillId(),learned.getSkillLevel()),false);
@@ -6937,29 +6937,40 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var choices = NpcData.getInstance().getTemplates(value -> value.getId() >= 20000 && value.getId() < 23000 && "Monster".equals(value.getType()) && value.getLevel() >= 12 && value.getLevel() <= 19 && value.getBaseAttackRange() >= 400 && value.getBaseHpMax() <= 550 && value.getBasePAtk() <= 50 && (value.getDropList() != null || value.getDropGroups() != null)).stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId)).limit(2).toList();
 		PhantomAssertions.assertTrue(choices.size() == 2,"Stock ranged NPC primary/fallback data missing."); final var template = choices.getFirst(); final int x = _player.getX(), y = _player.getY(), z = _player.getZ();
 		final var geo = GeoEngine.getInstance();
-		final boolean primary = geo.canMoveToTarget(x,y,z,x+410,y,geo.getHeight(x+410,y,z),0); PhantomAssertions.assertTrue(primary || geo.canMoveToTarget(x,y,z,x,y+410,geo.getHeight(x,y+410,z),0),"Both preverified ranged corridors unavailable before measurement.");
+		final boolean primary = geo.canMoveToTarget(x,y,z,x+1110,y,geo.getHeight(x+1110,y,z),0); PhantomAssertions.assertTrue(primary || geo.canMoveToTarget(x,y,z,x,y+1110,geo.getHeight(x,y+1110,z),0),"Both preverified ranged corridors unavailable before measurement.");
 		final int targetX = primary ? x+350 : x, targetY = primary ? y : y+350, targetZ = geo.getHeight(targetX,targetY,z);
 		PhantomAssertions.assertTrue(Math.abs(targetZ-z) <= 128 && geo.canMoveToTarget(x,y,z,targetX,targetY,targetZ,0), "Premeasurement stock ranged pickup surface is unsupported.");
-		context.record("loot066.rangedPreflight", "FIXED before spawn/measurement primaryX410/fallbackY410; selected=" + (primary ? "X" : "Y") + "; actor=" + x + ',' + y + ',' + z + "; stock surface=" + targetX + ',' + targetY + ',' + targetZ + "; learned1177:" + learned.getSkillLevel() + "; Geo unmodified; no subsequent location edits");
-		final var target = new Monster(template); final var spawn = new Spawn(template); spawn.setXYZ(targetX,targetY,targetZ); target.setSpawn(spawn); target.spawnMe(targetX,targetY,targetZ); _worldFixtures.add(target);
+		context.record("loot066.rangedPreflight", "FIXED before spawn/measurement primaryX1110/fallbackY1110; selected=" + (primary ? "X" : "Y") + "; actor=" + x + ',' + y + ',' + z + "; first stock surface=" + targetX + ',' + targetY + ',' + targetZ + "; learned1177:" + learned.getSkillLevel() + "; three predeclared full-stock NPCs at350/700/1050; ordinary drops are random and compete with herbs under native drop cap; Geo/rates unmodified; no subsequent actor location/resource edits");
+		final var targets = new ArrayList<Monster>();
+		for (int index = 1; index <= 3; index++)
+		{
+			final int px = primary ? x+350*index : x, py = primary ? y : y+350*index, pz = geo.getHeight(px,py,z);
+			PhantomAssertions.assertTrue(Math.abs(pz-z) <= 128 && geo.canMoveToTarget(x,y,z,px,py,pz,0), "Declared ranged series corridor failed before measurement.");
+			final var npc = new Monster(template); final var spawn = new Spawn(template); spawn.setXYZ(px,py,pz); npc.setSpawn(spawn); npc.spawnMe(px,py,pz); targets.add(npc); _worldFixtures.add(npc);
+		}
+		final var target = targets.getFirst();
 		final var goals = new PhantomGoalStateStore(_repository); final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING).findFirst().orElseThrow();
 		final var farm = new PhantomGoal(context.seed(),PhantomBackgroundGoalSpec.GOAL_TYPE,PhantomGoalStatus.ACTIVE,new PhantomDomainRef("profile",Long.toString(_profile.profileId())),new PhantomDomainRef("npc",Integer.toString(template.getId())),1,0,"background.farm",List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE,template.getId()+"@"+anchor.id())),new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE,anchor.id()),"farm.background",500,0,0,0,Map.of(),"fixture066.ranged_death",1); goals.insert(_profile.profileId(),farm);
 		final var candidates = new PhantomCandidateRegistry(); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); handlers.seal(); final var engine = new PhantomDecisionEngine(goals,candidates,handlers,new PhantomMetrics(),1); engine.start(); engine.attach(_profile.profileId()); final var autoplay = new PhantomVisibleAutoPlay(_materialization,()->engine,_ -> true);
 		final var evidence = _player.getNativeWorkOwner().evidence(); final long pickups = evidence.pickupSequence();
 		final var priorGround = World.getInstance().getVisibleObjectsInRange(_player, Item.class, 600).stream().map(Item::getObjectId).collect(java.util.stream.Collectors.toSet());
 		final Map<Integer, Long> sourceCounts = new java.util.LinkedHashMap<>(); final Map<Integer, Integer> sourceTypes = new java.util.LinkedHashMap<>();
+		final Map<Integer, Double> deathDistances = new java.util.LinkedHashMap<>();
 		context.record("loot066.rangedInput","TEST Wizard10/L19/known1177:"+learned.getSkillLevel()+"/NG68+24+31, stock ranged primary/fallback="+choices.stream().map(org.l2jmobius.gameserver.model.actor.templates.NpcTemplate::getId).toList()+"; selected="+template.getId()+"; native attackRange="+template.getBaseAttackRange()+"; stock fullHP="+target.getMaxHp()+"; distance350; primary+X/fallback+Y="+primary+"; actual AutoPlay/AutoUse/PlayerAI, no stats/rates/refill/actor position writes in measurement");
 		try
 		{
 			PhantomAssertions.assertTrue(autoplay.start(_profile.profileId(),farm),"Ranged native controller did not attach.");
 			PhantomAssertions.assertTrue(waitFor(()->target.isDead() || _player.isDead(),70_000) && target.isDead() && !_player.isDead(),"Native stock ranged fight did not finish: "+autoplay.snapshotContinuation(_profile.profileId()));
 			final double distance = _player.calculateDistance2D(target); context.record("loot066.rangedDeathDistance",distance);
+			deathDistances.put(target.getObjectId(), distance);
 			PhantomAssertions.assertTrue(distance > 200,"Declared stock ranged actor closed inside the old pickup radius before the kill.");
 			final boolean picked = waitFor(() ->
 			{
+				PhantomAssertions.assertFalse(_player.isDead(), "Declared ranged stock series killed its actor; no rescue.");
+				for (var npc : targets) { if (npc.isDead()) { deathDistances.putIfAbsent(npc.getObjectId(), _player.calculateDistance2D(npc)); } }
 				for (Item item : World.getInstance().getVisibleObjectsInRange(_player, Item.class, 600))
 				{
-					if (!priorGround.contains(item.getObjectId()) && item.isSpawned()) { sourceCounts.putIfAbsent(item.getObjectId(), item.getCount()); sourceTypes.putIfAbsent(item.getObjectId(), item.getId()); }
+					if (!priorGround.contains(item.getObjectId()) && item.isSpawned() && targets.stream().anyMatch(npc -> deathDistances.getOrDefault(npc.getObjectId(), 0.0) > 200 && npc.calculateDistance2D(item) <= 200)) { sourceCounts.putIfAbsent(item.getObjectId(), item.getCount()); sourceTypes.putIfAbsent(item.getObjectId(), item.getId()); }
 				}
 				return sourceCounts.entrySet().stream().anyMatch(entry ->
 				{
@@ -6967,7 +6978,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					return receipt != null && !receipt.nativeConsumed() && receipt.sequence() > pickups && receipt.itemId() == sourceTypes.get(entry.getKey()) && receipt.count() == entry.getValue()
 						&& receipt.actorCount() >= entry.getValue() && _player.getInventory().getInventoryItemCount(receipt.itemId(), -1) >= baseline.getOrDefault(receipt.itemId(), 0L) + entry.getValue();
 				});
-			},12_000);
+			},80_000);
+			context.record("loot066.rangedSeries", "three stock inputs fixed before measurement; actual death distances="+deathDistances+"; nativeDropMaxOccurrences="+RatesConfig.DROP_MAX_OCCURRENCES_NORMAL+"; only ordinary sources near corpses whose recorded death distance>200 qualify");
 			context.record("loot066.rangedTrace", "nativeDead=" + target.isDead() + "; distance=" + distance + "; stockDropGroups=" + (template.getDropGroups() == null ? 0 : template.getDropGroups().size()) + "; observedSources=" + sourceCounts.entrySet().stream().map(entry -> entry.getKey() + ":" + sourceTypes.get(entry.getKey()) + 'x' + entry.getValue() + ":receipt=" + evidence.pickupReceipt(entry.getKey())).toList() + "; groundNow=" + World.getInstance().getVisibleObjectsInRange(_player, Item.class, 600).stream().map(item -> item.getObjectId() + ":" + item.getId() + ":z=" + item.getZ() + ":eligible=" + org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.eligible(_player,item,600)).toList() + "; actor=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; continuation=" + autoplay.snapshotContinuation(_profile.profileId()).scalarMap());
 			final boolean ordinaryDrop = sourceTypes.values().stream().anyMatch(itemId -> !org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(itemId).hasExImmediateEffect());
 			PhantomAssertions.assertTrue(picked, !ordinaryDrop ? "No ordinary stock native ground drop observed in this one ranged kill (herbs cannot prove inventory acquisition); distinguish RNG from pickup." : "Exact ordinary native ranged death source remained unacquired; inspect recorded eligibility/continuation.");

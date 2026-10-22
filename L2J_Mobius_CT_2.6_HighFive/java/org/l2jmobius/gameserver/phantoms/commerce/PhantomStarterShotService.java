@@ -45,7 +45,7 @@ public final class PhantomStarterShotService
 			return;
 		}
 		player.getVariables().set(AVAILABLE, budget.state() == PhantomStarterShotBudget.State.READY && budget.issued() < budget.limit()
-			&& (budget.issued() > 0 || player.getLevel() == 1 && player.getPlayerClass().level() == 0));
+			&& (budget.issued() > 0 || player.getLevel() < 20 && player.getPlayerClass().level() == 0));
 	}
 
 	public static void grantIfNeeded(PhantomProfileRepository profiles, long profileId, Player player)
@@ -57,7 +57,7 @@ public final class PhantomStarterShotService
 			|| player.isInCombat() && player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Creature target && !target.isAlikeDead()
 			|| PlayerNativeWork.current(owner) != null) { return; }
 		final var weapon = player.getActiveWeaponItem();
-		if (weapon == null || player.getActiveWeaponInstance() == null || weapon == player.getFistsWeaponItem() || weapon.getCrystalTypePlus().getLevel() != 0) { return; }
+		if (weapon == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponInstance().getEnchantLevel() > 0 || weapon == player.getFistsWeaponItem() || weapon.getCrystalTypePlus().getLevel() != 0) { return; }
 		final boolean magic = player.getAllSkills().stream().anyMatch(skill -> !skill.isPassive() && skill.isMagic() && skill.isDamage()) && weapon.getSpiritShotCount() > 0;
 		final int itemId = magic ? 3947 : 1835;
 		final var template = ItemData.getInstance().getTemplate(itemId);
@@ -67,10 +67,17 @@ public final class PhantomStarterShotService
 		{
 			final var profile = profiles.find(profileId).orElseThrow();
 			if (profile.characterObjectId() == null || profile.characterObjectId() != player.getObjectId() || !owner.isCurrent() || !owner.nativeObservationHealthy()) { return false; }
+			final var catchup = profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
+			if (catchup != null)
+			{
+				if (catchup.componentSchemaVersion() != org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.SCHEMA_VERSION) { throw new IllegalStateException("Unknown historical catch-up version."); }
+				// Historical baseline/native-context handoff owns its exact preimage until normal operation is permitted.
+				if (new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec().decode(catchup.payload()).blocksNormalOperation()) { return false; }
+			}
 			final var component = profiles.findComponent(profileId, PhantomStarterShotBudget.COMPONENT).orElseThrow();
 			if (component.componentSchemaVersion() != 1) { throw new IllegalStateException("Unknown starter entitlement version."); }
 			final var budget = PhantomStarterShotBudget.decode(component.payload());
-			if (budget.issued() == 0 && (player.getLevel() != 1 || player.getPlayerClass().level() != 0)) { player.getVariables().set(AVAILABLE, false); return false; }
+			if (budget.issued() == 0 && (player.getLevel() >= 20 || player.getPlayerClass().level() != 0)) { player.getVariables().set(AVAILABLE, false); return false; }
 			final long before = player.getInventory().getInventoryItemCount(itemId, -1);
 			final long compatibleStock = magic ? Math.addExact(before, player.getInventory().getInventoryItemCount(2509, -1)) : before;
 			final var pending = budget.reserve(itemId, compatibleStock);

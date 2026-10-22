@@ -126,6 +126,16 @@ function Stop-Role066([string]$Role){
     Move-Item -LiteralPath $temporary066 -Destination $request066
     $null=$process066.WaitForExit($timeout066*1000)
     if(!$process066.HasExited -or (Get-LocalPlayPortOwners $ports066[$Role]).Count){throw "TASK066: graceful STOP incomplete: $Role; force fallback absent."}
+    $recordPath066=Join-Path $runtime066 "local-play/pids/$Role.json"
+    $record066=Read-Json066 $recordPath066
+    if([long]$record066.pid -ne [long]$state066.pid -or [long]$record066.startTimeUtcTicks -ne [long]$state066.startTimeUtcTicks -or $record066.runtime -cne $runtimeId066 -or $record066.role -cne $Role){throw 'TASK066R2: stopped incarnation receipt changed; preserve it.'}
+    $archive066=Join-Path $runtime066 'local-play/stopped-pids'
+    Assert-Plain066 $archive066
+    New-Item -ItemType Directory -Path $archive066 -Force | Out-Null
+    $archived066=Join-Path $archive066 "$Role-$($state066.pid)-$($state066.startTimeUtcTicks).json"
+    Assert-Plain066 $archived066
+    if(Test-Path -LiteralPath $archived066){throw 'TASK066R2: stopped receipt already archived; no overwrite.'}
+    Move-Item -LiteralPath $recordPath066 -Destination $archived066
     Write-Output "STOCK_STOP_CONFIRMED $Role PID=$($state066.pid)"
 }
 function Start-Role066([string]$Role){

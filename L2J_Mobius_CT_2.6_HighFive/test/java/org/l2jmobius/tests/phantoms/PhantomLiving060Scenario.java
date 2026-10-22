@@ -125,7 +125,7 @@ final class PhantomLiving060Scenario
 					if (bow) { setup.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, null, PhantomLiving060Scenario.class); context.record("life060.bowInput", "PREMEASUREMENT native NG Bow14/16woodenArrows17/600NGshots/10000Adena; low arrow need independent of sufficient shots; native equip/fire/MP/reuse untouched; bounded solo native preflight; actual finite full-HP fixture count recorded separately"); }
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, shotItemId, 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
 					if (poorR2 && setup.getAdena() > 0) { setup.reduceAdena(ItemProcessType.DESTROY, setup.getAdena(), setup, false); }
-					final long initialWallet = poorR2 ? 215 : 10_000;
+					final long initialWallet = poorR2 ? 800 : 10_000;
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, initialWallet, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
 					if (manufacture) { setup.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, PhantomLiving060Scenario.class); setup.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, PhantomLiving060Scenario.class); }
 					context.record("life060.supplyInput", "TEST_PREIMAGE finite16 native compatible charges item=" + shotItemId + "; actual starting Adena=" + setup.getAdena() + "; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");

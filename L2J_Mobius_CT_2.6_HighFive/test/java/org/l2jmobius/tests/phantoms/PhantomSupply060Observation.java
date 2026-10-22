@@ -158,7 +158,7 @@ final class PhantomSupply060Observation
 
 	void verify(PhantomTestContext context, Player player, PlayerNativeEvidence.Snapshot sample)
 	{
-		context.record("life060.supplyResult", "completed=" + _done + "; purchase=" + _purchase + "; returned=" + _completed + "; stockAtReturn=" + _returnedStock + "; currentStock=" + player.getInventory().getInventoryItemCount(_itemId, -1) + "; EXP=" + _startExp + "->" + player.getExp() + "; sample=" + sample);
+		context.record("life060.supplyResult", "completed=" + _done + "; purchase=" + _purchase + "; returned=" + _completed + "; stockAtReturn=" + _returnedStock + "; currentStock=" + player.getInventory().getInventoryItemCount(_itemId, -1) + "; currentAdena=" + player.getAdena() + "; EXP=" + _startExp + "->" + player.getExp() + "; sample=" + sample);
 		PhantomAssertions.assertTrue(_done, "Production farm consumption -> paid compatible restock -> return -> NEW kill/earned EXP/SP and purchased charge consumption did not complete.");
 	}
 }

@@ -55,7 +55,9 @@ final class PhantomTask066R2DwarfInput
 					{
 						final var point = anchor.point();
 						if (anchor.role() != PhantomTopologyAnchorRole.FARMING || !geo.hasGeo(point.x(), point.y())) { continue; }
-						final double distance = counters.stream().mapToDouble(value -> Math.hypot((long)value.x()-point.x(), (long)value.y()-point.y())).min().orElse(Double.MAX_VALUE);
+						final double merchantDistance = counters.stream().filter(value -> "Merchant".equals(NpcData.getInstance().getTemplate(value.npcId()).getType())).mapToDouble(value -> Math.hypot((long)value.x()-point.x(), (long)value.y()-point.y())).min().orElse(Double.MAX_VALUE);
+						final double bankDistance = counters.stream().filter(value -> "Warehouse".equals(NpcData.getInstance().getTemplate(value.npcId()).getType())).mapToDouble(value -> Math.hypot((long)value.x()-point.x(), (long)value.y()-point.y())).min().orElse(Double.MAX_VALUE);
+						final double distance = Math.max(merchantDistance, bankDistance);
 						final int z = geo.getHeight(point.x(), point.y(), point.z());
 						if (distance <= 30000 && Math.abs(z-point.z()) <= 128 && geo.canMoveToTarget(point.x(), point.y(), z, point.x()+64, point.y(), z, 0))
 						{ farms.add(new Farm(npc.getId(), anchor, distance, npc.getSpoilList().stream().mapToDouble(value -> value.getChance()).max().orElse(0))); }
