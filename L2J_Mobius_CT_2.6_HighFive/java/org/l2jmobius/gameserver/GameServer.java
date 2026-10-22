@@ -188,6 +188,7 @@ public class GameServer
 	private static final Logger LOGGER = Logger.getLogger(GameServer.class.getName());
 	
 	private static final long START_TIME = System.currentTimeMillis();
+	private static volatile boolean _stockShutdownHookRegistered;
 	private long _sectionStartTime = START_TIME;
 	private String _previousSectionName = null;
 	
@@ -444,6 +445,7 @@ public class GameServer
 		PunishmentManager.getInstance();
 		
 		Runtime.getRuntime().addShutdownHook(Shutdown.getInstance());
+		_stockShutdownHookRegistered = true;
 		LOGGER.info("IdManager: Free ObjectID's remaining: " + IdManager.getInstance().getAvailableIdCount());
 		
 		if ((OfflineTradeConfig.OFFLINE_TRADE_ENABLE || OfflineTradeConfig.OFFLINE_CRAFT_ENABLE) && OfflineTradeConfig.RESTORE_OFFLINERS)
@@ -555,8 +557,22 @@ public class GameServer
 		{
 			if (Boolean.getBoolean("phantom.task069.control"))
 			{
+				if (_stockShutdownHookRegistered)
+				{
+					// Stock shutdown can veto exit while accepted native writers are draining.
+					// Starting System.exit here would make that veto ineffective inside the hook.
+					try
+					{
+						LOGGER.log(Level.SEVERE, "TASK069: Late GameServer startup failed; requesting stock shutdown.", failure);
+					}
+					finally
+					{
+						Shutdown.getInstance().startShutdown(null, 0, false);
+					}
+					throw failure;
+				}
 				// A failed constructor can leave non-daemon pools alive before the operator
-				// mailbox exists. Normal JVM exit runs the stock hook if it was registered.
+				// mailbox/hook exist. No player or merchant owners have started at this point.
 				try
 				{
 					LOGGER.log(Level.SEVERE, "TASK069: GameServer startup failed; closing the owned JVM.", failure);
