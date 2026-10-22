@@ -208,3 +208,17 @@ Copy-Item -LiteralPath $ratesBackup068 -Destination $rates068
 ```
 
 Rollback возвращает цены только при exact postimages и не затирает поздние правки; Rates.ini автоматически не откатывает. Старый own native TEST Alt+B purchase/rollback-check выше доказывает реальный HomeBoard/MultiSellChoose путь на прежнем build-dev и его1/1 Plan, но не новый canonical rebalance пакет и не committed release Apply. До root committed verify новая rates matrix имеет только isolated-exporter DB-free evidence.
+
+### Root: committed verification завершена
+
+Source `b2803e3093e94f2e4b1f32819d7cddb57a044242`, GameServer SHA256 `8FE9B3046BBB677390571F1A1D2E3D54ABF05DB2C5389DFE108274FFE1EC9EE2`. Exact committed testbin/JAR, без isolated override: `economy068-pricing`3/3 PASS. Source CLI `Test-PricePhantomEconomy.ps1` против этого JAR и immutable archived game выполнил4/4 PASS; output `.phantom-local/task068/rebalance-committed-v3`, log `reports/rebalance-committed-v3.log`. Source game и настоящие TEST/candidate rates/цены этим DB-free smoke не менялись.
+
+| Actual Rates профиль | Stem1864 fair/ask | Queen Ant6660 fair/ask | target-prices SHA256 |
+|---|---:|---:|---|
+| amount10/chance2, per-item57 amount10/chance1 |107/113|1278000000/1341900000|5ABA6C068E5390042FBF9DB2BD1C8DD614469A18F71A171BD2E40268887352F9|
+| amount20/chance3, per-item57 amount20/chance1 |72/76|2556000000/2683800000|0C8FD22522EE850B93D33920EAFED4C3F052AEF52DF4F08C02A315D289FCEF75|
+| повтор первого после обоих Apply |107/113|1278000000/1341900000|5ABA6C068E5390042FBF9DB2BD1C8DD614469A18F71A171BD2E40268887352F9|
+
+Остальные per-item overrides сохранялись, включая epic amount1. Поэтому таблица показывает два полных профиля Rates.ini, а не blanket price multiplier; более частый обычный ресурс может дешеветь, редкий epic с отдельным amount — дорожать. Quotes SHA обоих x10 `267945458038232A07D74DD57EB6EE690B983B2BDDD38B93A309BB18DAAED07D`. Missing57→death10/raid20, XP999/SP777, baseline conflict, три обратных Rollback и восстановление fixture Rates также PASS. Baseline metadata SHA root-bound к fixture, поэтому закономерно отличается от isolated r2, при совпадающих targets/quotes.
+
+Это закрывает новый повторный расчёт на final committed exporter. Старый native purchase остаётся отдельным bounded evidence реального HomeBoard transaction; candidate Apply не выполняется и исходные цены не заменяются по умолчанию.

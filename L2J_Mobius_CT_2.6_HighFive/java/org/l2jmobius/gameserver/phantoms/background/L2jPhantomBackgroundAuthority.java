@@ -542,16 +542,28 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
         if (atCanonicalAnchor(state.position(), arrival)) { return unchanged(Status.AT_DESTINATION, state, ""); }
         if (atCanonicalAnchor(state.position(), current) && !current.id().equals(arrival.id()))
         { return advanceTravel(state, goal, elapsedBudgetMillis, logicalEpochMinute); }
-        final var target = canonicalCommittedAnchorPosition(arrival, state.position().heading()).orElse(null);
-        if (target == null || !dryStoredPath(state.position(), target) || !inFarmingArea(target.x(), target.y(), target.z(), 0, arrival))
-        { return unchanged(Status.NO_ROUTE, state, "local-return"); }
-        final long total = Math.max(1, (long) Math.ceil(Math.hypot((long) target.x() - state.position().x(), (long) target.y() - state.position().y()) * 1000 / policy.runSpeed()));
-        if (total > policy.maximumBatchMillis() || state.clock().residualTravelMillis() > total)
-        { return unchanged(Status.NO_ROUTE, state, "local-return"); }
-        final long remaining = state.clock().residualTravelMillis() == 0 ? total : state.clock().residualTravelMillis();
+        final var currentTarget = canonicalCommittedAnchorPosition(current, state.position().heading()).orElse(null);
+        final var finalTarget = canonicalCommittedAnchorPosition(arrival, state.position().heading()).orElse(null);
+        return localReturn(state.position(), state.clock(), currentTarget, finalTarget, elapsedBudgetMillis, policy,
+            target -> dryStoredPath(state.position(), target) && atCanonicalAnchor(target, current));
+    }
+    /** Scalar continuation only; the caller supplies the unchanged native dry-path proof. */
+    static TravelAdvance localReturn(Position before, Clock clock, Position currentTarget, Position finalTarget, long elapsedBudgetMillis,
+        PhantomBackgroundSimulationPolicy policy, java.util.function.Predicate<Position> lawfulTarget)
+    {
+        // An off-anchor native departure must first rejoin its committed route.
+        // The final farm stays an intent; this return cannot award its position.
+        final var target = currentTarget == null || finalTarget == null ? null
+            : currentTarget.committedAnchorId().equals(finalTarget.committedAnchorId()) ? finalTarget : currentTarget;
+        if (target == null || !lawfulTarget.test(target))
+        { return new TravelAdvance(Status.NO_ROUTE, before, clock, "local-return"); }
+        final long total = Math.max(1, (long) Math.ceil(Math.hypot((long) target.x() - before.x(), (long) target.y() - before.y()) * 1000 / policy.runSpeed()));
+        if (total > policy.maximumBatchMillis() || clock.residualTravelMillis() > total)
+        { return new TravelAdvance(Status.NO_ROUTE, before, clock, "local-return"); }
+        final long remaining = clock.residualTravelMillis() == 0 ? total : clock.residualTravelMillis();
         if (remaining > elapsedBudgetMillis)
-        { return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - elapsedBudgetMillis, state.clock().residualEncounterMillis()), "local-return"); }
-        return new TravelAdvance(Status.ARRIVED, target, new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), "local-return");
+        { return new TravelAdvance(Status.PARTIAL, before, new Clock(clock.rngState(), remaining - elapsedBudgetMillis, clock.residualEncounterMillis()), "local-return"); }
+        return new TravelAdvance(Status.ARRIVED, target, new Clock(clock.rngState(), 0, clock.residualEncounterMillis()), "local-return");
     }
     /** The same stock height, water and bidirectional movement guards as native local travel. */
     private static boolean dryStoredPath(Position from, Position to)

@@ -16,12 +16,45 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 	{
 		registry.add("01-canonical-small-farm-standpoint", _ -> canonicalFarm());
 		registry.add("02-composite-route-uses-first-leg-and-full-native-fees", _ -> itinerary());
+		registry.add("03-off-anchor-background-return-retains-current-lineage", _ -> localReturn());
 	}
 	public static void main(String[] args)
 	{
+		if (args.length > 0 && args[0].equals("local-return")) { localReturn(); System.out.println("OWN068_LOCAL_RETURN_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		canonicalFarm();
 		itinerary();
+		localReturn();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void localReturn()
+	{
+		final var before = new PhantomBackgroundState.Position(0, 115080, -178168, -880, 0, "current");
+		final var current = new PhantomBackgroundState.Position(0, 116056, -175091, -1016, 0, "current");
+		final var destination = new PhantomBackgroundState.Position(0, -33539, 137701, -3480, 0, "final");
+		final var clock = new PhantomBackgroundState.Clock(123, 0, 7);
+		final var policy = new PhantomBackgroundSimulationPolicy(2, 20, 1, 1, true, false, true, true, false, 1, 1, 0.6, 1.5, 2, 2.5, 3, 0, 0, 3.5, 3.5, "0".repeat(64), 125.35, 60_000, 0);
+		final java.util.function.Predicate<PhantomBackgroundState.Position> dry = target -> Math.hypot((long) target.x() - before.x(), (long) target.y() - before.y()) <= 4096;
+		for (long budget : List.of(10_000L, 25_753L, 60_000L))
+		{
+			final var result = L2jPhantomBackgroundAuthority.localReturn(before, clock, current, destination, budget, policy, dry);
+			PhantomAssertions.assertEquals(budget < 25_753 ? PhantomBackgroundAuthority.TravelAdvance.Status.PARTIAL : PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED, result.status(), "Off-anchor TRAVEL must first return to its current lineage, rather than reject a distant final goal.");
+			PhantomAssertions.assertEquals(budget < 25_753 ? before : current, result.position(), "A partial return cannot award a new position; completion retains the current anchor, never the final goal.");
+			PhantomAssertions.assertEquals(budget < 25_753 ? 25_753L - budget : 0L, result.clock().residualTravelMillis(), "Elapsed scalar travel is charged once with the unchanged residual budget.");
+			PhantomAssertions.assertEquals(123L, result.clock().rngState(), "Travel cannot award a new RNG outcome.");
+			PhantomAssertions.assertEquals(7L, result.clock().residualEncounterMillis(), "Travel cannot consume or create encounter time.");
+			PhantomAssertions.assertEquals(0L, result.feeAdena(), "A dry local return cannot charge or grant a gatekeeper fee.");
+		}
+		final var blocked = L2jPhantomBackgroundAuthority.localReturn(before, clock, current, destination, 60_000, policy, _ -> false);
+		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.NO_ROUTE, blocked.status(), "A rejected native dry path remains fenced.");
+		PhantomAssertions.assertEquals(before, blocked.position(), "Rejected dry proof cannot change position.");
+		PhantomAssertions.assertEquals(clock, blocked.clock(), "Rejected dry proof cannot consume time.");
+		final var partial = L2jPhantomBackgroundAuthority.localReturn(before, clock, current, destination, 10_000, policy, dry);
+		final var resumed = L2jPhantomBackgroundAuthority.localReturn(before, partial.clock(), current, destination, 15_753, policy, dry);
+		PhantomAssertions.assertEquals(PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED, resumed.status(), "A later interval consumes only the remaining travel time.");
+		PhantomAssertions.assertEquals(current, resumed.position(), "Residual completion retains the intermediate lineage.");
+		PhantomAssertions.assertEquals(0L, resumed.clock().residualTravelMillis(), "The completed return cannot leave reusable travel credit.");
+		final var same = L2jPhantomBackgroundAuthority.localReturn(before, clock, current, current, 60_000, policy, dry);
+		PhantomAssertions.assertEquals(current, same.position(), "The existing same-final-anchor local return remains supported.");
 	}
 	private static void itinerary()
 	{
