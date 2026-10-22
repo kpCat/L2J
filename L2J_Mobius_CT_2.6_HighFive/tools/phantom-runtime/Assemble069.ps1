@@ -85,7 +85,8 @@ Set-Config069 $output 'game/config/Custom/PhantomPlayers.ini' 'PhantomStarterSho
 Set-Config069 $output 'game/config/Custom/PhantomMerchants.ini' 'EnableOfflinePhantomMerchants' 'True'
 $communityBoard069='True'
 Set-Config069 $output 'game/config/Custom/CommunityBoard.ini' 'CustomCommunityBoard' $communityBoard069
-Write-Text069 (Join-Path $output 'game/java.cfg') '-server -Dfile.encoding=UTF-8 -Djava.util.logging.manager=org.l2jmobius.log.ServerLogManager -Dorg.slf4j.simpleLogger.log.com.zaxxer.hikari=warn -XX:+UseZGC -Xmx1536m -Xms512m'
+# Preserve the committed stock Java25 profile. Full203 geodata alone exceeded the
+# attempted1536MB heap before population startup; do not promise that memory limit.
 $tools=Join-Path $output 'tools'
 foreach($tool in @('Runtime069.ps1','Task069Common.ps1','Task069DatabaseProbe.java')){Copy-Item -LiteralPath (Join-Path $source "tools/phantom-runtime/$tool") -Destination $tools}
 Copy-Item -LiteralPath (Join-Path $source 'tools/phantom-local-play/LocalPlay-Ownership.ps1') -Destination $tools
@@ -122,6 +123,8 @@ START.cmd, STATUS.cmd и STOP.cmd работают из этой папки бе
 | PersonalCharacterQoL.ini | personal master/allowlist/solo Rift сохранены OFF/пусто; глобальный minimum Party не изменён |
 
 Все эти конфиги читаются при запуске; после изменения требуется штатный STOP/START. У существующей population нельзя произвольно менять PhantomPopulationTimeZone: он входит в сохранённый initialization contract. TEST-профиль/пассивный origin и окончательные результаты A–G фиксируются отдельно перед измерением.
+
+Память: сохранён исходный game/java.cfg с Xmx4g/Xms2g. Попытка Xmx1536m завершилась при загрузке203 GeoData до запуска population. Малый heap не подтверждён; это ограничение полной географии, а не доказанная стоимость16 фантомов. При недостатке памяти не уменьшайте лимит вслепую.
 
 Фонд5000 — явно обозначенная конечная стартовая субсидия, не заработанные расходники; merchants её не получают. Обычная последующая закупка требует настоящей Adena. RateXp/Sp/party/quest/death/spoil/raid и item57 — x1; независимые champion-настройки сохранены.
 

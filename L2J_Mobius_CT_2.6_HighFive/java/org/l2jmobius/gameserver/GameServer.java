@@ -546,7 +546,27 @@ public class GameServer
 	public static void main(String[] args) throws Exception
 	{
 		org.l2jmobius.commons.util.LocalRuntimeShutdown.validateLaunch("GameServer");
-		new GameServer();
-		org.l2jmobius.commons.util.LocalRuntimeShutdown.start("GameServer", PhantomSystem::beginOfflineMerchantStop, () -> Shutdown.getInstance().startShutdown(null, 0, false));
+		try
+		{
+			new GameServer();
+			org.l2jmobius.commons.util.LocalRuntimeShutdown.start("GameServer", PhantomSystem::beginOfflineMerchantStop, () -> Shutdown.getInstance().startShutdown(null, 0, false));
+		}
+		catch (Exception | Error failure)
+		{
+			if (Boolean.getBoolean("phantom.task069.control"))
+			{
+				// A failed constructor can leave non-daemon pools alive before the operator
+				// mailbox exists. Normal JVM exit runs the stock hook if it was registered.
+				try
+				{
+					LOGGER.log(Level.SEVERE, "TASK069: GameServer startup failed; closing the owned JVM.", failure);
+				}
+				finally
+				{
+					System.exit(1);
+				}
+			}
+			throw failure;
+		}
 	}
 }
