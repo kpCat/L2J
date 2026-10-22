@@ -129,3 +129,4 @@ L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Test-Delivery068.ps1
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/questinstance/PhantomAutonomousCareer.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/questinstance/PhantomCareerChoiceAdmission068Checks.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalIdleVisible068Checks.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java

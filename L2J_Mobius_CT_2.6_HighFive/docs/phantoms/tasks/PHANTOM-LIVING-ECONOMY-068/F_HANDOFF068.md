@@ -68,3 +68,7 @@ Native fixture проверяет material DROP/SPOIL и HP/packet/reset, но �
 Mojibake-маркеры в изменённых файлах проверены отдельной полной проверкой.
 
 Escaped Cyrillic в изменённых файлах проверены отдельной полной проверкой.
+
+## Committed integration receipt
+
+Прежнее требование повторной сборки выше закрыто root: source b2803e3093e94f2e4b1f32819d7cddb57a044242, Game8FE9B3046BBB677390571F1A1D2E3D54ABF05DB2C5389DFE108274FFE1EC9EE2, champion-native-committed-v3.log2/2 PASS без isolated production override. Final code95d881152678247dbf1c8481e4c9a184939f9f44 / Game1895903BA5FC3B3622E2BEA9ADB5D4D7D231FA0ACDFB2FB31DB005C00F05826E сохраняет те же F class bytes: последовательные jar-class comparisons v3→v4→v5→v6→v7 меняют только Background/visible travel/career families. Это provenance прежнего native proof, не новый запуск F наv7. Ограничения по client rendering/kill EXP/всем валютам выше сохраняются; blue default OFF.

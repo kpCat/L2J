@@ -21,10 +21,11 @@ public final class PhantomHistoricalIdleVisible068Checks implements PhantomTestS
 	{
 		registry.add("01-historical-idle-enters-existing-local-planner", _ -> predecessor());
 		registry.add("02-foreign-predecessor-rejected-and-calendar-retained", _ -> fences());
+		registry.add("03-recovery-control-accepts-only-exact-current-root", _ -> recoveryControl());
 	}
 	public static void main(String[] args)
 	{
-		predecessor(); fences();
+		predecessor(); fences(); recoveryControl();
 		System.out.println("OWN068_HISTORICAL_IDLE_VISIBLE_PASS; DB_CONNECTIONS=0; ACTORS=0");
 	}
 	private static PhantomGoal idle()
@@ -84,5 +85,22 @@ public final class PhantomHistoricalIdleVisible068Checks implements PhantomTestS
 		PhantomAssertions.assertEquals(complete.goalId(), replanned.goalId(), "The original root identity is retained.");
 		PhantomAssertions.assertEquals(complete.goalRevision() + 1, replanned.goalRevision(), "Visible publication advances the same root revision once.");
 		PhantomAssertions.assertEquals(complete.planOrdinal() + 1, replanned.planOrdinal(), "Visible publication advances the existing plan ordinal once.");
+	}
+	private static void recoveryControl()
+	{
+		final var current = idle();
+		PhantomAssertions.assertTrue(PhantomBackgroundService.recoveryGoalCurrent(5, current, current), "Canonical current historical idle must be stoppable for normal publication.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.recoveryGoalCurrent(6, current, current), "A foreign profile cannot authorize recovery control.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.recoveryGoalCurrent(5, current, current.withStatus(PhantomGoalStatus.ACTIVE)), "An otherwise identical newer revision cannot authorize a stale caller.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.recoveryGoalCurrent(5, current, null), "An absent persisted goal cannot authorize recovery control.");
+		final var inactive = current.withStatus(PhantomGoalStatus.COMPLETED);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.recoveryGoalCurrent(5, inactive, inactive), "Inactive idle remains ineligible for recovery publication.");
+		for (String type : List.of(current.goalType(), "idle.foreign"))
+		{
+			final var malformed = new PhantomGoal(55, type, PhantomGoalStatus.ACTIVE, current.subject(), current.target(), 1, 0, "background.idle", List.of(), current.selectedAnchor(), "background.history", 500, 0, 0, 0, Map.of("foreign", 1L), "foreign", 7);
+			PhantomAssertions.assertFalse(PhantomBackgroundService.recoveryGoalCurrent(5, malformed, malformed), "Malformed or foreign idle cannot bypass the canonical predecessor validator.");
+		}
+		final var farm = new PhantomGoal(56, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, current.subject(), current.target(), 1, 0, "background.farm", List.of(), current.selectedAnchor(), "farm.background", 500, 0, 0, 0, Map.of(), "legacy", 1);
+		PhantomAssertions.assertTrue(PhantomBackgroundService.recoveryGoalCurrent(5, farm, farm), "Existing exact farm type-filter control semantics remain unchanged.");
 	}
 }

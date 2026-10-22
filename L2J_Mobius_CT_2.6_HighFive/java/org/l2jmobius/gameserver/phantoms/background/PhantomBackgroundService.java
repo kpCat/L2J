@@ -977,6 +977,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		return _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).filter(goal -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()));
 	}
+	/** Recovery control only; ordinary gameplay and arrival remain farm-only. */
+	public boolean isCurrentRecoveryGoal(long profileId, PhantomGoal expected)
+	{
+		return recoveryGoalCurrent(profileId, expected, _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null));
+	}
+	static boolean recoveryGoalCurrent(long profileId, PhantomGoal expected, PhantomGoal actual)
+	{
+		if (expected == null || !Objects.equals(expected, actual)) { return false; }
+		if (PhantomBackgroundGoalSpec.GOAL_TYPE.equals(actual.goalType())) { return true; }
+		if (!PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(actual.goalType())) { return false; }
+		try { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, actual); return true; }
+		catch (IllegalArgumentException malformed) { return false; }
+	}
 
 	/** Called under the canonical Player action lease after native route arrival. */
 	public enum VisibleStoreStatus { SUCCESS, RETRY, PROFILE_FENCED }

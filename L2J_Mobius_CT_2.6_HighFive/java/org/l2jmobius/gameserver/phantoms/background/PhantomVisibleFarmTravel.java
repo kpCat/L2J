@@ -881,7 +881,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	public boolean stopForRecovery(long profileId, PhantomGoal goal, int objectId, long epoch)
 	{
 		final var lifetime = _materialization.find(profileId).orElse(null);
-		if ((lifetime == null) || (lifetime.characterObjectId() != objectId) || (lifetime.materializedAtNanos() != epoch) || !currentGoal(profileId, goal)) { return false; }
+		if ((lifetime == null) || (lifetime.characterObjectId() != objectId) || (lifetime.materializedAtNanos() != epoch) || !_background.isCurrentRecoveryGoal(profileId, goal)) { return false; }
 		final var journey = _journeys.get(profileId);
 		if (journey == null) { return true; }
 		return journey.attempt.goal.equals(goal) && (journey.objectId == objectId) && (journey.epoch == epoch) && remove(profileId, journey);
@@ -892,7 +892,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var journey = _journeys.get(profileId);
 		final var lifetime = _materialization.find(profileId).orElse(null);
 		if ((journey != null) && (lifetime != null) && (lifetime.characterObjectId() == journey.objectId) && (lifetime.materializedAtNanos() == journey.epoch)
-			&& !journey.goal.equals(current) && currentGoal(profileId, current)) { remove(profileId, journey); }
+			&& !journey.goal.equals(current) && _background.isCurrentRecoveryGoal(profileId, current)) { remove(profileId, journey); }
 	}
 
 	public record Failure(long profileId, Player player, long epoch, PhantomGoal goal, String stepId, String reason, Disposition disposition, long startedNanos, int attempts)
