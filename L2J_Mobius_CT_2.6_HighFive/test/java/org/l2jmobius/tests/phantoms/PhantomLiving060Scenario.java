@@ -458,14 +458,13 @@ final class PhantomLiving060Scenario
 					// Production supply already owns segmented WALK. A TEST preflight must not require one12km segment for the entire round trip.
 					final double oneWayBound = setup.getMoveSpeed() * (TimeUnit.MINUTES.toMillis(8)-30_000) / 2000.0;
 					if (poorR2 && from.distanceTo(counter) <= oneWayBound
-						&& geo.canMoveToTarget(from.x(), from.y(), from.z(), counter.x(), counter.y(), counter.z(), 0)
-						&& geo.canMoveToTarget(counter.x(), counter.y(), counter.z(), from.x(), from.y(), from.z(), 0))
+						&& geo.canMoveToTarget(from.x(), from.y(), from.z(), from.x()+64, from.y(), from.z(), 0))
 					{
 						setup.setXYZInvisible(from.x(), from.y(), from.z()); setup.revalidateZone(true);
 						if (setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) || setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { continue; }
 						try { authority.captureOwnedNative(id, setup, local.goal(), null); }
 						catch (IllegalArgumentException rejectedPoint) { stages.merge("segmented.canonical_point", 1, Integer::sum); continue; }
-						context.record("life060.routePreflight."+setup.getActiveClass(), "TEST_PREMEASUREMENT existing segmented WALK input; bounded32 stock candidates; root="+local.goal()+"; from="+from+"; service="+trainer.npcId()+"; counter="+counter+"; distance="+from.distanceTo(counter)+"; oneWayTimeBound="+oneWayBound+"; bidirectional native Geo=true; each actual segment still requires production Navigation; no route authority granted by TEST");
+						context.record("life060.routePreflight."+setup.getActiveClass(), "TEST_PREMEASUREMENT existing segmented WALK input; bounded32 stock candidates; root="+local.goal()+"; from="+from+"; service="+trainer.npcId()+"; counter="+counter+"; distance="+from.distanceTo(counter)+"; oneWayTimeBound="+oneWayBound+"; local64 native Geo=true; town route UNPROVEN until actual production Navigation and paid return; no whole-route straight-line requirement or TEST route authority");
 						return local;
 					}
 					if (rejected.size() < 8) { rejected.add(local.spec().anchorId()+":distance="+Math.round(from.distanceTo(counter))+":oneWayBound="+Math.round(oneWayBound)); }

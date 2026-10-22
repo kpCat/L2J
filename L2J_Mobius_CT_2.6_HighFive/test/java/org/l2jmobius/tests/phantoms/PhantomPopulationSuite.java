@@ -910,8 +910,8 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(materialization.start(), "Starter safety materialization did not start.");
 		try
 		{
-			final int firstScene = Boolean.getBoolean("phantom.test.starter066r2HistoricalOnly") ? 5 : Boolean.getBoolean("phantom.test.starter066r2ProgressOnly") ? 6 : 0;
-			final int sceneLimit = firstScene == 0 ? 8 : firstScene + 1;
+			final int firstScene = Boolean.getBoolean("phantom.test.starter066r2WeaponRaceOnly") ? 8 : Boolean.getBoolean("phantom.test.starter066r2HistoricalOnly") ? 5 : Boolean.getBoolean("phantom.test.starter066r2ProgressOnly") ? 6 : 0;
+			final int sceneLimit = firstScene == 0 ? 9 : firstScene + 1;
 			for (int scene = firstScene; scene < sceneLimit; scene++)
 			{
 				var birth = store.createShell(1, 100 + scene, SEED);
@@ -966,14 +966,28 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				final Player player = World.getInstance().getPlayer(objectId); final var failures = java.util.Collections.synchronizedList(new ArrayList<String>());
 				final var start = new CountDownLatch(1);
 				final Runnable claim = () -> { try { start.await(); org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles,id,player); } catch (Exception failure) { failures.add(failure.getClass().getSimpleName() + ':' + failure.getMessage()); } };
-				final Thread first = new Thread(claim,"starter-r2-first"), second = new Thread(claim,"starter-r2-second"); first.start(); second.start(); start.countDown(); first.join(10_000); second.join(10_000);
+				final Thread first = new Thread(claim,"starter-r2-first"), second = new Thread(claim,"starter-r2-second");
+				if (scene == 8)
+				{
+					try (var admitted = materialization.tryAcquireAction(id).orElseThrow())
+					{
+						final var dWeapon = player.getInventory().addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, 69, 1, player, this);
+						context.record("starter066r2.weaponRaceInput", "TEST_PREMEASUREMENT owned Dweapon69; retain an already admitted native equipment action while grant seals; no lifetime/stock edits");
+						first.start(); start.countDown();
+						final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope)player.getNativeWorkOwner();
+						await(() -> "WAIT_EARNED".equals(scope.diagnosticScalars().get("nativeCheckpointStage")), 2000, "Starter did not wait for its admitted equipment action.");
+						player.getInventory().equipItem(dWeapon); player.refreshExpertisePenalty();
+					}
+					first.join(10_000);
+				}
+				else { first.start(); second.start(); start.countDown(); first.join(10_000); second.join(10_000); }
 				PhantomAssertions.assertFalse(first.isAlive() || second.isAlive(), "Native starter claims did not retire.");
 				final var budget = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(_profiles.findComponent(id,org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow().payload());
 				final long stock = player.getInventory().getInventoryItemCount(1835,-1) + player.getInventory().getInventoryItemCount(2509,-1) + player.getInventory().getInventoryItemCount(3947,-1);
 				PhantomAssertions.assertEquals(scene < 2 || scene == 6 ? 1000 : 0, budget.issued(), "Concurrent/ambiguous/historical/ineligible first debit differs.");
 				PhantomAssertions.assertEquals(scene == 0 || scene == 6 ? 1000L : 0L, stock, "Ambiguous/historical debit was replayed, concurrent claims minted twice, or newborn entitlement was lost after progress.");
 				PhantomAssertions.assertEquals(scene == 1 ? org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.State.INCONSISTENT : org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.State.READY, budget.state(), "Ambiguous starter boundary did not fail closed.");
-				context.record("starter066r2.safety."+scene,"TEST_PREIMAGE " + List.of("two concurrent first native callers", "durable pending debit, no physical credit", "advanced D-grade weapon", "no equipped weapon", "advanced level20 before first claim", "pending historical baseline, no physical subsidy", "native birth allowance retained after novice level5 progress", "enchanted No-grade weapon").get(scene) + "; issued="+budget.issued()+"; stock="+stock+"; state="+budget.state()+"; callerFailures="+failures);
+				context.record("starter066r2.safety."+scene,"TEST_PREIMAGE " + List.of("two concurrent first native callers", "durable pending debit, no physical credit", "advanced D-grade weapon", "no equipped weapon", "advanced level20 before first claim", "pending historical baseline, no physical subsidy", "native birth allowance retained after novice level5 progress", "enchanted No-grade weapon", "already admitted NG->D equipment change during native drain").get(scene) + "; issued="+budget.issued()+"; stock="+stock+"; state="+budget.state()+"; callerFailures="+failures);
 				PhantomAssertions.assertTrue(player.getNativeWorkOwner().nativeObservationHealthy(), "Starter contention poisoned the native owner.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Safety owner failed to store.");
 			}

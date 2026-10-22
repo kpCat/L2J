@@ -56,17 +56,21 @@ public final class PhantomStarterShotService
 			|| player.isInStoreMode() || player.isProcessingTransaction() || player.isAttackingNow() || player.isCastingNow()
 			|| player.isInCombat() && player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Creature target && !target.isAlikeDead()
 			|| PlayerNativeWork.current(owner) != null) { return; }
-		final var weapon = player.getActiveWeaponItem();
-		if (weapon == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponInstance().getEnchantLevel() > 0 || weapon == player.getFistsWeaponItem() || weapon.getCrystalTypePlus().getLevel() != 0) { return; }
-		final boolean magic = player.getAllSkills().stream().anyMatch(skill -> !skill.isPassive() && skill.isMagic() && skill.isDamage()) && weapon.getSpiritShotCount() > 0;
-		final int itemId = magic ? 3947 : 1835;
-		final var template = ItemData.getInstance().getTemplate(itemId);
-		if (!L2jPhantomSupplyJourney.compatible(player, template) || (magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount()) <= 0) { return; }
-		if (player.getInventory().getInventoryItemCount(itemId, -1) >= 100) { return; }
+		final int candidateItem = compatibleItemId(player);
+		if (candidateItem == 0 || player.getInventory().getInventoryItemCount(candidateItem, -1) >= 100) { return; }
 		owner.checkpoint(() ->
 		{
 			final var profile = profiles.find(profileId).orElseThrow();
 			if (profile.characterObjectId() == null || profile.characterObjectId() != player.getObjectId() || !owner.isCurrent() || !owner.nativeObservationHealthy()) { return false; }
+			// Already admitted actions may finish while the checkpoint drains. Select from the sealed final loadout.
+			if (!player.hasHeadlessOutboundSession() || player.getClient() != null || player.isGM() || player.isAlikeDead() || player.hasPendingOwnedStore()
+				|| player.isInStoreMode() || player.isProcessingTransaction() || player.isAttackingNow() || player.isCastingNow()
+				|| player.isInCombat() && player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Creature target && !target.isAlikeDead()) { return false; }
+			final int itemId = compatibleItemId(player);
+			if (itemId == 0) { return false; }
+			final boolean magic = itemId == 3947;
+			final var template = ItemData.getInstance().getTemplate(itemId);
+			if (player.getInventory().getInventoryItemCount(itemId, -1) >= 100) { return false; }
 			final var catchup = profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
 			if (catchup != null)
 			{
@@ -116,5 +120,14 @@ public final class PhantomStarterShotService
 				}
 			}
 		});
+	}
+
+	private static int compatibleItemId(Player player)
+	{
+		final var weapon = player.getActiveWeaponItem();
+		if (weapon == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponInstance().getEnchantLevel() > 0 || weapon == player.getFistsWeaponItem() || weapon.getCrystalTypePlus().getLevel() != 0) { return 0; }
+		final boolean magic = player.getAllSkills().stream().anyMatch(skill -> !skill.isPassive() && skill.isMagic() && skill.isDamage()) && weapon.getSpiritShotCount() > 0;
+		final int itemId = magic ? 3947 : 1835;
+		return L2jPhantomSupplyJourney.compatible(player, ItemData.getInstance().getTemplate(itemId)) && (magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount()) > 0 ? itemId : 0;
 	}
 }
