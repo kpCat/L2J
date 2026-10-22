@@ -508,6 +508,7 @@ public final class PhantomTestLauncher
 
 			case "combat-viability068" -> new PhantomCombatViability068Checks();
 			case "combat-debt068" -> new PhantomCombatDebt068Checks();
+			case "visible-itinerary068" -> new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks();
 			case "champion068" -> new ChampionMonsters068Suite();
 			case "post001-recipe-cost" -> new PhantomPost001RecipeCostSuite();
 			case "post001-loot-fair-value" -> new PhantomPost001LootFairValueSuite();

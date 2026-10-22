@@ -142,3 +142,69 @@ CLI Rollback exit0 восстановил исходные байты всех 5
 После диагностики исходный Plan повторно применён через новый audit directory pricing-native/reapply: CLI Apply exit0, 5 XML. Затем в отдельном согласованном коротком слоте повторены Rollback (exit0, 5 exact original files) и исправленный rollback-check на том же AltB068Buyer: native JVM exit0, HomeBoard list600010/entry100000 подготовил исходную цену 250000 и те же products. Покупки/выдачи средств не было; reports/altb068-rollback-check.tsv/log PASS. ThreadPool/Hikari штатно закрыты.
 
 Финальный собственный TEST ReApply exit0, 5 XML, audit receipt в pricing-native/reapply-final-test. TEST оставлен с actual1/1 Apply и CustomCommunityBoard=True для следующих согласованных сцен. Слот возвращён родителю; production алгоритмы ради fixture не менялись. Первая попытка rollback-check до JVM имела PowerShell quoting error для -D properties; native DB тогда не открывалась, затем -D аргументы взяты в кавычки. Это не native failure и не дополнительная покупка.
+
+## Повторный rebalance: actual rates x10 → x20 → x10
+
+Последний bounded пакет меняет ровно4 пути: PhantomEconomyPricingExporter.java и tools/phantom-economy/Price-PhantomEconomy.ps1, Test-PricePhantomEconomy.ps1, README_RU.md. Canonical baseline впервые сохраняется явным Mode Baseline во внешнюю папку: только reachable Alt+B XML/HTML, root binding и hashes. Rates.ini остаётся динамическим. Plan с BaselineDirectory использует canonical acquisition prices, а old_price/preHash берёт из текущего game. Есть diff.tsv, target-prices.tsv и facts/rates.tsv; Apply проверяет неизменность baseline. Missing57 override теперь наследует native death/raid amount своего источника, а не1.
+
+RED reports/rebalance-baseline-RED.log, exit1: прежний CLI не принимал Mode Baseline. Это **missing capability RED**, не воспроизведённое доказательство накопленного compounded price. После правки isolated javac Exporter против committed build-final-core-v2 JAR exit0; DB-free CLI smoke r2 exit0,4/4. Classpath начинался с own ignored rebalance-bin только для exporter; matching final committed verification нового пакета этим агентом ещё НЕ выполнен.
+
+Evidence: .phantom-local/task068/rebalance-smoke-r2/ и reports/rebalance-smoke-r2.log. Actual Rates.ini profiles: death/spoil/raid amount10/20, chance2/3, per-item57 amount10/20 с сохранением остальных overrides. Выполнены x10 Plan/Apply → x20 Plan/Apply → x10 Plan/Apply; затем3 обратных Rollback и возврат fixture Rates.ini.
+
+| Артефакт | SHA-256 |
+|---|---|
+| x10-first и x10-repeat target-prices.tsv | `5aba6c068e5390042fbf9db2bd1c8dd614469a18f71a171bd2e40268887352f9` |
+| x20 target-prices.tsv | `0c8fd22522ee850b93d33920eafed4c3f052aef52df4f08c02a315d289fcef75` |
+| оба x10 facts/quotes.tsv | `267945458038232a07d74dd57eb6ee690b983b2bddd38b93a309bb18daaed07d` |
+| canonical baseline.properties | `1e2df15f96e3cee646ede548c14beb37afc4b9f8cc6f6a92fdaf1d4e7e4c96f5` |
+
+Отдельные assertions подтвердили inheritance57 при отсутствии override, разные death10/raid20, отсутствие price эффекта XP999/SP777 и отказ при повреждённом baseline. Full Plan SHA после промежуточного Apply закономерно иной из-за текущих preimages; возврат цен проверялся по target/quote bytes. Source game, native TEST, candidate и runtime configs этим smoke не менялись. Native/БД/Ant не запускались. Исходные stock цены и CustomCommunityBoard OFF остаются defaults. Полные mojibake и6 escaped Cyrillic regex проверки4 файлов:0 совпадений; bounded git diff --check exact4paths exit0, только LF→CRLF уведомления; git mutations отсутствуют.
+
+### Команды для собственной candidate после следующего committed build/verify
+
+Ниже фактический путь текущей среды; на другом диске используется её own candidate. Команды здесь не выполнялись. Baseline capture — однократное действие **до первого Apply**, не повторять после каждого изменения rates. Для каждого нового Plan/Apply выбрать новый output, старые receipts сохранять.
+
+```powershell
+$candidate068 = 'D:\PhantomWorld\Living-Economy-068-candidate'
+$game068 = Join-Path $candidate068 'game'
+$tool068 = Join-Path $candidate068 'tools/phantom-economy/Price-PhantomEconomy.ps1'
+$prices068 = 'D:\PhantomWorld\Living-Economy-068-pricing'
+$baseline068 = Join-Path $prices068 'canonical'
+$plan068 = Join-Path $prices068 'next-rates-plan'
+$apply068 = Join-Path $prices068 'next-rates-apply'
+$owner068 = Join-Path $candidate068 'OWNERSHIP068.json'
+$rates068 = Join-Path $game068 'config/Rates.ini'
+$ratesBackup068 = Join-Path $prices068 'Rates.before-next.ini'
+& (Join-Path $candidate068 'STOP.cmd')
+if ($LASTEXITCODE -ne 0) { throw 'STOP failed; preserve the running runtime.' }
+New-Item -ItemType Directory -Path $prices068 -Force | Out-Null
+powershell -NoProfile -ExecutionPolicy Bypass -File $tool068 -Mode Baseline -GameRoot $game068 -OutputDirectory $baseline068
+if ($LASTEXITCODE -ne 0) { throw 'Baseline capture failed; preserve evidence.' }
+if (Test-Path -LiteralPath $ratesBackup068) { throw 'Existing rate backup must be preserved; choose a fresh path.' }
+Copy-Item -LiteralPath $rates068 -Destination $ratesBackup068
+notepad.exe $rates068
+# Сохранить реальные rates; затем проверить Plan и warnings перед явным Apply.
+powershell -NoProfile -ExecutionPolicy Bypass -File $tool068 -Mode Plan -GameRoot $game068 -OutputDirectory $plan068 -BaselineDirectory $baseline068
+if ($LASTEXITCODE -ne 0) { throw 'Plan failed; preserve evidence and do not Apply.' }
+Import-Csv -LiteralPath (Join-Path $plan068 'diff.tsv') -Delimiter "`t" | Format-Table path,ordinal,old_price,new_price -AutoSize
+Get-Content -LiteralPath (Join-Path $plan068 'UNPRICED.tsv')
+Get-Content -LiteralPath (Join-Path $plan068 'facts/unknown.txt')
+$hash068 = (Get-FileHash -LiteralPath (Join-Path $plan068 'plan.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+powershell -NoProfile -ExecutionPolicy Bypass -File $tool068 -Mode Apply -GameRoot $game068 -OutputDirectory $apply068 -PlanPath (Join-Path $plan068 'plan.json') -ExpectedPlanHash $hash068 -OwnershipManifest $owner068
+if ($LASTEXITCODE -ne 0) { throw 'Apply failed; do not START.' }
+& (Join-Path $candidate068 'START.cmd')
+```
+
+При следующем x20→x10 использовать **тот же** baseline и новые Plan/Apply outputs. Ни XP/SP, ни уже Applied price не становятся множителем новой target price. Любой неуспешный STOP/Plan/Apply требует остановиться и разобрать error; последовательность выше не является unattended batch. Никакой automatic startup Apply не добавлен. Обычный ALT+B admission/CB switch отдельно решает оператор: CLI цены не включает CB и не даёт фантомам новый обход native снабжения.
+
+```powershell
+& (Join-Path $candidate068 'STOP.cmd')
+if ($LASTEXITCODE -ne 0) { throw 'STOP failed; do not rollback a running runtime.' }
+powershell -NoProfile -ExecutionPolicy Bypass -File $tool068 -Mode Rollback -GameRoot $game068 -OutputDirectory $apply068 -PlanPath (Join-Path $plan068 'plan.json') -ExpectedPlanHash $hash068 -OwnershipManifest $owner068
+if ($LASTEXITCODE -ne 0) { throw 'Rollback conflict; preserve current prices and Rates.ini.' }
+# Только после успешного Rollback: вернуть сохранённый rate snapshot отдельно.
+Copy-Item -LiteralPath $ratesBackup068 -Destination $rates068
+& (Join-Path $candidate068 'START.cmd')
+```
+
+Rollback возвращает цены только при exact postimages и не затирает поздние правки; Rates.ini автоматически не откатывает. Старый own native TEST Alt+B purchase/rollback-check выше доказывает реальный HomeBoard/MultiSellChoose путь на прежнем build-dev и его1/1 Plan, но не новый canonical rebalance пакет и не committed release Apply. До root committed verify новая rates matrix имеет только isolated-exporter DB-free evidence.

@@ -38,6 +38,8 @@ public final class PhantomEconomyPricingExporter
 	private final Map<Integer, String> _reasons = new HashMap<>();
 	private final Map<Integer, Quote> _quotes = new HashMap<>();
 	private final PhantomAltBPriceCatalog _altB;
+	private final PhantomAltBPriceCatalog _canonicalAltB;
+	private final Path _baseline;
 	private final PhantomEconomyValuation.Policy _policy;
 	private final PhantomPrivateMarketQuote.Policy _spread;
 	private final PhantomRateAwareLootFairValue.Rates _rates;
@@ -48,9 +50,10 @@ public final class PhantomEconomyPricingExporter
 	private final double _masterwork;
 	private double _highJewelAnchor;
 
-	private PhantomEconomyPricingExporter(Path root, Path profile, double adenaScale, double lootScale) throws Exception
+	private PhantomEconomyPricingExporter(Path root, Path profile, double adenaScale, double lootScale, Path baseline) throws Exception
 	{
 		_root = root.toAbsolutePath().normalize().toRealPath();
+		_baseline = baseline == null ? null : baseline.toAbsolutePath().normalize().toRealPath();
 		_policy = PhantomMarketConfig.readValuation(profile);
 		_spread = PhantomMarketConfig.read(profile);
 		if (_policy == null || _spread == null || !Double.isFinite(adenaScale) || adenaScale <= 0 || !Double.isFinite(lootScale) || lootScale <= 0) { throw new IllegalArgumentException("Valid explicit pricing profile and rate scales required."); }
@@ -69,9 +72,12 @@ public final class PhantomEconomyPricingExporter
 		_masterwork = Double.parseDouble(player.getProperty("CraftMasterworkChanceRate", "1"));
 		final Properties rates = properties("config/Rates.ini");
 		final Map<Integer, Double> amount = rates(rates.getProperty("DropAmountMultiplierByItemId", ""), lootScale);
-		amount.put(57, amount.getOrDefault(57, 1d) / lootScale * adenaScale);
+		final double adenaAmount = rates(rates.getProperty("DropAmountMultiplierByItemId", ""), 1).getOrDefault(57, number(rates, "DeathDropAmountMultiplier", 1));
+		amount.put(57, adenaAmount * adenaScale);
 		_rates = new PhantomRateAwareLootFairValue.Rates(number(rates, "DeathDropChanceMultiplier", 1), number(rates, "DeathDropAmountMultiplier", 1) * lootScale, number(rates, "SpoilDropChanceMultiplier", 1), number(rates, "SpoilDropAmountMultiplier", 1) * lootScale, rates(rates.getProperty("DropChanceMultiplierByItemId", ""), 1), amount);
-		_bossRates = new PhantomRateAwareLootFairValue.Rates(number(rates, "RaidDropChanceMultiplier", 1), number(rates, "RaidDropAmountMultiplier", 1) * lootScale, _rates.spoilChance(), _rates.spoilAmount(), _rates.chanceByItem(), _rates.amountByItem());
+		final Map<Integer, Double> bossAmount = rates(rates.getProperty("DropAmountMultiplierByItemId", ""), lootScale);
+		bossAmount.put(57, rates(rates.getProperty("DropAmountMultiplierByItemId", ""), 1).getOrDefault(57, number(rates, "RaidDropAmountMultiplier", 1)) * adenaScale);
+		_bossRates = new PhantomRateAwareLootFairValue.Rates(number(rates, "RaidDropChanceMultiplier", 1), number(rates, "RaidDropAmountMultiplier", 1) * lootScale, _rates.spoilChance(), _rates.spoilAmount(), _rates.chanceByItem(), bossAmount);
 		for (Path file : files("data/stats/items")) { readItems(file); }
 		for (Path file : files("data/spawns"))
 		{
@@ -85,6 +91,19 @@ public final class PhantomEconomyPricingExporter
 		readRecipes();
 		for (Path file : files("data/buylists")) { readBuylist(file); }
 		_altB = PhantomAltBPriceCatalog.load(_root); _hashes.putAll(_altB.hashes());
+		_canonicalAltB = _baseline == null ? _altB : PhantomAltBPriceCatalog.load(_baseline);
+		if (_baseline != null)
+		{
+			if (!_altB.hashes().keySet().equals(_canonicalAltB.hashes().keySet()) || _altB.offers().size() != _canonicalAltB.offers().size()) { throw new IllegalArgumentException("Canonical baseline reachability differs; review a new baseline explicitly."); }
+			for (int index = 0; index < _altB.offers().size(); index++)
+			{
+				final var current = _altB.offers().get(index); final var canonical = _canonicalAltB.offers().get(index);
+				if (!current.path().equals(canonical.path()) || !current.kind().equals(canonical.kind()) || current.ordinal() != canonical.ordinal() || !current.products().equals(canonical.products()) || !current.reason().equals(canonical.reason())) { throw new IllegalArgumentException("Canonical baseline offer structure differs."); }
+			}
+			_canonicalAltB.hashes().forEach((path, hash) -> _hashes.put("@baseline:" + path, hash));
+			_hashes.put("@baseline:baseline.properties", PhantomEconomyXml.hash(_baseline.resolve("baseline.properties")));
+			_hashes.put("@baseline:files.tsv", PhantomEconomyXml.hash(_baseline.resolve("files.tsv")));
+		}
 		for (Item item : _items.values())
 		{
 			if (item.jewel() && Set.of("S", "S80", "S84").contains(item.grade()) && !PhantomEpicItemPolicy.isEpic(item.id())) { _highJewelAnchor = Math.max(_highJewelAnchor, Math.max(source(item.id()), craft(item.id()))); }
@@ -172,7 +191,9 @@ public final class PhantomEconomyPricingExporter
 	}
 	private void readBuylist(Path file) throws Exception
 	{
-		final Element list = xml(file);
+		final Element current = xml(file);
+		final Path canonical = _baseline == null ? null : _baseline.resolve(_root.relativize(file));
+		final Element list = canonical != null && Files.exists(canonical) ? PhantomEconomyXml.read(PhantomEconomyXml.physical(_baseline, canonical)) : current;
 		if (PhantomEconomyXml.children(list, "npcs").isEmpty()) { return; }
 		for (Element entry : PhantomEconomyXml.children(list, "item"))
 		{
@@ -222,7 +243,7 @@ public final class PhantomEconomyPricingExporter
 				final double direct = source(key); final long craft = craft(key);
 				if ((direct <= 0 || _reasons.getOrDefault(key, "").equals("liquidation.opportunity_only")) && craft <= 0) { throw new IllegalArgumentException("no acquisition source; " + _reasons.getOrDefault(key, "absent")); }
 				final long fair = checked(Math.max(Math.max(direct, craft), liquidation(item)));
-				long ceiling = _npc.getOrDefault(key, Long.MAX_VALUE); final long altB = _altB.acquisitionCeiling(key);
+				long ceiling = _npc.getOrDefault(key, Long.MAX_VALUE); final long altB = _canonicalAltB.acquisitionCeiling(key);
 				if (craft > 0) { ceiling = Math.min(ceiling, craft); } if (altB >= 0) { ceiling = Math.min(ceiling, altB); }
 				final var value = PhantomPrivateMarketQuote.quote(new PhantomPrivateMarketQuote.Inputs(fair, liquidation(item), ceiling != Long.MAX_VALUE, ceiling == Long.MAX_VALUE ? 0 : ceiling, craft, 0, _maxAdena), _spread);
 				return new Quote(true, item.stackable() && value.buyAllowed(), item.stackable() && value.buyAllowed() ? value.bid() : 0, value.ask(), fair, _reasons.getOrDefault(key, "recipe.bom") + (craft > 0 ? "+recipe.expected_cost" : ""));
@@ -261,12 +282,31 @@ public final class PhantomEconomyPricingExporter
 		}
 		final List<String> hashes = new ArrayList<>(List.of("path\tsha256")); _hashes.forEach((path, hash) -> hashes.add(path + "\t" + hash));
 		write(output, "quotes.tsv", quotes); write(output, "offers.tsv", offers); write(output, "sources.tsv", hashes);
+		write(output, "rates.tsv", List.of("key\tvalue", "deathChance\t" + _rates.deathChance(), "deathAmount\t" + _rates.deathAmount(), "spoilChance\t" + _rates.spoilChance(), "spoilAmount\t" + _rates.spoilAmount(), "raidChance\t" + _bossRates.deathChance(), "raidAmount\t" + _bossRates.deathAmount(), "adenaAmount\t" + _rates.amountByItem().get(57), "raidAdenaAmount\t" + _bossRates.amountByItem().get(57), "adenaChance\t" + _rates.chanceByItem().getOrDefault(57, _rates.deathChance()), "chanceByItem\t" + new TreeMap<>(_rates.chanceByItem()), "amountByItem\t" + new TreeMap<>(_rates.amountByItem()), "xpSpPriceMultiplier\tignored"));
+		write(output, "target-prices.tsv", offers.stream().map(row -> { final String[] cells = row.split("\t", -1); return cells[0] + '\t' + cells[1] + '\t' + cells[2] + '\t' + cells[4] + '\t' + cells[5] + '\t' + cells[6] + '\t' + cells[7] + '\t' + cells[8]; }).toList());
 		write(output, "unknown.txt", java.util.stream.Stream.concat(_altB.unknown().stream(), java.util.stream.Stream.of(_controlSummary, "NPC tax: offline catalog base is a conservative untaxed lower bound; native Merchant tax is rechecked by runtime", "Dynamic NPC shops/quests/non-Adena exchanges/enchant conversions and arbitrary longer graph cycles are outside this bounded proof", "Grouped occurrence caps can reduce realized yield; authored target time is an explicit model, not measured class combat throughput")).toList());
 	}
 
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length != 6) { throw new IllegalArgumentException("Usage: PhantomEconomyPricingExporter <game-root> <profile.ini> <output-dir> <adena-scale> <loot-scale> <inspect-ids>"); }
-		new PhantomEconomyPricingExporter(Path.of(args[0]), Path.of(args[1]), Double.parseDouble(args[3]), Double.parseDouble(args[4])).export(Path.of(args[2]), args[5]);
+		if (args.length == 3 && args[0].equals("--capture-baseline")) { captureBaseline(Path.of(args[1]), Path.of(args[2])); return; }
+		if (args.length != 6 && args.length != 7) { throw new IllegalArgumentException("Usage: PhantomEconomyPricingExporter <game-root> <profile.ini> <output-dir> <adena-scale> <loot-scale> <inspect-ids> [canonical-baseline-dir]"); }
+		new PhantomEconomyPricingExporter(Path.of(args[0]), Path.of(args[1]), Double.parseDouble(args[3]), Double.parseDouble(args[4]), args.length == 7 ? Path.of(args[6]) : null).export(Path.of(args[2]), args[5]);
+	}
+	private static void captureBaseline(Path game, Path output) throws Exception
+	{
+		final Path root = game.toAbsolutePath().normalize().toRealPath(), destination = output.toAbsolutePath().normalize();
+		if (destination.startsWith(root) || Files.exists(destination)) { throw new IllegalArgumentException("Fresh external canonical baseline directory required; no overwrite."); }
+		final var catalog = PhantomAltBPriceCatalog.load(root); Files.createDirectories(destination);
+		final List<String> manifest = new ArrayList<>(List.of("path\tsha256"));
+		for (var entry : new TreeMap<>(catalog.hashes()).entrySet())
+		{
+			final Path source = PhantomEconomyXml.physical(root, root.resolve(entry.getKey())), target = destination.resolve(entry.getKey());
+			Files.createDirectories(target.getParent()); Files.copy(source, target);
+			if (!PhantomEconomyXml.hash(target).equals(entry.getValue())) { throw new IllegalArgumentException("Canonical capture changed during copy."); }
+			manifest.add(entry.getKey() + '\t' + entry.getValue());
+		}
+		write(destination, "files.tsv", manifest);
+		Files.writeString(destination.resolve("baseline.properties"), "version=1\nowner=TASK068_LIVING_ECONOMY\ngameRoot=" + root.toString().replace('\\', '/') + "\nmanifestSHA256=" + PhantomEconomyXml.hash(destination.resolve("files.tsv")) + "\n", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
 	}
 }

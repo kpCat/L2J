@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Plan','Apply','Rollback')][string]$Mode='Plan',
+    [ValidateSet('Baseline','Plan','Apply','Rollback')][string]$Mode='Plan',
     [Parameter(Mandatory)][string]$GameRoot,
     [string]$Profile,
     [Parameter(Mandatory)][string]$OutputDirectory,
@@ -8,6 +8,7 @@ param(
     [string]$PlanPath,
     [string]$ExpectedPlanHash,
     [string]$OwnershipManifest,
+    [string]$BaselineDirectory,
     [double]$AdenaScale=1,
     [double]$LootScale=1,
     [int[]]$InspectItemId=@(1864,1458,729,6660,999999)
@@ -32,6 +33,29 @@ function Get-PriceHash068([byte[]]$Bytes){
     finally{$hasherPrice068.Dispose()}
 }
 function Get-PriceFileHash068([string]$Path){return Get-PriceHash068 ([IO.File]::ReadAllBytes($Path))}
+function Assert-CanonicalPrice068([string]$Directory){
+    $canonicalPrice068=Assert-PlainPrice068 $Directory
+    if($canonicalPrice068.StartsWith($gamePrice068+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $canonicalPrice068 -ceq $gamePrice068){throw 'Canonical baseline must be external to game.'}
+    $metadataPrice068=Join-Path $canonicalPrice068 'baseline.properties'
+    $textPrice068=[IO.File]::ReadAllText((Assert-PlainPrice068 $metadataPrice068),$utf8Price068)
+    $fieldsPrice068=@{}
+    foreach($keyPrice068 in @('version','owner','gameRoot','manifestSHA256')){
+        $matchesPrice068=[regex]::Matches($textPrice068,'(?m)^'+$keyPrice068+'=([^\r\n]+)\r?$')
+        if($matchesPrice068.Count -ne 1){throw 'Canonical baseline metadata differs.'}
+        $fieldsPrice068[$keyPrice068]=$matchesPrice068[0].Groups[1].Value
+    }
+    if($fieldsPrice068.version -cne '1' -or $fieldsPrice068.owner -cne 'TASK068_LIVING_ECONOMY' -or (Assert-PlainPrice068 $fieldsPrice068.gameRoot) -cne $gamePrice068){throw 'Canonical baseline owner/root differs.'}
+    $manifestPrice068=Assert-PlainPrice068 (Join-Path $canonicalPrice068 'files.tsv')
+    if((Get-PriceFileHash068 $manifestPrice068) -cne $fieldsPrice068.manifestSHA256){throw 'Canonical manifest hash differs.'}
+    $rowsPrice068=@(Import-Csv -LiteralPath $manifestPrice068 -Delimiter "`t")
+    if(!$rowsPrice068.Count -or $rowsPrice068.Count -gt 256 -or @($rowsPrice068.path|Select-Object -Unique).Count -ne $rowsPrice068.Count){throw 'Bounded unique canonical file set required.'}
+    foreach($rowPrice068 in $rowsPrice068){
+        if($rowPrice068.path -cnotmatch '^data/(html/CommunityBoard/Custom/[A-Za-z0-9_/-]+\.html|multisell/(custom/)?[0-9]+\.xml|buylists/[0-9]+\.xml)$' -or $rowPrice068.path.Contains('..')){throw 'Canonical file escaped reachable price scope.'}
+        $filePrice068=Assert-PlainPrice068 (Join-Path $canonicalPrice068 $rowPrice068.path)
+        if(!$filePrice068.StartsWith($canonicalPrice068+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or (Get-PriceFileHash068 $filePrice068) -cne $rowPrice068.sha256){throw 'Canonical baseline bytes changed.'}
+    }
+    return $canonicalPrice068
+}
 function Resolve-PriceTarget068([string]$Relative){
     if($Relative -cnotmatch '^data/(multisell/(custom/)?[0-9]+|buylists/[0-9]+)\.xml$'){throw 'Only exact reachable buylist/multisell price files are writable.'}
     $targetPrice068=Assert-PlainPrice068 (Join-Path $gamePrice068 $Relative)
@@ -97,13 +121,24 @@ function Write-AtomicPrice068([string]$Path,[byte[]]$Bytes){
 $gamePrice068=Assert-PlainPrice068 $GameRoot
 $outputPrice068=Assert-PlainPrice068 $OutputDirectory
 if(!(Test-Path -LiteralPath $gamePrice068 -PathType Container)){throw 'Existing physical game root required.'}
+if($Mode -ceq 'Baseline'){
+    if(Test-Path -LiteralPath $outputPrice068){throw 'Canonical baseline exists; no overwrite or recapture from applied prices.'}
+    if(!$JavaClassPath){$JavaClassPath=(Join-Path (Split-Path $gamePrice068 -Parent) 'libs/GameServer.jar')+';'+(Join-Path (Split-Path $gamePrice068 -Parent) 'libs/*')}
+    & java -cp $JavaClassPath org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPricingExporter --capture-baseline $gamePrice068 $outputPrice068
+    if($LASTEXITCODE -ne 0){throw 'Canonical baseline capture failed; preserve partial evidence.'}
+    $null=Assert-CanonicalPrice068 $outputPrice068
+    Write-Output ('BASELINE path='+$outputPrice068+';sha256='+(Get-PriceFileHash068 (Join-Path $outputPrice068 'baseline.properties'))+';Rates.ini remains dynamic.');return
+}
 if($Mode -ceq 'Plan'){
     if(!$Profile){$Profile=Join-Path $gamePrice068 'config/Custom/PhantomMarket.ini'}
     $profilePrice068=Assert-PlainPrice068 $Profile
     if(!$JavaClassPath){$JavaClassPath=(Join-Path (Split-Path $gamePrice068 -Parent) 'libs/GameServer.jar')+';'+(Join-Path (Split-Path $gamePrice068 -Parent) 'libs/*')}
     New-Item -ItemType Directory -Path $outputPrice068 -Force|Out-Null
     $factsPrice068=Join-Path $outputPrice068 'facts'
-    & java -cp $JavaClassPath org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPricingExporter $gamePrice068 $profilePrice068 $factsPrice068 ([string]$AdenaScale) ([string]$LootScale) ($InspectItemId -join ',')
+    $exportArgsPrice068=@($gamePrice068,$profilePrice068,$factsPrice068,([string]$AdenaScale),([string]$LootScale),($InspectItemId -join ','))
+    $canonicalPrice068=''
+    if($BaselineDirectory){$canonicalPrice068=Assert-CanonicalPrice068 $BaselineDirectory;$exportArgsPrice068+=$canonicalPrice068}
+    & java -cp $JavaClassPath org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPricingExporter @exportArgsPrice068
     if($LASTEXITCODE -ne 0){throw "Shared Java pricing exporter failed: exit $LASTEXITCODE"}
     $offersPrice068=@(Import-Csv -LiteralPath (Join-Path $factsPrice068 'offers.tsv') -Delimiter "`t")
     $sourcesPrice068=@(Import-Csv -LiteralPath (Join-Path $factsPrice068 'sources.tsv') -Delimiter "`t")
@@ -114,11 +149,14 @@ if($Mode -ceq 'Plan'){
         $afterPrice068=Get-PriceBytes068 $beforePrice068 @($groupPrice068.Group) $groupPrice068.Group[0].kind
         $changesPrice068+=[ordered]@{path=$groupPrice068.Name;preHash=(Get-PriceHash068 $beforePrice068);postHash=(Get-PriceHash068 $afterPrice068);offers=@($groupPrice068.Group)}
     }
-    $planPrice068=[ordered]@{version=1;owner='TASK068_LIVING_ECONOMY';gameRoot=$gamePrice068;profile=$profilePrice068;adenaScale=$AdenaScale;lootScale=$LootScale;sources=$sourcesPrice068;changes=$changesPrice068;offers=$offersPrice068;unknown=@([IO.File]::ReadAllLines((Join-Path $factsPrice068 'unknown.txt'),$utf8Price068))}
+    $planPrice068=[ordered]@{version=1;owner='TASK068_LIVING_ECONOMY';gameRoot=$gamePrice068;profile=$profilePrice068;adenaScale=$AdenaScale;lootScale=$LootScale;baselineDirectory=$canonicalPrice068;sources=$sourcesPrice068;changes=$changesPrice068;offers=$offersPrice068;unknown=@([IO.File]::ReadAllLines((Join-Path $factsPrice068 'unknown.txt'),$utf8Price068))}
     $planOutputPrice068=Join-Path $outputPrice068 'plan.json'
     [IO.File]::WriteAllText($planOutputPrice068,($planPrice068|ConvertTo-Json -Depth 20),$utf8Price068)
     $offersPrice068|Export-Csv -LiteralPath (Join-Path $outputPrice068 'plan.tsv') -Delimiter "`t" -NoTypeInformation -Encoding UTF8
     @($offersPrice068|Where-Object {$_.status -ceq 'UNPRICED'})|Export-Csv -LiteralPath (Join-Path $outputPrice068 'UNPRICED.tsv') -Delimiter "`t" -NoTypeInformation -Encoding UTF8
+    Copy-Item -LiteralPath (Join-Path $factsPrice068 'target-prices.tsv') -Destination (Join-Path $outputPrice068 'target-prices.tsv') -Force
+    @($offersPrice068|Where-Object {$_.status -ceq 'PRICED' -and [long]$_.old_price -ne [long]$_.new_price})|Export-Csv -LiteralPath (Join-Path $outputPrice068 'diff.tsv') -Delimiter "`t" -NoTypeInformation -Encoding UTF8
+    if(!$canonicalPrice068){Write-Warning 'No canonical baseline selected; capture/reuse one before a repeat rate rebalance.'}
     Write-Output ('PLAN path='+$planOutputPrice068+';sha256='+(Get-PriceFileHash068 $planOutputPrice068)+';files='+$changesPrice068.Count+';priced='+@($offersPrice068|Where-Object {$_.status -ceq 'PRICED'}).Count+';unpriced='+@($offersPrice068|Where-Object {$_.status -ceq 'UNPRICED'}).Count)
     return
 }
@@ -128,6 +166,8 @@ $planPrice068=Read-PricePlan068
 if($Mode -ceq 'Apply' -and ([double]$planPrice068.adenaScale -ne 1 -or [double]$planPrice068.lootScale -ne 1)){throw 'Illustrative rate scales cannot be applied; use an actual rates snapshot with scales 1/1.'}
 $receiptPathPrice068=Join-Path $outputPrice068 ('apply-'+$ExpectedPlanHash.ToLowerInvariant()+'.json')
 if($Mode -ceq 'Apply'){
+    $canonicalPrice068=''
+    if($planPrice068.PSObject.Properties.Name -contains 'baselineDirectory' -and $planPrice068.baselineDirectory){$canonicalPrice068=Assert-CanonicalPrice068 $planPrice068.baselineDirectory}
     if(Test-Path -LiteralPath $receiptPathPrice068){
         $receiptPrice068=[IO.File]::ReadAllText($receiptPathPrice068,$utf8Price068)|ConvertFrom-Json
         if($receiptPrice068.owner -cne 'TASK068_LIVING_ECONOMY' -or $receiptPrice068.planHash -cne $ExpectedPlanHash.ToLowerInvariant() -or $receiptPrice068.gameRoot -cne $gamePrice068){throw 'Existing Apply receipt is not owned by this plan/root.'}
@@ -136,6 +176,11 @@ if($Mode -ceq 'Apply'){
     }
     foreach($sourcePrice068 in $planPrice068.sources){
         if($sourcePrice068.path.StartsWith('@formula:')){continue}
+        if($sourcePrice068.path.StartsWith('@baseline:')){
+            if(!$canonicalPrice068){throw 'Canonical baseline binding missing.'}
+            $canonicalSourcePrice068=Assert-PlainPrice068 (Join-Path $canonicalPrice068 $sourcePrice068.path.Substring(10))
+            if(!$canonicalSourcePrice068.StartsWith($canonicalPrice068+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or (Get-PriceFileHash068 $canonicalSourcePrice068) -cne $sourcePrice068.sha256){throw 'Canonical Plan source conflict.'};continue
+        }
         $sourcePathPrice068=if($sourcePrice068.path -ceq '@profile'){$planPrice068.profile}else{Assert-PlainPrice068 (Join-Path $gamePrice068 $sourcePrice068.path)}
         if($sourcePrice068.path -cne '@profile' -and !$sourcePathPrice068.StartsWith($gamePrice068+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Source hash path escaped game root.'}
         if((Get-PriceFileHash068 $sourcePathPrice068) -cne $sourcePrice068.sha256){throw "Source/preimage conflict: $($sourcePrice068.path)"}

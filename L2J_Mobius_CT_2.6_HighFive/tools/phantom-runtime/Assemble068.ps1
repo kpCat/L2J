@@ -74,6 +74,8 @@ Set-Config068 $output 'login/config/Server.ini' 'LoginPort' ([string]$ports[2])
 Set-Config068 $output 'login/config/Server.ini' 'LoginserverHostname' '127.0.0.1'
 Set-Config068 $output 'login/config/Server.ini' 'LoginHostname' '127.0.0.1'
 Set-Config068 $output 'login/config/Server.ini' 'AcceptNewGameServer' 'False'
+Set-Config068 $output 'game/config/Interface.ini' 'EnableGUI' 'False'
+Set-Config068 $output 'login/config/Interface.ini' 'EnableGUI' 'False'
 # Own candidate profile; stock source defaults remain OFF. Personal QoL/blue opts stay at shipped defaults.
 Set-Config068 $output 'game/config/Custom/PhantomPlayers.ini' 'EnablePhantomSystem' 'True'
 Set-Config068 $output 'game/config/Custom/PhantomPlayers.ini' 'PhantomPopulationTarget' '8'
@@ -81,7 +83,8 @@ Set-Config068 $output 'game/config/Custom/PhantomPlayers.ini' 'PhantomPopulation
 Set-Config068 $output 'game/config/Custom/PhantomPlayers.ini' 'MaxMaterializedPhantoms' '8'
 Set-Config068 $output 'game/config/Custom/PhantomPlayers.ini' 'PhantomStarterShotLifetimeLimit' '0'
 Set-Config068 $output 'game/config/Custom/PhantomMerchants.ini' 'EnableOfflinePhantomMerchants' 'True'
-Set-Config068 $output 'game/config/Custom/CommunityBoard.ini' 'CustomCommunityBoard' 'True'
+$communityBoard068=if($Kind -ceq 'Test'){'True'}else{'False'}
+Set-Config068 $output 'game/config/Custom/CommunityBoard.ini' 'CustomCommunityBoard' $communityBoard068
 $tools=Join-Path $output 'tools'
 foreach($tool in @('Runtime068.ps1','Task068Common.ps1','Task068DatabaseProbe.java')){Copy-Item -LiteralPath (Join-Path $source "tools/phantom-runtime/$tool") -Destination $tools}
 Copy-Item -LiteralPath (Join-Path $source 'tools/phantom-local-play/LocalPlay-Ownership.ps1') -Destination $tools
@@ -113,7 +116,7 @@ START.cmd, STATUS.cmd и STOP.cmd работают из этой папки бе
 | PhantomMerchants.ini | EnableOfflinePhantomMerchants=True; target200; hard cap250; lifetime identities300; batch5; rotation30s |
 | PhantomMerchants.ini | finite BOOTSTRAP capital100000/identity, global30000000; stock value500000000, per-item10000; без refill |
 | PhantomMarket.ini | единые bid/ask/recipe/rate цены; manufacture minimum100, fee200bps BOM |
-| CommunityBoard.ini | CustomCommunityBoard=True; фактические reachable Alt+B lists |
+| CommunityBoard.ini | CustomCommunityBoard=$communityBoard068; Release OFF до отдельного решения по исходным ценам и Plan/Apply |
 | ChampionMonsters.ini | red/blue switches сохранены OFF; BlueChampionEnable включает отдельную categorical probability |
 | PersonalCharacterQoL.ini | personal master/allowlist/solo Rift сохранены OFF/пусто; глобальный minimum Party не изменён |
 
@@ -123,7 +126,7 @@ PhantomStarterShotLifetimeLimit=0 нужен только профилю изм�
 
 Новые merchants не имеют battle/decision/background jobs. SELL использует существующий inventory, BUY — настоящую Adena, MANUFACTURE — выученные native рецепты/skill/MP и материалы заказчика. MerchantPreparedOfflineCharacterIds принимает только явно подготовленные disabled-account native manufacturers без другого Phantom owner; новые роли автоматически не получают чужой профессии или рецептов.
 
-Инструмент цен находится в tools/phantom-economy/Price-PhantomEconomy.ps1, инструкция — соседний README_RU.md. Итоговая поставка сохраняет исходные цены Alt+B; тестовый Apply не является её настройкой по умолчанию. Plan по умолчанию читает game и пишет diff во внешнюю папку. Apply требует отдельного операторского решения, exact plan SHA, OWNERSHIP068.json и preimage; создаёт backup. Rollback сохраняет поздние чужие изменения и отказывается при конфликте. В собственной среде разрешён только actual1/1 профиль; x10/x20 — расчёты, Apply запрещён. После Apply/Rollback нужен restart. Не применять эти инструменты к историческим поставкам. Native TEST-покупка не подключает Alt+B к обычному снабжению фантомов.
+Инструмент цен находится в tools/phantom-economy/Price-PhantomEconomy.ps1, инструкция — соседний README_RU.md. Итоговая поставка сохраняет исходные цены Alt+B; тестовый Apply не является её настройкой по умолчанию. Рабочий порядок: STOP → первый Baseline во внешний каталог → изменение Rates.ini → Plan с тем же BaselineDirectory → просмотр diff/предупреждений → явный Apply → START. Повторный Plan считает от канонических цен и свежих rates, без накопления прошлых множителей. Apply требует exact plan SHA, OWNERSHIP068.json и preimage; создаёт backup. Rollback сохраняет поздние чужие изменения и отказывается при конфликте; Rates.ini восстанавливается отдельно. Рабочие планы используют реальные Rates.ini и AdenaScale/LootScale1/1; иллюстративные scale flags10/20 применять запрещено. Не применять инструменты к историческим поставкам. Native TEST-покупка не подключает Alt+B к обычному снабжению фантомов.
 
 BUILD_INFO068.json, SOURCE_BUILD_INFO068.json, TOOLS068.tsv и GEODATA068.tsv фиксируют source/JAR/tool/Geo provenance. Пароли и hexid находятся в закрытых конфигурациях; старые поставки не изменены. Клиентская визуальная QA отложена владельцем; native packet evidence её не подменяет.
 "@

@@ -71,4 +71,76 @@ foreach($sourceRowPriceTest068 in @(Import-Csv -LiteralPath (Join-Path $firstPri
     if(!$sourceRowPriceTest068.path.StartsWith('@') -and (Hash-PriceSmoke068 (Join-Path $sourcePriceTest068 $sourceRowPriceTest068.path)) -cne $sourceRowPriceTest068.sha256){throw 'Read-only source changed during CLI smoke.'}
 }
 Write-Output 'PASS 03 later-change rollback conflict preserved; exact rollback restored; source unchanged.'
-Write-Output ('SUMMARY CLI smoke=3/3; output='+$rootPriceTest068)
+
+# Two actual Rates.ini profiles; canonical prices never come from a previous Apply.
+$baselinePriceTest068=Join-Path $rootPriceTest068 'canonical-baseline'
+Invoke-PriceSmoke068 -Arguments @('-Mode','Baseline','-GameRoot',$fixturePriceTest068,'-OutputDirectory',$baselinePriceTest068,'-JavaClassPath',$JavaClassPath)
+$baselineHashPriceTest068=Hash-PriceSmoke068 (Join-Path $baselinePriceTest068 'baseline.properties')
+$ratesPathPriceTest068=Join-Path $fixturePriceTest068 'config/Rates.ini'
+$originalRatesPriceTest068=[IO.File]::ReadAllBytes($ratesPathPriceTest068)
+function Set-RebalanceRates068([int]$Scale){
+    $textPriceTest068=$encodingPriceTest068.GetString($originalRatesPriceTest068)
+    $chancePriceTest068=if($Scale -eq 10){2}else{3}
+    foreach($keyPriceTest068 in @('DeathDropAmountMultiplier','SpoilDropAmountMultiplier','RaidDropAmountMultiplier')){
+        $textPriceTest068=[regex]::Replace($textPriceTest068,'(?m)^('+ $keyPriceTest068 +'\s*=\s*).*$',{param($match) $match.Groups[1].Value+[string]$Scale})
+    }
+    foreach($keyPriceTest068 in @('DeathDropChanceMultiplier','SpoilDropChanceMultiplier','RaidDropChanceMultiplier')){
+        $textPriceTest068=[regex]::Replace($textPriceTest068,'(?m)^('+ $keyPriceTest068 +'\s*=\s*).*$',{param($match) $match.Groups[1].Value+[string]$chancePriceTest068})
+    }
+    $textPriceTest068=[regex]::Replace($textPriceTest068,'(?m)^(DropAmountMultiplierByItemId\s*=\s*)([^\r\n]*)',{param($match) $match.Groups[1].Value+([regex]::Replace($match.Groups[2].Value,'(^|;)57,[^;]*',{param($entry) $entry.Groups[1].Value+'57,'+[string]$Scale}))})
+    [IO.File]::WriteAllText($ratesPathPriceTest068,$textPriceTest068,$encodingPriceTest068)
+}
+$cycleReceiptsPriceTest068=@()
+try{
+    foreach($namePriceTest068 in @('x10-first','x20','x10-repeat')){
+        $scalePriceTest068=if($namePriceTest068 -eq 'x20'){20}else{10}
+        Set-RebalanceRates068 $scalePriceTest068
+        $directoryPriceTest068=Join-Path $rootPriceTest068 $namePriceTest068
+        Invoke-PriceSmoke068 -Arguments @('-Mode','Plan','-GameRoot',$fixturePriceTest068,'-OutputDirectory',$directoryPriceTest068,'-JavaClassPath',$JavaClassPath,'-BaselineDirectory',$baselinePriceTest068)
+        $effectivePriceTest068=@(Import-Csv -LiteralPath (Join-Path $directoryPriceTest068 'facts/rates.tsv') -Delimiter "`t")
+        $expectedChancePriceTest068=if($scalePriceTest068 -eq 10){2}else{3}
+        if([double]($effectivePriceTest068|Where-Object key -eq 'adenaAmount').value -ne $scalePriceTest068 -or [double]($effectivePriceTest068|Where-Object key -eq 'deathAmount').value -ne $scalePriceTest068 -or [double]($effectivePriceTest068|Where-Object key -eq 'spoilAmount').value -ne $scalePriceTest068 -or [double]($effectivePriceTest068|Where-Object key -eq 'deathChance').value -ne $expectedChancePriceTest068 -or [double]($effectivePriceTest068|Where-Object key -eq 'spoilChance').value -ne $expectedChancePriceTest068 -or [double]($effectivePriceTest068|Where-Object key -eq 'raidChance').value -ne $expectedChancePriceTest068){throw 'Actual per-item57/drop/spoil chance+amount snapshot was not read.'}
+        $cyclePlanPriceTest068=Join-Path $directoryPriceTest068 'plan.json'
+        $cycleHashPriceTest068=Hash-PriceSmoke068 $cyclePlanPriceTest068
+        $cycleOutputPriceTest068=Join-Path $directoryPriceTest068 'apply'
+        Invoke-PriceSmoke068 -Arguments @('-Mode','Apply','-GameRoot',$fixturePriceTest068,'-OutputDirectory',$cycleOutputPriceTest068,'-PlanPath',$cyclePlanPriceTest068,'-ExpectedPlanHash',$cycleHashPriceTest068,'-OwnershipManifest',$ownershipPriceTest068)
+        $cycleReceiptsPriceTest068+=@{plan=$cyclePlanPriceTest068;hash=$cycleHashPriceTest068;output=$cycleOutputPriceTest068}
+    }
+    $x10PriceTest068=Join-Path $rootPriceTest068 'x10-first'
+    $x20PriceTest068=Join-Path $rootPriceTest068 'x20'
+    $repeatPriceTest068=Join-Path $rootPriceTest068 'x10-repeat'
+    foreach($relativePriceTest068 in @('target-prices.tsv','facts/quotes.tsv')){
+        if((Hash-PriceSmoke068 (Join-Path $x10PriceTest068 $relativePriceTest068)) -cne (Hash-PriceSmoke068 (Join-Path $repeatPriceTest068 $relativePriceTest068))){throw 'x10->x20->x10 compounded target prices or valuation.'}
+    }
+    if((Hash-PriceSmoke068 (Join-Path $x10PriceTest068 'target-prices.tsv')) -ceq (Hash-PriceSmoke068 (Join-Path $x20PriceTest068 'target-prices.tsv'))){throw 'Actual x10/x20 profiles did not change any reachable target price.'}
+    if((Hash-PriceSmoke068 (Join-Path $baselinePriceTest068 'baseline.properties')) -cne $baselineHashPriceTest068){throw 'Canonical capture was rewritten by rebalance.'}
+    # A missing57 override must inherit the actual global death amount, exactly as the native rates.
+    Set-RebalanceRates068 10
+    $without57PriceTest068=[regex]::Replace([IO.File]::ReadAllText($ratesPathPriceTest068),'(?m)^(DropAmountMultiplierByItemId\s*=\s*)57,[^;]*;?','$1')
+    $without57PriceTest068=[regex]::Replace($without57PriceTest068,'(?m)^(RateXp\s*=\s*).*$', '${1}999')
+    $without57PriceTest068=[regex]::Replace($without57PriceTest068,'(?m)^(RateSp\s*=\s*).*$', '${1}777')
+    [IO.File]::WriteAllText($ratesPathPriceTest068,$without57PriceTest068,$encodingPriceTest068)
+    $inheritPriceTest068=Join-Path $rootPriceTest068 'x10-inherit57'
+    Invoke-PriceSmoke068 -Arguments @('-Mode','Plan','-GameRoot',$fixturePriceTest068,'-OutputDirectory',$inheritPriceTest068,'-JavaClassPath',$JavaClassPath,'-BaselineDirectory',$baselinePriceTest068)
+    if((Hash-PriceSmoke068 (Join-Path $x10PriceTest068 'target-prices.tsv')) -cne (Hash-PriceSmoke068 (Join-Path $inheritPriceTest068 'target-prices.tsv'))){throw 'Adena missing override did not inherit the native death amount.'}
+    $raidInheritTextPriceTest068=[regex]::Replace($without57PriceTest068,'(?m)^(RaidDropAmountMultiplier\s*=\s*).*$', '${1}20')
+    [IO.File]::WriteAllText($ratesPathPriceTest068,$raidInheritTextPriceTest068,$encodingPriceTest068)
+    $raidInheritPriceTest068=Join-Path $rootPriceTest068 'x10-raid-inherit57'
+    Invoke-PriceSmoke068 -Arguments @('-Mode','Plan','-GameRoot',$fixturePriceTest068,'-OutputDirectory',$raidInheritPriceTest068,'-JavaClassPath',$JavaClassPath,'-BaselineDirectory',$baselinePriceTest068)
+    $raidEffectivePriceTest068=@(Import-Csv -LiteralPath (Join-Path $raidInheritPriceTest068 'facts/rates.tsv') -Delimiter "`t")
+    if([double]($raidEffectivePriceTest068|Where-Object key -eq 'adenaAmount').value -ne 10 -or [double]($raidEffectivePriceTest068|Where-Object key -eq 'raidAdenaAmount').value -ne 20){throw 'Missing57 did not inherit separate native death/raid amount rates.'}
+    $canonicalRowPriceTest068=Import-Csv -LiteralPath (Join-Path $baselinePriceTest068 'files.tsv') -Delimiter "`t"|Where-Object {$_.path -like 'data/multisell/*'}|Select-Object -First 1
+    $canonicalXmlPriceTest068=Join-Path $baselinePriceTest068 $canonicalRowPriceTest068.path
+    $canonicalBytesPriceTest068=[IO.File]::ReadAllBytes($canonicalXmlPriceTest068)
+    try{
+        [IO.File]::AppendAllText($canonicalXmlPriceTest068,"`n<!-- own068 canonical drift TEST -->",$encodingPriceTest068)
+        Invoke-PriceSmoke068 -Arguments @('-Mode','Plan','-GameRoot',$fixturePriceTest068,'-OutputDirectory',(Join-Path $rootPriceTest068 'baseline-conflict'),'-JavaClassPath',$JavaClassPath,'-BaselineDirectory',$baselinePriceTest068) -ExpectedExit 1
+    }finally{[IO.File]::WriteAllBytes($canonicalXmlPriceTest068,$canonicalBytesPriceTest068)}
+    Write-Output 'PASS 04 actual Rates.ini x10->x20->x10 identical target/quote bytes; canonical baseline retained/conflict protected; native missing57 inheritance; XP/SP ignored.'
+}finally{
+    try{
+        [array]::Reverse($cycleReceiptsPriceTest068)
+        foreach($cyclePriceTest068 in $cycleReceiptsPriceTest068){Invoke-PriceSmoke068 -Arguments @('-Mode','Rollback','-GameRoot',$fixturePriceTest068,'-OutputDirectory',$cyclePriceTest068.output,'-PlanPath',$cyclePriceTest068.plan,'-ExpectedPlanHash',$cyclePriceTest068.hash,'-OwnershipManifest',$ownershipPriceTest068)}
+    }finally{[IO.File]::WriteAllBytes($ratesPathPriceTest068,$originalRatesPriceTest068)}
+}
+Write-Output ('SUMMARY CLI smoke=4/4; output='+$rootPriceTest068)

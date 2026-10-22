@@ -76,11 +76,69 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		if (anchor == null || anchor.point().instanceId() != live.instanceId()) { return false; }
 		if (Math.hypot((long) live.x()-anchor.point().x(),(long) live.y()-anchor.point().y()) <= _navigation.policy().maximumLocalStraightDistance()) { return true; }
 		if (player == null || !PhantomNativeTravelActions.ordinary(player)) { return false; }
-		// The stored position is the departure, not the assigned destination. Admission is
-		// only a proposal: the existing worker must prove the full physical itinerary/arrival.
-		return _travel.legs().stream().anyMatch(leg -> Math.hypot((long)leg.sourceX()-live.x(),(long)leg.sourceY()-live.y()) <= _navigation.policy().maximumLocalStraightDistance()
-			&& Math.hypot((long)leg.destinationX()-anchor.point().x(),(long)leg.destinationY()-anchor.point().y()) <= _navigation.policy().maximumLocalStraightDistance()
-			&& PhantomNormalGatekeeperTravel.fee(leg,player.getClassIndex(),player.getLevel(),java.time.Instant.now().toEpochMilli()/60000) <= player.getAdena());
+		final var lifetime = _materialization.findByCharacterObjectId(player.getObjectId()).orElse(null);
+		if (lifetime == null || !currentGoal(lifetime.profileId(), goal)) { return false; }
+		final var journey = _journeys.get(lifetime.profileId());
+		if (journey != null && journey.goal.equals(goal) && journey.player == player && journey.epoch == lifetime.materializedAtNanos()
+			&& _attempts.get(lifetime.profileId()) == journey.attempt && !journey.attempt.terminal && !journey.attempt.transientExhausted)
+		{
+			// Between factual anchors the same admitted physical segment owns progress.
+			// Its original deadline is checked by advance; this does not renew the budget.
+			return true;
+		}
+		final var state = _background.acquisitionSnapshot(lifetime.profileId()).orElse(null);
+		if (state == null || state.identity().characterObjectId() != player.getObjectId()) { return false; }
+		final var departure = departure(player, state.position().committedAnchorId());
+		if (departure == null) { return false; }
+		final var route = _travel.route(departure.id(), anchor.id()).orElse(null);
+		// A topology itinerary admits work, never movement or arrival. Each segment still
+		// needs the existing physical planner, actual native action and owned checkpoint.
+		return route != null && itineraryStep(route, departure.id(), anchor.id()) != null
+			&& itineraryAffordable(route, player.getClassIndex(), player.getLevel(), java.time.Instant.now().toEpochMilli()/60000, player.getAdena());
+	}
+
+	private PhantomTopologyAnchor departure(Player player, String committedAnchor)
+	{
+		final var topology = _travel.topology();
+		final var committed = topology.findAnchor(committedAnchor).orElse(null);
+		if (committed != null && L2jPhantomBackgroundAuthority.livePositionAllowed(topology, player, committed)) { return committed; }
+		// An assigned historical destination can annotate unchanged native coordinates.
+		// Resolve only anchors of areas actually containing the Player, with the same
+		// native position authority used by arrival; proximity alone is not an arrival.
+		final var live = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		return topology.locate(live).stream().flatMap(node -> topology.snapshot().anchorsByNode().getOrDefault(node.id(), List.of()).stream())
+			.filter(anchor -> L2jPhantomBackgroundAuthority.livePositionAllowed(topology, player, anchor))
+			.sorted(java.util.Comparator.comparingDouble((PhantomTopologyAnchor anchor) -> anchor.point().distance3D(live)).thenComparing(PhantomTopologyAnchor::id)).findFirst().orElse(null);
+	}
+
+	static PhantomNormalGatekeeperTravel.Step itineraryStep(List<PhantomNormalGatekeeperTravel.Step> route, String departure, String destination)
+	{
+		if (route.isEmpty())
+		{
+			return departure.equals(destination) ? new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + destination, departure, destination, 0, null) : null;
+		}
+		String cursor = departure;
+		for (var step : route)
+		{
+			if (!cursor.equals(step.fromAnchorId()) || cursor.equals(step.toAnchorId())) { return null; }
+			cursor = step.toAnchorId();
+		}
+		return cursor.equals(destination) ? route.getFirst() : null;
+	}
+
+	static boolean itineraryAffordable(List<PhantomNormalGatekeeperTravel.Step> route, int classIndex, int level, long epochMinute, long adena)
+	{
+		long remaining = adena;
+		if (remaining < 0) { return false; }
+		for (var step : route)
+		{
+			if (step.type() != PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER) { continue; }
+			if (step.gatekeeper() == null) { return false; }
+			final long fee = PhantomNormalGatekeeperTravel.fee(step.gatekeeper(), classIndex, level, epochMinute);
+			if (fee > remaining) { return false; }
+			remaining -= fee;
+		}
+		return true;
 	}
 
 	public PhantomVisibleFarmTravel(PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel travel, PhantomNavigationService navigation, LongPredicate permitsOrdinary, PhantomRelevanceSignalPort signals)
@@ -145,7 +203,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			return false;
 		}
 		final PendingStore exactPending = pending;
-		if ((pending.anchorId != null) && _travel.topology().findAnchor(pending.anchorId).filter(anchor -> !isUsableLocalFarmPosition(exactPending.player, anchor)).isPresent()) { return false; }
+		if ((pending.anchorId != null) && _travel.topology().findAnchor(pending.anchorId)
+			.filter(anchor -> L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), exactPending.player, anchor) && isUsableLocalFarmPosition(exactPending.player, anchor)).isEmpty()) { return false; }
 		if (pending.player.hasPendingOwnedStore())
 		{
 			final var resumed = _background.resumeVisibleOwnedStore(profileId, pending.player, goal);
@@ -154,10 +213,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				rememberFailure(profileId, resumed.reason());
 				return false;
 			}
-			_pendingStores.remove(profileId, pending);
-			if (pending.anchorId == null) { return advance(profileId, goal); }
-			remove(profileId, pending.journey);
-			return pending.anchorId.equals(PhantomBackgroundGoalSpec.parse(goal).anchorId());
+			if (pending.anchorId == null) { _pendingStores.remove(profileId, pending); return advance(profileId, goal); }
+			// captureVisibleArrival also consumes the exact RESUME checkpoint request;
+			// a following segment must not inherit the previous anchor's checkpoint key.
 		}
 		if (pending.anchorId == null) { _pendingStores.remove(profileId, pending); return false; }
 		if (!_background.captureVisibleArrival(profileId, pending.player, goal, pending.anchorId))
@@ -166,9 +224,42 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (pending.journey != null) { pending.journey.reason = checkpoint == null ? "travel.arrival_capture_pending" : "travel.checkpoint." + checkpoint.outcome() + ":" + checkpoint.phase() + ":" + checkpoint.reason(); }
 			return false;
 		}
-		_pendingStores.remove(profileId, pending);
-		remove(profileId, pending.journey);
-		return pending.anchorId.equals(PhantomBackgroundGoalSpec.parse(goal).anchorId());
+		return completeArrival(profileId, pending);
+	}
+
+	/** Only an exact successful store/arrival receipt can start another bounded segment. */
+	private boolean completeArrival(long profileId, PendingStore pending)
+	{
+		final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+		if (state == null || !pending.anchorId.equals(state.position().committedAnchorId())
+			|| state.identity().characterObjectId() != pending.player.getObjectId() || !currentGoal(profileId, pending.goal)) { return false; }
+		final var anchor = _travel.topology().findAnchor(pending.anchorId).orElse(null);
+		if (anchor == null || !L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), pending.player, anchor)
+			|| (pending.journey != null && !currentJourney(profileId, pending.journey))) { return false; }
+		final boolean destination = pending.anchorId.equals(PhantomBackgroundGoalSpec.parse(pending.goal).anchorId());
+		synchronized (_attempts)
+		{
+			if (pending.journey != null && (_journeys.get(profileId) != pending.journey
+				|| _attempts.get(profileId) != pending.journey.attempt)) { return false; }
+			if (!_pendingStores.remove(profileId, pending)) { return false; }
+			if (pending.journey != null)
+			{
+				_journeys.remove(profileId, pending.journey);
+				closeRoutePhase(profileId, pending.journey);
+			}
+			if (!destination && pending.journey != null && _attempts.remove(profileId, pending.journey.attempt))
+			{
+				clearRoutePhase(pending.journey.attempt);
+			}
+		}
+		// Physical movement was stopped under the original ActionLease before capture.
+		// Do not reacquire an ActionLease or touch Player while holding _attempts.
+		if (pending.journey != null)
+		{
+			clearRoute(profileId, pending.journey);
+			_signals.withdraw(profileId, "visible.farm.travel", signalSequence());
+		}
+		return destination;
 	}
 
 	private boolean advance(long profileId, PhantomGoal goal)
@@ -236,8 +327,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				// Background edges propose a goal; only a complete physically proven itinerary permits movement.
-				final var step = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + spec.anchorId(), state.position().committedAnchorId(), spec.anchorId(), 0, null);
+				final var departure = departure(player, state.position().committedAnchorId());
+				final var route = departure == null ? null : _travel.route(departure.id(), spec.anchorId()).orElse(null);
+				final var step = route == null ? null : itineraryStep(route, departure.id(), spec.anchorId());
+				if (step == null)
+				{
+					fail(profileId, attempt, "", "travel.route_absent", Disposition.ROUTE_UNUSABLE);
+					return false;
+				}
 				journey = new Journey(goal, player, epoch, step, attempt);
 				synchronized (_attempts)
 				{
@@ -272,6 +369,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			{
 				return false;
 			}
+			stopOwnedMove(journey, player);
 			closeRoutePhase(profileId, journey);
 			journey.reason = "travel.arrival_capture_pending";
 			_pendingStores.put(profileId, new PendingStore(player, epoch, goal, arrival.id(), journey));
@@ -330,13 +428,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var area = _travel.topology().findNode(anchor.nodeId()).map(node -> node.area()).orElse(null);
 		if (area == null) { return null; }
 		final var geo = GeoEngine.getInstance();
-		final int[][] directions = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
-		for (int index = 0; index < 24; index++)
+		for (var proposed : farmingCandidates(profileId, canonical))
 		{
-			final int choice = (int) Math.floorMod(profileId + index, 24L);
-			final int distance = 32 * (1 + (choice / directions.length));
-			final int x = canonical.x() + (distance * directions[choice % directions.length][0]);
-			final int y = canonical.y() + (distance * directions[choice % directions.length][1]);
+			final int x = proposed.x(); final int y = proposed.y();
 			if (!geo.hasGeo(x, y)) { continue; }
 			final int z = geo.getHeight(x, y, canonical.z());
 			final var candidate = new PhantomNavigationPoint(x, y, z, canonical.instanceId());
@@ -344,6 +438,22 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (area.contains(new PhantomTopologyPoint(x, y, z, candidate.instanceId())) && (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) == null) && (unsafeSegment(canonical, candidate, false, 0) == null) && geo.canMoveToTarget(canonical.x(), canonical.y(), canonical.z(), x, y, z, canonical.instanceId())) { return candidate; }
 		}
 		return null;
+	}
+
+	static List<PhantomNavigationPoint> farmingCandidates(long profileId, PhantomNavigationPoint canonical)
+	{
+		final var result = new java.util.ArrayList<PhantomNavigationPoint>();
+		result.add(canonical);
+		final int[][] directions = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
+		for (int index = 0; index < 24; index++)
+		{
+			final int choice = (int) Math.floorMod(profileId + index, 24L);
+			final int distance = 32 * (1 + (choice / directions.length));
+			final int x = canonical.x() + (distance * directions[choice % directions.length][0]);
+			final int y = canonical.y() + (distance * directions[choice % directions.length][1]);
+			result.add(new PhantomNavigationPoint(x, y, canonical.z(), canonical.instanceId()));
+		}
+		return List.copyOf(result);
 	}
 
 	private boolean executePlan(long profileId, Player player, Journey journey)
