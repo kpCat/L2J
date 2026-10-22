@@ -4,6 +4,8 @@
 
 Факт TASK066 от21.10.2026: optional shots/loot/sweep, bounded soft+burst/lazy cleanup и native inventory maintenance реализованы; обычная S1 и useful continuation после sameDB restart подтверждены. CORE066 остаётся PARTIAL: linked dwarf S2 BLOCKED, последний impacted magic/ranged не весь GREEN. Candidate штатно STOPPED; [RESULT066](reports/PHANTOM-FARM-ECONOMY-066.md) содержит точную матрицу и привязку публикации. Этот факт не закрывает roadmap целиком и не переписывает прежние FAIL/DEFERRED.
 
+Факт TASK066-R2 от22.10.2026: lifetime5000 для новых Phantom, native spend/finite refill, historical/equipment fences, Background parity, direct magic и ordinary ranged exact receipt подтверждены в scope [RESULT066-R2](reports/PHANTOM-FARM-ECONOMY-066-R2.md). Final sameDB/sameJAR restart дал20 native kills иSS1000→939. **CORE066R2=PARTIAL:** earned-only paid refill с возвратом и linked Scavenger не доказаны; отдельный Artisan3/3 не закрывает цепочку. Собственные JVM штатно STOPPED, старый066 сохранён. M1–M7/market/epic этим не закрываются.
+
 ## 0. Конечное видение и базовые правила
 
 **Продукт:** High Five мир с многочисленными автономными персонажами, настоящими группами, PK/PvP, торговлей/крафтом, экипировкой и узнаваемыми характерами. Игрок-владелец вправе включать персональные QoL-исключения без автоматической выдачи тех же исключений фантомам.

@@ -1,11 +1,17 @@
 L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/PhantomPlayers.ini
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/PHANTOM_CURRENT_STATUS.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/PHANTOM_WORLD_ROADMAP_REVISED_2026-10-21.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-FARM-ECONOMY-066-R2.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/ACCEPTANCE-R2.tsv
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/ACCEPTANCE.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/AUTHORITY.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/CHANGED_FILES-R2.txt
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/HANDOFF-R2.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/PACKAGE_SHA256.txt
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/PLAN-R2.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/READ_SET.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/RUNTIME_INPUTS.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/START_HERE_066_R2_RU.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/TASK.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-FARM-ECONOMY-066-R2/TEST_CASES.md
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/util/LocalRuntimeShutdown.java
