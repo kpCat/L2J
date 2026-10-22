@@ -56,6 +56,7 @@ import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.network.serverpackets.ExShowScreenMessage;
 import org.l2jmobius.gameserver.network.serverpackets.ExUseSharedGroupItem;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalItemReuseService;
 
 public class UseItem extends ClientPacket
 {
@@ -167,6 +168,7 @@ public class UseItem extends ClientPacket
 		// If the item has reuse time and it has not passed.
 		// Message from reuse delay must come from item.
 		final int reuseDelay = item.getReuseDelay();
+		final int effectiveReuseDelay = PersonalItemReuseService.getInstance().getReuseDelay(player, item);
 		final int sharedReuseGroup = item.getSharedReuseGroup();
 		if (reuseDelay > 0)
 		{
@@ -174,7 +176,7 @@ public class UseItem extends ClientPacket
 			if (reuse > 0)
 			{
 				reuseData(player, item, reuse);
-				sendSharedGroupUpdate(player, sharedReuseGroup, reuse, reuseDelay);
+				sendSharedGroupUpdate(player, sharedReuseGroup, reuse, effectiveReuseDelay);
 				return;
 			}
 			
@@ -182,7 +184,7 @@ public class UseItem extends ClientPacket
 			if (reuseOnGroup > 0)
 			{
 				reuseData(player, item, reuseOnGroup);
-				sendSharedGroupUpdate(player, sharedReuseGroup, reuseOnGroup, reuseDelay);
+				sendSharedGroupUpdate(player, sharedReuseGroup, reuseOnGroup, effectiveReuseDelay);
 				return;
 			}
 		}
@@ -384,7 +386,7 @@ public class UseItem extends ClientPacket
 			if (handler.onItemUse(player, item, _ctrlPressed) && (reuseDelay > 0))
 			{
 				player.addTimeStampItem(item, reuseDelay);
-				sendSharedGroupUpdate(player, sharedReuseGroup, reuseDelay, reuseDelay);
+				sendSharedGroupUpdate(player, sharedReuseGroup, effectiveReuseDelay, effectiveReuseDelay);
 			}
 		}
 	}

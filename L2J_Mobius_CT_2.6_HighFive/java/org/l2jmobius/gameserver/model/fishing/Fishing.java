@@ -25,16 +25,25 @@ import java.util.concurrent.Future;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.commons.util.Rnd;
 import org.l2jmobius.gameserver.data.xml.FishingMonstersData;
+import org.l2jmobius.gameserver.data.xml.FishingRodsData;
 import org.l2jmobius.gameserver.managers.FishingChampionshipManager;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.item.type.WeaponType;
 import org.l2jmobius.gameserver.model.script.Quest;
+import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
+import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ExFishingHpRegen;
 import org.l2jmobius.gameserver.network.serverpackets.ExFishingStartCombat;
 import org.l2jmobius.gameserver.network.serverpackets.PlaySound;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
+import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 public class Fishing implements Runnable
 {
@@ -47,6 +56,10 @@ public class Fishing implements Runnable
 	private int _deceptiveMode = 0;
 	private Future<?> _fishAiTask;
 	private boolean _thinking;
+	private final int _assistInstanceId;
+	private final Item _assistRod;
+	private final Item _assistLure;
+	private boolean _assistStopped;
 	
 	// Fish datas
 	private final int _fishId;
@@ -57,7 +70,7 @@ public class Fishing implements Runnable
 	private final int _lureId;
 	
 	@Override
-	public void run()
+	public synchronized void run()
 	{
 		if (_fisher == null)
 		{
@@ -79,12 +92,17 @@ public class Fishing implements Runnable
 		else
 		{
 			aiTask();
+			assistFishing();
 		}
 	}
 	
 	public Fishing(Player fisher, Fish fish, boolean isNoob, boolean isUpperGrade, int lureId)
 	{
 		_fisher = fisher;
+		_assistInstanceId = fisher.getInstanceId();
+		_assistRod = fisher.getActiveWeaponInstance();
+		_assistLure = fisher.getLure();
+		_assistStopped = !PersonalCharacterQoLService.getInstance().isFishingAssistEnabled(fisher);
 		_fishMaxHp = fish.getFishHp();
 		_fishCurHp = _fishMaxHp;
 		_regenHp = fish.getHpRegen();
@@ -117,8 +135,13 @@ public class Fishing implements Runnable
 		}
 	}
 	
-	public void changeHp(int hp, int pen)
+	public synchronized void changeHp(int hp, int pen)
 	{
+		if (_fisher == null)
+		{
+			return;
+		}
+
 		_fishCurHp -= hp;
 		if (_fishCurHp < 0)
 		{
@@ -140,6 +163,7 @@ public class Fishing implements Runnable
 	
 	public synchronized void doDie(boolean win)
 	{
+		_assistStopped = true;
 		if (_fishAiTask != null)
 		{
 			_fishAiTask.cancel(false);
@@ -225,31 +249,85 @@ public class Fishing implements Runnable
 		finally
 		{
 			_thinking = false;
-			final ExFishingHpRegen efhr = new ExFishingHpRegen(_fisher, _time, _fishCurHp, _mode, 0, _anim, 0, _deceptiveMode);
-			if (_anim != 0)
+			final Player fisher = _fisher;
+			if (fisher != null)
 			{
-				_fisher.broadcastPacket(efhr);
+				final ExFishingHpRegen efhr = new ExFishingHpRegen(fisher, _time, _fishCurHp, _mode, 0, _anim, 0, _deceptiveMode);
+				if (_anim != 0)
+				{
+					fisher.broadcastPacket(efhr);
+				}
+				else
+				{
+					fisher.sendPacket(efhr);
+				}
 			}
-			else
+		}
+	}
+
+	private void assistFishing()
+	{
+		if (_assistStopped)
+		{
+			return;
+		}
+
+		final Player fisher = _fisher;
+		if ((fisher == null) || !PersonalCharacterQoLService.getInstance().isFishingAssistEnabled(fisher)
+			|| !fisher.isOnline() || fisher.isAlikeDead() || fisher.isTransformed() || !fisher.isFishing()
+			|| (fisher.getFishCombat() != this) || (fisher.getInstanceId() != _assistInstanceId)
+			|| (_assistRod == null) || (fisher.getActiveWeaponInstance() != _assistRod)
+			|| (fisher.getActiveWeaponItem() == null) || (fisher.getActiveWeaponItem().getItemType() != WeaponType.FISHINGROD)
+			|| (FishingRodsData.getInstance().getFishingRod(_assistRod.getId()) == null)
+			|| (_assistLure == null) || (fisher.getLure() != _assistLure) || (_assistLure.getId() != _lureId))
+		{
+			// Утрата контекста прекращает только помощь до следующего ручного заброса.
+			_assistStopped = true;
+			return;
+		}
+
+		if (fisher.isCastingNow() || fisher.isCastingSimultaneouslyNow() || (fisher.getQueuedSkill() != null) || fisher.isAllSkillsDisabled() || (fisher.getBowAttackEndTime() > GameTimeTaskManager.getInstance().getGameTicks()))
+		{
+			return;
+		}
+
+		final Skill skill = fisher.getKnownSkill(_mode == _deceptiveMode ? 1313 : 1314);
+		if ((skill == null) || fisher.isSkillDisabled(skill))
+		{
+			return;
+		}
+
+		// Ненулевой cast time или иной target допускает отложенное действие вне этого боя.
+		if (!skill.isStatic() || (skill.getTargetType() != TargetType.SELF) || (skill.getHitTime() != 0) || (skill.getCoolTime() != 0) || !skill.hasEffectType(EffectType.FISHING))
+		{
+			_assistStopped = true;
+			return;
+		}
+
+		// Штатные эффекты сохраняют MP, reuse, FishShots, resist и выдачу улова.
+		if (!fisher.useMagic(skill, false, true))
+		{
+			final SkillUseHolder queued = fisher.getQueuedSkill();
+			if ((queued != null) && (queued.getSkill() == skill) && !queued.isCtrlPressed() && queued.isShiftPressed())
 			{
-				_fisher.sendPacket(efhr);
+				fisher.setQueuedSkill(null, false, false);
 			}
 		}
 	}
 	
-	public void useReeling(int dmg, int pen)
+	public synchronized void useReeling(int dmg, int pen)
 	{
+		if (_fisher == null)
+		{
+			return;
+		}
+
 		_anim = 2;
 		if (Rnd.get(100) > 90)
 		{
 			_fisher.sendPacket(SystemMessageId.THE_FISH_HAS_RESISTED_YOUR_ATTEMPT_TO_BRING_IT_IN);
 			_goodUse = 0;
 			changeHp(0, pen);
-			return;
-		}
-		
-		if (_fisher == null)
-		{
 			return;
 		}
 		
@@ -308,19 +386,19 @@ public class Fishing implements Runnable
 		}
 	}
 	
-	public void usePumping(int dmg, int pen)
+	public synchronized void usePumping(int dmg, int pen)
 	{
+		if (_fisher == null)
+		{
+			return;
+		}
+
 		_anim = 1;
 		if (Rnd.get(100) > 90)
 		{
 			_fisher.sendPacket(SystemMessageId.THE_FISH_HAS_RESISTED_YOUR_ATTEMPT_TO_BRING_IT_IN);
 			_goodUse = 0;
 			changeHp(0, pen);
-			return;
-		}
-		
-		if (_fisher == null)
-		{
 			return;
 		}
 		

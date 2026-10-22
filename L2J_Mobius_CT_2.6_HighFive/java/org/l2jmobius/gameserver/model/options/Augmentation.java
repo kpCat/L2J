@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.data.xml.OptionData;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
 
 /**
  * Used to store an augmentation and its bonuses.
@@ -73,9 +74,10 @@ public class Augmentation
 				return;
 			}
 			
+			final double positiveStatMultiplier = PersonalCharacterQoLService.getInstance().getPositiveAugmentationMultiplier(player);
 			for (Options op : _options)
 			{
-				op.apply(player);
+				op.apply(player, positiveStatMultiplier);
 			}
 			
 			_active = true;

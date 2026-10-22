@@ -45,6 +45,8 @@ import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.qol.PersonalInstanceAdmissionService;
+import org.l2jmobius.gameserver.qol.PersonalInstanceAdmissionService.EntryGroup;
 
 public class Kamaloka extends InstanceScript
 {
@@ -382,6 +384,7 @@ public class Kamaloka extends InstanceScript
 	protected class KamaWorld extends InstanceWorld
 	{
 		public int index; // 0-18 index of the kama type in arrays
+		public int soloOwnerId;
 		public int shaman = 0; // objectId of the shaman
 		public List<Spawn> firstRoom; // list of the spawns in the first room (excluding shaman)
 		public List<Integer> secondRoom; // list of objectIds mobs in the second room
@@ -442,26 +445,26 @@ public class Kamaloka extends InstanceScript
 	 * @param index (0-18) index of the kamaloka in arrays
 	 * @return true if party allowed to enter
 	 */
-	private static boolean checkPartyConditions(Player player, int index)
+	private static boolean checkPartyConditions(Player player, int index, EntryGroup entrants)
 	{
 		final Party party = player.getParty();
 		
 		// player must be in party
-		if (party == null)
+		if (entrants == null)
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_CURRENTLY_IN_A_PARTY_SO_YOU_CANNOT_ENTER);
 			return false;
 		}
 		
 		// ...and be party leader
-		if (party.getLeader() != player)
+		if ((party != null) && (party.getLeader() != player))
 		{
 			player.sendPacket(SystemMessageId.ONLY_A_PARTY_LEADER_CAN_MAKE_THE_REQUEST_TO_ENTER);
 			return false;
 		}
 		
 		// party must not exceed max size for selected instance
-		if (party.getMemberCount() > MAX_PARTY_SIZE[index])
+		if (entrants.members().size() > MAX_PARTY_SIZE[index])
 		{
 			player.sendPacket(SystemMessageId.YOU_CANNOT_ENTER_DUE_TO_THE_PARTY_HAVING_EXCEEDED_THE_LIMIT);
 			return false;
@@ -475,8 +478,13 @@ public class Kamaloka extends InstanceScript
 		Map<Integer, Long> instanceTimes;
 		
 		// for each party member
-		for (Player partyMember : party.getMembers())
+		for (Player partyMember : entrants.members())
 		{
+			if (partyMember.isAlikeDead() || (partyMember.getInstanceId() != player.getInstanceId()) || (InstanceManager.getInstance().getPlayerWorld(partyMember) != null))
+			{
+				player.sendPacket(SystemMessageId.YOU_HAVE_ENTERED_ANOTHER_INSTANCE_ZONE_THEREFORE_YOU_CANNOT_ENTER_CORRESPONDING_DUNGEON);
+				return false;
+			}
 			// player level must be in range
 			if (Math.abs(partyMember.getLevel() - level) > MAX_LEVEL_DIFFERENCE)
 			{
@@ -520,7 +528,7 @@ public class Kamaloka extends InstanceScript
 			}
 		}
 		
-		return true;
+		return entrants.isCurrent(player);
 	}
 	
 	/**
@@ -602,7 +610,8 @@ public class Kamaloka extends InstanceScript
 		}
 		
 		// Creating new kamaloka instance
-		if (!checkPartyConditions(player, index))
+		final EntryGroup entrants = PersonalInstanceAdmissionService.snapshot(player);
+		if (!checkPartyConditions(player, index, entrants))
 		{
 			return;
 		}
@@ -624,16 +633,24 @@ public class Kamaloka extends InstanceScript
 		
 		// set index for easy access to the arrays
 		((KamaWorld) world).index = index;
+		((KamaWorld) world).soloOwnerId = entrants.party() == null ? player.getObjectId() : 0;
 		InstanceManager.getInstance().addWorld(world);
 		
 		// spawn npcs
 		spawnKama((KamaWorld) world);
 		
 		// and finally teleport party into instance
-		final Party party = player.getParty();
-		for (Player partyMember : party.getMembers())
+		if (!entrants.isCurrent(player))
+		{
+			world.destroy();
+			return;
+		}
+		for (Player partyMember : entrants.members())
 		{
 			world.addAllowed(partyMember);
+		}
+		for (Player partyMember : entrants.members())
+		{
 			removeBuffs(partyMember);
 			teleportPlayer(partyMember, TELEPORTS[index], world.getInstanceId());
 		}
@@ -787,6 +804,12 @@ public class Kamaloka extends InstanceScript
 		if (npcId == TELEPORTER)
 		{
 			final Party party = player.getParty();
+			final InstanceWorld soloWorld = InstanceManager.getInstance().getWorld(npc);
+			if ((soloWorld instanceof KamaWorld) && (((KamaWorld) soloWorld).soloOwnerId == player.getObjectId()) && soloWorld.isAllowed(player) && (player.getInstanceId() == soloWorld.getInstanceId()))
+			{
+				teleportPlayer(player, InstanceManager.getInstance().getInstance(soloWorld.getInstanceId()).getExitLoc(), 0);
+				return null;
+			}
 			
 			// only party leader can talk with escape teleporter
 			if ((party != null) && party.isLeader(player))
@@ -823,6 +846,11 @@ public class Kamaloka extends InstanceScript
 	{
 		if (npc.getId() == TELEPORTER)
 		{
+			final InstanceWorld world = InstanceManager.getInstance().getWorld(npc);
+			if ((world instanceof KamaWorld) && (((KamaWorld) world).soloOwnerId == player.getObjectId()) && world.isAllowed(player) && (player.getInstanceId() == world.getInstanceId()))
+			{
+				return "32496.htm";
+			}
 			if (player.isInParty() && player.getParty().isLeader(player))
 			{
 				return "32496.htm";

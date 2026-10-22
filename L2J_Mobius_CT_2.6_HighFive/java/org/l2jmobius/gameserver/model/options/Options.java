@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.stats.functions.AbstractFunction;
+import org.l2jmobius.gameserver.model.stats.functions.FuncAdd;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
 import org.l2jmobius.gameserver.network.serverpackets.SkillCoolTime;
 
@@ -156,9 +157,28 @@ public class Options
 	
 	public void apply(Player player)
 	{
+		apply(player, 1.0);
+	}
+
+	/** Augmentation-only adjustment; ordinary item options retain their stock functions. */
+	public void apply(Player player, double positiveStatMultiplier)
+	{
 		if (!_funcs.isEmpty())
 		{
-			player.addStatFuncs(getStatFuncs(null, player));
+			final List<AbstractFunction> functions = getStatFuncs(null, player);
+			if (Double.isFinite(positiveStatMultiplier) && (positiveStatMultiplier > 1.0) && (positiveStatMultiplier <= 5.0))
+			{
+				for (int i = 0; i < functions.size(); i++)
+				{
+					final AbstractFunction function = functions.get(i);
+					final double value = function.getValue();
+					if ((function.getClass() == FuncAdd.class) && (value > 0) && Double.isFinite(value) && Double.isFinite(value * positiveStatMultiplier))
+					{
+						functions.set(i, new FuncAdd(function.getStat(), function.getOrder(), function.getFuncOwner(), value * positiveStatMultiplier, function.getApplyCond()));
+					}
+				}
+			}
+			player.addStatFuncs(functions);
 		}
 		
 		if (hasActiveSkill())

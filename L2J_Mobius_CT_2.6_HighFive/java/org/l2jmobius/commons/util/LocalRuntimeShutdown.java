@@ -26,7 +26,8 @@ public final class LocalRuntimeShutdown
 
 	private static String controlOwner()
 	{
-		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066r2.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066r2.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task067.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if (Boolean.getBoolean("phantom.task067.control")) { return "TASK067_PERSONAL_ADVENTURE"; }
 		if (Boolean.getBoolean("phantom.task066r2.control")) { return "TASK066R2_FARM_ECONOMY"; }
 		if (Boolean.getBoolean("phantom.task066.control")) { return "TASK066_FARM_ECONOMY"; }
 		return Boolean.getBoolean("phantom.task065.control") ? "TASK065_LIVING_PRESENCE" : "TASK064_CAMPAIGN";
@@ -35,11 +36,11 @@ public final class LocalRuntimeShutdown
 	private static boolean enabled()
 	{
 		controlOwner();
-		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control") || Boolean.getBoolean("phantom.task066r2.control");
+		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control") || Boolean.getBoolean("phantom.task066r2.control") || Boolean.getBoolean("phantom.task067.control");
 	}
 
-	private static String taskNumber() { return "TASK066R2_FARM_ECONOMY".equals(controlOwner()) ? "066r2" : "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
-	private static boolean ownSchema(String schema) { return taskNumber().equals("066r2") ? schema.matches("l2jmobiush5_phantom_(test|release)_066r2") : schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
+	private static String taskNumber() { return "TASK067_PERSONAL_ADVENTURE".equals(controlOwner()) ? "067" : "TASK066R2_FARM_ECONOMY".equals(controlOwner()) ? "066r2" : "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
+	private static boolean ownSchema(String schema) { return taskNumber().equals("067") ? schema.matches("l2jmobiush5_personal_(test|release)_067") : taskNumber().equals("066r2") ? schema.matches("l2jmobiush5_phantom_(test|release)_066r2") : schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
 
 	static boolean validTask065Root(Path root, Path module, boolean fixture)
 	{
@@ -72,6 +73,12 @@ public final class LocalRuntimeShutdown
 			final Path module = Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize();
 			final Path expected = schema.endsWith("test_066r2") ? module.getParent().resolve(".phantom-local/task066r2/runtime") : module.getRoot().resolve("PhantomWorld/Farm-Economy-066-R2-candidate");
 			if (!root.equals(expected)) { throw new IllegalArgumentException("TASK066R2 exact fixture/candidate root required."); }
+		}
+		if (taskNumber().equals("067"))
+		{
+			final Path module = Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize();
+			final Path expected = schema.endsWith("test_067") ? module.getParent().resolve(".phantom-local/task067/native-test") : module.getRoot().resolve("PhantomWorld/Personal-Adventure-067-candidate");
+			if (!root.equals(expected)) { throw new IllegalArgumentException("TASK067 exact fixture/candidate root required."); }
 		}
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
 		if (!validJdbc(database.getProperty("URL", ""), schema))

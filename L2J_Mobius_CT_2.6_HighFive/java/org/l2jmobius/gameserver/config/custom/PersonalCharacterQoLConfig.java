@@ -56,6 +56,10 @@ public final class PersonalCharacterQoLConfig
 		{
 			LOGGER.warning("Personal effect durations are disabled: " + _settings.effectDurationSettings().diagnostic());
 		}
+		if (!_settings.adventureSettings().diagnostic().isEmpty())
+		{
+			LOGGER.warning("Personal adventure settings: " + _settings.adventureSettings().diagnostic());
+		}
 	}
 
 	public static Settings read(Path path)
@@ -85,7 +89,7 @@ public final class PersonalCharacterQoLConfig
 			{
 				return Settings.disabled("Disabled by configuration.");
 			}
-			return new Settings(true, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, characterIds, accounts, true, "Configuration accepted.", effectDurationSettings);
+			return new Settings(true, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, characterIds, accounts, true, "Configuration accepted.", effectDurationSettings, readAdventureSettings(config));
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -100,6 +104,68 @@ public final class PersonalCharacterQoLConfig
 	public static Settings settings()
 	{
 		return _settings;
+	}
+
+	private static AdventureSettings readAdventureSettings(ConfigReader config)
+	{
+		final StringBuilder diagnostic = new StringBuilder();
+		final boolean solo = adventureSwitch(config, "EnablePersonalSoloInstanceEntry", diagnostic);
+		boolean cubic = adventureSwitch(config, "EnablePersonalWondrousCubicCooldown", diagnostic);
+		final boolean fishing = adventureSwitch(config, "EnablePersonalFishingAssist", diagnostic);
+		boolean augmentation = adventureSwitch(config, "EnablePersonalPositiveAugmentationMultiplier", diagnostic);
+		int cubicMinutes = 60;
+		double augmentationMultiplier = 1.0;
+		HennaNegativeMode henna = HennaNegativeMode.OFF;
+		try
+		{
+			final String value = config.containsKey("PersonalWondrousCubicCooldownMinutes") ? config.getValue("PersonalWondrousCubicCooldownMinutes").trim() : "60";
+			if (!value.matches("[1-9][0-9]{0,3}")) { throw new IllegalArgumentException(); }
+			cubicMinutes = Integer.parseInt(value);
+			if (cubicMinutes > 1440) { throw new IllegalArgumentException(); }
+		}
+		catch (IllegalArgumentException e) { cubic = false; diagnostic.append("Cubic disabled: minutes must be 1..1440. "); }
+		try
+		{
+			if (config.containsKey("PersonalHennaNegativeMode")) { henna = HennaNegativeMode.valueOf(config.getValue("PersonalHennaNegativeMode").trim().toUpperCase(Locale.ROOT)); }
+		}
+		catch (IllegalArgumentException e) { diagnostic.append("Henna disabled: mode must be OFF, IGNORE_NEGATIVE or FLIP_NEGATIVE. "); }
+		try
+		{
+			final String value = config.containsKey("PersonalPositiveAugmentationMultiplier") ? config.getValue("PersonalPositiveAugmentationMultiplier").trim() : "1.0";
+			if (!value.matches("[1-5](?:\\.[0-9]+)?")) { throw new IllegalArgumentException(); }
+			augmentationMultiplier = Double.parseDouble(value);
+			if (!Double.isFinite(augmentationMultiplier) || (augmentationMultiplier > 5.0)) { throw new IllegalArgumentException(); }
+		}
+		catch (IllegalArgumentException e) { augmentation = false; diagnostic.append("Augmentation disabled: multiplier must be 1.0..5.0. "); }
+		return new AdventureSettings(solo, cubic, cubicMinutes * 60000L, fishing, henna, augmentation, augmentationMultiplier, diagnostic.toString().trim());
+	}
+
+	private static boolean adventureSwitch(ConfigReader config, String key, StringBuilder diagnostic)
+	{
+		if (!config.containsKey(key)) { return false; }
+		final Boolean value = strictBoolean(config.getValue(key));
+		if (value == null) { diagnostic.append(key).append(" disabled: expected True or False. "); return false; }
+		return value;
+	}
+
+	public enum HennaNegativeMode
+	{
+		OFF,
+		IGNORE_NEGATIVE,
+		FLIP_NEGATIVE;
+
+		public int adjust(int value)
+		{
+			return value >= 0 || this == OFF ? value : this == IGNORE_NEGATIVE ? 0 : -value;
+		}
+	}
+
+	public record AdventureSettings(boolean soloInstanceEntry, boolean wondrousCubicCooldown, long wondrousCubicCooldownMillis, boolean fishingAssist, HennaNegativeMode hennaNegativeMode, boolean positiveAugmentation, double positiveAugmentationMultiplier, String diagnostic)
+	{
+		public static AdventureSettings disabled()
+		{
+			return new AdventureSettings(false, false, 3600000L, false, HennaNegativeMode.OFF, false, 1.0, "");
+		}
 	}
 
 	private static EffectDurationSettings readEffectDurationSettings(ConfigReader config)
@@ -307,8 +373,13 @@ public final class PersonalCharacterQoLConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings)
+	public record Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings, AdventureSettings adventureSettings)
 	{
+		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, boolean sevenSignsAccessEnabled, boolean partySupportEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic, EffectDurationSettings effectDurationSettings)
+		{
+			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, sevenSignsAccessEnabled, partySupportEnabled, allowedCharacterIds, allowedAccounts, valid, diagnostic, effectDurationSettings, AdventureSettings.disabled());
+		}
+
 		public Settings(boolean enabled, boolean crossClassSkillsEnabled, boolean crystallizationEnabled, Set<Integer> allowedCharacterIds, Set<String> allowedAccounts, boolean valid, String diagnostic)
 		{
 			this(enabled, crossClassSkillsEnabled, crystallizationEnabled, false, false, allowedCharacterIds, allowedAccounts, valid, diagnostic, EffectDurationSettings.disabled("Duration settings are absent; backward-compatible defaults apply."));
@@ -339,6 +410,7 @@ public final class PersonalCharacterQoLConfig
 			allowedCharacterIds = Set.copyOf(allowedCharacterIds == null ? Set.of() : allowedCharacterIds);
 			allowedAccounts = Set.copyOf(allowedAccounts == null ? Set.of() : allowedAccounts);
 			effectDurationSettings = effectDurationSettings == null ? EffectDurationSettings.invalid("Duration settings are absent from the runtime snapshot.") : effectDurationSettings;
+			adventureSettings = adventureSettings == null ? AdventureSettings.disabled() : adventureSettings;
 			if (!enabled || !valid)
 			{
 				enabled = false;
@@ -348,6 +420,7 @@ public final class PersonalCharacterQoLConfig
 				partySupportEnabled = false;
 				allowedCharacterIds = Set.of();
 				allowedAccounts = Set.of();
+				adventureSettings = AdventureSettings.disabled();
 			}
 		}
 

@@ -13,11 +13,15 @@ import java.util.Locale;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalCharacterQoLConfig;
 import org.l2jmobius.gameserver.config.custom.PersonalCharacterQoLConfig.Settings;
+import org.l2jmobius.gameserver.config.custom.PersonalCharacterQoLConfig.HennaNegativeMode;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Folk;
+import org.l2jmobius.gameserver.data.holders.AccessLevel;
 import org.l2jmobius.gameserver.model.sevensigns.SevenSigns;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 
 /**
  * Per-character admission policy for personal QoL features.
@@ -48,6 +52,54 @@ public final class PersonalCharacterQoLService
 	public boolean isCrossClassSkillsEnabled(Player player)
 	{
 		return settings().crossClassSkillsEnabled() && isPersonalUser(player) && !player.isSubClassActive();
+	}
+
+	private boolean isAdventureUser(Player player, Settings settings)
+	{
+		if (!isPersonalUser(player, settings) || !isOrdinaryAdventureAccess(player.getAccessLevel())) { return false; }
+		final OwnerKind owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId());
+		return (owner != OwnerKind.PHANTOM) && (owner != OwnerKind.BACKGROUND);
+	}
+
+	static boolean isOrdinaryAdventureAccess(AccessLevel access)
+	{
+		return (access != null) && (access.getLevel() == 0) && !access.isGm();
+	}
+
+	public boolean isSoloInstanceEntryEnabled(Player player)
+	{
+		final Settings settings = settings();
+		return settings.adventureSettings().soloInstanceEntry() && isAdventureUser(player, settings);
+	}
+
+	public boolean isWondrousCubicCooldownEnabled(Player player)
+	{
+		final Settings settings = settings();
+		return settings.adventureSettings().wondrousCubicCooldown() && isAdventureUser(player, settings);
+	}
+
+	public long getWondrousCubicCooldownMillis(Player player)
+	{
+		final Settings settings = settings();
+		return settings.adventureSettings().wondrousCubicCooldown() && isAdventureUser(player, settings) ? settings.adventureSettings().wondrousCubicCooldownMillis() : 86400000L;
+	}
+
+	public boolean isFishingAssistEnabled(Player player)
+	{
+		final Settings settings = settings();
+		return settings.adventureSettings().fishingAssist() && isAdventureUser(player, settings);
+	}
+
+	public HennaNegativeMode getHennaNegativeMode(Player player)
+	{
+		final Settings settings = settings();
+		return isAdventureUser(player, settings) ? settings.adventureSettings().hennaNegativeMode() : HennaNegativeMode.OFF;
+	}
+
+	public double getPositiveAugmentationMultiplier(Player player)
+	{
+		final Settings settings = settings();
+		return settings.adventureSettings().positiveAugmentation() && isAdventureUser(player, settings) ? settings.adventureSettings().positiveAugmentationMultiplier() : 1.0;
 	}
 
 	public boolean isCrystallizationEnabled(Player player)
@@ -83,7 +135,7 @@ public final class PersonalCharacterQoLService
 	public boolean isAnyFeatureEnabled(Player player)
 	{
 		final Settings settings = settings();
-		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled() || settings.partySupportEnabled());
+		return isPersonalUser(player) && (settings.crossClassSkillsEnabled() || settings.crystallizationEnabled() || settings.sevenSignsAccessEnabled() || settings.partySupportEnabled() || (isAdventureUser(player, settings) && (settings.adventureSettings().soloInstanceEntry() || settings.adventureSettings().wondrousCubicCooldown() || settings.adventureSettings().fishingAssist() || settings.adventureSettings().hennaNegativeMode() != HennaNegativeMode.OFF || settings.adventureSettings().positiveAugmentation())));
 	}
 
 	public boolean canOpenAlternativeSkillList(Player player, Npc trainer)

@@ -362,6 +362,7 @@ import org.l2jmobius.gameserver.network.serverpackets.TradeStart;
 import org.l2jmobius.gameserver.network.serverpackets.UserInfo;
 import org.l2jmobius.gameserver.network.serverpackets.ValidateLocation;
 import org.l2jmobius.gameserver.qol.PersonalCharacterQoLService;
+import org.l2jmobius.gameserver.qol.PersonalItemReuseService;
 import org.l2jmobius.gameserver.qol.PersonalPlayerControlService;
 import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 import org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager;
@@ -8341,6 +8342,18 @@ public class Player extends Playable
 		}
 	}
 	
+	@Override
+	public long getItemRemainingReuseTime(int itemObjId)
+	{
+		return PersonalItemReuseService.getInstance().adjustItemRemainingReuseTime(this, itemObjId, super.getItemRemainingReuseTime(itemObjId));
+	}
+
+	@Override
+	public long getReuseDelayOnGroup(int group)
+	{
+		return PersonalItemReuseService.getInstance().adjustGroupRemainingReuseTime(this, group, super.getReuseDelayOnGroup(group));
+	}
+
 	private void storeItemReuseDelay()
 	{
 		try (Connection con = DatabaseFactory.getConnection();
@@ -8785,13 +8798,26 @@ public class Player extends Playable
 						remainingTime = systime - currentTime;
 						if (remainingTime > 10)
 						{
-							addTimeStampItem(item, reuseDelay, systime);
+							final TimeStamp previous = getItemReuseTimeStamps().get(item.getObjectId());
+							if ((itemId != 10632) || (previous == null) || (systime > previous.getStamp()))
+							{
+								addTimeStampItem(item, reuseDelay, systime);
+							}
 							if (isInInventory && item.isEtcItem())
 							{
 								final int group = item.getSharedReuseGroup();
 								if (group > 0)
 								{
-									sendPacket(new ExUseSharedGroupItem(itemId, group, (int) remainingTime, (int) reuseDelay));
+									if ((itemId == 10632) && PersonalCharacterQoLService.getInstance().isWondrousCubicCooldownEnabled(this))
+									{
+										final long effectiveRemaining = getReuseDelayOnGroup(group);
+										final int effectiveReuse = PersonalItemReuseService.getInstance().getReuseDelay(this, item);
+										sendPacket(new ExUseSharedGroupItem(itemId, group, Math.max(0, effectiveRemaining), effectiveReuse));
+									}
+									else
+									{
+										sendPacket(new ExUseSharedGroupItem(itemId, group, (int) remainingTime, (int) reuseDelay));
+									}
 								}
 							}
 						}
@@ -9001,6 +9027,7 @@ public class Player extends Playable
 	 */
 	private void recalcHennaStats()
 	{
+		final var negativeMode = org.l2jmobius.gameserver.qol.PersonalCharacterQoLService.getInstance().getHennaNegativeMode(this);
 		_hennaINT = 0;
 		_hennaSTR = 0;
 		_hennaCON = 0;
@@ -9014,12 +9041,12 @@ public class Player extends Playable
 				continue;
 			}
 			
-			_hennaINT += ((_hennaINT + h.getStatINT()) > 5) ? 5 - _hennaINT : h.getStatINT();
-			_hennaSTR += ((_hennaSTR + h.getStatSTR()) > 5) ? 5 - _hennaSTR : h.getStatSTR();
-			_hennaMEN += ((_hennaMEN + h.getStatMEN()) > 5) ? 5 - _hennaMEN : h.getStatMEN();
-			_hennaCON += ((_hennaCON + h.getStatCON()) > 5) ? 5 - _hennaCON : h.getStatCON();
-			_hennaWIT += ((_hennaWIT + h.getStatWIT()) > 5) ? 5 - _hennaWIT : h.getStatWIT();
-			_hennaDEX += ((_hennaDEX + h.getStatDEX()) > 5) ? 5 - _hennaDEX : h.getStatDEX();
+			_hennaINT = Math.min(5, _hennaINT + negativeMode.adjust(h.getStatINT()));
+			_hennaSTR = Math.min(5, _hennaSTR + negativeMode.adjust(h.getStatSTR()));
+			_hennaMEN = Math.min(5, _hennaMEN + negativeMode.adjust(h.getStatMEN()));
+			_hennaCON = Math.min(5, _hennaCON + negativeMode.adjust(h.getStatCON()));
+			_hennaWIT = Math.min(5, _hennaWIT + negativeMode.adjust(h.getStatWIT()));
+			_hennaDEX = Math.min(5, _hennaDEX + negativeMode.adjust(h.getStatDEX()));
 		}
 	}
 	
