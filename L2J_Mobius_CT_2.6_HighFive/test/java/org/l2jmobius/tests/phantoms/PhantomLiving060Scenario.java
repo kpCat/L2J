@@ -398,7 +398,7 @@ final class PhantomLiving060Scenario
 		}).flatMap(entry -> entry.getValue().stream()).map(area -> area.topologyNodeId()).collect(java.util.stream.Collectors.toSet());
 		final var geo = GeoEngine.getInstance();
 		final var anchors = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0 && eligibleNodes.contains(anchor.nodeId()))
-				.filter(anchor -> !supplies || manufacture || Math.hypot((long) anchor.point().x() - declaredRegion.x(), (long) anchor.point().y() - declaredRegion.y()) <= 32_768 // TEST pre-enrollment region only; every actual WALK leg still proves the native12km bound.
+				.filter(anchor -> !supplies || manufacture || poorR2 || Math.hypot((long) anchor.point().x() - declaredRegion.x(), (long) anchor.point().y() - declaredRegion.y()) <= 32_768 // TEST pre-enrollment only; R2 L19 reward input may be continental, with unchanged32 candidates/native12km walk proof.
 				)
 				.filter(anchor -> geo.hasGeo(anchor.point().x(), anchor.point().y()) && org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(anchor.point().x(), anchor.point().y(), geo.getHeight(anchor.point().x(), anchor.point().y(), anchor.point().z()), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) == null
 						&& org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(anchor.point().x(), anchor.point().y(), geo.getHeight(anchor.point().x(), anchor.point().y(), anchor.point().z()), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) == null)

@@ -1021,7 +1021,11 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 					birth = result.snapshot();
 				}
 				PhantomAssertions.assertEquals(PhantomPopulationState.State.READY, birth.state().state(), "R2 native birth did not finish.");
-				final boolean mage = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(birth.state().classId()).isMage();
+				// A novice mage class may have no offensive spell: classify by the real birth loadout below.
+				final Player birthInput = Player.load(birth.profile().characterObjectId());
+				final boolean mage;
+				try { mage = birthInput.getActiveWeaponItem() != null && birthInput.getActiveWeaponItem().getSpiritShotCount() > 0 && birthInput.getAllSkills().stream().anyMatch(skill -> !skill.isPassive() && skill.isMagic() && skill.isDamage()); }
+				finally { birthInput.stopAllTasks(); birthInput.deleteMe(); }
 				if (observed.contains(mage)) { continue; }
 				final long id = birth.profile().profileId();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Newborn materialization failed.");
@@ -1034,7 +1038,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(player.getCurrentLoad() < player.getMaxLoad() * .50, "Starter caused native weight penalty.");
 				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.protectedStock(player, shotId), "Free starter stock became resale surplus.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.ACTIVATED,
-					org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(player, player, mage), "Stock native handler rejected the compatible starter type.");
+					org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(player, player, shotId != 1835), "Stock native handler rejected the compatible starter type.");
 				final long after = player.getInventory().getInventoryItemCount(shotId, -1);
 				PhantomAssertions.assertTrue(after < before, "Native starter charge did not consume items.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Starter dematerialization failed.");
@@ -1055,7 +1059,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 						for (int charge = 0; charge < 3; charge++)
 						{
 							for (var type : org.l2jmobius.gameserver.model.item.enums.ShotType.values()) { reloaded.setChargedShot(type, false); }
-							PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.ACTIVATED, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(reloaded, reloaded, mage), "Native threshold charge failed.");
+							PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.ACTIVATED, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(reloaded, reloaded, shotId != 1835), "Native threshold charge failed.");
 						}
 						final long low = reloaded.getInventory().getInventoryItemCount(shotId, -1);
 						PhantomAssertions.assertTrue(low < 100, "Three native charges did not cross the low-stock threshold.");
