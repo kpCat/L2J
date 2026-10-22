@@ -12,7 +12,7 @@ Root AGENTS/README, module Agents, workflow/release/current status, связан
 
 JDK25 / Ant1.10.17, существующие libs и console runner. Только собственные staging/build/DB/runtime, native mechanics и explicit switches. Нет fake GameClient, GM grants, отмены headless guards, нового engine/timer или глобального снятия ограничений.
 
-## План реализации
+## Первоначальный план реализации (завершён итогом ниже)
 
 - [ ] 1. Общий strict config snapshot067 и персональный допуск: новые дети OFF, deny Phantom/Background/headless. Один компактный admission adapter поверх существующего allowlist.
 - [ ] 2. Kamaloka/Labyrinth: один проверенный snapshot участников, solo только eligible actor без Party, native levels/reuse/range/identity/exit/cleanup. Проверить два representative templates и настоящую Party2 в одном world.
@@ -45,3 +45,15 @@ Native RED сохранены: cubic stale24h, fishing no action, Henna CON-3, s
 Own TEST schema создана один раз121 stock scripts/124tables; release schema пока не создана. Новые порты2148/7848/9148 и2248/7948/9248 свободны на preflight. Private root ownership создан до schema/file actions.203 protected066R2 GeoData physically copied into native-test,203+203 SHA проверены;8 protected config/JAR inputs зафиксированы hashes. Source staging/runtime ещё не финальная поставка. `CLIENT_QA=DEFERRED_BY_OWNER`, no fake GameClient/GM. Rift решение PARTIAL_DESIGN: singleton admission не закрывает native death restart и non-idempotent concurrent room/timer cleanup; см. RIFT_ANALYSIS067.md (готовит независимый исследователь). Исходные M1–M7/066 не пересматриваются.
 
 В работе: integrated core checks (policy matrix, solo/Party2/reuse/exit, cubic reward/persistence, Henna modes/relog, augmentation mixed funcs); final fishing representative START/action/lifecycle checks; clean committed build, own release schema/candidate, ordinary Main restart/STOP, independent review, scans и normal push. Ant выполнять последовательно; own Java runs имеют property phantom.task067.native=true и закрывают ThreadPool/Hikari в finally. Общий observation до сих пор менее10мин (точные durations в логах); лимит60мин сохраняется.
+
+## Финальный срез 05:19 UTC
+
+Семь шагов исходного плана завершены. **ADVENTURE067_CORE=PASS; FULL067=PARTIAL** по ACCEPTANCE067.tsv. G0/G1/G2/G4/G9 PASS; G5 PASS_NATIVE_BOUNDED, G7/G8 PASS; G3 PARTIAL_DESIGN и G6 NOT_APPLICABLE. Rift audit закончен без production правок. Новые этапы/R2 не начинаются. Подробный итог — reports/PHANTOM-PERSONAL-ADVENTURE-067.md.
+
+Independent review выявил nonzero access profiles с isGM=false: исправлено на exact access0,10 profiles+null RED→GREEN, права Player не менялись. Clean committed source `2939b7054caeafbbfdc913ad5ebe4785c618c8a1` собран JDK25/Ant1.10.17 в source-final/build-final-source-final. Final GameServer SHA256 `06C4AF77760A1F168CC472DF6C98101E1839A3D57879B98CACE93FFCD2A8AF58`; whole source/archive/JAR/test binding в BUILD_INFO067.json.
+
+Final access/runtime-guard/core/fishing/content: exit0 каждый, core17.21s/fishing40.35s/content3/3; SEVERE0. Fishing natural final WIN7729+1 (первый development WIN7728 не является финальным evidence). Native component inputs раскрыты отдельно; fake GameClient/GM нет, client packet/reconnect/full network logout NOT_RUN. Финальные тесты не повторять без изменения или найденной проблемы.
+
+Release schema создана один раз121 stock SQL/124tables; TEST также не reimport/reset. Самостоятельная Personal-Adventure-067-candidate собрана с203 физическими Geo copies и START/STATUS/STOP. Два ordinary Main: Game22324/Login2988 и Game24564/Login14252, одна release schema и один JAR,539 quests/306 scripts, обе регистрации и штатные shutdown. FINAL_DELIVERY067.json: protected8/Geo203+203+203/original docs6 PASS; ownJVM0/listeners0; MainSEVERE0. Финальная конфигурация равна source, все новые children OFF/master False/allowlists empty.
+
+Source normal push exit0 только feature/phantom-world; GitHub live SHA2939b705 подтверждён. Заключительные5 docs публикуются отдельным normal push; final HEAD отражается в private PUBLICATION067.json и ответе пользователю. Exact allowlist41, два отдельных Cyrillic scans, no unknown dirt. Начало04:16UTC, проверенная работа завершена намного раньше лимита12ч; время native log lifetimes329.03s плюс два Main менее3мин. Защищённые предыдущие runtime/DB, C:-checkout/stash и чужие JVM не менялись.

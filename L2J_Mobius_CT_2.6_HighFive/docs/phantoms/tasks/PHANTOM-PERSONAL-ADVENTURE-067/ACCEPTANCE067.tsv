@@ -1,11 +1,11 @@
 gate	status	evidence	limitation
-G0	VERIFYING_DELIVERY	live8631faf;own067schemas;protected8+Geo203	final scope/hash pending
-G1	PASS_SOURCE_NATIVE	integrated-ready-core;access profiles10 RED-GREEN	final JAR rerun pending
-G2	PASS_SOURCE_NATIVE	Kamaloka57;Labyrinth73;Party2;nativeEscape	component acknowledgements;CLIENT_QA deferred
-G3	PARTIAL_DESIGN	RIFT_ANALYSIS067.md	death/restart and concurrent room/timer owner need broader repair
-G4	PASS_SOURCE_NATIVE	nativeItemSkills2510 reward;60m boundary;subclass/reload	packet/auth route not impersonated;final JAR rerun pending
-G5	PASS_SOURCE_NATIVE	fishing067-native;START bait1 MP1;WIN7728+1	client QA/network logout deferred;final JAR rerun pending
-G6	NOT_APPLICABLE	Q00350;LevelUpCrystalData;Attackable.addAbsorber	player-overlevel restriction absent
-G7	PASS_SOURCE_NATIVE	Henna OFF/IGNORE/FLIP cap5/reload/remove	NPC fee acquisition unchanged/not run;final JAR rerun pending
-G8	PASS_SOURCE_NATIVE	augmentation131073;positive/negative/mul/condition	final JAR rerun pending
-G9	VERIFYING_DELIVERY	Build/Assemble/Runtime067;runtime guard RED-GREEN	committed JAR/Main/restart/STOP/push pending
+G0	PASS	live baseline/source2939b705;scope41;protected8+Geo203;original docs6 exact hashes	full historical trees not hashed;old DB writes0
+G1	PASS	final JAR core;10 access profiles+null;masterOFF/childOFF/foreign/Phantom/Background/headless deny	no Player rights or packet/auth guard changes
+G2	PASS	Kamaloka57/23;Labyrinth73/29;Party2sameWorld;nativeEscapeAfterOFF;reuse/cleanup	component teleport acknowledgements;boss combat/reward not claimed;CLIENT_QA deferred
+G3	PARTIAL_DESIGN	RIFT_ANALYSIS067.md exact death/restart/timer/room owners	production Rift unchanged;global min-party unchanged
+G4	PASS	nativeItemSkills2510 reward/repeatDenied;canonical24h/effective60m boundaries;subclass/DB reload	packet UseItem/reconnect route NOT_RUN;sameDB Main restart separate
+G5	PASS_NATIVE_BOUNDED	final fishing067-native;START bait1 MP1;natural WIN7729+1;four modes;context guards	premeasurement real inputs;onlineFalse state guard not network logout;CLIENT_QA deferred
+G6	NOT_APPLICABLE	Q00350;LevelUpCrystalData;Attackable.addAbsorber no player-overlevel gate	no empty switch;native stage/NPC/quest/chance retained
+G7	PASS	final JAR Henna OFF/IGNORE/FLIP cap5/reload/remove/foreign	NPC fee acquisition unchanged/NOT_RUN;client tooltip may stay stock
+G8	PASS	final JAR augmentation131073;positive/negative/mul/condition;duplicate/remove/reapply	no skills/proc/chance/glow scaling;no shared-template mutation
+G9	PASS	committed2939b705 JAR;5 final routes exit0;standalone203Geo;Main2+stockSTOP2;ownJVM0;normal source push verified	report-only descendant bound by local PUBLICATION067.json;no client QA
