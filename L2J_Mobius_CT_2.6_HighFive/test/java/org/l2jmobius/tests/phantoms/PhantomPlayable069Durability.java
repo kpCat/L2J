@@ -41,6 +41,8 @@ public final class PhantomPlayable069Durability
 			try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT c.charId FROM characters c JOIN accounts a ON c.account_name=a.login WHERE c.account_name='task069buyer' AND c.char_name='Buyer069' AND c.accesslevel=0 AND a.accessLevel=-1"); var rows = query.executeQuery()) { check(rows.next(), "Actual ordinary native buyer missing."); objectId = rows.getInt(1); check(!rows.next(), "Ambiguous buyer."); }
 			player = Player.load(objectId);
 			check(player != null && player.getClient() == null && !player.hasHeadlessOutboundSession() && !player.isGM() && player.getNativeWorkOwner() == null, "Ordinary native buyer authority differs.");
+			// Stock EnterWorld restores persisted quests here; Player.load alone only restores character data.
+			org.l2jmobius.gameserver.model.script.Quest.playerEnter(player);
 			if (!args[0].equals("verify"))
 			{
 				check(!Files.exists(baseline), "Preserve existing before image; no reseed.");
