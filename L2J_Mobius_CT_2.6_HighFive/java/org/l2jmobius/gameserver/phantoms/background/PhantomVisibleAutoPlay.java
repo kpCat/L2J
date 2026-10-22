@@ -185,7 +185,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			if (lease == null) { return false; }
 			final Player player = session.player();
-			if (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player) != null) { return false; }
 			if (!session._yieldRequested || session._yieldDeadlineEpochMillis != deadlineEpochMillis)
 			{
 				final var target = player.getTarget();
@@ -193,6 +192,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				session._yieldDeadlineEpochMillis = deadlineEpochMillis;
 				session._yieldRequested = true;
 			}
+			if (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player) != null) { return false; }
 			if (session._yieldTarget != null && !session._yieldTarget.isAlikeDead()) { return false; }
 			if (player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()) { return false; }
 			if (session._loot.tick(player, _clock.getAsLong())) { return false; }
@@ -743,6 +743,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		final Map<String, String> fields = new java.util.LinkedHashMap<>();
 		fields.put("continuationSampleNanos", Long.toString(System.nanoTime()));
 		fields.put("continuationSession", Boolean.toString(session != null));
+		fields.put("liveYieldRequested", Boolean.toString(session != null && session._yieldRequested));
+		fields.put("liveYieldDeadlineEpochMillis", Long.toString(session == null ? 0 : session._yieldDeadlineEpochMillis));
+		final Creature yieldTarget = session == null ? null : session._yieldTarget;
+		fields.put("liveYieldTargetObjectId", Integer.toString(yieldTarget == null ? 0 : yieldTarget.getObjectId()));
 		fields.put("liveAutoPlay", "unknown_without_session"); fields.put("liveAutoPlayRegistered", "false"); fields.put("liveAutoUseRegistered", "false");
 		tickScalars(fields, "liveAutoPlayTick", null); tickScalars(fields, "liveAutoUseTick", null);
 		if (session != null)
