@@ -20,9 +20,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
-import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
-import org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 
@@ -31,11 +29,9 @@ final class PhantomTask066R2DwarfInput
 {
 	private record Farm(int npcId, PhantomTopologyAnchor anchor, double townDistance, double spoilChance) { }
 
-	static List<String> prepare(PhantomProfileRepository profiles, PhantomPopulationStore.ManagedSnapshot birth) throws Exception
+	static List<String> prepare(PhantomProfileRepository profiles, long id, int objectId) throws Exception
 	{
-		final long id = birth.profile().profileId();
-		final var career = PhantomCareerChoice.decode(profiles.findComponent(id, PhantomCareerChoice.COMPONENT).orElseThrow().payload());
-		PhantomAssertions.assertTrue(birth.state().classId() == 53 && career.nextClass(53) == 54, "Declared dwarf birth must have the legal Scavenger branch.");
+		PhantomAssertions.assertTrue(profiles.find(id).orElseThrow().characterObjectId() == objectId && profiles.findComponent(id, "population.state").isEmpty(), "Native-only TEST fixture must not impersonate a managed population identity.");
 		try (var production = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
 			final var spawns = production.knowledge().snapshot().spawnFactsByNpc();
@@ -67,12 +63,13 @@ final class PhantomTask066R2DwarfInput
 			farms.sort(Comparator.comparingDouble(Farm::spoilChance).reversed().thenComparingDouble(Farm::townDistance).thenComparing(value -> value.anchor().id()));
 			PhantomAssertions.assertTrue(!farms.isEmpty(), "No factual stock spoil anchor with Geo and a separate bounded town; preserve births, do not invent a spot.");
 			final var farm = farms.getFirst(); final var point = farm.anchor().point();
-			final Player player = Player.load(birth.profile().characterObjectId());
-			PhantomAssertions.assertTrue(player != null && player.getClient() == null && !player.isGM() && player.getActiveClass() == 53, "R2 new dwarf identity differs.");
+			final Player player = Player.load(objectId);
+			PhantomAssertions.assertTrue(player != null && player.getClient() == null && !player.isGM() && player.getLevel() == 1, "R2 fresh native-only TEST identity differs.");
 			try
 			{
 				player.setPlayerClass(54); player.setBaseClass(54); player.setLearningClass(player.getPlayerClass());
 				player.getStat().setExp(player.getStat().getExpForLevel(20)); player.getStat().setLevel((byte)20); player.setSp(0); Thread.sleep(500); player.rewardSkills();
+				player.removeSkill(194); // Native level20 TEST input cannot retain the fixture's novice Lucky passive.
 				player.addSkill(SkillData.getInstance().getSkill(254, 2), true);
 				for (int skill : List.of(42, 239)) { player.addSkill(SkillData.getInstance().getSkill(skill, 1), true); }
 				PhantomAssertions.assertTrue(player.getKnownSkill(254) != null && player.getKnownSkill(42) != null && player.getKnownSkill(248) == null, "Scavenger must have Spoil/Sweep, never Crystallize.");

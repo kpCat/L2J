@@ -99,7 +99,7 @@ final class PhantomLiving060Scenario
 		final var profile = resumeState == null ? profiles.create(fixture.objectId()) : profiles.find(resumeState.profileId()).orElseThrow();
 		final long id = profile.profileId();
 		context.record("life060.identity." + classId, (resumeState == null ? "fresh own060 native object=" : "SAVED own060 native object=") + fixture.objectId() + "; profile=" + id + "; no identity recreation on resume");
-		int threshold = manufacture || deathCpGuard ? 13 : mage ? 7 : 5;
+		int threshold = poorR2 ? 20 : manufacture || deathCpGuard ? 13 : mage ? 7 : 5;
 		final var goals = new PhantomGoalStateStore(profiles);
 		final var commerce = commerceResult.catalog();
 		final var routes = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
@@ -117,7 +117,7 @@ final class PhantomLiving060Scenario
 				setup.setBaseClass(classId); setup.setPlayerClass(classId);
 				setup.setLearningClass(setup.getPlayerClass());
 				PhantomAssertions.assertEquals(classId, setup.getLearningClass().getId(), "INVALID_INPUT: premeasurement learning class differs from the declared main class.");
-				setup.getStat().setExp(preparedD || resumeSave || deathCpGuard ? setup.getStat().getExpForLevel(threshold - 1) : setup.getStat().getExpForLevel(threshold) - 1); setup.getStat().setLevel((byte) (threshold - 1));
+				setup.getStat().setExp(preparedD || resumeSave || deathCpGuard || poorR2 ? setup.getStat().getExpForLevel(threshold - 1) : setup.getStat().getExpForLevel(threshold) - 1); setup.getStat().setLevel((byte) (threshold - 1));
 				setup.setSp(classId == 10 ? 239 : mage ? 259 : dwarf ? 309 : orc ? 59 : 49); setup.rewardSkills();
 				if (supply)
 				{
@@ -125,10 +125,10 @@ final class PhantomLiving060Scenario
 					if (bow) { setup.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, null, PhantomLiving060Scenario.class); context.record("life060.bowInput", "PREMEASUREMENT native NG Bow14/16woodenArrows17/600NGshots/10000Adena; low arrow need independent of sufficient shots; native equip/fire/MP/reuse untouched; bounded solo native preflight; actual finite full-HP fixture count recorded separately"); }
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, shotItemId, 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
 					if (poorR2 && setup.getAdena() > 0) { setup.reduceAdena(ItemProcessType.DESTROY, setup.getAdena(), setup, false); }
-					final long initialWallet = poorR2 ? 800 : 10_000;
-					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, initialWallet, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
+					if (!poorR2) { PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable."); }
+					else { setup.getInventory().addItem(ItemProcessType.REWARD, 1060, 20, null, PhantomLiving060Scenario.class); }
 					if (manufacture) { setup.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, PhantomLiving060Scenario.class); setup.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, PhantomLiving060Scenario.class); }
-					context.record("life060.supplyInput", "TEST_PREIMAGE finite16 native compatible charges item=" + shotItemId + "; actual starting Adena=" + setup.getAdena() + "; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
+					context.record("life060.supplyInput", "TEST_PREIMAGE finite16 native compatible charges item=" + shotItemId + "; actual starting Adena=" + setup.getAdena() + "; initial SP0" + (poorR2 ? "; PREPARED stable level19/NG gear/20 native healing pots; no earned1->19 claim; zero starting wallet means every purchase Adena must be earned in measurement" : manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
 				}
 				for (int itemId : bow ? new int[] {14, 24, 31} : manufacture ? new int[] {129, 352, 2378} : gatekeeper ? new int[] {129, 24, 31} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 				{
@@ -235,7 +235,7 @@ final class PhantomLiving060Scenario
 				deathCaptureVerified = true;
 				return;
 			}
-			final int fixtureCount = resumeContinue ? 0 : resumeSave || relocation || classId != 0 ? 1 : 8;
+			final int fixtureCount = resumeContinue ? 0 : resumeSave || relocation || poorR2 || classId != 0 ? 1 : 8;
 			context.record("life060.finitePack." + classId, "PREMEASUREMENT native full-HP NPC=" + farmNpcId + "; fixture slots=" + fixtureCount + "; actual clanHelpRange=" + NpcData.getInstance().getTemplate(farmNpcId).getClanHelpRange() + "; native clan/aggro/AI unchanged; no later test spawns/resources");
 			for (int index = 0; index < fixtureCount; index++)
 			{
@@ -380,7 +380,8 @@ final class PhantomLiving060Scenario
 		final boolean manufacture = Boolean.getBoolean("phantom.test.livingManufacture060");
 		final boolean gatekeeper = Boolean.getBoolean("phantom.test.livingGatekeeper060");
 		final boolean bow = Boolean.getBoolean("phantom.test.livingBow060");
-		final boolean declaredSolo = manufacture || bow || Boolean.getBoolean("phantom.test.livingResumeSave060");
+		final boolean poorR2 = Boolean.getBoolean("phantom.test.poorSupply066r2");
+		final boolean declaredSolo = poorR2 || manufacture || bow || Boolean.getBoolean("phantom.test.livingResumeSave060");
 		final var gatekeeperNpcs = gatekeeper ? PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology).legs().stream().filter(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions::available).map(leg -> leg.teleporterNpcId()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
 		final var declaredRegion = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(setup.getX(), setup.getY(), setup.getZ(), 0);
 		final var supplyNpcs = supplies ? commerce.buyOffers().stream().filter(offer -> offer.price() > 0 && !offer.limitedStock() && L2jPhantomSupplyJourney.compatible(setup, org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(offer.itemId()))).flatMap(offer -> offer.npcIds().stream()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
@@ -393,7 +394,7 @@ final class PhantomLiving060Scenario
 		PhantomAssertions.assertTrue(!trainers.isEmpty(), "INVALID_INPUT: no native compatible service NPC facts.");
 		final var eligibleNodes = knowledge.snapshot().spawnAreasByNpc().entrySet().stream().filter(entry ->
 		{
-			final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && npc.getLevel() >= (declaredSolo ? Math.max(1, setup.getLevel() - 10) : 1) && npc.getLevel() <= (declaredSolo ? setup.getLevel() : setup.getLevel() + 2);
+			final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && npc.getLevel() >= (declaredSolo ? Math.max(1, setup.getLevel() - (poorR2 ? 5 : 10)) : 1) && npc.getLevel() <= (declaredSolo ? setup.getLevel() : setup.getLevel() + 2);
 		}).flatMap(entry -> entry.getValue().stream()).map(area -> area.topologyNodeId()).collect(java.util.stream.Collectors.toSet());
 		final var geo = GeoEngine.getInstance();
 		final var anchors = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0 && eligibleNodes.contains(anchor.nodeId()))
@@ -432,6 +433,7 @@ final class PhantomLiving060Scenario
 				stages.merge("ambiguous_seed", 1, Integer::sum); continue;
 			}
 			if (!local.ready()) { stages.merge("local." + local.reasonKey(), 1, Integer::sum); continue; }
+			if (poorR2 && (!org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(local.goal().goalType()) || NpcData.getInstance().getTemplate(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(local.goal()).npcId()).getLevel() < setup.getLevel() - 5)) { stages.merge("poor.native.reward_level", 1, Integer::sum); continue; }
 			if (declaredSolo)
 			{
 				final var selectedNpc = NpcData.getInstance().getTemplate(local.spec().npcId());

@@ -182,7 +182,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 	{
 		if (_mode == Mode.SERVER_INTEGRATION && Boolean.getBoolean("phantom.test.dwarfLinked066r2"))
 		{
-			registry.add("066r2-native-scavenger-spoil-bank-return", context -> PhantomTask066R2DwarfNativeScene.run(context, _profiles));
+			registry.add("066r2-native-scavenger-spoil-bank-return", context -> PhantomTask066R2DwarfNativeScene.run(context, _profiles, _environment));
 			return;
 		}
 		if (_mode == Mode.SERVER_INTEGRATION && Boolean.getBoolean("phantom.test.starter066r2"))

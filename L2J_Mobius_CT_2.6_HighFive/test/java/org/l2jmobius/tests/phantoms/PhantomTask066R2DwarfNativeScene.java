@@ -2,12 +2,9 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
-import java.time.ZoneId;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.MerchantPriceConfigTable;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.model.World;
@@ -45,40 +42,23 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
-import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
-import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
-import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
-import org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.scripting.ScriptEngine;
 
 /** One bounded native-only linked scene, using the same farm/travel/commerce owners as Main. */
 final class PhantomTask066R2DwarfNativeScene
 {
-	static void run(PhantomTestContext context, PhantomProfileRepository profiles) throws Exception
+	static void run(PhantomTestContext context, PhantomProfileRepository profiles, PhantomHeadlessPlayerTestEnvironment environment) throws Exception
 	{
 		PhantomAssertions.assertTrue(PhantomCampaign058DatabaseLane.task066R2Enabled(), "Dwarf scene requires the isolated R2 TEST schema.");
 		ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 		MerchantPriceConfigTable.getInstance().loadInstances();
-		final var zone = ZoneId.of("UTC"); final var catalog = PhantomPopulationCatalog.load(Path.of("data/phantoms/population/high-five-population-v3.xml"), zone);
-		final var population = new PhantomPopulationStore(profiles, catalog, zone);
-		final long nextId;
-		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='phantom_profiles'"); var rows = query.executeQuery())
-		{ PhantomAssertions.assertTrue(rows.next(), "Native dwarf identity unavailable."); nextId = rows.getLong(1); }
-		long seed = -1;
-		for (long candidate = 660066510; candidate < 660067510; candidate++)
-		{
-			final var archetype = catalog.chooseArchetype(candidate, 1);
-			if (catalog.chooseClass(identitySeed(candidate, nextId), archetype).classId() == 53 && PhantomCareerChoice.choose(nextId, 53, false, archetype).terminalClass() == 117) { seed = candidate; break; }
-		}
-		PhantomAssertions.assertTrue(seed > 0, "Bounded dwarf birth selection unavailable.");
-		var birth = population.createShell(1, 1, seed, "late.v3");
-		for (int stage = 0; stage < 12 && birth.state().state() != PhantomPopulationState.State.READY; stage++) { birth = population.advanceCreation(birth).snapshot(); }
-		PhantomAssertions.assertTrue(birth.state().state() == PhantomPopulationState.State.READY && birth.profile().profileId() == nextId && birth.state().classId() == 53, "Native dwarf birth differed.");
-		context.record("dwarf066r2.input", PhantomTask066R2DwarfInput.prepare(profiles, birth));
+		final var fixture = environment.createCampaign058Companion(context, 1);
+		final var profile = profiles.create(fixture.objectId());
+		final long id = profile.profileId(); final int objectId = fixture.objectId();
+		context.record("dwarf066r2.input", PhantomTask066R2DwarfInput.prepare(profiles, id, objectId));
 		MerchantPriceConfigTable.getInstance().updateReferences();
-		final long id = birth.profile().profileId(); final int objectId = birth.profile().characterObjectId();
 		try (var production = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
 			final var goals = new PhantomGoalStateStore(profiles); final var root = goals.load(id).orElseThrow().goal(); final var spec = PhantomBackgroundGoalSpec.parse(root);
@@ -167,11 +147,4 @@ final class PhantomTask066R2DwarfNativeScene
 		};
 	}
 
-	private static long identitySeed(long seed, long id)
-	{
-		long mixed = seed ^ (id + 0x9E3779B97F4A7C15L);
-		mixed = (mixed ^ (mixed >>> 30)) * 0xBF58476D1CE4E5B9L;
-		mixed = (mixed ^ (mixed >>> 27)) * 0x94D049BB133111EBL;
-		return mixed ^ (mixed >>> 31);
-	}
 }
