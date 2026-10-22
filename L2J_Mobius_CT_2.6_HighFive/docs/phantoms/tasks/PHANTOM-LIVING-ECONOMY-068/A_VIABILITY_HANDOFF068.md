@@ -74,3 +74,7 @@ Shared launcher и другие общие source-файлы помощник н
 Mojibake-маркеры в изменённых файлах проверены отдельной полной проверкой.
 
 Escaped Cyrillic в изменённых файлах проверены отдельной проверкой шести паттернов.
+
+## Итоговая интеграция
+
+Root выполнил committed pure checks и обычный Main после исправления общих career/idle/control причин. Profile5 наv8:19настоящих kills, native gear replacement из собственного inventory, surplus NPC sale. На finalv9/sameDB restart ещё6nativekills; реальные HP/weapon/skills участвовали в выборе, новых starter/денежных/лечебных credits не было. Loot Varnish1865×1 остался тем же объектом; ценные D/C/shared/B+/unknown защищены275real-resource+6policy cases. Эти факты не подменяют отсутствующий полный earned shot purchase/Spoil/warehouse proof; A PARTIAL. Точные source/JAR/STOP — RESULT068/PROGRESS068/ACCEPTANCE068.tsv.

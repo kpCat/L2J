@@ -68,3 +68,7 @@ R2 exit1 после реальных B-покупок и S80 weapon: одна S8
 Следующий integrated Ant родителя включает финальные D tests и E authority split. Последние изменения isolated javac PASS; после R3 новых behavior-правок не делалось. Scene не является длительным автономным earned career run. Runtime SupplyJourney/Loot/Career уже вызывают эту policy. Full set transition planning, полный enchant/elemental utility и точное сравнение всех динамических skill conditions выходят за доказанные границы.
 
 Git write/commit/push не выполнялись. Использованы только разрешённые bounded diff --check по exact tracked paths. Две отдельные проверки кодировки фиксируются после завершения handoff.
+
+## Финальная интеграция root
+
+Подготовительные ограничения выше сохраняют историю R3 build-dev; последующие committed builds выполнены. Shared paid native recipe1 ещё раз прошёл в C на committedv2; finalv9 code935b334fe78e4548295354189eafe5144023d38f сохраняет соответствующие C/D consumers относительноv2, по jar-class comparisons. Final candidate200 включает actual prepared MANUFACTURE268480990 с настоящим book/skill/fee100, историческая profession preparation не повторялась. Полного автономного earned career/S80 fullset это не доказывает; real R3 weapon/armor upgrades и metadata tiers остаются bounded evidence с указанной версией. Общий отчёт/матрица фиксируют native craft и отдельные ограничения.
