@@ -64,6 +64,8 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStat
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
@@ -72,6 +74,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 public final class PhantomOrdinaryLife069Native
 {
 	private static final int MAXIMUM_BIRTHS = 24;
+	private static PhantomIdentityLeaseRegistry.Lease _observerLease;
 	private record Farm(int npcId, PhantomTopologyAnchor anchor, double serviceDistance, double spoilChance) { }
 	private record Purchase(long threshold, long price, long count, int itemId, int npcId, int listId, double distance) { }
 	private record BirthPlan(int target, ZoneId zone, String schedule) { }
@@ -131,6 +134,7 @@ public final class PhantomOrdinaryLife069Native
 			{
 				if (PhantomSystem.hasConfiguredInstance()) { PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted() && !PhantomSystem.hasConfiguredInstance(), "Ordinary configured owners did not drain; no DB teardown before their completion."); }
 				if (observer != null) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
+				if (_observerLease != null) { _observerLease.close(); _observerLease = null; }
 				trace.append("shutdown\t").append(PhantomSystem.configuredShutdownSnapshot()).append('\n');
 				Files.writeString(reports.resolve("ordinary069-" + args[0] + "-" + System.currentTimeMillis() + ".tsv"), trace, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 			}
@@ -452,7 +456,10 @@ public final class PhantomOrdinaryLife069Native
 		{ try (var rows = query.executeQuery()) { if (rows.next()) { objectId = rows.getInt(1); PhantomAssertions.assertFalse(rows.next(), "Ambiguous own069 passive viewpoint."); } } }
 		final Player player = objectId == null ? Player.create(org.l2jmobius.gameserver.data.xml.PlayerTemplateData.getInstance().getTemplate(0), "task069view", "Task069View", new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false)) : Player.load(objectId);
 		PhantomAssertions.assertTrue(player != null && !player.isGM() && !player.hasHeadlessOutboundSession() && player.getClient() == null, "Passive own069 viewpoint differs.");
+		_observerLease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(player.getObjectId(), OwnerKind.LOCALPLAY_TEST_HUMAN);
+		PhantomAssertions.assertTrue(_observerLease != null, "Own069 native TestHuman identity has another owner.");
 		player.setXYZInvisible(x, y, z); player.setOnlineStatus(true, false); player.stopAllTasks(); player.spawnMe();
+		PhantomAssertions.assertTrue(!PhantomSystem.onlineHumanPoints().isEmpty(), "Native TestHuman did not enter the canonical locality supplier.");
 		return player;
 	}
 
