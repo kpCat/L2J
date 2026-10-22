@@ -73,7 +73,9 @@ final class PhantomTask066R2DwarfInput
 				player.addSkill(SkillData.getInstance().getSkill(254, 2), true);
 				for (int skill : List.of(42, 239)) { player.addSkill(SkillData.getInstance().getSkill(skill, 1), true); }
 				PhantomAssertions.assertTrue(player.getKnownSkill(254) != null && player.getKnownSkill(42) != null && player.getKnownSkill(248) == null, "Scavenger must have Spoil/Sweep, never Crystallize.");
-				final var weapon = player.getInventory().addItem(ItemProcessType.REWARD, 69, 1, player, PhantomTask066R2DwarfInput.class); player.getInventory().equipItem(weapon);
+				for (var skill : List.copyOf(player.getAllSkills())) { if (skill.hasNegativeEffect() && skill.getId() != 254) { player.removeSkill(skill.getId()); } }
+				for (int itemId : List.of(69, 24, 31))
+				{ final var gear = player.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, player, PhantomTask066R2DwarfInput.class); player.getInventory().equipItem(gear); }
 				player.getInventory().addItem(ItemProcessType.REWARD, 1060, 20, player, PhantomTask066R2DwarfInput.class);
 				final var filler = Arrays.stream(ItemData.getInstance().getAllItems()).filter(value -> value != null && value.isArmor() && !value.isStackable() && value.getCrystalType() == CrystalType.NONE && value.getWeight() > 0 && value.getWeight() <= 100).min(Comparator.comparingInt(value -> value.getId())).orElseThrow();
 				for (var item : player.getInventory().getItems()) { if (!item.isEquipped() && !item.isStackable()) { item.setEnchantLevel(1); } }

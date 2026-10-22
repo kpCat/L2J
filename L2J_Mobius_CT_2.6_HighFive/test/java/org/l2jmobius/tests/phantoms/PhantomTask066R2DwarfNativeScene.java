@@ -115,9 +115,10 @@ final class PhantomTask066R2DwarfNativeScene
 					if (now >= nextPrint)
 					{
 						nextPrint = now+TimeUnit.SECONDS.toNanos(30);
-						System.out.println("DWARF066R2_OBSERVE profile="+id+"; native="+sample+"; swept="+swept+"; banked="+banked+"; returned="+returned+"; money="+player.getAdena()+"; materials="+materials+"; XYZ="+player.getX()+','+player.getY()+','+player.getZ()+"; supply="+supplies.automaticIntent(id)+"; reason="+supplies.reason(id));
+						System.out.println("DWARF066R2_OBSERVE profile="+id+"; native="+sample+"; swept="+swept+"; banked="+banked+"; returned="+returned+"; money="+player.getAdena()+"; materials="+materials+"; HP="+player.getCurrentHp()+'/'+player.getMaxHp()+"; MP="+player.getCurrentMp()+'/'+player.getMaxMp()+"; autoSkills="+player.getAutoUseSettings().getAutoSkills()+"; continuation="+continuation+"; XYZ="+player.getX()+','+player.getY()+','+player.getZ()+"; supply="+supplies.automaticIntent(id)+"; reason="+supplies.reason(id));
 					}
 					PhantomAssertions.assertTrue(!player.isDead() && player.getNativeWorkOwner().nativeObservationHealthy(), "Native dwarf died or its owner failed; no rescue.");
+					PhantomAssertions.assertTrue(!sample.overflow(), "Native dwarf evidence became unproven: "+sample.firstUnprovenReason()+"; stop instead of repeating a fixture.");
 					Thread.sleep(100);
 				}
 				context.record("dwarf066r2.result", "swept="+swept+"; banked="+banked+"; returned="+returned+"; nextUsefulKill="+done+"; native="+nativeEvidence.snapshot());

@@ -1043,6 +1043,29 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(after, reloaded.getInventory().getInventoryItemCount(shotId, -1), "Rematerialization credited a second batch.");
 				PhantomAssertions.assertEquals(1000, org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(_profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow().payload()).issued(), "Restarted ledger changed its lifetime debit.");
 				context.record("starter066r2." + mage, "STARTER_SUBSIDY native-born profile=" + id + "; class=" + birth.state().classId() + "; item=" + shotId + "; issued=1000/5000; nativeCharge=" + before + "->" + after + "; rematerializationExact=true; load=" + reloaded.getCurrentLoad() + '/' + reloaded.getMaxLoad());
+				if (Boolean.getBoolean("phantom.test.starter066r2Accelerated"))
+				{
+					// Owner-authorized bounded TEST phases: reduce physical stock only, never the durable lifetime debit.
+					for (int batch = 2; batch <= 6; batch++)
+					{
+						final long stock = reloaded.getInventory().getInventoryItemCount(shotId, -1);
+						PhantomAssertions.assertTrue(stock > 102 && reloaded.getInventory().destroyItemByItemId(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.DESTROY, shotId, stock-102, reloaded, this) != null, "Accelerated TEST preimage could not reduce physical stock.");
+						reloaded.getInventory().updateDatabase();
+						context.record("starter066r2.thresholdInput."+mage+'.'+batch, "TEST_PREMEASUREMENT stock="+stock+"->102; lifetimeIssued="+Math.min(5000, (batch-1)*1000)+" unchanged; not natural consumption");
+						for (int charge = 0; charge < 3; charge++)
+						{
+							for (var type : org.l2jmobius.gameserver.model.item.enums.ShotType.values()) { reloaded.setChargedShot(type, false); }
+							PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.ACTIVATED, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(reloaded, reloaded, mage), "Native threshold charge failed.");
+						}
+						final long low = reloaded.getInventory().getInventoryItemCount(shotId, -1);
+						PhantomAssertions.assertTrue(low < 100, "Three native charges did not cross the low-stock threshold.");
+						org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotService.grantIfNeeded(_profiles, id, reloaded);
+						final var issued = org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.decode(_profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT).orElseThrow().payload());
+						PhantomAssertions.assertEquals(Math.min(5000, batch*1000), issued.issued(), "Lifetime debit differs after threshold crossing.");
+						PhantomAssertions.assertEquals(low+(batch <= 5 ? 1000 : 0), reloaded.getInventory().getInventoryItemCount(shotId, -1), "Physical batch differs or sixth subsidy was minted.");
+						context.record("starter066r2.thresholdResult."+mage+'.'+batch, "nativeCharge=102->"+low+"; physical="+reloaded.getInventory().getInventoryItemCount(shotId, -1)+"; lifetimeIssued="+issued.issued()+"; sixthDenied="+(batch == 6));
+					}
+				}
 				materialization.dematerialize(id);
 				observed.add(mage);
 			}
