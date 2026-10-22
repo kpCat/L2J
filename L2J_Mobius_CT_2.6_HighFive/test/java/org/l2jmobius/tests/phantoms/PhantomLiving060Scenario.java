@@ -452,7 +452,25 @@ final class PhantomLiving060Scenario
 				}
 				final var trainer = trainers.stream().min(java.util.Comparator.comparingDouble((org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact spawn) -> Math.sqrt(Math.pow(from.x() - spawn.x(), 2) + Math.pow(from.y() - spawn.y(), 2) + Math.pow(from.z() - spawn.z(), 2))).thenComparingInt(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact::npcId)).orElseThrow();
 				final var counter = manufacture ? PhantomOfflineSupply060Fixture.counterPoint(from, trainer.x(), trainer.y(), trainer.z()) : new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(trainer.x(), trainer.y(), trainer.z(), 0);
-				if (counter == null || from.distanceTo(counter) > policy.maximumLocalStraightDistance()) { stages.merge("trainer.too_far", 1, Integer::sum); continue; }
+				if (counter == null) { stages.merge("trainer.absent", 1, Integer::sum); continue; }
+				if (from.distanceTo(counter) > policy.maximumLocalStraightDistance())
+				{
+					// Production supply already owns segmented WALK. A TEST preflight must not require one12km segment for the entire round trip.
+					final double oneWayBound = setup.getMoveSpeed() * (TimeUnit.MINUTES.toMillis(8)-30_000) / 2000.0;
+					if (poorR2 && from.distanceTo(counter) <= oneWayBound
+						&& geo.canMoveToTarget(from.x(), from.y(), from.z(), counter.x(), counter.y(), counter.z(), 0)
+						&& geo.canMoveToTarget(counter.x(), counter.y(), counter.z(), from.x(), from.y(), from.z(), 0))
+					{
+						setup.setXYZInvisible(from.x(), from.y(), from.z()); setup.revalidateZone(true);
+						if (setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) || setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { continue; }
+						try { authority.captureOwnedNative(id, setup, local.goal(), null); }
+						catch (IllegalArgumentException rejectedPoint) { stages.merge("segmented.canonical_point", 1, Integer::sum); continue; }
+						context.record("life060.routePreflight."+setup.getActiveClass(), "TEST_PREMEASUREMENT existing segmented WALK input; bounded32 stock candidates; root="+local.goal()+"; from="+from+"; service="+trainer.npcId()+"; counter="+counter+"; distance="+from.distanceTo(counter)+"; oneWayTimeBound="+oneWayBound+"; bidirectional native Geo=true; each actual segment still requires production Navigation; no route authority granted by TEST");
+						return local;
+					}
+					if (rejected.size() < 8) { rejected.add(local.spec().anchorId()+":distance="+Math.round(from.distanceTo(counter))+":oneWayBound="+Math.round(oneWayBound)); }
+					stages.merge("trainer.too_far_or_geo", 1, Integer::sum); continue;
+				}
 				final double angle = Math.atan2(from.y() - counter.y(), from.x() - counter.x());
 				final int x = counter.x() + (int) Math.round(112 * Math.cos(angle)), y = counter.y() + (int) Math.round(112 * Math.sin(angle));
 				final var to = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, geo.getHeight(x, y, counter.z()), 0);
