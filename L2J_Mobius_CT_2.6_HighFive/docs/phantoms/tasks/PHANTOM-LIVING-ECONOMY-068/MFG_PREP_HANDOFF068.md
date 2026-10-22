@@ -48,3 +48,18 @@ java -Xmx4g '-Dphantom.task068.release.prepare=true' -cp '<candidate>/libs/GameS
 Непроверено запуском: release metadata guard на фактической assembly, минимальный native loader bootstrap, durable skill/recipe/store postconditions и ordinary restore/adoption этой новой identity. При любом сбое сохранять PENDING и первоначальные stdout/stderr; повторный grant, новое имя, funding repair или ручная смена PENDING наREADY запрещены.
 
 Mojibake-маркеры в двух новых файлах проверены отдельно. Escaped Cyrillic/XML escaped Cyrillic проверены отдельно. Git-команды в этом блоке не выполнялись.
+
+## Root integration: отказ до skill effects и адресное продолжение
+
+На committed v4/source `2bb91c094cbf906709e59d743d040bdee1845193`, GameServer `971125E76DF4DA7E0EA02E43512530A7AFBB91C3024EACA554F99AD22E0B69F0` реальная подготовка завершилась exit1 на skill postcondition. Исходный log `reports/release-mfg-preparation-v4.log` сохранён; pool/ThreadPool закрыты. Read-only SQL `release-mfg-preparation-readonly-v4.txt` подтвердил: actor268480990/Craft068Maker/phm068profession, class53/level5/EXP2884/SP310, HP220/MP68, skill172 отсутствует, recipebook и inventory пустые, receipt PENDING. Это не разрешение повторить grant.
+
+Причина установлена по Player.create/load и PhantomClassSkillLearningTransaction: свежий Player.create сохраняет base_class53, но `_activeClass` остаётся0. Durable transaction сравнивает activeClass с classid53 и возвращает DURABLE_SP_STATE_CONFLICT до mutateSp/mutateSkill. Ближайший native аналог выполняет store/deleteMe/Player.load; load восстанавливает activeClass из durable строки. Fresh helper переведён на этот путь, production transaction не менялась.
+
+Добавлен только явный этап `resume-unlearned-skill` для адресного продолжения того же actor. Он до Player.load сверяет byte-for-byte исходный PENDING payload с original code/JAR/fee и exact disabled account/name/access/EXP/SP/vitals/offline/class. Skill172, subclasses, recipebook, recipe shop, items, offline trade и Phantom link должны отсутствовать. После load отдельно требуются activeClass53/classIndex0 и тот же unlearned/пустой/alive native actor. Credits, лечение, новый actor и refunds в этом пути отсутствуют. Native skill transaction тратит уже сохранённые310SP; далее выдаётся только ещё не выданный scroll1666×1 и используется общий native tail. Частичное выполнение любого другого этапа остаётся failclosed.
+
+```powershell
+# Только после нового committed build и обычного STOP обеих собственных068 сред.
+java -Xmx4g '-Dphantom.task068.release.prepare=true' -cp '<candidate>/libs/GameServer.jar;<candidate>/libs/*;<matching-current-build>/phantom-test/bin' org.l2jmobius.tests.phantoms.PhantomRelease068ManufacturePreparation '<candidate>' '<current-committed-codeSHA>' '<current-GameServer-SHA256>' resume-unlearned-skill 268480990 2bb91c094cbf906709e59d743d040bdee1845193 971125E76DF4DA7E0EA02E43512530A7AFBB91C3024EACA554F99AD22E0B69F0
+```
+
+READY сохраняет исходные codeSHA/gameJarSHA256/source и initialPendingPayloadBase64, добавляя continuationCodeSHA/continuationGameJarSHA256/continuationSource. Current runtime/JAR/helper provenance checks остаются обязательными; isolated helper вместо matching committed test build не допускается. Compile readiness исправленного helper: javac exit0. Native continuation пока NOT_RUN.

@@ -1,5 +1,16 @@
 # Phantom World — пересмотренный roadmap, 21.10.2026
 
+## Фактическое дополнение TASK068, 22.10.2026
+
+CORE068/FULL068 пока OPEN: идёт финальная интеграция и доставка. [RESULT068](reports/PHANTOM-LIVING-ECONOMY-068.md) содержит отдельные A–G evidence; исторические067/066 статусы и предложение ниже сохранены.
+
+| Готово в bounded scope | Осталось с критерием завершения | Сознательно не делали |
+|---|---|---|
+| Реальные native offline роли:201 непустая лавка/202owners, BUY/SELL/paid manufacture, last-stack conservation, ordinary offline control, shutdown drain,0combat jobs. Реальные recipes/BOM/skills/equipment decisions доS80; сохранение ценных D/C/shared/unknown ресурсов. | Earned farm→native shot BUY→charged continuation→Spoil/bank; persisted Background batch/retry/native handoff без повторного начисления; final sameDB/sameJAR Main/restart/useful action/STOP/push. | Второй economic engine/DB, fake shops, бесконечный starter/merchant seed, бесплатные S80/эпики, новая навигационная библиотека. |
+| Общая valuation/positive manufacture fee; отдельные epic/source/rate inputs. Canonical Alt+B Plan/Apply/Rollback выдержал actual x10→x20→x10, включая57/drop/spoil и XP/SP independence. Blue champions и personal solo Rift lifecycle прошли native bounded проверки. | Групповые роли и raid participation рядом с владельцем; индивидуальные PvP/PK и последствия; прочие поддержанные instances/M7 routes; большие имена/кириллица; Semantic Pack+Studio+runtime context; длительная устойчивость/нагрузка и окончательная интеграция. | Automatic startup Apply, unrestricted Phantom Alt+B shopping, full client rendering без клиента, полный бой всех Rift rooms/марафон1–85. |
+
+Candidate сохраняет stock Alt+B цены/CB OFF, blue/personal switches OFF. Стартер0 обозначен как измерительный профиль068; R2 lifetime5000 для новых боевых identities сохранён. Будущие задачи не создаются автоматически; завершённые067 QoL не повторяются. Старое упоминание «вторых чемпионов» ниже теперь перекрывается ограниченной реализацией blue068, без обещания остальных масштабных направлений.
+
 **Статус:** предложение владельцу для обсуждения, НЕ замена принятого `PHANTOM_DEVELOPMENT_MASTER_PLAN.md` или текущих матриц. Исходный HEAD `kpCat/L2J`, `feature/phantom-world`: `5892949f89aa81e191705e67754aa1fd348186b6`. Никаких изменений репозитория или runtime этим документом не выполняется.
 
 Факт TASK066 от21.10.2026: optional shots/loot/sweep, bounded soft+burst/lazy cleanup и native inventory maintenance реализованы; обычная S1 и useful continuation после sameDB restart подтверждены. CORE066 остаётся PARTIAL: linked dwarf S2 BLOCKED, последний impacted magic/ranged не весь GREEN. Candidate штатно STOPPED; [RESULT066](reports/PHANTOM-FARM-ECONOMY-066.md) содержит точную матрицу и привязку публикации. Этот факт не закрывает roadmap целиком и не переписывает прежние FAIL/DEFERRED.

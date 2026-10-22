@@ -47,7 +47,10 @@ public final class PhantomRelease068ManufacturePreparation
 	private PhantomRelease068ManufacturePreparation() { }
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length != 3) { throw new IllegalArgumentException("Exact candidate root, committed codeSHA and whole GameServer SHA256 required."); }
+		final boolean resume = args.length == 7 && "resume-unlearned-skill".equals(args[3]);
+		check(args.length == 3 || resume, "Require root currentCodeSHA currentJarSHA [resume-unlearned-skill actorId originalPendingCodeSHA originalPendingJarSHA].");
+		final int resumeId = resume ? Integer.parseInt(args[4]) : 0;
+		check(!resume || resumeId > 0 && args[5].matches("[0-9a-f]{40}") && args[6].matches("[0-9a-fA-F]{64}"), "Exact addressed actor and original PENDING hashes required.");
 		final Path runtime = validateRelease(args[0], args[1], args[2]);
 		Player player = null;
 		final Path lockPath = runtime.resolve("local-play/operator.lock");
@@ -62,45 +65,64 @@ public final class PhantomRelease068ManufacturePreparation
 			final var profiles = PhantomProfileRepository.open();
 			final var servers = profiles.listManagedAfter(PhantomMerchantBootstrap.COMPONENT, 0, 2);
 			check(servers.size() <= 1, "Ambiguous merchant ledger.");
+			PhantomProfileComponent previous = null;
 			if (!servers.isEmpty())
 			{
-				final var previous = profiles.findComponent(servers.getFirst().profile().profileId(), COMPONENT);
-				if (previous.isPresent())
+				previous = profiles.findComponent(servers.getFirst().profile().profileId(), COMPONENT).orElse(null);
+				if (previous != null)
 				{
-					final var receipt = properties(previous.get().payload());
-					check("READY".equals(receipt.getProperty("stage")), "PENDING profession preparation is uncertain; no replay, replacement actor or refund.");
-					check(args[1].equals(receipt.getProperty("codeSHA")) && args[2].equalsIgnoreCase(receipt.getProperty("gameJarSHA256")), "Existing preparation provenance differs.");
-					verifyDurable(Integer.parseInt(receipt.getProperty("characterId")), Long.parseLong(receipt.getProperty("fee")));
-					System.out.println("MFG_PREP_ALREADY_READY characterId=" + receipt.getProperty("characterId") + "; no mutation/grant"); return;
+					final var receipt = properties(previous.payload());
+					if ("READY".equals(receipt.getProperty("stage")))
+					{
+						check(args[1].equals(receipt.getProperty("continuationCodeSHA", receipt.getProperty("codeSHA"))) && args[2].equalsIgnoreCase(receipt.getProperty("continuationGameJarSHA256", receipt.getProperty("gameJarSHA256"))), "Existing preparation provenance differs.");
+						check(!resume || resumeId == Integer.parseInt(receipt.getProperty("characterId")) && args[5].equals(receipt.getProperty("codeSHA")) && args[6].equalsIgnoreCase(receipt.getProperty("gameJarSHA256")), "Addressed READY provenance differs.");
+						verifyDurable(Integer.parseInt(receipt.getProperty("characterId")), Long.parseLong(receipt.getProperty("fee")));
+						System.out.println("MFG_PREP_ALREADY_READY characterId=" + receipt.getProperty("characterId") + "; no mutation/grant"); return;
+					}
+					check(resume && "PENDING".equals(receipt.getProperty("stage")) && args[5].equals(receipt.getProperty("codeSHA")) && args[6].equalsIgnoreCase(receipt.getProperty("gameJarSHA256")), "PENDING requires its exact addressed unlearned-stage continuation; no replay or replacement actor.");
 				}
 			}
-			check(count("SELECT COUNT(*) FROM accounts WHERE login=?", ACCOUNT) == 0 && count("SELECT COUNT(*) FROM characters WHERE char_name=?", NAME) == 0, "Stable preparation identity already exists without its exact receipt.");
+			check(!resume || previous != null, "Addressed continuation requires the original durable PENDING receipt.");
+			check(!Files.exists(runtime.resolve("MFG_PREP068.properties"), java.nio.file.LinkOption.NOFOLLOW_LINKS), "Unexpected profession receipt file; no uncertain-stage replay.");
+			check(resume || count("SELECT COUNT(*) FROM accounts WHERE login=?", ACCOUNT) == 0 && count("SELECT COUNT(*) FROM characters WHERE char_name=?", NAME) == 0, "Stable preparation identity already exists without its exact receipt.");
 			final var learn = SkillTreeData.getInstance().getClassSkill(SKILL, 1, org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(CLASS));
 			check(learn != null && learn.getGetLevel() == LEVEL && learn.getLevelUpSp() == SP && learn.getRequiredItems().isEmpty() && learn.getPreReqSkills().isEmpty(), "Pinned minimal profession facts changed; review before grant.");
 			final var recipe = RecipeData.getInstance().getRecipeList(RECIPE);
 			check(recipe != null && recipe.isDwarvenRecipe() && recipe.getRecipeId() == SCROLL && recipe.getLevel() == 1 && recipe.getSuccessRate() == 100, "Pinned native recipe changed.");
 			final long fee = pricing().manufactureFee(recipe.getId(), recipe.getItemId()); check(fee > 0, "Positive source-backed manufacture fee required.");
-			final String facts = "owner=" + OWNER + "\ncodeSHA=" + args[1] + "\ngameJarSHA256=" + args[2] + "\nsource=PREMEASUREMENT_FINITE_PROFESSION_GIFT\nclassId=53\nlevel=5\nskill=172:1\nspCredit=310\nscroll=1666:1\ncapital=0\ngear=0\nmaterials=0\nfee=" + fee + '\n';
-			final byte[] pending = (facts + "stage=PENDING\n").getBytes(StandardCharsets.UTF_8);
+			final String initialFacts = "owner=" + OWNER + "\ncodeSHA=" + (resume ? args[5] : args[1]) + "\ngameJarSHA256=" + (resume ? args[6] : args[2]) + "\nsource=PREMEASUREMENT_FINITE_PROFESSION_GIFT\nclassId=53\nlevel=5\nskill=172:1\nspCredit=310\nscroll=1666:1\ncapital=0\ngear=0\nmaterials=0\nfee=" + fee + '\n';
+			final byte[] pending = (initialFacts + "stage=PENDING\n").getBytes(StandardCharsets.UTF_8);
+			check(!resume || java.util.Arrays.equals(pending, previous.payload()), "Original PENDING payload/facts/fee differ; no partial-stage repair.");
 			final PhantomProfileComponent receipt;
-			if (servers.isEmpty())
+			if (resume) { receipt = previous; verifyUnlearned(resumeId, profiles); }
+			else if (servers.isEmpty())
 			{
 				final var ledger = PhantomMerchantBootstrap.Ledger.empty(policy.lifetimeIdentities(), policy.globalCapital(), policy.globalStockValue(), policy.perItemQuota());
 				receipt = profiles.findComponent(profiles.createWithComponent(PhantomMerchantBootstrap.COMPONENT, 1, _ -> PhantomMerchantBootstrap.encode(ledger), Map.of(COMPONENT, pending)).profile().profileId(), COMPONENT).orElseThrow();
 			}
 			else { receipt = profiles.updateComponent(servers.getFirst().profile().profileId(), COMPONENT, -1, 1, pending); }
-			try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES(?,?,-1,1)"))
+			if (!resume)
 			{
-				insert.setString(1, ACCOUNT); insert.setString(2, "DISABLED_FINITE_PROFESSION068"); check(insert.executeUpdate() == 1, "Preparation account creation failed.");
+				try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES(?,?,-1,1)"))
+				{
+					insert.setString(1, ACCOUNT); insert.setString(2, "DISABLED_FINITE_PROFESSION068"); check(insert.executeUpdate() == 1, "Preparation account creation failed.");
+				}
+				player = Player.create(PlayerTemplateData.getInstance().getTemplate(CLASS), ACCOUNT, NAME, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+				check(player != null && player.getAccessLevel().getLevel() == 0 && player.getInventory().getItems().isEmpty() && player.getAdena() == 0, "Pristine native actor required.");
+				player.stopAllTasks();
+				player.getStat().setExp(player.getStat().getExpForLevel(LEVEL)); player.getStat().setLevel((byte) LEVEL); player.setSp(SP); player.giveAvailableAutoGetSkills();
+				if (player.isDead()) { player.doRevive(); } player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.storeMe();
+				final int id = player.getObjectId();
+				check(player.deleteMe(), "Fresh native actor reload cleanup failed.");
+				check(World.getInstance().findObject(id) == null, "Fresh native identity still published before reload.");
+				player = null; verifyUnlearned(id, profiles); player = Player.load(id);
 			}
-			player = Player.create(PlayerTemplateData.getInstance().getTemplate(CLASS), ACCOUNT, NAME, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
-			check(player != null && player.getAccessLevel().getLevel() == 0 && player.getInventory().getItems().isEmpty() && player.getAdena() == 0, "Pristine native actor required.");
+			else { player = Player.load(resumeId); }
+			check(player != null && player.getActiveClass() == CLASS && player.getClassIndex() == 0 && player.getPlayerClass().getId() == CLASS && player.getBaseClass() == CLASS && player.getSp() == SP && player.getLevel() == LEVEL && player.getExp() == ExperienceData.getInstance().getExpForLevel(LEVEL), "Canonical loaded profession class/level/EXP/SP differ.");
 			player.stopAllTasks();
-			player.getStat().setExp(player.getStat().getExpForLevel(LEVEL)); player.getStat().setLevel((byte) LEVEL); player.setSp(SP); player.giveAvailableAutoGetSkills();
-			if (player.isDead()) { player.doRevive(); } player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.storeMe();
-			check(player.getSkillLevel(SKILL) <= 0 && player.getMaxMp() >= 30, "Exact unlearned skill and native recipe MP capacity required.");
+			check(player.getAccessLevel().getLevel() == 0 && player.getClient() == null && player.getNativeWorkOwner() == null && !player.hasHeadlessOutboundSession() && !player.isAlikeDead() && player.getParty() == null && player.getInventory().getItems().isEmpty() && player.getDwarvenRecipeBook().isEmpty() && player.getCommonRecipeBook().isEmpty() && player.getSkillLevel(SKILL) <= 0 && player.getCurrentMp() >= 30, "Exact alive ordinary unlearned native actor required; no continuation vitals or resource grant.");
 			final var result = new PhantomClassSkillLearningTransaction().execute(player, SkillData.getInstance().getSkill(SKILL, 1), null, player.getSkillLevel(SKILL), SP, null, null);
-			check(result.status() == OperationStatus.SUCCESS && player.getSp() == 0 && player.getSkillLevel(SKILL) == 1, "Native durable skill learn must consume exactly310 SP.");
+			check(result.status() == OperationStatus.SUCCESS && player.getSp() == 0 && player.getSkillLevel(SKILL) == 1, "Native durable skill learn must consume exactly310 SP; status=" + result.status());
 			final var scroll = player.getInventory().addItem(ItemProcessType.REWARD, SCROLL, 1, player, "FINITE_PROFESSION068_RECEIPT");
 			final var handler = ItemHandler.getInstance().getHandler(scroll.getEtcItem());
 			check(handler != null && handler.getClass().getSimpleName().equals("Recipes") && handler.onItemUse(player, scroll, false), "Registered native Recipes handler failed.");
@@ -113,7 +135,8 @@ public final class PhantomRelease068ManufacturePreparation
 			OfflineTraderTable.getInstance().onTransaction(player, false, true);
 			verifyDurable(player.getObjectId(), fee);
 			check(profiles.findByCharacterObjectId(player.getObjectId()).isEmpty(), "Preparation must not link a Phantom character profile.");
-			final var ready = profiles.updateComponent(receipt.profileId(), COMPONENT, receipt.rowVersion(), 1, (facts + "stage=READY\ncharacterId=" + player.getObjectId() + "\nexpCredit=" + player.getStat().getExpForLevel(LEVEL) + "\nspConsumed=310\nscrollConsumed=1\n").getBytes(StandardCharsets.UTF_8));
+			final String continuation = resume ? "continuationSource=ADDRESSED_UNLEARNED_SKILL_NATIVE_LOAD\ncontinuationCodeSHA=" + args[1] + "\ncontinuationGameJarSHA256=" + args[2] + '\n' : "";
+			final var ready = profiles.updateComponent(receipt.profileId(), COMPONENT, receipt.rowVersion(), 1, (initialFacts + continuation + "initialPendingPayloadBase64=" + java.util.Base64.getEncoder().encodeToString(pending) + "\nstage=READY\ncharacterId=" + player.getObjectId() + "\nexpCredit=" + player.getStat().getExpForLevel(LEVEL) + "\nspConsumed=310\nscrollConsumed=1\n").getBytes(StandardCharsets.UTF_8));
 			Files.write(runtime.resolve("MFG_PREP068.properties"), ready.payload(), java.nio.file.StandardOpenOption.CREATE_NEW);
 			System.out.println("MFG_PREP_READY characterId=" + player.getObjectId() + "; nativeRecipe=1; fee=" + fee + "; finite profession gift; not earned; configure prepared allowlist then ordinary START");
 		}
@@ -192,6 +215,18 @@ public final class PhantomRelease068ManufacturePreparation
 		{
 			query.setInt(1, id); try (var rows = query.executeQuery()) { check(rows.next() && rows.getInt(1) == RECIPE && rows.getLong(2) == 0 && rows.getLong(3) == fee && !rows.next(), "Native offline recipe listing differs."); }
 		}
+	}
+	/** Read-only, exact economic baseline before loading the one addressed native actor. */
+	private static void verifyUnlearned(int id, PhantomProfileRepository profiles) throws Exception
+	{
+		check(World.getInstance().findObject(id) == null && profiles.findByCharacterObjectId(id).isEmpty(), "Prepared actor is already published or linked to a Phantom profile.");
+		check(count("SELECT COUNT(*) FROM characters c JOIN accounts a ON a.login=c.account_name WHERE c.charId=? AND c.char_name='Craft068Maker' AND c.account_name='phm068profession' AND c.accesslevel=0 AND c.level=5 AND c.classid=53 AND c.base_class=53 AND c.exp=" + ExperienceData.getInstance().getExpForLevel(LEVEL) + " AND c.sp=310 AND c.curHp>=0.5 AND c.curMp>=30 AND c.online=0 AND a.accessLevel=-1", id) == 1, "Exact unlearned native identity/EXP/SP/vitals/offline baseline differs.");
+		check(count("SELECT COUNT(*) FROM characters WHERE account_name=?", ACCOUNT) == 1 && count("SELECT COUNT(*) FROM characters WHERE char_name=?", NAME) == 1, "Stable profession identity is ambiguous.");
+		for (String table : List.of("items", "character_subclasses", "character_recipebook", "character_recipeshoplist", "character_offline_trade", "character_offline_trade_items"))
+		{
+			check(count("SELECT COUNT(*) FROM " + table + " WHERE " + (table.equals("items") ? "owner_id" : "charId") + "=?", id) == 0, "Unlearned continuation has unexpected durable rows: " + table);
+		}
+		check(count("SELECT COUNT(*) FROM character_skills WHERE charId=? AND skill_id=172", id) == 0, "Skill learning may already have executed; refuse partial-stage continuation.");
 	}
 	private static long count(String sql, Object parameter) throws Exception
 	{

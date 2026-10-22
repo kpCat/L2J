@@ -70,6 +70,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final ConcurrentHashMap<Long, VisibleFailures> _visibleFailures = new ConcurrentHashMap<>();
 	private final LongSupplier _visibleClock;
 	private final ConcurrentHashMap<Long, VisibleEpisode> _visibleEpisodes = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, String> _visiblePreparationStages = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, VisiblePublication> _visiblePublications = new ConcurrentHashMap<>();
 	private volatile PhantomVisibleFarmTravel _visibleTravel;
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
@@ -1179,15 +1180,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** The scheduler boundary owns sync and recovery, outside gameplay/decision locks. */
 	public boolean prepareVisibleDecision(long profileId, PhantomDecisionEngine decision)
 	{
+		String stage = "runtime";
+		boolean prepared = false;
 		try
 		{
 			final var runtime = decision.find(profileId).orElse(null);
 			if ((runtime == null) || runtime.inFlight() || runtime.persistenceInFlight()) { return false; }
 			final var receipt = _visiblePublications.get(profileId);
-			if (receipt != null) { return finishVisiblePublication(profileId, decision, receipt); }
+			stage = "pending_publication";
+			if (receipt != null) { prepared = finishVisiblePublication(profileId, decision, receipt); return prepared; }
+			stage = "goal";
 			final StoredGoal stored = _goals.load(profileId).orElse(null);
 			if (stored == null) { return false; }
 			if (_foregroundDecisionsRevoked) { return false; }
+			stage = "checkpoint";
 			final var checkpoint = _background.continueVisibleCheckpoint(profileId, stored.goal()).orElse(null);
 			if (checkpoint != null && checkpoint.outcome() != org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.RESUME
 				&& checkpoint.outcome() != org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.RETRY_BEFORE_WRITE) { return false; }
@@ -1197,13 +1203,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				final var player = pending == null ? null : org.l2jmobius.gameserver.model.World.getInstance().getPlayer(pending.characterObjectId());
 				if ((player == null) || (_background.resumeVisibleOwnedStore(profileId, player, stored.goal()).status() != PhantomBackgroundService.VisibleStoreStatus.SUCCESS)) { return false; }
 			}
+			stage = "permits_decision";
 			if (!permitsDecision(profileId)) { return false; }
+			stage = "materialization";
 			final var admitted = _materialization.find(profileId).orElse(null);
 			if ((admitted == null) || !admitted.worldPresent() || !admitted.actionAdmissionOpen() || (admitted.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
+			stage = "action_lease";
 			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
 				if ((action == null) || (action.player().getObjectId() != admitted.characterObjectId()) || action.player().hasPendingOwnedStore()) { return false; }
 			}
+			stage = "reload";
 			if (!runtimeMatches(runtime, stored))
 			{
 				if (_visibleTravel != null) { _visibleTravel.cancelSuperseded(profileId, stored.goal()); }
@@ -1211,14 +1221,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if ((decision.reload(profileId) != PhantomDecisionEngine.ReloadResult.RELOADED) || !runtimeMatches(decision.find(profileId).orElse(null), stored)
 					|| !Objects.equals(stored, _goals.load(profileId).orElse(null)) || !permitsDecision(profileId)) { return false; }
 			}
-			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType())) { return true; }
-			if (_visibleIntent.test(profileId, stored.goal())) { return true; }
+			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType())) { prepared = true; return true; }
+			stage = "visible_intent";
+			if (_visibleIntent.test(profileId, stored.goal())) { prepared = true; return true; }
+			stage = "lifetime";
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime == null) { return false; }
+			stage = "protocol";
 			final var failures = _visibleFailures.get(profileId);
 			if ((failures != null) && failures.protocolBlocked(stored.goal(), lifetime.materializedAtNanos())) { return false; }
+			stage = "cooldown";
 			final var episode = _visibleEpisodes.get(profileId);
 			if ((episode != null) && (episode.epoch == lifetime.materializedAtNanos()) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
+			stage = "baseline";
 			var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
 			if (baseline == null) { return false; }
 			final Snapshot catchup = _store.load(profileId).orElse(null);
@@ -1228,6 +1243,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					|| !catchup.state().authorityHashes().equals(generation.authorityHashes()) || !baseline.hashes().equals(generation.authorityHashes()));
 			if (authorityRenewal)
 			{
+				stage = "authority_renewal";
 				if ((catchup.state().goalId() != stored.goal().goalId()) || (catchup.state().goalRevision() != stored.goal().revision()) || !currentClaim(profileId, catchup)) { return false; }
 				final var nativePlayer = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(lifetime.characterObjectId());
 				if (nativePlayer == null || ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), nativePlayer.getObjectId(), lifetime.materializedAtNanos()))) { return false; }
@@ -1247,12 +1263,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final Player player;
 			final PhantomBackgroundState projected;
 			final org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint live;
+			stage = "projection";
 			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
 				if (action == null) { return false; }
 				player = action.player();
 				if (player.hasPendingOwnedStore() || (player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId())) { return false; }
-				if (player.isDead()) { return true; } // Existing native death/recovery remains the decision adapter's responsibility.
+				if (player.isDead()) { prepared = true; return true; } // Existing native death/recovery remains the decision adapter's responsibility.
 				final var progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 				// Planning reads current gear/resources; the persisted transaction baseline stays unchanged.
 				final var skill = org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.offensiveSkill(player, null);
@@ -1265,6 +1282,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
 			final boolean routeRecovery = (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
+			stage = "suitability_travel";
 			if (!authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())))
 			{
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
@@ -1272,16 +1290,21 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				// Keep that goal for the existing native travel owner; never claim arrival here.
 				if (local ? _planner.remainsVisibleSuitable(projected, stored.goal(), live)
 					: (_visibleTravel != null) && _planner.remainsSuitable(projected, stored.goal())
-						&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)) { return true; }
+						&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)) { prepared = true; return true; }
 			}
+			stage = "accepted_intent";
 			if (_acceptedIntent.test(profileId, stored.goal())) { return false; }
+			stage = "stop_for_recovery";
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
 			if (_visibleAutoPlay != null) { _visibleAutoPlay.stop(profileId); }
+			stage = "actor_quiet";
 			if (!visibleActorQuiet(profileId, player, lifetime.materializedAtNanos())) { return false; }
+			stage = "catchup_handoff";
 			final var handoff = _foregroundHandoffs.get(profileId);
 			if ((catchup == null) || (catchup.state().goalId() != stored.goal().goalId()) || (catchup.state().goalRevision() != stored.goal().revision())
 				|| ((catchup.state().status() != Status.COMPLETE) && ((handoff == null) || !exactForegroundHandoff(profileId, handoff)))) { return false; }
 			final long now = _visibleClock.getAsLong();
+			stage = "local_replan";
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
 			if (routeRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
 			else if (!authorityRenewal) { recovery.targets.add(targetKey(stored.goal())); }
@@ -1304,9 +1327,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				else { _visiblePublications.remove(profileId, publication); return false; }
 			}
 			if (!authorityRenewal && !routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
-			return finishVisiblePublication(profileId, decision, publication);
+			stage = "finish_publication";
+			prepared = finishVisiblePublication(profileId, decision, publication);
+			return prepared;
 		}
-		catch (RuntimeException exception) { return false; }
+		catch (RuntimeException exception) { prepared = false; stage += ":thrown." + exception.getClass().getName(); return false; }
+		finally
+		{
+			// Diagnostics never create recovery episodes or participate in admission.
+			synchronized (_visiblePreparationStages)
+			{
+				if (prepared) { _visiblePreparationStages.remove(profileId); }
+				else if (_visiblePreparationStages.containsKey(profileId) || _visiblePreparationStages.size() < 1024) { _visiblePreparationStages.put(profileId, "pre_visible." + stage); }
+			}
+		}
 	}
 
 	private boolean finishVisiblePublication(long profileId, PhantomDecisionEngine decision, VisiblePublication receipt)
@@ -1355,7 +1389,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	private static String targetKey(PhantomGoal goal) { final var spec = PhantomBackgroundGoalSpec.parse(goal); return spec.npcId() + "@" + spec.anchorId(); }
-	public String visibleRecoveryReason(long profileId) { final var episode = _visibleEpisodes.get(profileId); return episode == null ? "" : episode.reason; }
+	public String visibleRecoveryReason(long profileId)
+	{
+		final var episode = _visibleEpisodes.get(profileId);
+		return episode != null && !episode.reason.isEmpty() ? episode.reason : _visiblePreparationStages.getOrDefault(profileId, "");
+	}
 
 	/** A successful exact foreground handoff owns decisions, never ordinary historical work. */
 	public boolean permitsDecision(long profileId)
@@ -1501,6 +1539,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	@Override
 	public void materializeAborted(long profileId, int characterObjectId)
 	{
+		_visiblePreparationStages.remove(profileId);
 		_visiblePublications.remove(profileId);
 		_visibleEpisodes.remove(profileId);
 		_foregroundHandoffs.computeIfPresent(profileId, (_, handoff) -> handoff.admission().characterObjectId() == characterObjectId ? null : handoff);
@@ -1510,6 +1549,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	@Override
 	public void beforeStore(long profileId, Player player)
 	{
+		_visiblePreparationStages.remove(profileId);
 		_visiblePublications.remove(profileId);
 		_visibleEpisodes.remove(profileId);
 		_foregroundHandoffs.remove(profileId);

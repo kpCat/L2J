@@ -1,5 +1,16 @@
 # L2 LIVE WORLD — дорожная карта после первого игрового запуска
 
+## Фактическое дополнение TASK068, 22.10.2026
+
+Текущая кампания ещё в финальной интеграции: CORE068/FULL068 OPEN. Приёмка и точные ограничения — [RESULT068](../reports/PHANTOM-LIVING-ECONOMY-068.md). Ниже этого дополнения сохранён исторический план1.1, включая его прежние масштабные цели и ограничения.
+
+| Готово в проверенном объёме | Осталось до приёмки | Сознательно не делали |
+|---|---|---|
+| Выделенные native offline BUY/SELL/MANUFACTURE,201 непустая лавка/202owners,0combat jobs; finite server/item/identity bootstrap, restore и native conservation/race/STOP. Общая valuation и equipment policy, self-craft/paid manufacture, защищённые recipe/spoil ресурсы независимо от D/C. | Финальный обычный Main/sameDB restart/следующая полезная работа и доставка068; causal earned BUY→charged fight→Spoil/bank; точный Background retry/native handoff. | Сотни боевых тиков под видом offline; второй рынок/инвентарь/БД; бесконечный seed; виртуальная победа над мировыми эпиками. |
+| Canonical rate rebalance STOP→Rates→Plan/diff→explicitApply→START и Rollback; actual x10→x20→x10 не накапливает множители, XP/SP не множитель цены. Candidate stock XML/CB OFF; R2 lifetime5000 сохранён,0 — тестовый профиль. Blue и personal Rift native bounded checks прошли. | Долгая устойчивость/нагрузка; групповые роли/raid participation с владельцем; индивидуальные PvP/PK и последствия; прочие поддержанные instances и M7 routes; большие имена/кириллица; Semantic Pack+Studio+runtime context. | Automatic price Apply при старте, неконтролируемая Alt+B экипировка Phantom, новая навигационная библиотека, клиентская QA без клиента. |
+
+Критерий завершения текущей кампании: честная матрица A–G, один committed-source runtime, штатный STOP и проверенная публикация. Новые направления не начинаются автоматически; уже выполненные067 Cubic/fishing/Henna/augmentation не возвращаются в остаток.200 native stores заменяют прежнюю маленькую торговую цель именно в scope068;10 000 постоянных identities/большой battle scale остаются отдельными задачами.
+
 **Дата:** 18 сентября 2026. **Версия:** 1.1, обновлено по результатам живой диагностики 17–18.09.2026.
 **Репозиторий:** `kpCat/L2J`. **Ветка:** `feature/phantom-world`.
 **Проверенный remote baseline:** `5aaa42b519e43007619d1114f9bf68633da0dc9f`.

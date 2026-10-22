@@ -160,15 +160,15 @@ Evidence: .phantom-local/task068/rebalance-smoke-r2/ и reports/rebalance-smoke-
 
 Отдельные assertions подтвердили inheritance57 при отсутствии override, разные death10/raid20, отсутствие price эффекта XP999/SP777 и отказ при повреждённом baseline. Full Plan SHA после промежуточного Apply закономерно иной из-за текущих preimages; возврат цен проверялся по target/quote bytes. Source game, native TEST, candidate и runtime configs этим smoke не менялись. Native/БД/Ant не запускались. Исходные stock цены и CustomCommunityBoard OFF остаются defaults. Полные mojibake и6 escaped Cyrillic regex проверки4 файлов:0 совпадений; bounded git diff --check exact4paths exit0, только LF→CRLF уведомления; git mutations отсутствуют.
 
-### Команды для собственной candidate после следующего committed build/verify
+### Повторный Plan в собственной candidate
 
-Ниже фактический путь текущей среды; на другом диске используется её own candidate. Команды здесь не выполнялись. Baseline capture — однократное действие **до первого Apply**, не повторять после каждого изменения rates. Для каждого нового Plan/Apply выбрать новый output, старые receipts сохранять.
+Ниже фактический путь текущей среды; на другом диске используется её own candidate. В candidate уже сохранён `pricing/canonical` и выполнен read-only `pricing/stock-plan`; Apply не выполнялся. Повторный пересчёт использует **существующий** baseline. Для каждого нового Plan/Apply выбрать новый output, старые receipts сохранять. Только для другой новой поставки сначала однократно выполняют `-Mode Baseline` до её первого Apply по CLI README.
 
 ```powershell
 $candidate068 = 'D:\PhantomWorld\Living-Economy-068-candidate'
 $game068 = Join-Path $candidate068 'game'
 $tool068 = Join-Path $candidate068 'tools/phantom-economy/Price-PhantomEconomy.ps1'
-$prices068 = 'D:\PhantomWorld\Living-Economy-068-pricing'
+$prices068 = Join-Path $candidate068 'pricing'
 $baseline068 = Join-Path $prices068 'canonical'
 $plan068 = Join-Path $prices068 'next-rates-plan'
 $apply068 = Join-Path $prices068 'next-rates-apply'
@@ -177,9 +177,7 @@ $rates068 = Join-Path $game068 'config/Rates.ini'
 $ratesBackup068 = Join-Path $prices068 'Rates.before-next.ini'
 & (Join-Path $candidate068 'STOP.cmd')
 if ($LASTEXITCODE -ne 0) { throw 'STOP failed; preserve the running runtime.' }
-New-Item -ItemType Directory -Path $prices068 -Force | Out-Null
-powershell -NoProfile -ExecutionPolicy Bypass -File $tool068 -Mode Baseline -GameRoot $game068 -OutputDirectory $baseline068
-if ($LASTEXITCODE -ne 0) { throw 'Baseline capture failed; preserve evidence.' }
+if (!(Test-Path -LiteralPath (Join-Path $baseline068 'baseline.properties') -PathType Leaf)) { throw 'Original canonical baseline is missing; do not recreate it from Applied prices.' }
 if (Test-Path -LiteralPath $ratesBackup068) { throw 'Existing rate backup must be preserved; choose a fresh path.' }
 Copy-Item -LiteralPath $rates068 -Destination $ratesBackup068
 notepad.exe $rates068
