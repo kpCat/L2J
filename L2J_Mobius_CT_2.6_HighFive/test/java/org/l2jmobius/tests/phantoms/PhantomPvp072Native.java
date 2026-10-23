@@ -100,6 +100,7 @@ final class PhantomPvp072Native
 		Player enemy = null; PhantomCommerceService commerce = null; L2jPhantomSupplyJourney journey = null; ConsumerEventListener listener = null;
 		try
 		{
+			try (var lease = materialization.tryAcquireAction(profile).orElseThrow()) { actor.setRunning(); }
 			final var scene = scene(actor, query, policy.limits().retreatTimeoutSeconds(), report);
 			walk(materialization, profile, actor, scene.approach(), report);
 			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES('task072pvp','DISABLED_NATIVE_TEST_ONLY',-1,1)")) { statement.executeUpdate(); }
@@ -179,19 +180,20 @@ final class PhantomPvp072Native
 	private record Scene(PhantomNavigationPoint field, List<PhantomNavigationPoint> approach) { }
 	private static Scene scene(Player actor, PhantomTopologyQuery query, int retreatSeconds, StringBuilder report)
 	{
-		final var paths = new L2jNavigationBackend(); final var geo = GeoEngine.getInstance(); final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+		final var paths = new L2jNavigationBackend(); final var geo = GeoEngine.getInstance(); final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30); final int[] counts = new int[6];
 		final var anchors = query.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == PhantomTopologyAnchorRole.RESPAWN || value.role() == PhantomTopologyAnchorRole.CITY_CENTER).sorted(Comparator.comparingDouble(value -> actor.calculateDistance3D(value.point().x(), value.point().y(), value.point().z()))).limit(3).toList();
 		for (var anchor : anchors) { for (int radius : new int[] {600, 1000, 1600, 2200, 2800, 3400}) { for (int direction = 0; direction < 16 && System.nanoTime() < deadline; direction++)
 		{
-			final double angle = direction * Math.PI / 8; final int x = anchor.point().x() + (int) Math.round(radius * Math.cos(angle)), y = anchor.point().y() + (int) Math.round(radius * Math.sin(angle));
+			counts[0]++; final double angle = direction * Math.PI / 8; final int x = anchor.point().x() + (int) Math.round(radius * Math.cos(angle)), y = anchor.point().y() + (int) Math.round(radius * Math.sin(angle));
 			final var point = paths.walkSurface(new PhantomNavigationPoint(x, y, anchor.point().z(), 0), 256).orElse(null); if (point == null || actor.calculateDistance3D(x, y, point.z()) > 5000 || ZoneManager.getInstance().getZone(x, y, point.z(), PeaceZone.class) != null || ZoneManager.getInstance().getZone(x, y, point.z(), NoPvPZone.class) != null || ZoneManager.getInstance().getZone(x, y, point.z(), WaterZone.class) != null || !geo.canSeeTarget(x, y, point.z(), 0, x + 80, y, point.z(), 0)) { continue; }
-			final var nativePoint = new PhantomTopologyPoint(x, y, point.z(), 0); final var respawns = query.nearestAnchors(nativePoint, PhantomTopologyAnchorRole.RESPAWN, 1, 100000); final var safe = respawns.isEmpty() ? query.nearestAnchors(nativePoint, PhantomTopologyAnchorRole.CITY_CENTER, 1, 100000) : respawns; if (safe.isEmpty()) { continue; }
+			counts[1]++; final var nativePoint = new PhantomTopologyPoint(x, y, point.z(), 0); final var respawns = query.nearestAnchors(nativePoint, PhantomTopologyAnchorRole.RESPAWN, 1, 100000); final var safe = respawns.isEmpty() ? query.nearestAnchors(nativePoint, PhantomTopologyAnchorRole.CITY_CENTER, 1, 100000) : respawns; if (safe.isEmpty()) { continue; }
 			final var safePoint = paths.walkSurface(new PhantomNavigationPoint(safe.getFirst().point().x(), safe.getFirst().point().y(), safe.getFirst().point().z(), 0), safe.getFirst().validationTolerance()).orElse(null); if (safePoint == null) { continue; }
-			final long now = System.nanoTime(); final var back = paths.findWalkCorridor(new PhantomNavigationRequest(1, point, safePoint, now, Math.min(deadline, now + TimeUnit.SECONDS.toNanos(1)), 5000), new PhantomNavigationCancellationToken(), PhantomNavigationPolicy.productionDefaults(), System::nanoTime); if (back.status() != PhantomWalkCorridorPlanner.Status.FOUND) { continue; }
-			double length = 0; var previous = point; for (var step : back.points()) { length += previous.distanceTo(step); previous = step; } if (length < 300 || length / actor.getStat().getMoveSpeed() >= retreatSeconds - 3) { continue; }
+			counts[2]++; final long now = System.nanoTime(); final var back = paths.findWalkCorridor(new PhantomNavigationRequest(1, point, safePoint, now, Math.min(deadline, now + TimeUnit.SECONDS.toNanos(1)), 5000), new PhantomNavigationCancellationToken(), PhantomNavigationPolicy.productionDefaults(), System::nanoTime); if (back.status() != PhantomWalkCorridorPlanner.Status.FOUND) { report.append("pvp_route_rejected\t").append(point).append("->").append(safePoint).append(';').append(back.status()).append(";budget status is not geometry proof\n"); continue; }
+			counts[3]++; double length = 0; var previous = point; for (var step : back.points()) { length += previous.distanceTo(step); previous = step; } if (length < 300 || length / actor.getStat().getMoveSpeed() >= retreatSeconds - 3) { continue; } counts[4]++;
 			final long outNow = System.nanoTime(); final var out = paths.findWalkCorridor(new PhantomNavigationRequest(1, PhantomNativeTravelActions.point(actor), point, outNow, Math.min(deadline, outNow + TimeUnit.SECONDS.toNanos(1)), 5000), new PhantomNavigationCancellationToken(), PhantomNavigationPolicy.productionDefaults(), System::nanoTime); if (out.status() != PhantomWalkCorridorPlanner.Status.FOUND) { continue; }
 			report.append("pvp_preflight\tfield=").append(point).append(";safe=").append(safePoint).append(";nativeBothRoutes=FOUND;retreatLength=").append(length).append(";ETA=").append(length / actor.getStat().getMoveSpeed()).append(";policySeconds=").append(retreatSeconds).append(";ordinary zones/Geo;before opponent creation and attack\n"); return new Scene(point, out.points());
 		} } }
+		report.append("pvp_preflight_counts\t").append(java.util.Arrays.toString(counts)).append(";speed=").append(actor.getMoveSpeed()).append(";anchors=").append(anchors.stream().map(value -> value.id() + ':' + value.point()).toList()).append('\n');
 		throw new AssertionError("BLOCKED_INPUT: no legal bounded PvP perimeter/unchanged retreat route; no opponent or attack created.");
 	}
 

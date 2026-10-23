@@ -263,7 +263,7 @@ public final class PhantomSupply072JourneyNative
 				}
 			}
 			commerce = new PhantomCommerceService(catalog, receipts, goals, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone())); check(commerce.start(), "CP commerce did not start.");
-			report.append("cp_fixture\tPREMEASUREMENT disabled task072cp2/Supply072Cp2 Warrior20/stock learned skills/D129+352+2378/finite9Dshots/CP1;profile=").append(id).append(";actor=").append(actorId).append(";nativeNpc=30081;object=").append(merchant.getObjectId()).append(";xyz=").append(player.getLocation()).append(";finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation;earlier cp1 premeasurement LoS FAIL preserved\n");
+			report.append("cp_fixture\t").append(retained ? "RETAINED original PREMEASUREMENT fixture;disabled " : "PREMEASUREMENT fixture;disabled ").append(player.getAccountName()).append('/').append(player.getName()).append(";Warrior20/stock learned skills/D129+352+2378/finite9Dshots/CP1;profile=").append(id).append(";actor=").append(actorId).append(";nativeNpc=30081;object=").append(merchant.getObjectId()).append(";xyz=").append(player.getLocation()).append(";finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation;earlier cp1 premeasurement LoS FAIL preserved\n");
 			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal stored = null;
 			for (int itemId : new int[] {5591, 5592})
 			{
