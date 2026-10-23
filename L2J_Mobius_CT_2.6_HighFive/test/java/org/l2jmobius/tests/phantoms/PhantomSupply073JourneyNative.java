@@ -119,11 +119,11 @@ public final class PhantomSupply073JourneyNative
 			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(72007303L, module, task.resolve("reports")));
 			InitialEquipmentData.getInstance(); InitialShortcutData.getInstance(); MapRegionData.getInstance(); ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			MerchantPriceConfigTable.getInstance().loadInstances(); SpawnData.getInstance(); MerchantPriceConfigTable.getInstance().updateReferences();
-			if (args[0].startsWith("history")) { history(report, args[0].equals("history-resume")); return; }
 			final var topologyBackend = new L2jTopologyValidationBackend(); final var topology = new PhantomTopologyQuery(new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1), topologyBackend, new PhantomTopologyMetrics());
 			final var knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults(); final var backend = new L2jGameKnowledgeBackend();
 			final var knowledge = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, knowledgePolicy), topology, knowledgePolicy));
 			check(knowledge.start(), "Native knowledge did not start."); final var query = knowledge.query();
+			if (args[0].startsWith("history")) { history(report, args[0].equals("history-resume"), query); return; }
 			final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load(); final var profiles = PhantomProfileRepository.open();
 			if (args[0].equals("preflight")) { PhantomEconomy073Planner.select(catalog.catalog(), report, query); return; }
 			if (prepare)
@@ -401,7 +401,7 @@ public final class PhantomSupply073JourneyNative
 		}
 		report.append("recovery_native_field_arrived\t").append(player.getLocation()).append(";A=").append(player.getAdena()).append(";HP=").append(player.getCurrentHp()).append(";native stock WALK/GK only\n");
 	}
-	private static void history(StringBuilder report, boolean resume) throws Exception
+	private static void history(StringBuilder report, boolean resume, PhantomGameKnowledgeQuery query) throws Exception
 	{
 		final Path file = Path.of(System.getProperty("phantom.module.root")).getParent().resolve(".phantom-local/task073/history073.properties");
 		final var state = new Properties(); final var profiles = PhantomProfileRepository.open();
@@ -409,6 +409,15 @@ public final class PhantomSupply073JourneyNative
 		else
 		{
 			check(!Files.exists(file), "Early history already exists; no reseed.");
+			final var retained = profiles.findByCharacterObjectId(268480996).orElse(null);
+			if (retained != null)
+			{
+				try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT charId FROM characters WHERE charId=268480996 AND account_name='task073early' AND char_name='Earned073Early' AND level<20")) { try (var rows = statement.executeQuery()) { check(rows.next() && !rows.next(), "Exact failed-admission early actor changed."); } }
+				state.setProperty("actor", "268480996"); state.setProperty("profile", Long.toString(retained.profileId())); state.setProperty("gameJarSha256", loadedJarHash());
+				report.append("EARLY_RETAINED_NO_REFILL\tactor268480996/profile").append(retained.profileId()).append(";initial failed TARGET admission used null knowledge;same stock actor retained without any setup writes\n");
+			}
+			else
+			{
 			final var template = PlayerTemplateData.getInstance().getTemplate(PlayerClass.FIGHTER);
 			final var birth = org.l2jmobius.gameserver.model.actor.PlayerCreationInitializer.resolveCreationLocation(template);
 			final var mob = World.getInstance().getVisibleObjects().stream().filter(object -> object instanceof Monster).map(object -> (Monster) object)
@@ -421,6 +430,7 @@ public final class PhantomSupply073JourneyNative
 			setup.getInventory().updateDatabase(); setup.storeMe(); final int actor = setup.getObjectId();
 			report.append("EARLY_STOCK_BIRTH\tactor=").append(actor).append(";level=").append(setup.getLevel()).append(";A=").append(setup.getAdena()).append(";inventory=").append(inventory(setup)).append(";location fixture only BEFORE measurement;stock initializer/items/rates\n");
 			setup.deleteMe(); state.setProperty("actor", Integer.toString(actor)); state.setProperty("profile", Long.toString(profiles.create(actor).profileId())); state.setProperty("gameJarSha256", loadedJarHash());
+			}
 		}
 		final long id = Long.parseLong(state.getProperty("profile")); final var metrics = new PhantomMetrics();
 		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
@@ -434,7 +444,7 @@ public final class PhantomSupply073JourneyNative
 				check(state.getProperty("exp").equals(Long.toString(player.getExp())) && state.getProperty("sp").equals(Long.toString(player.getSp())) && state.getProperty("adena").equals(Long.toString(player.getAdena())) && state.getProperty("inventory").equals(inventory(player)) && player.getAdena() > 0, "Early genuine earned cash/loot changed across native store/newJVM.");
 				report.append("HISTORY_EARNED_PRESERVED\tactor=").append(player.getObjectId()).append(";profile=").append(id).append(";level=").append(player.getLevel()).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=").append(player.getAdena()).append(";exactPositiveObjects=").append(inventory(player)).append(";newJVM;no1to20claim\n"); return;
 			}
-			combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> null), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> null), PhantomCombatPolicy.productionDefaults(1)); combat.start();
+			combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> query), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
 			try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player.setRunning(); }
 			final long beforeA = player.getAdena(), deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(3); int kills = 0;
 			while (kills < 2 || player.getAdena() <= beforeA)
