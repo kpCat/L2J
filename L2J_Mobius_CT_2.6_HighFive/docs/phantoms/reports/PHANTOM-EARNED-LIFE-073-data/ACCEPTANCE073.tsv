@@ -1,11 +1,11 @@
 gate	priority	status	evidence	remaining
 CORE073	TOTAL	PARTIAL	35native kills/1647earnedA;wallet transition;native death/store/respawn;early genuine persistence;Main restart	No COMMITTED1463/paid return/2paid kills/paid restart
 P0_ECON_AUDIT	HARD	PASS_BOUNDED	Stock early actor268480996/profile2 earns0->20A;EXP0->58/SP0->4;newJVM exact positive objects and20A;source birth/BG/progression audit	Natural1to20 and native BG/class-transfer NOT_OBSERVED;no guaranteed lvl20 cash
-P0_SCENE	HARD	PARTIAL_DYNAMIC_RISK	Prebirth3groups plus2rechecks;actual tax/perCharge/budget/native both ways;finite35kills reaches1747A	Unfocused v1 target drift/17loot-blocked kills;field route/handoff risk not sustained
+P0_SCENE	HARD	PARTIAL_DYNAMIC_RISK	Prebirth3groups plus2rechecks;actual tax/perCharge/budget/native both ways;finite35kills reaches1747A;retained town recovery blocked by changed roaming positions/QUOTE	Unfocused v1 target drift/17loot-blocked kills;field route/handoff risk not sustained;stand-v4 javac PASS but native handoff NOT_OBSERVED
 P0_BUY	HARD	NOT_OBSERVED	Native commerce.buy intent62x1463 at21A;budget1311;no receipt;debit0;Dshots0	Actual paid native COMMITTED required
 P0_RETURN	HARD	NOT_RUN	No paid stock;no fabricated post-return kills	Native return plus2individually rewarded paid-shot-debit kills
 P0_RESTART	HARD	PARTIAL_EARNED_ONLY	Same actor1747A/items/root retained after newJVM;stock respawn retained all cash;early newJVM PASS	Same paid chain productive restart absent;Main restart is separate evidence
-P0_RECOVERY	HARD	PASS_WALLET_TRANSITION_ONLY	100A shortage preserves root;35kills ->1747A triggers normal commerce.buy intent;native town respawn retained1747A	Path/death prevents completed buy;unpaid expired child retained,not gratuitously reset
+P0_RECOVERY	HARD	PASS_WALLET_TRANSITION_ONLY	100A shortage preserves root;35kills ->1747A triggers normal commerce.buy intent;native town respawn retained1747A;final alive347HP	Path/death and retained scene constraints prevent completed buy;unpaid expired child retained,not gratuitously reset
 P1_PVP	OPTIONAL_BOUNDED	DEFERRED_WITH_ROOT_CAUSE	CORE not completed;072safe route unproven;no new encounter	Separate optional scope
 P2_GEAR	INFORMATIONAL	FIXTURE_DEBT_DECLARED	129/352/2378+100A declared CASE_B;no natural1to20 or earned gear claim	Paid gear upgrade NOT_RUN
 AA_CP	DEFERRED	UNCHANGED	No event/multisell/AA actions;072narrow CP evidence retained	Future optional scope

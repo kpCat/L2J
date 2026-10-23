@@ -15,6 +15,8 @@ Vortexbra/profile2/actor268484865:level2→3, EXP87→367, SP6→14, HP91→30. 
 
 Final [TEST](test-final-status073.json)/[RELEASE](release-final-status073.json): both Game/Login STOPPED, own databaseConnections0. Independent CIM exact task073.control/native Java count0; listeners2106/7777/9153/2253/7953/9253=0. All native materialization drains STOPPED. Lightweight SQL inspection opens no ThreadPool; its first version logged an uninitialized-pool shutdown warning, retained in raw logs and corrected in later TEST helper.
 
-Measured TEST actor268480990 remains alive after normal respawn:335HP,1747A, original objects/root revision1/unpaid expired child revision2. Early profile2 retains20genuine Adena and exact inventory on another JVM. No paid1463 receipt. CORE073=PARTIAL.
+Measured TEST actor268480990 remains alive after normal respawn and ordinary regeneration:347HP,1747A, original objects/root revision1/unpaid expired child revision2. Early profile2 retains20genuine Adena and exact inventory on another JVM. No paid1463 receipt. CORE073=PARTIAL.
+
+Late bounded same-actor town continuation ended21:09:22UTC with TEST destination projection failure before route submission; stand-v4 javac PASS then one control ended21:14:14UTC with BLOCKED_RECOVERY_SCENE from changed roaming positions/native QUOTE constraints. Neither performed BUY/debit/GK/coordinate setters. Every materialization drain is STOPPED; final read-only inspection and runtime/CIM/DB checks are taken after these runs, not reused from the earlier publication snapshot. The TEST stand handoff itself has no native GREEN claim because control never reached travel.
 
 Candidate:`D:\PhantomWorld\Earned-Life-073-candidate`; contained START.cmd/STATUS.cmd/STOP.cmd are the operator interface. Native fixture and operator TEST are separate OWN073 physical roots sharing only TEST073 schema. Each of3roots has203physical GeoData. Credentials/hexid remain private, outside Git.
