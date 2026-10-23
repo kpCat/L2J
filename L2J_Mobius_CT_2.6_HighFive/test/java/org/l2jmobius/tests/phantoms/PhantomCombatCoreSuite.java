@@ -68,6 +68,13 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		registry.add("072-native-reward-gap-allows-higher-mobs-and-rejects-zero-reward", _ ->
+		{
+			for (int difference : new int[] {-2, -1, 0, 1, 2}) { PhantomAssertions.assertTrue(PhantomCombatPolicy.farmRewardAvailable(difference, 11, 633, 28), "Rewardable +/-2 target was rejected."); }
+			for (int difference : new int[] {-12, -11, 11, 12}) { PhantomAssertions.assertFalse(PhantomCombatPolicy.farmRewardAvailable(difference, 11, 633, 28), "Native strict reward level boundary was bypassed."); }
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.farmRewardAvailable(-2, 11, 1, 0), "Positive EXP with rounded-zero SP remains productive.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.farmRewardAvailable(0, 11, 0, 0), "Zero EXP/SP cannot qualify as ordinary profitable farming.");
+		});
 		if (_normalTargetPreflightOnly)
 		{
 			registry.add("01-read-only-preflight-preserves-existing-action-owner", _ ->

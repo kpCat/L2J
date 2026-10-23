@@ -28,3 +28,7 @@ Bounded exception >10 files: новые072 wrappers/lane/environment/native test
 Reward eligibility до Player; layer после load; earned vs fixture provenance; immutable persisted actor/receipt across restart; wrong owner/port/DB fails closed. Native results определяют PASS/PARTIAL, исторический FULL071=PARTIAL сохраняется.
 
 Ruling: пользователь и AUTHORITY072 уже выбрали автономное выполнение; дополнительных design/plan approval gates нет. Native implementation ведёт основной исполнитель, final reviewer только read-only.
+
+Уточнение владельца: production farm selection допускает мобов выше на1–2 уровня при native reward/viability. Независимый read-only review подтвердил существующий LEVEL_RADIUS2, scheduler suitability/replan и transient SEARCH_LIMIT. Выявлен узкий admission defect: viability без native reward gate. Исправление только CombatPolicy scalar + EngagementPlanner eligible + VisibleAutoPlay ordinary branches; defensive targets и pending-kill semantics сохранены. Focused combat-core55/55. Глобальный fallback после local visible replan (~2км) в текущем owner отсутствует; расширение не включено в072.
+
+Первый native life episode на committed f629e817: actor268480990/profile1 получил3kills20418lvl18, EXP835862→837761/SP0→84/A0→350 и loot1867x1. Затем700-local targets exhausted; исходный FAIL сохранён. Тот же actor продолжается через существующий bounded native walk, без переноса/ресурсов/reset. Scope5000 применяется исключительно к короткому тесту.

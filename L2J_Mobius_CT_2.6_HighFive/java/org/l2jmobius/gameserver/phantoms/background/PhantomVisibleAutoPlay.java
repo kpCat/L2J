@@ -478,7 +478,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			return false;
 		}
-		return PhantomEngagementPlanner.viable(player, creature) && (Math.abs((long) player.getZ() - creature.getZ()) < 800) && GeoEngine.getInstance().canSeeTarget(player, creature) && GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), creature.getX(), creature.getY(), creature.getZ(), player.getInstanceId());
+		return PhantomEngagementPlanner.rewardingFarmTarget(player, creature) && PhantomEngagementPlanner.viable(player, creature) && (Math.abs((long) player.getZ() - creature.getZ()) < 800) && GeoEngine.getInstance().canSeeTarget(player, creature) && GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), creature.getX(), creature.getY(), creature.getZ(), player.getInstanceId());
 	}
 
 	private boolean current(long profileId, PhantomGoal goal)
@@ -722,7 +722,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		public boolean permitsTarget(Creature target)
 		{
 			// Corpse eligibility belongs to native Sweep, including retained valuable spoil.
-			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target));
+			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId && (target.isAlikeDead() || PhantomEngagementPlanner.rewardingFarmTarget(_player, target)) || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target));
 		}
 	}
 

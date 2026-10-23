@@ -29,7 +29,13 @@ public final class PhantomEngagementPlanner
 	{
 		if(target==null||!target.isMonster()||target.isRaid()||target.isAlikeDead()||!target.isTargetable()||target.isInvul()||!target.asNpc().isShowName()||!target.isAutoAttackable(player)||target.getInstanceId()!=player.getInstanceId()||target.asNpc().getId()!=npcId){return false;}
 		if(player.getAutoPlaySettings().isRespectfulHunting()&&target.getTarget()!=null&&target.getTarget()!=player&&!(player.hasSummon()&&player.getSummon().getObjectId()==target.getTarget().getObjectId())){return false;}
-		return Math.abs((long)player.getZ()-target.getZ())<800 && player.calculateDistance2D(target)<=localRange(player) && viable(player,target);
+		return rewardingFarmTarget(player, target) && Math.abs((long)player.getZ()-target.getZ())<800 && player.calculateDistance2D(target)<=localRange(player) && viable(player,target);
+	}
+	/** Ordinary farm admission only. Defensive encounters still use viability independently of reward eligibility. */
+	public static boolean rewardingFarmTarget(Player player, Creature target)
+	{
+		return target != null && target.isMonster() && !target.isRaid()
+			&& org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.farmRewardAvailable(player.getLevel() - target.getLevel(), org.l2jmobius.gameserver.config.RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, target.asNpc().getExpReward(player.getLevel()), target.asNpc().getSpReward(player.getLevel()));
 	}
 	/** Admission only; native AutoUse/attack remains the sole executor and resource consumer. */
 	public static boolean viable(Player player, Creature target)

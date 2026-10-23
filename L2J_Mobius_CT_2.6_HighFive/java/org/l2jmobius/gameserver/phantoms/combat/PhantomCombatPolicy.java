@@ -9,6 +9,12 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 	public static final int PVE_CROWD_RETREAT_HP_PERCENT = 70;
 	public static final int PVE_RECOVERY_HP_PERCENT = 80;
 
+	/** Same strict level gate as Attackable.calculateExpAndSp; a pending kill alone is not evidence of profitable input. */
+	public static boolean farmRewardAvailable(int levelDifference, int maximumDifference, long exp, int sp)
+	{
+		return maximumDifference > 0 && levelDifference < maximumDifference && levelDifference > -maximumDifference && (exp > 0 || sp > 0);
+	}
+
 	/** New encounters stay above crowd withdrawal; native rest retains its recovery hysteresis. */
 	public static boolean pveResourcesReady(double hp, double maximumHp, double mp, double requiredMp, boolean recovering)
 	{
