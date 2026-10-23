@@ -10,6 +10,6 @@ P1_PVP	OPTIONAL_BOUNDED	DEFERRED_WITH_ROOT_CAUSE	CORE not completed;072safe rout
 P2_GEAR	INFORMATIONAL	FIXTURE_DEBT_DECLARED	129/352/2378+100A declared CASE_B;no natural1to20 or earned gear claim	Paid gear upgrade NOT_RUN
 AA_CP	DEFERRED	UNCHANGED	No event/multisell/AA actions;072narrow CP evidence retained	Future optional scope
 SAFETY	HARD	PASS	OWN073 schemas/roots only;protected hashes;all ownJVM/listeners/DB0;stockSTOP	No exhaustive oldDB/client byte scan claimed
-DELIVERY	HARD	PASS_LOCAL_PUBLICATION_REQUIRED	Committed source97cefafc451/GameC59D;203physicalGeo per root;60focused checks+guards;Main/restart/STOP	Normal feature push and remote verification recorded separately
+DELIVERY	HARD	PASS	Committed source97cefafc451/GameC59D;203physicalGeo per root;60focused checks+guards;Main/restart/STOP;normal publication9cec2b4dbdd verified remote	Gameplay CORE073 remains PARTIAL;final receipt-only tip recorded separately
 OWNER_VISUAL	DEFERRED	OWNER_VISUAL_PENDING	No owner credentials/client/GUI involvement	No client QA claim
 FULL071_072	HISTORICAL	PARTIAL_UNCHANGED	Protected previous results/actors/DBs retained	No retrospective PASS

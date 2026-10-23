@@ -2,6 +2,8 @@
 
 **CORE073=PARTIAL.** Committed-source delivery и сохранность реальных заработков проверены; связанный оплаченный1463 цикл не завершён. Начало:2026-10-23 19:48 UTC; campaign закрыта примерно за1час с сохранённым актором, без R2/reseed. Все действия ограничены OWN073; ранее опубликованные071/072 PARTIAL не пересматриваются. [Матрица приёмки](PHANTOM-EARNED-LIFE-073-data/ACCEPTANCE073.tsv).
 
+**DELIVERY=PASS:** normal publication `9cec2b4dbddaa1b9838c44bf6882a0b5c851e96e` проверена по remote feature HEAD в20:54UTC. Последующий receipt-only commit не меняет Game JAR/native evidence; его final tip указан в локальном publication receipt и финальном сообщении.
+
 ## История денег и предметов
 
 Ошибка репрезентативности072: сразу создан Warrior20, выданы129/352/2378, обнулён кошелёк и отсутствовала история1–19. Его1066A после12kill не характеризуют естественную карьеру. В073 этот защищённый актор не используется. Новый TEST073 имеет отдельные schema/account/root, даже если fresh IdFactory выдаёт совпадающий integer object ID.
