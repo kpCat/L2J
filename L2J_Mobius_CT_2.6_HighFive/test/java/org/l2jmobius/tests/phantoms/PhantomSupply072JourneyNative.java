@@ -222,7 +222,7 @@ public final class PhantomSupply072JourneyNative
 		for (var skill : org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getAllAvailableSkills(setup, setup.getPlayerClass(), true, true, true)) { setup.addSkill(skill, true); }
 		for (var item : setup.getInventory().getItems().stream().filter(value -> value.isEquipped()).toList()) { setup.getInventory().unEquipItemInSlot(item.getLocationSlot()); }
 		for (int itemId : new int[] {129, 352, 2378}) { setup.getInventory().equipItem(setup.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, setup, PhantomSupply072JourneyNative.class)); }
-		setup.addItem(ItemProcessType.REWARD, 1463, 8, setup, false); setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(1);
+		setup.addItem(ItemProcessType.REWARD, 1463, 9, setup, false); setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(1);
 		setup.addAdena(ItemProcessType.REWARD, 2000, setup, false); setup.setXYZ(stand.x(), stand.y(), stand.z()); setup.getInventory().updateDatabase(); setup.storeMe(); final int actorId = setup.getObjectId(); setup.deleteMe();
 		final var profiles = PhantomProfileRepository.open(); final long id = profiles.create(actorId).profileId(); final var metrics = new PhantomMetrics();
 		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
@@ -251,7 +251,7 @@ public final class PhantomSupply072JourneyNative
 				}
 			}
 			commerce = new PhantomCommerceService(catalog, receipts, goals, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone())); check(commerce.start(), "CP commerce did not start.");
-			report.append("cp_fixture\tPREMEASUREMENT disabled task072cp/Supply072Cp Warrior20/stock learned skills/D129+352+2378/finite8Dshots/CP1;profile=").append(id).append(";actor=").append(actorId).append(";nativeNpc=30081;object=").append(merchant.getObjectId()).append(";xyz=").append(player.getLocation()).append(";finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation\n");
+			report.append("cp_fixture\tPREMEASUREMENT disabled task072cp/Supply072Cp Warrior20/stock learned skills/D129+352+2378/finite9Dshots/CP1;profile=").append(id).append(";actor=").append(actorId).append(";nativeNpc=30081;object=").append(merchant.getObjectId()).append(";xyz=").append(player.getLocation()).append(";finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation\n");
 			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal stored = null;
 			for (int itemId : new int[] {5591, 5592})
 			{
