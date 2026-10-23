@@ -89,7 +89,7 @@ public final class PhantomSupply071JourneyNative
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask071Lane.enabled() || args.length != 1 || !Set.of("prepare", "resume", "earned").contains(args[0])) { throw new IllegalArgumentException("Own071 prepare, resume or earned required."); }
+		if (!PhantomTask071Lane.enabled() || args.length != 1 || !Set.of("prepare", "resume", "earned", "cp-purchase").contains(args[0])) { throw new IllegalArgumentException("Own071 prepare, resume, earned or cp-purchase required."); }
 		final boolean prepare = args[0].equals("prepare");
 		final boolean earned = args[0].equals("earned");
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath(), task = module.getParent().resolve(".phantom-local/task071");
@@ -101,6 +101,7 @@ public final class PhantomSupply071JourneyNative
 			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(71007103L, module, task.resolve("reports")));
 			InitialEquipmentData.getInstance(); InitialShortcutData.getInstance(); MapRegionData.getInstance(); ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			MerchantPriceConfigTable.getInstance().loadInstances(); SpawnData.getInstance(); MerchantPriceConfigTable.getInstance().updateReferences();
+			if (args[0].equals("cp-purchase")) { cpPurchase(report); return; }
 			final var topologyBackend = new L2jTopologyValidationBackend(); final var topology = new PhantomTopologyQuery(new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1), topologyBackend, new PhantomTopologyMetrics());
 			final var knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults(); final var backend = new L2jGameKnowledgeBackend();
 			final var knowledge = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, knowledgePolicy), topology, knowledgePolicy));
@@ -195,6 +196,45 @@ public final class PhantomSupply071JourneyNative
 			}
 			finally { Files.createDirectories(reportFile.getParent()); Files.writeString(reportFile, report); try { ThreadPool.shutdown(); } finally { DatabaseFactory.close(); } }
 		}
+	}
+
+	private static void cpPurchase(StringBuilder report) throws Exception
+	{
+		final var merchant = World.getInstance().getVisibleObjects().stream().filter(object -> object instanceof Merchant).map(object -> (Merchant) object).filter(npc -> npc.getId() == 30081 && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0).findFirst().orElseThrow(() -> new AssertionError("BLOCKED_INPUT: actual spawned Helvetia30081 absent; no fixture created."));
+		final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load();
+		for (int itemId : new int[] {5591, 5592}) { check(catalog.catalog().findBuyOffers(itemId, 0, 256).values().stream().anyMatch(offer -> offer.listId() == 3008100 && offer.npcIds().contains(30081) && !offer.limitedStock()), "Final ordinary CP source absent for " + itemId); }
+		try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES('task071cp','DISABLED_NATIVE_TEST_ONLY',-1,1)")) { insert.executeUpdate(); }
+		final var setup = Player.create(PlayerTemplateData.getInstance().getTemplate(PlayerClass.FIGHTER), "task071cp", "Supply071Cp", new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		check(setup != null && !setup.isGM(), "New CP purchase fixture absent."); setup.stopAllTasks();
+		if (setup.getAdena() > 0) { check(setup.reduceAdena(ItemProcessType.DESTROY, setup.getAdena(), setup, false), "Fixture wallet setup failed."); }
+		setup.addAdena(ItemProcessType.REWARD, 2000, setup, false); setup.setXYZ(merchant.getX() + 16, merchant.getY(), merchant.getZ()); setup.getInventory().updateDatabase(); setup.storeMe(); final int actorId = setup.getObjectId(); setup.deleteMe();
+		final var profiles = PhantomProfileRepository.open(); final long id = profiles.create(actorId).profileId(); final var metrics = new PhantomMetrics();
+		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		PhantomCommerceService commerce = null;
+		try
+		{
+			check(materialization.start() && materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "CP fixture did not materialize.");
+			final var player = World.getInstance().getPlayer(actorId); check(player != null && player.getAdena() == 2000 && player.getActiveClass() == 0, "CP fixture facts differ.");
+			final var goals = new PhantomGoalStateStore(profiles); final var receipts = new PhantomCommerceReceiptStore(profiles);
+			commerce = new PhantomCommerceService(catalog, receipts, goals, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone())); check(commerce.start(), "CP commerce did not start.");
+			report.append("cp_fixture\tPREMEASUREMENT disabled task071cp/Supply071Cp;profile=").append(id).append(";actor=").append(actorId).append(";nativeNpc=30081;object=").append(merchant.getObjectId()).append(";xyz=").append(player.getLocation()).append(";finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation\n");
+			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal stored = null;
+			for (int itemId : new int[] {5591, 5592})
+			{
+				final long goalId = 710071100L + itemId; final var source = new PhantomDomainRef("commerce.buy", "30081:" + merchant.getObjectId() + ":3008100:" + itemId + ":1");
+				final var goal = new PhantomGoal(goalId, "acquire.item", PhantomGoalStatus.ACTIVE, null, null, 5, 0, null, List.of(source), null, "commerce.test", 500, 0, 100, 0, Map.of(), "cp071.fixture", 0);
+				stored = stored == null ? goals.insert(id, goal) : goals.replace(id, stored.rowVersion(), goal);
+				player.setTarget(merchant); player.setLastFolkNPC(merchant);
+				final long adena = player.getAdena(), count = player.getInventory().getInventoryItemCount(itemId, -1);
+				final var intent = new PhantomCommerceService.OperationIntent(PhantomCommerceReceipt.OperationKind.BUY, 30081, merchant.getObjectId(), 3008100, itemId, 0, 1, 0, "", adena);
+				final var result = commerce.execute(id, goalId, 0, intent, () -> false); report.append("cp_operation\titem=").append(itemId).append(';').append(result).append('\n');
+				check(result.status() == PhantomCommerceService.OperationStatus.SUCCESS, "Paid CP purchase failed: " + result);
+				final var receipt = receipts.find(id).orElseThrow().receipt(); report.append("cp_committed\t").append(receipt).append(";actualA=").append(adena).append("->").append(player.getAdena()).append(";actualItem=").append(count).append("->").append(player.getInventory().getInventoryItemCount(itemId, -1)).append('\n');
+				check(receipt.state() == PhantomCommerceReceipt.State.COMMITTED && receipt.request().amount() > 0 && receipt.request().itemId() == itemId && receipt.request().count() == 1 && player.getAdena() == adena - receipt.request().amount() && receipt.expectedAfter().primaryCount() == player.getAdena() && player.getInventory().getInventoryItemCount(itemId, -1) == count + 1 && receipt.expectedAfter().secondaryCount() == count + 1, "Paid CP native conservation failed.");
+			}
+			report.append("result\tPASS paid ordinary native30081/list3008100 BUY5591x1 +5592x1 with durable COMMITTED receipts; fixture funding explicit; no earned-income claim\n");
+		}
+		finally { if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "CP commerce did not drain."); } report.append("cp_shutdown\t").append(materialization.shutdown()).append('\n'); }
 	}
 
 	private static Scene selectScene(PhantomCommerceCatalog catalog, StringBuilder report)
