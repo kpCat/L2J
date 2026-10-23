@@ -1,6 +1,6 @@
 # PHANTOM-EARNED-LIFE-073
 
-**CORE073=PARTIAL.** Committed-source delivery и сохранность реальных заработков проверены; связанный оплаченный1463 цикл не завершён. Начало:2026-10-23 19:48 UTC; campaign закрыта примерно за1час с сохранённым актором, без R2/reseed. Все действия ограничены OWN073; ранее опубликованные071/072 PARTIAL не пересматриваются. [Матрица приёмки](PHANTOM-EARNED-LIFE-073-data/ACCEPTANCE073.tsv).
+**CORE073=PARTIAL.** Committed-source delivery и сохранность реальных заработков проверены; связанный оплаченный1463 цикл не завершён. Начало:2026-10-23 19:48 UTC; campaign закрыта примерно за1ч15мин с сохранённым актором, без R2/reseed. Все действия ограничены OWN073; ранее опубликованные071/072 PARTIAL не пересматриваются. [Матрица приёмки](PHANTOM-EARNED-LIFE-073-data/ACCEPTANCE073.tsv).
 
 **DELIVERY=PASS:** normal publication `9cec2b4dbddaa1b9838c44bf6882a0b5c851e96e` проверена по remote feature HEAD в20:54UTC. Последующий receipt-only commit не меняет Game JAR/native evidence; его final tip указан в локальном publication receipt и финальном сообщении.
 
@@ -60,5 +60,7 @@ Focused: combat-core55/55, supply0715/5; actual Supply072Suite не сущест
 - escaped Cyrillic в изменённых файлах проверены — PASS.
 
 Использованы полный набор маркеров и отдельные regex. Raw runtime-generated PS5 stderr с локализованным месяцем имеет encoding artifacts; эти логи не исправлялись и не выдаются за source-text PASS.
+
+Дополнительная candidate-проверка выявила mojibake именно в generated operator README: Windows PowerShell5 прочитал UTF-8 source Assemble073 без BOM как ANSI. К Assemble073 добавлен UTF-8 BOM без изменения логики; PS5 literal-decode regression RED→GREEN. Собственный README восстановлен читаемой кириллицей из проверенных metadata; full mojibake и escaped-Cyrillic проверки candidate-документов обе PASS. До замены исходные README/Assemble побайтово скопированы вне checkout в own candidate/private и SHA сверены. Старые диагностические backup-копии с mojibake сохранены вне current user-facing scope; Game JAR/DB/processes не менялись, повторного build/boot не было.
 
 Пути source/tools/tests ограничены [SOURCE_PATHS073.txt](PHANTOM-EARNED-LIFE-073-data/SOURCE_PATHS073.txt), финальный exact artifact allowlist — [ARTIFACT_PATHS073.txt](PHANTOM-EARNED-LIFE-073-data/ARTIFACT_PATHS073.txt); план, решения и review fixes — [IMPLEMENTATION073.md](PHANTOM-EARNED-LIFE-073-data/IMPLEMENTATION073.md). Git использован по прямой authority073: bounded branch/status/remote/exact diff, exact staging/commits/archive и normal non-force feature push. [Точные команды и publication contract](PHANTOM-EARNED-LIFE-073-data/GIT073.md). Фактический final remote HEAD после push фиксируется в локальном publication receipt и финальном сообщении, без самореферентного SHA внутри своего commit. Ни master, ни чужой dirt не изменяются.

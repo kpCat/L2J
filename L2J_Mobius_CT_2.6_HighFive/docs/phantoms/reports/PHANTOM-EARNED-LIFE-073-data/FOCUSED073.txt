@@ -3,3 +3,6 @@ SUMMARY: suite=supply071 seed=73007301 total=5 passed=5 failed=0
 OWN073_RUNTIME_GUARD_PASS; DB_WRITES=0; PROCESS_ACTIONS=0
 EARNED073_CLEANUP_PASS; original Error retained; all owners attempted; secondary failure suppressed; DB_WRITES=0
 Native early failed null-knowledge TARGET admission was corrected using the existing native knowledge supplier; same actor was retained.
+PS5_GUIDE_TEXT_DECODE: RED before UTF-8 BOM -> GREEN after BOM; DB_WRITES=0; PROCESS_ACTIONS=0
+CANDIDATE_MOJIBAKE_MARKERS_CHECKED=PASS
+CANDIDATE_ESCAPED_CYRILLIC_CHECKED=PASS
