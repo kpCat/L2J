@@ -20,6 +20,134 @@ import org.l2jmobius.gameserver.qol.PremiumLootPolicy;
 public final class PhantomEconomy071Native
 {
 	private PhantomEconomy071Native() { }
+	/** SQL-only retained diagnostic: no native actors are loaded, saved, reconciled or modified. */
+	public static void inspectRetained(StringBuilder report) throws Exception
+	{
+		if (!PhantomTask071Lane.enabled()) { throw new IllegalArgumentException("Explicit OWN071 native TEST lane required."); }
+		final var snapshot = new java.util.Properties();
+		final var receiptPath = java.nio.file.Path.of(System.getProperty("phantom.module.root")).getParent().resolve(".phantom-local/task071/native-acceptance071.properties");
+		try (var reader = java.nio.file.Files.newBufferedReader(receiptPath)) { snapshot.load(reader); }
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			check(PhantomTask071Lane.SCHEMA.equals(connection.getCatalog()), "Own071 TEST schema required."); Economy070Shop.verifySchema(connection);
+			for (String account : new String[] {"task071nativeone", "task071nativepoor"})
+			{
+				int owner = 0; String name = ""; final var inventory = new StringBuilder(); int rowsFound = 0;
+				try (var query = connection.prepareStatement("SELECT charId,char_name FROM characters WHERE account_name=?"))
+				{
+					query.setString(1, account);
+					try (var rows = query.executeQuery())
+					{
+						check(rows.next(), "Exact071 diagnostic account has no character: " + account); owner = rows.getInt(1); name = rows.getString(2);
+						check(!rows.next(), "Exact071 diagnostic account has ambiguous characters.");
+					}
+				}
+				check(owner == Integer.parseInt(snapshot.getProperty(account.equals("task071nativeone") ? "first" : "poor")), "Retained071 diagnostic owner differs.");
+				try (var query = connection.prepareStatement("SELECT owner_id,object_id,item_id,count,loc,loc_data,enchant_level,mana_left,time FROM items WHERE owner_id=? ORDER BY object_id"))
+				{
+					query.setInt(1, owner);
+					try (var rows = query.executeQuery())
+					{
+						while (rows.next())
+						{
+							rowsFound++; report.append("economy071.inspect.item\t").append(account);
+							for (int column = 1; column <= 9; column++) { report.append(';').append(rows.getString(column)); } report.append('\n');
+							if ("INVENTORY".equals(rows.getString(5)) || "PAPERDOLL".equals(rows.getString(5)))
+							{ inventory.append(rows.getInt(2)).append(':').append(rows.getInt(3)).append(':').append(rows.getLong(4)).append(':').append(rows.getInt(7)).append('\n'); }
+						}
+					}
+				}
+				final String currentHash = diagnosticHash(inventory.toString());
+				report.append("economy071.inspect.inventory\t").append(account).append(";owner=").append(owner).append(";sqlRows=").append(rowsFound).append(";sqlInventorySHA=").append(currentHash).append(";originalSHA=").append(snapshot.getProperty(name + ".inventory")).append(";canonical=").append(inventory.toString().replace("\n", "| ")).append('\n');
+				try (var query = connection.prepareStatement("SELECT request_id,kind,sku,item_object_id,result_value,amount,created_utc FROM economy070_orders WHERE account_name=? AND char_id=? AND kind IN ('EPIC','DEPOSIT','PREMIUM') ORDER BY created_utc,request_id"))
+				{
+					query.setString(1, account); query.setInt(2, owner);
+					try (var rows = query.executeQuery())
+					{
+						while (rows.next())
+						{
+							report.append("economy071.inspect.receipt\t").append(account); for (int column = 1; column <= 7; column++) { report.append(';').append(rows.getString(column)); } report.append('\n');
+							if ("EPIC".equals(rows.getString(2)) && rows.getInt(3) == 6660)
+							{
+								final String ring = rows.getInt(4) + ":6660:1:0\n", ringHash = diagnosticHash(ring);
+								report.append("economy071.inspect.ringOnly\t").append(account).append(";receiptObject=").append(rows.getInt(4)).append(";result=").append(rows.getLong(5)).append(";SHA=").append(ringHash).append(";matchesOriginal=").append(ringHash.equals(snapshot.getProperty(name + ".inventory"))).append(";matchesSqlInventory=").append(ringHash.equals(currentHash)).append('\n');
+							}
+						}
+					}
+				}
+				try (var query = connection.prepareStatement("SELECT balance FROM economy070_wallet WHERE account_name=?"))
+				{ query.setString(1, account); try (var rows = query.executeQuery()) { report.append("economy071.inspect.wallet\t").append(account).append(';').append(rows.next() ? Long.toString(rows.getLong(1)) : "MISSING").append(";original=").append(snapshot.getProperty(name + ".wallet")).append('\n'); } }
+			}
+			try (var query = connection.prepareStatement("SELECT sku,current_stock,next_restock,epoch,version,max_stock,restock_days,source_price_revision FROM economy070_stock ORDER BY sku"); var rows = query.executeQuery())
+			{ while (rows.next()) { report.append("economy071.inspect.stock\t"); for (int column = 1; column <= 8; column++) { if (column > 1) { report.append(';'); } report.append(rows.getString(column)); } report.append('\n'); } }
+		}
+		report.append("economy071.inspect.mode\tSQL SELECT only;no Player.load/save;no receipt replay;no stock restock/reconciliation;zero-count native Adena snapshot is a hypothesis pending row/hash evidence\n");
+	}
+	private static String diagnosticHash(String value) throws Exception
+	{
+		return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+	}
+	/** Strict raw equality first; only the immutable v1 poor fixture may prove its removed zero57 stack. */
+	public static void verifyInventory(Player player, String expectedRawHash, StringBuilder report) throws Exception
+	{
+		final var nativeRows = new StringBuilder();
+		for (var item : player.getInventory().getItems().stream().sorted(java.util.Comparator.comparingInt(Item::getObjectId)).toList())
+		{ nativeRows.append(item.getObjectId()).append(':').append(item.getId()).append(':').append(item.getCount()).append(':').append(item.getEnchantLevel()).append('\n'); }
+		final String currentHash = diagnosticHash(nativeRows.toString());
+		if (currentHash.equals(expectedRawHash)) { report.append("economy071.inventory.exact\t").append(player.getName()).append(';').append(currentHash).append('\n'); return; }
+		check(PhantomTask071Lane.enabled() && "task071nativepoor".equals(player.getAccountName()) && "Native071Poor".equals(player.getName()), "Native inventory changed across own071 restart: " + player.getName());
+		final var snapshot = new java.util.Properties();
+		final var receiptPath = java.nio.file.Path.of(System.getProperty("phantom.module.root")).getParent().resolve(".phantom-local/task071/native-acceptance071.properties");
+		try (var reader = java.nio.file.Files.newBufferedReader(receiptPath)) { snapshot.load(reader); }
+		check(player.getObjectId() == Integer.parseInt(snapshot.getProperty("poor")) && expectedRawHash.equals(snapshot.getProperty("Native071Poor.inventory")) && "0".equals(snapshot.getProperty("Native071Poor.wallet")), "Original v1 poor snapshot authority differs.");
+		check(player.getInventory().getItems().size() == 1, "Zero57 exception requires exactly one native ring row.");
+		final Item ring = player.getInventory().getItems().iterator().next();
+		check(ring.getOwnerId() == player.getObjectId() && ring.getId() == 6660 && ring.getCount() == 1 && ring.getEnchantLevel() == 0 && ring.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY, "Positive native ring preimage differs.");
+		final String ringRow = ring.getObjectId() + ":6660:1:0\n";
+		check(ringRow.equals(nativeRows.toString()), "Native inventory is not exactly the receipt ring.");
+		String depositRequest = null, epicRequest = null; long depositTime = 0, epicTime = 0;
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			check(PhantomTask071Lane.SCHEMA.equals(connection.getCatalog()), "Own071 TEST schema required."); Economy070Shop.verifySchema(connection);
+			try (var query = connection.prepareStatement("SELECT object_id,item_id,count,loc,enchant_level FROM items WHERE owner_id=? ORDER BY object_id"))
+			{
+				query.setInt(1, player.getObjectId());
+				try (var rows = query.executeQuery())
+				{ check(rows.next() && rows.getInt(1) == ring.getObjectId() && rows.getInt(2) == 6660 && rows.getLong(3) == 1 && "INVENTORY".equals(rows.getString(4)) && rows.getInt(5) == 0 && !rows.next(), "SQL owner rows must contain only the exact positive ring; zero57 must be absent."); }
+			}
+			try (var query = connection.prepareStatement("SELECT request_id,kind,amount,sku,item_object_id,result_value,created_utc FROM economy070_orders WHERE account_name='task071nativepoor' AND char_id=? AND kind IN ('DEPOSIT','EPIC') ORDER BY created_utc,request_id"))
+			{
+				query.setInt(1, player.getObjectId());
+				try (var rows = query.executeQuery())
+				{
+					while (rows.next())
+					{
+						if ("DEPOSIT".equals(rows.getString(2)))
+						{ check(depositRequest == null && rows.getLong(3) == 200_000_000L && rows.getObject(4) == null && rows.getInt(5) == 0 && rows.getLong(6) == 200_000_000L, "V1 poor deposit receipt differs."); depositRequest = rows.getString(1); depositTime = rows.getLong(7); }
+						else
+						{ check(epicRequest == null && rows.getLong(3) == 200_000_000L && rows.getInt(4) == 6660 && rows.getInt(5) == ring.getObjectId() && rows.getLong(6) == ring.getObjectId(), "V1 poor epic receipt differs."); epicRequest = rows.getString(1); epicTime = rows.getLong(7); }
+					}
+				}
+			}
+			check(depositRequest != null && epicRequest != null && depositTime <= epicTime, "Exact deposit->epic receipt chain required.");
+			try (var query = connection.prepareStatement("SELECT balance FROM economy070_wallet WHERE account_name='task071nativepoor'"); var rows = query.executeQuery())
+			{ check(rows.next() && rows.getLong(1) == 0 && !rows.next(), "Poor wallet is not the exact zero postimage."); }
+			try (var query = connection.prepareStatement("SELECT current_stock,next_restock,max_stock FROM economy070_stock WHERE sku=6660"); var rows = query.executeQuery())
+			{ check(rows.next() && rows.getInt(1) == 0 && rows.getLong(2) == Long.parseLong(snapshot.getProperty("due")) && rows.getInt(3) == 1 && !rows.next(), "Retained sold-out stock/due differs."); }
+		}
+		int zeroObjectId = 0, matches = 0;
+		// V1 did not record its zero currency object. A bounded unique preimage match proves that ID;
+		// no zero rows or arbitrary changed values are filtered from the current inventory.
+		final int lower = Math.max(player.getObjectId() + 1, ring.getObjectId() - 4096), upper = Math.addExact(ring.getObjectId(), 4096);
+		for (int candidate = lower; candidate <= upper; candidate++)
+		{
+			if (candidate == ring.getObjectId()) { continue; }
+			final String zero = candidate + ":57:0:0\n", original = candidate < ring.getObjectId() ? zero + ringRow : ringRow + zero;
+			if (diagnosticHash(original).equals(expectedRawHash)) { zeroObjectId = candidate; matches++; }
+		}
+		check(matches == 1, "Cannot uniquely prove the original ring+zero57 inventory hash; no normalization permitted.");
+		report.append("economy071.inventory.v1Zero57\t").append(player.getName()).append(";rawOriginalSHA=").append(expectedRawHash).append(";canonicalRingSHA=").append(currentHash).append(";reconstructedZero57ObjectId=").append(zeroObjectId).append(";uniqueSHApreimage=1;candidateRange=").append(lower).append("..").append(upper).append(";depositReceipt=").append(depositRequest).append(";epicReceipt=").append(epicRequest).append(";positiveNativeAndSql=").append(ringRow.trim()).append(";zero57Sql=ABSENT;wallet=0;stock=0;due=").append(snapshot.getProperty("due")).append(";originalSnapshot=UNCHANGED;SQL_SELECT_ONLY;bounded v1 snapshot normalization,not raw hash equality\n");
+	}
 	public static void run(Player player, Player poor, StringBuilder report) throws Exception
 	{
 		if (!PhantomTask071Lane.enabled()) { throw new IllegalArgumentException("Explicit OWN071 native TEST lane required."); }
@@ -99,20 +227,49 @@ public final class PhantomEconomy071Native
 			}
 		}
 		check(receipts >= 6 && count(player, 5575) == aa && count(player, 13722) == tokens, "Retained replay changed currency or receipts missing.");
-		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT request_id,kind,amount,sku,result_value FROM economy070_orders WHERE char_id=? AND account_name=? AND kind IN ('EPIC','PREMIUM')"))
+		verifyPaidRetained(player, report);
+		report.append("economy071.retained\t").append(receipts).append(" immutable token receipts replayed;balances unchanged;ordinary native reload\n");
+	}
+	public static void verifyPaidRetained(Player player, StringBuilder report) throws Exception
+	{
+		check(PhantomTask071Lane.enabled() && java.util.Set.of("task071nativeone", "task071nativepoor").contains(player.getAccountName()), "Exact071 paid retained fixture required.");
+		final String beforeInventory = retainedInventoryHash(player), beforeStock = retainedStock();
+		final long beforeWallet = Economy070Shop.getInstance().balance(player); int epic = 0, paid = 0;
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT request_id,kind,amount,sku,result_value,item_object_id FROM economy070_orders WHERE char_id=? AND account_name=? AND kind IN ('EPIC','PREMIUM') ORDER BY created_utc,request_id"))
 		{
+			check(PhantomTask071Lane.SCHEMA.equals(connection.getCatalog()), "Own071 TEST schema required."); Economy070Shop.verifySchema(connection);
 			query.setInt(1, player.getObjectId()); query.setString(2, player.getAccountName());
 			try (var rows = query.executeQuery())
 			{
 				while (rows.next())
 				{
+					paid++;
 					final var shop = Economy070Shop.getInstance(); final String revision = Economy070Pricing.getInstance().revision();
-					if (rows.getString(2).equals("EPIC")) { check(shop.buy(player, rows.getInt(4), rows.getString(1), revision) == rows.getLong(5), "Retained epic object changed."); }
+					if (rows.getString(2).equals("EPIC"))
+					{
+						epic++; final Item physical = player.getInventory().getItemByObjectId(rows.getInt(6));
+						check(rows.getInt(4) == 6660 && rows.getInt(6) == rows.getLong(5) && physical != null && physical.getOwnerId() == player.getObjectId() && physical.getId() == 6660 && physical.getCount() == 1 && physical.getEnchantLevel() == 0, "Retained paid receipt has no exact owned ring.");
+						check(shop.buy(player, rows.getInt(4), rows.getString(1), revision) == rows.getLong(5), "Retained epic object changed.");
+					}
 					else { check(shop.premium(player, (int) rows.getLong(3), rows.getString(1), revision) == rows.getLong(5), "Retained premium receipt changed."); }
+					report.append("economy071.paidReplay.receipt\t").append(player.getName()).append(';').append(rows.getString(1)).append(';').append(rows.getString(2)).append(";object=").append(rows.getInt(6)).append(";result=").append(rows.getLong(5)).append('\n');
 				}
 			}
 		}
-		report.append("economy071.retained\t").append(receipts).append(" immutable token receipts replayed;balances unchanged;ordinary native reload\n");
+		check(paid > 0 && (!"task071nativepoor".equals(player.getAccountName()) || epic == 1), "Poor winner requires exactly one retained EPIC receipt.");
+		check(beforeInventory.equals(retainedInventoryHash(player)) && beforeWallet == Economy070Shop.getInstance().balance(player) && beforeStock.equals(retainedStock()), "Paid replay changed physical inventory, wallet or stock/due.");
+		report.append("economy071.paidReplay.retained\t").append(player.getName()).append(";receipts=").append(paid).append(";epic=").append(epic).append(";inventorySHA=").append(beforeInventory).append(";wallet=").append(beforeWallet).append(";stock=").append(beforeStock).append(";physical/wallet/stockBeforeAfter=UNCHANGED\n");
+	}
+	private static String retainedInventoryHash(Player player) throws Exception
+	{
+		final var rows = new StringBuilder();
+		for (var item : player.getInventory().getItems().stream().sorted(java.util.Comparator.comparingInt(Item::getObjectId)).toList()) { rows.append(item.getObjectId()).append(':').append(item.getId()).append(':').append(item.getCount()).append(':').append(item.getEnchantLevel()).append('\n'); }
+		return diagnosticHash(rows.toString());
+	}
+	private static String retainedStock() throws Exception
+	{
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT current_stock,next_restock,epoch,version,max_stock,restock_days,source_price_revision FROM economy070_stock WHERE sku=6660"); var rows = query.executeQuery())
+		{ check(PhantomTask071Lane.SCHEMA.equals(connection.getCatalog()) && rows.next(), "Retained own071 stock missing."); final var value = new StringBuilder(); for (int column = 1; column <= 7; column++) { value.append(rows.getString(column)).append(';'); } check(!rows.next(), "Duplicate retained stock."); return value.toString(); }
 	}
 	private static void paidAndStock(Player player, Player poor, StringBuilder report) throws Exception
 	{

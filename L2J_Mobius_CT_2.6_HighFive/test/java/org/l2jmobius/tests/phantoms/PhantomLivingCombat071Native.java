@@ -20,7 +20,7 @@ public final class PhantomLivingCombat071Native
 {
 	public static void main(String[] args) throws Exception
 	{
-		if(args.length!=1 || !java.util.Set.of("prepare","verify","mammon","combat","combat-resume","combat-roles","combat-remaining","grade-resume","cp-retained","reserve","inspect").contains(args[0]) || !PhantomTask071Lane.enabled()) { throw new IllegalArgumentException("Explicit OWN071 native action required."); }
+		if(args.length!=1 || !java.util.Set.of("prepare","verify","mammon","combat","combat-resume","combat-roles","combat-remaining","combat-tail","grade-resume","cp-retained","reserve","inspect").contains(args[0]) || !PhantomTask071Lane.enabled()) { throw new IllegalArgumentException("Explicit OWN071 native action required."); }
 		final Path module=Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		final Path task=module.getParent().resolve(".phantom-local/task071");
 		final Path receipt=task.resolve("native-acceptance071.properties");
@@ -35,6 +35,7 @@ public final class PhantomLivingCombat071Native
 			else if(args[0].equals("combat-resume")) { PhantomCombat071Native.resume(report); }
 			else if(args[0].equals("combat-roles")) { PhantomCombat071Native.roles(report); }
 			else if(args[0].equals("combat-remaining")) { PhantomCombat071Native.remainingRoles(report); }
+			else if(args[0].equals("combat-tail")) { PhantomEconomy071Native.inspectRetained(report); PhantomCombat071Native.combatTail(report); }
 			else if(args[0].equals("cp-retained")) { PhantomCombat071Native.cpRetained(report); }
 			else if(args[0].equals("grade-resume")) { final Player grade=Player.load(268435468);check(grade!=null,"Retained grade fixture missing.");players.add(grade);PhantomSupply071Native.resumeGrades(grade,report); }
 			else if(args[0].equals("reserve")) { PhantomCombat071Native.mixedReserve(report); }
@@ -62,9 +63,10 @@ public final class PhantomLivingCombat071Native
 				if(args[0].equals("mammon")) { PhantomMammon071Native.run(players.getFirst(),report); }
 				else
 				{
-					for(Player player:players) { check(inventory(player).equals(values.getProperty(player.getName()+".inventory")),"Native inventory changed across own071 restart: "+player.getName());check(Economy070Shop.getInstance().balance(player)==Long.parseLong(values.getProperty(player.getName()+".wallet")),"Retained savings changed."); }
+					for(Player player:players) { PhantomEconomy071Native.verifyInventory(player,values.getProperty(player.getName()+".inventory"),report);check(Economy070Shop.getInstance().balance(player)==Long.parseLong(values.getProperty(player.getName()+".wallet")),"Retained savings changed."); }
 					check(Economy070Shop.getInstance().stock(6660).count()==Integer.parseInt(values.getProperty("stock")) && Economy070Shop.getInstance().stock(6660).nextRestockUtc()==Long.parseLong(values.getProperty("due")),"Restart reseeded stock or changed restock epoch.");
 					PhantomEconomy071Native.verifyRetained(players.getFirst(),report);
+					PhantomEconomy071Native.verifyPaidRetained(players.getLast(),report);
 					report.append("retention\tidentity/native item-object+count+enchant inventory hashes/savings/stock/restock exact;no reseed\n");
 				}
 			}

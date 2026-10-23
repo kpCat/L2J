@@ -63,13 +63,27 @@ public final class PhantomCombat071Native
 	{
 		run(report,true,true,true);
 	}
+	public static void combatTail(StringBuilder report) throws Exception
+	{
+		run(report,true,true,true,true);
+	}
 	private static void run(StringBuilder report,boolean resume,boolean rolesOnly,boolean remainingRoles) throws Exception
+	{
+		run(report,resume,rolesOnly,remainingRoles,false);
+	}
+	private static void run(StringBuilder report,boolean resume,boolean rolesOnly,boolean remainingRoles,boolean tail) throws Exception
 	{
 		check(PhantomTask071Lane.enabled(), "Explicit own071 native infrastructure required.");
 		if(rolesOnly)
 		{
 			try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT COUNT(*) FROM accounts WHERE login='task071combat' AND accessLevel=-1");var rows=query.executeQuery()){check(rows.next()&&rows.getInt(1)==1,"Existing disabled own071 combat account required; no account insert.");}
-			if(remainingRoles)
+			if(tail)
+			{
+				for(String name:List.of("Combat071Dagger","Enemy071Dagger","Combat071Mage","Enemy071Mage")){check(retainedCharacter(name)>0,"Exact retained tail actor required: "+name);}
+				for(String name:List.of("Combat071Tank","Enemy071Tank","Combat071Kamael","Enemy071Kamael")){check(retainedCharacter(name)==0,"Tail new role already exists; no replay/refill: "+name);}
+				report.append("combat071.tail\tRetained Dagger/Mage and exact enemies; no HP/MP/CP/gear/shot/Soul refill; prior Mage single-hit timeout and prior Dagger cleanup failure remain separate evidence; Archer/support/grades untouched; only absent Tank/Kamael created\n");
+			}
+			else if(remainingRoles)
 			{
 				try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT COUNT(*) FROM characters WHERE account_name='task071combat' AND accesslevel=0 AND char_name IN ('Combat071Dagger','Enemy071Dagger','Support071','Support071Ally')");var rows=query.executeQuery()){check(rows.next()&&rows.getInt(1)==4,"Exact retained support and Dagger actors required; no replay/refill.");}
 				try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT COUNT(*) FROM characters WHERE account_name='task071combat' AND (char_name LIKE 'Combat071%' OR char_name LIKE 'Enemy071%' OR char_name LIKE 'Support071%') AND char_name NOT IN ('Combat071Dagger','Enemy071Dagger','Support071','Support071Ally')");var rows=query.executeQuery()){check(rows.next()&&rows.getInt(1)==0,"A remaining role already exists; no replay/refill permitted.");}
@@ -101,25 +115,39 @@ public final class PhantomCombat071Native
 			}
 			else if(!rolesOnly) { final Player grade = fixture("Supply071Grade", 0, 0, WeaponType.SWORD, ordinary); PhantomSupply071Native.verifyGrades(grade, report); }
 			if(!remainingRoles){support(materialization, repository, ordinary, report);}
+			int tailFailures=0;
 			for (Role role : List.of(new Role("Dagger", 0, 93, WeaponType.DAGGER, PhantomCombatMode.MELEE_PHYSICAL), new Role("Archer", 0, 92, WeaponType.BOW, PhantomCombatMode.RANGED_PHYSICAL), new Role("Mage", 10, 94, WeaponType.BLUNT, PhantomCombatMode.RANGED_MAGIC), new Role("Tank", 0, 90, WeaponType.SWORD, PhantomCombatMode.MELEE_PHYSICAL), new Role("Kamael", 123, 132, WeaponType.RAPIER, PhantomCombatMode.MELEE_PHYSICAL)))
 			{
-				if(remainingRoles&&role.name().equals("Dagger")){continue;}
-				final Player prepared = fixture("Combat071" + role.name(), role.rootClass(), role.profession(), role.weapon(), ordinary);
-				if(role.name().equals("Tank")){prepared.setCurrentCp(1);for(int id:new int[]{5591,5592}){prepared.addItem(ItemProcessType.REWARD,id,2,prepared,false);}report.append("combat071.autoCpFixture\tTank lowCP1 and finite5591x2/5592x2 declared before materialization/measurement;not purchased or earned\n");}
-				final var input = point(); prepared.setXYZ(input); prepared.stopAllTasks(); prepared.storeMe(); prepared.deleteMe(); ordinary.remove(prepared);
-				final long profile = repository.create(prepared.getObjectId()).profileId();
+				if(tail?role.name().equals("Archer"):remainingRoles&&role.name().equals("Dagger")){continue;}
+				long roleProfile=0;
+				try
+				{
+				final boolean retained=tail&&(role.name().equals("Dagger")||role.name().equals("Mage"));
+				final int character;
+				final long profile;
+				if(retained){character=retainedCharacter("Combat071"+role.name());profile=repository.findByCharacterObjectId(character).orElseThrow().profileId();}
+				else
+				{
+					final Player prepared = fixture("Combat071" + role.name(), role.rootClass(), role.profession(), role.weapon(), ordinary);
+					if(role.name().equals("Tank")){prepared.setCurrentCp(1);for(int id:new int[]{5591,5592}){prepared.addItem(ItemProcessType.REWARD,id,2,prepared,false);}report.append("combat071.autoCpFixture\tTank lowCP1 and finite5591x2/5592x2 declared before materialization/measurement;not purchased or earned\n");}
+					prepared.setXYZ(point());prepared.stopAllTasks();prepared.storeMe();prepared.deleteMe();ordinary.remove(prepared);character=prepared.getObjectId();profile=repository.create(character).profileId();
+				}
+				roleProfile=profile;
 				check(materialization.materialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Own071 role failed materialization: " + role.name());
-				final Player actor = World.getInstance().getPlayer(prepared.getObjectId());
-				final Player defender = fixture("Enemy071" + role.name(), 0, 90, WeaponType.SWORD, ordinary);
-				defender.setOnlineStatus(true, false); defender.spawnMe(input.getX() + 80, input.getY(), input.getZ());
+				final Player actor = World.getInstance().getPlayer(character);
+				if(role.name().equals("Kamael")){soulBottles(materialization,profile,actor,report);}
+				final Player defender = retained?Player.load(retainedCharacter("Enemy071"+role.name())):fixture("Enemy071" + role.name(), 0, 90, WeaponType.SWORD, ordinary);
+				check(defender!=null&&!defender.isDead()&&!actor.isDead(),"Native tail participants must remain alive; no pool reset.");if(retained){ordinary.add(defender);}
+				defender.setOnlineStatus(true, false); defender.spawnMe(actor.getX() + 80, actor.getY(), actor.getZ());
 				actor.setTarget(defender); defender.setTarget(actor);
 				final AtomicInteger skillEvents = new AtomicInteger();
+				final AtomicInteger positionalEvents = new AtomicInteger();
 				final AtomicBoolean reuseObserved = new AtomicBoolean();
 				final AtomicBoolean autoCpReuse=new AtomicBoolean();final double[] autoCpPeak={actor.getCurrentCp()};
 				final long cpSmallBefore=actor.getInventory().getInventoryItemCount(5591,-1),cpLargeBefore=actor.getInventory().getInventoryItemCount(5592,-1);
 				final int cpSmallObject=role.name().equals("Tank")?actor.getInventory().getItemByItemId(5591).getObjectId():0,cpLargeObject=role.name().equals("Tank")?actor.getInventory().getItemByItemId(5592).getObjectId():0;
 				final int initialX=actor.getX(),initialY=actor.getY();
-				final var listener = new ConsumerEventListener(actor, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == actor && event.getTarget() == defender && event.getSkill() != null && event.getDamage() > 0) { skillEvents.incrementAndGet(); } }, actor);
+				final var listener = new ConsumerEventListener(actor, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == actor && event.getTarget() == defender && event.getSkill() != null && event.getDamage() > 0) { skillEvents.incrementAndGet();if(PhantomPvpSkillSafety.requiresRear(event.getSkill())){positionalEvents.incrementAndGet();} } }, actor);
 				actor.addListener(listener);
 				final var selected = L2jCombatBackend.nativePvpSkills(actor, role.mode(), 16);
 				check(!selected.isEmpty(), "UNCOVERED_ROLE native learned skill selection: " + role.name());
@@ -127,8 +155,9 @@ public final class PhantomCombat071Native
 				final double targetPool = defender.getCurrentHp() + defender.getCurrentCp();
 				report.append("combat071.fixture\trole=").append(role.name()).append(";profile=").append(profile).append(";nativeClass=").append(actor.getActiveClass()).append(";weapon=").append(actor.getActiveWeaponItem().getId()).append(";known=").append(selected).append(";finiteStockShots=").append(shotsBefore).append(";SoulsFixture=").append(soulsBefore).append(";not earned gear/skills/currency\n");
 				// Opponent starts a real ordinary native attack. Reactive reason has a factual source.
-				final double poolBeforeEnemy=actor.getCurrentHp()+actor.getCurrentCp();defender.doAttack(actor);
-				await(() -> actor.getCurrentHp() + actor.getCurrentCp() < poolBeforeEnemy, 6000, "Native enemy first attack produced no damage.");
+				final double poolBeforeEnemy=actor.getCurrentHp()+actor.getCurrentCp();
+				if(tail){nativeFirstAttack(actor,defender,report);}
+				else{defender.doAttack(actor);await(() -> actor.getCurrentHp() + actor.getCurrentCp() < poolBeforeEnemy, 6000, "Native enemy first attack produced no damage.");}
 				defender.abortAttack(); defender.getAI().setIntention(Intention.IDLE);
 				final var observation=combat.observePvp(profile,List.of(defender.getObjectId()),16,16).orElseThrow();
 				check(observation.supportedModes().getFirst()==role.mode(),"Native role preference selected a secondary magic/melee capability instead of its actual archetype: "+role.name());
@@ -140,7 +169,7 @@ public final class PhantomCombat071Native
 				boolean effect = false;
 				try
 				{
-					await(() -> { if(selected.stream().anyMatch(skill -> actor.isSkillDisabled(actor.getKnownSkill(skill.skillId())))){reuseObserved.set(true);} if(role.name().equals("Tank")){autoCpPeak[0]=Math.max(autoCpPeak[0],actor.getCurrentCp());if(actor.getItemRemainingReuseTime(cpSmallObject)>0||actor.getItemRemainingReuseTime(cpLargeObject)>0){autoCpReuse.set(true);}} return skillEvents.get() > 0 && defender.getCurrentHp() + defender.getCurrentCp() < targetPool || selected.stream().anyMatch(skill -> defender.isAffectedBySkill(skill.skillId())); }, 20_000, "UNCOVERED_ROLE no native skill damage/debuff: " + role.name());
+					await(() -> { if(selected.stream().anyMatch(skill -> actor.isSkillDisabled(actor.getKnownSkill(skill.skillId())))){reuseObserved.set(true);} if(role.name().equals("Tank")){autoCpPeak[0]=Math.max(autoCpPeak[0],actor.getCurrentCp());if(actor.getItemRemainingReuseTime(cpSmallObject)>0||actor.getItemRemainingReuseTime(cpLargeObject)>0){autoCpReuse.set(true);}} return tail&&role.name().equals("Dagger")?positionalEvents.get()>0:skillEvents.get() > 0 && defender.getCurrentHp() + defender.getCurrentCp() < targetPool || selected.stream().anyMatch(skill -> defender.isAffectedBySkill(skill.skillId())); }, 20_000, "UNCOVERED_ROLE no native skill damage/debuff: " + role.name());
 					if(role.name().equals("Tank"))
 					{
 						await(()->{autoCpPeak[0]=Math.max(autoCpPeak[0],actor.getCurrentCp());if(actor.getItemRemainingReuseTime(cpSmallObject)>0||actor.getItemRemainingReuseTime(cpLargeObject)>0){autoCpReuse.set(true);}return actor.getInventory().getInventoryItemCount(5591,-1)+actor.getInventory().getInventoryItemCount(5592,-1)<cpSmallBefore+cpLargeBefore&&autoCpPeak[0]>=cpBeforeAutomatic+40&&autoCpReuse.get();},1500,"Actual CombatService PvP did not auto-consume/restore/throttle native CP.");
@@ -150,6 +179,7 @@ public final class PhantomCombat071Native
 				}
 				finally
 				{
+					if(tail){report.append("combat071.tailMeasured\trole=").append(role.name()).append(";events=").append(skillEvents.get()).append(";positionalEvents=").append(positionalEvents.get()).append(";targetPool=").append(targetPool).append("->").append(defender.getCurrentHp()+defender.getCurrentCp()).append(";MP=").append(mpBefore).append("->").append(actor.getCurrentMp()).append(";shots=").append(shotsBefore).append("->").append(shotCount(actor,role.mode())).append(";souls=").append(soulsBefore).append("->").append(actor.getChargedSouls()).append(";reuse=").append(reuseObserved.get()).append(";moved=").append(Math.hypot((long)actor.getX()-initialX,(long)actor.getY()-initialY)).append(";rearOrSide=").append(!actor.isInFrontOf(defender)).append('\n');}
 					combat.cancel(profile);
 					await(() -> {combat.consumeTerminal(profile);return !combat.hasClaim(profile);}, 6000, "PvP native action cleanup retained claim after terminal consumption.");
 					actor.removeListener(listener);
@@ -159,11 +189,19 @@ public final class PhantomCombat071Native
 				if(role.name().equals("Dagger")){check(moved>20&&!actor.isInFrontOf(defender),"Dagger positive case has no actual rear/side movement.");}
 				if(role.name().equals("Archer")){check(moved>20&&actor.calculateDistance3D(defender)>=200,"Archer positive case did not actually keep distance.");}
 				report.append("combat071.native\trole=").append(role.name()).append(";skillDamageEvents=").append(skillEvents.get()).append(";targetPool=").append(targetPool).append("->").append(defender.getCurrentHp()+defender.getCurrentCp()).append(";MP=").append(mpBefore).append("->").append(actor.getCurrentMp()).append(";shots=").append(shotsBefore).append("->").append(shotCount(actor, role.mode())).append(";souls=").append(soulsBefore).append("->").append(actor.getChargedSouls()).append(";native reuse=").append(reuseObserved.get()).append(";actualMoved=").append(moved).append(";targetDistance=").append(actor.calculateDistance3D(defender)).append(";rearOrSide=").append(!actor.isInFrontOf(defender)).append('\n');
-				if (role.name().equals("Tank")) { await(()->actor.getItemRemainingReuseTime(cpSmallObject)<=0&&actor.getItemRemainingReuseTime(cpLargeObject)<=0,1500,"Automatic CP reuse did not retire before independent handler control.");cp(backend, profile, actor, report); }
+				if (!tail&&role.name().equals("Tank")) { await(()->actor.getItemRemainingReuseTime(cpSmallObject)<=0&&actor.getItemRemainingReuseTime(cpLargeObject)<=0,1500,"Automatic CP reuse did not retire before independent handler control.");cp(backend, profile, actor, report); }
 				if (role.name().equals("Kamael")) { check(actor.getChargedSouls() < soulsBefore, "Kamael cast did not debit its actual native Souls."); }
-				noSupply(combat, profile, actor, defender, request, report);
+				if(!tail){noSupply(combat, profile, actor, defender, request, report);}
 				check(materialization.dematerialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Native role did not store cleanly.");
+				}
+				catch(Exception|AssertionError failure)
+				{
+					if(!tail){throw failure;}
+					tailFailures++;report.append("combat071.tailPartial\trole=").append(role.name()).append(";failure=").append(failure).append(";no retry/refill;next previously unrun role continues\n");
+					if(roleProfile>0){final long failedProfile=roleProfile;combat.cancel(failedProfile);await(()->{combat.consumeTerminal(failedProfile);return !combat.hasClaim(failedProfile);},6000,"Tail failed action did not drain.");materialization.dematerialize(failedProfile);}
+				}
 			}
+			check(tailFailures==0,"Tail has "+tailFailures+" partial roles; inspect individual native evidence.");
 		}
 		finally
 		{
@@ -173,6 +211,44 @@ public final class PhantomCombat071Native
 		}
 	}
 
+	private static int retainedCharacter(String name) throws Exception
+	{
+		try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT charId FROM characters WHERE account_name='task071combat' AND char_name=? AND accesslevel=0"))
+		{
+			query.setString(1,name);try(var rows=query.executeQuery()){if(!rows.next()){return 0;}final int id=rows.getInt(1);check(!rows.next(),"Ambiguous retained native actor: "+name);return id;}
+		}
+	}
+	private static void nativeFirstAttack(Player actor,Player defender,StringBuilder report) throws Exception
+	{
+		final double before=actor.getCurrentHp()+actor.getCurrentCp();final long until=System.nanoTime()+6_000_000_000L;int attempts=0;
+		while(actor.getCurrentHp()+actor.getCurrentCp()>=before&&System.nanoTime()<until)
+		{
+			if(attempts<3&&!defender.isAttackingNow()){defender.doAttack(actor);attempts++;}
+			Thread.sleep(25);
+		}
+		defender.abortAttack();defender.getAI().setIntention(Intention.IDLE);
+		report.append("combat071.tailFirstAttack\tactor=").append(actor.getName()).append(";actual native attempts=").append(attempts).append(";max3 after attack end/max6s;pool=").append(before).append("->").append(actor.getCurrentHp()+actor.getCurrentCp()).append(";enemyHeading=").append(defender.getHeading()).append(";actorFront=").append(actor.isInFrontOf(defender)).append('\n');
+		check(actor.getCurrentHp()+actor.getCurrentCp()<before,"Native bounded first attacks produced no damage; no fabricated causal reason.");
+	}
+	private static void soulBottles(PhantomMaterializationService materialization,long profile,Player actor,StringBuilder report) throws Exception
+	{
+		check(actor.getChargedSouls()==0&&actor.getInventory().getInventoryItemCount(10410,-1)==0,"Fresh Kamael must have no prior soul/bottle fixture.");
+		final var bottle=actor.addItem(ItemProcessType.REWARD,10410,2,actor,false);
+		check("ItemSkillsTemplate".equals(bottle.getEtcItem().getHandlerName()),"Stock full soul bottle handler unavailable; Kamael remains PARTIAL.");
+		final var handler=org.l2jmobius.gameserver.handler.ItemHandler.getInstance().getHandler(bottle.getEtcItem());check(handler!=null,"Stock soul bottle handler not registered.");
+		try(var lease=materialization.tryAcquireAction(profile).orElseThrow())
+		{
+			for(int i=0;i<2;i++)
+			{
+				final int souls=actor.getChargedSouls();final long count=actor.getInventory().getInventoryItemCount(10410,-1);actor.setTarget(actor);
+				check(bottle.getTemplate().checkCondition(actor,actor,true)&&handler.onItemUse(actor,bottle,false),"Native full soul bottle refused; Kamael remains PARTIAL.");
+				await(()->actor.getChargedSouls()>souls,1500,"Native bottle2499 did not produce Souls.");
+				check(actor.getChargedSouls()==souls+5&&actor.getInventory().getInventoryItemCount(10410,-1)==count-1,"Native soul bottle lacked exact item debit/+5 Souls.");
+				report.append("combat071.soulBottle\tfinite declared item10410;native ItemSkillsTemplate/2499/FocusSouls;count=").append(count).append("->").append(count-1).append(";souls=").append(souls).append("->").append(actor.getChargedSouls()).append(";after materialization/before measurement;no direct soul counter grant;not earned procurement\n");
+				await(()->!actor.isCastingSimultaneouslyNow(),1500,"Native bottle cast did not finish.");
+			}
+		}
+	}
 	private static Player fixture(String name, int root, int profession, WeaponType weaponType, List<Player> ordinary)
 	{
 		final Player player = Player.create(PlayerTemplateData.getInstance().getTemplate(root), "task071combat", name, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
@@ -189,7 +265,6 @@ public final class PhantomCombat071Native
 		if (weaponType == WeaponType.BOW) { player.addItem(ItemProcessType.REWARD, 1345, 200, player, false); }
 		if (root == 123)
 		{
-			player.increaseSouls(10);
 			final var soulSkill = player.getAllSkills().stream().filter(skill -> skill.getMaxSoulConsumeCount() > 0 && skill.getMaxSoulConsumeCount() <= 10 && PhantomPvpSkillSafety.supports(skill,PhantomCombatMode.MELEE_PHYSICAL,false)).min(Comparator.comparingInt(skill -> skill.getId())).orElseThrow(() -> new AssertionError("UNCOVERED_ROLE no stock learned physical soul-cost action."));
 			// A declared bounded learned subset guarantees a native soul-cost positive case.
 			for (var skill : List.copyOf(player.getAllSkills())) { if (skill.getId()!=soulSkill.getId() && PhantomPvpSkillSafety.supports(skill,PhantomCombatMode.MELEE_PHYSICAL,false)) { player.removeSkill(skill.getId()); } }

@@ -89,8 +89,9 @@ public final class PhantomSupply071JourneyNative
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask071Lane.enabled() || args.length != 1 || !Set.of("prepare", "resume").contains(args[0])) { throw new IllegalArgumentException("Own071 prepare or resume required."); }
+		if (!PhantomTask071Lane.enabled() || args.length != 1 || !Set.of("prepare", "resume", "earned").contains(args[0])) { throw new IllegalArgumentException("Own071 prepare, resume or earned required."); }
 		final boolean prepare = args[0].equals("prepare");
+		final boolean earned = args[0].equals("earned");
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath(), task = module.getParent().resolve(".phantom-local/task071");
 		final Path stateFile = task.resolve("supply071-native.properties"), reportFile = task.resolve("reports/supply071-" + args[0] + '-' + System.currentTimeMillis() + ".tsv");
 		final var report = new StringBuilder("stage\tevidence\n"); final var state = new Properties();
@@ -128,6 +129,17 @@ public final class PhantomSupply071JourneyNative
 			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
 			check(materialization.start() && materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Native supply actor did not materialize.");
 			final var player = World.getInstance().getPlayer(Integer.parseInt(state.getProperty("actor"))); check(player != null && !player.isAlikeDead(), "Retained native actor unavailable.");
+			if (earned)
+			{
+				check(id == 1 && "task071supply".equals(player.getAccountName()) && "Supply071".equals(player.getName()) && "true".equals(state.getProperty("prepared")) && !"true".equals(state.getProperty("earned.completed")), "Only exact retained uncompleted own071 supply profile may continue earned work.");
+				final var paid = new PhantomCommerceReceiptStore(profiles).find(id).orElseThrow().receipt();
+				check(paid.state() == PhantomCommerceReceipt.State.COMMITTED && paid.goalId() == 71007103L && paid.request().kind() == PhantomCommerceReceipt.OperationKind.BUY && paid.request().itemId() == 1835 && paid.request().count() == 120 && paid.request().amount() == 960 && paid.before().primaryCount() == 6250 && paid.expectedAfter().primaryCount() == 5290 && paid.expectedAfter().secondaryCount() == 120, "Original paid shot receipt differs; no new purchase or refill permitted.");
+				final var retainedIntent = new PhantomSupplyIntentStore(profiles, new PhantomGoalStateStore(profiles)).intent(id).orElseThrow().goal();
+				check(retainedIntent.status() == PhantomGoalStatus.COMPLETED && retainedIntent.reasonKey().equals("maintenance.native.returned_to_farm") && player.getInventory().getInventoryItemCount(1835, -1) > 0 && player.getInventory().getInventoryItemCount(1835, -1) <= 120, "Original returned child/paid finite stock is not retained.");
+				report.append("retained_paid_chain\t").append(paid).append(";actor=").append(player.getObjectId()).append(";level=").append(player.getLevel()).append(";HP=").append(player.getCurrentHp()).append(";MP=").append(player.getCurrentMp()).append(";A=").append(player.getAdena()).append(";shots=").append(player.getInventory().getInventoryItemCount(1835, -1)).append(";xyz=").append(player.getLocation()).append(";no Journey replay, grants, relocation or state reset\n");
+				earnedContinuation(materialization, id, player, query, report);
+				state.setProperty("earned.completed", "true"); writeState(stateFile, state); return;
+			}
 			final var goals = new PhantomGoalStateStore(profiles);
 			if (prepare)
 			{
@@ -246,7 +258,13 @@ public final class PhantomSupply071JourneyNative
 			.filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == player.getInstanceId() && !mob.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))
 			.filter(mob -> knowledge.findNpc(mob.getId()).map(fact -> fact.kind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER && fact.level() >= 2 && fact.level() <= 8 && fact.exp() > 0 && fact.sp() > 0).orElse(false))
 			.filter(mob -> GeoEngine.getInstance().canSeeTarget(player, mob)).min(Comparator.comparingDouble(mob -> player.calculateDistance3D(mob))).orElseThrow(() -> new AssertionError("No remaining normal native low-level target after return."));
+		killTarget(combat, profileId, player, target, report);
+	}
+
+	private static void killTarget(PhantomCombatService combat, long profileId, Player player, Monster target, StringBuilder report) throws Exception
+	{
 		final long beforeExp = player.getExp(), beforeSp = player.getSp(), beforeShots = player.getInventory().getInventoryItemCount(1835, -1);
+		final var inventoryBefore = player.getInventory().getItems().stream().collect(java.util.stream.Collectors.toMap(item -> item.getId(), item -> item.getCount(), Long::sum));
 		final var start = combat.startSession(new PhantomCombatRequest(profileId, target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, true, 30_000, () -> false));
 		check(start.accepted(), "Native rewarded combat refused: " + start);
 		final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
@@ -257,6 +275,59 @@ public final class PhantomSupply071JourneyNative
 		while (!consumed && System.nanoTime() < cleanupUntil) { consumed = combat.consumeTerminal(profileId).isPresent(); if (!consumed) { Thread.sleep(100); } }
 		check(consumed, "Native victory ownership did not release.");
 		report.append("earned_kill\ttarget=").append(target.getId()).append('/').append(target.getObjectId()).append(";EXP=").append(beforeExp).append("->").append(player.getExp()).append(";SP=").append(beforeSp).append("->").append(player.getSp()).append(";paidShots=").append(beforeShots).append("->").append(player.getInventory().getInventoryItemCount(1835, -1)).append(";session=").append(finished).append('\n');
+		final var inventoryAfter = player.getInventory().getItems().stream().collect(java.util.stream.Collectors.toMap(item -> item.getId(), item -> item.getCount(), Long::sum));
+		report.append("earned_loot_delta\t").append(inventoryAfter.entrySet().stream().filter(entry -> !entry.getValue().equals(inventoryBefore.getOrDefault(entry.getKey(), 0L))).sorted(Map.Entry.comparingByKey()).limit(32).map(entry -> entry.getKey() + ":" + inventoryBefore.getOrDefault(entry.getKey(), 0L) + "->" + entry.getValue()).toList()).append(";nativeLootPickups=").append(finished.lootPickupsIssued()).append('\n');
+	}
+
+	private static void earnedContinuation(PhantomMaterializationService materialization, long profile, Player player, PhantomGameKnowledgeQuery query, StringBuilder report) throws Exception
+	{
+		final long overallDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(120);
+		final var progressionPolicy = PhantomProgressionPolicy.productionDefaults(); final var progression = new PhantomProgressionCatalogBuilder().build(new L2jProgressionBackend(null, Path.of("."), () -> query).load(progressionPolicy), progressionPolicy);
+		final var combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> query, () -> progression), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
+		final var nativePaths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(); final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		try
+		{
+			for (int kill = 0; kill < 3; kill++)
+			{
+				check(System.nanoTime() < overallDeadline, "Earned native continuation exceeded120s.");
+				final var eligible = World.getInstance().getVisibleObjects().stream().filter(object -> object instanceof Monster).map(object -> (Monster) object).filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == player.getInstanceId() && !mob.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))
+					.filter(mob -> player.getLevel() >= mob.getLevel() && player.getLevel() - mob.getLevel() < org.l2jmobius.gameserver.config.RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE && query.findNpc(mob.getId()).map(fact -> fact.kind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER && fact.exp() > 0 && fact.sp() > 0).orElse(false)).sorted(Comparator.comparingDouble(mob -> player.calculateDistance3D(mob))).toList();
+				report.append("eligible_stock\tkill=").append(kill + 1).append(";actorLevel=").append(player.getLevel()).append(";nearest=").append(eligible.stream().limit(5).map(mob -> mob.getId() + ":level=" + mob.getLevel() + ":distance=" + Math.round(player.calculateDistance3D(mob))).toList()).append('\n');
+				Monster selected = null; List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> route = List.of();
+				for (var target : eligible.stream().filter(mob -> player.calculateDistance3D(mob) <= 5000).limit(8).toList())
+				{
+					final var from = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player); final var to = nativePaths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId()), 256).orElse(null); if (to == null) { continue; }
+					final long now = System.nanoTime(); if (now >= overallDeadline) { break; }
+					final var proof = nativePaths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(profile, from, to, now, Math.min(overallDeadline, now + TimeUnit.SECONDS.toNanos(1)), 7000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), policy, System::nanoTime);
+					report.append("eligible_route\t").append(target.getId()).append(';').append(proof.status()).append(";distance=").append(Math.round(from.distanceTo(to))).append(";points=").append(proof.points().size()).append('\n');
+					if (proof.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { selected = target; route = proof.points(); break; }
+				}
+				check(selected != null, "BLOCKED_INPUT: no rewarded-level native target with proven route within5km; eligible_stock contains exact nearest distance/level.");
+				org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.OwnedWalk issued = null;
+				try (var lease = materialization.tryAcquireAction(profile).orElseThrow())
+				{
+					for (var point : route)
+					{
+						final var current = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player);
+						if (current.distanceTo(point) <= 40) { continue; }
+						check(System.nanoTime() < overallDeadline && !player.isDead() && !player.isAttackingNow() && !player.isCastingNow() && nativePaths.canWalkDirect(current, point), "BLOCKED_INPUT: retained actor cannot legally walk next proven segment.");
+						final var threats = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 3500);
+						check(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(player, point.x(), point.y(), point.z(), List.copyOf(threats), Set.of(selected.getObjectId())), "BLOCKED_INPUT: new native threat crosses earned approach.");
+						player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, new org.l2jmobius.gameserver.model.Location(point.x(), point.y(), point.z())); issued = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.captureWalk(player);
+						check(issued != null, "Native owner did not accept earned approach movement.");
+						while (player.calculateDistance3D(point.x(), point.y(), point.z()) > 40 && System.nanoTime() < overallDeadline && !player.isDead()) { Thread.sleep(100); }
+						check(player.calculateDistance3D(point.x(), point.y(), point.z()) <= 40, "Native earned approach did not arrive before finite deadline.");
+						org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.cancelWalk(issued); issued = null;
+					}
+				}
+				finally { org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.cancelWalk(issued); }
+				report.append("native_approach\ttarget=").append(selected.getId()).append(";level=").append(selected.getLevel()).append(";actualPosition=").append(player.getLocation()).append(";no teleport or grants\n");
+				check(System.nanoTime() + TimeUnit.SECONDS.toNanos(45) < overallDeadline, "BLOCKED_INPUT: insufficient finite budget for another complete rewarded native fight and cleanup.");
+				killTarget(combat, profile, player, selected, report);
+			}
+			report.append("result\tPASS same retained paid supply actor:3 actual rewarded native kills after prior SELL/BUY/return; original Wolf overlevel failure retained; no procurement replay or state override\n");
+		}
+		finally { combat.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10); while (!combat.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } }
 	}
 
 	private record Scene(Merchant merchant, Monster farm) { }
