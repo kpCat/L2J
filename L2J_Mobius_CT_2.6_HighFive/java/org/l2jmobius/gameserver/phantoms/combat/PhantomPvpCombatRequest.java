@@ -23,7 +23,8 @@ public record PhantomPvpCombatRequest(long profileId, int targetObjectId, Source
 
 	PhantomCombatRequest leaseRequest()
 	{
-		return new PhantomCombatRequest(profileId, targetObjectId, mode, useShotsIfAvailable, false, timeoutMillis, planOwnershipToken);
+		// The legacy request flag cannot relax the offensive PvP supply contract.
+		return new PhantomCombatRequest(profileId, targetObjectId, mode, true, false, timeoutMillis, planOwnershipToken);
 	}
 
 	public boolean sameOperation(PhantomPvpCombatRequest other)

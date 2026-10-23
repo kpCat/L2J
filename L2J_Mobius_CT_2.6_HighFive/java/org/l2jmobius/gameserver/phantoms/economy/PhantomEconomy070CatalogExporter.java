@@ -257,7 +257,7 @@ public final class PhantomEconomy070CatalogExporter
 			final BossSource source = bossSource(id, _x1);
 			final long sourceFair = fair.getOrDefault(id, 0L);
 			final long rarity = scaled(policy("epic.attemptBudget." + restock(id)), 1 / source.yield());
-			final long base = Math.max(Math.max(tierFloor(id), fullSetFloor), Math.max(Math.multiplyExact(sourceFair, policy("epic.fairFactor")), rarity));
+			final long base = _policy.containsKey("epic.exact." + id) ? policy("epic.exact." + id) : Math.max(Math.max(tierFloor(id), fullSetFloor), Math.max(Math.multiplyExact(sourceFair, policy("epic.fairFactor")), rarity));
 			catalog.add("epic." + id + "\tepic\t" + id + "\t" + cell(_items.get(id).name()) + "\t-\t0\t57\t" + base + "\t0\t0\t1\t" + restock(id) + "\t" + (sourceFair > 0 ? "SHARED_FAIR_X5_SET_X10_AUTHOR_TIER" : "AUTHOR_RARITY_OPPORTUNITY_SET_X10_TIER_NO_PAIRED_ADENA") + "\t" + cell(source.provenance()) + ";sharedFair=" + sourceFair + ";setFloor=" + fullSetFloor + ";rarityOpportunity=" + rarity + "\tGlobal stock1; native account savings; no restart reseed");
 		}
 		write(_output, "STORE_CATALOG070.tsv", catalog);
@@ -344,7 +344,7 @@ public final class PhantomEconomy070CatalogExporter
 				if (!EPICS.contains(id) || !PhantomEpicItemPolicy.isEpic(id)) { throw new IllegalArgumentException("Noncanonical epic identity."); }
 				final BossSource source = bossSource(id, _x1), current = bossSource(id, _actual);
 				final long shared = fair.getOrDefault(id, 0L);
-				target = Math.max(Math.max(scaled(tierFloor(id), adena), setFloor), Math.max(Math.multiplyExact(shared, policy("epic.fairFactor")), scaled(policy("epic.attemptBudget." + restock(id)), adena / current.yield())));
+				target = _policy.containsKey("epic.exact." + id) ? scaled(policy("epic.exact." + id), adena) : Math.max(Math.max(scaled(tierFloor(id), adena), setFloor), Math.max(Math.multiplyExact(shared, policy("epic.fairFactor")), scaled(policy("epic.attemptBudget." + restock(id)), adena / current.yield())));
 				epic.add(id + "\t" + row[3] + "\t" + source.npc() + "\t" + source.yield() + "\t" + current.yield() + "\t" + shared + "\t" + setFloor + "\t" + base + "\t" + target + "\t" + row[11] + "\t" + row[12] + "\t" + row[13] + "\t" + encounter(id));
 			}
 			if (row[4].equals("-"))

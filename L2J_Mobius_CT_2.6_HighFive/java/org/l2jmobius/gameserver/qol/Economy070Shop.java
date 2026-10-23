@@ -22,6 +22,9 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 /** OWN070 money, item rows, account term, stock and immutable receipts share one SQL commit. */
 public final class Economy070Shop
 {
+	public static final long TOKEN_ANCIENT_ADENA = 20_000L;
+	public static final long MAXIMUM_TOKEN_EXCHANGE = 1_000_000L;
+	private static final String MIGRATION071_SHA256 = "e6c39363c6ca288196f90f0808d062d7e50ca9acace56f2e63e1242b7dd212e3";
 	public record Stock(int itemId, int count, long nextRestockUtc, long epoch) { }
 	private final Economy070Pricing _pricing;
 	private final LongSupplier _clock;
@@ -45,13 +48,74 @@ public final class Economy070Shop
 	}
 	private static void own(Connection connection) throws Exception
 	{
-		if (!java.util.Set.of("l2jmobiush5_phantom_test_070", "l2jmobiush5_phantom_release_070").contains(connection.getCatalog()))
-		{ throw new IllegalStateException("Служба 070 требует собственной БД 070."); }
-		try (var query = connection.prepareStatement("SELECT TABLE_NAME,ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('items','account_premium','economy070_wallet','economy070_stock','economy070_orders')"); var rows = query.executeQuery())
+		verifySchema(connection);
+	}
+	/** An explicit installer authority and exact runtime binding are both required; names alone grant nothing. */
+	public static void verifySchema(Connection connection) throws java.sql.SQLException
+	{
+		final String catalog = connection.getCatalog(), installation = System.getProperty("phantom.economy.installation", "");
+		if (catalog == null || !catalog.equals(System.getProperty("phantom.economy.schema", "")) || !catalog.matches("l2jmobiush5_phantom_(test|release)_[0-9]{3,4}")
+			|| !installation.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
+		{ throw new java.sql.SQLException("Экономика требует явно установленную собственную БД и runtime authority."); }
+		final int task = Integer.parseInt(catalog.substring(catalog.lastIndexOf('_') + 1));
+		if (task < 71) { throw new java.sql.SQLException("Защищённые старые схемы недоступны экономике071."); }
+		try (var query = connection.prepareStatement("SELECT task_id,installation_id,schema_version,migration_sha256 FROM economy071_authority WHERE schema_name=?"))
+		{
+			query.setString(1, catalog);
+			try (var rows = query.executeQuery())
+			{
+				if (!rows.next() || rows.getInt(1) != task || !installation.equals(rows.getString(2)) || rows.getInt(3) != 1 || !MIGRATION071_SHA256.equals(rows.getString(4)) || rows.next())
+				{ throw new java.sql.SQLException("Установленная схема экономики не соответствует runtime authority."); }
+			}
+		}
+		try (var query = connection.prepareStatement("SELECT TABLE_NAME,ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('items','account_premium','economy070_wallet','economy070_stock','economy070_orders','economy071_authority')"); var rows = query.executeQuery())
 		{
 			int count = 0;
 			while (rows.next()) { count++; if (!"InnoDB".equalsIgnoreCase(rows.getString(2))) { throw new IllegalStateException("Атомарный платёж требует InnoDB: " + rows.getString(1)); } }
-			if (count != 5) { throw new IllegalStateException("Таблицы 070 не установлены полностью."); }
+			if (count != 6) { throw new java.sql.SQLException("Таблицы экономики не установлены полностью."); }
+		}
+	}
+	/** The quantity is always expressed in Tokens; both directions use the same exact rate. */
+	public long exchangeTokens(Player player, long tokens, boolean tokensToAncientAdena, String request, String revision) throws Exception
+	{
+		validate(player, request, revision);
+		if (tokens < 1 || tokens > MAXIMUM_TOKEN_EXCHANGE) { throw new IllegalArgumentException("Количество токенов должно быть от1 до1000000."); }
+		final long ancient = Math.multiplyExact(tokens, TOKEN_ANCIENT_ADENA);
+		final int sourceId = tokensToAncientAdena ? 13722 : 5575, targetId = tokensToAncientAdena ? 5575 : 13722;
+		final long debit = tokensToAncientAdena ? tokens : ancient, credit = tokensToAncientAdena ? ancient : tokens;
+		final String kind = tokensToAncientAdena ? "TOKEN_TO_AA" : "AA_TO_TOKEN";
+		synchronized (player)
+		{
+			synchronized (player.getInventory())
+			{
+				final Long previous = replay(player, request, kind, tokens, targetId);
+				if (previous != null) { return previous; }
+				if (!eligible(player)) { throw new IllegalArgumentException("Обмен недоступен в текущем состоянии персонажа."); }
+				final Item source = player.getInventory().getItemByItemId(sourceId);
+				if (source == null || source.getOwnerId() != player.getObjectId() || source.getCount() < debit) { throw new IllegalArgumentException("Недостаточно собственной валюты в инвентаре."); }
+				if (!player.getInventory().validateCapacityByItemId(targetId, credit) || !player.getInventory().validateWeightByItemId(targetId, credit)) { throw new IllegalArgumentException("Недостаточно места в инвентаре."); }
+				Item target = player.getInventory().getItemByItemId(targetId);
+				final boolean detached = target == null;
+				if (detached)
+				{
+					target = new Item(targetId); target.setCount(0); target.setOwnerId(player.getObjectId()); target.setItemLocation(org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY);
+				}
+				final Item product = target;
+				try
+				{
+					final long result = Item.transactCounts(source, debit, product, credit, connection ->
+					{
+						own(connection); lockWallet(connection, player); checkReplay(connection, player, request, kind, tokens, targetId);
+						receipt(connection, player, request, kind, targetId, null, tokens, product.getObjectId(), credit); return credit;
+					});
+					// Quest-item zero stacks stay detached until paid commit; native add refreshes weight and currency pointers.
+					if (detached) { World.getInstance().addObject(product); player.getInventory().addItem(ItemProcessType.RESTORE, product, player, this); }
+					else { player.getInventory().addItem(ItemProcessType.RESTORE, targetId, 0, player, this); }
+					if (source.getCount() == 0) { player.getInventory().destroyItem(ItemProcessType.FEE, source, 0, player, this); }
+					notifyCount(player, source); notifyCount(player, product); return result;
+				}
+				catch (Replay previousResult) { return previousResult.value; }
+			}
 		}
 	}
 	public long balance(Player player) throws Exception

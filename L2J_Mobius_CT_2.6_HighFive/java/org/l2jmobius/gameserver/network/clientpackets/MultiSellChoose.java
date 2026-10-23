@@ -134,6 +134,8 @@ public class MultiSellChoose extends ClientPacket
 			player.setMultiSell(null);
 			return;
 		}
+		if (org.l2jmobius.gameserver.qol.Economy071OlympiadShop.isAlias(_listId) && (!org.l2jmobius.gameserver.qol.Economy071OlympiadShop.eligible(player) || !org.l2jmobius.gameserver.qol.Economy071OlympiadShop.verified(_listId)))
+		{ player.setMultiSell(null); return; }
 		if (PersonalPremiumQoLService.isShopList(_listId) && (!list.isPersonalPremiumQoL() || !PersonalPremiumQoLService.getInstance().isShopEnabled()))
 		{
 			player.setMultiSell(null);

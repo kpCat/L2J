@@ -21,7 +21,8 @@ public final class PhantomPvpModel
 		ACTUAL_ATTACK(false),
 		FARMING_ESCALATION(true),
 		PARTY_DEFENSE(false),
-		REVENGE(true);
+		REVENGE(true),
+		CLAN_WAR(true);
 
 		private final boolean _proactive;
 

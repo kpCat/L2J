@@ -86,7 +86,7 @@ public final class PhantomCombatStepHandlers
 			case ACCEPTED, IDEMPOTENT -> PhantomStepResult.of(Type.SUCCESS, "combat.start.accepted");
 			case CANCELLED -> PhantomStepResult.of(Type.CANCELLED, "combat.start.cancelled");
 			case REJECTED_ACTOR, REJECTED_CAPACITY, REJECTED_STATE -> PhantomStepResult.retry(retryDelay(context), "combat.start.retry");
-			case REJECTED_TARGET, REJECTED_EXISTING, UNSUPPORTED_LOADOUT -> PhantomStepResult.of(Type.REPLAN, "combat.start.replan");
+			case REJECTED_TARGET, REJECTED_EXISTING, UNSUPPORTED_LOADOUT, SUPPLY_REQUIRED -> PhantomStepResult.of(Type.REPLAN, "combat.start.replan");
 			case BACKEND_FAILURE -> PhantomStepResult.of(Type.REPLAN, "combat.start.backend");
 		};
 	}

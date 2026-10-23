@@ -34,6 +34,22 @@ public final class PhantomOfflineSupply
 
 	public PhantomOfflineSupply(PhantomMultipartyEconomyService service) { _service = java.util.Objects.requireNonNull(service); }
 
+	/** Only published, physically owned stock is a gear candidate; no hypothetical full-grade catalog. */
+	public List<ItemTemplate> equipmentOffers(Player buyer)
+	{
+		return owners(buyer).stream().filter(owner -> owner.getPrivateStoreType() == PrivateStoreType.SELL)
+			.flatMap(owner -> owner.getSellList().getItems().stream().limit(64)).filter(line -> line.getCount() > 0 && line.getPrice() > 0)
+			.map(line -> line.getItem()).filter(item -> org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.upgrade(buyer, item))
+			.distinct().sorted(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.preference(buyer)).limit(64).toList();
+	}
+
+	private static List<Player> owners(Player buyer)
+	{
+		return World.getInstance().getVisibleObjectsInRange(buyer, Player.class, 6000).stream()
+			.filter(owner -> owner != buyer && offline(owner) && owner.getInstanceId() == buyer.getInstanceId())
+			.sorted(Comparator.comparingDouble((Player owner) -> buyer.calculateDistance3D(owner)).thenComparingInt(Player::getObjectId)).limit(16).toList();
+	}
+
 	public Optional<PhantomGoal> offer(Player buyer, PhantomGoal root, Binding binding, long revision,
 			List<ItemTemplate> items, long wanted, long reserve, long deadline, long maximumUnitPrice, ToLongFunction<Player> roundTripFee)
 	{
@@ -44,10 +60,7 @@ public final class PhantomOfflineSupply
 			List<ItemTemplate> items, long wanted, long deadline, long maximumUnitPrice, ToLongFunction<Player> roundTripFee, LongUnaryOperator availableBudget)
 	{
 		final var choices = new ArrayList<Choice>();
-		final var owners = World.getInstance().getVisibleObjectsInRange(buyer, Player.class, 6000).stream()
-			.filter(owner -> owner != buyer && offline(owner) && owner.getInstanceId() == buyer.getInstanceId())
-			.sorted(Comparator.comparingDouble((Player owner) -> buyer.calculateDistance3D(owner)).thenComparingInt(Player::getObjectId)).limit(16).toList();
-		for (var owner : owners)
+		for (var owner : owners(buyer))
 		{
 			final long fees = roundTripFee.applyAsLong(owner);
 			final long budget = fees < 0 ? 0 : availableBudget.applyAsLong(fees);
@@ -116,5 +129,8 @@ public final class PhantomOfflineSupply
 		return PhantomSocialEconomyGoalSpec.parse(new PhantomGoal(goal.goalId(), goal.goalType(), PhantomGoalStatus.ACTIVE, goal.subject(), goal.target(), 1, 0, null, List.of(), null, goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), Map.of(), goal.reasonKey(), goal.revision(), goal.payloadText()));
 	}
 	public static boolean returning(PhantomGoal goal) { return PhantomSupplyIntentStore.social(goal) && goal.status() == PhantomGoalStatus.COMPLETED && Binding.parse(goal).retryAfterEpochMillis() == 0; }
+	public static long remaining(PhantomGoal goal, long now) { return returning(goal) ? Math.max(0, goal.deadlineEpochMillis() - now) : org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.remaining(goal, now); }
+	/** Exact social goals retain their original wall-clock deadline and empty constraints across store/death. */
+	public static PhantomGoal pause(PhantomGoal goal, long now) { return PhantomSupplyIntentStore.social(goal) ? goal : org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(goal, now); }
 	private record Choice(String type, String key, long cost, long count, double distance) { }
 }

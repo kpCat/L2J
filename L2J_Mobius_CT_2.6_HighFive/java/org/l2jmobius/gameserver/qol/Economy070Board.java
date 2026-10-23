@@ -24,10 +24,10 @@ public final class Economy070Board
 			if (parts.length >= 2) { page = parts[1]; }
 			final var pricing = Economy070Pricing.getInstance();
 			final var shop = Economy070Shop.getInstance();
-			if (java.util.Set.of("deposit", "withdraw", "buy", "subscribe", "subclass").contains(page))
+			if (java.util.Set.of("deposit", "withdraw", "buy", "subscribe", "subclass", "tokenstoaa", "aatotokens").contains(page))
 			{
 				if (parts.length != 5) { throw new IllegalArgumentException("Неверный запрос. Обновите страницу."); }
-				final String action = page; page = action.equals("subclass") ? "quest" : action.equals("subscribe") ? "premium" : "epic";
+				final String action = page; page = action.equals("subclass") ? "quest" : action.equals("subscribe") ? "premium" : action.equals("tokenstoaa") || action.equals("aatotokens") ? "olympiad" : "epic";
 				final long value = Long.parseLong(parts[2]);
 				final long result = switch (action)
 				{
@@ -36,13 +36,15 @@ public final class Economy070Board
 					case "subscribe" -> shop.premium(player, Math.toIntExact(value), parts[3], parts[4]);
 					case "buy" -> shop.buy(player, Math.toIntExact(value), parts[3], parts[4]);
 					case "subclass" -> PaidSubclass070Service.purchase(player, parts[3], parts[4]);
+					case "tokenstoaa" -> shop.exchangeTokens(player, value, true, parts[3], parts[4]);
+					case "aatotokens" -> shop.exchangeTokens(player, value, false, parts[3], parts[4]);
 					default -> throw new IllegalArgumentException();
 				};
 				notice = action.equals("subscribe") ? "Премиум до " + Instant.ofEpochMilli(result) : "Операция сохранена. Квитанция: " + parts[3];
 			}
 			final StringBuilder html = new StringBuilder("<html><body><center><font color=LEVEL>Phantom World — экономика</font><br>");
 			html.append("<table width=750><tr><td width=180 valign=top>");
-			for (String[] link : new String[][] {{"home", "Магазины"}, {"consumables", "Расходники"}, {"quest", "Квесты / клан"}, {"scrolls", "Заточка / свитки"}, {"epic", "Epic Jewelry"}, {"codex", "Giant's Codex"}, {"mammon", "Ancient Adena / Маммон"}, {"epaulette", "Knight's Epaulettes"}, {"premium", "Премиум"}})
+			for (String[] link : new String[][] {{"home", "Магазины"}, {"consumables", "Расходники"}, {"quest", "Квесты / клан"}, {"scrolls", "Заточка / свитки"}, {"epic", "Epic Jewelry"}, {"codex", "Giant's Codex"}, {"olympiad", "Олимпиада / токены"}, {"mammon", "Ancient Adena / Маммон"}, {"epaulette", "Knight's Epaulettes"}, {"premium", "Премиум"}})
 			{ html.append(link(link[1], "_bbseconomy;" + link[0])).append("<br>"); }
 			html.append(link("Личная QoL-панель", "_bbsqol")).append("<br>").append(link("Buffer", "_bbstop;buffer/main.html")).append("<br>").append(link("Gatekeeper", "_bbstop;gatekeeper/main.html"));
 			html.append("</td><td width=570 valign=top>").append(escape(notice)).append("<br>");
@@ -64,13 +66,21 @@ public final class Economy070Board
 				}
 				case "premium" ->
 				{
-					html.append("Премиум аккаунта: ").append(player.hasPremiumStatus() ? "до " + Instant.ofEpochMilli(PremiumManager.getInstance().getPremiumExpiration(player.getAccountName())) : "не активен").append("<br>XP ×2, SP ×2; шанс обычного и редкого drop/spoil ×2; количество ×1. Adena суммарно ×2.<br>Цена суток: ").append(pricing.price("premium.day")).append(" Adena. Срок идёт по реальному времени.<br>");
+					html.append("Премиум аккаунта: ").append(player.hasPremiumStatus() ? "до " + Instant.ofEpochMilli(PremiumManager.getInstance().getPremiumExpiration(player.getAccountName())) : "не активен").append("<br>XP ×").append(PremiumSystemConfig.PREMIUM_RATE_XP).append(", SP ×").append(PremiumSystemConfig.PREMIUM_RATE_SP).append("; drop шанс ×").append(PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE).append(", количество ×").append(PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT).append("; spoil шанс ×").append(PremiumSystemConfig.PREMIUM_RATE_SPOIL_CHANCE).append(", количество ×").append(PremiumSystemConfig.PREMIUM_RATE_SPOIL_AMOUNT).append(". Per-ID правила имеют приоритет; общий cap шанса ").append(PremiumSystemConfig.PREMIUM_MAXIMUM_COMBINED_CHANCE_BONUS).append(".<br>Цена суток: ").append(pricing.price("premium.day")).append(" Adena. Срок идёт по реальному времени.<br>");
 					if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && CommunityBoardConfig.COMMUNITY_PREMIUM_SYSTEM_ENABLED && Economy070Shop.eligible(player))
 					{ for (int days : new int[] {1, 3, 7, 15, 20, 30}) { html.append(action(days + " дн. — " + Math.multiplyExact(pricing.price("premium.day"), days) + " A", "subscribe", Integer.toString(days), pricing)).append("<br>"); } }
 					else { html.append("Покупка недоступна: система выключена или персонаж не соответствует условиям."); }
 					html.append("<br>Настоящая timed-руна drop/spoil в stock H5 не найдена; вымышленные предметы не продаются.");
 				}
 				case "codex" -> html.append("Альтернатива за Ancient Adena (5575): 6622 / 9625 / 9626 / 9627. Точная текущая цена показана в native окне обмена.<br>Оригинальный путь Olympiad: 6622 за 550 Olympiad Tokens сохранён.<br>").append(multisell("Открыть Giant's Codex", 91005));
+				case "olympiad" ->
+				{
+					html.append("Обмен без комиссии: 1 Olympiad Token (13722) = 20 000 Ancient Adena (5575) в обе стороны.<br>В инвентаре: ").append(player.getInventory().getInventoryItemCount(13722, -1)).append(" токенов; ").append(player.getInventory().getInventoryItemCount(5575, -1)).append(" AA.<br>Количество токенов (1..1000000): <edit var=tokens width=140 type=number><br>");
+					html.append(action("Токены → AA (×20000)", "tokenstoaa", "$tokens", pricing)).append("<br>").append(action("AA → токены (20000 за1)", "aatotokens", "$tokens", pricing)).append("<br>Обмен не даёт Noblesse, Hero, побед или Olympiad points; заработанные награды Олимпиады учитываются отдельно.<br>");
+					if (Economy071OlympiadShop.eligible(player) && Economy071OlympiadShop.verified(91071))
+					{ html.append(multisell("Полный native102 — экипировка (38)", 91071)).append("<br>").append(multisell("Полный native103 — награды (69), включая Fame", 91072)); }
+					else { html.append("Native-магазины требуют основную третью профессию, Noblesse, отсутствие проклятого оружия и подтверждённые исходные списки. Hero не продаётся."); }
+				}
 				case "epaulette" -> html.append("Knight's Epaulettes (9912). Три проверенных крепостных предложения Codex; сохраняются обе валюты 9912 + Adena и native смысл варианта.<br>").append(multisell("Крепостные награды", 91006));
 				case "quest" ->
 				{
@@ -81,7 +91,7 @@ public final class Economy070Board
 				}
 				case "scrolls" -> html.append("Все действующие цены и валюты показаны до подтверждения native обмена.<br>").append(multisell("Заточка / свитки", 600012));
 				case "consumables" -> html.append("Mana Potion 728: ").append(pricing.price("mana")).append(" Adena; разрешена в PvP, исходный эффект и reuse.<br>").append(multisell("Купить Mana Potion", 91003)).append("<br>").append(multisell("Камни → Ancient Adena (3/5/10)", 91004));
-				case "mammon" -> html.append(multisell("Постоянный обмен камней 3/5/10", 91004)).append("<br>Также у кузнеца Pushkin (30300), Giran: 77458, 148169, −3595, в любой период Seven Signs.<br>Маммон: снятие SA, обмен/улучшение оружия, S услуги и rare/foundation требуют вашего исходного предмета, AA и native материалов.<br>Эти операции доступны у настоящего Blacksmith of Mammon в катакомбах: ограничения NPC и Seven Signs сохраняются. Виртуальный NPC bypass не используется.<br>A распечатка — у городских кузнецов. Условия и стоимость в native диалоге NPC.<br>").append(link("Дорогие Codex за AA", "_bbseconomy;codex"));
+				case "mammon" -> html.append(multisell("Постоянный обмен камней 3/5/10", 91004)).append("<br>Также у кузнеца Pushkin (30300), Giran: 77458, 148169, −3595, в любой период Seven Signs.<br>У Pushkin открыт native диалог Маммона: снятие SA, обмен/улучшение оружия, S услуги и rare/foundation требуют вашего исходного предмета, AA и настоящих материалов.<br>Обмен подтверждается только рядом с реальным кузнецом. Исходный Blacksmith of Mammon и его Seven Signs условия сохранены.<br>A распечатка — у городских кузнецов. Условия и стоимость в native диалоге NPC.<br>").append(link("Codex за AA", "_bbseconomy;codex"));
 				default -> html.append("Выберите раздел слева. Обычные готовые оружие, броня и бижутерия недоступны в Alt+B. Источники: добыча, крафт, рынок.<br>Все цены берутся из явно применённого плана. Предмет и валюта проверяются сервером.");
 			}
 			html.append("<br><font color=777777>План ").append(pricing.revision().substring(0, 12)).append("</font></td></tr></table></center></body></html>");

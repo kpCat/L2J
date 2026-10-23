@@ -92,16 +92,20 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	}
 
 	/** Small typed ownership context inside the existing versioned Goal codec; no second schema/AI. */
-	public record Binding(long rootRevision, int actorObjectId, int classId, int classIndex, int weaponObjectId, PhantomNavigationPoint field, long retryAfterEpochMillis)
+	public record Binding(long rootRevision, int actorObjectId, int classId, int classIndex, int weaponObjectId, PhantomNavigationPoint field, long retryAfterEpochMillis, int prospectiveWeaponTemplateId, long equipmentReserve)
 	{
+		public Binding(long rootRevision, int actorObjectId, int classId, int classIndex, int weaponObjectId, PhantomNavigationPoint field, long retryAfterEpochMillis)
+		{
+			this(rootRevision, actorObjectId, classId, classIndex, weaponObjectId, field, retryAfterEpochMillis, 0, 0);
+		}
 		public Binding
 		{
-			if (rootRevision < 0 || actorObjectId <= 0 || classId < 0 || classId > 255 || classIndex < 0 || classIndex > 255 || weaponObjectId < 0 || field == null || field.instanceId() != 0 || retryAfterEpochMillis < 0) { throw new IllegalArgumentException("Invalid supply ownership binding."); }
+			if (rootRevision < 0 || actorObjectId <= 0 || classId < 0 || classId > 255 || classIndex < 0 || classIndex > 255 || weaponObjectId < 0 || field == null || field.instanceId() != 0 || retryAfterEpochMillis < 0 || prospectiveWeaponTemplateId < 0 || equipmentReserve < 0 || prospectiveWeaponTemplateId == 0 && equipmentReserve != 0) { throw new IllegalArgumentException("Invalid supply ownership binding."); }
 		}
 
 		public String encode()
 		{
-			final String text = "s1:" + rootRevision + ':' + actorObjectId + ':' + classId + ':' + classIndex + ':' + weaponObjectId + ':' + field.x() + ':' + field.y() + ':' + field.z() + ':' + retryAfterEpochMillis;
+			final String text = (prospectiveWeaponTemplateId == 0 ? "s1:" : "s2:") + rootRevision + ':' + actorObjectId + ':' + classId + ':' + classIndex + ':' + weaponObjectId + ':' + field.x() + ':' + field.y() + ':' + field.z() + ':' + retryAfterEpochMillis + (prospectiveWeaponTemplateId == 0 ? "" : ":" + prospectiveWeaponTemplateId + ':' + equipmentReserve);
 			if (!PhantomGoal.validPayloadText(text)) { throw new IllegalArgumentException("Supply binding exceeds the existing Goal payload bound."); }
 			return text;
 		}
@@ -110,8 +114,13 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 		{
 			if (goal == null || goal.payloadText() == null) { throw new IllegalArgumentException("Missing supply binding."); }
 			final String[] fields = goal.payloadText().split(":", -1);
-			if (fields.length != 10 || !"s1".equals(fields[0])) { throw new IllegalArgumentException("Unknown supply binding shape/version."); }
-			try { return new Binding(Long.parseLong(fields[1]), Integer.parseInt(fields[2]), Integer.parseInt(fields[3]), Integer.parseInt(fields[4]), Integer.parseInt(fields[5]), new PhantomNavigationPoint(Integer.parseInt(fields[6]), Integer.parseInt(fields[7]), Integer.parseInt(fields[8]), 0), Long.parseLong(fields[9])); }
+			final boolean preparation = fields.length == 12 && "s2".equals(fields[0]);
+			if (!preparation && (fields.length != 10 || !"s1".equals(fields[0]))) { throw new IllegalArgumentException("Unknown supply binding shape/version."); }
+			try
+			{
+				if (preparation && Integer.parseInt(fields[10]) <= 0) { throw new IllegalArgumentException("Future supply binding requires an actual weapon template."); }
+				return new Binding(Long.parseLong(fields[1]), Integer.parseInt(fields[2]), Integer.parseInt(fields[3]), Integer.parseInt(fields[4]), Integer.parseInt(fields[5]), new PhantomNavigationPoint(Integer.parseInt(fields[6]), Integer.parseInt(fields[7]), Integer.parseInt(fields[8]), 0), Long.parseLong(fields[9]), preparation ? Integer.parseInt(fields[10]) : 0, preparation ? Long.parseLong(fields[11]) : 0);
+			}
 			catch (NumberFormatException exception) { throw new IllegalArgumentException("Invalid supply binding number.", exception); }
 		}
 

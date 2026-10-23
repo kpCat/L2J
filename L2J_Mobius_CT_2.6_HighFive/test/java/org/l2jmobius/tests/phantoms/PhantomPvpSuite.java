@@ -3,6 +3,8 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -146,7 +148,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 	{
 		registry.add("01-only-causal-source-vocabulary-and-current-authority", _ ->
 		{
-			PhantomAssertions.assertEquals(Set.of(Source.ACTUAL_ATTACK, Source.FARMING_ESCALATION, Source.PARTY_DEFENSE, Source.REVENGE), Set.of(Source.values()), "Aggression source vocabulary widened.");
+			PhantomAssertions.assertEquals(Set.of(Source.ACTUAL_ATTACK, Source.FARMING_ESCALATION, Source.PARTY_DEFENSE, Source.REVENGE, Source.CLAN_WAR), Set.of(Source.values()), "Aggression source vocabulary widened beyond actual native causes.");
+			PhantomAssertions.assertEquals(3, Source.REVENGE.ordinal(), "The persisted source vocabulary changed old ordinals.");
 			final long now = 10 * SECOND;
 			PhantomAssertions.assertTrue(candidate(Source.ACTUAL_ATTACK, now).currentAt(now), "Exact current attacker was rejected.");
 			final Candidate stale = new Candidate(1, counterpart(), Source.REVENGE, HASH, now - SECOND, now + SECOND, false, true, true);
@@ -252,6 +255,37 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		});
 		registry.add("06-known-unmapped-retreat-and-instance-guards", _ -> testUnmappedRetreat(false));
 		registry.add("07-retreat-resolves-authored-anchor-native-floor", _ -> testUnmappedRetreat(true));
+		registry.add("08-shortage-refuses-admission-and-retires-owned-offense", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
+			{
+				fixture.lease.reserve = false;
+				PhantomAssertions.assertEquals(StartStatus.SUPPLY_REQUIRED, fixture.start(Source.REVENGE, true).status(), "Proactive PvP was admitted without a paid shot reserve.");
+				PhantomAssertions.assertEquals(0, fixture.lease.pvpAttacks, "Rejected supply produced native offense.");
+			}
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
+			{
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(Source.ACTUAL_ATTACK, false).status(), "Supplied reactive admission failed.");
+				fixture.lease.reserve = false;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(PhantomCombatResult.SUPPLY_REQUIRED, fixture.service.consumeTerminal(1).orElseThrow().result(), "Depletion did not release offense for the existing PvP retreat owner.");
+				PhantomAssertions.assertEquals(0, fixture.lease.pvpAttacks, "An exhausted actor kept attacking.");
+			}
+		});
+		registry.add("09-ready-skill-yields-only-owned-fallback-and-waits-for-hit", _ ->
+		{
+			try(CombatFixture fixture=new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL,100))
+			{
+				fixture.start(Source.ACTUAL_ATTACK,false);fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1,fixture.lease.pvpAttacks,"Missing skills did not use the ordinary fallback.");
+				fixture.lease.readySkill=true;fixture.lease.actor=new ActorSnapshot(10,88,0,100,100,100,100,100,100,false,false,true,false,false,100,"ATTACK",0,0);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1,fixture.lease.cancelledActions,"A newly available native skill did not retire owned autoattack renewal.");
+				PhantomAssertions.assertEquals(0,fixture.lease.pvpCasts,"Skill interrupted the still-earned native hit.");
+				fixture.lease.actor=actor(100,100);fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1,fixture.lease.pvpCasts,"The available skill remained starved after the owned native hit finished.");
+			}
+		});
 	}
 
 	private static void testUnmappedRetreat(boolean resolveFloor)
@@ -522,6 +556,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private int spacingCalls;
 		private boolean movementAllowed;
 		private int movements;
+		private boolean reserve = true;
+		private boolean readySkill;
+		private int cancelledActions;
 
 		private FakeLease(double cp)
 		{
@@ -566,6 +603,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		{
 			return (skill.skillId() == 123) && (skill.skillLevel() == learnedRank) && (learnedRank > 0);
 		}
+		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode,int limit){return readySkill?List.of(new SelectedSkill(123,learnedRank)):List.of();}
+		@Override public boolean pvpSkillReady(int targetObjectId,SelectedSkill skill,PhantomCombatMode mode){return readySkill;}
 
 		@Override
 		public int knownSkillLevel(int skillId)
@@ -577,6 +616,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 		{
 			PhantomAssertions.assertEquals(100, targetObjectId, "Spacing lost exact PvP owner identity.");
+			if(mode==PhantomCombatMode.MELEE_PHYSICAL){return ActionOutcome.UNAVAILABLE;}
 			spacingCalls++;
 			return spacing;
 		}
@@ -615,8 +655,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)
 		{
-			return ShotOutcome.UNAVAILABLE;
+			return ShotOutcome.ACTIVATED;
 		}
+		@Override public boolean hasPvpShotReserve(PhantomCombatMode mode, int hits) { return reserve; }
 
 		@Override
 		public ActionOutcome attack(int targetObjectId)
@@ -657,6 +698,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			cancelledActions++;
 		}
 
 		@Override

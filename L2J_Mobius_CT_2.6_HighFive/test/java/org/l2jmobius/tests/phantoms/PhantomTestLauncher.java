@@ -505,6 +505,7 @@ public final class PhantomTestLauncher
 			case "economy068-live-npc" -> new PhantomEconomy068LiveNpcSuite();
 
 			case "equipment068-policy" -> new PhantomEquipment068PolicySuite();
+			case "supply071" -> new PhantomSupply071Suite();
 
 			case "combat-viability068" -> new PhantomCombatViability068Checks();
 			case "combat-debt068" -> new PhantomCombatDebt068Checks();

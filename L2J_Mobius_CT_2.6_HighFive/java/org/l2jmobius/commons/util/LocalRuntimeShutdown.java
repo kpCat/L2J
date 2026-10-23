@@ -26,7 +26,8 @@ public final class LocalRuntimeShutdown
 
 	private static String controlOwner()
 	{
-		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066r2.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task067.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task068.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task069.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task070.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if ((Boolean.getBoolean("phantom.task064.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task065.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task066r2.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task067.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task068.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task069.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task070.control") ? 1 : 0) + (Boolean.getBoolean("phantom.task071.control") ? 1 : 0) > 1) { throw new IllegalArgumentException("Mixed local runtime authority is forbidden."); }
+		if (Boolean.getBoolean("phantom.task071.control")) { return "TASK071_LIVING_COMBAT"; }
 		if (Boolean.getBoolean("phantom.task070.control")) { return "TASK070_ECONOMY_QOL"; }
 		if (Boolean.getBoolean("phantom.task069.control")) { return "TASK069_PLAYABLE_RELEASE"; }
 		if (Boolean.getBoolean("phantom.task068.control")) { return "TASK068_LIVING_ECONOMY"; }
@@ -39,11 +40,11 @@ public final class LocalRuntimeShutdown
 	private static boolean enabled()
 	{
 		controlOwner();
-		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control") || Boolean.getBoolean("phantom.task066r2.control") || Boolean.getBoolean("phantom.task067.control") || Boolean.getBoolean("phantom.task068.control") || Boolean.getBoolean("phantom.task069.control") || Boolean.getBoolean("phantom.task070.control");
+		return Boolean.getBoolean("phantom.task064.control") || Boolean.getBoolean("phantom.task065.control") || Boolean.getBoolean("phantom.task066.control") || Boolean.getBoolean("phantom.task066r2.control") || Boolean.getBoolean("phantom.task067.control") || Boolean.getBoolean("phantom.task068.control") || Boolean.getBoolean("phantom.task069.control") || Boolean.getBoolean("phantom.task070.control") || Boolean.getBoolean("phantom.task071.control");
 	}
 
-	private static String taskNumber() { return "TASK070_ECONOMY_QOL".equals(controlOwner()) ? "070" : "TASK069_PLAYABLE_RELEASE".equals(controlOwner()) ? "069" : "TASK068_LIVING_ECONOMY".equals(controlOwner()) ? "068" : "TASK067_PERSONAL_ADVENTURE".equals(controlOwner()) ? "067" : "TASK066R2_FARM_ECONOMY".equals(controlOwner()) ? "066r2" : "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
-	private static boolean ownSchema(String schema) { return taskNumber().equals("070") ? schema.matches("l2jmobiush5_phantom_(test|release)_070") : taskNumber().equals("069") ? schema.matches("l2jmobiush5_phantom_(test|release)_069") : taskNumber().equals("068") ? schema.matches("l2jmobiush5_phantom_(test|release)_068") : taskNumber().equals("067") ? schema.matches("l2jmobiush5_personal_(test|release)_067") : taskNumber().equals("066r2") ? schema.matches("l2jmobiush5_phantom_(test|release)_066r2") : schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
+	private static String taskNumber() { return "TASK071_LIVING_COMBAT".equals(controlOwner()) ? "071" : "TASK070_ECONOMY_QOL".equals(controlOwner()) ? "070" : "TASK069_PLAYABLE_RELEASE".equals(controlOwner()) ? "069" : "TASK068_LIVING_ECONOMY".equals(controlOwner()) ? "068" : "TASK067_PERSONAL_ADVENTURE".equals(controlOwner()) ? "067" : "TASK066R2_FARM_ECONOMY".equals(controlOwner()) ? "066r2" : "TASK066_FARM_ECONOMY".equals(controlOwner()) ? "066" : "TASK065_LIVING_PRESENCE".equals(controlOwner()) ? "065" : "064"; }
+	private static boolean ownSchema(String schema) { return taskNumber().equals("071") ? schema.matches("l2jmobiush5_phantom_(test|release)_071") : taskNumber().equals("070") ? schema.matches("l2jmobiush5_phantom_(test|release)_070") : taskNumber().equals("069") ? schema.matches("l2jmobiush5_phantom_(test|release)_069") : taskNumber().equals("068") ? schema.matches("l2jmobiush5_phantom_(test|release)_068") : taskNumber().equals("067") ? schema.matches("l2jmobiush5_personal_(test|release)_067") : taskNumber().equals("066r2") ? schema.matches("l2jmobiush5_phantom_(test|release)_066r2") : schema.matches("l2jmobiush5_phantom_(test_" + taskNumber() + "|release_" + taskNumber() + "a)"); }
 
 	static boolean validTask065Root(Path root, Path module, boolean fixture)
 	{
@@ -104,6 +105,16 @@ public final class LocalRuntimeShutdown
 			final Path module = Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize();
 			final Path expected = schema.endsWith("test_070") ? module.getParent().resolve(".phantom-local/task070/runtime-test") : module.getRoot().resolve("PhantomWorld/Economy-QoL-070-candidate");
 			if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive") || !root.equals(expected)) { throw new IllegalArgumentException("TASK070 exact fixture/candidate root required."); }
+		}
+		if (taskNumber().equals("071"))
+		{
+			final Path module = Path.of(owner.getProperty("sourceModuleRoot", "")).toAbsolutePath().normalize();
+			final Path expected = schema.endsWith("test_071") ? module.getParent().resolve(".phantom-local/task071/runtime-test") : module.getRoot().resolve("PhantomWorld/Living-Combat-071-candidate");
+			if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive") || !root.equals(expected)
+				|| !schema.equals(System.getProperty("phantom.economy.schema"))
+				|| !owner.getProperty("installationId", "").matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")
+				|| !owner.getProperty("installationId").equals(System.getProperty("phantom.economy.installation")))
+			{ throw new IllegalArgumentException("TASK071 exact root/schema/installation required."); }
 		}
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
 		if (!validJdbc(database.getProperty("URL", ""), schema))

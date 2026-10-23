@@ -71,16 +71,46 @@ public final class PhantomNativeShotControl implements AutoCloseable
 
 	private static Item select(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon, boolean magic)
 	{
-		final int count = magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-		final ActionType action = magic ? ActionType.SPIRITSHOT : ActionType.SOULSHOT;
 		Item selected = null;
 		// Shared linear selection, without sorting or a parallel item catalog.
 		for (var item : player.getInventory().getItems())
 		{
-			if (count <= 0 || item.getCount() < count || item.getEtcItem() == null || item.getTemplate().getDefaultAction() != action || item.getTemplate().getCrystalType() != weapon.getCrystalTypePlus() || !player.getInventory().canManipulateWithItemId(item.getId()) || ItemHandler.getInstance().getHandler(item.getEtcItem()) == null) { continue; }
+			if (!eligible(player, weapon, magic, item)) { continue; }
 			if (selected == null || preferred(item, selected, magic)) { selected = item; }
 		}
 		return selected;
+	}
+
+	private static boolean eligible(Player player, org.l2jmobius.gameserver.model.item.Weapon weapon, boolean magic, Item item)
+	{
+		final int count = magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+		return count > 0 && item.getCount() >= count && item.getEtcItem() != null && item.getTemplate().getDefaultAction() == (magic ? ActionType.SPIRITSHOT : ActionType.SOULSHOT) && item.getTemplate().getCrystalType() == weapon.getCrystalTypePlus() && player.getInventory().canManipulateWithItemId(item.getId()) && ItemHandler.getInstance().getHandler(item.getEtcItem()) != null;
+	}
+
+	/** Read-only admission: current native charge plus existing compatible stock, never a gift. */
+	public static boolean hasOffensiveReserve(Player player, boolean magic, int hits)
+	{
+		if (player == null || hits < 1 || hits > 4) { return false; }
+		final var weapon = player.getActiveWeaponItem();
+		if (weapon == null || player.getActiveWeaponInstance() == null || weapon == player.getFistsWeaponItem()) { return false; }
+		final int perHit = magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+		if (perHit <= 0) { return false; }
+		int remaining = hits - (charged(player, magic) ? 1 : 0);
+		for (var item : player.getInventory().getItems())
+		{
+			if (remaining <= 0) { break; }
+			if (eligible(player, weapon, magic, item)) { remaining -= (int) Math.min(remaining, item.getCount() / perHit); }
+		}
+		if (remaining > 0) { return false; }
+		final var summon = player.getSummon();
+		if (summon instanceof org.l2jmobius.gameserver.model.actor.instance.Servitor && !summon.isAlikeDead())
+		{
+			final int beastPerHit = magic ? summon.getSpiritShotsPerHit() : summon.getSoulShotsPerHit();
+			final var beast = player.getInventory().getItemByItemId(magic ? 6647 : 6645);
+			final int beastRemaining = hits - (charged(summon, magic) ? 1 : 0);
+			if (beastPerHit > 0 && beastRemaining > 0 && (beast == null || beast.getCount() / beastPerHit < beastRemaining)) { return false; }
+		}
+		return true;
 	}
 
 	/** Optional paid charge at the native boundary. Missing stock differs from a rejected/failed mutation. */
@@ -133,7 +163,12 @@ public final class PhantomNativeShotControl implements AutoCloseable
 	private void release()
 	{
 		for (int itemId : _added) { _player.removeAutoSoulShot(itemId); }
-		for (int itemId : _suspended) { if (_player.getInventory().getInventoryItemCount(itemId, -1) > 0) { _player.addAutoSoulShot(itemId); } }
+		final var weapon = _player.getActiveWeaponItem();
+		for (int itemId : _suspended)
+		{
+			final var item = _player.getInventory().getItemByItemId(itemId);
+			if (weapon != null && item != null && item.getCount() > 0 && item.getTemplate().getCrystalType() == weapon.getCrystalTypePlus()) { _player.addAutoSoulShot(itemId); }
+		}
 		_added.clear(); _suspended.clear();
 	}
 

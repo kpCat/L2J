@@ -511,6 +511,80 @@ public class Item extends WorldObject
 		}
 		finally { _dbLock.unlock(); }
 	}
+
+	/** Two owned native stacks and a durable caller receipt share one commit. Locks follow object ID order. */
+	public static <T> T transactCounts(Item source, long debit, Item target, long credit, CountTransaction<T> transaction) throws Exception
+	{
+		if (source == null || target == null || source == target || debit <= 0 || credit <= 0) { throw new IllegalArgumentException("Invalid native stack exchange."); }
+		final Item first = source.getObjectId() < target.getObjectId() ? source : target;
+		final Item second = first == source ? target : source;
+		// Native transfer/destroy validates counts under the item monitor before taking its dbLock.
+		// Hold those monitors too, otherwise its prechecked count could race the paired publication.
+		synchronized (first)
+		{
+			synchronized (second) { return transactCountsLocked(source, debit, target, credit, first, second, transaction); }
+		}
+	}
+	private static <T> T transactCountsLocked(Item source, long debit, Item target, long credit, Item first, Item second, CountTransaction<T> transaction) throws Exception
+	{
+		first._dbLock.lock(); second._dbLock.lock();
+		try
+		{
+			if (source._ownerId <= 0 || source._ownerId != target._ownerId || source._loc != ItemLocation.INVENTORY || target._loc != ItemLocation.INVENTORY
+				|| !source.isStackable() || !target.isStackable() || source._countTransactionUncertain || target._countTransactionUncertain)
+			{ throw new IllegalStateException("Native stack ownership or transaction state differs."); }
+			final long sourceAfter = Math.subtractExact(source._count, debit), targetAfter = Math.addExact(target._count, credit);
+			if (sourceAfter < 0 || (target._itemId == ADENA_ID && targetAfter > MAX_ADENA)) { throw new IllegalArgumentException("Native stack count outside limits."); }
+			source.updateDatabase(true); target.updateDatabase(true);
+			try (Connection connection = DatabaseFactory.getConnection())
+			{
+				connection.setAutoCommit(false); boolean committing = false;
+				try
+				{
+					for (Item item : new Item[] {first, second})
+					{
+						if (!item._existsInDb && item._count == 0)
+						{
+							try (var insert = connection.prepareStatement("INSERT INTO items(owner_id,object_id,item_id,count,loc,loc_data,enchant_level,mana_left,time) VALUES(?,?,?,0,'INVENTORY',0,0,?,?)"))
+							{ insert.setInt(1, item._ownerId); insert.setInt(2, item.getObjectId()); insert.setInt(3, item._itemId); insert.setInt(4, item._mana); insert.setLong(5, item._time); insert.executeUpdate(); }
+						}
+						try (var query = connection.prepareStatement("SELECT owner_id,item_id,count,loc FROM items WHERE object_id=? FOR UPDATE"))
+						{
+							query.setInt(1, item.getObjectId());
+							try (var rows = query.executeQuery())
+							{
+								if (!rows.next() || rows.getInt(1) != item._ownerId || rows.getInt(2) != item._itemId || rows.getLong(3) != item._count || !"INVENTORY".equals(rows.getString(4)))
+								{ throw new IllegalStateException("Native exchange preimage differs."); }
+							}
+						}
+						if (item == source && sourceAfter == 0)
+						{
+							try (var update = connection.prepareStatement("DELETE FROM items WHERE object_id=?"))
+							{ update.setInt(1, item.getObjectId()); if (update.executeUpdate() != 1) { throw new IllegalStateException("Native exchange row changed."); } }
+						}
+						else
+						{
+							try (var update = connection.prepareStatement("UPDATE items SET count=? WHERE object_id=?"))
+							{ update.setLong(1, item == source ? sourceAfter : targetAfter); update.setInt(2, item.getObjectId()); if (update.executeUpdate() != 1) { throw new IllegalStateException("Native exchange row changed."); } }
+						}
+					}
+					final T result = transaction.run(connection);
+					committing = true; connection.commit();
+					source._count = sourceAfter; target._count = targetAfter;
+					source._storedInDb = true; target._storedInDb = true; source._existsInDb = sourceAfter > 0; target._existsInDb = true;
+					source.setLastChange(MODIFIED); target.setLastChange(MODIFIED);
+					return result;
+				}
+				catch (Exception failure)
+				{
+					if (committing) { source._countTransactionUncertain = true; target._countTransactionUncertain = true; }
+					try { connection.rollback(); } catch (Exception rollback) { failure.addSuppressed(rollback); }
+					throw failure;
+				}
+			}
+		}
+		finally { second._dbLock.unlock(); first._dbLock.unlock(); }
+	}
 	
 	/**
 	 * Sets the quantity of the item.<br>

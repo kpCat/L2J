@@ -259,6 +259,9 @@ public class MultisellData implements IXmlReader
 	 */
 	public void separateAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier)
 	{
+		if (org.l2jmobius.gameserver.qol.Economy071OlympiadShop.isAlias(listId) && (npc != null || inventoryOnly || productMultiplier != 1 || ingredientMultiplier != 1
+			|| !org.l2jmobius.gameserver.qol.Economy071OlympiadShop.eligible(player) || !org.l2jmobius.gameserver.qol.Economy071OlympiadShop.verified(listId)))
+		{ player.setMultiSell(null); return; }
 		// These stock custom lists remain on disk, but ready-made gear is not a CB source.
 		if ((listId == 600010) || (listId == 600014) || (listId == 600016))
 		{

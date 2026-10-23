@@ -241,6 +241,17 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return false;
 	}
 
+	/** Learned native actions in tactical order; observations never grant a skill. */
+	default List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return List.of(); }
+	default boolean pvpSkillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { return false; }
+	default ActionOutcome maintainPvpPosition(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { return maintainRangedSpacing(targetObjectId, skill, mode); }
+
+	/** Existing paid stock, including the current charge, sufficient for this many actions. */
+	default boolean hasPvpShotReserve(PhantomCombatMode mode, int hits) { return false; }
+
+	/** Exact visible enemies admitted by reciprocal native clan-war data. */
+	default List<Integer> declaredWarEnemies(int limit) { return List.of(); }
+
 	List<ThreatObservation> observedAttackers(int limit);
 
 	default List<ThreatObservation> observedAttackers(int protectedObjectId, int limit)

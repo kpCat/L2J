@@ -12,6 +12,7 @@ public enum PhantomCombatResult
 	VICTORY_LOOT_BLOCKED(true),
 	PLAYER_DEAD(true),
 	LOW_HP_STOPPED(true),
+	SUPPLY_REQUIRED(true),
 	TIMEOUT(true),
 	TARGET_LOST(true),
 	UNSUPPORTED_LOADOUT(true),

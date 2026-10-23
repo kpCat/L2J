@@ -126,6 +126,10 @@ public final class PhantomPvpContext
 				final String attackAuthority = PhantomPvpModel.sha256("pvp.actual.attack", observation.actor().objectId(), targetObjectId, observation.actor().instanceId());
 				candidates.add(new ObservedEvidence(new SourceEvidence(Source.ACTUAL_ATTACK, targetObjectId, attackAuthority, expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null), observed));
 			}
+			if (observed.declaredClanWar())
+			{
+				candidates.add(new ObservedEvidence(new SourceEvidence(Source.CLAN_WAR, targetObjectId, PhantomPvpModel.sha256("pvp.native.clan-war", observation.actor().objectId(), targetObjectId, observation.actor().instanceId()), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null), observed));
+			}
 			final SourceEvidence supplied = exact.get(targetObjectId);
 			if (supplied != null)
 			{
@@ -147,6 +151,8 @@ public final class PhantomPvpContext
 			final Snapshot snapshot = snapshot(profileId, logicalNanos, observation, selected);
 			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos) && snapshot.risk().legal())
 			{
+				// Already-owned warnings retain their admission. A new dispute needs real disposition/memory.
+				if (owned == null && (snapshot.candidate().source() == Source.FARMING_ESCALATION || snapshot.candidate().source() == Source.REVENGE) && !_social.allowsProactiveDispute(profileId, snapshot.socialSubject(), minute, snapshot.candidate().source() == Source.FARMING_ESCALATION)) { continue; }
 				return Optional.of(snapshot);
 			}
 		}
@@ -241,7 +247,8 @@ public final class PhantomPvpContext
 			case ACTUAL_ATTACK -> 0;
 			case PARTY_DEFENSE -> 1;
 			case FARMING_ESCALATION -> 2;
-			case REVENGE -> 3;
+			case CLAN_WAR -> 3;
+			case REVENGE -> 4;
 		};
 	}
 

@@ -398,6 +398,47 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 
 	private static void modifiers(PhantomTestRegistry registry)
 	{
+		registry.add("071-native-pvp-unit-retains-attack-and-kill-memory",context->
+		{
+			final MemoryStore store=new MemoryStore();store.addProfile(1);final var social=service(catalog(context),store,16);
+			try
+			{
+				social.installPersonalityInitializer(_->java.util.Map.of(1,0,2,0,3,0,4,0,5,0,6,10000));
+				final var bridge=new org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge(social);final var subject=SubjectRef.phantom(2);
+				long admitted=-1;for(int window=0;window<240&&admitted<0;window++){if(bridge.allowsProactiveDispute(1,subject,window*30L,true)){admitted=window*30L;}}
+				PhantomAssertions.assertTrue(admitted>=0,"No deterministic competitive farm-dispute control window.");
+				final var attack=org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge.EventKind.ATTACK_RECEIVED;
+				final var kill=org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge.EventKind.KILL_CAUSED;
+				PhantomAssertions.assertTrue(bridge.record(1,subject,attack,"071attack","A".repeat(64),admitted,1000).durable(),"Actual typed attack was not retained.");
+				PhantomAssertions.assertTrue(bridge.revenge(1,subject,admitted).isPresent(),"Full native authored attack unit did not create usable revenge memory.");
+				PhantomAssertions.assertTrue(bridge.record(1,subject,kill,"071kill","B".repeat(64),admitted,1000).durable(),"Actual typed kill was not retained.");
+				for(int index=0;index<8;index++){PhantomAssertions.assertTrue(bridge.record(1,subject,attack,"071laterattack"+index,"C".repeat(64),admitted,1000).durable(),"Higher-salience attack control was not retained.");}
+				final var memories=social.snapshot(1,subject,PhantomSocialModel.MAX_MEMORIES,admitted).value().memories();
+				PhantomAssertions.assertTrue(memories.stream().anyMatch(memory->memory.eventKey().equals(attack.eventKey()))&&memories.stream().anyMatch(memory->memory.eventKey().equals(kill.eventKey())),"Native catalog attack/kill memory salience remained below retention threshold.");
+				PhantomAssertions.assertFalse(bridge.allowsProactiveDispute(1,subject,admitted,true),"The same admitted victim was attacked again after actual retained kill memory.");
+			}
+			finally{social.beginStop();social.finishStop();}
+		});
+		registry.add("071-fresh-causal-farm-dispute-is-rare-but-reachable-without-anger",context->
+		{
+			final MemoryStore store=new MemoryStore();store.addProfile(1);
+			final var social=service(catalog(context),store,16);
+			try
+			{
+				social.installPersonalityInitializer(_->java.util.Map.of(1,0,2,0,3,0,4,0,5,0,6,10000));
+				final var bridge=new org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge(social);final var subject=SubjectRef.phantom(2);
+				PhantomAssertions.assertEquals(0,relationship(social,1,subject,0,"anger"),"Fresh dispute control already had unrelated anger.");
+				int admitted=0;
+				for(int window=0;window<240;window++)
+				{
+					final long minute=window*30L;final boolean allowed=bridge.allowsProactiveDispute(1,subject,minute,true);
+					if(allowed){admitted++;PhantomAssertions.assertTrue(bridge.allowsProactiveDispute(1,subject,minute+1,true),"Hot ticks rerolled a stable rare window.");}
+					PhantomAssertions.assertFalse(bridge.allowsProactiveDispute(1,subject,minute,false),"No farm evidence or remembered attack still admitted aggression.");
+				}
+				PhantomAssertions.assertTrue(admitted>0&&admitted<24,"Causal zero-anger farm dispute is unreachable or ceased to be rare.");
+			}
+			finally{social.beginStop();social.finishStop();}
+		});
 		registry.add("05-terminal-party-goal-allows-new-invitation-with-active-owner-protected", context ->
 		{
 			final MemoryStore store = new MemoryStore();

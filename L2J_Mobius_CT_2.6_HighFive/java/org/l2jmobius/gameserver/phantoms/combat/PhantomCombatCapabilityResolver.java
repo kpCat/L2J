@@ -126,14 +126,15 @@ public final class PhantomCombatCapabilityResolver
 		}
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
 		capabilities.sort(CAPABILITY_ORDER);
-		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<SelectedSkill> nativeSkills = lease.learnedPvpSkills(mode, 16);
+		final List<SelectedSkill> selected = java.util.stream.Stream.concat(nativeSkills.stream(), capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER)).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
 		final boolean normalFallback = lease.supportsNormalAttack(mode);
-		if (matching.isEmpty() || (!normalFallback && selected.isEmpty()))
+		if (!normalFallback && selected.isEmpty())
 		{
 			return Optional.empty();
 		}
-		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
+		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElse(1);
 		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
 	}
 }

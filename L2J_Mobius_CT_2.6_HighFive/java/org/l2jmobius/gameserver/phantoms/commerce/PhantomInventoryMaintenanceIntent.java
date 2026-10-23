@@ -88,6 +88,19 @@ public final class PhantomInventoryMaintenanceIntent
 		final var changed = new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), replacement.operations().size(), replacement.index(), goal.acquisitionMethod(), sources(replacement.operations()), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), budget, goal.deadlineEpochMillis(), values, reason, Math.addExact(goal.revision(), 1), goal.payloadText());
 		parse(changed); return changed;
 	}
+
+	/** Only an unprepared counter reference can change after a JVM restart; receipt identities are immutable. */
+	public static PhantomGoal rebindCounter(PhantomGoal goal, int npcObjectId, PhantomCommerceReceipt receipt)
+	{
+		final var spec = parse(goal);
+		if (goal.status() != PhantomGoalStatus.ACTIVE || spec.returning() || spec.current().kind() == OperationKind.CRYSTALLIZE || npcObjectId <= 0) { throw new IllegalArgumentException("Only an active unprepared native counter may be rebound."); }
+		if (receipt != null && (!receipt.state().terminal() || receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT || receipt.goalId() == goal.goalId() && receipt.goalRevision() == goal.revision())) { return goal; }
+		final var old = spec.current();
+		if (npcObjectId == old.npcObjectId()) { return goal; }
+		final var operations = new ArrayList<>(spec.operations());
+		operations.set(spec.index(), new Operation(old.kind(), old.npcId(), npcObjectId, old.listId(), old.itemId(), old.itemObjectId(), old.count()));
+		return advance(goal, new Spec(operations, spec.index(), spec.failed(), spec.buyChecked()), goal.expenseBudget(), "maintenance.counter.rebound_after_restart");
+	}
 	private static List<PhantomDomainRef> sources(List<Operation> operations)
 	{
 		final var result = new ArrayList<PhantomDomainRef>(); for (int index = 0; index < operations.size(); index++) { result.add(operations.get(index).source(index)); } return List.copyOf(result);

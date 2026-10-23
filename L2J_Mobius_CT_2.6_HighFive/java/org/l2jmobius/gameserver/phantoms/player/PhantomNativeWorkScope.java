@@ -194,17 +194,28 @@ public final class PhantomNativeWorkScope implements Owner
 		return !_identity.isClosed() && (_player.getObjectId() == _identity.objectId()) && (_player.getNativeWorkOwner() == this);
 	}
 	@Override public Player player() { return _player; }
-	@Override public boolean requiresOffensiveShots() { return _requiresOffensiveShots; }
+	@Override public boolean requiresOffensiveShots()
+	{
+		final var target = _player.getTarget();
+		final var summon = _player.getSummon();
+		return _requiresOffensiveShots || target != null && target != _player && target.isPlayable() || summon != null && summon.getTarget() != null && summon.getTarget() != _player && summon.getTarget().isPlayable();
+	}
 	public void requireOffensiveShots(boolean required) { _requiresOffensiveShots = required; }
 	@Override public boolean prepareOffensiveShot(boolean magic)
 	{
-		if (!_requiresOffensiveShots) { return true; }
+		final boolean playerCombat = _player.getTarget() != null && _player.getTarget() != _player && _player.getTarget().isPlayable();
+		if (!_requiresOffensiveShots && !playerCombat) { return true; }
 		if (!isCurrent() || _state != State.OPEN || !nativeObservationHealthy()) { return false; }
-		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(_player, _player, magic) != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.FAILED;
+		final var shot = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(_player, _player, magic);
+		return playerCombat ? shot == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.ACTIVATED : shot != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.FAILED;
 	}
 	@Override public boolean prepareSummonOffensiveShot(org.l2jmobius.gameserver.model.actor.Summon summon, boolean magic)
 	{
-		return !_requiresOffensiveShots || isCurrent() && _state == State.OPEN && nativeObservationHealthy() && org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(summon, _player, magic) != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.FAILED;
+		final boolean playerCombat = summon.getTarget() != null && summon.getTarget() != _player && summon.getTarget().isPlayable();
+		if (!_requiresOffensiveShots && !playerCombat) { return true; }
+		if (!isCurrent() || _state != State.OPEN || !nativeObservationHealthy()) { return false; }
+		final var shot = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl.chargeOffensive(summon, _player, magic);
+		return playerCombat ? shot == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.ACTIVATED : shot != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome.FAILED;
 	}
 	@Override public PlayerNativeEvidence evidence() { return _evidence; }
 	@Override public boolean nativeObservationHealthy() { return _failure.isEmpty() && !_player.hasPendingOwnedStore(); }

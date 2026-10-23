@@ -43,10 +43,7 @@ public final class PaidSubclass070Service
 		if (player == null) { return false; }
 		try (var connection = DatabaseFactory.getConnection())
 		{
-			if (!Set.of("l2jmobiush5_phantom_test_070", "l2jmobiush5_phantom_release_070").contains(connection.getCatalog()))
-			{
-				return false;
-			}
+			Economy070Shop.verifySchema(connection);
 			try (var query = connection.prepareStatement("SELECT 1 FROM economy070_orders WHERE account_name=? AND char_id=? AND kind=? LIMIT 1"))
 			{
 				query.setString(1, player.getAccountName()); query.setInt(2, player.getObjectId()); query.setString(3, KIND);
@@ -140,8 +137,7 @@ public final class PaidSubclass070Service
 				{
 					material.transactCount(missing, connection ->
 					{
-						if (!Set.of("l2jmobiush5_phantom_test_070", "l2jmobiush5_phantom_release_070").contains(connection.getCatalog()))
-						{ throw new IllegalStateException("Paid materials require OWN070 database."); }
+						Economy070Shop.verifySchema(connection);
 						try (var query = connection.prepareStatement("SELECT request_id FROM economy070_orders WHERE request_id=?"))
 						{
 							query.setString(1, request);

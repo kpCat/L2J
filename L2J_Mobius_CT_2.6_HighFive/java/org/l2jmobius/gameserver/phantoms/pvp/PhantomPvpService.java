@@ -416,6 +416,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		{
 			return;
 		}
+		if (result.status() == PhantomCombatService.StartStatus.SUPPLY_REQUIRED) { retreat(updated, now, "pvp.supply.required"); return; }
 		save(updated, cooldown(updated.encounter(), now, "pvp.combat." + result.status().name().toLowerCase()));
 	}
 
@@ -464,9 +465,9 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		{
 			social(stored.profileId(), subject, EventKind.DEATH_SUFFERED, encounter, encounter.authorityHash(), now, "death");
 		}
-		if (terminal.result() == PhantomCombatResult.LOW_HP_STOPPED)
+		if (terminal.result() == PhantomCombatResult.LOW_HP_STOPPED || terminal.result() == PhantomCombatResult.SUPPLY_REQUIRED)
 		{
-			retreat(stored, now, "pvp.combat.low_hp");
+			retreat(stored, now, terminal.result() == PhantomCombatResult.SUPPLY_REQUIRED ? "pvp.supply.required" : "pvp.combat.low_hp");
 			return;
 		}
 		save(stored, cooldown(encounter, now, "pvp.combat." + terminal.result().name().toLowerCase()));
@@ -476,7 +477,8 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	{
 		final String operationId = PhantomPvpModel.sha256("pvp.social.operation", encounter.authorityHash(), encounter.createdLogicalNanos(), operation);
 		final String evidence = PhantomPvpModel.sha256("pvp.social.evidence", encounter.authorityHash(), sourceEvidenceHash, kind);
-		_social.record(ownerProfileId, subject, kind, operationId, evidence, minute(now), 100);
+		// One factual event uses the catalog's full 1000-unit scale, retaining its authored memory.
+		_social.record(ownerProfileId, subject, kind, operationId, evidence, minute(now), 1000);
 	}
 
 	private StoredEncounter save(StoredEncounter current, Encounter encounter)

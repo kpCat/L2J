@@ -1,0 +1,19 @@
+gate	priority	proof_required	fail_closed
+A_TOKEN	HARD	Real Token13722↔AA5575 exact1↔20000, both directions 1+batch, purchase and reverse roundtrip, native account/inventory no dup/misuse/restart	Reject overflow/no materials/zone/replay, preserve original Olympiad
+A_OLY_SHOP	HARD	Alt+B exposes full stock 102/103 38/69 genuine offer semantic parity, original NPC still works	No fake Hero, no shortcuts for special negative products
+A_CODEX	HARD	Base Codex6622 exactly11mAA and 550 Token equivalence, other three AA prices unchanged	Exact XML SHA/source pricing; no duplicated token sale
+A_EPIC	HARD	12 applied x1 prices exactly /100, last unit persisted/race/restart14/30/60d	No silent restock/mutating old070; no auto rate Apply
+A_OWN071	HARD	Economy070 services ported to owned071 schema with own manifest/schema version and tested sale/premium/stock	No arbitrary DB acceptance; no root schema reseed
+A_PREMIUM	MED	Existing XP/SP/rare chance/spoil/Adena x2 still real; combined chance cap moved to configurable INI	No 0 override revival, no premium for phantom
+B_CAUSE	HARD	Actual native ACTUAL_ATTACK, SPOT, REVENGE, PARTY_DEFENSE + native clan-war if present, rare proactive/target cooldown	No unconditional human attacks, cross-zone crime, fake hostility
+B_SKILLS	HARD	Five bounded class archetypes dagger/archer/mage/tank/Kamael actual learned offensive/control skill + MP/reuse and native geometry; support one real heal/recharge	Not just doAttack or fabricated learned skills/souls
+B_SHOTS	HARD	Physical native item debit for charge with weapon grade in PvP, no proactive attack without shots and bounded reaction/retreat	No free item, no endless failed combat
+B_CP	HARD	5591/5592 native CP restoration using real inventory, threshold/reuse, acquisition plan and no dup	Preserve Olympiad restrictions/native damage
+C_GEAR	HARD	Per-level NG/D/C/B/A/S/S80/S84 at threshold profiles, true owned/market acquisition priority with budget shortage reason	No free gear/expertise override/new P2W shop
+C_SHOTS	HARD	Grade-aware shot sources, earned funds quote and native use, 20+ sustainable plan, 1–19 NG no-shot legal	No infinite unshot farm at high levels without recognized supply debt
+C_RECOVERY	MED	One own native post-restart SELL or supply pickup→native kill/earned balance, original no-dup owner and retained HP	No 14km artificial teleport or fake buyer/seller
+D_MAMMON	HARD	Real Pushkin30300 native Mammon operations same available lists, paid originals, distance/eligibility/exception tests	No NPC spoof, free SA, dropped source gear
+D_LEVELGAP	OPTIONAL	Tier50/60 with valid carriers and native shop if <=20min; otherwise SKIP_OPTIONAL_WITH_REASON	Raid drops always already protected without pass
+D_DEFER	HARD	No reprice BAT/new script/auto Apply, no new Olympic AI, siege, territory, semantic work	No scope creep
+RELEASE	HARD	Committed-source JAR, own new071 isolated DB+203 Geo, Main useful activity & two native start-stop same DB,JAR, wallet/gear/supply persistent	No owner login required or changes to old DB/candidates
+OWNER_VISUAL	DEFERRED	Real client UX owner chooses on first actual game after release	No fabricated client pass

@@ -114,4 +114,26 @@ public final class PhantomPvpSocialBridge
 		final String authority = PhantomSocialModel.sha256("pvp.revenge|" + result.value().authorityHash() + '|' + memory.eventId() + '|' + memory.evidenceHash() + '|' + memory.expiryMinute());
 		return Optional.of(new RevengeEvidence(exactSubject, memory.eventId(), memory.eventKey(), authority, memory.expiryMinute()));
 	}
+
+	/** Read-only, infrequent admission inside an actual farm dispute or a remembered personal attack. */
+	public boolean allowsProactiveDispute(long profileId, SubjectRef subject, long minute, boolean farmingDispute)
+	{
+		if (profileId <= 0 || subject == null || minute < 0) { return false; }
+		final var result = _social.snapshot(profileId, subject, PhantomSocialModel.MAX_MEMORIES, minute);
+		if (!result.available()) { return false; }
+		final var snapshot = result.value();
+		if (snapshot.memories().stream().anyMatch(memory -> memory.subject().equals(subject) && memory.eventKey().equals(EventKind.KILL_CAUSED.eventKey()) && memory.expiryMinute() > minute)) { return false; }
+		final var traits = snapshot.personality().traits();
+		final var relationship = snapshot.relationship().relationship();
+		final boolean rememberedAttack = snapshot.memories().stream().anyMatch(memory -> memory.subject().equals(subject) && REVENGE_EVENTS.contains(memory.eventKey()) && memory.expiryMinute() > minute);
+		if (!farmingDispute && !rememberedAttack) { return false; }
+		final int assertiveness = traits.getOrDefault("assertiveness", 0);
+		final int caution = traits.getOrDefault("caution", 0);
+		final int friendship = relationship.getOrDefault("friendship", 0);
+		// Exact farming escalation is already causal; its native magnitude need not create anger first.
+		if (assertiveness < 5500 || caution > 6500 || friendship > 1000) { return false; }
+		// A stable half-hour window cannot be rerolled by hot ticks, target switches or restart.
+		final String roll = PhantomSocialModel.sha256("pvp.rare-dispute|" + snapshot.personality().seed() + '|' + profileId + '|' + subject.stableKey() + '|' + minute / 30);
+		return Long.parseUnsignedLong(roll.substring(0, 8), 16) % 10000 < Math.min(300, Math.max(25, (assertiveness - caution) / 20));
+	}
 }

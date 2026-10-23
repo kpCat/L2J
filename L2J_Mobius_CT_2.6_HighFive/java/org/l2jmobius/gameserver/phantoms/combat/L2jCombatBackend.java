@@ -135,6 +135,27 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	}
 
 	private static final int MAXIMUM_ACQUISITION_DISTANCE = 2000;
+
+	/** Real learned levels and native effect kinds are the fallback when authored coverage is incomplete. */
+	public static List<SelectedSkill> nativePvpSkills(Player player, PhantomCombatMode mode, int limit)
+	{
+		if (player == null || limit < 1 || limit > 16) { return List.of(); }
+		final var weapon = player.getActiveWeaponItem();
+		final boolean ranged = weapon != null && (weapon.getItemType() == WeaponType.BOW || weapon.getItemType() == WeaponType.CROSSBOW);
+		if (!mode.magic() && (ranged != (mode == PhantomCombatMode.RANGED_PHYSICAL))) { return List.of(); }
+		final Creature target = player.getTarget() instanceof Creature creature ? creature : null;
+		final List<Skill> learned = player.getAllSkills().stream().filter(skill -> PhantomPvpSkillSafety.supports(skill, mode, player.isTransformed())).limit(256).toList();
+		final Set<Integer> ready = learned.stream().filter(skill -> nativePvpSkillReady(player, target, skill)).map(Skill::getId).collect(java.util.stream.Collectors.toSet());
+		return learned.stream()
+			.sorted(Comparator.comparingInt((Skill skill) -> ready.contains(skill.getId()) ? 1 : 0).reversed().thenComparing(Comparator.comparingInt((Skill skill) -> PhantomPvpSkillSafety.priority(skill) - (target != null && skill.getElement() >= 0 ? Math.min(100, target.getDefenseElementValue(skill.getElement()) / 10) : 0)).reversed()).thenComparingInt(Skill::getId))
+			.limit(limit).map(skill -> new SelectedSkill(skill.getId(), skill.getLevel())).toList();
+	}
+	private static boolean nativePvpSkillReady(Player player, Creature target, Skill skill)
+	{
+		return !player.isSkillDisabled(skill) && player.getCurrentMp() >= player.getStat().getMpConsume(skill)+player.getStat().getMpInitialConsume(skill) && player.getCurrentHp()>skill.getHpConsume() && player.getCharges()>=skill.getChargeConsumeCount() && player.getChargedSouls()>=skill.getMaxSoulConsumeCount()
+			&& (skill.getItemConsumeCount()<=0 || player.getInventory().getInventoryItemCount(skill.getItemConsumeId(),-1)>=skill.getItemConsumeCount())
+			&& (target==null || !target.isInvul() && !target.isInvulAgainst(skill.getId(),skill.getLevel()) && (skill.isDamage() || !target.isAffectedBySkill(skill.getId())) && skill.checkCondition(player,target,false));
+	}
 	private static int maximumLootDistance()
 	{
 		final int configured = org.l2jmobius.gameserver.config.custom.AutoPlayConfig.PHANTOM_PICKUP_RANGE;
@@ -256,7 +277,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return null;
 			}
 			final boolean affiliated = ((_player.getClanId() > 0) && (_player.getClanId() == target.getClanId())) || ((_player.getAllyId() > 0) && (_player.getAllyId() == target.getAllyId()));
-			if (affiliated && !_player.canAttackCreature(target)) { return null; }
+			if (affiliated) { return null; }
 			final WorldRegion actorRegion = _player.getWorldRegion();
 			final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(target.getWorldRegion());
 			final boolean sameParty = (_player.getParty() != null) && (_player.getParty() == target.getParty());
@@ -780,13 +801,30 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return PhantomPvpSkillSafety.supports(skill, mode, _player.isTransformed());
 		}
 
+		@Override public List<SelectedSkill> learnedPvpSkills(PhantomCombatMode mode, int limit) { return nativePvpSkills(_player, mode, limit); }
+		@Override public boolean pvpSkillReady(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
+		{
+			final var object=World.getInstance().findObject(targetObjectId); final var facts=pvpTargetSnapshot(targetObjectId); final var skill=_player.getKnownSkill(selected.skillId());
+			return object instanceof Player target && facts!=null && facts.validFor(actorSnapshot(),MAXIMUM_ACQUISITION_DISTANCE) && skill!=null && supportsPvpSkill(selected,mode) && nativePvpSkillReady(_player,target,skill);
+		}
+		@Override public boolean hasPvpShotReserve(PhantomCombatMode mode, int hits) { return !_closed.get() && PhantomNativeShotControl.hasOffensiveReserve(_player, mode.magic(), hits); }
+
+		@Override public List<Integer> declaredWarEnemies(int limit)
+		{
+			if (limit < 1 || limit > 10 || _player.getClan() == null || _player.isAcademyMember() || _player.getWantsPeace() != 0) { return List.of(); }
+			return World.getInstance().getVisibleObjectsInRange(_player, Player.class, MAXIMUM_ACQUISITION_DISTANCE).stream()
+				.filter(target -> target.getClan() != null && target.getClanId() != _player.getClanId() && !target.isAcademyMember() && target.getWantsPeace() == 0 && _player.getClan().isAtWarWith(target.getClanId()) && target.getClan().isAtWarWith(_player.getClanId()))
+				.filter(target -> { final var facts = pvpTargetSnapshot(target.getObjectId()); return facts != null && facts.autoAttackable() && facts.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE); })
+				.map(Player::getObjectId).sorted().limit(limit).toList();
+		}
+
 		@Override
 		public boolean supportsNormalAttack(PhantomCombatMode mode)
 		{
 			final Weapon weapon = _player.getActiveWeaponItem();
 			return switch (mode)
 			{
-				case MELEE_PHYSICAL -> true;
+				case MELEE_PHYSICAL -> weapon == null || ((weapon.getItemType() != WeaponType.BOW) && (weapon.getItemType() != WeaponType.CROSSBOW));
 				case RANGED_MAGIC -> false;
 				case RANGED_PHYSICAL -> (weapon != null) && ((weapon.getItemType() == WeaponType.BOW) || (weapon.getItemType() == WeaponType.CROSSBOW));
 			};
@@ -870,6 +908,26 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			_spacingStartedNanos = System.nanoTime();
 			_spacingAttempts++;
 			_player.getAI().setIntention(Intention.MOVE_TO, destination);
+			return ActionOutcome.ISSUED;
+		}
+
+		@Override public ActionOutcome maintainPvpPosition(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
+		{
+			if (mode != PhantomCombatMode.MELEE_PHYSICAL) { return maintainRangedSpacing(targetObjectId, selected, mode); }
+			final Skill skill = selected == null ? null : _player.getKnownSkill(selected.skillId());
+			final var object = World.getInstance().findObject(targetObjectId);
+			final var facts = pvpTargetSnapshot(targetObjectId);
+			if (skill == null || !PhantomPvpSkillSafety.requiresRear(skill) || !(object instanceof Player target) || facts == null || !facts.validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE) || !_player.isInFrontOf(target) || _player.isMoving() || _player.isCastingNow() || _player.isAttackingNow() || _spacingAttempts >= 4) { return ActionOutcome.UNAVAILABLE; }
+			final var geo = GeoEngine.getInstance();
+			final double angle = Math.toRadians(org.l2jmobius.gameserver.util.LocationUtil.convertHeadingToDegree(target.getHeading()));
+			final int radius = Math.max(40, target.getTemplate().getCollisionRadius() + _player.getTemplate().getCollisionRadius() + 15);
+			final int x = target.getX() - (int) Math.round(radius * Math.cos(angle));
+			final int y = target.getY() - (int) Math.round(radius * Math.sin(angle));
+			if (!geo.hasGeo(x, y) || !geo.hasGeo(_player.getX(), _player.getY())) { return ActionOutcome.UNAVAILABLE; }
+			final int z = geo.getHeight(x, y, target.getZ());
+			if (Math.hypot((long) x - _player.getX(), (long) y - _player.getY()) > 500 || Math.abs((long) z - _player.getZ()) > 64 || ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null || ZoneManager.getInstance().getZone(x, y, z, NoPvPZone.class) != null || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null || !geo.canMoveToTarget(_player.getX(), _player.getY(), _player.getZ(), x, y, z, _player.getInstanceId())) { return ActionOutcome.UNAVAILABLE; }
+			_ownedSpacing = new Location(x, y, z); _ownedSpacingTargetObjectId = targetObjectId; _spacingStartedNanos = System.nanoTime(); _spacingAttempts++;
+			_player.getAI().setIntention(Intention.MOVE_TO, _ownedSpacing);
 			return ActionOutcome.ISSUED;
 		}
 
@@ -1348,7 +1406,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final Creature target = pvpActionTarget(owner, tacticalTargetObjectId, snapshot);
-			if (target == null)
+			if (target == null || target.isInvul())
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -1389,7 +1447,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final Creature target = pvpActionTarget(owner, tacticalTargetObjectId, snapshot);
-			if (target == null)
+			if (target == null || target.isInvul())
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -1408,7 +1466,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
-			if (!_player.useMagic(skill, forceUse, false))
+			if (target.isInvulAgainst(skill.getId(), skill.getLevel()) || !skill.checkCondition(_player, target, false) || (skill.getMaxSoulConsumeCount() > 0 && _player.getChargedSouls() < skill.getMaxSoulConsumeCount()) || (PhantomPvpSkillSafety.requiresRear(skill) && _player.isInFrontOf(target)) || (!skill.isDamage() && target.isAffectedBySkill(skill.getId())) || !_player.useMagic(skill, forceUse, false))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}

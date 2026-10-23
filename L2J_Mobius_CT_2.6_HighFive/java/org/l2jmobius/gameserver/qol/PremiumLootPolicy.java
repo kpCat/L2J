@@ -9,8 +9,6 @@ import org.l2jmobius.gameserver.model.actor.Player;
 /** Shared premium selection for grouped/ungrouped loot; server and champion rates remain outside this bonus. */
 public final class PremiumLootPolicy
 {
-	private static final double MAXIMUM_COMBINED_CHANCE_BONUS = 3;
-
 	private PremiumLootPolicy()
 	{
 	}
@@ -27,6 +25,7 @@ public final class PremiumLootPolicy
 
 	public static double combinedChance(double premium, double itemBonus)
 	{
-		return Math.min(MAXIMUM_COMBINED_CHANCE_BONUS, premium * itemBonus);
+		final double cap = PremiumSystemConfig.PREMIUM_MAXIMUM_COMBINED_CHANCE_BONUS;
+		return Math.min(Double.isFinite(cap) && cap >= 1 && cap <= 100 ? cap : 1, premium * itemBonus);
 	}
 }

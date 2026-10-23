@@ -17,6 +17,7 @@ import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.enums.BodyPart;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ArmorType;
+import org.l2jmobius.gameserver.model.item.type.CrystalType;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.stats.Stat;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
@@ -28,9 +29,32 @@ public final class PhantomNativeEquipmentPolicy
 	private static final Set<Stat> MASTERY_STATS = Set.of(Stat.POWER_ATTACK, Stat.MAGIC_ATTACK, Stat.POWER_DEFENCE, Stat.MAGIC_DEFENCE, Stat.POWER_ATTACK_SPEED, Stat.MAGIC_ATTACK_SPEED, Stat.MAX_HP, Stat.MAX_MP, Stat.EVASION_RATE, Stat.CRITICAL_RATE);
 	private PhantomNativeEquipmentPolicy() { }
 
+	/** Progression intent is bounded by the expertise actually learned by this actor. */
+	public static CrystalType targetGrade(int level, int expertiseLevel)
+	{
+		final CrystalType target = level >= 84 ? CrystalType.S84 : level >= 80 ? CrystalType.S80 : level >= 76 ? CrystalType.S : level >= 61 ? CrystalType.A : level >= 52 ? CrystalType.B : level >= 40 ? CrystalType.C : level >= 20 ? CrystalType.D : CrystalType.NONE;
+		return CrystalType.values()[Math.max(0, Math.min(target.getLevel(), expertiseLevel))];
+	}
+
+	public static boolean hasGradeDebt(Player player)
+	{
+		if (player == null) { return false; }
+		final int target = targetGrade(player.getLevel(), player.getExpertiseLevel()).getLevel();
+		if (target == 0) { return false; }
+		if (player.getActiveWeaponItem() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem() || player.getActiveWeaponItem().getCrystalType().getLevel() < target) { return true; }
+		for (int slot : List.of(Inventory.PAPERDOLL_HEAD, Inventory.PAPERDOLL_CHEST, Inventory.PAPERDOLL_GLOVES, Inventory.PAPERDOLL_FEET))
+		{
+			final var item = player.getInventory().getPaperdollItem(slot);
+			if (item == null || item.getTemplate().getCrystalType().getLevel() < target) { return true; }
+		}
+		final var chest = player.getInventory().getPaperdollItem(Inventory.PAPERDOLL_CHEST);
+		final var legs = player.getInventory().getPaperdollItem(Inventory.PAPERDOLL_LEGS);
+		return chest.getTemplate().getBodyPart() != BodyPart.FULL_ARMOR && (legs == null || legs.getTemplate().getCrystalType().getLevel() < target);
+	}
+
 	public static boolean compatible(Player player, ItemTemplate item)
 	{
-		if (player == null || item == null || item.isQuestItem() || item.getCrystalType().getLevel() > Math.max(0, player.getExpertiseLevel()) || !item.checkCondition(player, player, false)) { return false; }
+		if (player == null || item == null || item.isQuestItem() || item.getCrystalType().getLevel() > targetGrade(player.getLevel(), player.getExpertiseLevel()).getLevel() || !item.checkCondition(player, player, false)) { return false; }
 		if (item instanceof Weapon weapon)
 		{
 			if (weapon.isMagicWeapon() != player.isMageClass()) { return false; }
@@ -116,12 +140,12 @@ public final class PhantomNativeEquipmentPolicy
 		if (candidate instanceof Weapon)
 		{
 			final var current = player.getActiveWeaponItem();
-			return current == null || current == player.getFistsWeaponItem() || !compatible(player, current) || candidate.getCrystalType().getLevel() >= current.getCrystalType().getLevel() && utility(player, candidate) > utility(player, current);
+			return current == null || current == player.getFistsWeaponItem() || !compatible(player, current) || candidate.getCrystalType().getLevel() > current.getCrystalType().getLevel() || candidate.getCrystalType() == current.getCrystalType() && utility(player, candidate) > utility(player, current);
 		}
 		final var replaced = player.getInventory().getItems().stream().filter(Item::isEquipped).filter(item -> overlaps(candidate.getBodyPart(), item.getTemplate().getBodyPart())).toList();
 		return replaced.isEmpty() || replaced.stream().anyMatch(item -> !compatible(player, item.getTemplate()))
-			|| candidate.getCrystalType().getLevel() >= replaced.stream().mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0)
-				&& utility(player, candidate) > replaced.stream().mapToDouble(item -> utility(player, item.getTemplate())).sum();
+			|| candidate.getCrystalType().getLevel() > replaced.stream().mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0)
+			|| candidate.getCrystalType().getLevel() == replaced.stream().mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0) && utility(player, candidate) > replaced.stream().mapToDouble(item -> utility(player, item.getTemplate())).sum();
 	}
 
 	private static boolean overlaps(BodyPart first, BodyPart second)

@@ -59,6 +59,7 @@ public class PremiumSystemConfig
 	public static float PREMIUM_RATE_SPOIL_AMOUNT;
 	public static float PREMIUM_RATE_QUEST_XP;
 	public static float PREMIUM_RATE_QUEST_SP;
+	public static double PREMIUM_MAXIMUM_COMBINED_CHANCE_BONUS = 3;
 	public static Map<Integer, Float> PREMIUM_RATE_DROP_CHANCE_BY_ID;
 	public static Map<Integer, Float> PREMIUM_RATE_DROP_AMOUNT_BY_ID;
 	
@@ -106,6 +107,7 @@ public class PremiumSystemConfig
 		PREMIUM_RATE_SPOIL_AMOUNT = config.getFloat("PremiumRateSpoilAmount", 1);
 		PREMIUM_RATE_QUEST_XP = config.getFloat("PremiumRateQuestXp", 1);
 		PREMIUM_RATE_QUEST_SP = config.getFloat("PremiumRateQuestSp", 1);
+		PREMIUM_MAXIMUM_COMBINED_CHANCE_BONUS = validatedCombinedChanceCap(config.getString("PremiumMaximumCombinedChanceBonus", "3"));
 		final String[] premiumDropChanceMultiplier = config.getString("PremiumRateDropChanceByItemId", "").split(";");
 		PREMIUM_RATE_DROP_CHANCE_BY_ID = new HashMap<>(premiumDropChanceMultiplier.length);
 		if (!premiumDropChanceMultiplier[0].isEmpty())
@@ -160,5 +162,18 @@ public class PremiumSystemConfig
 				}
 			}
 		}
+	}
+
+	/** Malformed/nonfinite/unsafe caps suppress extra chance instead of opening an unlimited multiplier. */
+	public static double validatedCombinedChanceCap(String value)
+	{
+		try
+		{
+			final double cap = Double.parseDouble(value);
+			if (Double.isFinite(cap) && cap >= 1 && cap <= 100) { return cap; }
+		}
+		catch (RuntimeException invalid) { }
+		LOGGER.warning("Invalid PremiumMaximumCombinedChanceBonus; fail-closed cap1 is used.");
+		return 1;
 	}
 }
