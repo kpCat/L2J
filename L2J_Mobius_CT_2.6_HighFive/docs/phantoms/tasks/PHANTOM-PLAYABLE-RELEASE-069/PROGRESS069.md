@@ -4,6 +4,16 @@
 Финализация с 2026-10-23 08:32:24 UTC; предел 10:02:24 UTC.
 Baseline local/live: 1741547db89f715ac7ace7cb279bfee335e950ee, feature/phantom-world.
 
+## Финальная приёмка069
+
+NOT_READY / best verified candidate. Hard P0B и M1/RELEASE PARTIAL, без самоприсвоения READY_OWNER_PLAY. Ниже сохранена хронология промежуточных шагов; финальная матрица — [RESULT069](../../reports/PHANTOM-PLAYABLE-RELEASE-069.md).
+
+- Final product source76afbbeffec23ec0ec15c98bb16f9a7ab800368c, GameServer1FB2C5B410C75EDC6F0889B831009459BA72BC6EAE1CB5ACAC5B60EBF5ED160D. Clean archive/tree/test/JAR hashes подтверждены, Ant jar+compile-tests exit0. По class parity предыдущие receipts не требуют повторения suites.
+- Actual ordinary TEST2boots: full203Geo39/37s, canonical native TestHuman/normal access0 Player, no fake GameClient. Profile14 first epoch3kills/3rewards/+87EXP/+6SP/loot2/NONE. Second epoch сохранил real identity/EXP232/SP18/HP12, native reward0; длительный natural regen превысил120с evidence horizon, sticky PHASE_DEADLINE/после human exit DEFERRED. Guard/reset/refill не ослаблялись. Profile19 native warehouse maintenance/learning route без native kill. M1 PARTIAL.
+- M2 affected buff1/1+support3/3 на finalJAR PASS; ранее full composition1/1. M6 Kama/Lab/Rift bounded PASS; M7 career6/6+earned paid skill1/1+ordinary Buyer069 exact5 DB images/native quest reload после обоих Main PASS. M3/M5/earned supply soft PARTIAL сохранены.
+- RELEASE2boots: stock offline restore200, native owners/nonempty/leases200, openings0/combat owners0; exact identities/profiles/merchant quota/offline owners/items hashes unchanged. Все4 Main STOP штатные, no-force. Root guides/READINESS069 явно NOT_READY, source stock heap4g/2g сохранён; heap1536MB failed full Geo до population.
+- Final safety PASS: protected59,068V7,original0698,physicalGeo203×4, own JVM0/listeners0/DB0, обе роли STOPPED. Scope exact71 paths; source71+guides2 mojibake27 и escaped6 scans0/0. Для Windows PowerShell5 false-positive scanner переведён на локальный ordinal pattern, повреждённый private helper guide prefix восстановлен на verified clean preimage, только own069 docs. Финальный commit/remote SHA фиксируются отдельно в PUBLICATION069.json без self-reference. Старые среды/БД/клиент/OS settings не менялись.
+
 ## Полномочия и read-first
 
 Источник: TASK/AUTHORITY/ACCEPTANCE/READ_SET/RELEASE_PROFILE/TEST_POLICY/OWNER_DECISIONS/GOAL пакета069. Автономная единая кампания, commit и normal push разрешены. Новые worktrees запрещены; текущий checkout используется только для source, сборка и runtime изолированы. Исходный dirt: только пакеты068V и069; 068V не включать в scope.

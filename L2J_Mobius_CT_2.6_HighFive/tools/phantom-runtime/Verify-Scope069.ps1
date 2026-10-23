@@ -23,10 +23,24 @@ try {
     $paths069=Get-Content -LiteralPath (Join-Path $task069 'code-scope.txt')
     if($Action -eq 'Mojibake') {
         $markers069=@(('1056,1119;1056,1116;1056,1115;1056,8226;1056,1038;1056,8250;1056,164;1056,1114;1056,1032;1056,1113;1056,1169;1056,181;1056,176;1056,187;1056,1029;1056,1109;1057,1039;1057,8364;1057,1026;1057,8249;1057,1034;1057,8218;1057,1107;1057,8225;1057,8230;1057,8224;65533').Split(';') | ForEach-Object {-join ($_.Split(',') | ForEach-Object {[char][int]$_})})
-        $found069=@(Select-String -LiteralPath $paths069 -Pattern $markers069 -SimpleMatch -Encoding utf8)
+        # Windows PowerShell5 culture-based SimpleMatch can treat U+FFFD as ignorable.
+        # Match literal code points, as the existing verify-task-001 token validator does.
+        $found069=@(foreach($path069 in $paths069){
+            $lineNumber069=0
+            foreach($line069 in [IO.File]::ReadAllLines((Join-Path $repo069 $path069),[Text.Encoding]::UTF8)){
+                $lineNumber069++
+                foreach($marker069 in $markers069){
+                    if($line069.IndexOf($marker069,[StringComparison]::Ordinal) -ge 0){
+                        [pscustomobject]@{Path=$path069;LineNumber=$lineNumber069;Line=$line069}
+                        break
+                    }
+                }
+            }
+        })
     } else {
         $found069=@(Select-String -LiteralPath $paths069 -Pattern '\\u04[0-9A-Fa-f]{2}','\\u05[0-9A-Fa-f]{2}','&#x04[0-9A-Fa-f]{2};','&#x05[0-9A-Fa-f]{2};','&#X04[0-9A-Fa-f]{2};','&#X05[0-9A-Fa-f]{2};' -Encoding utf8 -CaseSensitive)
     }
     $found069 | Select-Object Path,LineNumber,Line
     Write-Output "$Action matches=$($found069.Count)"
+    if($found069.Count){throw 'TASK069 encoding markers found in exact scope.'}
 } finally {Pop-Location}

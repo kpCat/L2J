@@ -1,11 +1,11 @@
 family	actual_ids	native_owner	level_policy	preserved_controls	evidence_scope
 QueenAnt	29001	ai/bosses/QueenAnt/QueenAnt.java	NO_LEVEL_GATE	open-world nest; native lifecycle/hate/minions	SOURCE_DATA_AUDIT; native combat pending
-Core	29006	ai/bosses/Core/Core.java;ai/areas/CrumaTower/CrumaTower.java	OPEN_WORLD; SHORTCUT_MAX55_REMOVED	30483 native shortcut coordinates; no instance or wall bypass	SOURCE_DATA_AUDIT; actual level80 shortcut pending
+Core	29006	ai/bosses/Core/Core.java;ai/areas/CrumaTower/CrumaTower.java	OPEN_WORLD; SHORTCUT_MAX55_REMOVED	30483 native shortcut coordinates; no instance or wall bypass	SOURCE_DATA_AUDIT; native level80 actual30483 ENTER PASS
 Orfen	29014	ai/bosses/Orfen/Orfen.java	NO_LEVEL_GATE	open-world; native spawn/lifecycle	SOURCE_DATA_AUDIT
 Baium	29020	ai/bosses/Baium/Baium.java	NO_LEVEL_GATE	4295 Blooded Fabric; boss status; native zone admission	SOURCE_DATA_AUDIT
 Antharas	29019,29066,29067,29068	ai/bosses/Antharas/Antharas.java	NO_LEVEL_GATE	entry item/state; boss lifecycle; native zone population	SOURCE_DATA_AUDIT
 Valakas	29028	ai/bosses/Valakas/Valakas.java;ai/others/ValakasTeleporters/ValakasTeleporters.java	NO_LEVEL_GATE	Vacualite Floating Stone; allowEnter; max200; lifecycle	SOURCE_DATA_AUDIT
-Frintezza	29045,29046,29047	ai/bosses/Frintezza/LastImperialTomb.java	MIN80_REMOVED	Scroll; command-channel owner; min9/max27; range1000; reuse	SOURCE_CONTRACT_PASS; native admission pending
+Frintezza	29045,29046,29047	ai/bosses/Frintezza/LastImperialTomb.java	MIN80_REMOVED	Scroll; command-channel owner; min9/max27; range1000; reuse	NATIVE_ADMISSION_PASS level1 Party9+CC; noParty/noCC/minPopulation/nonleader/reuse negatives PASS
 Zaken	29022,29176,29181	instances/CavernOfThePirateCaptain/CavernOfThePirateCaptain.java	MIN55_AND78_REMOVED	day/night population; leader; range; reuse; instance lifecycle	SOURCE_CONTRACT_PASS
 Beleth	29118	ai/bosses/Beleth/Beleth.java	NO_LEVEL_GATE	Hellbound/lifecycle/zone/native conditions	SOURCE_DATA_AUDIT; task example29045 is actually Frintezza
 Freya	29177,29178,29179,29180	instances/IceQueensCastle;instances/IceQueensCastleBattle;ai/areas/FrozenLabyrinth	MIN82_REMOVED	quest/item prerequisites; command-channel; max population; range/reuse	SOURCE_CONTRACT_PASS; no quest or fee bypass
