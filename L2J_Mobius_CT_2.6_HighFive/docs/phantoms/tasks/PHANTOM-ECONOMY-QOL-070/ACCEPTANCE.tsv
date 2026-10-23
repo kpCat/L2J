@@ -1,0 +1,15 @@
+gate	priority	what_must_be_true	minimum_evidence	status
+P069_QUEEN_ANT	HARD	Stock fire damage/curse conditions truthfully diagnosed; overlevel melee/magic/heal/summon never raid cursed	Actual native skill cast, event and applied HP evidence; no XML nerfs	PASS/PARTIAL/FAIL
+P069_M1	HARD	Same actual saved phantom after restart proceeds to useful native activity without refill/reset/duplicate	SameDB native actor receipts per epoch and persistence	PASS/PARTIAL/FAIL
+PRICING	HARD	Manual price Plan/Apply/Rollback source canonical stable x10→x20→x10, correct x1 premium1m x1 mana1k	plan SHA, quote table, diff, byte-identical rollback	PASS/PARTIAL/FAIL
+PREMIUM	HARD	Premium real account purchase Adena debit, term persistence, x2 XP/SP and normal+RARE loot/spoil, adena net2x not4x	Native buy/restart and chance/amount branch tests	PASS/PARTIAL/FAIL
+RUNES	AUDIT	Every declared rune backed by valid source ID/effect/expiry; no imaginary rune	RUNE_AUDIT070.tsv + optional real usage test	SUPPORTED/NO_NATIVE_ITEM/PARTIAL
+CODEX	HARD	AA item shop 6622/9625/9626/9627 actual debit, untouched stock Olympiad550Token; expensive opportunity cost	4 exact physical item/price native transactions and neg cases	PASS/PARTIAL/FAIL
+EPOLETTE	HARD	Separate item9912 shop at least source-grounded offers, no generic equipment/free items	NPC/offers provenance, real transaction/neg tests	PASS/PARTIAL/FAIL
+MAMMON	HARD	Permanent Giran blacksmith stone exchange and accessible safe Mammon services, native conditions preserved	3 color actual debit/credit, native service receipts, SevenSigns regression	PASS/PARTIAL/FAIL
+QUEST	HARD	All original bypass categories retained, no1/25A expensive items, key duplication gone; clan/subclass representative routes work	canonical28-row comparison, real quest consume/service flags and restart	PASS/PARTIAL/FAIL
+EPIC_STOCK	HARD	12 template IDs checked, very expensive rate-aware epic shop global stock1/persisted14/30/60d, race-safe last buy, actual ledger for >MAX_ADENA	2-buyer stock race, sameDB/restart, price proof, >MAX wallet debit/credit exactly-once	PASS/PARTIAL/FAIL
+UI	HARD	Real CB ON in own070, menus/currencies/current price/stock/premium/QoL available; old gear no bypass	HTML render/native bypass, OFF/deny and stock checks	PASS/PARTIAL/FAIL
+SAFETY	HARD	Old candidates/DB/client unchanged, no phantom minted currency, physical203 GeoData, own graceful STOP	before/after SHA, Source/JAR binding, own DB0/ports0	PASS/FAIL
+DELIVERY	HARD	Clean committed JAR, standalone own070 candidate and scripts, actual ordinary Main+one sameDB restart if state changed	startup log and exact SOURCE_COMMIT/JAR_SHA/native receipts	PASS/PARTIAL/FAIL
+OWNER_PLAY	HARD	No known data loss/stuck M1; functionality does not rely on TestAdmin; owner can safely start game later	gates and operator start readme	READY_OWNER_PLAY/NOT_READY

@@ -163,12 +163,16 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
-		if (!PhantomTask069Lane.enabled() && !PhantomTask068Lane.enabled() && !PhantomTask067Lane.enabled() && !PhantomTask066PersistentLane.enabled() && !PhantomTask065PersistentLane.enabled() && !PhantomTask064PersistentLane.enabled() && !PhantomCampaign058PersistentLane.enabled() && !PhantomCampaign058DatabaseLane.enabled() && !PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
+		if (!PhantomTask070Lane.enabled() && !PhantomTask069Lane.enabled() && !PhantomTask068Lane.enabled() && !PhantomTask067Lane.enabled() && !PhantomTask066PersistentLane.enabled() && !PhantomTask065PersistentLane.enabled() && !PhantomTask064PersistentLane.enabled() && !PhantomCampaign058PersistentLane.enabled() && !PhantomCampaign058DatabaseLane.enabled() && !PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
 		{
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
 
-		if (PhantomTask069Lane.enabled())
+		if (PhantomTask070Lane.enabled())
+		{
+			PhantomTask070Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
+		}
+		else if (PhantomTask069Lane.enabled())
 		{
 			PhantomTask069Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
 		}
@@ -206,7 +210,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomTask069Lane.enabled())
+		if (PhantomTask070Lane.enabled())
+		{
+			PhantomTask070Lane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomTask069Lane.enabled())
 		{
 			PhantomTask069Lane.initialize(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -308,13 +317,18 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
+		if (PhantomTask070Lane.enabled()) { throw new IllegalArgumentException("Own070 native lane preserves its fixture; infrastructure only."); }
 		if ((PhantomTask069Lane.enabled() && !Boolean.getBoolean("phantom.task069.mutable-fixture")) || PhantomTask068Lane.enabled() || PhantomTask067Lane.enabled() || PhantomTask066PersistentLane.enabled() || PhantomTask065PersistentLane.enabled() || PhantomTask064PersistentLane.enabled() || PhantomCampaign058PersistentLane.enabled())
 		{
 			throw new IllegalArgumentException("Persistent candidate forbids mutable fixture initialization/cleanup; use infrastructure only.");
 		}
 		final BootstrapResult bootstrap = initializeNativeInfrastructure(context, minimumSevenSignsFestivalManagerStartMillis);
 		_accountName = "phantom_t004_" + context.seed();
-		if (PhantomTask069Lane.enabled())
+		if (PhantomTask070Lane.enabled())
+		{
+			PhantomTask070Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
+		}
+		else if (PhantomTask069Lane.enabled())
 		{
 			try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT COUNT(*) FROM accounts WHERE login=?"))
 			{

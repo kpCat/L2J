@@ -98,7 +98,8 @@ public final class PhantomRateAwareLootFairValue
 		return best;
 	}
 
-	private static double expectedYield(DropFact fact, List<DropFact> sameNpcDeath, Rates rates)
+	/** Shared stock yield model for explicit offline repricing; no premium or runtime state. */
+	public static double expectedYield(DropFact fact, List<DropFact> sameNpcDeath, Rates rates)
 	{
 		final double chanceRate = fact.sourceKind() == DropSourceKind.SPOIL ? rates.spoilChance() : rates.chanceByItem().getOrDefault(fact.itemId(), rates.deathChance());
 		final double amountRate = fact.sourceKind() == DropSourceKind.SPOIL ? rates.spoilAmount() : rates.amountByItem().getOrDefault(fact.itemId(), rates.deathAmount());

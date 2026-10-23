@@ -56,6 +56,7 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.qol.LevelGapProtectionPolicy;
 import org.l2jmobius.gameserver.qol.LevelGapProtectionPolicy.Decision;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
+import org.l2jmobius.gameserver.qol.PremiumLootPolicy;
 import org.l2jmobius.gameserver.util.MathUtil;
 
 /**
@@ -791,28 +792,8 @@ public class NpcTemplate extends CreatureTemplate
 					// premium chance
 					if (player != null)
 					{
-						if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && player.hasPremiumStatus())
-						{
-							if (PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE_BY_ID.get(itemId) != null)
-							{
-								rateChance *= PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE_BY_ID.get(itemId);
-							}
-							else if (item.hasExImmediateEffect())
-							{
-								// TODO: Premium herb chance? :)
-							}
-							else if (victim.isRaid())
-							{
-								// TODO: Premium raid chance? :)
-							}
-							else
-							{
-								rateChance *= PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE;
-							}
-						}
-						
-						// bonus drop rate effect
-						rateChance *= player.getStat().getBonusDropRateMultiplier();
+						final double premiumChance = PremiumLootPolicy.itemMultiplier(PremiumLootPolicy.eligible(player), item.hasExImmediateEffect(), itemId, PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE_BY_ID, PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE);
+						rateChance *= PremiumLootPolicy.combinedChance(premiumChance, player.getStat().getBonusDropRateMultiplier());
 					}
 					
 					// only use total chance on x1, custom rates break this logic because total chance is more than 100%
@@ -1075,25 +1056,7 @@ public class NpcTemplate extends CreatureTemplate
 			final Player player = killer.asPlayer();
 			if (player != null)
 			{
-				if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && player.hasPremiumStatus())
-				{
-					if (PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT_BY_ID.get(itemId) != null)
-					{
-						rateAmount *= PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT_BY_ID.get(itemId);
-					}
-					else if (item.hasExImmediateEffect())
-					{
-						// TODO: Premium herb amount? :)
-					}
-					else if (victim.isRaid())
-					{
-						// TODO: Premium raid amount? :)
-					}
-					else
-					{
-						rateAmount *= PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT;
-					}
-				}
+				rateAmount *= PremiumLootPolicy.itemMultiplier(PremiumLootPolicy.eligible(player), item.hasExImmediateEffect(), itemId, PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT_BY_ID, PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT);
 				
 				// bonus drop amount effect
 				final PlayerStat stat = player.getStat();
@@ -1159,28 +1122,8 @@ public class NpcTemplate extends CreatureTemplate
 				final Player player = killer.asPlayer();
 				if (player != null)
 				{
-					if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && player.hasPremiumStatus())
-					{
-						if (PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE_BY_ID.get(itemId) != null)
-						{
-							rateChance *= PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE_BY_ID.get(itemId);
-						}
-						else if (item.hasExImmediateEffect())
-						{
-							// TODO: Premium herb chance? :)
-						}
-						else if (victim.isRaid())
-						{
-							// TODO: Premium raid chance? :)
-						}
-						else
-						{
-							rateChance *= PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE;
-						}
-					}
-					
-					// bonus drop rate effect
-					rateChance *= player.getStat().getBonusDropRateMultiplier();
+					final double premiumChance = PremiumLootPolicy.itemMultiplier(PremiumLootPolicy.eligible(player), item.hasExImmediateEffect(), itemId, PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE_BY_ID, PremiumSystemConfig.PREMIUM_RATE_DROP_CHANCE);
+					rateChance *= PremiumLootPolicy.combinedChance(premiumChance, player.getStat().getBonusDropRateMultiplier());
 				}
 				
 				// calculate if item will drop
@@ -1212,25 +1155,7 @@ public class NpcTemplate extends CreatureTemplate
 					// premium amount
 					if (player != null)
 					{
-						if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && player.hasPremiumStatus())
-						{
-							if (PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT_BY_ID.get(itemId) != null)
-							{
-								rateAmount *= PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT_BY_ID.get(itemId);
-							}
-							else if (item.hasExImmediateEffect())
-							{
-								// TODO: Premium herb amount? :)
-							}
-							else if (victim.isRaid())
-							{
-								// TODO: Premium raid amount? :)
-							}
-							else
-							{
-								rateAmount *= PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT;
-							}
-						}
+						rateAmount *= PremiumLootPolicy.itemMultiplier(PremiumLootPolicy.eligible(player), item.hasExImmediateEffect(), itemId, PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT_BY_ID, PremiumSystemConfig.PREMIUM_RATE_DROP_AMOUNT);
 						
 						// bonus drop amount effect
 						final PlayerStat stat = player.getStat();
@@ -1255,13 +1180,7 @@ public class NpcTemplate extends CreatureTemplate
 				final Player player = killer.asPlayer();
 				if (player != null)
 				{
-					if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && player.hasPremiumStatus())
-					{
-						rateChance *= PremiumSystemConfig.PREMIUM_RATE_SPOIL_CHANCE;
-					}
-					
-					// bonus spoil rate effect
-					rateChance *= player.getStat().getBonusSpoilRateMultiplier();
+					rateChance *= PremiumLootPolicy.combinedChance(PremiumLootPolicy.eligible(player) ? PremiumSystemConfig.PREMIUM_RATE_SPOIL_CHANCE : 1, player.getStat().getBonusSpoilRateMultiplier());
 				}
 				
 				// calculate if item will be rewarded
@@ -1271,7 +1190,7 @@ public class NpcTemplate extends CreatureTemplate
 					double rateAmount = RatesConfig.RATE_SPOIL_DROP_AMOUNT_MULTIPLIER * (victim.isChampion() ? ChampionMonstersConfig.profile(victim).spoilAmount() : 1);
 					
 					// premium amount
-					if (PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && (player != null) && player.hasPremiumStatus())
+					if (PremiumLootPolicy.eligible(player))
 					{
 						rateAmount *= PremiumSystemConfig.PREMIUM_RATE_SPOIL_AMOUNT;
 					}

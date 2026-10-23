@@ -27,6 +27,7 @@ import org.l2jmobius.gameserver.model.script.Quest;
 import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.network.serverpackets.SocialAction;
+import org.l2jmobius.gameserver.qol.PaidSubclass070Service;
 
 /**
  * Mimir's Elixir (235)
@@ -257,6 +258,18 @@ public class Q00235_MimirsElixir extends Quest
 	public String onTalk(Npc npc, Player player)
 	{
 		final QuestState qs = getQuestState(player, true);
+		PaidSubclass070Service.supplyQuestMaterials(player, qs);
+		// Paid real materials enter the same memo/condition reached by native item acquisition.
+		if (qs.isStarted() && qs.isMemoState(3) && hasQuestItems(player, SAGES_STONE))
+		{
+			qs.setMemoState(4);
+			qs.setCond(4, true);
+		}
+		else if (qs.isStarted() && qs.isMemoState(6) && hasQuestItems(player, MAGISTERS_MIXING_STONE, BLOOD_FIRE))
+		{
+			qs.setMemoState(7);
+			qs.setCond(7, true);
+		}
 		String htmltext = getNoQuestMsg(player);
 		if (qs.isCreated())
 		{

@@ -28,6 +28,7 @@ import org.l2jmobius.gameserver.model.script.QuestState;
 import org.l2jmobius.gameserver.network.NpcStringId;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.serverpackets.NpcSay;
+import org.l2jmobius.gameserver.qol.PaidSubclass070Service;
 import org.l2jmobius.gameserver.util.LocationUtil;
 
 /**
@@ -190,6 +191,7 @@ public class Q00234_FatesWhisper extends Quest
 	public String onTalk(Npc npc, Player player)
 	{
 		final QuestState qs = getQuestState(player, true);
+		PaidSubclass070Service.supplyQuestMaterials(player, qs);
 		final String htmltext = getNoQuestMsg(player);
 		switch (npc.getId())
 		{

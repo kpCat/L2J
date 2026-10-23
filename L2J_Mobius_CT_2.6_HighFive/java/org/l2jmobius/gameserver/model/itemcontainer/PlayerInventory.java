@@ -101,6 +101,19 @@ public class PlayerInventory extends Inventory
 	{
 		return _adena;
 	}
+
+	/** A zero-count native stack allows an atomic savings withdrawal without minting seed Adena. */
+	public synchronized Item getAdenaForCountTransaction()
+	{
+		if (_adena == null)
+		{
+			final Item item = new Item(ADENA_ID);
+			item.setCount(0); item.setOwnerId(getOwnerId()); item.setItemLocation(ItemLocation.INVENTORY);
+			addItem(item); _adena = item;
+			org.l2jmobius.gameserver.model.World.getInstance().addObject(item);
+		}
+		return _adena;
+	}
 	
 	@Override
 	public long getAdena()
@@ -446,7 +459,7 @@ public class PlayerInventory extends Inventory
 	 * @return Item corresponding to the new item or the updated item in inventory
 	 */
 	@Override
-	public Item addItem(ItemProcessType process, Item item, Player actor, Object reference)
+	public synchronized Item addItem(ItemProcessType process, Item item, Player actor, Object reference)
 	{
 		final Item addedItem = super.addItem(process, item, actor, reference);
 		if (addedItem != null)
@@ -480,7 +493,7 @@ public class PlayerInventory extends Inventory
 	 * @return Item corresponding to the new item or the updated item in inventory
 	 */
 	@Override
-	public Item addItem(ItemProcessType process, int itemId, long count, Player actor, Object reference)
+	public synchronized Item addItem(ItemProcessType process, int itemId, long count, Player actor, Object reference)
 	{
 		final Item item = super.addItem(process, itemId, count, actor, reference);
 		if (item != null)

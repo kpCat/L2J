@@ -108,7 +108,7 @@ public class Item extends WorldObject
 	private int _dropperObjectId = 0;
 	
 	/** Quantity of the item */
-	private long _count;
+	private volatile long _count;
 	/** Initial Quantity of the item */
 	private long _initCount;
 	/** Remaining time (in miliseconds) */
@@ -163,6 +163,7 @@ public class Item extends WorldObject
 	private int _lastChange = 2; // 1 ??, 2 modified, 3 removed
 	private boolean _existsInDb; // if a record exists in DB.
 	private boolean _storedInDb; // if DB data is up-to-date.
+	private volatile boolean _countTransactionUncertain;
 	
 	private final ReentrantLock _dbLock = new ReentrantLock();
 	
@@ -423,13 +424,18 @@ public class Item extends WorldObject
 	 */
 	public void setCount(long count)
 	{
-		if (_count == count)
+		_dbLock.lock();
+		try
 		{
-			return;
+			if (_countTransactionUncertain) { throw new IllegalStateException("Item count transaction requires reload."); }
+			if (_count == count)
+			{
+				return;
+			}
+			_count = count >= -1 ? count : 0;
+			_storedInDb = false;
 		}
-		
-		_count = count >= -1 ? count : 0;
-		_storedInDb = false;
+		finally { _dbLock.unlock(); }
 	}
 	
 	/**
@@ -438,6 +444,72 @@ public class Item extends WorldObject
 	public long getCount()
 	{
 		return _count;
+	}
+
+	@FunctionalInterface
+	public interface CountTransaction<T>
+	{
+		T run(Connection connection) throws Exception;
+	}
+
+	/**
+	 * Narrow native currency bridge: count and the caller's durable receipt commit together.
+	 * No native mutation is published before commit. An unknown commit blocks this instance
+	 * until native reload, which reads both the receipt and authoritative item row.
+	 */
+	public synchronized <T> T transactCount(long delta, CountTransaction<T> transaction) throws Exception
+	{
+		_dbLock.lock();
+		try
+		{
+			if (_countTransactionUncertain || !isStackable() || _loc != ItemLocation.INVENTORY || _ownerId <= 0 || delta == 0)
+			{
+				throw new IllegalStateException("Currency instance unavailable for transaction.");
+			}
+			final long next = Math.addExact(_count, delta);
+			if (next < 0 || (_itemId == ADENA_ID && next > MAX_ADENA)) { throw new IllegalArgumentException("Currency count outside native limits."); }
+			updateDatabase(true);
+			try (Connection connection = DatabaseFactory.getConnection())
+			{
+				connection.setAutoCommit(false);
+				boolean committing = false;
+				try
+				{
+					if (!_existsInDb && _count == 0)
+					{
+						try (var insert = connection.prepareStatement("INSERT INTO items(owner_id,object_id,item_id,count,loc,loc_data,enchant_level,mana_left,time) VALUES(?,?,?,0,'INVENTORY',0,0,?,?)"))
+						{ insert.setInt(1, _ownerId); insert.setInt(2, getObjectId()); insert.setInt(3, _itemId); insert.setInt(4, _mana); insert.setLong(5, _time); insert.executeUpdate(); }
+					}
+					try (var query = connection.prepareStatement("SELECT owner_id,item_id,count,loc FROM items WHERE object_id=? FOR UPDATE"))
+					{
+						query.setInt(1, getObjectId());
+						try (var rows = query.executeQuery())
+						{
+							if (!rows.next() || rows.getInt(1) != _ownerId || rows.getInt(2) != _itemId || rows.getLong(3) != _count || !"INVENTORY".equals(rows.getString(4)))
+							{ throw new IllegalStateException("Native currency preimage differs."); }
+						}
+					}
+					try (var update = connection.prepareStatement("UPDATE items SET count=? WHERE object_id=?"))
+					{
+						update.setLong(1, next); update.setInt(2, getObjectId());
+						if (update.executeUpdate() != 1) { throw new IllegalStateException("Currency row changed."); }
+					}
+					final T result = transaction.run(connection);
+					committing = true;
+					connection.commit();
+					_count = next; _storedInDb = true; _existsInDb = true;
+					setLastChange(MODIFIED);
+					return result;
+				}
+				catch (Exception failure)
+				{
+					if (committing) { _countTransactionUncertain = true; }
+					try { connection.rollback(); } catch (Exception rollback) { failure.addSuppressed(rollback); }
+					throw failure;
+				}
+			}
+		}
+		finally { _dbLock.unlock(); }
 	}
 	
 	/**
@@ -450,61 +522,66 @@ public class Item extends WorldObject
 	 */
 	public void changeCount(ItemProcessType process, long count, Player creator, Object reference)
 	{
-		if (count == 0)
+		_dbLock.lock();
+		try
 		{
-			return;
-		}
-		
-		final long old = _count;
-		final long max = _itemId == ADENA_ID ? MAX_ADENA : Long.MAX_VALUE;
-		if ((count > 0) && (_count > (max - count)))
-		{
-			setCount(max);
-		}
-		else
-		{
-			setCount(_count + count);
-		}
-		
-		if (_count < 0)
-		{
-			setCount(0);
-		}
-		
-		_storedInDb = false;
-		
-		if ((process != null) && (process != ItemProcessType.NONE))
-		{
-			if ((GeneralConfig.LOG_ITEMS && ((!GeneralConfig.LOG_ITEMS_SMALL_LOG) && (!GeneralConfig.LOG_ITEMS_IDS_ONLY))) || (GeneralConfig.LOG_ITEMS_SMALL_LOG && (_itemTemplate.isEquipable() || (_itemTemplate.getId() == ADENA_ID))) || (GeneralConfig.LOG_ITEMS_IDS_ONLY && GeneralConfig.LOG_ITEMS_IDS_LIST.contains(_itemTemplate.getId())))
+			if (count == 0)
 			{
-				if (_enchantLevel > 0)
+				return;
+			}
+
+			final long old = _count;
+			final long max = _itemId == ADENA_ID ? MAX_ADENA : Long.MAX_VALUE;
+			if ((count > 0) && (_count > (max - count)))
+			{
+				setCount(max);
+			}
+			else
+			{
+				setCount(_count + count);
+			}
+
+			if (_count < 0)
+			{
+				setCount(0);
+			}
+
+			_storedInDb = false;
+
+			if ((process != null) && (process != ItemProcessType.NONE))
+			{
+				if ((GeneralConfig.LOG_ITEMS && ((!GeneralConfig.LOG_ITEMS_SMALL_LOG) && (!GeneralConfig.LOG_ITEMS_IDS_ONLY))) || (GeneralConfig.LOG_ITEMS_SMALL_LOG && (_itemTemplate.isEquipable() || (_itemTemplate.getId() == ADENA_ID))) || (GeneralConfig.LOG_ITEMS_IDS_ONLY && GeneralConfig.LOG_ITEMS_IDS_LIST.contains(_itemTemplate.getId())))
 				{
-					LOG_ITEMS.info(StringUtil.concat("CHANGE:", String.valueOf(process), ", item ", String.valueOf(getObjectId()), ":+", String.valueOf(_enchantLevel), " ", _itemTemplate.getName(), "(", String.valueOf(_count), "), PrevCount(", String.valueOf(old), "), ", String.valueOf(creator), ", ", String.valueOf(reference)));
+					if (_enchantLevel > 0)
+					{
+						LOG_ITEMS.info(StringUtil.concat("CHANGE:", String.valueOf(process), ", item ", String.valueOf(getObjectId()), ":+", String.valueOf(_enchantLevel), " ", _itemTemplate.getName(), "(", String.valueOf(_count), "), PrevCount(", String.valueOf(old), "), ", String.valueOf(creator), ", ", String.valueOf(reference)));
+					}
+					else
+					{
+						LOG_ITEMS.info(StringUtil.concat("CHANGE:", String.valueOf(process), ", item ", String.valueOf(getObjectId()), ":", _itemTemplate.getName(), "(", String.valueOf(_count), "), PrevCount(", String.valueOf(old), "), ", String.valueOf(creator), ", ", String.valueOf(reference)));
+					}
 				}
-				else
+
+				if ((creator != null) && creator.isGM() && GeneralConfig.GMAUDIT)
 				{
-					LOG_ITEMS.info(StringUtil.concat("CHANGE:", String.valueOf(process), ", item ", String.valueOf(getObjectId()), ":", _itemTemplate.getName(), "(", String.valueOf(_count), "), PrevCount(", String.valueOf(old), "), ", String.valueOf(creator), ", ", String.valueOf(reference)));
+					final String targetName = (creator.getTarget() != null ? creator.getTarget().getName() : "no-target");
+					String referenceName = "no-reference";
+					if (reference instanceof WorldObject)
+					{
+						referenceName = ((WorldObject) reference).getName() != null ? ((WorldObject) reference).getName() : "no-name";
+					}
+					else if (reference instanceof String)
+					{
+						referenceName = (String) reference;
+					}
+
+					GMAudit.logAction(creator.toString(), StringUtil.concat(String.valueOf(process), "(id: ", String.valueOf(_itemId), " objId: ", String.valueOf(getObjectId()), " name: ", getName(), " count: ", String.valueOf(count), ")"), targetName, StringUtil.concat("Object referencing this action is: ", referenceName));
 				}
 			}
-			
-			if ((creator != null) && creator.isGM() && GeneralConfig.GMAUDIT)
-			{
-				final String targetName = (creator.getTarget() != null ? creator.getTarget().getName() : "no-target");
-				String referenceName = "no-reference";
-				if (reference instanceof WorldObject)
-				{
-					referenceName = ((WorldObject) reference).getName() != null ? ((WorldObject) reference).getName() : "no-name";
-				}
-				else if (reference instanceof String)
-				{
-					referenceName = (String) reference;
-				}
-				
-				GMAudit.logAction(creator.toString(), StringUtil.concat(String.valueOf(process), "(id: ", String.valueOf(_itemId), " objId: ", String.valueOf(getObjectId()), " name: ", getName(), " count: ", String.valueOf(count), ")"), targetName, StringUtil.concat("Object referencing this action is: ", referenceName));
-			}
 		}
+		finally { _dbLock.unlock(); }
 	}
-	
+
 	/**
 	 * Return true if item can be enchanted
 	 * @return boolean
@@ -1491,6 +1568,8 @@ public class Item extends WorldObject
 		
 		try
 		{
+			// An ambiguous commit must never be overwritten by an obsolete in-memory count.
+			if (_countTransactionUncertain) { return; }
 			if (_existsInDb)
 			{
 				if ((_ownerId == 0) || (_loc == ItemLocation.VOID) || (_loc == ItemLocation.REFUND) || ((_count == 0) && (_loc != ItemLocation.LEASE)))

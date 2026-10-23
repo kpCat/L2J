@@ -1,0 +1,7 @@
+key	value
+nonpremiumAdenaSourceWeightedMultiplier	1.0
+sealStoneToAASourceWeightedMultiplier	1.0
+XP_SP_price_multiplier	IGNORED
+premium_price_multiplier	IGNORED
+nativeMaxAdena	3000000000000000
+method	Shared stock expected yield; spawned ordinary NPC sources weighted equally, no claimed measured combat throughput

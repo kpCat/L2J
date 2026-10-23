@@ -266,7 +266,7 @@ public class MultisellData implements IXmlReader
 			return;
 		}
 		// Approved x1 retail/exchange prices cannot be scaled by a generic caller.
-		if (((listId == 91003) || (listId == 91004)) && ((productMultiplier != 1) || (ingredientMultiplier != 1)))
+		if (java.util.Set.of(600012, 600024, 91002, 91003, 91004, 91005, 91006).contains(listId) && ((productMultiplier != 1) || (ingredientMultiplier != 1)))
 		{
 			player.setMultiSell(null);
 			return;
@@ -303,6 +303,8 @@ public class MultisellData implements IXmlReader
 	private boolean prepareAndSend(int listId, Player player, Npc npc, boolean inventoryOnly, double productMultiplier, double ingredientMultiplier, boolean personalPremiumQoL)
 	{
 		final ListContainer template = _entries.get(listId);
+		if (listId == 91004 && npc != null && (npc.getId() != 30300 || npc.getInstanceId() != player.getInstanceId() || !player.isInsideRadius3D(npc, Npc.INTERACTION_DISTANCE)))
+		{ player.setMultiSell(null); return false; }
 		if (template == null)
 		{
 			LOGGER.warning(getClass().getSimpleName() + ": can't find list id: " + listId + " requested by player: " + player.getName() + ", npcId:" + (npc != null ? npc.getId() : 0));

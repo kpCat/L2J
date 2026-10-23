@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -50,22 +51,36 @@ public class PremiumManager
 	private static final Logger LOGGER = Logger.getLogger(PremiumManager.class.getName());
 	
 	private static final String LOAD_SQL = "SELECT account_name,enddate FROM account_premium WHERE account_name = ?";
-	private static final String UPDATE_SQL = "REPLACE INTO account_premium (account_name,enddate) VALUE (?,?)";
+	private static final String INSERT_SQL = "INSERT IGNORE INTO account_premium (account_name,enddate) VALUES (?,0)";
+	private static final String LOCK_SQL = "SELECT enddate FROM account_premium WHERE account_name=? FOR UPDATE";
+	private static final String UPDATE_SQL = "UPDATE account_premium SET enddate=? WHERE account_name=?";
 	private static final String DELETE_SQL = "DELETE FROM account_premium WHERE account_name = ?";
 	
 	class PremiumExpireTask implements Runnable
 	{
-		final Player _player;
+		final String _accountName;
+		final long _expiration;
 		
-		PremiumExpireTask(Player player)
+		PremiumExpireTask(String accountName, long expiration)
 		{
-			_player = player;
+			_accountName = accountName;
+			_expiration = expiration;
 		}
 		
 		@Override
 		public void run()
 		{
-			_player.setPremiumStatus(false);
+			if ((getPremiumExpiration(_accountName) != _expiration) || (System.currentTimeMillis() < _expiration))
+			{
+				return;
+			}
+			for (Player player : World.getInstance().getPlayers())
+			{
+				if (_accountName.equalsIgnoreCase(player.getAccountName()))
+				{
+					player.setPremiumStatus(false);
+				}
+			}
 		}
 	}
 	
@@ -85,14 +100,10 @@ public class PremiumManager
 		loadPremiumData(accountName);
 		final long now = System.currentTimeMillis();
 		final long premiumExpiration = getPremiumExpiration(accountName);
-		player.setPremiumStatus(premiumExpiration > now);
+		player.setPremiumStatus((premiumExpiration > now) && !player.hasHeadlessOutboundSession() && !player.isNativeWorkManaged());
 		if (player.hasPremiumStatus())
 		{
 			startExpireTask(player, premiumExpiration - now);
-		}
-		else if (premiumExpiration > 0)
-		{
-			removePremiumStatus(accountName, false);
 		}
 	};
 	
@@ -113,7 +124,12 @@ public class PremiumManager
 	 */
 	private void startExpireTask(Player player, long delay)
 	{
-		_expiretasks.put(player.getAccountName().toLowerCase(), ThreadPool.schedule(new PremiumExpireTask(player), delay));
+		final String accountName = player.getAccountName().toLowerCase(Locale.ROOT);
+		final ScheduledFuture<?> previous = _expiretasks.put(accountName, ThreadPool.schedule(new PremiumExpireTask(accountName, getPremiumExpiration(accountName)), delay));
+		if (previous != null)
+		{
+			previous.cancel(false);
+		}
 	}
 	
 	/**
@@ -121,7 +137,11 @@ public class PremiumManager
 	 */
 	private void stopExpireTask(Player player)
 	{
-		ScheduledFuture<?> task = _expiretasks.remove(player.getAccountName().toLowerCase());
+		if (World.getInstance().getPlayers().stream().anyMatch(other -> (other != player) && other.isOnline() && player.getAccountName().equalsIgnoreCase(other.getAccountName())))
+		{
+			return;
+		}
+		ScheduledFuture<?> task = _expiretasks.remove(player.getAccountName().toLowerCase(Locale.ROOT));
 		if (task != null)
 		{
 			task.cancel(false);
@@ -134,12 +154,12 @@ public class PremiumManager
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement stmt = con.prepareStatement(LOAD_SQL))
 		{
-			stmt.setString(1, accountName.toLowerCase());
+			stmt.setString(1, accountName.toLowerCase(Locale.ROOT));
 			try (ResultSet rset = stmt.executeQuery())
 			{
 				while (rset.next())
 				{
-					_premiumData.put(rset.getString(1).toLowerCase(), rset.getLong(2));
+					_premiumData.merge(rset.getString(1).toLowerCase(Locale.ROOT), rset.getLong(2), Math::max);
 				}
 			}
 		}
@@ -151,50 +171,99 @@ public class PremiumManager
 	
 	public long getPremiumExpiration(String accountName)
 	{
-		return _premiumData.getOrDefault(accountName.toLowerCase(), 0L);
+		return _premiumData.getOrDefault(accountName.toLowerCase(Locale.ROOT), 0L);
+	}
+
+	/** Extends the account row inside the caller's native currency transaction; publishes no in-memory benefit. */
+	public long extendPremium(Connection connection, String accountName, int days, long now) throws SQLException
+	{
+		if ((days != 1) && (days != 3) && (days != 7) && (days != 15) && (days != 20) && (days != 30))
+		{
+			throw new IllegalArgumentException("Unsupported premium duration.");
+		}
+		return extendPremiumMillis(connection, accountName, TimeUnit.DAYS.toMillis(days), now);
+	}
+
+	private long extendPremiumMillis(Connection connection, String accountName, long duration, long now) throws SQLException
+	{
+		if (connection.getAutoCommit() || (accountName == null) || accountName.isBlank() || (accountName.length() > 45) || (duration <= 0) || (now < 0))
+		{
+			throw new IllegalArgumentException("Premium requires an explicit account transaction and positive real-time duration.");
+		}
+		final String account = accountName.toLowerCase(Locale.ROOT);
+		try (PreparedStatement insert = connection.prepareStatement(INSERT_SQL))
+		{
+			insert.setString(1, account);
+			insert.executeUpdate();
+		}
+		final long expiration;
+		try (PreparedStatement lock = connection.prepareStatement(LOCK_SQL))
+		{
+			lock.setString(1, account);
+			try (ResultSet row = lock.executeQuery())
+			{
+				if (!row.next())
+				{
+					throw new SQLException("Premium account row was not locked.");
+				}
+				expiration = Math.addExact(Math.max(now, row.getLong(1)), duration);
+			}
+		}
+		try (PreparedStatement update = connection.prepareStatement(UPDATE_SQL))
+		{
+			update.setLong(1, expiration);
+			update.setString(2, account);
+			if (update.executeUpdate() != 1)
+			{
+				throw new SQLException("Premium account row was not updated.");
+			}
+		}
+		return expiration;
+	}
+
+	/** Call only after the durable transaction commits. Concurrent paid extensions cannot shorten the cache. */
+	public void publishPremiumExpiration(String accountName, long expiration)
+	{
+		final String account = accountName.toLowerCase(Locale.ROOT);
+		final long currentExpiration = _premiumData.merge(account, expiration, Math::max);
+		final long now = System.currentTimeMillis();
+		for (Player player : World.getInstance().getPlayers())
+		{
+			if (account.equalsIgnoreCase(player.getAccountName()))
+			{
+				player.setPremiumStatus((currentExpiration > now) && !player.hasHeadlessOutboundSession() && !player.isNativeWorkManaged());
+				if (player.hasPremiumStatus())
+				{
+					startExpireTask(player, currentExpiration - now);
+				}
+			}
+		}
 	}
 	
 	public void addPremiumTime(String accountName, int timeValue, TimeUnit timeUnit)
 	{
-		final long addTime = timeUnit.toMillis(timeValue);
-		final long now = System.currentTimeMillis();
-		
-		// new premium task at least from now
-		final long oldPremiumExpiration = Math.max(now, getPremiumExpiration(accountName));
-		final long newPremiumExpiration = oldPremiumExpiration + addTime;
-		
-		// UPDATE DATABASE
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement stmt = con.prepareStatement(UPDATE_SQL))
+		try (Connection con = DatabaseFactory.getConnection())
 		{
-			stmt.setString(1, accountName.toLowerCase());
-			stmt.setLong(2, newPremiumExpiration);
-			stmt.execute();
+			con.setAutoCommit(false);
+			try
+			{
+				final long expiration = extendPremiumMillis(con, accountName, timeUnit.toMillis(timeValue), System.currentTimeMillis());
+				con.commit();
+				publishPremiumExpiration(accountName, expiration);
+			}
+			catch (SQLException | RuntimeException e)
+			{
+				con.rollback();
+				throw e;
+			}
 		}
 		catch (SQLException e)
 		{
 			LOGGER.warning("Problem with PremiumManager: " + e.getMessage());
 		}
-		
-		// UPDATE CACHE
-		_premiumData.put(accountName.toLowerCase(), newPremiumExpiration);
-		
-		// UPDATE PlAYER PREMIUMSTATUS
-		for (Player player : World.getInstance().getPlayers())
-		{
-			if (accountName.equalsIgnoreCase(player.getAccountName()))
-			{
-				stopExpireTask(player);
-				startExpireTask(player, newPremiumExpiration - now);
-				if (!player.hasPremiumStatus())
-				{
-					player.setPremiumStatus(true);
-				}
-				break;
-			}
-		}
+
 	}
-	
+
 	public void removePremiumStatus(String accountName, boolean checkOnline)
 	{
 		if (checkOnline)

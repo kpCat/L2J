@@ -76,6 +76,7 @@ public class HomeBoard implements IParseBoardHandler
 	
 	private static final String[] CUSTOM_COMMANDS =
 	{
+		"_bbseconomy",
 		PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED && CommunityBoardConfig.COMMUNITY_PREMIUM_SYSTEM_ENABLED ? "_bbspremium" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS ? "_bbsexcmultisell" : null,
 		CommunityBoardConfig.COMMUNITYBOARD_ENABLE_MULTISELLS ? "_bbsmultisell" : null,
@@ -116,6 +117,12 @@ public class HomeBoard implements IParseBoardHandler
 	@Override
 	public boolean onCommand(String command, Player player)
 	{
+		if (command.startsWith("_bbseconomy") || command.equals("_bbstop;merchant/main.html") || command.equals("_bbstop;premium/main.html") || command.startsWith("_bbspremium"))
+		{
+			final String route = command.startsWith("_bbseconomy") ? command : command.contains("premium") ? "_bbseconomy;premium" : "_bbseconomy;home";
+			CommunityBoardHandler.separateAndSend(org.l2jmobius.gameserver.qol.Economy070Board.render(route, player), player);
+			return false;
+		}
 		// Old custom conditions check move to here
 		if (CommunityBoardConfig.COMMUNITYBOARD_COMBAT_DISABLED && COMBAT_CHECK.test(command, player))
 		{
@@ -178,6 +185,7 @@ public class HomeBoard implements IParseBoardHandler
 			final String fullBypass = command.replace("_bbsmultisell;", "");
 			final String[] buypassOptions = fullBypass.split(",");
 			final int multisellId = Integer.parseInt(buypassOptions[0]);
+			if (!CommunityBoardConfig.CUSTOM_CB_ENABLED || !java.util.Set.of(600012, 600024, 91003, 91004, 91005, 91006).contains(multisellId)) { player.setMultiSell(null); return false; }
 			final String page = buypassOptions[1];
 			returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/Custom/" + page + ".html");
 			ThreadPool.schedule(() -> MultisellData.getInstance().separateAndSend(multisellId, player, null, false), 100);
@@ -187,6 +195,7 @@ public class HomeBoard implements IParseBoardHandler
 			final String fullBypass = command.replace("_bbsexcmultisell;", "");
 			final String[] buypassOptions = fullBypass.split(",");
 			final int multisellId = Integer.parseInt(buypassOptions[0]);
+			if (!CommunityBoardConfig.CUSTOM_CB_ENABLED || !java.util.Set.of(600012, 600024, 91003, 91004, 91005, 91006).contains(multisellId)) { player.setMultiSell(null); return false; }
 			final String page = buypassOptions[1];
 			returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/Custom/" + page + ".html");
 			ThreadPool.schedule(() -> MultisellData.getInstance().separateAndSend(multisellId, player, null, true), 100);
@@ -343,6 +352,10 @@ public class HomeBoard implements IParseBoardHandler
 		
 		if (returnHtml != null)
 		{
+			if (command.startsWith("_bbsmultisell") || command.startsWith("_bbsexcmultisell") || command.startsWith("_bbsconsumables"))
+			{
+				returnHtml = org.l2jmobius.gameserver.qol.Economy070Board.render("_bbseconomy;home", player);
+			}
 			if ((!PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED || !CommunityBoardConfig.COMMUNITY_PREMIUM_SYSTEM_ENABLED) && command.equals("_bbstop;premium/main.html"))
 			{
 				returnHtml = "<html><body><table><tr><td>%navigation%</td><td><center>Премиум выключен.<br>Покупка недоступна. Обычные рейты сохраняются.<br>Личные функции: раздел «Личная QoL-панель».</center></td></tr></table></body></html>";
@@ -373,7 +386,7 @@ public class HomeBoard implements IParseBoardHandler
 		final long reward;
 		switch (parts[1])
 		{
-			case "mana": currency = 57; cost = amount * 1000; product = 728; reward = amount; break;
+			case "mana": currency = 57; cost = Math.multiplyExact(amount, org.l2jmobius.gameserver.qol.Economy070Pricing.getInstance().price("mana")); product = 728; reward = amount; break;
 			case "blue": currency = 6360; cost = amount; product = 5575; reward = SevenSigns.calcAncientAdenaReward(amount, 0, 0); break;
 			case "green": currency = 6361; cost = amount; product = 5575; reward = SevenSigns.calcAncientAdenaReward(0, amount, 0); break;
 			case "red": currency = 6362; cost = amount; product = 5575; reward = SevenSigns.calcAncientAdenaReward(0, 0, amount); break;

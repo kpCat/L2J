@@ -1,0 +1,16 @@
+key	itemId	currencyId	price	restockDays	name
+mana	728	57	1000	0	Mana Potion
+premium.day	0	57	1000000	0	Премиум на сутки
+subclass.gateway	0	57	100000000	0	Подготовка доступа к подклассу
+epic.6656	6656	57	200000000000	60	Earring of Antharas
+epic.6657	6657	57	200000000000	60	Necklace of Valakas
+epic.6658	6658	57	60000000000	30	Ring of Baium
+epic.6659	6659	57	60000000000	30	Earring of Zaken
+epic.6660	6660	57	20000000000	14	Ring of Queen Ant
+epic.6661	6661	57	20000000000	14	Earring of Orfen
+epic.6662	6662	57	20000000000	14	Ring of Core
+epic.8191	8191	57	60000000000	30	Necklace of Frintezza
+epic.10314	10314	57	200000000000	60	Ring of Beleth
+epic.16025	16025	57	60000000000	30	Necklace of Freya
+epic.16026	16026	57	200000000000	60	Blessed Necklace of Freya
+epic.21712	21712	57	1111111111112	60	Blessed Earring of Zaken

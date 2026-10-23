@@ -1,0 +1,31 @@
+# PRICE070 — deterministic, rate-aware, manually applied, auditable
+
+**Invariant**: all prices must be grounded in stock/source data and explicit owner-approved CONFIG POLICY. Never present a derived or chosen quote as original retail fact. Original native 103 GiantCodex 550 Olympiad Tokens; QA ring B-grade value independent of B-grade crystal price. `PlayerConfig.MAX_ADENA` not long-infinite.
+
+## 0. One canonical baseline; one authoritative price quote per SKU/service
+
+Build `Price070` as extension of `tools/phantom-economy/Price-PhantomEconomy.ps1`, retaining its `Baseline`, `Plan`, `Apply`, `Rollback`, SHA/original preimage fences. New service catalog price source read-only on startup from **explicit applied and pinned `pricing070.json`** (or equivalent immutable canonical data), not implicit price derivation/rewrite. `Plan` reads actual effective `Rates.ini` chance/amount and per-ID, plus `PremiumSystem.ini` relevant bonuses, `PhantomMarket.ini` and own070 rate policy; `Apply` only when **OWN070 game STOPPED**, owner exact root manifest and plan SHA match; Rollback restores byte-identical prices/catalog. Runtime transaction rejects stale quote/hash/version; two concurrent prices/sessions cannot mismatch UI/DB. No automatic Apply at startup. x1,x10,x20,x10 produces same canonical quotes on return to x10 even after intervening applied snapshots. If changed config but not applied, UI shows last applied price and explicit warning in operator docs; no silent fallback.
+
+## 1. Premium
+
+Owner base x1 **1,000,000 Adena/day**; 1/3/7/15/20/30 days are exact integer multiples, sufficient money required, fees consumed once, account-wide expiry extended exactly in real time, survives restart, no free premium for phantom. Scale with **nonpremium observed/effective earned Adena multiplier** from real `Rates.ini` item57 source, including `DropAmountMultiplierByItemId`, `DropChanceMultiplierByItemId`, global drop rates where inherited; do **not** scale from XP/SP or apply premium itself recursively. Basic canonical tests with configured effective Adena x1→1m, x10→10m, x20→20m, x10→10m, independent of route that sets `57`. Prefer one effective multiplier map from `RatesConfig` actual loot evaluator, not naive blind `xp*drop*spoil` (would explode). Price must be explicitly applied and visible, not fixed buttons 1kk/3kk when really 10m/day; `HomeBoard` must compute actual server quote matching display and prevent integer overflow, race double extension, payment-then-failure, double click.
+
+## 2. Mana and reasonable services
+
+Mana728 base1000A at x1; rate-aware price adjustment using actual Adena purchasing power; no default change to ID/pvp native effects/500ms. Personal QoL pass tiers 91001/91002 and supported buff/travel prices: readable, no free item route except explicitly allowed stock. Do not multiply premiums, services and epic by same XP rate. Store `PRICE_TABLE070.tsv` with compare current XML price, target, currency, cost basis, when/why changed, final safe activation.
+
+## 3. Quest alternate paths
+
+Existing 600024 includes1A &25A offers; group 91002 cheaper clan unlock ingredients than 600024. Use source quest steps, items/level, story/quest effort, time-to-acquire/expected Adena income x1; set **author-configurable floors** not under several meaningful x1 farming sessions for subclass/clan 5+. User values buying shortcut but not free. At minimum `4295 Blood-stained Cloth` and `3865 Portal Stone` cannot be1A, and current high-value quest items 15307/08/09 cannot be25A. Same 8056 Splendor Key must have **one consistent canonical price in every reachable shop** (never 100k and8m simultaneously). If genuine alternative proof exists, ensure correct native quest state path. For sources with no defensible cost choose a conservative explicit `OWNER_TIME_FLOOR` and mark `AUTHOR_FLOOR`, **not** free. Price adjustment on higher Adena rates from same baseline, but no negative/overflow and no unsupported item grants. See QUEST_BYPASS.md.
+
+## 4. Giant's Codex and currency-specific scaling
+
+`GiantCodex6622` 550 native Olympiad Tokens → alternative author base20m AA at economic x1; variants9625 40m,9626 50m,9627 100m AA. Configurable in own070 price plan with explicit `DESIGN_DEFAULT_NOT_STOCK`. **Olympiad path remains cheaper in opportunity cost if competitive rewards accessible**: native stock token price cannot be raised, AA path must require substantial grind. Scale AA prices only if expected **Seal Stone→AA acquisition** from actual drop amount/chance for 6360/61/62 changes; raising XP or solely Adena must NOT make AA goods arbitrarily more expensive. Trade at native rates blue3,green5,red10 no fee, item state durable. Compare craft/sell/AA direct cycles for exploit.
+
+## 5. Epics
+
+Stock source boss item drops/chance & respawn, and model `PhantomRateAwareLootFairValue`; use `max(source-derived high rarity fair×epic premium factor (initial 5×), ordinary S80 *FULL JEWEL SET equivalent opportunity floor ×10, transparent author per-tier floor)` and recompute from canonical base at each Plan. Do not equate B-grade Queen Ant with grade-B normal jewelry. No arbitrary down-clamp for currency caps; use Epic Savings ledger/instalment to pay >MaxAdena without inventing tradeable currency. If a source is unpriced, explicitly show UNPRICED / disabled, do not mint. `PhantomMarketEpicPremiumBasisPoints` existing50000 (5×) is an input, not guaranteed actual price. Retail epic price must be above reliable phantom offline SELL prices/own loot sale after time+rarity adjustment, preventing buy→sell guaranteed gain. Verify on x1 and higher rates. See EPIC_STOCK.md.
+
+## 6. Refuse bad prices
+
+Buyer never receives item when currency insufficient, invalid ID/count/replay/malformed bypass, sold-out/too-fast purchase or stale quote. Purchase stock must be finite; underflow, signed long overflow, inaccurate currency by ID, negative rewards invalid. `Quest/Clan` item supply must not create return loop to native NPC buying/selling, `.offline` BUY or market price self-feeding. CLI Plan outputs `UNPRICED.tsv`, `STOCK_VARIANCES.tsv`, source SHA, actual `CONFIG_RATE_SNAPSHOT.tsv`, monetary unit/limit. Final deliver exact x1 pricing sheet even if further operator tuning.

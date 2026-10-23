@@ -1,99 +1,19 @@
-<html noscrollbar>
-	<body>
-		<table width=700>
-			<tr>
-				<td height=10></td>
-			</tr>
-		</table>
-		<table width=20>
-			<tr>
-				<td>
-					%navigation%
-				</td>
-				<td>
-					<center>
-						<table border=0 cellpadding=0 cellspacing=0 width=555 height=455 background="L2UI_CT1.Windows_DF_TooltipBG">
-							<tr>
-								<td height=10 align="center"><font name="hs12" color="CDB67F">Merchant</font></td>
-							</tr>
-							<tr>
-								<td>
-									<center><img src="L2UI.SquareGray" width=200 height=1></center>
-								</td>
-							</tr>
-							<tr>
-								<td height=10></td>
-							</tr>
-							<tr><td align=center>Покупка и обмен: количество 1–10000<br1>
-								<edit var="amount" width=100 height=15 type=number><br1>
-								<button value="Купить Mana 1000A" action="bypass _bbsconsumables;mana;$amount" width=170 height=25 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-								<button value="Синие камни → AA ×3" action="bypass _bbsconsumables;blue;$amount" width=170 height=25 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-								<button value="Зелёные камни → AA ×5" action="bypass _bbsconsumables;green;$amount" width=170 height=25 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-								<button value="Красные камни → AA ×10" action="bypass _bbsconsumables;red;$amount" width=170 height=25 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-							</td></tr>
-							<tr>
-								<td align="center">
-									<table align=center border="0" height=45>
-										<tr>
-											<td>
-												<center>
-													<img src="icon.etc_potion_blue_i00" width=32 height=32>
-													<br1>
-													<button value="Mana 1000A" action="bypass _bbsmultisell;91003,merchant/main" width=85 height=27 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-												</center>
-											</td>
-											<td>
-												<center>
-													<img src="icon.etc_ancient_adena_i00" width=32 height=32>
-													<br1>
-													<button value="Seal Stones" action="bypass _bbsmultisell;91004,merchant/main" width=85 height=27 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-												</center>
-											</td>
-											<td>
-												<center>
-													<img src="icon.etc_letter_envelope_i00" width=32 height=32>
-													<br1>
-													<button value="Quest/Clan" action="bypass _bbsmultisell;600024,merchant/main" width=85 height=27 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-												</center>
-											</td>
-											<td>
-												<center>
-													<img src="icon.etc_scroll_of_enchant_weapon_i05" width=32 height=32>
-													<br1>
-													<button value="Scrolls" action="bypass _bbsmultisell;600012,merchant/main" width=85 height=27 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
-												</center>
-											</td>
-											<td>
-												<center>
-													<img src="icon.etc_adena_i00" width=32 height=32>
-													<br1>
-													<button value="Sell" action="bypass _bbssell;merchant/main" width=85 height=26 back="L2UI_ct1.button_df" fore="L2UI_ct1.button_df">
-												</center>
-											</td>
-										</tr>
-									</table>
-								</td>
-							</tr>
-						</table>
-						<table border=0 cellpadding=0 cellspacing=0 width=555>
-							<tr>
-								<td height=10></td>
-							</tr>
-						</table>
-						<table border=0 cellpadding=0 cellspacing=0 width=555 background="L2UI_CT1.Windows_DF_TooltipBG">
-							<tr>
-								<td height=17></td>
-							</tr>
-							<tr>
-								<td align=center><font color=696969>LINEAGE II - COMMUNITY BOARD</font></td>
-							</tr>
-							<tr>
-								<td height=15></td>
-							</tr>
-						</table>
-					</center>
-				</td>
-			</tr>
-		</table>
-	</body>
-</html>
+<html><body>
+<table width=755><tr><td width=205 valign=top>%navigation%</td><td width=550 align=center valign=top>
+<br><font name="hs12" color="CDB67F">Магазины и обмен</font><br>
+<img src="L2UI.SquareGray" width=500 height=1><br>
+Выберите раздел. Действующая серверная цена, валюта,<br1>
+остаток товара и условия показаны перед покупкой.<br><br>
+<button value="Расходники и Mana Potion" action="bypass _bbseconomy;consumables" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Квестовые предметы / клан" action="bypass _bbseconomy;quest" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Заточка / свитки" action="bypass _bbseconomy;scrolls" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Эпическая бижутерия" action="bypass _bbseconomy;epic" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Giant's Codex за Ancient Adena" action="bypass _bbseconomy;codex" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Ancient Adena / Маммон" action="bypass _bbseconomy;mammon" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Knight's Epaulettes" action="bypass _bbseconomy;epaulette" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Премиум аккаунта" action="bypass _bbseconomy;premium" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<button value="Продать предметы" action="bypass _bbssell;merchant/main" width=280 height=28 back="L2UI_CT1.Button_DF_Down" fore="L2UI_CT1.Button_DF">
+<br>Обычные готовые оружие, броня и бижутерия здесь не продаются.<br1>
+Доступны добыча, ремесло и торговля с другими игроками.
+</td></tr></table>
+</body></html>

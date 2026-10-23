@@ -107,6 +107,20 @@ public class MultiSellChoose extends ClientPacket
 			player.setMultiSell(null);
 			return;
 		}
+		executePrepared(player);
+	}
+
+	/** Native server callers use the same prepared-list validation and inventory writer as the packet. */
+	public static void executePreparedExchange(Player player, int listId, int entryId, long amount)
+	{
+		if (player == null || player.isAlikeDead() || player.isProcessingTransaction() || player.isInventoryDisabled() || player.isInStoreMode()) { return; }
+		final var exchange = new MultiSellChoose();
+		exchange._listId = listId; exchange._entryId = entryId; exchange._amount = amount;
+		exchange.executePrepared(player);
+	}
+
+	private void executePrepared(Player player)
+	{
 		
 		if ((_amount < 1) || (_amount > GeneralConfig.MULTISELL_AMOUNT_LIMIT))
 		{
@@ -132,6 +146,9 @@ public class MultiSellChoose extends ClientPacket
 		}
 
 		final Npc npc = player.getLastFolkNPC();
+		// A city-blacksmith quote remains tied to that real nearby NPC; CB quotes have object0.
+		if (_listId == 91004 && !list.checkNpcObjectId(0) && (npc == null || npc.getId() != 30300 || !list.checkNpcObjectId(npc.getObjectId()) || player.getInstanceId() != npc.getInstanceId() || !player.isInsideRadius3D(npc, Npc.INTERACTION_DISTANCE)))
+		{ player.setMultiSell(null); return; }
 		if (!list.isNpcAllowed(-1))
 		{
 			if ((npc == null) //
