@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$BuildRoot,
-      [Parameter(Mandatory)][ValidateSet('PhantomEconomy070Native','PhantomEconomy070RecoveryNative','PhantomEconomy070QuestNative','PhantomEconomy070CurseNative')][string]$Check,
+      [Parameter(Mandatory)][ValidateSet('PhantomEconomy070Native','PhantomEconomy070RecoveryNative','PhantomEconomy070QuestNative','PhantomEconomy070CurseNative','PhantomEconomy070BoardNative')][string]$Check,
       [ValidateSet('prepare','verify','resume','inspect','next','')][string]$Mode='',
       [Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]{1,60}$')][string]$Label,
       [switch]$DevOverlay)

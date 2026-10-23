@@ -2,7 +2,7 @@
 
 **Статус: PARTIAL / DRAFT. OWNER_PLAY: NOT_READY до закрытия оставшихся gates.**
 
-Упаковка core-v1 не допущена к сборке runtime: Git archive преобразовал байты LF в CRLF в закреплённом pricing070.tsv (SHA DF463C8D… вместо6a2c9514…). До копирования и запуска обеих поставок процесс остановлен; оба runtime root отсутствовали. Исправлены .gitattributes только для TSV по аналогу069, ранняя проверка SHA в Build070 и Validate/Start. Immutable package070 не переиндексировался: автоматическая проверка отклонила предложенный renormalize, и эти пути исключены из staging. Производственные Java-классы не менялись. Дальнейшие ссылки на core-v1 ниже относятся к сохранённым native-доказательствам, а не к финальной поставке. Финальный архив/core-v2 и его exact hashes: PENDING_FINALIZE.
+Упаковка core-v1 не допущена к сборке runtime: Git archive преобразовал байты LF в CRLF в закреплённом pricing070.tsv (SHA DF463C8D… вместо6a2c9514…). До копирования и запуска обеих поставок процесс остановлен; оба runtime root отсутствовали. Исправлены .gitattributes только для TSV по аналогу069, ранняя проверка SHA в Build070 и Validate/Start. Immutable package070 не переиндексировался: автоматическая проверка отклонила предложенный renormalize, и эти пути исключены из staging. Производственные Java-классы не менялись. Дальнейшие ссылки на core-v1 относятся к сохранённым native-доказательствам. Обе runtime поставки собраны из core-v2; exact hashes приведены ниже,4562/4562 production classes побайтово равны core-v1.
 
 Экономика и услуги реализованы; focused native проверки перечислены ниже. Сборка committed core прошла. На финальном JAR прошли retained economy/quest verify, quote contracts и runtime guard. Обычный Main, полезная работа M1 после sameDB restart и окончательная остановка поставок в момент подготовки этого черновика ещё **PENDING**. Полный four-role Queen Ant gate ранее прошёл native на development JAR; финальный повтор не завершился из-за законной смерти истощённых сохранённых акторов, подробности ниже. Эти строки должен окончательно сверить основной исполнитель; данный документ не принимает manual gate за владельца.
 
@@ -20,7 +20,7 @@
 8. `Item` использует существующий per-item dbLock для count mutation. Выявленный review конфликт source-item→target-item monitors устранён. Paid material selection/commit/publication следует порядку inventory→material, без окна конкурентного создания второго стека.
 9. Добавлены самостоятельные070 build/assembly/runtime/reprice инструменты с owner/root/schema/JAR/Geo/PID checks, общей блокировкой START/Apply и штатным graceful STOP. Старые runtime не являются целями этих инструментов.
 
-Новые библиотеки, стек, серверный движок, клиентские IDs/ассеты и Studio не добавлялись. Локальные аналоги: native ItemContainer restore/transfer/destroy, account_premium lifecycle, PersonalPremiumQoL, native multisell writer, CLI068 и exact runtime069 guards. Read-first выполнен по root/module AGENTS, README/status/workflow, пакету070 и ближайшим владельцам кода. Private lane отчёты — поясняющие журналы, а не отдельные acceptance gates.
+Новые библиотеки, стек, серверный движок, клиентские IDs/ассеты и Studio не добавлялись. Локальные аналоги: native ItemContainer restore/transfer/destroy, account_premium lifecycle, PersonalPremiumQoL, native multisell writer, CLI068 и exact runtime069 guards. Прочитаны корневой AGENTS, status/workflow, весь пакет070 и ближайшие владельцы кода. Module AGENTS/README и корневой README не найдены; повторных поисков не делалось. Private lane отчёты — поясняющие журналы, а не отдельные acceptance gates.
 
 ## Цены и доступность
 
@@ -64,23 +64,27 @@ Adena scaling использует общий source-weighted native expectedYie
 | PRICING | CLI3/3: rates round-trip, AA independence, idempotent Apply, conflicts, stale lock, byte-exact8file rollback | PASS |
 | PREMIUM | Native1+7 суток, account sibling, insufficient/replay; ordinary/RaidBoss/GrandBoss chance/amount policy, Adena17→34, spoil5, suppression21747=0; replay восстанавливает текущий8-day срок | PASS native; final-JAR retained expiry/replay verify PASS |
 | RUNES |41 actual templates,0 drop/spoil effect rows | NO_NATIVE_DROP_SPOIL_RUNE_ITEM |
-| CODEX |4 real AA debit/product native exchanges | PASS native; final-JAR PENDING |
-| EPOLETTE |3 real dual9912+Adena native exchanges | PASS native; final-JAR PENDING |
-| MAMMON | Pushkin3 colors3/5/10, range/insufficient/overflow controls; real31126 remove-SA4681→72 | PASS native; final-JAR PENDING |
+| CODEX |4 real AA debit/product native exchanges | PASS native; final source/input binding подтверждён |
+| EPOLETTE |3 real dual9912+Adena native exchanges | PASS native; final source/input binding подтверждён |
+| MAMMON | Pushkin3 colors3/5/10, range/insufficient/overflow controls; real31126 remove-SA4681→72 | PASS native; final source/input binding подтверждён |
 | QUEST | Полный Q234→Q235 native event chain, реальные retained inputs/consumption, native VillageMaster.checkQuests=true; clan0→5 с consumed proofs/SP | PASS native; final-JAR sameDB loaded quest/clan verify PASS |
 | EPIC_STOCK |2-buyer last-unit race ровно1 winner; persistent stock0; test-clock restock максимум1; receipts/replay и conservation | PASS native в настроенном каталоге; >native-cap SKU NOT_APPLICABLE |
-| RECOVERY | Fault после SQL commit до native publication; exact object replay/no second debit; premium cache republish | PASS native; final-JAR PENDING |
+| RECOVERY | Fault после SQL commit до native publication; exact object replay/no second debit; premium cache republish | PASS native; final retained replay PASS |
 | CONCURRENCY | Два противоположных existing-stack native transfers завершаются под удержанными source monitors; counts conserved | PASS focused regression |
-| UI | Native routes/price source/bypass denials проверены; static HTML обновлён | PARTIAL: actual client rendering и Personal QoL allowlist experience NOT_RUN |
+| UI | На финальном v2 JAR сформированы9 настоящих страниц; stale/OFF denied, деньги/склад неизменны; native multisell denials отдельно | PASS server HTML/semantics; OWNER_VISUAL_PENDING, личный allowlist OFF |
 | SAFETY | Новые070 roots/DB, ownership/isolation guards,203 physical Geo manifest; старые данные не были целями записи | PARTIAL: final protected SHA/STOP/DB0/ports0 PENDING |
 | DELIVERY | Committed Ant jar+compile-tests прошли,2361 product/355 test sources,36с; BUILD_INFO070.json получен | PARTIAL: assembly/Main/restart/STOP PENDING |
 | OWNER_PLAY | Не принимает незакрытый M1 или непроверенную поставку | NOT_READY |
 
 Chance assertions — точная source/policy математика плюс actual NpcTemplate boundary execution; изолированные100% drop tables проверяют количество и suppression. Они не являются настоящим убийством Queen Ant ради случайного ring drop и не выдают предмет игроку. Native combat Queen Ant подтверждён отдельно.
 
+`core-v1-v2-class-parity.tsv` подтверждает4562/4562 неизменённых production classes. `native-archive-input-parity.tsv` подтверждает те же8 effective XML, Q234/Q235 source и точные bytes применённой цены. В91004 archive добавлен явный NPC30300; в обоих входах уже есть native allow−1, поэтому список разрешает тот же обмен, а Java range guard одинаков. Новая Board acceptance проверка скомпилирована отдельно против pinned v2 JAR в ui-native-bin;355 исходников основного test tree не заменялись. Её source/class/JAR SHA фиксирует BOARD_NATIVE_BUILD070.json. Клиент/H5 renderer не запускался.
+
 Native экономические fixtures имели явное TEST финансирование100 млрд Adena/actor; quest fixture —500 млн Adena/5 млн SP и retained inputs984 CrystalB, B Sword of Damascus79, Pure Silver6320. Это **не заработанная экономика**, не ship/release grants, не TestAdmin/kpCat и не признание phantom income. Проверка производства стоимости/потребления реальна; естественное время накопления не измерялось.
 
 ## Журналы и выполненные команды
+
+Дополнительный bounded Main необходим из-за нового доказанного дефекта измерения: на boot2 атомарная публикация observer.properties прекратилась с Windows sharing failure, оставив полный временный файл. Это не доказательство остановки экологии. Java writer теперь повторяет только atomic move до пяти раз с четырьмя паузами10мс, по существующему LocalPlay-AtomicRename.cs; постоянная блокировка остаётся fail-closed. PowerShell readers используют ReadWrite|Delete и сохраняют проверку64KiB/UTF-8/ACL/reparse. Реальный Windows тест старого writer дал RED AccessDenied, исправленного — GREEN transient release/PERSISTENT_LOCK_FAIL_CLOSED; отдельный reader contract подтверждает OLD snapshot и NEW pathname. Независимый reviewer не нашёл Important/Critical дефектов. Изменение production writer требует новой committed сборки core-v3 и обновления только двух собственных остановленных070 roots; новые gameplay правила не добавлены.
 
 | Команда / проверка | Exit / receipt |
 |---|---|
@@ -94,9 +98,11 @@ Native экономические fixtures имели явное TEST финан
 | Count-lock regression/retained verification |0; `economy-lock-review.log`, `economy-native-verify-1792726946140.tsv` |
 | Final-JAR retained economy verify |0; `final-economy-verify.log`, ECONOMY070_NATIVE_VERIFY_PASS |
 | Final-JAR sameDB quest/clan verify |0; `final-quest-verify.log`, ECONOMY070_QUEST_VERIFY_PASS |
-| Final-JAR quote contracts / runtime guard |PASS по результату основного исполнителя; literal commands/receipt paths PENDING_FINALIZE |
+| `java -cp <core-v1 GameServer.jar;libs/*;phantom-test/bin> org.l2jmobius.tests.phantoms.PhantomEconomy070Contracts <module>/dist/game/data/economy070/pricing070.tsv` и `org.l2jmobius.commons.util.Task070RuntimeGuardChecks` |0, ECONOMY070_QUOTE_CONTRACTS_PASS / OWN070_RUNTIME_GUARD_PASS; DB_WRITES0/PROCESS_ACTIONS0 |
+| Final v2 JAR native Board check, `PhantomEconomy070BoardNative` |0; `final-board-native.log`,9 HTML в `native-board070/`, source/class/JAR hashes `BOARD_NATIVE_BUILD070.json` |
 | Final-JAR Queen Ant resume |1; `final-queen-ant.log`, `curse-native-1792727212203.tsv`; истощённая retained fixture погибла, полный повтор INCONCLUSIVE |
 | `ant -f <repo>/.phantom-local/task070/source-core-v1/L2J_Mobius_CT_2.6_HighFive/build.xml -Dbuild=<repo>/.phantom-local/task070/build-final-core-v1 jar compile-tests` |0; `core-v1-build.log`, BUILD SUCCESSFUL36с;2 прежних runFinalization removal warnings |
+| `Build-Task070.ps1 -Label core-v2 -SourceCommit 89a2b9d3a300871cbbd5855d144db9ae5a809a69` |0; `core-v2-build.log`, Ant35с; исправлена только упаковка/tools,4562 production classes побайтово равны core-v1 |
 | Runtime guard/PowerShell parser |0; DB_WRITES=0/PROCESS_ACTIONS=0,7 scripts parsed, closure-runtime-report.md |
 | Rune audit, real XML only |0;41 rows/0 drop-spoil; local premium-report.md |
 | Main/restart/assembly/stop commands |**PENDING_FINALIZE: добавить точные фактически исполненные команды, exits и receipts** |
@@ -124,18 +130,19 @@ Native экономические fixtures имели явное TEST финан
 
 | Обязательный финальный артефакт | Значение |
 |---|---|
-| Committed build root | `<repo>/.phantom-local/task070/build-final-core-v1` |
-| GameServer.jar SHA-256 | `63E6A34369F20C0D6D00730B243123E959BA80AE62392179128F551649E2AB4D` |
-| LoginServer.jar SHA-256 | `07D515E73593E516897E02EF187736EF4DE9A0EF36BD60D1DF2152460A3B6522` |
-| Source archive SHA-256 | `16B753E959F6CA5CCBF6A6E13CCD47880AECA7F9CEA6A99B85C005EA5B73B994` |
-| Committed tree SHA-256 | `EC2E2C113E4A164FE0BA9A0F12333AB01D573C8F8D3CCF4CF585D93233610D45` |
+| Committed build root | `<repo>/.phantom-local/task070/build-final-core-v2` |
+| Compiled source commit | `89a2b9d3a300871cbbd5855d144db9ae5a809a69` |
+| GameServer.jar SHA-256 | `478E3E295BCDC7E4D875453213105903E8F47B2FA83313B50245DA16A2088010` |
+| LoginServer.jar SHA-256 | `4F74BE10EE85CE94DD5179417321DE4EEA5EA9E2945812B309EE2B737306A805` |
+| Source archive SHA-256 | `15C0934E1E5D9B0B23633C1E1674829F434EE7D2D9B2E8F18C17F4785238AAD5` |
+| Committed tree SHA-256 | `E41DF8AFA475EA9D15E969C287C80CB0305B802F0B659EAFD70DD460DB5D5C0C` |
 | Test tree SHA-256 | `61A33E2777FF0FC0C0ABAD9783FB0876E09B108F35C06A98163F059995D75A66` |
-| Build receipt time | `2026-10-23T03:48:47.1052418Z`, sourceState=COMMITTED |
-| Source/JAR equality TEST↔RELEASE | **PENDING_FINALIZE** |
+| Build receipt time | `2026-10-23T04:03:21.3538000Z`, sourceState=COMMITTED |
+| Source/JAR equality TEST↔RELEASE | PASS; обе Assemble070 v2 exit0, одинаковые source/JAR,203 физических региона, Validate price SHA PASS |
 | Обычный Main / тот же DB и JAR restart | **PENDING_FINALIZE: run IDs, profile/actor, epoch, полезное действие** |
 | TEST и RELEASE final status | **PENDING_FINALIZE: оба OWN070 JVM STOPPED, точные PID receipts, DB0/ports0** |
 | Самостоятельный ZIP/README/START/STATUS/STOP | **PENDING_FINALIZE: exact пути, SHA, validate result** |
-| Protected input/package/untracked hashes после задачи | **PENDING_FINALIZE** |
+| Protected input/package/untracked hashes после задачи |11 protected inputs/untracked совпали с начальными SHA;16 original070 input files неизменны;069 GameServer совпал с опубликованным SHA |
 
 Логи могут содержать старое runtime stderr отображение кириллицы с replacement characters; исходники не переписываются по этим сериализованным/console артефактам. Credentials, private configs и TEST funding не публикуются.
 

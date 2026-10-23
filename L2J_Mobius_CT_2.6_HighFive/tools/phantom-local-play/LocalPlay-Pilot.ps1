@@ -159,8 +159,18 @@ function Read-PilotProperties([string] $Path)
 	if (-not (Test-Path -LiteralPath $Path)) { throw "Private mailbox record отсутствует: $Path" }
 	Assert-PilotPrivateFile $Path
 	if ((Get-Item -LiteralPath $Path).Length -gt 65536) { throw 'Private mailbox record превышает 64 KiB.' }
+	# The native mailbox publishes by atomic replacement; readers must share DELETE on Windows.
+	$stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+	try
+	{
+		if ($stream.Length -gt 65536) { throw 'Private mailbox record превышает 64 KiB.' }
+		$reader = [IO.StreamReader]::new($stream, (New-Object Text.UTF8Encoding($false, $true)), $true)
+		try { $lines = $reader.ReadToEnd() -split '\r?\n' }
+		finally { $reader.Dispose() }
+	}
+	finally { $stream.Dispose() }
 	$map = @{}
-	foreach ($line in [IO.File]::ReadAllLines($Path, (New-Object Text.UTF8Encoding($false, $true))))
+	foreach ($line in $lines)
 	{
 		if (($line.Length -eq 0) -or $line.StartsWith('#') -or $line.StartsWith('!')) { continue }
 		$index = $line.IndexOf('=')

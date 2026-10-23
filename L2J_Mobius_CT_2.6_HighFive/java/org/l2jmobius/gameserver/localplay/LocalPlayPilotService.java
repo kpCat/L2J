@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.FileSystemException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -354,7 +355,27 @@ public final class LocalPlayPilotService
 		{
 			properties.store(writer, null);
 		}
-		Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+		// Match the bounded Windows sharing retry used by LocalPlay-AtomicRename.cs.
+		for (int attempt = 0; ; attempt++)
+		{
+			try
+			{
+				Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+				return;
+			}
+			catch (FileSystemException exception)
+			{
+				if (attempt == 4) { throw exception; }
+				try { Thread.sleep(10); }
+				catch (InterruptedException interrupted)
+				{
+					Thread.currentThread().interrupt();
+					final var failure = new IOException("Interrupted while publishing private mailbox record.", interrupted);
+					failure.addSuppressed(exception);
+					throw failure;
+				}
+			}
+		}
 	}
 
 	public synchronized String arm(Player player, String armCode)

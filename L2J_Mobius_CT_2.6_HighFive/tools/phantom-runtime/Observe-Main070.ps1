@@ -3,7 +3,8 @@ param([Parameter(Mandatory)][string]$RuntimeRoot,
       [Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]+$')][string]$Label,
       [Parameter(Mandatory)][ValidateRange(1,2147483647)][long]$ProfileId,
       [ValidateRange(15,45)][int]$HumanSeconds=45,
-      [ValidateRange(90,180)][int]$PassiveSeconds=120)
+      [ValidateRange(90,180)][int]$PassiveSeconds=120,
+      [switch]$Resume)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Task070Common.ps1')
 $runtime=[IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
@@ -17,13 +18,26 @@ if(Test-Path -LiteralPath $reports){throw 'TASK070: preserve existing Main evide
 New-Item -ItemType Directory -Path $reports | Out-Null
 $run=[guid]::NewGuid().ToString()
 $context=$null
+function Copy-Mailbox070([string]$InputPath,[string]$OutputPath){
+    Assert-Plain070 $InputPath
+    Assert-Plain070 $OutputPath
+    $input070=[IO.File]::Open($InputPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+    try{
+        if($input070.Length -gt 65536){throw 'TASK070: bounded mailbox snapshot required.'}
+        $output070=[IO.File]::Open($OutputPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        try{$input070.CopyTo($output070)}finally{$output070.Dispose()}
+    }finally{$input070.Dispose()}
+}
 function Copy-Observer070([string]$Name){
     $path=Join-Path $runtime 'playtest-pilot/observer.properties'
     Assert-Plain070 $path
-    if(Test-Path -LiteralPath $path){Copy-Item -LiteralPath $path -Destination (Join-Path $reports ($Name+'.properties'))}
+    if(Test-Path -LiteralPath $path){Copy-Mailbox070 $path (Join-Path $reports ($Name+'.properties'))}
 }
 try{
-    & (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') -RunId $run -SetupProfileId $ProfileId | Set-Content -LiteralPath (Join-Path $reports 'native-test-human-start.json') -Encoding utf8
+    $start070=@{RunId=$run}
+    # Resume must retain the native human/profile coordinates and ownership from boot1.
+    if(!$Resume){$start070.SetupProfileId=$ProfileId}
+    & (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') @start070 | Set-Content -LiteralPath (Join-Path $reports 'native-test-human-start.json') -Encoding utf8
     $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic -SessionId $run
     $until=[DateTime]::UtcNow.AddSeconds($HumanSeconds)
     $sample=0
@@ -39,7 +53,7 @@ try{
         $body="version=1`ncommand=STOP`nrunId=$run`nruntimeId=$($context.RuntimeId)`npid=$($context.Pid)`nstartTimeUtcTicks=$($context.StartTimeUtcTicks)`n"
         Write-PilotAtomicText (Join-Path $context.SyntheticRoot 'control.properties') $body
         Start-Sleep -Seconds 1
-        Copy-Item -LiteralPath (Join-Path $context.SyntheticRoot 'session.properties') -Destination (Join-Path $reports 'native-test-human-stop.properties')
+        Copy-Mailbox070 (Join-Path $context.SyntheticRoot 'session.properties') (Join-Path $reports 'native-test-human-stop.properties')
     }
 }
 # The real60s recent-human retention must expire before a background result can be assessed.
