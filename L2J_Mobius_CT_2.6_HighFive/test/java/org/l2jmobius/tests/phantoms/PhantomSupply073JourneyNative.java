@@ -89,7 +89,7 @@ public final class PhantomSupply073JourneyNative
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask073Lane.enabled() || args.length != 1 || !Set.of("preflight", "prepare", "resume", "history", "history-resume").contains(args[0])) { throw new IllegalArgumentException("Own073 explicit finite action required."); }
+		if (!PhantomTask073Lane.enabled() || args.length != 1 || !Set.of("preflight", "prepare", "resume", "history", "history-resume", "inspect").contains(args[0])) { throw new IllegalArgumentException("Own073 explicit finite action required."); }
 		final boolean prepare = args[0].equals("prepare");
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath(), task = module.getParent().resolve(".phantom-local/task073");
 		final Path stateFile = task.resolve("supply073-native.properties"), reportFile = task.resolve("reports/supply073-" + args[0] + '-' + System.currentTimeMillis() + ".tsv");
@@ -97,6 +97,24 @@ public final class PhantomSupply073JourneyNative
 		PhantomMaterializationService materialization = null; PhantomNavigationService navigation = null; PhantomCommerceService commerce = null; L2jPhantomSupplyJourney journey = null; PhantomCombatService combat = null;
 		try
 		{
+			if (args[0].equals("inspect"))
+			{
+				PhantomTask073Lane.initialize(module, Path.of(System.getProperty("phantom.test.config")));
+				try (var reader = Files.newBufferedReader(stateFile)) { state.load(reader); }
+				try (var connection = DatabaseFactory.getConnection())
+				{
+					connection.setReadOnly(true);
+					try (var statement = connection.prepareStatement("SELECT charId,account_name,char_name,level,classid,curHp,curMp,curCp,exp,sp,x,y,z FROM characters WHERE charId=? AND account_name='task073supply'"))
+					{
+						statement.setInt(1, Integer.parseInt(state.getProperty("actor"))); try (var rows = statement.executeQuery()) { check(rows.next(), "Exact owned measured actor absent."); for (int index = 1; index <= 13; index++) { report.append("native_sql_actor\t").append(rows.getMetaData().getColumnName(index)).append('=').append(rows.getString(index)).append('\n'); } }
+					}
+					try (var statement = connection.prepareStatement("SELECT object_id,item_id,count,loc,loc_data FROM items WHERE owner_id=? ORDER BY object_id"))
+					{ statement.setInt(1, Integer.parseInt(state.getProperty("actor"))); try (var rows = statement.executeQuery()) { while (rows.next()) { report.append("native_sql_item\t").append(rows.getInt(1)).append(':').append(rows.getInt(2)).append(':').append(rows.getLong(3)).append(':').append(rows.getString(4)).append(':').append(rows.getInt(5)).append('\n'); } } }
+				}
+				final var inspectedProfiles = PhantomProfileRepository.open(); final long inspectedId = Long.parseLong(state.getProperty("profile"));
+				report.append("native_root\t").append(goalsSnapshot(inspectedProfiles, inspectedId)).append('\n'); report.append("native_child\t").append(new PhantomSupplyIntentStore(inspectedProfiles, new PhantomGoalStateStore(inspectedProfiles)).intent(inspectedId)).append('\n');
+				report.append("result\tREAD_ONLY_NATIVE_SQL_INSPECTION; no materialization/resource/position changes\n"); return;
+			}
 			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(72007303L, module, task.resolve("reports")));
 			InitialEquipmentData.getInstance(); InitialShortcutData.getInstance(); MapRegionData.getInstance(); ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			MerchantPriceConfigTable.getInstance().loadInstances(); SpawnData.getInstance(); MerchantPriceConfigTable.getInstance().updateReferences();

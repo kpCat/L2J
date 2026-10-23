@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$BuildRoot,
       [Parameter(Mandatory)][ValidateSet('PhantomSupply073JourneyNative')][string]$Check,
-      [ValidateSet('preflight','prepare','resume','history','history-resume','')][string]$Mode='',
+      [ValidateSet('preflight','prepare','resume','history','history-resume','inspect','')][string]$Mode='',
       [string]$HelperRoot='',
       [Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]{1,60}$')][string]$Label)
 $ErrorActionPreference='Stop'
