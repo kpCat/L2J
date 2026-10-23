@@ -278,9 +278,51 @@ public final class PhantomCombat071Native
 		}
 		finally{player.stopAllTasks();player.storeMe();player.deleteMe();}
 	}
+	public static void cpRetained(StringBuilder report) throws Exception
+	{
+		check(PhantomTask071Lane.enabled(),"Explicit own071 retained CP fixture required.");
+		final int character;
+		try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT c.charId FROM characters c JOIN accounts a ON a.login=c.account_name WHERE c.account_name='task071combat' AND c.char_name='Combat071Archer' AND c.accesslevel=0 AND a.accessLevel=-1");var rows=query.executeQuery())
+		{
+			check(rows.next(),"Exact retained ordinary Archer on disabled own071 account required.");character=rows.getInt(1);check(!rows.next(),"Ambiguous retained Archer.");
+		}
+		final var repository=PhantomProfileRepository.open();
+		final long profile=repository.findByCharacterObjectId(character).orElseThrow(()->new AssertionError("Retained Archer profile missing; never create or replay.")).profileId();
+		final var metrics=new PhantomMetrics();
+		final var materialization=new PhantomMaterializationService(repository,PhantomIdentityLeaseRegistry.getInstance(),metrics,new PhantomDiagnosticTrace(false,0,0,metrics),1);
+		check(materialization.start(),"Retained CP materialization did not start.");
+		try
+		{
+			check(materialization.materialize(profile).status()==PhantomMaterializationService.ResultStatus.SUCCESS,"Retained Archer materialization failed.");
+			final Player actor=World.getInstance().getPlayer(character);
+			check(actor!=null&&!actor.isGM()&&actor.getClient()==null&&!actor.isDead()&&!actor.isInOlympiadMode(),"Ordinary retained Archer required.");
+			check(actor.getInventory().getInventoryItemCount(5591,-1)==0&&actor.getInventory().getInventoryItemCount(5592,-1)==0,"CP fixture already exists; refuse replay/refill across JVMs.");
+			final var gear=actor.getInventory().getItems().stream().filter(item->item.isEquipped()).map(item->item.getObjectId()+":"+item.getId()+":"+item.getEnchantLevel()).sorted().toList();
+			final double hp=actor.getCurrentHp(),mp=actor.getCurrentMp();
+			report.append("combat071.cpRetainedFixture\tcharacter=").append(character).append(";profile=").append(profile).append(";starting5591=0;starting5592=0;retained HP/MP/gear;CP1 and finite5591x2/5592x2 independent handler fixture;no battle replay;not earned/purchased;ordinary30081 offer is static source evidence only\n");
+			final var backend=new L2jCombatBackend(materialization,()->null);
+			cp(backend,profile,actor,report);
+			actor.setInOlympiadMode(true);
+			try(var lease=backend.tryAcquireActor(profile))
+			{
+				check(lease!=null,"Olympiad refusal native lease missing.");
+				for(int id:new int[]{5591,5592})
+				{
+					final var item=actor.getInventory().getItemByItemId(id);check(item!=null&&item.getCount()==1,"Native CP debit did not leave exact retained fixture remainder.");
+					final var refused=lease.useCpPotion(item.getObjectId(),id);
+					check(refused.outcome()==PhantomCombatBackend.CpPotionOutcome.REJECTED&&refused.countBefore()==1&&refused.countAfter()==1&&actor.getInventory().getInventoryItemCount(id,-1)==1,"Native Olympiad CP refusal changed stock.");
+					report.append("combat071.cpOlympiad\tid=").append(id).append(";native setInOlympiadMode=true;outcome=").append(refused.outcome()).append(";count=1->1;restriction fixture restored afterwards\n");
+				}
+			}
+			finally{actor.setInOlympiadMode(false);}
+			check(gear.equals(actor.getInventory().getItems().stream().filter(item->item.isEquipped()).map(item->item.getObjectId()+":"+item.getId()+":"+item.getEnchantLevel()).sorted().toList()),"Retained CP control changed equipment.");
+			report.append("combat071.cpRetained\tHP=").append(hp).append("->").append(actor.getCurrentHp()).append(";MP=").append(mp).append("->").append(actor.getCurrentMp()).append(";no HP/MP writes;native regeneration allowed;gear unchanged;real2166 handler debit/reuse/restoration for both;automatic PvP and paid procurement not claimed\n");
+		}
+		finally{check(materialization.shutdown().state()==PhantomMaterializationService.ServiceState.STOPPED,"Retained CP materialization STOP failed.");}
+	}
 	private static void cp(L2jCombatBackend backend, long profile, Player actor, StringBuilder report) throws Exception
 	{
-		// Explicit independent low-CP setup after the completed fight; never credited as native damage.
+		// Explicit independent low-CP handler fixture; never credited as native damage or acquisition.
 		actor.setCurrentCp(1); for (int id : new int[] {5591,5592}) { actor.addItem(ItemProcessType.REWARD,id,2,actor,false); }
 		for (int id : new int[] {5591,5592})
 		{

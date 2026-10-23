@@ -20,7 +20,7 @@ public final class PhantomLivingCombat071Native
 {
 	public static void main(String[] args) throws Exception
 	{
-		if(args.length!=1 || !java.util.Set.of("prepare","verify","mammon","combat","combat-resume","combat-roles","combat-remaining","grade-resume","reserve","inspect").contains(args[0]) || !PhantomTask071Lane.enabled()) { throw new IllegalArgumentException("Explicit OWN071 native action required."); }
+		if(args.length!=1 || !java.util.Set.of("prepare","verify","mammon","combat","combat-resume","combat-roles","combat-remaining","grade-resume","cp-retained","reserve","inspect").contains(args[0]) || !PhantomTask071Lane.enabled()) { throw new IllegalArgumentException("Explicit OWN071 native action required."); }
 		final Path module=Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		final Path task=module.getParent().resolve(".phantom-local/task071");
 		final Path receipt=task.resolve("native-acceptance071.properties");
@@ -35,6 +35,7 @@ public final class PhantomLivingCombat071Native
 			else if(args[0].equals("combat-resume")) { PhantomCombat071Native.resume(report); }
 			else if(args[0].equals("combat-roles")) { PhantomCombat071Native.roles(report); }
 			else if(args[0].equals("combat-remaining")) { PhantomCombat071Native.remainingRoles(report); }
+			else if(args[0].equals("cp-retained")) { PhantomCombat071Native.cpRetained(report); }
 			else if(args[0].equals("grade-resume")) { final Player grade=Player.load(268435468);check(grade!=null,"Retained grade fixture missing.");players.add(grade);PhantomSupply071Native.resumeGrades(grade,report); }
 			else if(args[0].equals("reserve")) { PhantomCombat071Native.mixedReserve(report); }
 			else if(args[0].equals("inspect")) { PhantomCombat071Native.inspect(report); PhantomSupply071Native.inspectStoredGrades(report); }
