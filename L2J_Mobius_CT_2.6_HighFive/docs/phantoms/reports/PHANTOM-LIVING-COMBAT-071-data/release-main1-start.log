@@ -1,0 +1,17 @@
+# Raw native log SHA256=0813D6FB936AE1236CCFA58BA26FC8866AE8D1E518FA48AFA0DFD38BE5E4524C; ASCII evidence projection; full raw log retained in own071 reports
+STOCK_START_CONFIRMED LoginServer PID=16904
+STOCK_START_CONFIRMED GameServer PID=26560
+{
+  "runtime": "D:\\PhantomWorld\\Living-Combat-071-candidate",
+  "database": "l2jmobiush5_phantom_release_071",
+  "game": {
+    "state": "RUNNING",
+  },
+  "login": {
+    "state": "RUNNING",
+  },
+  "ports": {
+    "GameServer": [
+    "LoginServer": [
+  },
+}

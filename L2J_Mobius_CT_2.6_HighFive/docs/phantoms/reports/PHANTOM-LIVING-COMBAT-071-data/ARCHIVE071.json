@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "owner": "TASK071_LIVING_COMBAT",
+  "kind": "PUBLIC_SANITIZED_TEMPLATE",
+  "configuredLocalRuntime": "D:/PhantomWorld/Living-Combat-071-candidate",
+  "archive": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task071\\Living-Combat-071-public-template.zip",
+  "bytes": 302592510,
+  "sha256": "AF0A6AF97158EE73A107758E67E8D3CD4DCB746AF9B536D113A3B7038395549E",
+  "verifiedFiles": 26033,
+  "manifestSha256": "AAC9445234CCCC7D02B0AE6B17CA02CE41643FF15F1C9D9D876D76A8FA54EBC3",
+  "privateInputs": "EXCLUDED",
+  "databaseBackup": "NOT_INCLUDED",
+  "verification": "EVERY_ZIP_ENTRY_HASH_VERIFIED",
+  "packagingWrapperExit": 1,
+  "packagingWrapperNote": "ZIP completed and checksum written; outer shell then read unset LASTEXITCODE under StrictMode. Independent full archive verification PASS; no rebuild/retry.",
+  "verifiedUtc": "2026-10-23T13:49:54.647491Z",
+  "sourceEvidencePresentation": "After archive verification, repository native-combat-tail.tsv removes two terminal diagnostic spaces only. Raw values/hashes unchanged; original byte-exact output remains in verified ZIP and own raw report."
+}

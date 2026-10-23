@@ -1,0 +1,3 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/phantom-test/bin/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/bin/
+combat071.mixedReserve	FIXTURE magical weapon=214;perHit=1;blessed1hit+regular2hits=3;wrongGrade1000excluded;nativeBlessedChargeDebit=true;currentChargeCountedOnce;belowBoundsRejected;no earned supply claim

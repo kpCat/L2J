@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "owner": "TASK071_LIVING_COMBAT",
+  "sourceState": "COMMITTED",
+  "codeCommit": "4b84313c991dc6c620aa3a2ba1de43400e4ff6bb",
+  "sourceModuleRoot": "D:\\Codex\\repos\\L2J-phantom-world\\L2J_Mobius_CT_2.6_HighFive",
+  "committedModuleRoot": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task071\\source-core-v1\\L2J_Mobius_CT_2.6_HighFive",
+  "sourceArchivePath": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task071\\core-v1.zip",
+  "sourceArchiveSha256": "C862923E194D8343D3E15E849FE3DCF659995172320E5B129C7BDE11856F821B",
+  "committedTreeSha256": "AA1CC8CED5CF7690955472F6D020D24630CEEA18E23FDDF68937A4B4824972B0",
+  "buildRoot": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task071\\build-final-core-v1",
+  "gameJarSha256": "0F469814330A4AA7DF0B72BC2A1ED36455B4C8035569A6D821D390FC4078958B",
+  "loginJarSha256": "C63FB7810D8E8009045B487A77001F910CDD5EC5C64417DB8022590062F2E25D",
+  "testTreeSha256": "D885249A063C08568A437135F47B40D666CA99374C2D5905F544F885FC3280DF",
+  "builtUtc": "2026-10-23T12:38:54.3083389Z"
+}

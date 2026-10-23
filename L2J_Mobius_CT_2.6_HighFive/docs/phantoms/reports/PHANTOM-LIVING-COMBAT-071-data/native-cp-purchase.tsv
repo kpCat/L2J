@@ -1,0 +1,5 @@
+stage	evidence
+cp_fixture	PREMEASUREMENT disabled task071cp/Supply071Cp;profile=8;actor=268481171;nativeNpc=30081;object=268469422;xyz=[Location] X: 80534 Y: 147922 Z: -3080 Heading: 0 InstanceId: 0;finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation
+cp_operation	item=5591;OperationResult[status=REPLAN, reason=NPC_OUT_OF_RANGE]
+cp_shutdown	ShutdownResult[state=STOPPED, failedProfileIds=[]]
+failure	java.lang.AssertionError: Paid CP purchase failed: OperationResult[status=REPLAN, reason=NPC_OUT_OF_RANGE]

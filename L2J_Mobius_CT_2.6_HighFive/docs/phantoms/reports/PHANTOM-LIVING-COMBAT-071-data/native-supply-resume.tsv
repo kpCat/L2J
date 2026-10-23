@@ -1,0 +1,14 @@
+stage	evidence
+journey	supplies.navigation.requested;xyz=[Location] X: -86348 Y: 239558 Z: -3680 Heading: 0 InstanceId: 0;A=0
+journey	supplies.native.walking;xyz=[Location] X: -86348 Y: 239558 Z: -3680 Heading: 16383 InstanceId: 0;A=0
+journey	maintenance.native.requested;xyz=[Location] X: -84436 Y: 240478 Z: -3728 Heading: 57556 InstanceId: 0;A=6250
+committed	PhantomCommerceReceipt[operationKey=645052d9ae663645a19f42f54ebfd2988ace5746f7c6bf10e3fffe987981fc07, profileId=1, goalId=71007103, goalRevision=0, request=OperationRequest[kind=SELL, npcTemplateId=30004, npcObjectId=268460421, listId=3000400, itemId=6716, itemObjectId=268481020, count=1, amount=6250, feeItemId=0, feeCount=1, ordinal=0, listName=, destinationX=0, destinationY=0, destinationZ=0], state=COMMITTED, resumeCount=0, before=ConservationFacts[primaryCount=0, secondaryCount=1, objectCount=1, instanceId=0, x=-84436, y=240478, z=-3728], expectedAfter=ConservationFacts[primaryCount=6250, secondaryCount=0, objectCount=0, instanceId=0, x=-84436, y=240478, z=-3728]]
+journey	maintenance.native.operation_confirmed;xyz=[Location] X: -84436 Y: 240478 Z: -3728 Heading: 57556 InstanceId: 0;A=6250
+journey	maintenance.supplies.rechecked_after_bank;xyz=[Location] X: -84436 Y: 240478 Z: -3728 Heading: 57556 InstanceId: 0;A=6250
+committed	PhantomCommerceReceipt[operationKey=56ed3773fad79d745a26e9a8a705499c60dbaf9bf62e48179cd11d62a64e3c4e, profileId=1, goalId=71007103, goalRevision=2, request=OperationRequest[kind=BUY, npcTemplateId=30004, npcObjectId=268460421, listId=3000400, itemId=1835, itemObjectId=0, count=120, amount=960, feeItemId=0, feeCount=0, ordinal=0, listName=, destinationX=0, destinationY=0, destinationZ=0], state=COMMITTED, resumeCount=0, before=ConservationFacts[primaryCount=6250, secondaryCount=0, objectCount=0, instanceId=0, x=-84436, y=240478, z=-3728], expectedAfter=ConservationFacts[primaryCount=5290, secondaryCount=120, objectCount=120, instanceId=0, x=-84436, y=240478, z=-3728]]
+journey	maintenance.native.operation_confirmed;xyz=[Location] X: -84436 Y: 240478 Z: -3728 Heading: 57556 InstanceId: 0;A=5290
+journey	supplies.navigation.requested;xyz=[Location] X: -84436 Y: 240478 Z: -3728 Heading: 57556 InstanceId: 0;A=5290
+journey	supplies.native.walking;xyz=[Location] X: -84436 Y: 240478 Z: -3728 Heading: 28743 InstanceId: 0;A=5290
+journey	maintenance.native.returned_to_farm;xyz=[Location] X: -86336 Y: 239595 Z: -3681 Heading: 46942 InstanceId: 0;A=5290
+failure	java.lang.AssertionError: Native rewarded kill failed: PhantomCombatSessionSnapshot[profileId=1, generation=1, targetObjectId=268480633, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY, startedLogicalNanos=119947011260200, lastPulseLogicalNanos=119952551346200, selectedSkills=0, threatEntries=1, rememberedLootIds=0, lootPickupsIssued=0]
+shutdown	ShutdownResult[state=STOPPED, failedProfileIds=[]]

@@ -1,0 +1,19 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/phantom-test/bin/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/bin/
+fixtures	ordinary access0 third class88;disabled network accounts;not owner/earned/RELEASE characters
+economy071.fixture	AA5575+22040000;ordinary ownedTEST actor;not earned income;Noblesse fixture only for native alias gates
+economy071.token	1and550 both directions exact1:20000;physical debit/credit;Alt+B actions;concurrent sameUUID exactly once;replay/crossAccount/quantity/poor/Olympiad/rollback negatives;receipts=9fd89dce-1012-45f9-82a7-aaf699b0910c,7239e934-ffeb-453d-9e74-c77bc4ed732c
+economy071.olympiad	aliases38/69;native Noblesse gate negative;21874->Fame100(-300) native debit/credit;Codex6622 native550Tokens and AA11000000;Noblesse restored;no hero/points created
+economy071.premium	configured3/2.5;invalid/nonfinite->1;perItem0 retained;existing multipliers unchanged
+economy071.fixturePaid	Adena+201000000 first,+200000000 poor;explicit TEST funds for paid stock/premium,not earned income
+economy071.paid	premium1day paid1000000+sameUUID replay;200m epic6660 lastunit2buyer race1winner;nativeRing1/globalStock0;wallet sum200m;no restock reset
+mammonSetup	FIXTURE: source gear/materials and5mAA/100kAdena; position set before each isolated trade; no earned claim
+mammonTrade	list=311132501;source=0;product=12374;enchant=0;native input/product delta PASS
+mammonTrade	list=311262509;source=4681;product=72;enchant=4;native input/product delta PASS
+mammonTrade	list=311262512;source=156;product=166;enchant=5;native input/product delta PASS
+mammonTrade	list=311262512;source=78;product=267;enchant=5;native input/product delta PASS
+mammonTrade	list=311262519;source=7894;product=150;enchant=6;native input/product delta PASS
+mammonTrade	list=311262504;source=9514;product=9416;enchant=3;native input/product delta PASS
+mammonTrade	list=311262513;source=12375;product=10870;enchant=0;native input/product delta PASS
+mammonTrade	list=311262509;source=0;product=72;enchant=0;native input/product delta PASS
+mammonGuards	actual range/NPC mismatch refusals; original31126 removeSA still works; materials/AA/native enchant consumed, no GameClient

@@ -1,0 +1,11 @@
+suite=post002-semantic-v3-content
+seed=2002002
+total=3
+passed=3
+failed=0
+measurement.semanticV3.combinedHash=024b12ea22b0e179984017199de9386a264425d9dc959b8a7061bfd05bcbb9c9
+measurement.semanticV3.patternCount=5310
+measurement.semanticV3.templateCount=20975
+PASS post002-semantic-v3-content.01-segmented-seed-load-and-indexed-support-understanding elapsedNanos=1034254300
+PASS post002-semantic-v3-content.02-custom-overlay-loads-last-and-enters-combined-hash elapsedNanos=8730101400
+PASS post002-semantic-v3-content.03-v3-invalid-artifacts-fail-atomically elapsedNanos=648972300

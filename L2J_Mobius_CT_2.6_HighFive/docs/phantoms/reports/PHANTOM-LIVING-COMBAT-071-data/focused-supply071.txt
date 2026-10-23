@@ -1,0 +1,15 @@
+suite=supply071
+seed=71
+total=5
+passed=5
+failed=0
+measurement.supply071.cpSource=NPC30081 ordinary consumables list3008100;5591base200/5592base500 before native tax; no conditional SevenSigns/CB/gift source
+measurement.supply071.expertise=Native expertise caps target independently of level; no Player mutation
+measurement.supply071.futureQuote=s1 byte-exact; s2 current weapon/root/field retained with future native template and reserved gear budget; exact social parser and durable Goal codec preserved
+measurement.supply071.recovery=Only unprepared ephemeral NPC object changes; durable deadline/item/count/root binding conserved; prepared/committing/committed source immutable
+measurement.supply071.thresholds=NG1-19/D20/C40/B52/A61/S76/S80at80/S84at84; no equipment grants
+PASS supply071.01-level-thresholds-do-not-skip-next-grade elapsedNanos=10294500
+PASS supply071.02-level-target-never-invents-native-expertise elapsedNanos=23400
+PASS supply071.03-restart-counter-rebind-cannot-repeat-prepared-or-paid-sale elapsedNanos=49344200
+PASS supply071.04-future-grade-offline-quote-preserves-current-weapon-and-earmark elapsedNanos=5794500
+PASS supply071.05-ordinary-paid-cp-source-keeps-native-price-and-npc-eligibility elapsedNanos=49730500

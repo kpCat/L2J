@@ -1,0 +1,57 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/additional-helper071/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-final-core-v1/dist/libs/GameServer.jar
+economy071.inspect.item	task071nativeone;268435465;268435467;5575;3210000;INVENTORY;0;0;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268435475;6622;2;INVENTORY;0;0;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436787;72;1;INVENTORY;0;4;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436789;166;1;INVENTORY;0;5;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436791;267;1;INVENTORY;0;5;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436793;150;1;INVENTORY;0;6;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436795;9416;1;INVENTORY;0;3;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436797;10870;1;INVENTORY;0;0;-1;-1
+economy071.inspect.item	task071nativeone;268435465;268436799;72;1;INVENTORY;0;0;-1;-1
+economy071.inspect.inventory	task071nativeone;owner=268435465;sqlRows=9;sqlInventorySHA=d07289b818f2f9fe71a366c7d2f014c09b25cc4b6ed23af5aebc4a9899c34e4e;originalSHA=d07289b818f2f9fe71a366c7d2f014c09b25cc4b6ed23af5aebc4a9899c34e4e;canonical=268435467:5575:3210000:0| 268435475:6622:2:0| 268436787:72:1:4| 268436789:166:1:5| 268436791:267:1:5| 268436793:150:1:6| 268436795:9416:1:3| 268436797:10870:1:0| 268436799:72:1:0|
+economy071.inspect.receipt	task071nativeone;b9b80e29-0b80-426d-89a8-3c4165535544;DEPOSIT;null;0;200000000;200000000;1792756161605
+economy071.inspect.receipt	task071nativeone;f6b76405-0fa3-4d6e-883e-6264d14835c1;PREMIUM;null;0;1792842561617;1;1792756161618
+economy071.inspect.wallet	task071nativeone;200000000;original=200000000
+economy071.inspect.item	task071nativepoor;268435466;268435478;6660;1;INVENTORY;0;0;-1;-1
+economy071.inspect.inventory	task071nativepoor;owner=268435466;sqlRows=1;sqlInventorySHA=6d264e6a01fde03090a3b5711ef9145b8d77eb42883c2e8a7ca19ebbd5369ace;originalSHA=a62a5a941744d7fe4cea3f0b54674d22551f232cae980bc5a640c25e66e6b3c9;canonical=268435478:6660:1:0|
+economy071.inspect.receipt	task071nativepoor;85a7ca06-9751-4aad-8ba4-0562449b0a6d;DEPOSIT;null;0;200000000;200000000;1792756161610
+economy071.inspect.receipt	task071nativepoor;1faf76e7-0567-40a5-b28c-9571f1e42ec9;EPIC;6660;268435478;268435478;200000000;1792756161631
+economy071.inspect.ringOnly	task071nativepoor;receiptObject=268435478;result=268435478;SHA=6d264e6a01fde03090a3b5711ef9145b8d77eb42883c2e8a7ca19ebbd5369ace;matchesOriginal=false;matchesSqlInventory=true
+economy071.inspect.wallet	task071nativepoor;0;original=0
+economy071.inspect.stock	6656;1;0;0;0;1;0;
+economy071.inspect.stock	6657;1;0;0;0;1;0;
+economy071.inspect.stock	6658;1;0;0;0;1;0;
+economy071.inspect.stock	6659;1;0;0;0;1;0;
+economy071.inspect.stock	6660;0;1793965761630;0;1;1;14;34ab2e4dd2822a394ce8b134631f688b37b92a284e771a5261f6407137f5decb
+economy071.inspect.stock	6661;1;0;0;0;1;0;
+economy071.inspect.stock	6662;1;0;0;0;1;0;
+economy071.inspect.stock	8191;1;0;0;0;1;0;
+economy071.inspect.stock	10314;1;0;0;0;1;0;
+economy071.inspect.stock	16025;1;0;0;0;1;0;
+economy071.inspect.stock	16026;1;0;0;0;1;0;
+economy071.inspect.stock	21712;1;0;0;0;1;0;
+economy071.inspect.mode	SQL SELECT only;no Player.load/save;no receipt replay;no stock restock/reconciliation;zero-count native Adena snapshot is a hypothesis pending row/hash evidence
+combat071.tail	Retained Dagger/Mage and exact enemies; no HP/MP/CP/gear/shot/Soul refill; prior Mage single-hit timeout and prior Dagger cleanup failure remain separate evidence; Archer/support/grades untouched; only absent Tank/Kamael created
+combat071.fixture	role=Dagger;profile=3;nativeClass=93;weapon=237;known=[SelectedSkill[skillId=358, skillLevel=1], SelectedSkill[skillId=30, skillLevel=37], SelectedSkill[skillId=16, skillLevel=24], SelectedSkill[skillId=263, skillLevel=37], SelectedSkill[skillId=344, skillLevel=1], SelectedSkill[skillId=409, skillLevel=10], SelectedSkill[skillId=991, skillLevel=1], SelectedSkill[skillId=11, skillLevel=12], SelectedSkill[skillId=12, skillLevel=14], SelectedSkill[skillId=96, skillLevel=6], SelectedSkill[skillId=412, skillLevel=10], SelectedSkill[skillId=531, skillLevel=1], SelectedSkill[skillId=101, skillLevel=3], SelectedSkill[skillId=3, skillLevel=9], SelectedSkill[skillId=56, skillLevel=24]];finiteStockShots=594;SoulsFixture=0;not earned gear/skills/currency
+combat071.tailFirstAttack	actor=Combat071Dagger;actual native attempts=1;max3 after attack end/max6s;pool=6510.0->6381.0;enemyHeading=32767;actorFront=true
+combat071.tailMeasured	role=Dagger;events=1;positionalEvents=1;targetPool=7511.0->7029.233571738277;MP=1458.0->1318.852416;shots=594->592;souls=0->0;reuse=true;moved=45.0;rearOrSide=true
+combat071.native	role=Dagger;skillDamageEvents=1;targetPool=7511.0->7029.233571738277;MP=1458.0->1318.852416;shots=594->592;souls=0->0;native reuse=true;actualMoved=45.0;targetDistance=38.48376280978771;rearOrSide=true
+combat071.fixture	role=Mage;profile=5;nativeClass=94;weapon=214;known=[SelectedSkill[skillId=1147, skillLevel=6], SelectedSkill[skillId=1172, skillLevel=8], SelectedSkill[skillId=1177, skillLevel=5], SelectedSkill[skillId=1184, skillLevel=6], SelectedSkill[skillId=1220, skillLevel=8], SelectedSkill[skillId=1230, skillLevel=28], SelectedSkill[skillId=1231, skillLevel=28], SelectedSkill[skillId=1274, skillLevel=4], SelectedSkill[skillId=1275, skillLevel=14], SelectedSkill[skillId=1288, skillLevel=1], SelectedSkill[skillId=1289, skillLevel=1], SelectedSkill[skillId=1292, skillLevel=1], SelectedSkill[skillId=1339, skillLevel=1], SelectedSkill[skillId=1056, skillLevel=12], SelectedSkill[skillId=1069, skillLevel=42], SelectedSkill[skillId=1074, skillLevel=14]];finiteStockShots=400;SoulsFixture=0;not earned gear/skills/currency
+combat071.tailFirstAttack	actor=Combat071Mage;actual native attempts=1;max3 after attack end/max6s;pool=4883.0->4803.0;enemyHeading=32767;actorFront=true
+combat071.tailMeasured	role=Mage;events=1;positionalEvents=0;targetPool=8344.0->8343.0;MP=3684.0->3609.3359199999995;shots=400->395;souls=0->0;reuse=true;moved=170.0;rearOrSide=false
+combat071.native	role=Mage;skillDamageEvents=1;targetPool=8344.0->8343.0;MP=3684.0->3609.3359199999995;shots=400->395;souls=0->0;native reuse=true;actualMoved=170.0;targetDistance=254.566297847928;rearOrSide=false
+combat071.autoCpFixture	Tank lowCP1 and finite5591x2/5592x2 declared before materialization/measurement;not purchased or earned
+combat071.fixture	role=Tank;profile=6;nativeClass=90;weapon=82;known=[SelectedSkill[skillId=92, skillLevel=52], SelectedSkill[skillId=403, skillLevel=10], SelectedSkill[skillId=3, skillLevel=9], SelectedSkill[skillId=400, skillLevel=10], SelectedSkill[skillId=984, skillLevel=20], SelectedSkill[skillId=28, skillLevel=49], SelectedSkill[skillId=353, skillLevel=1], SelectedSkill[skillId=16, skillLevel=9], SelectedSkill[skillId=56, skillLevel=9], SelectedSkill[skillId=405, skillLevel=10]];finiteStockShots=600;SoulsFixture=0;not earned gear/skills/currency
+combat071.tailFirstAttack	actor=Combat071Tank;actual native attempts=1;max3 after attack end/max6s;pool=5383.0->5341.0;enemyHeading=32767;actorFront=true
+combat071.autoCp	actual PvP session5591=2->0;5592=2->0;CP=0.0->peak524.96637;nativeReuseObserved=true;finite declared inventory;no directCP write in episode
+combat071.tailMeasured	role=Tank;events=0;positionalEvents=0;targetPool=8344.0->8344.0;MP=1607.0->1548.462416;shots=600->599;souls=0->0;reuse=true;moved=45.0;rearOrSide=false
+combat071.native	role=Tank;skillDamageEvents=0;targetPool=8344.0->8344.0;MP=1607.0->1548.462416;shots=600->599;souls=0->0;native reuse=true;actualMoved=45.0;targetDistance=38.48376280978771;rearOrSide=false
+combat071.soulBottle	finite declared item10410;native ItemSkillsTemplate/2499/FocusSouls;count=2->1;souls=0->5;after materialization/before measurement;no direct soul counter grant;not earned procurement
+combat071.soulBottle	finite declared item10410;native ItemSkillsTemplate/2499/FocusSouls;count=1->0;souls=5->10;after materialization/before measurement;no direct soul counter grant;not earned procurement
+combat071.fixture	role=Kamael;profile=7;nativeClass=132;weapon=9364;known=[SelectedSkill[skillId=468, skillLevel=9], SelectedSkill[skillId=478, skillLevel=15], SelectedSkill[skillId=504, skillLevel=37], SelectedSkill[skillId=505, skillLevel=28], SelectedSkill[skillId=939, skillLevel=1], SelectedSkill[skillId=485, skillLevel=1], SelectedSkill[skillId=476, skillLevel=15], SelectedSkill[skillId=506, skillLevel=4], SelectedSkill[skillId=484, skillLevel=1]];finiteStockShots=600;SoulsFixture=10;not earned gear/skills/currency
+combat071.tailFirstAttack	actor=Combat071Kamael;actual native attempts=2;max3 after attack end/max6s;pool=5562.0->5500.0;enemyHeading=32767;actorFront=true
+combat071.tailMeasured	role=Kamael;events=1;positionalEvents=0;targetPool=8344.0->8261.0;MP=2501.0->2484.0;shots=600->598;souls=10->10;reuse=true;moved=45.0;rearOrSide=false
+combat071.native	role=Kamael;skillDamageEvents=1;targetPool=8344.0->8261.0;MP=2501.0->2484.0;shots=600->598;souls=10->10;native reuse=true;actualMoved=45.0;targetDistance=38.48376280978771;rearOrSide=false
+combat071.tailPartial	role=Kamael;failure=java.lang.AssertionError: Kamael cast did not debit its actual native Souls.;no retry/refill;next previously unrun role continues
+failure	java.lang.AssertionError: Tail has 1 partial roles; inspect individual native evidence.

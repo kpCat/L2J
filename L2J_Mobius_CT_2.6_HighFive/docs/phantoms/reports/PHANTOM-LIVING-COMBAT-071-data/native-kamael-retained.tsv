@@ -1,0 +1,11 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/kamael-helper071/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-final-core-v1/dist/libs/GameServer.jar
+combat071.kamaelRetained	Only existing Kamael/enemy; actual stock learned offensive subset restricted after materialization;no skill adds;no HP/MP/CP/gear/shot refill;independent one-use native10410 Soul-source fixture explicitly authorized because Souls reset on logout;previous native two bottles and damage with Souls10->10 remain PARTIAL evidence
+combat071.soulSourceOnce	CREATE_NEW marker before any bottle grant=D:\Codex\repos\L2J-phantom-world\.phantom-local\task071\kamael-soul-source071.once;stock0/Souls0 verified;exact one independent finite fixture;not earned or purchased
+combat071.soulBottle	finite declared item10410;native ItemSkillsTemplate/2499/FocusSouls;count=1->0;souls=0->5;after materialization/before measurement;no direct soul counter grant;not earned procurement
+combat071.nativeSoulChoice	id=478;level=15;soulMaxConsumeCount=5;native minimum required=5;separate minimum API absent;currentSouls=5;native condition=true;existing learned only
+combat071.nativeSoulSubset	chosen=478:15;removed existing offensive IDs=[939, 468, 476, 484, 485, 504, 505, 506];no skill added;no resource/gear/inventory writes
+combat071.fixture	role=Kamael;profile=7;nativeClass=132;weapon=9364;known=[SelectedSkill[skillId=478, skillLevel=15]];finiteStockShots=598;SoulsFixture=5;not earned gear/skills/currency
+combat071.tailFirstAttack	actor=Combat071Kamael;actual native attempts=2;max3 after attack end/max6s;pool=5500.0->5439.0;enemyHeading=32767;actorFront=true
+combat071.tailMeasured	role=Kamael;events=1;actualSkillIds=[478];positionalEvents=0;targetPool=8261.0->8227.96637;MP=2012.0->1997.252416;shots=598->596;souls=5->0;reuse=true;moved=45.0;rearOrSide=false
+combat071.native	role=Kamael;skillDamageEvents=1;targetPool=8261.0->8227.96637;MP=2012.0->1997.252416;shots=598->596;souls=5->0;native reuse=true;actualMoved=45.0;targetDistance=38.48376280978771;rearOrSide=false

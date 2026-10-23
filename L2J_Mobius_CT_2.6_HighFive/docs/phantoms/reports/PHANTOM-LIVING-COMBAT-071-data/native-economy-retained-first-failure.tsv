@@ -1,0 +1,3 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-final-core-v1/phantom-test/bin/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-final-core-v1/dist/libs/GameServer.jar
+failure	java.lang.AssertionError: Native inventory changed across own071 restart: Native071Poor

@@ -1,0 +1,21 @@
+{
+  "helperCommit": "68ff3ef49c3d362666e27bb556f282f756950226",
+  "productionCommit": "4b84313c991dc6c620aa3a2ba1de43400e4ff6bb",
+  "productionJarSha256": "0F469814330A4AA7DF0B72BC2A1ED36455B4C8035569A6D821D390FC4078958B",
+  "helperSourceArchiveSha256": "124E2EB6CA946BEC3611E359E5079AE29B2458F4CDEB12792F65AA9A193476CB",
+  "helperClasses": [
+    {
+      "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native.class",
+      "sha256": "E66B535EB935AA2AF13E54A03445983069E2F35441EE32FD11137F92C55D4289"
+    },
+    {
+      "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native$Role.class",
+      "sha256": "0114799FB6D989CB459671852FC380AB8C53B7660508C2AE50967AA972FB03B8"
+    },
+    {
+      "name": "org/l2jmobius/tests/phantoms/PhantomLivingCombat071Native.class",
+      "sha256": "351C9B3A8A0B5615ADEDDD5987AFC7CECB0134569AC370BA3624A13BB716A6A1"
+    }
+  ],
+  "productionDiff": "EMPTY"
+}

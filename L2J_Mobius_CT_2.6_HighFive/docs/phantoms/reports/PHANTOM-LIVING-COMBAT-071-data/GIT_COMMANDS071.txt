@@ -1,0 +1,35 @@
+Authorization: TASK071/AUTHORITY071 and direct user request allow exact scope inspection, commits, source archive and normal non-force publication to feature/phantom-world only.
+Repository: current checkout; no new worktree, reset, clean, stash, rebase, merge, history rewrite or master/default mutation.
+
+Intake/guards used:
+git symbolic-ref --short HEAD
+git rev-parse HEAD
+git status --short --untracked-files=normal -- L2J_Mobius_CT_2.6_HighFive .gitattributes .gitignore
+git worktree list --porcelain
+git for-each-ref
+git ls-remote origin refs/heads/feature/phantom-world
+
+Build-Task071.ps1 executes the following with relative=L2J_Mobius_CT_2.6_HighFive, SourceCommit=4b84313c991dc6c620aa3a2ba1de43400e4ff6bb, archive=.phantom-local/task071/core-v1.zip:
+git status --porcelain --untracked-files=all -- $relative
+git archive --format=zip --output=$archive $SourceCommit -- $relative/build.xml $relative/java $relative/test $relative/dist $relative/tools
+Test-only helper archives use the exact test/tool paths belonging to commits68ff3ef49c3d362666e27bb556f282f756950226,06fd4baac4c18e9880652a35ee70fef53c39f64e,952782c0c31a28339f6b0118322ae15f1f8cca58,6bd80574c3de92f8fdeda713bc6e3b89f21a9832; archive hashes are in HELPERS071.json.
+
+Final scope commands:
+git diff --name-only 752a91a27ef1421951246a618a9bdfa79f4769da HEAD -- .gitattributes .gitignore L2J_Mobius_CT_2.6_HighFive
+git diff --exit-code 4b84313c991dc6c620aa3a2ba1de43400e4ff6bb HEAD -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/dist L2J_Mobius_CT_2.6_HighFive/build.xml L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Runtime071.ps1 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Assemble071.ps1 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Task071Common.ps1
+git -c core.whitespace=cr-at-eol diff --check -- .gitattributes .gitignore L2J_Mobius_CT_2.6_HighFive
+git -c core.whitespace=cr-at-eol diff --cached --check
+git diff --cached --name-only
+git add -- <exact paths recorded in CHANGED_PATHS071.txt; never foreign068V or runtime/private/binary files>
+git commit -m <TASK071 commit message>
+
+Committed product:4b84313c991dc6c620aa3a2ba1de43400e4ff6bb
+Committed helper:68ff3ef49c3d362666e27bb556f282f756950226
+Committed helper:06fd4baac4c18e9880652a35ee70fef53c39f64e
+Committed helper:952782c0c31a28339f6b0118322ae15f1f8cca58
+Committed helper:6bd80574c3de92f8fdeda713bc6e3b89f21a9832
+
+Publication command (receipt outside commit records actual exit/remote SHA):
+git push origin HEAD:refs/heads/feature/phantom-world
+git rev-parse HEAD
+git ls-remote origin refs/heads/feature/phantom-world

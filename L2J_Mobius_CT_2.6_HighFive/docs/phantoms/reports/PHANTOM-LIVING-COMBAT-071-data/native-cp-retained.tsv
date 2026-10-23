@@ -1,0 +1,8 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/cp-helper071/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-final-core-v1/dist/libs/GameServer.jar
+combat071.cpRetainedFixture	character=268435485;profile=4;starting5591=0;starting5592=0;retained HP/MP/gear;CP1 and finite5591x2/5592x2 independent handler fixture;no battle replay;not earned/purchased;ordinary30081 offer is static source evidence only
+combat071.cp	id=5591;count=2->1;cp=1.0->51.0;reuseRejected=true;source=normal Dawn/Dusk multisell500 for240/600AA (acquisition not claimed)
+combat071.cp	id=5592;count=2->1;cp=51.0->251.0;reuseRejected=true;source=normal Dawn/Dusk multisell500 for240/600AA (acquisition not claimed)
+combat071.cpOlympiad	id=5591;native setInOlympiadMode=true;outcome=REJECTED;count=1->1;restriction fixture restored afterwards
+combat071.cpOlympiad	id=5592;native setInOlympiadMode=true;outcome=REJECTED;count=1->1;restriction fixture restored afterwards
+combat071.cpRetained	HP=4377.0->4377.0;MP=1607.0->1607.0;no HP/MP writes;native regeneration allowed;gear unchanged;real2166 handler debit/reuse/restoration for both;automatic PvP and paid procurement not claimed

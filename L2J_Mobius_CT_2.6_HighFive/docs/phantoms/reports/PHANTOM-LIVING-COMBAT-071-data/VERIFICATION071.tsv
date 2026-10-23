@@ -1,0 +1,7 @@
+check	status	evidence
+mojibake-markers	PASS	rg exit1;full27marker set;files=135
+escaped-Cyrillic	PASS	rg exit1;all6Unicode/XML patterns;files=135
+exact-diff-whitespace	PASS	git diff --check exit0;core.whitespace=cr-at-eol
+protected-inputs	PASS	90 hashes:74old candidates+7foreign068V+9original071
+production-diff-after-4b	PASS	git diff --exit-code exit0;test-only helpers
+own071-quiescence	PASS	TEST/RELEASE connections0;JVM0;listeners0;STOPPED

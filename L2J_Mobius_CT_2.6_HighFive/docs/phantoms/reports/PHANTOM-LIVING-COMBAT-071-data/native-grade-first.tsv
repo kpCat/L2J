@@ -1,0 +1,6 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/phantom-test/bin/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/bin/
+gear071.fixture	TEST_SETUP_ONLY native level/autoGet expertise/finite candidate gear+shots; no earned currency, market or complete loadout claim
+gear071.native	level=19;expertise=0;target=NONE;weapon=1;armor=21;shotGrade=NONE;shot=1835;stock=5->4;perHit=1;preexistingStock=0
+gear071.native	level=20;expertise=1;target=D;weapon=11605;armor=12015;shotGrade=D;shot=1463;stock=10->8;perHit=2;preexistingStock=0
+failure	java.lang.AssertionError: Native autoGet expertise differs at level 40: 1

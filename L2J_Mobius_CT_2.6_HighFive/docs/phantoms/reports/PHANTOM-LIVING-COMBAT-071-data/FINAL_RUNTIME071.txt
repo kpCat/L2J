@@ -1,0 +1,34 @@
+{
+  "runtime": "D:\\PhantomWorld\\Living-Combat-071-candidate",
+  "runtimeId": "669d6d0b28c6078ea183f11c271a9ee1b917c51ef0661ae6d554698e776fc9aa",
+  "owner": "TASK071_LIVING_COMBAT",
+  "database": "l2jmobiush5_phantom_release_071",
+  "source": "4b84313c991dc6c620aa3a2ba1de43400e4ff6bb",
+  "game": {
+    "state": "STOPPED",
+    "pid": 0,
+    "staleRecord": false,
+    "recordVerified": false,
+    "reason": ""
+  },
+  "login": {
+    "state": "STOPPED",
+    "pid": 0,
+    "staleRecord": false,
+    "recordVerified": false,
+    "reason": ""
+  },
+  "ports": {
+    "LoginServer": [
+      2106,
+      9151
+    ],
+    "GameServer": [
+      7777
+    ]
+  },
+  "databaseConnections": 0,
+  "gameJarSha256": "0F469814330A4AA7DF0B72BC2A1ED36455B4C8035569A6D821D390FC4078958B",
+  "sourceArchiveSha256": "C862923E194D8343D3E15E849FE3DCF659995172320E5B129C7BDE11856F821B",
+  "testTreeSha256": "D885249A063C08568A437135F47B40D666CA99374C2D5905F544F885FC3280DF"
+}

@@ -1,0 +1,14 @@
+suite=pvp-combat
+seed=25002501
+total=9
+passed=9
+failed=0
+PASS pvp-combat.01-explicit-physical-path-isolated-from-monster-path elapsedNanos=25387500
+PASS pvp-combat.02-explicit-skill-path-and-force-authority elapsedNanos=4355200
+PASS pvp-combat.03-target-safety-rejection-propagates elapsedNanos=148000
+PASS pvp-combat.04-current-learned-rank-refreshes-between-pvp-actions elapsedNanos=3862300
+PASS pvp-combat.05-ranged-spacing-precedes-pvp-cast-and-preserves-busy-actions elapsedNanos=661800
+PASS pvp-combat.06-known-unmapped-retreat-and-instance-guards elapsedNanos=65889500
+PASS pvp-combat.07-retreat-resolves-authored-anchor-native-floor elapsedNanos=5165700
+PASS pvp-combat.08-shortage-refuses-admission-and-retires-owned-offense elapsedNanos=412400
+PASS pvp-combat.09-ready-skill-yields-only-owned-fallback-and-waits-for-hit elapsedNanos=689000

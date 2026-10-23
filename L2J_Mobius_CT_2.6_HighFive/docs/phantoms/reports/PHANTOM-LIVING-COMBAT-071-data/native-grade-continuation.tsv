@@ -1,0 +1,11 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/phantom-test/bin/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-dev/bin/
+gear071.loaded_before_resume	actor=268435468;account=task071combat;name=Supply071Grade;class=0;baseClass=0;classIndex=0;level=40;EXP=15422929;expertise=2
+gear071.resume	Read-only checkpoint confirmed retained actor268435468 level40/class0/expertiseSQL2 after native Player.restore rewardSkills; earlier19/20 reports remain authoritative; continue40+ with stock profession trees, no earlier gear/shot replay
+gear071.fixture	TEST_SETUP_ONLY native level/class0->1at20->2at40->88at76/autoGet expertise/finite candidate gear+shots; no earned profession, currency, market or complete loadout claim
+gear071.native	level=40;nativeClass=2;expertise=2;target=C;weapon=11738;armor=12086;shotGrade=C;shot=1464;stock=10->8;perHit=2;preexistingStock=0
+gear071.native	level=52;nativeClass=2;expertise=3;target=B;weapon=11864;armor=12151;shotGrade=B;shot=1465;stock=5->4;perHit=1;preexistingStock=0
+gear071.native	level=61;nativeClass=2;expertise=4;target=A;weapon=11949;armor=12210;shotGrade=A;shot=1466;stock=5->4;perHit=1;preexistingStock=0
+gear071.native	level=76;nativeClass=88;expertise=5;target=S;weapon=11993;armor=12304;shotGrade=S;shot=1467;stock=205->204;perHit=1;preexistingStock=200
+gear071.native	level=80;nativeClass=88;expertise=6;target=S80;weapon=10215;armor=15610;shotGrade=S;shot=1467;stock=209->208;perHit=1;preexistingStock=204
+gear071.native	level=84;nativeClass=88;expertise=7;target=S84;weapon=52;armor=13433;shotGrade=S;shot=1467;stock=213->212;perHit=1;preexistingStock=208

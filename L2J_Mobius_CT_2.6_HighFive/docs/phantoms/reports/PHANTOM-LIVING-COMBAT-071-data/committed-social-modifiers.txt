@@ -1,0 +1,11 @@
+suite=social-modifiers
+seed=18001801
+total=6
+passed=6
+failed=0
+PASS social-modifiers.01-all-six-modifiers-are-generic-explainable-and-pure elapsedNanos=84887000
+PASS social-modifiers.02-relationships-agreements-and-debt-have-configured-direction elapsedNanos=33538100
+PASS social-modifiers.03-positive-modifier-clamps-at-3000 elapsedNanos=16681100
+PASS social-modifiers.05-terminal-party-goal-allows-new-invitation-with-active-owner-protected elapsedNanos=14679900
+PASS social-modifiers.071-fresh-causal-farm-dispute-is-rare-but-reachable-without-anger elapsedNanos=36984400
+PASS social-modifiers.071-native-pvp-unit-retains-attack-and-kill-memory elapsedNanos=18600500

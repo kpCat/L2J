@@ -1,0 +1,11 @@
+stage	evidence
+candidate_route	32167;22230;SEARCH_LIMIT;PhantomNavigationPoint[x=-117590, y=49756, z=-920, instanceId=0]->PhantomNavigationPoint[x=-117153, y=48075, z=456, instanceId=0]
+candidate_route	32167;22230;SEARCH_LIMIT;PhantomNavigationPoint[x=-117590, y=49756, z=-920, instanceId=0]->PhantomNavigationPoint[x=-117169, y=48137, z=456, instanceId=0]
+candidate_route	30004;20120;SEARCH_LIMIT;PhantomNavigationPoint[x=-86348, y=239558, z=-3680, instanceId=0]->PhantomNavigationPoint[x=-84204, y=240403, z=-3720, instanceId=0]
+preselected	BEFORE_MEASUREMENT actual native shop=30004/268460421;[Location] X: -84204 Y: 240403 Z: -3720 Heading: 14000 InstanceId: 0;farm=20120;[Location] X: -86348 Y: 239558 Z: -3680 Heading: 0 InstanceId: 0;distance=2304.8559607923444;nativeCorridorBothWays=true;outboundPoints=6;inboundPoints=4
+candidate_counts	mobs=1420;merchants=26;nearPairs=24;crowdedPairs=4;surfaces=4;routeChecks=4
+fixture	PREMEASUREMENT Fighter19/native68+24+31; surplus=6716x1;zero Adena/zero shot grants; surplus is explicit finite TEST input, NOT earned loot; physical liquidation can fund native purchase; post-return kills must earn real EXP/SP
+journey	supplies.navigation.requested;xyz=[Location] X: -86348 Y: 239558 Z: -3680 Heading: 0 InstanceId: 0;A=0
+checkpoint	PhantomGoal[goalId=71007103, goalType=inventory.maintenance, status=ACTIVE, subject=PhantomDomainRef[namespace=profile, key=1], target=PhantomDomainRef[namespace=item, key=6716], requiredAmount=1, currentAmount=0, acquisitionMethod=inventory.native, validSources=[PhantomDomainRef[namespace=inventory.native, key=0:SELL:30004:268460421:3000400:6716:268481020:1]], selectedAnchor=PhantomDomainRef[namespace=topology.anchor, key=generated.farm.bfb0335de417bc81a7e9b231.anchor], purposeKey=supplies.autonomous, priority=750, riskBudget=0, expenseBudget=0, deadlineEpochMillis=1792757899070, constraints={journey.paused=0, journey.remaining=480000, journey.started=1792757419070, maintenance.buy_checked=0, maintenance.failed=0, maintenance.pressure=0, source.index=0}, reasonKey=maintenance.native.requested, revision=0, payloadText=s1:1:268481016:0:0:268481017:-86348:239558:-3680:0]
+result	PREPARED retained actor/root/child, zero commerce effects; next JVM resumes without relocation or grants
+shutdown	ShutdownResult[state=STOPPED, failedProfileIds=[]]

@@ -1,0 +1,10 @@
+check	evidence
+source	file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/additional-helper071/; production=file:/D:/Codex/repos/L2J-phantom-world/.phantom-local/task071/build-final-core-v1/dist/libs/GameServer.jar
+economy071.inventory.exact	Native071One;d07289b818f2f9fe71a366c7d2f014c09b25cc4b6ed23af5aebc4a9899c34e4e
+economy071.inventory.v1Zero57	Native071Poor;rawOriginalSHA=a62a5a941744d7fe4cea3f0b54674d22551f232cae980bc5a640c25e66e6b3c9;canonicalRingSHA=6d264e6a01fde03090a3b5711ef9145b8d77eb42883c2e8a7ca19ebbd5369ace;reconstructedZero57ObjectId=268435477;uniqueSHApreimage=1;candidateRange=268435467..268439574;depositReceipt=85a7ca06-9751-4aad-8ba4-0562449b0a6d;epicReceipt=1faf76e7-0567-40a5-b28c-9571f1e42ec9;positiveNativeAndSql=268435478:6660:1:0;zero57Sql=ABSENT;wallet=0;stock=0;due=1793965761630;originalSnapshot=UNCHANGED;SQL_SELECT_ONLY;bounded v1 snapshot normalization,not raw hash equality
+economy071.paidReplay.receipt	Native071One;f6b76405-0fa3-4d6e-883e-6264d14835c1;PREMIUM;object=0;result=1792842561617
+economy071.paidReplay.retained	Native071One;receipts=1;epic=0;inventorySHA=d07289b818f2f9fe71a366c7d2f014c09b25cc4b6ed23af5aebc4a9899c34e4e;wallet=200000000;stock=0;1793965761630;0;1;1;14;34ab2e4dd2822a394ce8b134631f688b37b92a284e771a5261f6407137f5decb;;physical/wallet/stockBeforeAfter=UNCHANGED
+economy071.retained	11 immutable token receipts replayed;balances unchanged;ordinary native reload
+economy071.paidReplay.receipt	Native071Poor;1faf76e7-0567-40a5-b28c-9571f1e42ec9;EPIC;object=268435478;result=268435478
+economy071.paidReplay.retained	Native071Poor;receipts=1;epic=1;inventorySHA=6d264e6a01fde03090a3b5711ef9145b8d77eb42883c2e8a7ca19ebbd5369ace;wallet=0;stock=0;1793965761630;0;1;1;14;34ab2e4dd2822a394ce8b134631f688b37b92a284e771a5261f6407137f5decb;;physical/wallet/stockBeforeAfter=UNCHANGED
+retention	identity/native item-object+count+enchant inventory hashes/savings/stock/restock exact;no reseed

@@ -1,0 +1,95 @@
+{
+  "productionCommit": "4b84313c991dc6c620aa3a2ba1de43400e4ff6bb",
+  "productionJarSha256": "0F469814330A4AA7DF0B72BC2A1ED36455B4C8035569A6D821D390FC4078958B",
+  "productionDiff": "EMPTY",
+  "helpers": [
+    {
+      "commit": "68ff3ef49c3d362666e27bb556f282f756950226",
+      "sourceArchive": "cp-helper-source.zip",
+      "sourceArchiveSha256": "124E2EB6CA946BEC3611E359E5079AE29B2458F4CDEB12792F65AA9A193476CB",
+      "classes": [
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native.class",
+          "sha256": "E66B535EB935AA2AF13E54A03445983069E2F35441EE32FD11137F92C55D4289"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native$Role.class",
+          "sha256": "0114799FB6D989CB459671852FC380AB8C53B7660508C2AE50967AA972FB03B8"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomLivingCombat071Native.class",
+          "sha256": "351C9B3A8A0B5615ADEDDD5987AFC7CECB0134569AC370BA3624A13BB716A6A1"
+        }
+      ]
+    },
+    {
+      "commit": "06fd4baac4c18e9880652a35ee70fef53c39f64e",
+      "sourceArchive": "additional-helper-source.zip",
+      "sourceArchiveSha256": "B2B2293369865647DD693F8BAD75AE7A4E853FDA2099C7BE59ABB8C9724D9ADF",
+      "classes": [
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native.class",
+          "sha256": "2157F50634492CE0CD8C30A485183CE865DD912F5F7FB5B6B6531C9AC61272B3"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native$Role.class",
+          "sha256": "0114799FB6D989CB459671852FC380AB8C53B7660508C2AE50967AA972FB03B8"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomEconomy071Native.class",
+          "sha256": "611EC785F1A8DEEFDF821901755DF70BB501281512CC3EE047143DA0423B27FB"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomEconomy071Native$Operation.class",
+          "sha256": "3A3D5B4870FE2EAD2675880626D7F27C0B521EC9D2D664A191B3EF6A2535E562"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomLivingCombat071Native.class",
+          "sha256": "E7E3B1B6550440426462F583B175A1F8D81FA53B0A85C677CD1553180B009BBA"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomSupply071JourneyNative.class",
+          "sha256": "FB99066F20BF5FB0C6D8EC898081D338CDAEF447458511C85BA31411D6D0DB1E"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomSupply071JourneyNative$Scene.class",
+          "sha256": "1FA5997B3FD6E430364E10933664D36CCE08BAD3067B85B7A89B970F43A21F64"
+        }
+      ]
+    },
+    {
+      "commit": "952782c0c31a28339f6b0118322ae15f1f8cca58",
+      "sourceArchive": "kamael-helper-source.zip",
+      "sourceArchiveSha256": "32597AE1762B7234274A6BEBFD623C8A548C635E84865F67A326648D507AF444",
+      "classes": [
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native.class",
+          "sha256": "C01CA72B27E9A425A97BF4104A74B7ADF4E6369DD4BA553583922395C471ADC1"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomCombat071Native$Role.class",
+          "sha256": "0114799FB6D989CB459671852FC380AB8C53B7660508C2AE50967AA972FB03B8"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomLivingCombat071Native.class",
+          "sha256": "0EDAE04E79A2565069332BF86D11DB404D5FF7605C7F3AC7B9E598E34B6693ED"
+        }
+      ]
+    },
+    {
+      "commit": "6bd80574c3de92f8fdeda713bc6e3b89f21a9832",
+      "sourceArchive": "cp-purchase-helper-source.zip",
+      "sourceArchiveSha256": "80EB97254599BAA1ABAF3476FDAC5F55B663D426C074EA1B7153DDE46F3AC13F",
+      "classes": [
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomSupply071JourneyNative.class",
+          "sha256": "66297E11CF3E99B7B713E7339DD2FB9DAEDF0E96349F64E5EA4DE00F019A60D4"
+        },
+        {
+          "name": "org/l2jmobius/tests/phantoms/PhantomSupply071JourneyNative$Scene.class",
+          "sha256": "981786D3B96D395992A3BC10C7D8414057B013400EBBCD124AEC5097BC98B0DD"
+        }
+      ]
+    }
+  ]
+}
