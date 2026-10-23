@@ -1,0 +1,390 @@
+/* Copyright (c) 2013 L2jMobius */
+package org.l2jmobius.tests.phantoms;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.data.MerchantPriceConfigTable;
+import org.l2jmobius.gameserver.data.xml.InitialEquipmentData;
+import org.l2jmobius.gameserver.data.xml.InitialShortcutData;
+import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.data.xml.MapRegionData;
+import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
+import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
+import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
+import org.l2jmobius.gameserver.model.actor.instance.Merchant;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
+import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
+import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
+import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend;
+import org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomInventoryMaintenanceIntent;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector;
+import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalogBuilder;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.scripting.ScriptEngine;
+
+/** Own072 two-JVM supply continuation. All setup is before measurement; fixture liquidation is distinguished from earned loot. */
+public final class PhantomSupply072JourneyNative
+{
+	public static void main(String[] args) throws Exception
+	{
+		if (!PhantomTask072Lane.enabled() || args.length != 1 || !Set.of("preflight", "prepare", "resume", "cp-purchase").contains(args[0])) { throw new IllegalArgumentException("Own072 preflight, prepare, resume, earned or cp-purchase required."); }
+		final boolean prepare = args[0].equals("prepare");
+		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath(), task = module.getParent().resolve(".phantom-local/task072");
+		final Path stateFile = task.resolve("supply072-native.properties"), reportFile = task.resolve("reports/supply072-" + args[0] + '-' + System.currentTimeMillis() + ".tsv");
+		final var report = new StringBuilder("stage\tevidence\n"); final var state = new Properties();
+		PhantomMaterializationService materialization = null; PhantomNavigationService navigation = null; PhantomCommerceService commerce = null; L2jPhantomSupplyJourney journey = null; PhantomCombatService combat = null;
+		try
+		{
+			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(72007203L, module, task.resolve("reports")));
+			InitialEquipmentData.getInstance(); InitialShortcutData.getInstance(); MapRegionData.getInstance(); ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			MerchantPriceConfigTable.getInstance().loadInstances(); SpawnData.getInstance(); MerchantPriceConfigTable.getInstance().updateReferences();
+			if (args[0].equals("cp-purchase")) { cpPurchase(report); return; }
+			final var topologyBackend = new L2jTopologyValidationBackend(); final var topology = new PhantomTopologyQuery(new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1), topologyBackend, new PhantomTopologyMetrics());
+			final var knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults(); final var backend = new L2jGameKnowledgeBackend();
+			final var knowledge = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(backend, new PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, knowledgePolicy), topology, knowledgePolicy));
+			check(knowledge.start(), "Native knowledge did not start."); final var query = knowledge.query();
+			final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load(); final var profiles = PhantomProfileRepository.open();
+			if (args[0].equals("preflight")) { cpSurface(report); selectScene(catalog.catalog(), report, query); return; }
+			if (prepare)
+			{
+				check(!Files.exists(stateFile), "Own072 supply fixture already exists; use resume, never refill.");
+				final var scene = selectScene(catalog.catalog(), report, query);
+				Files.writeString(task.resolve("reports/SCENE072-" + System.currentTimeMillis() + ".tsv"), report, java.nio.file.StandardOpenOption.CREATE_NEW);
+				try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES('task072supply','DISABLED_NATIVE_TEST_ONLY',-1,1)")) { insert.executeUpdate(); }
+				final var setup = Player.create(PlayerTemplateData.getInstance().getTemplate(PlayerClass.FIGHTER), "task072supply", "Supply072", new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+				final int level = Math.max(20, scene.farm().getLevel() + 2);
+				check(setup != null && !setup.isGM(), "Own native setup actor absent."); setup.stopAllTasks(); setup.setPlayerClass(1); setup.setBaseClass(1); setup.getStat().setExp(setup.getStat().getExpForLevel(level)); setup.getStat().setLevel((byte) level); setup.giveAvailableAutoGetSkills();
+				for (var item : setup.getInventory().getItems().stream().filter(value -> value.isEquipped()).toList()) { setup.getInventory().unEquipItemInSlot(item.getLocationSlot()); }
+				for (int id : new int[] {129, 352, 2378}) { final var item = setup.getInventory().addItem(ItemProcessType.REWARD, id, 1, setup, PhantomSupply072JourneyNative.class); setup.getInventory().equipItem(item); }
+				if (setup.getAdena() > 0) { check(setup.reduceAdena(ItemProcessType.DESTROY, setup.getAdena(), setup, false), "Initial fixture wallet cannot be zeroed."); }
+				setup.setXYZ(scene.farm().getX(), scene.farm().getY(), GeoEngine.getInstance().getHeight(scene.farm().getX(), scene.farm().getY(), scene.farm().getZ())); setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.getInventory().updateDatabase(); setup.storeMe(); final int actorId = setup.getObjectId(); setup.deleteMe();
+				final var profile = profiles.create(actorId); state.setProperty("profile", Long.toString(profile.profileId())); state.setProperty("actor", Integer.toString(actorId)); state.setProperty("farmNpc", Integer.toString(scene.farm().getId())); state.setProperty("merchant", Integer.toString(scene.merchant().getId()));
+				report.append("SETUP_DECLARED\tWarrior").append(level).append(";native129 D sword+352+2378 armor FIXTURE;zero Adena/zero shots/no surplus/no buffs;not earned gear\n");
+				writeState(stateFile, state);
+			}
+			else { check(Files.isRegularFile(stateFile), "Prepare checkpoint missing."); try (var reader = Files.newBufferedReader(stateFile)) { state.load(reader); } check("true".equals(state.getProperty("completed")) && !"true".equals(state.getProperty("restart.completed")), "Restart requires completed original chain and is finite; no replay/refill."); }
+			final long id = Long.parseLong(state.getProperty("profile")); final var metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+			check(materialization.start() && materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Native supply actor did not materialize.");
+			final var player = World.getInstance().getPlayer(Integer.parseInt(state.getProperty("actor"))); check(player != null && !player.isAlikeDead(), "Retained native actor unavailable.");
+			final var progressionPolicy = PhantomProgressionPolicy.productionDefaults(); final var progression = new PhantomProgressionCatalogBuilder().build(new L2jProgressionBackend(null, Path.of("."), () -> query).load(progressionPolicy), progressionPolicy);
+			combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> query, () -> progression), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
+			if (!prepare)
+			{
+				check("task072supply".equals(player.getAccountName()) && "Supply072".equals(player.getName()), "Exact retained native actor required.");
+				final var paid = new PhantomCommerceReceiptStore(profiles).find(id).orElseThrow().receipt();
+				check(paid.state() == PhantomCommerceReceipt.State.COMMITTED && paid.operationKey().equals(state.getProperty("paid.operation")) && paid.request().itemId() == 1463, "Original paid shot receipt differs; no new purchase or refill permitted.");
+				final var retainedIntent = new PhantomSupplyIntentStore(profiles, new PhantomGoalStateStore(profiles)).intent(id).orElseThrow().goal();
+				check(retainedIntent.status() == PhantomGoalStatus.COMPLETED && retainedIntent.reasonKey().contains("returned"), "Original returned child is not retained.");
+				check(Long.toString(player.getExp()).equals(state.getProperty("exp")) && Long.toString(player.getSp()).equals(state.getProperty("sp")) && Long.toString(player.getAdena()).equals(state.getProperty("adena")) && inventory(player).equals(state.getProperty("inventory")), "SameDB persisted native EXP/SP/Adena/item objects differ.");
+				report.append("retained_paid_chain\t").append(paid).append(";actor=").append(player.getObjectId()).append(";level=").append(player.getLevel()).append(";HP=").append(player.getCurrentHp()).append(";MP=").append(player.getCurrentMp()).append(";A=").append(player.getAdena()).append(";shots=").append(player.getInventory().getInventoryItemCount(1463, -1)).append(";xyz=").append(player.getLocation()).append(";no Journey replay, grants, relocation or state reset\n");
+				kill(combat, id, player, query, report);
+				state.setProperty("restart.completed", "true"); writeState(stateFile, state); report.append("result\tPASS SAME_ACTOR_RESTART productive native rewarded kill; no purchase replay/recompute/refill\n"); return;
+			}
+			check(player.getLevel() >= 20 && player.getAdena() == 0 && player.getInventory().getInventoryItemCount(1463, -1) == 0 && player.getActiveWeaponItem().getCrystalTypePlus() == org.l2jmobius.gameserver.model.item.type.CrystalType.D, "Fresh materialized measurement must start20+/zero wallet/zero matching shots/legal D gear.");
+			report.append("MEASUREMENT_START\tactor=").append(player.getObjectId()).append(";profile=").append(id).append(";level=").append(player.getLevel()).append(";xyz=").append(player.getLocation()).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=0;Dshots=0;inventory=").append(inventory(player)).append('\n');
+			for (int count = 0; count < 5 && player.getAdena() < 1500; count++) { kill(combat, id, player, query, report); }
+			check(player.getAdena() > 0, "PARTIAL_EARNINGS: five native kills did not produce any Adena; no money grant permitted.");
+			combat.beginStop(); final long combatDrain = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!combat.finishStop() && System.nanoTime() < combatDrain) { Thread.sleep(100); } combat = null;
+			final var goals = new PhantomGoalStateStore(profiles);
+			if (prepare)
+			{
+				final var anchor = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == PhantomTopologyAnchorRole.FARMING).min(Comparator.comparingDouble(value -> player.calculateDistance3D(value.point().x(), value.point().y(), value.point().z()))).orElseThrow();
+				goals.insert(id, new PhantomGoal(72007203L, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", state.getProperty("farmNpc")), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, state.getProperty("farmNpc") + '@' + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture072.native_short_supply", 1));
+			}
+			final var root = goals.load(id).orElseThrow().goal(); final var receipts = new PhantomCommerceReceiptStore(profiles); final var store = new PhantomSupplyIntentStore(profiles, goals);
+			navigation = new PhantomNavigationService(metrics); commerce = new PhantomCommerceService(catalog, receipts, store, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone()));
+			journey = new L2jPhantomSupplyJourney(store, goals, materialization, commerce, receipts, navigation, () -> query, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology), _ -> true, (_, _) -> true, (_, _) -> false, PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")));
+			journey.useInventoryMaintenance(_ -> true); check(navigation.start() && commerce.start() && journey.start(), "Native supply owners did not start.");
+			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
+			final Set<String> observed = new HashSet<>(); boolean sale = false, buy = false, returned = false; long boughtStock = -1;
+			final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(200); String lastReason = "";
+			do
+			{
+				final var planning = new PhantomPlanningContext(id, root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1); final var selected = new PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
+				if (selected != null) { final var plan = selected.planFactory().create(planning); handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(id, root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false)); }
+				final String reason = journey.reason(id); if (!reason.equals(lastReason)) { report.append("journey\t").append(reason).append(";xyz=").append(player.getLocation()).append(";A=").append(player.getAdena()).append('\n'); System.out.println("SUPPLY072 " + reason + ";xyz=" + player.getLocation()); lastReason = reason; }
+				final var receipt = receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+				if (receipt != null && receipt.state() == PhantomCommerceReceipt.State.COMMITTED && observed.add(receipt.operationKey()))
+				{
+					report.append("committed\t").append(receipt).append('\n'); sale |= receipt.request().kind() == PhantomCommerceReceipt.OperationKind.SELL;
+					if (receipt.request().kind() == PhantomCommerceReceipt.OperationKind.BUY && receipt.request().itemId() == 1463) { check(receipt.before().primaryCount() - receipt.expectedAfter().primaryCount() == receipt.request().amount() && receipt.expectedAfter().secondaryCount() - receipt.before().secondaryCount() == receipt.request().count(), "Paid shot native conservation failed."); buy = true; boughtStock = player.getInventory().getInventoryItemCount(1463, -1); state.setProperty("paid.operation", receipt.operationKey()); }
+				}
+				final var intent = journey.automaticIntent(id).orElse(null);
+				if (intent != null && intent.status() == PhantomGoalStatus.FAILED) { throw new AssertionError("Native journey failed: " + intent); }
+				returned = intent != null && intent.status() == PhantomGoalStatus.COMPLETED; if (returned) { break; }
+				Thread.sleep(200);
+			} while (System.nanoTime() < until);
+			{
+				check(buy && returned, "Connected earned native paid D shot BUY/return did not complete within200s: " + lastReason);
+				combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> query, () -> progression), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
+				final long exp = player.getExp(), sp = player.getSp();
+				for (int kill = 0; kill < 2; kill++) { kill(combat, id, player, query, report); }
+				check(player.getExp() > exp && player.getSp() > sp && player.getInventory().getInventoryItemCount(1463, -1) < boughtStock, "Post-return native kills did not earn EXP/SP and spend paid shots.");
+				report.append("result\tPASS native earned-before-spent->paid1463->return->2 native rewarded kills with paid shot debit;no measurement relocation/grants;A=").append(player.getAdena()).append(";EXP=").append(exp).append("->").append(player.getExp()).append(";SP=").append(sp).append("->").append(player.getSp()).append('\n');
+				state.setProperty("exp", Long.toString(player.getExp())); state.setProperty("sp", Long.toString(player.getSp())); state.setProperty("adena", Long.toString(player.getAdena())); state.setProperty("inventory", inventory(player));
+				state.setProperty("completed", "true"); writeState(stateFile, state);
+			}
+		}
+		catch (Throwable failure) { report.append("failure\t").append(failure).append('\n'); throw failure; }
+		finally
+		{
+			try
+			{
+				if (combat != null) { combat.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!combat.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } }
+				if (journey != null) { journey.beginStop(); check(journey.finishStop(), "Supply did not drain."); } if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "Commerce did not drain."); }
+				if (navigation != null) { navigation.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } }
+				if (materialization != null) { report.append("shutdown\t").append(materialization.shutdown()).append('\n'); }
+			}
+			finally { Files.createDirectories(reportFile.getParent()); Files.writeString(reportFile, report); try { ThreadPool.shutdown(); } finally { DatabaseFactory.close(); } }
+		}
+	}
+
+	private static void cpPurchase(StringBuilder report) throws Exception
+	{
+		final var merchant = World.getInstance().getVisibleObjects().stream().filter(object -> object instanceof Merchant).map(object -> (Merchant) object).filter(npc -> npc.getId() == 30081 && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0).findFirst().orElseThrow(() -> new AssertionError("BLOCKED_INPUT: actual spawned Helvetia30081 absent; no fixture created."));
+		final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load();
+		for (int itemId : new int[] {5591, 5592}) { check(catalog.catalog().findBuyOffers(itemId, 0, 256).values().stream().anyMatch(offer -> offer.listId() == 3008100 && offer.npcIds().contains(30081) && !offer.limitedStock()), "Final ordinary CP source absent for " + itemId); }
+		try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES('task072cp','DISABLED_NATIVE_TEST_ONLY',-1,1)")) { insert.executeUpdate(); }
+		final var setup = Player.create(PlayerTemplateData.getInstance().getTemplate(PlayerClass.FIGHTER), "task072cp", "Supply072Cp", new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		check(setup != null && !setup.isGM(), "New CP purchase fixture absent."); setup.stopAllTasks();
+		if (setup.getAdena() > 0) { check(setup.reduceAdena(ItemProcessType.DESTROY, setup.getAdena(), setup, false), "Fixture wallet setup failed."); }
+		final var stand = cpSurface(report);
+		setup.getStat().setExp(setup.getStat().getExpForLevel(20)); setup.getStat().setLevel((byte) 20); setup.giveAvailableAutoGetSkills(); setup.setCurrentCp(1);
+		setup.addAdena(ItemProcessType.REWARD, 2000, setup, false); setup.setXYZ(stand.x(), stand.y(), stand.z()); setup.getInventory().updateDatabase(); setup.storeMe(); final int actorId = setup.getObjectId(); setup.deleteMe();
+		final var profiles = PhantomProfileRepository.open(); final long id = profiles.create(actorId).profileId(); final var metrics = new PhantomMetrics();
+		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		PhantomCommerceService commerce = null;
+		try
+		{
+			check(materialization.start() && materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "CP fixture did not materialize.");
+			final var player = World.getInstance().getPlayer(actorId); check(player != null && player.getAdena() == 2000 && player.getActiveClass() == 0, "CP fixture facts differ.");
+			report.append("cp_geometry\tnpc=").append(merchant.getId()).append('/').append(merchant.getObjectId()).append(';').append(merchant.getLocation()).append(";actor=").append(player.getObjectId()).append(';').append(player.getLocation()).append(";dx=").append(player.getX() - merchant.getX()).append(";dy=").append(player.getY() - merchant.getY()).append(";dz=").append(player.getZ() - merchant.getZ()).append(";distance3D=").append(player.calculateDistance3D(merchant)).append(";LoS=").append(GeoEngine.getInstance().canSeeTarget(player, merchant)).append(";walkSurface=").append(stand).append(";nativeRadius=250\n");
+			check(player.getInstanceId() == merchant.getInstanceId() && player.isInsideRadius3D(merchant, 250) && GeoEngine.getInstance().canSeeTarget(player, merchant), "Final loaded CP scene is outside native interaction or LoS; no bypass.");
+			final var goals = new PhantomGoalStateStore(profiles); final var receipts = new PhantomCommerceReceiptStore(profiles);
+			final var commerceBackend = new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone());
+			player.setTarget(merchant); player.setLastFolkNPC(merchant);
+			try (var lease = commerceBackend.tryAcquire(id).orElseThrow())
+			{
+				check(lease != null, "Native CP negative quote actor unavailable.");
+				for (var negative : List.of(
+					new PhantomCommerceService.OperationIntent(PhantomCommerceReceipt.OperationKind.BUY, 30081, Integer.MAX_VALUE, 3008100, 5592, 0, 1, 0, "", 2000),
+					new PhantomCommerceService.OperationIntent(PhantomCommerceReceipt.OperationKind.BUY, 30004, merchant.getObjectId(), 3008100, 5592, 0, 1, 0, "", 2000),
+					new PhantomCommerceService.OperationIntent(PhantomCommerceReceipt.OperationKind.BUY, 30081, merchant.getObjectId(), 3008100, 5592, 0, 1, 0, "", 0)))
+				{
+					final long beforeA = player.getAdena(), beforeItem = player.getInventory().getInventoryItemCount(5592, -1);
+					final var refused = lease.quote(negative);
+					check(!refused.accepted() && player.getAdena() == beforeA && player.getInventory().getInventoryItemCount(5592, -1) == beforeItem, "Native wrong object/NPC/budget quote must refuse without effects.");
+					report.append("cp_quote_negative\t").append(negative).append(";reason=").append(refused.reason()).append(";no physical delta\n");
+				}
+			}
+			commerce = new PhantomCommerceService(catalog, receipts, goals, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone())); check(commerce.start(), "CP commerce did not start.");
+			report.append("cp_fixture\tPREMEASUREMENT disabled task072cp/Supply072Cp;profile=").append(id).append(";actor=").append(actorId).append(";nativeNpc=30081;object=").append(merchant.getObjectId()).append(";xyz=").append(player.getLocation()).append(";finite 2000 Adena TEST fixture, NOT earned income; no later grants or relocation\n");
+			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal stored = null;
+			for (int itemId : new int[] {5591, 5592})
+			{
+				final long goalId = 720072100L + itemId; final var source = new PhantomDomainRef("commerce.buy", "30081:" + merchant.getObjectId() + ":3008100:" + itemId + ":1");
+				final var goal = new PhantomGoal(goalId, "acquire.item", PhantomGoalStatus.ACTIVE, null, null, 5, 0, null, List.of(source), null, "commerce.test", 500, 0, 100, 0, Map.of(), "cp072.fixture", 0);
+				stored = stored == null ? goals.insert(id, goal) : goals.replace(id, stored.rowVersion(), goal);
+				player.setTarget(merchant); player.setLastFolkNPC(merchant);
+				final long adena = player.getAdena(), count = player.getInventory().getInventoryItemCount(itemId, -1);
+				final var intent = new PhantomCommerceService.OperationIntent(PhantomCommerceReceipt.OperationKind.BUY, 30081, merchant.getObjectId(), 3008100, itemId, 0, 2, 0, "", adena);
+				final var result = commerce.execute(id, goalId, 0, intent, () -> false); report.append("cp_operation\titem=").append(itemId).append(';').append(result).append('\n');
+				check(result.status() == PhantomCommerceService.OperationStatus.SUCCESS, "Paid CP purchase failed: " + result);
+				final var receipt = receipts.find(id).orElseThrow().receipt(); report.append("cp_committed\t").append(receipt).append(";actualA=").append(adena).append("->").append(player.getAdena()).append(";actualItem=").append(count).append("->").append(player.getInventory().getInventoryItemCount(itemId, -1)).append('\n');
+				check(receipt.state() == PhantomCommerceReceipt.State.COMMITTED && receipt.request().amount() > 0 && receipt.request().itemId() == itemId && receipt.request().count() == 2 && player.getAdena() == adena - receipt.request().amount() && receipt.expectedAfter().primaryCount() == player.getAdena() && player.getInventory().getInventoryItemCount(itemId, -1) == count + 2 && receipt.expectedAfter().secondaryCount() == count + 2, "Paid CP native conservation failed.");
+			}
+			final var cpBackend = new L2jCombatBackend(materialization, () -> null);
+			for (int itemId : new int[] {5591, 5592})
+			{
+				try (var lease = cpBackend.tryAcquireActor(id))
+				{
+					check(lease != null, "Paid CP native action lease missing.");
+					final var potion = lease.cpPotions().stream().filter(item -> item.itemId() == itemId).findFirst().orElseThrow();
+					final var used = lease.useCpPotion(potion.itemObjectId(), itemId); final var reuse = lease.useCpPotion(potion.itemObjectId(), itemId);
+					check(used.countAfter() == used.countBefore() - 1 && player.getCurrentCp() > used.cpBefore() && reuse.countAfter() == used.countAfter() && reuse.outcome() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionOutcome.REUSE, "Paid CP handler effect/debit/reuse failed.");
+					report.append("cp_paid_use\t").append(used).append(";reuse=").append(reuse).append('\n');
+				}
+				Thread.sleep(600);
+			}
+			player.setInOlympiadMode(true);
+			try (var lease = cpBackend.tryAcquireActor(id))
+			{
+				for (var potion : lease.cpPotions()) { final var rejected = lease.useCpPotion(potion.itemObjectId(), potion.itemId()); check(rejected.countBefore() == rejected.countAfter() && rejected.outcome() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.CpPotionOutcome.REJECTED, "Olympiad CP negative failed."); report.append("cp_olympiad_negative\t").append(rejected).append('\n'); }
+			}
+			finally { player.setInOlympiadMode(false); }
+			report.append("result\tPASS paid ordinary native30081/list3008100 BUY5591x2 +5592x2 with durable COMMITTED receipts and native CP use/reuse/Olympiad guards; fixture funding explicit; no earned-income claim\n");
+		}
+		finally { if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "CP commerce did not drain."); } report.append("cp_shutdown\t").append(materialization.shutdown()).append('\n'); }
+	}
+
+	private static Scene selectScene(PhantomCommerceCatalog catalog, StringBuilder report, PhantomGameKnowledgeQuery query)
+	{
+		final var geo = GeoEngine.getInstance(); final var objects = World.getInstance().getVisibleObjects();
+		final var nativePaths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		final var navigationPolicy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		final var mobs = objects.stream().filter(object -> object instanceof Monster).map(object -> (Monster) object)
+			.filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == 0 && mob.getLevel() >= 18 && mob.getLevel() <= 35 && !mob.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) && geo.hasGeo(mob.getX(), mob.getY()))
+			.filter(mob -> query.findNpc(mob.getId()).map(fact -> fact.exp() > 0 && fact.sp() > 0).orElse(false)).toList();
+		final var choices = new ArrayList<Scene>();
+		int merchants = 0, nearPairs = 0, crowdedPairs = 0, surfaces = 0, routeChecks = 0;
+		for (var offer : catalog.findBuyOffers(1463, 0, 256).values())
+		{
+			if (offer.limitedStock() || offer.price() <= 0) { continue; }
+			for (var merchant : objects.stream().filter(object -> object instanceof Merchant).map(object -> (Merchant) object).filter(npc -> offer.npcIds().contains(npc.getId()) && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && npc.getMpc() != null && npc.getMpc().getCastleTaxRate() == 0).toList())
+			{
+				merchants++;
+				for (var mob : mobs.stream().filter(value -> value.calculateDistance3D(merchant) >= 250 && value.calculateDistance3D(merchant) <= 5000).sorted(Comparator.comparingDouble(value -> value.calculateDistance3D(merchant))).limit(8).toList())
+				{
+					nearPairs++;
+					if (mobs.stream().filter(other -> other.calculateDistance3D(mob) <= 700).limit(3).count() < 3) { continue; }
+					crowdedPairs++;
+					choices.add(new Scene(merchant, mob)); break;
+				}
+			}
+		}
+		final long searchEnd = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+		for (var scene : choices.stream().distinct().sorted(Comparator.comparingDouble((Scene value) -> value.farm().calculateDistance3D(value.merchant())).thenComparingInt(value -> value.merchant().getId()).thenComparingInt(value -> value.farm().getId())).limit(3).toList())
+		{
+			if (System.nanoTime() >= searchEnd) { break; }
+			final var merchant = scene.merchant(); final var mob = scene.farm();
+			final var origin = nativePaths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), 0), 256).orElse(null);
+			if (origin == null) { continue; }
+			// Same authored interaction radii and arrival margin as the production SupplyJourney.
+			for (int radius : new int[] {0, 64, 112})
+			{
+				final double angle = Math.atan2((long) mob.getY() - merchant.getY(), (long) mob.getX() - merchant.getX());
+				final int x = merchant.getX() + (int) Math.round(radius * Math.cos(angle)), y = merchant.getY() + (int) Math.round(radius * Math.sin(angle));
+				final var target = nativePaths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, merchant.getZ(), 0), 256).orElse(null);
+				if (target == null || merchant.calculateDistance3D(target.x(), target.y(), target.z()) > 184) { continue; }
+				surfaces++; routeChecks++;
+				final long now = System.nanoTime();
+				final var outbound = nativePaths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, origin, target, now, Math.min(searchEnd, now + TimeUnit.SECONDS.toNanos(1)), 10_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), navigationPolicy, System::nanoTime);
+				if (outbound.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { report.append("candidate_route\t").append(merchant.getId()).append(';').append(mob.getId()).append(';').append(outbound.status()).append(';').append(origin).append("->").append(target).append('\n'); continue; }
+				final long backNow = System.nanoTime();
+				final var inbound = nativePaths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, target, origin, backNow, Math.min(searchEnd, backNow + TimeUnit.SECONDS.toNanos(1)), 10_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), navigationPolicy, System::nanoTime);
+				if (inbound.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { continue; }
+				report.append("preselected\tBEFORE_MEASUREMENT actual native shop=").append(merchant.getId()).append('/').append(merchant.getObjectId()).append(';').append(merchant.getLocation())
+					.append(";farm=").append(mob.getId()).append(';').append(mob.getLocation()).append(";distance=").append(mob.calculateDistance3D(merchant)).append(";nativeCorridorBothWays=true;outboundPoints=").append(outbound.points().size()).append(";inboundPoints=").append(inbound.points().size()).append('\n');
+				report.append("candidate_counts\tmobs=").append(mobs.size()).append(";merchants=").append(merchants).append(";nearPairs=").append(nearPairs).append(";crowdedPairs=").append(crowdedPairs).append(";surfaces=").append(surfaces).append(";routeChecks=").append(routeChecks).append('\n');
+				report.append("PREFLIGHT_ACCEPTED\tactorLevel=").append(Math.max(20, mob.getLevel() + 2)).append(";class=Warrior;weapon=129 D fixture;shot=1463;mobLevel=").append(mob.getLevel()).append(";reward=").append(query.findNpc(mob.getId()).orElseThrow().exp()).append('/').append(query.findNpc(mob.getId()).orElseThrow().sp()).append(";gap=2_or_less;limit=").append(org.l2jmobius.gameserver.config.RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE).append(";merchantXYZ=").append(merchant.getLocation()).append(";instance=").append(merchant.getInstanceId()).append(";stand=").append(target).append(";quote=").append(catalog.findBuyOffers(1463, 0, 256).values().stream().filter(offer -> offer.npcIds().contains(merchant.getId())).toList()).append('\n');
+				return scene;
+			}
+		}
+		report.append("candidate_counts\tmobs=").append(mobs.size()).append(";merchants=").append(merchants).append(";nearPairs=").append(nearPairs).append(";crowdedPairs=").append(crowdedPairs).append(";surfaces=").append(surfaces).append(";routeChecks=").append(routeChecks).append('\n');
+		throw new AssertionError("BLOCKED_C3: no bounded native shop1463/farm corridor proven in both directions; inspect candidate_counts; no actor or account created.");
+	}
+
+	private static org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint cpSurface(StringBuilder report)
+	{
+		final var npc = World.getInstance().getVisibleObjects().stream().filter(object -> object instanceof Merchant).map(object -> (Merchant) object).filter(value -> value.getId() == 30081 && value.isSpawned() && value.getInstanceId() == 0).findFirst().orElseThrow();
+		final var paths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		for (int radius : new int[] {64, 112, 160, 192})
+		{
+			for (int direction = 0; direction < 16; direction++)
+			{
+				final double angle = direction * Math.PI / 8;
+				final int x = npc.getX() + (int) Math.round(radius * Math.cos(angle)), y = npc.getY() + (int) Math.round(radius * Math.sin(angle));
+				final var point = paths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, npc.getZ(), 0), 256).orElse(null);
+				final int loadedZ = point == null ? Integer.MAX_VALUE : GeoEngine.getInstance().getHeight(x, y, point.z());
+				report.append("cp_surface\tnpc=").append(npc.getObjectId()).append(';').append(npc.getLocation()).append(";probe=").append(point).append(";loadZ=").append(loadedZ).append(";distance=").append(npc.calculateDistance3D(x, y, loadedZ)).append('\n');
+				if (point != null && point.z() == loadedZ && npc.calculateDistance3D(x, y, loadedZ) <= 200) { return point; }
+			}
+		}
+		throw new AssertionError("BLOCKED_INPUT: no stable native load surface within Helvetia 3D radius250; no CP actor created.");
+	}
+
+	private static void kill(PhantomCombatService combat, long profileId, Player player, PhantomGameKnowledgeQuery knowledge, StringBuilder report) throws Exception
+	{
+		final var target = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 700).stream()
+			.filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == player.getInstanceId() && !mob.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))
+			.filter(mob -> knowledge.findNpc(mob.getId()).map(fact -> fact.kind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER && fact.level() >= player.getLevel() - 5 && fact.level() <= player.getLevel() + 1 && fact.exp() > 0 && fact.sp() > 0).orElse(false))
+			.filter(mob -> GeoEngine.getInstance().canSeeTarget(player, mob)).min(Comparator.comparingDouble(mob -> player.calculateDistance3D(mob))).orElseThrow(() -> new AssertionError("No remaining normal native low-level target after return."));
+		killTarget(combat, profileId, player, target, report);
+	}
+
+	private static void killTarget(PhantomCombatService combat, long profileId, Player player, Monster target, StringBuilder report) throws Exception
+	{
+		final long beforeExp = player.getExp(), beforeSp = player.getSp(), beforeShots = player.getInventory().getInventoryItemCount(1463, -1);
+		final var inventoryBefore = player.getInventory().getItems().stream().collect(java.util.stream.Collectors.toMap(item -> item.getId(), item -> item.getCount(), Long::sum));
+		final var start = combat.startSession(new PhantomCombatRequest(profileId, target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, true, 30_000, () -> false));
+		check(start.accepted(), "Native rewarded combat refused: " + start);
+		final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+		while (System.nanoTime() < until && !combat.find(profileId).map(value -> value.result().terminal()).orElse(false)) { Thread.sleep(100); }
+		final var finished = combat.find(profileId).orElseThrow();
+		check(finished.result().victory() && target.isDead() && !player.isDead() && player.getExp() > beforeExp && player.getSp() > beforeSp, "Native rewarded kill failed: " + finished);
+		boolean consumed = false; final long cleanupUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+		while (!consumed && System.nanoTime() < cleanupUntil) { consumed = combat.consumeTerminal(profileId).isPresent(); if (!consumed) { Thread.sleep(100); } }
+		check(consumed, "Native victory ownership did not release.");
+		report.append("earned_kill\ttarget=").append(target.getId()).append('/').append(target.getObjectId()).append(";EXP=").append(beforeExp).append("->").append(player.getExp()).append(";SP=").append(beforeSp).append("->").append(player.getSp()).append(";paidShots=").append(beforeShots).append("->").append(player.getInventory().getInventoryItemCount(1463, -1)).append(";session=").append(finished).append('\n');
+		final var inventoryAfter = player.getInventory().getItems().stream().collect(java.util.stream.Collectors.toMap(item -> item.getId(), item -> item.getCount(), Long::sum));
+		report.append("earned_loot_delta\t").append(inventoryAfter.entrySet().stream().filter(entry -> !entry.getValue().equals(inventoryBefore.getOrDefault(entry.getKey(), 0L))).sorted(Map.Entry.comparingByKey()).limit(32).map(entry -> entry.getKey() + ":" + inventoryBefore.getOrDefault(entry.getKey(), 0L) + "->" + entry.getValue()).toList()).append(";nativeLootPickups=").append(finished.lootPickupsIssued()).append('\n');
+	}
+
+	private record Scene(Merchant merchant, Monster farm) { }
+	private static String inventory(Player player) { return player.getInventory().getItems().stream().filter(item -> item.getCount() > 0).sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).map(item -> item.getObjectId() + ":" + item.getId() + ":" + item.getCount() + ":" + item.isEquipped()).collect(java.util.stream.Collectors.joining(";")); }
+	private static void check(boolean condition, String message) { if (!condition) { throw new AssertionError(message); } }
+	private static void writeState(Path file, Properties state) throws Exception { try (var writer = Files.newBufferedWriter(file)) { state.store(writer, "Own072 finite native fixture; never refill or reset"); } }
+}
