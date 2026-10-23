@@ -142,7 +142,7 @@ public final class PhantomSupply072JourneyNative
 				check(retainedIntent.status() == PhantomGoalStatus.COMPLETED && retainedIntent.reasonKey().contains("returned"), "Original returned child is not retained.");
 				check(Long.toString(player.getExp()).equals(state.getProperty("exp")) && Long.toString(player.getSp()).equals(state.getProperty("sp")) && Long.toString(player.getAdena()).equals(state.getProperty("adena")) && inventory(player).equals(state.getProperty("inventory")), "SameDB persisted native EXP/SP/Adena/item objects differ.");
 				report.append("retained_paid_chain\t").append(paid).append(";actor=").append(player.getObjectId()).append(";level=").append(player.getLevel()).append(";HP=").append(player.getCurrentHp()).append(";MP=").append(player.getCurrentMp()).append(";A=").append(player.getAdena()).append(";shots=").append(player.getInventory().getInventoryItemCount(1463, -1)).append(";xyz=").append(player.getLocation()).append(";no Journey replay, grants, relocation or state reset\n");
-				kill(combat, id, player, query, report);
+				kill(combat, id, player, query, report, materialization);
 				state.setProperty("restart.completed", "true"); writeState(stateFile, state); report.append("result\tPASS SAME_ACTOR_RESTART productive native rewarded kill; no purchase replay/recompute/refill\n"); return;
 			}
 			check(player.getLevel() >= 20 && player.getInventory().getInventoryItemCount(1463, -1) == 0 && player.getActiveWeaponItem().getCrystalTypePlus() == org.l2jmobius.gameserver.model.item.type.CrystalType.D, "Materialized measured actor must retain20+/zero matching shots/legal D gear.");
@@ -201,10 +201,13 @@ public final class PhantomSupply072JourneyNative
 		{
 			try
 			{
-				if (combat != null) { combat.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!combat.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } }
-				if (journey != null) { journey.beginStop(); check(journey.finishStop(), "Supply did not drain."); } if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "Commerce did not drain."); }
-				if (navigation != null) { navigation.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } }
-				if (materialization != null) { report.append("shutdown\t").append(materialization.shutdown()).append('\n'); }
+				final var cleanup = new ArrayList<AutoCloseable>(); final var ownedMaterialization = materialization; final var ownedNavigation = navigation; final var ownedCommerce = commerce; final var ownedJourney = journey; final var ownedCombat = combat;
+				if (ownedMaterialization != null) { cleanup.add(() -> { final var stopped = ownedMaterialization.shutdown(); report.append("shutdown\t").append(stopped).append('\n'); check(stopped.state() == PhantomMaterializationService.ServiceState.STOPPED, "Native materialization did not persist/drain; PASS forbidden."); }); }
+				if (ownedNavigation != null) { cleanup.add(() -> { ownedNavigation.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!ownedNavigation.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } check(ownedNavigation.finishStop(), "Navigation did not drain."); }); }
+				if (ownedCommerce != null) { cleanup.add(() -> { ownedCommerce.beginStop(); check(ownedCommerce.finishStop(), "Commerce did not drain."); }); }
+				if (ownedJourney != null) { cleanup.add(() -> { ownedJourney.beginStop(); check(ownedJourney.finishStop(), "Supply did not drain."); }); }
+				if (ownedCombat != null) { cleanup.add(() -> { ownedCombat.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!ownedCombat.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } check(ownedCombat.finishStop(), "Combat did not drain."); }); }
+				PhantomPvp072Native.closeAll(cleanup);
 			}
 			finally { Files.createDirectories(reportFile.getParent()); Files.writeString(reportFile, report); try { ThreadPool.shutdown(); } finally { DatabaseFactory.close(); } }
 		}
@@ -300,7 +303,7 @@ public final class PhantomSupply072JourneyNative
 			try (var writer = Files.newBufferedWriter(Path.of(System.getProperty("phantom.module.root")).getParent().resolve(".phantom-local/task072/cp072-native.properties"), java.nio.file.StandardOpenOption.CREATE_NEW)) { cpState.store(writer, "Own072 paid CP actor; no refill or replacement"); }
 			report.append("result\tPASS paid ordinary native30081/list3008100 BUY5591x2 +5592x1 with durable COMMITTED receipts and native small CP use/reuse/both Olympiad guards;paid5592 retained for native PvP;fixture funding explicit; no earned-income claim\n");
 		}
-		finally { if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "CP commerce did not drain."); } report.append("cp_shutdown\t").append(materialization.shutdown()).append('\n'); }
+		finally { try { if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "CP commerce did not drain."); } } finally { final var stopped = materialization.shutdown(); report.append("cp_shutdown\t").append(stopped).append('\n'); check(stopped.state() == PhantomMaterializationService.ServiceState.STOPPED, "CP materialization did not persist/drain; PASS forbidden."); } }
 	}
 
 	private static Scene selectScene(PhantomCommerceCatalog catalog, StringBuilder report, PhantomGameKnowledgeQuery query)

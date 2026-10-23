@@ -62,36 +62,41 @@ final class PhantomPvp072Native
 		check("true".equals(checkpoint.getProperty("paid")) && !Files.exists(task.resolve("pvp072-measured.once")), "One original paid CP actor and unmeasured PvP episode required.");
 		final long profile = Long.parseLong(checkpoint.getProperty("profile")); final int actorId = Integer.parseInt(checkpoint.getProperty("actor"));
 		final var profiles = PhantomProfileRepository.open(); final var metrics = new PhantomMetrics(); final var goals = new PhantomGoalStateStore(profiles);
+		final var cleanup = new java.util.ArrayList<AutoCloseable>();
+		try
+		{
 		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+		cleanup.add(() -> { final var stopped = materialization.shutdown(); report.append("pvp_shutdown\t").append(stopped).append('\n'); check(stopped.state() == PhantomMaterializationService.ServiceState.STOPPED, "Materialization failed to persist/drain; native PASS forbidden."); });
 		check(materialization.start() && materialization.materialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Paid actor did not reload.");
 		final Player actor = World.getInstance().getPlayer(actorId);
 		check(actor != null && !actor.isGM() && actor.getClient() == null && Set.of("task072cp", "task072cp2").contains(actor.getAccountName()) && actor.getLevel() == 20 && actor.getInventory().getInventoryItemCount(1463, -1) == 9 && actor.getInventory().getInventoryItemCount(5592, -1) == 1, "Paid CP actor/finite shot checkpoint differs; no grant or replacement.");
 		final var paid = new PhantomCommerceReceiptStore(profiles).find(profile).orElseThrow().receipt();
 		check(paid.state() == PhantomCommerceReceipt.State.COMMITTED && paid.request().itemId() == 5592, "Actual paid CP receipt missing.");
-		final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults()); progression.start();
-		final var combat = new PhantomCombatService(new L2jCombatBackend(materialization, knowledge::query, progression::catalog), PhantomCombatCapabilityResolver.fromGameKnowledge(knowledge::query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
-		final var navigation = new PhantomNavigationService(metrics); check(navigation.start(), "Navigation unavailable.");
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults()); cleanup.add(() -> { progression.beginStop(); check(progression.finishStop(), "Progression STOP pending."); }); progression.start();
+		final var combat = new PhantomCombatService(new L2jCombatBackend(materialization, knowledge::query, progression::catalog), PhantomCombatCapabilityResolver.fromGameKnowledge(knowledge::query), PhantomCombatPolicy.productionDefaults(1)); cleanup.add(() -> { combat.beginStop(); await(combat::finishStop, 12000, "Combat STOP pending."); }); combat.start();
+		final var navigation = new PhantomNavigationService(metrics); cleanup.add(() -> { navigation.beginStop(); await(navigation::finishStop, 12000, "Navigation STOP pending."); }); check(navigation.start(), "Navigation unavailable.");
 		final var topology = PhantomTopologyService.fromSnapshotForTesting(query.snapshot(), new L2jTopologyValidationBackend(), PhantomTopologyPolicy.productionDefaults(), new PhantomRelevanceSignalPort()
 		{
 			@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
 			@Override public SignalDelivery withdraw(long id, String key, long sequence) { return SignalDelivery.ACCEPTED; }
 		});
-		check(topology.start(), "Topology unavailable."); topology.registerProfile(profile);
+		cleanup.add(() -> { topology.beginStop(); check(topology.finishStop(), "Topology STOP pending."); }); check(topology.start(), "Topology unavailable."); topology.registerProfile(profile);
 		final var socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
-		final var social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profiles, socialCatalog), 720072L, 16, () -> System.currentTimeMillis() / 60000L); check(social.start(), "Social unavailable.");
+		final var social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profiles, socialCatalog), 720072L, 16, () -> System.currentTimeMillis() / 60000L); cleanup.add(() -> { social.beginStop(); check(social.finishStop(), "Social STOP pending."); }); check(social.start(), "Social unavailable.");
 		final var partyBackend = new L2jPhantomPartyBackend(profiles, materialization, progression);
-		final var party = new PhantomPartyCoordinator(new PhantomPartyStore(profiles), goals, partyBackend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(navigation, combat), new PhantomPartyTactics(combat, partyBackend), () -> query.snapshot().canonicalHash(), System::nanoTime, 16, social, () -> System.currentTimeMillis() / 60000L); check(party.start(), "Party owner unavailable.");
+		final var party = new PhantomPartyCoordinator(new PhantomPartyStore(profiles), goals, partyBackend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(navigation, combat), new PhantomPartyTactics(combat, partyBackend), () -> query.snapshot().canonicalHash(), System::nanoTime, 16, social, () -> System.currentTimeMillis() / 60000L); cleanup.add(() -> { party.beginStop(); await(party::finishStop, 6000, "Party STOP pending."); }); check(party.start(), "Party owner unavailable.");
 		// Same native ACTUAL_ATTACK composition as the existing064 integration: no fabricated farming claim or social event.
 		final var farming = new PhantomFarmingService(PhantomFarmingPolicy.load(Path.of("data/phantoms/farming/high-five-farming-conflict-v1.xml")), new PhantomFarmingStore(profiles), id -> Optional.empty(), topology, (first, second) -> false, new PhantomFarmingService.SocialFacts()
 		{
 			@Override public PhantomFarmingService.SocialEvidence evidence(long owner, long counterpart, long minute) { throw new AssertionError("No farming authority belongs to this reactive native scene."); }
 			@Override public boolean record(long owner, long counterpart, String key, String event, String hash, long minute) { throw new AssertionError("No fabricated farming event allowed."); }
-		}, 16, () -> System.currentTimeMillis() / 60000L, PhantomFarmingService.FaultInjector.NONE); check(farming.start(), "Farming owner unavailable.");
+		}, 16, () -> System.currentTimeMillis() / 60000L, PhantomFarmingService.FaultInjector.NONE); cleanup.add(() -> { farming.beginStop(); check(farming.finishStop(), "Farming STOP pending."); }); check(farming.start(), "Farming owner unavailable.");
 		final var executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml"));
-		final var execution = new PhantomConversationExecutionService(executionCatalog, new PhantomConversationExecutionStore(profiles, executionCatalog), goals, new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, query, party, materialization, ChatObservationService.getInstance())); check(execution.start(), "Native outbound owner unavailable.");
+		final var execution = new PhantomConversationExecutionService(executionCatalog, new PhantomConversationExecutionStore(profiles, executionCatalog), goals, new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, query, party, materialization, ChatObservationService.getInstance())); cleanup.add(() -> { execution.beginStop(); await(execution::finishStop, 6000, "Outbound STOP pending."); }); check(execution.start(), "Native outbound owner unavailable.");
 		final var policy = PhantomPvpPolicy.load(Path.of("data/phantoms/pvp/pvp-policy-v1.xml")); final var pvpStore = new PhantomPvpStore(profiles); final var pvpSocial = new PhantomPvpSocialBridge(social);
 		final var retreat = new PhantomPvpRetreatCoordinator(navigation, topology, combat);
 		final var pvp = new PhantomPvpService(policy, pvpStore, new PhantomPvpContext(policy, combat, party, farming, pvpSocial, materialization), combat, new PhantomPvpConversationBridge(execution), pvpSocial, retreat);
+		cleanup.add(() -> { pvp.beginStop(); await(pvp::finishStop, 6000, "PvP STOP pending."); });
 		Player enemy = null; PhantomCommerceService commerce = null; L2jPhantomSupplyJourney journey = null; ConsumerEventListener listener = null;
 		try
 		{
@@ -153,13 +158,22 @@ final class PhantomPvp072Native
 		finally
 		{
 			if (listener != null) { actor.removeListener(listener); }
-			if (journey != null) { journey.beginStop(); check(journey.finishStop(), "Supply did not drain."); } if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "Commerce did not drain."); }
-			pvp.beginStop(); await(pvp::finishStop, 6000, "PvP STOP pending."); combat.beginStop(); await(combat::finishStop, 12000, "Combat STOP pending.");
-			if (enemy != null) { enemy.abortAttack(); enemy.abortCast(); enemy.stopAllTasks(); enemy.storeMe(); enemy.deleteMe(); }
-			execution.beginStop(); await(execution::finishStop, 6000, "Outbound STOP pending."); farming.beginStop(); check(farming.finishStop(), "Farming STOP pending."); party.beginStop(); await(party::finishStop, 6000, "Party STOP pending.");
-			navigation.beginStop(); await(navigation::finishStop, 12000, "Navigation STOP pending."); topology.beginStop(); check(topology.finishStop(), "Topology STOP pending."); progression.beginStop(); check(progression.finishStop(), "Progression STOP pending."); social.beginStop(); check(social.finishStop(), "Social STOP pending.");
-			report.append("pvp_shutdown\t").append(materialization.shutdown()).append('\n');
+			try { if (journey != null) { journey.beginStop(); check(journey.finishStop(), "Supply did not drain."); } }
+			finally { try { if (commerce != null) { commerce.beginStop(); check(commerce.finishStop(), "Commerce did not drain."); } }
+			finally { if (enemy != null) { enemy.abortAttack(); enemy.abortCast(); enemy.stopAllTasks(); enemy.storeMe(); enemy.deleteMe(); } } }
 		}
+		}
+		finally { closeAll(cleanup); }
+	}
+	static void closeAll(List<AutoCloseable> cleanup) throws Exception
+	{
+		Exception failure = null;
+		for (int index = cleanup.size() - 1; index >= 0; index--)
+		{
+			try { cleanup.get(index).close(); }
+			catch (Exception | AssertionError error) { final var next = error instanceof Exception exception ? exception : new IllegalStateException(error); if (failure == null) { failure = next; } else { failure.addSuppressed(next); } }
+		}
+		if (failure != null) { throw failure; }
 	}
 
 	private record Scene(PhantomNavigationPoint field, List<PhantomNavigationPoint> approach) { }
