@@ -89,8 +89,9 @@ public final class PhantomSupply073JourneyNative
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask073Lane.enabled() || args.length != 1 || !Set.of("preflight", "prepare", "resume", "history", "history-resume", "inspect").contains(args[0])) { throw new IllegalArgumentException("Own073 explicit finite action required."); }
+		if (!PhantomTask073Lane.enabled() || args.length != 1 || !Set.of("preflight", "prepare", "resume", "recover", "history", "history-resume", "inspect").contains(args[0])) { throw new IllegalArgumentException("Own073 explicit finite action required."); }
 		final boolean prepare = args[0].equals("prepare");
+		final boolean recover = args[0].equals("recover");
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toRealPath(), task = module.getParent().resolve(".phantom-local/task073");
 		final Path stateFile = task.resolve("supply073-native.properties"), reportFile = task.resolve("reports/supply073-" + args[0] + '-' + System.currentTimeMillis() + ".tsv");
 		final var report = new StringBuilder("stage\tevidence\n"); final var state = new Properties();
@@ -143,15 +144,37 @@ public final class PhantomSupply073JourneyNative
 				report.append("SETUP_DECLARED\tCASE_B Warrior").append(level).append(";129 D sword+352+2378 armor and100A NATIVE_PRIOR_HISTORY_FIXTURE;zero shots;NOT a natural1-19 career;earned contributions measured separately\n");
 				state.setProperty("gameJarSha256", loadedJarHash()); writeState(stateFile, state);
 			}
-			else { check(Files.isRegularFile(stateFile), "Prepare checkpoint missing."); try (var reader = Files.newBufferedReader(stateFile)) { state.load(reader); } check("true".equals(state.getProperty("completed")) && !"true".equals(state.getProperty("restart.completed")), "Continuation/restart must preserve its original finite checkpoint; no replay/refill."); }
+			else { check(Files.isRegularFile(stateFile), "Prepare checkpoint missing."); try (var reader = Files.newBufferedReader(stateFile)) { state.load(reader); } check(recover ? !"true".equals(state.getProperty("completed")) && Integer.parseInt(state.getProperty("earned.kills", "0")) > 0 : "true".equals(state.getProperty("completed")) && !"true".equals(state.getProperty("restart.completed")), "Continuation/restart must preserve its original finite checkpoint; no replay/refill."); }
 			check(loadedJarHash().equals(state.getProperty("gameJarSha256")), "Measured sameJAR binding changed; no acceptance on another binary.");
 			final long id = Long.parseLong(state.getProperty("profile")); final var metrics = new PhantomMetrics();
 			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
 			check(materialization.start() && materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Native supply actor did not materialize.");
-			final var player = World.getInstance().getPlayer(Integer.parseInt(state.getProperty("actor"))); check(player != null && !player.isAlikeDead(), "Retained native actor unavailable.");
+			final var player = World.getInstance().getPlayer(Integer.parseInt(state.getProperty("actor"))); check(player != null && (recover || !player.isAlikeDead()), "Retained native actor unavailable.");
 			final var progressionPolicy = PhantomProgressionPolicy.productionDefaults(); final var progression = new PhantomProgressionCatalogBuilder().build(new L2jProgressionBackend(null, Path.of("."), () -> query).load(progressionPolicy), progressionPolicy);
 			combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> query, () -> progression), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
-			if (!prepare)
+			if (recover)
+			{
+				check(player.getAccountName().equals("task073supply") && player.getAdena() == 1747 && player.getInventory().getInventoryItemCount(1463, -1) == 0 && new PhantomCommerceReceiptStore(profiles).find(id).isEmpty(), "Only the exact retained35-kill unpaid checkpoint may recover; no reset/refill.");
+				report.append("RECOVERY_RETAINED\tactor=").append(player.getObjectId()).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=").append(player.getAdena()).append(";HP=").append(player.getCurrentHp()).append(";inventory=").append(inventory(player)).append(";xyz=").append(player.getLocation()).append('\n');
+				if (player.isDead())
+				{
+					final var outcome = combat.respawnTown(new org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest(id, () -> false));
+					check(outcome == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome.COMPLETED, "Stock town respawn refused; no direct HP/position repair.");
+					final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(15); while ((player.isDead() || player.isTeleporting()) && System.nanoTime() < until) { Thread.sleep(100); }
+					check(!player.isDead() && !player.isTeleporting() && player.getAdena() == 1747, "Native town respawn did not complete with earned wallet retained.");
+					report.append("NATIVE_TOWN_RESPAWN\t").append(outcome).append(";A=").append(player.getAdena()).append(";HP=").append(player.getCurrentHp()).append(";xyz=").append(player.getLocation()).append(";stock CombatService owner;no direct setter\n");
+				}
+				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player.setRunning(); }
+				final var recoveryField = recoveryField(player, catalog.catalog(), report);
+				final var recoveryNavigation = new PhantomNavigationService(metrics); check(recoveryNavigation.start(), "Recovery navigation did not start.");
+				try { nativeRecoveryTravel(id, player, recoveryField, materialization, recoveryNavigation, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology), report); }
+				finally { recoveryNavigation.beginStop(); boolean stopped = recoveryNavigation.finishStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!stopped && System.nanoTime() < until) { Thread.sleep(100); stopped = recoveryNavigation.finishStop(); } check(stopped, "Recovery navigation did not drain."); }
+				final var roots = new PhantomGoalStateStore(profiles); final var old = roots.load(id).orElseThrow(); final var previous = old.goal();
+				final var anchor = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == PhantomTopologyAnchorRole.FARMING).min(Comparator.comparingDouble(value -> player.calculateDistance3D(value.point().x(), value.point().y(), value.point().z()))).orElseThrow();
+				final var replanned = new PhantomGoal(previous.goalId(), previous.goalType(), PhantomGoalStatus.ACTIVE, previous.subject(), new PhantomDomainRef("npc", Integer.toString(recoveryField.getId())), previous.requiredAmount(), previous.currentAmount(), previous.acquisitionMethod(), List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, recoveryField.getId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), previous.purposeKey(), previous.priority(), previous.riskBudget(), previous.expenseBudget(), previous.deadlineEpochMillis(), previous.constraints(), "farm.native.replan_after_stock_death073", Math.addExact(previous.revision(), 1), previous.payloadText());
+				roots.replace(id, old.rowVersion(), replanned); report.append("NATIVE_DEATH_REPLAN\t").append(previous).append("->").append(replanned).append(";expired unpaid child not deleted;normal SupplyIntentStore will reconcile root revision\n");
+			}
+			if (!prepare && !recover)
 			{
 				check("task073supply".equals(player.getAccountName()) && "Supply073".equals(player.getName()), "Exact retained native actor required.");
 				final var paid = new PhantomCommerceReceiptStore(profiles).find(id).orElseThrow().receipt();
@@ -168,11 +191,11 @@ public final class PhantomSupply073JourneyNative
 				state.setProperty("restart.completed", "true"); writeState(stateFile, state); report.append("result\tPASS SAME_ACTOR_RESTART productive native rewarded kill; no purchase replay/recompute/refill\n"); return;
 			}
 			check(player.getLevel() >= 20 && player.getInventory().getInventoryItemCount(1463, -1) == 0 && player.getActiveWeaponItem().getCrystalTypePlus() == org.l2jmobius.gameserver.model.item.type.CrystalType.D, "Materialized measured actor must retain20+/zero matching shots/legal D gear.");
-			check(player.getAdena() == 100, "Fresh CASE_B has exactly its declared100A; no invented prehistory.");
+			check(recover ? player.getAdena() > 100 : player.getAdena() == 100, "Declared fixture and retained native earnings must not be replaced.");
 			try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player.setRunning(); }
 			check(player.getMoveSpeed() >= PlayerTemplateData.getInstance().getTemplate(PlayerClass.WARRIOR).getBaseMoveSpeed(org.l2jmobius.gameserver.model.stats.MoveType.RUN), "Live movement below the pre-birth conservative speed bound; measurement refused.");
 			report.append("LIVE_PREMEASUREMENT_ECONOMICS\tweapon=").append(player.getActiveWeaponItem().getId()).append(";grade=").append(player.getActiveWeaponItem().getCrystalTypePlus()).append(";perCharge=").append(player.getActiveWeaponItem().getSoulShotCount()).append(";speed=").append(player.getMoveSpeed()).append(";fixtureA=100;nativePolicy=").append(PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml"))).append('\n');
-			report.append("MEASUREMENT_START\t").append("actor=").append(player.getObjectId()).append(";profile=").append(id).append(";level=").append(player.getLevel()).append(";xyz=").append(player.getLocation()).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=").append(player.getAdena()).append(";Dshots=0;HP=").append(player.getCurrentHp()).append(";inventory=").append(inventory(player)).append('\n');
+			report.append(recover ? "MEASUREMENT_CONTINUED\t" : "MEASUREMENT_START\t").append("actor=").append(player.getObjectId()).append(";profile=").append(id).append(";level=").append(player.getLevel()).append(";xyz=").append(player.getLocation()).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=").append(player.getAdena()).append(";Dshots=0;HP=").append(player.getCurrentHp()).append(";inventory=").append(inventory(player)).append('\n');
 			// Running is an ordinary native posture change, without a buff or coordinate/resource edit.
 			try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player.setRunning(); }
 			final var goals = new PhantomGoalStateStore(profiles);
@@ -187,6 +210,8 @@ public final class PhantomSupply073JourneyNative
 			journey.useInventoryMaintenance(_ -> true); check(navigation.start() && commerce.start() && journey.start(), "Native supply owners did not start.");
 			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
 			// One finite recovery: use the actual tax, per-hit debit, speed and distance; do not demand a fabricated fixed wallet.
+			if (prepare)
+			{
 			final var initialPlanning = new PhantomPlanningContext(id, root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
 			final var initialCandidate = new PhantomUtilitySelector().select(candidates.snapshot(), initialPlanning).candidate();
 			check(initialCandidate != null, "Insufficient wallet lost its economic objective.");
@@ -195,8 +220,9 @@ public final class PhantomSupply073JourneyNative
 			final var shortage = journey.automaticIntent(id).orElseThrow();
 			check(shortage.acquisitionMethod().equals("income.farm") && shortage.status() == PhantomGoalStatus.FAILED && goals.load(id).orElseThrow().goal().equals(root), "Shortage must preserve the active farm root, without resource writes.");
 			report.append("RECOVERY_INCOME_REQUIRED\t").append(shortage).append(";rootRetained=").append(root).append(";wallet=").append(player.getAdena()).append('\n');
+			}
 			final long earnDeadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(15);
-			int earnedKills = 0;
+			int earnedKills = recover ? Integer.parseInt(state.getProperty("earned.kills")) : 0;
 			while (earnedKills < 2 || !affordableShots(player, catalog.catalog(), report))
 			{
 				check(System.nanoTime() < earnDeadline, "BLOCKED_ECONOMICS: finite15min earning budget exhausted; actor retained, no reset.");
@@ -205,11 +231,13 @@ public final class PhantomSupply073JourneyNative
 			}
 			report.append("NATIVE_EARNED\tkills=").append(earnedKills).append(";earnedA=").append(player.getAdena() - 100).append(";fixtureA=100;wallet=").append(player.getAdena()).append('\n');
 			check(player.getAdena() > 100, "PARTIAL_EARNINGS: no native Adena contribution; no money grant permitted.");
-			combat.beginStop(); final long combatDrain = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!combat.finishStop() && System.nanoTime() < combatDrain) { Thread.sleep(100); } combat = null;
 			final Set<String> observed = new HashSet<>(); boolean sale = false, buy = false, returned = false; long boughtStock = -1;
 			final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(8); String lastReason = "";
 			do
 			{
+				check(!player.isDead(), "Native actor died during supply; stop immediately and retain evidence.");
+				final var threat = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 700).stream().filter(value -> !value.isAlikeDead() && !value.isRaid() && value.getTarget() == player && value.getLevel() <= player.getLevel() + 2 && GeoEngine.getInstance().canSeeTarget(player, value)).min(Comparator.comparingDouble(value -> player.calculateDistance3D(value))).orElse(null);
+				if (threat != null) { report.append("NATIVE_SUPPLY_DEFENSE\tactualAttacker=").append(threat.getId()).append('/').append(threat.getObjectId()).append(";HP=").append(player.getCurrentHp()).append('\n'); killTarget(combat, id, player, threat, report); continue; }
 				final var planning = new PhantomPlanningContext(id, root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1); final var selected = new PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
 				if (selected != null) { final var plan = selected.planFactory().create(planning); handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(id, root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false)); }
 				final String reason = journey.reason(id); if (!reason.equals(lastReason)) { report.append("journey\t").append(reason).append(";xyz=").append(player.getLocation()).append(";A=").append(player.getAdena()).append('\n'); System.out.println("SUPPLY073 " + reason + ";xyz=" + player.getLocation()); lastReason = reason; }
@@ -226,7 +254,6 @@ public final class PhantomSupply073JourneyNative
 			} while (System.nanoTime() < until);
 			{
 				check(buy && returned, "Connected earned native paid D shot BUY/return did not complete within8min: " + lastReason);
-				combat = new PhantomCombatService(new L2jCombatBackend(materialization, () -> query, () -> progression), PhantomCombatCapabilityResolver.fromGameKnowledge(() -> query), PhantomCombatPolicy.productionDefaults(1)); combat.start();
 				final long exp = player.getExp(), sp = player.getSp();
 				for (int kill = 0; kill < 2; kill++) { final long shotsBefore = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, query, report, materialization); check(player.getInventory().getInventoryItemCount(1463, -1) < shotsBefore, "Each rewarded post-return kill must debit purchased1463."); }
 				check(player.getExp() > exp && player.getSp() > sp && player.getInventory().getInventoryItemCount(1463, -1) < boughtStock, "Post-return native kills did not earn EXP/SP and spend paid shots.");
@@ -249,7 +276,7 @@ public final class PhantomSupply073JourneyNative
 				if (ownedCombat != null) { cleanup.add(() -> { ownedCombat.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!ownedCombat.finishStop() && System.nanoTime() < until) { Thread.sleep(100); } check(ownedCombat.finishStop(), "Combat did not drain."); }); }
 				closeAll(cleanup);
 			}
-			finally { try { Files.createDirectories(reportFile.getParent()); Files.writeString(reportFile, report); } finally { try { ThreadPool.shutdown(); } finally { DatabaseFactory.close(); } } }
+			finally { try { Files.createDirectories(reportFile.getParent()); Files.writeString(reportFile, report); } finally { try { if (!args[0].equals("inspect")) { ThreadPool.shutdown(); } } finally { DatabaseFactory.close(); } } }
 		}
 	}
 
@@ -262,7 +289,7 @@ public final class PhantomSupply073JourneyNative
 	{
 		final var targets = World.getInstance().getVisibleObjectsInRange(player, Monster.class, materialization == null ? 700 : 5000).stream()
 			.filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == player.getInstanceId() && !mob.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))
-			.filter(mob -> knowledge.findNpc(mob.getId()).map(fact -> fact.kind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER && fact.level() >= player.getLevel() - 5 && fact.level() <= player.getLevel() + 2 && fact.exp() > 0 && fact.sp() > 0).orElse(false))
+			.filter(mob -> knowledge.findNpc(mob.getId()).map(fact -> fact.kind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER && fact.level() >= player.getLevel() - 2 && fact.level() <= player.getLevel() + 2 && fact.exp() > 0 && fact.sp() > 0).orElse(false))
 			.sorted(Comparator.comparingDouble(mob -> player.calculateDistance3D(mob))).limit(8).toList();
 		final long approachDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90);
 		targets: for (var target : targets)
@@ -315,6 +342,65 @@ public final class PhantomSupply073JourneyNative
 	}
 
 
+	private static Monster recoveryField(Player player, PhantomCommerceCatalog catalog, StringBuilder report)
+	{
+		final var merchant = World.getInstance().getVisibleObjects().stream().filter(value -> value instanceof Merchant).map(value -> (Merchant) value).filter(value -> value.getId() == 30063 && value.isSpawned() && value.getMpc() != null && value.getMpc().getCastleTaxRate() == 0).findFirst().orElseThrow();
+		final var offer = catalog.findBuyOffers(1463, 0, 256).values().stream().filter(value -> value.npcIds().contains(30063) && !value.limitedStock()).findFirst().orElseThrow();
+		final var paths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(); final var policy = PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml"));
+		final long price = (long) (offer.price() * (1 + merchant.getMpc().getBaseTaxRate())), budget = policy.availableBudget(player.getAdena(), 0, 0, true), count = Math.min(180, budget / price);
+		final var choices = World.getInstance().getVisibleObjects().stream().filter(value -> value instanceof Monster).map(value -> (Monster) value).filter(value -> value.getId() == 21801 && value.isSpawned() && !value.isAlikeDead() && value.getLevel() >= 18 && value.getLevel() <= 22 && !value.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE)).sorted(Comparator.comparingDouble(value -> value.calculateDistance3D(merchant))).limit(2).toList();
+		for (var mob : choices)
+		{
+			if (!policy.usefulPurchase(true, 0, count, player.getActiveWeaponItem().getSoulShotCount(), mob.calculateDistance3D(merchant), player.getMoveSpeed())) { report.append("recovery_scene_rejected\tQUOTE threshold;mob=").append(mob.getLocation()).append('\n'); continue; }
+			final var origin = paths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), 0), 256).orElse(null); if (origin == null) { continue; }
+			for (int direction = 0; direction < 4; direction++)
+			{
+				final double angle = Math.atan2((long) mob.getY() - merchant.getY(), (long) mob.getX() - merchant.getX()) + direction * Math.PI / 2;
+				final var target = paths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(merchant.getX() + (int) Math.round(64 * Math.cos(angle)), merchant.getY() + (int) Math.round(64 * Math.sin(angle)), merchant.getZ(), 0), 256).orElse(null);
+				if (target == null || merchant.calculateDistance3D(target.x(), target.y(), target.z()) > 184) { continue; }
+				long now = System.nanoTime(); final var out = paths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, origin, target, now, now + TimeUnit.SECONDS.toNanos(1), 10_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
+				now = System.nanoTime(); final var back = paths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, target, origin, now, now + TimeUnit.SECONDS.toNanos(1), 10_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
+				report.append("recovery_scene\tNPC=").append(merchant.getId()).append(';').append(merchant.getLocation()).append(";mob=").append(mob.getId()).append(';').append(mob.getLocation()).append(";stand=").append(target).append(";price=").append(price).append(";baseTax=").append(merchant.getMpc().getBaseTaxRate()).append(";perCharge=").append(player.getActiveWeaponItem().getSoulShotCount()).append(";speed=").append(player.getMoveSpeed()).append(";distance=").append(mob.calculateDistance3D(merchant)).append(";wallet=").append(player.getAdena()).append(";budget=").append(budget).append(";affordableShots=").append(count).append(";routes=").append(out.status()).append('/').append(back.status()).append('\n');
+				if (out.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND && back.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { return mob; }
+			}
+		}
+		throw new AssertionError("BLOCKED_RECOVERY_SCENE: two deterministic retained-wealth candidates exhausted; no reseed or price change.");
+	}
+	private static void nativeRecoveryTravel(long id, Player player, Monster field, PhantomMaterializationService materialization, PhantomNavigationService navigation, PhantomNormalGatekeeperTravel travel, StringBuilder report) throws Exception
+	{
+		final var paths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		final var origin = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player); final var destination = paths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(field.getX(), field.getY(), field.getZ(), 0), 256).orElseThrow();
+		final long now = System.nanoTime(), deadline = now + TimeUnit.MINUTES.toNanos(10);
+		final var actual = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.snapshot(player, travel.legs(), TimeUnit.MINUTES.toMillis(10));
+		final var options = new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options(actual.legs(), actual.speed(), actual.adena(), 0, actual.classIndex(), actual.level(), actual.epochMinute(), actual.gatekeeperAllowed(), "recovery073.no_scroll", null, 0, actual.remainingMillis(), actual.blockedEdges());
+		final var submission = navigation.submitTravelPlan(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(id, origin, destination, now, now + navigation.policy().defaultRequestDeadlineNanos(), navigation.policy().maximumRouteDistance()), options);
+		var result = submission.immediateResult(); while (result == null && System.nanoTime() < now + navigation.policy().defaultRequestDeadlineNanos()) { result = navigation.consume(submission.requestId()).orElse(null); if (result == null) { Thread.sleep(100); } }
+		report.append("recovery_native_route\t").append(origin).append("->").append(destination).append(";result=").append(result).append('\n');
+		check(result != null && result.route() != null, "No native stock travel plan from actual respawn to field; no relocation fallback.");
+		final var plan = navigation.consumeTravelPlan(submission.requestId()).orElseThrow(); report.append("recovery_native_itinerary\t").append(plan).append('\n');
+		try (var lease = materialization.tryAcquireAction(id).orElseThrow())
+		{
+			for (var stage : plan.stages())
+			{
+				check(!player.isDead() && System.nanoTime() < deadline, "Native recovery travel exhausted its bound.");
+				if (stage.mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.GK)
+				{
+					final var receipt = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.gatekeeper(player, stage.gatekeeper()); report.append("recovery_native_gatekeeper\t").append(receipt).append('\n'); check(receipt.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.Status.ARRIVED, "Actual native GK refused."); continue;
+				}
+				check(stage.mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.WALK, "Unsupported recovery travel mode.");
+				for (var point : stage.points())
+				{
+					if (player.calculateDistance3D(point.x(), point.y(), point.z()) <= 40) { continue; }
+					check(paths.canWalkDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player), point) && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(player, point.x(), point.y(), point.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, Monster.class, 3500)), Set.of(field.getObjectId())), "Native recovery segment unsafe; no forced movement.");
+					player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, new org.l2jmobius.gameserver.model.Location(point.x(), point.y(), point.z()));
+					final var owned = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.captureWalk(player);
+					try { while (!player.isDead() && player.calculateDistance3D(point.x(), point.y(), point.z()) > 40 && System.nanoTime() < deadline) { Thread.sleep(100); } check(!player.isDead() && player.calculateDistance3D(point.x(), point.y(), point.z()) <= 40, "Native recovery segment did not arrive."); }
+					finally { org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.cancelWalk(owned); }
+				}
+			}
+		}
+		report.append("recovery_native_field_arrived\t").append(player.getLocation()).append(";A=").append(player.getAdena()).append(";HP=").append(player.getCurrentHp()).append(";native stock WALK/GK only\n");
+	}
 	private static void history(StringBuilder report, boolean resume) throws Exception
 	{
 		final Path file = Path.of(System.getProperty("phantom.module.root")).getParent().resolve(".phantom-local/task073/history073.properties");
