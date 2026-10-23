@@ -166,11 +166,12 @@ public final class PhantomSupply073JourneyNative
 					report.append("NATIVE_TOWN_RESPAWN\t").append(outcome).append(";A=").append(player.getAdena()).append(";HP=").append(player.getCurrentHp()).append(";xyz=").append(player.getLocation()).append(";stock CombatService owner;no direct setter\n");
 				}
 				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player.setRunning(); }
-				final var recoveryField = recoveryField(player, catalog.catalog(), report);
+				final var recoveryScene = recoveryField(player, catalog.catalog(), report);
+				final var recoveryField = recoveryScene.field();
 				townReturnField = recoveryField;
 				final var townCounter = World.getInstance().getVisibleObjects().stream().filter(value -> value instanceof Merchant).map(value -> (Merchant) value).filter(value -> value.getId() == 30063 && value.isSpawned()).findFirst().orElseThrow();
 				final var recoveryNavigation = new PhantomNavigationService(metrics); check(recoveryNavigation.start(), "Recovery navigation did not start.");
-				try { nativeRecoveryTravel(id, player, townCounter, materialization, recoveryNavigation, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology), report); }
+				try { nativeRecoveryTravel(id, player, townCounter, materialization, recoveryNavigation, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology), report, recoveryScene.counter()); }
 				finally { recoveryNavigation.beginStop(); boolean stopped = recoveryNavigation.finishStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!stopped && System.nanoTime() < until) { Thread.sleep(100); stopped = recoveryNavigation.finishStop(); } check(stopped, "Recovery navigation did not drain."); }
 				final var roots = new PhantomGoalStateStore(profiles); final var old = roots.load(id).orElseThrow(); final var previous = old.goal();
 				final var anchor = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == PhantomTopologyAnchorRole.FARMING).min(Comparator.comparingDouble(value -> player.calculateDistance3D(value.point().x(), value.point().y(), value.point().z()))).orElseThrow();
@@ -259,7 +260,7 @@ public final class PhantomSupply073JourneyNative
 				check(buy && returned, "Connected earned native paid D shot BUY/return did not complete within8min: " + lastReason);
 				if (townReturnField != null)
 				{
-					nativeRecoveryTravel(id, player, townReturnField, materialization, navigation, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology), report);
+					nativeRecoveryTravel(id, player, townReturnField, materialization, navigation, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology), report, null);
 					report.append("NATIVE_PAID_RETURN_TO_FARM\tactor=").append(player.getObjectId()).append(";fieldNpc=").append(townReturnField.getId()).append(";xyz=").append(player.getLocation()).append(";paid1463=").append(player.getInventory().getInventoryItemCount(1463, -1)).append(";no direct coordinates/resource setters\n");
 				}
 				final long exp = player.getExp(), sp = player.getSp();
@@ -350,7 +351,8 @@ public final class PhantomSupply073JourneyNative
 	}
 
 
-	private static Monster recoveryField(Player player, PhantomCommerceCatalog catalog, StringBuilder report)
+	private record RecoveryScene(Monster field, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint counter) { }
+	private static RecoveryScene recoveryField(Player player, PhantomCommerceCatalog catalog, StringBuilder report)
 	{
 		final var merchant = World.getInstance().getVisibleObjects().stream().filter(value -> value instanceof Merchant).map(value -> (Merchant) value).filter(value -> value.getId() == 30063 && value.isSpawned() && value.getMpc() != null && value.getMpc().getCastleTaxRate() == 0).findFirst().orElseThrow();
 		final var offer = catalog.findBuyOffers(1463, 0, 256).values().stream().filter(value -> value.npcIds().contains(30063) && !value.limitedStock()).findFirst().orElseThrow();
@@ -369,15 +371,16 @@ public final class PhantomSupply073JourneyNative
 				long now = System.nanoTime(); final var out = paths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, origin, target, now, now + TimeUnit.SECONDS.toNanos(1), 10_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
 				now = System.nanoTime(); final var back = paths.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, target, origin, now, now + TimeUnit.SECONDS.toNanos(1), 10_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
 				report.append("recovery_scene\tNPC=").append(merchant.getId()).append(';').append(merchant.getLocation()).append(";mob=").append(mob.getId()).append(';').append(mob.getLocation()).append(";stand=").append(target).append(";price=").append(price).append(";baseTax=").append(merchant.getMpc().getBaseTaxRate()).append(";perCharge=").append(player.getActiveWeaponItem().getSoulShotCount()).append(";speed=").append(player.getMoveSpeed()).append(";distance=").append(mob.calculateDistance3D(merchant)).append(";wallet=").append(player.getAdena()).append(";budget=").append(budget).append(";affordableShots=").append(count).append(";routes=").append(out.status()).append('/').append(back.status()).append('\n');
-				if (back.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { report.append("recovery_actual_legs\tretained actor already respawned;actual travel is current town->counter via stock WALK/GK,then counter->farm FOUND;field->counter is not used;all executed legs still need native proof\n"); return mob; }
+				if (back.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { report.append("recovery_actual_legs\tretained actor already respawned;actual travel is current town->counter via stock WALK/GK,then counter->farm FOUND;field->counter is not used;all executed legs still need native proof\n"); return new RecoveryScene(mob, target); }
 			}
 		}
 		throw new AssertionError("BLOCKED_RECOVERY_SCENE: two deterministic retained-wealth candidates exhausted; no reseed or price change.");
 	}
-	private static void nativeRecoveryTravel(long id, Player player, org.l2jmobius.gameserver.model.WorldObject field, PhantomMaterializationService materialization, PhantomNavigationService navigation, PhantomNormalGatekeeperTravel travel, StringBuilder report) throws Exception
+	private static void nativeRecoveryTravel(long id, Player player, org.l2jmobius.gameserver.model.WorldObject field, PhantomMaterializationService materialization, PhantomNavigationService navigation, PhantomNormalGatekeeperTravel travel, StringBuilder report, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint provenStand) throws Exception
 	{
 		final var paths = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
-		final var origin = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player); final var destination = paths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(field.getX(), field.getY(), field.getZ(), 0), 256).orElseThrow();
+		final var origin = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player); final var destination = provenStand != null ? provenStand : paths.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(field.getX(), field.getY(), field.getZ(), 0), 256).orElseThrow(() -> new AssertionError("No native walk surface at recovery target; no relocation fallback."));
+		report.append("recovery_proven_stand\ttarget=").append(field.getObjectId()).append(";destination=").append(destination).append(";reusedPreflight=").append(provenStand != null).append('\n');
 		final long now = System.nanoTime(), deadline = now + TimeUnit.MINUTES.toNanos(10);
 		final var actual = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.snapshot(player, travel.legs(), TimeUnit.MINUTES.toMillis(10));
 		final var options = new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options(actual.legs(), actual.speed(), actual.adena(), 0, actual.classIndex(), actual.level(), actual.epochMinute(), actual.gatekeeperAllowed(), "recovery073.no_scroll", null, 0, actual.remainingMillis(), actual.blockedEdges());
