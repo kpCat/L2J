@@ -54,10 +54,20 @@ function Get-TreeHash072([string]$Root,[string[]]$Entries,[string[]]$Exclude=@()
     $lines=@(foreach($entry in $Entries){
         $path=Join-Path $Root $entry
         if(!(Test-Path -LiteralPath $path)){throw "TASK072: tree entry missing: $entry"}
-        [string[]]$files=@(Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object FullName)
+        Assert-Plain072 $path
+        $pending=New-Object 'System.Collections.Generic.Stack[string]'
+        $found=New-Object 'System.Collections.Generic.List[string]'
+        $pending.Push($path)
+        while($pending.Count){
+            $current=$pending.Pop()
+            $attributes=[IO.File]::GetAttributes($current)
+            if($attributes -band [IO.FileAttributes]::ReparsePoint){throw 'TASK072: provenance tree contains a reparse point.'}
+            if($attributes -band [IO.FileAttributes]::Directory){foreach($child in [IO.Directory]::EnumerateFileSystemEntries($current)){$pending.Push($child)}}
+            else{$found.Add($current)}
+        }
+        [string[]]$files=$found.ToArray()
         [Array]::Sort($files,[StringComparer]::Ordinal)
         foreach($file in $files){
-            Assert-Plain072 $file
             $relative=$file.Substring($Root.Length+1).Replace('\','/')
             if($relative -cin $Exclude){continue}
             $relative+':'+(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash

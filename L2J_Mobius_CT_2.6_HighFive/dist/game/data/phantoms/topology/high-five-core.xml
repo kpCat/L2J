@@ -510,7 +510,7 @@
 		<source path="data/stats/npcs/32100-32199.xml" />
 	</node>
 
-	<anchor id="giran.city.center" role="CITY_CENTER" nodeId="giran.city" x="82480" y="149087" z="-3350" instanceId="0" mapRegionLocId="918" tolerance="0" tags="city-cluster">
+	<anchor id="giran.city.center" role="CITY_CENTER" nodeId="giran.city" x="82480" y="149087" z="-3350" instanceId="0" mapRegionLocId="918" tolerance="128" tags="city-cluster">
 		<source path="data/mapregion/giran_castle_town.xml" />
 	</anchor>
 	<anchor id="giran.gatekeeper.30080" role="GATEKEEPER" nodeId="giran.city" x="83396" y="147904" z="-3404" instanceId="0" npcId="30080" mapRegionLocId="918" tolerance="0" tags="teleporter">

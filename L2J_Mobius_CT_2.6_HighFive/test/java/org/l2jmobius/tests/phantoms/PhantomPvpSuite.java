@@ -397,6 +397,17 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, fixture.lease.potionUses, "CP potion was used above policy threshold.");
 			}
 		});
+		registry.add("03-same-session-has-no-one-or-two-potion-cap", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 10))
+			{
+				fixture.lease.potions = List.of(new CpPotionSnapshot(5001, 5591, 30, 2166, 1, 0, 0));
+				fixture.start(Source.ACTUAL_ATTACK, false);
+				for (int count = 0; count < 20; count++) { fixture.clock.addAndGet(SECOND / 2); fixture.dispatcher.runNext(); }
+				PhantomAssertions.assertEquals(20, fixture.lease.potionUses, "Low CP session imposed an artificial per-fight potion cap.");
+				PhantomAssertions.assertEquals(10L, fixture.lease.potions.getFirst().count(), "Delegated handler stock was not decremented.");
+			}
+		});
 	}
 
 	private static void partyHelp(PhantomTestRegistry registry)
@@ -656,7 +667,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		public CpPotionUse useCpPotion(int itemObjectId, int itemId)
 		{
 			potionUses++;
-			return new CpPotionUse(CpPotionOutcome.OBSERVED_SUCCESS, itemId, 2, 1, actor.currentCp(), actor.currentCp() + 50, 500);
+			final var stock = potions.getFirst(); final long after = stock.count() - 1;
+			potions = after == 0 ? List.of() : List.of(new CpPotionSnapshot(stock.itemObjectId(), itemId, after, stock.skillId(), stock.skillLevel(), 0, 0));
+			return new CpPotionUse(CpPotionOutcome.OBSERVED_SUCCESS, itemId, stock.count(), after, actor.currentCp(), actor.currentCp() + 50, 500);
 		}
 
 		@Override

@@ -338,7 +338,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (allStock >= (cp ? 3 : (long) perHit * _policy.lowWaterHits())) { return null; }
 		final var blessed = !healing && !ammoNeeded && !cp && action == ActionType.SPIRITSHOT ? all.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
 		final var preferred = blessed.isEmpty() ? all : blessed;
-		return new SupplyNeed(preferred, all, preferred.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum(), allStock, perHit, healing ? 20 : cp ? 10 : Math.min(600, (long) perHit * _policy.targetHits()));
+		return new SupplyNeed(preferred, all, preferred.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum(), allStock, perHit, healing ? 20 : cp ? 25 : Math.min(600, (long) perHit * _policy.targetHits()));
 	}
 
 	private Set<Integer> maintenanceNeeds(Player player)
