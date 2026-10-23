@@ -1,0 +1,11 @@
+check	count	status	evidence
+protected_baseline	4	PASS	PROTECTED_INPUTS073.tsv
+protected_prior072	4	PASS	PROTECTED_PRIOR072.tsv
+protected_untracked_packages	19	PASS	PROTECTED_UNTRACKED073.tsv
+protected_source_geo	203	PASS	GEODATA_INPUTS073.tsv
+native_test_geo	203	PASS	203physical copies;exact source SHA
+operator_test_geo	203	PASS	203physical copies;exact source SHA
+release_geo	203	PASS	203physical copies;exact source SHA
+test_runtime	0	PASS	Game/Login STOPPED;DB connections0;stock controller
+release_runtime	0	PASS	Game/Login STOPPED;DB connections0;stock controller
+owned_jvm_listeners	0	PASS	OWN073_JVM=0; OWN073_LISTENERS=0

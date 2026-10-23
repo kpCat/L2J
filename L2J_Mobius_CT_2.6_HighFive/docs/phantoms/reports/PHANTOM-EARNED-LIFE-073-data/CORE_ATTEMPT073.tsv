@@ -1,0 +1,127 @@
+stage	evidence
+planner_inputs	objects=45523;rewardedMobs18to22=2012;offers=21;economicOptions=2;rates=1.0/1.0
+economic_shortlist	D:\Codex\repos\L2J-phantom-world\.phantom-local\task073\reports\SCENE_ECONOMICS073-1792786122468.tsv;max5;no Player/account created;X1 projected mean is not a guaranteed drop;15min actual earning bound;fixture100A separately declared
+PREFLIGHT_ACCEPTED	merchant=30420;[Location] X: -61717 Y: 75401 Z: -3352 Heading: 58500 InstanceId: 0;farm=20038;[Location] X: -64845 Y: 72686 Z: -3288 Heading: 0 InstanceId: 0;native both-way corridor+tax/budget/usefulness;no economic policy edits
+SETUP_DECLARED	CASE_B Warrior20;129 D sword+352+2378 armor and100A NATIVE_PRIOR_HISTORY_FIXTURE;zero shots;NOT a natural1-19 career;earned contributions measured separately
+LIVE_PREMEASUREMENT_ECONOMICS	weapon=129;grade=D;perCharge=3;speed=126.50000000000001;fixtureA=100;nativePolicy=PhantomAutonomousSupplyPolicy[enabled=true, lowWaterHits=3, targetHits=60, minimumAdenaReserve=500, retrySeconds=30, journeyMinutes=8, maximumProfiles=128]
+MEASUREMENT_START	actor=268480990;profile=1;level=20;xyz=[Location] X: -64845 Y: 72686 Z: -3320 Heading: 0 InstanceId: 0;EXP=835862;SP=0;A=100;Dshots=0;HP=516.0;inventory=268480991:129:1:true;268480992:352:1:true;268480993:2378:1:true;268480994:57:100:false
+RECOVERY_INCOME_REQUIRED	PhantomGoal[goalId=72007303, goalType=maintain.supplies, status=FAILED, subject=PhantomDomainRef[namespace=profile, key=1], target=PhantomDomainRef[namespace=item, key=1463], requiredAmount=1, currentAmount=0, acquisitionMethod=income.farm, validSources=[], selectedAnchor=PhantomDomainRef[namespace=topology.anchor, key=generated.farm.0b678446de013db1e8a875b0.anchor], purposeKey=supplies.autonomous, priority=700, riskBudget=0, expenseBudget=0, deadlineEpochMillis=1792786156029, constraints={}, reasonKey=supplies.stock.too_far_or_unavailable.income_farm, revision=1, payloadText=s1:1:268480990:1:0:268480991:-64845:72686:-3320:1792786246068];rootRetained=PhantomGoal[goalId=72007303, goalType=farm.background, status=ACTIVE, subject=PhantomDomainRef[namespace=profile, key=1], target=PhantomDomainRef[namespace=npc, key=20038], requiredAmount=1, currentAmount=0, acquisitionMethod=background.farm, validSources=[PhantomDomainRef[namespace=background.farm, key=20038@generated.farm.0b678446de013db1e8a875b0.anchor]], selectedAnchor=PhantomDomainRef[namespace=topology.anchor, key=generated.farm.0b678446de013db1e8a875b0.anchor], purposeKey=farm.background, priority=500, riskBudget=0, expenseBudget=0, deadlineEpochMillis=0, constraints={}, reasonKey=fixture073.native_short_supply, revision=1, payloadText=null];wallet=100
+earned_kill	target=20038/268460840;EXP=835862->836566;SP=0->31;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=1, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOTED, startedLogicalNanos=148526646474500, lastPulseLogicalNanos=148533708363600, selectedSkills=0, threatEntries=1, rememberedLootIds=1, lootPickupsIssued=1]
+earned_loot_delta	[1831:0->1];nativeLootPickups=1
+earned_kill	target=20418/268460922;EXP=836566->837199;SP=31->59;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=2, targetObjectId=268460922, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148533719929100, lastPulseLogicalNanos=148546784879100, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=100;taxedUnit=21;perHit=3;distance=4199.093473596414;speed=126.50000000000001;isRunning=true;count=3;useful=false
+earned_kill	target=20038/268460838;EXP=837199->837903;SP=59->90;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=3, targetObjectId=268460838, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOTED, startedLogicalNanos=148546852781300, lastPulseLogicalNanos=148565444759000, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[57:100->290];nativeLootPickups=2
+earned_budget	npc=30420;A=290;taxedUnit=21;perHit=3;distance=4480.702288704305;speed=126.50000000000001;isRunning=true;count=10;useful=false
+local_target_route	target=20418/268460928;level=18;status=FOUND;distance=723.3429338840602
+earned_kill	target=20418/268460928;EXP=837903->838536;SP=90->118;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=4, targetObjectId=268460928, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOTED, startedLogicalNanos=148570795128400, lastPulseLogicalNanos=148579337652000, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[57:290->429];nativeLootPickups=2
+earned_budget	npc=30420;A=429;taxedUnit=21;perHit=3;distance=4327.99826709762;speed=126.50000000000001;isRunning=true;count=15;useful=false
+earned_kill	target=20038/268460840;EXP=838536->839240;SP=118->149;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=5, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOTED, startedLogicalNanos=148579375285600, lastPulseLogicalNanos=148585154584100, selectedSkills=0, threatEntries=1, rememberedLootIds=1, lootPickupsIssued=1]
+earned_loot_delta	[57:429->575];nativeLootPickups=1
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4062.8464159995024;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20418/268460922;EXP=839240->839873;SP=149->177;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=6, targetObjectId=268460922, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148585229086800, lastPulseLogicalNanos=148596029796500, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4321.496152954437;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20038/268460838;EXP=839873->840577;SP=177->208;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=7, targetObjectId=268460838, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148596033146600, lastPulseLogicalNanos=148606082412400, selectedSkills=0, threatEntries=1, rememberedLootIds=3, lootPickupsIssued=3]
+earned_loot_delta	[];nativeLootPickups=3
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4254.416176163305;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20418/268460921;EXP=840577->841210;SP=208->236;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=8, targetObjectId=268460921, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148606139842000, lastPulseLogicalNanos=148619205107800, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=3987.0295960777617;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20418/268460922;EXP=841210->841843;SP=236->264;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=9, targetObjectId=268460922, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148619255443600, lastPulseLogicalNanos=148630305960000, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4292.842414997317;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20038/268460840;EXP=841843->842547;SP=264->295;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=10, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148630358110400, lastPulseLogicalNanos=148640657760600, selectedSkills=0, threatEntries=2, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=3959.798479720906;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20038/268460838;EXP=842547->843251;SP=295->326;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=11, targetObjectId=268460838, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148640750202200, lastPulseLogicalNanos=148653553773500, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=3994.0868793755603;speed=126.50000000000001;isRunning=true;count=20;useful=false
+earned_kill	target=20418/268460921;EXP=843251->843884;SP=326->354;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=12, targetObjectId=268460921, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148653562027500, lastPulseLogicalNanos=148663863706200, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4275.085262307642;speed=159.5;isRunning=true;count=20;useful=false
+earned_kill	target=20038/268460840;EXP=843884->844588;SP=354->385;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=13, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148663880397700, lastPulseLogicalNanos=148674669076800, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4329.369931063872;speed=159.5;isRunning=true;count=20;useful=false
+local_target_route	target=20418/268460922;level=18;status=FOUND;distance=602.6881448975083
+earned_kill	target=20418/268460922;EXP=844588->845221;SP=385->413;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=14, targetObjectId=268460922, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148678104139400, lastPulseLogicalNanos=148688390573100, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4131.668307112757;speed=159.5;isRunning=true;count=20;useful=false
+earned_kill	target=20038/268460838;EXP=845221->845925;SP=413->444;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=15, targetObjectId=268460838, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_PARTIAL, startedLogicalNanos=148688484227300, lastPulseLogicalNanos=148699529523900, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=4064.0009842518493;speed=159.5;isRunning=true;count=20;useful=false
+earned_kill	target=20038/268460840;EXP=845925->846629;SP=444->475;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=16, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOTED, startedLogicalNanos=148699561572800, lastPulseLogicalNanos=148710108380500, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=3985.6324466764368;speed=159.5;isRunning=true;count=20;useful=false
+earned_kill	target=20418/268460921;EXP=846629->847262;SP=475->503;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=17, targetObjectId=268460921, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148710143523000, lastPulseLogicalNanos=148721183946700, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=575;taxedUnit=21;perHit=3;distance=3974.781126049584;speed=159.5;isRunning=true;count=20;useful=false
+earned_kill	target=20418/268460922;EXP=847262->847895;SP=503->531;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=18, targetObjectId=268460922, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148721224954700, lastPulseLogicalNanos=148729756766200, selectedSkills=0, threatEntries=1, rememberedLootIds=3, lootPickupsIssued=3]
+earned_loot_delta	[57:575->786];nativeLootPickups=3
+earned_budget	npc=30420;A=786;taxedUnit=21;perHit=3;distance=4288.894263093927;speed=159.5;isRunning=true;count=28;useful=false
+earned_kill	target=20418/268460928;EXP=847895->848528;SP=531->559;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=19, targetObjectId=268460928, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148729790212200, lastPulseLogicalNanos=148742842861200, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=786;taxedUnit=21;perHit=3;distance=4159.437702382378;speed=159.5;isRunning=true;count=28;useful=false
+earned_kill	target=20038/268460842;EXP=848528->849232;SP=559->590;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=20, targetObjectId=268460842, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148742894182800, lastPulseLogicalNanos=148754698262800, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[57:786->969, 2140:0->1];nativeLootPickups=2
+earned_budget	npc=30420;A=969;taxedUnit=21;perHit=3;distance=3869.3467148861187;speed=159.5;isRunning=true;count=34;useful=false
+local_target_route	target=20038/268460840;level=18;status=FOUND;distance=652.5434851410288
+earned_kill	target=20038/268460840;EXP=849232->849936;SP=590->621;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=21, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148758537935500, lastPulseLogicalNanos=148768074679800, selectedSkills=0, threatEntries=1, rememberedLootIds=4, lootPickupsIssued=4]
+earned_loot_delta	[57:969->1123];nativeLootPickups=4
+earned_budget	npc=30420;A=1123;taxedUnit=21;perHit=3;distance=3888.95178679294;speed=159.5;isRunning=true;count=40;useful=false
+earned_kill	target=20418/268460922;EXP=849936->850569;SP=621->649;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=22, targetObjectId=268460922, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148768122637100, lastPulseLogicalNanos=148779162730700, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=1123;taxedUnit=21;perHit=3;distance=4009.362667557027;speed=159.5;isRunning=true;count=40;useful=false
+earned_kill	target=20418/268460921;EXP=850569->851202;SP=649->677;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=23, targetObjectId=268460921, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148779206846200, lastPulseLogicalNanos=148789997420000, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=1123;taxedUnit=21;perHit=3;distance=4084.5983890708276;speed=159.5;isRunning=true;count=40;useful=false
+earned_kill	target=20418/268460928;EXP=851202->851835;SP=677->705;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=24, targetObjectId=268460928, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148790099361500, lastPulseLogicalNanos=148802654199700, selectedSkills=0, threatEntries=1, rememberedLootIds=3, lootPickupsIssued=3]
+earned_loot_delta	[57:1123->1318];nativeLootPickups=3
+earned_budget	npc=30420;A=1318;taxedUnit=21;perHit=3;distance=4131.93659196266;speed=159.5;isRunning=true;count=47;useful=false
+earned_kill	target=20038/268460840;EXP=851835->852539;SP=705->736;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=25, targetObjectId=268460840, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148802704953600, lastPulseLogicalNanos=148814259892900, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[2140:1->2];nativeLootPickups=2
+earned_budget	npc=30420;A=1318;taxedUnit=21;perHit=3;distance=3845.9175758198458;speed=159.5;isRunning=true;count=47;useful=false
+earned_kill	target=20418/268460921;EXP=852539->853172;SP=736->764;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=26, targetObjectId=268460921, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148814312405300, lastPulseLogicalNanos=148822597225400, selectedSkills=0, threatEntries=1, rememberedLootIds=4, lootPickupsIssued=4]
+earned_loot_delta	[57:1318->1586];nativeLootPickups=4
+earned_budget	npc=30420;A=1586;taxedUnit=21;perHit=3;distance=3799.6468256931457;speed=159.5;isRunning=true;count=56;useful=false
+earned_kill	target=20038/268460839;EXP=853172->853876;SP=764->795;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=27, targetObjectId=268460839, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148822684486200, lastPulseLogicalNanos=148829467921900, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[1870:0->1];nativeLootPickups=2
+earned_budget	npc=30420;A=1586;taxedUnit=21;perHit=3;distance=3464.5676497941267;speed=159.5;isRunning=true;count=56;useful=false
+local_target_route	target=20038/268460841;level=18;status=FOUND;distance=825.3514402967986
+earned_kill	target=20038/268460841;EXP=853876->854580;SP=795->826;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=28, targetObjectId=268460841, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY, startedLogicalNanos=148834400776000, lastPulseLogicalNanos=148839168459600, selectedSkills=0, threatEntries=1, rememberedLootIds=0, lootPickupsIssued=0]
+earned_loot_delta	[];nativeLootPickups=0
+earned_budget	npc=30420;A=1586;taxedUnit=21;perHit=3;distance=3177.585718749378;speed=159.5;isRunning=true;count=56;useful=false
+local_target_route	target=20038/268459739;level=18;status=FOUND;distance=1422.1089972291154
+earned_kill	target=20038/268459739;EXP=854580->855284;SP=826->857;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=29, targetObjectId=268459739, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148847794556400, lastPulseLogicalNanos=148853321918400, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[1867:0->1];nativeLootPickups=2
+earned_kill	target=20038/268459740;EXP=855284->855988;SP=857->888;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=30, targetObjectId=268459740, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY, startedLogicalNanos=148853338980900, lastPulseLogicalNanos=148857858274000, selectedSkills=0, threatEntries=1, rememberedLootIds=0, lootPickupsIssued=0]
+earned_loot_delta	[];nativeLootPickups=0
+earned_kill	target=20038/268459741;EXP=855988->856692;SP=888->919;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=31, targetObjectId=268459741, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148857882942300, lastPulseLogicalNanos=148866930076800, selectedSkills=0, threatEntries=1, rememberedLootIds=1, lootPickupsIssued=1]
+earned_loot_delta	[];nativeLootPickups=1
+local_target_route	target=20034/268460770;level=17;status=FOUND;distance=865.0283232357193
+earned_kill	target=20034/268460770;EXP=856692->857310;SP=919->945;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=32, targetObjectId=268460770, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148872005006300, lastPulseLogicalNanos=148878028064200, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[1868:0->1];nativeLootPickups=2
+earned_budget	npc=30420;A=1586;taxedUnit=21;perHit=3;distance=3756.220440815475;speed=159.5;isRunning=true;count=56;useful=false
+local_target_route	target=20034/268460772;level=17;status=FOUND;distance=977.5668775076209
+earned_kill	target=20034/268460772;EXP=857310->857928;SP=945->971;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=33, targetObjectId=268460772, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148883903092400, lastPulseLogicalNanos=148889173291300, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[57:1586->1747];nativeLootPickups=2
+earned_budget	npc=30420;A=1747;taxedUnit=21;perHit=3;distance=3924.5037902899267;speed=159.5;isRunning=true;count=62;useful=false
+earned_kill	target=20034/268460773;EXP=857928->858546;SP=971->997;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=34, targetObjectId=268460773, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148889250596600, lastPulseLogicalNanos=148900039806200, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=1747;taxedUnit=21;perHit=3;distance=3721.8997837126135;speed=159.5;isRunning=true;count=62;useful=false
+local_target_route	target=20034/268460776;level=17;status=FOUND;distance=779.7140501491557
+earned_kill	target=20034/268460776;EXP=858546->859164;SP=997->1023;paidShots=0->0;session=PhantomCombatSessionSnapshot[profileId=1, generation=35, targetObjectId=268460776, mode=MELEE_PHYSICAL, phase=TERMINAL, result=VICTORY_LOOT_BLOCKED, startedLogicalNanos=148904587336700, lastPulseLogicalNanos=148911116339200, selectedSkills=0, threatEntries=1, rememberedLootIds=2, lootPickupsIssued=2]
+earned_loot_delta	[];nativeLootPickups=2
+earned_budget	npc=30420;A=1747;taxedUnit=21;perHit=3;distance=3113.0256985768683;speed=159.5;isRunning=true;count=62;useful=true
+NATIVE_EARNED	kills=35;earnedA=1647;fixtureA=100;wallet=1747
+journey	supplies.native.low_stock;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+journey	supplies.navigation.requested;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+journey	supplies.navigation.local_checkpoint_retry;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+journey	supplies.navigation.cooldown;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+journey	supplies.navigation.requested;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+journey	supplies.navigation.local_checkpoint_retry;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+journey	supplies.native.low_stock;xyz=[Location] X: -64316 Y: 77113 Z: -3280 Heading: 27616 InstanceId: 0;A=1747
+failure	java.lang.AssertionError: Connected earned native paid D shot BUY/return did not complete within8min: supplies.native.low_stock
+shutdown	ShutdownResult[state=STOPPED, failedProfileIds=[]]

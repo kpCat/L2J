@@ -16,3 +16,4 @@ L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Verify-Scope073.py
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-EARNED-LIFE-073-data/IMPLEMENTATION073.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-EARNED-LIFE-073-data/SOURCE_PATHS073.txt
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEarned073Checks.java
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Build-Helper073.ps1

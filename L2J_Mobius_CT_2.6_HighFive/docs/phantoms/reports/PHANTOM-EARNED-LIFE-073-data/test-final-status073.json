@@ -1,0 +1,34 @@
+{
+    "runtime":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task073\\runtime-test",
+    "runtimeId":  "6cf25720dcbb12d90e65aa53180512b3a38479657688ab9a50d67274b179d68c",
+    "owner":  "TASK073_EARNED_LIFE",
+    "database":  "l2jmobiush5_phantom_test_073",
+    "source":  "97cefafc451a97e80c37254889b387c20ecf4764",
+    "game":  {
+                 "state":  "STOPPED",
+                 "pid":  0,
+                 "staleRecord":  false,
+                 "recordVerified":  false,
+                 "reason":  ""
+             },
+    "login":  {
+                  "state":  "STOPPED",
+                  "pid":  0,
+                  "staleRecord":  false,
+                  "recordVerified":  false,
+                  "reason":  ""
+              },
+    "ports":  {
+                  "GameServer":  [
+                                     7953
+                                 ],
+                  "LoginServer":  [
+                                      2253,
+                                      9253
+                                  ]
+              },
+    "databaseConnections":  0,
+    "gameJarSha256":  "C59D4E9CFB579EBFF80C0AC1F5C4412D673B271C2E2AD59D5223DD8D8248B695",
+    "sourceArchiveSha256":  "0D565E35C7C241E2B51C4018FB5883716F71744B3A01038B9A586009DB60BB4E",
+    "testTreeSha256":  "3878C2552052AEC8DADFD493CAF20BE727FE8FA190C4FFB299813418F3BA473C"
+}
