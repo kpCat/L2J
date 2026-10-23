@@ -67,17 +67,30 @@ public final class PhantomCombat071Native
 	{
 		run(report,true,true,true,true);
 	}
+	public static void kamaelRetained(StringBuilder report) throws Exception
+	{
+		run(report,true,true,true,true,true);
+	}
 	private static void run(StringBuilder report,boolean resume,boolean rolesOnly,boolean remainingRoles) throws Exception
 	{
 		run(report,resume,rolesOnly,remainingRoles,false);
 	}
 	private static void run(StringBuilder report,boolean resume,boolean rolesOnly,boolean remainingRoles,boolean tail) throws Exception
 	{
+		run(report,resume,rolesOnly,remainingRoles,tail,false);
+	}
+	private static void run(StringBuilder report,boolean resume,boolean rolesOnly,boolean remainingRoles,boolean tail,boolean kamaelOnly) throws Exception
+	{
 		check(PhantomTask071Lane.enabled(), "Explicit own071 native infrastructure required.");
 		if(rolesOnly)
 		{
 			try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT COUNT(*) FROM accounts WHERE login='task071combat' AND accessLevel=-1");var rows=query.executeQuery()){check(rows.next()&&rows.getInt(1)==1,"Existing disabled own071 combat account required; no account insert.");}
-			if(tail)
+			if(kamaelOnly)
+			{
+				check(retainedCharacter("Combat071Kamael")>0&&retainedCharacter("Enemy071Kamael")>0,"Exact retained Kamael and enemy required; no new actors.");
+				report.append("combat071.kamaelRetained\tOnly existing Kamael/enemy; actual stock learned offensive subset restricted after materialization;no skill adds;no HP/MP/CP/gear/shot refill;independent one-use native10410 Soul-source fixture explicitly authorized because Souls reset on logout;previous native two bottles and damage with Souls10->10 remain PARTIAL evidence\n");
+			}
+			else if(tail)
 			{
 				for(String name:List.of("Combat071Dagger","Enemy071Dagger","Combat071Mage","Enemy071Mage")){check(retainedCharacter(name)>0,"Exact retained tail actor required: "+name);}
 				for(String name:List.of("Combat071Tank","Enemy071Tank","Combat071Kamael","Enemy071Kamael")){check(retainedCharacter(name)==0,"Tail new role already exists; no replay/refill: "+name);}
@@ -118,11 +131,11 @@ public final class PhantomCombat071Native
 			int tailFailures=0;
 			for (Role role : List.of(new Role("Dagger", 0, 93, WeaponType.DAGGER, PhantomCombatMode.MELEE_PHYSICAL), new Role("Archer", 0, 92, WeaponType.BOW, PhantomCombatMode.RANGED_PHYSICAL), new Role("Mage", 10, 94, WeaponType.BLUNT, PhantomCombatMode.RANGED_MAGIC), new Role("Tank", 0, 90, WeaponType.SWORD, PhantomCombatMode.MELEE_PHYSICAL), new Role("Kamael", 123, 132, WeaponType.RAPIER, PhantomCombatMode.MELEE_PHYSICAL)))
 			{
-				if(tail?role.name().equals("Archer"):remainingRoles&&role.name().equals("Dagger")){continue;}
+				if(kamaelOnly?!role.name().equals("Kamael"):tail?role.name().equals("Archer"):remainingRoles&&role.name().equals("Dagger")){continue;}
 				long roleProfile=0;
 				try
 				{
-				final boolean retained=tail&&(role.name().equals("Dagger")||role.name().equals("Mage"));
+				final boolean retained=kamaelOnly||tail&&(role.name().equals("Dagger")||role.name().equals("Mage"));
 				final int character;
 				final long profile;
 				if(retained){character=retainedCharacter("Combat071"+role.name());profile=repository.findByCharacterObjectId(character).orElseThrow().profileId();}
@@ -135,19 +148,21 @@ public final class PhantomCombat071Native
 				roleProfile=profile;
 				check(materialization.materialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Own071 role failed materialization: " + role.name());
 				final Player actor = World.getInstance().getPlayer(character);
-				if(role.name().equals("Kamael")){soulBottles(materialization,profile,actor,report);}
+				if(role.name().equals("Kamael")&&!kamaelOnly){soulBottles(materialization,profile,actor,report);}
 				final Player defender = retained?Player.load(retainedCharacter("Enemy071"+role.name())):fixture("Enemy071" + role.name(), 0, 90, WeaponType.SWORD, ordinary);
 				check(defender!=null&&!defender.isDead()&&!actor.isDead(),"Native tail participants must remain alive; no pool reset.");if(retained){ordinary.add(defender);}
 				defender.setOnlineStatus(true, false); defender.spawnMe(actor.getX() + 80, actor.getY(), actor.getZ());
 				actor.setTarget(defender); defender.setTarget(actor);
+				if(kamaelOnly){soulBottles(materialization,profile,actor,report,1,true);actor.setTarget(defender);restrictNativeSoulSkill(actor,defender,report);}
 				final AtomicInteger skillEvents = new AtomicInteger();
 				final AtomicInteger positionalEvents = new AtomicInteger();
+				final var actualSkillIds=new java.util.concurrent.ConcurrentSkipListSet<Integer>();
 				final AtomicBoolean reuseObserved = new AtomicBoolean();
 				final AtomicBoolean autoCpReuse=new AtomicBoolean();final double[] autoCpPeak={actor.getCurrentCp()};
 				final long cpSmallBefore=actor.getInventory().getInventoryItemCount(5591,-1),cpLargeBefore=actor.getInventory().getInventoryItemCount(5592,-1);
 				final int cpSmallObject=role.name().equals("Tank")?actor.getInventory().getItemByItemId(5591).getObjectId():0,cpLargeObject=role.name().equals("Tank")?actor.getInventory().getItemByItemId(5592).getObjectId():0;
 				final int initialX=actor.getX(),initialY=actor.getY();
-				final var listener = new ConsumerEventListener(actor, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == actor && event.getTarget() == defender && event.getSkill() != null && event.getDamage() > 0) { skillEvents.incrementAndGet();if(PhantomPvpSkillSafety.requiresRear(event.getSkill())){positionalEvents.incrementAndGet();} } }, actor);
+				final var listener = new ConsumerEventListener(actor, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == actor && event.getTarget() == defender && event.getSkill() != null && event.getDamage() > 0) { skillEvents.incrementAndGet();actualSkillIds.add(event.getSkill().getId());if(PhantomPvpSkillSafety.requiresRear(event.getSkill())){positionalEvents.incrementAndGet();} } }, actor);
 				actor.addListener(listener);
 				final var selected = L2jCombatBackend.nativePvpSkills(actor, role.mode(), 16);
 				check(!selected.isEmpty(), "UNCOVERED_ROLE native learned skill selection: " + role.name());
@@ -169,7 +184,7 @@ public final class PhantomCombat071Native
 				boolean effect = false;
 				try
 				{
-					await(() -> { if(selected.stream().anyMatch(skill -> actor.isSkillDisabled(actor.getKnownSkill(skill.skillId())))){reuseObserved.set(true);} if(role.name().equals("Tank")){autoCpPeak[0]=Math.max(autoCpPeak[0],actor.getCurrentCp());if(actor.getItemRemainingReuseTime(cpSmallObject)>0||actor.getItemRemainingReuseTime(cpLargeObject)>0){autoCpReuse.set(true);}} return tail&&role.name().equals("Dagger")?positionalEvents.get()>0:skillEvents.get() > 0 && defender.getCurrentHp() + defender.getCurrentCp() < targetPool || selected.stream().anyMatch(skill -> defender.isAffectedBySkill(skill.skillId())); }, 20_000, "UNCOVERED_ROLE no native skill damage/debuff: " + role.name());
+					await(() -> { if(selected.stream().anyMatch(skill -> actor.isSkillDisabled(actor.getKnownSkill(skill.skillId())))){reuseObserved.set(true);} if(role.name().equals("Tank")){autoCpPeak[0]=Math.max(autoCpPeak[0],actor.getCurrentCp());if(actor.getItemRemainingReuseTime(cpSmallObject)>0||actor.getItemRemainingReuseTime(cpLargeObject)>0){autoCpReuse.set(true);}} return kamaelOnly?skillEvents.get()>0&&actor.getChargedSouls()<soulsBefore:tail&&role.name().equals("Dagger")?positionalEvents.get()>0:skillEvents.get() > 0 && defender.getCurrentHp() + defender.getCurrentCp() < targetPool || selected.stream().anyMatch(skill -> defender.isAffectedBySkill(skill.skillId())); }, 20_000, "UNCOVERED_ROLE no native skill damage/debuff: " + role.name());
 					if(role.name().equals("Tank"))
 					{
 						await(()->{autoCpPeak[0]=Math.max(autoCpPeak[0],actor.getCurrentCp());if(actor.getItemRemainingReuseTime(cpSmallObject)>0||actor.getItemRemainingReuseTime(cpLargeObject)>0){autoCpReuse.set(true);}return actor.getInventory().getInventoryItemCount(5591,-1)+actor.getInventory().getInventoryItemCount(5592,-1)<cpSmallBefore+cpLargeBefore&&autoCpPeak[0]>=cpBeforeAutomatic+40&&autoCpReuse.get();},1500,"Actual CombatService PvP did not auto-consume/restore/throttle native CP.");
@@ -179,7 +194,7 @@ public final class PhantomCombat071Native
 				}
 				finally
 				{
-					if(tail){report.append("combat071.tailMeasured\trole=").append(role.name()).append(";events=").append(skillEvents.get()).append(";positionalEvents=").append(positionalEvents.get()).append(";targetPool=").append(targetPool).append("->").append(defender.getCurrentHp()+defender.getCurrentCp()).append(";MP=").append(mpBefore).append("->").append(actor.getCurrentMp()).append(";shots=").append(shotsBefore).append("->").append(shotCount(actor,role.mode())).append(";souls=").append(soulsBefore).append("->").append(actor.getChargedSouls()).append(";reuse=").append(reuseObserved.get()).append(";moved=").append(Math.hypot((long)actor.getX()-initialX,(long)actor.getY()-initialY)).append(";rearOrSide=").append(!actor.isInFrontOf(defender)).append('\n');}
+					if(tail){report.append("combat071.tailMeasured\trole=").append(role.name()).append(";events=").append(skillEvents.get()).append(";actualSkillIds=").append(actualSkillIds).append(";positionalEvents=").append(positionalEvents.get()).append(";targetPool=").append(targetPool).append("->").append(defender.getCurrentHp()+defender.getCurrentCp()).append(";MP=").append(mpBefore).append("->").append(actor.getCurrentMp()).append(";shots=").append(shotsBefore).append("->").append(shotCount(actor,role.mode())).append(";souls=").append(soulsBefore).append("->").append(actor.getChargedSouls()).append(";reuse=").append(reuseObserved.get()).append(";moved=").append(Math.hypot((long)actor.getX()-initialX,(long)actor.getY()-initialY)).append(";rearOrSide=").append(!actor.isInFrontOf(defender)).append('\n');}
 					combat.cancel(profile);
 					await(() -> {combat.consumeTerminal(profile);return !combat.hasClaim(profile);}, 6000, "PvP native action cleanup retained claim after terminal consumption.");
 					actor.removeListener(listener);
@@ -211,6 +226,16 @@ public final class PhantomCombat071Native
 		}
 	}
 
+	private static void restrictNativeSoulSkill(Player actor,Player target,StringBuilder report)
+	{
+		check(!actor.isFakePlayer()&&actor.getActiveWeaponItem()!=null,"Real retained native actor and equipped weapon required.");
+		final var chosen=actor.getAllSkills().stream().filter(skill->PhantomPvpSkillSafety.supports(skill,PhantomCombatMode.MELEE_PHYSICAL,actor.isTransformed())&&skill.isDamage()&&skill.getMaxSoulConsumeCount()>0&&skill.getMaxSoulConsumeCount()<=5&&!actor.isSkillDisabled(skill)&&actor.getCurrentMp()>=actor.getStat().getMpConsume(skill)+actor.getStat().getMpInitialConsume(skill)&&actor.getCurrentHp()>skill.getHpConsume()&&skill.checkCondition(actor,target,false)).min(Comparator.comparingInt(org.l2jmobius.gameserver.model.skill.Skill::getMaxSoulConsumeCount).thenComparingInt(org.l2jmobius.gameserver.model.skill.Skill::getId)).orElseThrow(()->new AssertionError("No native currently legal learned soul-consuming physical damage skill <=5; PARTIAL."));
+		report.append("combat071.nativeSoulChoice\tid=").append(chosen.getId()).append(";level=").append(chosen.getLevel()).append(";soulMaxConsumeCount=").append(chosen.getMaxSoulConsumeCount()).append(";native minimum required=").append(chosen.getMaxSoulConsumeCount()).append(";separate minimum API absent;currentSouls=").append(actor.getChargedSouls()).append(";native condition=true;existing learned only\n");
+		check(actor.getChargedSouls()>=chosen.getMaxSoulConsumeCount(),"Single native bottle produced insufficient Souls; no second bottle authorized, retained debit remains PARTIAL.");
+		final var removed=new ArrayList<Integer>();
+		for(var skill:List.copyOf(actor.getAllSkills())){if(skill.getId()!=chosen.getId()&&PhantomPvpSkillSafety.supports(skill,PhantomCombatMode.MELEE_PHYSICAL,actor.isTransformed())){removed.add(skill.getId());actor.removeSkill(skill.getId());}}
+		report.append("combat071.nativeSoulSubset\tchosen=").append(chosen.getId()).append(':').append(chosen.getLevel()).append(";removed existing offensive IDs=").append(removed).append(";no skill added;no resource/gear/inventory writes\n");
+	}
 	private static int retainedCharacter(String name) throws Exception
 	{
 		try(var connection=DatabaseFactory.getConnection();var query=connection.prepareStatement("SELECT charId FROM characters WHERE account_name='task071combat' AND char_name=? AND accesslevel=0"))
@@ -232,13 +257,23 @@ public final class PhantomCombat071Native
 	}
 	private static void soulBottles(PhantomMaterializationService materialization,long profile,Player actor,StringBuilder report) throws Exception
 	{
+		soulBottles(materialization,profile,actor,report,2,false);
+	}
+	private static void soulBottles(PhantomMaterializationService materialization,long profile,Player actor,StringBuilder report,int bottles,boolean once) throws Exception
+	{
 		check(actor.getChargedSouls()==0&&actor.getInventory().getInventoryItemCount(10410,-1)==0,"Fresh Kamael must have no prior soul/bottle fixture.");
-		final var bottle=actor.addItem(ItemProcessType.REWARD,10410,2,actor,false);
+		if(once)
+		{
+			final var marker=java.nio.file.Path.of(System.getProperty("phantom.module.root")).toRealPath().getParent().resolve(".phantom-local/task071/kamael-soul-source071.once");
+			java.nio.file.Files.writeString(marker,"character="+actor.getObjectId()+";profile="+profile+";one finite native10410 fixture;no second grant even on failure\n",java.nio.file.StandardOpenOption.CREATE_NEW);
+			report.append("combat071.soulSourceOnce\tCREATE_NEW marker before any bottle grant=").append(marker).append(";stock0/Souls0 verified;exact one independent finite fixture;not earned or purchased\n");
+		}
+		final var bottle=actor.addItem(ItemProcessType.REWARD,10410,bottles,actor,false);
 		check("ItemSkillsTemplate".equals(bottle.getEtcItem().getHandlerName()),"Stock full soul bottle handler unavailable; Kamael remains PARTIAL.");
 		final var handler=org.l2jmobius.gameserver.handler.ItemHandler.getInstance().getHandler(bottle.getEtcItem());check(handler!=null,"Stock soul bottle handler not registered.");
 		try(var lease=materialization.tryAcquireAction(profile).orElseThrow())
 		{
-			for(int i=0;i<2;i++)
+			for(int i=0;i<bottles;i++)
 			{
 				final int souls=actor.getChargedSouls();final long count=actor.getInventory().getInventoryItemCount(10410,-1);actor.setTarget(actor);
 				check(bottle.getTemplate().checkCondition(actor,actor,true)&&handler.onItemUse(actor,bottle,false),"Native full soul bottle refused; Kamael remains PARTIAL.");
