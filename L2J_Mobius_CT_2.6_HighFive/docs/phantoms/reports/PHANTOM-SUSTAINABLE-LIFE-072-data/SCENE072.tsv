@@ -1,0 +1,4 @@
+stage	evidence
+preselected	BEFORE_MEASUREMENT actual native shop=30420/268460956;[Location] X: -61717 Y: 75401 Z: -3352 Heading: 58500 InstanceId: 0;farm=20418;[Location] X: -63814 Y: 76746 Z: -3256 Heading: 0 InstanceId: 0;distance=2493.1205345911376;nativeCorridorBothWays=true;outboundPoints=6;inboundPoints=5
+candidate_counts	mobs=7956;merchants=18;nearPairs=23;crowdedPairs=2;surfaces=4;routeChecks=4
+PREFLIGHT_ACCEPTED	actorLevel=20;class=Warrior;weapon=129 D fixture;shot=1463;mobLevel=18;reward=633.0/28.0;gap=2_or_less;limit=11;merchantXYZ=[Location] X: -61717 Y: 75401 Z: -3352 Heading: 58500 InstanceId: 0;instance=0;stand=PhantomNavigationPoint[x=-61717, y=75401, z=-3352, instanceId=0];quote=[BuyOffer[listId=3042000, itemId=1463, npcIds=[30420], price=14, limitedStock=false, source=data/buylists/3042000.xml]]

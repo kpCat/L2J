@@ -1,0 +1,16 @@
+{
+    "format":  1,
+    "owner":  "TASK072_SUSTAINABLE_LIFE",
+    "sourceState":  "COMMITTED",
+    "codeCommit":  "4be25966808646b516971b58d7ff3cf51265bb58",
+    "sourceModuleRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\L2J_Mobius_CT_2.6_HighFive",
+    "committedModuleRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task072\\source-release-v2\\L2J_Mobius_CT_2.6_HighFive",
+    "sourceArchivePath":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task072\\release-v2.zip",
+    "sourceArchiveSha256":  "68DAABBDED60B0CE9A01FA0F7FB08B6FA20D832B985510E14FA12085E9AE4D24",
+    "committedTreeSha256":  "F4C08ED526100958F1C34E76FB501AD3DA71703856CB4387ED777804A0ED8A14",
+    "buildRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task072\\build-final-release-v2",
+    "gameJarSha256":  "DBDEF62224099713AEFE72EFA7532A905FADB291BA02FB784C33093DD070CD91",
+    "loginJarSha256":  "7771B0D19977B12B9C7786479F49C25C7611CC867FAB53FE48A5AB10954DBB33",
+    "testTreeSha256":  "60E1030A58BD32E5911F86E43426AD59D35899D22685A3EADF6FE8694430F3CE",
+    "builtUtc":  "2026-10-23T18:20:31.7493835Z"
+}

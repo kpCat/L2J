@@ -1,0 +1,34 @@
+{
+  "runtime": "D:\\PhantomWorld\\Sustainable-Life-072-candidate",
+  "runtimeId": "25639f2e4d283d0185208e06da8cde27385bc8c057fbb2a9335b0505a2c1d7c3",
+  "owner": "TASK072_SUSTAINABLE_LIFE",
+  "database": "l2jmobiush5_phantom_release_072",
+  "source": "5b61a8a541a1319a9c20075c0904929ee890d8de",
+  "game": {
+    "state": "STOPPED",
+    "pid": 0,
+    "staleRecord": false,
+    "recordVerified": false,
+    "reason": ""
+  },
+  "login": {
+    "state": "STOPPED",
+    "pid": 0,
+    "staleRecord": false,
+    "recordVerified": false,
+    "reason": ""
+  },
+  "ports": {
+    "GameServer": [
+      7777
+    ],
+    "LoginServer": [
+      2106,
+      9152
+    ]
+  },
+  "databaseConnections": 0,
+  "gameJarSha256": "011D5891A52AE5AA351824463608844FD4EC0C5E1C0818DD999DD8CD99681D1B",
+  "sourceArchiveSha256": "4DB96AEF832900F7BAC63DE0D6A0751D60FC5689FA4325F879C0784A0D9A8E2F",
+  "testTreeSha256": "31A0E999E968DF4174BEFC0571D3FF649D3B65AA4634E44EE477BAEBE2A7C0D0"
+}

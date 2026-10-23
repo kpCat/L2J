@@ -1,0 +1,17 @@
+gate	priority	status	evidence	remaining
+SUSTAINABLE_LIFE072	TOTAL	PARTIAL	Native earned income and paid CP proven; connected shot purchase/return and PvP unfinished	Hard P0_EARNED/P0_RESTART/P1_PVP_SUPPLY remain
+P0_SCENE	HARD	PARTIAL	Before birth: Tyra30420/list3042000; mob20418lvl18; Warrior20; both Geo routes FOUND;2493distance	Short earning budget did not fund useful purchase at actual21A/3shots
+P0_EARNED	HARD	PARTIAL	Actor268480990/profile1;12native kills;EXP835862->843443;SP0->334;A0->1066;shots0	No COMMITTED1463 purchase; no paid return/2shot-consuming rewarded kills
+P0_RESTART	HARD	PARTIAL	Exact actor retained across native JVMs without reseed; earned state preserved	Paid1463 chain and productive sameJAR restart missing
+P1_CP_PAID	HARD	PASS	Actor268480995/profile2;Helvetia30081/list3008100;3D64.031;BUY5591x2=440A and5592x1=550A;COMMITTED;use/reuse/Olympiad negatives	Fixture2000A explicit; not earned funds
+P1_PVP_SUPPLY	HARD	PARTIAL	Native preflight192bounded samples/3legal fields;2NO_ROUTE_WITHIN_BUDGET/1SEARCH_LIMIT;STOPPED	No opponent/attack; learned skill/exhaustion/retreat/resupply chain not proven
+P1_PROACTIVE	MED	PARTIAL_FULL_CAUSE	Focused policy/admission/social contracts pass	No actual SPOT warning-to-admission episode
+P2_GEAR	MED	PARTIAL_GRADE_DEBT	D129 fixture;reference1074000A;earned1066A;real3008400source	No earned paid acquisition/equip
+AA_CP	OPTIONAL	OPTIONAL_FUTURE_GAP	Stock500/PriestDawnDusk;5591=240AA and5592=600AA;native prepared exchange source confirmed	No durable multisell operation in phantom commerce;no currency grants/event changes;not blocker072
+CP_REPEAT20	MED	CONTRACT_PASS_NATIVE_NOT_RUN	pvp-cp03:20same-sessiondelegations500ms/fakestock30->10;native500ms guard proven separately	No native20use fight;paid current stock too small;no free refill
+CP_TARGET25	SOURCE	SOURCE_PRESENT	Existing SupplyJourney target25;lowwater3;budget/risk/reserve unchanged	Native high-budget25stock not demonstrated
+X_EPIC_TIMER	OPTIONAL	SKIP_OPTIONAL_WITH_REASON	Prioritize hard native lanes and delivery;no clock changes	Not run
+SAFETY	HARD	PASS	Onlyown072 roots/schemas;protected4+068V7+package11+Geo203hashes unchanged;finalownDB/JVM/listeners0	Selected protected inventory verified;no exhaustive old DB/file scan claimed
+DELIVERY	HARD	PASS	Finalcommitted5b61a8a/JAR011D5891;81focusedtests;203physicalGeo;Main+sameDB/sameJARrestart;stockSTOP;normalfeaturepush	GameplaystatusPARTIAL;delivery does not close gameplayhardgates
+OWNER_VISUAL	DEFERRED	OWNER_VISUAL_PENDING	No client/owner intervention	Actualclientvisual gate deferred
+FULL071	HISTORICAL	PARTIAL_UNCHANGED	Retained071 actor and historical results protected	No retrospective PASS claim
