@@ -1,12 +1,12 @@
-# PHANTOM-ECONOMY-QOL-070 — итоговый отчёт, черновик
+# PHANTOM-ECONOMY-QOL-070 — итоговый отчёт
 
-**Статус: PARTIAL / DRAFT. OWNER_PLAY: NOT_READY до закрытия оставшихся gates.**
+**ECONOMY_FUNCTIONS_VERIFIED=PASS; PLAYER_START_READY=PASS; OWNER_PLAY=READY_OWNER_PLAY в объявленных границах070. OWNER_VISUAL_PENDING.** M1 закрыт по фактическому native maintenance маршруту после рестарта. Полный farm recovery, завершение supply покупки и непрерывная автономия не заявляются.
 
-Упаковка core-v1 не допущена к сборке runtime: Git archive преобразовал байты LF в CRLF в закреплённом pricing070.tsv (SHA DF463C8D… вместо6a2c9514…). До копирования и запуска обеих поставок процесс остановлен; оба runtime root отсутствовали. Исправлены .gitattributes только для TSV по аналогу069, ранняя проверка SHA в Build070 и Validate/Start. Immutable package070 не переиндексировался: автоматическая проверка отклонила предложенный renormalize, и эти пути исключены из staging. Производственные Java-классы не менялись. Дальнейшие ссылки на core-v1 относятся к сохранённым native-доказательствам. Обе runtime поставки собраны из core-v2; exact hashes приведены ниже,4562/4562 production classes побайтово равны core-v1.
+Упаковка core-v1 не допущена к сборке runtime: Git archive преобразовал байты LF в CRLF в закреплённом pricing070.tsv (SHA DF463C8D… вместо6a2c9514…). До копирования и запуска обеих поставок процесс остановлен; оба runtime root отсутствовали. Исправлены .gitattributes только для TSV по аналогу069, ранняя проверка SHA в Build070 и Validate/Start. Immutable package070 не переиндексировался: автоматическая проверка отклонила предложенный renormalize, и эти пути исключены из staging. Исправление упаковки не меняло Java-классы. Дальнейшие ссылки на core-v1 относятся к сохранённым native-доказательствам. Обе поставки сначала собраны из core-v2 (4562/4562 production classes равны core-v1), затем из-за доказанного Windows mailbox defect обновлены на committed core-v3: изменился только writer, gameplay classes сохранились.
 
-Экономика и услуги реализованы; focused native проверки перечислены ниже. Сборка committed core прошла. На финальном JAR прошли retained economy/quest verify, quote contracts и runtime guard. Обычный Main, полезная работа M1 после sameDB restart и окончательная остановка поставок в момент подготовки этого черновика ещё **PENDING**. Полный four-role Queen Ant gate ранее прошёл native на development JAR; финальный повтор не завершился из-за законной смерти истощённых сохранённых акторов, подробности ниже. Эти строки должен окончательно сверить основной исполнитель; данный документ не принимает manual gate за владельца.
+Экономика и услуги реализованы; focused native проверки перечислены ниже. Committed core-v3 собран и проверен на обычных TEST Main/sameDB/sameJAR рестартах и отдельном RELEASE Main. После них final-v3 retained economy/quest verify прошли без новых покупок или reseed. Обе среды штатно STOPPED/DB0, own JVM0 и шесть портов свободны. Queen Ant four-role native v4 proof сохранён через неизменность combat implementation/data; финальный повтор отдельно INCONCLUSIVE из-за законной смерти истощённых акторов. Серверная готовность не является клиентской визуальной приёмкой владельца.
 
-Дата: 23.10.2026. Начало кампании: 02:26:13 UTC, Unix1792722373. Окончание и фактическая длительность: **PENDING_FINALIZE**. Источник: `D:\Codex\repos\L2J-phantom-world`; единственный серверный модуль — `L2J_Mobius_CT_2.6_HighFive`. Ветка: `feature/phantom-world`. Baseline: `dd57479f28db8ed2cb6d824b645c57dcb49dfa18`. Core commit: `e8ca9328c39f071803b11980f3acb3ddd5c06326`.
+Дата: 23.10.2026. Начало кампании:02:26:13UTC, Unix1792722373. Native проверки и упаковка завершены к05:46:40UTC —3ч20м27с; финальная документация и публикация выполняются в той же кампании, точное время фиксируется в FINAL_PUBLICATION070.json. Источник: `D:\Codex\repos\L2J-phantom-world`; единственный серверный модуль — `L2J_Mobius_CT_2.6_HighFive`. Ветка: `feature/phantom-world`. Baseline: `dd57479f28db8ed2cb6d824b645c57dcb49dfa18`. Initial core: `e8ca9328c39f071803b11980f3acb3ddd5c06326`; окончательный compiled code: `7779f4ddf104ae8b94f8bf7b399a391ce0a51c8d`.
 
 ## Что изменено и почему
 
@@ -20,7 +20,7 @@
 8. `Item` использует существующий per-item dbLock для count mutation. Выявленный review конфликт source-item→target-item monitors устранён. Paid material selection/commit/publication следует порядку inventory→material, без окна конкурентного создания второго стека.
 9. Добавлены самостоятельные070 build/assembly/runtime/reprice инструменты с owner/root/schema/JAR/Geo/PID checks, общей блокировкой START/Apply и штатным graceful STOP. Старые runtime не являются целями этих инструментов.
 
-Новые библиотеки, стек, серверный движок, клиентские IDs/ассеты и Studio не добавлялись. Локальные аналоги: native ItemContainer restore/transfer/destroy, account_premium lifecycle, PersonalPremiumQoL, native multisell writer, CLI068 и exact runtime069 guards. Прочитаны корневой AGENTS, status/workflow, весь пакет070 и ближайшие владельцы кода. Module AGENTS/README и корневой README не найдены; повторных поисков не делалось. Private lane отчёты — поясняющие журналы, а не отдельные acceptance gates.
+Новые библиотеки, стек, серверный движок, клиентские IDs/ассеты и Studio не добавлялись. Локальные аналоги: native ItemContainer restore/transfer/destroy, account_premium lifecycle, PersonalPremiumQoL, native multisell writer, CLI068 и exact runtime069 guards. Прочитаны корневой AGENTS, status/workflow, весь пакет070 и ближайшие владельцы кода. На финальной сверке исправлена ошибочная отметка об отсутствии файлов: модульный Agents.md и корневой README.md существуют и дочитаны, вместе с master plan и TASK_PACKAGE_STANDARD; новых противоречий реализованному scope не найдено. Только модульный README.md отсутствует. Старые пути/БД в исторических инструкциях не применялись вместо явной AUTHORITY070. Private lane отчёты — поясняющие журналы, а не отдельные acceptance gates.
 
 ## Цены и доступность
 
@@ -55,12 +55,12 @@ Adena scaling использует общий source-weighted native expectedYie
 
 ## Фактические gates
 
-Журналы ниже находятся в `<repo>/.phantom-local/task070/reports/`; source snapshots — в `docs/phantoms/reports/PHANTOM-ECONOMY-QOL-070-data/`. PASS development/native проверки не заменяет повтор на конечном committed JAR.
+Журналы ниже находятся в `<repo>/.phantom-local/task070/reports/`; source snapshots — в `docs/phantoms/reports/PHANTOM-ECONOMY-QOL-070-data/`. Development/native PASS не означает автоматически final-JAR PASS: перенос доказательств ниже обоснован точной class/input parity, а финальные повторы названы отдельно.
 
-| Gate | Подтверждено сейчас | Статус до финализации |
+| Gate | Подтверждено | Финальный статус |
 |---|---|---|
-| P069_QUEEN_ANT | v4 native four-role PASS; combat classes byte-identical dev→final; на final JAR Prominence damage470 и4215/4515=false, затем сохранённые акторы законно погибли до Vortex | PARTIAL: полный финальный повтор INCONCLUSIVE, не PASS |
-| P069_M1 | Диагноз horizon/resource/recency; Prepare/Configure/Observe готовы, изменение AI по догадке не внесено | PENDING: полезная работа того же saved actor после restart не доказана |
+| P069_QUEEN_ANT | v4 native four-role PASS; неизменность combat code/data подтверждена до core-v3; на final-v1 JAR Prominence damage470 и4215/4515=false, затем сохранённые акторы законно погибли до Vortex | PASS по сохранённому native v4 proof; финальный повтор отдельно INCONCLUSIVE, не final-JAR four-role PASS |
+| P069_M1 | SameDB/same-v3 actor4 после native восстановления продолжил finite native supply WALK к реальному NPC30138:14,1→2,6км; цель/epoch/deadline сохранены | PASS bounded useful-native continuation; убийства/покупка/полный farm recovery NOT_PROVEN, прежний PHASE_DEADLINE не стёрт |
 | PRICING | CLI3/3: rates round-trip, AA independence, idempotent Apply, conflicts, stale lock, byte-exact8file rollback | PASS |
 | PREMIUM | Native1+7 суток, account sibling, insufficient/replay; ordinary/RaidBoss/GrandBoss chance/amount policy, Adena17→34, spoil5, suppression21747=0; replay восстанавливает текущий8-day срок | PASS native; final-JAR retained expiry/replay verify PASS |
 | RUNES |41 actual templates,0 drop/spoil effect rows | NO_NATIVE_DROP_SPOIL_RUNE_ITEM |
@@ -72,19 +72,21 @@ Adena scaling использует общий source-weighted native expectedYie
 | RECOVERY | Fault после SQL commit до native publication; exact object replay/no second debit; premium cache republish | PASS native; final retained replay PASS |
 | CONCURRENCY | Два противоположных existing-stack native transfers завершаются под удержанными source monitors; counts conserved | PASS focused regression |
 | UI | На финальном v2 JAR сформированы9 настоящих страниц; stale/OFF denied, деньги/склад неизменны; native multisell denials отдельно | PASS server HTML/semantics; OWNER_VISUAL_PENDING, личный allowlist OFF |
-| SAFETY | Новые070 roots/DB, ownership/isolation guards,203 physical Geo manifest; старые данные не были целями записи | PARTIAL: final protected SHA/STOP/DB0/ports0 PENDING |
-| DELIVERY | Committed Ant jar+compile-tests прошли,2361 product/355 test sources,36с; BUILD_INFO070.json получен | PARTIAL: assembly/Main/restart/STOP PENDING |
-| OWNER_PLAY | Не принимает незакрытый M1 или непроверенную поставку | NOT_READY |
+| SAFETY | Новые070 roots/DB, ownership/isolation guards,203 physical Geo; protected11/package16/older24+069both JAR SHA; оба runtime STOPPED/DB0/JVM0/sixports0 | PASS в проверенном scope; полная hash-проверка старых config/client trees NOT_RUN |
+| DELIVERY | Committed core-v3 Ant jar+compile-tests2361 product/357 test,38с; самостоятельный RELEASE native Main200shops/16combat profiles; ZIP seal и Validate | PASS; файлы и существующая собственная БД на этом ПК, без DB backup/авторелокации |
+| OWNER_PLAY | Все hard070 gates пройдены по объявленному native контракту; M1 materially resumes через конечный maintenance маршрут | READY_OWNER_PLAY; OWNER_VISUAL_PENDING; полный farm/trade completion NOT_PROVEN |
 
 Chance assertions — точная source/policy математика плюс actual NpcTemplate boundary execution; изолированные100% drop tables проверяют количество и suppression. Они не являются настоящим убийством Queen Ant ради случайного ring drop и не выдают предмет игроку. Native combat Queen Ant подтверждён отдельно.
 
 `core-v1-v2-class-parity.tsv` подтверждает4562/4562 неизменённых production classes. `native-archive-input-parity.tsv` подтверждает те же8 effective XML, Q234/Q235 source и точные bytes применённой цены. В91004 archive добавлен явный NPC30300; в обоих входах уже есть native allow−1, поэтому список разрешает тот же обмен, а Java range guard одинаков. Новая Board acceptance проверка скомпилирована отдельно против pinned v2 JAR в ui-native-bin;355 исходников основного test tree не заменялись. Её source/class/JAR SHA фиксирует BOARD_NATIVE_BUILD070.json. Клиент/H5 renderer не запускался.
 
+Для Queen Ant отдельно `queen-data-core-v3-parity.tsv`: native input и committed core-v3 совпадают после нормализации только CRLF/LF для12 файлов — NPC29001/14176, skill1230/1339/1217/1068/239, zones/effect.xml и GrandBoss/NPC/Player/PVP/Rates.ini. Полный исходный v4 proof содержит melee31, Prominence582, Vortex1733 с effect, summon76, native heal сверх обычной regen и Might;4215/4515 отсутствуют у всех ролей. Reviewer подтвердил, что пакет требует реальные four-role evidence и не требует повторять всю матрицу на каждом побайтово эквивалентном combat implementation. Это сохранение доказательства, а не waiver или принятие OWNER_PLAY.
+
 Native экономические fixtures имели явное TEST финансирование100 млрд Adena/actor; quest fixture —500 млн Adena/5 млн SP и retained inputs984 CrystalB, B Sword of Damascus79, Pure Silver6320. Это **не заработанная экономика**, не ship/release grants, не TestAdmin/kpCat и не признание phantom income. Проверка производства стоимости/потребления реальна; естественное время накопления не измерялось.
 
 ## Журналы и выполненные команды
 
-Дополнительный bounded Main необходим из-за нового доказанного дефекта измерения: на boot2 атомарная публикация observer.properties прекратилась с Windows sharing failure, оставив полный временный файл. Это не доказательство остановки экологии. Java writer теперь повторяет только atomic move до пяти раз с четырьмя паузами10мс, по существующему LocalPlay-AtomicRename.cs; постоянная блокировка остаётся fail-closed. PowerShell readers используют ReadWrite|Delete и сохраняют проверку64KiB/UTF-8/ACL/reparse. Реальный Windows тест старого writer дал RED AccessDenied, исправленного — GREEN transient release/PERSISTENT_LOCK_FAIL_CLOSED; отдельный reader contract подтверждает OLD snapshot и NEW pathname. Независимый reviewer не нашёл Important/Critical дефектов. Изменение production writer требует новой committed сборки core-v3 и обновления только двух собственных остановленных070 roots; новые gameplay правила не добавлены.
+Дополнительный bounded Main потребовался из-за нового доказанного дефекта измерения: на boot2 атомарная публикация observer.properties прекратилась с Windows sharing failure, оставив полный временный файл. Это не доказательство остановки экологии. Java writer теперь повторяет только atomic move до пяти раз с четырьмя паузами10мс, по существующему LocalPlay-AtomicRename.cs; постоянная блокировка остаётся fail-closed. PowerShell readers используют ReadWrite|Delete и сохраняют проверку64KiB/UTF-8/ACL/reparse. Реальный Windows тест старого writer дал RED AccessDenied, исправленного — GREEN transient release/PERSISTENT_LOCK_FAIL_CLOSED; отдельный reader contract подтверждает OLD snapshot и NEW pathname. Независимый reviewer не нашёл Important/Critical дефектов. Изменение production writer потребовало committed core-v3 и обновления двух собственных остановленных070 roots; оба действия выполнены, новые gameplay правила не добавлены.
 
 | Команда / проверка | Exit / receipt |
 |---|---|
@@ -103,11 +105,17 @@ Native экономические fixtures имели явное TEST финан
 | Final-JAR Queen Ant resume |1; `final-queen-ant.log`, `curse-native-1792727212203.tsv`; истощённая retained fixture погибла, полный повтор INCONCLUSIVE |
 | `ant -f <repo>/.phantom-local/task070/source-core-v1/L2J_Mobius_CT_2.6_HighFive/build.xml -Dbuild=<repo>/.phantom-local/task070/build-final-core-v1 jar compile-tests` |0; `core-v1-build.log`, BUILD SUCCESSFUL36с;2 прежних runFinalization removal warnings |
 | `Build-Task070.ps1 -Label core-v2 -SourceCommit 89a2b9d3a300871cbbd5855d144db9ae5a809a69` |0; `core-v2-build.log`, Ant35с; исправлена только упаковка/tools,4562 production classes побайтово равны core-v1 |
+| `Build-Task070.ps1 -Label core-v3 -SourceCommit 7779f4ddf104ae8b94f8bf7b399a391ce0a51c8d` |0; `core-v3-build.log`, Ant38с;2361 production/357 test sources;3 предупреждения Windows-specific test ExtendedOpenOption и2 прежних runFinalization |
 | Runtime guard/PowerShell parser |0; DB_WRITES=0/PROCESS_ACTIONS=0,7 scripts parsed, closure-runtime-report.md |
+| Windows mailbox writer на committed core-v3 JAR |0; `writer070-final-v3.log`, реальный transient reader и permanent lock fail-closed; случайно независимо повторён closure agent с тем же результатом в `writer070-committed-v3.log` |
+| Production class parity v2→v3 |0; `CLASS_PARITY_CORE_V3_070.json`,4562 classes, отличается только LocalPlayPilotService;4561 остальных побайтово равны |
 | Rune audit, real XML only |0;41 rows/0 drop-spoil; local premium-report.md |
-| Main/restart/assembly/stop commands |**PENDING_FINALIZE: добавить точные фактически исполненные команды, exits и receipts** |
+| Actual Main/restart/assembly/stop |0; `assemble-{test,release}-core-v2.log`, `main-boot{1,2}-*.log`, `main-boot{3,4,5}-v3-*.log`, `release-main-v3-*.log`; exact Source/JAR и реальные PID ниже |
+| `Test-Native070.ps1 -BuildRoot <task>/build-final-core-v3 -Check PhantomEconomy070Native -Mode verify -Label post-main-v3-economy-verify` |0; ECONOMY070_NATIVE_VERIFY_PASS после реальных Main рестартов |
+| `Test-Native070.ps1 -BuildRoot <task>/build-final-core-v3 -Check PhantomEconomy070QuestNative -Mode verify -Label post-main-v3-quest-verify` |0; ECONOMY070_QUEST_VERIFY_PASS после реальных Main рестартов |
+| Private `Package-Final070.ps1 -SourceCommit 7779f4ddf104ae8b94f8bf7b399a391ce0a51c8d -AcceptancePath <task>/ACCEPTANCE070.tsv -AcceptanceSha256 <exact-file-SHA> -ParentAccepted` |0; `package-final-runtime-helper070.log`, PACKAGED_STOPPED_DB0; это sealing фактической матрицы, не manual QA владельца |
 
-У native запусков exact lane: `-Dphantom.task070.native=true -Dphantom.module.root=<module> -Dphantom.test.config=<repo>/.phantom-local/task070/native-test/game/config/Database.ini`; cwd — собственный `native-test/game`. Development overlay использовался только до финальной сборки. Штатный воспроизводимый wrapper — `tools/phantom-runtime/Test-Native070.ps1`, который фиксирует Check/Mode/BuildRoot/Label; **PENDING_FINALIZE: сверить и вписать literal outer command lines development запусков из журнала основного исполнителя**, не подставлять их как уже выполненные final-JAR команды.
+У native запусков exact lane: `-Dphantom.task070.native=true -Dphantom.module.root=<module> -Dphantom.test.config=<repo>/.phantom-local/task070/native-test/game/config/Database.ini`; cwd — собственный `native-test/game`. Development overlay использовался только до финальной сборки. Ранние development Java invocation выполняли классы `PhantomEconomy070CurseNative resume`, `PhantomEconomy070Native resume`, `PhantomEconomy070RecoveryNative` и `PhantomEconomy070QuestNative resume` с GameServer.jar первым после явно указанного dev-overlay. Их фактические результаты и IDs перечислены в таблице; они не переименованы в final-v3 запуски. Штатный wrapper — `tools/phantom-runtime/Test-Native070.ps1`, который фиксирует Check/Mode/BuildRoot/Label; точные финальные команды после обычного Main приведены отдельно ниже.
 
 ## Неудачные проверки и исправленные причины
 
@@ -119,29 +127,53 @@ Native экономические fixtures имели явное TEST финан
 - Quest fixture сначала не имела зарегистрированных Q234/Q235 constructors; добавлен exact native bootstrap. Сохранённый actor затем требовал штатный `Quest.playerEnter` после Player.load для native quest state hydration. Предшествующие assertion failures сохранены в `quest-native-dev.log`, `quest-native-retained.log`, `quest-native-current-data.log`; новые аккаунты/сброс quest state ради PASS не создавались. Продолжение `quest-native-player-enter.log` прошло полный путь.
 - Final code review обнаружило ABBA count monitors и неправильный ownership manifest path в README reprice. Count locking переведён на dbLock, порядок paid inventory/material исправлен, README использует parent runtime root. Focused lock regression PASS. Итог review: конкретных unresolved Critical/Important в прочитанных областях нет; это не сертификат всех native callers или multi-JVM.
 - Первая inline encoding-проверка не стартовала из-за PowerShell smart quote; исправленный scanner использует существующий ordinal/codepoint pattern. Pricing smoke потребовал чтение process inventory через одобренный require_escalated; первоначальный sandbox/CIM отказ произошёл до записи.
+- Первая попытка private refresh v2→v3 через Windows PowerShell5 остановилась до создания backup/изменения runtime из-за другого culture sort. `HASH_ORDER_DIAGNOSIS070.json` подтвердил одинаковый набор28662 файлов, но разный порядок PowerShell Core/Framework (первое отличие auction_bid.sql/auction.sql). Сам ZIP SHA совпал с receipt. Повтор полной проверки в PowerShell7, создавшем receipt, прошёл без обхода source/test hash; refresh завершён STOPPED/DB0. Runtime START/STATUS используют individual SHA и не зависят от этого full-tree sort; формат provenance и его сортировка не перерабатывались вне задачи.
+- Первый package preflight остановился до записей: private script сравнил рабочий LF helper с SHA архивного CRLF helper. Нормализованный текст совпал; переиспользован exact runtime helper903A21… по уже успешному Refresh pattern. Source/JAR/config не менялись. Следующая упаковка полностью прошла; ранний отказ сохранён в `package-final070.log`.
+- Первая атомарная замена финального guide не выполнилась: PowerShell преобразовал null backup argument в пустой path. Guide SHA не изменился; первоначальный напечатанный PASS недостоверен. Ошибка устранена именованным same-volume backup, exact preimages сохранены вне checkout; только последующий `DELIVERY_GUIDE_FINAL070.json` со state ATOMIC_APPEND_PASS подтверждает успешную замену.
 
 Полный старый verify/soak не запускался. Были только относящиеся к070 focused проверки, последовательные Ant/DB/native этапы и подготовка обычного Main. Fault injection подтверждает postcommit/prepublication recovery; неопределённый JDBC network commit отдельно не инжектировался, его fail-closed count guard проверялся кодом и не выдаётся за отдельный native PASS.
 
 ## Поставка, БД и сохранность
 
+### Обычный Main: состояние и границы измерения
+
+Boot1 core-v2 (Game14696/Login28444) выполнил45с TestHuman и120с после его выхода. Profile4 Baferdrag/268484299 дал native140EXP/8SP и сохранил level3/EXP385/SP22/HP36/MP46; profile7 Cobramind не дал полезного farm из-за LOCAL_FARM_UNAVAILABLE. После60с recent-human pin actor4 ушёл из World. STOP штатный, DB0. Ошибочно выбранный до запуска observation ID1 оказался merchant ledger, после read-only диагноза observer allowlist исправлен на реальные4,7; phantom state не менялся.
+
+Boot2 core-v2 (Game29700/Login29000) восстановил тот же actor4/HP36 и200 offline owners/600 items. До TestHuman setup observer остановился с private I/O failure; полный temporary файл и thread dump сохранены. Это не свидетельство остановки экологии. После этого выполнены только доказанные writer/reader fixes и один дополнительный bounded same-v3 pair для корректного измерения. Повторение является исключением по новому причинному факту, не старым soak.
+
+Boot3 final core-v3 (Game23780/Login14428) сохранил тот же actor4 и начал native epoch94529126741500. В45с actual native rest HP36 выросло до82/138, затем до138/138 в оставшемся коротком окне. Useful debt94529647207100 не обновлялся лечением; resource cap дал bounded_unavailable, затем REGEN законно закончился до sticky deadline. Kill/reward/loot0 и прежние EXP385/SP22/Adena8 сохранены — отдых не засчитан как убийства. STOP штатный, DB0, observer I/O failure не повторился. Source AI resource policy не менялась по догадке.
+
+Boot4 same-v3 (Game31996/Login5932) сохранил identity и восстановленное здоровье. Короткий native background lease завершился до первого30с population sample; `Resume` TestHuman находился в Giran, поэтому unseen rewards не были засчитаны. После STOP сохранены тот же actor4, HP90/MP53, новая точка24496/9206/−3584,200 прежних offline owners/600items. Поздняя заявка дополнительного local45 окна не запускалась: до ранее назначенного STOP оставалось меньше55с. Это не было объявлено farm PASS.
+
+Boot5 — последняя bounded fixture correction,251с runtime (05:21:38–05:25:49UTC), тот же v3 Game2156/Login5352. Read-only safe-share sampler запущен до START и собирал существующие1с World samples, без изменения source/config/JAR/actor. После законного BGREADY/noWorld/nolease выполнен один Setup4,45с local TestHuman и90с passive; затем немедленный штатный STOP/DB0. В `main-boot5-v3-actor4-timeline.tsv` тот же4/268484299, epoch95402728176200, finite goal1503805470514203338/revision7591, inventory.maintenance SELLitem18 у реального Minaless30138/object268466837, NPCpoint12009/15704/−4554. Native AI MOVE_TO прошёл от24496/9206 до14633/15887 с корректной Geo-высотой: расстояние к цели14,1→2,6км. HP9→87,6 восстанавливалось естественно. Journey start1792733001105, budget480000мс, deadline1792733481105 не сбрасывались. Старый REGEN PHASE_DEADLINE сохранился, но не остановил фактический native маршрут.
+
+Именно значительный прогресс по конечной native maintenance цели закрывает контракт P069_M1 «proceeds to useful native activity». Пакет P069_CLOSURE допускает native retreat/real heal/other useful action и не требует завершить farm/trade как дополнительный gate. Независимый reviewer подтвердил bounded PASS; один старый diagnostic не означает operational stuck, когда действие продолжает приближаться к реальному назначению. Покупка/прибытие/currentAmount1, новые kill/reward receipts и полный farm/BG recovery **NOT_PROVEN**. EXP385→1182/SP56 до первого видимого среза не приписаны наблюдавшимся native убийствам. Безразмерное ожидание, refill, reset часов/incident/debt, extra actors и выдача игровых ресурсов не применялись.
+
+Stopped read-only corroboration `main-boot5-v3-actor4-sql070-final.tsv`: тот же actor4, level4/class31, HP92/154 MP60/60, EXP1182/SP56/Adena33, конечная точка13672/16021/−4576, примерно1,7км от торговца; native-context COMPLETED/travelPosition=true/farmPosition=false, bg.state READY. Тот факт, что item18 имеется в SQL inventory, не выдаётся за sale completion без native receipt. Первый private probe не нашёл JDBC driver до DB connect; ошибочный receipt сохранён, исправленный probe переиспользовал существующий runtime classpath и выполнил только read-only SELECT. Delta797EXP/34SP/25Adena остаётся UNATTRIBUTED.
+
+RELEASE Main: Game24304/Login1432, stock boot42с, Xms2g/Xmx4g и203Geo;16 combat identities и200 native shops/owners/600store rows, первоначальный capital20млн/stock value82093352 один раз. Самостоятельная свежая RELEASE DB не получала TEST accounts/funding. START вывел success/status, его Windows PowerShell process завершился, но внешний capture не возвращал управление; отдельных STOP request/log ещё не было. Выполнен тот же guarded inline `Runtime070.ps1 -Action Stop -RuntimeRoot D:\PhantomWorld\Economy-QoL-070-candidate`: Game/Login штатно завершены, DB0; затем внешний capture вернулся start0/stop0. Повторный STOP уже остановленных ролей не запускал новые процессы. Отдельные receipts `release-main-v3-explicit-stop070.log` и `release-main-v3-orchestration070.log`, native shutdown5с в `release-main-v3-java070.log`; никаких force fallback или ещё одного START.
+
 Созданы только `l2jmobiush5_phantom_test_070` и `l2jmobiush5_phantom_release_070`, после проверки отсутствия. MariaDB11.4.13, loopback3308; bootstrap127 tables/122 scripts, aggregate `CBB4FFA79C61FA9840D6DB678CE0BB232B408D4343A632EF794FDC26AC04EAA6`. Economy migration070 создаёт собственные InnoDB wallet/stock/orders; stock initial1 задаётся явным installer INSERT IGNORE, ordinary restart запас не пересоздаёт. Targeted schema update metadata не пересеивает остатки.
 
-Предусмотрены собственные TEST `<repo>/.phantom-local/task070/runtime-test` и RELEASE `D:\PhantomWorld\Economy-QoL-070-candidate`. RELEASE2106/7777/control9150, TEST2250/7950/control9250; GameServer Xms2g/Xmx4g,203 physical GeoData. CB/premium flags включаются только070 assembly profile. Старые кандидаты057–069, их БД, общая MariaDB service/datadir, клиент, kpCat/TestAdmin, Studio и чужие worktrees не изменялись как цели задачи. Исторические входные JAR/config/owner файлы использованы read-only; final SHA comparison ещё нужно приложить.
+Созданы собственные TEST `<repo>/.phantom-local/task070/runtime-test` и RELEASE `D:\PhantomWorld\Economy-QoL-070-candidate`. RELEASE2106/7777/control9150, TEST2250/7950/control9250; GameServer Xms2g/Xmx4g,203 physical GeoData. CB/premium flags включены только070 assembly profile. Старые кандидаты057–069, их БД, общая MariaDB service/datadir, клиент, kpCat/TestAdmin, Studio и чужие worktrees не являлись целями записи. Исторические входные JAR/config/owner файлы использованы read-only. Начальные11 protected/untracked файлов и16 original070 inputs совпали с исходными SHA;24 старых candidate JAR и оба069 JAR совпали с опубликованными SHA. В историческом069 manifest24 Database.ini вообще не имели исходного SHA: это NO_PRIOR_SHA, а не24 изменённых файла; их mtimes предшествуют070. Полная byte-identity старых config/client trees не заявляется. Точные результаты — `PROTECTED_FINAL070.json` и финальный scope guard.
 
 | Обязательный финальный артефакт | Значение |
 |---|---|
-| Committed build root | `<repo>/.phantom-local/task070/build-final-core-v2` |
-| Compiled source commit | `89a2b9d3a300871cbbd5855d144db9ae5a809a69` |
-| GameServer.jar SHA-256 | `478E3E295BCDC7E4D875453213105903E8F47B2FA83313B50245DA16A2088010` |
-| LoginServer.jar SHA-256 | `4F74BE10EE85CE94DD5179417321DE4EEA5EA9E2945812B309EE2B737306A805` |
-| Source archive SHA-256 | `15C0934E1E5D9B0B23633C1E1674829F434EE7D2D9B2E8F18C17F4785238AAD5` |
-| Committed tree SHA-256 | `E41DF8AFA475EA9D15E969C287C80CB0305B802F0B659EAFD70DD460DB5D5C0C` |
-| Test tree SHA-256 | `61A33E2777FF0FC0C0ABAD9783FB0876E09B108F35C06A98163F059995D75A66` |
-| Build receipt time | `2026-10-23T04:03:21.3538000Z`, sourceState=COMMITTED |
-| Source/JAR equality TEST↔RELEASE | PASS; обе Assemble070 v2 exit0, одинаковые source/JAR,203 физических региона, Validate price SHA PASS |
-| Обычный Main / тот же DB и JAR restart | **PENDING_FINALIZE: run IDs, profile/actor, epoch, полезное действие** |
-| TEST и RELEASE final status | **PENDING_FINALIZE: оба OWN070 JVM STOPPED, точные PID receipts, DB0/ports0** |
-| Самостоятельный ZIP/README/START/STATUS/STOP | **PENDING_FINALIZE: exact пути, SHA, validate result** |
+| Committed build root | `<repo>/.phantom-local/task070/build-final-core-v3` |
+| Compiled source commit | `7779f4ddf104ae8b94f8bf7b399a391ce0a51c8d` |
+| GameServer.jar SHA-256 | `4EA1B473274C0CA3778A7340ED386C78237FAC53B22822F8AE6C3D0BC37468D9` |
+| LoginServer.jar SHA-256 | `D0AD42F22FC815E8FDAF61C936AB64987CB7C13721923CD41287F1AB31A1FDD3` |
+| Source archive SHA-256 | `E5C1A115260EA9C2B7A02D488C2F9D953E87BF511D5C5C8BF9DFB9891312B2FE` |
+| Committed tree SHA-256 | `1855C18A71EAAC60AFB5862F577F8BF87437E6A7DEB86BC37F963521F681E2F0` |
+| Test tree SHA-256 | `713A2EB0BDCBC482E7608AB5B158E7EE20D121A16D9AF18FD46DA1DD61B8CFBF` |
+| Build receipt time | `2026-10-23T04:55:39.5206375Z`, sourceState=COMMITTED |
+| Source/JAR equality TEST↔RELEASE | PASS; обе Assemble070 v2 exit0; private refresh v3 exit0,15 exact file targets с external SHA preimages; config/data/catalog/Geo сохранены; оба Validate/Status после refresh STOPPED/DB0 |
+| Обычный Main / тот же DB и JAR restart | PASS; TEST v3 epochs/PID/actor/полезный маршрут приведены выше; отдельный RELEASE Game24304/Login1432; post-Main economy/quest verify0 |
+| TEST и RELEASE final status | PASS; `FINAL_STOP070.json`, `FINAL_STATUS_{Test,Release}070.json`; оба Game/Login STOPPED, DB0, own JVM0, порты2106/7777/9150/2250/7950/9250 свободны |
+| Самостоятельная поставка | `D:\PhantomWorld\Economy-QoL-070-candidate\START_HERE_070_RU.md`, START.cmd/STATUS.cmd/STOP.cmd, BUILD/SOURCE_BUILD_INFO070.json,11 каталогов, ACCEPTANCE070.tsv, FINAL_DELIVERY070.json; Runtime Validate PASS |
+| ZIP | `<repo>/.phantom-local/task070/delivery-d4430dc6f1e7492e973ce59c74252845/Economy-QoL-070.zip`;1204403020bytes,27039entries;SHA256 `092F30B91FD27DFFBD8BC4EEE729EB08CF8CB11F28277A3EC23924C98CA413B6` |
+| ZIP sealing | `PACKAGE_RECEIPT070.json` state PACKAGED_STOPPED_DB0, completed05:45:59UTC; source/JAR/Geo/entry names+lengths/inventory metadata verified; private ACL; databaseBackupIncluded=false; existing own DB/path required |
+| Acceptance / final delivery manifest SHA | `AC03B19E0BBC6DBC7EEDC9A61B8F7AEC42712DE944C62D50D03C3270CECF484C` / `58907820421009652FF72071E140C010AA344873DBA4D404BA65BD0931C8B7E6` |
 | Protected input/package/untracked hashes после задачи |11 protected inputs/untracked совпали с начальными SHA;16 original070 input files неизменны;069 GameServer совпал с опубликованным SHA |
 
 Логи могут содержать старое runtime stderr отображение кириллицы с replacement characters; исходники не переписываются по этим сериализованным/console артефактам. Credentials, private configs и TEST funding не публикуются.
@@ -152,13 +184,17 @@ Bounded exception больше10 файлов заранее ограничен 
 
 Git использовал основной исполнитель по явной AUTHORITY070 пользователя. Subagents pricing/premium/runtime/review git-команд не выполняли. Build script выполняет следующие подтверждённые исходником команды внутри разрешённого core build: `git symbolic-ref --short HEAD`, `git rev-parse HEAD`, `git status --porcelain --untracked-files=all -- L2J_Mobius_CT_2.6_HighFive`, `git archive --format=zip --output=<repo>/.phantom-local/task070/core-v1.zip e8ca9328c39f071803b11980f3acb3ddd5c06326 -- L2J_Mobius_CT_2.6_HighFive/build.xml L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test L2J_Mobius_CT_2.6_HighFive/dist L2J_Mobius_CT_2.6_HighFive/tools`.
 
-**PENDING_FINALIZE:** вписать полный literal список остальных фактически использованных Git-команд основного исполнителя (bounded inspection, remote read/fetch, exact-path stage/diff/commit), почему они разрешены, окончательный docs commit SHA и результат обычного non-force push в feature/phantom-world. По live ledger baseline remote сверялся через git ls-remote; literal аргументы до финализации здесь не выдумываются. Master/default branches, history, reset/clean/force/new worktree не менялись. Готовность push этим черновиком не подтверждается.
+Остальные фактически использованные команды inspection/verification: `git status --porcelain --untracked-files=all -- .gitattributes .gitignore L2J_Mobius_CT_2.6_HighFive`, `git ls-remote origin refs/heads/feature/phantom-world`, `git fetch --no-tags origin feature/phantom-world`, `git diff --name-only dd57479f28db8ed2cb6d824b645c57dcb49dfa18 -- .gitattributes .gitignore L2J_Mobius_CT_2.6_HighFive`, `git diff --check -- $scope070`, `git diff --cached --stat`, `git diff --cached --check`. `$scope070` содержит ровно97 paths из exact allowlist ниже. Отдельные `git diff -- <exact paths>` и `git add -- <exact paths>` использовали только эти task-owned пути;7 исходных untracked068V не staged. `git add .`, renormalize и broad restore не выполнялись.
 
-Mojibake-маркеры в изменённом файле этого отчёта проверены отдельно: полный набор27 маркеров, `rg` exit1, совпадений нет.
+Source commits выполнены обычными командами `git commit -m 'Implement PHANTOM-ECONOMY-QOL-070 transactional economy and native checks'` (e8ca9328c39f071803b11980f3acb3ddd5c06326), `git commit -m 'Preserve pinned economy payload bytes in committed archives'` (89a2b9d3a300871cbbd5855d144db9ae5a809a69), `git commit -m 'Retry private mailbox publication after transient Windows reader locks'` (7779f4ddf104ae8b94f8bf7b399a391ce0a51c8d). Build v2/v3 использовал тот же literal `git archive --format=zip --output=<task>/<label>.zip <codeSHA> -- <module>/build.xml <module>/java <module>/test <module>/dist <module>/tools` с соответствующими закреплёнными label/SHA; без dirty overlays в финальной сборке.
 
-Escaped Cyrillic в изменённом файле этого отчёта проверены отдельно: все шесть regex, `rg` exit1, совпадений нет.
+Заключительная фиксация затрагивает только два exact path: `git add -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-ECONOMY-QOL-070.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/PHANTOM_CURRENT_STATUS.md`, затем `git commit -m 'Record PHANTOM-ECONOMY-QOL-070 final native acceptance and delivery'`. Публикация — `git fetch --no-tags origin feature/phantom-world`, `git ls-remote origin refs/heads/feature/phantom-world`, `git push origin HEAD:feature/phantom-world`, затем `git rev-parse HEAD` и повторный `git ls-remote origin refs/heads/feature/phantom-world` для exact equality. Полный финальный SHA/exit codes/время/remote equality записываются после успешной операции в private `<task>/reports/FINAL_PUBLICATION070.json` и финальном ответе, без циклической попытки вписать собственный commit SHA в его содержимое. Эти действия прямо разрешены AUTHORITY070. Master/default branches, чужая история, reset/clean/force/new worktree не менялись.
 
-Полная проверка всех финальных изменённых исходников основным исполнителем: **PENDING_FINALIZE**, с отдельными результатами двух scans. Pricing/closure/premium lane уже зафиксировали свои scoped проверки без совпадений.
+**Фактический push code: PASS.** 23.10.2026 в05:56:03UTC обычный `git push origin HEAD:feature/phantom-world` опубликовал `7779f4ddf104ae8b94f8bf7b399a391ce0a51c8d` поверх исходного dd57479f, exit0. Повторный `git ls-remote` вернул exact тот же SHA; `CODE_PUBLICATION070.json` фиксирует NORMAL_NON_FORCE_PASS/remoteEqual=true. Все три code/tool commits опубликованы. Следующий docs-only commit сохраняет этот уже фактический результат; финальная ветка и квитанция публикации фиксируются отдельно указанным способом.
+
+Mojibake-маркеры в97 финальных изменённых файлах проверены отдельно: полный набор27, matches0; `Verify-Encoding070.ps1 -Mode Mojibake`, exit0.
+
+Escaped Cyrillic в97 финальных изменённых файлах проверены отдельно: все шесть regex, matches0; `Verify-Encoding070.ps1 -Mode Escaped`, exit0. Две отдельные проверки22 доставляемых/сопровождающих текстов также дали matches0/exit0. Pricing/closure/premium lane ранее зафиксировали собственные scoped scans без совпадений.
 
 <details>
 <summary>Exact core scope — repository-relative paths</summary>
@@ -253,6 +289,14 @@ L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Runtime070.ps1
 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Task070Common.ps1
 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Task070DatabaseProbe.java
 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Test-Native070.ps1
+.gitattributes
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-ECONOMY-QOL-070.md
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEconomy070BoardNative.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotWriter070Checks.java
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1
+L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Test-LocalPlayPilotReader.ps1
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/PHANTOM_CURRENT_STATUS.md
 ```
 
 </details>
