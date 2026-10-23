@@ -211,6 +211,6 @@ final class PhantomPvp072Native
 		}
 		report.append("pvp_native_approach\tactual=").append(actor.getLocation()).append(";no relocation or resources\n");
 	}
-	private static void await(java.util.function.BooleanSupplier condition, long millis, String failure) throws Exception { final long until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis); while (!condition.getAsBoolean() && System.nanoTime() < until) { Thread.sleep(50); } check(condition.getAsBoolean(), failure); }
+	private static void await(java.util.function.BooleanSupplier condition, long millis, String failure) throws Exception { final long until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis); boolean reached = condition.getAsBoolean(); while (!reached && System.nanoTime() < until) { Thread.sleep(50); reached = condition.getAsBoolean(); } check(reached, failure); }
 	private static void check(boolean condition, String message) { if (!condition) { throw new AssertionError(message); } }
 }
