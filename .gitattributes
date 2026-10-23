@@ -7,3 +7,6 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/READ
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/RELEASE_PROFILE.md -text
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/TASK.md -text
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-PLAYABLE-RELEASE-069/TEST_POLICY.md -text
+
+# Applied pricing is a byte-pinned payload; archive/checkout EOL conversion invalidates its SHA.
+L2J_Mobius_CT_2.6_HighFive/dist/game/data/economy070/pricing070.tsv -text

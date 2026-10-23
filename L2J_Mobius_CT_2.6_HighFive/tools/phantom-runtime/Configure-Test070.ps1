@@ -28,7 +28,7 @@ $preimages=@(foreach($relative in @('game/config/Custom/PhantomPlayers.ini','gam
 foreach($entry in @(@('PhantomPopulationTarget','8'),@('PhantomPopulationActiveTarget','8'),@('MaxMaterializedPhantoms','8'),@('PhantomPopulationTimeZone','-12:00'),@('PhantomStarterShotLifetimeLimit','0'))){Set-Config070 $runtime 'game/config/Custom/PhantomPlayers.ini' $entry[0] $entry[1]}
 foreach($entry in @(@('EnableLocalPlayPilot','True'),@('EnableLocalPlayPilotAutoAttach','True'),@('LocalPlayPilotAutoAttachCharacters',$HumanName),@('EnableLocalPlaySyntheticHuman','True'),@('LocalPlaySyntheticCharacterObjectId',"$HumanObjectId"),@('LocalPlaySyntheticCharacterName',$HumanName),@('LocalPlayObserverProfileIds',"$ProfileId"))){Set-Config070 $runtime 'game/config/Custom/LocalPlayPilot.ini' $entry[0] $entry[1]}
 $source=Read-Json070 (Join-Path $runtime 'SOURCE_BUILD_INFO070.json')
-foreach($name in @('LocalPlay-Ownership.ps1','LocalPlay-Pilot.ps1','Start-LocalPlaySynthetic.ps1')){
+foreach($name in @('LocalPlay-Ownership.ps1','LocalPlay-Pilot.ps1','LocalPlay-AtomicRename.cs','Start-LocalPlaySynthetic.ps1')){
     $input=Join-Path $source.committedModuleRoot ('tools/phantom-local-play/'+$name)
     $output=Join-Path $runtime $name
     if(Test-Path -LiteralPath $output){throw 'TASK070: preserve existing native test operator.'}

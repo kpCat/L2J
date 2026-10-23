@@ -53,6 +53,12 @@ $geoManifest=Join-Path $runtime 'GEODATA070.tsv'
 Assert-Plain070 $geoManifest
 if((Get-FileHash -LiteralPath $geoManifest -Algorithm SHA256).Hash -ine $build.geoManifestSha256){throw 'TASK070: GeoData manifest differs.'}
 if($Action -cin @('Validate','Start')){
+	$price070=Join-Path $runtime 'game/data/economy070/pricing070.tsv'
+	$pin070=Join-Path $runtime 'game/data/economy070/pricing070.sha256'
+	Assert-Plain070 $price070
+	Assert-Plain070 $pin070
+	$pinned070=[IO.File]::ReadAllText($pin070).Trim()
+	if($pinned070 -cnotmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath $price070 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $pinned070){throw 'TASK070: applied price payload checksum differs; START blocked.'}
     $regions=@(Import-Csv -LiteralPath $geoManifest -Delimiter "`t")
     if($regions.Count -ne 203 -or @($regions.relativePath | Select-Object -Unique).Count -ne 203){throw 'TASK070: exact203 physical regions required.'}
     foreach($region in $regions){

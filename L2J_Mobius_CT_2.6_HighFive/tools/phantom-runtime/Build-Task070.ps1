@@ -42,6 +42,9 @@ try{
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [IO.Compression.ZipFile]::ExtractToDirectory($archive,$source)
 $committed=Join-Path $source $relative
+$price070=Join-Path $committed 'dist/game/data/economy070/pricing070.tsv'
+$pinned070=[IO.File]::ReadAllText((Join-Path (Split-Path $price070 -Parent) 'pricing070.sha256')).Trim()
+if($pinned070 -cnotmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath $price070 -Algorithm SHA256).Hash.ToLowerInvariant() -cne $pinned070){throw 'TASK070: committed price payload checksum differs; no build or deployment.'}
 & ant -f (Join-Path $committed 'build.xml') "-Dbuild=$build" jar compile-tests *> $log
 if($LASTEXITCODE){Get-Content -LiteralPath $log -Tail 25;throw 'TASK070: committed build failed, no successful receipt.'}
 $receipt=[ordered]@{format=1;owner=$binding.owner;sourceState='COMMITTED';codeCommit=$SourceCommit;sourceModuleRoot=$module;committedModuleRoot=$committed;sourceArchivePath=$archive;sourceArchiveSha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;committedTreeSha256=(Get-TreeHash070 $committed @('build.xml','java','test','dist','tools') @('dist/libs/GameServer.jar','dist/libs/LoginServer.jar'));buildRoot=$build;gameJarSha256=(Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/GameServer.jar') -Algorithm SHA256).Hash;loginJarSha256=(Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/LoginServer.jar') -Algorithm SHA256).Hash;testTreeSha256=(Get-TreeHash070 (Join-Path $build 'phantom-test') @('bin','resources'));builtUtc=[DateTime]::UtcNow.ToString('o')}
