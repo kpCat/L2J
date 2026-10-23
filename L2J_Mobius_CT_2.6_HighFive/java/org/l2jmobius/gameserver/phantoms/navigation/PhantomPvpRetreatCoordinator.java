@@ -104,7 +104,7 @@ public final class PhantomPvpRetreatCoordinator
 		{
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.position_stale");
 		}
-		final PhantomTopologyAnchor destination = safeAnchor(query.nearestAnchors(profile.point(), PhantomTopologyAnchorRole.RESPAWN, 1, MAXIMUM_DISTANCE), query.nearestAnchors(profile.point(), PhantomTopologyAnchorRole.CITY_CENTER, 1, MAXIMUM_DISTANCE));
+		final PhantomTopologyAnchor destination = safeAnchor(profile.point(), query.nearestAnchors(profile.point(), PhantomTopologyAnchorRole.RESPAWN, 1, MAXIMUM_DISTANCE), query.nearestAnchors(profile.point(), PhantomTopologyAnchorRole.CITY_CENTER, 1, MAXIMUM_DISTANCE));
 		if ((destination == null) || (destination.point().instanceId() != profile.point().instanceId()))
 		{
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.safe_anchor_missing");
@@ -332,9 +332,11 @@ public final class PhantomPvpRetreatCoordinator
 		}
 	}
 
-	private static PhantomTopologyAnchor safeAnchor(List<PhantomTopologyAnchor> respawns, List<PhantomTopologyAnchor> cities)
+	private static PhantomTopologyAnchor safeAnchor(PhantomTopologyPoint origin, List<PhantomTopologyAnchor> respawns, List<PhantomTopologyAnchor> cities)
 	{
-		return !respawns.isEmpty() ? respawns.getFirst() : cities.isEmpty() ? null : cities.getFirst();
+		if (respawns.isEmpty()) { return cities.isEmpty() ? null : cities.getFirst(); }
+		if (cities.isEmpty()) { return respawns.getFirst(); }
+		return origin.distanceSquared2D(cities.getFirst().point()) < origin.distanceSquared2D(respawns.getFirst().point()) ? cities.getFirst() : respawns.getFirst();
 	}
 
 	private static PhantomNavigationPoint point(PhantomTopologyPoint point)

@@ -255,6 +255,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		});
 		registry.add("06-known-unmapped-retreat-and-instance-guards", _ -> testUnmappedRetreat(false));
 		registry.add("07-retreat-resolves-authored-anchor-native-floor", _ -> testUnmappedRetreat(true));
+		registry.add("10-nearer-city-is-not-hidden-by-distant-respawn", _ -> testUnmappedRetreat(false, true));
 		registry.add("08-shortage-refuses-admission-and-retires-owned-offense", _ ->
 		{
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
@@ -290,11 +291,17 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static void testUnmappedRetreat(boolean resolveFloor)
 	{
+		testUnmappedRetreat(resolveFloor, false);
+	}
+
+	private static void testUnmappedRetreat(boolean resolveFloor, boolean nearerCity)
+	{
 		final var backend = new PhantomTopologyCoreSuite.TestBackend();
 		final var safe = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, 0, 0);
-		final var anchor = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("retreat.safe", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, "dungeon", safe, null, null, 256, List.of(), List.of());
+		final var anchor = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("retreat.safe", nearerCity ? org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER : org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, "dungeon", safe, null, null, 256, List.of(), List.of());
 		final var actualSafe = resolveFloor ? new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, -120, 0) : safe;
-		final var snapshot = PhantomTopologyCoreSuite.create(PhantomTopologyCoreSuite.baseNodes(), List.of(anchor), List.of(), backend);
+		final var distantRespawn = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("retreat.distant", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, "dungeon", new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(0, 0, 0, 0), null, null, 256, List.of(), List.of());
+		final var snapshot = PhantomTopologyCoreSuite.create(PhantomTopologyCoreSuite.baseNodes(), nearerCity ? List.of(anchor, distantRespawn) : List.of(anchor), List.of(), backend);
 		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
 		{
 			@Override public SignalDelivery submit(long profileId, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }

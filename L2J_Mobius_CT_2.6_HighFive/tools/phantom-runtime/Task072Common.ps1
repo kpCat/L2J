@@ -54,11 +54,13 @@ function Get-TreeHash072([string]$Root,[string[]]$Entries,[string[]]$Exclude=@()
     $lines=@(foreach($entry in $Entries){
         $path=Join-Path $Root $entry
         if(!(Test-Path -LiteralPath $path)){throw "TASK072: tree entry missing: $entry"}
-        foreach($file in Get-ChildItem -LiteralPath $path -File -Recurse | Sort-Object FullName){
-            Assert-Plain072 $file.FullName
-            $relative=$file.FullName.Substring($Root.Length+1).Replace('\','/')
+        [string[]]$files=@(Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object FullName)
+        [Array]::Sort($files,[StringComparer]::Ordinal)
+        foreach($file in $files){
+            Assert-Plain072 $file
+            $relative=$file.Substring($Root.Length+1).Replace('\','/')
             if($relative -cin $Exclude){continue}
-            $relative+':'+(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+            $relative+':'+(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
         }
     })
     if(!$lines.Count){throw 'TASK072: empty provenance tree.'}
