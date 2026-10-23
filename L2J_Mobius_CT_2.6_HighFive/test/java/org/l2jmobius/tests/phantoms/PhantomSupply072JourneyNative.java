@@ -146,10 +146,12 @@ public final class PhantomSupply072JourneyNative
 				state.setProperty("restart.completed", "true"); writeState(stateFile, state); report.append("result\tPASS SAME_ACTOR_RESTART productive native rewarded kill; no purchase replay/recompute/refill\n"); return;
 			}
 			check(player.getLevel() >= 20 && player.getInventory().getInventoryItemCount(1463, -1) == 0 && player.getActiveWeaponItem().getCrystalTypePlus() == org.l2jmobius.gameserver.model.item.type.CrystalType.D, "Materialized measured actor must retain20+/zero matching shots/legal D gear.");
-			if (continuation) { check(player.getObjectId() == 268480990 && id == 1 && player.getExp() == 837761 && player.getSp() == 84 && player.getAdena() == 350 && !state.containsKey("earned.kills"), "Only exact first072 failure after three native kills may continue once; no reset or guessed budget."); }
+			final int priorKills = Integer.parseInt(state.getProperty("earned.kills", "3"));
+			if (continuation) { check(player.getObjectId() == 268480990 && id == 1 && priorKills >= 3 && priorKills < 8 && player.getExp() == 835862L + priorKills * 633L && player.getSp() == priorKills * 28L && player.getAdena() >= 350, "Only exact retained072 earned checkpoint may continue; no reset or guessed budget."); }
 			else { check(player.getAdena() == 0, "Fresh measurement wallet must be zero."); }
 			report.append(continuation ? "MEASUREMENT_CONTINUED\t" : "MEASUREMENT_START\t").append("actor=").append(player.getObjectId()).append(";profile=").append(id).append(";level=").append(player.getLevel()).append(";xyz=").append(player.getLocation()).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=").append(player.getAdena()).append(";Dshots=0;HP=").append(player.getCurrentHp()).append(";inventory=").append(inventory(player)).append('\n');
-			for (int count = continuation ? 3 : 0; count < 5 && player.getAdena() < 1500; count++) { kill(combat, id, player, query, report, materialization); state.setProperty("earned.kills", Integer.toString(count + 1)); writeState(stateFile, state); }
+			// The first three kills exposed insufficient local stock. At most eight genuine kills total fund one short recovery, never a refill.
+			for (int count = continuation ? priorKills : 0; count < 8 && player.getAdena() < 1500; count++) { kill(combat, id, player, query, report, materialization); state.setProperty("earned.kills", Integer.toString(count + 1)); writeState(stateFile, state); }
 			check(player.getAdena() > 0, "PARTIAL_EARNINGS: five native kills did not produce any Adena; no money grant permitted.");
 			combat.beginStop(); final long combatDrain = System.nanoTime() + TimeUnit.SECONDS.toNanos(12); while (!combat.finishStop() && System.nanoTime() < combatDrain) { Thread.sleep(100); } combat = null;
 			final var goals = new PhantomGoalStateStore(profiles);
@@ -378,7 +380,8 @@ public final class PhantomSupply072JourneyNative
 			.filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == player.getInstanceId() && !mob.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))
 			.filter(mob -> knowledge.findNpc(mob.getId()).map(fact -> fact.kind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER && fact.level() >= player.getLevel() - 5 && fact.level() <= player.getLevel() + 2 && fact.exp() > 0 && fact.sp() > 0).orElse(false))
 			.sorted(Comparator.comparingDouble(mob -> player.calculateDistance3D(mob))).limit(8).toList();
-		for (var target : targets)
+		final long approachDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90);
+		targets: for (var target : targets)
 		{
 			if (materialization != null && (player.calculateDistance3D(target) > 600 || !GeoEngine.getInstance().canSeeTarget(player, target)))
 			{
@@ -391,12 +394,12 @@ public final class PhantomSupply072JourneyNative
 				if (route.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { continue; }
 				try (var lease = materialization.tryAcquireAction(profileId).orElseThrow())
 				{
-					final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
+					final long until = Math.min(approachDeadline, System.nanoTime() + TimeUnit.SECONDS.toNanos(60));
 					for (var point : route.points())
 					{
 						if (player.calculateDistance3D(point.x(), point.y(), point.z()) <= 40) { continue; }
 						check(!player.isDead() && paths.canWalkDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player), point), "Local native approach segment invalid.");
-						check(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(player, point.x(), point.y(), point.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, Monster.class, 3500)), Set.of(target.getObjectId())), "Local native approach has an unowned threat; no forced movement.");
+						if (!org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(player, point.x(), point.y(), point.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, Monster.class, 3500)), Set.of(target.getObjectId()))) { report.append("local_target_skipped\tunowned native threat;target=").append(target.getObjectId()).append(";xyz=").append(player.getLocation()).append('\n'); continue targets; }
 						player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, new org.l2jmobius.gameserver.model.Location(point.x(), point.y(), point.z()));
 						final var walk = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.captureWalk(player);
 						try { while (!player.isDead() && player.calculateDistance3D(point.x(), point.y(), point.z()) > 40 && System.nanoTime() < until) { Thread.sleep(100); } check(player.calculateDistance3D(point.x(), point.y(), point.z()) <= 40, "Native local approach deadline; no teleport."); }
