@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$BuildRoot,
       [Parameter(Mandatory)][ValidateSet('PhantomSupply072JourneyNative','PhantomPvp072Native')][string]$Check,
-      [ValidateSet('preflight','prepare','resume','cp-purchase','pvp','')][string]$Mode='',
+      [ValidateSet('preflight','prepare','continue','resume','cp-purchase','cp-retained','pvp','')][string]$Mode='',
       [Parameter(Mandatory)][ValidatePattern('^[a-z0-9-]{1,60}$')][string]$Label)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Task072Common.ps1')

@@ -65,7 +65,7 @@ final class PhantomPvp072Native
 		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
 		check(materialization.start() && materialization.materialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Paid actor did not reload.");
 		final Player actor = World.getInstance().getPlayer(actorId);
-		check(actor != null && !actor.isGM() && actor.getClient() == null && actor.getAccountName().equals("task072cp") && actor.getLevel() == 20 && actor.getInventory().getInventoryItemCount(1463, -1) == 9 && actor.getInventory().getInventoryItemCount(5592, -1) == 1, "Paid CP actor/finite shot checkpoint differs; no grant or replacement.");
+		check(actor != null && !actor.isGM() && actor.getClient() == null && Set.of("task072cp", "task072cp2").contains(actor.getAccountName()) && actor.getLevel() == 20 && actor.getInventory().getInventoryItemCount(1463, -1) == 9 && actor.getInventory().getInventoryItemCount(5592, -1) == 1, "Paid CP actor/finite shot checkpoint differs; no grant or replacement.");
 		final var paid = new PhantomCommerceReceiptStore(profiles).find(profile).orElseThrow().receipt();
 		check(paid.state() == PhantomCommerceReceipt.State.COMMITTED && paid.request().itemId() == 5592, "Actual paid CP receipt missing.");
 		final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults()); progression.start();
