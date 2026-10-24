@@ -29,9 +29,11 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
+import java.util.function.LongPredicate;
 
 import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
 import org.l2jmobius.gameserver.data.xml.RecipeData;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.managers.RecipeManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
@@ -47,6 +49,7 @@ import org.l2jmobius.gameserver.network.serverpackets.PrivateStoreMsgSell;
 import org.l2jmobius.gameserver.network.serverpackets.RecipeShopMsg;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
@@ -62,6 +65,8 @@ public final class PhantomStoreService
 	private final ConcurrentHashMap<Long, AutoCloseable> _ownerObservers = new ConcurrentHashMap<>();
 	private final LongAdder _opened = new LongAdder();
 	private final LongAdder _closed = new LongAdder();
+	private volatile LongPredicate _recoveryFence = _ -> false;
+	private boolean _recoveryFenceInstalled;
 
 	public PhantomStoreService(PhantomProfileRepository profiles, PhantomMaterializationService materialization)
 	{
@@ -160,7 +165,131 @@ public final class PhantomStoreService
 	/** In-memory native owner fence for the shared Decision admission hot path. */
 	public boolean blocksDecision(long profileId)
 	{
-		return _ownerObservers.containsKey(profileId);
+		return _ownerObservers.containsKey(profileId) || _recoveryFence.test(profileId);
+	}
+
+	public synchronized void installRecoveryFence(LongPredicate recoveryFence)
+	{
+		if (_recoveryFenceInstalled) { throw new IllegalStateException("Store recovery fence must be installed once."); }
+		_recoveryFence = Objects.requireNonNull(recoveryFence);
+		_recoveryFenceInstalled = true;
+	}
+
+	public Optional<RetainedPlan> retainedPlan(long profileId)
+	{
+		final var profile = _profiles.find(profileId).orElse(null);
+		final var stored = find(profileId);
+		return profile == null || profile.characterObjectId() == null || stored == null ? Optional.empty()
+			: Optional.of(new RetainedPlan(profile.characterObjectId(), stored.rowVersion(), stored.plan()));
+	}
+
+	public boolean matchesQuote(Player player, PhantomStorePlan plan)
+	{
+		try { return _pricing != null && _pricing.get().pricePlan(player, plan).contentHash().equals(plan.contentHash()); }
+		catch (RuntimeException unavailable) { return false; }
+	}
+
+	public Result discardDormant(long profileId, RetainedPlan expected)
+	{
+		if (!dormant(profileId, expected.characterObjectId())) { return Result.RETRY; }
+		final var current = retainedPlan(profileId).orElse(null);
+		if (current == null) { return Result.CLOSED; }
+		if (!current.equals(expected)) { return Result.RETRY; }
+		try { _profiles.deleteComponent(profileId, PhantomStorePlan.COMPONENT_TYPE, expected.rowVersion()); return Result.CLOSED; }
+		catch (RuntimeException conflict) { return Result.RETRY; }
+	}
+
+	/** Pending recovery owns only its exact durable row, never an unrelated native listing. */
+	public Result discardRecovery(long profileId, RetainedPlan expected)
+	{
+		if (_materialization.find(profileId).isEmpty()) { return discardDormant(profileId, expected); }
+		try (ActionLease lease = acquireExclusive(profileId))
+		{
+			if (lease == null || lease.player().getObjectId() != expected.characterObjectId()) { return Result.RETRY; }
+			final var player = lease.player();
+			synchronized (player.getSellList()) { synchronized (player.getBuyList()) { synchronized (player.getManufactureItems())
+			{
+				if (_ownerObservers.containsKey(profileId) || player.getPrivateStoreType() != PrivateStoreType.NONE || player.getSellList().getItemCount() != 0
+					|| player.getBuyList().getItemCount() != 0 || !player.getManufactureItems().isEmpty() || player.isProcessingTransaction()
+					|| player.hasPendingOwnedStore() || RecipeManager.getInstance().isMakingItem(player)) { return Result.RETRY; }
+				final var current = retainedPlan(profileId).orElse(null);
+				if (current == null) { return Result.CLOSED; }
+				if (!current.equals(expected)) { return Result.RETRY; }
+				_profiles.deleteComponent(profileId, PhantomStorePlan.COMPONENT_TYPE, expected.rowVersion());
+				return Result.CLOSED;
+			} } }
+		}
+		catch (RuntimeException conflict) { return Result.RETRY; }
+	}
+
+	private boolean dormant(long profileId, int characterObjectId)
+	{
+		final var profile = _profiles.find(profileId).orElse(null);
+		return profile != null && Objects.equals(profile.characterObjectId(), characterObjectId) && _materialization.find(profileId).isEmpty()
+			&& World.getInstance().findObject(characterObjectId) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(characterObjectId) == null;
+	}
+
+	/** A native subset may only reduce stock; its original identity, quote and absolute expiry remain fixed. */
+	public static Optional<PhantomStorePlan> suspendedPlan(PhantomStorePlan original, List<PhantomStorePlan.Line> remaining)
+	{
+		Objects.requireNonNull(original); Objects.requireNonNull(remaining);
+		final var seen = new java.util.HashSet<Integer>();
+		for (var line : remaining)
+		{
+			final int key = original.type() == PhantomStorePlan.Type.BUY ? line.itemId() : line.objectOrRecipeId();
+			final var quoted = original.lines().stream().filter(candidate -> (original.type() == PhantomStorePlan.Type.BUY ? candidate.itemId() : candidate.objectOrRecipeId()) == key).findFirst().orElse(null);
+			if (!seen.add(key) || quoted == null || line.itemId() != quoted.itemId() || line.objectOrRecipeId() != quoted.objectOrRecipeId()
+				|| line.price() != quoted.price() || line.count() > quoted.count()) { throw new IllegalArgumentException("Native store remainder differs from its accepted quote."); }
+		}
+		return remaining.isEmpty() ? Optional.empty() : Optional.of(original.withLines(remaining).withState(PhantomStorePlan.State.REQUESTED));
+	}
+
+	public Result suspendForRestart(long profileId)
+	{
+		final var retained = retainedPlan(profileId).orElse(null);
+		if (retained == null) { closeOwnerObserver(profileId); return Result.CLOSED; }
+		if (_materialization.find(profileId).isEmpty()) { return dormant(profileId, retained.characterObjectId()) ? Result.CLOSED : Result.RETRY; }
+		try (ActionLease lease = acquireExclusive(profileId))
+		{
+			if (lease == null) { return Result.RETRY; }
+			final var player = lease.player();
+			if (player.getObjectId() != retained.characterObjectId()) { return Result.INCONSISTENT; }
+			synchronized (player.getSellList()) { synchronized (player.getBuyList()) { synchronized (player.getManufactureItems())
+			{
+				if (player.isProcessingTransaction() || player.hasPendingOwnedStore() || RecipeManager.getInstance().isMakingItem(player)) { return Result.RETRY; }
+				final var current = retainedPlan(profileId).orElse(null);
+				if (current == null) { closeOwnerObserver(profileId); return Result.CLOSED; }
+				if (player.getPrivateStoreType() == PrivateStoreType.NONE && current.plan().state() == PhantomStorePlan.State.REQUESTED && !_ownerObservers.containsKey(profileId)) { return Result.CLOSED; }
+				final List<PhantomStorePlan.Line> lines = new ArrayList<>();
+				if (player.getPrivateStoreType() != PrivateStoreType.NONE)
+				{
+					final var expectedType = switch (current.plan().type()) { case SELL -> PrivateStoreType.SELL; case PACKAGE_SELL -> PrivateStoreType.PACKAGE_SELL; case BUY -> PrivateStoreType.BUY; case MANUFACTURE -> PrivateStoreType.MANUFACTURE; };
+					if (player.getPrivateStoreType() != expectedType || !_ownerObservers.containsKey(profileId)) { return Result.INCONSISTENT; }
+					if (current.plan().type() == PhantomStorePlan.Type.MANUFACTURE)
+					{
+						for (var nativeLine : player.getManufactureItems().values())
+						{
+							final var quoted = current.plan().lines().stream().filter(line -> line.objectOrRecipeId() == nativeLine.getRecipeId()).findFirst().orElseThrow();
+							lines.add(new PhantomStorePlan.Line(nativeLine.getRecipeId(), quoted.itemId(), 1, nativeLine.getCost()));
+						}
+					}
+					else
+					{
+						final var list = current.plan().type() == PhantomStorePlan.Type.BUY ? player.getBuyList() : player.getSellList();
+						for (var line : list.getItems()) { lines.add(new PhantomStorePlan.Line(line.getObjectId() > 0 ? line.getObjectId() : line.getItem().getId(), line.getItem().getId(), line.getCount(), line.getPrice())); }
+					}
+				}
+				final var suspended = suspendedPlan(current.plan(), lines);
+				if (suspended.isPresent()) { update(profileId, current.rowVersion(), suspended.get()); }
+				else { _profiles.deleteComponent(profileId, PhantomStorePlan.COMPONENT_TYPE, current.rowVersion()); }
+				player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear();
+				player.setPrivateStoreType(PrivateStoreType.NONE); player.setOfflineStartTime(0);
+			} } }
+			player.standUp(); player.broadcastUserInfo();
+			closeOwnerObserver(profileId);
+			return Result.CLOSED;
+		}
+		catch (RuntimeException failure) { return Result.RETRY; }
 	}
 
 	public Result close(long profileId)
@@ -226,7 +355,7 @@ public final class PhantomStoreService
 			for (PhantomProfileRepository.ManagedProfile managed : plans)
 			{
 				cursor = managed.profile().profileId();
-				final Result result = close(cursor);
+				final Result result = suspendForRestart(cursor);
 				if (result == Result.RETRY)
 				{
 					retry.add(cursor);
@@ -522,6 +651,15 @@ public final class PhantomStoreService
 
 	private record VersionedPlan(long rowVersion, PhantomStorePlan plan)
 	{
+	}
+
+	public record RetainedPlan(int characterObjectId, long rowVersion, PhantomStorePlan plan)
+	{
+		public RetainedPlan
+		{
+			if (characterObjectId <= 0 || rowVersion < 0) { throw new IllegalArgumentException("Invalid retained store binding."); }
+			Objects.requireNonNull(plan);
+		}
 	}
 
 

@@ -105,6 +105,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	{
 		void afterPlayerLoad(Player player);
 
+		default void beforeWorldSpawn(Player player) { }
+
 		void beforeStore(Player player);
 
 		default void afterStore(Player player)
@@ -280,6 +282,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_ONLINE", _state.name(), "", _objectId);
 			failAfter(FailurePoint.AFTER_ONLINE_ACTIVATION);
 
+			_lifecycleSupport.beforeWorldSpawn(_player);
 			requireWorldIdentityFree("immediately before World spawn");
 			_player.spawnMe();
 			final World world = World.getInstance();

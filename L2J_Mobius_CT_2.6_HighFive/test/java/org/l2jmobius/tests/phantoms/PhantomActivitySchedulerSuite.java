@@ -102,6 +102,8 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		registry.add("075-accepted-store-recovery-reuses-bounded-admission", this::testStoreRecovery075);
+		if (System.getProperty("phantom.m1.native.focus", "").equals("recovery075")) { return; }
 		if (_localPriorityOnly)
 		{
 			registry.add("01-local-promotion-progresses-while-general-pulse-blocked", _ -> testLocalPromotionUnderBlockedPulse());
@@ -206,6 +208,57 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			}
 			finally { stop(scheduler); }
 		});
+	}
+
+	private void testStoreRecovery075(PhantomTestContext context)
+	{
+		final var clock = new ManualClock();
+		final var delegate = new FakeMaterializationPort();
+		final var port = new PhantomReconcileFirstActivityPort(delegate);
+		final var presence = new PhantomPresenceRegistry(1);
+		presence.schedule(1, PhantomActivityState.SLEEPING);
+		final var plan = new org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan(org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.Type.SELL, org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.State.REQUESTED, "Accepted remaining store", List.of(new org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.Line(101, 1865, 3, 40)), 1000);
+		final var retained = new org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService.RetainedPlan(501, 7, plan);
+		final var request = new org.l2jmobius.gameserver.phantoms.economy.PhantomAutonomousMarketProducer.RecoveryRequest(retained, 21, 2, 1);
+		final var pending = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.economy.PhantomAutonomousMarketProducer.RecoveryRequest>();
+		final var cursorCurrent = new java.util.concurrent.atomic.AtomicBoolean();
+		final var unobserved = new java.util.concurrent.atomic.AtomicBoolean();
+		port.installReadiness(id -> pending.get() != null && pending.get().validFor(retained, 21, 2, clock.nanoTime() / 1_000_000L) && cursorCurrent.get() && unobserved.get()
+			? TransitionOutcome.success() : TransitionOutcome.deferred("market.restore.wait"));
+		port.installRetention(id -> pending.get() != null && pending.get().validFor(retained, 21, 2, clock.nanoTime() / 1_000_000L));
+		final var metrics = new PhantomMetrics();
+		final var scheduler = new PhantomScheduler(1, 10, 1, new PhantomSchedulerPolicy(16, 1000, 5, 2, 8, 1, 2, 3, 4, 50), clock, (_pulse, _period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, PhantomActivityWorkSink.noop());
+		PhantomAssertions.assertTrue(scheduler.start(), "Recovery scheduler did not start.");
+		try
+		{
+			scheduler.register(1);
+			PhantomAssertions.assertEquals(RegistrationStatus.CAPACITY_REACHED, scheduler.register(2).status(), "Recovery bypassed existing profile capacity.");
+			for (int phase = 0; phase < 3; phase++)
+			{
+				if (phase == 1) { pending.set(request); }
+				if (phase == 2) { cursorCurrent.set(true); }
+				scheduler.submitSignal(1, signal("market.accepted_restore", phase + 1, PhantomActivityState.ACTIVE, 1000));
+				scheduler.pulse();
+				PhantomAssertions.assertEquals(0, delegate.materializeCalls, "Absent owner, unfinished cursor or observed location reached Player admission.");
+			}
+			unobserved.set(true);
+			delegate.materializeOutcomes.add(Outcome.DEFERRED); // Existing native capacity wait, not permission to allocate another actor.
+			scheduler.submitSignal(1, signal("market.accepted_restore", 4, PhantomActivityState.ACTIVE, 1000)); scheduler.pulse();
+			PhantomAssertions.assertEquals(1, delegate.materializeCalls, "Accepted continuation did not pass through the existing native delegate.");
+			PhantomAssertions.assertFalse(delegate.isMaterialized(1), "Deferred native capacity created a Player.");
+			scheduler.submitSignal(1, signal("market.accepted_restore", 5, PhantomActivityState.ACTIVE, 1000)); scheduler.pulse();
+			PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Capacity release did not resume the same continuation.");
+			for (int replay = 0; replay < 3; replay++) { scheduler.pulse(); }
+			PhantomAssertions.assertEquals(2, delegate.materializeCalls, "Duplicate recovery pulses allocated another actor.");
+			PhantomAssertions.assertFalse(presence.permitsOrdinaryFarm(1), "Store continuation changed the sleeping farm schedule.");
+			clock.advanceMillis(1000);
+			PhantomAssertions.assertFalse(request.validFor(retained, 21, 2, clock.nanoTime() / 1_000_000L), "Recovery signal extended the absolute store expiry.");
+			pending.set(null); scheduler.withdrawSignal(1, "market.accepted_restore", 5);
+			for (int pulse = 0; pulse < 4; pulse++) { clock.advanceMillis(100); scheduler.pulse(); }
+			PhantomAssertions.assertFalse(delegate.isMaterialized(1), "Expired continuation retained its native actor.");
+		}
+		finally { stop(scheduler); }
+		context.record("owner075.recoveryAdmission", "same_queue+cursor_visibility_negative+capacity_wait+single_actor+expiry+sleeping_farm_off");
 	}
 
 	private void testCalendarLocalityRelease(PhantomTestContext context)

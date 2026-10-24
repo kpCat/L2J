@@ -371,7 +371,7 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		final String ordinaryReconcile = producerSource.substring(producerSource.indexOf("private void reconcile(long profileId"), producerSource.indexOf("private void reconcileSlow(long profileId"));
 		PhantomAssertions.assertTrue(!ordinaryReconcile.contains("currentPlan(") && !ordinaryReconcile.contains("findComponent(") && !ordinaryReconcile.contains("goal(profileId)") && !ordinaryReconcile.contains("findActive(profileId)"), "Tracked open-owner ordinary pulse still performs a durable DB read.");
 		final String systemSource = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"), StandardCharsets.UTF_8);
-		final String shutdownSource = systemSource.substring(systemSource.indexOf("public synchronized boolean shutdown()"));
+		final String shutdownSource = systemSource.substring(systemSource.indexOf("private boolean shutdownClaimed()"));
 		final int fence = shutdownSource.indexOf("_autonomousMarketProducer.beginStop()");
 		final int firstDrain = shutdownSource.indexOf("_phantomStoreService.shutdown()");
 		final int secondDrain = shutdownSource.indexOf("_phantomStoreService.shutdown()", firstDrain + 1);
@@ -494,10 +494,16 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		_producer.pulse(stopNow + 1_000_000);
 		_scheduler.pulse();
 		PhantomAssertions.assertTrue(_stores.shutdown().successful(), "Authoritative StoreService shutdown did not drain the fenced producer store.");
-		PhantomAssertions.assertTrue((owner.getPrivateStoreType() == PrivateStoreType.NONE) && (owner.getSellList().getItemCount() == 0) && _stores.currentPlan(profileId).isEmpty() && !_stores.blocksDecision(profileId), "Fenced shutdown left a native listing, durable plan or Decision blocker.");
+		final var suspended = _stores.retainedPlan(profileId).orElseThrow();
+		PhantomAssertions.assertTrue((owner.getPrivateStoreType() == PrivateStoreType.NONE) && (owner.getSellList().getItemCount() == 0) && owner.getOfflineStartTime() == 0 && !_stores.blocksDecision(profileId), "Fenced shutdown left a native listing, offline marker or observer blocker.");
+		PhantomAssertions.assertEquals(PhantomStorePlan.State.REQUESTED, suspended.plan().state(), "Shutdown lost the suspended ordinary store intent.");
+		PhantomAssertions.assertEquals(fenced.lines(), suspended.plan().lines(), "Shutdown changed exact remaining native stock.");
+		PhantomAssertions.assertEquals(fenced.expiresEpochMillis(), suspended.plan().expiresEpochMillis(), "Shutdown extended the accepted shop expiry.");
+		PhantomAssertions.assertTrue(_stores.shutdown().successful(), "Repeated store suspension did not remain a clean no-op.");
+		PhantomAssertions.assertEquals(suspended, _stores.retainedPlan(profileId).orElseThrow(), "Repeated shutdown rewrote the retained store row.");
 		_producer.pulse(stopNow + 2_000_000);
-		PhantomAssertions.assertTrue(_producer.consider(profileId, stopNow + 2_000_001).isEmpty() && _stores.currentPlan(profileId).isEmpty(), "Accidental post-drain pulse reopened a store.");
-		context.record("market.shutdownFence", "type=" + fenced.type() + ":nativeAndDurableDrained=true:repeatedStop=true:postDrainPulseInert=true");
+		PhantomAssertions.assertTrue(_producer.consider(profileId, stopNow + 2_000_001).isEmpty() && owner.getPrivateStoreType() == PrivateStoreType.NONE && _stores.retainedPlan(profileId).orElseThrow().equals(suspended), "Accidental post-drain pulse reopened or rewrote the suspended store.");
+		context.record("market.shutdownFence", "type=" + fenced.type() + ":nativeCleared=true:remainingPlanRetained=true:repeatedStop=true:postDrainPulseInert=true");
 		context.record("market.safety", "reservationAndGoalExcluded=true:staleRequoteClosed=true:equipmentProtected=true:materialObjectId=" + surplusItem.getObjectId() + ":ask=" + surplusListing.lines().get(0).price());
 	}
 

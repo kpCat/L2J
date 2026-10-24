@@ -9,7 +9,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.function.LongPredicate;
 import java.util.function.Supplier;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.config.custom.PhantomMarketConfig.AutonomousPolicy;
 import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
@@ -19,6 +23,7 @@ import org.l2jmobius.gameserver.managers.RecipeManager;
 import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
@@ -29,6 +34,7 @@ import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
 import org.l2jmobius.gameserver.model.zone.type.TownZone;
+import org.l2jmobius.gameserver.model.zone.type.NoStoreZone;
 import org.l2jmobius.gameserver.network.holders.TradeItem;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec;
@@ -37,6 +43,8 @@ import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionStore;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
@@ -45,15 +53,19 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /** One shared-scheduler owner for bounded ordinary native stores around a planned rest window. */
-public final class PhantomAutonomousMarketProducer implements PhantomSchedulerControlPort
+public final class PhantomAutonomousMarketProducer implements PhantomSchedulerControlPort, PhantomNativeJourneyDemand, PhantomMaterializationLifecyclePort
 {
 	private static final long ATTEMPT_INTERVAL_MILLIS = 15_000;
 	private static final long ROTATION_INTERVAL_MILLIS = 900_000;
 	private static final int MAXIMUM_SELL_CANDIDATES = 24;
 	private static final int MAXIMUM_LINE_COUNT = 8;
 	private static final int MAXIMUM_STORE_LINES = 20;
+	private static final String RECOVERY_SIGNAL_SOURCE = "market.accepted_restore";
 	private static final Comparator<Item> SELL_ORDER = Comparator.comparingInt((Item item) -> item.getTemplate().getItemType() == EtcItemType.MATERIAL ? 0 : 1).thenComparingInt(Item::getId).thenComparingInt(Item::getObjectId);
 
 	private final PhantomMaterializationService _materialization;
@@ -69,7 +81,14 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	private long _nextAttempt;
 	private long _recoveryCursor;
 	private int _cursor;
-	private boolean _stopping;
+	private volatile boolean _stopping;
+	private final ConcurrentHashMap<Long, RecoveryRequest> _recoveries = new ConcurrentHashMap<>();
+	private final Set<Long> _cancelledRecoveries = ConcurrentHashMap.newKeySet();
+	// Materialization callbacks are synchronous on their caller thread; this is admission metadata, not another native lease.
+	private final ThreadLocal<Map<Long, RecoveryRequest>> _loadingRecoveries = new ThreadLocal<>();
+	private volatile Predicate<PhantomTopologyPoint> _recoveryUnobserved = _ -> false;
+	private volatile LongPredicate _recoveryScheduleKnown = _ -> false;
+	private boolean _recoveryEnabled;
 	private BiPredicate<Long, Long> _tradingWindow = (_, _) -> true;
 	private boolean _windowInstalled;
 	private boolean _admissionStarted;
@@ -99,10 +118,43 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		_windowInstalled = true;
 	}
 
+	public synchronized void installRecoveryAdmission(Predicate<PhantomTopologyPoint> unobserved, LongPredicate scheduleKnown)
+	{
+		if (_recoveryEnabled || _admissionStarted) { throw new IllegalStateException("Recovery admission must be bound before market start."); }
+		_recoveryUnobserved = Objects.requireNonNull(unobserved);
+		_recoveryScheduleKnown = Objects.requireNonNull(scheduleKnown);
+		_recoveryEnabled = true;
+	}
+
+	/** Bounded durable fences precede both scheduler and population admission. */
+	public synchronized void prepareRecoveryOwners()
+	{
+		if (!_recoveryEnabled || _admissionStarted || _stopping || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE) { return; }
+		for (long profileId : _stores.planOwnersAfter(0, _policy.maximumOpenStores()))
+		{
+			final var retained = _stores.retainedPlan(profileId).orElse(null);
+			if (retained == null) { continue; }
+			if (retained.plan().expiresEpochMillis() <= System.currentTimeMillis()) { _stores.discardDormant(profileId, retained); continue; }
+			final var current = goal(profileId);
+			_recoveries.putIfAbsent(profileId, new RecoveryRequest(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), Math.max(1, System.nanoTime())));
+		}
+	}
+
+	public boolean hasRecovery(long profileId) { return _recoveries.containsKey(profileId); }
+	@Override public Set<Long> acceptedProfiles() { return Set.copyOf(_recoveries.keySet()); }
+	@Override public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
+	{
+		final var request = _recoveries.get(profileId);
+		return OfflineTradeConfig.OFFLINE_TRADE_ENABLE && !_stopping && request != null && !_cancelledRecoveries.contains(profileId) && request.retained().plan().expiresEpochMillis() > System.currentTimeMillis()
+			&& (rootId == 0 || request.goalId() == rootId && request.goalRevision() == rootRevision);
+	}
+
 	/** Waits for an in-flight producer pulse before the StoreService drain begins. */
 	public synchronized void beginStop()
 	{
 		_stopping = true;
+		final var signals = new PhantomSchedulerRelevanceSignalPort(_scheduler);
+		_recoveries.forEach((profileId, request) -> signals.withdraw(profileId, RECOVERY_SIGNAL_SOURCE, request.sequence()));
 	}
 
 	/** The native owner and accepted live state are rechecked on every attempt. */
@@ -111,6 +163,14 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		_admissionStarted = true;
 		if (_stopping)
 		{
+			return;
+		}
+		if (!OfflineTradeConfig.OFFLINE_TRADE_ENABLE)
+		{
+			if (now < _nextAttempt) { return; }
+			_nextAttempt = now + ATTEMPT_INTERVAL_MILLIS;
+			for (long profileId : List.copyOf(_opened.keySet())) { close(profileId, now); }
+			for (long profileId : List.copyOf(_recoveries.keySet())) { if (!_opened.containsKey(profileId)) { cancelRecovery(profileId); } }
 			return;
 		}
 		for (long profileId : List.copyOf(_opened.keySet()))
@@ -126,6 +186,10 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			reconcileSlow(profileId, now);
 		}
+		for (long profileId : List.copyOf(_recoveries.keySet()))
+		{
+			if (!_opened.containsKey(profileId)) { recoverRetained(profileId, now); }
+		}
 		final List<Long> retainedOwners = _stores.planOwnersAfter(_recoveryCursor, _policy.maximumOpenStores());
 		if (retainedOwners.isEmpty())
 		{
@@ -136,7 +200,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			_recoveryCursor = profileId;
 			if (!_opened.containsKey(profileId))
 			{
-				consider(profileId, now);
+				if (!recoverRetained(profileId, now)) { consider(profileId, now); }
 			}
 		}
 		final var actors = _materialization.list();
@@ -180,18 +244,27 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		final var retained = _stores.currentPlan(profileId).orElse(null);
 		if (retained != null)
 		{
+			if (_recoveryEnabled && !_recoveries.containsKey(profileId))
+			{
+				recoverRetained(profileId, now);
+				return _opened.containsKey(profileId) ? Optional.of(retained) : Optional.empty();
+			}
 			final PhantomGoal current = goal(profileId);
 			final PhantomAcquisitionState state = acquisition(profileId, current);
+			final var recovery = _recoveries.get(profileId);
+			if (recovery != null && !recovery.validFor(_stores.retainedPlan(profileId).orElse(null), current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), now)) { cancelRecovery(profileId); return Optional.empty(); }
+			if (recovery != null && (owner == null || !stableActive(profileId))) { return Optional.empty(); }
+			if (recovery != null && (!recoveryLocation(owner) || !_recoveryUnobserved.test(new PhantomTopologyPoint(owner.getX(), owner.getY(), owner.getZ(), owner.getInstanceId())))) { return Optional.empty(); }
 			if ((retained.expiresEpochMillis() <= now) || (owner == null) || !stableActive(profileId) || !retainedEligible(owner, retained, current, state) || owner.isInStoreMode() || !ownerReady(profileId, owner) || _reservations.findActive(profileId).isPresent())
 			{
 				close(profileId, now);
 				return Optional.empty();
 			}
-			if (_opened.size() >= Math.min(_policy.maximumOpenStores(), participationCap))
+			if (_opened.size() >= (recovery == null ? Math.min(_policy.maximumOpenStores(), participationCap) : _policy.maximumOpenStores()))
 			{
 				return Optional.empty();
 			}
-			if (_stores.restore(profileId, PhantomActivityState.ACTIVE, now) == PhantomStoreService.Result.OPENED)
+			if (publish(profileId, owner, current, retained, now))
 			{
 				track(profileId, retained, current);
 				return Optional.of(retained);
@@ -199,7 +272,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			close(profileId, now);
 			return Optional.empty();
 		}
-		if (!stableActive(profileId) || (owner == null) || (_opened.size() >= Math.min(_policy.maximumOpenStores(), participationCap)) || (Math.floorMod(profileId + (now / ROTATION_INTERVAL_MILLIS), 2) != 0) || ((now - _lastClosed.getOrDefault(profileId, Long.MIN_VALUE / 2)) < (_policy.reopenCooldownSeconds() * 1000L)))
+		if (!stableActive(profileId) || (owner == null) || (occupiedStoreSlots() >= Math.min(_policy.maximumOpenStores(), participationCap)) || (Math.floorMod(profileId + (now / ROTATION_INTERVAL_MILLIS), 2) != 0) || ((now - _lastClosed.getOrDefault(profileId, Long.MIN_VALUE / 2)) < (_policy.reopenCooldownSeconds() * 1000L)))
 		{
 			return Optional.empty();
 		}
@@ -222,6 +295,134 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (manufacture.isPresent() && publish(profileId, owner, current, manufacture.get(), now)) { return manufacture; }
 		final Optional<PhantomStorePlan> sell = sell(profileId, owner, current, state, now);
 		return sell.isPresent() && publish(profileId, owner, current, sell.get(), now) ? sell : Optional.empty();
+	}
+
+	private int occupiedStoreSlots()
+	{
+		final var owners = new java.util.HashSet<>(_opened.keySet()); owners.addAll(_recoveries.keySet()); return owners.size();
+	}
+
+	private boolean recoverRetained(long profileId, long now)
+	{
+		if (!_recoveryEnabled) { return false; }
+		var request = _recoveries.get(profileId);
+		if (request != null && _cancelledRecoveries.contains(profileId)) { cancelRecovery(profileId); return true; }
+		final var retained = _stores.retainedPlan(profileId).orElse(null);
+		if (retained == null) { releaseRecovery(profileId); return true; }
+		if (!_recoveryScheduleKnown.test(profileId)) { return true; }
+		final var current = goal(profileId);
+		if (retained.plan().expiresEpochMillis() <= now || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, now)
+			|| !marketGoalEligible(current, acquisition(profileId, current)))
+		{
+			if (request != null) { cancelRecovery(profileId); }
+			else { _stores.discardDormant(profileId, retained); }
+			return true;
+		}
+		if (request == null)
+		{
+			if (occupiedStoreSlots() >= _policy.maximumOpenStores()) { return true; }
+			request = new RecoveryRequest(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), Math.max(1, System.nanoTime()));
+			_recoveries.put(profileId, request); // Fence ordinary Decision before requesting the existing Player admission queue.
+		}
+		if (!request.validFor(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), now)) { cancelRecovery(profileId); return true; }
+		if (_materialization.find(profileId).isPresent()) { consider(profileId, now); return true; }
+		final long ttl = Math.max(1, Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, retained.plan().expiresEpochMillis() - now));
+		new PhantomSchedulerRelevanceSignalPort(_scheduler).submit(profileId, new PhantomRelevanceSignal(RECOVERY_SIGNAL_SOURCE, request.sequence(), PhantomActivityState.ACTIVE, ttl));
+		return true;
+	}
+
+	private void cancelRecovery(long profileId)
+	{
+		final var request = _recoveries.get(profileId);
+		if (request == null) { return; }
+		_cancelledRecoveries.add(profileId);
+		new PhantomSchedulerRelevanceSignalPort(_scheduler).withdraw(profileId, RECOVERY_SIGNAL_SOURCE, request.sequence());
+		final var current = _stores.retainedPlan(profileId).orElse(null);
+		if (current == null) { releaseRecovery(profileId); return; }
+		if (!_opened.containsKey(profileId) && !current.equals(request.retained())) { return; }
+		final var result = _opened.containsKey(profileId) ? _stores.close(profileId) : _stores.discardRecovery(profileId, request.retained());
+		if (result == PhantomStoreService.Result.CLOSED) { releaseRecovery(profileId); }
+	}
+
+	private void releaseRecovery(long profileId)
+	{
+		final var request = _recoveries.remove(profileId);
+		_cancelledRecoveries.remove(profileId);
+		if (request != null) { new PhantomSchedulerRelevanceSignalPort(_scheduler).withdraw(profileId, RECOVERY_SIGNAL_SOURCE, request.sequence()); }
+	}
+
+	@Override public void beforeMaterialize(long profileId, int characterObjectId)
+	{
+		final var request = _recoveries.get(profileId);
+		if (request == null)
+		{
+			if (_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan(profileId).isPresent()) { throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.awaiting_bounded_admission"); }
+			return;
+		}
+		if (_stopping || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || _cancelledRecoveries.contains(profileId) || !_recoveryScheduleKnown.test(profileId) || request.retained().characterObjectId() != characterObjectId || request.retained().plan().expiresEpochMillis() <= System.currentTimeMillis())
+		{
+			throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.binding_or_expiry");
+		}
+		var loading = _loadingRecoveries.get();
+		if (loading == null) { loading = new HashMap<>(); _loadingRecoveries.set(loading); }
+		loading.put(profileId, request);
+	}
+
+	@Override public void beforeWorldSpawn(long profileId, Player player)
+	{
+		final var attempts = _loadingRecoveries.get();
+		final var loading = attempts == null ? null : attempts.get(profileId);
+		final var request = _recoveries.get(profileId);
+		if (loading != null && !loading.equals(request)) { throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.cancelled_loading"); }
+		if (request == null)
+		{
+			if (_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan(profileId).isPresent()) { throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.missing_admission"); }
+			return;
+		}
+		if (!OfflineTradeConfig.OFFLINE_TRADE_ENABLE) { throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.disabled"); }
+		final var current = goal(profileId);
+		final var retained = _stores.retainedPlan(profileId).orElse(null);
+		final var point = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		if (_stopping || _cancelledRecoveries.contains(profileId) || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, System.currentTimeMillis())
+			|| player.getObjectId() != request.retained().characterObjectId() || !player.hasHeadlessOutboundSession()
+			|| !request.validFor(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), System.currentTimeMillis())
+			|| !retainedEligible(player, request.retained().plan(), current, acquisition(profileId, current)) || !_stores.matchesQuote(player, request.retained().plan()))
+		{
+			_cancelledRecoveries.add(profileId);
+			throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.changed");
+		}
+		if (!recoveryLocation(player) || !_recoveryUnobserved.test(point) || _reservations.findActive(profileId).isPresent())
+		{
+			throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.observed_or_busy");
+		}
+	}
+
+	@Override public void afterPlayerLoad(long profileId, Player player) { }
+	@Override public void materializeSucceeded(long profileId, int characterObjectId) { finishLoadingRecovery(profileId, characterObjectId); }
+	@Override public void materializeAborted(long profileId, int characterObjectId) { finishLoadingRecovery(profileId, characterObjectId); }
+	@Override public void beforeStore(long profileId, Player player) { }
+	@Override public void afterStore(long profileId, Player player) { }
+
+	private void finishLoadingRecovery(long profileId, int characterObjectId)
+	{
+		final var attempts = _loadingRecoveries.get();
+		if (attempts == null) { return; }
+		final var request = attempts.get(profileId);
+		if (request != null && request.retained().characterObjectId() == characterObjectId) { attempts.remove(profileId); }
+		if (attempts.isEmpty()) { _loadingRecoveries.remove(); }
+	}
+
+	public record RecoveryRequest(PhantomStoreService.RetainedPlan retained, long goalId, long goalRevision, long sequence)
+	{
+		public RecoveryRequest
+		{
+			Objects.requireNonNull(retained);
+			if (goalId < 0 || goalRevision < 0 || sequence < 1) { throw new IllegalArgumentException("Invalid store recovery request."); }
+		}
+		public boolean validFor(PhantomStoreService.RetainedPlan current, long rootId, long rootRevision, long now)
+		{
+			return retained.equals(current) && goalId == rootId && goalRevision == rootRevision && now < retained.plan().expiresEpochMillis();
+		}
 	}
 
 	private Optional<PhantomStorePlan> buy(long profileId, Player owner, PhantomGoal goal, PhantomAcquisitionState state, long now)
@@ -533,6 +734,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			_opened.remove(profileId);
 			_lastClosed.put(profileId, now);
+			releaseRecovery(profileId);
 		}
 	}
 
@@ -573,6 +775,18 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (!geo.hasGeo(x, y) || Math.abs((long) geo.getHeight(x, y, z) - z) > 64
 			|| ZoneManager.getInstance().getZones(x, y, z).stream().noneMatch(zone -> zone instanceof TownZone || zone instanceof PeaceZone)) { return false; }
 		return World.getInstance().getVisibleObjects(owner, Player.class).stream().noneMatch(other -> other != owner && other.calculateDistance3D(owner) < 60);
+	}
+
+	private static boolean recoveryLocation(Player owner)
+	{
+		if (owner.getInstanceId() != 0 || owner.isDead() || owner.isInStoreMode() || owner.isProcessingTransaction() || owner.hasPendingOwnedStore()) { return false; }
+		final var geo = GeoEngine.getInstance();
+		final int x = owner.getX(), y = owner.getY(), z = owner.getZ();
+		final var zones = ZoneManager.getInstance().getZones(x, y, z);
+		if (!geo.hasGeo(x, y) || Math.abs((long) geo.getHeight(x, y, z) - z) > 64 || zones.stream().anyMatch(zone -> zone instanceof NoStoreZone)
+			|| zones.stream().noneMatch(zone -> zone instanceof PeaceZone)) { return false; }
+		return World.getInstance().getVisibleObjects(owner, Creature.class).stream().noneMatch(other -> other != owner
+			&& (other instanceof Player ? other.calculateDistance3D(owner) < 60 : other.getMinShopDistance() > 0 && other.calculateDistance3D(owner) < other.getMinShopDistance()));
 	}
 
 	private PhantomGoal goal(long profileId)

@@ -10,6 +10,9 @@ import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.item.enchant.EnchantResultType;
 import org.l2jmobius.gameserver.model.item.enchant.EnchantScroll;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomStoreService;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomAutonomousMarketProducer;
 
 /** DB-free checks of the real owner configuration and canonical enchant route. */
 public final class PhantomOwnerWorld075Suite implements PhantomTestSuite
@@ -28,6 +31,8 @@ public final class PhantomOwnerWorld075Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		registerRecovery(registry);
+		if (System.getProperty("phantom.m1.native.focus", "").equals("recovery075")) { return; }
 		registry.add("native-store-close-keeps-craft-admission-monitor", context ->
 		{
 			final String source = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomStoreService.java"));
@@ -105,6 +110,129 @@ public final class PhantomOwnerWorld075Suite implements PhantomTestSuite
 			final var unboundedBonus = new EnchantScroll(bonus);
 			if (unboundedBonus.calculateSuccess(target, 25, null, 0) != EnchantResultType.ERROR || normal.isValid(target, maximum, null)) { throw new AssertionError("bonusRate100/default65535 bypasses the native hard limit or configured ordinary cap."); }
 		});
+	}
+
+	private void registerRecovery(PhantomTestRegistry registry)
+	{
+		registry.add("ordinary-shop-suspends-exact-remaining-plan", context ->
+		{
+			final var first = new PhantomStorePlan.Line(101, 1865, 8, 40);
+			final var second = new PhantomStorePlan.Line(102, 1864, 8, 20);
+			final var original = new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.OPEN, "Remaining native stock", java.util.List.of(first, second), 1000);
+			final var partial = new PhantomStorePlan.Line(101, 1865, 3, 40);
+			final var suspended = PhantomStoreService.suspendedPlan(original, java.util.List.of(partial)).orElseThrow();
+			final var decoded = PhantomStorePlan.decode(suspended.encode());
+			PhantomAssertions.assertEquals(suspended, decoded, "Restart changed the exact remaining native plan.");
+			PhantomAssertions.assertEquals(java.util.List.of(partial), decoded.lines(), "Restart restored a sold-out line or increased remaining count.");
+			PhantomAssertions.assertEquals(1000L, decoded.expiresEpochMillis(), "Suspension extended the original absolute expiry.");
+			PhantomAssertions.assertEquals(PhantomStorePlan.State.REQUESTED, decoded.state(), "Suspended native stock was reported open.");
+			PhantomAssertions.assertEquals(suspended, PhantomStoreService.suspendedPlan(decoded, decoded.lines()).orElseThrow(), "Repeated suspension rewrote the plan.");
+			PhantomAssertions.assertTrue(PhantomStoreService.suspendedPlan(original, java.util.List.of()).isEmpty(), "Empty native stock became a new listing.");
+			for (var invalid : java.util.List.of(new PhantomStorePlan.Line(101, 1865, 9, 40), new PhantomStorePlan.Line(101, 1865, 3, 41), new PhantomStorePlan.Line(103, 1865, 3, 40)))
+			{
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomStoreService.suspendedPlan(original, java.util.List.of(invalid)), "Changed count/quote/object entered restart stock.");
+			}
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomStoreService.suspendedPlan(original, java.util.List.of(partial, partial)), "Duplicated native line entered restart stock.");
+			final String source = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomStoreService.java"));
+			final String shutdown = source.substring(source.indexOf("public ShutdownResult shutdown("), source.indexOf("private ActionLease acquireExclusive("));
+			if (!shutdown.contains("suspendForRestart(cursor)")) { throw new AssertionError("Graceful restart still deletes the accepted ordinary store plan."); }
+		});
+		registry.add("ordinary-shop-recovery-guards-final-world-publication", context ->
+		{
+			final var plan = new PhantomStorePlan(PhantomStorePlan.Type.BUY, PhantomStorePlan.State.REQUESTED, "Accepted native need", java.util.List.of(new PhantomStorePlan.Line(1865, 1865, 3, 40)), 1000);
+			final var retained = new PhantomStoreService.RetainedPlan(501, 7, plan);
+			final var request = new PhantomAutonomousMarketProducer.RecoveryRequest(retained, 21, 2, 1);
+			PhantomAssertions.assertTrue(request.validFor(retained, 21, 2, 999), "Exact unexpired recovery binding was rejected.");
+			final var noGoal = new PhantomAutonomousMarketProducer.RecoveryRequest(retained, 0, 0, 1);
+			PhantomAssertions.assertTrue(noGoal.validFor(retained, 0, 0, 999), "A store without an active farm root lost its accepted finite continuation.");
+			PhantomAssertions.assertFalse(request.validFor(retained, 21, 2, 1000), "Restart extended the accepted store lifetime.");
+			PhantomAssertions.assertFalse(request.validFor(retained, 21, 3, 999), "A changed root borrowed the old recovery claim.");
+			PhantomAssertions.assertFalse(request.validFor(new PhantomStoreService.RetainedPlan(502, 7, plan), 21, 2, 999), "A different character borrowed the old store claim.");
+			PhantomAssertions.assertFalse(request.validFor(new PhantomStoreService.RetainedPlan(501, 8, plan), 21, 2, 999), "Recovery overwrote a concurrent durable revision.");
+			final var repriced = plan.withLines(java.util.List.of(new PhantomStorePlan.Line(1865, 1865, 3, 41)));
+			PhantomAssertions.assertFalse(request.validFor(new PhantomStoreService.RetainedPlan(501, 7, repriced), 21, 2, 999), "Recovery accepted a different quote.");
+			final var descriptors = new java.util.HashMap<Long, PhantomAutonomousMarketProducer.RecoveryRequest>();
+			descriptors.put(1L, request);
+			final var loading = descriptors.get(1L); // Admission passes before the native Entry exists.
+			descriptors.remove(1L); // Cancellation deletes its row and releases the current descriptor.
+			PhantomAssertions.assertFalse(loading.equals(descriptors.get(1L)), "A cancelled accepted load lost its captured recovery identity.");
+			PhantomAssertions.assertFalse(loading.validFor(null, 21, 2, 999), "A deleted row still authorized a captured native load.");
+			descriptors.put(1L, new PhantomAutonomousMarketProducer.RecoveryRequest(retained, 21, 2, 2));
+			PhantomAssertions.assertFalse(loading.equals(descriptors.get(1L)), "A replacement admission inherited the old accepted load.");
+			final var calls = new java.util.concurrent.atomic.AtomicInteger();
+			final var bridge = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge();
+			final var guard = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
+			{
+				@Override public void beforeMaterialize(long id, int objectId) { }
+				@Override public void afterPlayerLoad(long id, org.l2jmobius.gameserver.model.actor.Player player) { }
+				@Override public void beforeWorldSpawn(long id, org.l2jmobius.gameserver.model.actor.Player player) { calls.incrementAndGet(); }
+				@Override public void materializeSucceeded(long id, int objectId) { }
+				@Override public void materializeAborted(long id, int objectId) { }
+				@Override public void beforeStore(long id, org.l2jmobius.gameserver.model.actor.Player player) { }
+				@Override public void afterStore(long id, org.l2jmobius.gameserver.model.actor.Player player) { }
+			};
+			bridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.none(), guard));
+			bridge.beforeWorldSpawn(1, null);
+			PhantomAssertions.assertEquals(1, calls.get(), "Existing lifecycle bridge/chain swallowed final spawn admission.");
+			final String source = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java"));
+			final int login = source.indexOf("Quest.playerEnter(_player)");
+			final int guardOffset = source.indexOf("_lifecycleSupport.beforeWorldSpawn(_player)", Math.max(0, login));
+			final int spawn = source.indexOf("_player.spawnMe()", Math.max(0, login));
+			if (login < 0 || guardOffset <= login || spawn <= guardOffset) { throw new AssertionError("Recovery visibility admission must recheck actual post-login coordinates before native World publication."); }
+			final String system = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"));
+			final int preload = system.indexOf("_autonomousMarketProducer.prepareRecoveryOwners()");
+			final int start = system.indexOf("_scheduler.start()", Math.max(0, preload));
+			if (preload < 0 || start <= preload) { throw new AssertionError("Pending ordinary store owners were not fenced before scheduler startup."); }
+			final String demand = system.substring(system.indexOf("private boolean hasAcceptedNativeJourney("), system.indexOf("private java.util.List", system.indexOf("private boolean hasAcceptedNativeJourney(")));
+			if (demand.indexOf("_autonomousMarketProducer.requiresNativeContext") < 0 || demand.indexOf("_autonomousMarketProducer.requiresNativeContext") > demand.indexOf("root.goalStatus()")) { throw new AssertionError("No-goal or completed-root store continuation is incorrectly behind the ACTIVE-only life journey gate."); }
+			final String producer = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java"));
+			if (!producer.contains("_stores.discardRecovery(profileId, request.retained())")) { throw new AssertionError("A pending recovery can clear a foreign native store through broad close."); }
+			for (boolean abort : new boolean[] { false, true })
+			{
+				final var order = new java.util.ArrayList<String>();
+				final var firstFailure = new IllegalStateException("first terminal failure");
+				final var secondFailure = new IllegalStateException("second terminal failure");
+				final var first = terminalLifecycle(() -> { order.add("first"); throw firstFailure; });
+				final var second = terminalLifecycle(() -> { order.add("second"); throw secondFailure; });
+				final var chained = org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(first, second);
+				try
+				{
+					if (abort) { chained.materializeAborted(1, 501); } else { chained.materializeSucceeded(1, 501); }
+					throw new AssertionError("Terminal failure was swallowed.");
+				}
+				catch (IllegalStateException failure)
+				{
+					PhantomAssertions.assertTrue(failure == (abort ? secondFailure : firstFailure), "Terminal fanout replaced its original failure.");
+					PhantomAssertions.assertEquals(java.util.List.of(abort ? firstFailure : secondFailure), java.util.List.of(failure.getSuppressed()), "Terminal fanout lost the secondary failure.");
+				}
+				PhantomAssertions.assertEquals(abort ? java.util.List.of("second", "first") : java.util.List.of("first", "second"), order, "Terminal fanout skipped cleanup or changed lifecycle order.");
+			}
+			final String finalGuard = producer.substring(producer.indexOf("@Override public void beforeWorldSpawn("), producer.indexOf("@Override public void afterPlayerLoad("));
+			if (!producer.contains("_loadingRecoveries") || finalGuard.indexOf("loading.equals(request)") < 0 || finalGuard.indexOf("loading.equals(request)") > finalGuard.indexOf("if (request == null)")) { throw new AssertionError("Cancellation between admission and Entry registration can bypass final market spawn admission."); }
+			final String startup = producer.substring(producer.indexOf("public synchronized void prepareRecoveryOwners("), producer.indexOf("public boolean hasRecovery("));
+			if (startup.indexOf("!OfflineTradeConfig.OFFLINE_TRADE_ENABLE") < 0 || startup.indexOf("!OfflineTradeConfig.OFFLINE_TRADE_ENABLE") > startup.indexOf("_stores.planOwnersAfter(")) { throw new AssertionError("Disabled cold startup still scans durable market plans."); }
+			final String nativeDemand = producer.substring(producer.indexOf("@Override public boolean requiresNativeContext("), producer.indexOf("public synchronized void beginStop("));
+			if (!nativeDemand.contains("OfflineTradeConfig.OFFLINE_TRADE_ENABLE")) { throw new AssertionError("Disabled market recovery still demands native Players."); }
+			final String pulse = producer.substring(producer.indexOf("public synchronized void pulse("), producer.indexOf("public synchronized Optional<PhantomStorePlan> consider("));
+			final int disabled = pulse.indexOf("if (!OfflineTradeConfig.OFFLINE_TRADE_ENABLE)");
+			final int durableScan = pulse.indexOf("_stores.planOwnersAfter(");
+			if (disabled < 0 || disabled > durableScan || !pulse.substring(disabled, durableScan).contains("return;")) { throw new AssertionError("Disabled market pulse reaches new durable scans or actor admission."); }
+			final String beforeLoad = producer.substring(producer.indexOf("@Override public void beforeMaterialize("), producer.indexOf("@Override public void beforeWorldSpawn("));
+			if (!beforeLoad.contains("_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan") || !finalGuard.contains("_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan")) { throw new AssertionError("Disabled ordinary materialization performs market repository reads."); }
+		});
+	}
+
+	private static org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort terminalLifecycle(Runnable terminal)
+	{
+		return new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
+		{
+			@Override public void beforeMaterialize(long profileId, int characterObjectId) { }
+			@Override public void afterPlayerLoad(long profileId, org.l2jmobius.gameserver.model.actor.Player player) { }
+			@Override public void materializeSucceeded(long profileId, int characterObjectId) { terminal.run(); }
+			@Override public void materializeAborted(long profileId, int characterObjectId) { terminal.run(); }
+			@Override public void beforeStore(long profileId, org.l2jmobius.gameserver.model.actor.Player player) { }
+			@Override public void afterStore(long profileId, org.l2jmobius.gameserver.model.actor.Player player) { }
+		};
 	}
 
 	private static Map<String, String> profile(PhantomTestContext context) throws java.io.IOException

@@ -38,6 +38,9 @@ public interface PhantomMaterializationLifecyclePort
 
 	void afterPlayerLoad(long profileId, Player player);
 
+	/** Last admission check after native login effects, before the Player becomes visible. */
+	default void beforeWorldSpawn(long profileId, Player player) { }
+
 	void materializeSucceeded(long profileId, int characterObjectId);
 
 	void materializeAborted(long profileId, int characterObjectId);
@@ -81,16 +84,35 @@ public interface PhantomMaterializationLifecyclePort
 			}
 
 			@Override
+			public void beforeWorldSpawn(long profileId, Player player)
+			{
+				first.beforeWorldSpawn(profileId, player);
+				second.beforeWorldSpawn(profileId, player);
+			}
+
+			@Override
 			public void materializeSucceeded(long profileId, int characterObjectId)
 			{
-				first.materializeSucceeded(profileId, characterObjectId);
+				try { first.materializeSucceeded(profileId, characterObjectId); }
+				catch (RuntimeException | Error primary)
+				{
+					try { second.materializeSucceeded(profileId, characterObjectId); }
+					catch (RuntimeException | Error secondary) { if (primary != secondary) { primary.addSuppressed(secondary); } }
+					throw primary;
+				}
 				second.materializeSucceeded(profileId, characterObjectId);
 			}
 
 			@Override
 			public void materializeAborted(long profileId, int characterObjectId)
 			{
-				second.materializeAborted(profileId, characterObjectId);
+				try { second.materializeAborted(profileId, characterObjectId); }
+				catch (RuntimeException | Error primary)
+				{
+					try { first.materializeAborted(profileId, characterObjectId); }
+					catch (RuntimeException | Error secondary) { if (primary != secondary) { primary.addSuppressed(secondary); } }
+					throw primary;
+				}
 				first.materializeAborted(profileId, characterObjectId);
 			}
 

@@ -292,6 +292,12 @@ public final class PhantomMaterializationService
 			}
 
 			@Override
+			public void beforeWorldSpawn(Player player)
+			{
+				_lifecyclePort.beforeWorldSpawn(profileId, player);
+			}
+
+			@Override
 			public void beforeStore(Player player)
 			{
 				_lifecyclePort.beforeStore(profileId, player);
@@ -376,6 +382,7 @@ public final class PhantomMaterializationService
 			final boolean retained = entry._materializedPlayer.snapshot().state() != State.STORED;
 			if (!retained) { releaseStoredEntry(entry); }
 			else { _metrics.recordMaterializationFailureRetained(); }
+			if (!retained && e instanceof PhantomMaterializationLifecyclePort.AdmissionRejectedException) { return rejectMaterialization(ResultStatus.CATCHUP_FENCED); }
 			if (e instanceof MaterializationException materializationFailure)
 			{
 				final ResultStatus status = switch (materializationFailure.failure())

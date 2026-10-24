@@ -449,6 +449,13 @@ public final class PhantomSystem
 				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
 				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService, this::marketPricingAuthority);
 				PhantomMarketConfig.autonomousPolicy().ifPresent(policy -> _autonomousMarketProducer = new PhantomAutonomousMarketProducer(_materializationService, _scheduler, _phantomStoreService, productionGoals, acquisitionStore, _economyReservations, () -> _decisionEngine, policy));
+				if (_autonomousMarketProducer != null)
+				{
+					_phantomStoreService.installRecoveryFence(_autonomousMarketProducer::hasRecovery);
+					_autonomousMarketProducer.installRecoveryAdmission(point -> World.getInstance().getPlayers().stream().filter(PhantomSystem::humanObserver)
+						.noneMatch(human -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(new PhantomTopologyPoint(human.getX(), human.getY(), human.getZ(), human.getInstanceId()), point)),
+						profileId -> _populationManager != null && _populationManager.admissionProfile(profileId).isPresent());
+				}
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
 				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, commerceGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
@@ -506,7 +513,8 @@ public final class PhantomSystem
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var supplyLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var productionComposition = PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)))));
-				final var productionLifeComposition = PhantomMaterializationLifecyclePort.chain(supplyLifecycleBridge, productionComposition);
+				final var ordinaryLifeComposition = PhantomMaterializationLifecyclePort.chain(supplyLifecycleBridge, productionComposition);
+				final var productionLifeComposition = _autonomousMarketProducer == null ? ordinaryLifeComposition : PhantomMaterializationLifecyclePort.chain(ordinaryLifeComposition, _autonomousMarketProducer);
 				productionLifecycle.install(_loadObserverForTesting == null ? productionLifeComposition : PhantomMaterializationLifecyclePort.chain(_loadObserverForTesting, productionLifeComposition));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
@@ -884,6 +892,7 @@ public final class PhantomSystem
 					_decisionEngine.accept(item);
 				});
 			}
+			if (_autonomousMarketProducer != null) { _autonomousMarketProducer.prepareRecoveryOwners(); }
 			if (!_scheduler.start())
 			{
 				throw new IllegalStateException("Phantom scheduler could not enter the running state.");
@@ -3122,12 +3131,16 @@ public final class PhantomSystem
 		if (_learningJourney != null) { owners.add(_learningJourney); }
 		if (_questInstanceService != null) { owners.add(_questInstanceService); }
 		if (_supplyJourney != null) { owners.add(_supplyJourney); }
+		if (_autonomousMarketProducer != null) { owners.add(_autonomousMarketProducer); }
 		return owners;
 	}
 
 	private boolean hasAcceptedNativeJourney(long profileId)
 	{
 		final var root = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
+		final long marketRootId = root == null ? 0 : root.goalId();
+		final long marketRootRevision = marketRootId == 0 ? 0 : root.goalRevision();
+		if (_autonomousMarketProducer != null && _autonomousMarketProducer.requiresNativeContext(profileId, marketRootId, marketRootRevision)) { return true; }
 		if (root != null && root.goalStatus() != org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE) { return false; }
 		return nativeJourneys().stream().anyMatch(owner -> owner.requiresNativeContext(profileId, root == null ? 0 : root.goalId(), root == null ? 0 : root.goalRevision()));
 	}
