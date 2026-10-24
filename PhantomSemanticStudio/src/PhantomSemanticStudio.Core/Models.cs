@@ -59,6 +59,7 @@ public sealed class Candidate
 {
     public string Voice { get; set; } = "";
     public SemanticReviewEvidence? SemanticReview { get; set; }
+    public BatchEditorialMetadata? EditorialMetadata { get; set; }
     public Candidate Copy() => (Candidate)MemberwiseClone();
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Kind { get; set; } = "TEMPLATE";
@@ -118,6 +119,7 @@ public sealed class SessionState
     public List<Candidate> Candidates { get; set; } = [];
     public List<string> Lessons { get; set; } = [];
     public List<EditorialLesson> ScopedLessons { get; set; } = [];
+    public BatchJobState? BatchJob { get; set; }
 }
 public sealed record EditorialLesson
 {

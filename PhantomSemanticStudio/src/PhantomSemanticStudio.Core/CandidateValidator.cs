@@ -14,6 +14,11 @@ public static class CandidateValidator
         void Error(string code, string message) => issues.Add(new(IssueSeverity.Error, code, message));
         void Warn(string code, string message) => issues.Add(new(IssueSeverity.Warning, code, message));
         Warn("SEMANTIC_NOT_CHECKED", "Смысловые повторы, грамматика, условия применимости и полнота profanity/mature проверки не проверены. Требуется ручное ревью; XML не экспортируется.");
+        if (candidate.EditorialMetadata != null)
+        {
+            try { candidate.EditorialMetadata.Validate(); }
+            catch (InvalidDataException) { Error("EDITORIAL_METADATA", "Повреждены редакционные характеристики партии."); }
+        }
         if (candidate.SourceFingerprint != snapshot.Fingerprint) Error("SOURCE_MISMATCH", "Кандидат создан для другой версии исходного пака. Нужно повторное ревью, автоматической перепривязки нет.");
         if (candidate.Kind is not ("PATTERN" or "TEMPLATE")) Error("KIND", "Разрешены только PATTERN/TEMPLATE.");
         if (!Voices.Contains(candidate.Voice, StringComparer.Ordinal) || candidate.Kind != "TEMPLATE" && candidate.Voice != "")
@@ -63,11 +68,15 @@ public static class CandidateValidator
 
 public static class CandidateReview
 {
-    public static string Fingerprint(Candidate c) => TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new
+    public static string Fingerprint(Candidate c)
     {
-        c.Id, c.Kind, c.Text, c.Topic, c.Act, c.Band, c.Register, c.Gender, c.Voice, c.SourceFingerprint, c.ModelId, c.Instruction, c.Rationale,
-        c.ReviewNote, c.ReviewedAtUtc
-    }));
+        var legacy = TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new
+        {
+            c.Id, c.Kind, c.Text, c.Topic, c.Act, c.Band, c.Register, c.Gender, c.Voice, c.SourceFingerprint, c.ModelId, c.Instruction, c.Rationale,
+            c.ReviewNote, c.ReviewedAtUtc
+        }));
+        return c.EditorialMetadata == null ? legacy : TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new { LegacyFingerprint = legacy, c.EditorialMetadata }));
+    }
     public static bool IsCurrent(Candidate c) => c.Status == "APPROVED" && !string.IsNullOrWhiteSpace(c.ReviewNote)
         && c.ReviewedAtUtc != null && c.ApprovedFingerprint == Fingerprint(c);
     public static void Approve(Candidate c, PackSnapshot snapshot, IEnumerable<Candidate> peers, string note)

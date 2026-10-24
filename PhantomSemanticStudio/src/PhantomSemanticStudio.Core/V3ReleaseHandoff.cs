@@ -8,6 +8,18 @@ namespace PhantomSemanticStudio.Core;
 public static class V3ReleaseHandoff
 {
     private sealed record JavaAttestation(int Version, string StageId, string ProofSha256, string Mac);
+    private sealed record JavaToolStamp(string Path, string Sha256, long Bytes);
+    private static readonly IReadOnlyDictionary<string, string> IsolatedInputs = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java"] = "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0",
+        ["java/org/l2jmobius/gameserver/model/actor/enums/player/PlayerClass.java"] = "9678b970528f17192114669ad96b8538add396ec251f4fbc4476d57c1e64a2cf",
+        ["java/org/l2jmobius/gameserver/model/actor/enums/creature/Race.java"] = "7cd9a7ba39b483b93c6fd47b1ef4572dc526fb0a06419bf918fafc823c5cbc0b"
+    };
+    internal static void ValidateIsolatedInventory(IReadOnlyList<SourceFileStamp> inventory)
+    {
+        V3ProposalContract.Require(inventory.Count == IsolatedInputs.Count && inventory.Select(f => f.RelativePath).Distinct(StringComparer.Ordinal).Count() == inventory.Count
+            && inventory.All(f => IsolatedInputs.TryGetValue(f.RelativePath, out var hash) && hash == f.Sha256 && f.Bytes is > 0 and <= 1048576), "UNAUDITED_ISOLATED_CATALOG");
+    }
     public static string InspectProof(WorkspaceStore store, string stageRoot, string proofPath, CancellationToken token = default)
     { store.Check(); var receipt = V3ProposalContract.ReadStage(store.Root, stageRoot, token); return VerifyProof(receipt, stageRoot, proofPath, token); }
 
@@ -63,8 +75,11 @@ public static class V3ReleaseHandoff
         PathSafety.AssertNoReparsePoints(path);
         V3ProposalContract.Require(new FileInfo(path).Length is > 0 and <= 262144, "PROOF_SIZE");
         var proofHash = TextRules.Hash(File.ReadAllBytes(path));
+        var proof = V3ProposalContract.ReadJson<JsonElement>(path);
+        var version = proof.GetProperty("Version").GetInt32(); var isolated = version == 2;
+        V3ProposalContract.Require(version is 1 or 2, "PROOF_VERSION");
         var attestation = V3ProposalContract.ReadJson<JavaAttestation>(PathSafety.ResolveRelative(oracle, "java-attestation.json"));
-        V3ProposalContract.Require(attestation.Version == 1 && attestation.StageId == receipt.StageId && attestation.ProofSha256 == proofHash && V3ProposalContract.Sha(attestation.Mac), "PROOF_ATTESTATION");
+        V3ProposalContract.Require(attestation.Version == version && attestation.StageId == receipt.StageId && attestation.ProofSha256 == proofHash && V3ProposalContract.Sha(attestation.Mac), "PROOF_ATTESTATION");
         // An honest local operator attestation, not protection from the OS owner reading its key.
         // Key stays outside oracle/export and is never part of source, receipt, logs or Git.
         var workspace = Path.GetDirectoryName(Path.GetDirectoryName(stage))!;
@@ -73,25 +88,26 @@ public static class V3ReleaseHandoff
         var key = File.ReadAllBytes(keyPath);
         try
         {
-            var payload = Encoding.UTF8.GetBytes("PSS008_NATIVE_JAVA_V1\n" + receipt.StageId + "\n" + proofHash);
+            var payload = Encoding.UTF8.GetBytes("PSS008_NATIVE_JAVA_V" + version + "\n" + receipt.StageId + "\n" + proofHash);
             V3ProposalContract.Require(CryptographicOperations.FixedTimeEquals(HMACSHA256.HashData(key, payload), Convert.FromHexString(attestation.Mac)), "PROOF_AUTHENTICATION");
         }
         finally { CryptographicOperations.ZeroMemory(key); }
-        var proof = V3ProposalContract.ReadJson<JsonElement>(path);
         string S(string name) => proof.GetProperty(name).GetString() ?? "";
         foreach (var (file, hashKey) in new[] { ("Test-PSS008-V3-Java.ps1", "ScriptHash"), ("Pss008V3CatalogProbe.java", "BridgeHash") })
         {
             var trusted = PathSafety.ResolveRelative(AppContext.BaseDirectory, "operator/" + file);
             V3ProposalContract.Require(File.Exists(trusted) && new FileInfo(trusted).Length <= 1048576 && TextRules.Hash(File.ReadAllBytes(trusted)) == S(hashKey), "UNTRUSTED_ORACLE_TOOLS");
         }
-        V3ProposalContract.Require(proof.GetProperty("Version").GetInt32() == 1 && S("JavaStatus") == "PASS_JAVA_STAGED_V3" && S("Status") == "JAVA_CONTENT_ONLY_NOT_RUNTIME_READY"
+        V3ProposalContract.Require(S("JavaStatus") == "PASS_JAVA_STAGED_V3" && S("Status") == "JAVA_CONTENT_ONLY_NOT_RUNTIME_READY"
             && S("StageId") == receipt.StageId && S("ReceiptHash") == TextRules.Hash(File.ReadAllBytes(PathSafety.ResolveRelative(stage, "receipt.json")))
             && S("SourceFingerprint") == receipt.SourceFingerprint && proof.GetProperty("SourceEqual").GetBoolean()
-            && proof.GetProperty("AntExitCode").GetInt32() == 0 && proof.GetProperty("ProbeExitCode").GetInt32() == 0 && proof.GetProperty("CompileExitCode").GetInt32() == 0
+            && (isolated ? S("ExecutionMode") == "ISOLATED_CATALOG_V1" && S("Ant") == "NOT_RUN" && proof.GetProperty("AntExitCode").ValueKind == JsonValueKind.Null && !proof.TryGetProperty("AntCommand", out _)
+                : proof.GetProperty("AntExitCode").GetInt32() == 0)
+            && proof.GetProperty("ProbeExitCode").GetInt32() == 0 && proof.GetProperty("CompileExitCode").GetInt32() == 0
             && proof.GetProperty("NegativeExitCode").GetInt32() == 3 && proof.GetProperty("SchemaNegativeExitCode").GetInt32() == 3 && S("Scratch") == oracle, "PROOF_STATUS");
         var stages = proof.GetProperty("StageFiles").Deserialize<List<SourceFileStamp>>()!; var sources = proof.GetProperty("SourceFiles").Deserialize<List<SourceFileStamp>>()!;
         V3ProposalContract.Require(stages.SequenceEqual(receipt.StagedFiles) && sources.SequenceEqual(receipt.SourceFiles) && S("Jdk").StartsWith("javac 25.", StringComparison.Ordinal)
-            && S("Ant").StartsWith("Apache Ant", StringComparison.Ordinal), "PROOF_INPUTS");
+            && (isolated || S("Ant").StartsWith("Apache Ant", StringComparison.Ordinal)), "PROOF_INPUTS");
         foreach (var (relative, hash) in new[] { ("operator.ps1", S("ScriptHash")), ("Pss008V3CatalogProbe.java", S("BridgeHash")), ("input-inventory.json", S("InputInventoryHash")), ("expected-ids.tsv", S("ExpectedIdsSha256")) })
         {
             V3ProposalContract.Require(V3ProposalContract.Sha(hash), "PROOF_INPUT_HASH"); var file = PathSafety.ResolveRelative(oracle, relative);
@@ -102,7 +118,8 @@ public static class V3ReleaseHandoff
             && inventory.Sum(f => f.Bytes) == proof.GetProperty("CopyBytes").GetInt64() && inventory.Sum(f => f.Bytes) <= 268435456
             && inventory.Select(f => f.RelativePath).Distinct(StringComparer.Ordinal).Count() == inventory.Count, "ORACLE_INVENTORY");
         // TASK063 audited db375d6 baseline; exact CRLF/LF bytes, never an arbitrary build or catalog.
-        V3ProposalContract.Require(inventory.Any(f => f.RelativePath == "build.xml" && (f.Sha256 is "f6bebf5452655de3e08d8941134307650b830c2d0c1f31ded1cc1d0f2bd5fdc1" or "dafce95145d8d722138dfa16515aac0271110cd80254c204e308a03f78ecddca"))
+        if (isolated) ValidateIsolatedInventory(inventory);
+        else V3ProposalContract.Require(inventory.Any(f => f.RelativePath == "build.xml" && (f.Sha256 is "f6bebf5452655de3e08d8941134307650b830c2d0c1f31ded1cc1d0f2bd5fdc1" or "dafce95145d8d722138dfa16515aac0271110cd80254c204e308a03f78ecddca"))
             && inventory.Any(f => f.RelativePath == "java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java" && (f.Sha256 is "ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840" or "a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335"
                 or "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0")), "UNAUDITED_ORACLE_BUILD");
         // 080: reviewed Java079 catalog only. Ant ownership/write guards above remain pinned.
@@ -119,9 +136,33 @@ public static class V3ReleaseHandoff
                 || relative.StartsWith("dist/libs/", StringComparison.Ordinal) && relative.EndsWith(".jar", StringComparison.Ordinal) && !Regex.IsMatch(relative, "(GameServer|LoginServer)\\.jar$|-sources\\.jar$"), "ORACLE_ALLOWLIST");
             var file = PathSafety.ResolveRelative(receipt.SourceModule, relative); using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
             V3ProposalContract.Require(stream.Length == stamp.Bytes && stamp.Bytes is > 0 and <= 268435456 && CorpusStore.HashStream(stream, token) == stamp.Sha256, "ORACLE_SOURCE_DRIFT");
+            if (isolated) V3ProposalContract.ReadStamped(PathSafety.ResolveRelative(oracle, "module/" + relative), stamp);
+        }
+        if (isolated)
+        {
+            var tools = proof.GetProperty("JavaTools").Deserialize<List<JavaToolStamp>>()!;
+            V3ProposalContract.Require(tools.Count == 2 && Path.GetFileName(tools[0].Path) == "java.exe" && Path.GetFileName(tools[1].Path) == "javac.exe"
+                && Path.GetDirectoryName(tools[0].Path) == Path.GetDirectoryName(tools[1].Path), "PROOF_JDK_TOOLS");
+            foreach (var tool in tools)
+            {
+                V3ProposalContract.Require(Path.IsPathFullyQualified(tool.Path) && V3ProposalContract.Sha(tool.Sha256), "PROOF_JDK_TOOLS");
+                PathSafety.AssertNoReparsePoints(tool.Path); using var input = new FileStream(tool.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                V3ProposalContract.Require(input.Length == tool.Bytes && tool.Bytes is > 0 and <= 1048576 && CorpusStore.HashStream(input, token) == tool.Sha256, "PROOF_JDK_DRIFT");
+            }
+            var empty = PathSafety.ResolveRelative(oracle, "empty"); var bin = PathSafety.ResolveRelative(oracle, "probe-bin");
+            var expectedCompile = new[] { tools[1].Path, "--release", "25", "-encoding", "UTF-8", "-proc:none", "-implicit:none", "-sourcepath", empty, "-classpath", empty, "-d", bin }
+                .Concat(inventory.Select(f => PathSafety.ResolveRelative(oracle, "module/" + f.RelativePath))).Append(PathSafety.ResolveRelative(oracle, "Pss008V3CatalogProbe.java"));
+            V3ProposalContract.Require(proof.GetProperty("CompileCommand").Deserialize<string[]>()!.SequenceEqual(expectedCompile)
+                && !Directory.EnumerateFileSystemEntries(empty).Any(), "PROOF_ISOLATED_COMPILE");
+            var expectedProbe = new[] { tools[0].Path, "-cp", bin, "Pss008V3CatalogProbe", oracle, PathSafety.ResolveRelative(oracle, "baseline"),
+                PathSafety.ResolveRelative(oracle, "module/dist/game/data/phantoms"), PathSafety.ResolveRelative(oracle, "negative"), PathSafety.ResolveRelative(oracle, "expected-ids.tsv"),
+                receipt.BaselinePatterns.ToString(System.Globalization.CultureInfo.InvariantCulture), receipt.BaselineTemplates.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                receipt.AddedPatterns.ToString(System.Globalization.CultureInfo.InvariantCulture), receipt.AddedTemplates.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+            V3ProposalContract.Require(proof.GetProperty("ProbeCommand").Deserialize<string[]>()!.SequenceEqual(expectedProbe), "PROOF_ISOLATED_RUN");
         }
         var logs = proof.GetProperty("Logs").Deserialize<List<SourceFileStamp>>()!;
-        string[] expectedLogs = ["ant-content.txt", "probe.txt", "negative.txt", "negative-schema.txt", "probe-compile.txt", "java-version.txt", "ant-version.txt"];
+        string[] expectedLogs = isolated ? ["probe.txt", "negative.txt", "negative-schema.txt", "probe-compile.txt", "java-version.txt"]
+            : ["ant-content.txt", "probe.txt", "negative.txt", "negative-schema.txt", "probe-compile.txt", "java-version.txt", "ant-version.txt"];
         V3ProposalContract.Require(logs.Count == expectedLogs.Length && logs.Select(l => l.RelativePath).Order().SequenceEqual(expectedLogs.Order()), "PROOF_LOGS");
         var verifiedLogs = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var log in logs)
@@ -141,7 +182,8 @@ public static class V3ReleaseHandoff
         V3ProposalContract.Require(probeLines.Count(line => line == evidence) == 1
             && verifiedLogs["negative.txt"].Contains("REJECTED_V3_NEGATIVE", StringComparison.Ordinal)
             && verifiedLogs["negative-schema.txt"].Contains("REJECTED_V3_NEGATIVE", StringComparison.Ordinal)
-            && verifiedLogs["ant-content.txt"].Contains("BUILD SUCCESSFUL", StringComparison.Ordinal), "PROOF_NATIVE_LOGS");
+            && (isolated ? probeLines.Count(line => line == "NORMALIZED_DUPLICATE distinctId=CHECKED unicodeNormalization=CHECKED rejected=CHECKED") == 1
+                : verifiedLogs["ant-content.txt"].Contains("BUILD SUCCESSFUL", StringComparison.Ordinal)), "PROOF_NATIVE_LOGS");
         token.ThrowIfCancellationRequested(); V3ProposalContract.Require(TextRules.Hash(File.ReadAllBytes(path)) == proofHash, "PROOF_DRIFT"); return proofHash;
     }
 }

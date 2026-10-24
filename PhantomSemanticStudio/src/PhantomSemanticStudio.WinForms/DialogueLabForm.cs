@@ -271,7 +271,7 @@ public partial class DialogueLabForm : Form
             var lesson = Lab.CreateLesson(text, topic, act, band, register, gender, current);
             workspace.Check(); PathSafety.AssertDisjoint(PathSafety.RepositoryBoundary(Pack.ModuleRoot), workspace.Root);
             var state = workspace.LoadSession(); token.ThrowIfCancellationRequested();
-            var next = new SessionState { Candidates = state.Candidates, Lessons = state.Lessons, ScopedLessons = state.ScopedLessons.Append(lesson).ToList() };
+            var next = new SessionState { Candidates = state.Candidates, Lessons = state.Lessons, ScopedLessons = state.ScopedLessons.Append(lesson).ToList(), BatchJob = state.BatchJob };
             workspace.SaveSession(next); noteDirty = false; saved = true;
             lblStatus.Text = "Scoped lesson сохранён явно. Кандидаты и approval не менялись; генерация/XML не запускались.";
         });

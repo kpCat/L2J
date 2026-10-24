@@ -24,6 +24,9 @@ public partial class MainForm : Form
     private bool showingCandidate;
     private CancellationTokenSource? evidenceRefresh;
     private long evidenceSelectionVersion;
+    private BatchGenerationService? batchService;
+    private bool batchRunning;
+    private volatile bool batchPauseRequested;
     private sealed record LessonChoice(EditorialLesson Lesson, string Label);
 
     // Важно для Visual Studio Designer: здесь нет IO, сервисов, DI или построения controls.
@@ -63,6 +66,7 @@ public partial class MainForm : Form
             http = LmStudioClient.CreateHttpClient(); lm = new LmStudioClient(http);
             FillSettings(); FillChoices(); BindCandidates(); BindLessons();
             tabs.SelectedTab = tabSettings; ready = true;
+            RestoreBatchInputs(false); BindBatchState(session.BatchJob);
             statusLabel.Text = "L2J только для чтения. Настройки готовы; импорт запускается вручную.";
         });
         if (!ready) Close();
@@ -142,6 +146,7 @@ public partial class MainForm : Form
             lblSnapshot.Text = $"Импорт: {patterns:N0} входных фраз, {templates:N0} ответов, {imported.Files.Count} файлов • {imported.Fingerprint[..16]}";
             txtSettingsResult.Text = lblSnapshot.Text + Environment.NewLine + string.Join(Environment.NewLine, imported.Warnings.Take(4));
             preview.Reset(); lastPreview = null; BindLibrary(); BindCandidates();
+            RestoreBatchInputs(true); BindBatchState(session.BatchJob);
             statusLabel.Text = "Импорт завершён. Это инспекция Studio, не подтверждение Java-validator.";
             tabs.SelectedTab = tabGenerate;
         });
@@ -179,11 +184,130 @@ public partial class MainForm : Form
             var all = session.Candidates.Concat(additions).ToList();
             var invalid = await Task.Run(() => additions.Count(c => CandidateValidator.Validate(c, pack, all).Any(i => i.Severity == IssueSeverity.Error)), token);
             token.ThrowIfCancellationRequested();
-            var next = new SessionState { Candidates = all, Lessons = session.Lessons, ScopedLessons = session.ScopedLessons }; Store.SaveSession(next); session = next;
+            var next = new SessionState { Candidates = all, Lessons = session.Lessons, ScopedLessons = session.ScopedLessons, BatchJob = session.BatchJob }; Store.SaveSession(next); session = next;
             BindCandidates(additions.FirstOrDefault()?.Id); tabs.SelectedTab = tabCandidates;
             var summary = $"DRAFT: добавлено {additions.Count}; с блокирующими замечаниями: {invalid}. Тип: {mode}; модель: {configured.ModelId}. Требуется ручное ревью; никто не одобрен автоматически.";
             statusLabel.Text = summary; txtValidation.Text = summary + "\r\n\r\n" + txtValidation.Text;
         });
+    }
+    private BatchGenerationParameters ReadBatchParameters() => new()
+    {
+        Topic = Key(cmbTopic), Act = Key(cmbAct), Band = Key(cmbBand), Register = Key(cmbRegister), Gender = Key(cmbGender),
+        Voice = Key(cmbVoice), Mode = cmbMode.SelectedIndex switch
+        { 0 => GenerationMode.TEMPLATE, 1 => GenerationMode.PATTERN, 2 => GenerationMode.MIXED, _ => throw new InvalidDataException("Выберите тип генерации.") },
+        TargetCount = (int)nudBatchTarget.Value, Instruction = txtInstruction.Text.Trim(), Words = txtWords.Text.Trim(),
+        Facets = new EditorialFacets
+        {
+            Aggression = (int)nudFacetAggression.Value, Sarcasm = (int)nudFacetSarcasm.Value, Humor = (int)nudFacetHumor.Value,
+            Reserved = (int)nudFacetReserved.Value, Swagger = (int)nudFacetSwagger.Value, Timidity = (int)nudFacetTimidity.Value,
+            Romance = (int)nudFacetRomance.Value, Roughness = (int)nudFacetRoughness.Value,
+            Cunning = (int)nudFacetCunning.Value, Gossip = (int)nudFacetGossip.Value
+        }
+    };
+    private void RestoreBatchInputs(bool imported)
+    {
+        if (session.BatchJob is not { } job) return;
+        var p = job.Parameters;
+        if (imported)
+        {
+            cmbAct.SelectedItem = p.Act;
+            cmbTopic.SelectedItem = p.Topic;
+        }
+        cmbMode.SelectedIndex = p.Mode switch { GenerationMode.TEMPLATE => 0, GenerationMode.PATTERN => 1, _ => 2 };
+        cmbBand.SelectedValue = p.Band; cmbRegister.SelectedValue = p.Register; cmbGender.SelectedValue = p.Gender;
+        cmbVoice.SelectedValue = p.Voice; txtInstruction.Text = p.Instruction; txtWords.Text = p.Words;
+        nudBatchTarget.Value = p.TargetCount;
+        nudFacetAggression.Value = p.Facets.Aggression; nudFacetSarcasm.Value = p.Facets.Sarcasm; nudFacetHumor.Value = p.Facets.Humor;
+        nudFacetReserved.Value = p.Facets.Reserved; nudFacetSwagger.Value = p.Facets.Swagger; nudFacetTimidity.Value = p.Facets.Timidity;
+        nudFacetRomance.Value = p.Facets.Romance; nudFacetRoughness.Value = p.Facets.Roughness;
+        nudFacetCunning.Value = p.Facets.Cunning; nudFacetGossip.Value = p.Facets.Gossip;
+    }
+    private void BindBatchState(BatchJobState? job)
+    {
+        txtBatchProgress.Text = job == null
+            ? "Очередь ещё не создана. Параметры темы, намерения, голоса и текста берутся из конструктора выше."
+            : $"{job.Status}\r\nПринято DRAFT: {job.Accepted} / {job.Parameters.TargetCount}\r\nПопыток LM: {job.RequestCount}; получено записей: {job.Attempted}\r\nОтклонено: {job.Rejected}; из них точных дублей: {job.Deduplicated}\r\n\r\nМодель: {job.ModelId}\r\nBaseline: {job.SourceFingerprint}\r\n\r\n{job.LastDiagnostic}";
+        btnBatchStart.Enabled = ready && !busy && snapshot != null;
+        btnBatchResume.Enabled = ready && !busy && snapshot != null && (job?.Status is "READY" or "PAUSED" or "RUNNING");
+        btnBatchPause.Enabled = batchRunning && !batchPauseRequested && operation?.IsCancellationRequested != true;
+        btnBatchCancel.Enabled = batchRunning && operation?.IsCancellationRequested != true;
+    }
+    private void SetBatchBusy(bool running)
+    {
+        batchRunning = running; busy = running;
+        foreach (TabPage page in tabs.TabPages) if (page != tabGenerate) page.Enabled = !running;
+        grpRequest.Enabled = !running; btnGenerate.Enabled = !running; btnToCandidates.Enabled = !running; nudCount.Enabled = !running;
+        nudBatchTarget.Enabled = !running;
+        foreach (var numeric in new[] { nudFacetAggression, nudFacetSarcasm, nudFacetHumor, nudFacetReserved, nudFacetSwagger,
+            nudFacetTimidity, nudFacetRomance, nudFacetRoughness, nudFacetCunning, nudFacetGossip }) numeric.Enabled = !running;
+        btnCancel.Enabled = running || evidenceRefresh != null;
+        BindBatchState(session.BatchJob);
+    }
+    private async void BatchStart_Click(object? sender, EventArgs e)
+    {
+        if (!ready || busy || !ResolvePendingEdit()) return;
+        var confirmed = session.BatchJob == null;
+        if (!confirmed)
+            confirmed = MessageBox.Show(this, "Создать новую очередь с текущими параметрами вместо сохранённой?\r\n\r\n"
+                + "Прежний прогресс очереди будет заменён. Уже сохранённые DRAFT и их baseline останутся без перепривязки; одобрение остаётся ручным.",
+                "Явное подтверждение новой очереди", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+        if (confirmed) await RunBatchAsync(true);
+    }
+    private async void BatchResume_Click(object? sender, EventArgs e)
+    {
+        if (!ready || busy || !ResolvePendingEdit()) return;
+        await RunBatchAsync(false);
+    }
+    private void BatchPause_Click(object? sender, EventArgs e)
+    {
+        batchPauseRequested = true;
+        batchService?.RequestPause(); btnBatchPause.Enabled = false;
+        statusLabel.Text = "Пауза запрошена: текущий ограниченный запрос завершится и сохранится перед остановкой.";
+    }
+    private void BatchCancel_Click(object? sender, EventArgs e)
+    {
+        batchService?.RequestCancel(); operation?.Cancel(); btnBatchPause.Enabled = false; btnBatchCancel.Enabled = false;
+        statusLabel.Text = "Отмена очереди запрошена. Ранее сохранённые DRAFT сохраняются.";
+    }
+    private async Task RunBatchAsync(bool create)
+    {
+        CancelEvidenceRefresh(); tabs.SelectedTab = tabGenerate;
+        var cancellation = new CancellationTokenSource(); operation = cancellation; batchPauseRequested = false; SetBatchBusy(true);
+        statusLabel.Text = create ? "Запускаю новую очередь DRAFT…" : "Проверяю baseline, модель и параметры сохранённой очереди…";
+        string? failure = null;
+        try
+        {
+            var pack = Snapshot; var configured = ReadSettings(); configured.Validate();
+            if (!PathSafety.Canonical(configured.HighFiveRoot).Equals(pack.ModuleRoot, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Источник в настройках изменён. Сначала импортируйте его; автоматической перепривязки нет.");
+            var parameters = ReadBatchParameters(); var apiKey = txtApiKey.Text;
+            Store.SaveSettings(configured); settings = configured;
+            var service = new BatchGenerationService(Store, Store.LoadSession(), Model); batchService = service;
+            var progress = new Progress<BatchJobState>(job =>
+            {
+                if (!IsDisposed && ReferenceEquals(batchService, service)) BindBatchState(job);
+            });
+            // Чтение источника, проверки и commits очереди также не блокируют поток WinForms.
+            await Task.Run(async () =>
+            {
+                if (create) service.Start(pack, configured, parameters, confirmReplacement: true);
+                if (batchPauseRequested) service.RequestPause();
+                await service.RunAsync(pack, configured, parameters, apiKey, progress, cancellation.Token);
+            });
+        }
+        catch (Exception ex)
+        { failure = "Очередь остановлена: " + ex.Message; }
+        finally
+        {
+            batchService = null;
+            // Bind только завершённой атомарной session: in-flight response не является кандидатом.
+            try { session = Store.LoadSession(); BindCandidates(); BindLessons(); }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            { failure = "Сохранённая session не прочитана: " + ex.Message; }
+            cancellation.Dispose(); operation = null; SetBatchBusy(false);
+            statusLabel.Text = failure ?? $"Очередь: {session.BatchJob?.Status}. Сохранённые DRAFT требуют ручного ревью.";
+            if (failure != null) txtBatchProgress.AppendText("\r\n\r\n" + failure);
+        }
     }
     private void ToCandidates_Click(object? sender, EventArgs e) => tabs.SelectedTab = tabCandidates;
     private void BindLibrary()
@@ -396,11 +520,12 @@ public partial class MainForm : Form
     }
     private void SaveCandidateVersion(Candidate updated)
     {
-        var next = new SessionState { Candidates = session.Candidates.Select(c => c.Id == updated.Id ? updated : c).ToList(), Lessons = session.Lessons, ScopedLessons = session.ScopedLessons };
+        var next = new SessionState { Candidates = session.Candidates.Select(c => c.Id == updated.Id ? updated : c).ToList(), Lessons = session.Lessons, ScopedLessons = session.ScopedLessons, BatchJob = session.BatchJob };
         Store.SaveSession(next); session = next;
     }
     private void Tabs_Selecting(object? sender, TabControlCancelEventArgs e)
     {
+        if (batchRunning && e.TabPage != tabGenerate) { e.Cancel = true; return; }
         if (!busy && tabs.SelectedTab == tabCandidates && e.TabPage != tabCandidates && !ResolvePendingEdit()) e.Cancel = true;
     }
     private Candidate RequireCandidate(bool requireSavedText = true)
@@ -478,7 +603,7 @@ public partial class MainForm : Form
             if (Snapshot.Entries.Any(e => e.Kind == "PATTERN" && e.Act == lastPreview.Act && e.Topic == lastPreview.Topic))
                 scoped = scoped with { Act = lastPreview.Act, Topic = lastPreview.Topic };
             scoped.ToRequest(Snapshot, false);
-            var next = new SessionState { Candidates = session.Candidates, Lessons = session.Lessons, ScopedLessons = session.ScopedLessons.Append(scoped).ToList() };
+            var next = new SessionState { Candidates = session.Candidates, Lessons = session.Lessons, ScopedLessons = session.ScopedLessons.Append(scoped).ToList(), BatchJob = session.BatchJob };
             Store.SaveSession(next); session = next;
             BindLessons(scoped.Id);
             statusLabel.Text = "Замечание сохранено с scope. Нажмите «Применить выбранное», чтобы перенести его в конструктор.";
@@ -582,7 +707,7 @@ public partial class MainForm : Form
             statusLabel.Text = "STAGED_UNVALIDATED. XML-предложение только в workspace, НЕ ДЛЯ УСТАНОВКИ.";
         });
     }
-    private void Cancel_Click(object? sender, EventArgs e) { operation?.Cancel(); evidenceRefresh?.Cancel(); }
+    private void Cancel_Click(object? sender, EventArgs e) { if (batchRunning) BatchCancel_Click(sender, e); else operation?.Cancel(); evidenceRefresh?.Cancel(); }
     private void PackQuality_Click(object? sender, EventArgs e)
     {
         if (!ready || busy) return;
@@ -633,11 +758,12 @@ public partial class MainForm : Form
         finally
         {
             operation.Dispose(); operation = null; busy = false; tabs.Enabled = true; btnCancel.Enabled = evidenceRefresh != null; UseWaitCursor = false;
+            BindBatchState(session.BatchJob);
         }
     }
     private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
     {
-        if (busy) { operation?.Cancel(); e.Cancel = true; statusLabel.Text = "Отмена запрошена. Закройте окно повторно после завершения операции."; return; }
+        if (busy) { batchService?.RequestCancel(); operation?.Cancel(); e.Cancel = true; statusLabel.Text = "Отмена запрошена. Закройте окно повторно после завершения операции."; return; }
         e.Cancel = !ResolvePendingEdit();
         if (!e.Cancel) CancelEvidenceRefresh();
     }

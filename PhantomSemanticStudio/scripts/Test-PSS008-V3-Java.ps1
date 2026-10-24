@@ -1,9 +1,18 @@
-param([Parameter(Mandatory=$true)][string]$StageRoot, [string]$JdkBin = '', [string]$AntPath = '')
+param([Parameter(Mandatory=$true)][string]$StageRoot, [string]$JdkBin = '', [string]$AntPath = '',
+    [ValidateSet('IsolatedCatalog','AntContent')][string]$ProofMode = 'IsolatedCatalog')
 $ErrorActionPreference = 'Stop'
 $studio = [IO.Path]::GetFullPath((Split-Path $PSScriptRoot -Parent)).TrimEnd('\')
 $protected = [IO.Path]::GetFullPath((Join-Path $studio '..')).TrimEnd('\')
 $scratch = $null
 $result = [ordered]@{ Version = 1; JavaStatus = 'BLOCKED_JAVA'; Status = 'STAGED_V3_UNVALIDATED'; AntExitCode = $null; ProbeExitCode = $null; Reason = $null }
+$isolated = $ProofMode -eq 'IsolatedCatalog'
+if ($isolated) { $result.Version = 2; $result.ExecutionMode = 'ISOLATED_CATALOG_V1'; $result.Ant = 'NOT_RUN' }
+# TASK081 path B: complete production dependency closure, JDK-only; no Ant/OwnerConfig execution.
+$catalogInputs = [ordered]@{
+    'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java' = '493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0'
+    'java/org/l2jmobius/gameserver/model/actor/enums/player/PlayerClass.java' = '9678b970528f17192114669ad96b8538add396ec251f4fbc4476d57c1e64a2cf'
+    'java/org/l2jmobius/gameserver/model/actor/enums/creature/Race.java' = '7cd9a7ba39b483b93c6fd47b1ef4572dc526fb0a06419bf918fafc823c5cbc0b'
+}
 
 function Within([string]$Path, [string]$Parent) {
     $p = [IO.Path]::GetFullPath($Path).TrimEnd('\'); $r = [IO.Path]::GetFullPath($Parent).TrimEnd('\')
@@ -134,11 +143,19 @@ try {
     try {
         if (-not $JdkBin) { $JdkBin = Split-Path (Get-Command javac -ErrorAction Stop).Source -Parent }
         $javac = Join-Path $JdkBin 'javac.exe'; $java = Join-Path $JdkBin 'java.exe'
-        $ant = if ($AntPath) { $AntPath } else { (Get-Command ant -ErrorAction Stop).Source }
-        foreach ($tool in @($java,$javac,$ant)) { if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) { throw 'missing tool' }; NoLinks $tool }
-    } catch { throw 'BLOCKED_JAVA: JDK/Ant path unavailable' }
+        $ant = if ($isolated) { $null } elseif ($AntPath) { $AntPath } else { (Get-Command ant -ErrorAction Stop).Source }
+        $tools = if ($isolated) { @($java,$javac) } else { @($java,$javac,$ant) }
+        foreach ($tool in $tools) { if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) { throw 'missing tool' }; NoLinks $tool }
+    } catch { throw 'BLOCKED_JAVA: required JDK/Ant path unavailable' }
     # Exact copy allowlist; no data/config/DB/credentials/.git/runtime files.
     $inventory = New-Object 'Collections.Generic.List[object]'
+    if ($isolated) {
+        foreach ($relative in $catalogInputs.Keys) {
+            $file = Relative $source $relative
+            if ((HashFile $file) -ne $catalogInputs[$relative]) { throw 'BLOCKED_JAVA: unaudited isolated production input' }
+            $inventory.Add([pscustomobject]@{ RelativePath = $relative; Sha256 = (HashFile $file); Bytes = (Get-Item -LiteralPath $file).Length })
+        }
+    } else {
     $buildPath = Join-Path $source 'build.xml'; NoLinks $buildPath; SafeBuild $buildPath
     $catalogPath = Relative $source 'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java'
     # 080 reviewed Java079 source at f7676d2. This does NOT admit its changed Ant/OwnerConfig graph.
@@ -156,6 +173,7 @@ try {
             if (-not $allowed) { throw 'BLOCKED_JAVA: unexpected file in copy allowlist' }
             $inventory.Add([pscustomobject]@{ RelativePath = $relative; Sha256 = (HashFile $file.FullName); Bytes = $file.Length })
         }
+    }
     }
     $bytes = ($inventory | Measure-Object Bytes -Sum).Sum
     if ($inventory.Count -gt 4000 -or $bytes -gt 268435456) { throw 'BLOCKED_JAVA: copy exceeds 4000 files / 256 MiB' }
@@ -179,6 +197,11 @@ try {
     $inventoryPath = Join-Path $scratch 'input-inventory.json'
     [IO.File]::WriteAllText($inventoryPath, (ConvertTo-Json -InputObject @($inventory.ToArray()) -Depth 5), (New-Object Text.UTF8Encoding $false))
     $result.InputInventoryHash = HashFile $inventoryPath
+    if ($isolated) {
+        $result.JavaTools = @(foreach ($tool in @($java,$javac)) {
+            [pscustomobject]@{ Path = $tool; Sha256 = (HashFile $tool); Bytes = (Get-Item -LiteralPath $tool).Length }
+        })
+    }
     # Execution and output/status handling follow below; never start Ant in source.
 }
 catch {
@@ -192,28 +215,34 @@ $savedJavaHome = $env:JAVA_HOME; $savedJavaOptions = $env:JAVA_TOOL_OPTIONS; $sa
 $savedJdkOptions = $env:JDK_JAVA_OPTIONS; $savedUnderscoreOptions = $env:_JAVA_OPTIONS; $savedAntArgs = $env:ANT_ARGS
 $savedClasspath = $env:CLASSPATH
 $exit = 2
+Push-Location $scratch
 try {
     $env:JAVA_HOME = Split-Path (Split-Path $javac -Parent) -Parent
     $env:JAVA_TOOL_OPTIONS = '-Djava.io.tmpdir="' + $temp + '"'
     $env:ANT_OPTS = '-Xmx2g'; $env:JDK_JAVA_OPTIONS = $null; $env:_JAVA_OPTIONS = $null; $env:ANT_ARGS = $null; $env:CLASSPATH = $null
     $javaVersionLog = Join-Path $scratch 'java-version.txt'; $antVersionLog = Join-Path $scratch 'ant-version.txt'
     if ((Native $javac @('-version') $javaVersionLog) -ne 0 -or (Get-Content -LiteralPath $javaVersionLog -Raw) -notmatch 'javac 25\.') { throw 'BLOCKED_JAVA: JDK25 required' }
-    if ((Native $ant @('-version') $antVersionLog) -ne 0) { throw 'BLOCKED_JAVA: Ant unavailable' }
     $result.Jdk = (Get-Content -LiteralPath $javaVersionLog | Where-Object { $_ -match '^javac ' }) -join ' '
-    $result.Ant = (Get-Content -LiteralPath $antVersionLog | Where-Object { $_ -match '^Apache Ant' }) -join ' '
+    if (-not $isolated) {
+        if ((Native $ant @('-version') $antVersionLog) -ne 0) { throw 'BLOCKED_JAVA: Ant unavailable' }
+        $result.Ant = (Get-Content -LiteralPath $antVersionLog | Where-Object { $_ -match '^Apache Ant' }) -join ' '
+    }
     VerifyStamps $source $inventory; VerifyStamps $sourceData $receipt.SourceFiles
-    VerifyStamps $stageData $receipt.StagedFiles; SafeBuild (Join-Path $module 'build.xml')
+    VerifyStamps $stageData $receipt.StagedFiles
     $output = Join-Path $scratch 'build'; NoLinks $output
+    $result.JavaStatus = 'FAILED_JAVA'; $result.Status = 'FAILED_JAVA'
+    if (-not $isolated) {
+    SafeBuild (Join-Path $module 'build.xml')
     # CLI properties pin every reachable write/copy path, overriding source properties.
     $arguments = @('-f', (Join-Path $module 'build.xml'), "-Dbasedir=$module", "-Dbuild=$output", "-Dbuild.bin=$output\bin",
         "-Dbuild.test=$output\phantom-test", "-Dbuild.test.bin=$output\phantom-test\bin", "-Dbuild.test.resources=$output\phantom-test\resources",
         "-Dbuild.test.reports=$output\phantom-test\reports", "-Ddatapack=$module\dist", "-Dsrc=$module\java", "-Dlibs=$module\dist\libs",
         "-Dtest.src=$module\test\java", "-Dtest.resources=$module\test\resources", 'phantom-humanized-v3-content-validate')
-    $result.JavaStatus = 'FAILED_JAVA'; $result.Status = 'FAILED_JAVA'
     $result.AntCommand = @($ant) + $arguments
     Push-Location $module
     try { $result.AntExitCode = Native $ant $arguments (Join-Path $scratch 'ant-content.txt') } finally { Pop-Location }
     if ($result.AntExitCode -ne 0) { throw 'FAILED_JAVA: Ant content target rejected shadow' }
+    }
     $spec = Join-Path $scratch 'expected-ids.tsv'
     $rows = $receipt.Candidates | ForEach-Object {
         if ($_.XmlId -notmatch '^pss\.v3\.[pt]\.[0-9a-f]{32}$' -or $_.Act -notmatch '^[a-z][a-z0-9_.-]{0,63}$' -or
@@ -227,29 +256,44 @@ try {
     [IO.File]::WriteAllLines($spec, [string[]]$rows, (New-Object Text.UTF8Encoding $false))
     $specHash = HashFile $spec; $result.ExpectedIdsSha256 = $specHash
     $bridge = Join-Path $scratch 'probe-bin'; New-Item -ItemType Directory -Path $bridge | Out-Null
-    $classpath = "$output\bin;$module\dist\libs\*"
+    $classpath = if ($isolated) { $bridge } else { "$output\bin;$module\dist\libs\*" }
     $bridgeCopy = Join-Path $scratch 'Pss008V3CatalogProbe.java'; Copy-Item -LiteralPath $bridgePath -Destination $bridgeCopy
     if ((HashFile $bridgeCopy) -ne $bridgeHash) { throw 'FAILED_JAVA: bridge copy hash' }
-    $compileExit = Native $javac @('-encoding','UTF-8','-cp',$classpath,'-d',$bridge,$bridgeCopy) (Join-Path $scratch 'probe-compile.txt')
+    if ($isolated) {
+        $empty = Join-Path $scratch 'empty'; New-Item -ItemType Directory -Path $empty | Out-Null
+        # Explicit source closure, no processors, implicit sources, inherited classpath or prebuilt JARs.
+        $compileArgs = @('--release','25','-encoding','UTF-8','-proc:none','-implicit:none','-sourcepath',$empty,'-classpath',$empty,'-d',$bridge) +
+            @($inventory | ForEach-Object { Relative $module $_.RelativePath }) + @($bridgeCopy)
+        $result.CompileCommand = @($javac) + $compileArgs
+        $compileExit = Native $javac $compileArgs (Join-Path $scratch 'probe-compile.txt')
+    } else {
+        $compileExit = Native $javac @('-encoding','UTF-8','-cp',$classpath,'-d',$bridge,$bridgeCopy) (Join-Path $scratch 'probe-compile.txt')
+    }
     $result.CompileExitCode = $compileExit
     if ($compileExit -ne 0) { throw 'FAILED_JAVA: bridge compilation failed' }
-    $probeArgs = @('-cp', "$bridge;$classpath", 'Pss008V3CatalogProbe', $scratch, $baseline, (Join-Path $module 'dist\game\data\phantoms'),
+    $runtimeClasspath = if ($isolated) { $bridge } else { "$bridge;$classpath" }
+    $probeArgs = @('-cp', $runtimeClasspath, 'Pss008V3CatalogProbe', $scratch, $baseline, (Join-Path $module 'dist\game\data\phantoms'),
         $negative, $spec, [string]$receipt.BaselinePatterns, [string]$receipt.BaselineTemplates, [string]$receipt.AddedPatterns, [string]$receipt.AddedTemplates)
     $result.ProbeCommand = @($java) + $probeArgs
     $probeLog = Join-Path $scratch 'probe.txt'; $result.ProbeExitCode = Native $java $probeArgs $probeLog
     if ($result.ProbeExitCode -ne 0) { throw 'FAILED_JAVA: actual v3 loader probe rejected stage' }
     $proof = @(Get-Content -LiteralPath $probeLog | Where-Object { $_ -match '^PASS_JAVA_STAGED_V3 baselinePatterns=\d+ baselineTemplates=\d+ stagedPatterns=\d+ stagedTemplates=\d+ checkedIds=\d+ baselineHash=[0-9a-f]{64} stagedHash=[0-9a-f]{64} negative=DUPLICATE_AND_SCHEMA_REJECTED$' })
     if ($proof.Count -ne 1) { throw 'FAILED_JAVA: actual load evidence missing' }
-    $negativeExit = Native $java @('-cp', "$bridge;$classpath", 'Pss008V3CatalogProbe', '--negative', $scratch, $negative) (Join-Path $scratch 'negative.txt')
+    $negativeExit = Native $java @('-cp', $runtimeClasspath, 'Pss008V3CatalogProbe', '--negative', $scratch, $negative) (Join-Path $scratch 'negative.txt')
     $result.NegativeExitCode = $negativeExit
     if ($negativeExit -ne 3) { throw 'FAILED_JAVA: negative loader native exit not proven' }
-    $schemaExit = Native $java @('-cp', "$bridge;$classpath", 'Pss008V3CatalogProbe', '--negative', $scratch, (Join-Path $scratch 'negative-schema')) (Join-Path $scratch 'negative-schema.txt')
+    $schemaExit = Native $java @('-cp', $runtimeClasspath, 'Pss008V3CatalogProbe', '--negative', $scratch, (Join-Path $scratch 'negative-schema')) (Join-Path $scratch 'negative-schema.txt')
     $result.SchemaNegativeExitCode = $schemaExit
     if ($schemaExit -ne 3) { throw 'FAILED_JAVA: negative schema native exit not proven' }
     # Source inputs and stage are immutable across compilation, native tests and probe.
     VerifyStamps $source $inventory; VerifyStamps $sourceData $receipt.SourceFiles; VerifyStamps $stageData $receipt.StagedFiles
     VerifyStamps $module $inventory; VerifyStamps $baseline $receipt.SourceFiles
     VerifyStamps (Join-Path $module 'dist\game\data\phantoms') $receipt.StagedFiles
+    if ($isolated) {
+        foreach ($tool in $result.JavaTools) {
+            if ((Get-Item -LiteralPath $tool.Path).Length -ne $tool.Bytes -or (HashFile $tool.Path) -ne $tool.Sha256) { throw 'FAILED_JAVA: JDK tool drift' }
+        }
+    }
     if ((HashFile $spec) -ne $specHash) { throw 'FAILED_JAVA: selected-ID spec drift' }
     if ((HashFile $receiptPath) -ne $receiptHash -or (HashFile $PSCommandPath) -ne $scriptHash -or (HashFile (Join-Path $scratch 'operator.ps1')) -ne $scriptHash -or (HashFile $inventoryPath) -ne $result.InputInventoryHash -or (HashFile $bridgePath) -ne $bridgeHash -or (HashFile $bridgeCopy) -ne $bridgeHash) { throw 'FAILED_JAVA: receipt or bridge drift' }
     $integrity = & dotnet $runner --pss-008-inspect-stage $stage
@@ -258,7 +302,8 @@ try {
     $result.SourceEqual = $true; $result.ProbeEvidence = ($proof -join ' '); $result.JavaStatus = 'PASS_JAVA_STAGED_V3'
     $result.Status = 'JAVA_CONTENT_ONLY_NOT_RUNTIME_READY'; $exit = 0
     Write-Output $proof[0]
-    Write-Output "PASS source and stage SHA/bytes unchanged; copied=$($inventory.Count) files/$bytes bytes; Ant=$($result.AntExitCode); probe=$($result.ProbeExitCode); negative=$negativeExit"
+    $antStatus = if ($isolated) { 'NOT_RUN' } else { $result.AntExitCode }
+    Write-Output "PASS source and stage SHA/bytes unchanged; copied=$($inventory.Count) files/$bytes bytes; Ant=$antStatus; probe=$($result.ProbeExitCode); negative=$negativeExit"
 }
 catch {
     if ($_.Exception.Message -match '^BLOCKED_JAVA:') { $result.JavaStatus = 'BLOCKED_JAVA'; $result.Status = 'STAGED_V3_UNVALIDATED' }
@@ -267,11 +312,14 @@ catch {
     Write-Output ("Diagnostic=" + $_.Exception.GetType().Name + "; line=" + $_.InvocationInfo.ScriptLineNumber)
 }
 finally {
+    Pop-Location
     $env:JAVA_HOME = $savedJavaHome; $env:JAVA_TOOL_OPTIONS = $savedJavaOptions; $env:ANT_OPTS = $savedAntOptions
     $env:JDK_JAVA_OPTIONS = $savedJdkOptions; $env:_JAVA_OPTIONS = $savedUnderscoreOptions; $env:ANT_ARGS = $savedAntArgs
     $env:CLASSPATH = $savedClasspath
     NoLinks $scratch
-    $result.Logs = @(foreach ($name in @('ant-content.txt','probe.txt','negative.txt','negative-schema.txt','probe-compile.txt','java-version.txt','ant-version.txt')) {
+    $logNames = if ($isolated) { @('probe.txt','negative.txt','negative-schema.txt','probe-compile.txt','java-version.txt') } else {
+        @('ant-content.txt','probe.txt','negative.txt','negative-schema.txt','probe-compile.txt','java-version.txt','ant-version.txt') }
+    $result.Logs = @(foreach ($name in $logNames) {
         $logPath = Join-Path $scratch $name
         if (Test-Path -LiteralPath $logPath -PathType Leaf) { [pscustomobject]@{ RelativePath = $name; Sha256 = (HashFile $logPath); Bytes = (Get-Item -LiteralPath $logPath).Length } }
     })
@@ -295,10 +343,10 @@ finally {
         $key = [IO.File]::ReadAllBytes($keyPath); $hmac = New-Object Security.Cryptography.HMACSHA256
         try {
             $hmac.Key = $key; $proofHash = HashFile $proofPath
-            $payload = [Text.Encoding]::UTF8.GetBytes("PSS008_NATIVE_JAVA_V1`n" + $receipt.StageId + "`n" + $proofHash)
+            $payload = [Text.Encoding]::UTF8.GetBytes("PSS008_NATIVE_JAVA_V" + $result.Version + "`n" + $receipt.StageId + "`n" + $proofHash)
             $mac = [BitConverter]::ToString($hmac.ComputeHash($payload)).Replace('-','').ToLowerInvariant()
         } finally { $hmac.Dispose(); [Array]::Clear($key, 0, $key.Length) }
-        $attestation = [ordered]@{ Version = 1; StageId = $receipt.StageId; ProofSha256 = $proofHash; Mac = $mac }
+        $attestation = [ordered]@{ Version = $result.Version; StageId = $receipt.StageId; ProofSha256 = $proofHash; Mac = $mac }
         $attestationPath = Relative $scratch 'java-attestation.json'
         if (Test-Path -LiteralPath $attestationPath) { throw 'FAILED_JAVA: immutable attestation exists' }
         [IO.File]::WriteAllText($attestationPath, ($attestation | ConvertTo-Json), (New-Object Text.UTF8Encoding $false))

@@ -128,6 +128,30 @@ public final class Pss008V3CatalogProbe
         try { PhantomHumanizedCatalog.loadV3(negativeRoot, true); }
         catch (IllegalArgumentException expected) { rejected = true; }
         require(rejected, "Duplicate v3 ID accepted");
+        Path normalizedRoot = scratch.resolve("negative-normalized");
+        try (var paths = Files.walk(stageRoot))
+        {
+            for (Path from : paths.toList())
+            {
+                require(!Files.isSymbolicLink(from), "Linked stage path");
+                Path to = normalizedRoot.resolve(stageRoot.relativize(from));
+                if (Files.isDirectory(from)) Files.createDirectories(to); else Files.copy(from, to);
+            }
+        }
+        Path normalizedFile = own(scratch, normalizedRoot.resolve(negativeEntry[5]).toString());
+        var normalized = document(normalizedFile);
+        Element normalizedDuplicate = (Element)normalized.importNode(duplicate, true);
+        normalizedDuplicate.setAttribute("id", "pss.v3.normalized.duplicate");
+        String textAttribute = corruptPattern ? "phrase" : "text";
+        String normalizedText = java.text.Normalizer.normalize(normalizedDuplicate.getAttribute(textAttribute), java.text.Normalizer.Form.NFD);
+        normalizedDuplicate.setAttribute(textAttribute, "  " + normalizedText.toUpperCase(java.util.Locale.ROOT) + "  ");
+        normalized.getElementsByTagName(corruptPattern ? "patterns" : "templates").item(0).appendChild(normalizedDuplicate);
+        transform.transform(new DOMSource(normalized), new StreamResult(normalizedFile.toFile()));
+        boolean normalizedRejected = false;
+        try { PhantomHumanizedCatalog.loadV3(normalizedRoot, true); }
+        catch (IllegalArgumentException expected) { normalizedRejected = true; }
+        require(normalizedRejected, "Normalized duplicate with distinct ID accepted");
+        System.out.println("NORMALIZED_DUPLICATE distinctId=CHECKED unicodeNormalization=CHECKED rejected=CHECKED");
         Path schemaFile = own(scratch, schemaRoot.resolve(negativeEntry[5]).toString());
         var schema = document(schemaFile);
         schema.getDocumentElement().setAttribute("unsupported", "true");
