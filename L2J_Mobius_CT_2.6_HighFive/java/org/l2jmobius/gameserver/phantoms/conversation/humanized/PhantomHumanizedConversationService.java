@@ -184,6 +184,7 @@ public final class PhantomHumanizedConversationService
 		final long personaSelector = selector(request.ownerProfileId() + "|" + social.personality().seed() + "|" + social.authorityHash());
 		final var interest = _catalog.interest(personaSelector);
 		final String personaKey = personaKey(social.personality().traits(), interest.id());
+		final String voice = personaKey.substring(0, personaKey.indexOf('.'));
 		final String subjectKey = request.speaker().kind() == SubjectKind.PHANTOM_PROFILE ? "profile:" + request.speaker().id() : "character.object:" + request.speaker().id();
 		RuntimeException lastFailure = null;
 		for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++)
@@ -198,7 +199,7 @@ public final class PhantomHumanizedConversationService
 			final Set<String> recent = PhantomPersonalConversationStore.recentResponses(state, subjectKey);
 			final long responseSelector = selector(request.ownerProfileId() + "|" + request.observationHash() + "|" + personaKey + "|" + band + "|" + _catalog.combinedHash());
 			final String ownerName = request.identity().available() ? request.identity().displayName() : request.ownerName();
-			final Selection selection = _catalog.select(match.act(), band, _settings.register(), _settings.profanity(), _settings.variation(), _settings.matureEnabled(), request.channel() == ChatType.WHISPER, ownerName, match.value(), memory.orElse("не успел запомнить"), interest.label(), responseSelector, recent);
+			final Selection selection = _catalog.select(match.act(), band, _settings.register(), _settings.profanity(), _settings.variation(), _settings.matureEnabled(), request.channel() == ChatType.WHISPER, ownerName, match.value(), memory.orElse("не успел запомнить"), interest.label(), voice, responseSelector, recent);
 			state = PhantomPersonalConversationStore.apply(state, subjectKey, match, selection.responseHash(), request.origin(), request.nowMinute(), _catalog.limits());
 			try
 			{

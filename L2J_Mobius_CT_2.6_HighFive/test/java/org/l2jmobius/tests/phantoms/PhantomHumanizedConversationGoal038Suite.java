@@ -60,6 +60,8 @@ import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticU
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.RelationshipRecord;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialState;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
 import org.l2jmobius.tests.phantoms.PhantomTestDatabaseBootstrap.BootstrapResult;
 import org.l2jmobius.tests.phantoms.PhantomSocialTestDoubles.MemoryStore;
@@ -259,6 +261,79 @@ public final class PhantomHumanizedConversationGoal038Suite implements PhantomTe
 
 	private static void behaviorTests(PhantomTestRegistry registry)
 	{
+		registry.add("07-v3-native-traits-select-distinct-voices-and-truthful-game-replies", context ->
+		{
+			final String socialHash;
+			try (Fixture baseline = fixture(context))
+			{
+				socialHash = baseline.social().snapshot(1, SubjectRef.character(101), 4, 1000).value().authorityHash();
+			}
+			final PhantomHumanizedCatalog v3 = PhantomHumanizedCatalog.loadV3(context.moduleRoot().resolve("dist/game/data/phantoms"), true);
+			final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml"));
+			final MemoryStore socialStore = new MemoryStore();
+			final List<String> voices = List.of("calm", "open", "direct", "empathetic");
+			for (int index = 0; index < voices.size(); index++)
+			{
+				final var traits = new java.util.TreeMap<Integer, Integer>(Map.of(1, 3000, 2, 3000, 3, 3000, 4, 3000, 5, 3000, 6, 3000));
+				if (index > 0)
+				{
+					traits.put(index == 1 ? 3 : index == 2 ? 6 : 5, 7000);
+				}
+				socialStore.seed(index + 1, 0, new SocialState(socialHash, 18001801L, 1000, traits, List.of(), List.of()));
+			}
+			final var trusted = new RelationshipRecord(SubjectRef.character(101), List.of(2000, 1500, 0, 0, 1200, 0, 0, 0, 0, 0, 0), java.util.Collections.nCopies(5, 0), 1000, 1000);
+			final var rival = new RelationshipRecord(SubjectRef.character(101), List.of(0, 0, 0, 0, 0, 1500, 0, 0, 0, 0, 0), java.util.Collections.nCopies(5, 0), 1000, 1000);
+			socialStore.seed(5, 0, new SocialState(socialHash, 18001801L, 1000, new java.util.TreeMap<>(Map.of(1, 3000, 2, 3000, 3, 3000, 4, 3000, 5, 7000, 6, 3000)), List.of(trusted), List.of()));
+			socialStore.seed(6, 0, new SocialState(socialHash, 18001801L, 1000, new java.util.TreeMap<>(Map.of(1, 3000, 2, 3000, 3, 3000, 4, 3000, 5, 3000, 6, 7000)), List.of(rival), List.of()));
+			final PhantomSocialService social = new PhantomSocialService(socialCatalog, socialStore, 18001801L, 16, () -> 1000L);
+			PhantomAssertions.assertTrue(social.start(), "V3 trait fixture did not start.");
+			try
+			{
+				final InMemoryPersonal personal = new InMemoryPersonal();
+				personal.addProfiles(1, 2, 3, 4, 5, 6);
+				final var settings = new PhantomHumanizedConversationService.Settings(true, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, false);
+				final var service = new PhantomHumanizedConversationService(v3, new PhantomPersonalConversationStore(personal), social, settings);
+				for (int index = 0; index < voices.size(); index++)
+				{
+					final long owner = index + 1;
+					final String voice = voices.get(index);
+					final Decision decision = service.plan(request(owner, SubjectRef.character(101), Origin.CLIENT_CHAT, "меня слили в пвп", 1000, "voice-079"));
+					PhantomAssertions.assertTrue(decision.eligible() && !decision.suppressed(), "PvP defeat phrase was not understood.");
+					PhantomAssertions.assertTrue(decision.personaKey().startsWith(voice + '.') && decision.templateId().startsWith("v3.persona079.pvp." + voice + '.'), "Native traits did not restrict the actual template pool to " + voice);
+					PhantomAssertions.assertEquals(RelationshipBand.UNKNOWN, decision.relationshipBand(), "Chat fabricated a relationship.");
+					final InMemoryPersonal fresh = new InMemoryPersonal();
+					fresh.addProfiles(owner);
+					final var restarted = new PhantomHumanizedConversationService(v3, new PhantomPersonalConversationStore(fresh), social, settings);
+					PhantomAssertions.assertEquals(decision, restarted.plan(request(owner, SubjectRef.character(101), Origin.CLIENT_CHAT, "меня слили в пвп", 1000, "voice-079")), "Same authority/traits/request did not select a stable voice response.");
+					PhantomAssertions.assertTrue(personal.load(owner).orElseThrow().state().subjects().stream().allMatch(subject -> subject.facts().isEmpty()), "Unverified game chat was stored as a native/personal fact.");
+				}
+				for (String phrase : List.of("хочу пофармить", "хочу пойти на спот"))
+				{
+					final var match = v3.understand(phrase).orElseThrow();
+					PhantomAssertions.assertEquals("lineage.farming.spot.reply", match.act(), "Farm intention did not use the existing contextual act.");
+					PhantomAssertions.assertTrue((match.fact() == null) && (match.ttlMinutes() == 0), "Farm intention became durable raw history.");
+					PhantomAssertions.assertFalse(service.plan(request(1, SubjectRef.character(101), Origin.CLIENT_CHAT, phrase, 1001, phrase)).text().isBlank(), "Farm intention has no response.");
+				}
+				final var trustedReply = service.plan(request(5, SubjectRef.character(101), Origin.CLIENT_CHAT, "меня слили в пвп", 1000, "native-trusted-079"));
+				final var rivalReply = service.plan(request(6, SubjectRef.character(101), Origin.CLIENT_CHAT, "меня слили в пвп", 1000, "native-rival-079"));
+				PhantomAssertions.assertTrue((trustedReply.relationshipBand() == RelationshipBand.TRUSTED) && trustedReply.templateId().endsWith(".trusted"), "Saved Social trust did not gate the warm voice.");
+				PhantomAssertions.assertTrue((rivalReply.relationshipBand() == RelationshipBand.RIVAL) && rivalReply.templateId().endsWith(".rival"), "Saved Social rivalry did not gate the competitive voice.");
+				final var identity = new PhantomHumanizedCatalog.RuntimeIdentity(1, 1001, "НативноеИмя", "НативноеИмя", PhantomHumanizedCatalog.Gender.MALE, 0, "FIGHTER");
+				final var identityReply = service.plan(new Request(1, "Подмена", SubjectRef.character(101), Origin.CLIENT_CHAT, ChatType.WHISPER, "как тебя зовут", PhantomHumanizedCatalog.sha256("identity-079"), 1002, identity));
+				PhantomAssertions.assertTrue(identityReply.text().contains("НативноеИмя") && !identityReply.text().contains("Подмена"), "Persona replaced available native identity with supplied text.");
+				PhantomAssertions.assertTrue(v3.understandIdentity("кто ты по классу", PhantomHumanizedCatalog.RuntimeIdentity.unavailable(1, "Подмена")).isEmpty(), "Unavailable identity fabricated native class facts.");
+				for (String phrase : List.of("бафни меня", "дай сонг", "дай денс"))
+				{
+					PhantomAssertions.assertTrue(service.requestedSupport(request(1, SubjectRef.character(101), Origin.CLIENT_CHAT, phrase, 1002, phrase)).isPresent(), "Persona routing consumed functional support.");
+				}
+			}
+			finally
+			{
+				social.beginStop();
+				PhantomAssertions.assertTrue(social.finishStop(), "V3 trait fixture did not drain.");
+			}
+		});
+
 		registry.add("01-persona-relationship-and-response-variation-are-stable", context ->
 		{
 			final var v3 = PhantomHumanizedCatalog.loadV3(context.moduleRoot().resolve("dist/game/data/phantoms"), false);

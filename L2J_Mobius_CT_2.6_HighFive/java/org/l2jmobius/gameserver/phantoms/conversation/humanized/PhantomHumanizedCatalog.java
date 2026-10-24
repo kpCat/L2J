@@ -215,7 +215,7 @@ public final class PhantomHumanizedCatalog
 	{
 	}
 
-	public record Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text)
+	public record Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text, String voice)
 	{
 		public Template
 		{
@@ -225,6 +225,15 @@ public final class PhantomHumanizedCatalog
 			Objects.requireNonNull(register);
 			Objects.requireNonNull(profanity);
 			text = boundedText(text, 240, "Humanized template text");
+			if ((voice == null) || (!voice.isEmpty() && !PERSONA_VOICES.contains(voice)))
+			{
+				throw new IllegalArgumentException("Humanized template voice is invalid: " + id);
+			}
+		}
+
+		public Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text)
+		{
+			this(id, act, band, register, profanity, mature, text, "");
 		}
 	}
 
@@ -263,6 +272,7 @@ public final class PhantomHumanizedCatalog
 	private static final Pattern KEY = Pattern.compile("^[a-z][a-z0-9_.-]{0,63}$");
 	private static final Set<String> REQUIRED_TOPICS = Set.of("greeting", "farewell", "acquaintance", "mood", "smalltalk", "rest", "food", "music", "movies", "games", "hobbies", "plans", "likes", "achievement", "failure", "humor", "teasing", "sarcasm", "surprise", "disagreement", "irritation", "apology", "reconcile", "relationship", "pivot");
 	private static final Set<String> V3_FUNCTIONAL_SUPPORT_ACTS = Set.of("support.buff.request", "support.song.request", "support.dance.request");
+	private static final Set<String> PERSONA_VOICES = Set.of("calm", "open", "direct", "empathetic");
 	private static final int MAX_CORE_BYTES = 262144;
 	private static final int MAX_CUSTOM_BYTES = 65536;
 	private static final int MAX_CORPUS_BYTES = 262144;
@@ -540,6 +550,11 @@ public final class PhantomHumanizedCatalog
 
 	public Selection select(String act, RelationshipBand band, Register register, ProfanityMode profanityMode, Variation variation, boolean matureEnabled, boolean privateChannel, String ownerName, String value, String memory, String interest, long selector, Set<String> recentHashes)
 	{
+		return select(act, band, register, profanityMode, variation, matureEnabled, privateChannel, ownerName, value, memory, interest, "", selector, recentHashes);
+	}
+
+	public Selection select(String act, RelationshipBand band, Register register, ProfanityMode profanityMode, Variation variation, boolean matureEnabled, boolean privateChannel, String ownerName, String value, String memory, String interest, String voice, long selector, Set<String> recentHashes)
+	{
 		key(act, "Humanized response act");
 		Objects.requireNonNull(band);
 		Objects.requireNonNull(register);
@@ -560,8 +575,12 @@ public final class PhantomHumanizedCatalog
 				}
 			}
 		}
-		final boolean exactBand = indexed.stream().anyMatch(template -> template.band() == band);
-		final List<Template> eligible = indexed.stream().filter(template -> !exactBand || template.band() == band).sorted(Comparator.comparing(Template::id)).toList();
+		// Choose a voice only inside the existing act/band/register/mature bounds.
+		// An absent or unknown voice can use universal templates, never another persona.
+		final boolean voiced = indexed.stream().anyMatch(template -> !template.voice().isEmpty() && template.voice().equals(voice));
+		final List<Template> pool = indexed.stream().filter(template -> voiced ? template.voice().equals(voice) : template.voice().isEmpty()).toList();
+		final boolean exactBand = pool.stream().anyMatch(template -> template.band() == band);
+		final List<Template> eligible = pool.stream().filter(template -> !exactBand || template.band() == band).sorted(Comparator.comparing(Template::id)).toList();
 		if (eligible.isEmpty())
 		{
 			throw new IllegalArgumentException("No humanized template is eligible for act " + act + '.');
@@ -1061,6 +1080,7 @@ public final class PhantomHumanizedCatalog
 		private void readV3Semantic(Path path, Set<String> topics, Set<String> acts)
 		{
 			final int patternsBefore = _patterns.size();
+			final Set<String> phrases = new HashSet<>();
 			final Element root = root(path, "humanizedV3SemanticSegment", V3_MAX_FILE_BYTES);
 			requireAttributes(root, Set.of("id", "version", "category"));
 			key(attribute(root, "id"), "Humanized v3 semantic segment ID");
@@ -1078,6 +1098,10 @@ public final class PhantomHumanizedCatalog
 			final List<TopicPattern> added = new ArrayList<>(_patterns.values()).subList(patternsBefore, _patterns.size());
 			for (TopicPattern pattern : added)
 			{
+				if (!phrases.add(pattern.phrase()))
+				{
+					throw new IllegalArgumentException("Humanized v3 duplicate normalized pattern phrase: " + pattern.id());
+				}
 				if (!topics.contains(pattern.topic()) || !acts.contains(pattern.act()))
 				{
 					throw new IllegalArgumentException("Humanized v3 pattern references an undeclared topic or act: " + pattern.id());
@@ -1099,7 +1123,7 @@ public final class PhantomHumanizedCatalog
 			{
 				switch (child.getTagName())
 				{
-					case "templates" -> readTemplateElements(child, false, mature);
+					case "templates" -> readTemplateElements(child, false, mature, true);
 					case "profanity" -> readProfanityElements(child, false);
 					default -> throw new IllegalArgumentException("Unknown humanized v3 conversation element: " + child.getTagName());
 				}
@@ -1375,11 +1399,20 @@ public final class PhantomHumanizedCatalog
 
 		private void readTemplateElements(Element parent, boolean custom, boolean implicitMature)
 		{
+			readTemplateElements(parent, custom, implicitMature, false);
+		}
+
+		private void readTemplateElements(Element parent, boolean custom, boolean implicitMature, boolean voiceEnabled)
+		{
 			requireAttributes(parent, parent.hasAttribute("version") ? Set.of("version") : Set.of());
 			for (Element item : children(parent))
 			{
 				requireTag(item, "template");
 				final Set<String> attributes = new HashSet<>(Set.of("id", "act", "band", "register", "profanity", "text"));
+				if (voiceEnabled)
+				{
+					attributes.add("voice");
+				}
 				if (!implicitMature)
 				{
 					attributes.add("mature");
@@ -1389,7 +1422,7 @@ public final class PhantomHumanizedCatalog
 					attributes.add("override");
 				}
 				requireAttributes(item, attributes);
-				final Template template = new Template(attribute(item, "id"), attribute(item, "act"), enumValue(item, "band", RelationshipBand.class), enumValue(item, "register", Register.class), enumValue(item, "profanity", ProfanityMode.class), implicitMature || bool(item, "mature"), attribute(item, "text"));
+				final Template template = new Template(attribute(item, "id"), attribute(item, "act"), enumValue(item, "band", RelationshipBand.class), enumValue(item, "register", Register.class), enumValue(item, "profanity", ProfanityMode.class), implicitMature || bool(item, "mature"), attribute(item, "text"), voiceEnabled ? item.getAttribute("voice") : "");
 				put(_templates, template.id(), template, custom && bool(item, "override"));
 			}
 		}
@@ -1426,6 +1459,15 @@ public final class PhantomHumanizedCatalog
 			}
 			final Map<String, Long> templatesPerAct = new HashMap<>();
 			_templates.values().stream().filter(template -> !template.mature() && (template.profanity() == ProfanityMode.NONE)).forEach(template -> templatesPerAct.merge(template.act(), 1L, Long::sum));
+			final Set<String> universalActs = new HashSet<>();
+			_templates.values().stream().filter(template -> template.voice().isEmpty() && !template.mature() && (template.profanity() == ProfanityMode.NONE) && (template.band() == RelationshipBand.UNKNOWN) && (template.register() == Register.NEUTRAL)).forEach(template -> universalActs.add(template.act()));
+			for (Template template : _templates.values())
+			{
+				if (!template.voice().isEmpty() && !universalActs.contains(template.act()))
+				{
+					throw new IllegalArgumentException("Humanized voiced act requires a clean universal fallback: " + template.act());
+				}
+			}
 			final Set<String> acts = new HashSet<>();
 			_patterns.values().forEach(pattern -> acts.add(pattern.act()));
 			for (String act : acts)

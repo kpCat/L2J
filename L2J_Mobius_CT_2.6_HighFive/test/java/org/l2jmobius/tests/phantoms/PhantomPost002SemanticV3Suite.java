@@ -91,6 +91,95 @@ public final class PhantomPost002SemanticV3Suite implements PhantomTestSuite
 			rejected(context, "conversation/humanized/v3/segments/lineage/buffs.xml", source -> source.replace("text=\"Секунду, проверю доступный баф.\"", "text=\"Проверю, могу ли сейчас дать подходящее усиление.\""), "normalized duplicate");
 			rejected(context, "conversation/humanized/v3/segments/lineage/buffs.xml", source -> source.replace("<template id=\"v3.lineage.buffs.reply.001\"", "<template id=\"v3.lineage.buffs.reply.001\" mature=\"true\""), "mature segregation");
 		});
+
+		registry.add("05-persona079-voice-metadata-is-strict-and-legacy-stays-universal", context ->
+		{
+			final String segment = "conversation/humanized/v3/segments/lineage/pvp.xml";
+			rejected(context, segment, source -> source.replace("voice=\"calm\"", "voice=\"invented\""), "unknown voice");
+			rejected(context, segment, source -> source.replace("voice=\"calm\"", "voice=\"CALM\""), "voice casing");
+			rejected(context, segment, source -> source.replace("voice=\"calm\"", "voices=\"calm\""), "unknown voice attribute");
+			rejected(context, segment, source -> source.lines().map(line -> line.contains("act=\"lineage.pvp.risk.reply\"") && !line.contains("voice=") ? line.replace("<template ", "<template voice=\"calm\" ") : line).collect(java.util.stream.Collectors.joining("\n")), "missing universal fallback");
+			rejected(context, "semantic/humanized/v3/segments/lineage/pvp.xml", source -> source.replace("phrase=\"меня слили в пвп\"", "phrase=\"го дуэль\""), "duplicate normalized game phrase");
+			final Path root = copyHumanizedData(context);
+			try
+			{
+				for (PhantomHumanizedCatalog legacy : List.of(PhantomHumanizedCatalog.load(root, true), PhantomHumanizedCatalog.loadV2(root, true)))
+				{
+					PhantomAssertions.assertEquals(legacy.select("greet.reply", RelationshipBand.UNKNOWN, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, false, false, "Имя", "", "", "", 42, Set.of()), legacy.select("greet.reply", RelationshipBand.UNKNOWN, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, false, false, "Имя", "", "", "", "direct", 42, Set.of()), "Voice changed legacy selection.");
+				}
+				final Path custom = root.resolve("conversation/custom/my-phrases.xml");
+				Files.writeString(custom, "<phrases version=\"1\"><template id=\"custom.persona079\" act=\"greet.reply\" band=\"UNKNOWN\" register=\"NEUTRAL\" profanity=\"NONE\" voice=\"direct\" text=\"Операторский пример для проверки метаданных.\"/></phrases>", StandardCharsets.UTF_8);
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomHumanizedCatalog.loadV3(root, true), "V1 custom parser accepted V3-only metadata.");
+			}
+			finally
+			{
+				deleteTree(root);
+			}
+		});
+
+		registry.add("06-persona079-pools-fallback-relationship-and-private-gates", context ->
+		{
+			final Path root = copyHumanizedData(context);
+			try
+			{
+				final String privateSegment = "conversation/humanized/v3/segments/lineage/persona079-private.xml";
+				Files.writeString(root.resolve(privateSegment), "<humanizedV3ConversationSegment id=\"v3.persona079.private\" version=\"3\" category=\"lineage.pvp\" mature=\"true\"><templates><template id=\"v3.persona079.private.direct\" act=\"flirt.light\" band=\"TRUSTED\" register=\"CASUAL\" profanity=\"NONE\" voice=\"direct\" text=\"Только для доверительного приватного разговора.\"/></templates></humanizedV3ConversationSegment>", StandardCharsets.UTF_8);
+				final Path manifest = root.resolve("semantic/humanized/v3/manifest.xml");
+				Files.writeString(manifest, Files.readString(manifest).replace("</segments>", "<segment kind=\"CONVERSATION\" path=\"" + privateSegment + "\"/></segments>"), StandardCharsets.UTF_8);
+				final PhantomHumanizedCatalog catalog = PhantomHumanizedCatalog.loadV3(root, false);
+				final String act = "lineage.pvp.risk.reply";
+				final var texts = new java.util.HashSet<String>();
+				for (String voice : List.of("calm", "open", "direct", "empathetic"))
+				{
+					final var first = selectVoice(catalog, act, RelationshipBand.UNKNOWN, voice, 0, Set.of());
+					final var second = selectVoice(catalog, act, RelationshipBand.UNKNOWN, voice, 0, Set.of(first.responseHash()));
+					PhantomAssertions.assertTrue(first.templateId().startsWith("v3.persona079.pvp." + voice + '.') && second.templateId().startsWith("v3.persona079.pvp." + voice + '.'), "Same selector leaked another voice.");
+					PhantomAssertions.assertFalse(first.responseHash().equals(second.responseHash()), "Recent hash did not rotate within the voice pool.");
+					PhantomAssertions.assertTrue(catalog.understand("бой можно избежать").orElseThrow().act().equals(act), "Existing prospective PvP risk act changed.");
+					for (String text : List.of(first.text(), second.text()))
+					{
+						PhantomAssertions.assertFalse(text.contains("что произошло") || text.contains("тот бой") || text.contains("Как всё прошло") || text.contains("столкнулся") || text.contains("в бою было") || text.contains("что случилось"), "Risk voice presupposed a completed fight without a native fact.");
+					}
+					texts.add(first.text());
+				}
+				PhantomAssertions.assertEquals(4, texts.size(), "Same selector did not yield four intentional tones.");
+				for (RelationshipBand band : RelationshipBand.values())
+				{
+					for (String voice : List.of("calm", "open", "direct", "empathetic", "unknown"))
+					{
+						final var selection = selectVoice(catalog, act, band, voice, 0, Set.of());
+						PhantomAssertions.assertFalse(selection.templateId().endsWith(".trusted") && (band != RelationshipBand.TRUSTED), "Trusted voice leaked to an unconfirmed relation.");
+						PhantomAssertions.assertFalse(selection.templateId().endsWith(".rival") && (band != RelationshipBand.RIVAL), "Rival voice leaked to an unconfirmed relation.");
+					}
+				}
+				PhantomAssertions.assertTrue(selectVoice(catalog, act, RelationshipBand.TRUSTED, "empathetic", 0, Set.of()).templateId().endsWith(".trusted"), "Confirmed trusted relation was ignored.");
+				PhantomAssertions.assertTrue(selectVoice(catalog, act, RelationshipBand.RIVAL, "direct", 0, Set.of()).templateId().endsWith(".rival"), "Confirmed rival relation was ignored.");
+				PhantomAssertions.assertEquals(selectVoice(catalog, act, RelationshipBand.UNKNOWN, "", 0, Set.of()), selectVoice(catalog, act, RelationshipBand.UNKNOWN, "unknown", 0, Set.of()), "Unknown voice did not use the universal fallback.");
+				PhantomAssertions.assertEquals(selectVoice(catalog, "greet.reply", RelationshipBand.UNKNOWN, "", 0, Set.of()), selectVoice(catalog, "greet.reply", RelationshipBand.UNKNOWN, "direct", 0, Set.of()), "Missing act/voice combination did not fall back.");
+				for (boolean enabled : List.of(false, true))
+				{
+					for (boolean privateChannel : List.of(false, true))
+					{
+						for (RelationshipBand band : RelationshipBand.values())
+						{
+							final var selected = catalog.select("flirt.light", band, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, enabled, privateChannel, "Имя", "", "", "", "direct", 0, Set.of());
+							PhantomAssertions.assertEquals(enabled && privateChannel && (band == RelationshipBand.TRUSTED), selected.matureUsed(), "Voice bypassed mature opt-in/private/trusted.");
+							PhantomAssertions.assertFalse(selected.profanityUsed(), "Voice bypassed profanity NONE.");
+						}
+					}
+				}
+				PhantomAssertions.assertFalse(catalog.select("flirt.light", RelationshipBand.TRUSTED, Register.NEUTRAL, ProfanityMode.NONE, Variation.HIGH, true, true, "Имя", "", "", "", "direct", 0, Set.of()).matureUsed(), "Voice bypassed the register bound.");
+			}
+			finally
+			{
+				deleteTree(root);
+			}
+		});
+	}
+
+	private static PhantomHumanizedCatalog.Selection selectVoice(PhantomHumanizedCatalog catalog, String act, RelationshipBand band, String voice, long selector, Set<String> recent)
+	{
+		return catalog.select(act, band, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, false, false, "Имя", "", "", "", voice, selector, recent);
 	}
 
 	private static void scale(PhantomTestRegistry registry)

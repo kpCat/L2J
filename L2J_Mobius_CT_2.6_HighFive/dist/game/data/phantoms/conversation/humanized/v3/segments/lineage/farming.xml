@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.lineage.farming.conversation" version="3" category="lineage.farming" mature="false">
 	<templates>
+		<template id="v3.persona079.farming.calm.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Не спеши со спотом. Сначала прикинь, где будет спокойно." />
+		<template id="v3.persona079.farming.calm.02" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Можно начать с короткого захода. Какое место рассматриваешь?" />
+		<template id="v3.persona079.farming.open.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="open" text="О, планы на фарм! Какой спот хочешь попробовать?" />
+		<template id="v3.persona079.farming.open.02" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="open" text="Давай обсудим варианты фарма. Что тебе сейчас интереснее добывать?" />
+		<template id="v3.persona079.farming.direct.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="direct" text="Сначала цель фарма и запас расходников. Куда собираешься?" />
+		<template id="v3.persona079.farming.direct.02" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="direct" text="Выбирай спот по силам. Баф и соски проверил?" />
+		<template id="v3.persona079.farming.empathetic.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="empathetic" text="Надеюсь, фарм будет спокойным. Хочешь сначала обсудить место?" />
+		<template id="v3.persona079.farming.empathetic.02" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="empathetic" text="Если устал, не обязательно идти на сложный спот. Какой темп тебе удобен?" />
+		<template id="v3.persona079.farming.generic.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Какой спот рассматриваешь и что хочешь там добывать?" />
 		<template id="v3.lineage.farming.reply.spot.0001" act="lineage.farming.spot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Незнакомое место лучше сначала проверить по плотности целей." />
 		<template id="v3.lineage.farming.reply.spot.0002" act="lineage.farming.spot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Рабочий на вид спот стоит проверить одним пробным кругом." />
 		<template id="v3.lineage.farming.reply.spot.0003" act="lineage.farming.spot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="На просторном месте даже вечным отстающим проще никого не потерять." />

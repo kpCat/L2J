@@ -19,6 +19,7 @@
 		<alias from="кармаа" to="карма" />
 	</aliases>
 	<patterns>
+		<pattern id="v3.persona079.pvp.defeat" topic="lineage.pvp.risk" act="lineage.pvp.risk.reply" phrase="меня слили в пвп" salience="450" ttlMinutes="0" priority="560" />
 		<pattern id="v3.lineage.pvp.pattern.duel.0001" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="го дуэль" salience="435" ttlMinutes="0" priority="525" />
 		<pattern id="v3.lineage.pvp.pattern.duel.0002" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="выйдешь один на один?" salience="450" ttlMinutes="0" priority="530" />
 		<pattern id="v3.lineage.pvp.pattern.duel.0003" topic="lineage.pvp.duel" act="lineage.pvp.duel.reply" phrase="без банок дерёмся?" salience="465" ttlMinutes="0" priority="535" />

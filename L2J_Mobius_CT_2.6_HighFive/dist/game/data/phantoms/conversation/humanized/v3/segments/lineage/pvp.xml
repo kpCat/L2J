@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.lineage.pvp.conversation" version="3" category="lineage.pvp" mature="false">
 	<templates>
+		<template id="v3.persona079.pvp.calm.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Давай без спешки. Какую ситуацию в пвп хочешь обсудить?" />
+		<template id="v3.persona079.pvp.calm.02" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Спокойно оценим риск. Какие подробности у тебя есть?" />
+		<template id="v3.persona079.pvp.open.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="open" text="Давай обсудим пвп. Что тебя сейчас волнует?" />
+		<template id="v3.persona079.pvp.open.02" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="open" text="Расскажи подробнее, если хочешь. Чего ждёшь от этого пвп?" />
+		<template id="v3.persona079.pvp.direct.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="direct" text="Проверь баф и позицию. В чём главный риск?" />
+		<template id="v3.persona079.pvp.direct.02" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="direct" text="Сначала оцени риск. Какие силы у другой стороны?" />
+		<template id="v3.persona079.pvp.empathetic.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="empathetic" text="Пвп может вымотать. Хочешь обсудить, что тебя беспокоит?" />
+		<template id="v3.persona079.pvp.empathetic.02" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="empathetic" text="Если пвп расстраивает, можно выдохнуть. Хочешь поговорить?" />
+		<template id="v3.persona079.pvp.empathetic.trusted" act="lineage.pvp.risk.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" voice="empathetic" text="Друг, можешь рассказать о ситуации в пвп. Я готов выслушать." />
+		<template id="v3.persona079.pvp.direct.rival" act="lineage.pvp.risk.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" voice="direct" text="Соперник, начни с подготовки. Как собираешься действовать?" />
+		<template id="v3.persona079.pvp.generic.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Без подробностей трудно судить о риске в пвп. Что тебя беспокоит?" />
 		<template id="v3.lineage.pvp.reply.duel.0001" act="lineage.pvp.duel.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сначала нужны правила; решение о вызове имеет смысл принимать только после них." />
 		<template id="v3.lineage.pvp.reply.duel.0002" act="lineage.pvp.duel.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Один раунд без расходников звучит понятно." />
 		<template id="v3.lineage.pvp.reply.duel.0003" act="lineage.pvp.duel.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я согласен на дуэль, если перед стартом дадут закончить перезарядку." />

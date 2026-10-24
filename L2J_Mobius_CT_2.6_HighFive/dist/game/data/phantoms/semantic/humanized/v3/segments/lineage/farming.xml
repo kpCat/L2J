@@ -19,6 +19,8 @@
 		<alias from="мобовв" to="мобов" />
 	</aliases>
 	<patterns>
+		<pattern id="v3.persona079.farming.intention" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="хочу пофармить" salience="450" ttlMinutes="0" priority="560" />
+		<pattern id="v3.persona079.farming.spot" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="хочу пойти на спот" salience="450" ttlMinutes="0" priority="560" />
 		<pattern id="v3.lineage.farming.pattern.spot.0001" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="где сегодня фармим" salience="435" ttlMinutes="0" priority="525" />
 		<pattern id="v3.lineage.farming.pattern.spot.0002" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="этот спот свободен" salience="450" ttlMinutes="0" priority="530" />
 		<pattern id="v3.lineage.farming.pattern.spot.0003" topic="lineage.farming.spot" act="lineage.farming.spot.reply" phrase="тут мобы быстро кончаются" salience="465" ttlMinutes="0" priority="535" />
