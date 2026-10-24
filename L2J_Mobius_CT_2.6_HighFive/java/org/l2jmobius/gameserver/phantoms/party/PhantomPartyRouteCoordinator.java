@@ -373,7 +373,10 @@ public final class PhantomPartyRouteCoordinator
 		final PhantomCancellationToken owned = () -> token.isCancelled() || !ownsFollow(memberKey, routeKey);
 		if (logicalNow >= follow.deadline())
 		{
-			replaceFollow(memberKey, follow, follow.terminal(origin, false));
+			// A spent capacity/cooldown wait is not geometric evidence. Release this
+			// attempt so the next pulse can obtain a fresh bounded route budget.
+			final boolean transientWait = (follow.route() == null) && !follow.requested() && (follow.retryAt() > 0);
+			replaceFollow(memberKey, follow, transientWait ? null : follow.terminal(origin, false));
 			cancelOwnedRoute(routeKey, generation);
 			return 1;
 		}

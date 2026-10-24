@@ -15,6 +15,26 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ExternalOwnedAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootCandidate;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.LootObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RespawnOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ShotOutcome;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.TargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMetrics;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -438,6 +458,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static void route(PhantomTestRegistry registry)
 	{
+		registry.add("076-transient-follow-deadline-renews-but-geometric-reject-stays-blocked", _ -> cooperativeFollow());
 		registry.add("01-one-manifest-shares-waypoints", _ ->
 		{
 			final RouteManifest route = routeFixture();
@@ -738,6 +759,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	}
 
 	private static void tactics(PhantomTestRegistry registry)	{
+		registry.add("076-pending-support-retains-owner-only-for-current-native-party", context -> cooperativeSupport(context));
 		registry.add("01-assist-protect-heal-recharge-resurrect-support-plan", _ ->
 		{
 			final MemberRef leader = MemberRef.phantom(1, 101);
@@ -1495,11 +1517,164 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		}
 	}
 
+	private static PhantomCombatService cooperativeCombat(PartyActionLease lease, AtomicLong clock)
+	{
+		final PhantomCombatService combat = new PhantomCombatService(profileId ->
+		{
+			PhantomAssertions.assertEquals(1L, profileId, "A human acquired a Phantom action lease.");
+			return lease;
+		}, new PhantomCombatCapabilityResolver(_ -> List.of()), PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.rejected());
+		combat.start();
+		return combat;
+	}
+
+	private static void cooperativeFollow()
+	{
+		for (boolean busy : List.of(true, false))
+		{
+			final AtomicLong clock = new AtomicLong(1);
+			final AtomicBoolean direct = new AtomicBoolean(false);
+			final List<Runnable> workers = new java.util.ArrayList<>();
+			final PhantomNavigationBackend backend = new PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(PhantomNavigationPoint origin, PhantomNavigationPoint destination) { return new CapabilitySnapshot(PhantomNavigationCapability.GEODATA_PATHFINDING, 1); }
+				@Override public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination) { return direct.get(); }
+				@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken token) { return List.of(); }
+			};
+			final PhantomNavigationService navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), backend, worker -> { workers.add(worker); return true; }, clock::get, new PhantomMetrics());
+			PhantomAssertions.assertTrue(navigation.start(), "Cooperative navigation did not start.");
+			final PartyActionLease lease = new PartyActionLease();
+			final PhantomCombatService combat = cooperativeCombat(lease, clock);
+			final PhantomPartyRouteCoordinator routes = new PhantomPartyRouteCoordinator(navigation, combat);
+			final MemberRef actor = MemberRef.phantom(1, 101), human = MemberRef.real(201);
+			final MemberSnapshot actorState = new MemberSnapshot(actor, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO);
+			final MemberSnapshot leaderState = new MemberSnapshot(human, 0, 0, 1000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO);
+			final String group = PhantomPartyModel.sha256("cooperative.follow076");
+			try
+			{
+				final var occupied = busy ? navigation.submit(new PhantomNavigationRequest(1, new PhantomNavigationPoint(0, 0, 0, 0), new PhantomNavigationPoint(500, 0, 0, 0), clock.get(), 120_000_000_001L, 100000)) : null;
+				routes.follow(group, 1, actorState, leaderState, ZERO, clock.get(), 8, () -> false);
+				if (!busy)
+				{
+					workers.forEach(Runnable::run);
+					workers.clear();
+					routes.follow(group, 1, actorState, leaderState, ZERO, clock.get(), 8, () -> false);
+				}
+				clock.set(31_000_000_001L);
+				routes.follow(group, 1, actorState, leaderState, ZERO, clock.get(), 8, () -> false);
+				if (busy)
+				{
+					navigation.cancel(1, occupied.requestId());
+					workers.forEach(Runnable::run);
+					workers.clear();
+				}
+				direct.set(true);
+				for (int pulse = 0; pulse < 3; pulse++)
+				{
+					final MemberSnapshot currentActor = new MemberSnapshot(actor, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, lease.moving, 0, List.of(), List.of(), ZERO);
+					routes.follow(group, 1, currentActor, leaderState, ZERO, clock.incrementAndGet(), 8, () -> false);
+				}
+				PhantomAssertions.assertEquals(busy ? 1 : 0, lease.moves, "Transient capacity became permanent or geometric rejection retried without changed evidence.");
+				if (busy)
+				{
+					PhantomAssertions.assertTrue(combat.hasClaim(1), "Resumed FOLLOW did not retain movement ownership.");
+					routes.cancel(group, 2);
+					PhantomAssertions.assertTrue(combat.hasClaim(1), "Foreign generation cancelled FOLLOW.");
+					routes.cancelMemberMovement(group, 1, 1);
+					PhantomAssertions.assertFalse(combat.hasClaim(1), "HOLD/leave cancellation retained FOLLOW ownership.");
+					PhantomAssertions.assertEquals(1, lease.cancels, "Movement did not cancel exactly once.");
+				}
+			}
+			finally
+			{
+				routes.beginStop();
+				navigation.beginStop();
+				workers.forEach(Runnable::run);
+				PhantomAssertions.assertTrue(navigation.finishStop(), "Cooperative navigation did not drain.");
+				combat.beginStop();
+				PhantomAssertions.assertTrue(combat.finishStop(), "Cooperative movement owner did not drain.");
+			}
+		}
+	}
+
+	private static void cooperativeSupport(PhantomTestContext context)
+	{
+		for (String change : List.of("roster", "leader", "leave", "death", "session", "instance", "stop"))
+		{
+			final AtomicLong clock = new AtomicLong(1);
+			final PartyActionLease lease = new PartyActionLease();
+			final PhantomCombatService combat = cooperativeCombat(lease, clock);
+			final MemoryPartyStore states = new MemoryPartyStore();
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			final MemberRef actor = backend.add(1, 101), human = MemberRef.real(201), other = MemberRef.real(202);
+			backend.snapshot(human, new MemberSnapshot(human, 0, 0, 0, 0, 0, 20, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+			backend._capabilities.put(actor, List.of(cap("combat.heal", "heal", 50, 1001)));
+			final PhantomPartyCoordinator coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+			PhantomAssertions.assertTrue(coordinator.start(), "Cooperative support coordinator did not start.");
+			try
+			{
+				backend.party(new PhantomPartyBackend.PartySnapshot(human, List.of(human, other, actor), PartyDistributionType.FINDERS_KEEPERS));
+				coordinator.terminal(invitation(new InvitationIdentity(760076, 201, 101), actor), OptionalLong.empty(), OptionalLong.of(1), TerminalOutcome.ACCEPTED, "");
+				for (int pulse = 0; pulse < 4; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(1, lease.casts, "Current human-led support was missing or duplicated during CAST.");
+				PhantomAssertions.assertTrue(combat.hasClaim(1), "Pending support lost the shared actor claim.");
+				PhantomAssertions.assertEquals(201, lease.support.targetObjectId(), "Healer did not support the actual human member.");
+				backend._capabilities.clear();
+				switch (change)
+				{
+					case "roster" -> backend.party(new PhantomPartyBackend.PartySnapshot(human, List.of(human, actor), PartyDistributionType.FINDERS_KEEPERS));
+					case "leader" -> backend.transferLeader(human, other);
+					case "leave" -> backend.leave(actor);
+					case "death" -> backend.snapshot(actor, new MemberSnapshot(actor, 0, 0, 0, 0, 0, 0, 100, 100, true, false, false, false, 0, List.of(), List.of(), ZERO));
+					case "session" -> backend.add(1, 102);
+					case "instance" -> backend.snapshot(human, new MemberSnapshot(human, 0, 1, 0, 0, 0, 20, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+					case "stop" -> coordinator.beginStop();
+				}
+				for (int pulse = 0; pulse < 4; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertFalse(combat.hasClaim(1), "Pending support retained stale authority after " + change);
+				PhantomAssertions.assertEquals(1, lease.cancels, "Support cancellation was not exact after " + change);
+			}
+			finally
+			{
+				coordinator.beginStop();
+				PhantomAssertions.assertTrue(coordinator.finishStop(), "Cooperative support coordinator did not drain.");
+				combat.beginStop();
+				PhantomAssertions.assertTrue(combat.finishStop(), "Cooperative support owner did not drain.");
+			}
+		}
+	}
+
+	/** Only the native boundary is substituted; Party, routes, tactics and action ownership are production. */
+	private static final class PartyActionLease implements PhantomCombatActorLease
+	{
+		private int moves, casts, cancels;
+		private boolean moving, casting;
+		private PhantomPartySupportAction support;
+		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(101, 0, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
+		@Override public TargetSnapshot targetSnapshot(int objectId) { return null; }
+		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
+		@Override public List<ThreatObservation> observedAttackers(int limit) { return List.of(); }
+		@Override public List<LootCandidate> lootCandidates(int limit, int distance) { return List.of(); }
+		@Override public LootObservation observeLoot(LootCandidate candidate) { return LootObservation.PENDING; }
+		@Override public ShotOutcome activateShot(PhantomCombatMode mode) { return ShotOutcome.UNAVAILABLE; }
+		@Override public ActionOutcome attack(int objectId) { return ActionOutcome.REJECTED; }
+		@Override public ActionOutcome cast(int objectId, SelectedSkill skill, PhantomCombatMode mode) { return ActionOutcome.REJECTED; }
+		@Override public ActionOutcome castSupport(PhantomPartySupportAction action) { support = action; casts++; casting = true; return ActionOutcome.ISSUED; }
+		@Override public ActionOutcome moveTo(int x, int y, int z, int instanceId) { moves++; moving = true; return ActionOutcome.ISSUED; }
+		@Override public ActionOutcome pickUp(int objectId) { return ActionOutcome.REJECTED; }
+		@Override public void cancelOwnedAction(PhantomOwnedAction action) { }
+		@Override public void cancelExternalAction(ExternalOwnedAction action) { cancels++; casting = false; moving = false; }
+		@Override public RespawnOutcome respawnTown() { return RespawnOutcome.REJECTED; }
+		@Override public void close() { }
+	}
+
 	private static final class MemoryPartyBackend implements PhantomPartyBackend
 	{
 		private final Map<Long, MemberRef> _members = new LinkedHashMap<>();
 		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
 		private final Map<MemberRef, MemberSnapshot> _snapshots = new LinkedHashMap<>();
+		private final Map<MemberRef, List<MemberCapability>> _capabilities = new LinkedHashMap<>();
 		private PhantomPartyCoordinator _coordinator;
 		private PartyInvitation _lastInvitation;
 		private PartyInvitationService.Response _lastResponse;
@@ -1646,7 +1821,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
 		{
-			return List.of();
+			return _capabilities.getOrDefault(actor, List.of());
 		}
 
 		@Override

@@ -2075,13 +2075,34 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
 			}
-			_tactics.dispatch(directive, key, deadline(), () -> _state != State.RUNNING, holdsMovement(directive.actor().profileId())).ifPresent(lease ->
+			_tactics.dispatch(directive, key, deadline(), supportToken(directive, claim.state()), holdsMovement(directive.actor().profileId())).ifPresent(lease ->
 			{
 				_tacticalActions.put(directive.actor().profileId(), lease);
 				_tacticalReleases.offer(directive.actor().profileId());
 			});
 		}
 		return examined;
+	}
+
+	/** A pending native approach/cast belongs only to this current party authority. */
+	private PhantomCancellationToken supportToken(TacticalDirective directive, PartyState authority)
+	{
+		return () ->
+		{
+			final StoredPartyState current = _claims.get(directive.actor().profileId());
+			if ((_state != State.RUNNING) || !committedClaim(current) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || !_backend.currentMember(directive.actor().profileId()).filter(directive.actor()::equals).isPresent())
+			{
+				return true;
+			}
+			final PartySnapshot party = _backend.observe(directive.actor()).orElse(null);
+			if ((party == null) || !party.leader().equals(authority.leader()) || !sameRoster(roster(authority), party.members()))
+			{
+				return true;
+			}
+			final MemberSnapshot actor = _backend.memberSnapshot(directive.actor()).orElse(null);
+			final MemberSnapshot target = _backend.memberSnapshot(directive.targetMember()).orElse(null);
+			return (actor == null) || actor.dead() || (target == null) || (actor.instanceId() != target.instanceId());
+		};
 	}
 
 	private void dispatchTacticalCombat(TacticalDirective directive, String key, PartyState authority)
