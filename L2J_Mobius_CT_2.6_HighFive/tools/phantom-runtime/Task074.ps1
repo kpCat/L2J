@@ -76,8 +76,9 @@ if($Action -eq 'Helpers'){
     if($SourceCommit -cnotmatch '^[0-9a-f]{40}$' -or (& git symbolic-ref --short HEAD) -cne 'feature/phantom-world' -or (& git rev-parse HEAD) -cne $SourceCommit){throw 'OWN074 exact committed helper HEAD required.'}
     $info=Read-Json073 (Join-Path $task 'BUILD074.json'); $build=Join-Path $task 'build-final'
     if((Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/GameServer.jar') -Algorithm SHA256).Hash -ine $info.gameJarSha256){throw 'OWN074 helper production JAR differs.'}
-    $archive=Join-Path $task 'helpers074.zip'; $source=Join-Path $task 'helpers-source'; $classes=Join-Path $task 'helpers-bin'
-    foreach($path in @($archive,$source,$classes,(Join-Path $task 'HELPERS074.json'))){if(Test-Path -LiteralPath $path){throw 'OWN074 helper provenance exists; no overwrite.'}}
+    $suffix=$SourceCommit.Substring(0,12)
+    $archive=Join-Path $task "helpers074-$suffix.zip"; $source=Join-Path $task "helpers-source-$suffix"; $classes=Join-Path $task "helpers-bin-$suffix"
+    foreach($path in @($archive,$source,$classes,(Join-Path $task "HELPERS074-$suffix.json"))){if(Test-Path -LiteralPath $path){throw 'OWN074 helper version exists; no overwrite.'}}
     & git archive --format=zip "--output=$archive" $SourceCommit -- 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms'
     if($LASTEXITCODE){throw 'OWN074 committed helper archive failed.'}
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -90,7 +91,12 @@ if($Action -eq 'Helpers'){
     & javac '-encoding' 'UTF-8' '-cp' $cp '-d' $classes @files *> (Join-Path $task 'reports/helper-compile.log')
     $code=$LASTEXITCODE; $ErrorActionPreference='Stop'
     if($code){Get-Content -LiteralPath (Join-Path $task 'reports/helper-compile.log') -Tail 35;throw 'OWN074 helper compile failed.'}
-    $receipt=[ordered]@{owner=$owner;sourceState='COMMITTED';sourceCommit=$SourceCommit;sourceArchive=$archive;sourceArchiveSha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;classTreeSha256=(Get-TreeHash073 $classes @('.'));gameJarSha256=$info.gameJarSha256;compiledUtc=[DateTime]::UtcNow.ToString('o')}
+    $receipt=[ordered]@{owner=$owner;sourceState='COMMITTED';sourceCommit=$SourceCommit;sourceArchive=$archive;sourceArchiveSha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;classRoot=$classes;classTreeSha256=(Get-TreeHash073 $classes @('.'));gameJarSha256=$info.gameJarSha256;compiledUtc=[DateTime]::UtcNow.ToString('o')}
+    if(Test-Path -LiteralPath (Join-Path $task 'HELPERS074.json')){
+        $prior=Read-Json073 (Join-Path $task 'HELPERS074.json'); $retained=Join-Path $task ('HELPERS074-'+$prior.sourceCommit.Substring(0,12)+'.json')
+        if(!(Test-Path -LiteralPath $retained)){Copy-Item -LiteralPath (Join-Path $task 'HELPERS074.json') -Destination $retained}
+    }
+    Write-Text073 (Join-Path $task "HELPERS074-$suffix.json") ($receipt | ConvertTo-Json)
     Write-Text073 (Join-Path $task 'HELPERS074.json') ($receipt | ConvertTo-Json)
     Write-Output ($receipt | ConvertTo-Json)
     return
@@ -100,6 +106,10 @@ $production=if(Test-Path -LiteralPath (Join-Path $task 'BUILD074.json')){Join-Pa
 $cp=$production+';'+(Join-Path $build 'phantom-test/bin')+';'+(Join-Path $build 'phantom-test/resources')+';'+(Join-Path $module 'dist/libs/*')
 if(Test-Path -LiteralPath (Join-Path $task 'HELPERS074.json')){
     $helper=Read-Json073 (Join-Path $task 'HELPERS074.json'); $classes=Join-Path $task 'helpers-bin'
+    if($helper.PSObject.Properties.Name -contains 'classRoot'){
+        $classes=$helper.classRoot
+        if([IO.Path]::GetFullPath($classes) -ine (Join-Path $task ('helpers-bin-'+$helper.sourceCommit.Substring(0,12)))){throw 'OWN074 helper classes outside exact committed version.'}
+    }
     if($helper.owner -cne $owner -or $helper.sourceState -cne 'COMMITTED' -or (Get-FileHash -LiteralPath $helper.sourceArchive -Algorithm SHA256).Hash -ine $helper.sourceArchiveSha256 -or (Get-TreeHash073 $classes @('.')) -ine $helper.classTreeSha256 -or (Get-FileHash -LiteralPath $production -Algorithm SHA256).Hash -ine $helper.gameJarSha256){throw 'OWN074 committed helper/JAR provenance differs.'}
     $cp=$production+';'+$classes+';'+(Join-Path $build 'phantom-test/bin')+';'+(Join-Path $build 'phantom-test/resources')+';'+(Join-Path $module 'dist/libs/*')
 }

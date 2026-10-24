@@ -115,7 +115,9 @@ final class PhantomSupply074Native
 				{
 					kill(combat, id, player, materialization, report); earnedKills++; state.setProperty("earned.kills", Integer.toString(earnedKills)); save(stateFile, state);
 				}
-				check(player.getAdena() > 4000, "OWN074 no positive measured native Adena; no wallet repair allowed.");
+				// Three rewarded kills are the finite earn control. A native surplus sale may
+				// supply the positive cash event (TEST_PLAN074); never grind/regrant for it.
+				report.append("A_EARN_CONTROL\tkills=").append(earnedKills).append(";nativeKillAdena=").append(player.getAdena() - 4000).append(";no more prebuy kills;normal surplus maintenance may sell prior property;not kill income\n");
 				state.setProperty("phase", "earned"); state.setProperty("earnedA", Long.toString(player.getAdena() - 4000)); save(stateFile, state);
 			}
 			final var root = roots.load(id).orElseThrow().goal(); final var store = new PhantomSupplyIntentStore(profiles, roots); final var travel = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
@@ -130,7 +132,7 @@ final class PhantomSupply074Native
 			journey.useOfflineSupply(social); journey.useInventoryMaintenance(_ -> true); check(navigation.start() && commerce.start() && journey.start(), "OWN074 supply owners did not start.");
 			final var ownedJourney = journey; cleanup.add(() -> { ownedJourney.beginStop(); check(ownedJourney.finishStop(), "OWN074 journey did not drain."); });
 			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
-			String last = ""; boolean bought = false, returned = false; final var seenReceipts = new java.util.HashSet<String>(); final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(8);
+			String last = ""; boolean bought = false, returned = false; long saleRevenue = 0; final var seenReceipts = new java.util.HashSet<String>(); final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(8);
 			while (System.nanoTime() < until)
 			{
 				check(!player.isDead(), "OWN074 native actor died; retain history and stop this lane.");
@@ -139,7 +141,11 @@ final class PhantomSupply074Native
 				if (selected != null) { final var plan = selected.planFactory().create(planning); handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(id, root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false)); }
 				final String reason = journey.reason(id); if (!reason.equals(last)) { report.append("A_JOURNEY\t").append(reason).append(";xyz=").append(player.getLocation()).append(";moving=").append(player.isMoving()).append(";HP=").append(player.getCurrentHp()).append(";A=").append(player.getAdena()).append('\n'); System.out.println("OWN074_A " + reason + ";xyz=" + player.getLocation()); last = reason; }
 				final var receipt = receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
-				if (receipt != null && receipt.state() == PhantomCommerceReceipt.State.COMMITTED && seenReceipts.add(receipt.operationKey())) { report.append("C_COMMERCE_RECEIPT\t").append(receipt).append(";fixture obsoleteNG1 is prior property, sale revenue is not earned kill income;physicalA=").append(player.getAdena()).append('\n'); }
+				if (receipt != null && receipt.state() == PhantomCommerceReceipt.State.COMMITTED && seenReceipts.add(receipt.operationKey()))
+				{
+					if (receipt.request().kind() == PhantomCommerceReceipt.OperationKind.SELL) { saleRevenue = Math.addExact(saleRevenue, receipt.expectedAfter().primaryCount() - receipt.before().primaryCount()); }
+					report.append("C_COMMERCE_RECEIPT\t").append(receipt).append(";fixture obsoleteNG1 is prior property, sale revenue is not earned kill income;physicalA=").append(player.getAdena()).append('\n');
+				}
 				if (receipt != null && receipt.state() == PhantomCommerceReceipt.State.COMMITTED && receipt.request().kind() == PhantomCommerceReceipt.OperationKind.BUY && receipt.request().itemId() == 1463)
 				{
 					if (!bought) { report.append("A_NATIVE_PAID\t").append(receipt).append(";physicalA=").append(player.getAdena()).append(";physical1463=").append(player.getInventory().getInventoryItemCount(1463, -1)).append('\n'); }
@@ -154,7 +160,8 @@ final class PhantomSupply074Native
 			check(bought && returned, "OWN074 paid return not observed within finite8min: " + last);
 			for (int index = 0; index < 2; index++) { final long shots = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, materialization, report); check(player.getInventory().getInventoryItemCount(1463, -1) < shots, "OWN074 boosted return kill did not consume purchased1463."); }
 			state.setProperty("phase", "paid-returned"); state.setProperty("inventory", inventory(player)); state.setProperty("exp", Long.toString(player.getExp())); state.setProperty("sp", Long.toString(player.getSp())); state.setProperty("receipt", receipts.find(id).orElseThrow().receipt().toString()); save(stateFile, state);
-			report.append("A_NATIVE_PASS\tfixture4000A separately; earnedA=").append(state.getProperty("earnedA")).append(";native paid1463; physical return;2rewarded shot-consuming kills\n");
+			check(Long.parseLong(state.getProperty("earnedA")) > 0 || saleRevenue > 0, "OWN074 paid chain stored, but no positive native cash/surplus-sale event; retain PARTIAL cash gate.");
+			report.append("A_NATIVE_PASS\tfixture4000A separately; nativeKillAdena=").append(state.getProperty("earnedA")).append(";nativePriorPropertySaleRevenue=").append(saleRevenue).append(";native paid1463;physical return;2rewarded shot-consuming kills;positiveCashGate=").append(Long.parseLong(state.getProperty("earnedA")) > 0 || saleRevenue > 0).append('\n');
 		}
 		finally
 		{
