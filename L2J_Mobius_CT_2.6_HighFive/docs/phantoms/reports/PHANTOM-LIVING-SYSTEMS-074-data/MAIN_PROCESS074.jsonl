@@ -1,0 +1,2 @@
+{"role":"GameServer","pid":2456,"utc":"2026-10-24T01:45:34.4756126Z","cpuSeconds":195.421875,"workingSetBytes":4601602048,"threads":161,"startUtc":"2026-10-24T01:40:29.0440303Z"}
+{"role":"LoginServer","pid":11628,"utc":"2026-10-24T01:45:34.5002605Z","cpuSeconds":2.59375,"workingSetBytes":152805376,"threads":35,"startUtc":"2026-10-24T01:40:27.7954982Z"}

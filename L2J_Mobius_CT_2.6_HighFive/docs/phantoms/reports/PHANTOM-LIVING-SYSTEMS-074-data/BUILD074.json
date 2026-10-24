@@ -1,0 +1,14 @@
+{
+    "owner":  "TASK074_LIVING_SYSTEMS",
+    "sourceState":  "COMMITTED",
+    "sourceCommit":  "104f87e2e85935657caf082f4f08277a146a7925",
+    "sourceArchive":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\source074-corrected.zip",
+    "sourceRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\source-corrected\\L2J_Mobius_CT_2.6_HighFive",
+    "buildRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\build-corrected",
+    "sourceArchiveSha256":  "442C37A8F6E5AC428D4B475EDA1A8F99329298FB89934FCB9BEF2C1F70721FC8",
+    "sourceTreeSha256":  "E666B495EB37948A8A4330EC0695B0569321BA57D280907FDF4F12C80B4C3A27",
+    "gameJarSha256":  "9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72",
+    "loginJarSha256":  "3BB59FF1ED11BEB3180E7044E71D17B023ABC545E818584B4150086982B22763",
+    "testTreeSha256":  "99C07743EB819D7AE06BBE6C253DE4421B46E0B198AB4C62A368A801EF8C8456",
+    "builtUtc":  "2026-10-24T01:35:17.4499261Z"
+}

@@ -1,0 +1,6 @@
+gate	result	evidence
+MARKED_JVM	PASS	0
+OWN_LISTENERS	PASS	0;2254,7954,9254,2106,7777,9154
+PROTECTED_INITIAL_HASHES	PASS	2 exact files;original SHA256 unchanged
+ORIGINAL_GEO203	PASS	203 source SHA256 unchanged
+OWNER_PACKAGE_ARCHIVE	PASS	9 content SHA256 match committed archive at0780e20923cba2d67cb1e466d77a5967e5e2d323;source archives older text-EOL copies retained

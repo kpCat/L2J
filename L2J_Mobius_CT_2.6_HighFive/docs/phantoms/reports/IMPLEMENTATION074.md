@@ -15,12 +15,12 @@ Baseline local/remote: `6057cc69728e5050d79806e5e6aa3c5a2bf898c8`, `feature/phan
 ## Последовательность
 
 - [x] Прочитать все контракты074 и ближайшие owners; сверить local/remote baseline и dirt.
-- [ ] Воспроизвести узкие дефекты; regression RED; минимальные production edits A–D; regression GREEN.
-- [ ] Один компактный OWN074 runner с guards схем/root/UUID/ports; reuse existing primitives, старые runtime read-only.
-- [ ] Focused checks и одна общая игровая приёмка; независимые статусы A–D.
-- [ ] Source commit; один final Ant JAR из git archive committed source; provenance/hashes/Geo203.
-- [ ] OWN074 candidate Main >3min, sameDB/sameJAR restart >2min, полезная activity, штатный STOP/DB0/JVM0/listeners0.
-- [ ] Exact scope/encoding/diff; единый отчёт и normal commit/push; проверить remote SHA; без R2/075.
+- [x] Воспроизвести узкие дефекты; regression RED; production edits A–D; regression GREEN (остатки явно PARTIAL).
+- [x] OWN074 runner/guards и reuse existing primitives; старые runtime не запускались/не менялись.
+- [x] Final132focused+4standalone и combined native acceptance с ограниченными причинными продолжениями; независимые статусы.
+- [x] Committed-source Ant JAR и одна разрешённая source correction; provenance/hashes/Geo203.
+- [x] OWN074 Main/sameDB sameJAR restart/useful activity/stock STOP/own DB0/JVM0/listeners0.
+- [x] Exact scope/encoding/diff и единый отчёт; source/helper normal push verified ee5f; final report commit/push receipt в финальном ответе. Без R2/075.
 
 ## Ограничения и review focus
 
@@ -48,3 +48,8 @@ Review: same-state retry и смена owner; exhausted source hysteresis; чу�
 - D: первый native эпизод skills2[3,255],9D→0,CP2→1, затем expired без движения. Сохранённый actor после настоящего11CP входящего урона прошёл native tactical walk и recovery intent без наступления при0shots; выявлены4повторных отхода от одного stale attack. Финальная source correction различает прежний и свежий canonical damage и преследователя, приближающегося на существующие200units; другой атакующий сохраняется внутри bounded selection. Focused cooldown5/5 и combat13/13; финальный native контроль ещё предстоит.
 - Единственная дополнительная итоговая сборка обоснована подтверждёнными source problems: thin cheapest store скрывал полезную альтернативу; O(S) market traversal многократно повторялся вместо typed cached index; busy pickup и повторный PvP retreat. Добавлены exact native item/crystal publication indexes с immutable snapshots; fresh stock/hash/price/rights не кешируются как разрешение сделки. Не утверждается hardcap200 для всех native stores:200 — target merchant population.
 - Fresh independent review исправил incarnation publication token race и общий operator.lock для refresh/start. Только добавленные CRLF строки в трёх legacy mixed-EOL Java файлах приведены к LF для git diff --check; старые строки побайтово сохранены. Все56 scoped файлов: full mojibake0, отдельный escaped Cyrillic0. Runtime/price/rate/reserve изменения вне OWN074 отсутствуют.
+- Final game source104f87 / JAR9b24: C native kill150→141, VICTORY_LOOTED,2exact herb receipts; D retained actor/actual native pursuit2287→32/29damage→553unit retreat,0offense ировно1encounter/1retreat. Ранний full D expired не удалён; top-level D PARTIAL. B PARTIAL не повышается из-за Main coordinate changes.
+- Final corrected typed index native witness на source/helperee5f: прежние buyers5/6,59/449B и4COMMITTED audits сохранены; Native republish existing SELL240@80/MFG22@100, typed1465 includesboth, stale original hash rejected. Reserve500 даёт58/4640A из5200A; native quote не является новой покупкой/автоматической потребностью. Exact inventory/wallet/root/intents unchanged.
+- Main+sameDB restart:216identities/17profiles,quota/200stores/600lines stable; VortexbraEXP87→367/SP6→14. Первая фаза>4min после observation; вторая>7min из-за внешнего stdout pipeline delay. Late READY record после STOP недействителен и исключён; direct stock STOP завершил обе роли. Обе own DB0,marked JVM0,6listeners0.
+- Source/helper normal push ee5f verified; итоговые evidence публикуются report commit. Перед ним обнаружен Git archive EOL conversion task package: существующий Task071 -text паттерн добавлен для074. Owner files не переписаны;9SHA inside committed archive0780e209 совпадают. Старые source archives не меняются, их Task docs не считаются byte-exact owner packet. JAR не пересобирается из-за documentation metadata.
+- Итоговые границы: TOTAL074 PARTIAL; A corePASS, B/C/D независимыеPARTIAL с реальными subproofs; universal tree PARTIAL. Клиент/owner visual pending. Новая задача не создаётся.

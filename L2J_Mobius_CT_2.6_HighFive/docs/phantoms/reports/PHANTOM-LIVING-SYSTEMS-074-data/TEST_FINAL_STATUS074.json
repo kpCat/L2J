@@ -1,0 +1,21 @@
+{
+  "owner": "TASK074_LIVING_SYSTEMS",
+  "root": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\runtime-test",
+  "source": "104f87e2e85935657caf082f4f08277a146a7925",
+  "game": {
+    "state": "STOPPED",
+    "pid": 0,
+    "staleRecord": false,
+    "recordVerified": false,
+    "reason": ""
+  },
+  "login": {
+    "state": "STOPPED",
+    "pid": 0,
+    "staleRecord": false,
+    "recordVerified": false,
+    "reason": ""
+  },
+  "databaseConnections": "0",
+  "gameJarSha256": "9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72"
+}

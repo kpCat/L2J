@@ -1,0 +1,11 @@
+{
+    "owner":  "TASK074_LIVING_SYSTEMS",
+    "sourceState":  "COMMITTED",
+    "sourceCommit":  "ee5f3afb5a79b503bc3bd36c39286ff4243be4b2",
+    "sourceArchive":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\helpers074-ee5f3afb5a79.zip",
+    "sourceArchiveSha256":  "07C184FB4F5D3DD2E3FB14862CBC1832856649E3EE63AA7F56ABB1EAD7774234",
+    "classRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\helpers-bin-ee5f3afb5a79",
+    "classTreeSha256":  "60C84348B32E88FBB7D091693A4710E327D9319A02A4E357FD11E0901F41A9F4",
+    "gameJarSha256":  "9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72",
+    "compiledUtc":  "2026-10-24T01:58:29.0083304Z"
+}
