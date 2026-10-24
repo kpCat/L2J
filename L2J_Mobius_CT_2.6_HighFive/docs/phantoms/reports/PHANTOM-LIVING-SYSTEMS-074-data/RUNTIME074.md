@@ -28,3 +28,5 @@ Native TEST controls шли в отдельном owned JVM/own schema. Перв
 ```
 
 Final: TEST/RELEASE STOPPED; each own DB0; all task074-marked JVM0; six own listeners0.203original Geo SHA и два начальных protected file SHA совпали; собственные203copies проверены Validate/Start. Старые071–073 DB/actors/candidates не запускались/не менялись, human client/accounts не использовались, MariaDB service оставлен работать. Визуальная owner QA отложена.
+
+02:49–02:51UTC выполнен единственный новый причинный B-контроль: прежняя test composition не подключала production SupplyJourney/useEquipment/intent bridge. Helper02e9b4f, тот же source104f/JAR9b24, actor268481777/profile3. Без fixture writes выполнено7548.26units supply walk; farm CAS не произошёл, requested(-80107,249543,-3880) получил ROUTE_BUDGET_EXCEEDED. Native loop120s штатно закрыт02:51:40; отдельный SQL inspect02:52:25 подтвердил position(-77443,250923,-3416),wallet5000,11прежних item rows,2369 equipped/129inventory. Это не replan PASS и не повтор оплаты. После контроля оба candidate Status снова STOPPED/DB0; Main/restart не повторялись.

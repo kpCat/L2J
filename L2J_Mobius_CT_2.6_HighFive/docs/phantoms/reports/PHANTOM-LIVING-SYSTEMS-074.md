@@ -7,13 +7,15 @@
 | Направление | Результат | Новое реальное действие и граница |
 |---|---|---|
 | A | PASS основной цепи; acquisition tree PARTIAL | Сохранённый profile2 продал ненужный sword1 за295A, купил180D1463 за3780A, вернулся, выполнил2rewarded боя180→159. Новый JVM подтвердил inventory/EXP/SP/receipt и следующий бой159→150. На final JAR ещё один бой150→141. |
-| B | PARTIAL | Local-first global topology fallback и admission до CAS проходят focused. Native profile3 дважды не нашёл viable target/route: фактически2369 equipped,129 inventory, physicalOffense7.848; CAS/дальний native segment не доказаны. Fixture не ремонтировалась. |
+| B | PARTIAL | Local-first global topology fallback и admission до CAS проходят focused. Два первых native profile3 контроля:2369 equipped,129 inventory, physicalOffense7.848,0proposals. Один новый причинный контроль с production supply/equipment bridge прошёл7548units к магазину, но farm CAS/segment не доказал: последний участок ROUTE_BUDGET_EXCEEDED. Fixture не ремонтировалась. |
 | C | PARTIAL | Исправлен native selected-target context, вызывавший TARGET_CAP после16targets; native RED0→0/GREEN0→1. На final JAR два законных herb receipts, VICTORY_LOOTED, нужные1871/1872/1463 KEEP; surplus SOLD295A. Уже принятый pickup/missed-wake race8611 полностью не закрыт. |
 | D | PARTIAL полной связанной сцены; recovery PASS | Первый эпизод:2native skill hits[3,255], shots9→0, CP2→1, но retreat expired. Final JAR: тот же actor после native подхода противника2287→32 и29incoming damage,0shots, без наступления прошёл553units к600-unit Geo точке; ровно1encounter/1retreat и supply intent. Unbroken skill+CP+shots→retreat на final JAR не переигрывался; refill не произведён. |
 
 Объявленные4000A A-актора,10000/40000A покупателей рынка,9D/2CP D-актора и finite seller stock — PREMEASUREMENT fixtures, не заработок074. Три A prebuy kills дали EXP/SP, но0A;295A — штатная продажа prior property, разрешённая TEST_PLAN074. Это не повтор35kills и не ремонт кошелька.
 
 Изменены16существующих production Java owners, без нового AI/commerce engine. Первый diagnostic actor1 не входит в durable PASS: после ошибки cleanup его физическое состояние не сохранилось, COMMITTED receipt остался. Он сохранён в TEST без replay/компенсации; RELEASE его не содержит. Проверен graceful restart исправленного actor2, не произвольный crash между NPC effect и store.
+
+Дополнительный read-first аудит B обнаружил конкретное отличие измерителя от `PhantomSystem699–721`: отсутствовали SupplyJourney/useEquipment и visible/accepted intent bridge. Helper-only commit `02e9b4f6241d1e4c6b568337599b20d2bb46e306` подключил эти прежние owners; production/JAR не менялся. Один разрешённый TEST_PLAN074 причинный контроль120s на том же actor268481777/profile3 прошёл от(-71081,254981,-3232) до(-77443,250923,-3416),7548.26units. Это снабжение, не новый farm segment. CAS=false, weapon2369 и wallet5000A остались; итоговый requested(-80107,249543,-3880), merchant destination(-84125,240482,-3720), native ROUTE_BUDGET_EXCEEDED. Штатное закрытие и отдельный SQL-read подтвердили сохранённую новую позицию, прежние exact11item rows,129 в inventory,0покупок. Raw111rows — NATIVE_FARM_COMPOSITION074; SQL subset — NATIVE_FARM_STORED074. Новая попытка/fixture repair не выполнялась; общий B PARTIAL.
 
 ## Native экономика
 
@@ -41,7 +43,7 @@ Main: RUNNING подтверждён01:41:30UTC, штатный STOP requested01
 
 Final production source `104f87e2e85935657caf082f4f08277a146a7925`; archive SHA `442C37A8F6E5AC428D4B475EDA1A8F99329298FB89934FCB9BEF2C1F70721FC8`; tree `E666B495EB37948A8A4330EC0695B0569321BA57D280907FDF4F12C80B4C3A27`.
 
-GameServer.jar `9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72`; LoginServer.jar `3BB59FF1ED11BEB3180E7044E71D17B023ABC545E818584B4150086982B22763`. Две итоговые Ant сборки, вторая — единственная разрешённая correction; каждая фактически выполняет2production javac phases+1test phase. Отдельные helper-only commits/Javac не пересобирают JAR; финальный helper source `ee5f3afb5a79b503bc3bd36c39286ff4243be4b2`, manifest прилагается.
+GameServer.jar `9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72`; LoginServer.jar `3BB59FF1ED11BEB3180E7044E71D17B023ABC545E818584B4150086982B22763`. Две итоговые Ant сборки, вторая — единственная разрешённая correction; каждая фактически выполняет2production javac phases+1test phase. Отдельные helper-only commits/Javac не пересобирают JAR; последний helper source `02e9b4f6241d1e4c6b568337599b20d2bb46e306`, manifest прилагается. Предыдущий ee5f manifest сохранён отдельно как HELPERS074-market-index.json. Все16production owners после104f совпадают; третья JAR сборка запрещена текущим TEST_PLAN074. Полное закрытие оставшихся HARD gates не заявляется.
 
 Candidate `D:\PhantomWorld\Living-Systems-074-candidate`; TEST `.phantom-local/task074/runtime-test`. Оба STOPPED, own DB connections0, marked JVM0, шесть own listeners0. Physical203 Geo source hashes и два начальных protected hashes сохранены;071–073 DB/actors/client не использовались. START/STATUS/STOP self-contained, stock heap, GUI off; прежние артефакты correction побайтово сохранены вне checkout. MariaDB service оставлен работающим.
 
@@ -51,5 +53,5 @@ Source/helper normal push `ee5f3afb5a79b503bc3bd36c39286ff4243be4b2` прове�
 
 Подробности: [журнал](IMPLEMENTATION074.md), [матрица](PHANTOM-LIVING-SYSTEMS-074-data/ACCEPTANCE074.tsv), [runtime](PHANTOM-LIVING-SYSTEMS-074-data/RUNTIME074.md), [Git](PHANTOM-LIVING-SYSTEMS-074-data/GIT074.md), [source delta](PHANTOM-LIVING-SYSTEMS-074-data/SOURCE_CHANGE074.tsv).
 
-- mojibake-маркеры в изменённых файлах проверены:78scoped UTF-8 files,0matches.
+- mojibake-маркеры в изменённых файлах проверены:81scoped UTF-8 files,0matches.
 - escaped Cyrillic в изменённых файлах проверены: все6regex,0matches.

@@ -1,11 +1,11 @@
 {
-    "owner":  "TASK074_LIVING_SYSTEMS",
-    "sourceState":  "COMMITTED",
-    "sourceCommit":  "ee5f3afb5a79b503bc3bd36c39286ff4243be4b2",
-    "sourceArchive":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\helpers074-ee5f3afb5a79.zip",
-    "sourceArchiveSha256":  "07C184FB4F5D3DD2E3FB14862CBC1832856649E3EE63AA7F56ABB1EAD7774234",
-    "classRoot":  "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\helpers-bin-ee5f3afb5a79",
-    "classTreeSha256":  "60C84348B32E88FBB7D091693A4710E327D9319A02A4E357FD11E0901F41A9F4",
-    "gameJarSha256":  "9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72",
-    "compiledUtc":  "2026-10-24T01:58:29.0083304Z"
+  "owner": "TASK074_LIVING_SYSTEMS",
+  "sourceState": "COMMITTED",
+  "sourceCommit": "02e9b4f6241d1e4c6b568337599b20d2bb46e306",
+  "sourceArchive": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\helpers074-02e9b4f6241d.zip",
+  "sourceArchiveSha256": "35800ED8BFD42822B66ABFB4D836937382AB8D5C8FCBD1502810FB76DBF228B2",
+  "classRoot": "D:\\Codex\\repos\\L2J-phantom-world\\.phantom-local\\task074\\helpers-bin-02e9b4f6241d",
+  "classTreeSha256": "23B1D7704838C70579DA7F2D4FCE6EBEBEC7D01A6CEC4714988CAEFC247FEB2F",
+  "gameJarSha256": "9B24BA22B14CE28585A2EC61533B87372D82C9BE44B3FB439F8A8BEDD9694C72",
+  "compiledUtc": "2026-10-24T02:49:00.8717313Z"
 }

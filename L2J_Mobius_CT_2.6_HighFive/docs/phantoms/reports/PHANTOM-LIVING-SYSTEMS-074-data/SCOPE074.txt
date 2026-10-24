@@ -76,3 +76,6 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data/GEODATA074.tsv
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data/PROTECTED_HASH074.tsv
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data/MAIN_PROCESS074.jsonl
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data/NATIVE_FARM_COMPOSITION074.tsv
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data/NATIVE_FARM_STORED074.tsv
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data/HELPERS074-market-index.json

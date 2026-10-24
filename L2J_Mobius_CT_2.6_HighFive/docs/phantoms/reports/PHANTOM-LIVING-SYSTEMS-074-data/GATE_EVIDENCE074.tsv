@@ -8,6 +8,8 @@ CRYST	NATIVE_EFFECT	PASS	NATIVE_INITIAL074 actual owned12200->5B1460; unowned/eq
 A	NATIVE_EFFECT	PASS	NATIVE_PAID074 native SELL7e949c...295A; BUY4e8f77...180D/3780A/4295->515; return2kills180->159
 A	RESTART	PASS	NATIVE_RESTART074 exact actor/inventory/EXP/SP/receipt then159->150; no paid replay
 B	NATIVE_EFFECT	PARTIAL	NATIVE_RESTART074 exact input2369/pOff7.848;0proposals; noCAS/noMove; two bounded failed route scenes stopped
+B	CAUSAL_CONTROL	PARTIAL	NATIVE_FARM_COMPOSITION074 helper02e9b4f/final9b24/sameactor3; missing production supply/equipment/intent bridge restored;120s native supply7548.26units;CAS=false;final ROUTE_BUDGET_EXCEEDED;no new fixture/repeat
+B	STORED_NATIVE_EFFECT	PASS	NATIVE_FARM_STORED074 read-only SQL after graceful close: actor268481777(-77443,250923,-3416),5000A,2369 equipped/129inventory,exact11item rows; no farm travel/PASS claim
 C	NATIVE_EFFECT	PASS	NATIVE_LOOT_FINAL0749b24JAR; legal8609+8604 CONSUMED_NATIVE exact source receipts; rewarded kill150->141; no evidence overflow
 C	RESIDUAL	PARTIAL	8611 native ground7.6distance/rights true/no receipt; actual simultaneous-cast link inferred; already-admitted missed wake not repaired
 D	NATIVE_EFFECT	PASS	NATIVE_PVP_FINAL074 current29incoming damage/553actual movement/direct Geo/exactly1encounter+1retreat/0offense; no resource or position setters
