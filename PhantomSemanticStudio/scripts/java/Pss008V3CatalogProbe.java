@@ -2,6 +2,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -40,18 +42,28 @@ public final class Pss008V3CatalogProbe
         require(!baseline.combinedHash().equals(staged.combinedHash()), "V3 combined hash unchanged");
         require(staged.combinedHash().equals(PhantomHumanizedCatalog.loadV3(stageRoot, true).combinedHash()), "Non-deterministic load");
         int checked = 0;
-        for (String row : Files.readAllLines(spec, StandardCharsets.UTF_8))
+        var rows = Files.readAllLines(spec, StandardCharsets.UTF_8);
+        boolean facetSpec = !rows.isEmpty() && rows.get(0).equals("PSS008_FACET_SPEC_V1");
+        var candidates = facetSpec ? rows.subList(1, rows.size()) : rows;
+        for (String row : candidates)
         {
             String[] fields = row.split("\t", -1);
-            require(fields.length == 9, "Invalid expected-ID specification");
+            require(fields.length == (facetSpec ? 11 : 9), "Invalid expected-ID specification");
             boolean pattern = fields[1].equals("PATTERN");
             String voice = fields[6];
+            String facet = facetSpec ? fields[9] : "";
+            int threshold = facet.isEmpty() ? -1 : Integer.parseInt(fields[10]);
+            require(facet.isEmpty() ? !facetSpec || fields[10].isEmpty()
+                : !pattern && facets().contains(facet) && threshold >= 0 && threshold <= 100 && fields[10].equals(Integer.toString(threshold)), "Invalid expected facet");
             require(Set.of("", "calm", "open", "direct", "empathetic").contains(voice) && (!pattern || voice.isEmpty()), "Invalid expected voice");
             require(fields[5].startsWith(pattern ? "semantic/humanized/v3/segments/" : "conversation/humanized/v3/segments/") && !fields[5].contains(".."), "Invalid target path");
             Path xml = own(scratch, stageRoot.resolve(fields[5]).toString());
             Element entry = entry(xml, pattern ? "pattern" : "template", fields[0]);
             require(entry.getAttribute("act").equals(fields[2]) && !entry.hasAttribute("override"), "Act/override mismatch");
             require(entry.getAttribute("voice").equals(voice) && (!voice.isEmpty() || !entry.hasAttribute("voice")), "Candidate voice mismatch");
+            require(entry.getAttribute("facet").equals(facet) && (facet.isEmpty()
+                ? !entry.hasAttribute("facet") && !entry.hasAttribute("minIntensity")
+                : entry.hasAttribute("facet") && entry.getAttribute("minIntensity").equals(fields[10])), "Candidate facet/threshold mismatch");
             String text = entry.getAttribute(pattern ? "phrase" : "text");
             require(PhantomHumanizedCatalog.sha256(text).equals(fields[4]), "Candidate text hash mismatch");
             if (pattern)
@@ -70,12 +82,38 @@ public final class Pss008V3CatalogProbe
                 // template hard bound covers the eligible band/register fallback union.
                 for (long selector = 0; selector < 32768 && !found; selector++)
                 {
-                    var selected = select(staged, fields[2], band, register, voice, selector);
+                    var selected = facet.isEmpty() ? select(staged, fields[2], band, register, voice, selector)
+                        : selectFacet(staged, fields[2], band, register, voice, facet, threshold, selector);
                     found = selected.templateId().equals(fields[0]) && selected.text().equals(text);
                     if (found) selectedSelector = selector;
                 }
                 require(found, "Actual v3 template not selected in bounded probe");
-                if (!voice.isEmpty())
+                if (!facet.isEmpty())
+                {
+                    require(!select(staged, fields[2], band, register, voice, selectedSelector).templateId().equals(fields[0]), "Legacy selected faceted candidate");
+                    require(!select(staged, fields[2], band, register, "", selectedSelector).templateId().equals(fields[0]), "Unscored selected faceted candidate");
+                    if (threshold > 0)
+                    {
+                        require(!selectFacet(staged, fields[2], band, register, voice, facet, threshold - 1, selectedSelector).templateId().equals(fields[0]), "Below threshold selected candidate");
+                        String otherFacet = facet.equals("humor") ? "gossip" : "humor";
+                        require(!selectFacet(staged, fields[2], band, register, voice, otherFacet, 100, selectedSelector).templateId().equals(fields[0]), "Wrong facet selected candidate");
+                    }
+                    String otherVoice = voice.equals("calm") ? "direct" : "calm";
+                    if (!voice.isEmpty()) require(!selectFacet(staged, fields[2], band, register, otherVoice, facet, threshold, selectedSelector).templateId().equals(fields[0]), "Wrong facet voice");
+                    require(selectFacet(staged, fields[2], band, register, voice, facet, threshold, selectedSelector)
+                        .equals(selectFacet(staged, fields[2], band, register, voice, facet, threshold, selectedSelector)), "Facet selection not deterministic");
+                    var fallback = select(staged, fields[2], RelationshipBand.UNKNOWN, Register.NEUTRAL, "", selectedSelector);
+                    require(fallback.equals(select(staged, fields[2], RelationshipBand.UNKNOWN, Register.NEUTRAL, "unsupported", selectedSelector)), "Unknown voice fallback changed");
+                    require(fallback.equals(select(staged, fields[2], RelationshipBand.UNKNOWN, Register.NEUTRAL, "", selectedSelector)), "Fallback not deterministic");
+                    var wrongFacetBand = band == RelationshipBand.HOSTILE ? RelationshipBand.UNKNOWN : RelationshipBand.HOSTILE;
+                    if (band != RelationshipBand.UNKNOWN) require(!selectFacet(staged, fields[2], wrongFacetBand, register, voice, facet, threshold, selectedSelector).templateId().equals(fields[0]), "Wrong facet band");
+                    if (register == Register.CASUAL) require(!selectFacet(staged, fields[2], band, Register.NEUTRAL, voice, facet, threshold, selectedSelector).templateId().equals(fields[0]), "Wrong facet register");
+                    System.out.println("FACET_SELECT id=" + fields[0] + " facet=" + facet + " minIntensity=" + threshold
+                        + " positive=CHECKED legacy=CHECKED threshold=" + (threshold == 0 ? "ZERO_ALWAYS_ELIGIBLE" : "CHECKED")
+                        + " wrongFacet=" + (threshold == 0 ? "NOT_APPLICABLE" : "CHECKED")
+                        + " voice=" + (voice.isEmpty() ? "UNVOICED" : "CHECKED") + " deterministic=CHECKED");
+                }
+                if (!voice.isEmpty() && facet.isEmpty())
                 {
                     String otherVoice = voice.equals("calm") ? "direct" : "calm";
                     require(!select(staged, fields[2], band, register, otherVoice, selectedSelector).templateId().equals(fields[0]), "Wrong voice selected candidate");
@@ -111,7 +149,7 @@ public final class Pss008V3CatalogProbe
             }
         }
         // Deliberate duplicate only in a second physical scratch copy, never stage/source.
-        String[] negativeEntry = Files.readAllLines(spec, StandardCharsets.UTF_8).get(0).split("\t", -1);
+        String[] negativeEntry = candidates.get(0).split("\t", -1);
         boolean corruptPattern = negativeEntry[1].equals("PATTERN");
         Path corrupt = own(scratch, negativeRoot.resolve(negativeEntry[5]).toString());
         var document = document(corrupt);
@@ -165,6 +203,16 @@ public final class Pss008V3CatalogProbe
             + " baselineHash=" + baseline.combinedHash() + " stagedHash=" + staged.combinedHash() + " negative=DUPLICATE_AND_SCHEMA_REJECTED");
     }
 
+    private static Set<String> facets()
+    {
+        return Set.of("aggression", "sarcasm", "humor", "reserved", "swagger", "timidity", "romance", "roughness", "cunning", "gossip");
+    }
+    private static Selection selectFacet(PhantomHumanizedCatalog catalog, String act, RelationshipBand band, Register register, String voice, String facet, int score, long selector)
+    {
+        Map<String, Integer> scores = new HashMap<>();
+        for (String key : facets()) scores.put(key, key.equals(facet) ? score : 0);
+        return catalog.select(act, band, register, ProfanityMode.NONE, Variation.HIGH, false, false, "", "", "", "", voice, scores, selector, Set.of());
+    }
     private static Selection select(PhantomHumanizedCatalog catalog, String act, RelationshipBand band, Register register, String voice, long selector)
     {
         // Preserve legacy generic semantics; every voiced/unknown request uses Java079's native voice overload.

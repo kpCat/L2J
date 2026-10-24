@@ -31,7 +31,7 @@ internal static partial class Program
                 Equal(5, handler.Calls); Equal(1, handler.MaximumConcurrent); Equal("20,20,20,20,20", string.Join(',', handler.Counts));
                 True(saved.All(id => session.Candidates.Any(c => c.Id == id))); Equal(100, session.Candidates.Select(c => c.Id).Distinct().Count());
                 True(session.Candidates.All(c => c.Status == "DRAFT" && c.ApprovedFingerprint == "" && c.ReviewedAtUtc == null
-                    && c.SourceFingerprint == pack.Fingerprint && c.ModelId == settings.ModelId && c.Voice == "direct"
+                    && c.SourceFingerprint == pack.Fingerprint && c.ModelId == settings.ModelId && c.Voice == "direct" && c.Facet == "" && c.MinIntensity == null
                     && c.EditorialMetadata!.Scope == "EDITORIAL_ONLY" && c.EditorialMetadata.Facets.Sarcasm == 75));
                 True(handler.Instructions.All(s => s.Contains("EDITORIAL_ONLY", StringComparison.Ordinal) && s.Contains("\"sarcasm\":75", StringComparison.Ordinal)
                     && s.Contains("direct", StringComparison.Ordinal)));

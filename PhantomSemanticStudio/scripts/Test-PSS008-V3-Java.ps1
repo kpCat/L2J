@@ -128,8 +128,12 @@ try {
     if ($LASTEXITCODE -ne 0 -or $integrity -ne 'PASS_V3_STAGE_INTEGRITY') { throw 'BLOCKED_JAVA: exact stage integrity rejected' }
     $receiptPath = Join-Path $stage 'receipt.json'; $receiptHash = HashFile $receiptPath
     $receipt = Get-Content -LiteralPath (Join-Path $stage 'receipt.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($receipt.Version -notin @(1,2) -or $receipt.Status -ne 'STAGED_V3_UNVALIDATED' -or $receipt.JavaStatus -ne 'NOT_RUN' -or -not $receipt.NotForInstallation -or
+    if ($receipt.Version -notin @(1,2,3) -or $receipt.Status -ne 'STAGED_V3_UNVALIDATED' -or $receipt.JavaStatus -ne 'NOT_RUN' -or -not $receipt.NotForInstallation -or
         -not $receipt.SelectionConfirmed -or -not $receipt.EditorialConfirmed -or $receipt.Candidates.Count -lt 1 -or $receipt.Candidates.Count -gt 20) { throw 'BLOCKED_JAVA: invalid stage receipt' }
+    if ($receipt.Version -eq 3) {
+        if (-not $isolated) { throw 'BLOCKED_JAVA: facet receipt requires isolated catalog proof' }
+        $result.Version = 3; $result.ExecutionMode = 'ISOLATED_CATALOG_FACET_V1'
+    }
     $source = [IO.Path]::GetFullPath($receipt.SourceModule).TrimEnd('\'); NoLinks $source
     if ((Within $stage $source) -or (Within $source $stage)) { throw 'BLOCKED_JAVA: overlapping source' }
     $sourceData = Join-Path $source 'dist\game\data\phantoms'; $stageData = Join-Path $stage 'module\dist\game\data\phantoms'
@@ -251,8 +255,11 @@ try {
             ($_.Kind -eq 'PATTERN' -and [string]$_.Voice -ne '') -or $_.Band -cnotin @('UNKNOWN','NEUTRAL','FAMILIAR','TRUSTED','RIVAL','TENSE','HOSTILE') -or
             $_.Register -cnotin @('NEUTRAL','CASUAL')) { throw 'FAILED_JAVA: invalid expected-ID receipt' }
         $target = if ($_.Kind -eq 'PATTERN') { $receipt.Pair.SemanticPath } else { $receipt.Pair.ConversationPath }
-        "$($_.XmlId)`t$($_.Kind)`t$($_.Act)`t$($_.Topic)`t$($_.TextHash)`t$target`t$($_.Voice)`t$($_.Band)`t$($_.Register)"
+        $row = "$($_.XmlId)`t$($_.Kind)`t$($_.Act)`t$($_.Topic)`t$($_.TextHash)`t$target`t$($_.Voice)`t$($_.Band)`t$($_.Register)"
+        if ($receipt.Version -eq 3) { $row += "`t$($_.Facet)`t$($_.MinIntensity)" }
+        $row
     }
+    if ($receipt.Version -eq 3) { $rows = @('PSS008_FACET_SPEC_V1') + @($rows) }
     [IO.File]::WriteAllLines($spec, [string[]]$rows, (New-Object Text.UTF8Encoding $false))
     $specHash = HashFile $spec; $result.ExpectedIdsSha256 = $specHash
     $bridge = Join-Path $scratch 'probe-bin'; New-Item -ItemType Directory -Path $bridge | Out-Null

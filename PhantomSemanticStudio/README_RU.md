@@ -121,6 +121,14 @@ Proof и detached `java-attestation.json` привязаны к точным в�
 Focused routes: `--pss-008-a`, `--pss-008-b`, `--pss-008-c`; STA через тот же WindowsDesktop runtimeconfig: `--pss-008-controls`. Статические/encoding/source/scope guards: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Verify-PSS008.ps1 -GitScope`. Результаты и отдельные LM/UI/DPI/VS статусы — в reports/PSS-008-final.md и PSS-008-ui.md.
 
 ## Защита исходников
+### Ручная native facet (083)
+
+В редакторе кандидата TEMPLATE можно отдельно выбрать одну native facet из десяти и явный `minIntensity` 0–100. Без facet порог отсутствует; PATTERN эти поля не поддерживает. Порог 0 всегда проходит проверку интенсивности, о чём редактор предупреждает. Voice остаётся независимым. Десять EDITORIAL_ONLY значений партии сохраняют только происхождение генерации: новый DRAFT автоматически не получает native facet.
+
+Сохранение правки текста, voice, facet или порога отменяет approval и advisory. При уходе с вкладки доступны «Сохранить / Отбросить / Отмена». Перед stage нужны новое ручное одобрение, точный выбор и оба прежних согласия. Список и полный preview показывают facet/порог.
+
+Tagged TEMPLATE доступен только в частном V3 предложении. Receipt3 связывает точные поля, reviewed snapshot, approval и SHA; untagged stage сохраняет receipt2 и прежние правила v1/v2. Операторский `Test-PSS008-V3-Java.ps1 -ProofMode IsolatedCatalog` проверяет exact Java082 источники и version3 spec/HMAC, включая native threshold. Это content proof без Ant. Legacy custom proposal отклоняет native facet. После отдельного ручного consent создаётся только `OFFLINE_HANDOFF_NOT_INSTALLED`; установка и promotion требуют другой задачи. Focused routes: `--facet083`, actual WindowsDesktop STA `--facet083-controls`.
+
 `PackReader` только читает. `WorkspaceStore` пишет лишь в `%LOCALAPPDATA%\PhantomSemanticStudio\workspace`, проверяя непересечение с source/repository. Junction/symlink-пути отклоняются. Второй экземпляр блокируется workspace.lock. JSON сохраняется через временный файл и замену. Это программные guards, не отдельная OS sandbox против злонамеренного процесса, меняющего пути во время записи.
 JSON экспорт только в workspace/exports; XML staging только в workspace/proposals. Исполняемые Core/GUI не содержат Process.Start, shell, Ant, Java, Git, сервера или доступа к игровой БД. Java operator script отделён от GUI и проверяет только shadow. Нет метода установки/публикации. Отпечаток источника повторно проверяется; изменение текста аннулирует approval, изменённое одобрение не пропускается молча.
 Не меняются ни исходные v1/v2, ни действующий v3, ни custom. PSS-008 готовит отдельное v3 предложение; применение требует отдельного будущего ручного процесса.

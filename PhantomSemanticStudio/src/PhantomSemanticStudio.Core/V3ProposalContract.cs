@@ -12,7 +12,10 @@ public sealed record V3SegmentPair(string Category, string SemanticPath, string 
     public override string ToString() => Category;
 }
 public sealed record V3CandidateStamp(string Id, string XmlId, string Kind, string Act, string Topic, string Band,
-    string Register, string ApprovalHash, string TextHash, string Voice = "");
+    string Register, string ApprovalHash, string TextHash, string Voice = "",
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Facet = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? MinIntensity = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Candidate? ReviewedCandidate = null);
 public sealed record V3StageReceipt
 {
     public int Version { get; init; } = 2;
@@ -164,8 +167,15 @@ public static class V3ProposalContract
         var workspace = PathSafety.Canonical(workspaceRoot); var stage = PathSafety.Canonical(stageRoot);
         Require(Path.GetDirectoryName(stage) == Path.Combine(workspace, "v3-proposals") && Regex.IsMatch(Path.GetFileName(stage), "^[0-9a-f]{32}$"), "STAGE_PATH");
         PathSafety.AssertNoReparsePoints(stage); PathSafety.AssertNoReparsePoints(workspace);
-        var receipt = ReadJson<V3StageReceipt>(PathSafety.ResolveRelative(stage, "receipt.json"));
-        Require(receipt.Version is 1 or 2 && receipt.StageId == Path.GetFileName(stage) && receipt.Status == "STAGED_V3_UNVALIDATED" && receipt.JavaStatus == "NOT_RUN"
+        // V3 carries the reviewed fingerprint inputs; legacy receipts retain their original 256 KiB bound below.
+        var receipt = ReadJson<V3StageReceipt>(PathSafety.ResolveRelative(stage, "receipt.json"), 1048576);
+        if (receipt.Version < 3)
+        {
+            var json = ReadJson<JsonElement>(PathSafety.ResolveRelative(stage, "receipt.json"));
+            Require(json.GetProperty("Candidates").EnumerateArray().All(c => !c.TryGetProperty("Facet", out _)
+                && !c.TryGetProperty("MinIntensity", out _) && !c.TryGetProperty("ReviewedCandidate", out _)), "RECEIPT_LEGACY_FACET");
+        }
+        Require(receipt.Version is 1 or 2 or 3 && receipt.StageId == Path.GetFileName(stage) && receipt.Status == "STAGED_V3_UNVALIDATED" && receipt.JavaStatus == "NOT_RUN"
             && receipt.NotForInstallation && receipt.SelectionConfirmed && receipt.EditorialConfirmed && receipt.Candidates.Count is >= 1 and <= 20
             && receipt.SourceFiles.Count is >= 7 and <= 77 && receipt.StagedFiles.Count == receipt.SourceFiles.Count
             && receipt.Candidates.Select(c => c.Id).Distinct(StringComparer.Ordinal).Count() == receipt.Candidates.Count, "RECEIPT_SCHEMA");
@@ -173,6 +183,7 @@ public static class V3ProposalContract
         var source = new PackReader().Load(receipt.SourceModule, token); var staged = new PackReader().Load(PathSafety.ResolveRelative(stage, "module"), token);
         Require(source.Fingerprint == receipt.SourceFingerprint && source.Files.SequenceEqual(receipt.SourceFiles) && staged.Files.SequenceEqual(receipt.StagedFiles), "STAGE_SOURCE_HASH");
         Require(GetPairs(source, token).Contains(receipt.Pair), "STAGE_PAIR");
+        if (receipt.Version == 3) Require(receipt.Candidates.Any(c => c.Facet is { Length: > 0 }), "RECEIPT_V3_FACET");
         var selectedPaths = receipt.Candidates.Select(c => c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath).Distinct(StringComparer.Ordinal).ToArray();
         foreach (var f in source.Files.Where(f => !selectedPaths.Contains(f.RelativePath))) Require(staged.Files.Single(s => s.RelativePath == f.RelativePath) == f, "NON_TARGET_DELTA");
         foreach (var c in receipt.Candidates)
@@ -180,11 +191,23 @@ public static class V3ProposalContract
             Require(Regex.IsMatch(c.Id, "^[0-9a-f]{32}$") && c.Kind is "PATTERN" or "TEMPLATE" && c.XmlId == "pss.v3." + (c.Kind == "PATTERN" ? "p." : "t.") + c.Id
                 && Key(c.Act) && Key(c.Topic) && Sha(c.ApprovalHash) && Sha(c.TextHash) && CandidateValidator.Bands.Contains(c.Band) && CandidateValidator.Registers.Contains(c.Register), "RECEIPT_CANDIDATE");
             Require(CandidateValidator.Voices.Contains(c.Voice, StringComparer.Ordinal) && (c.Kind == "TEMPLATE" || c.Voice == "")
-                && (receipt.Version == 2 || c.Voice == ""), "RECEIPT_VOICE");
+                && (receipt.Version >= 2 || c.Voice == ""), "RECEIPT_VOICE");
+            if (receipt.Version < 3) Require(c.Facet == null && c.MinIntensity == null && c.ReviewedCandidate == null, "RECEIPT_LEGACY_FACET");
+            else
+            {
+                var reviewed = c.ReviewedCandidate;
+                Require(CandidateValidator.ValidFacet(c.Kind, c.Facet, c.MinIntensity) && reviewed != null && CandidateReview.IsCurrent(reviewed)
+                    && reviewed.Id == c.Id && reviewed.Kind == c.Kind && reviewed.Act == c.Act && reviewed.Topic == c.Topic
+                    && reviewed.Band == c.Band && reviewed.Register == c.Register && reviewed.Voice == c.Voice
+                    && reviewed.Facet == c.Facet && reviewed.MinIntensity == c.MinIntensity && reviewed.Gender == "ANY"
+                    && reviewed.SourceFingerprint == receipt.SourceFingerprint && reviewed.ApprovedFingerprint == c.ApprovalHash
+                    && TextRules.Hash(reviewed.Text) == c.TextHash, "RECEIPT_REVIEW_BINDING");
+                Require(!CandidateValidator.Validate(reviewed!, source, []).Any(i => i.Severity == IssueSeverity.Error), "RECEIPT_REVIEW_VALIDATION");
+            }
             Require(!source.Entries.Any(e => e.Id == c.XmlId), "RECEIPT_COLLISION");
             var e = staged.Entries.SingleOrDefault(e => e.Kind == c.Kind && e.Id == c.XmlId);
             Require(e != null && e.SourceFile == (c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath)
-                && e.Act == c.Act && e.Voice == c.Voice && e.Facet == "" && e.MinIntensity == null
+                && e.Act == c.Act && e.Voice == c.Voice && e.Facet == (c.Facet ?? "") && e.MinIntensity == c.MinIntensity
                 && (c.Kind != "PATTERN" || e.Topic == c.Topic) && TextRules.Hash(e.Text) == c.TextHash && e.Profanity == "NONE" && !e.Mature
                 && (c.Kind != "TEMPLATE" || e.Band == c.Band && e.Register == c.Register), "RECEIPT_CONTENT");
         }
@@ -195,6 +218,8 @@ public static class V3ProposalContract
             foreach (var c in receipt.Candidates.Where(c => (c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath) == path))
             {
                 var node = changed.Descendants().Single(e => (string?)e.Attribute("id") == c.XmlId);
+                if (receipt.Version == 3 && c.Facet != "") Require((string?)node.Attribute("facet") == c.Facet
+                    && (string?)node.Attribute("minIntensity") == c.MinIntensity!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), "RECEIPT_EXPLICIT_FACET");
                 Require(node.PreviousNode is XText t && t.Value == "\n\t\t", "APPEND_SHAPE"); node.PreviousNode!.Remove(); node.Remove();
             }
             Require(XNode.DeepEquals(original, changed), "APPEND_ONLY_DELTA");

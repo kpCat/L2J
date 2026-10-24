@@ -7,6 +7,9 @@ public static class CandidateValidator
     public static readonly string[] Genders = ["ANY", "FEMALE", "MALE"];
     // Java079 PhantomHumanizedCatalog.PERSONA_VOICES; empty means universal.
     public static readonly string[] Voices = ["", "calm", "open", "direct", "empathetic"];
+    public static readonly string[] NativeFacets = ["aggression", "sarcasm", "humor", "reserved", "swagger", "timidity", "romance", "roughness", "cunning", "gossip"];
+    public static bool ValidFacet(string kind, string? facet, int? minIntensity) => facet == "" ? minIntensity == null
+        : kind == "TEMPLATE" && facet != null && NativeFacets.Contains(facet, StringComparer.Ordinal) && minIntensity is >= 0 and <= 100;
 
     public static List<ValidationIssue> Validate(Candidate candidate, PackSnapshot snapshot, IEnumerable<Candidate> peers)
     {
@@ -21,9 +24,13 @@ public static class CandidateValidator
         }
         if (candidate.SourceFingerprint != snapshot.Fingerprint) Error("SOURCE_MISMATCH", "Кандидат создан для другой версии исходного пака. Нужно повторное ревью, автоматической перепривязки нет.");
         if (candidate.Kind is not ("PATTERN" or "TEMPLATE")) Error("KIND", "Разрешены только PATTERN/TEMPLATE.");
+        if (!ValidFacet(candidate.Kind, candidate.Facet, candidate.MinIntensity))
+            Error("FACET", "Только TEMPLATE: одна точная native facet и явный порог 0–100; без facet порог отсутствует.");
+        if (candidate.Facet != "" && candidate.MinIntensity == 0)
+            Warn("FACET_ZERO", "Порог 0 всегда проходит native проверку интенсивности и не ограничивает выбор по баллу.");
         if (!Voices.Contains(candidate.Voice, StringComparer.Ordinal) || candidate.Kind != "TEMPLATE" && candidate.Voice != "")
             Error("VOICE", "Голос допускается только у ответа TEMPLATE: универсальный, calm, open, direct, empathetic. Регистр букв должен совпадать.");
-        if (candidate.Voice != "" && !snapshot.Entries.Any(e => e.Kind == "TEMPLATE" && e.Act == candidate.Act && e.Voice == ""
+        if ((candidate.Voice != "" || candidate.Facet != "") && !snapshot.Entries.Any(e => e.Kind == "TEMPLATE" && e.Act == candidate.Act && e.Voice == "" && e.Facet == ""
             && e.Band == "UNKNOWN" && e.Register == "NEUTRAL" && e.Profanity == "NONE" && !e.Mature))
             Error("VOICE_FALLBACK", "Для голоса нужен чистый универсальный ответ UNKNOWN / NEUTRAL того же act в исходнике.");
         if (!snapshot.Acts.Contains(candidate.Act, StringComparer.Ordinal)) Error("UNKNOWN_ACT", "Act отсутствует в импортированном каталоге.");
@@ -75,7 +82,8 @@ public static class CandidateReview
             c.Id, c.Kind, c.Text, c.Topic, c.Act, c.Band, c.Register, c.Gender, c.Voice, c.SourceFingerprint, c.ModelId, c.Instruction, c.Rationale,
             c.ReviewNote, c.ReviewedAtUtc
         }));
-        return c.EditorialMetadata == null ? legacy : TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new { LegacyFingerprint = legacy, c.EditorialMetadata }));
+        var editorial = c.EditorialMetadata == null ? legacy : TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new { LegacyFingerprint = legacy, c.EditorialMetadata }));
+        return c.Facet == "" && c.MinIntensity == null ? editorial : TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new { Version = 3, LegacyFingerprint = editorial, c.Facet, c.MinIntensity }));
     }
     public static bool IsCurrent(Candidate c) => c.Status == "APPROVED" && !string.IsNullOrWhiteSpace(c.ReviewNote)
         && c.ReviewedAtUtc != null && c.ApprovedFingerprint == Fingerprint(c);
@@ -91,6 +99,11 @@ public static class CandidateReview
         c.SemanticReview = null;
         c.Voice = voice ?? c.Voice;
         c.Text = text.Trim(); c.Status = "DRAFT"; c.ApprovedFingerprint = ""; c.ReviewedAtUtc = null; c.ReviewNote = "";
+    }
+    public static void Edit(Candidate c, string text, string voice, string facet, int? minIntensity)
+    {
+        if (!CandidateValidator.ValidFacet(c.Kind, facet, minIntensity)) throw new InvalidDataException("Некорректная native facet или порог.");
+        Edit(c, text, voice); c.Facet = facet; c.MinIntensity = minIntensity;
     }
     public static void Reject(Candidate c)
     {

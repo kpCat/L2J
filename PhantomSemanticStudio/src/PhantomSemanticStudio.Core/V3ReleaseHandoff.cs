@@ -76,8 +76,8 @@ public static class V3ReleaseHandoff
         V3ProposalContract.Require(new FileInfo(path).Length is > 0 and <= 262144, "PROOF_SIZE");
         var proofHash = TextRules.Hash(File.ReadAllBytes(path));
         var proof = V3ProposalContract.ReadJson<JsonElement>(path);
-        var version = proof.GetProperty("Version").GetInt32(); var isolated = version == 2;
-        V3ProposalContract.Require(version is 1 or 2, "PROOF_VERSION");
+        var version = proof.GetProperty("Version").GetInt32(); var isolated = version is 2 or 3;
+        V3ProposalContract.Require(version is 1 or 2 or 3 && (receipt.Version == 3 ? version == 3 : version < 3), "PROOF_VERSION");
         var attestation = V3ProposalContract.ReadJson<JavaAttestation>(PathSafety.ResolveRelative(oracle, "java-attestation.json"));
         V3ProposalContract.Require(attestation.Version == version && attestation.StageId == receipt.StageId && attestation.ProofSha256 == proofHash && V3ProposalContract.Sha(attestation.Mac), "PROOF_ATTESTATION");
         // An honest local operator attestation, not protection from the OS owner reading its key.
@@ -101,7 +101,7 @@ public static class V3ReleaseHandoff
         V3ProposalContract.Require(S("JavaStatus") == "PASS_JAVA_STAGED_V3" && S("Status") == "JAVA_CONTENT_ONLY_NOT_RUNTIME_READY"
             && S("StageId") == receipt.StageId && S("ReceiptHash") == TextRules.Hash(File.ReadAllBytes(PathSafety.ResolveRelative(stage, "receipt.json")))
             && S("SourceFingerprint") == receipt.SourceFingerprint && proof.GetProperty("SourceEqual").GetBoolean()
-            && (isolated ? S("ExecutionMode") == "ISOLATED_CATALOG_V1" && S("Ant") == "NOT_RUN" && proof.GetProperty("AntExitCode").ValueKind == JsonValueKind.Null && !proof.TryGetProperty("AntCommand", out _)
+            && (isolated ? S("ExecutionMode") == (version == 3 ? "ISOLATED_CATALOG_FACET_V1" : "ISOLATED_CATALOG_V1") && S("Ant") == "NOT_RUN" && proof.GetProperty("AntExitCode").ValueKind == JsonValueKind.Null && !proof.TryGetProperty("AntCommand", out _)
                 : proof.GetProperty("AntExitCode").GetInt32() == 0)
             && proof.GetProperty("ProbeExitCode").GetInt32() == 0 && proof.GetProperty("CompileExitCode").GetInt32() == 0
             && proof.GetProperty("NegativeExitCode").GetInt32() == 3 && proof.GetProperty("SchemaNegativeExitCode").GetInt32() == 3 && S("Scratch") == oracle, "PROOF_STATUS");
@@ -124,7 +124,9 @@ public static class V3ReleaseHandoff
                 or "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0" or "01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05")), "UNAUDITED_ORACLE_BUILD");
         // TASK082 adds only the reviewed facet catalog; historical 063/080 pins and Ant ownership/write guards remain intact.
         var expectedRows = receipt.Candidates.Select(c => string.Join("\t", c.XmlId, c.Kind, c.Act, c.Topic, c.TextHash,
-            c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath, c.Voice, c.Band, c.Register));
+            c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath, c.Voice, c.Band, c.Register)
+            + (version == 3 ? "\t" + c.Facet + "\t" + c.MinIntensity?.ToString(System.Globalization.CultureInfo.InvariantCulture) : ""));
+        if (version == 3) expectedRows = expectedRows.Prepend("PSS008_FACET_SPEC_V1");
         V3ProposalContract.Require(File.ReadAllLines(PathSafety.ResolveRelative(oracle, "expected-ids.tsv")).SequenceEqual(expectedRows), "PROOF_VOICE_SPEC");
         foreach (var stamp in inventory)
         {
@@ -172,8 +174,10 @@ public static class V3ReleaseHandoff
             verifiedLogs.Add(log.RelativePath, V3ProposalContract.Utf8.GetString(bytes).TrimStart('\uFEFF'));
         }
         var probeLines = verifiedLogs["probe.txt"].Split('\n').Select(line => line.TrimEnd('\r')).ToArray();
-        foreach (var c in receipt.Candidates.Where(c => c.Kind == "TEMPLATE" && c.Voice != ""))
+        foreach (var c in receipt.Candidates.Where(c => c.Kind == "TEMPLATE" && c.Voice != "" && (c.Facet ?? "") == ""))
             V3ProposalContract.Require(probeLines.Count(line => line == $"VOICE_SELECT id={c.XmlId} voice={c.Voice} positive=CHECKED wrongVoice=CHECKED universal=CHECKED") == 1, "PROOF_VOICE_SELECT");
+        if (version == 3) foreach (var c in receipt.Candidates.Where(c => c.Facet != ""))
+            V3ProposalContract.Require(probeLines.Count(line => line == $"FACET_SELECT id={c.XmlId} facet={c.Facet} minIntensity={c.MinIntensity} positive=CHECKED legacy=CHECKED threshold={(c.MinIntensity == 0 ? "ZERO_ALWAYS_ELIGIBLE" : "CHECKED")} wrongFacet={(c.MinIntensity == 0 ? "NOT_APPLICABLE" : "CHECKED")} voice={(c.Voice == "" ? "UNVOICED" : "CHECKED")} deterministic=CHECKED") == 1, "PROOF_FACET_SELECT");
         var evidence = S("ProbeEvidence");
         var match = Regex.Match(evidence, "^PASS_JAVA_STAGED_V3 baselinePatterns=(\\d+) baselineTemplates=(\\d+) stagedPatterns=(\\d+) stagedTemplates=(\\d+) checkedIds=(\\d+) baselineHash=([0-9a-f]{64}) stagedHash=([0-9a-f]{64}) negative=DUPLICATE_AND_SCHEMA_REJECTED$");
         V3ProposalContract.Require(match.Success && int.Parse(match.Groups[1].Value) == receipt.BaselinePatterns && int.Parse(match.Groups[2].Value) == receipt.BaselineTemplates

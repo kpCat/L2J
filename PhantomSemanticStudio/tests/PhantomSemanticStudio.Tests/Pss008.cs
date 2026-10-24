@@ -214,6 +214,13 @@ internal static partial class Program
         peers[0].Text = "проверка студии восемь тихий вечер без действий";
         peers[1].Text = "Пусть этот спокойный разговор добавит вечеру немного тепла.";
         peers[1].Voice = "direct"; peers[1].Band = "FAMILIAR";
+        if (args[0] == "--facet083-source")
+        {
+            True(pack.Entries.Count(e => e.Facet != "") >= 10);
+            peers[1].Facet = "humor"; peers[1].MinIntensity = 70;
+            var zero = CandidateOf(pack, "Ветер листает страницы забытой книги."); zero.Id = new string('4', 32);
+            zero.Facet = "sarcasm"; zero.MinIntensity = 0; zero.Band = "FAMILIAR"; peers.Add(zero);
+        }
         var generic = CandidateOf(pack, "Обсудим риски спокойно, прежде чем выбирать следующий шаг."); generic.Id = new string('3', 32); peers.Add(generic);
         foreach (var c in peers) { c.Act = scope.Act; c.Topic = scope.Topic; c.Register = "CASUAL"; CandidateReview.Approve(c, pack, peers, "Synthetic 080 operator fixture; not model output or owner approval"); }
         var stage = new IsolatedV3ProposalStager().Create(store, pack, peers, peers.Select(c => c.Id).ToArray(), pair, true, true);
@@ -228,7 +235,7 @@ internal static partial class Program
             WarningRows = report.Rows.Count(r => r.Warning.Length > 0), report.LexicalComparisons, JavaStatus = "NOT_RUN", StageStatus = stage.Status
         }, WorkspaceStore.JsonOptions), new System.Text.UTF8Encoding(false));
         Console.WriteLine($"PASS ACTUAL_SOURCE read-only files={pack.Files.Count} SHA/bytes equal; patterns={pack.Entries.Count(e => e.Kind == "PATTERN")}; templates={pack.Entries.Count(e => e.Kind == "TEMPLATE")}; pairs={V3ProposalContract.GetPairs(pack).Count}; fingerprint={pack.Fingerprint}");
-        Console.WriteLine("SYNTHETIC selected=3 (pattern/direct/universal); stage=STAGED_V3_UNVALIDATED; Java=NOT_RUN; NOT_INSTALLED; path stored only in own workspace"); return 0;
+        Console.WriteLine($"SYNTHETIC selected={peers.Count} (pattern/direct/universal; 083 optionally humor70/sarcasm0); stage=STAGED_V3_UNVALIDATED; Java=NOT_RUN; NOT_INSTALLED; path stored only in own workspace"); return 0;
     }
     private static int Pss008Handoff(string[] args)
     {

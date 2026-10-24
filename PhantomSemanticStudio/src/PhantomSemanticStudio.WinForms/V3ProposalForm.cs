@@ -56,7 +56,7 @@ public partial class V3ProposalForm : Form
     {
         var pair = cmbPair.SelectedItem as V3SegmentPair;
         txtPreview.Text = (pair == null ? "Точная пара ещё не выбрана." : $"Category: {pair.Category}\r\n{pair.SemanticPath}\r\n{pair.ConversationPath}")
-            + "\r\n\r\n" + string.Join("\r\n\r\n", selectedIds.Select(id => peers.Single(c => c.Id == id)).Select(c => $"{c.Id} / {c.Kind}\r\n{c.Topic} / {c.Act} / {c.Band} / {c.Register} / {c.Gender} / voice={(c.Voice == "" ? "Универсальный" : c.Voice)}\r\n{c.Text}"));
+            + "\r\n\r\n" + string.Join("\r\n\r\n", selectedIds.Select(id => peers.Single(c => c.Id == id)).Select(c => $"{c.Id} / {c.Kind}\r\n{c.Topic} / {c.Act} / {c.Band} / {c.Register} / {c.Gender} / voice={(c.Voice == "" ? "Универсальный" : c.Voice)} / facet={c.Facet} / minIntensity={c.MinIntensity}\r\n{c.Text}"));
         UpdateActions();
     }
     private void Consent_Changed(object? sender, EventArgs e)
@@ -87,7 +87,7 @@ public partial class V3ProposalForm : Form
             var receipt = await Task.Run(() => V3ProposalContract.ReadStage(Store.Root, stage, token), token); token.ThrowIfCancellationRequested();
             var preview = "PASS_JAVA_STAGED_V3 / JAVA_CONTENT_ONLY_NOT_RUNTIME_READY\r\nNOT_INSTALLED\r\nProof SHA: " + hash
                 + "\r\nSource fingerprint: " + receipt.SourceFingerprint
-                + "\r\n" + string.Join("\r\n", receipt.Candidates.Select(c => $"{c.XmlId} / voice={(c.Voice == "" ? "Универсальный" : c.Voice)} / approval={c.ApprovalHash}"))
+                + "\r\n" + string.Join("\r\n", receipt.Candidates.Select(c => $"{c.XmlId} / voice={(c.Voice == "" ? "Универсальный" : c.Voice)} / facet={c.Facet} / minIntensity={c.MinIntensity} / approval={c.ApprovalHash}"))
                 + "\r\n\r\n" + string.Join("\r\n", receipt.StagedFiles.Where(f => receipt.SourceFiles.Single(s => s.RelativePath == f.RelativePath) != f)
                     .Select(f => $"{f.RelativePath}\r\nOriginal SHA: {receipt.SourceFiles.Single(s => s.RelativePath == f.RelativePath).Sha256}\r\nProposed SHA: {f.Sha256} ({f.Bytes} bytes)"));
             token.ThrowIfCancellationRequested();

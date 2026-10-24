@@ -23,6 +23,12 @@ internal static partial class Program
 
     private static async Task<int> Run(string[] args)
     {
+        if (args.Length > 0 && args[0] == "--facet083")
+        { Facet083(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
+        if (args.Length > 0 && args[0] == "--facet083-source") return Pss008Source(args);
+        if (args.Length > 0 && args[0] == "--facet083-controls") return Facet083Controls();
+        if (args.Length > 0 && args[0] == "--facet083-proof") return Facet083Proof(args);
+        if (args.Length > 0 && args[0] == "--facet083-live") return await Facet083Live(args);
         if (args.Length > 0 && args[0] == "--java081")
         { Java081(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--java081-proof") return Java081Proof(args);

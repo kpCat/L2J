@@ -45,16 +45,21 @@ public sealed class IsolatedV3ProposalStager
                 V3ProposalContract.Require(staged.Files.Single(s => s.RelativePath == stamp.RelativePath) == stamp, "PRESERVATION");
             var receipt = new V3StageReceipt
             {
+                Version = selected.Any(c => c.Facet != "") ? 3 : 2,
                 StageId = id, SelectionConfirmed = true, EditorialConfirmed = true, SourceModule = current.ModuleRoot, SourceFingerprint = current.Fingerprint,
                 Pair = pair, SourceFiles = current.Files.ToList(), StagedFiles = staged.Files.ToList(),
-                Candidates = selected.Select(c => new V3CandidateStamp(c.Id, XmlId(c), c.Kind, c.Act, c.Topic, c.Band, c.Register, c.ApprovedFingerprint, TextRules.Hash(c.Text), c.Voice)).ToList(),
+                Candidates = selected.Select(c => new V3CandidateStamp(c.Id, XmlId(c), c.Kind, c.Act, c.Topic, c.Band, c.Register, c.ApprovedFingerprint, TextRules.Hash(c.Text), c.Voice,
+                    selected.Any(p => p.Facet != "") ? c.Facet : null, c.MinIntensity,
+                    selected.Any(p => p.Facet != "") ? ReviewedCopy(c) : null)).ToList(),
                 BaselinePatterns = current.Entries.Count(e => e.Kind == "PATTERN"), BaselineTemplates = current.Entries.Count(e => e.Kind == "TEMPLATE"),
                 AddedPatterns = selected.Count(c => c.Kind == "PATTERN"), AddedTemplates = selected.Count(c => c.Kind == "TEMPLATE")
             };
             V3ProposalContract.Require(staged.Files.Count == current.Files.Count && staged.Entries.Count == current.Entries.Count + selected.Count
                 && staged.Entries.Count(e => e.Kind == "PATTERN") == receipt.BaselinePatterns + receipt.AddedPatterns
                 && staged.Entries.Count(e => e.Kind == "TEMPLATE") == receipt.BaselineTemplates + receipt.AddedTemplates, "PRESERVATION");
-            V3ProposalContract.WriteNew(PathSafety.ResolveRelative(partial, "receipt.json"), JsonSerializer.SerializeToUtf8Bytes(receipt, WorkspaceStore.JsonOptions));
+            var receiptBytes = JsonSerializer.SerializeToUtf8Bytes(receipt, WorkspaceStore.JsonOptions);
+            V3ProposalContract.Require(receiptBytes.Length <= (receipt.Version == 3 ? 1048576 : 262144), "RECEIPT_SIZE");
+            V3ProposalContract.WriteNew(PathSafety.ResolveRelative(partial, "receipt.json"), receiptBytes);
             V3ProposalContract.Current(snapshot, token); token.ThrowIfCancellationRequested();
             V3ProposalContract.Require(PeerHash(allPeers) == peersHash && exact.All(id => CandidateReview.IsCurrent(allPeers.Single(c => c.Id == id))), "APPROVAL_DRIFT");
             V3ProposalContract.CheckPaths(store, current.ModuleRoot); PathSafety.AssertNoReparsePoints(partial); PathSafety.AssertNoReparsePoints(finished);
@@ -63,6 +68,10 @@ public sealed class IsolatedV3ProposalStager
         catch { if (ownsPartial) V3ProposalContract.RemoveOwnPartial(parent, partial); throw; }
     }
     internal static string XmlId(Candidate c) => "pss.v3." + (c.Kind == "PATTERN" ? "p." : "t.") + c.Id;
+    private static Candidate ReviewedCopy(Candidate candidate)
+    {
+        var copy = candidate.Copy(); copy.SemanticReview = null; return copy;
+    }
     private static string PeerHash(IEnumerable<Candidate> peers) => TextRules.Hash(JsonSerializer.Serialize(peers.OrderBy(c => c.Id, StringComparer.Ordinal)));
     private static void Validate(PackSnapshot pack, List<Candidate> peers, List<Candidate> selected, V3SegmentPair pair, CancellationToken token)
     {
@@ -107,6 +116,8 @@ public sealed class IsolatedV3ProposalStager
             if (c.Kind == "PATTERN") element.Add(new XAttribute("phrase", c.Text), new XAttribute("salience", 0), new XAttribute("ttlMinutes", 0), new XAttribute("priority", 500));
             else element.Add(new XAttribute("band", c.Band), new XAttribute("register", c.Register), new XAttribute("profanity", "NONE"), new XAttribute("text", c.Text));
             if (c.Kind == "TEMPLATE" && c.Voice != "") element.Add(new XAttribute("voice", c.Voice));
+            if (c.Kind == "TEMPLATE" && c.Facet != "") element.Add(new XAttribute("facet", c.Facet),
+                new XAttribute("minIntensity", c.MinIntensity!.Value.ToString(CultureInfo.InvariantCulture)));
             if (parent!.LastNode is XText trailing && string.IsNullOrWhiteSpace(trailing.Value))
                 trailing.AddBeforeSelf(new XText("\n\t\t"), element);
             else parent.Add(new XText("\n\t\t"), element);

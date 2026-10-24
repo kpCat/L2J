@@ -61,6 +61,9 @@ public sealed record PackSnapshot
 public sealed class Candidate
 {
     public string Voice { get; set; } = "";
+    // Explicit manual native selector; independent of EDITORIAL_ONLY generation provenance.
+    public string Facet { get; set; } = "";
+    public int? MinIntensity { get; set; }
     public SemanticReviewEvidence? SemanticReview { get; set; }
     public BatchEditorialMetadata? EditorialMetadata { get; set; }
     public Candidate Copy() => (Candidate)MemberwiseClone();

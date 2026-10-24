@@ -142,6 +142,11 @@ partial class MainForm
             lblSelected = new System.Windows.Forms.Label();
             lblCandidateVoice = new System.Windows.Forms.Label();
             cmbCandidateVoice = new System.Windows.Forms.ComboBox();
+            lblCandidateFacet = new System.Windows.Forms.Label();
+            cmbCandidateFacet = new System.Windows.Forms.ComboBox();
+            lblMinIntensity = new System.Windows.Forms.Label();
+            nudMinIntensity = new System.Windows.Forms.NumericUpDown();
+            lblFacetWarning = new System.Windows.Forms.Label();
             lblEdit = new System.Windows.Forms.Label();
             txtCandidateText = new System.Windows.Forms.TextBox();
             lblReviewNote = new System.Windows.Forms.Label();
@@ -196,6 +201,7 @@ partial class MainForm
             ((System.ComponentModel.ISupportInitialize)nudFacetGossip).BeginInit();
             ((System.ComponentModel.ISupportInitialize)gridLibrary).BeginInit();
             ((System.ComponentModel.ISupportInitialize)gridCandidates).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)nudMinIntensity).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudTemperature).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudTokens).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudTimeout).BeginInit();
@@ -916,7 +922,7 @@ partial class MainForm
             gridCandidatesColumn4.ReadOnly = true;
             gridCandidatesVoice.Name = "gridCandidatesVoice";
             gridCandidatesVoice.DataPropertyName = "Voice";
-            gridCandidatesVoice.HeaderText = "Голос v3";
+            gridCandidatesVoice.HeaderText = "Голос / native facet";
             gridCandidatesVoice.FillWeight = 90F;
             gridCandidatesVoice.ReadOnly = true;
             // lblSelected
@@ -938,6 +944,36 @@ partial class MainForm
             cmbCandidateVoice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             cmbCandidateVoice.Enabled = false;
             cmbCandidateVoice.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            // Explicit native selector; all layout stays in Designer.
+            lblCandidateFacet.Name = "lblCandidateFacet";
+            lblCandidateFacet.Location = new System.Drawing.Point(618, 374);
+            lblCandidateFacet.Size = new System.Drawing.Size(102, 24);
+            lblCandidateFacet.Text = "Native facet";
+            lblCandidateFacet.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            cmbCandidateFacet.Name = "cmbCandidateFacet";
+            cmbCandidateFacet.Location = new System.Drawing.Point(728, 369);
+            cmbCandidateFacet.Size = new System.Drawing.Size(180, 29);
+            cmbCandidateFacet.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            cmbCandidateFacet.Enabled = false;
+            cmbCandidateFacet.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            lblMinIntensity.Name = "lblMinIntensity";
+            lblMinIntensity.Location = new System.Drawing.Point(920, 374);
+            lblMinIntensity.Size = new System.Drawing.Size(180, 24);
+            lblMinIntensity.Text = "minIntensity (0–100)";
+            lblMinIntensity.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            nudMinIntensity.Name = "nudMinIntensity";
+            nudMinIntensity.Location = new System.Drawing.Point(1110, 369);
+            nudMinIntensity.Size = new System.Drawing.Size(116, 29);
+            nudMinIntensity.Minimum = 0;
+            nudMinIntensity.Maximum = 100;
+            nudMinIntensity.Value = 60;
+            nudMinIntensity.Enabled = false;
+            nudMinIntensity.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            lblFacetWarning.Name = "lblFacetWarning";
+            lblFacetWarning.Location = new System.Drawing.Point(618, 403);
+            lblFacetWarning.Size = new System.Drawing.Size(608, 28);
+            lblFacetWarning.Text = "Ручной native выбор отдельно от EDITORIAL_ONLY.";
+            lblFacetWarning.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             // lblEdit
             lblEdit.Name = "lblEdit";
             lblEdit.Location = new System.Drawing.Point(16, 371);
@@ -974,8 +1010,8 @@ partial class MainForm
             txtReviewNote.MaxLength = 1000;
             // txtValidation
             txtValidation.Name = "txtValidation";
-            txtValidation.Location = new System.Drawing.Point(618, 371);
-            txtValidation.Size = new System.Drawing.Size(608, 255);
+            txtValidation.Location = new System.Drawing.Point(618, 435);
+            txtValidation.Size = new System.Drawing.Size(608, 191);
             txtValidation.Text = "Проверка ещё не запускалась. Автоматика не доказывает смысловую корректность.";
             txtValidation.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             txtValidation.MaxLength = 4000;
@@ -1358,6 +1394,11 @@ partial class MainForm
             contentCandidates.Controls.Add(lblSelected);
             contentCandidates.Controls.Add(lblCandidateVoice);
             contentCandidates.Controls.Add(cmbCandidateVoice);
+            contentCandidates.Controls.Add(lblCandidateFacet);
+            contentCandidates.Controls.Add(cmbCandidateFacet);
+            contentCandidates.Controls.Add(lblMinIntensity);
+            contentCandidates.Controls.Add(nudMinIntensity);
+            contentCandidates.Controls.Add(lblFacetWarning);
             contentCandidates.Controls.Add(lblEdit);
             contentCandidates.Controls.Add(txtCandidateText);
             contentCandidates.Controls.Add(lblReviewNote);
@@ -1414,6 +1455,8 @@ partial class MainForm
             cmbAct.SelectedIndexChanged += Act_Changed;
             cmbMode.SelectedIndexChanged += Mode_Changed;
             cmbCandidateVoice.SelectedIndexChanged += SemanticEditor_Changed;
+            cmbCandidateFacet.SelectedIndexChanged += NativeFacet_Changed;
+            nudMinIntensity.ValueChanged += NativeFacet_Changed;
             btnGenerate.Click += Generate_Click;
             btnBatchStart.Click += BatchStart_Click;
             btnBatchPause.Click += BatchPause_Click;
@@ -1425,6 +1468,7 @@ partial class MainForm
             cmbLessons.SelectedIndexChanged += LessonSelection_Changed;
             btnApplyLesson.Click += ApplyLesson_Click;
             tabs.Selecting += Tabs_Selecting;
+            tabs.Deselecting += Tabs_Deselecting;
             btnClearChat.Click += ClearChat_Click;
             btnSearch.Click += Search_Click;
             btnPackQuality.Click += PackQuality_Click;
@@ -1475,6 +1519,7 @@ partial class MainForm
             ((System.ComponentModel.ISupportInitialize)nudFacetGossip).EndInit();
             ((System.ComponentModel.ISupportInitialize)gridLibrary).EndInit();
             ((System.ComponentModel.ISupportInitialize)gridCandidates).EndInit();
+            ((System.ComponentModel.ISupportInitialize)nudMinIntensity).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudTemperature).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudTokens).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudTimeout).EndInit();
@@ -1631,6 +1676,11 @@ partial class MainForm
     private System.Windows.Forms.Label lblSelected = null!;
     private System.Windows.Forms.Label lblCandidateVoice = null!;
     private System.Windows.Forms.ComboBox cmbCandidateVoice = null!;
+    private System.Windows.Forms.Label lblCandidateFacet = null!;
+    private System.Windows.Forms.ComboBox cmbCandidateFacet = null!;
+    private System.Windows.Forms.Label lblMinIntensity = null!;
+    private System.Windows.Forms.NumericUpDown nudMinIntensity = null!;
+    private System.Windows.Forms.Label lblFacetWarning = null!;
     private System.Windows.Forms.Label lblEdit = null!;
     private System.Windows.Forms.TextBox txtCandidateText = null!;
     private System.Windows.Forms.Label lblReviewNote = null!;

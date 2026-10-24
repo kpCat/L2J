@@ -141,7 +141,8 @@ public static class SemanticDuplicateScout
     public static string CandidateFingerprint(Candidate c)
     {
         var legacy = Hash(new { c.Id, c.Kind, c.Text, c.Act, c.Topic, c.Band, c.Register, c.Gender, c.Voice, c.SourceFingerprint });
-        return c.EditorialMetadata == null ? legacy : Hash(new { LegacyFingerprint = legacy, c.EditorialMetadata });
+        var editorial = c.EditorialMetadata == null ? legacy : Hash(new { LegacyFingerprint = legacy, c.EditorialMetadata });
+        return c.Facet == "" && c.MinIntensity == null ? editorial : Hash(new { Version = 3, LegacyFingerprint = editorial, c.Facet, c.MinIntensity });
     }
     public static string PeersFingerprint(Candidate c, IReadOnlyList<Candidate> peers) => Hash(peers.Where(p => p.Id != c.Id && p.Status != "REJECTED")
         .OrderBy(p => p.Id, StringComparer.Ordinal).Select(p => new { p.Id, p.Status, Hash = CandidateFingerprint(p) }).ToArray());

@@ -89,6 +89,9 @@ public partial class MainForm : Form
             combo.DataSource = CandidateValidator.Voices.Select(v => new Choice(v, VoiceLabel(v))).ToArray();
         }
         Mode_Changed(null, EventArgs.Empty);
+        cmbCandidateFacet.DisplayMember = "Label"; cmbCandidateFacet.ValueMember = "Key";
+        cmbCandidateFacet.DataSource = new[] { new Choice("", "Без facet") }
+            .Concat(CandidateValidator.NativeFacets.Select(f => new Choice(f, f))).ToArray();
     }
     private void Mode_Changed(object? sender, EventArgs e)
     {
@@ -330,7 +333,7 @@ public partial class MainForm : Form
     {
         var rows = session.Candidates.Select(c => new CandidateRow(c,
             CandidateReview.IsCurrent(c) ? "Одобрен" : c.Status == "REJECTED" ? "Отклонён" : "Черновик / ревью",
-            KindLabel(c.Kind), c.Topic, GenderLabel(c.Gender), c.Kind == "TEMPLATE" ? VoiceLabel(c.Voice) : "—", c.Text)).ToList();
+            KindLabel(c.Kind), c.Topic, GenderLabel(c.Gender), c.Kind == "TEMPLATE" ? VoiceLabel(c.Voice) + " / " + FacetLabel(c) : "—", c.Text)).ToList();
         bindingCandidates = true;
         try
         {
@@ -381,6 +384,10 @@ public partial class MainForm : Form
         txtCandidateText.Text = candidate?.Text ?? ""; txtReviewNote.Text = candidate?.ReviewNote ?? "";
         cmbCandidateVoice.Enabled = candidate?.Kind == "TEMPLATE";
         cmbCandidateVoice.SelectedValue = candidate?.Voice ?? "";
+        cmbCandidateFacet.Enabled = candidate?.Kind == "TEMPLATE";
+        cmbCandidateFacet.SelectedValue = candidate?.Facet ?? "";
+        nudMinIntensity.Value = candidate?.MinIntensity ?? 60;
+        NativeFacet_Changed(null, EventArgs.Empty);
         showingCandidate = false;
         lblSelected.Text = candidate == null ? "Выберите кандидата." : $"{candidate.Id} • {candidate.Act} • {candidate.Band} / {candidate.Register}";
         txtValidation.Text = candidate == null ? "Нет выбранного кандидата." : "Нажмите «Проверить».\r\n\r\nОбоснование модели (не проверка):\r\n" + candidate.Rationale;
@@ -403,7 +410,7 @@ public partial class MainForm : Form
         bool MayPaint() => !IsDisposed && !Disposing && !cancel.IsCancellationRequested && version == evidenceSelectionVersion
             && ReferenceEquals(snapshot, baseline) && editingCandidate?.Id == candidate.Id && SelectedCandidate?.Id == candidate.Id
             && txtCandidateText.Text.Trim() == candidate.Text && txtReviewNote.Text.Trim() == candidate.ReviewNote
-            && Key(cmbCandidateVoice) == candidate.Voice
+            && Key(cmbCandidateVoice) == candidate.Voice && NativeEditorMatches(candidate)
             && SemanticDuplicateScout.CandidateFingerprint(editingCandidate) == SemanticDuplicateScout.CandidateFingerprint(candidate)
             && editingCandidate.ApprovedFingerprint == candidate.ApprovedFingerprint && editingCandidate.Status == candidate.Status
             && SemanticDuplicateScout.PeersFingerprint(candidate, session.Candidates) == SemanticDuplicateScout.PeersFingerprint(candidate, peers);
@@ -432,7 +439,7 @@ public partial class MainForm : Form
     private void SemanticEditor_Changed(object? sender, EventArgs e)
     {
         if (!showingCandidate && editingCandidate != null
-            && (txtCandidateText.Text.Trim() != editingCandidate.Text || txtReviewNote.Text.Trim() != editingCandidate.ReviewNote || Key(cmbCandidateVoice) != editingCandidate.Voice))
+            && (txtCandidateText.Text.Trim() != editingCandidate.Text || txtReviewNote.Text.Trim() != editingCandidate.ReviewNote || Key(cmbCandidateVoice) != editingCandidate.Voice || !NativeEditorMatches(editingCandidate)))
             txtValidation.Text = "STALE: есть несохранённая правка. Прежняя экспертиза не относится к тексту редактора; сначала сохраните/разрешите правку.";
     }
     private static string FormatSemanticShortlist(Candidate c, SemanticShortlist s, SemanticReviewEvidence? evidence = null, bool current = false)
@@ -503,16 +510,27 @@ public partial class MainForm : Form
             statusLabel.Text = "MODEL_ADVISORY_NOT_VERIFIED / COVERAGE_LIMITED. Совет сохранён; актуальность показана в отчёте, решение остаётся ручным.";
         });
     }
+    private static string FacetLabel(Candidate c) => c.Facet == "" ? "без facet" : $"{c.Facet} / minIntensity={c.MinIntensity}";
+    private int? EditorIntensity => Key(cmbCandidateFacet) == "" ? null : (int)nudMinIntensity.Value;
+    private bool NativeEditorMatches(Candidate c) => Key(cmbCandidateFacet) == c.Facet && EditorIntensity == c.MinIntensity;
+    private void NativeFacet_Changed(object? sender, EventArgs e)
+    {
+        nudMinIntensity.Enabled = cmbCandidateFacet.Enabled && Key(cmbCandidateFacet) != "";
+        lblFacetWarning.Text = nudMinIntensity.Enabled && nudMinIntensity.Value == 0
+            ? "ВНИМАНИЕ: порог 0 всегда проходит проверку интенсивности."
+            : "Ручной native выбор отдельно от EDITORIAL_ONLY.";
+        SemanticEditor_Changed(sender, e);
+    }
     private bool ResolvePendingEdit()
     {
-        if (editingCandidate == null || (txtCandidateText.Text.Trim() == editingCandidate.Text && txtReviewNote.Text.Trim() == editingCandidate.ReviewNote && Key(cmbCandidateVoice) == editingCandidate.Voice)) return true;
-        var answer = MessageBox.Show(this, "Есть несохранённая правка текста, голоса или отметки ревью.\r\nДа — сохранить (одобрение отменится). Нет — отбросить. Отмена — остаться.",
+        if (editingCandidate == null || (txtCandidateText.Text.Trim() == editingCandidate.Text && txtReviewNote.Text.Trim() == editingCandidate.ReviewNote && Key(cmbCandidateVoice) == editingCandidate.Voice && NativeEditorMatches(editingCandidate))) return true;
+        var answer = MessageBox.Show(this, "Есть несохранённая правка текста, голоса, native facet, порога или отметки ревью.\r\nДа — сохранить (одобрение отменится). Нет — отбросить. Отмена — остаться.",
             "Сохранить / Отбросить / Отмена", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question, MessageBoxDefaultButton.Button3);
         if (answer == DialogResult.Cancel) return false;
         if (answer == DialogResult.No) { ShowCandidate(editingCandidate); return true; }
         try
         {
-            var updated = editingCandidate.Copy(); CandidateReview.Edit(updated, txtCandidateText.Text, Key(cmbCandidateVoice)); updated.ReviewNote = txtReviewNote.Text.Trim();
+            var updated = editingCandidate.Copy(); CandidateReview.Edit(updated, txtCandidateText.Text, Key(cmbCandidateVoice), Key(cmbCandidateFacet), EditorIntensity); updated.ReviewNote = txtReviewNote.Text.Trim();
             SaveCandidateVersion(updated); BindCandidates(SelectedCandidate?.Id);
             return true;
         }
@@ -526,12 +544,15 @@ public partial class MainForm : Form
     private void Tabs_Selecting(object? sender, TabControlCancelEventArgs e)
     {
         if (batchRunning && e.TabPage != tabGenerate) { e.Cancel = true; return; }
-        if (!busy && tabs.SelectedTab == tabCandidates && e.TabPage != tabCandidates && !ResolvePendingEdit()) e.Cancel = true;
+    }
+    private void Tabs_Deselecting(object? sender, TabControlCancelEventArgs e)
+    {
+        if (!busy && e.TabPage == tabCandidates && !ResolvePendingEdit()) e.Cancel = true;
     }
     private Candidate RequireCandidate(bool requireSavedText = true)
     {
         var c = SelectedCandidate ?? throw new InvalidOperationException("Выберите кандидата.");
-        if (requireSavedText && (txtCandidateText.Text.Trim() != c.Text || Key(cmbCandidateVoice) != c.Voice)) throw new InvalidOperationException("Сначала сохраните правку текста и голоса. Проверяется и одобряется только сохранённая версия.");
+        if (requireSavedText && (txtCandidateText.Text.Trim() != c.Text || Key(cmbCandidateVoice) != c.Voice || !NativeEditorMatches(c))) throw new InvalidOperationException("Сначала сохраните правку текста, голоса, native facet и порога. Проверяется и одобряется только сохранённая версия.");
         return c;
     }
     private static string FormatIssues(IReadOnlyList<ValidationIssue> issues)
@@ -541,7 +562,7 @@ public partial class MainForm : Form
     {
         await RunAsync("Сохраняю правку только в workspace…", _ =>
         {
-            var c = RequireCandidate(false).Copy(); CandidateReview.Edit(c, txtCandidateText.Text, Key(cmbCandidateVoice)); c.ReviewNote = txtReviewNote.Text.Trim(); SaveCandidateVersion(c); BindCandidates(c.Id);
+            var c = RequireCandidate(false).Copy(); CandidateReview.Edit(c, txtCandidateText.Text, Key(cmbCandidateVoice), Key(cmbCandidateFacet), EditorIntensity); c.ReviewNote = txtReviewNote.Text.Trim(); SaveCandidateVersion(c); BindCandidates(c.Id);
             statusLabel.Text = "Правка сохранена. Прежнее одобрение аннулировано."; return Task.CompletedTask;
         });
     }

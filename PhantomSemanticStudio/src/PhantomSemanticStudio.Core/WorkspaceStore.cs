@@ -41,7 +41,7 @@ public sealed class WorkspaceStore : IDisposable
             throw new InvalidDataException("Неподдерживаемый или слишком большой workspace.");
         if (state.Candidates.Any(c => c == null || c.Text == null || c.Act == null || c.Topic == null || string.IsNullOrWhiteSpace(c.Id)
             || c.Kind == null || c.Band == null || c.Register == null || c.Gender == null || !CandidateValidator.Voices.Contains(c.Voice, StringComparer.Ordinal)
-            || c.Kind != "TEMPLATE" && c.Voice != "" || c.SourceFingerprint == null
+            || c.Kind != "TEMPLATE" && c.Voice != "" || !CandidateValidator.ValidFacet(c.Kind, c.Facet, c.MinIntensity) || c.SourceFingerprint == null
             || c.ModelId == null || c.Instruction == null || c.Rationale == null || c.Status == null || c.ReviewNote == null || c.ApprovedFingerprint == null)
             || state.Candidates.Select(c => c.Id).Distinct(StringComparer.Ordinal).Count() != state.Candidates.Count)
             throw new InvalidDataException("Повреждённые данные кандидатов.");
