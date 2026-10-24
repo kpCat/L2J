@@ -294,13 +294,18 @@ internal static partial class Program
 
     private static async Task<int> Facet083Live(string[] args)
     {
-        if (args.Length != 3) throw new ArgumentException("--facet083-live <HighFive> <new private workspace>");
+        if (args.Length is not (3 or 6)) throw new ArgumentException("--facet083-live <HighFive> <new private workspace> [timeoutSeconds maxScenarios maxTokens]");
+        var timeoutSeconds = args.Length == 6 ? int.Parse(args[3]) : 60;
+        var maxScenarios = args.Length == 6 ? int.Parse(args[4]) : 8;
+        var maxTokens = args.Length == 6 ? int.Parse(args[5]) : 4096;
+        True(maxScenarios is >= 1 and <= 8);
         var root = PathSafety.Canonical(args[2]);
         True(!Directory.Exists(root) && PathSafety.IsWithin(root, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio/workspace")));
         var pack = new PackReader().Load(args[1]);
         using var store = new WorkspaceStore(root, pack.ModuleRoot);
         var settings = new StudioSettings { HighFiveRoot = pack.ModuleRoot, Endpoint = "http://127.0.0.1:1234/v1",
-            ModelId = "gemma-4-26b-a4b-it-ultra-uncensored-heretic", Temperature = 0.65, MaxTokens = 4096, TimeoutSeconds = 60 };
+            ModelId = "gemma-4-26b-a4b-it-ultra-uncensored-heretic", Temperature = 0.65, MaxTokens = maxTokens, TimeoutSeconds = timeoutSeconds };
+        settings.Validate();
         using var observer = new Live083Observer(); using var http = new HttpClient(observer) { Timeout = Timeout.InfiniteTimeSpan };
         var client = new LmStudioClient(http); var session = new SessionState();
         var engine = new BatchGenerationService(store, session, client);
@@ -328,7 +333,7 @@ internal static partial class Program
                 ("Defeat", "lineage.pvp.respect", "empathetic", "FAMILIAR", new EditorialFacets { Humor = 45, Romance = 30, Reserved = 60 })
             };
             var total = Stopwatch.StartNew(); var consecutiveFailures = 0;
-            foreach (var (name, topic, voice, band, facets) in scenarios)
+            foreach (var (name, topic, voice, band, facets) in scenarios.Take(maxScenarios))
             {
                 if (total.Elapsed > TimeSpan.FromMinutes(6) || consecutiveFailures >= 2) break;
                 var scope = pack.Entries.FirstOrDefault(e => e.Kind == "PATTERN" && e.Topic == topic && !TextRules.IsFunctionalAct(e.Act));
