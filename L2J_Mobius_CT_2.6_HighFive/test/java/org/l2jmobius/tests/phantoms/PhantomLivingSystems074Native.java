@@ -29,7 +29,7 @@ public final class PhantomLivingSystems074Native
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask074Lane.enabled() || args.length != 1 || !Set.of("preflight", "bootstrap-test", "bootstrap-release", "route", "supply", "loot", "pvp-recovery", "market-index", "accept", "continue", "followup", "resume", "selection", "inspect").contains(args[0])) { throw new IllegalArgumentException("Explicit finite OWN074 action required."); }
+		if (!PhantomTask074Lane.enabled() || args.length != 1 || !Set.of("preflight", "bootstrap-test", "bootstrap-release", "route", "supply", "loot", "pvp-recovery", "market-index", "farm-supply-control", "accept", "continue", "followup", "resume", "selection", "inspect").contains(args[0])) { throw new IllegalArgumentException("Explicit finite OWN074 action required."); }
 		final var module = Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		if (args[0].equals("preflight") || args[0].startsWith("bootstrap-")) { PhantomTask074Lane.environment(module, args[0]); return; }
 		if (args[0].equals("inspect"))
@@ -63,12 +63,12 @@ public final class PhantomLivingSystems074Native
 				final var knowledgePolicy = org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy.productionDefaults(); final var backend = new org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend();
 				final var knowledge = new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService(new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder(backend, new org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, knowledgePolicy), topology, knowledgePolicy));
 				if (!knowledge.start()) { throw new IllegalStateException("OWN074 native knowledge unavailable."); }
-				if (!Set.of("pvp-recovery", "market-index").contains(args[0]))
+				if (!Set.of("pvp-recovery", "market-index", "farm-supply-control").contains(args[0]))
 				{
 					try { PhantomSupply074Native.run(knowledge.query(), topology, report, args[0].equals("followup") ? "resume" : args[0]); }
 					catch (Throwable failure) { report.append(args[0].equals("loot") ? "C_RESULT\tPARTIAL;" : "A_RESULT\tPARTIAL;").append(failure).append('\n'); failure.printStackTrace(); }
 				}
-				if (args[0].equals("accept") || args[0].equals("continue") || args[0].equals("followup") || args[0].equals("resume"))
+				if (args[0].equals("accept") || args[0].equals("continue") || args[0].equals("followup") || args[0].equals("resume") || args[0].equals("farm-supply-control"))
 				{
 					final var farmFile = task.resolve("farm074-owned.properties"); final var retained = new java.util.Properties();
 					try
@@ -81,10 +81,10 @@ public final class PhantomLivingSystems074Native
 						final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
 						if (!retained.containsKey("farm074.ownedProfile"))
 						{
-							if (args[0].equals("resume")) { throw new IllegalStateException("OWN074 retained B fixture absent; no reseed."); }
+							if (args[0].equals("resume") || args[0].equals("farm-supply-control")) { throw new IllegalStateException("OWN074 retained B fixture absent; no reseed."); }
 							PhantomFarm074OwnedNative.prepare(profiles, knowledge.query(), topology, progression, commerce, routes, retained, report);
 						}
-						PhantomFarm074OwnedNative.run(profiles, knowledge.query(), topology, progression, commerce, routes, retained, report, args[0].equals("resume"));
+						PhantomFarm074OwnedNative.run(profiles, knowledge.query(), topology, progression, commerce, routes, retained, report, args[0].equals("resume"), args[0].equals("farm-supply-control"));
 					}
 					catch (Throwable failure) { report.append("B_RESULT\tPARTIAL;").append(failure).append('\n'); failure.printStackTrace(); }
 					finally { if (!retained.isEmpty()) { try (var writer = Files.newBufferedWriter(farmFile)) { retained.store(writer, "OWN074 retained B owner/cursor; never reseed"); } } }

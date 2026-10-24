@@ -22,14 +22,14 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.background.*;
-import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
+import org.l2jmobius.gameserver.phantoms.commerce.*;
 import org.l2jmobius.gameserver.phantoms.decision.*;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.*;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
-import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
+import org.l2jmobius.gameserver.phantoms.progression.*;
 import org.l2jmobius.gameserver.phantoms.topology.*;
 
 /** Actual Historical/Background/VisibleTravel composition; fixture writes precede its measurement marker. */
@@ -85,12 +85,21 @@ public final class PhantomFarm074OwnedNative
 
 	public static void run(PhantomProfileRepository profiles, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology,
 		PhantomProgressionCatalog progression, PhantomCommerceCatalog commerce, PhantomNormalGatekeeperTravel routes, Properties retained, StringBuilder report, boolean resume) throws Exception
+	{ run(profiles, knowledge, topology, progression, commerce, routes, retained, report, resume, false); }
+
+	public static void run(PhantomProfileRepository profiles, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology,
+		PhantomProgressionCatalog progression, PhantomCommerceCatalog commerce, PhantomNormalGatekeeperTravel routes, Properties retained, StringBuilder report, boolean resume, boolean supplyControl) throws Exception
 	{
 		check(PhantomTask074Lane.enabled(), "Explicit OWN074 lane required.");
+		if (supplyControl)
+		{
+			check(!retained.containsKey("farm074.supplyControlStarted"), "One causal supply-composition control only; preserve its result.");
+			retained.setProperty("farm074.supplyControlStarted", Long.toString(System.currentTimeMillis()));
+		}
 		final long id = Long.parseLong(retained.getProperty("farm074.ownedProfile")); final int objectId = Integer.parseInt(retained.getProperty("farm074.ownedActor"));
 		check(profiles.find(id).orElseThrow().characterObjectId() == objectId, "Retained B profile/actor changed.");
 		final var authority = authority(knowledge, topology, progression, commerce, routes);
-		try (var runtime = new Runtime(profiles, authority, knowledge, topology, routes, id, report))
+		try (var runtime = new Runtime(profiles, authority, knowledge, topology, routes, id, report, supplyControl))
 		{
 			final var beforeGoal = runtime.goals.load(id).orElseThrow(); final var beforeClaim = runtime.history.status(id).orElseThrow();
 			if (resume)
@@ -102,8 +111,11 @@ public final class PhantomFarm074OwnedNative
 			report.append("B_OWNED_MATERIALIZATION\t").append(materialized).append('\n');
 			check(materialized.status() == PhantomMaterializationService.ResultStatus.SUCCESS, "B composed lifecycle failed native materialization: " + materialized);
 			final var player = World.getInstance().getPlayer(objectId); check(player != null && "task074farm".equals(player.getAccountName()) && !player.isGM(), "Exact OWN074 B player absent.");
-			final var from = PhantomNativeTravelActions.point(player); final long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(90); long tick = 0; String last = ""; boolean published = resume, moved = false;
+			final var from = PhantomNativeTravelActions.point(player); final long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(supplyControl ? 120 : 90); long tick = 0; String last = ""; boolean published = resume, moved = false;
+			org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint publishedFrom = null;
+			PhantomGoal walkingGoal = null;
 			report.append("B_OWNED_MEASUREMENT_START\tresume=").append(resume).append(";profile=").append(id).append(";actor=").append(objectId).append(";from=").append(from).append(";goalRow=").append(beforeGoal.rowVersion()).append(";catchupRow=").append(beforeClaim.rowVersion()).append(";noFurtherFixtureWrites=true\n");
+			if (supplyControl) { report.append("B_SUPPLY_COMPOSITION_CONTROL\tcause=prior B composition omitted production supply/equipment/visible-intent bridge;one bounded causal control;same actor;no fixture writes;A=").append(player.getAdena()).append(";weapon=").append(player.getActiveWeaponItem() == null ? 0 : player.getActiveWeaponItem().getId()).append(";inventory=").append(player.getInventory().getItems().stream().map(item -> item.getObjectId() + ":" + item.getId() + ":" + item.getCount() + ":" + item.getLocation()).toList()).append('\n'); }
 			try { PhantomFarm074PlanningDiagnostic.append(id, player, runtime.background.acquisitionSnapshot(id).orElseThrow(), beforeGoal.goal(), beforeClaim.state(), new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority), runtime.travel, report); }
 			catch (RuntimeException diagnosticFailure) { report.append("B_OWNED_PLANNING_DIAGNOSTIC_GAP\t").append(diagnosticFailure).append('\n'); }
 			while (System.nanoTime() < end && !player.isDead())
@@ -112,17 +124,25 @@ public final class PhantomFarm074OwnedNative
 				if (prepared) { runtime.engine.accept(new PhantomActivityWorkItem(id, PhantomActivityState.ACTIVE, 1, ++tick, System.nanoTime(), PhantomActivityOverloadLevel.NORMAL)); }
 				final var goal = runtime.goals.load(id).orElseThrow(); final var claim = runtime.history.status(id).orElseThrow(); final var current = PhantomNativeTravelActions.point(player);
 				final var spec = PhantomBackgroundGoalSpec.parse(goal.goal());
-				published |= goal.rowVersion() > beforeGoal.rowVersion() && claim.rowVersion() > beforeClaim.rowVersion() && goal.goal().revision() > beforeGoal.goal().revision()
+				final boolean freshPublication = goal.rowVersion() > beforeGoal.rowVersion() && claim.rowVersion() > beforeClaim.rowVersion() && goal.goal().revision() > beforeGoal.goal().revision()
 					&& spec.npcId() != Integer.parseInt(retained.getProperty("farm074.ownedOldNpc")) && !spec.anchorId().equals(retained.getProperty("farm074.ownedOldAnchor"))
 					&& claim.state().goalRevision() == goal.goal().revision() && claim.state().goalId() == goal.goal().goalId();
-				moved |= from.distanceTo(current) >= 32;
-				final String reason = runtime.history.visibleRecoveryReason(id) + '|' + runtime.travel.reason(id);
+				published |= freshPublication;
+				final boolean nativeFarmWalking = published && "travel.native_walking".equals(runtime.travel.reason(id)) && player.isMoving()
+					&& (runtime.supply == null || !runtime.supply.ownsAutomaticIntent(id, goal.goal()));
+				if (nativeFarmWalking)
+				{
+					if (publishedFrom == null || !goal.goal().equals(walkingGoal)) { publishedFrom = current; walkingGoal = goal.goal(); }
+					moved |= publishedFrom.distanceTo(current) >= 32;
+				}
+				else { publishedFrom = null; walkingGoal = null; }
+				final String reason = runtime.history.visibleRecoveryReason(id) + '|' + runtime.travel.reason(id) + (runtime.supply == null ? "" : "|supply=" + runtime.supply.reason(id) + ";weapon=" + (player.getActiveWeaponItem() == null ? 0 : player.getActiveWeaponItem().getId()) + ";A=" + player.getAdena());
 				if (!reason.equals(last)) { last = reason; report.append("B_OWNED_PROGRESS\tprepared=").append(prepared).append(";reason=").append(reason).append(";position=").append(current).append(";root=").append(goal.goal()).append(";catchup=").append(claim.state()).append('\n'); }
 				if (published && moved)
 				{
 					retained.setProperty("farm074.ownedPersistedGoal", goal.goal().toString()); retained.setProperty("farm074.ownedPlanIdentity", claim.state().planIdentity()); retained.setProperty("farm074.ownedJvm", Long.toString(ProcessHandle.current().pid()));
 					retained.setProperty("farm074.ownedStatus", "PASS_NATIVE_HISTORY_CAS_FIRST_SEGMENT");
-					report.append("B_OWNED_RESULT\tstatus=PASS_NATIVE_HISTORY_CAS_FIRST_SEGMENT;resume=").append(resume).append(";oldGoalRow=").append(beforeGoal.rowVersion()).append(";newGoalRow=").append(goal.rowVersion()).append(";oldClaimRow=").append(beforeClaim.rowVersion()).append(";newClaimRow=").append(claim.rowVersion()).append(";from=").append(from).append(";actual=").append(current).append(";displacement=").append(from.distanceTo(current)).append(";intendedAnchor=").append(spec.anchorId()).append(";intendedNpc=").append(spec.npcId()).append(";nativeTravelReason=").append(runtime.travel.reason(id)).append(";NO_FULL_ARRIVAL_CLAIM\n");
+					report.append("B_OWNED_RESULT\tstatus=PASS_NATIVE_HISTORY_CAS_FIRST_SEGMENT;resume=").append(resume).append(";oldGoalRow=").append(beforeGoal.rowVersion()).append(";newGoalRow=").append(goal.rowVersion()).append(";oldClaimRow=").append(beforeClaim.rowVersion()).append(";newClaimRow=").append(claim.rowVersion()).append(";from=").append(from).append(";publishedFrom=").append(publishedFrom).append(";actual=").append(current).append(";displacementAfterPublication=").append(publishedFrom.distanceTo(current)).append(";intendedAnchor=").append(spec.anchorId()).append(";intendedNpc=").append(spec.npcId()).append(";nativeTravelReason=").append(runtime.travel.reason(id)).append(";NO_FULL_ARRIVAL_CLAIM\n");
 					return;
 				}
 				Thread.sleep(100);
@@ -139,7 +159,10 @@ public final class PhantomFarm074OwnedNative
 	{
 		final PhantomGoalStateStore goals; final PhantomMaterializationService materialization; final PhantomBackgroundService background;
 		final PhantomHistoricalBackgroundService history; final PhantomVisibleAutoPlay autoPlay; final PhantomVisibleFarmTravel travel; final PhantomDecisionEngine engine; final PhantomNavigationService navigation; final long id;
-		Runtime(PhantomProfileRepository profiles, L2jPhantomBackgroundAuthority authority, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomNormalGatekeeperTravel routes, long profileId, StringBuilder report)
+		final L2jPhantomSupplyJourney supply; final PhantomCommerceService commerce; final PhantomProgressionService progression;
+		final org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService reservations;
+		final org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService social;
+		Runtime(PhantomProfileRepository profiles, L2jPhantomBackgroundAuthority authority, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomNormalGatekeeperTravel routes, long profileId, StringBuilder report, boolean supplyControl)
 		{
 			id = profileId; goals = new PhantomGoalStateStore(profiles); final var metrics = new PhantomMetrics(); final var bridge = new PhantomMaterializationLifecycleBridge();
 			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, _ -> {}, bridge, 5000, 10000);
@@ -156,17 +179,34 @@ public final class PhantomFarm074OwnedNative
 			travel = new PhantomVisibleFarmTravel(materialization, background, authority.travelQuery(topology), navigation, history::permitsDecision, signals, history::recordVisibleTravelFailure, System::nanoTime);
 			// This observer changes no owner calls/order and writes no native or canonical facts.
 			final var observedBackground = observeBackgroundLoad(background, transactions, authority, report);
-			bridge.install(PhantomMaterializationLifecyclePort.chain(travel, PhantomMaterializationLifecyclePort.chain(autoPlay, PhantomMaterializationLifecyclePort.chain(history, observedBackground))));
+			final var supplyBridge = new PhantomMaterializationLifecycleBridge();
+			if (supplyControl)
+			{
+				final var catalog = new PhantomCommerceCatalogLoader(java.nio.file.Path.of(".")).load(); final var receipts = new PhantomCommerceReceiptStore(profiles); final var intents = new PhantomSupplyIntentStore(profiles, goals);
+				commerce = new PhantomCommerceService(catalog, receipts, intents, new L2jCommerceBackend(materialization, catalog.catalog(), java.time.Clock.systemDefaultZone()));
+				progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, java.nio.file.Path.of("."), () -> knowledge), PhantomProgressionPolicy.productionDefaults()); progression.start();
+				final var policy = org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy.load(java.nio.file.Path.of("data/phantoms/economy/high-five-economy-v1.xml"));
+				reservations = new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService(policy); check(reservations.start(), "B reservations did not start.");
+				social = new org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService(policy, reservations, new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOfferService(), materialization, intents, profiles);
+				supply = new L2jPhantomSupplyJourney(intents, goals, materialization, commerce, receipts, navigation, () -> knowledge, routes, _ -> true, autoPlay::yieldAfterCurrentTarget, (_, _) -> false, PhantomAutonomousSupplyPolicy.load(java.nio.file.Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")));
+				supply.useNativeResume(profiles, signals); supply.useOfflineSupply(social); supply.useEquipment(progression, (_, _) -> false); supply.useInventoryMaintenance(profile -> reservations.findActive(profile).isEmpty()); supply.requireField(history::canStartNativeJourney);
+				history.bindVisibleIntent((profile, root) -> supply.ownsAutomaticIntent(profile, root) || supply.needsOrOwns(profile, root)); history.bindAcceptedIntent(supply::ownsAutomaticIntent); supplyBridge.install(supply);
+				check(commerce.start() && supply.start(), "B supply/commerce did not start.");
+			}
+			else { supply = null; commerce = null; progression = null; reservations = null; social = null; }
+			bridge.install(PhantomMaterializationLifecyclePort.chain(supplyBridge, PhantomMaterializationLifecyclePort.chain(travel, PhantomMaterializationLifecyclePort.chain(autoPlay, PhantomMaterializationLifecyclePort.chain(history, observedBackground)))));
 			final var binding = PhantomBackgroundDecision.bindVisibleLife(background, travel, autoPlay, history, engineRef::get);
-			final var candidates = new PhantomCandidateRegistry(); binding.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); binding.registerHandlers(handlers); handlers.seal();
+			final var candidates = new PhantomCandidateRegistry(); binding.registerCandidates(candidates); if (supply != null) { supply.registerCandidates(candidates); } candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); binding.registerHandlers(handlers); if (supply != null) { supply.registerHandlers(handlers); } handlers.seal();
 			engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1, null, history::permitsDecision); engineRef.set(engine);
 			check(background.start() && navigation.start() && materialization.start(), "B ordinary owner start rejected."); engine.start(); check(engine.attach(id) == PhantomDecisionEngine.AttachResult.ATTACHED, "B ordinary Decision attach rejected.");
 		}
 		@Override public void close() throws Exception
 		{
 			engine.beginStop(); final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!engine.finishStop() && System.nanoTime() < deadline) { Thread.sleep(20); }
+			if (supply != null) { supply.beginStop(); check(supply.finishStop(), "B supply did not drain."); commerce.beginStop(); check(commerce.finishStop(), "B commerce did not drain."); }
 			autoPlay.stop(id); navigation.beginStop(); while (!navigation.finishStop() && System.nanoTime() < deadline) { Thread.sleep(20); }
 			check(materialization.shutdown().state() == PhantomMaterializationService.ServiceState.STOPPED, "B native materialization did not store/drain."); background.beginStop(); check(background.finishStop(), "B Background owner did not stop.");
+			if (social != null) { check(social.shutdown(System.currentTimeMillis()).successful(), "B social economy did not drain."); reservations.shutdown(System.currentTimeMillis()); progression.beginStop(); check(progression.finishStop(), "B progression did not drain."); }
 		}
 	}
 
