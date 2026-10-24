@@ -90,7 +90,7 @@ public final class PhantomFarm074OwnedNative
 		final long id = Long.parseLong(retained.getProperty("farm074.ownedProfile")); final int objectId = Integer.parseInt(retained.getProperty("farm074.ownedActor"));
 		check(profiles.find(id).orElseThrow().characterObjectId() == objectId, "Retained B profile/actor changed.");
 		final var authority = authority(knowledge, topology, progression, commerce, routes);
-		try (var runtime = new Runtime(profiles, authority, knowledge, topology, routes, id))
+		try (var runtime = new Runtime(profiles, authority, knowledge, topology, routes, id, report))
 		{
 			final var beforeGoal = runtime.goals.load(id).orElseThrow(); final var beforeClaim = runtime.history.status(id).orElseThrow();
 			if (resume)
@@ -98,7 +98,9 @@ public final class PhantomFarm074OwnedNative
 				check(beforeGoal.goal().toString().equals(retained.getProperty("farm074.ownedPersistedGoal")) && beforeClaim.state().planIdentity().equals(retained.getProperty("farm074.ownedPlanIdentity")), "B canonical plan/catchup changed across sameDB restart.");
 				check(!Long.toString(ProcessHandle.current().pid()).equals(retained.getProperty("farm074.ownedJvm")), "B continuity requires a genuinely new JVM.");
 			}
-			check(runtime.materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "B composed lifecycle failed native materialization.");
+			final var materialized = runtime.materialization.materialize(id);
+			report.append("B_OWNED_MATERIALIZATION\t").append(materialized).append('\n');
+			check(materialized.status() == PhantomMaterializationService.ResultStatus.SUCCESS, "B composed lifecycle failed native materialization: " + materialized);
 			final var player = World.getInstance().getPlayer(objectId); check(player != null && "task074farm".equals(player.getAccountName()) && !player.isGM(), "Exact OWN074 B player absent.");
 			final var from = PhantomNativeTravelActions.point(player); final long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(90); long tick = 0; String last = ""; boolean published = resume, moved = false;
 			report.append("B_OWNED_MEASUREMENT_START\tresume=").append(resume).append(";profile=").append(id).append(";actor=").append(objectId).append(";from=").append(from).append(";goalRow=").append(beforeGoal.rowVersion()).append(";catchupRow=").append(beforeClaim.rowVersion()).append(";noFurtherFixtureWrites=true\n");
@@ -135,7 +137,7 @@ public final class PhantomFarm074OwnedNative
 	{
 		final PhantomGoalStateStore goals; final PhantomMaterializationService materialization; final PhantomBackgroundService background;
 		final PhantomHistoricalBackgroundService history; final PhantomVisibleAutoPlay autoPlay; final PhantomVisibleFarmTravel travel; final PhantomDecisionEngine engine; final PhantomNavigationService navigation; final long id;
-		Runtime(PhantomProfileRepository profiles, L2jPhantomBackgroundAuthority authority, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomNormalGatekeeperTravel routes, long profileId)
+		Runtime(PhantomProfileRepository profiles, L2jPhantomBackgroundAuthority authority, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomNormalGatekeeperTravel routes, long profileId, StringBuilder report)
 		{
 			id = profileId; goals = new PhantomGoalStateStore(profiles); final var metrics = new PhantomMetrics(); final var bridge = new PhantomMaterializationLifecycleBridge();
 			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, _ -> {}, bridge, 5000, 10000);
@@ -144,12 +146,15 @@ public final class PhantomFarm074OwnedNative
 				@Override public SignalDelivery submit(long profile, PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
 				@Override public SignalDelivery withdraw(long profile, String source, long sequence) { return SignalDelivery.ACCEPTED; }
 			};
-			background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(), authority, new PhantomBackgroundCompetitionRegistry(), signals, () -> materialization);
+			final var transactions = new PhantomBackgroundTransaction();
+			background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), transactions, authority, new PhantomBackgroundCompetitionRegistry(), signals, () -> materialization);
 			history = new PhantomHistoricalBackgroundService(profiles, goals, new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority), background, materialization);
 			navigation = new PhantomNavigationService(metrics); final var engineRef = new AtomicReference<PhantomDecisionEngine>();
 			autoPlay = new PhantomVisibleAutoPlay(materialization, engineRef::get, history::permitsDecision);
 			travel = new PhantomVisibleFarmTravel(materialization, background, authority.travelQuery(topology), navigation, history::permitsDecision, signals, history::recordVisibleTravelFailure, System::nanoTime);
-			bridge.install(PhantomMaterializationLifecyclePort.chain(travel, PhantomMaterializationLifecyclePort.chain(autoPlay, PhantomMaterializationLifecyclePort.chain(history, background))));
+			// This observer changes no owner calls/order and writes no native or canonical facts.
+			final var observedBackground = observeBackgroundLoad(background, transactions, authority, report);
+			bridge.install(PhantomMaterializationLifecyclePort.chain(travel, PhantomMaterializationLifecyclePort.chain(autoPlay, PhantomMaterializationLifecyclePort.chain(history, observedBackground))));
 			final var binding = PhantomBackgroundDecision.bindVisibleLife(background, travel, autoPlay, history, engineRef::get);
 			final var candidates = new PhantomCandidateRegistry(); binding.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); binding.registerHandlers(handlers); handlers.seal();
 			engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1, null, history::permitsDecision); engineRef.set(engine);
@@ -161,6 +166,67 @@ public final class PhantomFarm074OwnedNative
 			autoPlay.stop(id); navigation.beginStop(); while (!navigation.finishStop() && System.nanoTime() < deadline) { Thread.sleep(20); }
 			check(materialization.shutdown().state() == PhantomMaterializationService.ServiceState.STOPPED, "B native materialization did not store/drain."); background.beginStop(); check(background.finishStop(), "B Background owner did not stop.");
 		}
+	}
+
+	private static PhantomMaterializationLifecyclePort observeBackgroundLoad(PhantomBackgroundService background, PhantomBackgroundTransaction transactions, L2jPhantomBackgroundAuthority authority, StringBuilder report)
+	{
+		return new PhantomMaterializationLifecyclePort()
+		{
+			@Override public void beforeMaterialize(long id, int objectId) { background.beforeMaterialize(id, objectId); }
+			@Override public void beforeMaterialize(long id, int objectId, PhantomMaterializationService.MaterializationPurpose purpose, String claim) { background.beforeMaterialize(id, objectId, purpose, claim); }
+			@Override public void afterPlayerLoad(long id, Player player)
+			{
+				loadDiagnostic("BEFORE_BACKGROUND", id, player, transactions, authority, report);
+				try { background.afterPlayerLoad(id, player); }
+				catch (RuntimeException | Error failure)
+				{
+					loadDiagnostic("FAILED_BACKGROUND", id, player, transactions, authority, report);
+					throw failure;
+				}
+				loadDiagnostic("AFTER_BACKGROUND", id, player, transactions, authority, report);
+			}
+			@Override public void materializeSucceeded(long id, int objectId) { background.materializeSucceeded(id, objectId); }
+			@Override public void materializeAborted(long id, int objectId) { background.materializeAborted(id, objectId); }
+			@Override public void beforeStore(long id, Player player) { background.beforeStore(id, player); }
+			@Override public void afterStore(long id, Player player) { background.afterStore(id, player); }
+		};
+	}
+
+	/** Bounded read-only evidence on the exact load boundary; diagnostics must never affect admission. */
+	private static void loadDiagnostic(String phase, long id, Player player, PhantomBackgroundTransaction transactions, L2jPhantomBackgroundAuthority authority, StringBuilder report)
+	{
+		try
+		{
+			final var loaded = transactions.load(id); final var state = loaded.state(); final var context = transactions.nativeContext(id, player.getObjectId());
+			report.append("B_OWNED_LOAD_DIAGNOSTIC\tphase=").append(phase).append(";profile=").append(id).append(";actor=").append(player.getObjectId()).append(";loadStatus=").append(loaded.status()).append(";contextStatus=").append(context.status()).append(";context=").append(context.context()).append(";canonicalVitality=").append(context.canonicalPoints()).append(";nativeVitality=").append(player.getVitalityPoints());
+			if (state != null)
+			{
+				report.append(";state=").append(state.state()).append(";runtimeMatches=").append(authority.matchesRuntime(player, state)).append(";identity=").append(state.identity()).append(";progress=").append(state.progress()).append(";vitals=").append(state.vitals()).append(";position=").append(state.position()).append(";inventory=").append(state.inventory()).append(";autoGet=").append(state.autoGetSkills());
+			}
+			report.append(";nativeClass=").append(player.getActiveClass()).append(";nativeLevel=").append(player.getLevel()).append(";nativeEXP=").append(player.getExp()).append(";nativeSP=").append(player.getSp()).append(";nativeVitals=").append(player.getCurrentHp()).append('/').append(player.getMaxHp()).append(',').append(player.getCurrentMp()).append('/').append(player.getMaxMp()).append(',').append(player.getCurrentCp()).append('/').append(player.getMaxCp()).append(";nativePosition=").append(player.getLocation()).append('\n');
+			try (var connection = DatabaseFactory.getConnection())
+			{
+				try (var query = connection.prepareStatement("SELECT level,exp,sp,expBeforeDeath,classid,base_class,race,curHp,maxHp,curMp,maxMp,curCp,maxCp,x,y,z,heading,vitality_points FROM characters WHERE charId=?"))
+				{
+					query.setInt(1, player.getObjectId());
+					try (var rows = query.executeQuery())
+					{
+						while (rows.next()) { report.append("B_OWNED_CANONICAL\tphase=").append(phase); for (int index = 1; index <= rows.getMetaData().getColumnCount(); index++) { report.append(';').append(rows.getMetaData().getColumnLabel(index)).append('=').append(rows.getString(index)); } report.append('\n'); }
+					}
+				}
+				try (var query = connection.prepareStatement("SELECT skill_id,skill_level FROM character_skills WHERE charId=? AND class_index=? ORDER BY skill_id LIMIT 129"))
+				{
+					query.setInt(1, player.getObjectId()); query.setInt(2, player.getClassIndex());
+					try (var rows = query.executeQuery()) { report.append("B_OWNED_CANONICAL_SKILLS\tphase=").append(phase); int count = 0; while (rows.next()) { report.append(';').append(rows.getInt(1)).append(':').append(rows.getInt(2)); count++; } report.append(";boundedCount=").append(count).append('\n'); }
+				}
+				try (var query = connection.prepareStatement("SELECT object_id,item_id,count,loc FROM items WHERE owner_id=? AND loc IN ('INVENTORY','PAPERDOLL') ORDER BY object_id LIMIT 129"))
+				{
+					query.setInt(1, player.getObjectId());
+					try (var rows = query.executeQuery()) { report.append("B_OWNED_CANONICAL_ITEMS\tphase=").append(phase); int count = 0; while (rows.next()) { report.append(';').append(rows.getInt(1)).append(':').append(rows.getInt(2)).append(':').append(rows.getLong(3)).append(':').append(rows.getString(4)); count++; } report.append(";boundedCount=").append(count).append('\n'); }
+				}
+			}
+		}
+		catch (Throwable failure) { report.append("B_OWNED_LOAD_DIAGNOSTIC_GAP\tphase=").append(phase).append(';').append(failure.getClass().getName()).append(':').append(failure.getMessage()).append('\n'); }
 	}
 	private static void check(boolean condition, String message) { if (!condition) { throw new AssertionError(message); } }
 }

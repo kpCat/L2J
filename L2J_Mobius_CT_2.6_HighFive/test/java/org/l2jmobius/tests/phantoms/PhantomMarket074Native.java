@@ -56,8 +56,11 @@ final class PhantomMarket074Native
 			final var merchant = World.getInstance().getVisibleObjects().stream().filter(object -> object instanceof Merchant npc && npc.getId() == 30063 && npc.isSpawned() && npc.getInstanceId() == 0 && npc.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE)).map(object -> (Merchant) object).findFirst().orElseThrow(() -> new AssertionError("MARKET074 native peace-zone Lara30063 absent."));
 			final var counter = PhantomOfflineSupply060Fixture.counterPoint(new PhantomNavigationPoint(merchant.getX() + 1000, merchant.getY(), merchant.getZ(), 0), merchant.getX(), merchant.getY(), merchant.getZ());
 			check(counter != null, "MARKET074 no lawful native offline counter.");
-			final var paths = new L2jNavigationBackend(); final var stand = paths.walkSurface(new PhantomNavigationPoint(counter.x() + 80, counter.y(), counter.z(), 0), 256).orElseThrow(); check(paths.canWalkDirect(counter, stand), "MARKET074 buyer/counter native floor corridor unavailable.");
+			final var paths = new L2jNavigationBackend(); final var stand = nearbyStand(paths, counter, null);
+			final var makerPoint = manufacture ? nearbyStand(paths, stand, counter) : null;
 			final String buyerAccount = manufacture ? "task074craft" : "task074market", sellerAccount = manufacture ? "task074inputs" : "task074seller";
+			requireAbsentAccounts(manufacture ? new String[] {buyerAccount, sellerAccount, "task074maker"} : new String[] {buyerAccount, sellerAccount});
+			report.append("MARKET074_PREFLIGHT\tcounter=").append(counter).append(";buyerStand=").append(stand).append(";makerStand=").append(makerPoint).append(";bounded48samplesPerStand;nativeGeoDirectBothWays;all accounts absent before fixture\n");
 			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES(?,'DISABLED_NATIVE_TEST_ONLY',-1,1),(?,'DISABLED_NATIVE_TEST_ONLY',-1,1)")) { statement.setString(1, buyerAccount); statement.setString(2, sellerAccount); statement.executeUpdate(); }
 			final var setup = player(buyerAccount, manufacture ? "Craft074" : "Market074", 2, 52, manufacture ? stand : new PhantomNavigationPoint(counter.x() + 7000, counter.y(), counter.z(), 0));
 			final var weapon = setup.addItem(ItemProcessType.REWARD, 79, 1, setup, false); setup.getInventory().equipItem(weapon); setup.giveAvailableAutoGetSkills(); setup.refreshExpertisePenalty();
@@ -74,7 +77,6 @@ final class PhantomMarket074Native
 				final var recipe = RecipeData.getInstance().getRecipeList(22); final var skill = SkillData.getInstance().getSkill(172, 6);
 				check(recipe != null && recipe.getLevel() == 6 && recipe.getItemId() == 1465 && recipe.getCount() == 450 && recipe.getSuccessRate() == 100 && skill != null && recipe.getRecipes().length == 2 && java.util.Arrays.stream(recipe.getRecipes()).anyMatch(item -> item.getItemId() == 1785 && item.getQuantity() == 54) && java.util.Arrays.stream(recipe.getRecipes()).anyMatch(item -> item.getItemId() == 1460 && item.getQuantity() == 1) && java.util.Arrays.stream(recipe.getStatUse()).filter(stat -> stat.getType() == org.l2jmobius.gameserver.data.enums.StatType.MP).mapToLong(stat -> stat.getValue()).sum() == 100, "CRAFT074 recipe22 native contract differs.");
 				try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES('task074maker','DISABLED_NATIVE_TEST_ONLY',-1,1)")) { statement.executeUpdate(); }
-				final var makerPoint = paths.walkSurface(new PhantomNavigationPoint(stand.x(), stand.y() + 80, stand.z(), 0), 256).orElseThrow(); check(paths.canWalkDirect(stand, makerPoint), "CRAFT074 maker native interaction corridor unavailable.");
 				maker = player("task074maker", "Maker074", 57, 52, makerPoint); maker.addSkill(skill, true); maker.registerDwarvenRecipeList(recipe, true); maker.getManufactureItems().put(22, new org.l2jmobius.gameserver.model.item.recipe.ManufactureItem(22, 100)); maker.setOnlineStatus(true, false); maker.spawnMe(); maker.revalidateZone(true); check(maker.canOpenPrivateStore() && maker.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE), "CRAFT074 lawful maker counter unavailable."); maker.setStoreName("OWN074 finite B production"); maker.sitDown(); maker.setOfflineStartTime(System.currentTimeMillis()); maker.setPrivateStoreType(PrivateStoreType.MANUFACTURE); maker.storeMe(); OfflineTraderTable.getInstance().onTransaction(maker, false, true);
 			}
 			final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1); cleanup.add(() -> { final var stopped = materialization.shutdown(); report.append("MARKET074_SHUTDOWN\t").append(stopped).append('\n'); check(stopped.state() == PhantomMaterializationService.ServiceState.STOPPED, "MARKET074 materialization STOP pending."); });
@@ -152,11 +154,36 @@ final class PhantomMarket074Native
 			report.append("MARKET074_PAID\toperation=").append(operation).append(";audit=").append(audit).append(";buyerA=").append(buyerBefore).append("->").append(buyer.getAdena()).append(";sellerA=").append(sellerBefore).append("->").append(seller.getAdena()).append(";sellerStock=").append(sellerStock).append("->").append(seller.getInventory().getInventoryItemCount(1465, -1)).append(";bought=").append(quantity).append(";nativeBchargeStock=").append(buyer.getInventory().getInventoryItemCount(1465, -1)).append(";replay=").append(replay).append(";intent=").append(journey.automaticIntent(profile)).append("\nMARKET074_RESULT\tPASS representative B paid offlineSELL+native matching-grade charge consumption;not a rewarded B battle or full A/S/S80 assortment proof\n");
 			return true;
 		}
-		catch (Exception | AssertionError failure) { report.append(manufacture ? "CRAFT074_RESULT\tPARTIAL;" : "MARKET074_RESULT\tPARTIAL;").append(failure.getClass().getSimpleName()).append(':').append(failure.getMessage()).append('\n'); return false; }
+		catch (Exception | AssertionError failure) { failure.printStackTrace(System.err); report.append(manufacture ? "CRAFT074_RESULT\tPARTIAL;" : "MARKET074_RESULT\tPARTIAL;").append(failure.getClass().getSimpleName()).append(':').append(failure.getMessage()).append('\n'); return false; }
 		finally
 		{
 			try { PhantomPvp072Native.closeAll(cleanup); }
 			finally { try { closeOwner(maker); } finally { closeOwner(seller); } }
+		}
+	}
+	private static PhantomNavigationPoint nearbyStand(L2jNavigationBackend paths, PhantomNavigationPoint from, PhantomNavigationPoint otherStore)
+	{
+		final var zones = org.l2jmobius.gameserver.managers.ZoneManager.getInstance();
+		for (int radius : new int[] {64, 96, 128}) { for (int direction = 0; direction < 16; direction++)
+		{
+			final double angle = direction * Math.PI / 8; final int x = from.x() + (int) Math.round(radius * Math.cos(angle)), y = from.y() + (int) Math.round(radius * Math.sin(angle));
+			final var point = paths.walkSurface(new PhantomNavigationPoint(x, y, from.z(), from.instanceId()), 256).orElse(null);
+			if (point == null || point.distanceTo(from) > 150 || !paths.canWalkDirect(from, point) || !paths.canWalkDirect(point, from)
+				|| zones.getZone(x, y, point.z(), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) == null
+				|| zones.getZone(x, y, point.z(), org.l2jmobius.gameserver.model.zone.type.NoStoreZone.class) != null
+				|| zones.getZone(x, y, point.z(), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null) { continue; }
+			if (otherStore != null && point.distanceTo(otherStore) <= Math.max(48, org.l2jmobius.gameserver.config.custom.PrivateStoreRangeConfig.SHOP_MIN_RANGE_FROM_PLAYER + 1)) { continue; }
+			final var region = World.getInstance().getRegion(x, y, point.z());
+			if (region == null || java.util.Arrays.stream(region.getSurroundingRegions()).flatMap(value -> value.getVisibleObjects().stream()).anyMatch(object -> object instanceof org.l2jmobius.gameserver.model.actor.Creature creature && creature.getInstanceId() == from.instanceId() && creature.getMinShopDistance() > 0 && creature.calculateDistance3D(x, y, point.z()) <= creature.getMinShopDistance() + creature.getTemplate().getCollisionRadius() + 16)) { continue; }
+			return point;
+		} }
+		throw new AssertionError("MARKET074 no lawful native direct stand within150 after48 bounded radial samples; no account/actor created.");
+	}
+	private static void requireAbsentAccounts(String[] accounts) throws Exception
+	{
+		try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT (SELECT COUNT(*) FROM accounts WHERE login=?),(SELECT COUNT(*) FROM characters WHERE account_name=?)"))
+		{
+			connection.setReadOnly(true); for (var account : accounts) { statement.setString(1, account); statement.setString(2, account); try (var rows = statement.executeQuery()) { check(rows.next() && rows.getInt(1) == 0 && rows.getInt(2) == 0, "MARKET074 exact account already exists: " + account + "; retained state preserved; no duplicate/reseed."); } }
 		}
 	}
 	private static Player player(String account, String name, int classId, int level, PhantomNavigationPoint point)

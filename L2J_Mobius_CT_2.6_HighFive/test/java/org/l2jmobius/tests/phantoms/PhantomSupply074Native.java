@@ -100,7 +100,7 @@ final class PhantomSupply074Native
 			{
 				check("paid-returned".equals(state.getProperty("phase")), "OWN074 paid checkpoint missing; no reseed/recompute.");
 				check(state.getProperty("inventory").equals(inventory(player)) && state.getProperty("exp").equals(Long.toString(player.getExp())) && state.getProperty("sp").equals(Long.toString(player.getSp())) && state.getProperty("receipt").equals(receipts.find(id).orElseThrow().receipt().toString()), "OWN074 newJVM inventory/reward/receipt continuity differs.");
-				final long shots = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, report); check(player.getInventory().getInventoryItemCount(1463, -1) < shots, "OWN074 restart did not spend retained purchased shot.");
+				final long shots = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, materialization, report); check(player.getInventory().getInventoryItemCount(1463, -1) < shots, "OWN074 restart did not spend retained purchased shot.");
 				report.append("A_RESTART_PASS\tsame actor/inventory/EXP/SP/receipt; new useful native kill and shot debit\n"); return;
 			}
 			if (roots.load(id).isEmpty())
@@ -110,8 +110,11 @@ final class PhantomSupply074Native
 			}
 			if ("born".equals(state.getProperty("phase")))
 			{
-				int earnedKills = 0;
-				do { kill(combat, id, player, report); earnedKills++; } while (earnedKills < 2 || player.getAdena() <= 4000 && earnedKills < 3);
+				int earnedKills = Integer.parseInt(state.getProperty("earned.kills", "0"));
+				while (earnedKills < 2 || player.getAdena() <= 4000 && earnedKills < 3)
+				{
+					kill(combat, id, player, materialization, report); earnedKills++; state.setProperty("earned.kills", Integer.toString(earnedKills)); save(stateFile, state);
+				}
 				check(player.getAdena() > 4000, "OWN074 no positive measured native Adena; no wallet repair allowed.");
 				state.setProperty("phase", "earned"); state.setProperty("earnedA", Long.toString(player.getAdena() - 4000)); save(stateFile, state);
 			}
@@ -149,7 +152,7 @@ final class PhantomSupply074Native
 				Thread.sleep(200);
 			}
 			check(bought && returned, "OWN074 paid return not observed within finite8min: " + last);
-			for (int index = 0; index < 2; index++) { final long shots = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, report); check(player.getInventory().getInventoryItemCount(1463, -1) < shots, "OWN074 boosted return kill did not consume purchased1463."); }
+			for (int index = 0; index < 2; index++) { final long shots = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, materialization, report); check(player.getInventory().getInventoryItemCount(1463, -1) < shots, "OWN074 boosted return kill did not consume purchased1463."); }
 			state.setProperty("phase", "paid-returned"); state.setProperty("inventory", inventory(player)); state.setProperty("exp", Long.toString(player.getExp())); state.setProperty("sp", Long.toString(player.getSp())); state.setProperty("receipt", receipts.find(id).orElseThrow().receipt().toString()); save(stateFile, state);
 			report.append("A_NATIVE_PASS\tfixture4000A separately; earnedA=").append(state.getProperty("earnedA")).append(";native paid1463; physical return;2rewarded shot-consuming kills\n");
 		}
@@ -158,9 +161,40 @@ final class PhantomSupply074Native
 			PhantomSupply073JourneyNative.closeAll(cleanup);
 		}
 	}
-	private static void kill(PhantomCombatService combat, long id, Player player, StringBuilder report) throws Exception
+	private static void kill(PhantomCombatService combat, long id, Player player, PhantomMaterializationService materialization, StringBuilder report) throws Exception
 	{
-		final var target = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1200).stream().filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == 0 && mob.getLevel() >= player.getLevel() - 2 && mob.getLevel() <= player.getLevel() + 2 && mob.getExpReward(player.getLevel()) > 0 && mob.getSpReward(player.getLevel()) > 0 && GeoEngine.getInstance().canSeeTarget(player, mob)).min(Comparator.comparingDouble(value -> player.calculateDistance3D(value))).orElseThrow(() -> new AssertionError("OWN074 no rewarding visible local target; no relocation.") );
+		Monster target = null;
+		final var visible = List.copyOf(World.getInstance().getVisibleObjectsInRange(player, Monster.class, 5000));
+		final long approachDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90);
+		for (var candidate : visible.stream().filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getInstanceId() == 0 && mob.getLevel() >= player.getLevel() - 2 && mob.getLevel() <= player.getLevel() + 2 && mob.getExpReward(player.getLevel()) > 0 && mob.getSpReward(player.getLevel()) > 0).sorted(Comparator.comparingDouble(value -> player.calculateDistance3D(value))).limit(8).toList())
+		{
+			if (System.nanoTime() >= approachDeadline) { break; }
+			if (player.calculateDistance3D(candidate) > 600 || !GeoEngine.getInstance().canSeeTarget(player, candidate))
+			{
+				if (materialization == null) { continue; }
+				final var paths = new L2jNavigationBackend(); final var from = PhantomNativeTravelActions.point(player);
+				final var to = paths.walkSurface(new PhantomNavigationPoint(candidate.getX(), candidate.getY(), candidate.getZ(), 0), 256).orElse(null); if (to == null) { continue; }
+				final long now = System.nanoTime(); final var route = paths.findWalkCorridor(new PhantomNavigationRequest(id, from, to, now, now + TimeUnit.SECONDS.toNanos(1), 12000), new PhantomNavigationCancellationToken(), PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
+				report.append("A_NATIVE_TARGET_APPROACH\tfrom=").append(from).append(";target=").append(candidate.getObjectId()).append(";to=").append(to).append(";route=").append(route.status()).append('\n');
+				if (route.status() != PhantomWalkCorridorPlanner.Status.FOUND) { continue; }
+				boolean safe = true; final long deadline = approachDeadline;
+				try (var lease = materialization.tryAcquireAction(id).orElseThrow())
+				{
+					for (var point : route.points())
+					{
+						if (player.calculateDistance3D(point.x(), point.y(), point.z()) <= 40) { continue; }
+						if (!paths.canWalkDirect(PhantomNativeTravelActions.point(player), point) || !PhantomNativeTravelActions.safePveWalkSegment(player, point.x(), point.y(), point.z(), visible, java.util.Set.of(candidate.getObjectId()))) { safe = false; break; }
+						player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, new org.l2jmobius.gameserver.model.Location(point.x(), point.y(), point.z())); final var issued = PhantomNativeTravelActions.captureWalk(player);
+						try { while (!player.isDead() && System.nanoTime() < deadline && player.isMoving() && player.calculateDistance3D(point.x(), point.y(), point.z()) > 40) { Thread.sleep(100); } }
+						finally { PhantomNativeTravelActions.cancelWalk(issued); }
+						if (player.isDead() || System.nanoTime() >= deadline || player.calculateDistance3D(point.x(), point.y(), point.z()) > 50) { safe = false; break; }
+					}
+				}
+				if (!safe) { continue; }
+			}
+			if (!candidate.isAlikeDead() && player.calculateDistance3D(candidate) <= 1200 && GeoEngine.getInstance().canSeeTarget(player, candidate)) { target = candidate; break; }
+		}
+		check(target != null, "OWN074 no rewarding target on bounded native approach; no relocation.");
 		final long exp = player.getExp(), sp = player.getSp(), adena = player.getAdena(), shots = player.getInventory().getInventoryItemCount(1463, -1);
 		final var start = combat.startSession(new PhantomCombatRequest(id, target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, true, 30_000, () -> false)); check(start.accepted(), "OWN074 combat refused: " + start);
 		final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(35); while (System.nanoTime() < until && !combat.find(id).map(value -> value.result().terminal()).orElse(false)) { Thread.sleep(100); }
