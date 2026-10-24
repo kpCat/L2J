@@ -1,0 +1,179 @@
+{
+    "format":  1,
+    "files":  {
+                  "ConquerableHallSiege.ini":  "public",
+                  "Custom/AllowedPlayerRaces.ini":  "public",
+                  "Custom/AutoPlay.ini":  "public",
+                  "Custom/AutoPotions.ini":  "public",
+                  "Custom/Banking.ini":  "public",
+                  "Custom/BossAnnouncements.ini":  "public",
+                  "Custom/CancelReturn.ini":  "public",
+                  "Custom/Captcha.ini":  "public",
+                  "Custom/ChampionMonsters.ini":  "public",
+                  "Custom/ChatModeration.ini":  "public",
+                  "Custom/ClassBalance.ini":  "public",
+                  "Custom/CommunityBoard.ini":  "public",
+                  "Custom/CustomMailManager.ini":  "excluded",
+                  "Custom/DelevelManager.ini":  "public",
+                  "Custom/DualboxCheck.ini":  "public",
+                  "Custom/FactionSystem.ini":  "public",
+                  "Custom/FakePlayers.ini":  "public",
+                  "Custom/FindPvP.ini":  "public",
+                  "Custom/FreeMounts.ini":  "public",
+                  "Custom/HellboundStatus.ini":  "public",
+                  "Custom/LocalPlayPilot.ini":  "excluded",
+                  "Custom/MerchantZeroSellPrice.ini":  "public",
+                  "Custom/MultilingualSupport.ini":  "public",
+                  "Custom/NoblessMaster.ini":  "public",
+                  "Custom/NpcStatMultipliers.ini":  "public",
+                  "Custom/OfflinePlay.ini":  "public",
+                  "Custom/OfflineTrade.ini":  "public",
+                  "Custom/OnlineInfo.ini":  "public",
+                  "Custom/PasswordChange.ini":  "excluded",
+                  "Custom/PersonalCharacterQoL.ini":  "public",
+                  "Custom/PersonalPremiumQoL.ini":  "public",
+                  "Custom/PersonalProgressionQoL.ini":  "public",
+                  "Custom/PhantomMarket.ini":  "public",
+                  "Custom/PhantomMerchants.ini":  "public",
+                  "Custom/PhantomPlayers.ini":  "public",
+                  "Custom/PremiumSystem.ini":  "public",
+                  "Custom/PrivateStoreRange.ini":  "public",
+                  "Custom/PvpAnnounce.ini":  "public",
+                  "Custom/PvpRewardItem.ini":  "public",
+                  "Custom/PvpTitleColor.ini":  "public",
+                  "Custom/RandomSpawns.ini":  "public",
+                  "Custom/SchemeBuffer.ini":  "public",
+                  "Custom/ScreenWelcomeMessage.ini":  "public",
+                  "Custom/SellBuffs.ini":  "public",
+                  "Custom/ServerTime.ini":  "public",
+                  "Custom/ServitorShare.ini":  "public",
+                  "Custom/StartingLocation.ini":  "public",
+                  "Custom/StartingTitle.ini":  "public",
+                  "Custom/Transmog.ini":  "public",
+                  "Custom/WalkerBotProtection.ini":  "public",
+                  "Custom/WarehouseSorting.ini":  "public",
+                  "Custom/Wedding.ini":  "public",
+                  "Database.ini":  "excluded",
+                  "Development.ini":  "public",
+                  "Feature.ini":  "public",
+                  "FloodProtector.ini":  "public",
+                  "FortSiege.ini":  "public",
+                  "General.ini":  "public",
+                  "GeoEngine.ini":  "public",
+                  "GraciaSeeds.ini":  "public",
+                  "GrandBoss.ini":  "public",
+                  "IdManager.ini":  "public",
+                  "Interface.ini":  "public",
+                  "Network.ini":  "excluded",
+                  "NPC.ini":  "public",
+                  "Olympiad.ini":  "public",
+                  "Player.ini":  "public",
+                  "PVP.ini":  "public",
+                  "Rates.ini":  "public",
+                  "Server.ini":  "excluded",
+                  "Siege.ini":  "public",
+                  "TerritoryWar.ini":  "public",
+                  "Threads.ini":  "public",
+                  "UndergroundColiseum.ini":  "public"
+              },
+    "overrides":  [
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumWarehouseSlotsForDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "120",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumSlotsForQuestItems",
+                          "kind":  "integer",
+                          "baseValue":  "100",
+                          "value":  "200"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumSlotsForDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "100",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumWarehouseSlotsForNoDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "100",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "CommonRecipeLimit",
+                          "kind":  "integer",
+                          "baseValue":  "50",
+                          "value":  "100"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "DwarfRecipeLimit",
+                          "kind":  "integer",
+                          "baseValue":  "50",
+                          "value":  "100"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumWarehouseSlotsForClan",
+                          "kind":  "integer",
+                          "baseValue":  "200",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxPvtStoreSellSlotsDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "4",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "AltWeightLimit",
+                          "kind":  "double",
+                          "baseValue":  "1",
+                          "value":  "100"
+                      },
+                      {
+                          "file":  "Custom/PhantomMerchants.ini",
+                          "key":  "MerchantLinesPerStore",
+                          "kind":  "long",
+                          "baseValue":  "3",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxPvtStoreSellSlotsOther",
+                          "kind":  "integer",
+                          "baseValue":  "3",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumSlotsForNoDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "80",
+                          "value":  "200"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxPvtStoreBuySlotsOther",
+                          "kind":  "integer",
+                          "baseValue":  "4",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxPvtStoreBuySlotsDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "5",
+                          "value":  "20"
+                      }
+                  ]
+}

@@ -23,3 +23,4 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data
 # TASK075 immutable owner inputs and tracked owner profile retain their SHA256 bytes.
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OWNER-WORLD-075/* -text
 L2J_Mobius_CT_2.6_HighFive/dist/game/config/OwnerProfile38.tsv -text
+L2J_Mobius_CT_2.6_HighFive/SaveOwnerConfig.bat text eol=crlf

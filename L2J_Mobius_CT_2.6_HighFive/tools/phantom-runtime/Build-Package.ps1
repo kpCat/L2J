@@ -76,6 +76,14 @@ try {
 } finally {Pop-Location}
 Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $stage 'source')
 $cleanModule=Join-Path $stage "source/$moduleName"
+# Use identical committed tooling from outside the archive, so it is an explicit fresh-copy target.
+foreach ($ownerTool in @('tools/OwnerConfig.ps1','java/org/l2jmobius/gameserver/config/OwnerProfileVerifier.java')) {
+    $workingTool=[IO.File]::ReadAllText((Join-Path $moduleRoot $ownerTool)).Replace("`r`n","`n")
+    $committedTool=[IO.File]::ReadAllText((Join-Path $cleanModule $ownerTool)).Replace("`r`n","`n")
+    if ($workingTool -cne $committedTool) {throw 'OwnerConfig tooling отличается от committed candidate input.'}
+}
+& (Join-Path $moduleRoot 'tools/OwnerConfig.ps1') -Action Apply -GameRoot (Join-Path $cleanModule 'dist/game') -ProfilePath (Join-Path $cleanModule 'dist/game/config/OwnerConfig.json') -JavaHome $JavaHome
+if ($LASTEXITCODE -ne 0) {throw 'Не удалось применить публичный owner profile к исходникам candidate.'}
 $predecessor=Join-Path $cleanModule 'dist/game/data/phantoms/population/high-five-population-v1.xml'
 if ((Get-FileHash -LiteralPath $predecessor).Hash -ine '23b12fc523de83d1bdea54a75677823b2e8129978792a9c9fec684accfaa4748') {throw 'Tracked population predecessor fingerprint differs; packaging refused.'}
 $env:JAVA_HOME=$JavaHome
@@ -150,7 +158,12 @@ foreach ($file in $patches.Keys) {foreach ($key in $patches[$file].Keys) {Set-In
 Copy-Item -LiteralPath (Join-Path $tools 'runtime.local.ini.template') -Destination (Join-Path $output 'runtime.local.ini')
 Set-Ini (Join-Path $output 'runtime.local.ini') 'JavaHome' $JavaHome
 Set-Ini (Join-Path $output 'runtime.local.ini') 'DatabaseName' $DatabaseName
-# Validate the effective copied profile after all private overrides, before package publication.
+# Apply public overrides after local packaging, leaving secret inputs outside this mechanism.
+& (Join-Path $cleanModule 'tools/OwnerConfig.ps1') -Action Apply -GameRoot (Join-Path $output 'game') -JavaHome $JavaHome
+if ($LASTEXITCODE -ne 0) {throw 'Конфликт публичного owner profile candidate; публикация остановлена.'}
+& (Join-Path $cleanModule 'tools/OwnerConfig.ps1') -Action Verify -GameRoot (Join-Path $output 'game') -JavaHome $JavaHome
+if ($LASTEXITCODE -ne 0) {throw 'Проверка публичного owner profile candidate не прошла.'}
+# Validate the effective copied 38-rule profile before package publication.
 & (Join-Path $JavaHome 'bin/java.exe') -cp (Join-Path $output 'libs/GameServer.jar') org.l2jmobius.gameserver.config.OwnerProfileVerifier (Join-Path $output 'game')
 if ($LASTEXITCODE -ne 0) {throw 'Owner profile of copied package differs from tracked source; publication refused.'}
 $gameHash=(Get-FileHash (Join-Path $output 'libs/GameServer.jar')).Hash
