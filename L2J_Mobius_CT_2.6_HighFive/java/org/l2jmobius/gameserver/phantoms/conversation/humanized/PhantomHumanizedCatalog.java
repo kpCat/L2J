@@ -215,7 +215,7 @@ public final class PhantomHumanizedCatalog
 	{
 	}
 
-	public record Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text, String voice)
+	public record Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text, String voice, String facet, int minIntensity)
 	{
 		public Template
 		{
@@ -229,6 +229,15 @@ public final class PhantomHumanizedCatalog
 			{
 				throw new IllegalArgumentException("Humanized template voice is invalid: " + id);
 			}
+			if ((facet == null) || (!facet.isEmpty() && !SPEECH_FACETS.contains(facet)) || (minIntensity < 0) || (minIntensity > 100) || (facet.isEmpty() && (minIntensity != 0)))
+			{
+				throw new IllegalArgumentException("Humanized template facet is invalid: " + id);
+			}
+		}
+
+		public Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text, String voice)
+		{
+			this(id, act, band, register, profanity, mature, text, voice, "", 0);
 		}
 
 		public Template(String id, String act, RelationshipBand band, Register register, ProfanityMode profanity, boolean mature, String text)
@@ -273,6 +282,7 @@ public final class PhantomHumanizedCatalog
 	private static final Set<String> REQUIRED_TOPICS = Set.of("greeting", "farewell", "acquaintance", "mood", "smalltalk", "rest", "food", "music", "movies", "games", "hobbies", "plans", "likes", "achievement", "failure", "humor", "teasing", "sarcasm", "surprise", "disagreement", "irritation", "apology", "reconcile", "relationship", "pivot");
 	private static final Set<String> V3_FUNCTIONAL_SUPPORT_ACTS = Set.of("support.buff.request", "support.song.request", "support.dance.request");
 	private static final Set<String> PERSONA_VOICES = Set.of("calm", "open", "direct", "empathetic");
+	private static final Set<String> SPEECH_FACETS = Set.of("aggression", "sarcasm", "humor", "reserved", "swagger", "timidity", "romance", "roughness", "cunning", "gossip");
 	private static final int MAX_CORE_BYTES = 262144;
 	private static final int MAX_CUSTOM_BYTES = 65536;
 	private static final int MAX_CORPUS_BYTES = 262144;
@@ -555,6 +565,21 @@ public final class PhantomHumanizedCatalog
 
 	public Selection select(String act, RelationshipBand band, Register register, ProfanityMode profanityMode, Variation variation, boolean matureEnabled, boolean privateChannel, String ownerName, String value, String memory, String interest, String voice, long selector, Set<String> recentHashes)
 	{
+		return selectInternal(act, band, register, profanityMode, variation, matureEnabled, privateChannel, ownerName, value, memory, interest, voice, null, selector, recentHashes);
+	}
+
+	/** V3-only derived speech input. Invalid vectors fail closed; callers cannot enable a partial profile. */
+	public Selection select(String act, RelationshipBand band, Register register, ProfanityMode profanityMode, Variation variation, boolean matureEnabled, boolean privateChannel, String ownerName, String value, String memory, String interest, String voice, Map<String, Integer> facetScores, long selector, Set<String> recentHashes)
+	{
+		if ((facetScores == null) || !facetScores.keySet().equals(SPEECH_FACETS) || facetScores.values().stream().anyMatch(score -> (score == null) || (score < 0) || (score > 100)))
+		{
+			throw new IllegalArgumentException("Humanized speech facet scores are invalid.");
+		}
+		return selectInternal(act, band, register, profanityMode, variation, matureEnabled, privateChannel, ownerName, value, memory, interest, voice, Map.copyOf(facetScores), selector, recentHashes);
+	}
+
+	private Selection selectInternal(String act, RelationshipBand band, Register register, ProfanityMode profanityMode, Variation variation, boolean matureEnabled, boolean privateChannel, String ownerName, String value, String memory, String interest, String voice, Map<String, Integer> facetScores, long selector, Set<String> recentHashes)
+	{
 		key(act, "Humanized response act");
 		Objects.requireNonNull(band);
 		Objects.requireNonNull(register);
@@ -577,15 +602,34 @@ public final class PhantomHumanizedCatalog
 		}
 		// Choose a voice only inside the existing act/band/register/mature bounds.
 		// An absent or unknown voice can use universal templates, never another persona.
-		final boolean voiced = indexed.stream().anyMatch(template -> !template.voice().isEmpty() && template.voice().equals(voice));
-		final List<Template> pool = indexed.stream().filter(template -> voiced ? template.voice().equals(voice) : template.voice().isEmpty()).toList();
+		final List<Template> base = indexed.stream().filter(template -> template.facet().isEmpty()).toList();
+		final boolean voiced = base.stream().anyMatch(template -> !template.voice().isEmpty() && template.voice().equals(voice));
+		final List<Template> pool = base.stream().filter(template -> voiced ? template.voice().equals(voice) : template.voice().isEmpty()).toList();
 		final boolean exactBand = pool.stream().anyMatch(template -> template.band() == band);
-		final List<Template> eligible = pool.stream().filter(template -> !exactBand || template.band() == band).sorted(Comparator.comparing(Template::id)).toList();
+		List<Template> eligible = pool.stream().filter(template -> !exactBand || template.band() == band).sorted(Comparator.comparing(Template::id)).toList();
+		boolean faceted = false;
+		if ((_familyVersion >= 3) && (facetScores != null))
+		{
+			final List<Template> facets = indexed.stream().filter(template -> !template.facet().isEmpty())
+				.filter(template -> template.voice().isEmpty() || template.voice().equals(voice))
+				.filter(template -> facetScores.get(template.facet()) >= template.minIntensity()).toList();
+			// A generic facet must never displace an already verified exact-band reply.
+			final boolean exactFacetBand = exactBand || facets.stream().anyMatch(template -> template.band() == band);
+			final Map<String, Integer> perFacet = new HashMap<>();
+			final int facetLimit = variation == Variation.LOW ? 1 : variation == Variation.MEDIUM ? 2 : V3_MAX_TEMPLATE_BUCKET;
+			final List<Template> lawful = facets.stream().filter(template -> !exactFacetBand || template.band() == band)
+				.sorted(Comparator.comparing(Template::id)).filter(template -> perFacet.merge(template.facet(), 1, Integer::sum) <= facetLimit).toList();
+			if (!lawful.isEmpty())
+			{
+				eligible = lawful;
+				faceted = true;
+			}
+		}
 		if (eligible.isEmpty())
 		{
 			throw new IllegalArgumentException("No humanized template is eligible for act " + act + '.');
 		}
-		final int available = variation == Variation.LOW ? Math.min(1, eligible.size()) : variation == Variation.MEDIUM ? Math.min(2, eligible.size()) : eligible.size();
+		final int available = faceted ? eligible.size() : variation == Variation.LOW ? Math.min(1, eligible.size()) : variation == Variation.MEDIUM ? Math.min(2, eligible.size()) : eligible.size();
 		final List<Profanity> expressions;
 		if ((profanityMode != ProfanityMode.NONE) && profanityContext(act, band) && (Math.floorMod(selector >>> 7, 4) == 0))
 		{
@@ -596,7 +640,23 @@ public final class PhantomHumanizedCatalog
 			expressions = List.of();
 		}
 		final String profanitySuffix = expressions.isEmpty() ? "" : " " + expressions.get(Math.floorMod(selector >>> 11, expressions.size())).text();
-		final int start = Math.floorMod(selector, available);
+		int start = Math.floorMod(selector, available);
+		if (faceted)
+		{
+			// Positive bounded weights give every eligible facet a ticket, with stronger scores favored.
+			final int weight = eligible.stream().mapToInt(template -> facetScores.get(template.facet()) + 1).sum();
+			final long facetSelector = Long.parseUnsignedLong(sha256("speech.facets.v1|" + selector + '|' + _combinedHash).substring(0, 16), 16);
+			int ticket = Math.floorMod(facetSelector, weight);
+			for (int index = 0; index < available; index++)
+			{
+				ticket -= facetScores.get(eligible.get(index).facet()) + 1;
+				if (ticket < 0)
+				{
+					start = index;
+					break;
+				}
+			}
+		}
 		Template selected = eligible.get(start);
 		String rendered = render(selected.text(), ownerName, value, memory, interest) + profanitySuffix;
 		String responseHash = sha256(rendered);
@@ -1412,6 +1472,8 @@ public final class PhantomHumanizedCatalog
 				if (voiceEnabled)
 				{
 					attributes.add("voice");
+					attributes.add("facet");
+					attributes.add("minIntensity");
 				}
 				if (!implicitMature)
 				{
@@ -1422,7 +1484,22 @@ public final class PhantomHumanizedCatalog
 					attributes.add("override");
 				}
 				requireAttributes(item, attributes);
-				final Template template = new Template(attribute(item, "id"), attribute(item, "act"), enumValue(item, "band", RelationshipBand.class), enumValue(item, "register", Register.class), enumValue(item, "profanity", ProfanityMode.class), implicitMature || bool(item, "mature"), attribute(item, "text"), voiceEnabled ? item.getAttribute("voice") : "");
+				final String facet = item.getAttribute("facet");
+				if (item.hasAttribute("facet") && !SPEECH_FACETS.contains(facet))
+				{
+					throw new IllegalArgumentException("Humanized template facet is invalid.");
+				}
+				int minIntensity = facet.isEmpty() ? 0 : 60;
+				if (item.hasAttribute("minIntensity"))
+				{
+					final String threshold = item.getAttribute("minIntensity");
+					if (facet.isEmpty() || !threshold.matches("[0-9]{1,3}") || (Integer.parseInt(threshold) > 100))
+					{
+						throw new IllegalArgumentException("Humanized template minIntensity is invalid.");
+					}
+					minIntensity = Integer.parseInt(threshold);
+				}
+				final Template template = new Template(attribute(item, "id"), attribute(item, "act"), enumValue(item, "band", RelationshipBand.class), enumValue(item, "register", Register.class), enumValue(item, "profanity", ProfanityMode.class), implicitMature || bool(item, "mature"), attribute(item, "text"), voiceEnabled ? item.getAttribute("voice") : "", facet, minIntensity);
 				put(_templates, template.id(), template, custom && bool(item, "override"));
 			}
 		}
@@ -1458,12 +1535,12 @@ public final class PhantomHumanizedCatalog
 				throw new IllegalArgumentException("Humanized topic coverage is incomplete: " + missing(REQUIRED_TOPICS, topics));
 			}
 			final Map<String, Long> templatesPerAct = new HashMap<>();
-			_templates.values().stream().filter(template -> !template.mature() && (template.profanity() == ProfanityMode.NONE)).forEach(template -> templatesPerAct.merge(template.act(), 1L, Long::sum));
+			_templates.values().stream().filter(template -> template.facet().isEmpty() && !template.mature() && (template.profanity() == ProfanityMode.NONE)).forEach(template -> templatesPerAct.merge(template.act(), 1L, Long::sum));
 			final Set<String> universalActs = new HashSet<>();
-			_templates.values().stream().filter(template -> template.voice().isEmpty() && !template.mature() && (template.profanity() == ProfanityMode.NONE) && (template.band() == RelationshipBand.UNKNOWN) && (template.register() == Register.NEUTRAL)).forEach(template -> universalActs.add(template.act()));
+			_templates.values().stream().filter(template -> template.voice().isEmpty() && template.facet().isEmpty() && !template.mature() && (template.profanity() == ProfanityMode.NONE) && (template.band() == RelationshipBand.UNKNOWN) && (template.register() == Register.NEUTRAL)).forEach(template -> universalActs.add(template.act()));
 			for (Template template : _templates.values())
 			{
-				if (!template.voice().isEmpty() && !universalActs.contains(template.act()))
+				if ((!template.voice().isEmpty() || !template.facet().isEmpty()) && !universalActs.contains(template.act()))
 				{
 					throw new IllegalArgumentException("Humanized voiced act requires a clean universal fallback: " + template.act());
 				}

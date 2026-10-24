@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.lineage.pvp.conversation" version="3" category="lineage.pvp" mature="false">
 	<templates>
+		<template id="v3.facet082.aggression.pvp" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="aggression" minIntensity="60" text="Не люблю уступать. Но лезть в пвп без подготовки — только злиться зря. Какой риск тебя беспокоит?" />
+		<template id="v3.facet082.sarcasm.pvp" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="sarcasm" text="Смелость прекрасна, особенно когда рядом ещё и здравый смысл. Какие риски в пвп стоит оценить сначала?" />
+		<template id="v3.facet082.swagger.pvp" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="swagger" text="Уверенности мне хватает, но одного гонора для пвп мало. С чего начнёшь подготовку?" />
+		<template id="v3.facet082.timidity.pvp" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="timidity" text="Я бы с пвп не торопился: тревожно идти наугад. Может, сначала обсудим безопасный вариант?" />
+		<template id="v3.facet082.roughness.pvp" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="roughness" text="Пвп на авось — дурная затея. Проверь силы и не лезь в риск вслепую." />
 		<template id="v3.persona079.pvp.calm.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Давай без спешки. Какую ситуацию в пвп хочешь обсудить?" />
 		<template id="v3.persona079.pvp.calm.02" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Спокойно оценим риск. Какие подробности у тебя есть?" />
 		<template id="v3.persona079.pvp.open.01" act="lineage.pvp.risk.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="open" text="Давай обсудим пвп. Что тебя сейчас волнует?" />

@@ -11,7 +11,7 @@ public static class V3ReleaseHandoff
     private sealed record JavaToolStamp(string Path, string Sha256, long Bytes);
     private static readonly IReadOnlyDictionary<string, string> IsolatedInputs = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java"] = "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0",
+        ["java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java"] = "01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05",
         ["java/org/l2jmobius/gameserver/model/actor/enums/player/PlayerClass.java"] = "9678b970528f17192114669ad96b8538add396ec251f4fbc4476d57c1e64a2cf",
         ["java/org/l2jmobius/gameserver/model/actor/enums/creature/Race.java"] = "7cd9a7ba39b483b93c6fd47b1ef4572dc526fb0a06419bf918fafc823c5cbc0b"
     };
@@ -121,8 +121,8 @@ public static class V3ReleaseHandoff
         if (isolated) ValidateIsolatedInventory(inventory);
         else V3ProposalContract.Require(inventory.Any(f => f.RelativePath == "build.xml" && (f.Sha256 is "f6bebf5452655de3e08d8941134307650b830c2d0c1f31ded1cc1d0f2bd5fdc1" or "dafce95145d8d722138dfa16515aac0271110cd80254c204e308a03f78ecddca"))
             && inventory.Any(f => f.RelativePath == "java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java" && (f.Sha256 is "ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840" or "a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335"
-                or "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0")), "UNAUDITED_ORACLE_BUILD");
-        // 080: reviewed Java079 catalog only. Ant ownership/write guards above remain pinned.
+                or "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0" or "01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05")), "UNAUDITED_ORACLE_BUILD");
+        // TASK082 adds only the reviewed facet catalog; historical 063/080 pins and Ant ownership/write guards remain intact.
         var expectedRows = receipt.Candidates.Select(c => string.Join("\t", c.XmlId, c.Kind, c.Act, c.Topic, c.TextHash,
             c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath, c.Voice, c.Band, c.Register));
         V3ProposalContract.Require(File.ReadAllLines(PathSafety.ResolveRelative(oracle, "expected-ids.tsv")).SequenceEqual(expectedRows), "PROOF_VOICE_SPEC");

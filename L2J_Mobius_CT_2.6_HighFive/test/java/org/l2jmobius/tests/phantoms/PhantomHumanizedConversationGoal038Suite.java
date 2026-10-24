@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanized
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Decision;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService.Request;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomSpeechFacetProfile;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore.PersonalState;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -293,20 +294,25 @@ public final class PhantomHumanizedConversationGoal038Suite implements PhantomTe
 				personal.addProfiles(1, 2, 3, 4, 5, 6);
 				final var settings = new PhantomHumanizedConversationService.Settings(true, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, false);
 				final var service = new PhantomHumanizedConversationService(v3, new PhantomPersonalConversationStore(personal), social, settings);
+				boolean nativeFacetSeen = false;
 				for (int index = 0; index < voices.size(); index++)
 				{
 					final long owner = index + 1;
 					final String voice = voices.get(index);
 					final Decision decision = service.plan(request(owner, SubjectRef.character(101), Origin.CLIENT_CHAT, "меня слили в пвп", 1000, "voice-079"));
 					PhantomAssertions.assertTrue(decision.eligible() && !decision.suppressed(), "PvP defeat phrase was not understood.");
-					PhantomAssertions.assertTrue(decision.personaKey().startsWith(voice + '.') && decision.templateId().startsWith("v3.persona079.pvp." + voice + '.'), "Native traits did not restrict the actual template pool to " + voice);
+					final var legacy = v3.select("lineage.pvp.risk.reply", RelationshipBand.UNKNOWN, Register.CASUAL, ProfanityMode.NONE, Variation.HIGH, false, true, "Тихон", "", "", "", voice, 0, Set.of());
+					PhantomAssertions.assertTrue(legacy.templateId().startsWith("v3.persona079.pvp." + voice + '.'), "Legacy079 voice selection changed: " + voice);
+					PhantomAssertions.assertTrue(decision.personaKey().startsWith(voice + '.') && (decision.templateId().startsWith("v3.persona079.pvp." + voice + '.') || decision.templateId().startsWith("v3.facet082.")), "Native response borrowed a different voice: " + voice);
 					PhantomAssertions.assertEquals(RelationshipBand.UNKNOWN, decision.relationshipBand(), "Chat fabricated a relationship.");
+					nativeFacetSeen |= decision.templateId().startsWith("v3.facet082.");
 					final InMemoryPersonal fresh = new InMemoryPersonal();
 					fresh.addProfiles(owner);
 					final var restarted = new PhantomHumanizedConversationService(v3, new PhantomPersonalConversationStore(fresh), social, settings);
 					PhantomAssertions.assertEquals(decision, restarted.plan(request(owner, SubjectRef.character(101), Origin.CLIENT_CHAT, "меня слили в пвп", 1000, "voice-079")), "Same authority/traits/request did not select a stable voice response.");
 					PhantomAssertions.assertTrue(personal.load(owner).orElseThrow().state().subjects().stream().allMatch(subject -> subject.facts().isEmpty()), "Unverified game chat was stored as a native/personal fact.");
 				}
+				PhantomAssertions.assertTrue(nativeFacetSeen, "Native plan never selected a derived speech facet.");
 				for (String phrase : List.of("хочу пофармить", "хочу пойти на спот"))
 				{
 					final var match = v3.understand(phrase).orElseThrow();
@@ -331,6 +337,68 @@ public final class PhantomHumanizedConversationGoal038Suite implements PhantomTe
 			{
 				social.beginStop();
 				PhantomAssertions.assertTrue(social.finishStop(), "V3 trait fixture did not drain.");
+			}
+		});
+
+		registry.add("08-v3-persisted-native-facets-reach-ten-styles-without-social-writes", context ->
+		{
+			final var v3 = PhantomHumanizedCatalog.loadV3(context.moduleRoot().resolve("dist/game/data/phantoms"), true);
+			final var socialCatalog = PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml"));
+			final MemoryStore socialStore = new MemoryStore();
+			final var trusted = new RelationshipRecord(SubjectRef.character(101), List.of(2000, 1500, 0, 0, 1200, 0, 0, 0, 0, 0, 0), java.util.Collections.nCopies(5, 0), 1000, 1000);
+			for (long owner = 1; owner <= 64; owner++)
+			{
+				socialStore.seed(owner, 0, new SocialState(socialCatalog.hash(), 18001801L, 1000, new java.util.TreeMap<>(Map.of(1, (int) ((owner % 3) - 1) * 2000, 2, 0, 3, (int) ((owner % 5) - 2) * 1000, 4, 0, 5, 0, 6, 0)), owner % 2 == 0 ? List.of(trusted) : List.of(), List.of()));
+			}
+			final var social = new PhantomSocialService(socialCatalog, socialStore, 18001801L, 16, () -> 1000L);
+			PhantomAssertions.assertTrue(social.start(), "Native082 fixture did not start.");
+			try
+			{
+				final InMemoryPersonal personal = new InMemoryPersonal();
+				final var settings = new PhantomHumanizedConversationService.Settings(true, Register.NEUTRAL, ProfanityMode.NONE, Variation.HIGH, false);
+				final var service = new PhantomHumanizedConversationService(v3, new PhantomPersonalConversationStore(personal), social, settings);
+				final Set<String> reached = new java.util.HashSet<>();
+				final Set<String> sameVoiceFirstReplies = new java.util.HashSet<>();
+				final Set<Map<String, Integer>> vectors = new java.util.HashSet<>();
+				for (long owner = 1; owner <= 64; owner++)
+				{
+					personal.addProfiles(owner);
+					final var snapshot = social.snapshot(owner, SubjectRef.character(101), 4, 1000);
+					PhantomAssertions.assertTrue(snapshot.value() != null, "Seeded native personality was rejected: " + snapshot.status() + '/' + snapshot.detail());
+					final var scores = PhantomSpeechFacetProfile.from(snapshot.value().personality()).scores();
+					vectors.add(scores);
+					for (int observation = 0; observation < 12; observation++)
+					{
+						for (String phrase : List.of("меня слили в пвп", "хочу пофармить"))
+						{
+							final Decision reply = service.plan(new Request(owner, "Тихон", SubjectRef.character(101), Origin.CLIENT_CHAT, ChatType.GENERAL, phrase, PhantomHumanizedCatalog.sha256("native082|" + observation + '|' + phrase), 1000));
+							PhantomAssertions.assertTrue(reply.eligible() && !reply.suppressed() && reply.personaKey().startsWith("calm."), "Equal native base voice changed.");
+							PhantomAssertions.assertFalse(reply.profanityUsed() || reply.matureUsed() || reply.memoryUsed(), "Facet bypassed public/NONE/non-mature/factual gates.");
+							if (reply.templateId().startsWith("v3.facet082."))
+							{
+								final String facet = reply.templateId().split("\\.")[2];
+								PhantomAssertions.assertTrue(scores.get(facet) >= 60, "Native selection bypassed the facet threshold.");
+								PhantomAssertions.assertTrue(!facet.equals("romance") || reply.relationshipBand() == RelationshipBand.TRUSTED, "Romance escaped its trusted source band.");
+								reached.add(facet);
+								if ((observation == 0) && (owner % 2 != 0) && phrase.equals("меня слили в пвп"))
+								{
+									sameVoiceFirstReplies.add(reply.templateId());
+								}
+							}
+						}
+					}
+					PhantomAssertions.assertTrue(personal.load(owner).orElseThrow().state().subjects().stream().allMatch(subject -> subject.facts().isEmpty()), "Native facets fabricated persisted facts.");
+				}
+				PhantomAssertions.assertEquals(Set.copyOf(PhantomSpeechFacetProfile.KEYS), reached, "Actual plan did not reach every native style.");
+				PhantomAssertions.assertTrue(vectors.size() > 32 && sameVoiceFirstReplies.size() >= 2, "Same-base-voice persisted identities did not produce distinct facet replies.");
+				PhantomAssertions.assertEquals(0, socialStore.writes(), "Speech facets introduced social persistence/events.");
+				context.record("native082.reachedStyles", reached.size());
+				context.record("native082.sameVoiceDistinctFirstReplies", sameVoiceFirstReplies.size());
+			}
+			finally
+			{
+				social.beginStop();
+				PhantomAssertions.assertTrue(social.finishStop(), "Native082 fixture did not drain.");
 			}
 		});
 

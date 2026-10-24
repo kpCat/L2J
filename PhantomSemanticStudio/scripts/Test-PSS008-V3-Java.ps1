@@ -7,9 +7,9 @@ $scratch = $null
 $result = [ordered]@{ Version = 1; JavaStatus = 'BLOCKED_JAVA'; Status = 'STAGED_V3_UNVALIDATED'; AntExitCode = $null; ProbeExitCode = $null; Reason = $null }
 $isolated = $ProofMode -eq 'IsolatedCatalog'
 if ($isolated) { $result.Version = 2; $result.ExecutionMode = 'ISOLATED_CATALOG_V1'; $result.Ant = 'NOT_RUN' }
-# TASK081 path B: complete production dependency closure, JDK-only; no Ant/OwnerConfig execution.
+# TASK081 path B, re-audited for TASK082 facets: complete production dependency closure, JDK-only; no Ant/OwnerConfig execution.
 $catalogInputs = [ordered]@{
-    'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java' = '493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0'
+    'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java' = '01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05'
     'java/org/l2jmobius/gameserver/model/actor/enums/player/PlayerClass.java' = '9678b970528f17192114669ad96b8538add396ec251f4fbc4476d57c1e64a2cf'
     'java/org/l2jmobius/gameserver/model/actor/enums/creature/Race.java' = '7cd9a7ba39b483b93c6fd47b1ef4572dc526fb0a06419bf918fafc823c5cbc0b'
 }
@@ -158,9 +158,9 @@ try {
     } else {
     $buildPath = Join-Path $source 'build.xml'; NoLinks $buildPath; SafeBuild $buildPath
     $catalogPath = Relative $source 'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java'
-    # 080 reviewed Java079 source at f7676d2. This does NOT admit its changed Ant/OwnerConfig graph.
-    if ((HashFile $catalogPath) -notin @('ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840','a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335','493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0')) { throw 'BLOCKED_JAVA: unaudited catalog contract' }
-    if ((HashFile $catalogPath) -ne '493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0') { throw 'BLOCKED_JAVA: native voice bridge requires reviewed Java079 API; pre079 provenance is historical only' }
+    # 080 reviewed Java079 source at f7676d2; TASK082 adds only the reviewed facet catalog. Ant/OwnerConfig guards remain pinned.
+    if ((HashFile $catalogPath) -notin @('ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840','a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335','493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0','01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05')) { throw 'BLOCKED_JAVA: unaudited catalog contract' }
+    if ((HashFile $catalogPath) -ne '01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05') { throw 'BLOCKED_JAVA: bridge requires reviewed Java082 API; pre082 provenance is historical only' }
     $inventory.Add([pscustomobject]@{ RelativePath = 'build.xml'; Sha256 = (HashFile $buildPath); Bytes = (Get-Item -LiteralPath $buildPath).Length })
     foreach ($family in @('java','test/java','test/resources','dist/libs')) {
         foreach ($file in FilesWithoutLinks (Relative $source $family)) {

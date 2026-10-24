@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.lineage.farming.conversation" version="3" category="lineage.farming" mature="false">
 	<templates>
+		<template id="v3.facet082.humor.farming" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="humor" text="Выбирай спот по силам, а не по размеру мечты. Мобы наши амбиции читать не умеют." />
+		<template id="v3.facet082.reserved.farming" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="reserved" text="Для фарма: цель, запас расходников, посильный спот. С этого и начни." />
+		<template id="v3.facet082.romance.farming" act="lineage.farming.spot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" facet="romance" text="С тобой даже планы на фарм звучат теплее. Может, присмотришь спокойное красивое место?" />
+		<template id="v3.facet082.cunning.farming" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="cunning" text="Сначала прикинь дорогу, расходники и время на круг. Выгодный спот лучше выбирать расчётом, а не шумной славой." />
+		<template id="v3.facet082.gossip.farming" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" facet="gossip" text="О спотах можно болтать долго. Что ищешь: плотных мобов, тихое место или короткую дорогу? Слухи лучше потом проверить самому." />
 		<template id="v3.persona079.farming.calm.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Не спеши со спотом. Сначала прикинь, где будет спокойно." />
 		<template id="v3.persona079.farming.calm.02" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="calm" text="Можно начать с короткого захода. Какое место рассматриваешь?" />
 		<template id="v3.persona079.farming.open.01" act="lineage.farming.spot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" voice="open" text="О, планы на фарм! Какой спот хочешь попробовать?" />

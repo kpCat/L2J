@@ -76,8 +76,8 @@ public static class V3ProposalContract
             if (conversation.TryGetValue(item.Key, out var other))
             { Require(item.Value.Category == other.Category, "PAIR_CATEGORY"); pairs.Add(new(item.Value.Category, item.Value.Path, other.Path)); }
         Require(pairs.Select(p => p.Category).Distinct(StringComparer.Ordinal).Count() == pairs.Count, "AMBIGUOUS_CATEGORY");
-        foreach (var voiced in pack.Entries.Where(e => e.Kind == "TEMPLATE" && e.Voice != ""))
-            Require(pack.Entries.Any(e => e.Kind == "TEMPLATE" && e.Act == voiced.Act && e.Voice == "" && e.Band == "UNKNOWN"
+        foreach (var styled in pack.Entries.Where(e => e.Kind == "TEMPLATE" && (e.Voice != "" || e.Facet != "")))
+            Require(pack.Entries.Any(e => e.Kind == "TEMPLATE" && e.Act == styled.Act && e.Voice == "" && e.Facet == "" && e.Band == "UNKNOWN"
                 && e.Register == "NEUTRAL" && e.Profanity == "NONE" && !e.Mature), "VOICE_FALLBACK");
         return Array.AsReadOnly(pairs.ToArray());
     }
@@ -106,8 +106,9 @@ public static class V3ProposalContract
                 {
                     case "patterns": Require(e.Name == "pattern", "SEGMENT_SCHEMA"); Attributes(e, ["id", "topic", "act", "phrase", "salience", "ttlMinutes", "priority"], ["fact", "recall"]); break;
                     case "templates":
-                        Require(e.Name == "template", "SEGMENT_SCHEMA"); Attributes(e, ["id", "act", "band", "register", "profanity", "text"], ["mature", "voice"]);
+                        Require(e.Name == "template", "SEGMENT_SCHEMA"); Attributes(e, ["id", "act", "band", "register", "profanity", "text"], ["mature", "voice", "facet", "minIntensity"]);
                         if (e.Attribute("voice") is { } voice) Require(voice.Value != "" && CandidateValidator.Voices.Contains(voice.Value, StringComparer.Ordinal), "VOICE");
+                        ReadTemplateFacet(e);
                         break;
                     case "aliases": Require(e.Name == "alias", "SEGMENT_SCHEMA"); Attributes(e, ["from", "to"]); break;
                     case "profanity": Require(e.Name == "entry", "SEGMENT_SCHEMA"); Attributes(e, ["id", "level", "acts", "text"]); break;
@@ -117,6 +118,16 @@ public static class V3ProposalContract
             Require(section.Nodes().All(n => n is XElement or XComment || n is XText t && string.IsNullOrWhiteSpace(t.Value)), "SEGMENT_SCHEMA");
         }
         Require(root.Nodes().All(n => n is XElement or XComment || n is XText t && string.IsNullOrWhiteSpace(t.Value)), "SEGMENT_SCHEMA"); return doc;
+    }
+    internal static (string Facet, int? MinIntensity) ReadTemplateFacet(XElement element)
+    {
+        var facet = (string?)element.Attribute("facet") ?? ""; var threshold = element.Attribute("minIntensity");
+        if (element.Attribute("facet") == null) { Require(threshold == null, "FACET_INTENSITY"); return ("", null); }
+        Require(facet is "aggression" or "sarcasm" or "humor" or "reserved" or "swagger" or "timidity" or "romance" or "roughness" or "cunning" or "gossip", "FACET");
+        if (threshold == null) return (facet, 60);
+        Require(Regex.IsMatch(threshold.Value, @"\A[0-9]{1,3}\z", RegexOptions.CultureInvariant), "FACET_INTENSITY");
+        var intensity = int.Parse(threshold.Value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture);
+        Require(intensity <= 100, "FACET_INTENSITY"); return (facet, intensity);
     }
     private static void Attributes(XElement e, string[] required, string[]? optional = null)
     {
@@ -173,7 +184,8 @@ public static class V3ProposalContract
             Require(!source.Entries.Any(e => e.Id == c.XmlId), "RECEIPT_COLLISION");
             var e = staged.Entries.SingleOrDefault(e => e.Kind == c.Kind && e.Id == c.XmlId);
             Require(e != null && e.SourceFile == (c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath)
-                && e.Act == c.Act && e.Voice == c.Voice && (c.Kind != "PATTERN" || e.Topic == c.Topic) && TextRules.Hash(e.Text) == c.TextHash && e.Profanity == "NONE" && !e.Mature
+                && e.Act == c.Act && e.Voice == c.Voice && e.Facet == "" && e.MinIntensity == null
+                && (c.Kind != "PATTERN" || e.Topic == c.Topic) && TextRules.Hash(e.Text) == c.TextHash && e.Profanity == "NONE" && !e.Mature
                 && (c.Kind != "TEMPLATE" || e.Band == c.Band && e.Register == c.Register), "RECEIPT_CONTENT");
         }
         foreach (var path in selectedPaths)

@@ -11,11 +11,12 @@ internal static partial class Program
         {
             SourceFileStamp[] inputs =
             [
-                new("java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java", "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0", 1),
+                new("java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java", "01a08536ab4445562dcaebe7aa7704617602a47c65611bcf1d2e849393eddb05", 1),
                 new("java/org/l2jmobius/gameserver/model/actor/enums/player/PlayerClass.java", "9678b970528f17192114669ad96b8538add396ec251f4fbc4476d57c1e64a2cf", 1),
                 new("java/org/l2jmobius/gameserver/model/actor/enums/creature/Race.java", "7cd9a7ba39b483b93c6fd47b1ef4572dc526fb0a06419bf918fafc823c5cbc0b", 1)
             ];
             V3ReleaseHandoff.ValidateIsolatedInventory(inputs);
+            Throws(() => V3ReleaseHandoff.ValidateIsolatedInventory([inputs[0] with { Sha256 = "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0" }, inputs[1], inputs[2]]));
             Throws(() => V3ReleaseHandoff.ValidateIsolatedInventory(inputs[..2]));
             Throws(() => V3ReleaseHandoff.ValidateIsolatedInventory([.. inputs, new("build.xml", new string('a', 64), 1)]));
             Throws(() => V3ReleaseHandoff.ValidateIsolatedInventory([inputs[0], inputs[1], inputs[1]]));

@@ -53,6 +53,17 @@ public sealed class PackReader
             });
             return XDocument.Load(xml, LoadOptions.SetLineInfo);
         }
+        void ValidateFacetMetadata(XElement documentRoot, bool permitted, string relative)
+        {
+            foreach (var attribute in documentRoot.DescendantsAndSelf().Attributes().Where(a => a.Name.LocalName.Equals("facet", StringComparison.OrdinalIgnoreCase)
+                || a.Name.LocalName.Equals("minIntensity", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!permitted || attribute.Name != "facet" && attribute.Name != "minIntensity" || attribute.Parent?.Name != "template"
+                    || attribute.Parent.Parent?.Name != "templates" || attribute.Parent.Parent.Parent != documentRoot)
+                    throw new InvalidDataException("Недопустимые метаданные facet/minIntensity: " + relative);
+                V3ProposalContract.ReadTemplateFacet(attribute.Parent);
+            }
+        }
         void Parse(string relative, XDocument doc, bool custom)
         {
             var documentRoot = doc.Root ?? throw new InvalidDataException("XML без корня: " + relative);
@@ -69,6 +80,7 @@ public sealed class PackReader
                 _ => documentRoot.Name.LocalName
             };
             if (documentRoot.Name != expectedRoot) throw new InvalidDataException("Неверный корень custom XML: " + relative);
+            ValidateFacetMetadata(documentRoot, !custom && version == "3" && documentRoot.Name == "humanizedV3ConversationSegment", relative);
             foreach (var attribute in documentRoot.DescendantsAndSelf().Attributes().Where(a => a.Name.LocalName.Equals("voice", StringComparison.OrdinalIgnoreCase)))
                 if (attribute.Name != "voice" || custom || version != "3" || documentRoot.Name != "humanizedV3ConversationSegment"
                     || attribute.Parent?.Name != "template" || attribute.Parent.Parent?.Name != "templates" || attribute.Value == ""
@@ -96,10 +108,12 @@ public sealed class PackReader
                 }
                 var id = kind == "ALIAS" ? TextRules.Normalize(A("from")) : A("id");
                 if (id.Length == 0) throw new InvalidDataException("Запись без ID: " + relative);
+                var (facet, minIntensity) = kind == "TEMPLATE" ? V3ProposalContract.ReadTemplateFacet(element) : ("", (int?)null);
                 var item = new PackEntry
                 {
                     Id = id, Kind = kind, Text = (string?)element.Attribute(kind == "PATTERN" ? "phrase" : kind == "ALIAS" ? "to" : "text") ?? "",
                     Voice = (string?)element.Attribute("voice") ?? "",
+                    Facet = facet, MinIntensity = minIntensity,
                     Act = A("act", A("acts")), Topic = A("topic"), Band = A("band", "UNKNOWN"), Register = A("register", "NEUTRAL"),
                     Profanity = A("profanity", A("level", "NONE")),
                     Mature = A("mature") == "true" || (string?)documentRoot.Attribute("mature") == "true" || relative.EndsWith("my-mature-dialogue.xml", StringComparison.Ordinal),
@@ -129,6 +143,7 @@ public sealed class PackReader
         {
             var doc = Read(manifest, true, 262144)!;
             if (doc.Root?.Name != "humanizedV3Manifest" || (string?)doc.Root.Attribute("version") != "3") throw new InvalidDataException("Неподдерживаемый manifest v3.");
+            ValidateFacetMetadata(doc.Root, false, manifest);
             foreach (var topic in doc.Root.Element("topics")?.Elements("topic") ?? []) topics.Add((string?)topic.Attribute("key") ?? "");
             foreach (var act in doc.Root.Element("acts")?.Elements("act") ?? []) acts.Add((string?)act.Attribute("key") ?? "");
             var segments = doc.Root.Element("segments")?.Elements("segment").ToList() ?? throw new InvalidDataException("В manifest нет segments.");

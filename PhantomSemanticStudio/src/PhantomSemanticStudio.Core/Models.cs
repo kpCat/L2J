@@ -24,6 +24,9 @@ public sealed class StudioSettings
 public sealed record PackEntry
 {
     public string Voice { get; init; } = "";
+    // Imported native V3 metadata; Candidate editorial targets remain separate.
+    public string Facet { get; init; } = "";
+    public int? MinIntensity { get; init; }
     public string Kind { get; init; } = "";
     public string Id { get; init; } = "";
     public string Text { get; init; } = "";
