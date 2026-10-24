@@ -91,6 +91,12 @@ final class PhantomSupply074Native
 			try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player.setRunning(); }
 			report.append("A_MEASUREMENT\tactor=").append(player.getObjectId()).append(";profile=").append(id).append(";phase=").append(state.getProperty("phase")).append(";EXP=").append(player.getExp()).append(";SP=").append(player.getSp()).append(";A=").append(player.getAdena()).append(";HP=").append(player.getCurrentHp()).append(";inventory=").append(inventory(player)).append(";xyz=").append(player.getLocation()).append('\n');
 			final var roots = new PhantomGoalStateStore(profiles); final var receipts = new PhantomCommerceReceiptStore(profiles);
+			if (action.equals("loot"))
+			{
+				check("paid-returned".equals(state.getProperty("phase")), "OWN074 C requires the retained paid actor; no fixture replacement.");
+				kill(combat, id, player, materialization, report); PhantomLoot074Native.dispositions(id, player, materialization, report);
+				report.append("C_RETAINED_CONTROL\tone useful native kill on already paid actor;exact observed ground receipts above;no new prior savings/fixture/position writes\n"); return;
+			}
 			if (selection)
 			{
 				final var target = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1200).stream().filter(mob -> mob.isSpawned() && !mob.isAlikeDead() && !mob.isRaid() && mob.getLevel() <= player.getLevel() + 2 && GeoEngine.getInstance().canSeeTarget(player, mob)).min(Comparator.comparingDouble(value -> player.calculateDistance3D(value))).orElseThrow();

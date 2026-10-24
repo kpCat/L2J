@@ -62,7 +62,7 @@ final class PhantomPvp074Native
 	private static boolean run(PhantomGameKnowledgeService knowledge, PhantomTopologyQuery query, StringBuilder report, boolean recovery) throws Exception
 	{
 		final var cleanup = new java.util.ArrayList<AutoCloseable>();
-		Player enemy = null, actor = null; ConsumerEventListener listener = null;
+		Player enemy = null, actor = null; ConsumerEventListener listener = null, incoming = null;
 		try
 		{
 			final var profiles = PhantomProfileRepository.open(); final var metrics = new PhantomMetrics(); final var goals = new PhantomGoalStateStore(profiles);
@@ -123,11 +123,20 @@ final class PhantomPvp074Native
 			retreatCandidates(actor, target, paths, report);
 			final var skills = new AtomicInteger(); final var skillIds = new java.util.concurrent.ConcurrentSkipListSet<Integer>();
 			listener = new ConsumerEventListener(actor, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == measured && event.getTarget() == target && event.getSkill() != null && event.getDamage() > 0) { skills.incrementAndGet(); skillIds.add(event.getSkill().getId()); } }, actor); actor.addListener(listener);
+			final var incomingHits = new AtomicInteger(); final var incomingDamage = new java.util.concurrent.atomic.DoubleAdder();
+			incoming = new ConsumerEventListener(target, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == target && event.getTarget() == measured && event.getDamage() > 0) { incomingHits.incrementAndGet(); incomingDamage.add(event.getDamage()); } }, target); target.addListener(incoming);
 			final long beforeShots = actor.getInventory().getInventoryItemCount(1463, -1), beforeCpItems = actor.getInventory().getInventoryItemCount(5592, -1); final double beforeCp = actor.getCurrentCp(); final var origin = PhantomNativeTravelActions.point(actor);
 			if (!recovery) { goals.insert(profile, root); }
 			report.append(recovery ? "D_RECOVERY_MEASUREMENT\t" : "D_MEASUREMENT\t").append("profile=").append(profile).append(";actor=").append(actorId).append(";fixturePriorAdena=2500;finiteFixtureD1463=").append(beforeShots).append(";finiteFixtureCP5592=").append(beforeCpItems).append(";nativeCurrentCP=").append(beforeCp).append(";not paid/earned by this episode;no resource/HP/CP/position writes after marker;enemy=").append(enemy.getObjectId()).append(";enemyPoint=").append(PhantomNativeTravelActions.point(enemy)).append(";enemyHP/CP=").append(enemy.getCurrentHp()).append('/').append(enemy.getCurrentCp()).append(";origin=").append(origin).append('\n');
-			actor.setTarget(target); target.setTarget(actor); final double pool = actor.getCurrentHp() + actor.getCurrentCp(); target.doAttack(actor);
-			await(() -> measured.getCurrentHp() + measured.getCurrentCp() < pool, 6000, "D first native enemy attack did not land."); target.abortAttack(); target.getAI().setIntention(Intention.IDLE);
+			actor.setTarget(target); target.setTarget(actor); check(!actor.recentPlayerAttackers(16).contains(target.getObjectId()), "D incoming damage witness is not fresh; no stale authority reused.");
+			for (int attempt = 1; attempt <= 3 && !actor.recentPlayerAttackers(16).contains(target.getObjectId()); attempt++)
+			{
+				attackAdmission(actor, target, "BEFORE", attempt, incomingHits.get(), incomingDamage.sum(), report); target.doAttack(actor);
+				final long hitDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(4); while (!actor.recentPlayerAttackers(16).contains(target.getObjectId()) && !actor.isAlikeDead() && !target.isAlikeDead() && System.nanoTime() < hitDeadline) { Thread.sleep(50); }
+				attackAdmission(actor, target, "AFTER", attempt, incomingHits.get(), incomingDamage.sum(), report);
+			}
+			target.abortAttack(); target.getAI().setIntention(Intention.IDLE);
+			check(actor.recentPlayerAttackers(16).contains(target.getObjectId()), "D no canonical incoming HP/CP loss after3 bounded native attack submissions; net-pool regeneration is not the predicate.");
 			final double targetBeforePvp = target.getCurrentHp() + target.getCurrentCp();
 			check(combat.observePvp(profile, List.of(target.getObjectId()), 16, 16).orElseThrow().targets().stream().anyMatch(value -> value.target().objectId() == target.getObjectId() && value.actualAttacker() && value.canonicalContextAllowed()), "D ACTUAL_ATTACK evidence missing.");
 			check(pvp.start(), "D PvP owner unavailable."); pvp.materializeSucceeded(profile, actorId);
@@ -164,11 +173,19 @@ final class PhantomPvp074Native
 		finally
 		{
 			if (listener != null && actor != null) { actor.removeListener(listener); }
+			if (incoming != null && enemy != null) { enemy.removeListener(incoming); }
 			try { if (enemy != null) { enemy.abortAttack(); enemy.abortCast(); enemy.stopAllTasks(); enemy.storeMe(); enemy.deleteMe(); } }
 			finally { PhantomPvp072Native.closeAll(cleanup); }
 		}
 	}
 
+	private static void attackAdmission(Player actor, Player enemy, String phase, int attempt, int hits, double damage, StringBuilder report)
+	{
+		report.append("D_ATTACK_ADMISSION\tphase=").append(phase).append(";attempt=").append(attempt).append(";distance=").append(actor.calculateDistance3D(enemy)).append(";nativeLos=").append(GeoEngine.getInstance().canSeeTarget(enemy, actor)).append(";peace=").append(actor.isInsidePeaceZone(enemy))
+			.append(";actorXYZ=").append(actor.getLocation()).append(";actorHP/CP=").append(actor.getCurrentHp()).append('/').append(actor.getCurrentCp()).append(";actorAI=").append(actor.hasAI() ? actor.getAI().getIntention() : "NONE").append(";actorTargetable=").append(actor.isTargetable()).append(";actorInvul=").append(actor.isInvul()).append(";actorTeleport=").append(actor.isTeleporting()).append(";actorDead=").append(actor.isAlikeDead())
+			.append(";enemyXYZ=").append(enemy.getLocation()).append(";enemyHP/CP=").append(enemy.getCurrentHp()).append('/').append(enemy.getCurrentCp()).append(";enemyAI=").append(enemy.hasAI() ? enemy.getAI().getIntention() : "NONE").append(";enemyAttackDisabled=").append(enemy.isAttackDisabled()).append(";enemyAttacking=").append(enemy.isAttackingNow()).append(";enemyCasting=").append(enemy.isCastingNow()).append(";enemySkillsDisabled=").append(enemy.isAllSkillsDisabled()).append(";enemyMovementDisabled=").append(enemy.isMovementDisabled()).append(";enemySitting=").append(enemy.isSitting()).append(";enemyTeleport=").append(enemy.isTeleporting()).append(";enemyDead=").append(enemy.isAlikeDead()).append(";enemyWeapon=").append(enemy.getActiveWeaponItem() == null ? 0 : enemy.getActiveWeaponItem().getId())
+			.append(";incomingNativeDamageEvents=").append(hits).append(";incomingNativeDamage=").append(damage).append(";canonicalRecentDamageAttackers=").append(actor.recentPlayerAttackers(16)).append(";noResourceOrPositionWrites\n");
+	}
 	private static void retreatDiagnostic(long profile, Player actor, PhantomCombatService combat, PhantomNavigationService navigation, PhantomMetrics metrics, PhantomPvpRetreatCoordinator retreat, String stage, StringBuilder report)
 	{
 		final var requests = new java.util.ArrayList<PhantomNavigationService.RequestSnapshot>(); for (long id = 1; id <= 8; id++) { navigation.find(id).ifPresent(requests::add); }

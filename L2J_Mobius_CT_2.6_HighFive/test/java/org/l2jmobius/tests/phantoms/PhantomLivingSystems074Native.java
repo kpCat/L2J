@@ -29,7 +29,7 @@ public final class PhantomLivingSystems074Native
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask074Lane.enabled() || args.length != 1 || !Set.of("preflight", "bootstrap-test", "bootstrap-release", "route", "supply", "accept", "continue", "followup", "resume", "selection", "inspect").contains(args[0])) { throw new IllegalArgumentException("Explicit finite OWN074 action required."); }
+		if (!PhantomTask074Lane.enabled() || args.length != 1 || !Set.of("preflight", "bootstrap-test", "bootstrap-release", "route", "supply", "loot", "pvp-recovery", "accept", "continue", "followup", "resume", "selection", "inspect").contains(args[0])) { throw new IllegalArgumentException("Explicit finite OWN074 action required."); }
 		final var module = Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		if (args[0].equals("preflight") || args[0].startsWith("bootstrap-")) { PhantomTask074Lane.environment(module, args[0]); return; }
 		if (args[0].equals("inspect"))
@@ -63,8 +63,11 @@ public final class PhantomLivingSystems074Native
 				final var knowledgePolicy = org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy.productionDefaults(); final var backend = new org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend();
 				final var knowledge = new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService(new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder(backend, new org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, knowledgePolicy), topology, knowledgePolicy));
 				if (!knowledge.start()) { throw new IllegalStateException("OWN074 native knowledge unavailable."); }
-				try { PhantomSupply074Native.run(knowledge.query(), topology, report, args[0].equals("followup") ? "resume" : args[0]); }
-				catch (Throwable failure) { report.append("A_RESULT\tPARTIAL;").append(failure).append('\n'); failure.printStackTrace(); }
+				if (!args[0].equals("pvp-recovery"))
+				{
+					try { PhantomSupply074Native.run(knowledge.query(), topology, report, args[0].equals("followup") ? "resume" : args[0]); }
+					catch (Throwable failure) { report.append(args[0].equals("loot") ? "C_RESULT\tPARTIAL;" : "A_RESULT\tPARTIAL;").append(failure).append('\n'); failure.printStackTrace(); }
+				}
 				if (args[0].equals("accept") || args[0].equals("continue") || args[0].equals("followup") || args[0].equals("resume"))
 				{
 					final var farmFile = task.resolve("farm074-owned.properties"); final var retained = new java.util.Properties();
@@ -93,7 +96,7 @@ public final class PhantomLivingSystems074Native
 					if (args[0].equals("accept")) { try { PhantomCrystal074Native.run(report); } catch (Throwable failure) { report.append("CRYST074_RESULT\tPARTIAL;").append(failure).append('\n'); } }
 					try { PhantomPvp074Native.run(knowledge, topology, report); } catch (Throwable failure) { report.append("D_RESULT\tPARTIAL;").append(failure).append('\n'); }
 				}
-				if (args[0].equals("followup")) { PhantomPvp074Native.runRecovery(knowledge, topology, report); }
+				if (args[0].equals("followup") || args[0].equals("pvp-recovery")) { PhantomPvp074Native.runRecovery(knowledge, topology, report); }
 			}
 		}
 		catch (Throwable failure) { report.append("FAILURE\t").append(failure).append('\n'); throw failure; }
