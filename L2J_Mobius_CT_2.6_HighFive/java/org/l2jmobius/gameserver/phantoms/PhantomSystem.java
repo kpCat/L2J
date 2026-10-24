@@ -719,6 +719,16 @@ public final class PhantomSystem
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
 				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
+				if (_autonomousMarketProducer != null)
+				{
+					_autonomousMarketProducer.installTravel(_navigationService, travel, _backgroundService, _visibleAutoPlay::yieldAfterCurrentTarget, (profileId, root) ->
+					{
+						final var entry = _materializationService.find(profileId).orElse(null);
+						final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
+						return player != null && (org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(root.goalType()) ? org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.ordinary(player) : _historicalBackgroundService.canStartNativeJourney(root, player)) && !_supplyJourney.ownsAutomaticIntent(profileId, root)
+							&& !_learningJourney.ownsAutomaticIntent(profileId, root) && !_questInstanceService.ownsAutonomousIntent(profileId, root);
+					});
+				}
 				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, _visibleAutoPlay::yieldAfterCurrentTarget,
 					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
 					profileId -> _populationManager.careerArchetype(profileId).orElse(null),
@@ -736,7 +746,7 @@ public final class PhantomSystem
 				if (!_supplyJourney.start()) { throw new IllegalStateException("Phantom supply journey could not enter the running state."); }
 				// A fresh native supply proposal must reach Decision before the accepted-owner contract can exist.
 				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.permitsAutonomousVisibleDecision(profileId, root) || _learningJourney.permitsAutomaticVisibleDecision(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.needsOrOwns(profileId, root));
-				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root));
+				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())

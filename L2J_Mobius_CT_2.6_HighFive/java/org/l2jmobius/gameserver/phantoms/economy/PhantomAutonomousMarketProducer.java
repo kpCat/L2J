@@ -46,6 +46,9 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
+import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -54,6 +57,13 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reserva
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy;
+import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
@@ -84,6 +94,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	private volatile boolean _stopping;
 	private final ConcurrentHashMap<Long, RecoveryRequest> _recoveries = new ConcurrentHashMap<>();
 	private final Set<Long> _cancelledRecoveries = ConcurrentHashMap.newKeySet();
+	private final Set<Long> _admittingRest = ConcurrentHashMap.newKeySet();
 	// Materialization callbacks are synchronous on their caller thread; this is admission metadata, not another native lease.
 	private final ThreadLocal<Map<Long, RecoveryRequest>> _loadingRecoveries = new ThreadLocal<>();
 	private volatile Predicate<PhantomTopologyPoint> _recoveryUnobserved = _ -> false;
@@ -92,6 +103,12 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	private BiPredicate<Long, Long> _tradingWindow = (_, _) -> true;
 	private boolean _windowInstalled;
 	private boolean _admissionStarted;
+	private PhantomNavigationService _navigation;
+	private PhantomNormalGatekeeperTravel _travel;
+	private PhantomBackgroundService _background;
+	private BiPredicate<Long, Long> _yieldFarm = (_, _) -> false;
+	private BiPredicate<Long, PhantomGoal> _tripAllowed = (_, _) -> false;
+	private final Map<Long, RestRoute> _restRoutes = new HashMap<>();
 
 	public PhantomAutonomousMarketProducer(PhantomMaterializationService materialization, PhantomScheduler scheduler, PhantomStoreService stores, PhantomGoalStateStore goals, PhantomAcquisitionStore acquisition, PhantomEconomyReservationService reservations, Supplier<PhantomDecisionEngine> decision, AutonomousPolicy policy)
 	{
@@ -126,6 +143,19 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		_recoveryEnabled = true;
 	}
 
+	public synchronized void installTravel(PhantomNavigationService navigation, PhantomNormalGatekeeperTravel travel, PhantomBackgroundService background, BiPredicate<Long, Long> yieldFarm, BiPredicate<Long, PhantomGoal> allowed)
+	{
+		if (_navigation != null || _admissionStarted) { throw new IllegalStateException("Market travel must bind before admission."); }
+		_navigation = Objects.requireNonNull(navigation); _travel = Objects.requireNonNull(travel); _background = Objects.requireNonNull(background);
+		_yieldFarm = Objects.requireNonNull(yieldFarm); _tripAllowed = Objects.requireNonNull(allowed);
+	}
+
+	public boolean ownsRestJourney(long profileId, PhantomGoal root)
+	{
+		final var request = _recoveries.get(profileId);
+		return request != null && request.retained().journey() != null && request.retained().journey().bound(request.retained(), root, System.currentTimeMillis());
+	}
+
 	/** Bounded durable fences precede both scheduler and population admission. */
 	public synchronized void prepareRecoveryOwners()
 	{
@@ -136,16 +166,18 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			if (retained == null) { continue; }
 			if (retained.plan().expiresEpochMillis() <= System.currentTimeMillis()) { _stores.discardDormant(profileId, retained); continue; }
 			final var current = goal(profileId);
-			_recoveries.putIfAbsent(profileId, new RecoveryRequest(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), Math.max(1, System.nanoTime())));
+			_recoveries.putIfAbsent(profileId, recoveryRequest(retained, current));
+			if (retained.journey() != null && retained.journey().goal().status() == PhantomGoalStatus.FAILED) { _cancelledRecoveries.add(profileId); }
 		}
 	}
 
-	public boolean hasRecovery(long profileId) { return _recoveries.containsKey(profileId); }
+	public boolean hasRecovery(long profileId) { return _recoveries.containsKey(profileId) || _admittingRest.contains(profileId); }
 	@Override public Set<Long> acceptedProfiles() { return Set.copyOf(_recoveries.keySet()); }
 	@Override public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
 	{
 		final var request = _recoveries.get(profileId);
 		return OfflineTradeConfig.OFFLINE_TRADE_ENABLE && !_stopping && request != null && !_cancelledRecoveries.contains(profileId) && request.retained().plan().expiresEpochMillis() > System.currentTimeMillis()
+			&& (request.retained().journey() == null || request.retained().journey().goal().status() != PhantomGoalStatus.FAILED)
 			&& (rootId == 0 || request.goalId() == rootId && request.goalRevision() == rootRevision);
 	}
 
@@ -153,6 +185,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	public synchronized void beginStop()
 	{
 		_stopping = true;
+		for (long profileId : List.copyOf(_restRoutes.keySet())) { final var route = _restRoutes.get(profileId); if (route.paidArrival) { checkpointRestPayment(profileId, route); } stopRestRoute(profileId); }
 		final var signals = new PhantomSchedulerRelevanceSignalPort(_scheduler);
 		_recoveries.forEach((profileId, request) -> signals.withdraw(profileId, RECOVERY_SIGNAL_SOURCE, request.sequence()));
 	}
@@ -177,6 +210,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			reconcile(profileId, now);
 		}
+		for (long profileId : List.copyOf(_restRoutes.keySet())) { advanceRestJourney(profileId, now); }
 		if (now < _nextAttempt)
 		{
 			return;
@@ -254,6 +288,10 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			final var recovery = _recoveries.get(profileId);
 			if (recovery != null && !recovery.validFor(_stores.retainedPlan(profileId).orElse(null), current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), now)) { cancelRecovery(profileId); return Optional.empty(); }
 			if (recovery != null && (owner == null || !stableActive(profileId))) { return Optional.empty(); }
+			if (recovery != null && recovery.retained().journey() != null && recovery.retained().journey().travelling())
+			{
+				advanceRestJourney(profileId, now); return Optional.empty();
+			}
 			if (recovery != null && (!recoveryLocation(owner) || !_recoveryUnobserved.test(new PhantomTopologyPoint(owner.getX(), owner.getY(), owner.getZ(), owner.getInstanceId())))) { return Optional.empty(); }
 			if ((retained.expiresEpochMillis() <= now) || (owner == null) || !stableActive(profileId) || !retainedEligible(owner, retained, current, state) || owner.isInStoreMode() || !ownerReady(profileId, owner) || _reservations.findActive(profileId).isPresent())
 			{
@@ -276,7 +314,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			return Optional.empty();
 		}
-		if (!ownerReady(profileId, owner))
+		if (!ownerQuiescent(profileId, owner))
 		{
 			return Optional.empty();
 		}
@@ -286,6 +324,13 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		}
 		final PhantomGoal current = goal(profileId);
 		final PhantomAcquisitionState state = acquisition(profileId, current);
+		if (!legalLocation(owner))
+		{
+			if (_navigation == null || !PhantomStoreService.RestJourney.supportsRoot(current) || !_tripAllowed.test(profileId, current)) { return Optional.empty(); }
+			final var plan = buy(profileId, owner, current, state, now).or(() -> manufacture(profileId, owner, current, state, now)).or(() -> sell(profileId, owner, current, state, now));
+			plan.ifPresent(quote -> requestRestJourney(profileId, owner, current, quote, now));
+			return Optional.empty();
+		}
 		final Optional<PhantomStorePlan> buy = buy(profileId, owner, current, state, now);
 		if (buy.isPresent() && publish(profileId, owner, current, buy.get(), now))
 		{
@@ -321,10 +366,11 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (request == null)
 		{
 			if (occupiedStoreSlots() >= _policy.maximumOpenStores()) { return true; }
-			request = new RecoveryRequest(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), Math.max(1, System.nanoTime()));
+			request = recoveryRequest(retained, current);
 			_recoveries.put(profileId, request); // Fence ordinary Decision before requesting the existing Player admission queue.
 		}
 		if (!request.validFor(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), now)) { cancelRecovery(profileId); return true; }
+		if (retained.journey() != null && !retained.journey().bound(retained, current, now)) { cancelRecovery(profileId); return true; }
 		if (_materialization.find(profileId).isPresent()) { consider(profileId, now); return true; }
 		final long ttl = Math.max(1, Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, retained.plan().expiresEpochMillis() - now));
 		new PhantomSchedulerRelevanceSignalPort(_scheduler).submit(profileId, new PhantomRelevanceSignal(RECOVERY_SIGNAL_SOURCE, request.sequence(), PhantomActivityState.ACTIVE, ttl));
@@ -337,11 +383,12 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (request == null) { return; }
 		_cancelledRecoveries.add(profileId);
 		new PhantomSchedulerRelevanceSignalPort(_scheduler).withdraw(profileId, RECOVERY_SIGNAL_SOURCE, request.sequence());
+		if (!stopRestRoute(profileId)) { return; }
 		final var current = _stores.retainedPlan(profileId).orElse(null);
 		if (current == null) { releaseRecovery(profileId); return; }
 		if (!_opened.containsKey(profileId) && !current.equals(request.retained())) { return; }
 		final var result = _opened.containsKey(profileId) ? _stores.close(profileId) : _stores.discardRecovery(profileId, request.retained());
-		if (result == PhantomStoreService.Result.CLOSED) { releaseRecovery(profileId); }
+		if (result == PhantomStoreService.Result.CLOSED) { _lastClosed.put(profileId, System.currentTimeMillis()); releaseRecovery(profileId); }
 	}
 
 	private void releaseRecovery(long profileId)
@@ -383,15 +430,17 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		final var current = goal(profileId);
 		final var retained = _stores.retainedPlan(profileId).orElse(null);
 		final var point = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		final var journey = request.retained().journey();
 		if (_stopping || _cancelledRecoveries.contains(profileId) || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, System.currentTimeMillis())
 			|| player.getObjectId() != request.retained().characterObjectId() || !player.hasHeadlessOutboundSession()
 			|| !request.validFor(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), System.currentTimeMillis())
+			|| journey != null && (!journey.bound(retained, current, System.currentTimeMillis()) || !journey.matches(player) || !validRestDestination(journey.goal().selectedAnchor().key(), journey.destination(), player))
 			|| !retainedEligible(player, request.retained().plan(), current, acquisition(profileId, current)) || !_stores.matchesQuote(player, request.retained().plan()))
 		{
 			_cancelledRecoveries.add(profileId);
 			throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.changed");
 		}
-		if (!recoveryLocation(player) || !_recoveryUnobserved.test(point) || _reservations.findActive(profileId).isPresent())
+		if (!(journey != null && journey.travelling() ? routeLocation(player) : recoveryLocation(player)) || !_recoveryUnobserved.test(point) || _reservations.findActive(profileId).isPresent())
 		{
 			throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.observed_or_busy");
 		}
@@ -410,6 +459,244 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		final var request = attempts.get(profileId);
 		if (request != null && request.retained().characterObjectId() == characterObjectId) { attempts.remove(profileId); }
 		if (attempts.isEmpty()) { _loadingRecoveries.remove(); }
+	}
+
+	private RecoveryRequest recoveryRequest(PhantomStoreService.RetainedPlan retained, PhantomGoal root)
+	{
+		final var child = retained.journey();
+		return new RecoveryRequest(retained, child == null ? root == null ? 0 : root.goalId() : child.goal().goalId(),
+			child == null ? root == null ? 0 : root.revision() : child.goal().constraints().get("owner.revision"), Math.max(1, System.nanoTime()));
+	}
+
+	private void requestRestJourney(long profileId, Player player, PhantomGoal root, PhantomStorePlan plan, long now)
+	{
+		if (!_yieldFarm.test(profileId, plan.expiresEpochMillis()) || !ownerQuiescent(profileId, player) || !sameGoal(root, goal(profileId)) || !retainedEligible(player, plan, root, acquisition(profileId, root))) { return; }
+		_admittingRest.add(profileId);
+		try
+		{
+		if (!ownerQuiescent(profileId, player) || !_tripAllowed.test(profileId, root) || !sameGoal(root, goal(profileId))) { return; }
+		final var origin = PhantomNativeTravelActions.point(player);
+		final var sites = _travel.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.CITY_CENTER)
+			.sorted(Comparator.comparingInt((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> "giran.city.center".equals(anchor.id()) ? 0 : 1)
+				.thenComparingDouble(anchor -> Math.hypot((long) anchor.point().x() - origin.x(), (long) anchor.point().y() - origin.y()))).limit(3).toList();
+		for (var anchor : sites)
+		{
+			final var canonical = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, player.getHeading()).orElse(null);
+			if (canonical == null) { continue; }
+			for (int[] offset : new int[][] {{0,0},{64,0},{-64,0},{0,64},{0,-64},{64,64},{-64,-64},{64,-64},{-64,64}})
+			{
+				final var geo = GeoEngine.getInstance(); final int x = canonical.x() + offset[0], y = canonical.y() + offset[1];
+				if (!geo.hasGeo(x, y)) { continue; }
+				final var destination = new PhantomNavigationPoint(x, y, geo.getHeight(x, y, canonical.z()), 0);
+				if (!validRestDestination(anchor.id(), destination, player) || !plausibleRoute(player, origin, destination, plan.expiresEpochMillis() - now, restTravelBudget(plan, player.getAdena()))) { continue; }
+				final var saved = _stores.requestRestJourney(profileId, player, root, plan, anchor.id(), destination, now).orElse(null);
+				if (saved != null) { _recoveries.put(profileId, recoveryRequest(saved, root)); advanceRestJourney(profileId, now); }
+				return;
+			}
+		}
+		}
+		finally { _admittingRest.remove(profileId); if (!_recoveries.containsKey(profileId)) { _lastClosed.put(profileId, now); } }
+	}
+
+	/** Only complete existing-planner candidates are admitted; no distant straight-line substitute. */
+	private boolean plausibleRoute(Player player, PhantomNavigationPoint from, PhantomNavigationPoint to, long remainingMillis, long availableAdena)
+	{
+		final double maximum = Math.min(_navigation.policy().maximumLocalStraightDistance(), player.getMoveSpeed() * Math.max(0, remainingMillis) / 1000.0);
+		if (from.distanceTo(to) <= maximum) { return true; }
+		return _travel.legs().stream().anyMatch(leg -> Math.hypot((long) from.x() - leg.sourceX(), (long) from.y() - leg.sourceY()) <= maximum
+			&& Math.hypot((long) to.x() - leg.destinationX(), (long) to.y() - leg.destinationY()) <= maximum
+			&& PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000) <= availableAdena && PhantomNativeTravelActions.available(leg));
+	}
+
+	private boolean freeDestination(Player player, PhantomNavigationPoint point)
+	{
+		final var zones = ZoneManager.getInstance().getZones(point.x(), point.y(), point.z());
+		if (zones.stream().noneMatch(zone -> zone instanceof PeaceZone) || zones.stream().anyMatch(zone -> zone instanceof NoStoreZone)
+			|| !_recoveryUnobserved.test(new PhantomTopologyPoint(point.x(), point.y(), point.z(), 0))) { return false; }
+		for (var request : _recoveries.values())
+		{
+			final var child = request.retained().journey();
+			if (child != null && request.retained().characterObjectId() != player.getObjectId() && child.destination().distanceTo(point) < 60) { return false; }
+		}
+		final var region = World.getInstance().getRegion(point.x(), point.y(), point.z());
+		if (region == null) { return false; }
+		return java.util.Arrays.stream(region.getSurroundingRegions()).flatMap(value -> value.getVisibleObjects().stream()).filter(value -> value != player && value instanceof Creature)
+			.map(value -> (Creature) value).noneMatch(other -> other.getInstanceId() == 0 && Math.hypot((long) other.getX() - point.x(), (long) other.getY() - point.y()) < (other instanceof Player ? 60 : Math.max(other.getMinShopDistance(), 60)));
+	}
+
+	private boolean validRestDestination(String anchorId, PhantomNavigationPoint destination, Player player)
+	{
+		if (_travel == null || destination.instanceId() != 0) { return false; }
+		final var anchor = _travel.topology().findAnchor(anchorId).filter(value -> value.role() == PhantomTopologyAnchorRole.CITY_CENTER).orElse(null);
+		if (anchor == null) { return false; }
+		final var canonical = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, player.getHeading()).orElse(null);
+		final var geo = GeoEngine.getInstance();
+		return canonical != null && geo.hasGeo(destination.x(), destination.y()) && geo.getHeight(destination.x(), destination.y(), destination.z()) == destination.z()
+			&& new PhantomNavigationPoint(canonical.x(), canonical.y(), canonical.z(), 0).distanceTo(destination) <= anchor.validationTolerance() && freeDestination(player, destination);
+	}
+
+	private void advanceRestJourney(long profileId, long now)
+	{
+		final var pending = _restRoutes.get(profileId);
+		if (pending != null && pending.paidArrival) { checkpointRestPayment(profileId, pending); return; }
+		if (_cancelledRecoveries.contains(profileId)) { cancelRecovery(profileId); return; }
+		final var request = _recoveries.get(profileId);
+		if (request == null || request.retained().journey() == null || !request.retained().journey().travelling() || _navigation == null) { return; }
+		final var child = request.retained().journey(); final var player = liveOwner(profileId);
+		if (player == null || !stableActive(profileId)) { return; }
+		var route = _restRoutes.get(profileId);
+		final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
+		if (route != null && (route.player != player || route.epoch != epoch || !route.binding.equals(request.retained()))) { if (!stopRestRoute(profileId)) { return; } route = null; }
+		if (route == null)
+		{
+			if (player.isMoving()) { return; }
+			route = new RestRoute(player, epoch, request.retained(), goal(profileId)); _restRoutes.put(profileId, route);
+		}
+		if (now >= route.nextFresh)
+		{
+			route.nextFresh = now + ATTEMPT_INTERVAL_MILLIS;
+			if (!child.bound(_stores.retainedPlan(profileId).orElse(null), goal(profileId), now) || !sameGoal(route.root, goal(profileId)) || !retainedEligible(player, request.retained().plan(), route.root, acquisition(profileId, route.root)) || _reservations.findActive(profileId).isPresent()) { cancelRecovery(profileId); return; }
+		}
+		if (_stopping || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, now) || child.goal().deadlineEpochMillis() <= now || !child.matches(player)
+			|| !sameRuntimeGoal(profileId, new Opened(request.retained().plan(), request.goalId(), request.goalRevision())) || !routeLocation(player)
+			|| !validRestDestination(child.goal().selectedAnchor().key(), child.destination(), player)) { cancelRecovery(profileId); return; }
+		if (route.checkpoint != null)
+		{
+			if (!_background.captureVisibleArrival(profileId, player, route.root, route.checkpoint)) { return; }
+			route.checkpoint = null;
+		}
+		if (route.plan != null && route.stage >= route.plan.stages().size())
+		{
+			if (!freeDestination(player, child.destination()) || !ownerReady(profileId, player) || !sameGoal(route.root, goal(profileId))) { cancelRecovery(profileId); return; }
+			if (!_background.captureVisibleArrival(profileId, player, route.root, child.goal().selectedAnchor().key())) { return; }
+			final var arrived = _stores.finishRestJourney(profileId, request.retained(), true).orElse(null);
+			if (arrived == null) { cancelRecovery(profileId); return; }
+			stopRestRoute(profileId); _recoveries.put(profileId, recoveryRequest(arrived, route.root)); consider(profileId, now); return;
+		}
+		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null || lease.player() != player) { return; }
+			if (!PhantomNativeTravelActions.ordinary(player))
+			{
+				if (route.walk != null) { PhantomNativeTravelActions.cancelWalk(route.walk); }
+				failRestRoute(profileId, request, false); return;
+			}
+			if (player.isMovementDisabled() || player.getMoveSpeed() <= 0 || player.isAttackingNow() || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
+			if (route.plan == null)
+			{
+				if (route.requestId == 0)
+				{
+					final long logical = System.nanoTime();
+					final var options = PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, child.goal().deadlineEpochMillis() - now));
+					final var noReturn = new PhantomTravelStrategy.Options(options.legs(), options.speed(), restTravelBudget(request.retained().plan(), options.adena()), 0, options.classIndex(), options.level(), options.epochMinute(), options.gatekeeperAllowed(), "market.no_return", null, 0, options.remainingMillis(), options.blockedEdges());
+					final var submission = _navigation.submitTravelPlan(new PhantomNavigationRequest(profileId, PhantomNativeTravelActions.point(player), child.destination(), logical, logical + _navigation.policy().defaultRequestDeadlineNanos(), _navigation.policy().maximumRouteDistance()), noReturn);
+					route.requestId = submission.requestId();
+					if (submission.status() == PhantomNavigationService.SubmissionStatus.REJECTED) { route.requestId = 0; return; }
+				}
+				final var result = _navigation.consume(route.requestId).orElse(null);
+				if (result == null) { return; }
+				route.plan = _navigation.consumeTravelPlan(route.requestId).orElse(null);
+				if (!completeRestRoute(route.plan, PhantomNativeTravelActions.point(player), child.destination(), restTravelBudget(request.retained().plan(), player.getAdena()), child.goal().deadlineEpochMillis() - now)) { failRestRoute(profileId, request, false); return; }
+			}
+			final var stage = route.plan.stages().get(route.stage);
+			if (stage.mode() == PhantomTravelStrategy.Mode.GK)
+			{
+				if (!_recoveryUnobserved.test(new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), 0)) || !_recoveryUnobserved.test(new PhantomTopologyPoint(stage.to().x(), stage.to().y(), stage.to().z(), 0))) { return; }
+				if (!sameGoal(route.root, goal(profileId)) || !retainedEligible(player, request.retained().plan(), route.root, acquisition(profileId, route.root))
+					|| PhantomNormalGatekeeperTravel.fee(stage.gatekeeper(), player.getClassIndex(), player.getLevel(), now / 60_000) > restTravelBudget(request.retained().plan(), player.getAdena())) { failRestRoute(profileId, request, false); return; }
+				// Arm a terminal durable marker before the native side effect. Any ambiguous exception/restart cannot replay a fee.
+				final var armed = _stores.finishRestJourney(profileId, request.retained(), false).orElse(null);
+				if (armed == null) { failRestRoute(profileId, request, false); return; }
+				_recoveries.put(profileId, recoveryRequest(armed, route.root)); route.binding = armed;
+				final PhantomNativeTravelActions.GatekeeperResult receipt;
+				try { receipt = PhantomNativeTravelActions.gatekeeper(player, stage.gatekeeper()); }
+				catch (RuntimeException failure) { _cancelledRecoveries.add(profileId); return; }
+				if (!acceptedRestGatekeeper(receipt.status())) { _cancelledRecoveries.add(profileId); return; }
+				route.paidArrival = true; route.checkpoint = stage.gatekeeper().toAnchorId(); return;
+			}
+			if (stage.mode() != PhantomTravelStrategy.Mode.WALK) { failRestRoute(profileId, request, false); return; }
+			final var waypoint = stage.points().get(route.waypoint);
+			if (PhantomNativeTravelActions.point(player).distanceTo(waypoint) <= Math.min(16, _navigation.arrivalRadius()))
+			{
+				if (route.waypoint + 1 < stage.points().size()) { route.waypoint++; }
+				else { if (route.walk != null) { PhantomNativeTravelActions.cancelWalk(route.walk); route.walk = null; } route.stage++; route.waypoint = 0; }
+				return;
+			}
+			if (player.isMoving()) { return; }
+			if (!new L2jNavigationBackend().canWalkDirect(PhantomNativeTravelActions.point(player), waypoint)
+				|| !PhantomNativeTravelActions.safePveWalkSegment(player, waypoint.x(), waypoint.y(), waypoint.z(), World.getInstance().getVisibleObjects(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class).stream().toList(), java.util.Set.of())) { failRestRoute(profileId, request, false); return; }
+			player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, new org.l2jmobius.gameserver.model.Location(waypoint.x(), waypoint.y(), waypoint.z()));
+			route.walk = PhantomNativeTravelActions.captureWalk(player);
+			if (route.walk == null || !new L2jNavigationBackend().canWalkDirect(PhantomNativeTravelActions.point(player), route.walk.destination()))
+			{
+				if (route.walk != null) { PhantomNativeTravelActions.cancelWalk(route.walk); }
+				failRestRoute(profileId, request, false);
+			}
+		}
+	}
+
+	public static boolean completeRestRoute(PhantomTravelStrategy.Candidate plan, PhantomNavigationPoint origin, PhantomNavigationPoint destination, long adena, long remainingMillis)
+	{
+		return plan != null && plan.stages().getFirst().from().equals(origin) && plan.stages().getLast().to().equals(destination) && plan.stages().stream().allMatch(stage -> stage.mode() == PhantomTravelStrategy.Mode.WALK || stage.mode() == PhantomTravelStrategy.Mode.GK)
+			&& PhantomTravelStrategy.select(List.of(plan), adena, 0, Math.max(0, remainingMillis)).status() == PhantomTravelStrategy.Status.FOUND;
+	}
+
+	public static boolean acceptedRestGatekeeper(PhantomNativeTravelActions.Status status) { return status == PhantomNativeTravelActions.Status.ARRIVED; }
+
+	public static long restTravelBudget(PhantomStorePlan plan, long adena)
+	{
+		if (adena < 0) { throw new IllegalArgumentException("Negative native currency."); }
+		long reserved = 0;
+		if (plan.type() == PhantomStorePlan.Type.BUY) { for (var line : plan.lines()) { reserved = Math.addExact(reserved, Math.multiplyExact(line.count(), line.price())); } }
+		return Math.max(0, adena - reserved);
+	}
+
+	private void checkpointRestPayment(long profileId, RestRoute route)
+	{
+		if (!sameGoal(route.root, goal(profileId)) || route.binding.plan().expiresEpochMillis() <= System.currentTimeMillis()) { _cancelledRecoveries.add(profileId); route.paidArrival = false; return; }
+		if (!_background.captureVisibleArrival(profileId, route.player, route.root, route.checkpoint)) { return; }
+		final var resumed = _stores.resumeRestJourney(profileId, route.binding).orElse(null);
+		if (resumed == null) { _cancelledRecoveries.add(profileId); return; }
+		_recoveries.put(profileId, recoveryRequest(resumed, route.root)); route.paidArrival = false; stopRestRoute(profileId);
+		// Resume by a fresh complete plan from factual saved coordinates, never a persisted paid stage index.
+	}
+
+	private void failRestRoute(long profileId, RecoveryRequest request, boolean uncertainPayment)
+	{
+		if (uncertainPayment)
+		{
+			final var failed = _stores.finishRestJourney(profileId, request.retained(), false).orElse(null);
+			if (failed != null) { _recoveries.put(profileId, recoveryRequest(failed, goal(profileId))); }
+		}
+		_cancelledRecoveries.add(profileId); // Cleanup retries only; this route can never issue its next native stage.
+	}
+
+	private boolean stopRestRoute(long profileId)
+	{
+		final var route = _restRoutes.get(profileId);
+		if (route == null) { return true; }
+		if (route.walk != null && route.player.isMoving())
+		{
+			try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+			{
+				if (lease == null || lease.player() != route.player || !PhantomNativeTravelActions.cancelWalk(route.walk)) { return false; }
+			}
+		}
+		if (route.requestId > 0) { _navigation.cancel(profileId, route.requestId); _navigation.consume(route.requestId); _navigation.consumeTravelPlan(route.requestId); }
+		_restRoutes.remove(profileId, route); return true;
+	}
+
+	private static boolean routeLocation(Player player)
+	{
+		final var geo = GeoEngine.getInstance();
+		return player.getInstanceId() == 0 && !player.isDead() && !player.isInsideZone(ZoneId.WATER) && geo.hasGeo(player.getX(), player.getY()) && Math.abs((long) geo.getHeight(player.getX(), player.getY(), player.getZ()) - player.getZ()) <= 64;
+	}
+
+	private static final class RestRoute
+	{
+		private final Player player; private final long epoch; private PhantomStoreService.RetainedPlan binding; private final PhantomGoal root;
+		private long requestId, nextFresh; private PhantomTravelStrategy.Candidate plan; private int stage, waypoint; private String checkpoint; private boolean paidArrival; private PhantomNativeTravelActions.OwnedWalk walk;
+		private RestRoute(Player actor, long lifetime, PhantomStoreService.RetainedPlan retained, PhantomGoal originalRoot) { player = actor; epoch = lifetime; binding = retained; root = originalRoot; }
 	}
 
 	public record RecoveryRequest(PhantomStoreService.RetainedPlan retained, long goalId, long goalRevision, long sequence)
@@ -761,10 +1048,15 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 
 	private boolean ownerReady(long profileId, Player owner)
 	{
+		return ownerQuiescent(profileId, owner) && owner.canOpenPrivateStore() && legalLocation(owner);
+	}
+
+	private boolean ownerQuiescent(long profileId, Player owner)
+	{
 		final var decision = _decision.get();
 		final var runtime = decision == null ? null : decision.find(profileId).orElse(null);
 		return (runtime == null || (!runtime.inFlight() && !runtime.persistenceInFlight())) && (owner.getParty() == null) && !owner.isInCombat() && !owner.isMoving() && !owner.isAttackingNow() && !owner.isInStoreMode()
-			&& !owner.isProcessingTransaction() && !owner.hasPendingOwnedStore() && !RecipeManager.getInstance().isMakingItem(owner) && owner.canMakeSocialAction() && owner.canOpenPrivateStore() && legalLocation(owner);
+			&& !owner.isProcessingTransaction() && !owner.hasPendingOwnedStore() && !RecipeManager.getInstance().isMakingItem(owner) && owner.canMakeSocialAction() && !owner.isTeleporting();
 	}
 
 	private static boolean legalLocation(Player owner)

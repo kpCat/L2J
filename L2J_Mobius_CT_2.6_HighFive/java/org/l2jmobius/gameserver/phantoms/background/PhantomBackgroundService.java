@@ -1211,7 +1211,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			final var position = new PhantomBackgroundState.Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchorId);
 			final var hint = new PhantomBackgroundState(previous.state(), previous.identity(), previous.progress(), previous.vitals(), position, previous.combat(), previous.loadout(), previous.inventory(), previous.autoGetSkills(), previous.clock(), previous.receipt(), previous.hashes());
-			final PhantomBackgroundState captured = _authority.captureOwnedNative(profileId, player, goal, hint).state();
+			final PhantomBackgroundState captured = (PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())
+				? _authority.captureOwnedNativeAcquisition(profileId, player, goal, hint, PhantomAcquisitionGoalSpec.parse(goal).itemId())
+				: _authority.captureOwnedNative(profileId, player, goal, hint)).state();
 			final var checkpoint = _visibleCheckpoints.get(profileId);
 			if (checkpoint != null && checkpoint.player == player && checkpoint.goal.equals(goal)) { checkpoint.runtimeWitness = captured; }
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_CAPTURE);

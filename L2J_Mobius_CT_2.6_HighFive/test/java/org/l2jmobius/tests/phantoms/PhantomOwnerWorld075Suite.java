@@ -220,6 +220,84 @@ public final class PhantomOwnerWorld075Suite implements PhantomTestSuite
 			final String beforeLoad = producer.substring(producer.indexOf("@Override public void beforeMaterialize("), producer.indexOf("@Override public void beforeWorldSpawn("));
 			if (!beforeLoad.contains("_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan") || !finalGuard.contains("_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan")) { throw new AssertionError("Disabled ordinary materialization performs market repository reads."); }
 		});
+		registry.add("ordinary-shop-rest-trip-keeps-root-and-rejects-paid-replay", context ->
+		{
+			final var subject = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "1");
+			final var field = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("topology.anchor", "fixture.field");
+			final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(21, "farm.background", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, subject,
+				new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("npc", "1"), 1, 0, "background.farm", java.util.List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "1@fixture.field")), field, "background.farm", 500, 0, 0, 100_000, java.util.Map.of(), "fixture.root", 2);
+			final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
+			final byte[] originalRoot = codec.encode(root);
+			final var plan = new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.REQUESTED, "Market trip fixture", java.util.List.of(new PhantomStorePlan.Line(101, 1865, 8, 40)), 10_000);
+			final var destination = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(82480, 149087, -3350, 0);
+			final var intent = PhantomStoreService.RestJourney.intent(root, 501, 0, 0, plan, "giran.city.center", destination, 1000);
+			final var child = new PhantomStoreService.RestJourney(0, codec.decode(codec.encode(intent)));
+			final var retained = new PhantomStoreService.RetainedPlan(501, 7, plan, child);
+			PhantomAssertions.assertTrue(child.bound(retained, root, 9999) && child.travelling(), "Exact finite market child did not survive the existing Goal codec.");
+			PhantomAssertions.assertEquals(destination, child.destination(), "Restart changed the reserved physical destination.");
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(originalRoot, codec.encode(root)), "Market child replaced or changed its ordinary farm root.");
+			PhantomAssertions.assertFalse(child.bound(retained, copyJourneyGoal(root, root.status(), 3, root.constraints()), 9999), "Changed root revision borrowed the old market trip.");
+			PhantomAssertions.assertFalse(child.bound(new PhantomStoreService.RetainedPlan(502, 7, plan, child), root, 9999), "Another native identity borrowed the market trip.");
+			PhantomAssertions.assertFalse(child.bound(retained, root, 10_000), "Restart extended the original market expiry.");
+			final var failed = new PhantomStoreService.RestJourney(1, codec.decode(codec.encode(copyJourneyGoal(intent, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED, 0, intent.constraints()))));
+			PhantomAssertions.assertFalse(failed.bound(new PhantomStoreService.RetainedPlan(501, 7, plan, failed), root, 9999) || failed.travelling(), "Pre-armed unknown native payment became replayable after restart.");
+			final var request = new PhantomAutonomousMarketProducer.RecoveryRequest(retained, 21, 2, 1);
+			PhantomAssertions.assertFalse(request.validFor(new PhantomStoreService.RetainedPlan(501, 7, plan, failed), 21, 2, 9999), "Changed child CAS version retained old admission authority.");
+			final var invalid = new java.util.HashMap<>(intent.constraints()); invalid.remove("owner.object");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomStoreService.RestJourney(0, copyJourneyGoal(intent, intent.status(), 0, invalid)), "Malformed durable child fell back to ordinary store restore.");
+			final var acquisition = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(22, "acquire.item", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, subject,
+				new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("item", "1865"), 2, 0, null, java.util.List.of(), field, "acquisition.item", 500, 0, 100, 100_000,
+				java.util.Map.of("acquisition.baseline_count", 0L, "acquisition.maximum_switches", 2L), "fixture.need", 3);
+			final var bid = new PhantomStorePlan(PhantomStorePlan.Type.BUY, PhantomStorePlan.State.REQUESTED, "Real-need binding fixture", java.util.List.of(new PhantomStorePlan.Line(1865, 1865, 2, 40)), 10_000);
+			final var buying = new PhantomStoreService.RestJourney(0, PhantomStoreService.RestJourney.intent(acquisition, 501, 0, 0, bid, "giran.city.center", destination, 1000));
+			PhantomAssertions.assertTrue(buying.bound(new PhantomStoreService.RetainedPlan(501, 8, bid, buying), acquisition, 9999), "Exact acquisition root could not retain its native BUY trip.");
+			PhantomAssertions.assertFalse(buying.bound(retained, root, 9999), "A BUY child borrowed another farm root or quote.");
+			PhantomAssertions.assertEquals(20L, PhantomAutonomousMarketProducer.restTravelBudget(bid, 100), "Native travel consumed the BUY listing's reserved currency.");
+			PhantomAssertions.assertEquals(0L, PhantomAutonomousMarketProducer.restTravelBudget(bid, 50), "An unaffordable BUY listing invented travel currency.");
+
+			final var from = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 0, 0, 0);
+			final var source = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(100, 0, 0, 0);
+			final var landing = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(1000, 0, 0, 0);
+			final var town = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(1100, 0, 0, 0);
+			final var leg = new org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg("fixture.gk", "fixture.from", "fixture.to", "", "", "", 1, "NORMAL", 0, 1000, 0, 0, 100, 0, 0, 57, 50, 1000, "fixture", java.util.List.of());
+			final var trip = new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Candidate("fixture.complete", java.util.List.of(
+				new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Stage(org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.WALK, from, source, java.util.List.of(source), null, 1000, 0, 0),
+				new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Stage(org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.GK, source, landing, java.util.List.of(), leg, 0, 50, 0),
+				new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Stage(org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.WALK, landing, town, java.util.List.of(town), null, 1000, 0, 0)));
+			PhantomAssertions.assertTrue(PhantomAutonomousMarketProducer.completeRestRoute(trip, from, town, 50, 2000), "A complete affordable native itinerary was rejected.");
+			PhantomAssertions.assertFalse(PhantomAutonomousMarketProducer.completeRestRoute(trip, from, town, 49, 2000), "Market travel invented the missing native fee.");
+			PhantomAssertions.assertFalse(PhantomAutonomousMarketProducer.completeRestRoute(trip, from, town, 50, 1999), "Market travel extended the fixed remaining time.");
+			PhantomAssertions.assertFalse(PhantomAutonomousMarketProducer.completeRestRoute(trip, source, town, 50, 2000), "A stale persisted paid-stage index replaced actual saved origin.");
+			for (var status : org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.Status.values())
+			{
+				PhantomAssertions.assertEquals(status == org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.Status.ARRIVED, PhantomAutonomousMarketProducer.acceptedRestGatekeeper(status), "Unknown/rejected/paid-without-arrival result authorized continuation.");
+			}
+			final String producer = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java"));
+			final int armed = producer.indexOf("final var armed = _stores.finishRestJourney(");
+			final int nativeFee = producer.indexOf("PhantomNativeTravelActions.gatekeeper(player", armed);
+			if (armed < 0 || nativeFee <= armed || !producer.contains("_background.captureVisibleArrival(profileId, route.player, route.root, route.checkpoint)")) { throw new AssertionError("Native fee lacks durable arm-before-action and owned arrival checkpoint wiring."); }
+			final String execution = producer.substring(producer.indexOf("private void advanceRestJourney("), producer.indexOf("public static boolean completeRestRoute("));
+			if (execution.indexOf("!PhantomNativeTravelActions.ordinary(player)") < 0 || execution.indexOf("!PhantomNativeTravelActions.ordinary(player)") > execution.indexOf("player.isMovementDisabled()") || execution.indexOf("!PhantomNativeTravelActions.ordinary(player)") > execution.indexOf("player.getAI().setIntention")) { throw new AssertionError("Market WALK bypasses fresh native jail/event/observer/siege/sitting admission."); }
+			if (execution.indexOf("!validRestDestination(child.goal().selectedAnchor().key(), child.destination(), player)") < 0 || execution.indexOf("!validRestDestination(child.goal().selectedAnchor().key(), child.destination(), player)") > execution.indexOf("_navigation.submitTravelPlan(")) { throw new AssertionError("Restored child can spend a native fee before current destination authority is checked."); }
+			final String destinationGuard = producer.substring(producer.indexOf("private boolean validRestDestination("), producer.indexOf("private void advanceRestJourney("));
+			if (!destinationGuard.contains("_travel.topology().findAnchor(anchorId)") || !destinationGuard.contains("PhantomTopologyAnchorRole.CITY_CENTER") || !destinationGuard.contains("canonicalCommittedAnchorPosition") || !destinationGuard.contains("anchor.validationTolerance()") || !destinationGuard.contains("freeDestination(player, destination)")) { throw new AssertionError("Market destination does not retain current topology, Geo and physical reservation authority."); }
+			final String admission = producer.substring(producer.indexOf("_admittingRest.add(profileId)"), producer.indexOf("/** Only complete existing-planner candidates"));
+			if (admission.indexOf("!_tripAllowed.test(profileId, root)") < 0 || admission.indexOf("!sameGoal(root, goal(profileId))") < 0 || admission.indexOf("!_tripAllowed.test(profileId, root)") > admission.indexOf("_stores.requestRestJourney(")) { throw new AssertionError("Competing supply/learning/root changes after farm yield bypass market admission."); }
+			final String stores = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomStoreService.java"));
+			final String open = stores.substring(stores.indexOf("public Result open("), stores.indexOf("/** Price before"));
+			if (open.indexOf("restJourney(profileId)") < 0 || open.indexOf("restJourney(profileId)") > open.indexOf("VersionedPlan saved") || !open.contains("journey.goal().status() != PhantomGoalStatus.COMPLETED")) { throw new AssertionError("Orphan failed/malformed market metadata falls through to native open."); }
+			final String farm = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java"));
+			if (!farm.contains("autoPlay.running(profileId, goal)") || !farm.contains("autoPlay.start(profileId, goal)")) { throw new AssertionError("Market release has no ordinary same-root farm session restart path."); }
+			final String background = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java"));
+			final String arrival = background.substring(background.indexOf("private boolean captureVisibleArrivalQuiescent("), background.indexOf("/** Owned store integration"));
+			if (!arrival.contains("PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())") || !arrival.contains("_authority.captureOwnedNativeAcquisition(profileId, player, goal, hint, PhantomAcquisitionGoalSpec.parse(goal).itemId())")) { throw new AssertionError("BUY arrival bypasses the acquisition-owned checkpoint driver."); }
+			context.record("market.trip.proof", "pure_codec_binding+complete_native_cost+terminal_status; source_contract_arm_checkpoint_resume; native_travel_NOT_RUN");
+		});
+	}
+
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomGoal copyJourneyGoal(org.l2jmobius.gameserver.phantoms.decision.PhantomGoal old, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus status, long revision, java.util.Map<String, Long> constraints)
+	{
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(old.goalId(), old.goalType(), status, old.subject(), old.target(), old.requiredAmount(), old.currentAmount(), old.acquisitionMethod(), old.validSources(), old.selectedAnchor(), old.purposeKey(), old.priority(), old.riskBudget(), old.expenseBudget(), old.deadlineEpochMillis(), constraints, old.reasonKey(), revision, old.payloadText());
 	}
 
 	private static org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort terminalLifecycle(Runnable terminal)

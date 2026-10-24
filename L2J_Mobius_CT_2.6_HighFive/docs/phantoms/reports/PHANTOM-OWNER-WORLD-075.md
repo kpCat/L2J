@@ -12,8 +12,8 @@ TASK074 опубликована и закрыта BLOCKED/PARTIAL, не PASS. �
 | A | PASS | OwnerConfig Save/Verify/Apply, 68 public INI/14 overrides, 38/38/XML/XSD, Ant/candidate hooks и Windows BAT; исходные согласованные значения сохранены |
 | B | PASS focused | ordinary max25, 100/85/70/66, bonus100/default65535 rejected at25; special caps unchanged; 11 независимых Servitor коэффициентов; полный клиентский lifecycle pending |
 | C | PARTIAL | исходники Goal037/Q298/Q186 сохранены; нет обнаруженного rate-регресса, но high-level native repeat replay NOT_RUN и старый AST gate stale1/2 |
-| D | PARTIAL | earned-surplus producer и сохранение/восстановление native listing реализованы через прежние owner/admission; focused gates GREEN; реальный earned-магазин → partial trade → новый JVM restart не подтверждён |
-| E | PARTIAL | DB-free36/36 и sameDB cursor continuation без дублей identity; все исторические claims не завершены, universal lawful progression не доказан |
+| D | PARTIAL | market-specific WALK/native GK, durable intent с прежним farm/acquisition root, native SELL/BUY/CRAFT и обычный resume реализованы; targeted gates GREEN; реальная цепочка travel → earned-магазин → trade → restart → farm resume не подтверждена |
+| E | PARTIAL | DB-free36/36 и sameDB cursor continuation без дублей identity; exact native STOP cursor → новый downtime interval → lawful settlement → replay без нового credit не подтверждён |
 | F | PARTIAL | native SELL/BUY/CRAFT board + fresh Radar marker реализованы; handlers загрузились в Main; клиентские поиск/категории/marker OWNER_QA_PENDING |
 
 Решение A/B: штатные ConfigReader/ConfigLoader, EnchantScroll, EnchantItemGroupsData, native stores и Ant/copy pipeline. Новых библиотек/движков нет. Бounded exception: несколько config/code/test/build файлов одной задачи необходимы для контроля owner profile; отдельный cleanup/Studio/UI не включён. Worktree не создавался. Secret Database.ini/Network.ini/allowlists и старые candidates/DB не изменялись.
@@ -192,3 +192,38 @@ docs/phantoms/reports/PHANTOM-OWNER-WORLD-075.md
 
 - mojibake-маркеры в изменённых файлах проверены:53 scoped files, полный заданный набор,0 matches.
 - escaped Cyrillic в изменённых файлах проверены:53 scoped files, все6 regex,0 matches.
+
+Дополнительный read-only readiness audit24.10.2026 выполнен прежним local-only Runtime075Probe, без нового runtime/schema/seed. OWN075 authority/UUID проверены; DB_OTHER_CONNECTIONS=0. Четыре прежних actor имеют уровни2/3/1/1; единственный tradeable material — item1865 count1 у actor2. Stacks10650/12753 — untradeable scrolls, снаряжение не является surplus. У каждого recipes=0/craft skills=0/acquisition.state=0, storePlans=0. Поэтому настоящего SELL/BUY/MFG основания и высокоуровневого Q298 witness сейчас нет. Ресурсы, уровни, рецепты, цели или балансы ради приёмки не добавлялись. Эти данные относятся к прежнему остановленному f666/99075 runtime, не к новому SOURCE.
+
+Независимый bounded audit E не обнаружил конкретного дефекта causal-credit/cursor/clock/restart ownership: STOP использует captured minute/fresh CAS и не забирает pending/orphan requests; cursor и экономические изменения находятся в одной historical transaction, overlap и exact committed replay проверяются. Незавершённый старый claim сам по себе не дефект. Оставшийся E gate — точная указанная в matrix цепочка native evidence, а не требование завершить все возможные histories или запускать новую QA-кампанию.
+
+## Финальное закрытие исполнения по ограничению владельца
+
+После последнего ограничения владельца завершён только уже начатый market-specific patch D. Четыре production owners: `PhantomAutonomousMarketProducer`, `PhantomStoreService`, `PhantomSystem`, `PhantomBackgroundService`; один прежний `PhantomOwnerWorld075Suite`. Новых сервисов, схем, actors, candidates, ресурсов, native запусков и направлений разработки нет.
+
+Поездка начинается после реального earned SELL/known-recipe CRAFT либо фактического acquisition BUY. Сохраняются прежние root ID/revision/subject, native identity/class, абсолютный expiry, quote hash и физический destination; child+REQUESTED plan записываются атомарно через существующие components. BUY exposure вычитается из доступного native travel budget. Выбор ограничен тремя существующими CITY_CENTER с предпочтением Гирана и девятью spaced точками на anchor; preliminary admission допускает local WALK либо достижимую одну GK-связку, поэтому полное географическое покрытие/multihop admission не заявляется. Исполнение требует полного доказанного Navigation candidate; прямой distant fallback, RETURN и выдача средств отсутствуют.
+
+WALK/GK используют прежний native owner и обычные действия, fresh ordinary/goal/need/recipe/reservation проверки. Перед effect и восстановлением проверяется current anchor role/canonical tolerance/Geo/peace/NoStore, humans/NPC/stalls и pending-trip spacing. Before-world guard не публикует наблюдаемую восстановленную identity. Перед native GK записывается FAILED marker: только ARRIVED + прежний owned arrival checkpoint разрешают продолжение. Неизвестный исход/paid-without-arrival не повторяет платёж; terminal marker сохраняется до исходного expiry. STOP отменяет только captured own movement. Restart планирует от реальных saved XYZ, без воспроизведения stage index. Farm и acquisition возвращаются в прежний decision/background lifecycle; для acquisition в arrival capture добавлена ровно та же typed authority branch, которая уже применялась в OwnedStoreBoundary.
+
+Независимый final diff review пяти code/test paths: Critical/Important не выявлены после исправлений anchor revalidation, orphan FAILED/malformed fail-close, ordinary WALK guard и competing-intent fence. Review не доказывает native цепочку.
+
+Одна необходимая сборка `ant -q -f L2J_Mobius_CT_2.6_HighFive/build.xml -Dbuild=<repo>/.phantom-local/task075/build jar compile-tests`: первый attempt exit1/14s из-за bound method reference на static `decode`; адресно исправлено на `PhantomStoreService::decode`. Необходимый повтор exit0/45s,5 прежних warnings. Дополнительных build/QA rounds после GREEN нет. Existing targeted launchers из `dist/game`, тот же isolated build classpath и seed75007500: `owner-world075`8/8 exit0, `activity-scheduler`36/36 exit0. Новый case проверяет реальный Goal codec/binding/expiry, полный native cost/time budget, BUY reserve и terminal payment statuses; wiring checks явно отмечены source contracts, не native replay.
+
+Сохранность A/B/OwnerConfig: production config paths в final diff отсутствуют; `OwnerConfig.ps1 -Action Verify` exit0, filesChecked68/overridesStored14/conflicts0/changed0. Обязательные38/XSD проверены build hook; реальные enchant/PlayerConfig/11 Servitor checks входят в8/8. SHA TSV/preserved/Rates совпали с указанными выше c289…91c/e0c9…609/0df7…e39. Исторический manifest11/11 совпал. Новый GameServer SHA `10269119E1F1BC4B96DAF72653FEC65DFD25ED70731BD35AF55879E6A449565A`, LoginServer `E91B26730907E74DF0F7E3A1B237E35805B8C04F4AC8642ADD93FC4005BB0562`; предыдущие JAR9A03…CD5/493A…D45 побайтово сохранены вне checkout с SHA. Остановленный runtime не обновлялся.
+
+Незакрытые продуктовые gates:
+
+- C: high-level Q298 repeat native witness отсутствует; unrelated old Goal037 AST Q234 manifest stale, не исправлялся ради GREEN. Rate-регресс источников не обнаружен.
+- D: реальные earned travel → native store → partial trade/conservation → JVM restart → normal life остаются PARTIAL. В OWN075 нет stock/need/recipes для честного свидетеля; искусственное пополнение запрещено и не выполнялось. Указанные bounded route admission ограничения сохраняются.
+- E: нет exact нового downtime settlement/replay witness; старое sameDB продолжение и DB-free contracts не заменяют его.
+- F: source/native handler path подтверждён; клиентские search/category/Radar display — OWNER_QA_PENDING. Штатный ItemAuction не менялся.
+- Долг PARTIAL074 остаётся отдельным; A/B source/focused PASS не объявляют клиентский lifecycle PASS.
+
+Финальный STOP read-only gate: OWN075 marked JVM0, listeners2255/7955/9255=0, guarded sameDB quiescent probe=0 других подключений. Все Ant/Java/PowerShell процессы проверки завершились; чужие процессы не останавливались. Новых native запусков после ограничения не было. После обычной публикации выполнение прекращается; R2/TASK076/roadmap/автопродолжение не создаются.
+
+Final staging allowlist — ровно эти6 paths относительно модуля: четыре production файла выше, `test/java/org/l2jmobius/tests/phantoms/PhantomOwnerWorld075Suite.java`, этот единственный report. Git разрешён AUTHORITY075 и финальным прямым указанием владельца: exact-path `git diff --stat/--check/--cached`, `git status --short`, `git symbolic-ref --short HEAD`, `git rev-parse HEAD`, `git ls-remote origin refs/heads/feature/phantom-world`, `git add -- <6 exact paths>`, `git commit --only -m "phantom(task-075): route ordinary rest stores through native travel" -- <те же6paths>`, `git push origin HEAD:refs/heads/feature/phantom-world`. Финальный local/live remote SHA сверяется после публикации и указан в ответе владельцу; self-hash этого report в его содержимое не подставляется. Ожидаемый остаток рабочего дерева — только прежние untracked `.phantom-local/`,068V/073; они не staged.
+
+Предыдущий опубликованный D checkpoint и live remote перед final commit: `c25f4a57e8cf373d8a28c9f60c892be18f3d3203`. Общий bounded scope от baseline теперь54 tracked paths; final patch/staging —6, старый dirt сохранён. Exact whitespace check exit0 с `cr-at-eol` для существующего CRLF.
+
+- mojibake-маркеры в изменённых файлах проверены:54 scoped paths, весь заданный набор,0 matches.
+- escaped Cyrillic в изменённых файлах проверены:54 scoped paths, все6 regex,0 matches.
