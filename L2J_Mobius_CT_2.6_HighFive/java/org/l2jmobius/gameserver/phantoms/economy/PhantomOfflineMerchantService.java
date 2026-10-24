@@ -118,7 +118,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			catch (RuntimeException failure) { _blocked++; schedule(saved.role().ordinal(), System.currentTimeMillis() + _policy.rotationSeconds() * 1000L); LOGGER.log(Level.WARNING, "Merchant restore held ordinal=" + saved.role().ordinal(), failure); }
 		}
 		refreshWanted();
-		LOGGER.info("Offline merchant role ready: durable=" + _roles.size() + ", legalSlots=" + _slots.size() + ", bootstrapSource=BOOTSTRAP_CAPITAL_STOCK; issuedCapital=" + _ledger.issuedCapital());
+		LOGGER.info("Offline merchant role ready: durable=" + _roles.size() + ", rawSlots=" + _policy.sites().stream().mapToInt(site -> site.columns() * site.rows()).sum() + ", legalSlots=" + _slots.size() + ", bootstrapSource=BOOTSTRAP_CAPITAL_STOCK; issuedCapital=" + _ledger.issuedCapital() + ", remainingCapital=" + (_ledger.capitalLimit() - _ledger.issuedCapital()));
 	}
 
 	@Override public void onPulse() { pulse(System.currentTimeMillis()); }
@@ -154,7 +154,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 
 	private Role reserveBirth()
 	{
-		if (_ledger.nextOrdinal() >= _ledger.identityLimit()) { return null; }
+		if (_ledger.nextOrdinal() >= _ledger.identityLimit() || _policy.capitalPerIdentity() > _ledger.capitalLimit() - _ledger.issuedCapital()) { return null; }
 		final var used = _roles.values().stream().map(saved -> new PhantomNavigationPoint(saved.role().x(), saved.role().y(), saved.role().z(), 0)).toList();
 		final var point = _slots.stream().filter(slot -> used.stream().noneMatch(old -> old.distanceTo(slot) < 60) && !observed(slot)).findFirst().orElse(null);
 		if (point == null) { return null; }
