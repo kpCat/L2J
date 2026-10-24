@@ -41,6 +41,13 @@ public final class CrystallizationService
 		return inspect(player, objectId, requestedCount, false, false);
 	}
 
+	/** Read-only planning over a real offered item. Owned inspect is still mandatory before mutation. */
+	public Inspection inspectProspective(Player player, Item offeredItem, long requestedCount)
+	{
+		final Inspection actor = inspectActor(player, requestedCount, false);
+		return actor != null ? actor : inspectItem(player, offeredItem, requestedCount, false);
+	}
+
 	public Result crystallize(Player player, int objectId, long requestedCount)
 	{
 		return crystallize(player, objectId, requestedCount, null);
@@ -114,6 +121,14 @@ public final class CrystallizationService
 
 	private Inspection inspect(Player player, int objectId, long requestedCount, boolean clampCount, boolean ignoreCompatibilityFlag)
 	{
+		final Inspection actor = inspectActor(player, requestedCount, ignoreCompatibilityFlag);
+		if (actor != null) { return actor; }
+		final PlayerInventory inventory = player.getInventory();
+		return inspectItem(player, inventory == null ? null : inventory.getItemByObjectId(objectId), requestedCount, clampCount);
+	}
+
+	private Inspection inspectActor(Player player, long requestedCount, boolean ignoreCompatibilityFlag)
+	{
 		if ((player == null) || (requestedCount < 1))
 		{
 			return new Inspection(Status.INVALID_COUNT, null);
@@ -129,8 +144,11 @@ public final class CrystallizationService
 			return new Inspection(Status.SKILL_MISSING, null);
 		}
 
-		final PlayerInventory inventory = player.getInventory();
-		final Item item = inventory == null ? null : inventory.getItemByObjectId(objectId);
+		return null;
+	}
+
+	private Inspection inspectItem(Player player, Item item, long requestedCount, boolean clampCount)
+	{
 		if (item == null)
 		{
 			return new Inspection(Status.ITEM_NOT_FOUND, null);
@@ -147,13 +165,13 @@ public final class CrystallizationService
 		{
 			return new Inspection(Status.NOT_CRYSTALLIZABLE, null);
 		}
-		if (!inventory.canManipulateWithItemId(item.getId()))
+		if (player.getInventory() == null || !player.getInventory().canManipulateWithItemId(item.getId()))
 		{
 			return new Inspection(Status.NOT_OWNED, null);
 		}
 
 		final CrystalType grade = item.getTemplate().getCrystalTypePlus();
-		if (skillLevel < grade.getLevel())
+		if (player.getSkillLevel(CommonSkill.CRYSTALLIZE.getId()) < grade.getLevel())
 		{
 			return new Inspection(Status.SKILL_TOO_LOW, null);
 		}

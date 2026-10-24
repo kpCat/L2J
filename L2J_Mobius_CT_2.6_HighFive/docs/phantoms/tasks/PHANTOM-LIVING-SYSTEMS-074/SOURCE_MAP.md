@@ -1,0 +1,21 @@
+# SOURCE_MAP074 — узкие действующие production owners
+
+Пути relative к `L2J_Mobius_CT_2.6_HighFive/`. Файлы и методы сверены с опубликованным `6057cc69728e5050d79806e5e6aa3c5a2bf898c8`. На старте Codex сверить текущий HEAD и актуальность строк.
+
+| Возможность | Файл/точки входа | Что проверить до правки |
+|---|---|---|
+| A supply | `java/org/l2jmobius/gameserver/phantoms/commerce/L2jPhantomSupplyJourney.java` — `proposal`, `choices`, `shortageOffer`, `travel` (~925), `navigate` (~1117), `acceptRoute` (~1180), `approaches`, `returnDestination` | requestDestination, `Trip.localAttempt`, local checkpoints, route flags, native move, return binding, expiry/receipt, paused farm/root |
+| A policy | `java/org/l2jmobius/gameserver/phantoms/commerce/PhantomAutonomousSupplyPolicy.java` и `dist/game/data/phantoms/life/high-five-autonomous-supply-v1.xml` | `usefulPurchase`, `availableBudget`, target60, lowWater3, reserve500, journey8min; не ослаблять вслепую |
+| A commerce | `java/org/l2jmobius/gameserver/phantoms/commerce/{PhantomCommerceService,L2jCommerceBackend,PhantomSupplyIntentStore,PhantomInventoryMaintenanceIntent,PhantomOfflineSupply}.java` | native seller quote, item/amount/transaction, physical debit+credit, replay/reconcile, money after restart |
+| B navigation | `java/org/l2jmobius/gameserver/phantoms/navigation/{PhantomNavigationService,L2jNavigationBackend,PhantomNativeTravelActions,PhantomNavigationPolicy,PhantomTravelStrategy}.java` | `SEARCH_LIMIT`→transient; path budget per-stage not global; native legs/GK; ownership & cancellation |
+| B far travel | `java/org/l2jmobius/gameserver/phantoms/background/{PhantomHistoricalBackgroundPlanner,PhantomHistoricalBackgroundService,PhantomVisibleFarmTravel,PhantomVisibleAutoPlay,PhantomNormalGatekeeperTravel}.java` | `replanVisibleLocal` (~109), `isVisibleLocal` (~126), `PhantomHistoricalBackgroundService` local call (~1324), safe replan/route from persisted actual anchors; `npcId` fixation |
+| B target | `java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementPlanner.java` и `java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatPolicy.java` | `rewardingFarmTarget` from072, +1/+2 legal reward/viability and defense exception |
+| C loot | `java/org/l2jmobius/gameserver/phantoms/combat/{PhantomCombatService,L2jCombatBackend}.java` — `processLoot` (~1820), `lootResult` (~1910), `lootCandidates`, `pickUp`, `observeLoot` | `VICTORY_LOOT_BLOCKED` = remembered candidates but no acquired by actor/party; distinguish timeout, legal refusal, out-of-range, disappeared, ownership and weight |
+| C disposition | `java/org/l2jmobius/gameserver/phantoms/commerce/{PhantomLootDispositionPolicy,L2jPhantomSupplyJourney}.java` (`maintenanceProposal` ~350) | Protect future gear, shots, valuable and quest materials; actual NPC SELL receipt versus bookkeeping choice |
+| D admission | `java/org/l2jmobius/gameserver/phantoms/pvp/{PhantomPvpService,PhantomPvpModel,PhantomPvpPolicy,PhantomPvpContext}.java` | actual `SUPPLY_REQUIRED`/lowHP terminal → retreat, legal event; prohibit nonshot offense |
+| D retreat | `java/org/l2jmobius/gameserver/phantoms/navigation/PhantomPvpRetreatCoordinator.java` — `start` (~85), `safeAnchor` (~335); `PhantomNavigationService`, native `ExternalActionLease` | nearest RESPAWN/CITY_CENTER may be impractical; bounded tactical staging while respecting geo and safe owner |
+| D battle | `java/org/l2jmobius/gameserver/phantoms/combat/{PhantomCombatService,PhantomNativeShotControl,L2jCombatBackend}.java` | learned/native skills+shots, native CP `5591/5592`, 500ms reuse; preserve PvP legality |
+
+Исторические доказательства — читать именно: `docs/phantoms/reports/PHANTOM-EARNED-LIFE-073.md`, `.../PHANTOM-EARNED-LIFE-073-data/{CORE_ATTEMPT073.tsv,ACCEPTANCE073.tsv,LIFE_CHAIN073.tsv}`; `.../PHANTOM-SUSTAINABLE-LIFE-072.md`; `.../PHANTOM-LIVING-COMBAT-071.md` лишь границы; root `AGENTS.md`, `docs/phantoms/{CODEX_WORKFLOW_CONTRACT.md,RELEASE_CONTRACT.md,PHANTOM_CURRENT_STATUS.md}`.
+
+**Не читать старые 300-страничные debug-транскрипты целиком.** Достаточно указанного источника и точных методов. Если файла нет или signature изменён — записать и найти текущий owner, не фантазировать.

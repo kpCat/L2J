@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.instance.Chest;
 import org.l2jmobius.gameserver.model.actor.instance.Door;
@@ -1129,12 +1130,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public List<LootCandidate> lootCandidates(int limit, int maximumDistance)
 		{
-			final TreeMap<Integer, LootCandidate> candidates = new TreeMap<>();
+			record NearbyLoot(LootCandidate candidate, double distance) { }
+			final var candidates = new java.util.TreeSet<NearbyLoot>(Comparator.comparingDouble(NearbyLoot::distance).thenComparingInt(value -> value.candidate().worldObjectId()));
 			final WorldRegion region = _player.getWorldRegion();
 			if (region == null)
 			{
 				return List.of();
 			}
+			final int originX = _player.getX(), originY = _player.getY();
 			for (WorldRegion surrounding : region.getSurroundingRegions())
 			{
 				for (WorldObject object : surrounding.getVisibleObjects())
@@ -1143,18 +1146,20 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 					{
 						continue;
 					}
-					candidates.put(item.getObjectId(), new LootCandidate(item.getObjectId(), item.getId(), item.getCount(), _player.getInventory().getInventoryItemCount(item.getId(), -1)));
+					final var candidate = new LootCandidate(item.getObjectId(), item.getId(), item.getCount(), _player.getInventory().getInventoryItemCount(item.getId(), -1));
+					candidates.add(new NearbyLoot(candidate, Math.hypot((long) item.getX() - originX, (long) item.getY() - originY)));
 					if (candidates.size() > limit)
 					{
-						candidates.pollLastEntry();
+						candidates.pollLast();
 					}
 				}
 			}
 			final var owner = _player.getNativeWorkOwner();
 			final long sequence = owner == null || owner.evidence() == null ? -1 : owner.evidence().pickupSequence();
-			for (var candidate : candidates.values()) { _lootBaselines.putIfAbsent(candidate.worldObjectId(), sequence); }
+			final var ordered = candidates.stream().map(NearbyLoot::candidate).toList();
+			for (var candidate : ordered) { _lootBaselines.putIfAbsent(candidate.worldObjectId(), sequence); }
 			while (_lootBaselines.size() > 64) { final var oldest = _lootBaselines.keySet().iterator(); oldest.next(); oldest.remove(); }
-			return List.copyOf(candidates.values());
+			return ordered;
 		}
 
 		@Override
@@ -1269,7 +1274,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
-			_player.setTarget(target);
+			if (!selectNormalCombatTarget(target)) { return ActionOutcome.REJECTED; }
 			if (coordinateServitor(target, false))
 			{
 				return ActionOutcome.UNAVAILABLE;
@@ -1296,7 +1301,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
-			_player.setTarget(target);
+			if (!selectNormalCombatTarget(target)) { return ActionOutcome.REJECTED; }
 			if (coordinateServitor(target, false))
 			{
 				return ActionOutcome.UNAVAILABLE;
@@ -1314,6 +1319,21 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			if (_player.getNativeWorkOwner() != null && _player.getNativeWorkOwner().requiresOffensiveShots() && _shots.activate(skill.isMagic()) == ShotOutcome.FAILED) { return ActionOutcome.UNAVAILABLE; }
 			_player.getAI().setIntention(Intention.CAST, skill, target);
 			return ActionOutcome.ISSUED;
+		}
+
+		/** A transferred combat lease has no caller context; keep actual selection inside its native lifetime. */
+		private boolean selectNormalCombatTarget(Monster target)
+		{
+			final var owner = _player.getNativeWorkOwner();
+			if (_closed.get() || owner == null || owner.player() != _player || !owner.isCurrent()) { return false; }
+			final boolean[] selected = {false};
+			PlayerNativeWork.run(_player, "combat-target-selection", () ->
+			{
+				if (_closed.get() || _player.getNativeWorkOwner() != owner || !owner.isCurrent() || World.getInstance().getPlayer(_player.getObjectId()) != _player || !target.isSpawned() || target.isAlikeDead()) { return; }
+				_player.setTarget(target);
+				selected[0] = _player.getTarget() == target;
+			});
+			return selected[0];
 		}
 
 		@Override
@@ -1876,9 +1896,16 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
+			final var owner = _player.getNativeWorkOwner();
+			final var sensor = owner != null && owner.isCurrent() && owner.player() == _player && owner.nativeObservationHealthy() ? owner.evidence() : null;
+			final long sequence = sensor == null ? -1 : sensor.pickupSequence();
+			final int itemId = item.getId(); final long count = item.getCount();
 			_player.setTarget(item);
 			_player.getAI().setIntention(Intention.PICK_UP, item);
-			return ActionOutcome.ISSUED;
+			// Native AI may refuse REST/casting/disabled admission; that is not an in-flight pickup.
+			if (_player.getAI().getIntention() == Intention.PICK_UP && _player.getTarget() == item) { return ActionOutcome.ISSUED; }
+			final var receipt = sensor == null ? null : sensor.pickupReceipt(objectId);
+			return receipt != null && receipt.sequence() > sequence && receipt.itemId() == itemId && receipt.count() == count ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
 		}
 
 		@Override

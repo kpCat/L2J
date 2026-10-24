@@ -1862,6 +1862,7 @@ public final class PhantomCombatService
 			else
 			{
 				session._lootLostWithoutAcquisition++;
+				session._actorLease.cancelOwnedAction(session._ownedAction);
 			}
 			session._lootAttempt = null;
 			session._ownedAction = session._ownedAction.withPickupObjectId(0);
@@ -1878,8 +1879,8 @@ public final class PhantomCombatService
 			throw new IllegalStateException("Combat backend exceeded the loot candidate bound.");
 		}
 		_metrics.lootCandidates(candidates.size());
-		final List<LootCandidate> ordered = candidates.stream().sorted(Comparator.comparingInt(LootCandidate::worldObjectId)).toList();
-		for (LootCandidate candidate : ordered)
+		// Preserve native proximity priority within the same finite collection budget.
+		for (LootCandidate candidate : candidates)
 		{
 			if (session._rememberedLootIds.contains(candidate.worldObjectId()))
 			{

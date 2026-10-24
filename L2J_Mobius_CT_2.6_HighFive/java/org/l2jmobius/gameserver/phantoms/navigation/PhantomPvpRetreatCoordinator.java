@@ -8,8 +8,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
@@ -85,6 +88,12 @@ public final class PhantomPvpRetreatCoordinator
 
 	public RetreatResult start(long profileId, String authorityHash, long maximumDurationNanos)
 	{
+		return start(profileId, authorityHash, maximumDurationNanos, null, _ -> true);
+	}
+
+	/** An exact encounter may first break distance locally; this does not confer peace or immunity. */
+	public RetreatResult start(long profileId, String authorityHash, long maximumDurationNanos, Supplier<Optional<PhantomNavigationPoint>> threat, Predicate<PhantomNavigationPoint> safeWaypoint)
+	{
 		if ((profileId <= 0) || (authorityHash == null) || !authorityHash.matches("[A-F0-9]{64}") || (maximumDurationNanos < 1))
 		{
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.invalid");
@@ -105,10 +114,6 @@ public final class PhantomPvpRetreatCoordinator
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.position_stale");
 		}
 		final PhantomTopologyAnchor destination = safeAnchor(profile.point(), query.nearestAnchors(profile.point(), PhantomTopologyAnchorRole.RESPAWN, 1, MAXIMUM_DISTANCE), query.nearestAnchors(profile.point(), PhantomTopologyAnchorRole.CITY_CENTER, 1, MAXIMUM_DISTANCE));
-		if ((destination == null) || (destination.point().instanceId() != profile.point().instanceId()))
-		{
-			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.safe_anchor_missing");
-		}
 		final long now = _clock.getAsLong();
 		final long deadline;
 		try
@@ -119,13 +124,24 @@ public final class PhantomPvpRetreatCoordinator
 		{
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.deadline_invalid");
 		}
-		final var surface = _walkSurface.apply(point(destination.point()), destination.validationTolerance());
-		final PhantomNavigationPoint target = surface == null ? null : surface.orElse(null);
-		if (target == null || target.x() != destination.point().x() || target.y() != destination.point().y() || target.instanceId() != destination.point().instanceId() || Math.abs((long) target.z() - destination.point().z()) > destination.validationTolerance())
+		final var origin = point(profile.point());
+		final var initialThreat = threat == null ? null : threat.get().orElse(null);
+		final List<Destination> destinations = new ArrayList<>();
+		if (initialThreat != null && initialThreat.instanceId() == origin.instanceId())
 		{
-			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.safe_surface_unavailable");
+			for (var candidate : tacticalDestinations(origin, initialThreat))
+			{
+				if (safeWaypoint.test(candidate)) { destinations.add(new Destination(candidate, true)); }
+			}
 		}
-		final Pending pending = new Pending(profileId, authorityHash, new PhantomTopologyPoint(target.x(), target.y(), target.z(), target.instanceId()), query.snapshot().generation(), deadline);
+		if (destination != null && destination.point().instanceId() == origin.instanceId())
+		{
+			final var surface = _walkSurface.apply(point(destination.point()), destination.validationTolerance());
+			final var target = surface == null ? null : surface.orElse(null);
+			if (target != null && target.x() == destination.point().x() && target.y() == destination.point().y() && target.instanceId() == destination.point().instanceId() && Math.abs((long) target.z() - destination.point().z()) <= destination.validationTolerance()) { destinations.add(new Destination(target, false)); }
+		}
+		if (destinations.isEmpty()) { return new RetreatResult(RetreatStatus.FAILED, destination == null ? "pvp.retreat.safe_anchor_missing" : "pvp.retreat.safe_surface_unavailable"); }
+		final Pending pending = new Pending(profileId, authorityHash, destinations, query.snapshot().generation(), deadline, threat, safeWaypoint, initialThreat == null ? 0 : origin.distanceTo(initialThreat));
 		synchronized (_monitor)
 		{
 			if (_pending.putIfAbsent(profileId, pending) != null)
@@ -133,8 +149,13 @@ public final class PhantomPvpRetreatCoordinator
 				return new RetreatResult(RetreatStatus.BUSY, "pvp.retreat.busy");
 			}
 		}
-		final PhantomNavigationPoint origin = point(profile.point());
-		final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, origin, target, now, deadline, MAXIMUM_DISTANCE));
+		return requestRoute(profileId, pending, origin, now);
+	}
+
+	private RetreatResult requestRoute(long profileId, Pending pending, PhantomNavigationPoint origin, long now)
+	{
+		pending._origin = origin;
+		final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, origin, pending.destination().point(), now, Math.min(pending._deadline, now + _navigation.policy().defaultRequestDeadlineNanos()), MAXIMUM_DISTANCE));
 		final boolean owned;
 		synchronized (_monitor)
 		{
@@ -154,16 +175,14 @@ public final class PhantomPvpRetreatCoordinator
 		}
 		if (submission.status() == SubmissionStatus.REJECTED)
 		{
-			remove(profileId, pending, true);
-			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.route_rejected");
+			return routeFailure(profileId, pending, submission.immediateResult(), now);
 		}
 		if (submission.status() == SubmissionStatus.COMPLETED)
 		{
 			_navigation.consume(submission.requestId());
 			if (!installRoute(pending, submission.immediateResult()))
 			{
-				remove(profileId, pending, true);
-				return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.route_failed");
+				return routeFailure(profileId, pending, submission.immediateResult(), now);
 			}
 		}
 		return state(pending);
@@ -194,7 +213,10 @@ public final class PhantomPvpRetreatCoordinator
 		{
 			if (pending._requestId == 0)
 			{
-				return new RetreatResult(RetreatStatus.PLANNING, "pvp.retreat.planning");
+				if (now < pending._retryAt) { return new RetreatResult(RetreatStatus.PLANNING, "pvp.retreat.route_retry." + pending._lastRefusal); }
+				final var current = _topology.findProfile(profileId).orElse(null);
+				if (current == null || current.point() == null || current.topologyGeneration() != pending._topologyGeneration || current.point().instanceId() != pending.destination().point().instanceId()) { remove(profileId, pending, true); return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.position_stale"); }
+				return requestRoute(profileId, pending, point(current.point()), now);
 			}
 			final PhantomNavigationResult result = _navigation.consume(pending._requestId).orElse(null);
 			if (result == null)
@@ -203,12 +225,11 @@ public final class PhantomPvpRetreatCoordinator
 			}
 			if (!installRoute(pending, result))
 			{
-				remove(profileId, pending, true);
-				return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.route_failed");
+				return routeFailure(profileId, pending, result, now);
 			}
 		}
 		final ProfileTopologySnapshot profile = _topology.findProfile(profileId).orElse(null);
-		if ((profile == null) || (profile.point() == null) || (profile.topologyGeneration() != pending._topologyGeneration) || (profile.point().instanceId() != pending._destination.instanceId()))
+		if ((profile == null) || (profile.point() == null) || (profile.topologyGeneration() != pending._topologyGeneration) || (profile.point().instanceId() != pending.destination().point().instanceId()))
 		{
 			remove(profileId, pending, true);
 			return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.position_stale");
@@ -220,13 +241,28 @@ public final class PhantomPvpRetreatCoordinator
 			releaseMovement(pending, true);
 			if (++pending._waypointIndex >= pending._route.waypoints().size())
 			{
+				final var threat = pending.destination().tactical() ? pending._threat.get().orElse(null) : null;
+				if (pending.destination().tactical() && (threat == null || threat.instanceId() != current.instanceId() || current.distanceTo(threat) < pending._initialThreatDistance + 200))
+				{
+					remove(profileId, pending, false);
+					return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.tactical_pressure_persists");
+				}
 				remove(profileId, pending, false);
-				return new RetreatResult(RetreatStatus.ARRIVED, "pvp.retreat.arrived");
+				return new RetreatResult(RetreatStatus.ARRIVED, pending.destination().tactical() ? "pvp.retreat.tactical_arrived" : "pvp.retreat.arrived");
 			}
 		}
 		if (pending._movement != null)
 		{
 			return new RetreatResult(RetreatStatus.MOVING, "pvp.retreat.moving");
+		}
+		if (pending.destination().tactical())
+		{
+			final var threat = pending._threat.get().orElse(null);
+			if (threat == null || !awaySegment(current, pending._route.waypoints().get(pending._waypointIndex), threat) || !pending._safeWaypoint.test(pending._route.waypoints().get(pending._waypointIndex)))
+			{
+				remove(profileId, pending, true);
+				return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.tactical_segment_changed");
+			}
 		}
 		final String operationKey = "pvp.retreat." + authorityHash.substring(0, 20) + '.' + pending._waypointIndex;
 		final var acquisition = _combat.acquireExternalAction(new ExternalActionRequest(profileId, ExternalActionKind.PVP_RETREAT, operationKey, pending._deadline, pending._cancelled::get));
@@ -289,12 +325,66 @@ public final class PhantomPvpRetreatCoordinator
 
 	private boolean installRoute(Pending pending, PhantomNavigationResult result)
 	{
-		if ((result == null) || (result.route() == null) || !List.of(Status.DIRECT_VALIDATED, Status.DIRECT_UNVERIFIED_NO_GEODATA, Status.PATH_FOUND).contains(result.status()) || !result.route().destination().equals(point(pending._destination)))
+		if ((result == null) || (result.route() == null) || !List.of(Status.DIRECT_VALIDATED, Status.PATH_FOUND).contains(result.status()) || result.profileId() != pending._profileId || result.requestId() != pending._requestId || !result.route().origin().equals(pending._origin) || !result.route().destination().equals(pending.destination().point()))
 		{
 			return false;
 		}
+		if (pending.destination().tactical())
+		{
+			final var threat = pending._threat.get().orElse(null);
+			var previous = result.route().origin();
+			for (var waypoint : result.route().waypoints())
+			{
+				if (threat == null || !awaySegment(previous, waypoint, threat)) { return false; }
+				previous = waypoint;
+			}
+		}
 		pending._route = result.route();
 		return true;
+	}
+
+	private RetreatResult routeFailure(long profileId, Pending pending, PhantomNavigationResult result, long now)
+	{
+		final var status = result == null ? Status.BACKEND_FAILURE : result.status();
+		pending._requestId = 0; pending._lastRefusal = status.name().toLowerCase(java.util.Locale.ROOT);
+		if (List.of(Status.COOLDOWN, Status.PROFILE_BUSY, Status.QUEUE_BACKPRESSURE).contains(status))
+		{
+			pending._retryAt = now + _navigation.policy().pathfindingCooldownNanos(); return state(pending);
+		}
+		if (++pending._destinationIndex < pending._destinations.size())
+		{
+			pending._retryAt = now + _navigation.policy().pathfindingCooldownNanos(); return new RetreatResult(RetreatStatus.PLANNING, "pvp.retreat.route_retry." + pending._lastRefusal);
+		}
+		remove(profileId, pending, true);
+		return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.route_failed." + pending._lastRefusal);
+	}
+
+	private List<PhantomNavigationPoint> tacticalDestinations(PhantomNavigationPoint origin, PhantomNavigationPoint threat)
+	{
+		if (origin.instanceId() != threat.instanceId() || origin.distanceTo(threat) < 1) { return List.of(); }
+		final var result = new ArrayList<PhantomNavigationPoint>(); final double bearing = Math.atan2((double) origin.y() - threat.y(), (double) origin.x() - threat.x());
+		for (int distance : new int[] {600, 375}) { for (double turn : new double[] {0, -Math.PI / 6, Math.PI / 6})
+		{
+			final int x = origin.x() + (int) Math.round(distance * Math.cos(bearing + turn)), y = origin.y() + (int) Math.round(distance * Math.sin(bearing + turn));
+			try
+			{
+				final var hint = new PhantomNavigationPoint(x, y, origin.z(), origin.instanceId()); final var surface = _walkSurface.apply(hint, 256); final var point = surface == null ? null : surface.orElse(null);
+				if (point != null && point.x() == x && point.y() == y && point.instanceId() == origin.instanceId() && Math.abs((long) point.z() - origin.z()) <= 256 && point.distanceTo(threat) >= origin.distanceTo(threat) + 200 && awaySegment(origin, point, threat)) { result.add(point); }
+			}
+			catch (IllegalArgumentException ignored) { /* A world boundary is not an escape corridor. */ }
+		} }
+		return List.copyOf(result);
+	}
+
+	/** A detour may not cut toward the exact threat even if its endpoint is farther away. */
+	private static boolean awaySegment(PhantomNavigationPoint from, PhantomNavigationPoint to, PhantomNavigationPoint threat)
+	{
+		if (from.instanceId() != threat.instanceId() || to.instanceId() != threat.instanceId()) { return false; }
+		final double dx = (double) to.x() - from.x(), dy = (double) to.y() - from.y(), length = dx * dx + dy * dy;
+		if (length == 0) { return false; }
+		final double projection = Math.clamp((((double) threat.x() - from.x()) * dx + ((double) threat.y() - from.y()) * dy) / length, 0, 1);
+		final double nearest = Math.hypot(from.x() + projection * dx - threat.x(), from.y() + projection * dy - threat.y());
+		return nearest + 16 >= Math.hypot((double) from.x() - threat.x(), (double) from.y() - threat.y()) && to.distanceTo(threat) > from.distanceTo(threat);
 	}
 
 	private void remove(long profileId, Pending pending, boolean cancel)
@@ -348,27 +438,39 @@ public final class PhantomPvpRetreatCoordinator
 	{
 		return new RetreatResult(pending._route == null ? RetreatStatus.PLANNING : RetreatStatus.MOVING, pending._route == null ? "pvp.retreat.planning" : "pvp.retreat.moving");
 	}
+	private record Destination(PhantomNavigationPoint point, boolean tactical) { }
 
 	private static final class Pending
 	{
 		private final long _profileId;
 		private final String _authorityHash;
-		private final PhantomTopologyPoint _destination;
+		private final List<Destination> _destinations;
+		private final Supplier<Optional<PhantomNavigationPoint>> _threat;
+		private final Predicate<PhantomNavigationPoint> _safeWaypoint;
+		private final double _initialThreatDistance;
 		private final long _topologyGeneration;
 		private final long _deadline;
 		private final AtomicBoolean _cancelled = new AtomicBoolean();
 		private volatile long _requestId;
+		private long _retryAt;
+		private String _lastRefusal = "";
+		private PhantomNavigationPoint _origin;
 		private volatile PhantomNavigationRoute _route;
 		private volatile int _waypointIndex;
+		private int _destinationIndex;
 		private volatile ExternalActionLease _movement;
 
-		private Pending(long profileId, String authorityHash, PhantomTopologyPoint destination, long topologyGeneration, long deadline)
+		private Pending(long profileId, String authorityHash, List<Destination> destinations, long topologyGeneration, long deadline, Supplier<Optional<PhantomNavigationPoint>> threat, Predicate<PhantomNavigationPoint> safeWaypoint, double initialThreatDistance)
 		{
 			_profileId = profileId;
 			_authorityHash = authorityHash;
-			_destination = destination;
+			_destinations = List.copyOf(destinations);
+			_threat = threat;
+			_safeWaypoint = Objects.requireNonNull(safeWaypoint);
+			_initialThreatDistance = initialThreatDistance;
 			_topologyGeneration = topologyGeneration;
 			_deadline = deadline;
 		}
+		private Destination destination() { return _destinations.get(_destinationIndex); }
 	}
 }

@@ -6662,6 +6662,7 @@ public class Player extends Playable
 	public void setPrivateStoreType(PrivateStoreType privateStoreType)
 	{
 		_privateStoreType = privateStoreType;
+		World.getInstance().updatePrivateStore(this);
 		if (OfflineTradeConfig.OFFLINE_DISCONNECT_FINISHED && (privateStoreType == PrivateStoreType.NONE) && !hasHeadlessOutboundSession()
 			&& !org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.ownsNative(this) && ((_client == null) || _client.isDetached()))
 		{

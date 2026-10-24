@@ -1,0 +1,8 @@
+lane	production_owner	new_behavior	proof_boundary
+A	L2jPhantomSupplyJourney	failed endpoint skipped; native route refusal retained; full delivered cost and BOM recheck	focused/native current acceptance pending
+B	PhantomHistoricalBackgroundPlanner/Service;PhantomVisibleFarmTravel	local exhaustion can choose3different admitted topology alternatives before CAS	focused PASS; native pending
+C	L2jCombatBackend;PhantomCombatService	native selection context preserves evidence; nearest legal loot order and exact refused pickup release	native selected0->0 RED/0->1 GREEN; ownership35/35
+D	PhantomPvpRetreatCoordinator;PhantomPvpContext/Service	finite short Geo escape before distant anchor; no unverified arrival	focused13/13; native pending
+MARKET	World;Player;PhantomOfflineSupply	event-maintained global published store index and existing receipt-based component BUY->MFG	no second economy; native pending
+CRYST	CrystallizationService;PhantomLootDispositionPolicy	read-only real foreign Common preview; final native owned inspection; guards retained	Common12200 focused PASS; full paid chain not claimed
+DELIVERY	LocalRuntimeShutdown	exact074 root/schema/UUID/control before native Main; historical controls retained	guard RED->GREEN

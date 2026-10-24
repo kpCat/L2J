@@ -93,6 +93,20 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		return proposedStep(player, state.position().committedAnchorId(), anchor.id()) != null;
 	}
 
+	/** Read-only admission before the history owner's atomic predecessor-to-replacement CAS. */
+	boolean permitsReplannedFarmTravel(PhantomGoal predecessor, PhantomGoal proposed, PhantomTopologyPoint live, Player player)
+	{
+		if (player == null || !PhantomNativeTravelActions.ordinary(player) || proposed.goalId() != predecessor.goalId()
+			|| proposed.revision() != predecessor.revision() + 1 || !Objects.equals(proposed.subject(), predecessor.subject())
+			|| live.instanceId() != player.getInstanceId() || live.x() != player.getX() || live.y() != player.getY() || live.z() != player.getZ()) { return false; }
+		final var lifetime = _materialization.findByCharacterObjectId(player.getObjectId()).orElse(null);
+		if (lifetime == null || !lifetime.actionAdmissionOpen() || !currentGoal(lifetime.profileId(), predecessor)) { return false; }
+		final var state = _background.acquisitionSnapshot(lifetime.profileId()).orElse(null);
+		final var anchor = _travel.topology().findAnchor(PhantomBackgroundGoalSpec.parse(proposed).anchorId()).orElse(null);
+		return state != null && state.state() == PhantomBackgroundState.State.MATERIALIZED && state.identity().characterObjectId() == player.getObjectId()
+			&& anchor != null && anchor.point().instanceId() == live.instanceId() && proposedStep(player, state.position().committedAnchorId(), anchor.id()) != null;
+	}
+
 	private PhantomNormalGatekeeperTravel.Step proposedStep(Player player, String committedAnchorId, String destination)
 	{
 		final var departure = departure(player, committedAnchorId);

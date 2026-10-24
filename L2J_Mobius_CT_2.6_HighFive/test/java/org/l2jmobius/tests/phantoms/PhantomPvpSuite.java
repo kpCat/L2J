@@ -256,6 +256,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		registry.add("06-known-unmapped-retreat-and-instance-guards", _ -> testUnmappedRetreat(false));
 		registry.add("07-retreat-resolves-authored-anchor-native-floor", _ -> testUnmappedRetreat(true));
 		registry.add("10-nearer-city-is-not-hidden-by-distant-respawn", _ -> testUnmappedRetreat(false, true));
+		registry.add("11-retreat-refuses-unverified-no-geodata", _ -> testUnmappedRetreat(false, false, true));
+		registry.add("12-tactical-retreat-walks-away-and-does-not-hide-pursuit", _ -> { testUnmappedRetreat(false, false, false, 1); testUnmappedRetreat(false, false, false, 2); });
+		registry.add("13-tactical-route-failures-are-finite-and-do-not-move", _ -> testUnmappedRetreat(false, false, false, 3));
 		registry.add("08-shortage-refuses-admission-and-retires-owned-offense", _ ->
 		{
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
@@ -296,6 +299,16 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static void testUnmappedRetreat(boolean resolveFloor, boolean nearerCity)
 	{
+		testUnmappedRetreat(resolveFloor, nearerCity, false);
+	}
+
+	private static void testUnmappedRetreat(boolean resolveFloor, boolean nearerCity, boolean noGeo)
+	{
+		testUnmappedRetreat(resolveFloor, nearerCity, noGeo, 0);
+	}
+
+	private static void testUnmappedRetreat(boolean resolveFloor, boolean nearerCity, boolean noGeo, int tacticalMode)
+	{
 		final var backend = new PhantomTopologyCoreSuite.TestBackend();
 		final var safe = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(100, 100, 0, 0);
 		final var anchor = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("retreat.safe", nearerCity ? org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER : org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, "dungeon", safe, null, null, 256, List.of(), List.of());
@@ -311,9 +324,10 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
 		{
 			final var requestedDestination = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint>();
+			final var requests = new java.util.concurrent.atomic.AtomicInteger();
 			final var navigationBackend = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
 			{
-				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return new CapabilitySnapshot(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_PATHFINDING, 1); }
+				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { requests.incrementAndGet(); return new CapabilitySnapshot(noGeo || tacticalMode == 3 ? org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.NO_GEODATA : org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_PATHFINDING, 1); }
 				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { requestedDestination.set(to); return from.instanceId() == to.instanceId(); }
 				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation) { return List.of(request.destination()); }
 			};
@@ -328,7 +342,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 					case 2 -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(hint.x() + 1, hint.y(), hint.z(), hint.instanceId()));
 					case 3 -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(hint.x(), hint.y(), hint.z(), 1));
 					case 4 -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(hint.x(), hint.y(), hint.z() - 257, hint.instanceId()));
-					default -> java.util.Optional.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(actualSafe.x(), actualSafe.y(), actualSafe.z(), actualSafe.instanceId()));
+					default -> java.util.Optional.of(tacticalMode > 0 && (hint.x() != safe.x() || hint.y() != safe.y()) ? hint : new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(actualSafe.x(), actualSafe.y(), actualSafe.z(), actualSafe.instanceId()));
 				};
 			});
 			try
@@ -340,6 +354,39 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				topology.updateProfile(1, outside, 1);
 				PhantomAssertions.assertFalse(topology.findProfile(1).orElseThrow().resolved(), "Fixture must be outside every authored topology node.");
 				fixture.lease.movementAllowed = true;
+				if (tacticalMode > 0)
+				{
+					final var threat = new java.util.concurrent.atomic.AtomicReference<>(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(2080, 2000, 0, 0));
+					var result = retreat.start(1, HASH, 30 * SECOND, () -> Optional.ofNullable(threat.get()), _ -> true);
+					if (tacticalMode == 3)
+					{
+						for (int attempt = 0; attempt < 10 && !result.terminal(); attempt++) { fixture.clock.addAndGet(SECOND); result = retreat.advance(1, HASH); }
+						PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.FAILED, result.status(), "Failed tactical and anchor candidates retried indefinitely.");
+						PhantomAssertions.assertEquals(7, requests.get(), "Retreat did not bound its six tactical candidates plus one anchor.");
+						PhantomAssertions.assertEquals(0, fixture.lease.movements, "Unproven tactical route issued movement.");
+						PhantomAssertions.assertEquals(0, retreat.activeCount(), "Finite failure retained retreat ownership.");
+						return;
+					}
+					final var escape = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(1400, 2000, 0, 0);
+					PhantomAssertions.assertEquals(escape, requestedDestination.get(), "Retreat did not try the short checkpoint away from the actual threat before a distant anchor.");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.MOVING, retreat.advance(1, HASH).status(), "Tactical route did not acquire the ordinary external movement lease.");
+					PhantomAssertions.assertEquals(1, fixture.lease.movements, "Tactical movement bypassed or duplicated its lease.");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.MOVING, retreat.advance(1, HASH).status(), "Tactical planning was mistaken for physical arrival.");
+					topology.updateProfile(1, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(escape.x(), escape.y(), escape.z(), 0), 2);
+					if (tacticalMode == 2) { threat.set(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(escape.x() + 80, escape.y(), escape.z(), 0)); }
+					result = retreat.advance(1, HASH);
+					PhantomAssertions.assertEquals(tacticalMode == 2 ? "pvp.retreat.tactical_pressure_persists" : "pvp.retreat.tactical_arrived", result.reasonKey(), "Tactical arrival hid continuing pursuit or confused the waypoint with a town.");
+					PhantomAssertions.assertEquals(tacticalMode == 2 ? org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.FAILED : org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.ARRIVED, result.status(), "Tactical result did not follow actual position and threat distance.");
+					PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Tactical completion leaked combat ownership.");
+					return;
+				}
+				if (noGeo)
+				{
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator.RetreatStatus.FAILED, retreat.start(1, HASH, 30 * SECOND).status(), "Unverified no-geodata route was admitted as a safe retreat.");
+					PhantomAssertions.assertEquals(0, fixture.lease.movements, "Unverified route issued native movement.");
+					PhantomAssertions.assertEquals(0, retreat.activeCount(), "Rejected route retained a pending retreat.");
+					return;
+				}
 				PhantomAssertions.assertFalse(retreat.start(1, HASH, 30 * SECOND).terminal(), "Known coordinates outside authored nodes were mistaken for stale position.");
 				PhantomAssertions.assertEquals(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(actualSafe.x(), actualSafe.y(), actualSafe.z(), actualSafe.instanceId()), requestedDestination.get(), "Retreat requested raw anchor Z instead of its confirmed native floor.");
 				PhantomAssertions.assertEquals("pvp.retreat.authority_stale", retreat.advance(1, "B".repeat(64)).reasonKey(), "Foreign authority advanced the retreat.");

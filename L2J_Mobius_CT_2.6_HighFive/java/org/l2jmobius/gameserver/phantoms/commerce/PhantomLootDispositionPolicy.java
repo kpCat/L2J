@@ -4,6 +4,7 @@ package org.l2jmobius.gameserver.phantoms.commerce;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.IntFunction;
 
@@ -113,10 +114,33 @@ public final class PhantomLootDispositionPolicy
 		}
 		if (template.isWeapon() || template.isArmor())
 		{
+			if (commonCrystalValue(template)) { return Disposition.CRYSTALLIZE; }
 			if (template.getCrystalType().getLevel() >= CrystalType.B.getLevel()) { return Disposition.WAREHOUSE; }
 			return template.isSellable() && template.getReferencePrice() > 1 ? Disposition.SELL_NPC : Disposition.KEEP;
 		}
 		return Disposition.KEEP;
+	}
+
+	/** Native Common metadata plus actual crystal output value, never a name/grade-only liquidation rule. */
+	private static boolean commonCrystalValue(ItemTemplate template)
+	{
+		if (template == null || !template.isCommon() || !template.isCrystallizable() || template.getCrystalCount() <= 0 || !template.isWeapon() && !template.isArmor()) { return false; }
+		final var crystal = ItemData.getInstance().getTemplate(template.getCrystalItemId());
+		return crystal != null && crystal.getReferencePrice() > 1 && Math.multiplyExact((long) crystal.getReferencePrice() / 2, template.getCrystalCount()) > template.getReferencePrice() / 2L;
+	}
+
+	/** A foreign listed object is only a quote; its eventual owned object must pass evaluate and native inspect again. */
+	public Optional<CrystallizationService.Preview> prospectiveCrystallization(Player buyer, Item offered, Set<Integer> neededItems)
+	{
+		if (buyer == null || offered == null || neededItems == null || offered.getOwnerId() <= 0 || offered.getOwnerId() == buyer.getObjectId()
+			|| offered.getItemLocation() != ItemLocation.INVENTORY || offered.isEquipped() || offered.isStackable() || offered.getCount() != 1 || offered.getEnchantLevel() > 0
+			|| offered.isAugmented() || offered.isShadowItem() || offered.isTimeLimitedItem() || offered.getElementals() != null && offered.getElementals().length > 0 || !offered.isTradeable()
+			|| buyer.isProcessingTransaction() || buyer.isInStoreMode() || buyer.hasPendingOwnedStore() || buyer.isCrafting() || protectedTemplate(offered.getTemplate()) || !commonCrystalValue(offered.getTemplate())
+			|| neededItems.contains(offered.getId()) || PhantomNativeEquipmentPolicy.upgrade(buyer, offered.getTemplate())
+			|| buyer.getCommonRecipeBook().stream().anyMatch(recipe -> java.util.Arrays.stream(recipe.getRecipes()).anyMatch(part -> part.getItemId() == offered.getId()))
+			|| buyer.getDwarvenRecipeBook().stream().anyMatch(recipe -> java.util.Arrays.stream(recipe.getRecipes()).anyMatch(part -> part.getItemId() == offered.getId()))) { return Optional.empty(); }
+		final var inspection = CrystallizationService.getInstance().inspectProspective(buyer, offered, 1);
+		return inspection.eligible() ? Optional.of(inspection.preview()) : Optional.empty();
 	}
 
 	public Decision evaluate(Player player, Item item, Set<Integer> neededItems, boolean reserved)
@@ -135,6 +159,12 @@ public final class PhantomLootDispositionPolicy
 			|| player.getDwarvenRecipeBook().stream().anyMatch(recipe -> java.util.Arrays.stream(recipe.getRecipes()).anyMatch(part -> part.getItemId() == item.getId()))
 			|| PhantomNativeEquipmentPolicy.upgrade(player, item.getTemplate())) { return keep("protected.need_or_replacement"); }
 		final var kind = category(item.getTemplate());
+		if (kind == Disposition.CRYSTALLIZE)
+		{
+			if (item.isStackable() || item.getCount() != 1) { return keep("protected.native_crystallization_count"); }
+			final var inspection = CrystallizationService.getInstance().inspect(player, item.getObjectId(), 1);
+			return inspection.eligible() ? new Decision(Disposition.CRYSTALLIZE, 1, "native.common_crystal_value") : keep("protected.native_crystallization_" + inspection.status().name().toLowerCase(java.util.Locale.ROOT));
+		}
 		if (kind == Disposition.KEEP)
 		{
 			if (inventoryPressure && item.getTemplate().getItemType() == EtcItemType.MATERIAL && _roles.containsKey(item.getId()) && !_crystals.contains(item.getId()) && !protectedTemplate(item.getTemplate()) && item.isDepositable(true)) { return new Decision(Disposition.WAREHOUSE, Math.min(600, item.getCount()), "native.pressure.known_resources_to_bank"); }

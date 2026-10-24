@@ -17,6 +17,9 @@ public final class PhantomLootDisposition068Checks
 		final var ordinaryJunk = ItemData.getInstance().getTemplate(1); // Stock no-grade Short Sword; evaluate() still protects equipped/needed items.
 		PhantomAssertions.assertTrue(ordinaryJunk != null && ordinaryJunk.getCrystalType().getLevel() == 0, "Ordinary junk control is not stock no-grade equipment.");
 		PhantomAssertions.assertEquals(Disposition.SELL_NPC, policy.category(ordinaryJunk), "Unneeded ordinary equipment lost its NPC liquidation category.");
+		final var commonB = ItemData.getInstance().getTemplate(12200);
+		PhantomAssertions.assertTrue(commonB != null && commonB.isCommon() && commonB.isCrystallizable() && commonB.getCrystalCount() == 5 && commonB.getCrystalItemId() == 1460, "Common12200 native crystal facts changed; the item name is not eligibility evidence.");
+		PhantomAssertions.assertEquals(Disposition.CRYSTALLIZE, policy.category(commonB), "Unused native Common B crystal-value candidate was hidden behind warehouse categorization; actual ownership/skill/inspection still gate evaluate/apply.");
 		final var lowParts = policy.recipeRoles().entrySet().stream().filter(entry -> entry.getValue().keyPart() && entry.getValue().highestProductGrade() >= 1 && entry.getValue().highestProductGrade() <= 2).toList();
 		PhantomAssertions.assertTrue(!lowParts.isEmpty(), "Actual D/C recipe matrix is empty.");
 		for (var entry : lowParts)

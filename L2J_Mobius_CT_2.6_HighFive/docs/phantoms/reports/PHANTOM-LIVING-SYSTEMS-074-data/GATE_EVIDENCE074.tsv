@@ -1,0 +1,7 @@
+gate	kind	result	evidence
+A	CONTRACT_PASS	PASS	PhantomSupply074Checks failed full checkpoint skip RED->GREEN
+B	CONTRACT_PASS	PASS	PhantomFarm074Checks local/global/fences/admission alternative
+C	NATIVE_EFFECT	PASS	original owned profile1 selection RED0->0 GREEN0->1; exact cleanup/store
+D	CONTRACT_PASS	PASS	pvp-combat13/13; native still NOT_RUN
+MARKET	CONTRACT_PASS	PASS	complete cost/native chance/no surplus credit
+CRYST	CONTRACT_PASS	PASS	actual12200 facts and disposition RED->GREEN; owned/native effect still NOT_RUN

@@ -10,6 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpConsequenceSnapshot;
@@ -83,6 +91,30 @@ public final class PhantomPvpContext
 	Optional<Snapshot> observeOwned(PhantomPvpModel.Encounter encounter, long logicalNanos)
 	{
 		return observe(encounter.profileId(), logicalNanos, encounter);
+	}
+
+	/** Exact owner/counterpart lookup only; retreat must not choose a direction from a stale target. */
+	Optional<PhantomNavigationPoint> retreatThreat(PhantomPvpModel.Encounter encounter)
+	{
+		final Player actor = retreatActor(encounter.profileId()); final var target = World.getInstance().getPlayer(encounter.counterpart().currentObjectId());
+		if (actor == null || target == null || target == actor || !target.isSpawned() || target.isAlikeDead() || target.isInvisible() || target.getInstanceId() != actor.getInstanceId() || actor.getWorldRegion() == null || !actor.getWorldRegion().isSurroundingRegion(target.getWorldRegion())) { return Optional.empty(); }
+		return Optional.of(PhantomNativeTravelActions.point(target));
+	}
+
+	boolean retreatWaypointSafe(long profileId, PhantomNavigationPoint waypoint)
+	{
+		final Player actor = retreatActor(profileId);
+		return actor != null && !actor.isInStoreMode() && !actor.hasPendingOwnedStore() && actor.getInstanceId() == waypoint.instanceId()
+			&& new L2jNavigationBackend().canWalkDirect(PhantomNativeTravelActions.point(actor), waypoint)
+			&& PhantomNativeTravelActions.safePveWalkSegment(actor, waypoint.x(), waypoint.y(), waypoint.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(actor, Monster.class, 1200)), Set.of());
+	}
+
+	private Player retreatActor(long profileId)
+	{
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if (lifetime == null || !lifetime.worldPresent() || !lifetime.actionAdmissionOpen()) { return null; }
+		final var actor = World.getInstance().getPlayer(lifetime.characterObjectId());
+		return actor != null && !actor.isAlikeDead() && actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent() ? actor : null;
 	}
 
 	private Optional<Snapshot> observe(long profileId, long logicalNanos, PhantomPvpModel.Encounter owned)

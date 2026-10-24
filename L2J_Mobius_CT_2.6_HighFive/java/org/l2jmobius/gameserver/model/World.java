@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
+import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.actor.instance.Pet;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.network.Disconnection;
@@ -92,6 +93,8 @@ public class World
 	
 	/** Map containing all the players in game. */
 	private static final Map<Integer, Player> _allPlayers = new ConcurrentHashMap<>();
+	/** Published native stores only; updated by the existing Player/World lifecycle, never by a scan. */
+	private static final Map<Integer, Player> _privateStorePlayers = new ConcurrentHashMap<>();
 	/** Map containing all the Good players in game. */
 	private static final Map<Integer, Player> _allGoodPlayers = new ConcurrentHashMap<>();
 	/** Map containing all the Evil players in game. */
@@ -182,6 +185,7 @@ public class World
 			}
 			
 			final Player existingPlayer = _allPlayers.putIfAbsent(object.getObjectId(), newPlayer);
+			if (existingPlayer == null) { updatePrivateStore(newPlayer); }
 			if (existingPlayer != null)
 			{
 				Disconnection.of(existingPlayer).storeAndDeleteWith(LeaveWorld.STATIC_PACKET);
@@ -218,6 +222,7 @@ public class World
 			}
 			
 			_allPlayers.remove(object.getObjectId());
+			_privateStorePlayers.remove(object.getObjectId(), player);
 			
 			if (FactionSystemConfig.FACTION_SYSTEM_ENABLED)
 			{
@@ -263,6 +268,22 @@ public class World
 	public Collection<Player> getPlayers()
 	{
 		return _allPlayers.values();
+	}
+
+	/** Complete store snapshot; its size is bounded by native World Player admission. */
+	public List<Player> getPrivateStorePlayers()
+	{
+		return List.copyOf(_privateStorePlayers.values());
+	}
+
+	/** Publication can precede offline logout; eligibility is rechecked by each consumer. */
+	public void updatePrivateStore(Player player)
+	{
+		_privateStorePlayers.compute(player.getObjectId(), (id, indexed) ->
+		{
+			if (_allPlayers.get(id) == player && (player.getPrivateStoreType() == PrivateStoreType.SELL || player.getPrivateStoreType() == PrivateStoreType.MANUFACTURE)) { return player; }
+			return indexed == player ? null : indexed;
+		});
 	}
 	
 	public Collection<Player> getAllGoodPlayers()

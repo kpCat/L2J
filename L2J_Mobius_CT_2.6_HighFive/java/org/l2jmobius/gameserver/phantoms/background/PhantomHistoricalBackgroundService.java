@@ -1320,8 +1320,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			else if (!authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
 			if ((recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now); return false; }
 			final var excluded = new java.util.HashSet<>(exclusions.targets()); excluded.addAll(recovery.targets);
+			if (routeRecovery) { excluded.add(targetKey(stored.goal())); }
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
-			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps());
+			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
+				candidate -> _planner.isVisibleLocal(candidate, live) || (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player)));
 			if (!replacement.ready()) { recovery.unavailable(now); return false; }
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			final var state = catchup.state();

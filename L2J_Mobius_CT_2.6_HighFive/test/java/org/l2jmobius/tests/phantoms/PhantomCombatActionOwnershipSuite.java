@@ -107,6 +107,8 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		registry.add("31-stopping-rejects-new-respawn", _ -> stoppingRejectsNewRespawn());
 		registry.add("32-in-flight-respawn-is-stop-barrier", _ -> inFlightRespawnIsStopBarrier());
 		registry.add("33-current-token-idle-respawn-succeeds", _ -> currentTokenIdleRespawnSucceeds());
+		registry.add("074-loot-preserves-native-nearest-first-order", _ -> lootPreservesNativeOrder());
+		registry.add("074-refused-pickup-releases-only-exact-item-before-next", _ -> refusedPickupContinues());
 	}
 
 	private static void explicitDispatchRejection()
@@ -415,6 +417,42 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		runUntilTerminal(fixture, dispatcher, 8);
 		PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY_LOOT_PARTIAL, fixture.service.find(1).orElseThrow().result(), "Partial loot did not require positive actor acquisition.");
 		fixture.stop();
+	}
+
+	private static void lootPreservesNativeOrder()
+	{
+		final ManualDispatcher dispatcher = new ManualDispatcher();
+		final FakeLease lease = new FakeLease();
+		// Native backend ranks a close new drop before an older distant item.
+		lease.loot = List.of(new LootCandidate(501, 57, 1, 0), new LootCandidate(500, 57, 1, 0));
+		final Fixture fixture = fixture(dispatcher, lease);
+		try
+		{
+			fixture.startLoot(); lease.target = deadTarget();
+			dispatcher.runNext(); dispatcher.runNext();
+			PhantomAssertions.assertEquals(501, lease.actionTargetId, "Combat discarded native collection priority for object ID order.");
+		}
+		finally { fixture.stop(); }
+	}
+
+	private static void refusedPickupContinues()
+	{
+		final ManualDispatcher dispatcher = new ManualDispatcher();
+		final FakeLease lease = new FakeLease();
+		lease.loot = List.of(new LootCandidate(500, 57, 1, 0), new LootCandidate(501, 1865, 1, 0));
+		lease.lootObservations.put(500, LootObservation.INELIGIBLE);
+		lease.lootObservations.put(501, LootObservation.ACQUIRED_BY_ACTOR);
+		final Fixture fixture = fixture(dispatcher, lease);
+		try
+		{
+			fixture.startLoot(); lease.target = deadTarget();
+			dispatcher.runNext(); dispatcher.runNext(); dispatcher.runNext();
+			PhantomAssertions.assertTrue(lease.cleanedAction != null && lease.cleanedAction.pickupObjectId() == 500, "Refused pickup retained its exact native action before another item.");
+			PhantomAssertions.assertEquals(501, lease.actionTargetId, "One native refusal blocked the next legal pickup.");
+			runUntilTerminal(fixture, dispatcher, 4);
+			PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY_LOOT_PARTIAL, fixture.service.find(1).orElseThrow().result(), "Refusal erased the next positively acquired item.");
+		}
+		finally { fixture.stop(); }
 	}
 
 	private static void positiveOneTargetSkillRejected()

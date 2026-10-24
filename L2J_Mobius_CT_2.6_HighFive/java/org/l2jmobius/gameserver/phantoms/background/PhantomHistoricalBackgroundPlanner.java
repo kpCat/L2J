@@ -105,13 +105,33 @@ public final class PhantomHistoricalBackgroundPlanner
 		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state));
 	}
 
-	/** Visible intent uses factual local anchors; native navigation still validates every leg. */
+	/** Prefer factual local anchors; exhaustion may propose an existing topology itinerary, never movement. */
 	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
 		final var previous = visiblePredecessor(profileId, previousGoal);
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state));
+		final var local = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live), PlanningCombat.from(state));
+		if (local.ready() || !"LOCAL_FARM_UNAVAILABLE".equals(local.reasonKey()) || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return local; }
+		// Use the same finite knowledge pages, native viability and route exclusions as historical
+		// planning. The foreground owner must separately admit the actual departure and paid legs.
+		final var distant = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(), idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(), idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state));
+		return distant.ready() ? new Result(distant.goal(), distant.spec(), distant.planIdentity(), distant.generation(), distant.routeEdgeIds(), "planner.topology_fallback") : distant;
+	}
+
+	/** Native foreground admission may reject a ranked itinerary without hiding the remaining sources. */
+	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted)
+	{
+		Objects.requireNonNull(admitted, "admitted");
+		final var excluded = new java.util.HashSet<>(excludedTargets);
+		for (int attempt = 0; attempt < 3; attempt++)
+		{
+			final var candidate = replanVisibleLocal(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, excluded, excludedSteps);
+			if (!candidate.ready() || admitted.test(candidate.goal())) { return candidate; }
+			excluded.add(candidate.spec().npcId() + "@" + candidate.spec().anchorId());
+		}
+		return Result.blocked("planner.visible_route.unavailable");
 	}
 	/** Historical idle is a predecessor only, never a visible farming candidate. */
 	static PhantomBackgroundGoalSpec visiblePredecessor(long profileId, PhantomGoal goal)

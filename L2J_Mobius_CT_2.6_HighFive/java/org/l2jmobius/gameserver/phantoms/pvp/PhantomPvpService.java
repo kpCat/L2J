@@ -437,7 +437,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			return;
 		}
 		final long duration = Math.multiplyExact(_policy.limits().retreatTimeoutSeconds(), NANOS_PER_SECOND);
-		final RetreatResult result = _retreat.start(updated.profileId(), updated.encounter().authorityHash(), duration);
+		final RetreatResult result = _retreat.start(updated.profileId(), updated.encounter().authorityHash(), duration, () -> _context.retreatThreat(updated.encounter()), point -> _context.retreatWaypointSafe(updated.profileId(), point));
 		_retreats.increment();
 		if (result.terminal())
 		{
