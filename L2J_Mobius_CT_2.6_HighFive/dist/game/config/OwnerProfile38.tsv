@@ -1,0 +1,39 @@
+section	file	key_or_range	value	note
+PLAYER	dist/game/config/Player.ini	AltWeightLimit	100	int cast safety, global Player/Pet
+PLAYER	dist/game/config/Player.ini	MaxPvtStoreSellSlotsDwarf	20	client GUI QA pending 30/50 trials
+PLAYER	dist/game/config/Player.ini	MaxPvtStoreSellSlotsOther	20	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaxPvtStoreBuySlotsDwarf	20	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaxPvtStoreBuySlotsOther	20	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaximumSlotsForNoDwarf	200	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaximumSlotsForDwarf	250	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaximumSlotsForGMPlayer	250	retain to avoid packet max growth
+PLAYER	dist/game/config/Player.ini	MaximumSlotsForQuestItems	200	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForDwarf	250	strict under 300 inclusive WH_LIM if applicable
+PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForNoDwarf	250	strict under 300
+PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForClan	250	strict under 300
+PLAYER	dist/game/config/Player.ini	MaximumFreightSlots	200	keep; 250 only after acceptance
+PLAYER	dist/game/config/Player.ini	DwarfRecipeLimit	100	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	CommonRecipeLimit	100	client GUI QA pending
+ENCHANT	dist/game/data/EnchantItemGroups.xml	ARMOR_GROUP/FIGHTER_WEAPON_GROUP/MAGE_WEAPON_GROUP.current	0-2:100;3-9:85;10-15:70;16-24:66;25-65535:0	levels are pre-attempt levels
+ENCHANT	dist/game/data/EnchantItemGroups.xml	FULL_ARMOR_GROUP.current	0-3:100;4-9:85;10-15:70;16-24:66;25-65535:0	full armor +4 safe
+ENCHANT	dist/game/data/EnchantItemData.xml	standard scroll maxEnchant previously16	25	do not touch special max=10,15,23,50
+ENCHANT	dist/game/config/Player.ini	DisableOverEnchanting	True	leave protection ON
+ENCHANT	dist/game/config/Player.ini	OverEnchantProtection	True	+25 must be recognized legal
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	EnableServitorShareBonusTuning	True	new configurable global effect1557 only
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorSharePAtkBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorSharePDefBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMAtkBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMDefBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxHpBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxMpBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxRecoverableHpBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxRecoverableMpBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareCritRateBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorSharePAtkSpdBonusMultiplier	2.0	1.0=stock
+SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMAtkSpdBonusMultiplier	2.0	1.0=stock
+STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromPlayer	50	current default already 50; respect in all stores
+STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromNpc	100	current default already100
+STORE	dist/game/config/Custom/PhantomMerchants.ini	MerchantLinesPerStore	20	needs compatible code change hard limit8; no static fallback to3
+CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	EnablePersonalWondrousCubicCooldown	False	preserve allowlist-based owner choice
+CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	PersonalWondrousCubicCooldownMinutes	60	already exists, keep
+QUEST	dist/game/config/Rates.ini	Quest rates (all keys)	PRESERVE_EXISTING_VALUES	never invent lost rates; source currently1

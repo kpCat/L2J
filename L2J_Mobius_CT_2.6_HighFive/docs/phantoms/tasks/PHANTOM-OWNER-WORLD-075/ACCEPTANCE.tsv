@@ -1,0 +1,10 @@
+gate	priority	pass_condition	truthful_nonpass
+A_PROFILE	HARD	Tracked owner source settings and manifest applied across normal build and candidate; known Player.ini values loaded; all 38 bundled OWNER_PROFILE_38.tsv rules reconciled with real tracked sources and effective candidate values	PARTIAL if any of 38 rules not reconciled/effective, source/candidate drifts, or secrets overwritten
+B_ENCHANT	HARD	Normal scrolls +25 and 100/85/70/66 range correct; no bypass with bonusRate100; special scrolls protected	PARTIAL if any overcap or special regression
+B_SERVITOR_SHARE	HARD	11 independent stat multipliers, default2, stock1 parity, lifecycle safe	PARTIAL on wrong stat/parity/cross-skill
+C_QUESTS	HARD	Goal037 current quest-rate behavior audited and Q00298 repeat high-level/no reward-cap proven if previously supported; Q00186 distinguished	PARTIAL if unknown/lost fix, no invented proof
+D_LIVE_OFFLINE	PRODUCT	Regular earned-income phantom converts at shift-end to real offline vendor and exits, safe spacing, same actor/items and native trade; no free seeds	PARTIAL on lifecycle/seller/stock/owner blocker
+E_DOWNTIME	PRODUCT	Bounded, causal, durable offline-gap catch-up with restart idempotency; no fictitious sales/dups	PARTIAL on missing lawful witness or unsafe resume
+F_ITEM_BROKER	OPTIONAL	Native SELL/BUY/CRAFT filter + marker if client supports, no ItemAuction change	DEFERRED if no client-native path
+SAFETY	HARD	No old DB/candidates/users/secrets modified, no runtime collisions, no unauthorized git ops, stopped owned processes	BLOCKED on any unsafe change
+DELIVERY	HARD	One report, exact staging and ordinary nonforce feature push, clean tracked status, no automatic 076	PARTIAL on unshipped product code

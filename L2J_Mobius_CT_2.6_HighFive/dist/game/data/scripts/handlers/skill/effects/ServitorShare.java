@@ -22,7 +22,10 @@ package handlers.skill.effects;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
+import org.l2jmobius.gameserver.config.custom.ServitorShareConfig;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -33,6 +36,8 @@ import org.l2jmobius.gameserver.model.effects.EffectFlag;
 import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.stats.Stat;
+import org.l2jmobius.gameserver.model.stats.functions.AbstractFunction;
+import org.l2jmobius.gameserver.model.stats.functions.FuncMul;
 
 /**
  * Servitor Share effect implementation.<br>
@@ -67,12 +72,30 @@ public class ServitorShare extends AbstractEffect
 	}
 	
 	@Override
+	public List<AbstractFunction> getStatFuncs(Creature caster, Creature target, Skill skill)
+	{
+		final List<AbstractFunction> functions = new ArrayList<>();
+		for (AbstractFunction function : super.getStatFuncs(caster, target, skill))
+		{
+			// These two XML coefficients are native Mul functions, not share-map entries.
+			if (skill.getId() == 1557 && (function.getStat() == Stat.MAX_RECOVERABLE_HP || function.getStat() == Stat.MAX_RECOVERABLE_MP))
+			{
+				functions.add(new FuncMul(function.getStat(), function.getOrder(), this, ServitorShareConfig.settings().coefficient(skill.getId(), function.getStat(), function.getValue()), function.getApplyCond()));
+			}
+			else { functions.add(function); }
+		}
+		return functions;
+	}
+
+	@Override
 	public void onStart(Creature effector, Creature effected, Skill skill)
 	{
 		super.onStart(effector, effected, skill);
 		
 		final Player player = effected.asPlayer();
-		player.setServitorShare(_stats);
+		final Map<Stat, Double> stats = new HashMap<>();
+		_stats.forEach((stat, stock) -> stats.put(stat, ServitorShareConfig.settings().coefficient(skill.getId(), stat, stock)));
+		player.setServitorShare(Map.copyOf(stats));
 		
 		final Summon summon = player.getSummon();
 		if (summon != null)

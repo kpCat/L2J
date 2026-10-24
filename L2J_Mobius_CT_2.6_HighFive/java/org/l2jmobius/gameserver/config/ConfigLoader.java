@@ -63,6 +63,7 @@ import org.l2jmobius.gameserver.config.custom.SchemeBufferConfig;
 import org.l2jmobius.gameserver.config.custom.ScreenWelcomeMessageConfig;
 import org.l2jmobius.gameserver.config.custom.SellBuffsConfig;
 import org.l2jmobius.gameserver.config.custom.ServerTimeConfig;
+import org.l2jmobius.gameserver.config.custom.ServitorShareConfig;
 import org.l2jmobius.gameserver.config.custom.StartingLocationConfig;
 import org.l2jmobius.gameserver.config.custom.StartingTitleConfig;
 import org.l2jmobius.gameserver.config.custom.TransmogConfig;
@@ -143,6 +144,7 @@ public class ConfigLoader
 		ScreenWelcomeMessageConfig.load();
 		SellBuffsConfig.load();
 		ServerTimeConfig.load();
+		ServitorShareConfig.load();
 		StartingLocationConfig.load();
 		StartingTitleConfig.load();
 		TransmogConfig.load();

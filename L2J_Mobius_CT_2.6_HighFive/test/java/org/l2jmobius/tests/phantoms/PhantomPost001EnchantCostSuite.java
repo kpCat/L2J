@@ -95,7 +95,7 @@ public final class PhantomPost001EnchantCostSuite implements PhantomTestSuite
 			{
 				try
 				{
-					if (scroll.isValid(item, 3, null) && (scroll.getChance(item, 3) == 66))
+					if (scroll.isValid(item, 3, null) && (scroll.getChance(item, 3) == 85))
 					{
 						candidates.add(item);
 					}
@@ -110,7 +110,7 @@ public final class PhantomPost001EnchantCostSuite implements PhantomTestSuite
 			near(1, steps.get(0).routes().get(0).chance());
 			near(1, steps.get(1).routes().get(0).chance());
 			near(1, steps.get(2).routes().get(0).chance());
-			near(.66, steps.get(3).routes().get(0).chance());
+			near(.85, steps.get(3).routes().get(0).chance());
 			final Quote quote = PhantomEnchantExpectedCost.quote(100, steps);
 			if ((quote.itemsDestroyed() <= 0) || (quote.scrollCounts().get(955) <= 4))
 			{

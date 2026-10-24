@@ -165,7 +165,13 @@
 		<mkdir dir="${build.bin}" />
 	</target>
 
-	<target name="compile" depends="init" description="Compile the source.">
+	<target name="owner-profile-validate" depends="checkRequirements" description="Validate all 38 tracked owner rules before compiling any source.">
+		<java fork="true" failonerror="true" sourcefile="${basedir}/java/org/l2jmobius/gameserver/config/OwnerProfileVerifier.java">
+			<arg value="${basedir}/dist/game" />
+		</java>
+	</target>
+
+	<target name="compile" depends="owner-profile-validate,init" description="Compile the source.">
 		<javac srcdir="${src}" classpathref="classpath" destdir="${build.bin}" compiler="modern" debug="true" debuglevel="lines,vars,source" includeantruntime="false" source="25" target="25" encoding="UTF-8" />
 	</target>
 

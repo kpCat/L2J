@@ -47,7 +47,7 @@ public record PhantomStorePlan(Type type, State state, String title, List<Line> 
 		Objects.requireNonNull(state);
 		title = Objects.requireNonNull(title);
 		lines = List.copyOf(lines);
-		if ((title.getBytes(StandardCharsets.UTF_8).length > 64) || lines.isEmpty() || (lines.size() > 16) || (expiresEpochMillis <= 0) || (contentHash == null) || !contentHash.matches("[0-9a-f]{64}") || !contentHash.equals(hash(type, title, lines, expiresEpochMillis)))
+		if ((title.getBytes(StandardCharsets.UTF_8).length > 64) || lines.isEmpty() || (lines.size() > 20) || (expiresEpochMillis <= 0) || (contentHash == null) || !contentHash.matches("[0-9a-f]{64}") || !contentHash.equals(hash(type, title, lines, expiresEpochMillis)))
 		{
 			throw new IllegalArgumentException("Invalid Phantom store plan.");
 		}
@@ -110,7 +110,7 @@ public record PhantomStorePlan(Type type, State state, String title, List<Line> 
 			final long expiry = input.readLong();
 			final String hash = input.readUTF();
 			final int count = input.readInt();
-			if ((count < 1) || (count > 16))
+			if ((count < 1) || (count > 20))
 			{
 				throw new IllegalArgumentException("Invalid Phantom store plan line count.");
 			}

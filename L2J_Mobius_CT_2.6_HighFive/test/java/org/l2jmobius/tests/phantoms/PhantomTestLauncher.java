@@ -499,6 +499,7 @@ public final class PhantomTestLauncher
 			case "economy-multiparty-restart-fault" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.RESTART_FAULT);
 			case "economy-checkpoint2-performance" -> new PhantomMultipartyEconomySuite(PhantomMultipartyEconomySuite.Mode.PERFORMANCE);
 			case "post001-enchant-cost" -> new PhantomPost001EnchantCostSuite();
+			case "owner-world075" -> new PhantomOwnerWorld075Suite();
 			case "post001-market-quote" -> new PhantomPost001MarketQuoteSuite();
 			case "champion068-policy" -> new ChampionMonsters068PolicySuite();
 			case "economy068-pricing" -> new PhantomEconomy068PricingSuite();

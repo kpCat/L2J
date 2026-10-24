@@ -150,6 +150,9 @@ foreach ($file in $patches.Keys) {foreach ($key in $patches[$file].Keys) {Set-In
 Copy-Item -LiteralPath (Join-Path $tools 'runtime.local.ini.template') -Destination (Join-Path $output 'runtime.local.ini')
 Set-Ini (Join-Path $output 'runtime.local.ini') 'JavaHome' $JavaHome
 Set-Ini (Join-Path $output 'runtime.local.ini') 'DatabaseName' $DatabaseName
+# Validate the effective copied profile after all private overrides, before package publication.
+& (Join-Path $JavaHome 'bin/java.exe') -cp (Join-Path $output 'libs/GameServer.jar') org.l2jmobius.gameserver.config.OwnerProfileVerifier (Join-Path $output 'game')
+if ($LASTEXITCODE -ne 0) {throw 'Owner profile of copied package differs from tracked source; publication refused.'}
 $gameHash=(Get-FileHash (Join-Path $output 'libs/GameServer.jar')).Hash
 $loginHash=(Get-FileHash (Join-Path $output 'libs/LoginServer.jar')).Hash
 [ordered]@{format=1;codeSha=$commit;databaseName=$DatabaseName;databaseConfig='USER_CONFIRMED_EXISTING';gameJarSha256=$gameHash;loginJarSha256=$loginHash;observerCharacter=$ObserverCharacter} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'local-play.json') -Encoding UTF8

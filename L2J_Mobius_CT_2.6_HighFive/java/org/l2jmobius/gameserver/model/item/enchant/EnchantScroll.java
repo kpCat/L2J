@@ -101,6 +101,7 @@ public class EnchantScroll extends AbstractEnchantItem
 	@Override
 	public boolean isValid(Item itemToEnchant, EnchantSupportItem supportItem)
 	{
+		if (itemToEnchant == null || !withinOrdinaryLimit(itemToEnchant.getEnchantLevel())) { return false; }
 		if (!_items.isEmpty() && !_items.containsKey(itemToEnchant.getId()))
 		{
 			return false;
@@ -144,6 +145,7 @@ public class EnchantScroll extends AbstractEnchantItem
 	/** Exact background validation over immutable template and enchant facts. */
 	public boolean isValid(ItemTemplate itemToEnchant, int enchantLevel, EnchantSupportItem supportItem)
 	{
+		if (itemToEnchant == null || !withinOrdinaryLimit(enchantLevel)) { return false; }
 		if (!_items.isEmpty() && !_items.containsKey(itemToEnchant.getId()))
 		{
 			return false;
@@ -166,6 +168,12 @@ public class EnchantScroll extends AbstractEnchantItem
 			}
 		}
 		return super.isValid(itemToEnchant, enchantLevel);
+	}
+
+	private boolean withinOrdinaryLimit(int enchantLevel)
+	{
+		// Explicit item-bound event routes retain their own cap. Bonus scrolls cannot bypass the ordinary route.
+		return !_items.isEmpty() || _scrollGroupId != 0 || enchantLevel < 25;
 	}
 	
 	/**
