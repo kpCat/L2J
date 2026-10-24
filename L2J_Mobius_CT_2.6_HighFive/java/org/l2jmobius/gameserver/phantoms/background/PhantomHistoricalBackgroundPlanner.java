@@ -245,6 +245,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
+		final Set<String> seenCandidates = new java.util.HashSet<>();
 		final Map<Integer, Boolean> viability = new java.util.HashMap<>();
 		for (int radius : LOWER_LEVEL_TIERS)
 		{
@@ -252,7 +253,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 			{
 				final KnowledgePage<TargetFact> page = targets(Math.max(1, level - radius), maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
-				if (live == null) { addCandidates(candidates, currentAnchorId, page.values()); }
+				if (live == null) { addCandidates(candidates, seenCandidates, currentAnchorId, page.values()); }
 				else { addLocalCandidates(candidates, live, page.values()); }
 				candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains) || (combat != null && !viability.computeIfAbsent(candidate.target().npc().npcId(), npcId -> _authority.viableTarget(combat, npcId))));
 				cursor = page.nextCursor();
@@ -269,8 +270,8 @@ public final class PhantomHistoricalBackgroundPlanner
 			candidates.sort(Comparator.comparingLong((Candidate value) -> localFarmDistance(value.anchor(), live)).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
 			if (candidates.size() > 8) { candidates.subList(8, candidates.size()).clear(); }
 		}
-		candidates.sort(Comparator.comparingLong((Candidate value) -> live == null ? 0 : localFarmDistance(value.anchor(), live)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
-		final Candidate selected = candidates.getFirst();
+		if (live != null) { candidates.sort(Comparator.comparingLong((Candidate value) -> localFarmDistance(value.anchor(), live)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id())); }
+		final Candidate selected = live == null ? selectGlobal(candidates, profileId, deterministicSeed, planOrdinal, level) : candidates.getFirst();
 		final Map<String, Long> constraints = new LinkedHashMap<>();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, shotItemId, PhantomBackgroundGoalSpec.SHOT_COUNT, shotsPerEncounter);
 		if (summonNpcId > 0)
@@ -313,7 +314,49 @@ public final class PhantomHistoricalBackgroundPlanner
 		return _knowledge.suitableTargets(new TargetQuery(minimum, maximum, level, null, null, Set.of(NpcKind.MONSTER), true, true, null, null, null, page));
 	}
 
-	private void addCandidates(List<Candidate> candidates, String currentAnchorId, List<TargetFact> targets)
+	/** Comparable alternatives only; one geographic hash prevents NPC multiplicity from buying extra tickets. */
+	private static Candidate selectGlobal(List<Candidate> candidates, long profileId, long seed, long ordinal, int level)
+	{
+		final Candidate reference = candidates.stream().min(Comparator.comparingInt((Candidate value) -> Math.abs(value.target().npc().level() - level))
+			.thenComparingInt(value -> value.routeEdgeIds().size()).thenComparingLong(Candidate::travelMillis).thenComparingLong(Candidate::feeAdena)
+			.thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id())).orElseThrow();
+		final int delta = Math.abs(reference.target().npc().level() - level);
+		// At most one extra leg/level delta, +30..120s and no higher quoted GK fee.
+		final long maximumTravel = reference.travelMillis() + Math.clamp(reference.travelMillis() / 2, 30_000L, 120_000L);
+		Candidate selected = reference;
+		double bestRank = Double.POSITIVE_INFINITY;
+		final Map<String, Double> geography = new java.util.HashMap<>();
+		for (Candidate candidate : candidates)
+		{
+			final int levelDelta = Math.abs(candidate.target().npc().level() - level);
+			if ((levelDelta > delta + 1) || (candidate.routeEdgeIds().size() > reference.routeEdgeIds().size() + 1)
+				|| (candidate.travelMillis() > maximumTravel) || (candidate.feeAdena() > reference.feeAdena())
+				|| (candidate.target().npc().exp() < reference.target().npc().exp() * 0.5) || (candidate.target().npc().sp() < reference.target().npc().sp() * 0.5)) { continue; }
+			final double reward = reference.target().npc().exp() > 0 ? candidate.target().npc().exp() / reference.target().npc().exp()
+				: reference.target().npc().sp() > 0 ? candidate.target().npc().sp() / reference.target().npc().sp() : 1;
+			// Configured source population is a bounded preference, never a claim of live occupancy/density.
+			final long amount = candidate.target().representativeAreas().stream().filter(area -> candidate.anchor().nodeId().equals(area.topologyNodeId()))
+				.mapToLong(area -> area.totalConfiguredAmount()).max().orElse(1);
+			final double weight = Math.clamp(reward, 0.5, 1.5) * (1 + 0.15 * StrictMath.log1p(Math.min(16, amount)) / StrictMath.log(2))
+				/ (1 + 0.35 * (levelDelta - delta))
+				/ (1 + Math.max(0, candidate.travelMillis() - reference.travelMillis()) / 60_000.0)
+				/ (1 + 0.15 * Math.max(0, candidate.routeEdgeIds().size() - reference.routeEdgeIds().size()));
+			final double exponential = geography.computeIfAbsent(candidate.anchor().id(), anchor ->
+			{
+				final long bits = positiveLong(digest("BACKGROUND_GEOGRAPHY_RANK_V1", profileId, seed, ordinal, anchor)) >>> 11;
+				return -StrictMath.log((bits + 1.0) / ((1L << 52) + 1.0));
+			});
+			final double rank = exponential / weight;
+			if ((rank < bestRank) || ((rank == bestRank) && (candidate.target().npc().npcId() < selected.target().npc().npcId()))
+				|| ((rank == bestRank) && (candidate.target().npc().npcId() == selected.target().npc().npcId()) && candidate.anchor().id().compareTo(selected.anchor().id()) < 0))
+			{
+				selected = candidate; bestRank = rank;
+			}
+		}
+		return selected;
+	}
+
+	private void addCandidates(List<Candidate> candidates, Set<String> seen, String currentAnchorId, List<TargetFact> targets)
 	{
 		for (TargetFact target : targets)
 		{
@@ -321,6 +364,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			{
 				for (PhantomTopologyAnchor anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()).stream().filter(value -> (value.role() == PhantomTopologyAnchorRole.FARMING) && (value.point().instanceId() == 0) && ((value.npcId() == null) || (value.npcId() == target.npc().npcId()))).toList())
 				{
+					if (!seen.add(target.npc().npcId() + "@" + anchor.id())) { continue; }
 					final Candidate candidate = candidate(currentAnchorId, target, anchor.id());
 					if (candidate != null)
 					{
@@ -344,7 +388,8 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return null;
 		}
-		return new Candidate(target, anchor, route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList());
+		return new Candidate(target, anchor, route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList(), route.stream().mapToLong(PhantomNormalGatekeeperTravel.Step::travelMillis).sum(),
+			route.stream().filter(step -> step.gatekeeper() != null).mapToLong(step -> step.gatekeeper().feeCount()).sum());
 	}
 
 	private void addLocalCandidates(List<Candidate> candidates, PhantomTopologyPoint live, List<TargetFact> targets)
@@ -359,7 +404,7 @@ public final class PhantomHistoricalBackgroundPlanner
 					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (localFarmDistance(anchor, live) <= 4_000_000L)
 						&& ((anchor.npcId() == null) || (anchor.npcId() == target.npc().npcId())))
 					{
-						final var candidate = new Candidate(target, anchor, List.of());
+						final var candidate = new Candidate(target, anchor, List.of(), 0, 0);
 						if (!candidates.contains(candidate)) { candidates.add(candidate); }
 					}
 				}
@@ -409,7 +454,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 	}
 
-	private record Candidate(TargetFact target, PhantomTopologyAnchor anchor, List<String> routeEdgeIds)
+	private record Candidate(TargetFact target, PhantomTopologyAnchor anchor, List<String> routeEdgeIds, long travelMillis, long feeAdena)
 	{
 		private Candidate
 		{
