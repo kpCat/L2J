@@ -22,9 +22,12 @@ package org.l2jmobius.gameserver.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -36,6 +39,7 @@ import org.l2jmobius.gameserver.ai.CreatureAI;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.config.custom.FactionSystemConfig;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
+import org.l2jmobius.gameserver.data.xml.RecipeData;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -95,6 +99,10 @@ public class World
 	private static final Map<Integer, Player> _allPlayers = new ConcurrentHashMap<>();
 	/** Published native stores only; updated by the existing Player/World lifecycle, never by a scan. */
 	private static final Map<Integer, Player> _privateStorePlayers = new ConcurrentHashMap<>();
+	private static final Map<Integer, Set<Integer>> _privateStoreProducts = new HashMap<>();
+	private static final Map<Integer, Set<Integer>> _privateStoreCrystals = new HashMap<>();
+	private static final Map<Integer, PrivateStorePublication> _privateStorePublications = new HashMap<>();
+	private static volatile PrivateStoreSnapshot _privateStoreSnapshot = new PrivateStoreSnapshot(List.of(), Map.of(), Map.of());
 	/** Map containing all the Good players in game. */
 	private static final Map<Integer, Player> _allGoodPlayers = new ConcurrentHashMap<>();
 	/** Map containing all the Evil players in game. */
@@ -222,7 +230,7 @@ public class World
 			}
 			
 			_allPlayers.remove(object.getObjectId());
-			_privateStorePlayers.remove(object.getObjectId(), player);
+			removePrivateStore(player);
 			
 			if (FactionSystemConfig.FACTION_SYSTEM_ENABLED)
 			{
@@ -270,21 +278,110 @@ public class World
 		return _allPlayers.values();
 	}
 
-	/** Complete store snapshot; its size is bounded by native World Player admission. */
+	/** Complete cached publication snapshot; no World scan, radius or owner truncation. */
 	public List<Player> getPrivateStorePlayers()
 	{
-		return List.copyOf(_privateStorePlayers.values());
+		return _privateStoreSnapshot.owners();
+	}
+
+	/** Exact native SELL item and MANUFACTURE product membership, captured on publication. */
+	public List<Player> getPrivateStorePlayers(Set<Integer> itemIds)
+	{
+		final var snapshot = _privateStoreSnapshot;
+		if (itemIds.size() == 1) { return snapshot.products().getOrDefault(itemIds.iterator().next(), List.of()); }
+		final var owners = new HashMap<Integer, Player>();
+		for (int itemId : itemIds) { for (var owner : snapshot.products().getOrDefault(itemId, List.of())) { owners.put(owner.getObjectId(), owner); } }
+		return List.copyOf(owners.values());
+	}
+
+	/** Native crystal-output membership is only a candidate index; eligibility is rechecked by the buyer. */
+	public List<Player> getPrivateStoreCrystalPlayers(int crystalItemId)
+	{
+		return _privateStoreSnapshot.crystals().getOrDefault(crystalItemId, List.of());
 	}
 
 	/** Publication can precede offline logout; eligibility is rechecked by each consumer. */
 	public void updatePrivateStore(Player player)
 	{
-		_privateStorePlayers.compute(player.getObjectId(), (id, indexed) ->
+		final var publication = new PrivateStorePublication(player);
+		synchronized (_privateStorePlayers)
 		{
-			if (_allPlayers.get(id) == player && (player.getPrivateStoreType() == PrivateStoreType.SELL || player.getPrivateStoreType() == PrivateStoreType.MANUFACTURE)) { return player; }
-			return indexed == player ? null : indexed;
-		});
+			if (_allPlayers.get(player.getObjectId()) != player) { return; }
+			_privateStorePublications.put(player.getObjectId(), publication);
+		}
+		final var type = player.getPrivateStoreType();
+		final var products = new HashSet<Integer>();
+		final var crystals = new HashSet<Integer>();
+		// Capture native collections before the index monitor. Native commerce may publish
+		// while holding its own collection lock; readers never acquire either lock.
+		if (type == PrivateStoreType.SELL)
+		{
+			for (var line : player.getSellList().getItems())
+			{
+				if (line.getItem() == null) { continue; }
+				products.add(line.getItem().getId());
+				if (line.getItem().isCrystallizable() && line.getItem().getCrystalItemId() > 0) { crystals.add(line.getItem().getCrystalItemId()); }
+			}
+		}
+		else if (type == PrivateStoreType.MANUFACTURE)
+		{
+			final var items = player.getManufactureItems();
+			synchronized (items)
+			{
+				for (var listing : items.values())
+				{
+					final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
+					if (recipe != null) { products.add(recipe.getItemId()); }
+				}
+			}
+		}
+		synchronized (_privateStorePlayers)
+		{
+			if (_privateStorePublications.get(player.getObjectId()) != publication) { return; }
+			_privateStorePublications.remove(player.getObjectId());
+			if (_allPlayers.get(player.getObjectId()) == player && player.getPrivateStoreType() == type && (type == PrivateStoreType.SELL || type == PrivateStoreType.MANUFACTURE))
+			{
+				if (_privateStorePlayers.get(player.getObjectId()) == player && products.equals(_privateStoreProducts.get(player.getObjectId())) && crystals.equals(_privateStoreCrystals.get(player.getObjectId()))) { return; }
+				_privateStorePlayers.put(player.getObjectId(), player);
+				_privateStoreProducts.put(player.getObjectId(), Set.copyOf(products));
+				_privateStoreCrystals.put(player.getObjectId(), Set.copyOf(crystals));
+			}
+			else if (_privateStorePlayers.remove(player.getObjectId(), player))
+			{
+				_privateStoreProducts.remove(player.getObjectId()); _privateStoreCrystals.remove(player.getObjectId());
+			}
+			else { return; }
+			refreshPrivateStoreSnapshot();
+		}
 	}
+
+	private static void removePrivateStore(Player player)
+	{
+		synchronized (_privateStorePlayers)
+		{
+			final var publication = _privateStorePublications.get(player.getObjectId());
+			if (publication != null && publication.owner() == player) { _privateStorePublications.remove(player.getObjectId()); }
+			if (!_privateStorePlayers.remove(player.getObjectId(), player)) { return; }
+			_privateStoreProducts.remove(player.getObjectId()); _privateStoreCrystals.remove(player.getObjectId());
+			refreshPrivateStoreSnapshot();
+		}
+	}
+
+	private static void refreshPrivateStoreSnapshot()
+	{
+		final var owners = _privateStorePlayers.values().stream().sorted(java.util.Comparator.comparingInt(Player::getObjectId)).toList();
+		final var products = new HashMap<Integer, List<Player>>(); final var crystals = new HashMap<Integer, List<Player>>();
+		for (var owner : owners)
+		{
+			for (int itemId : _privateStoreProducts.getOrDefault(owner.getObjectId(), Set.of())) { products.computeIfAbsent(itemId, ignored -> new ArrayList<>()).add(owner); }
+			for (int itemId : _privateStoreCrystals.getOrDefault(owner.getObjectId(), Set.of())) { crystals.computeIfAbsent(itemId, ignored -> new ArrayList<>()).add(owner); }
+		}
+		products.replaceAll((itemId, values) -> List.copyOf(values)); crystals.replaceAll((itemId, values) -> List.copyOf(values));
+		_privateStoreSnapshot = new PrivateStoreSnapshot(owners, Map.copyOf(products), Map.copyOf(crystals));
+	}
+
+	private record PrivateStorePublication(Player owner) { }
+	private record PrivateStoreSnapshot(List<Player> owners, Map<Integer, List<Player>> products, Map<Integer, List<Player>> crystals) { }
 	
 	public Collection<Player> getAllGoodPlayers()
 	{

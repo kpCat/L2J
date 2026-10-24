@@ -111,6 +111,12 @@ public abstract class AbstractAI
 	{
 		return _intention;
 	}
+
+	/** Exact native pickup identity; a Player's selected target is an independent pointer. */
+	public synchronized boolean isPickingUp(WorldObject exact)
+	{
+		return exact != null && _intention == Intention.PICK_UP && _intentionArg0 == exact && _target == exact;
+	}
 	
 	/**
 	 * Set the Intention of this AbstractAI.<br>

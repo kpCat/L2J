@@ -109,6 +109,8 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		registry.add("33-current-token-idle-respawn-succeeds", _ -> currentTokenIdleRespawnSucceeds());
 		registry.add("074-loot-preserves-native-nearest-first-order", _ -> lootPreservesNativeOrder());
 		registry.add("074-refused-pickup-releases-only-exact-item-before-next", _ -> refusedPickupContinues());
+		registry.add("074-busy-cast-pickup-retries-same-item-within-budget", _ -> busyPickupRetriesWithinBudget());
+		registry.add("074-native-pickup-target-preserves-divergent-selection", _ -> nativePickupPreservesDivergentSelection());
 	}
 
 	private static void explicitDispatchRejection()
@@ -455,6 +457,73 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		finally { fixture.stop(); }
 	}
 
+	private static void busyPickupRetriesWithinBudget()
+	{
+		final ManualDispatcher dispatcher = new ManualDispatcher(); final FakeLease lease = new FakeLease();
+		lease.loot = List.of(new LootCandidate(500, 8611, 1, 0)); lease.unavailablePickupsRemaining = 1;
+		lease.lootObservations.put(500, LootObservation.CONSUMED_NATIVE);
+		final Fixture fixture = fixture(dispatcher, lease);
+		try
+		{
+			fixture.startLoot(); lease.target = deadTarget(); dispatcher.runNext(); dispatcher.runNext();
+			final var deferred = fixture.service.find(1).orElseThrow();
+			PhantomAssertions.assertEquals(0, deferred.rememberedLootIds(), "A temporary native cast permanently remembered the untouched item.");
+			PhantomAssertions.assertEquals(0, deferred.lootPickupsIssued(), "A busy native cast counted as an issued pickup.");
+			runUntilTerminal(fixture, dispatcher, 4);
+			PhantomAssertions.assertEquals(2, lease.pickupCalls, "Temporary cast did not retry the same legal candidate.");
+			PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY_LOOTED, fixture.service.find(1).orElseThrow().result(), "Transient unavailability falsely marked successful native consumption partial.");
+		}
+		finally { fixture.stop(); }
+
+		final ManualDispatcher blockedDispatcher = new ManualDispatcher(); final FakeLease blockedLease = new FakeLease();
+		blockedLease.loot = List.of(new LootCandidate(500, 8611, 1, 0)); blockedLease.unavailablePickupsRemaining = Integer.MAX_VALUE;
+		final AtomicLong clock = new AtomicLong(1); final Fixture blocked = new Fixture(blockedDispatcher, blockedLease, clock::get);
+		try
+		{
+			blocked.startLoot(); blockedLease.target = deadTarget(); blockedDispatcher.runNext(); blockedDispatcher.runNext();
+			clock.set(1 + TimeUnit.MILLISECONDS.toNanos(4999)); blockedDispatcher.runNext();
+			PhantomAssertions.assertFalse(blocked.service.find(1).orElseThrow().result().terminal(), "Busy pickup shortened the existing five-second collection budget.");
+			clock.set(1 + TimeUnit.MILLISECONDS.toNanos(5000)); blockedDispatcher.runNext();
+			final var expired = blocked.service.find(1).orElseThrow();
+			PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, expired.result(), "An unissued pickup invented a lost reward at deadline.");
+			PhantomAssertions.assertEquals(0, expired.rememberedLootIds(), "Unavailable items consumed remembered-candidate capacity.");
+			PhantomAssertions.assertEquals(0, expired.lootPickupsIssued(), "Unavailable retries invented issued native actions.");
+			PhantomAssertions.assertEquals(2, blockedLease.pickupCalls, "Unavailable pickup renewed its deadline.");
+		}
+		finally { blocked.stop(); }
+	}
+
+	private static void nativePickupPreservesDivergentSelection()
+	{
+		final var selectedA = residue(500); final var nativeB = residue(501); final var ai = new PickupIdentityAI();
+		ai.pickup(nativeB, nativeB);
+		// The Player selection can still be A while the native PICK_UP command and private target are B.
+		PhantomAssertions.assertFalse(ai.isPickingUp(selectedA), "Player selection was mistaken for native pickup ownership.");
+		PhantomAssertions.assertTrue(ai.isPickingUp(nativeB), "Exact native pickup identity was lost.");
+		ai.pickup(selectedA, nativeB);
+		PhantomAssertions.assertFalse(ai.isPickingUp(selectedA) || ai.isPickingUp(nativeB), "Split native command/target was accepted as exact ownership.");
+		ai.pickup(selectedA, selectedA);
+		PhantomAssertions.assertTrue(ai.isPickingUp(selectedA), "Exact native pickup identity was not recognized.");
+	}
+
+	private static org.l2jmobius.gameserver.model.WorldObject residue(int objectId)
+	{
+		return new org.l2jmobius.gameserver.model.WorldObject(objectId)
+		{
+			@Override public boolean isAutoAttackable(org.l2jmobius.gameserver.model.actor.Creature attacker) { return false; }
+			@Override public void sendInfo(org.l2jmobius.gameserver.model.actor.Player player) { }
+		};
+	}
+
+	private static final class PickupIdentityAI extends org.l2jmobius.gameserver.ai.CreatureAI
+	{
+		PickupIdentityAI() { super(null); }
+		synchronized void pickup(org.l2jmobius.gameserver.model.WorldObject argument, org.l2jmobius.gameserver.model.WorldObject target)
+		{
+			_intention = org.l2jmobius.gameserver.ai.Intention.PICK_UP; _intentionArg0 = argument; setTarget(target);
+		}
+	}
+
 	private static void positiveOneTargetSkillRejected()
 	{
 		PhantomAssertions.assertFalse(PhantomCombatSkillSafety.supports(facts(false, true, false, false, false), PhantomCombatMode.RANGED_MAGIC), "Positive one-target skill was accepted.");
@@ -653,10 +722,15 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 
 		private Fixture(PhantomCombatService.Dispatcher dispatcher, FakeLease lease)
 		{
+			this(dispatcher, lease, () -> 1);
+		}
+
+		private Fixture(PhantomCombatService.Dispatcher dispatcher, FakeLease lease, java.util.function.LongSupplier clock)
+		{
 			this.lease = lease;
 			backend = new FakeBackend(lease);
 			final PhantomCombatCapabilityResolver resolver = new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), 900, List.of()), new CapabilityEvidence(PhantomCombatMode.RANGED_MAGIC.capabilityKey(), 900, List.of(MAGIC_SKILL))));
-			service = new PhantomCombatService(backend, resolver, PhantomCombatPolicy.productionDefaults(2), new PhantomCombatMetrics(), () -> 1, dispatcher);
+			service = new PhantomCombatService(backend, resolver, PhantomCombatPolicy.productionDefaults(2), new PhantomCombatMetrics(), clock, dispatcher);
 			service.start();
 		}
 
@@ -744,6 +818,8 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		private int actorSnapshotCalls;
 		private List<LootCandidate> loot = List.of();
 		private final Map<Integer, LootObservation> lootObservations = new HashMap<>();
+		private int unavailablePickupsRemaining;
+		private int pickupCalls;
 		private int cleanupFailuresRemaining;
 		private int cleanupCalls;
 		private int closeCount;
@@ -847,6 +923,8 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		@Override
 		public ActionOutcome pickUp(int objectId)
 		{
+			pickupCalls++;
+			if (unavailablePickupsRemaining > 0) { unavailablePickupsRemaining--; return ActionOutcome.UNAVAILABLE; }
 			actionKind = ActionKind.PICK_UP;
 			actionTargetId = objectId;
 			actionSkill = null;

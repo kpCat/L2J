@@ -299,12 +299,15 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				final long wanted = targetStock - stock;
 				final boolean productive = items.stream().allMatch(L2jPhantomSupplyJourney::productiveSupply);
+				final boolean amplifier = items.stream().allMatch(item -> item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT);
+				final long currentStock = stock;
 				cached.offer = _offline.offer(player, root, binding, revision, items, wanted, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), Long.MAX_VALUE, owner ->
 				{
 					final var destination = PhantomNativeTravelActions.point(owner);
 					final long out = fee(player, binding.field(), destination), back = fee(player, destination, binding.field());
 					return out < 0 || back < 0 ? -1 : Math.addExact(out, back);
-				}, fees -> _policy.availableBudget(player.getAdena(), fees, 0, productive)).orElse(null);
+				}, fees -> _policy.availableBudget(player.getAdena(), fees, 0, productive),
+					quote -> _policy.usefulPurchase(amplifier, currentStock, quote.count(), perHit, quote.distance(), player.getMoveSpeed())).orElse(null);
 				if (cached.offer != null)
 				{
 					final var quote = PhantomOfflineSupply.quote(player, cached.offer, owner ->
@@ -312,7 +315,6 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 						final var destination = PhantomNativeTravelActions.point(owner); final long out = fee(player, binding.field(), destination), back = fee(player, destination, binding.field());
 						return out < 0 || back < 0 ? -1 : Math.addExact(out, back);
 					});
-					final boolean amplifier = items.stream().allMatch(item -> item.getDefaultAction() == ActionType.SOULSHOT || item.getDefaultAction() == ActionType.SPIRITSHOT);
 					if (quote.isPresent() && _policy.usefulPurchase(amplifier, stock, quote.orElseThrow().count(), perHit, quote.orElseThrow().distance(), player.getMoveSpeed())
 						&& (choices.isEmpty() || quote.orElseThrow().deliveredUnitCost() < choices.getFirst().deliveredUnitCost()
 							|| quote.orElseThrow().deliveredUnitCost() == choices.getFirst().deliveredUnitCost() && quote.orElseThrow().distance() <= choices.getFirst().distance)) { return Optional.of(cached.offer); }

@@ -119,6 +119,22 @@ public final class PhantomPvpCorrectiveSuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy, failed, attack, low, failed.cooldownUntilLogicalNanos()), "Expired retreat cooldown remained active.");
 			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy, previous, attack, low, now), "Ordinary combat cooldown was misclassified as a failed retreat.");
 		});
+		registry.add("05-tactical-arrival-does-not-replay-old-damage-or-hide-new-danger", context ->
+		{
+			final long now = 20 * SECOND; final var attack = candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now); final var previous = cooling(attack, now);
+			final var arrived = previous.withStage(Stage.COOLDOWN, "", "", 0, 0, previous.cooldownUntilLogicalNanos(), "pvp.retreat.tactical_arrived");
+			final var arrival = new PhantomPvpContext.RetreatRecovery(counterpart(100), 100, 600);
+			final var stationary = new PhantomPvpContext.RetreatRecovery(counterpart(100), 100, 600);
+			PhantomAssertions.assertTrue(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, attack, now, arrival, stationary), "One old native hit repeatedly restarted a successful retreat.");
+			PhantomAssertions.assertTrue(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, attack, now, arrival, new PhantomPvpContext.RetreatRecovery(counterpart(100), 100, 401)), "Less than the existing tactical separation gain was mistaken for renewed pursuit.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, attack, now, arrival, new PhantomPvpContext.RetreatRecovery(counterpart(100), 101, 600)), "A newer canonical incoming-damage witness was suppressed.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, attack, now, arrival, new PhantomPvpContext.RetreatRecovery(counterpart(100), 100, 400)), "A pursuer closing the existing200-unit tactical gain lost defense.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, candidate(Source.ACTUAL_ATTACK, counterpart(200), HASH_B, now), now, arrival, stationary), "Arrival against A suppressed a different attacker B.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, attack, arrived.cooldownUntilLogicalNanos(), arrival, stationary), "Expired native pair cooldown still suppressed defense.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksTacticalRecoveryCooldown(arrived, attack, now, null, stationary), "Missing native arrival evidence created blanket immunity.");
+			final var low = new RiskSnapshot(20, 20, 100, 4, 4, 10000, 0, 0, 0, false, false, false, true, true);
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy(context), arrived, attack, low, now), "Successful tactical arrival incorrectly entered failed-route cooldown and hid fresh damage.");
+		});
 	}
 
 	private static PhantomPvpPolicy policy(PhantomTestContext context)

@@ -64,6 +64,10 @@ public final class PhantomPvpContext
 	private record SourceEvidence(Source source, int targetObjectId, String authorityHash, long expiryLogicalNanos, PhantomDomainRef helpCounterpart)
 	{
 	}
+	/** Exact native evidence at successful tactical arrival, bounded by the existing profile owner. */
+	record RetreatRecovery(Counterpart counterpart, long incomingDamageNanos, double threatDistance)
+	{
+	}
 
 	private static final long NANOS_PER_MINUTE = 60_000_000_000L;
 	private final PhantomPvpPolicy _policy;
@@ -85,12 +89,16 @@ public final class PhantomPvpContext
 
 	public Optional<Snapshot> observe(long profileId, long logicalNanos)
 	{
-		return observe(profileId, logicalNanos, null);
+		return observe(profileId, logicalNanos, null, _ -> true);
+	}
+	Optional<Snapshot> observeAvailable(long profileId, long logicalNanos, java.util.function.Predicate<Candidate> admissible)
+	{
+		return observe(profileId, logicalNanos, null, admissible);
 	}
 
 	Optional<Snapshot> observeOwned(PhantomPvpModel.Encounter encounter, long logicalNanos)
 	{
-		return observe(encounter.profileId(), logicalNanos, encounter);
+		return observe(encounter.profileId(), logicalNanos, encounter, _ -> true);
 	}
 
 	/** Exact owner/counterpart lookup only; retreat must not choose a direction from a stale target. */
@@ -99,6 +107,11 @@ public final class PhantomPvpContext
 		final Player actor = retreatActor(encounter.profileId()); final var target = World.getInstance().getPlayer(encounter.counterpart().currentObjectId());
 		if (actor == null || target == null || target == actor || !target.isSpawned() || target.isAlikeDead() || target.isInvisible() || target.getInstanceId() != actor.getInstanceId() || actor.getWorldRegion() == null || !actor.getWorldRegion().isSurroundingRegion(target.getWorldRegion())) { return Optional.empty(); }
 		return Optional.of(PhantomNativeTravelActions.point(target));
+	}
+	Optional<RetreatRecovery> retreatRecovery(PhantomPvpModel.Encounter encounter)
+	{
+		final Player actor = retreatActor(encounter.profileId()); final var threat = retreatThreat(encounter).orElse(null);
+		return actor == null || threat == null ? Optional.empty() : Optional.of(new RetreatRecovery(encounter.counterpart(), actor.recentPlayerAttackNanos(encounter.counterpart().currentObjectId()), PhantomNativeTravelActions.point(actor).distanceTo(threat)));
 	}
 
 	boolean retreatWaypointSafe(long profileId, PhantomNavigationPoint waypoint)
@@ -117,7 +130,7 @@ public final class PhantomPvpContext
 		return actor != null && !actor.isAlikeDead() && actor.getNativeWorkOwner() != null && actor.getNativeWorkOwner().isCurrent() ? actor : null;
 	}
 
-	private Optional<Snapshot> observe(long profileId, long logicalNanos, PhantomPvpModel.Encounter owned)
+	private Optional<Snapshot> observe(long profileId, long logicalNanos, PhantomPvpModel.Encounter owned, java.util.function.Predicate<Candidate> admissible)
 	{
 		if ((profileId <= 0) || (logicalNanos < 0))
 		{
@@ -181,7 +194,7 @@ public final class PhantomPvpContext
 		for (ObservedEvidence selected : candidates)
 		{
 			final Snapshot snapshot = snapshot(profileId, logicalNanos, observation, selected);
-			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos) && snapshot.risk().legal())
+			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos) && snapshot.risk().legal() && admissible.test(snapshot.candidate()))
 			{
 				// Already-owned warnings retain their admission. A new dispute needs real disposition/memory.
 				if (owned == null && (snapshot.candidate().source() == Source.FARMING_ESCALATION || snapshot.candidate().source() == Source.REVENGE) && !_social.allowsProactiveDispute(profileId, snapshot.socialSubject(), minute, snapshot.candidate().source() == Source.FARMING_ESCALATION)) { continue; }

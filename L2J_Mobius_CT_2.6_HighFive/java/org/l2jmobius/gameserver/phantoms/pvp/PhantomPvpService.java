@@ -82,6 +82,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private final ArrayBlockingQueue<Long> _ready = new ArrayBlockingQueue<>(MAXIMUM_TRACKED_PROFILES);
 	private final Set<Long> _membership = ConcurrentHashMap.newKeySet();
 	private final Map<Long, Ownership> _ownerships = new ConcurrentHashMap<>();
+	private final Map<Long, PhantomPvpContext.RetreatRecovery> _tacticalRecoveries = new ConcurrentHashMap<>();
 	private final AtomicBoolean _pulseOwner = new AtomicBoolean();
 	private final AtomicInteger _claims = new AtomicInteger();
 	private final LongAdder _pulses = new LongAdder();
@@ -231,10 +232,15 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			{
 				return;
 			}
-			save(stored, cooldown(stored.encounter(), now, result.reasonKey()));
+			final var completed = save(stored, cooldown(stored.encounter(), now, result.reasonKey()));
+			if (completed != null && "pvp.retreat.tactical_arrived".equals(result.reasonKey())) { _context.retreatRecovery(completed.encounter()).ifPresent(witness -> _tacticalRecoveries.put(profileId, witness)); }
 			return;
 		}
-		final Snapshot observed = _context.observe(profileId, now).orElse(null);
+		final Encounter cooled = stored == null ? null : stored.encounter();
+		final var arrivalWitness = _tacticalRecoveries.get(profileId);
+		final var currentRecovery = cooled == null || arrivalWitness == null ? null : _context.retreatRecovery(cooled).orElse(null);
+		// Skip a stale recovered counterpart inside the bounded join, so a fresh attacker is still selected.
+		final Snapshot observed = _context.observeAvailable(profileId, now, candidate -> cooled == null || !blocksTacticalRecoveryCooldown(cooled, candidate, now, arrivalWitness, currentRecovery)).orElse(null);
 		if (observed == null)
 		{
 			if ((stored != null) && (stored.encounter().expiresLogicalNanos() <= now) && !terminal(stored.encounter().stage()))
@@ -249,6 +255,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 		}
 		if ((stored == null) || !sameAuthority(stored.encounter(), observed.candidate()) || terminal(stored.encounter().stage()))
 		{
+			_tacticalRecoveries.remove(profileId);
 			final Encounter initial = initial(observed.candidate());
 			stored = save(stored, initial);
 			if (stored == null)
@@ -502,7 +509,13 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 
 	static boolean blocksFailedRetreatRetry(PhantomPvpPolicy policy, Encounter encounter, Candidate candidate, PhantomPvpModel.RiskSnapshot risk, long now)
 	{
-		return (encounter.cooldownUntilLogicalNanos() > now) && encounter.terminalReason().startsWith("pvp.retreat.") && samePair(encounter.counterpart(), candidate.counterpart()) && policy.decide(candidate, risk, initial(candidate), now).decision() == Decision.RETREAT;
+		return (encounter.cooldownUntilLogicalNanos() > now) && encounter.terminalReason().startsWith("pvp.retreat.") && !"pvp.retreat.tactical_arrived".equals(encounter.terminalReason()) && samePair(encounter.counterpart(), candidate.counterpart()) && policy.decide(candidate, risk, initial(candidate), now).decision() == Decision.RETREAT;
+	}
+	static boolean blocksTacticalRecoveryCooldown(Encounter encounter, Candidate candidate, long now, PhantomPvpContext.RetreatRecovery arrival, PhantomPvpContext.RetreatRecovery current)
+	{
+		return encounter.stage() == Stage.COOLDOWN && encounter.cooldownUntilLogicalNanos() > now && "pvp.retreat.tactical_arrived".equals(encounter.terminalReason()) && candidate.source() == Source.ACTUAL_ATTACK
+			&& arrival != null && current != null && samePair(encounter.counterpart(), candidate.counterpart()) && arrival.counterpart().equals(candidate.counterpart()) && current.counterpart().equals(candidate.counterpart())
+			&& current.incomingDamageNanos() <= arrival.incomingDamageNanos() && current.threatDistance() > arrival.threatDistance() - PhantomPvpRetreatCoordinator.MINIMUM_TACTICAL_SEPARATION_GAIN;
 	}
 
 	static boolean blocksActivePairCooldown(Encounter encounter, Candidate candidate, long now)
@@ -665,6 +678,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private void remove(long profileId)
 	{
 		_membership.remove(profileId);
+		_tacticalRecoveries.remove(profileId);
 		final StoredEncounter stored = _store.load(profileId).orElse(null);
 		if (stored != null)
 		{
@@ -706,6 +720,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			}
 		}
 		_ownerships.clear();
+		_tacticalRecoveries.clear();
 		_ready.clear();
 		_retreat.finishStop();
 		_state = State.STOPPED;

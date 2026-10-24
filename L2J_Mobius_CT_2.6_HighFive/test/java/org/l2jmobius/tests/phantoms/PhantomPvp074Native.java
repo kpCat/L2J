@@ -105,7 +105,7 @@ final class PhantomPvp074Native
 			final var policy = PhantomPvpPolicy.load(Path.of("data/phantoms/pvp/pvp-policy-v1.xml")); final var pvpStore = new PhantomPvpStore(profiles); final var pvpSocial = new PhantomPvpSocialBridge(social);
 			if (recovery)
 			{
-				final var previous = pvpStore.load(profile).orElseThrow(); check(previous.encounter().stage() == PhantomPvpModel.Stage.COOLDOWN && previous.encounter().counterpart().currentObjectId() == 268481828 && previous.encounter().terminalReason().equals("pvp.retreat.expired"), "D recovery requires the exact prior expired-retreat cooldown; no encounter repair permitted.");
+				final var previous = pvpStore.load(profile).orElseThrow(); check(previous.encounter().stage() == PhantomPvpModel.Stage.COOLDOWN && previous.encounter().counterpart().currentObjectId() == 268481828 && Set.of("pvp.retreat.expired", "pvp.retreat.tactical_arrived").contains(previous.encounter().terminalReason()), "D recovery requires the exact prior retreat cooldown; no encounter repair permitted.");
 				final long cooldownUntil = previous.encounter().cooldownUntilLogicalNanos(); final long remaining = Math.max(0, cooldownUntil - System.currentTimeMillis() * 1_000_000L);
 				report.append("D_RECOVERY_COOLDOWN_WAIT\tprior=").append(previous).append(";remainingMillis=").append(TimeUnit.NANOSECONDS.toMillis(remaining)).append(";ordinary epoch passage/native regeneration only;no persisted deadline/encounter writes\n");
 				check(remaining <= TimeUnit.SECONDS.toNanos(policy.limits().pairCooldownSeconds() + 5), "D cooldown exceeds its native policy; no bypass permitted.");
@@ -129,6 +129,13 @@ final class PhantomPvp074Native
 			if (!recovery) { goals.insert(profile, root); }
 			report.append(recovery ? "D_RECOVERY_MEASUREMENT\t" : "D_MEASUREMENT\t").append("profile=").append(profile).append(";actor=").append(actorId).append(";fixturePriorAdena=2500;finiteFixtureD1463=").append(beforeShots).append(";finiteFixtureCP5592=").append(beforeCpItems).append(";nativeCurrentCP=").append(beforeCp).append(";not paid/earned by this episode;no resource/HP/CP/position writes after marker;enemy=").append(enemy.getObjectId()).append(";enemyPoint=").append(PhantomNativeTravelActions.point(enemy)).append(";enemyHP/CP=").append(enemy.getCurrentHp()).append('/').append(enemy.getCurrentCp()).append(";origin=").append(origin).append('\n');
 			actor.setTarget(target); target.setTarget(actor); check(!actor.recentPlayerAttackers(16).contains(target.getObjectId()), "D incoming damage witness is not fresh; no stale authority reused.");
+			if (recovery && actor.calculateDistance3D(target) > target.getPhysicalAttackRange() + actor.getTemplate().getCollisionRadius() + target.getTemplate().getCollisionRadius())
+			{
+				attackAdmission(actor, target, "BEFORE_NATIVE_PURSUIT", 0, incomingHits.get(), incomingDamage.sum(), report); target.getAI().setIntention(Intention.ATTACK, actor);
+				final long pursuitUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(40); while (!actor.recentPlayerAttackers(16).contains(target.getObjectId()) && !actor.isAlikeDead() && !target.isAlikeDead() && System.nanoTime() < pursuitUntil) { Thread.sleep(50); }
+				attackAdmission(actor, target, "AFTER_NATIVE_PURSUIT", 0, incomingHits.get(), incomingDamage.sum(), report);
+				if (!actor.recentPlayerAttackers(16).contains(target.getObjectId())) { target.abortAttack(); target.getAI().setIntention(Intention.IDLE); }
+			}
 			for (int attempt = 1; attempt <= 3 && !actor.recentPlayerAttackers(16).contains(target.getObjectId()); attempt++)
 			{
 				attackAdmission(actor, target, "BEFORE", attempt, incomingHits.get(), incomingDamage.sum(), report); target.doAttack(actor);
@@ -154,7 +161,7 @@ final class PhantomPvp074Native
 				Thread.sleep(100);
 			}
 			report.append(recovery ? "D_RECOVERY_NATIVE_EFFECTS\tskills=" : "D_NATIVE_EFFECTS\tskills=").append(skills.get()).append(";ids=").append(skillIds).append(";D1463=").append(beforeShots).append("->").append(actor.getInventory().getInventoryItemCount(1463, -1)).append(";CP5592=").append(beforeCpItems).append("->").append(actor.getInventory().getInventoryItemCount(5592, -1)).append(";CP=").append(beforeCp).append("->peak").append(peakCp).append(";shortage=").append(shortage).append(";moved=").append(moved).append(";tacticalArrived=").append(arrived).append(";xyz=").append(actor.getLocation()).append(";service=").append(pvp.snapshot()).append('\n');
-			if (recovery) { check(beforeShots == 0 && actor.getInventory().getInventoryItemCount(1463, -1) == 0 && skills.get() == 0 && combat.metrics().normalAttacks() == 0 && combat.metrics().skillCastsIssued() == 0 && target.getCurrentHp() + target.getCurrentCp() >= targetBeforePvp, "D zero-shot recovery issued offensive action/damage."); }
+			if (recovery) { check(beforeShots == 0 && actor.getInventory().getInventoryItemCount(1463, -1) == 0 && skills.get() == 0 && combat.metrics().normalAttacks() == 0 && combat.metrics().skillCastsIssued() == 0 && target.getCurrentHp() + target.getCurrentCp() >= targetBeforePvp, "D zero-shot recovery issued offensive action/damage."); check(pvp.snapshot().encounters() == 1 && pvp.snapshot().retreats() == 1, "D one old damage witness replayed tactical retreat after its first successful escape."); }
 			check((recovery || skills.get() > 0) && actor.getInventory().getInventoryItemCount(1463, -1) == 0 && shortage && moved && arrived, "D native tactical movement chain incomplete.");
 			if (!recovery) { check(actor.getInventory().getInventoryItemCount(5592, -1) < beforeCpItems && peakCp > beforeCp, "D finite CP item did not have a native CP effect."); }
 			check(!actor.isAttackingNow() && !actor.isCastingNow() && target.getCurrentHp() + target.getCurrentCp() >= poolAfterShortage, "D offensive damage continued after shortage.");

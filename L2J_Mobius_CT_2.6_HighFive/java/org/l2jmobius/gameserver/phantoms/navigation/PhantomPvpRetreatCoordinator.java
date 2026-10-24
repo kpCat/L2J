@@ -59,6 +59,7 @@ public final class PhantomPvpRetreatCoordinator
 	}
 
 	private static final int MAXIMUM_DISTANCE = 100_000;
+	public static final int MINIMUM_TACTICAL_SEPARATION_GAIN = 200;
 	private final Object _monitor = new Object();
 	private final PhantomNavigationService _navigation;
 	private final PhantomTopologyService _topology;
@@ -242,7 +243,7 @@ public final class PhantomPvpRetreatCoordinator
 			if (++pending._waypointIndex >= pending._route.waypoints().size())
 			{
 				final var threat = pending.destination().tactical() ? pending._threat.get().orElse(null) : null;
-				if (pending.destination().tactical() && (threat == null || threat.instanceId() != current.instanceId() || current.distanceTo(threat) < pending._initialThreatDistance + 200))
+				if (pending.destination().tactical() && (threat == null || threat.instanceId() != current.instanceId() || current.distanceTo(threat) < pending._initialThreatDistance + MINIMUM_TACTICAL_SEPARATION_GAIN))
 				{
 					remove(profileId, pending, false);
 					return new RetreatResult(RetreatStatus.FAILED, "pvp.retreat.tactical_pressure_persists");
@@ -369,7 +370,7 @@ public final class PhantomPvpRetreatCoordinator
 			try
 			{
 				final var hint = new PhantomNavigationPoint(x, y, origin.z(), origin.instanceId()); final var surface = _walkSurface.apply(hint, 256); final var point = surface == null ? null : surface.orElse(null);
-				if (point != null && point.x() == x && point.y() == y && point.instanceId() == origin.instanceId() && Math.abs((long) point.z() - origin.z()) <= 256 && point.distanceTo(threat) >= origin.distanceTo(threat) + 200 && awaySegment(origin, point, threat)) { result.add(point); }
+				if (point != null && point.x() == x && point.y() == y && point.instanceId() == origin.instanceId() && Math.abs((long) point.z() - origin.z()) <= 256 && point.distanceTo(threat) >= origin.distanceTo(threat) + MINIMUM_TACTICAL_SEPARATION_GAIN && awaySegment(origin, point, threat)) { result.add(point); }
 			}
 			catch (IllegalArgumentException ignored) { /* A world boundary is not an escape corridor. */ }
 		} }

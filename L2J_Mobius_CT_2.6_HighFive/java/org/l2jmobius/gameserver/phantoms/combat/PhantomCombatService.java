@@ -1891,8 +1891,13 @@ public final class PhantomCombatService
 				finish(session, lootResult(session, false));
 				return;
 			}
-			session._rememberedLootIds.add(candidate.worldObjectId());
 			final ActionOutcome outcome = session._actorLease.pickUp(candidate.worldObjectId());
+			if (outcome == ActionOutcome.UNAVAILABLE)
+			{
+				requeue(session);
+				return;
+			}
+			session._rememberedLootIds.add(candidate.worldObjectId());
 			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 			{
 				session._lootAttempt = candidate;

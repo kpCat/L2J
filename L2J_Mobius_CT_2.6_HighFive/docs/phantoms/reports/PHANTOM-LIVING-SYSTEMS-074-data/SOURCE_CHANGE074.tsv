@@ -1,8 +1,8 @@
 lane	production_owner	new_behavior	proof_boundary
-A	L2jPhantomSupplyJourney	failed endpoint skipped; native route refusal retained; full delivered cost and BOM recheck	focused/native current acceptance pending
-B	PhantomHistoricalBackgroundPlanner/Service;PhantomVisibleFarmTravel	local exhaustion can choose3different admitted topology alternatives before CAS	focused PASS; native pending
-C	L2jCombatBackend;PhantomCombatService	native selection context preserves evidence; nearest legal loot order and exact refused pickup release	native selected0->0 RED/0->1 GREEN; ownership35/35
-D	PhantomPvpRetreatCoordinator;PhantomPvpContext/Service	finite short Geo escape before distant anchor; no unverified arrival	focused13/13; native pending
-MARKET	World;Player;PhantomOfflineSupply	event-maintained global published store index and existing receipt-based component BUY->MFG	no second economy; native pending
-CRYST	CrystallizationService;PhantomLootDispositionPolicy	read-only real foreign Common preview; final native owned inspection; guards retained	Common12200 focused PASS; full paid chain not claimed
+A	L2jPhantomSupplyJourney	failed endpoint skipped; native refusal retained; full delivered cost/BOM recheck; useful surplus maintenance	profile2 SELL295A->BUY180D1463/3780A->return->2rewarded kills180->159; newJVM same receipt/inventory then159->150
+B	PhantomHistoricalBackgroundPlanner/Service;PhantomVisibleFarmTravel	local-first bounded global topology alternatives; native itinerary admission before goal/history CAS	focused PASS; native profile3 no viable target/route with actual starter2369, no CAS/no move; PARTIAL
+C	L2jCombatBackend;PhantomCombatService;AbstractAI	native selection evidence; nearest legal loot; cast-busy defer under original timeout; readonly exact AI pickup identity/cancel	selection RED0->0/GREEN0->1; native8600 consumed receipt; earned1871/1872 retained; accepted-before-cast missed-wake remains PARTIAL
+D	PhantomPvpRetreatCoordinator;PhantomPvpContext/Service;Player	finite Geo-valid tactical escape; stale same-damage cooldown must preserve completed retreat	initial skills2/shots9->0/CP2->1 but expired; retained zero-shot native walk+recovery intent PASS; repeated stale-attacker correction pending
+MARKET	World;Player;PhantomOfflineSupply	event-indexed cached exact native SELL/MFG/crystal membership; whole-product usefulness before cheapest offer; durable BUY children->MFG	paid60B1465/4800A->native charge59; BUY1460/9000A+54ore/13500A+MFG22/100A/100MP->450B1465->charge449; no paid replay
+CRYST	CrystallizationService;PhantomLootDispositionPolicy	read-only actual foreign Common preview; actual native skill/output; final owned inspect and protected item guards	actual12200->5B1460 PASS; paid gearBUY->CRYST->ore/MFG and normal/jewelry branches not demonstrated/connected
 DELIVERY	LocalRuntimeShutdown	exact074 root/schema/UUID/control before native Main; historical controls retained	guard RED->GREEN

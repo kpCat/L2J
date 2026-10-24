@@ -17,6 +17,7 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVING-SYSTEMS-074/SOURCE
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVING-SYSTEMS-074/TASK.md
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVING-SYSTEMS-074/TEST_PLAN.md
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/util/LocalRuntimeShutdown.java
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/ai/AbstractAI.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/World.java
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java
@@ -46,6 +47,7 @@ L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomMarket0
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomOfflineMarket074Checks.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPvp074Native.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPvpSuite.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/pvp/PhantomPvpCorrectiveSuite.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSupply074Native.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTask074Lane.java
 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/Assemble074.ps1

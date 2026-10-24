@@ -60,10 +60,10 @@ public final class PhantomOfflineSupply
 	{
 		final var products = wantedProducts.stream().map(ItemTemplate::getId).collect(java.util.stream.Collectors.toUnmodifiableSet());
 		final var needed = new java.util.TreeSet<Integer>();
-		for (var maker : owners(buyer, owner -> owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && matches(owner, products)))
+		for (var maker : owners(buyer, World.getInstance().getPrivateStorePlayers(products), owner -> owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && matches(owner, products)))
 		{
-			for (var listing : maker.getManufactureItems().values().stream().filter(value ->
-			{ final var recipe = RecipeData.getInstance().getRecipeList(value.getRecipeId()); return recipe != null && products.contains(recipe.getItemId()); }).limit(MAXIMUM_STORE_LINES).toList())
+			for (var listing : manufactureListings(maker).stream().filter(value ->
+			{ final var recipe = RecipeData.getInstance().getRecipeList(value.getRecipeId()); return recipe != null && products.contains(recipe.getItemId()); }).toList())
 			{
 				final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
 				if (recipe == null || !products.contains(recipe.getItemId()) || !recipe.isDwarvenRecipe() || !maker.hasRecipeList(recipe.getId()) || maker.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) < recipe.getLevel()) { continue; }
@@ -75,10 +75,14 @@ public final class PhantomOfflineSupply
 
 	private static List<Player> owners(Player buyer, Predicate<Player> matchesNeed)
 	{
-		// The native published-store index contains no mobs/items and has no radius cutoff.
-		// Native Player admission bounds this complete snapshot. Matching stores are not
-		// cut off by proximity: a cheap distant source must not disappear behind nearer shops.
-		return World.getInstance().getPrivateStorePlayers().stream().filter(owner -> eligibleOwner(buyer, owner) && matchesNeed.test(owner))
+		return owners(buyer, World.getInstance().getPrivateStorePlayers(), matchesNeed);
+	}
+
+	private static List<Player> owners(Player buyer, List<Player> published, Predicate<Player> matchesNeed)
+	{
+		// Publication membership is cached by the native lifecycle. Only exact matching
+		// owners need fresh stock/price/access checks; no radius or nearest-owner cutoff.
+		return published.stream().filter(owner -> eligibleOwner(buyer, owner) && matchesNeed.test(owner))
 			.sorted(Comparator.comparingInt(Player::getObjectId)).toList();
 	}
 
@@ -101,11 +105,17 @@ public final class PhantomOfflineSupply
 	{
 		if (owner.getPrivateStoreType() == PrivateStoreType.SELL)
 		{
-			return owner.getSellList().getItems().stream().filter(line -> itemIds.contains(line.getItem().getId())).limit(MAXIMUM_STORE_LINES).anyMatch(line -> publishedStock(owner, line) > 0);
+			return owner.getSellList().getItems().stream().filter(line -> itemIds.contains(line.getItem().getId())).anyMatch(line -> publishedStock(owner, line) > 0);
 		}
 		return owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && owner.getRace() == Race.DWARF
-			&& owner.getManufactureItems().values().stream().anyMatch(listing ->
+			&& manufactureListings(owner).stream().anyMatch(listing ->
 			{ final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId()); return recipe != null && itemIds.contains(recipe.getItemId()); });
+	}
+
+	private static List<org.l2jmobius.gameserver.model.item.recipe.ManufactureItem> manufactureListings(Player owner)
+	{
+		final var listings = owner.getManufactureItems();
+		synchronized (listings) { return List.copyOf(listings.values()); }
 	}
 
 	public Optional<PhantomGoal> offer(Player buyer, PhantomGoal root, Binding binding, long revision,
@@ -117,10 +127,16 @@ public final class PhantomOfflineSupply
 	public Optional<PhantomGoal> offer(Player buyer, PhantomGoal root, Binding binding, long revision,
 			List<ItemTemplate> items, long wanted, long deadline, long maximumUnitPrice, ToLongFunction<Player> roundTripFee, LongUnaryOperator availableBudget)
 	{
+		return offer(buyer, root, binding, revision, items, wanted, deadline, maximumUnitPrice, roundTripFee, availableBudget, quote -> true);
+	}
+
+	public Optional<PhantomGoal> offer(Player buyer, PhantomGoal root, Binding binding, long revision,
+			List<ItemTemplate> items, long wanted, long deadline, long maximumUnitPrice, ToLongFunction<Player> roundTripFee, LongUnaryOperator availableBudget, Predicate<AcquisitionQuote> admitted)
+	{
 		if (buyer == null || items.isEmpty() || wanted <= 0 || maximumUnitPrice <= 0) { return Optional.empty(); }
 		final var choices = new ArrayList<Choice>();
 		final var itemIds = items.stream().map(ItemTemplate::getId).collect(java.util.stream.Collectors.toUnmodifiableSet());
-		for (var owner : owners(buyer, candidate -> matches(candidate, itemIds)))
+		for (var owner : owners(buyer, World.getInstance().getPrivateStorePlayers(itemIds), candidate -> matches(candidate, itemIds)))
 		{
 			final long fees = roundTripFee.applyAsLong(owner);
 			final long budget = fees < 0 ? 0 : availableBudget.applyAsLong(fees);
@@ -132,7 +148,7 @@ public final class PhantomOfflineSupply
 				{
 					if (!eligibleOwner(buyer, owner) || owner.getPrivateStoreType() != PrivateStoreType.SELL) { continue; }
 					final String hash = PrivateStoreService.listingHash(list);
-					for (var line : list.getItems().stream().filter(value -> itemIds.contains(value.getItem().getId())).limit(MAXIMUM_STORE_LINES).toList())
+					for (var line : list.getItems().stream().filter(value -> itemIds.contains(value.getItem().getId())).toList())
 					{
 						final long stock = publishedStock(owner, line);
 						if (stock <= 0 || line.getPrice() > maximumUnitPrice || !itemIds.contains(line.getItem().getId())) { continue; }
@@ -147,8 +163,8 @@ public final class PhantomOfflineSupply
 			}
 			else if (owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && owner.getRace() == Race.DWARF)
 			{
-				for (var listing : owner.getManufactureItems().values().stream().filter(value ->
-				{ final var recipe = RecipeData.getInstance().getRecipeList(value.getRecipeId()); return recipe != null && itemIds.contains(recipe.getItemId()); }).sorted(Comparator.comparingInt(value -> value.getRecipeId())).limit(MAXIMUM_STORE_LINES).toList())
+				for (var listing : manufactureListings(owner).stream().filter(value ->
+				{ final var recipe = RecipeData.getInstance().getRecipeList(value.getRecipeId()); return recipe != null && itemIds.contains(recipe.getItemId()); }).sorted(Comparator.comparingInt(value -> value.getRecipeId())).toList())
 				{
 					final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
 					if (recipe == null || !recipe.isDwarvenRecipe() || recipe.getCount() <= 0 || recipe.getCount() > 600 || recipe.getSuccessRate() <= 0 || listing.getCost() <= 0 || listing.getCost() > budget || items.stream().noneMatch(item -> item.getId() == recipe.getItemId()) || !owner.hasRecipeList(recipe.getId()) || owner.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) < recipe.getLevel()) { continue; }
@@ -180,12 +196,18 @@ public final class PhantomOfflineSupply
 				}
 			}
 		}
-		return choices.stream().sorted(Comparator.comparingDouble((Choice choice) -> choice.valuation.deliveredUnitCost()).thenComparingDouble(Choice::distance).thenComparing(Choice::key)).findFirst().map(choice ->
+		return bestChoice(choices, admitted).map(choice ->
 		{
 			final var goal = new PhantomGoal(root.goalId(), choice.type, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, choice.key), 1, 0, null, List.of(), null, choice.type, 700, 0, choice.cost, deadline, Map.of(), choice.reason, revision, binding.encode());
 			PhantomSocialEconomyGoalSpec.parse(goal);
 			return goal;
 		});
+	}
+
+	private static Optional<Choice> bestChoice(List<Choice> choices, Predicate<AcquisitionQuote> admitted)
+	{
+		return choices.stream().filter(choice -> admitted.test(choice.valuation))
+			.min(Comparator.comparingDouble((Choice choice) -> choice.valuation.deliveredUnitCost()).thenComparingDouble(Choice::distance).thenComparing(Choice::key));
 	}
 
 	/** One existing BUY child at a time; the original supply need is recomputed from native stock after return. */
@@ -237,7 +259,10 @@ public final class PhantomOfflineSupply
 	{
 		if (count <= 0 || count > 600) { return null; }
 		Choice best = null;
-		for (var owner : owners(buyer, candidate -> candidate.getPrivateStoreType() == PrivateStoreType.SELL
+		final var indexed = new java.util.HashMap<Integer, Player>();
+		World.getInstance().getPrivateStorePlayers(Set.of(itemId)).forEach(owner -> indexed.put(owner.getObjectId(), owner));
+		World.getInstance().getPrivateStoreCrystalPlayers(itemId).forEach(owner -> indexed.put(owner.getObjectId(), owner));
+		for (var owner : owners(buyer, List.copyOf(indexed.values()), candidate -> candidate.getPrivateStoreType() == PrivateStoreType.SELL
 			&& candidate.getSellList().getItems().stream().anyMatch(line -> componentLine(buyer, candidate, line, itemId, count))))
 		{
 			final long fees = roundTripFee.applyAsLong(owner); if (fees < 0) { continue; }
@@ -245,7 +270,7 @@ public final class PhantomOfflineSupply
 			synchronized (list)
 			{
 				if (!eligibleOwner(buyer, owner) || owner.getPrivateStoreType() != PrivateStoreType.SELL) { continue; }
-				for (var line : list.getItems().stream().filter(value -> componentLine(buyer, owner, value, itemId, count)).limit(MAXIMUM_STORE_LINES).toList())
+				for (var line : list.getItems().stream().filter(value -> componentLine(buyer, owner, value, itemId, count)).toList())
 				{
 					final long purchaseCount = line.getItem().getId() == itemId ? count : 1;
 					if (!L2jPhantomSupplyJourney.mobilePurchase(buyer, line.getItem(), purchaseCount)) { continue; }

@@ -36,7 +36,42 @@ public final class PhantomOfflineMarket074Checks
 		final Object cheapGearBatch = create.newInstance(17600L, 0L, 0L, 450L, 100d);
 		PhantomAssertions.assertTrue((double) unit.invoke(directCrystalBatch) < (double) unit.invoke(dearGearBatch), "Surplus crystal output cannot discount an expensive whole gear purchase before sale.");
 		PhantomAssertions.assertTrue((double) unit.invoke(cheapGearBatch) < (double) unit.invoke(directCrystalBatch), "Actual cheap listed gear price must remain a useful complete-batch alternative.");
+		indexedAdmission(quote, create);
 		System.out.println("OFFLINE074_COST_PASS; purchase+travel+material/native chance per acquired charge; DB_WRITES=0");
+	}
+
+	private static void indexedAdmission(Class<?> quote, java.lang.reflect.Constructor<?> create) throws Exception
+	{
+		try
+		{
+			World.class.getMethod("getPrivateStorePlayers", java.util.Set.class);
+			World.class.getMethod("getPrivateStoreCrystalPlayers", int.class);
+			PhantomOfflineSupply.class.getMethod("offer", Player.class, PhantomGoal.class, Binding.class, long.class,
+				List.class, long.class, long.class, long.class, java.util.function.ToLongFunction.class, java.util.function.LongUnaryOperator.class, java.util.function.Predicate.class);
+		}
+		catch (NoSuchMethodException missing) { throw new AssertionError("RED: exact published-item index and pre-selection whole-product admission are required.", missing); }
+		final var choice = Class.forName("org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply$Choice");
+		final var constructor = choice.getDeclaredConstructor(String.class, String.class, long.class, long.class, double.class, quote, String.class);
+		constructor.setAccessible(true);
+		final var select = PhantomOfflineSupply.class.getDeclaredMethod("bestChoice", List.class, java.util.function.Predicate.class);
+		select.setAccessible(true);
+		final var candidates = new java.util.ArrayList<Object>();
+		for (int index = 1; index <= 3; index++)
+		{
+			candidates.add(constructor.newInstance("buy", "thin" + index, 1L, 1L, 1000d, create.newInstance(1L, 0L, 0L, 1L, 1000d), "need"));
+		}
+		// A component child buys54 ore, but admission must inspect its final450-shot output.
+		final Object wholeProduct = constructor.newInstance("buy", "useful", 13500L, 54L, 100d, create.newInstance(22600L, 0L, 0L, 450L, 100d), "need");
+		candidates.add(wholeProduct);
+		final var policy = new org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy(true, 3, 60, 500, 30, 8, 16);
+		final java.util.function.Predicate<Object> useful = value ->
+		{
+			try { return policy.usefulPurchase(true, 0, (long) quote.getMethod("count").invoke(value), 1, (double) quote.getMethod("distance").invoke(value), 100); }
+			catch (ReflectiveOperationException failure) { throw new AssertionError(failure); }
+		};
+		final var selected = (java.util.Optional<?>) select.invoke(null, candidates, useful);
+		PhantomAssertions.assertTrue(selected.isPresent() && selected.orElseThrow() == wholeProduct, "Three cheaper thin stores must not hide the fourth useful whole-product alternative.");
+		System.out.println("OFFLINE074_INDEX_ADMISSION_PASS; exact publication APIs; all alternatives admitted before cheapest selection; final product quantity; DB_WRITES=0");
 	}
 
 	public static void globalDiscovery(PhantomOfflineSupply supply, Player buyer, PhantomGoal root, Binding binding,

@@ -1956,6 +1956,15 @@ public class Player extends Playable
 			return _recentPlayerAttackers.entrySet().stream().filter(entry -> (now - entry.getValue()) < 30_000_000_000L).map(Map.Entry::getKey).sorted().limit(limit).toList();
 		}
 	}
+	/** Same bounded canonical damage witness; observing its time never creates attack authority. */
+	public long recentPlayerAttackNanos(int attackerObjectId)
+	{
+		synchronized (_recentPlayerAttackers)
+		{
+			final Long observed = _recentPlayerAttackers.get(attackerObjectId);
+			return observed != null && (System.nanoTime() - observed) < 30_000_000_000L ? observed : 0;
+		}
+	}
 	
 	@Override
 	public void updatePvPFlag(int value)

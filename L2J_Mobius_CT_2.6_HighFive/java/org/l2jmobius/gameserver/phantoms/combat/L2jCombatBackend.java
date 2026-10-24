@@ -1892,7 +1892,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
-			if (_player.hasAI() && (_player.getAI().getIntention() == Intention.PICK_UP) && (_player.getTarget() == item))
+			// In particular, a herb's simultaneous cast can suppress the native ARRIVED wake.
+			// Leave this untouched candidate available to the same finite collection budget.
+			if (_player.isCastingNow() || _player.isCastingSimultaneouslyNow()) { return ActionOutcome.UNAVAILABLE; }
+			final var pickupAi = _player.hasAI() ? _player.getAI() : null;
+			final boolean ownsPickup = pickupAi != null && pickupAi.isPickingUp(item) && _player.getTarget() == item;
+			if (ownsPickup)
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
@@ -1903,9 +1908,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			_player.setTarget(item);
 			_player.getAI().setIntention(Intention.PICK_UP, item);
 			// Native AI may refuse REST/casting/disabled admission; that is not an in-flight pickup.
-			if (_player.getAI().getIntention() == Intention.PICK_UP && _player.getTarget() == item) { return ActionOutcome.ISSUED; }
+			if (_player.getAI().isPickingUp(item) && _player.getTarget() == item) { return ActionOutcome.ISSUED; }
 			final var receipt = sensor == null ? null : sensor.pickupReceipt(objectId);
-			return receipt != null && receipt.sequence() > sequence && receipt.itemId() == itemId && receipt.count() == count ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
+			if (receipt != null && receipt.sequence() > sequence && receipt.itemId() == itemId && receipt.count() == count) { return ActionOutcome.ISSUED; }
+			return ActionOutcome.REJECTED;
 		}
 
 		@Override
@@ -1967,10 +1973,18 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				_player.getAI().setIntention(Intention.IDLE);
 				cancelledOwnedAction = true;
 			}
-			if ((_player.getAI().getIntention() == Intention.PICK_UP) && (action.pickupObjectId() > 0) && (selectedTargetObjectId == action.pickupObjectId()))
+			if (action.pickupObjectId() > 0)
 			{
-				_player.getAI().setIntention(Intention.IDLE);
-				cancelledOwnedAction = true;
+				final var pickupAi = _player.getAI();
+				final WorldObject pickupTarget = selectedTargetObjectId == action.pickupObjectId() ? selectedTarget : World.getInstance().findObject(action.pickupObjectId());
+				synchronized (pickupAi)
+				{
+					if (_player.getAI() == pickupAi && pickupAi.isPickingUp(pickupTarget))
+					{
+						pickupAi.setIntention(Intention.IDLE);
+						if (_player.getTarget() == pickupTarget) { _player.setTarget(null); }
+					}
+				}
 			}
 			if (cancelledOwnedAction || ((_player.getAI().getIntention() == Intention.IDLE) && ownedCombatTarget(selectedTarget, action.combatTargetObjectId())))
 			{
