@@ -7,6 +7,9 @@ package handlers.bypass.communityboard;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.RecipeData;
@@ -18,10 +21,14 @@ import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.BodyPart;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
+import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.item.recipe.ManufactureItem;
+import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
 import org.l2jmobius.gameserver.model.item.type.CrystalType;
 import org.l2jmobius.gameserver.model.item.type.EtcItemType;
 import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.network.holders.TradeItem;
+import org.l2jmobius.gameserver.network.holders.TradeList;
 
 /** Request-only view of live native stores. It neither publishes listings nor trades. */
 public class MarketSearchBoard implements IParseBoardHandler
@@ -65,7 +72,7 @@ public class MarketSearchBoard implements IParseBoardHandler
 				grade = choice(fields[4], GRADES);
 				final String name = fields[5].trim();
 				if (name.length() > 64) { throw new IllegalArgumentException(); }
-				final List<Player> owners = World.getInstance().getPlayers().stream().limit(MAX_PLAYERS + 1).toList();
+				final List<Player> owners = World.getInstance().getPlayers().stream().limit(MAX_PLAYERS + 1).collect(Collectors.toList());
 				final ScanBudget budget = new ScanBudget(MAX_LINES);
 				boolean limited = owners.size() > MAX_PLAYERS;
 				search:
@@ -111,16 +118,16 @@ public class MarketSearchBoard implements IParseBoardHandler
 		if (mode.equals("CRAFT"))
 		{
 			if (owner.getPrivateStoreType() != PrivateStoreType.MANUFACTURE || owner.isCrafting()) { return result; }
-			final var recipes = owner.getManufactureItems();
+			final Map<Integer, ManufactureItem> recipes = owner.getManufactureItems();
 			synchronized (recipes)
 			{
 				if (owner.getPrivateStoreType() != PrivateStoreType.MANUFACTURE) { return result; }
 				int inspected = 0;
-				for (var listing : recipes.values())
+				for (ManufactureItem listing : recipes.values())
 				{
 					if (++inspected > MAX_STORE_LINES) { budget.limited = true; break; }
 					if (!budget.inspect()) { break; }
-					final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
+					final RecipeList recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
 					if (recipe == null || !owner.hasRecipeList(recipe.getId()) || recipe.getCount() <= 0 || listing.getCost() < 0
 						|| owner.getSkillLevel((recipe.isDwarvenRecipe() ? CommonSkill.CREATE_DWARVEN : CommonSkill.CREATE_COMMON).getId()) < recipe.getLevel()) { continue; }
 					result.add(new Listing(mode, owner.getObjectId(), recipe.getId(), recipe.getItemId(), 0, recipe.getCount(), listing.getCost(), recipe.getSuccessRate()));
@@ -130,7 +137,7 @@ public class MarketSearchBoard implements IParseBoardHandler
 		}
 		final boolean sell = mode.equals("SELL");
 		if (owner.getPrivateStoreType() != (sell ? PrivateStoreType.SELL : PrivateStoreType.BUY)) { return result; }
-		final var list = sell ? owner.getSellList() : owner.getBuyList();
+		final TradeList list = sell ? owner.getSellList() : owner.getBuyList();
 		synchronized (list)
 		{
 			if (owner.getPrivateStoreType() != (sell ? PrivateStoreType.SELL : PrivateStoreType.BUY) || list.getOwner() != owner || list.isPackaged()) { return result; }
@@ -143,7 +150,7 @@ public class MarketSearchBoard implements IParseBoardHandler
 				long count = line.getCount();
 				if (sell)
 				{
-					final var owned = owner.getInventory().getItemByObjectId(line.getObjectId());
+					final Item owned = owner.getInventory().getItemByObjectId(line.getObjectId());
 					if (owned == null || owned.getOwnerId() != owner.getObjectId() || owned.getId() != line.getItem().getId()
 						|| owned.getItemLocation() != ItemLocation.INVENTORY || owned.isEquipped() || !owned.isTradeable() || owned.getEnchantLevel() != line.getEnchant()) { continue; }
 					count = Math.min(count, owned.getCount());
@@ -183,17 +190,17 @@ public class MarketSearchBoard implements IParseBoardHandler
 		if (!item.getName().toLowerCase(Locale.ROOT).contains(name.toLowerCase(Locale.ROOT))) { return false; }
 		final BodyPart slot = item.getBodyPart();
 		final boolean jewel = slot == BodyPart.NECK || slot == BodyPart.R_EAR || slot == BodyPart.L_EAR || slot == BodyPart.LR_EAR || slot == BodyPart.R_FINGER || slot == BodyPart.L_FINGER || slot == BodyPart.LR_FINGER;
-		return switch (category)
+		switch (category)
 		{
-			case "ALL" -> true;
-			case "WEAPON" -> item.isWeapon();
-			case "ARMOR" -> item.isArmor() && !jewel;
-			case "JEWEL" -> jewel;
-			case "MATERIAL" -> item.getItemType() == EtcItemType.MATERIAL;
-			case "RECIPE" -> item.getItemType() == EtcItemType.RECIPE;
-			case "SHOT" -> item.getItemType() == EtcItemType.SHOT;
-			default -> false;
-		};
+			case "ALL": return true;
+			case "WEAPON": return item.isWeapon();
+			case "ARMOR": return item.isArmor() && !jewel;
+			case "JEWEL": return jewel;
+			case "MATERIAL": return item.getItemType() == EtcItemType.MATERIAL;
+			case "RECIPE": return item.getItemType() == EtcItemType.RECIPE;
+			case "SHOT": return item.getItemType() == EtcItemType.SHOT;
+			default: return false;
+		}
 	}
 
 	private static void show(Player player, String mode, String category, String grade, String message, List<Listing> results)
@@ -237,7 +244,54 @@ public class MarketSearchBoard implements IParseBoardHandler
 		return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
 	}
 
-	private record Listing(String mode, int ownerId, int lineId, int itemId, int enchant, long count, long price, int success) { }
+	private static final class Listing
+	{
+		private final String mode;
+		private final int ownerId;
+		private final int lineId;
+		private final int itemId;
+		private final int enchant;
+		private final long count;
+		private final long price;
+		private final int success;
+
+		private Listing(String mode, int ownerId, int lineId, int itemId, int enchant, long count, long price, int success)
+		{
+			this.mode = mode;
+			this.ownerId = ownerId;
+			this.lineId = lineId;
+			this.itemId = itemId;
+			this.enchant = enchant;
+			this.count = count;
+			this.price = price;
+			this.success = success;
+		}
+
+		private String mode() { return mode; }
+		private int ownerId() { return ownerId; }
+		private int lineId() { return lineId; }
+		private int itemId() { return itemId; }
+		private int enchant() { return enchant; }
+		private long count() { return count; }
+		private long price() { return price; }
+		private int success() { return success; }
+
+		@Override
+		public boolean equals(Object other)
+		{
+			if (this == other) { return true; }
+			if (!(other instanceof Listing)) { return false; }
+			final Listing listing = (Listing) other;
+			return Objects.equals(mode, listing.mode) && ownerId == listing.ownerId && lineId == listing.lineId && itemId == listing.itemId
+				&& enchant == listing.enchant && count == listing.count && price == listing.price && success == listing.success;
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return Objects.hash(mode, ownerId, lineId, itemId, enchant, count, price, success);
+		}
+	}
 
 	private static final class ScanBudget
 	{
