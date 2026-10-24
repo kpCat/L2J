@@ -48,6 +48,70 @@ final class PhantomMarket074Native
 	{
 		return run(knowledge, topology, report, true);
 	}
+	/** Existing paid state only: republish the same finite stores, query the corrected index, then close. */
+	static boolean runRetainedIndex(PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, StringBuilder report) throws Exception
+	{
+		check(PhantomTask074Lane.enabled(), "Explicit OWN074 retained-index lane required.");
+		final String before = retainedMarketResources(); final var profiles = PhantomProfileRepository.open(); final var goals = new PhantomGoalStateStore(profiles); final var intents = new PhantomSupplyIntentStore(profiles, goals);
+		check(profiles.find(5).orElseThrow().characterObjectId() == 268481805 && profiles.find(6).orElseThrow().characterObjectId() == 268481814, "Retained market profile links differ.");
+		final var root5 = goals.load(5); final var root6 = goals.load(6); final var intent5 = intents.intent(5); final var intent6 = intents.intent(6);
+		final var policy = PhantomEconomyPolicy.load(Path.of("data/phantoms/economy/high-five-economy-v1.xml")); final var reservations = new PhantomEconomyReservationService(policy);
+		final var audit5 = reservations.findAudit(5, 16); final var audit6 = reservations.findAudit(6, 16);
+		check(audit5.size() == 1 && audit6.size() == 3, "Retained paid audit cardinality differs.");
+		for (var audit : java.util.stream.Stream.concat(audit5.stream(), audit6.stream()).toList()) { check(audit.state() == PhantomEconomyOperation.State.COMMITTED && audit.result() == PhantomEconomyOperation.Result.SUCCESS && reservations.find(audit.operationId()).orElseThrow().state() == PhantomEconomyOperation.State.COMMITTED && reservations.findReservations(audit.operationId()).isEmpty(), "Retained paid operation is not committed/drained."); }
+		final var cleanup = new java.util.ArrayList<AutoCloseable>(); Player seller = null, maker = null;
+		try
+		{
+			for (int id : new int[] {268481805, 268481810, 268481814, 268481822}) { check(World.getInstance().findObject(id) == null && World.getInstance().getPlayer(id) == null, "Retained market actor is already active; no replacement."); }
+			seller = Player.load(268481810); maker = Player.load(268481822); check(seller != null && maker != null && !seller.isGM() && !maker.isGM(), "Retained native store owners did not load.");
+			final var stock = seller.getInventory().getItemByObjectId(268481811); check(stock != null && stock.getId() == 1465 && stock.getCount() == 240 && !stock.isEquipped() && seller.getAdena() == 4800, "Retained finite SELL stock/wallet differs.");
+			check(maker.getSkillLevel(172) == 6 && maker.hasRecipeList(22) && maker.getCurrentMp() > 0 && maker.getAdena() == 100, "Retained learned maker/MP/fee differs.");
+			for (var owner : List.of(seller, maker)) { owner.stopAllTasks(); owner.spawnMe(); owner.revalidateZone(true); check(owner.canOpenPrivateStore() && owner.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE), "Retained native counter is no longer lawful."); }
+			check(seller.getSellList().getItems().isEmpty() || seller.getSellList().getItems().size() == 1 && seller.getSellList().getItems().stream().allMatch(line -> line.getObjectId() == stock.getObjectId() && line.getCount() == 240 && line.getPrice() == 80), "Retained seller listing changed.");
+			if (seller.getSellList().getItems().isEmpty()) { check(seller.getSellList().addItem(stock.getObjectId(), 240, 80) != null, "Retained native SELL publication refused."); }
+			check(maker.getManufactureItems().isEmpty() || maker.getManufactureItems().size() == 1 && maker.getManufactureItems().get(22) != null && maker.getManufactureItems().get(22).getCost() == 100, "Retained manufacture listing changed.");
+			if (maker.getManufactureItems().isEmpty()) { maker.getManufactureItems().put(22, new org.l2jmobius.gameserver.model.item.recipe.ManufactureItem(22, 100)); }
+			seller.getSellList().setTitle("OWN074 finite B Soulshot"); maker.setStoreName("OWN074 finite B production");
+			seller.sitDown(); seller.setOfflineStartTime(System.currentTimeMillis()); seller.setPrivateStoreType(PrivateStoreType.SELL); OfflineTraderTable.getInstance().onTransaction(seller, false, true);
+			maker.sitDown(); maker.setOfflineStartTime(System.currentTimeMillis()); maker.setPrivateStoreType(PrivateStoreType.MANUFACTURE); OfflineTraderTable.getInstance().onTransaction(maker, false, true);
+			final var metrics = new PhantomMetrics(); final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 2);
+			cleanup.add(() -> check(materialization.shutdown().state() == PhantomMaterializationService.ServiceState.STOPPED, "Retained market materialization did not STOP."));
+			check(materialization.start() && materialization.materialize(5).status() == PhantomMaterializationService.ResultStatus.SUCCESS && materialization.materialize(6).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Retained buyers did not ordinarily materialize.");
+			final var buyer = World.getInstance().getPlayer(268481805); final var crafted = World.getInstance().getPlayer(268481814);
+			check(buyer != null && crafted != null && buyer.getAdena() == 5200 && buyer.getInventory().getInventoryItemCount(1465, -1) == 59 && crafted.getAdena() == 17400 && crafted.getInventory().getInventoryItemCount(1465, -1) == 449 && crafted.getInventory().getInventoryItemCount(1785, -1) == 0 && crafted.getInventory().getInventoryItemCount(1460, -1) == 0, "Retained paid buyers/resources differ.");
+			final var indexed = World.getInstance().getPrivateStorePlayers(java.util.Set.of(1465)); final var crystals = World.getInstance().getPrivateStoreCrystalPlayers(1460);
+			check(indexed.contains(seller) && indexed.contains(maker) && !stock.getTemplate().isCrystallizable() && !crystals.contains(seller) && !crystals.contains(maker), "Corrected typed native SELL/MFG/crystal membership differs.");
+			// Passive service views: no start/recovery, discover, claim, advance, dispatch or replay.
+			final var social = new PhantomMultipartyEconomyService(policy, reservations, new PhantomEconomyOfferService(), materialization, intents, profiles); final var offline = new PhantomOfflineSupply(social);
+			offline.bindRecipePlanning(new org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionRecipePlanner(knowledge, org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.load(Path.of("data/phantoms/acquisition/high-five-acquisition-v1.xml")).limits()));
+			final var root = root5.orElseThrow().goal(); final var binding = new PhantomSupplyIntentStore.Binding(root.revision(), buyer.getObjectId(), buyer.getActiveClass(), buyer.getClassIndex(), buyer.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(buyer), 0);
+			final var supplies = PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml"));
+			final var proposal = offline.offer(buyer, root, binding, 1, List.of(ItemData.getInstance().getTemplate(1465)), 60, System.currentTimeMillis() + 60000, Long.MAX_VALUE, owner -> 0, fees -> supplies.availableBudget(buyer.getAdena(), fees, 0, true)).orElseThrow();
+			final var quote = PhantomOfflineSupply.quote(buyer, proposal, owner -> 0).orElseThrow(); final var old = intent5.orElseThrow().goal();
+			check(PhantomOfflineSupply.spec(proposal) instanceof PhantomSocialEconomyGoalSpec.StoreBuy buy && buy.counterpartyCharacterObjectId() == seller.getObjectId() && quote.purchaseAdena() == 4640 && quote.count() == 58 && supplies.availableBudget(5200, 0, 0, true) == 4700 && PhantomOfflineSupply.quote(buyer, old, owner -> 0).isEmpty(), "Current reserve-bound quote or original stale listing rejection differs.");
+			check(root5.equals(goals.load(5)) && root6.equals(goals.load(6)) && intent5.equals(intents.intent(5)) && intent6.equals(intents.intent(6)) && audit5.equals(reservations.findAudit(5, 16)) && audit6.equals(reservations.findAudit(6, 16)), "Read-only quote changed a retained root/intent/paid audit.");
+			report.append("RETAINED_MARKET074_INDEX\tREAD_ONLY_ECONOMIC_CASE;nativeRepublishSameFiniteSELL240x1465@80_and_MFG22@100;typed1465=").append(indexed.stream().map(Player::getObjectId).sorted().toList()).append(";crystal1460=").append(crystals.stream().map(Player::getObjectId).sorted().toList()).append(";freshQuote=").append(quote).append(";requested60;budget4700;admitted58/4640A;originalPaidListingHashRejected=true;buyer59/449B preserved;audits1+3COMMITTED=").append(audit5).append(audit6).append(";noAutomaticNeedClaim;noNewPaidEffects\n");
+		}
+		finally
+		{
+			try { PhantomPvp072Native.closeAll(cleanup); } finally { try { closeOwner(maker); } finally { closeOwner(seller); } }
+			check(before.equals(retainedMarketResources()), "Retained-index native publication/cleanup changed exact item rows/wallets.");
+			check(World.getInstance().getPrivateStorePlayers(java.util.Set.of(1465)).stream().noneMatch(owner -> owner.getObjectId() == 268481810 || owner.getObjectId() == 268481822) && World.getInstance().getPrivateStorePlayers().stream().noneMatch(owner -> owner.getObjectId() == 268481810 || owner.getObjectId() == 268481822), "Retained stores survived ordinary index cleanup.");
+			report.append("RETAINED_MARKET074_CLEANUP\tPASS exactFourActorsInventoryWalletRowsUnchanged;nativeStoreIndexMembershipCleared;noPurchaseOrProductionRepeated\n");
+		}
+		return true;
+	}
+	private static String retainedMarketResources() throws Exception
+	{
+		final var expected = Map.of(268481805, "task074market", 268481810, "task074seller", 268481814, "task074craft", 268481822, "task074maker"); final var result = new StringBuilder();
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setReadOnly(true); check(PhantomTask074Lane.TEST.equals(connection.getCatalog()), "Retained index requires exact OWN074 TEST schema.");
+			try (var query = connection.prepareStatement("SELECT charId,account_name,accesslevel FROM characters WHERE charId IN(268481805,268481810,268481814,268481822) ORDER BY charId"); var rows = query.executeQuery()) { int count = 0; while (rows.next()) { check(expected.get(rows.getInt(1)).equals(rows.getString(2)) && rows.getInt(3) == 0, "Retained index actor identity differs."); count++; } check(count == 4, "Retained index actor absent; no reseed."); }
+			try (var query = connection.prepareStatement("SELECT owner_id,object_id,item_id,count,loc,loc_data,enchant_level FROM items WHERE owner_id IN(268481805,268481810,268481814,268481822) ORDER BY owner_id,object_id"); var rows = query.executeQuery()) { while (rows.next()) { for (int column = 1; column <= 7; column++) { result.append(rows.getString(column)).append(':'); } result.append(';'); } }
+		}
+		return result.toString();
+	}
 	private static boolean run(PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, StringBuilder report, boolean manufacture) throws Exception
 	{
 		final var cleanup = new java.util.ArrayList<AutoCloseable>(); Player seller = null, maker = null;

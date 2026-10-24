@@ -29,7 +29,7 @@ public final class PhantomLivingSystems074Native
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (!PhantomTask074Lane.enabled() || args.length != 1 || !Set.of("preflight", "bootstrap-test", "bootstrap-release", "route", "supply", "loot", "pvp-recovery", "accept", "continue", "followup", "resume", "selection", "inspect").contains(args[0])) { throw new IllegalArgumentException("Explicit finite OWN074 action required."); }
+		if (!PhantomTask074Lane.enabled() || args.length != 1 || !Set.of("preflight", "bootstrap-test", "bootstrap-release", "route", "supply", "loot", "pvp-recovery", "market-index", "accept", "continue", "followup", "resume", "selection", "inspect").contains(args[0])) { throw new IllegalArgumentException("Explicit finite OWN074 action required."); }
 		final var module = Path.of(System.getProperty("phantom.module.root")).toRealPath();
 		if (args[0].equals("preflight") || args[0].startsWith("bootstrap-")) { PhantomTask074Lane.environment(module, args[0]); return; }
 		if (args[0].equals("inspect"))
@@ -63,7 +63,7 @@ public final class PhantomLivingSystems074Native
 				final var knowledgePolicy = org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy.productionDefaults(); final var backend = new org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend();
 				final var knowledge = new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService(new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder(backend, new org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), backend, knowledgePolicy), topology, knowledgePolicy));
 				if (!knowledge.start()) { throw new IllegalStateException("OWN074 native knowledge unavailable."); }
-				if (!args[0].equals("pvp-recovery"))
+				if (!Set.of("pvp-recovery", "market-index").contains(args[0]))
 				{
 					try { PhantomSupply074Native.run(knowledge.query(), topology, report, args[0].equals("followup") ? "resume" : args[0]); }
 					catch (Throwable failure) { report.append(args[0].equals("loot") ? "C_RESULT\tPARTIAL;" : "A_RESULT\tPARTIAL;").append(failure).append('\n'); failure.printStackTrace(); }
@@ -97,6 +97,11 @@ public final class PhantomLivingSystems074Native
 					try { PhantomPvp074Native.run(knowledge, topology, report); } catch (Throwable failure) { report.append("D_RESULT\tPARTIAL;").append(failure).append('\n'); }
 				}
 				if (args[0].equals("followup") || args[0].equals("pvp-recovery")) { PhantomPvp074Native.runRecovery(knowledge, topology, report); }
+				if (args[0].equals("market-index"))
+				{
+					try { PhantomMarket074Native.runRetainedIndex(knowledge.query(), topology, report); report.append("RETAINED_MARKET074_RESULT\tPASS current native publication/index/quote and sameDB paid inventory/audits;no new purchase or manufacture\n"); }
+					catch (Throwable failure) { report.append("RETAINED_MARKET074_RESULT\tPARTIAL;").append(failure).append('\n'); failure.printStackTrace(); }
+				}
 			}
 		}
 		catch (Throwable failure) { report.append("FAILURE\t").append(failure).append('\n'); throw failure; }
