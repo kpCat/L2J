@@ -43,12 +43,15 @@ public final class Pss008V3CatalogProbe
         for (String row : Files.readAllLines(spec, StandardCharsets.UTF_8))
         {
             String[] fields = row.split("\t", -1);
-            require(fields.length == 6, "Invalid expected-ID specification");
+            require(fields.length == 9, "Invalid expected-ID specification");
             boolean pattern = fields[1].equals("PATTERN");
+            String voice = fields[6];
+            require(Set.of("", "calm", "open", "direct", "empathetic").contains(voice) && (!pattern || voice.isEmpty()), "Invalid expected voice");
             require(fields[5].startsWith(pattern ? "semantic/humanized/v3/segments/" : "conversation/humanized/v3/segments/") && !fields[5].contains(".."), "Invalid target path");
             Path xml = own(scratch, stageRoot.resolve(fields[5]).toString());
             Element entry = entry(xml, pattern ? "pattern" : "template", fields[0]);
             require(entry.getAttribute("act").equals(fields[2]) && !entry.hasAttribute("override"), "Act/override mismatch");
+            require(entry.getAttribute("voice").equals(voice) && (!voice.isEmpty() || !entry.hasAttribute("voice")), "Candidate voice mismatch");
             String text = entry.getAttribute(pattern ? "phrase" : "text");
             require(PhantomHumanizedCatalog.sha256(text).equals(fields[4]), "Candidate text hash mismatch");
             if (pattern)
@@ -59,26 +62,39 @@ public final class Pss008V3CatalogProbe
             else
             {
                 boolean found = false;
+                long selectedSelector = -1;
+                var band = RelationshipBand.valueOf(fields[7]);
+                var register = Register.valueOf(fields[8]);
+                require(entry.getAttribute("band").equals(fields[7]) && entry.getAttribute("register").equals(fields[8]), "Candidate band/register mismatch");
                 // Sorted-ID + floorMod selection is deterministic. The effective global
                 // template hard bound covers the eligible band/register fallback union.
                 for (long selector = 0; selector < 32768 && !found; selector++)
                 {
-                    var selected = staged.select(fields[2], RelationshipBand.valueOf(entry.getAttribute("band")), Register.valueOf(entry.getAttribute("register")), ProfanityMode.NONE,
-                        Variation.HIGH, false, false, "", "", "", "", selector, Set.of());
+                    var selected = select(staged, fields[2], band, register, voice, selector);
                     found = selected.templateId().equals(fields[0]) && selected.text().equals(text);
+                    if (found) selectedSelector = selector;
                 }
                 require(found, "Actual v3 template not selected in bounded probe");
+                if (!voice.isEmpty())
+                {
+                    String otherVoice = voice.equals("calm") ? "direct" : "calm";
+                    require(!select(staged, fields[2], band, register, otherVoice, selectedSelector).templateId().equals(fields[0]), "Wrong voice selected candidate");
+                    var universal = select(staged, fields[2], band, register, "", selectedSelector);
+                    require(universal.equals(select(staged, fields[2], band, register, "unsupported", selectedSelector)), "Lost universal fallback for unknown voice");
+                    require(!universal.templateId().equals(fields[0]), "Legacy overload selected voiced candidate");
+                    System.out.println("VOICE_SELECT id=" + fields[0] + " voice=" + voice + " positive=CHECKED wrongVoice=CHECKED universal=CHECKED");
+                }
                 boolean wrongActRejected = false;
-                try { staged.select("pss.absent.reply", RelationshipBand.UNKNOWN, Register.NEUTRAL, ProfanityMode.NONE,
-                    Variation.HIGH, false, false, "", "", "", "", 0, Set.of()); }
+                try { select(staged, "pss.absent.reply", RelationshipBand.UNKNOWN, Register.NEUTRAL, voice, 0); }
                 catch (IllegalArgumentException expected) { wrongActRejected = true; }
                 require(wrongActRejected, "Wrong act not rejected");
-                var hostile = staged.select(fields[2], RelationshipBand.HOSTILE, Register.NEUTRAL, ProfanityMode.NONE,
-                    Variation.HIGH, false, false, "", "", "", "", 0, Set.of());
-                if (entry.getAttribute("band").equals("FAMILIAR") || entry.getAttribute("register").equals("CASUAL"))
-                    require(!hostile.templateId().equals(fields[0]), "Wrong band/register selected candidate");
+                var otherBand = band == RelationshipBand.HOSTILE ? RelationshipBand.UNKNOWN : RelationshipBand.HOSTILE;
+                if (band != RelationshipBand.UNKNOWN)
+                    require(!select(staged, fields[2], otherBand, register, voice, selectedSelector).templateId().equals(fields[0]), "Wrong band selected candidate");
+                if (register == Register.CASUAL)
+                    require(!select(staged, fields[2], band, Register.NEUTRAL, voice, selectedSelector).templateId().equals(fields[0]), "Wrong register selected candidate");
                 System.out.println("SELECTOR_NEGATIVE wrongAct=CHECKED register=" + (entry.getAttribute("register").equals("CASUAL") ? "CHECKED" : "NOT_APPLICABLE")
-                    + " band=" + (entry.getAttribute("band").equals("FAMILIAR") ? "CHECKED" : "NOT_APPLICABLE"));
+                    + " band=" + (band != RelationshipBand.UNKNOWN ? "CHECKED" : "NOT_APPLICABLE"));
             }
             checked++;
         }
@@ -123,6 +139,13 @@ public final class Pss008V3CatalogProbe
         System.out.println("PASS_JAVA_STAGED_V3 baselinePatterns=" + baseline.patternCount() + " baselineTemplates=" + baseline.templateCount()
             + " stagedPatterns=" + staged.patternCount() + " stagedTemplates=" + staged.templateCount() + " checkedIds=" + checked
             + " baselineHash=" + baseline.combinedHash() + " stagedHash=" + staged.combinedHash() + " negative=DUPLICATE_AND_SCHEMA_REJECTED");
+    }
+
+    private static Selection select(PhantomHumanizedCatalog catalog, String act, RelationshipBand band, Register register, String voice, long selector)
+    {
+        // Preserve legacy generic semantics; every voiced/unknown request uses Java079's native voice overload.
+        if (voice.isEmpty()) return catalog.select(act, band, register, ProfanityMode.NONE, Variation.HIGH, false, false, "", "", "", "", selector, Set.of());
+        return catalog.select(act, band, register, ProfanityMode.NONE, Variation.HIGH, false, false, "", "", "", "", voice, selector, Set.of());
     }
 
     private static Path own(Path scratch, String value) throws Exception

@@ -23,6 +23,7 @@ public sealed class StudioSettings
 
 public sealed record PackEntry
 {
+    public string Voice { get; init; } = "";
     public string Kind { get; init; } = "";
     public string Id { get; init; } = "";
     public string Text { get; init; } = "";
@@ -56,6 +57,7 @@ public sealed record PackSnapshot
 
 public sealed class Candidate
 {
+    public string Voice { get; set; } = "";
     public SemanticReviewEvidence? SemanticReview { get; set; }
     public Candidate Copy() => (Candidate)MemberwiseClone();
     public string Id { get; set; } = Guid.NewGuid().ToString("N");

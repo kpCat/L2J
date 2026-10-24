@@ -103,7 +103,12 @@ public static class V3ReleaseHandoff
             && inventory.Select(f => f.RelativePath).Distinct(StringComparer.Ordinal).Count() == inventory.Count, "ORACLE_INVENTORY");
         // TASK063 audited db375d6 baseline; exact CRLF/LF bytes, never an arbitrary build or catalog.
         V3ProposalContract.Require(inventory.Any(f => f.RelativePath == "build.xml" && (f.Sha256 is "f6bebf5452655de3e08d8941134307650b830c2d0c1f31ded1cc1d0f2bd5fdc1" or "dafce95145d8d722138dfa16515aac0271110cd80254c204e308a03f78ecddca"))
-            && inventory.Any(f => f.RelativePath == "java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java" && (f.Sha256 is "ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840" or "a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335")), "UNAUDITED_ORACLE_BUILD");
+            && inventory.Any(f => f.RelativePath == "java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java" && (f.Sha256 is "ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840" or "a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335"
+                or "493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0")), "UNAUDITED_ORACLE_BUILD");
+        // 080: reviewed Java079 catalog only. Ant ownership/write guards above remain pinned.
+        var expectedRows = receipt.Candidates.Select(c => string.Join("\t", c.XmlId, c.Kind, c.Act, c.Topic, c.TextHash,
+            c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath, c.Voice, c.Band, c.Register));
+        V3ProposalContract.Require(File.ReadAllLines(PathSafety.ResolveRelative(oracle, "expected-ids.tsv")).SequenceEqual(expectedRows), "PROOF_VOICE_SPEC");
         foreach (var stamp in inventory)
         {
             token.ThrowIfCancellationRequested(); var relative = stamp.RelativePath;
@@ -118,16 +123,25 @@ public static class V3ReleaseHandoff
         var logs = proof.GetProperty("Logs").Deserialize<List<SourceFileStamp>>()!;
         string[] expectedLogs = ["ant-content.txt", "probe.txt", "negative.txt", "negative-schema.txt", "probe-compile.txt", "java-version.txt", "ant-version.txt"];
         V3ProposalContract.Require(logs.Count == expectedLogs.Length && logs.Select(l => l.RelativePath).Order().SequenceEqual(expectedLogs.Order()), "PROOF_LOGS");
-        foreach (var log in logs) { token.ThrowIfCancellationRequested(); V3ProposalContract.ReadStamped(PathSafety.ResolveRelative(oracle, log.RelativePath), log); }
+        var verifiedLogs = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var log in logs)
+        {
+            token.ThrowIfCancellationRequested();
+            var bytes = V3ProposalContract.ReadStamped(PathSafety.ResolveRelative(oracle, log.RelativePath), log);
+            verifiedLogs.Add(log.RelativePath, V3ProposalContract.Utf8.GetString(bytes).TrimStart('\uFEFF'));
+        }
+        var probeLines = verifiedLogs["probe.txt"].Split('\n').Select(line => line.TrimEnd('\r')).ToArray();
+        foreach (var c in receipt.Candidates.Where(c => c.Kind == "TEMPLATE" && c.Voice != ""))
+            V3ProposalContract.Require(probeLines.Count(line => line == $"VOICE_SELECT id={c.XmlId} voice={c.Voice} positive=CHECKED wrongVoice=CHECKED universal=CHECKED") == 1, "PROOF_VOICE_SELECT");
         var evidence = S("ProbeEvidence");
         var match = Regex.Match(evidence, "^PASS_JAVA_STAGED_V3 baselinePatterns=(\\d+) baselineTemplates=(\\d+) stagedPatterns=(\\d+) stagedTemplates=(\\d+) checkedIds=(\\d+) baselineHash=([0-9a-f]{64}) stagedHash=([0-9a-f]{64}) negative=DUPLICATE_AND_SCHEMA_REJECTED$");
         V3ProposalContract.Require(match.Success && int.Parse(match.Groups[1].Value) == receipt.BaselinePatterns && int.Parse(match.Groups[2].Value) == receipt.BaselineTemplates
             && int.Parse(match.Groups[3].Value) == receipt.BaselinePatterns + receipt.AddedPatterns && int.Parse(match.Groups[4].Value) == receipt.BaselineTemplates + receipt.AddedTemplates
             && int.Parse(match.Groups[5].Value) == receipt.Candidates.Count && match.Groups[6].Value != match.Groups[7].Value, "PROOF_COUNTERS");
-        V3ProposalContract.Require(File.ReadAllLines(PathSafety.ResolveRelative(oracle, "probe.txt")).Count(line => line == evidence) == 1
-            && File.ReadAllText(PathSafety.ResolveRelative(oracle, "negative.txt")).Contains("REJECTED_V3_NEGATIVE", StringComparison.Ordinal)
-            && File.ReadAllText(PathSafety.ResolveRelative(oracle, "negative-schema.txt")).Contains("REJECTED_V3_NEGATIVE", StringComparison.Ordinal)
-            && File.ReadAllText(PathSafety.ResolveRelative(oracle, "ant-content.txt")).Contains("BUILD SUCCESSFUL", StringComparison.Ordinal), "PROOF_NATIVE_LOGS");
+        V3ProposalContract.Require(probeLines.Count(line => line == evidence) == 1
+            && verifiedLogs["negative.txt"].Contains("REJECTED_V3_NEGATIVE", StringComparison.Ordinal)
+            && verifiedLogs["negative-schema.txt"].Contains("REJECTED_V3_NEGATIVE", StringComparison.Ordinal)
+            && verifiedLogs["ant-content.txt"].Contains("BUILD SUCCESSFUL", StringComparison.Ordinal), "PROOF_NATIVE_LOGS");
         token.ThrowIfCancellationRequested(); V3ProposalContract.Require(TextRules.Hash(File.ReadAllBytes(path)) == proofHash, "PROOF_DRIFT"); return proofHash;
     }
 }

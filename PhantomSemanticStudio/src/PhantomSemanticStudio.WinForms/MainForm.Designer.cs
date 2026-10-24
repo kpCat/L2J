@@ -65,6 +65,8 @@ partial class MainForm
             cmbRegister = new System.Windows.Forms.ComboBox();
             lblMode = new System.Windows.Forms.Label();
             cmbMode = new System.Windows.Forms.ComboBox();
+            lblVoice = new System.Windows.Forms.Label();
+            cmbVoice = new System.Windows.Forms.ComboBox();
             lblInstruction = new System.Windows.Forms.Label();
             txtInstruction = new System.Windows.Forms.TextBox();
             lblWords = new System.Windows.Forms.Label();
@@ -97,6 +99,7 @@ partial class MainForm
             gridLibraryColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             gridLibraryColumn2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             gridLibraryColumn3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            gridLibraryVoice = new System.Windows.Forms.DataGridViewTextBoxColumn();
             txtLibraryDetails = new System.Windows.Forms.TextBox();
             lblCandidates = new System.Windows.Forms.Label();
             gridCandidates = new System.Windows.Forms.DataGridView();
@@ -105,7 +108,10 @@ partial class MainForm
             gridCandidatesColumn2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             gridCandidatesColumn3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             gridCandidatesColumn4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            gridCandidatesVoice = new System.Windows.Forms.DataGridViewTextBoxColumn();
             lblSelected = new System.Windows.Forms.Label();
+            lblCandidateVoice = new System.Windows.Forms.Label();
+            cmbCandidateVoice = new System.Windows.Forms.ComboBox();
             lblEdit = new System.Windows.Forms.Label();
             txtCandidateText = new System.Windows.Forms.TextBox();
             lblReviewNote = new System.Windows.Forms.Label();
@@ -442,15 +448,26 @@ partial class MainForm
             cmbMode.TabIndex = 5;
             txtInstruction.TabIndex = 6;
             txtWords.TabIndex = 7;
+            // lblVoice
+            lblVoice.Name = "lblVoice";
+            lblVoice.Location = new System.Drawing.Point(18, 226);
+            lblVoice.Size = new System.Drawing.Size(710, 24);
+            lblVoice.Text = "Голос ответа v3 (для входной фразы не применяется)";
+            // cmbVoice
+            cmbVoice.Name = "cmbVoice";
+            cmbVoice.Location = new System.Drawing.Point(18, 254);
+            cmbVoice.Size = new System.Drawing.Size(354, 29);
+            cmbVoice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            cmbVoice.TabIndex = 6;
             // lblInstruction
             lblInstruction.Name = "lblInstruction";
-            lblInstruction.Location = new System.Drawing.Point(18, 226);
+            lblInstruction.Location = new System.Drawing.Point(18, 290);
             lblInstruction.Size = new System.Drawing.Size(710, 24);
             lblInstruction.Text = "Характер, тема, нюансы и примеры желаемых ответов";
             // txtInstruction
             txtInstruction.Name = "txtInstruction";
-            txtInstruction.Location = new System.Drawing.Point(18, 254);
-            txtInstruction.Size = new System.Drawing.Size(726, 142);
+            txtInstruction.Location = new System.Drawing.Point(18, 318);
+            txtInstruction.Size = new System.Drawing.Size(726, 78);
             txtInstruction.Text = "Короткие живые ответы без канцелярита. Лёгкая доброжелательная ирония. Не выдумывай прошлые события и выполненные игровые действия.";
             txtInstruction.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             txtInstruction.MaxLength = 4000;
@@ -647,6 +664,11 @@ partial class MainForm
             gridLibraryColumn3.HeaderText = "Текст";
             gridLibraryColumn3.FillWeight = 250F;
             gridLibraryColumn3.ReadOnly = true;
+            gridLibraryVoice.Name = "gridLibraryVoice";
+            gridLibraryVoice.DataPropertyName = "Voice";
+            gridLibraryVoice.HeaderText = "Голос v3";
+            gridLibraryVoice.FillWeight = 90F;
+            gridLibraryVoice.ReadOnly = true;
             // txtLibraryDetails
             txtLibraryDetails.Name = "txtLibraryDetails";
             txtLibraryDetails.Location = new System.Drawing.Point(16, 463);
@@ -704,12 +726,30 @@ partial class MainForm
             gridCandidatesColumn4.HeaderText = "Кандидат";
             gridCandidatesColumn4.FillWeight = 280F;
             gridCandidatesColumn4.ReadOnly = true;
+            gridCandidatesVoice.Name = "gridCandidatesVoice";
+            gridCandidatesVoice.DataPropertyName = "Voice";
+            gridCandidatesVoice.HeaderText = "Голос v3";
+            gridCandidatesVoice.FillWeight = 90F;
+            gridCandidatesVoice.ReadOnly = true;
             // lblSelected
             lblSelected.Name = "lblSelected";
             lblSelected.Location = new System.Drawing.Point(16, 328);
-            lblSelected.Size = new System.Drawing.Size(1210, 38);
+            lblSelected.Size = new System.Drawing.Size(860, 38);
             lblSelected.Text = "Выберите кандидата.";
             lblSelected.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            // lblCandidateVoice
+            lblCandidateVoice.Name = "lblCandidateVoice";
+            lblCandidateVoice.Location = new System.Drawing.Point(888, 333);
+            lblCandidateVoice.Size = new System.Drawing.Size(110, 24);
+            lblCandidateVoice.Text = "Голос v3";
+            lblCandidateVoice.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            // cmbCandidateVoice
+            cmbCandidateVoice.Name = "cmbCandidateVoice";
+            cmbCandidateVoice.Location = new System.Drawing.Point(1000, 328);
+            cmbCandidateVoice.Size = new System.Drawing.Size(226, 29);
+            cmbCandidateVoice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            cmbCandidateVoice.Enabled = false;
+            cmbCandidateVoice.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             // lblEdit
             lblEdit.Name = "lblEdit";
             lblEdit.Location = new System.Drawing.Point(16, 371);
@@ -1030,6 +1070,8 @@ partial class MainForm
             grpRequest.Controls.Add(cmbRegister);
             grpRequest.Controls.Add(lblMode);
             grpRequest.Controls.Add(cmbMode);
+            grpRequest.Controls.Add(lblVoice);
+            grpRequest.Controls.Add(cmbVoice);
             grpRequest.Controls.Add(lblInstruction);
             grpRequest.Controls.Add(txtInstruction);
             grpRequest.Controls.Add(lblWords);
@@ -1085,6 +1127,7 @@ partial class MainForm
             gridLibrary.Columns.Add(gridLibraryColumn1);
             gridLibrary.Columns.Add(gridLibraryColumn2);
             gridLibrary.Columns.Add(gridLibraryColumn3);
+            gridLibrary.Columns.Add(gridLibraryVoice);
             contentLibrary.Controls.Add(txtLibraryDetails);
             contentCandidates.Controls.Add(lblCandidates);
             contentCandidates.Controls.Add(gridCandidates);
@@ -1093,7 +1136,10 @@ partial class MainForm
             gridCandidates.Columns.Add(gridCandidatesColumn2);
             gridCandidates.Columns.Add(gridCandidatesColumn3);
             gridCandidates.Columns.Add(gridCandidatesColumn4);
+            gridCandidates.Columns.Add(gridCandidatesVoice);
             contentCandidates.Controls.Add(lblSelected);
+            contentCandidates.Controls.Add(lblCandidateVoice);
+            contentCandidates.Controls.Add(cmbCandidateVoice);
             contentCandidates.Controls.Add(lblEdit);
             contentCandidates.Controls.Add(txtCandidateText);
             contentCandidates.Controls.Add(lblReviewNote);
@@ -1148,6 +1194,8 @@ partial class MainForm
             tabSettings.Controls.Add(layoutSettings);
             btnCancel.Click += Cancel_Click;
             cmbAct.SelectedIndexChanged += Act_Changed;
+            cmbMode.SelectedIndexChanged += Mode_Changed;
+            cmbCandidateVoice.SelectedIndexChanged += SemanticEditor_Changed;
             btnGenerate.Click += Generate_Click;
             btnToCandidates.Click += ToCandidates_Click;
             btnPreview.Click += Preview_Click;
@@ -1271,6 +1319,8 @@ partial class MainForm
     private System.Windows.Forms.ComboBox cmbRegister = null!;
     private System.Windows.Forms.Label lblMode = null!;
     private System.Windows.Forms.ComboBox cmbMode = null!;
+    private System.Windows.Forms.Label lblVoice = null!;
+    private System.Windows.Forms.ComboBox cmbVoice = null!;
     private System.Windows.Forms.Label lblInstruction = null!;
     private System.Windows.Forms.TextBox txtInstruction = null!;
     private System.Windows.Forms.Label lblWords = null!;
@@ -1303,6 +1353,7 @@ partial class MainForm
     private System.Windows.Forms.DataGridViewTextBoxColumn gridLibraryColumn1 = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn gridLibraryColumn2 = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn gridLibraryColumn3 = null!;
+    private System.Windows.Forms.DataGridViewTextBoxColumn gridLibraryVoice = null!;
     private System.Windows.Forms.TextBox txtLibraryDetails = null!;
     private System.Windows.Forms.Label lblCandidates = null!;
     private System.Windows.Forms.DataGridView gridCandidates = null!;
@@ -1311,7 +1362,10 @@ partial class MainForm
     private System.Windows.Forms.DataGridViewTextBoxColumn gridCandidatesColumn2 = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn gridCandidatesColumn3 = null!;
     private System.Windows.Forms.DataGridViewTextBoxColumn gridCandidatesColumn4 = null!;
+    private System.Windows.Forms.DataGridViewTextBoxColumn gridCandidatesVoice = null!;
     private System.Windows.Forms.Label lblSelected = null!;
+    private System.Windows.Forms.Label lblCandidateVoice = null!;
+    private System.Windows.Forms.ComboBox cmbCandidateVoice = null!;
     private System.Windows.Forms.Label lblEdit = null!;
     private System.Windows.Forms.TextBox txtCandidateText = null!;
     private System.Windows.Forms.Label lblReviewNote = null!;

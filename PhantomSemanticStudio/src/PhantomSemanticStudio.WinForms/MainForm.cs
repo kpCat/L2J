@@ -36,11 +36,12 @@ public partial class MainForm : Form
     private PackSnapshot Snapshot => snapshot ?? throw new InvalidOperationException("Сначала импортируйте Semantic Pack на вкладке Настройки.");
     private LmStudioClient Model => lm ?? throw new InvalidOperationException("LM Studio-клиент ещё не создан.");
     private sealed record Choice(string Key, string Label);
-    private sealed record CandidateRow(Candidate Data, string State, string Kind, string Topic, string Gender, string Text);
-    private sealed record LibraryRow(PackEntry Data, string Kind, string Id, string Act, string Text);
+    private sealed record CandidateRow(Candidate Data, string State, string Kind, string Topic, string Gender, string Voice, string Text);
+    private sealed record LibraryRow(PackEntry Data, string Kind, string Id, string Act, string Voice, string Text);
     private static string Key(ComboBox combo) => combo.SelectedItem is Choice choice ? choice.Key : combo.SelectedItem?.ToString() ?? "";
     private static string GenderLabel(string key) => key switch { "FEMALE" => "Женский", "MALE" => "Мужской", _ => "Без ограничения" };
     private static string KindLabel(string key) => key switch { "PATTERN" => "Вход", "TEMPLATE" => "Ответ", "ALIAS" => "Алиас", _ => "Лексика" };
+    private static string VoiceLabel(string key) => key == "" ? "Универсальный" : key;
     private Candidate? SelectedCandidate => (gridCandidates.CurrentRow?.DataBoundItem as CandidateRow)?.Data;
 
     private async void MainForm_Shown(object? sender, EventArgs e)
@@ -78,6 +79,17 @@ public partial class MainForm : Form
         cmbGender.DataSource = new[] { new Choice("ANY", "Без ограничения"), new Choice("FEMALE", "Женский — нужен runtime"), new Choice("MALE", "Мужской — нужен runtime") };
         cmbRegister.DisplayMember = "Label"; cmbRegister.ValueMember = "Key";
         cmbRegister.DataSource = new[] { new Choice("CASUAL", "Разговорный"), new Choice("NEUTRAL", "Нейтральный") };
+        foreach (var combo in new[] { cmbVoice, cmbCandidateVoice })
+        {
+            combo.DisplayMember = "Label"; combo.ValueMember = "Key";
+            combo.DataSource = CandidateValidator.Voices.Select(v => new Choice(v, VoiceLabel(v))).ToArray();
+        }
+        Mode_Changed(null, EventArgs.Empty);
+    }
+    private void Mode_Changed(object? sender, EventArgs e)
+    {
+        cmbVoice.Enabled = cmbMode.SelectedIndex != 1;
+        if (!cmbVoice.Enabled) cmbVoice.SelectedValue = "";
     }
     private void FillSettings()
     {
@@ -156,10 +168,11 @@ public partial class MainForm : Form
             var pack = Snapshot; var configured = ReadSettings();
             var mode = cmbMode.SelectedIndex switch { 0 => GenerationMode.TEMPLATE, 1 => GenerationMode.PATTERN, 2 => GenerationMode.MIXED, _ => throw new InvalidDataException("Выберите тип генерации.") };
             var request = new GenerationRequest(Key(cmbTopic), Key(cmbAct), Key(cmbBand), Key(cmbRegister), Key(cmbGender), txtInstruction.Text.Trim(), txtWords.Text.Trim(), (int)nudCount.Value, mode);
+            var voice = Key(cmbVoice);
             var drafts = await Model.GenerateAsync(configured, txtApiKey.Text, pack, request, token);
             var additions = drafts.Select(d => new Candidate
             {
-                Kind = d.Kind, Text = d.Text, Topic = request.Topic, Act = request.Act, Band = request.Band,
+                Kind = d.Kind, Text = d.Text, Voice = d.Kind == "TEMPLATE" ? voice : "", Topic = request.Topic, Act = request.Act, Band = request.Band,
                 Register = request.Register, Gender = request.Gender, SourceFingerprint = pack.Fingerprint,
                 ModelId = configured.ModelId, Instruction = request.Instruction + "\nЛексика: " + request.Words, Rationale = d.Reason
             }).ToList();
@@ -179,7 +192,7 @@ public partial class MainForm : Form
         var query = txtSearch.Text.Trim();
         var found = snapshot.Entries.Where(x => query.Length == 0 || x.Text.Contains(query, StringComparison.OrdinalIgnoreCase)
             || x.Id.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Act.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
-        gridLibrary.DataSource = found.Take(1000).Select(x => new LibraryRow(x, KindLabel(x.Kind), x.Id, x.Act, x.Text)).ToList();
+        gridLibrary.DataSource = found.Take(1000).Select(x => new LibraryRow(x, KindLabel(x.Kind), x.Id, x.Act, x.Kind == "TEMPLATE" ? VoiceLabel(x.Voice) : "—", x.Text)).ToList();
         lblLibraryStats.Text = $"Найдено: {found.Count:N0}; показаны первые {Math.Min(1000, found.Count):N0}. Всего: {snapshot.Entries.Count:N0}. Источник только для чтения.";
     }
     private void Search_Click(object? sender, EventArgs e) => BindLibrary();
@@ -187,13 +200,13 @@ public partial class MainForm : Form
     {
         if (gridLibrary.CurrentRow?.DataBoundItem is not LibraryRow row) return;
         var item = row.Data;
-        txtLibraryDetails.Text = $"{item.Id}\r\n{item.SourceFile}:{item.SourceLine}\r\nAct: {item.Act}; topic: {item.Topic}; band: {item.Band}; register: {item.Register}; profanity: {item.Profanity}; mature: {item.Mature}\r\nFact/recall: {item.Fact}/{item.Recall}\r\n\r\n{item.Text}";
+        txtLibraryDetails.Text = $"{item.Id}\r\n{item.SourceFile}:{item.SourceLine}\r\nAct: {item.Act}; topic: {item.Topic}; band: {item.Band}; register: {item.Register}; voice: {VoiceLabel(item.Voice)}; profanity: {item.Profanity}; mature: {item.Mature}\r\nFact/recall: {item.Fact}/{item.Recall}\r\n\r\n{item.Text}";
     }
     private void BindCandidates(string? selectedId = null)
     {
         var rows = session.Candidates.Select(c => new CandidateRow(c,
             CandidateReview.IsCurrent(c) ? "Одобрен" : c.Status == "REJECTED" ? "Отклонён" : "Черновик / ревью",
-            KindLabel(c.Kind), c.Topic, GenderLabel(c.Gender), c.Text)).ToList();
+            KindLabel(c.Kind), c.Topic, GenderLabel(c.Gender), c.Kind == "TEMPLATE" ? VoiceLabel(c.Voice) : "—", c.Text)).ToList();
         bindingCandidates = true;
         try
         {
@@ -242,6 +255,8 @@ public partial class MainForm : Form
         showingCandidate = true;
         editingCandidate = candidate;
         txtCandidateText.Text = candidate?.Text ?? ""; txtReviewNote.Text = candidate?.ReviewNote ?? "";
+        cmbCandidateVoice.Enabled = candidate?.Kind == "TEMPLATE";
+        cmbCandidateVoice.SelectedValue = candidate?.Voice ?? "";
         showingCandidate = false;
         lblSelected.Text = candidate == null ? "Выберите кандидата." : $"{candidate.Id} • {candidate.Act} • {candidate.Band} / {candidate.Register}";
         txtValidation.Text = candidate == null ? "Нет выбранного кандидата." : "Нажмите «Проверить».\r\n\r\nОбоснование модели (не проверка):\r\n" + candidate.Rationale;
@@ -264,6 +279,7 @@ public partial class MainForm : Form
         bool MayPaint() => !IsDisposed && !Disposing && !cancel.IsCancellationRequested && version == evidenceSelectionVersion
             && ReferenceEquals(snapshot, baseline) && editingCandidate?.Id == candidate.Id && SelectedCandidate?.Id == candidate.Id
             && txtCandidateText.Text.Trim() == candidate.Text && txtReviewNote.Text.Trim() == candidate.ReviewNote
+            && Key(cmbCandidateVoice) == candidate.Voice
             && SemanticDuplicateScout.CandidateFingerprint(editingCandidate) == SemanticDuplicateScout.CandidateFingerprint(candidate)
             && editingCandidate.ApprovedFingerprint == candidate.ApprovedFingerprint && editingCandidate.Status == candidate.Status
             && SemanticDuplicateScout.PeersFingerprint(candidate, session.Candidates) == SemanticDuplicateScout.PeersFingerprint(candidate, peers);
@@ -292,7 +308,7 @@ public partial class MainForm : Form
     private void SemanticEditor_Changed(object? sender, EventArgs e)
     {
         if (!showingCandidate && editingCandidate != null
-            && (txtCandidateText.Text.Trim() != editingCandidate.Text || txtReviewNote.Text.Trim() != editingCandidate.ReviewNote))
+            && (txtCandidateText.Text.Trim() != editingCandidate.Text || txtReviewNote.Text.Trim() != editingCandidate.ReviewNote || Key(cmbCandidateVoice) != editingCandidate.Voice))
             txtValidation.Text = "STALE: есть несохранённая правка. Прежняя экспертиза не относится к тексту редактора; сначала сохраните/разрешите правку.";
     }
     private static string FormatSemanticShortlist(Candidate c, SemanticShortlist s, SemanticReviewEvidence? evidence = null, bool current = false)
@@ -365,14 +381,14 @@ public partial class MainForm : Form
     }
     private bool ResolvePendingEdit()
     {
-        if (editingCandidate == null || (txtCandidateText.Text.Trim() == editingCandidate.Text && txtReviewNote.Text.Trim() == editingCandidate.ReviewNote)) return true;
-        var answer = MessageBox.Show(this, "Есть несохранённая правка текста или отметки ревью.\r\nДа — сохранить (одобрение отменится). Нет — отбросить. Отмена — остаться.",
+        if (editingCandidate == null || (txtCandidateText.Text.Trim() == editingCandidate.Text && txtReviewNote.Text.Trim() == editingCandidate.ReviewNote && Key(cmbCandidateVoice) == editingCandidate.Voice)) return true;
+        var answer = MessageBox.Show(this, "Есть несохранённая правка текста, голоса или отметки ревью.\r\nДа — сохранить (одобрение отменится). Нет — отбросить. Отмена — остаться.",
             "Сохранить / Отбросить / Отмена", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question, MessageBoxDefaultButton.Button3);
         if (answer == DialogResult.Cancel) return false;
         if (answer == DialogResult.No) { ShowCandidate(editingCandidate); return true; }
         try
         {
-            var updated = editingCandidate.Copy(); CandidateReview.Edit(updated, txtCandidateText.Text); updated.ReviewNote = txtReviewNote.Text.Trim();
+            var updated = editingCandidate.Copy(); CandidateReview.Edit(updated, txtCandidateText.Text, Key(cmbCandidateVoice)); updated.ReviewNote = txtReviewNote.Text.Trim();
             SaveCandidateVersion(updated); BindCandidates(SelectedCandidate?.Id);
             return true;
         }
@@ -390,7 +406,7 @@ public partial class MainForm : Form
     private Candidate RequireCandidate(bool requireSavedText = true)
     {
         var c = SelectedCandidate ?? throw new InvalidOperationException("Выберите кандидата.");
-        if (requireSavedText && txtCandidateText.Text.Trim() != c.Text) throw new InvalidOperationException("Сначала сохраните правку текста. Проверяется и одобряется только сохранённая версия.");
+        if (requireSavedText && (txtCandidateText.Text.Trim() != c.Text || Key(cmbCandidateVoice) != c.Voice)) throw new InvalidOperationException("Сначала сохраните правку текста и голоса. Проверяется и одобряется только сохранённая версия.");
         return c;
     }
     private static string FormatIssues(IReadOnlyList<ValidationIssue> issues)
@@ -400,7 +416,7 @@ public partial class MainForm : Form
     {
         await RunAsync("Сохраняю правку только в workspace…", _ =>
         {
-            var c = RequireCandidate(false).Copy(); CandidateReview.Edit(c, txtCandidateText.Text); c.ReviewNote = txtReviewNote.Text.Trim(); SaveCandidateVersion(c); BindCandidates(c.Id);
+            var c = RequireCandidate(false).Copy(); CandidateReview.Edit(c, txtCandidateText.Text, Key(cmbCandidateVoice)); c.ReviewNote = txtReviewNote.Text.Trim(); SaveCandidateVersion(c); BindCandidates(c.Id);
             statusLabel.Text = "Правка сохранена. Прежнее одобрение аннулировано."; return Task.CompletedTask;
         });
     }

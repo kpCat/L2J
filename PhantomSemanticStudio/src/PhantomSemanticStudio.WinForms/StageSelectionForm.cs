@@ -70,7 +70,7 @@ public partial class StageSelectionForm : Form
                 var c = row.Data;
                 var item = new ListViewItem(c.Id) { Tag = row, Checked = checkedIds.Contains(c.Id) };
                 item.SubItems.Add(c.Kind); item.SubItems.Add(c.Topic + " / " + c.Act);
-                item.SubItems.Add(c.Gender + " / " + c.Band + " / " + c.Register);
+                item.SubItems.Add(c.Gender + " / " + c.Band + " / " + c.Register + " / voice=" + (c.Voice == "" ? "Универсальный" : c.Voice));
                 item.SubItems.Add(c.Text.Length > 80 ? c.Text[..80] + "…" : c.Text);
                 item.SubItems.Add(ReviewState(row) + " / " + BaselineState(row) + " / " + c.ReviewNote);
                 listCandidates.Items.Add(item);
@@ -120,7 +120,7 @@ public partial class StageSelectionForm : Form
     private static string Describe(SelectionRow row)
     {
         var c = row.Data;
-        return $"{c.Id}\r\n{c.Kind} • {c.Topic} / {c.Act} • {c.Gender} / {c.Band} / {c.Register}\r\n"
+        return $"{c.Id}\r\n{c.Kind} • {c.Topic} / {c.Act} • {c.Gender} / {c.Band} / {c.Register} / voice={(c.Voice == "" ? "Универсальный" : c.Voice)}\r\n"
             + $"{ReviewState(row)}; {BaselineState(row)}\r\nBaseline: {c.SourceFingerprint}\r\n"
             + $"Редактор: {c.ReviewNote}\r\n\r\n{c.Text}";
     }

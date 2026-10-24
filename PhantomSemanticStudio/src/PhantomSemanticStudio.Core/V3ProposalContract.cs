@@ -12,10 +12,10 @@ public sealed record V3SegmentPair(string Category, string SemanticPath, string 
     public override string ToString() => Category;
 }
 public sealed record V3CandidateStamp(string Id, string XmlId, string Kind, string Act, string Topic, string Band,
-    string Register, string ApprovalHash, string TextHash);
+    string Register, string ApprovalHash, string TextHash, string Voice = "");
 public sealed record V3StageReceipt
 {
-    public int Version { get; init; } = 1;
+    public int Version { get; init; } = 2;
     public string StageId { get; init; } = "";
     public string Status { get; init; } = "STAGED_V3_UNVALIDATED";
     public string JavaStatus { get; init; } = "NOT_RUN";
@@ -76,6 +76,9 @@ public static class V3ProposalContract
             if (conversation.TryGetValue(item.Key, out var other))
             { Require(item.Value.Category == other.Category, "PAIR_CATEGORY"); pairs.Add(new(item.Value.Category, item.Value.Path, other.Path)); }
         Require(pairs.Select(p => p.Category).Distinct(StringComparer.Ordinal).Count() == pairs.Count, "AMBIGUOUS_CATEGORY");
+        foreach (var voiced in pack.Entries.Where(e => e.Kind == "TEMPLATE" && e.Voice != ""))
+            Require(pack.Entries.Any(e => e.Kind == "TEMPLATE" && e.Act == voiced.Act && e.Voice == "" && e.Band == "UNKNOWN"
+                && e.Register == "NEUTRAL" && e.Profanity == "NONE" && !e.Mature), "VOICE_FALLBACK");
         return Array.AsReadOnly(pairs.ToArray());
     }
     internal static XDocument ReadXml(byte[] bytes)
@@ -102,7 +105,10 @@ public static class V3ProposalContract
                 switch (name)
                 {
                     case "patterns": Require(e.Name == "pattern", "SEGMENT_SCHEMA"); Attributes(e, ["id", "topic", "act", "phrase", "salience", "ttlMinutes", "priority"], ["fact", "recall"]); break;
-                    case "templates": Require(e.Name == "template", "SEGMENT_SCHEMA"); Attributes(e, ["id", "act", "band", "register", "profanity", "text"], ["mature"]); break;
+                    case "templates":
+                        Require(e.Name == "template", "SEGMENT_SCHEMA"); Attributes(e, ["id", "act", "band", "register", "profanity", "text"], ["mature", "voice"]);
+                        if (e.Attribute("voice") is { } voice) Require(voice.Value != "" && CandidateValidator.Voices.Contains(voice.Value, StringComparer.Ordinal), "VOICE");
+                        break;
                     case "aliases": Require(e.Name == "alias", "SEGMENT_SCHEMA"); Attributes(e, ["from", "to"]); break;
                     case "profanity": Require(e.Name == "entry", "SEGMENT_SCHEMA"); Attributes(e, ["id", "level", "acts", "text"]); break;
                 }
@@ -148,7 +154,7 @@ public static class V3ProposalContract
         Require(Path.GetDirectoryName(stage) == Path.Combine(workspace, "v3-proposals") && Regex.IsMatch(Path.GetFileName(stage), "^[0-9a-f]{32}$"), "STAGE_PATH");
         PathSafety.AssertNoReparsePoints(stage); PathSafety.AssertNoReparsePoints(workspace);
         var receipt = ReadJson<V3StageReceipt>(PathSafety.ResolveRelative(stage, "receipt.json"));
-        Require(receipt.Version == 1 && receipt.StageId == Path.GetFileName(stage) && receipt.Status == "STAGED_V3_UNVALIDATED" && receipt.JavaStatus == "NOT_RUN"
+        Require(receipt.Version is 1 or 2 && receipt.StageId == Path.GetFileName(stage) && receipt.Status == "STAGED_V3_UNVALIDATED" && receipt.JavaStatus == "NOT_RUN"
             && receipt.NotForInstallation && receipt.SelectionConfirmed && receipt.EditorialConfirmed && receipt.Candidates.Count is >= 1 and <= 20
             && receipt.SourceFiles.Count is >= 7 and <= 77 && receipt.StagedFiles.Count == receipt.SourceFiles.Count
             && receipt.Candidates.Select(c => c.Id).Distinct(StringComparer.Ordinal).Count() == receipt.Candidates.Count, "RECEIPT_SCHEMA");
@@ -162,10 +168,12 @@ public static class V3ProposalContract
         {
             Require(Regex.IsMatch(c.Id, "^[0-9a-f]{32}$") && c.Kind is "PATTERN" or "TEMPLATE" && c.XmlId == "pss.v3." + (c.Kind == "PATTERN" ? "p." : "t.") + c.Id
                 && Key(c.Act) && Key(c.Topic) && Sha(c.ApprovalHash) && Sha(c.TextHash) && CandidateValidator.Bands.Contains(c.Band) && CandidateValidator.Registers.Contains(c.Register), "RECEIPT_CANDIDATE");
+            Require(CandidateValidator.Voices.Contains(c.Voice, StringComparer.Ordinal) && (c.Kind == "TEMPLATE" || c.Voice == "")
+                && (receipt.Version == 2 || c.Voice == ""), "RECEIPT_VOICE");
             Require(!source.Entries.Any(e => e.Id == c.XmlId), "RECEIPT_COLLISION");
             var e = staged.Entries.SingleOrDefault(e => e.Kind == c.Kind && e.Id == c.XmlId);
             Require(e != null && e.SourceFile == (c.Kind == "PATTERN" ? receipt.Pair.SemanticPath : receipt.Pair.ConversationPath)
-                && e.Act == c.Act && (c.Kind != "PATTERN" || e.Topic == c.Topic) && TextRules.Hash(e.Text) == c.TextHash && e.Profanity == "NONE" && !e.Mature
+                && e.Act == c.Act && e.Voice == c.Voice && (c.Kind != "PATTERN" || e.Topic == c.Topic) && TextRules.Hash(e.Text) == c.TextHash && e.Profanity == "NONE" && !e.Mature
                 && (c.Kind != "TEMPLATE" || e.Band == c.Band && e.Register == c.Register), "RECEIPT_CONTENT");
         }
         foreach (var path in selectedPaths)

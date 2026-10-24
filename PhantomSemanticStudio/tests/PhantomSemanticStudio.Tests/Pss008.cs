@@ -208,12 +208,14 @@ internal static partial class Program
             && Path.GetFileName(args[2]) == "workspace" && !Directory.Exists(args[2]));
         var pack = new PackReader().Load(args[1]); var report = PackCoverageAnalyzer.Analyze(pack);
         using var store = new WorkspaceStore(args[2], pack.ModuleRoot);
-        var pair = V3ProposalContract.GetPairs(pack).Single(p => p.Category == "social.friendly");
-        var scope = pack.Entries.First(e => e.Kind == "PATTERN" && e.SourceFile == pair.SemanticPath && e.Act == "social.friendly.warmth.reply");
+        var pair = V3ProposalContract.GetPairs(pack).Single(p => p.Category == "lineage.pvp");
+        var scope = pack.Entries.First(e => e.Kind == "PATTERN" && e.SourceFile == pair.SemanticPath && e.Act == "lineage.pvp.risk.reply");
         var peers = StageCandidates(pack);
         peers[0].Text = "проверка студии восемь тихий вечер без действий";
         peers[1].Text = "Пусть этот спокойный разговор добавит вечеру немного тепла.";
-        foreach (var c in peers) { c.Act = scope.Act; c.Topic = scope.Topic; c.Register = "CASUAL"; CandidateReview.Approve(c, pack, peers, "Synthetic PSS008 operator fixture; not model output"); }
+        peers[1].Voice = "direct"; peers[1].Band = "FAMILIAR";
+        var generic = CandidateOf(pack, "Обсудим риски спокойно, прежде чем выбирать следующий шаг."); generic.Id = new string('3', 32); peers.Add(generic);
+        foreach (var c in peers) { c.Act = scope.Act; c.Topic = scope.Topic; c.Register = "CASUAL"; CandidateReview.Approve(c, pack, peers, "Synthetic 080 operator fixture; not model output or owner approval"); }
         var stage = new IsolatedV3ProposalStager().Create(store, pack, peers, peers.Select(c => c.Id).ToArray(), pair, true, true);
         var after = new PackReader().Load(pack.ModuleRoot); True(pack.Files.SequenceEqual(after.Files));
         File.WriteAllText(Path.Combine(store.Root, "test-v3-stage-path.txt"), stage.Root);
@@ -226,7 +228,7 @@ internal static partial class Program
             WarningRows = report.Rows.Count(r => r.Warning.Length > 0), report.LexicalComparisons, JavaStatus = "NOT_RUN", StageStatus = stage.Status
         }, WorkspaceStore.JsonOptions), new System.Text.UTF8Encoding(false));
         Console.WriteLine($"PASS ACTUAL_SOURCE read-only files={pack.Files.Count} SHA/bytes equal; patterns={pack.Entries.Count(e => e.Kind == "PATTERN")}; templates={pack.Entries.Count(e => e.Kind == "TEMPLATE")}; pairs={V3ProposalContract.GetPairs(pack).Count}; fingerprint={pack.Fingerprint}");
-        Console.WriteLine("SYNTHETIC selected=2; stage=STAGED_V3_UNVALIDATED; Java=NOT_RUN; NOT_INSTALLED; path stored only in own workspace"); return 0;
+        Console.WriteLine("SYNTHETIC selected=3 (pattern/direct/universal); stage=STAGED_V3_UNVALIDATED; Java=NOT_RUN; NOT_INSTALLED; path stored only in own workspace"); return 0;
     }
     private static int Pss008Handoff(string[] args)
     {
@@ -241,8 +243,9 @@ internal static partial class Program
         var source = new PackReader().Load(receipt.SourceModule);
         var hash = V3ReleaseHandoff.InspectProof(store, stage, proof);
         // This route is only for the two hard-coded SYNTHETIC source fixture IDs/text hashes, never a user's batch.
-        True(receipt.Candidates.Count == 2 && receipt.Candidates.Single(c => c.Kind == "PATTERN").TextHash == TextRules.Hash("проверка студии восемь тихий вечер без действий")
-            && receipt.Candidates.Single(c => c.Kind == "TEMPLATE").TextHash == TextRules.Hash("Пусть этот спокойный разговор добавит вечеру немного тепла."));
+        True(receipt.Candidates.Count == 3 && receipt.Candidates.Single(c => c.Kind == "PATTERN").TextHash == TextRules.Hash("проверка студии восемь тихий вечер без действий")
+            && receipt.Candidates.Single(c => c.Kind == "TEMPLATE" && c.Voice == "direct").TextHash == TextRules.Hash("Пусть этот спокойный разговор добавит вечеру немного тепла.")
+            && receipt.Candidates.Single(c => c.Kind == "TEMPLATE" && c.Voice == "").TextHash == TextRules.Hash("Обсудим риски спокойно, прежде чем выбирать следующий шаг."));
         if (args[2] == "--synthetic-forgery-negative")
         {
             var saved = File.ReadAllBytes(proof); var oracle = Path.GetDirectoryName(proof)!;

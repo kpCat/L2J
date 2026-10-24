@@ -119,7 +119,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or $integrity -ne 'PASS_V3_STAGE_INTEGRITY') { throw 'BLOCKED_JAVA: exact stage integrity rejected' }
     $receiptPath = Join-Path $stage 'receipt.json'; $receiptHash = HashFile $receiptPath
     $receipt = Get-Content -LiteralPath (Join-Path $stage 'receipt.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($receipt.Version -ne 1 -or $receipt.Status -ne 'STAGED_V3_UNVALIDATED' -or $receipt.JavaStatus -ne 'NOT_RUN' -or -not $receipt.NotForInstallation -or
+    if ($receipt.Version -notin @(1,2) -or $receipt.Status -ne 'STAGED_V3_UNVALIDATED' -or $receipt.JavaStatus -ne 'NOT_RUN' -or -not $receipt.NotForInstallation -or
         -not $receipt.SelectionConfirmed -or -not $receipt.EditorialConfirmed -or $receipt.Candidates.Count -lt 1 -or $receipt.Candidates.Count -gt 20) { throw 'BLOCKED_JAVA: invalid stage receipt' }
     $source = [IO.Path]::GetFullPath($receipt.SourceModule).TrimEnd('\'); NoLinks $source
     if ((Within $stage $source) -or (Within $source $stage)) { throw 'BLOCKED_JAVA: overlapping source' }
@@ -141,7 +141,9 @@ try {
     $inventory = New-Object 'Collections.Generic.List[object]'
     $buildPath = Join-Path $source 'build.xml'; NoLinks $buildPath; SafeBuild $buildPath
     $catalogPath = Relative $source 'java/org/l2jmobius/gameserver/phantoms/conversation/humanized/PhantomHumanizedCatalog.java'
-    if ((HashFile $catalogPath) -notin @('ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840','a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335')) { throw 'BLOCKED_JAVA: unaudited catalog contract' }
+    # 080 reviewed Java079 source at f7676d2. This does NOT admit its changed Ant/OwnerConfig graph.
+    if ((HashFile $catalogPath) -notin @('ef0361e344a39e3c6c0e6f2b5f5cb4b4d4c82924df1b9fe956ea983cccc7e840','a33ec0bbac8407430a695c443722c76140f39abed18d1629e78cc82388d1b335','493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0')) { throw 'BLOCKED_JAVA: unaudited catalog contract' }
+    if ((HashFile $catalogPath) -ne '493d1010e653f66b2e1f3407914735a4ce5a370f8dd7d0d5349fbccb0fb76ef0') { throw 'BLOCKED_JAVA: native voice bridge requires reviewed Java079 API; pre079 provenance is historical only' }
     $inventory.Add([pscustomobject]@{ RelativePath = 'build.xml'; Sha256 = (HashFile $buildPath); Bytes = (Get-Item -LiteralPath $buildPath).Length })
     foreach ($family in @('java','test/java','test/resources','dist/libs')) {
         foreach ($file in FilesWithoutLinks (Relative $source $family)) {
@@ -216,9 +218,11 @@ try {
     $rows = $receipt.Candidates | ForEach-Object {
         if ($_.XmlId -notmatch '^pss\.v3\.[pt]\.[0-9a-f]{32}$' -or $_.Act -notmatch '^[a-z][a-z0-9_.-]{0,63}$' -or
             $_.Topic -notmatch '^[a-z][a-z0-9_.-]{0,63}$' -or $_.TextHash -notmatch '^[0-9a-f]{64}$' -or
-            $_.Kind -notin @('PATTERN','TEMPLATE')) { throw 'FAILED_JAVA: invalid expected-ID receipt' }
+            $_.Kind -notin @('PATTERN','TEMPLATE') -or [string]$_.Voice -cnotin @('','calm','open','direct','empathetic') -or
+            ($_.Kind -eq 'PATTERN' -and [string]$_.Voice -ne '') -or $_.Band -cnotin @('UNKNOWN','NEUTRAL','FAMILIAR','TRUSTED','RIVAL','TENSE','HOSTILE') -or
+            $_.Register -cnotin @('NEUTRAL','CASUAL')) { throw 'FAILED_JAVA: invalid expected-ID receipt' }
         $target = if ($_.Kind -eq 'PATTERN') { $receipt.Pair.SemanticPath } else { $receipt.Pair.ConversationPath }
-        "$($_.XmlId)`t$($_.Kind)`t$($_.Act)`t$($_.Topic)`t$($_.TextHash)`t$target"
+        "$($_.XmlId)`t$($_.Kind)`t$($_.Act)`t$($_.Topic)`t$($_.TextHash)`t$target`t$($_.Voice)`t$($_.Band)`t$($_.Register)"
     }
     [IO.File]::WriteAllLines($spec, [string[]]$rows, (New-Object Text.UTF8Encoding $false))
     $specHash = HashFile $spec; $result.ExpectedIdsSha256 = $specHash

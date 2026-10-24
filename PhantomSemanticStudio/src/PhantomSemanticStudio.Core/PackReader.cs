@@ -69,6 +69,11 @@ public sealed class PackReader
                 _ => documentRoot.Name.LocalName
             };
             if (documentRoot.Name != expectedRoot) throw new InvalidDataException("Неверный корень custom XML: " + relative);
+            foreach (var attribute in documentRoot.DescendantsAndSelf().Attributes().Where(a => a.Name.LocalName.Equals("voice", StringComparison.OrdinalIgnoreCase)))
+                if (attribute.Name != "voice" || custom || version != "3" || documentRoot.Name != "humanizedV3ConversationSegment"
+                    || attribute.Parent?.Name != "template" || attribute.Parent.Parent?.Name != "templates" || attribute.Value == ""
+                    || !CandidateValidator.Voices.Contains(attribute.Value, StringComparer.Ordinal))
+                    throw new InvalidDataException("Недопустимый атрибут voice: " + relative);
             foreach (var element in documentRoot.Descendants())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -93,7 +98,8 @@ public sealed class PackReader
                 if (id.Length == 0) throw new InvalidDataException("Запись без ID: " + relative);
                 var item = new PackEntry
                 {
-                    Id = id, Kind = kind, Text = A(kind == "PATTERN" ? "phrase" : kind == "ALIAS" ? "to" : "text"),
+                    Id = id, Kind = kind, Text = (string?)element.Attribute(kind == "PATTERN" ? "phrase" : kind == "ALIAS" ? "to" : "text") ?? "",
+                    Voice = (string?)element.Attribute("voice") ?? "",
                     Act = A("act", A("acts")), Topic = A("topic"), Band = A("band", "UNKNOWN"), Register = A("register", "NEUTRAL"),
                     Profanity = A("profanity", A("level", "NONE")),
                     Mature = A("mature") == "true" || (string?)documentRoot.Attribute("mature") == "true" || relative.EndsWith("my-mature-dialogue.xml", StringComparison.Ordinal),

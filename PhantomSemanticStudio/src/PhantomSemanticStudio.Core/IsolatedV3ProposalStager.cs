@@ -47,7 +47,7 @@ public sealed class IsolatedV3ProposalStager
             {
                 StageId = id, SelectionConfirmed = true, EditorialConfirmed = true, SourceModule = current.ModuleRoot, SourceFingerprint = current.Fingerprint,
                 Pair = pair, SourceFiles = current.Files.ToList(), StagedFiles = staged.Files.ToList(),
-                Candidates = selected.Select(c => new V3CandidateStamp(c.Id, XmlId(c), c.Kind, c.Act, c.Topic, c.Band, c.Register, c.ApprovedFingerprint, TextRules.Hash(c.Text))).ToList(),
+                Candidates = selected.Select(c => new V3CandidateStamp(c.Id, XmlId(c), c.Kind, c.Act, c.Topic, c.Band, c.Register, c.ApprovedFingerprint, TextRules.Hash(c.Text), c.Voice)).ToList(),
                 BaselinePatterns = current.Entries.Count(e => e.Kind == "PATTERN"), BaselineTemplates = current.Entries.Count(e => e.Kind == "TEMPLATE"),
                 AddedPatterns = selected.Count(c => c.Kind == "PATTERN"), AddedTemplates = selected.Count(c => c.Kind == "TEMPLATE")
             };
@@ -92,7 +92,7 @@ public sealed class IsolatedV3ProposalStager
             V3ProposalContract.Require(!issues.Any(i => i.Severity == IssueSeverity.Error || i.Code == "ACTION_CLAIM"), "CANDIDATE_VALIDATION");
         }
         var report = PackCoverageAnalyzer.Analyze(pack with { Entries = pack.Entries.Concat(selected.Select(c => new PackEntry
-            { Kind = c.Kind, Id = XmlId(c), Text = c.Text, Topic = c.Kind == "PATTERN" ? c.Topic : "", Act = c.Act, Band = c.Band, Register = c.Register })).ToList() }, token);
+            { Kind = c.Kind, Id = XmlId(c), Text = c.Text, Topic = c.Kind == "PATTERN" ? c.Topic : "", Act = c.Act, Band = c.Band, Register = c.Register, Voice = c.Voice })).ToList() }, token);
         V3ProposalContract.Require(!report.Capacities.Any(c => c.Status == "CAPACITY_EXCEEDED"), "JAVA_CAPACITY");
     }
     private static byte[] Compile(PackSnapshot pack, string path, Candidate[] selected)
@@ -106,6 +106,7 @@ public sealed class IsolatedV3ProposalStager
             if (c.Kind == "PATTERN") element.Add(new XAttribute("topic", c.Topic)); element.Add(new XAttribute("act", c.Act));
             if (c.Kind == "PATTERN") element.Add(new XAttribute("phrase", c.Text), new XAttribute("salience", 0), new XAttribute("ttlMinutes", 0), new XAttribute("priority", 500));
             else element.Add(new XAttribute("band", c.Band), new XAttribute("register", c.Register), new XAttribute("profanity", "NONE"), new XAttribute("text", c.Text));
+            if (c.Kind == "TEMPLATE" && c.Voice != "") element.Add(new XAttribute("voice", c.Voice));
             if (parent!.LastNode is XText trailing && string.IsNullOrWhiteSpace(trailing.Value))
                 trailing.AddBeforeSelf(new XText("\n\t\t"), element);
             else parent.Add(new XText("\n\t\t"), element);

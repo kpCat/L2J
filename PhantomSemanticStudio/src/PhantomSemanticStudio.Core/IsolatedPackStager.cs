@@ -107,6 +107,7 @@ public sealed class IsolatedPackStager
             if (!CandidateReview.IsCurrent(c)) { errors.Add("APPROVAL: " + c.Id); continue; }
             if (!Regex.IsMatch(c.Id, "^[0-9a-f]{32}$", RegexOptions.CultureInvariant)) errors.Add("ID: недопустимый candidate ID");
             if (c.Gender != "ANY") errors.Add("GENDER: " + c.Id);
+            if (c.Voice != "") errors.Add("VOICE_V3_ONLY: голос допустим только в отдельном предложении v3: " + c.Id);
             if (c.Text.IndexOfAny(['{', '}', '<', '>']) >= 0 || c.Text.EnumerateRunes().Any(r => Rune.GetUnicodeCategory(r) is
                 UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator
                 or UnicodeCategory.Surrogate or UnicodeCategory.OtherNotAssigned or UnicodeCategory.PrivateUse or UnicodeCategory.MathSymbol))

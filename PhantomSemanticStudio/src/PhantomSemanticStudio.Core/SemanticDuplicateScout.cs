@@ -139,7 +139,7 @@ public static class SemanticDuplicateScout
         return result;
     }
     public static string CandidateFingerprint(Candidate c) => Hash(new
-    { c.Id, c.Kind, c.Text, c.Act, c.Topic, c.Band, c.Register, c.Gender, c.SourceFingerprint });
+    { c.Id, c.Kind, c.Text, c.Act, c.Topic, c.Band, c.Register, c.Gender, c.Voice, c.SourceFingerprint });
     public static string PeersFingerprint(Candidate c, IReadOnlyList<Candidate> peers) => Hash(peers.Where(p => p.Id != c.Id && p.Status != "REJECTED")
         .OrderBy(p => p.Id, StringComparer.Ordinal).Select(p => new { p.Id, p.Status, Hash = CandidateFingerprint(p) }).ToArray());
     public static string ShortlistFingerprint(IReadOnlyList<SemanticNeighbor> matches, int limit, int total, int scope)

@@ -5,6 +5,8 @@ public static class CandidateValidator
     public static readonly string[] Bands = ["UNKNOWN", "NEUTRAL", "FAMILIAR", "TRUSTED", "RIVAL", "TENSE", "HOSTILE"];
     public static readonly string[] Registers = ["NEUTRAL", "CASUAL"];
     public static readonly string[] Genders = ["ANY", "FEMALE", "MALE"];
+    // Java079 PhantomHumanizedCatalog.PERSONA_VOICES; empty means universal.
+    public static readonly string[] Voices = ["", "calm", "open", "direct", "empathetic"];
 
     public static List<ValidationIssue> Validate(Candidate candidate, PackSnapshot snapshot, IEnumerable<Candidate> peers)
     {
@@ -14,6 +16,11 @@ public static class CandidateValidator
         Warn("SEMANTIC_NOT_CHECKED", "Смысловые повторы, грамматика, условия применимости и полнота profanity/mature проверки не проверены. Требуется ручное ревью; XML не экспортируется.");
         if (candidate.SourceFingerprint != snapshot.Fingerprint) Error("SOURCE_MISMATCH", "Кандидат создан для другой версии исходного пака. Нужно повторное ревью, автоматической перепривязки нет.");
         if (candidate.Kind is not ("PATTERN" or "TEMPLATE")) Error("KIND", "Разрешены только PATTERN/TEMPLATE.");
+        if (!Voices.Contains(candidate.Voice, StringComparer.Ordinal) || candidate.Kind != "TEMPLATE" && candidate.Voice != "")
+            Error("VOICE", "Голос допускается только у ответа TEMPLATE: универсальный, calm, open, direct, empathetic. Регистр букв должен совпадать.");
+        if (candidate.Voice != "" && !snapshot.Entries.Any(e => e.Kind == "TEMPLATE" && e.Act == candidate.Act && e.Voice == ""
+            && e.Band == "UNKNOWN" && e.Register == "NEUTRAL" && e.Profanity == "NONE" && !e.Mature))
+            Error("VOICE_FALLBACK", "Для голоса нужен чистый универсальный ответ UNKNOWN / NEUTRAL того же act в исходнике.");
         if (!snapshot.Acts.Contains(candidate.Act, StringComparer.Ordinal)) Error("UNKNOWN_ACT", "Act отсутствует в импортированном каталоге.");
         if (TextRules.IsFunctionalAct(candidate.Act)) Error("FUNCTIONAL_ACT", "Игровые и identity-действия не редактируются через генератор разговоров.");
         if (!snapshot.Topics.Contains(candidate.Topic, StringComparer.Ordinal)) Error("UNKNOWN_TOPIC", "Тема отсутствует в исходном каталоге.");
@@ -58,7 +65,7 @@ public static class CandidateReview
 {
     public static string Fingerprint(Candidate c) => TextRules.Hash(System.Text.Json.JsonSerializer.Serialize(new
     {
-        c.Id, c.Kind, c.Text, c.Topic, c.Act, c.Band, c.Register, c.Gender, c.SourceFingerprint, c.ModelId, c.Instruction, c.Rationale,
+        c.Id, c.Kind, c.Text, c.Topic, c.Act, c.Band, c.Register, c.Gender, c.Voice, c.SourceFingerprint, c.ModelId, c.Instruction, c.Rationale,
         c.ReviewNote, c.ReviewedAtUtc
     }));
     public static bool IsCurrent(Candidate c) => c.Status == "APPROVED" && !string.IsNullOrWhiteSpace(c.ReviewNote)
@@ -70,9 +77,10 @@ public static class CandidateReview
         if (string.IsNullOrWhiteSpace(note)) throw new InvalidDataException("Введите короткую отметку ручной проверки. Автоодобрения нет.");
         c.Status = "APPROVED"; c.ReviewNote = note.Trim(); c.ReviewedAtUtc = DateTimeOffset.UtcNow; c.ApprovedFingerprint = Fingerprint(c);
     }
-    public static void Edit(Candidate c, string text)
+    public static void Edit(Candidate c, string text, string? voice = null)
     {
         c.SemanticReview = null;
+        c.Voice = voice ?? c.Voice;
         c.Text = text.Trim(); c.Status = "DRAFT"; c.ApprovedFingerprint = ""; c.ReviewedAtUtc = null; c.ReviewNote = "";
     }
     public static void Reject(Candidate c)

@@ -20,6 +20,45 @@ internal static partial class Program
             while (!(bool)ui.IsDisposed && (bool)Control(ui, "btnCancel").Enabled && timer.Elapsed < TimeSpan.FromSeconds(20));
             if (!(bool)ui.IsDisposed) True(!Control(ui, "btnCancel").Enabled);
         }
+        Test("080 real MainForm voice binding persists DRAFT and disables PATTERN voice", () =>
+        {
+            using var f = new Fixture(); var pack = new PackReader().Load(f.Module); var peers = StageCandidates(pack);
+            var root = Path.Combine(studio, "artifacts/080/controls-" + Guid.NewGuid().ToString("N"));
+            using (var setup = new WorkspaceStore(root, f.Module))
+            {
+                setup.SaveSettings(new StudioSettings { HighFiveRoot = f.Module });
+                setup.SaveSession(new SessionState { Candidates = peers });
+            }
+            var previous = Environment.GetEnvironmentVariable("PSS_UI_SMOKE_WORKSPACE");
+            Environment.SetEnvironmentVariable("PSS_UI_SMOKE_WORKSPACE", root);
+            using var disposable = (IDisposable)Activator.CreateInstance(assembly.GetType("PhantomSemanticStudio.WinForms.MainForm", true)!)!; dynamic ui = disposable;
+            // Seed only this fixture's source before Shown constructs WorkspaceStore.
+            // The normal monorepo source must continue rejecting an artifacts workspace.
+            assembly.GetType("PhantomSemanticStudio.WinForms.MainForm", true)!.GetField("settings",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(disposable, new StudioSettings { HighFiveRoot = f.Module });
+            try
+            {
+                ui.Show(); Pump(ui); Control(ui, "btnImport").PerformClick(); Pump(ui);
+                var tabs = Control(ui, "tabs"); tabs.SelectedTab = Control(ui, "tabGenerate");
+                Equal(5, (int)Control(ui, "cmbVoice").Items.Count);
+                Control(ui, "cmbVoice").SelectedIndex = 3;
+                Equal("direct", (string)Control(ui, "cmbVoice").SelectedValue);
+                Control(ui, "cmbMode").SelectedIndex = 1; True(!Control(ui, "cmbVoice").Enabled);
+                Equal("", (string)Control(ui, "cmbVoice").SelectedValue);
+                tabs.SelectedTab = Control(ui, "tabCandidates");
+                var grid = Control(ui, "gridCandidates"); grid.CurrentCell = grid.Rows[1].Cells[0]; doEvents.Invoke(null, null); Pump(ui);
+                True(Control(ui, "cmbCandidateVoice").Enabled); Equal(5, (int)Control(ui, "cmbCandidateVoice").Items.Count);
+                Control(ui, "cmbCandidateVoice").SelectedIndex = 3;
+                True(((string)Control(ui, "txtValidation").Text).StartsWith("STALE:", StringComparison.Ordinal));
+                Control(ui, "btnSaveCandidate").PerformClick(); Pump(ui);
+                var saved = System.Text.Json.JsonSerializer.Deserialize<SessionState>(File.ReadAllBytes(Path.Combine(root, "session.json")))!.Candidates[1];
+                Equal("direct", saved.Voice); Equal("DRAFT", saved.Status); Equal("", saved.ApprovedFingerprint);
+                grid.CurrentCell = grid.Rows[0].Cells[0]; doEvents.Invoke(null, null); Pump(ui); True(!Control(ui, "cmbCandidateVoice").Enabled);
+                True(!Control(ui, "cmbCandidateVoice").Bounds.IntersectsWith(Control(ui, "txtCandidateText").Bounds));
+                True(pack.Files.SequenceEqual(new PackReader().Load(f.Module).Files)); ui.Close();
+            }
+            finally { Environment.SetEnvironmentVariable("PSS_UI_SMOKE_WORKSPACE", previous); }
+        });
         Test("PSS-008 A real STA quality analysis filters cancel and resize without mutation", () =>
         {
             var type = assembly.GetType("PhantomSemanticStudio.WinForms.PackQualityForm"); True(type != null);
