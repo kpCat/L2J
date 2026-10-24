@@ -53,6 +53,14 @@ final class PhantomPvp074Native
 {
 	static boolean run(PhantomGameKnowledgeService knowledge, PhantomTopologyQuery query, StringBuilder report) throws Exception
 	{
+		return run(knowledge, query, report, false);
+	}
+	static boolean runRecovery(PhantomGameKnowledgeService knowledge, PhantomTopologyQuery query, StringBuilder report) throws Exception
+	{
+		return run(knowledge, query, report, true);
+	}
+	private static boolean run(PhantomGameKnowledgeService knowledge, PhantomTopologyQuery query, StringBuilder report, boolean recovery) throws Exception
+	{
 		final var cleanup = new java.util.ArrayList<AutoCloseable>();
 		Player enemy = null, actor = null; ConsumerEventListener listener = null;
 		try
@@ -62,18 +70,18 @@ final class PhantomPvp074Native
 			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT c.charId,c.x,c.y,c.z FROM characters c JOIN accounts a ON a.login=c.account_name WHERE c.account_name='task074pvp' AND c.char_name='Survivor074' AND a.accessLevel=-1 AND a.password='DISABLED_NATIVE_TEST_ONLY'"))
 			{
 				connection.setReadOnly(true); try (var rows = statement.executeQuery()) { check(rows.next(), "D retained Survivor074 missing; no replacement fixture permitted."); actorId = rows.getInt(1); field = new PhantomNavigationPoint(rows.getInt(2), rows.getInt(3), rows.getInt(4), 0); check(!rows.next(), "D retained identity is not unique."); }
-				try (var guard = connection.createStatement(); var rows = guard.executeQuery("SELECT (SELECT COUNT(*) FROM accounts WHERE login='task074enemy' AND accessLevel=-1 AND password='DISABLED_NATIVE_TEST_ONLY'),(SELECT COUNT(*) FROM characters WHERE account_name='task074enemy')")) { check(rows.next() && rows.getInt(1) == 1 && rows.getInt(2) == 0, "D original empty enemy account unavailable; no duplicate enemy/reseed permitted."); }
+				try (var guard = connection.createStatement(); var rows = guard.executeQuery("SELECT (SELECT COUNT(*) FROM accounts WHERE login='task074enemy' AND accessLevel=-1 AND password='DISABLED_NATIVE_TEST_ONLY'),(SELECT COUNT(*) FROM characters WHERE account_name='task074enemy'),(SELECT COUNT(*) FROM characters WHERE account_name='task074enemy' AND char_name='Enemy074' AND charId=268481828)")) { check(rows.next() && rows.getInt(1) == 1 && rows.getInt(2) == (recovery ? 1 : 0) && rows.getInt(3) == (recovery ? 1 : 0), "D exact original enemy account/identity differs; no duplicate enemy/reseed permitted."); }
 			}
 			final long profile = profiles.findByCharacterObjectId(actorId).orElseThrow().profileId();
-			check(actorId == 268481796 && profile == 4 && goals.load(profile).isEmpty() && profiles.findComponent(profile, PhantomPvpModel.COMPONENT_TYPE).isEmpty(), "D retained premeasurement identity/state differs; no goal/reset/reseed permitted.");
-			report.append("D_RETAINED_PREMEASUREMENT\tprofile=").append(profile).append(";actor=").append(actorId).append(";storedPoint=").append(field).append(";previous failure was goal.replace(-1) before enemy/measurement;no actor resource/HP/CP/XYZ/skill writes\n");
+			check(actorId == 268481796 && profile == 4 && goals.load(profile).isPresent() == recovery && profiles.findComponent(profile, PhantomPvpModel.COMPONENT_TYPE).isPresent() == recovery, "D retained identity/state differs; no goal/reset/reseed permitted.");
+			report.append(recovery ? "D_RECOVERY_RETAINED\t" : "D_RETAINED_PREMEASUREMENT\t").append("profile=").append(profile).append(";actor=").append(actorId).append(";storedPoint=").append(field).append(recovery ? ";original episode remains PARTIAL: skills2/9D->0/CP2->1 but retreat expired;continuation reuses exact actor+enemy+goal+encounter;no resources/HP/CP/XYZ/skills setters\n" : ";previous failure was goal.replace(-1) before enemy/measurement;no actor resource/HP/CP/XYZ/skill writes\n");
 			final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
 			cleanup.add(() -> { final var stopped = materialization.shutdown(); report.append("D_shutdown\t").append(stopped).append('\n'); check(stopped.state() == PhantomMaterializationService.ServiceState.STOPPED, "D materialization did not drain."); });
 			check(materialization.start() && materialization.materialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "D native actor did not materialize.");
 			actor = World.getInstance().getPlayer(actorId); check(actor != null && !actor.isGM() && actor.getClient() == null && actor.getAccountName().equals("task074pvp") && actor.getName().equals("Survivor074") && PhantomNativeTravelActions.point(actor).equals(field), "D ordinary retained Player/point differs."); final Player measured = actor;
-			check(actor.getAdena() == 2500 && actor.getInventory().getInventoryItemCount(1463, -1) == 9 && actor.getInventory().getInventoryItemCount(5592, -1) == 2 && actor.getLevel() == 20 && actor.getActiveWeaponItem() != null && actor.getActiveWeaponItem().getId() == 129, "D retained finite resources differ; no repair/reseed permitted.");
-			final var paths = new L2jNavigationBackend(); final var escapePoint = paths.walkSurface(new PhantomNavigationPoint(field.x() - 600, field.y(), field.z(), 0), 256).orElseThrow(); final var enemyPoint = paths.walkSurface(new PhantomNavigationPoint(field.x() + 80, field.y(), field.z(), 0), 256).orElseThrow();
-			check(legal(field) && legal(escapePoint) && legal(enemyPoint) && paths.canWalkDirect(field, escapePoint) && paths.canWalkDirect(field, enemyPoint), "D retained point no longer has its original lawful native Geo escape; no relocation permitted.");
+			check(actor.getAdena() == 2500 && actor.getInventory().getInventoryItemCount(1463, -1) == (recovery ? 0 : 9) && actor.getInventory().getInventoryItemCount(5592, -1) == (recovery ? 1 : 2) && actor.getLevel() == 20 && actor.getActiveWeaponItem() != null && actor.getActiveWeaponItem().getId() == 129, "D retained finite resources differ; no repair/reseed permitted.");
+			final var paths = new L2jNavigationBackend(); final var escapePoint = recovery ? null : paths.walkSurface(new PhantomNavigationPoint(field.x() - 600, field.y(), field.z(), 0), 256).orElseThrow(); final var enemyPoint = recovery ? null : paths.walkSurface(new PhantomNavigationPoint(field.x() + 80, field.y(), field.z(), 0), 256).orElseThrow();
+			if (!recovery) { check(legal(field) && legal(escapePoint) && legal(enemyPoint) && paths.canWalkDirect(field, escapePoint) && paths.canWalkDirect(field, enemyPoint), "D retained point no longer has its original lawful native Geo escape; no relocation permitted."); }
 			final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults()); cleanup.add(() -> { progression.beginStop(); check(progression.finishStop(), "D progression STOP pending."); }); progression.start();
 			final var combat = new PhantomCombatService(new L2jCombatBackend(materialization, knowledge::query, progression::catalog), PhantomCombatCapabilityResolver.fromGameKnowledge(knowledge::query), PhantomCombatPolicy.productionDefaults(1)); cleanup.add(() -> { combat.beginStop(); await(combat::finishStop, 12000, "D combat STOP pending."); }); combat.start();
 			final var navigation = new PhantomNavigationService(metrics); cleanup.add(() -> { navigation.beginStop(); await(navigation::finishStop, 12000, "D navigation STOP pending."); }); check(navigation.start(), "D navigation unavailable.");
@@ -95,38 +103,51 @@ final class PhantomPvp074Native
 			final var executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml"));
 			final var execution = new PhantomConversationExecutionService(executionCatalog, new PhantomConversationExecutionStore(profiles, executionCatalog), goals, new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, query, party, materialization, ChatObservationService.getInstance())); cleanup.add(() -> { execution.beginStop(); await(execution::finishStop, 6000, "D outbound STOP pending."); }); check(execution.start(), "D outbound unavailable.");
 			final var policy = PhantomPvpPolicy.load(Path.of("data/phantoms/pvp/pvp-policy-v1.xml")); final var pvpStore = new PhantomPvpStore(profiles); final var pvpSocial = new PhantomPvpSocialBridge(social);
+			if (recovery)
+			{
+				final var previous = pvpStore.load(profile).orElseThrow(); check(previous.encounter().stage() == PhantomPvpModel.Stage.COOLDOWN && previous.encounter().counterpart().currentObjectId() == 268481828 && previous.encounter().terminalReason().equals("pvp.retreat.expired"), "D recovery requires the exact prior expired-retreat cooldown; no encounter repair permitted.");
+				final long cooldownUntil = previous.encounter().cooldownUntilLogicalNanos(); final long remaining = Math.max(0, cooldownUntil - System.currentTimeMillis() * 1_000_000L);
+				report.append("D_RECOVERY_COOLDOWN_WAIT\tprior=").append(previous).append(";remainingMillis=").append(TimeUnit.NANOSECONDS.toMillis(remaining)).append(";ordinary epoch passage/native regeneration only;no persisted deadline/encounter writes\n");
+				check(remaining <= TimeUnit.SECONDS.toNanos(policy.limits().pairCooldownSeconds() + 5), "D cooldown exceeds its native policy; no bypass permitted.");
+				await(() -> System.currentTimeMillis() * 1_000_000L >= cooldownUntil, TimeUnit.SECONDS.toMillis(policy.limits().pairCooldownSeconds() + 5), "D original cooldown has not expired naturally.");
+			}
 			final var retreat = new PhantomPvpRetreatCoordinator(navigation, topology, combat);
 			final var pvp = new PhantomPvpService(policy, pvpStore, new PhantomPvpContext(policy, combat, party, farming, pvpSocial, materialization), combat, new PhantomPvpConversationBridge(execution), pvpSocial, retreat); cleanup.add(() -> { pvp.beginStop(); await(pvp::finishStop, 6000, "D PvP STOP pending."); });
 			final var anchor = query.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == PhantomTopologyAnchorRole.FARMING).min(Comparator.comparingDouble(value -> measured.calculateDistance3D(value.point().x(), value.point().y(), value.point().z()))).orElseThrow();
-			final var root = new PhantomGoal(74007404L, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profile)), new PhantomDomainRef("npc", "20418"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20418@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture074.pvp_recovery", 1);
-			enemy = fixture("task074enemy", "Enemy074", 4, enemyPoint, false); enemy.setOnlineStatus(true, false); enemy.spawnMe(); final Player target = enemy;
-			try (var lease = materialization.tryAcquireAction(profile).orElseThrow()) { actor.setRunning(); }
+			final var root = recovery ? goals.load(profile).orElseThrow().goal() : new PhantomGoal(74007404L, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profile)), new PhantomDomainRef("npc", "20418"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20418@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture074.pvp_recovery", 1);
+			check(root.goalId() == 74007404L && root.goalType().equals("farm.background") && root.status() == PhantomGoalStatus.ACTIVE && root.subject().equals(new PhantomDomainRef("profile", "4")), "D original farm goal identity differs; no root mutation permitted.");
+			enemy = recovery ? Player.load(268481828) : fixture("task074enemy", "Enemy074", 4, enemyPoint, false); check(enemy != null && !enemy.isGM() && enemy.getAccountName().equals("task074enemy") && enemy.getName().equals("Enemy074") && !enemy.isAlikeDead() && enemy.getClient() == null, "D exact living native enemy unavailable; no replacement permitted."); enemy.setOnlineStatus(true, false); enemy.spawnMe(); final Player target = enemy;
+			if (!recovery) { try (var lease = materialization.tryAcquireAction(profile).orElseThrow()) { actor.setRunning(); } }
 			check(!actor.isInsidePeaceZone(target) && GeoEngine.getInstance().canSeeTarget(actor, target) && !L2jCombatBackend.nativePvpSkills(actor, PhantomCombatMode.MELEE_PHYSICAL, 16).isEmpty(), "D native PvP admission/learned skills unavailable before measurement.");
-			check(PhantomNativeTravelActions.safePveWalkSegment(actor, field.x() - 600, field.y(), field.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(actor, Monster.class, 1200)), Set.of()), "D preflight escape crosses native PvE danger.");
+			if (!recovery) { check(PhantomNativeTravelActions.safePveWalkSegment(actor, field.x() - 600, field.y(), field.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(actor, Monster.class, 1200)), Set.of()), "D preflight escape crosses native PvE danger."); }
+			retreatCandidates(actor, target, paths, report);
 			final var skills = new AtomicInteger(); final var skillIds = new java.util.concurrent.ConcurrentSkipListSet<Integer>();
 			listener = new ConsumerEventListener(actor, EventType.ON_CREATURE_DAMAGE_DEALT, (OnCreatureDamageDealt event) -> { if (event.getAttacker() == measured && event.getTarget() == target && event.getSkill() != null && event.getDamage() > 0) { skills.incrementAndGet(); skillIds.add(event.getSkill().getId()); } }, actor); actor.addListener(listener);
 			final long beforeShots = actor.getInventory().getInventoryItemCount(1463, -1), beforeCpItems = actor.getInventory().getInventoryItemCount(5592, -1); final double beforeCp = actor.getCurrentCp(); final var origin = PhantomNativeTravelActions.point(actor);
-			goals.insert(profile, root);
-			report.append("D_MEASUREMENT\tprofile=").append(profile).append(";actor=").append(actorId).append(";fixturePriorAdena=2500;finiteFixtureD1463=").append(beforeShots).append(";finiteFixtureCP5592=").append(beforeCpItems).append(";fixtureCP=").append(beforeCp).append(";not paid/earned by this episode;no resource/HP/CP/position writes after marker;enemy=").append(enemy.getObjectId()).append(";origin=").append(origin).append('\n');
+			if (!recovery) { goals.insert(profile, root); }
+			report.append(recovery ? "D_RECOVERY_MEASUREMENT\t" : "D_MEASUREMENT\t").append("profile=").append(profile).append(";actor=").append(actorId).append(";fixturePriorAdena=2500;finiteFixtureD1463=").append(beforeShots).append(";finiteFixtureCP5592=").append(beforeCpItems).append(";nativeCurrentCP=").append(beforeCp).append(";not paid/earned by this episode;no resource/HP/CP/position writes after marker;enemy=").append(enemy.getObjectId()).append(";enemyPoint=").append(PhantomNativeTravelActions.point(enemy)).append(";enemyHP/CP=").append(enemy.getCurrentHp()).append('/').append(enemy.getCurrentCp()).append(";origin=").append(origin).append('\n');
 			actor.setTarget(target); target.setTarget(actor); final double pool = actor.getCurrentHp() + actor.getCurrentCp(); target.doAttack(actor);
 			await(() -> measured.getCurrentHp() + measured.getCurrentCp() < pool, 6000, "D first native enemy attack did not land."); target.abortAttack(); target.getAI().setIntention(Intention.IDLE);
+			final double targetBeforePvp = target.getCurrentHp() + target.getCurrentCp();
 			check(combat.observePvp(profile, List.of(target.getObjectId()), 16, 16).orElseThrow().targets().stream().anyMatch(value -> value.target().objectId() == target.getObjectId() && value.actualAttacker() && value.canonicalContextAllowed()), "D ACTUAL_ATTACK evidence missing.");
 			check(pvp.start(), "D PvP owner unavailable."); pvp.materializeSucceeded(profile, actorId);
-			long sequence = 0; String last = ""; boolean shortage = false, arrived = false, moved = false; double peakCp = actor.getCurrentCp(), poolAfterShortage = -1;
+			long sequence = 0, lastDiagnostic = 0; String last = ""; boolean shortage = false, arrived = false, moved = false; double peakCp = actor.getCurrentCp(), poolAfterShortage = -1;
 			final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(75);
 			while (System.nanoTime() < until && !actor.isDead())
 			{
 				topology.updateProfile(profile, new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId()), ++sequence); pvp.onPulse(); execution.onPulse(); peakCp = Math.max(peakCp, actor.getCurrentCp()); moved |= actor.isMoving() && PhantomNativeTravelActions.point(actor).distanceTo(origin) > 64;
 				final var stored = pvpStore.load(profile).orElse(null); final String state = stored == null ? "none" : stored.encounter().stage() + ":" + stored.encounter().terminalReason();
+				if (!last.equals(state) || System.nanoTime() - lastDiagnostic >= TimeUnit.SECONDS.toNanos(2)) { retreatDiagnostic(profile, actor, combat, navigation, metrics, retreat, state, report); lastDiagnostic = System.nanoTime(); }
 				if (!last.equals(state)) { report.append("D_NATIVE_OWNER\t").append(stored).append(";xyz=").append(actor.getLocation()).append(";shots=").append(actor.getInventory().getInventoryItemCount(1463, -1)).append(";CPstock=").append(actor.getInventory().getInventoryItemCount(5592, -1)).append(";CP=").append(actor.getCurrentCp()).append('\n'); last = state; }
 				if (state.contains("supply.required")) { shortage = true; if (poolAfterShortage < 0) { poolAfterShortage = target.getCurrentHp() + target.getCurrentCp(); } }
 				if (shortage && state.contains("pvp.retreat.tactical_arrived")) { arrived = true; break; }
 				if (stored != null && stored.encounter().stage() == PhantomPvpModel.Stage.COOLDOWN) { break; }
 				Thread.sleep(100);
 			}
-			report.append("D_NATIVE_EFFECTS\tskills=").append(skills.get()).append(";ids=").append(skillIds).append(";D1463=").append(beforeShots).append("->").append(actor.getInventory().getInventoryItemCount(1463, -1)).append(";CP5592=").append(beforeCpItems).append("->").append(actor.getInventory().getInventoryItemCount(5592, -1)).append(";CP=").append(beforeCp).append("->peak").append(peakCp).append(";shortage=").append(shortage).append(";moved=").append(moved).append(";tacticalArrived=").append(arrived).append(";xyz=").append(actor.getLocation()).append(";service=").append(pvp.snapshot()).append('\n');
-			check(skills.get() > 0 && actor.getInventory().getInventoryItemCount(1463, -1) == 0 && shortage && moved && arrived, "D learned skill/shot depletion/native tactical movement chain incomplete.");
-			check(actor.getInventory().getInventoryItemCount(5592, -1) < beforeCpItems && peakCp > beforeCp, "D finite CP item did not have a native CP effect.");
+			report.append(recovery ? "D_RECOVERY_NATIVE_EFFECTS\tskills=" : "D_NATIVE_EFFECTS\tskills=").append(skills.get()).append(";ids=").append(skillIds).append(";D1463=").append(beforeShots).append("->").append(actor.getInventory().getInventoryItemCount(1463, -1)).append(";CP5592=").append(beforeCpItems).append("->").append(actor.getInventory().getInventoryItemCount(5592, -1)).append(";CP=").append(beforeCp).append("->peak").append(peakCp).append(";shortage=").append(shortage).append(";moved=").append(moved).append(";tacticalArrived=").append(arrived).append(";xyz=").append(actor.getLocation()).append(";service=").append(pvp.snapshot()).append('\n');
+			if (recovery) { check(beforeShots == 0 && actor.getInventory().getInventoryItemCount(1463, -1) == 0 && skills.get() == 0 && combat.metrics().normalAttacks() == 0 && combat.metrics().skillCastsIssued() == 0 && target.getCurrentHp() + target.getCurrentCp() >= targetBeforePvp, "D zero-shot recovery issued offensive action/damage."); }
+			check((recovery || skills.get() > 0) && actor.getInventory().getInventoryItemCount(1463, -1) == 0 && shortage && moved && arrived, "D native tactical movement chain incomplete.");
+			if (!recovery) { check(actor.getInventory().getInventoryItemCount(5592, -1) < beforeCpItems && peakCp > beforeCp, "D finite CP item did not have a native CP effect."); }
 			check(!actor.isAttackingNow() && !actor.isCastingNow() && target.getCurrentHp() + target.getCurrentCp() >= poolAfterShortage, "D offensive damage continued after shortage.");
 			pvp.beginStop(); await(pvp::finishStop, 6000, "D PvP owner did not release.");
 			final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load(); final var receipts = new PhantomCommerceReceiptStore(profiles); final var supplyStore = new PhantomSupplyIntentStore(profiles, goals);
@@ -134,11 +155,12 @@ final class PhantomPvp074Native
 			final var journey = new L2jPhantomSupplyJourney(supplyStore, goals, materialization, commerce, receipts, navigation, knowledge::query, PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), query), id -> true, (goal, player) -> true, (id, goal) -> false, PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml"))); cleanup.add(() -> { journey.beginStop(); check(journey.finishStop(), "D recovery journey STOP pending."); }); check(journey.start(), "D recovery journey unavailable.");
 			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
 			final var planning = new PhantomPlanningContext(profile, root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1); final var selected = new PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
+			if (selected == null && recovery) { report.append("D_RECOVERY_RESULT\tPARTIAL native zero-shot no-offense+tactical walk PASS;lawful recovery intention unavailable;reason=").append(journey.reason(profile)).append(";wallet=").append(actor.getAdena()).append(";original full chain remains PARTIAL;no refill/root/encounter repair\n"); return false; }
 			check(selected != null, "D no lawful supply/recovery intention after tactical retreat."); final var plan = selected.planFactory().create(planning); final var result = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(profile, root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false));
-			report.append("D_RECOVERY_INTENT\t").append(result).append(";reason=").append(journey.reason(profile)).append(";intent=").append(journey.automaticIntent(profile)).append(";wallet=").append(actor.getAdena()).append(";no refill\nD_RESULT\tPASS bounded ACTUAL_ATTACK learned skill+finite native CP+shots->depletion->tactical walk->lawful recovery intent;full proactive causes DEFERRED\n");
+			report.append("D_RECOVERY_INTENT\t").append(result).append(";reason=").append(journey.reason(profile)).append(";intent=").append(journey.automaticIntent(profile)).append(";wallet=").append(actor.getAdena()).append(recovery ? ";no refill/root/encounter repair\nD_RECOVERY_RESULT\tPASS bounded retained ACTUAL_ATTACK zero-shots->no-offense->native tactical walk->lawful recovery intent;original full episode remains PARTIAL;no renewed skill/CP/paidshot claim\n" : ";no refill\nD_RESULT\tPASS bounded ACTUAL_ATTACK learned skill+finite native CP+shots->depletion->tactical walk->lawful recovery intent;full proactive causes DEFERRED\n");
 			return true;
 		}
-		catch (Exception | AssertionError failure) { failure.printStackTrace(System.err); report.append("D_RESULT\tPARTIAL;").append(failure.getClass().getSimpleName()).append(':').append(failure.getMessage()).append('\n'); return false; }
+		catch (Exception | AssertionError failure) { failure.printStackTrace(System.err); report.append(recovery ? "D_RECOVERY_RESULT\tPARTIAL;original full chain remains PARTIAL;" : "D_RESULT\tPARTIAL;").append(failure.getClass().getSimpleName()).append(':').append(failure.getMessage()).append('\n'); return false; }
 		finally
 		{
 			if (listener != null && actor != null) { actor.removeListener(listener); }
@@ -147,6 +169,26 @@ final class PhantomPvp074Native
 		}
 	}
 
+	private static void retreatDiagnostic(long profile, Player actor, PhantomCombatService combat, PhantomNavigationService navigation, PhantomMetrics metrics, PhantomPvpRetreatCoordinator retreat, String stage, StringBuilder report)
+	{
+		final var requests = new java.util.ArrayList<PhantomNavigationService.RequestSnapshot>(); for (long id = 1; id <= 8; id++) { navigation.find(id).ifPresent(requests::add); }
+		final var effects = combat.metrics();
+		report.append("D_RETREAT_DIAGNOSTIC\tstage=").append(stage).append(";profile=").append(profile).append(";pendingRetreats=").append(retreat.activeCount()).append(";xyz=").append(actor.getLocation())
+			.append(";AI=").append(actor.hasAI() ? actor.getAI().getIntention() : "NONE").append(";moving=").append(actor.isMoving()).append(";nativeDestination=").append(actor.getXdestination()).append(',').append(actor.getYdestination()).append(',').append(actor.getZdestination())
+			.append(";moveDisabled=").append(actor.isMovementDisabled()).append(";skillsDisabled=").append(actor.isAllSkillsDisabled()).append(";attacking=").append(actor.isAttackingNow()).append(";casting=").append(actor.isCastingNow()).append(";sitting=").append(actor.isSitting()).append(";dead=").append(actor.isAlikeDead())
+			.append(";navigation=").append(navigation.snapshot()).append(";requests1to8=").append(requests).append(";navMetrics=").append(metrics.snapshot().navigation()).append(";combat=").append(combat.snapshot())
+			.append(";externalRequested=").append(effects.externalRequested()).append(";externalAcquired=").append(effects.externalAcquired()).append(";externalRejected=").append(effects.externalRejected()).append(";externalReleased=").append(effects.externalReleased()).append(";externalRouteIssued=").append(effects.externalRouteIssued()).append(";normalAttacks=").append(effects.normalAttacks()).append(";skillCasts=").append(effects.skillCastsIssued()).append('\n');
+	}
+	private static void retreatCandidates(Player actor, Player threat, L2jNavigationBackend paths, StringBuilder report)
+	{
+		final var origin = PhantomNativeTravelActions.point(actor); final var mobs = List.copyOf(World.getInstance().getVisibleObjectsInRange(actor, Monster.class, 1200)); final double bearing = Math.atan2((double) actor.getY() - threat.getY(), (double) actor.getX() - threat.getX()); int index = 0;
+		for (int distance : new int[] {600, 375}) { for (double turn : new double[] {0, -Math.PI / 6, Math.PI / 6})
+		{
+			final int x = origin.x() + (int) Math.round(distance * Math.cos(bearing + turn)), y = origin.y() + (int) Math.round(distance * Math.sin(bearing + turn)); final var point = paths.walkSurface(new PhantomNavigationPoint(x, y, origin.z(), origin.instanceId()), 256).orElse(null);
+			report.append("D_RETREAT_CANDIDATE_READONLY\tindex=").append(index++).append(";actualOrigin=").append(origin).append(";actualThreat=").append(PhantomNativeTravelActions.point(threat)).append(";surface=").append(point)
+				.append(";hasGeo=").append(GeoEngine.getInstance().hasGeo(x, y)).append(";nativeDirect=").append(point != null && paths.canWalkDirect(origin, point)).append(";nativePveSafe=").append(point != null && PhantomNativeTravelActions.safePveWalkSegment(actor, point.x(), point.y(), point.z(), mobs, Set.of())).append(";diagnosticOnlyNoRouteIssued\n");
+		} }
+	}
 	private static Player fixture(String account, String name, int classId, PhantomNavigationPoint position, boolean survivor)
 	{
 		final var player = Player.create(PlayerTemplateData.getInstance().getTemplate(0), account, name, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false)); check(player != null && !player.isGM(), "D ordinary fixture unavailable."); if (survivor) { player.stopAllTasks(); } player.setPlayerClass(classId); player.setBaseClass(classId); player.getStat().setExp(player.getStat().getExpForLevel(20)); player.getStat().setLevel((byte) 20); player.giveAvailableAutoGetSkills();

@@ -104,6 +104,8 @@ public final class PhantomFarm074OwnedNative
 			final var player = World.getInstance().getPlayer(objectId); check(player != null && "task074farm".equals(player.getAccountName()) && !player.isGM(), "Exact OWN074 B player absent.");
 			final var from = PhantomNativeTravelActions.point(player); final long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(90); long tick = 0; String last = ""; boolean published = resume, moved = false;
 			report.append("B_OWNED_MEASUREMENT_START\tresume=").append(resume).append(";profile=").append(id).append(";actor=").append(objectId).append(";from=").append(from).append(";goalRow=").append(beforeGoal.rowVersion()).append(";catchupRow=").append(beforeClaim.rowVersion()).append(";noFurtherFixtureWrites=true\n");
+			try { PhantomFarm074PlanningDiagnostic.append(id, player, runtime.background.acquisitionSnapshot(id).orElseThrow(), beforeGoal.goal(), beforeClaim.state(), new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority), runtime.travel, report); }
+			catch (RuntimeException diagnosticFailure) { report.append("B_OWNED_PLANNING_DIAGNOSTIC_GAP\t").append(diagnosticFailure).append('\n'); }
 			while (System.nanoTime() < end && !player.isDead())
 			{
 				final boolean prepared = runtime.history.prepareVisibleDecision(id, runtime.engine);

@@ -100,6 +100,7 @@ final class PhantomSupply074Native
 			{
 				check("paid-returned".equals(state.getProperty("phase")), "OWN074 paid checkpoint missing; no reseed/recompute.");
 				check(state.getProperty("inventory").equals(inventory(player)) && state.getProperty("exp").equals(Long.toString(player.getExp())) && state.getProperty("sp").equals(Long.toString(player.getSp())) && state.getProperty("receipt").equals(receipts.find(id).orElseThrow().receipt().toString()), "OWN074 newJVM inventory/reward/receipt continuity differs.");
+				PhantomLoot074Native.dispositions(id, player, materialization, report);
 				final long shots = player.getInventory().getInventoryItemCount(1463, -1); kill(combat, id, player, materialization, report); check(player.getInventory().getInventoryItemCount(1463, -1) < shots, "OWN074 restart did not spend retained purchased shot.");
 				report.append("A_RESTART_PASS\tsame actor/inventory/EXP/SP/receipt; new useful native kill and shot debit\n"); return;
 			}
@@ -204,10 +205,29 @@ final class PhantomSupply074Native
 		check(target != null, "OWN074 no rewarding target on bounded native approach; no relocation.");
 		final long exp = player.getExp(), sp = player.getSp(), adena = player.getAdena(), shots = player.getInventory().getInventoryItemCount(1463, -1);
 		final var start = combat.startSession(new PhantomCombatRequest(id, target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, true, 30_000, () -> false)); check(start.accepted(), "OWN074 combat refused: " + start);
-		final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(35); while (System.nanoTime() < until && !combat.find(id).map(value -> value.result().terminal()).orElse(false)) { Thread.sleep(100); }
+		final var ground = new java.util.LinkedHashMap<Integer, PhantomCombatBackend.LootCandidate>();
+		final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+		while (System.nanoTime() < until && !combat.find(id).map(value -> value.result().terminal()).orElse(false))
+		{
+			for (var item : World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.item.instance.Item.class, 1200).stream().filter(item -> item.isSpawned() && item.getCount() > 0).sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(32).toList())
+			{
+				if (ground.size() < 32) { ground.putIfAbsent(item.getObjectId(), new PhantomCombatBackend.LootCandidate(item.getObjectId(), item.getId(), item.getCount(), player.getInventory().getInventoryItemCount(item.getId(), -1))); }
+			}
+			Thread.sleep(100);
+		}
 		final var result = combat.find(id).orElseThrow(); check(result.result().victory() && target.isDead() && !player.isDead() && player.getExp() > exp && player.getSp() > sp, "OWN074 native rewarded kill failed: " + result);
 		final long drain = System.nanoTime() + TimeUnit.SECONDS.toNanos(10); while (combat.consumeTerminal(id).isEmpty()) { check(System.nanoTime() < drain, "OWN074 terminal combat cleanup failed."); Thread.sleep(100); }
 		report.append("NATIVE_KILL\tnpc=").append(target.getId()).append('/').append(target.getObjectId()).append(";EXP=").append(exp).append("->").append(player.getExp()).append(";SP=").append(sp).append("->").append(player.getSp()).append(";A=").append(adena).append("->").append(player.getAdena()).append(";shots=").append(shots).append("->").append(player.getInventory().getInventoryItemCount(1463, -1)).append(";result=").append(result).append(";nativeEvidence=").append(player.getNativeWorkOwner().evidence().snapshot().scalarMap()).append(";pickupSequence=").append(player.getNativeWorkOwner().evidence().pickupSequence()).append('\n');
+		for (var item : player.getInventory().getItems())
+		{
+			final var receipt = player.getNativeWorkOwner().evidence().pickupReceipt(item.getObjectId());
+			if (receipt != null) { ground.putIfAbsent(receipt.sourceObjectId(), new PhantomCombatBackend.LootCandidate(receipt.sourceObjectId(), receipt.itemId(), receipt.count(), 0)); }
+		}
+		for (var candidate : ground.values())
+		{
+			final var receipt = player.getNativeWorkOwner().evidence().pickupReceipt(candidate.worldObjectId());
+			PhantomLoot074Native.classify(player, candidate, receipt == null ? PhantomCombatBackend.LootObservation.PENDING : receipt.nativeConsumed() ? PhantomCombatBackend.LootObservation.CONSUMED_NATIVE : PhantomCombatBackend.LootObservation.ACQUIRED_BY_ACTOR, report);
+		}
 	}
 	static String inventory(Player player) { return player.getInventory().getItems().stream().filter(item -> item.getCount() > 0).sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).map(item -> item.getObjectId() + ":" + item.getId() + ":" + item.getCount() + ":" + item.isEquipped()).collect(java.util.stream.Collectors.joining(";")); }
 	private static void save(Path path, Properties state) throws Exception { final var temporary = path.resolveSibling(path.getFileName() + ".tmp"); try (var writer = Files.newBufferedWriter(temporary)) { state.store(writer, "OWN074 retained native state; no reseed"); } Files.move(temporary, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE); }

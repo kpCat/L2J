@@ -33,6 +33,7 @@ L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/pvp/PhantomPvp
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/qol/CrystallizationService.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/commons/util/Task074RuntimeGuardChecks.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/commerce/PhantomSupply074Checks.java
+L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomFarm074PlanningDiagnostic.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomFarm074Checks.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCombatActionOwnershipSuite.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCrystal074Native.java

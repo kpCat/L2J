@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][ValidateSet('Prepare','Compile','Native','Build','Helpers')][string]$Action,
+param([Parameter(Mandatory)][ValidateSet('Prepare','Compile','Native','Build','BuildCorrected','Helpers')][string]$Action,
       [ValidatePattern('^[a-z0-9-]+$')][string]$Mode='preflight', [string]$SourceCommit='')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -54,9 +54,11 @@ if($Action -eq 'Compile'){
     Write-Output "OWN074_COMPILED $build"
     return
 }
-if($Action -eq 'Build'){
+if($Action -in @('Build','BuildCorrected')){
     if($SourceCommit -cnotmatch '^[0-9a-f]{40}$' -or (& git symbolic-ref --short HEAD) -cne 'feature/phantom-world' -or (& git rev-parse HEAD) -cne $SourceCommit){throw 'OWN074 exact committed feature HEAD required.'}
-    $archive=Join-Path $task 'source074.zip'; $source=Join-Path $task 'source-final'; $build=Join-Path $task 'build-final'
+    $corrected=$Action -ceq 'BuildCorrected'
+    if($corrected -and (!(Test-Path -LiteralPath (Join-Path $task 'BUILD074.json')) -or (Test-Path -LiteralPath (Join-Path $task 'BUILD074-original.json')))){throw 'OWN074 exactly one source correction build allowed.'}
+    $archive=Join-Path $task $(if($corrected){'source074-corrected.zip'}else{'source074.zip'}); $source=Join-Path $task $(if($corrected){'source-corrected'}else{'source-final'}); $build=Join-Path $task $(if($corrected){'build-corrected'}else{'build-final'})
     foreach($path in @($archive,$source,$build)){if(Test-Path -LiteralPath $path){throw 'OWN074 final artifacts already exist; no overwrite.'}}
     & git archive --format=zip "--output=$archive" $SourceCommit -- 'L2J_Mobius_CT_2.6_HighFive'
     if($LASTEXITCODE){throw 'OWN074 committed archive failed.'}
@@ -64,10 +66,15 @@ if($Action -eq 'Build'){
     [IO.Compression.ZipFile]::ExtractToDirectory($archive,$source)
     $committed=Join-Path $source 'L2J_Mobius_CT_2.6_HighFive'
     $ErrorActionPreference='Continue'
-    & ant -f (Join-Path $committed 'build.xml') "-Dbuild=$build" jar compile-tests *> (Join-Path $task 'reports/final-build.log')
+    $buildLog=Join-Path $task $(if($corrected){'reports/final-corrected-build.log'}else{'reports/final-build.log'})
+    & ant -f (Join-Path $committed 'build.xml') "-Dbuild=$build" jar compile-tests *> $buildLog
     $code=$LASTEXITCODE; $ErrorActionPreference='Stop'
-    if($code){Get-Content -LiteralPath (Join-Path $task 'reports/final-build.log') -Tail 35;throw 'OWN074 final build failed.'}
-    $receipt=[ordered]@{owner=$owner;sourceState='COMMITTED';sourceCommit=$SourceCommit;sourceArchive=$archive;sourceArchiveSha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;sourceTreeSha256=(Get-TreeHash073 $committed @('build.xml','java','test','tools','dist') @('dist/libs/GameServer.jar','dist/libs/LoginServer.jar'));gameJarSha256=(Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/GameServer.jar') -Algorithm SHA256).Hash;loginJarSha256=(Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/LoginServer.jar') -Algorithm SHA256).Hash;testTreeSha256=(Get-TreeHash073 (Join-Path $build 'phantom-test') @('bin','resources'));builtUtc=[DateTime]::UtcNow.ToString('o')}
+    if($code){Get-Content -LiteralPath $buildLog -Tail 35;throw 'OWN074 final build failed.'}
+    $receipt=[ordered]@{owner=$owner;sourceState='COMMITTED';sourceCommit=$SourceCommit;sourceArchive=$archive;sourceRoot=$committed;buildRoot=$build;sourceArchiveSha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;sourceTreeSha256=(Get-TreeHash073 $committed @('build.xml','java','test','tools','dist') @('dist/libs/GameServer.jar','dist/libs/LoginServer.jar'));gameJarSha256=(Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/GameServer.jar') -Algorithm SHA256).Hash;loginJarSha256=(Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/LoginServer.jar') -Algorithm SHA256).Hash;testTreeSha256=(Get-TreeHash073 (Join-Path $build 'phantom-test') @('bin','resources'));builtUtc=[DateTime]::UtcNow.ToString('o')}
+    if($corrected){
+        Copy-Item -LiteralPath (Join-Path $task 'BUILD074.json') -Destination (Join-Path $task 'BUILD074-original.json')
+        if(Test-Path -LiteralPath (Join-Path $task 'HELPERS074.json')){Move-Item -LiteralPath (Join-Path $task 'HELPERS074.json') -Destination (Join-Path $task 'HELPERS074-pre-correction-active.json')}
+    }
     Write-Text073 (Join-Path $task 'BUILD074.json') ($receipt | ConvertTo-Json)
     Write-Output ($receipt | ConvertTo-Json)
     return
@@ -75,16 +82,18 @@ if($Action -eq 'Build'){
 if($Action -eq 'Helpers'){
     if($SourceCommit -cnotmatch '^[0-9a-f]{40}$' -or (& git symbolic-ref --short HEAD) -cne 'feature/phantom-world' -or (& git rev-parse HEAD) -cne $SourceCommit){throw 'OWN074 exact committed helper HEAD required.'}
     $info=Read-Json073 (Join-Path $task 'BUILD074.json'); $build=Join-Path $task 'build-final'
+    if($info.PSObject.Properties.Name -contains 'buildRoot'){$build=$info.buildRoot}
     if((Get-FileHash -LiteralPath (Join-Path $build 'dist/libs/GameServer.jar') -Algorithm SHA256).Hash -ine $info.gameJarSha256){throw 'OWN074 helper production JAR differs.'}
     $suffix=$SourceCommit.Substring(0,12)
     $archive=Join-Path $task "helpers074-$suffix.zip"; $source=Join-Path $task "helpers-source-$suffix"; $classes=Join-Path $task "helpers-bin-$suffix"
     foreach($path in @($archive,$source,$classes,(Join-Path $task "HELPERS074-$suffix.json"))){if(Test-Path -LiteralPath $path){throw 'OWN074 helper version exists; no overwrite.'}}
-    & git archive --format=zip "--output=$archive" $SourceCommit -- 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms'
+    & git archive --format=zip "--output=$archive" $SourceCommit -- 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomFarm074PlanningDiagnostic.java'
     if($LASTEXITCODE){throw 'OWN074 committed helper archive failed.'}
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Compression.ZipFile]::ExtractToDirectory($archive,$source)
     New-Item -ItemType Directory -Path $classes | Out-Null
     $files=@('PhantomLivingSystems074Native.java','PhantomSupply074Native.java','PhantomFarm074OwnedNative.java','PhantomMarket074Native.java','PhantomPvp074Native.java') | ForEach-Object {Join-Path $source ('L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/'+$_)}
+    $files+=Join-Path $source 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomFarm074PlanningDiagnostic.java'
     $libraries=@(Get-ChildItem -LiteralPath (Join-Path $module 'dist/libs') -Filter '*.jar' -File | Where-Object {$_.Name -notmatch '(-sources|GameServer|LoginServer)\.jar$'} | ForEach-Object FullName)
     $cp=(Join-Path $build 'dist/libs/GameServer.jar')+';'+(Join-Path $build 'phantom-test/bin')+';'+($libraries -join ';')
     $ErrorActionPreference='Continue'
@@ -102,6 +111,7 @@ if($Action -eq 'Helpers'){
     return
 }
 $build=if(Test-Path -LiteralPath (Join-Path $task 'BUILD074.json')){Join-Path $task 'build-final'}else{Join-Path $task 'focused'}
+if(Test-Path -LiteralPath (Join-Path $task 'BUILD074.json')){$info=Read-Json073 (Join-Path $task 'BUILD074.json');if($info.PSObject.Properties.Name -contains 'buildRoot'){$build=$info.buildRoot}}
 $production=if(Test-Path -LiteralPath (Join-Path $task 'BUILD074.json')){Join-Path $build 'dist/libs/GameServer.jar'}else{Join-Path $build 'bin'}
 $cp=$production+';'+(Join-Path $build 'phantom-test/bin')+';'+(Join-Path $build 'phantom-test/resources')+';'+(Join-Path $module 'dist/libs/*')
 if(Test-Path -LiteralPath (Join-Path $task 'HELPERS074.json')){
