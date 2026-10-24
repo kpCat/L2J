@@ -18,6 +18,7 @@ import org.l2jmobius.gameserver.model.item.enums.BodyPart;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ArmorType;
 import org.l2jmobius.gameserver.model.item.type.CrystalType;
+import org.l2jmobius.gameserver.model.item.type.EtcItemType;
 import org.l2jmobius.gameserver.model.itemcontainer.Inventory;
 import org.l2jmobius.gameserver.model.stats.Stat;
 import org.l2jmobius.gameserver.model.stats.functions.FuncTemplate;
@@ -139,13 +140,41 @@ public final class PhantomNativeEquipmentPolicy
 		if (!compatible(player, candidate)) { return false; }
 		if (candidate instanceof Weapon)
 		{
-			final var current = player.getActiveWeaponItem();
-			return current == null || current == player.getFistsWeaponItem() || !compatible(player, current) || candidate.getCrystalType().getLevel() > current.getCrystalType().getLevel() || candidate.getCrystalType() == current.getCrystalType() && utility(player, candidate) > utility(player, current);
+			final var current = player.getActiveWeaponInstance();
+			final var offhand = candidate.getBodyPart() == BodyPart.LR_HAND ? player.getInventory().getPaperdollItem(Inventory.PAPERDOLL_LHAND) : null;
+			final var replaced = java.util.stream.Stream.of(current, offhand).filter(java.util.Objects::nonNull).distinct().toList();
+			if (current != null && affinity(player, current.getTemplate()) > 0 && affinity(player, candidate) <= 0) { return false; }
+			return improvesLoadout(candidate, replaced, current == null ? 0 : utility(player, current.getTemplate()), utility(player, candidate));
 		}
 		final var replaced = player.getInventory().getItems().stream().filter(Item::isEquipped).filter(item -> overlaps(candidate.getBodyPart(), item.getTemplate().getBodyPart())).toList();
-		return replaced.isEmpty() || replaced.stream().anyMatch(item -> !compatible(player, item.getTemplate()))
-			|| candidate.getCrystalType().getLevel() > replaced.stream().mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0)
-			|| candidate.getCrystalType().getLevel() == replaced.stream().mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0) && utility(player, candidate) > replaced.stream().mapToDouble(item -> utility(player, item.getTemplate())).sum();
+		if (replaced.stream().anyMatch(item -> affinity(player, item.getTemplate()) > 0) && affinity(player, candidate) <= 0) { return false; }
+		if (replaced.stream().anyMatch(item -> completedSet(player, item.getTemplate())) && !completedSet(player, candidate)) { return false; }
+		return improvesLoadout(candidate, replaced, replaced.stream().mapToDouble(item -> utility(player, item.getTemplate())).sum(), utility(player, candidate));
+	}
+
+	/** Shared read-only replacement gate for the actual paperdoll objects. */
+	public static boolean improvesLoadout(ItemTemplate candidate, List<Item> replaced, double currentUtility, double candidateUtility)
+	{
+		// Template utility cannot value enchant, augmentation, attributes or special skills.
+		// Retain those native objects rather than silently pricing their effects at zero.
+		if (candidate == null || !Double.isFinite(currentUtility) || !Double.isFinite(candidateUtility) || currentUtility < 0 || candidateUtility <= currentUtility) { return false; }
+		for (var item : replaced)
+		{
+			final var template = item.getTemplate();
+			if (candidate instanceof Weapon && !(template instanceof Weapon))
+			{
+				// Native two-hand equip clears LHAND. Ammo can be replaced from owned stock;
+				// shield defense/skills cannot be priced as weapon attack, so retain them.
+				if (item.getItemType() == EtcItemType.ARROW || item.getItemType() == EtcItemType.BOLT) { continue; }
+				return false;
+			}
+			if (item.getEnchantLevel() > 0 || item.isAugmented() || item.getElementals() != null && item.getElementals().length > 0
+				|| template.isQuestItem() || template.isHeroItem() || template.isPvpItem() || template.getSkills() != null && template.getSkills().length > 0
+				|| template.getElementals() != null && template.getElementals().length > 0
+				|| template instanceof Weapon weapon && (weapon.hasTriggeredSkills() || weapon.getReducedSoulShot() > 0 || weapon.getReducedMpConsume() > 0)) { return false; }
+		}
+		final int grade = replaced.stream().filter(item -> item.getTemplate() instanceof Weapon || item.getTemplate() instanceof Armor).mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0);
+		return candidate.getCrystalType().getLevel() >= grade;
 	}
 
 	private static boolean overlaps(BodyPart first, BodyPart second)

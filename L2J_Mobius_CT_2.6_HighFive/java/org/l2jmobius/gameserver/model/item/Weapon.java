@@ -247,6 +247,12 @@ public class Weapon extends ItemTemplate
 		return _isMagicWeapon;
 	}
 	
+	/** Read-only presence check without resolving skills or firing native triggers. */
+	public boolean hasTriggeredSkills()
+	{
+		return _skillsOnMagic != null || _skillsOnCrit != null;
+	}
+
 	/**
 	 * @return the quantity of SoulShot used.
 	 */
