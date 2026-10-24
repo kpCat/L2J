@@ -30,12 +30,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
+import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
 import org.l2jmobius.gameserver.data.xml.RecipeData;
+import org.l2jmobius.gameserver.managers.RecipeManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.recipe.ManufactureItem;
 import org.l2jmobius.gameserver.model.item.recipe.RecipeList;
+import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.network.holders.TradeItem;
 import org.l2jmobius.gameserver.network.holders.TradeList;
 import org.l2jmobius.gameserver.network.serverpackets.ExPrivateStoreSetWholeMsg;
@@ -108,6 +111,7 @@ public final class PhantomStoreService
 			{
 				return Result.REJECTED;
 			}
+			if (OfflineTradeConfig.OFFLINE_TRADE_ENABLE && player.hasHeadlessOutboundSession()) { player.setOfflineStartTime(now); }
 			update(profileId, saved.rowVersion(), plan.withState(PhantomStorePlan.State.OPEN));
 			installOwnerObserver(profileId, player.getObjectId());
 			_opened.increment();
@@ -174,10 +178,22 @@ public final class PhantomStoreService
 				return Result.RETRY;
 			}
 			final Player player = lease.player();
-			player.getSellList().clear();
-			player.getBuyList().clear();
-			player.getManufactureItems().clear();
-			player.setPrivateStoreType(PrivateStoreType.NONE);
+			synchronized (player.getSellList())
+			{
+				synchronized (player.getBuyList())
+				{
+					synchronized (player.getManufactureItems())
+					{
+						// The native customer can enqueue timed craft under this same monitor.
+						if (player.isProcessingTransaction() || player.hasPendingOwnedStore() || RecipeManager.getInstance().isMakingItem(player)) { return Result.RETRY; }
+						player.getSellList().clear();
+						player.getBuyList().clear();
+						player.getManufactureItems().clear();
+						player.setPrivateStoreType(PrivateStoreType.NONE);
+						player.setOfflineStartTime(0);
+					}
+				}
+			}
 			player.standUp();
 			player.broadcastUserInfo();
 			if ((player.getPrivateStoreType() != PrivateStoreType.NONE) || (player.getSellList().getItemCount() != 0) || (player.getBuyList().getItemCount() != 0) || !player.getManufactureItems().isEmpty())
@@ -252,6 +268,8 @@ public final class PhantomStoreService
 	/** Listing adapter only; the materialized or dedicated offline caller retains its lifecycle fence. */
 	static boolean installNative(Player player, PhantomStorePlan plan)
 	{
+		if ((plan.type() == PhantomStorePlan.Type.SELL || plan.type() == PhantomStorePlan.Type.PACKAGE_SELL) && plan.lines().size() > player.getPrivateSellStoreLimit()
+			|| plan.type() == PhantomStorePlan.Type.BUY && plan.lines().size() > player.getPrivateBuyStoreLimit()) { return false; }
 		if (player.isInStoreMode() && (player.getPrivateStoreType() != PrivateStoreType.NONE))
 		{
 			return canonicalMatches(player, plan);
@@ -308,7 +326,8 @@ public final class PhantomStoreService
 				for (PhantomStorePlan.Line line : plan.lines())
 				{
 					final RecipeList recipe = RecipeData.getInstance().getRecipeList(line.objectOrRecipeId());
-					if ((recipe == null) || (recipe.getItemId() != line.itemId()) || (!player.getDwarvenRecipeBook().contains(recipe) && !player.getCommonRecipeBook().contains(recipe)))
+					if ((recipe == null) || (recipe.getItemId() != line.itemId()) || !player.hasRecipeList(recipe.getId()) || line.price() <= 0
+						|| player.getSkillLevel(recipe.isDwarvenRecipe() ? CommonSkill.CREATE_DWARVEN.getId() : CommonSkill.CREATE_COMMON.getId()) < recipe.getLevel())
 					{
 						player.getManufactureItems().clear();
 						return false;

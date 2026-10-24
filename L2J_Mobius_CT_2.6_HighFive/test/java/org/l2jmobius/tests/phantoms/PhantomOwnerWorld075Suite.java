@@ -28,6 +28,23 @@ public final class PhantomOwnerWorld075Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		registry.add("native-store-close-keeps-craft-admission-monitor", context ->
+		{
+			final String source = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomStoreService.java"));
+			final String close = source.substring(source.indexOf("public Result close("), source.indexOf("public ShutdownResult shutdown("));
+			final int sell = close.indexOf("synchronized (player.getSellList())");
+			final int buy = close.indexOf("synchronized (player.getBuyList())", Math.max(0, sell));
+			final int manufacture = close.indexOf("synchronized (player.getManufactureItems())", Math.max(0, buy));
+			final int busy = close.indexOf("RecipeManager.getInstance().isMakingItem(player)", Math.max(0, manufacture));
+			final int clear = close.indexOf("player.getManufactureItems().clear()", Math.max(0, busy));
+			final int reset = close.indexOf("player.setPrivateStoreType(PrivateStoreType.NONE)", Math.max(0, clear));
+			if (sell < 0 || buy <= sell || manufacture <= buy || busy <= manufacture || clear <= busy || reset <= clear) { throw new AssertionError("Native close must recheck queued craft under SELL/BUY/manufacture admission monitors before clearing and releasing its owner."); }
+		});
+		registry.add("ordinary-retail-reuses-canonical-recipe-reserve", context ->
+		{
+			final String source = java.nio.file.Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java"));
+			if (!source.contains("private static long surplusCount(") || !source.contains("policy.evaluate(owner, item, java.util.Set.of(), false, false)") || !source.contains("role.keyPart()") || !source.contains("decision.count()")) { throw new AssertionError("Ordinary retail must reuse native known-recipe protection and bound every line by canonical surplus above reserve."); }
+		});
 		registry.add("servitor-eleven-independent-coefficients-and-parity", context ->
 		{
 			final var doubled = new ServitorShareConfig.Settings(true, Map.of());

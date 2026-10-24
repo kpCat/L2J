@@ -76,6 +76,9 @@ public final class PhantomPopulationEcologyService
 	private long _activeProfile;
 	private String _wakeFailure;
 	private boolean _stopping;
+	private long _stopEpochMinute;
+	private boolean _stopSettlementInFlight;
+	private final ArrayDeque<Long> _stopLiveProfiles = new ArrayDeque<>();
 	private LongPredicate _currentDemand = _ -> true;
 	private final Map<Long, Entry> _entries = new LinkedHashMap<>();
 	private final ArrayDeque<Long> _due = new ArrayDeque<>();
@@ -539,16 +542,59 @@ public final class PhantomPopulationEcologyService
 	{
 		synchronized (_monitor)
 		{
+			if (_stopping) { return; }
 			_stopping = true;
+			_stopEpochMinute = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+			for (long profileId : _entries.keySet())
+			{
+				if (_materialized.test(profileId)) { _stopLiveProfiles.addLast(profileId); }
+			}
 			cancelWakeLocked();
 			if (!_workerStarted) { _workerInFlight = false; _workerGeneration++; }
 		}
 	}
 
-	/** Pollable drain fence: a running canonical commit retains ownership until finally. */
+	/** Settle the final live tail only after the accepted worker drains, in existing profile-sized batches. */
 	public boolean finishStop()
 	{
-		synchronized (_monitor) { return _stopping && !_workerInFlight; }
+		final List<Long> profiles = new ArrayList<>();
+		synchronized (_monitor)
+		{
+			if (!_stopping || _workerInFlight || _stopSettlementInFlight) { return false; }
+			if (_stopLiveProfiles.isEmpty()) { return true; }
+			_stopSettlementInFlight = true;
+			while (!_stopLiveProfiles.isEmpty() && (profiles.size() < _catalog.limits().maximumProfilesPerPulse()))
+			{
+				profiles.add(_stopLiveProfiles.removeFirst());
+			}
+		}
+		try
+		{
+			for (long profileId : profiles)
+			{
+				try
+				{
+					final StoredState stored = _store.load(profileId).orElseThrow(() -> new IllegalStateException("ecology.stop_state_absent"));
+					final var state = stored.state();
+					if ((state.disposition() != Disposition.MANAGED) || state.requestPending() || (state.calendarCursorEpochMinute() >= _stopEpochMinute)) { continue; }
+					// An interrupted begin can leave history ownership ahead of the outer ecology CAS.
+					final var historical = _historical.status(profileId).orElse(null);
+					if ((historical != null) && (historical.state().status() != Status.COMPLETE)) { continue; }
+					// Captured live time is calendar-only; retry polls must never consume actual downtime.
+					persist(profileId, stored, state.advanceCalendar(_stopEpochMinute));
+				}
+				catch (RuntimeException exception)
+				{
+					recordFailure("ecology.stop_settlement_retry:" + typedFailure(exception));
+					synchronized (_monitor) { _stopLiveProfiles.addLast(profileId); }
+				}
+			}
+		}
+		finally
+		{
+			synchronized (_monitor) { _stopSettlementInFlight = false; }
+		}
+		synchronized (_monitor) { return _stopLiveProfiles.isEmpty(); }
 	}
 
 	private void drainBatch()

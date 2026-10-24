@@ -551,6 +551,15 @@ public final class PhantomSystem
 					_settings.physicalMaterializationCeiling(),
 					_settings.populationCreationInFlight(),
 					_settings.populationBoundariesPerPulse());
+				if (_autonomousMarketProducer != null)
+				{
+					final int marketWindowSeconds = PhantomMarketConfig.autonomousPolicy().orElseThrow().lifetimeSeconds();
+					_autonomousMarketProducer.installTradingWindow((profileId, now) -> _populationManager.admissionProfile(profileId).map(profile ->
+						profile.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY
+							&& (profile.desiredState() == PhantomActivityState.SLEEPING || profile.calendarOnline()
+								&& profile.nextBoundary().isAfter(java.time.Instant.ofEpochMilli(now))
+								&& !profile.nextBoundary().isAfter(java.time.Instant.ofEpochMilli(now).plusSeconds(marketWindowSeconds)))).orElse(false));
+				}
 				_populationManager.installTopologyMembership(profileId ->
 				{
 					positionPublisher.ready(profileId);
@@ -647,7 +656,8 @@ public final class PhantomSystem
 				if (_settings.materializationBurstSlots() > 0) { _materializationService.installSoftCleanupAdmission(this::softCleanupHumanAbsent); }
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
-				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
+				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING)
+					&& (_phantomStoreService.blocksDecision(profileId) || _materializationRetention.observe(profileId).retained()));
 				_reconcileMaterializationActivity.installSoftReclamationEpochs(requestingProfileId ->
 				{
 					if (!_humanLocality.isLocal(requestingProfileId) && !hasAcceptedNativeJourney(requestingProfileId))

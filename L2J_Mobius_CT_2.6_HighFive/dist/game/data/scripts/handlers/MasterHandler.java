@@ -70,6 +70,7 @@ import handlers.bypass.communityboard.FriendsBoard;
 import handlers.bypass.communityboard.HomeBoard;
 import handlers.bypass.communityboard.HomepageBoard;
 import handlers.bypass.communityboard.MailBoard;
+import handlers.bypass.communityboard.MarketSearchBoard;
 import handlers.bypass.communityboard.MemoBoard;
 import handlers.bypass.communityboard.PersonalPremiumQoLBoard;
 import handlers.bypass.communityboard.RegionBoard;
@@ -491,6 +492,7 @@ public class MasterHandler
 			HomeBoard.class,
 			HomepageBoard.class,
 			MailBoard.class,
+			MarketSearchBoard.class,
 			MemoBoard.class,
 			PersonalPremiumQoLBoard.class,
 			RegionBoard.class,

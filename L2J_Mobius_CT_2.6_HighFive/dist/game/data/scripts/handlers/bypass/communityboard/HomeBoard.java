@@ -155,6 +155,7 @@ public class HomeBoard implements IParseBoardHandler
 			final String customPath = CommunityBoardConfig.CUSTOM_CB_ENABLED ? "Custom/" : "";
 			CommunityBoardHandler.getInstance().addBypass(player, "Home", command);
 			returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/" + customPath + "home.html");
+			returnHtml = returnHtml.replace("<body>", "<body><center><a action=\"bypass _bbsmarket\">Поиск по лавкам игроков</a></center>");
 			if (!CommunityBoardConfig.CUSTOM_CB_ENABLED)
 			{
 				returnHtml = returnHtml.replace("%fav_count%", Integer.toString(getFavoriteCount(player)));
@@ -169,6 +170,7 @@ public class HomeBoard implements IParseBoardHandler
 			if ((path.length() > 0) && path.endsWith(".html"))
 			{
 				returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/" + customPath + path);
+				if (path.equals("home.html")) { returnHtml = returnHtml.replace("<body>", "<body><center><a action=\"bypass _bbsmarket\">Поиск по лавкам игроков</a></center>"); }
 			}
 		}
 		else if (command.startsWith("_bbsconsumables;"))

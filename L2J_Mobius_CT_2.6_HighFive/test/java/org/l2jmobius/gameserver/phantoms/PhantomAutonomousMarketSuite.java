@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomLootDispositionPolicy;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -144,7 +145,7 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		// The new-character creation point is inside a native NPC shop exclusion radius.
 		// Use the accepted Giran city-center anchor, away from the factual merchant/gatekeeper.
 		_first.teleToLocation(82480, 149087, -3350, false);
-		_second.teleToLocation(82520, 149087, -3350, false);
+		_second.teleToLocation(82600, 149087, -3350, false);
 		_firstAdena = _first.getAdena();
 		_secondAdena = _second.getAdena();
 		_pricing = new AtomicReference<>(new PhantomPrivateMarketPricingAuthority(_knowledge, new PhantomCommerceCatalog(List.of(), List.of(), List.of(), List.of()), _rates, new PhantomPrivateMarketQuote.Policy(500, 500), World.getInstance().getVisibleObjects()));
@@ -175,12 +176,14 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		if (_first != null)
 		{
 			clearItem(_first, MATERIAL_ID);
+			clearItem(_first, 1864);
 			clearGear(_first);
 			restoreAdena(_first, _firstAdena);
 		}
 		if (_second != null)
 		{
 			clearItem(_second, MATERIAL_ID);
+			clearItem(_second, 1864);
 			clearGear(_second);
 			restoreAdena(_second, _secondAdena);
 		}
@@ -213,17 +216,29 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("shared-scheduler-sell-buy-native-conservation-and-lifecycle", this::nativeMarket);
-		registry.add("autonomous-manufacture-fail-closed-and-policy-bounds", this::policyBounds);
+		registry.add("autonomous-learned-manufacture-and-trading-window-bounds", this::policyBounds);
 		registry.add("z-reservation-goal-stale-restore-and-enchanted-object", this::safety);
 	}
 
 	private void nativeMarket(PhantomTestContext context) throws Exception
 	{
-		fund(_first, MATERIAL_ID, 8);
-		fund(_second, MATERIAL_ID, 8);
+		final long materialReserve = reserve(MATERIAL_ID);
+		final long secondReserve = reserve(1864);
+		fund(_first, MATERIAL_ID, materialReserve);
+		fund(_second, MATERIAL_ID, materialReserve);
+		final long now = System.currentTimeMillis();
+		for (long profileId : List.of(_firstProfile.profileId(), _secondProfile.profileId()))
+		{
+			final long reserveNow = Math.floorMod(profileId + (now / 900_000), 2) == 0 ? now : now + 900_000;
+			PhantomAssertions.assertTrue(_producer.consider(profileId, reserveNow).isEmpty(), "Canonical recipe reserve became ordinary market surplus.");
+		}
+		// Explicit isolated fixtures exceed the actual recipe-derived reserve; they are not earned-income evidence.
+		fund(_first, MATERIAL_ID, 16);
+		fund(_second, MATERIAL_ID, 16);
+		fund(_first, 1864, secondReserve + 16);
+		fund(_second, 1864, secondReserve + 16);
 		fund(_first, 57, 100_000);
 		fund(_second, 57, 100_000);
-		final long now = System.currentTimeMillis();
 		_scheduler.pulse();
 		final PhantomStorePlan firstPlan = _stores.currentPlan(_firstProfile.profileId()).orElse(null);
 		final PhantomStorePlan secondPlan = _stores.currentPlan(_secondProfile.profileId()).orElse(null);
@@ -236,11 +251,18 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomStorePlan.Type.SELL, sell.type(), "Real SELL surplus did not become a native store.");
 		PhantomAssertions.assertTrue(_stores.blocksDecision(ownerProfile) && !_stores.blocksDecision(otherProfile), "Only the native shop owner should pause Decision actions.");
 		PhantomAssertions.assertEquals(PrivateStoreType.SELL, owner.getPrivateStoreType(), "Native SELL type drifted.");
+		PhantomAssertions.assertEquals(2, sell.lines().size(), "Distinct actual material surpluses were truncated to one line.");
+		for (var listed : sell.lines())
+		{
+			PhantomAssertions.assertEquals(8L, listed.count(), "Recipe-aware fixture did not exercise the eight-item line cap.");
+			PhantomAssertions.assertTrue(listed.count() <= count(owner, listed.itemId()) - reserve(listed.itemId()), "Native listing exposed canonical recipe reserve.");
+		}
+		PhantomAssertions.assertTrue(owner.getOfflineStartTime() > 0 && owner.hasHeadlessOutboundSession(), "Ordinary store lost its existing headless owner or offline marker.");
 		PhantomAssertions.assertTrue(owner.isSitting(), "Native visible store owner did not sit.");
-		final var line = sell.lines().get(0);
+		final var line = sell.lines().stream().filter(item -> item.itemId() == MATERIAL_ID).findFirst().orElseThrow();
 		final Item owned = owner.getInventory().getItemByObjectId(line.objectOrRecipeId());
 		PhantomAssertions.assertTrue((owned != null) && (owned.getCount() >= line.count()) && (owned.getId() == MATERIAL_ID), "SELL line was not real owned inventory.");
-		final var nativeLine = owner.getSellList().getItems().iterator().next();
+		final var nativeLine = owner.getSellList().getItems().stream().filter(item -> item.getObjectId() == line.objectOrRecipeId()).findFirst().orElseThrow();
 		PhantomAssertions.assertTrue((nativeLine.getObjectId() == line.objectOrRecipeId()) && (nativeLine.getCount() == line.count()) && (nativeLine.getPrice() == line.price()), "Canonical quoted SELL object/count/price did not reach native TradeList.");
 		PhantomAssertions.assertTrue(line.price() > PhantomPrivateMarketQuote.npcLiquidation(owned.getTemplate()), "SELL to NPC liquidation arbitrage was allowed.");
 		PhantomAssertions.assertTrue(_producer.consider(otherProfile, now).isEmpty(), "A second shop exceeded bounded ACTIVE participation.");
@@ -256,8 +278,9 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(itemsBefore, count(owner, MATERIAL_ID) + count(other, MATERIAL_ID), "SELL purchase minted or lost items.");
 		PhantomAssertions.assertEquals(ownerItemsBefore - 1, count(owner, MATERIAL_ID), "Native SELL removed a non-requested owner quantity.");
 		PhantomAssertions.assertEquals(otherItemsBefore + 1, count(other, MATERIAL_ID), "Native SELL did not give buyer the exact requested quantity.");
+		PhantomAssertions.assertTrue(count(owner, MATERIAL_ID) >= materialReserve, "Native SELL consumed the owner's canonical reserve.");
 		_producer.pulse(now + 1_000);
-		PhantomAssertions.assertTrue(_stores.blocksDecision(ownerProfile) && (owner.getPrivateStoreType() == PrivateStoreType.SELL) && (_stores.currentPlan(ownerProfile).orElseThrow().lines().get(0).count() == line.count() - 1), "Partial native SELL transaction lost the tracked listing during an ordinary pulse.");
+		PhantomAssertions.assertTrue(_stores.blocksDecision(ownerProfile) && (owner.getPrivateStoreType() == PrivateStoreType.SELL) && (_stores.currentPlan(ownerProfile).orElseThrow().lines().stream().filter(item -> item.itemId() == MATERIAL_ID).findFirst().orElseThrow().count() == line.count() - 1), "Partial native SELL transaction lost the tracked listing during an ordinary pulse.");
 		context.record("market.sell.transfer", "ownerBefore=" + ownerItemsBefore + ":ownerAfter=" + count(owner, MATERIAL_ID) + ":otherBefore=" + otherItemsBefore + ":otherAfter=" + count(other, MATERIAL_ID));
 		PhantomAssertions.assertEquals(adenaBefore, owner.getAdena() + other.getAdena(), "SELL purchase minted or lost Adena.");
 		PhantomAssertions.assertEquals(ownerAdenaBefore + line.price(), owner.getAdena(), "Native SELL did not pay exact quoted Adena to owner.");
@@ -269,6 +292,7 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		Thread.sleep(2_600);
 		_producer.pulse(now + 121_000);
 		PhantomAssertions.assertEquals(PrivateStoreType.NONE, owner.getPrivateStoreType(), "Expired SELL listing did not close.");
+		PhantomAssertions.assertEquals(0L, owner.getOfflineStartTime(), "Closing an ordinary store retained the offline marker.");
 		PhantomAssertions.assertTrue(_stores.currentPlan(ownerProfile).isEmpty(), "Expired SELL durable plan survived.");
 		awaitNativeIdle(owner);
 		context.record("market.sell.afterExpiry", "ownerCount=" + count(owner, MATERIAL_ID) + ":worldPresent=" + _materialization.find(ownerProfile).orElseThrow().worldPresent());
@@ -329,6 +353,8 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PrivateStoreService.Result.REJECTED, PrivateStoreService.getInstance().sellExact(other, owner.getObjectId(), sale, buyHash, PrivateStoreService.requestHash(sale)), "BUY stale replay transferred twice.");
 		PhantomAssertions.assertEquals(PhantomStoreService.Result.CLOSED, _stores.close(ownerProfile), "BUY store did not safely close.");
 		_producer.pulse(buyNow + 1_000);
+		clearItem(_first, 1864);
+		clearItem(_second, 1864);
 		context.record("market.native", "sellAsk=" + line.price() + ":buyBid=" + bidLine.price() + ":sellAndBuyConserved=true:replaysRejected=true");
 	}
 
@@ -337,6 +363,10 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		final var policy = PhantomMarketConfig.readAutonomous(context.moduleRoot().resolve("dist/game/config/Custom/PhantomMarket.ini"));
 		PhantomAssertions.assertTrue((policy != null) && (policy.maximumOpenStores() == 2) && (policy.lifetimeSeconds() == 120) && (policy.reopenCooldownSeconds() == 600), "Shipped market frequency/TTL/participation differs from bounded policy.");
 		PhantomAssertions.assertTrue(_stores.currentPlan(_firstProfile.profileId()).isEmpty() && _stores.currentPlan(_secondProfile.profileId()).isEmpty(), "Autonomous manufacture or old native plan was durably published.");
+		final var closedWindow = new PhantomAutonomousMarketProducer(_materialization, _scheduler, _stores, _goals, _acquisition, _reservations, () -> null, policy);
+		closedWindow.installTradingWindow((id, now) -> false);
+		PhantomAssertions.assertTrue(closedWindow.consider(_firstProfile.profileId(), System.currentTimeMillis()).isEmpty(), "Closed shift window admitted an ordinary store.");
+		PhantomAssertions.assertThrows(IllegalStateException.class, () -> closedWindow.installTradingWindow((id, now) -> true), "Trading window changed after admission began.");
 		final String producerSource = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java"), StandardCharsets.UTF_8);
 		final String ordinaryReconcile = producerSource.substring(producerSource.indexOf("private void reconcile(long profileId"), producerSource.indexOf("private void reconcileSlow(long profileId"));
 		PhantomAssertions.assertTrue(!ordinaryReconcile.contains("currentPlan(") && !ordinaryReconcile.contains("findComponent(") && !ordinaryReconcile.contains("goal(profileId)") && !ordinaryReconcile.contains("findActive(profileId)"), "Tracked open-owner ordinary pulse still performs a durable DB read.");
@@ -346,7 +376,7 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		final int firstDrain = shutdownSource.indexOf("_phantomStoreService.shutdown()");
 		final int secondDrain = shutdownSource.indexOf("_phantomStoreService.shutdown()", firstDrain + 1);
 		PhantomAssertions.assertTrue((fence >= 0) && (firstDrain > fence) && (secondDrain > firstDrain), "PhantomSystem does not fence the producer before both store shutdown drains.");
-		context.record("market.manufacture", "autonomousDisabled=true:authorityFeeWithoutSource=0");
+		context.record("market.manufacture", "learnedNativeOnly=true:closedShiftWindowRejected=true");
 	}
 
 	private void safety(PhantomTestContext context) throws Exception
@@ -434,15 +464,20 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		owner.getInventory().equipItem(equipped);
 		duplicate.setEnchantLevel(4);
 		final long gearNow = now + 1_800_000;
-		final var gearRaw = new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.REQUESTED, "Лавка фантома", List.of(new PhantomStorePlan.Line(duplicate.getObjectId(), 70, 1, 0)), gearNow + 120_000);
-		final PhantomStorePlan expectedGear = _stores.quotePlan(profileId, PhantomActivityState.ACTIVE, gearRaw, gearNow).orElseThrow();
-		final PhantomStorePlan enchanted = _producer.consider(profileId, gearNow).orElseThrow(() -> new AssertionError("Owned +4 duplicate gear failed to produce a SELL store."));
-		PhantomAssertions.assertEquals(PhantomStorePlan.Type.SELL, enchanted.type(), "Enchanted duplicate changed native store type.");
-		PhantomAssertions.assertEquals(duplicate.getObjectId(), enchanted.lines().get(0).objectOrRecipeId(), "Autonomous enchanted SELL lost exact object identity.");
-		PhantomAssertions.assertEquals(expectedGear.lines().get(0).price(), enchanted.lines().get(0).price(), "Expected +N quote drifted before native publication.");
-		PhantomAssertions.assertEquals(enchanted.lines().get(0).price(), owner.getSellList().getItems().iterator().next().getPrice(), "Expected +N quote drifted in native TradeList.");
+		PhantomAssertions.assertTrue(_producer.consider(profileId, gearNow).isEmpty(), "Protected enchanted equipment became ordinary market surplus.");
+		duplicate.setEnchantLevel(0);
+		PhantomAssertions.assertTrue(_producer.consider(profileId, gearNow).isEmpty(), "Unenchanted duplicate equipment became ordinary market surplus.");
+		fund(owner, MATERIAL_ID, reserve(MATERIAL_ID) + 16);
+		final var surplusItem = owner.getInventory().getItemByItemId(MATERIAL_ID);
+		final var materialRaw = new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.REQUESTED, "Лавка фантома", List.of(new PhantomStorePlan.Line(surplusItem.getObjectId(), MATERIAL_ID, 1, 0)), gearNow + 120_000);
+		final PhantomStorePlan expectedMaterial = _stores.quotePlan(profileId, PhantomActivityState.ACTIVE, materialRaw, gearNow).orElseThrow();
+		final PhantomStorePlan surplusListing = _producer.consider(profileId, gearNow).orElseThrow(() -> new AssertionError("Actual material surplus failed to produce a SELL store."));
+		PhantomAssertions.assertEquals(PhantomStorePlan.Type.SELL, surplusListing.type(), "Material surplus changed native store type.");
+		PhantomAssertions.assertEquals(surplusItem.getObjectId(), surplusListing.lines().get(0).objectOrRecipeId(), "Autonomous material SELL lost exact object identity.");
+		PhantomAssertions.assertEquals(expectedMaterial.lines().get(0).price(), surplusListing.lines().get(0).price(), "Material quote drifted before native publication.");
+		PhantomAssertions.assertEquals(surplusListing.lines().get(0).price(), owner.getSellList().getItems().iterator().next().getPrice(), "Material quote drifted in native TradeList.");
 		Thread.sleep(2_600);
-		PhantomAssertions.assertEquals(PhantomStoreService.Result.CLOSED, _stores.close(profileId), "Enchanted object store did not close.");
+		PhantomAssertions.assertEquals(PhantomStoreService.Result.CLOSED, _stores.close(profileId), "Material surplus store did not close.");
 		_producer.pulse(gearNow + 1);
 		awaitNativeIdle(owner);
 		long stopNow = gearNow + 1_800_000;
@@ -463,12 +498,19 @@ public final class PhantomAutonomousMarketSuite implements PhantomTestSuite
 		_producer.pulse(stopNow + 2_000_000);
 		PhantomAssertions.assertTrue(_producer.consider(profileId, stopNow + 2_000_001).isEmpty() && _stores.currentPlan(profileId).isEmpty(), "Accidental post-drain pulse reopened a store.");
 		context.record("market.shutdownFence", "type=" + fenced.type() + ":nativeAndDurableDrained=true:repeatedStop=true:postDrainPulseInert=true");
-		context.record("market.safety", "reservationAndGoalExcluded=true:staleRequoteClosed=true:enchantedObjectId=" + duplicate.getObjectId() + ":plus4Ask=" + enchanted.lines().get(0).price());
+		context.record("market.safety", "reservationAndGoalExcluded=true:staleRequoteClosed=true:equipmentProtected=true:materialObjectId=" + surplusItem.getObjectId() + ":ask=" + surplusListing.lines().get(0).price());
 	}
 
 	private static void fund(Player owner, int itemId, long count)
 	{
 		PhantomAssertions.assertTrue(owner.getInventory().addItem(ItemProcessType.REWARD, itemId, count, owner, null) != null, "Isolated fixture funding failed.");
+	}
+
+	private static long reserve(int itemId)
+	{
+		final var role = PhantomLootDispositionPolicy.getInstance().recipeRoles().get(itemId);
+		PhantomAssertions.assertTrue(role != null && !role.keyPart(), "Market fixture requires a canonical non-key-part material role.");
+		return role.reserve();
 	}
 
 	private static void awaitNativeIdle(Player owner) throws InterruptedException

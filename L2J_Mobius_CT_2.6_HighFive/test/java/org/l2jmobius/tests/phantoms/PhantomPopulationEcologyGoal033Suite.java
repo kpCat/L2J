@@ -83,6 +83,13 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("stop075"))
+		{
+			registry.add("22-stop-settles-live-tail-before-downtime-once", this::testStopLiveTail075);
+			registry.add("23-stop-retries-cas-without-clock-regression", this::testStopCursorConflict075);
+			registry.add("24-stop-batches-preserve-pending-history", this::testStopPendingHistory075);
+			return;
+		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("releasedMinute052"))
 		{
 			registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
@@ -119,6 +126,9 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
 		registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
 		registry.add("21-native-context-before-new-history-claim", this::testNativeContextBeforeClaim061);
+		registry.add("22-stop-settles-live-tail-before-downtime-once", this::testStopLiveTail075);
+		registry.add("23-stop-retries-cas-without-clock-regression", this::testStopCursorConflict075);
+		registry.add("24-stop-batches-preserve-pending-history", this::testStopPendingHistory075);
 		for (int control = 1; control <= 12; control++)
 		{
 			final int selected = control;
@@ -653,6 +663,116 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(10, awards.get(), "Renewal did not award ten logical minutes exactly once.");
 		PhantomAssertions.assertEquals(0, drainDue(service, 1).advancedIntervals(), "Completed renewal replayed the award.");
 		context.record("goal033.staleAuthorityRenewal", "same_request,10_minutes_once");
+	}
+
+	private void testStopLiveTail075(PhantomTestContext context)
+	{
+		final Instant from = Instant.parse("2026-01-05T20:00:00Z");
+		final long fromMinute = minute(from);
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash()).seedReady(1, 1);
+		final var store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(fromMinute, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+		final var historical = new HistoricalMemoryPort();
+		final var materialized = new AtomicBoolean(true);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(from.plusSeconds(10 * 60));
+		final var first = service(store, historical, materialized, new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		first.enablePeriodicDueMode();
+		first.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		first.register(population); loadMetadata(first, 1);
+		PhantomAssertions.assertTrue(drainDue(first, 1).complete(), "Initial live sample did not settle its calendar.");
+		clock.set(from.plusSeconds(15 * 60));
+		first.beginStop();
+		materialized.set(false);
+		clock.set(from.plusSeconds(25 * 60));
+		first.beginStop();
+		PhantomAssertions.assertTrue(first.finishStop(), "Single live stop tail did not settle.");
+		PhantomAssertions.assertEquals(fromMinute + 15, store.require(1).state().calendarCursorEpochMinute(), "Stop left sampled-to-stop live time available for historical rewards or swallowed downtime.");
+		PhantomAssertions.assertEquals(0L, historical.advancedMinutes(), "Stop settlement awarded historical work.");
+		for (int restart = 0; restart < 2; restart++)
+		{
+			final var resumed = service(store, historical, materialized, new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+			resumed.enablePeriodicDueMode();
+			resumed.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+			resumed.register(population); loadMetadata(resumed, 1);
+			PhantomAssertions.assertTrue(drainDue(resumed, 1).complete(), "Restart did not reconcile the bounded downtime.");
+			PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Restart replayed native live time or the same downtime twice.");
+			resumed.beginStop();
+			PhantomAssertions.assertTrue(resumed.finishStop(), "No-live restart retained stop settlement work.");
+		}
+		context.record("goal075.stopLiveTail", "10_sampled+5_live_settled_without_reward+10_downtime_once");
+	}
+
+	private void testStopCursorConflict075(PhantomTestContext context)
+	{
+		final Instant from = Instant.parse("2026-01-05T20:00:00Z");
+		final long fromMinute = minute(from);
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash()).seedReady(1, 1);
+		final var store = new EcologyMemoryStore(null);
+		final var original = store.insert(1, stateAt(fromMinute + 20, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+		final var historical = new HistoricalMemoryPort();
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(from.plusSeconds(15 * 60));
+		final var backwards = service(store, historical, new AtomicBoolean(true), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		backwards.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		backwards.register(population); loadMetadata(backwards, 1);
+		backwards.beginStop();
+		PhantomAssertions.assertTrue(backwards.finishStop(), "Backward wall clock blocked a no-op stop.");
+		PhantomAssertions.assertEquals(original, store.require(1), "Backward wall clock rewrote the durable calendar.");
+		clock.set(from.plusSeconds(25 * 60));
+		final var raced = service(store, historical, new AtomicBoolean(true), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		raced.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		raced.register(population); loadMetadata(raced, 1);
+		store._raceNextSave = true;
+		raced.beginStop();
+		PhantomAssertions.assertFalse(raced.finishStop(), "A failed stop CAS was reported complete.");
+		PhantomAssertions.assertEquals(fromMinute + 20, store.require(1).state().calendarCursorEpochMinute(), "Failed stop CAS overwrote the raced row.");
+		PhantomAssertions.assertTrue(raced.finishStop(), "Stop retry did not reload the durable row version.");
+		final var settled = store.require(1);
+		PhantomAssertions.assertEquals(fromMinute + 25, settled.state().calendarCursorEpochMinute(), "Stop CAS retry lost the live tail.");
+		PhantomAssertions.assertTrue(raced.finishStop(), "Completed stop was not idempotent.");
+		PhantomAssertions.assertEquals(settled, store.require(1), "Completed stop wrote the same row twice.");
+		PhantomAssertions.assertEquals(0L, historical.advancedMinutes(), "Stop conflict recovery invoked historical rewards.");
+		context.record("goal075.stopCursorConflict", "backward_clock_noop+fresh_cas_retry+idempotent");
+	}
+
+	private void testStopPendingHistory075(PhantomTestContext context)
+	{
+		final Instant from = Instant.parse("2026-01-05T20:00:00Z");
+		final long fromMinute = minute(from);
+		final int budget = _ecology.limits().maximumProfilesPerPulse();
+		final int liveCount = budget + 2;
+		final var populations = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var historical = new HistoricalMemoryPort();
+		final var owners = new HashMap<Long, ManagedSnapshot>();
+		for (long id = 1; id <= liveCount + 1; id++)
+		{
+			final var owner = populations.seedReady(id, 1); owners.put(id, owner);
+			store.insert(id, stateAt(fromMinute, Pace.OUTLIER, 10_000, owner.state().scheduleTemplate()));
+		}
+		final var pending = historical.begin(1, fromMinute, fromMinute + 5, 1).snapshot();
+		final var orphan = historical.begin(2, fromMinute, fromMinute + 5, 2).snapshot();
+		final var initial = store.require(1);
+		store.save(1, initial, initial.state().beginRequest(pending.state().requestId(), pending.state().targetEpochMinute()));
+		final var pendingEcology = store.require(1);
+		final var orphanEcology = store.require(2);
+		final var nonliveEcology = store.require(liveCount + 1);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(from.plusSeconds(10 * 60));
+		final var service = new PhantomPopulationEcologyService(_ecology, _population, store, historical, id -> id <= liveCount, id -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		service.installRuntime(id -> Optional.ofNullable(owners.get(id)), noEvents());
+		for (long id = 1; id <= liveCount + 1; id++) { service.register(owners.get(id)); }
+		loadMetadata(service, liveCount + 1);
+		service.beginStop();
+		PhantomAssertions.assertFalse(service.finishStop(), "Stop drained more than one profile budget.");
+		PhantomAssertions.assertTrue(service.snapshot().persistenceWrites() <= budget, "Stop settlement exceeded the existing profile budget.");
+		PhantomAssertions.assertTrue(service.finishStop(), "Second bounded stop batch did not finish.");
+		PhantomAssertions.assertEquals(pendingEcology, store.require(1), "Stop rewrote a pending ecology claim.");
+		PhantomAssertions.assertEquals(orphanEcology, store.require(2), "Stop skipped an orphan historical owner.");
+		PhantomAssertions.assertEquals(pending, historical.status(1).orElseThrow(), "Stop rewrote pending historical progress.");
+		PhantomAssertions.assertEquals(orphan, historical.status(2).orElseThrow(), "Stop rewrote orphan historical progress.");
+		PhantomAssertions.assertEquals(nonliveEcology, store.require(liveCount + 1), "Stop consumed downtime for a nonlive profile.");
+		for (long id = 3; id <= liveCount; id++) { PhantomAssertions.assertEquals(fromMinute + 10, store.require(id).state().calendarCursorEpochMinute(), "Bounded stop batch omitted a live owner."); }
+		PhantomAssertions.assertEquals(0L, historical.advancedMinutes(), "Stop settled pending history by simulating work.");
+		context.record("goal075.stopPendingHistory", "bounded_batches+pending_and_orphan_claims_preserved+nonlive_untouched");
 	}
 
 	private void testPeriodicMaterializedBoundary(PhantomTestContext context)
