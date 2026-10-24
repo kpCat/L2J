@@ -43,15 +43,23 @@ import org.xml.sax.SAXParseException;
 /** Read-only, JDK-only owner profile gate for source builds and copied packages. */
 public final class OwnerProfileVerifier
 {
-	private static final String PROFILE_HASH = "c289b3ac0051ccda5544967988aa0a1929abd1b0d18c2662117fd3f0ce2aa91c";
-	private static final String PRESERVED_HASH = "4adc190cb45865d1ac8d73d98adc642764b87f7bcc8fe5e1d4aad594017b2785";
 	private static final Set<String> PROFILE_PATHS = Set.of("config/Player.ini", "data/EnchantItemGroups.xml", "data/EnchantItemData.xml", "config/Custom/ServitorShare.ini", "config/Custom/PrivateStoreRange.ini", "config/Custom/PhantomMerchants.ini", "config/Custom/PersonalCharacterQoL.ini", "config/Rates.ini");
+	private static final Map<String, ValueType> RULES = canonicalRules();
+	private static final Set<String> PRESERVED_REQUIRED_KEYS = Set.of("quest.keys", "quest.sha256", "scroll.ordinary", "scroll.bonus100");
+	// EnchantScroll.withinOrdinaryLimit currently rejects the ordinary route at +25.
+	private static final int ORDINARY_RUNTIME_LIMIT = 25;
 	private final Path _root;
 	private final List<String> _failures = new ArrayList<>();
 	private final Map<String, Properties> _configs = new HashMap<>();
 	private Properties _preserved;
 	private Document _groups;
 	private Document _items;
+	private int _ordinaryMaximum;
+
+	private enum ValueType
+	{
+		BOOLEAN, INTEGER, WEIGHT, WAREHOUSE, MERCHANT, CUBIC, SERVITOR, RANGES, ENCHANT_LIMIT, PRESERVE
+	}
 
 	private OwnerProfileVerifier(Path gameRoot) throws IOException
 	{
@@ -60,14 +68,23 @@ public final class OwnerProfileVerifier
 
 	public static void main(String[] args)
 	{
-		if (args.length != 1)
+		final boolean questHash = (args.length == 2) && args[0].equals("--quest-hash");
+		if ((args.length != 1) && !questHash)
 		{
-			System.err.println("Usage: OwnerProfileVerifier <gameRoot>");
+			System.err.println("Usage: OwnerProfileVerifier [--quest-hash] <gameRoot>");
 			System.exit(2);
 		}
 		try
 		{
-			new OwnerProfileVerifier(Path.of(args[0])).verify();
+			final var verifier = new OwnerProfileVerifier(Path.of(args[questHash ? 1 : 0]));
+			if (questHash)
+			{
+				verifier.printQuestHash();
+			}
+			else
+			{
+				verifier.verify();
+			}
 		}
 		catch (Exception e)
 		{
@@ -79,9 +96,9 @@ public final class OwnerProfileVerifier
 	private void verify() throws Exception
 	{
 		final Path profile = file("config/OwnerProfile38.tsv");
-		require(PROFILE_HASH.equals(sha256(Files.readAllBytes(profile))), "OwnerProfile38.tsv SHA-256 differs from the original 38-rule profile");
+		final String profileHash = sha256(Files.readAllBytes(profile));
 		final List<String> rows = Files.readAllLines(profile, StandardCharsets.UTF_8);
-		require((rows.size() == 39) && rows.get(0).equals("section\tfile\tkey_or_range\tvalue\tnote"), "Expected exactly 38 profile rules and the original header");
+		require((rows.size() == 39) && rows.get(0).replaceFirst("^\uFEFF", "").equals("section\tfile\tkey_or_range\tvalue\tnote"), "Expected exactly 38 profile rules and the original header");
 		final Set<String> identities = new HashSet<>();
 		final Map<String, Set<String>> selected = new HashMap<>();
 		for (String row : rows.subList(1, rows.size()))
@@ -89,15 +106,38 @@ public final class OwnerProfileVerifier
 			final String[] fields = row.split("\t", -1);
 			require(fields.length == 5, "Malformed owner rule");
 			final String relative = relative(fields[1]);
-			require(identities.add(fields[0] + "\t" + fields[1] + "\t" + fields[2]), "Duplicate owner rule");
+			final String identity = identity(fields[0], relative, fields[2]);
+			require(RULES.containsKey(identity), "Unknown owner rule identity");
+			require(identities.add(identity), "Duplicate owner rule");
+			validatedValue(RULES.get(identity), fields[3]);
+			if (RULES.get(identity) == ValueType.ENCHANT_LIMIT)
+			{
+				_ordinaryMaximum = Integer.parseInt(fields[3].trim());
+			}
 			if (relative.endsWith(".ini") && !relative.equals("config/Rates.ini"))
 			{
 				selected.computeIfAbsent(relative, ignored -> new HashSet<>()).add(fields[2]);
 			}
 		}
+		require(identities.equals(RULES.keySet()), "Missing canonical owner rule");
+		for (String row : rows.subList(1, rows.size()))
+		{
+			final String[] fields = row.split("\t", -1);
+			if (RULES.get(identity(fields[0], relative(fields[1]), fields[2])) == ValueType.RANGES)
+			{
+				requireZeroAboveLimit(fields[3], _ordinaryMaximum);
+			}
+		}
 		_preserved = properties("config/OwnerProfilePreserved.properties", ignored -> true);
-		final String preservedHash = normalizedHash(_preserved);
-		require(PRESERVED_HASH.equals(preservedHash), "Preserved baseline manifest differs from the pinned effective values: sha256=" + preservedHash);
+		require(_preserved.stringPropertyNames().containsAll(PRESERVED_REQUIRED_KEYS), "Missing required preserved baseline key");
+		for (String key : _preserved.stringPropertyNames())
+		{
+			if (!PRESERVED_REQUIRED_KEYS.contains(key))
+			{
+				preservedLimit(key);
+			}
+		}
+		require(_preserved.getProperty("quest.sha256").matches("[0-9a-fA-F]{64}"), "Invalid quest baseline SHA-256");
 		for (var entry : selected.entrySet())
 		{
 			try
@@ -123,7 +163,16 @@ public final class OwnerProfileVerifier
 			{
 				actual = "INVALID_OR_MISSING";
 			}
-			final boolean passed = fields[3].equals(actual);
+			boolean passed = false;
+			try
+			{
+				final ValueType type = RULES.get(identity(fields[0], relative(fields[1]), fields[2]));
+				passed = validatedValue(type, fields[3]).equals(validatedValue(type, actual));
+			}
+			catch (IllegalArgumentException | IllegalStateException invalid)
+			{
+				// An identical invalid value in INI and TSV must not turn a runtime fallback into PASS.
+			}
 			System.out.println("OWNER_RULE\t" + fields[0] + "\t" + fields[1] + "\t" + fields[2] + "\t" + actual + "\t" + (passed ? "PASS" : "FAIL"));
 			if (!passed)
 			{
@@ -131,16 +180,16 @@ public final class OwnerProfileVerifier
 			}
 		}
 		require(_failures.isEmpty(), "38-rule validation failed: " + String.join("; ", _failures));
-		System.out.println("OWNER_PROFILE_PASS rules=38 profileSha256=" + PROFILE_HASH + " questSha256=" + _preserved.getProperty("quest.sha256") + " XML_XSD=PASS READ_ONLY=true");
+		System.out.println("OWNER_PROFILE_PASS rules=38 profileSha256=" + profileHash + " preservedSha256=" + normalizedHash(_preserved) + " questSha256=" + _preserved.getProperty("quest.sha256") + " XML_XSD=PASS READ_ONLY=true");
 	}
 
 	private String actualValue(String relative, String key) throws Exception
 	{
 		if (relative.equals("config/Rates.ini"))
 		{
-			final Properties rates = properties(relative, name -> name.contains("Quest"));
-			require(rates.stringPropertyNames().equals(Set.of(_preserved.getProperty("quest.keys").split(","))), "Quest effective key set differs");
-			require(normalizedHash(rates).equals(_preserved.getProperty("quest.sha256")), "Quest effective values differ");
+			final Properties rates = questRates();
+			require(rates.stringPropertyNames().equals(questKeys()), "Quest effective key set differs");
+			require(normalizedHash(rates).equalsIgnoreCase(_preserved.getProperty("quest.sha256")), "Quest effective values differ");
 			return "PRESERVE_EXISTING_VALUES";
 		}
 		if (relative.equals("data/EnchantItemGroups.xml"))
@@ -166,32 +215,42 @@ public final class OwnerProfileVerifier
 						found = String.join(";", ranges);
 					}
 				}
-				require((found != null) && ((result == null) || result.equals(found)), "Missing or divergent enchant rate group");
+				require((found != null) && ((result == null) || validatedRanges(result).equals(validatedRanges(found))), "Missing or divergent enchant rate group");
 				result = found;
 			}
+			requireZeroAboveLimit(result, _ordinaryMaximum);
 			return result;
 		}
 		if (relative.equals("data/EnchantItemData.xml"))
 		{
-			verifyScrolls();
-			return "25";
+			return Integer.toString(verifyScrolls());
 		}
 		final Properties config = _configs.get(relative);
 		return (config == null) ? "MISSING" : config.getProperty(key, "MISSING").trim();
 	}
 
-	private void verifyScrolls()
+	private int verifyScrolls()
 	{
 		final Map<Integer, Integer> expected = new HashMap<>();
-		addLimits(expected, "scroll.ordinary", 25);
-		addLimits(expected, "scroll.bonus100", 25);
-		for (int limit : new int[] { 6, 10, 15, 16, 23, 50, 65535 })
+		final Map<Integer, Integer> expectedSupports = new HashMap<>();
+		addLimits(expected, "scroll.ordinary", _ordinaryMaximum);
+		addLimits(expected, "scroll.bonus100", _ordinaryMaximum);
+		for (String key : _preserved.stringPropertyNames())
 		{
-			addLimits(expected, "scroll.preserved." + limit, limit);
+			if (key.startsWith("scroll.preserved."))
+			{
+				addLimits(expected, key, preservedLimit(key));
+			}
+			else if (key.startsWith("support.preserved."))
+			{
+				addLimits(expectedSupports, key, preservedLimit(key));
+			}
 		}
 		final Set<Integer> bonus100 = ids("scroll.bonus100");
 		final Set<Integer> seen = new HashSet<>();
 		final Set<Integer> foundBonus = new HashSet<>();
+		final Set<Integer> ordinary = ids("scroll.ordinary");
+		Integer actualOrdinaryMaximum = null;
 		final NodeList scrolls = _items.getDocumentElement().getElementsByTagName("enchant");
 		for (int i = 0; i < scrolls.getLength(); i++)
 		{
@@ -200,6 +259,11 @@ public final class OwnerProfileVerifier
 			final int maximum = scroll.hasAttribute("maxEnchant") ? Integer.parseInt(scroll.getAttribute("maxEnchant")) : 65535;
 			require(seen.add(id) && expected.containsKey(id), "Duplicate or unpinned enchant scroll id=" + id);
 			require(maximum == expected.get(id), "Enchant max differs for id=" + id);
+			if (ordinary.contains(id))
+			{
+				require((actualOrdinaryMaximum == null) || (actualOrdinaryMaximum == maximum), "Ordinary scroll maxima diverge");
+				actualOrdinaryMaximum = maximum;
+			}
 			if (scroll.hasAttribute("bonusRate") && (Double.parseDouble(scroll.getAttribute("bonusRate")) == 100))
 			{
 				foundBonus.add(id);
@@ -211,27 +275,179 @@ public final class OwnerProfileVerifier
 		for (int i = 0; i < supportNodes.getLength(); i++)
 		{
 			final Element support = (Element) supportNodes.item(i);
-			require(supports.add(Integer.parseInt(support.getAttribute("id"))) && "9".equals(support.getAttribute("maxEnchant")), "Support item limit changed");
+			final int id = Integer.parseInt(support.getAttribute("id"));
+			require(supports.add(id) && expectedSupports.containsKey(id), "Duplicate or unpinned support item id=" + id);
+			require(Integer.parseInt(support.getAttribute("maxEnchant")) == expectedSupports.get(id), "Support item max differs for id=" + id);
 		}
-		require(supports.equals(ids("support.preserved.9")), "Support item set differs");
+		require(supports.equals(expectedSupports.keySet()), "Support item set differs");
+		require(actualOrdinaryMaximum != null, "Ordinary scroll baseline is empty");
+		return actualOrdinaryMaximum;
 	}
 
 	private void addLimits(Map<Integer, Integer> limits, String property, int maximum)
 	{
 		for (int id : ids(property))
 		{
-			require(limits.put(id, maximum) == null, "Duplicate scroll in preserved manifest");
+			require(limits.put(id, maximum) == null, "Duplicate item id in preserved manifest");
 		}
 	}
 
 	private Set<Integer> ids(String key)
 	{
 		final Set<Integer> result = new HashSet<>();
-		for (String id : _preserved.getProperty(key).split(","))
+		for (String id : _preserved.getProperty(key).split(",", -1))
 		{
-			require(result.add(Integer.parseInt(id)), "Duplicate id in preserved manifest");
+			final int number = Integer.parseInt(id.trim());
+			require((number > 0) && result.add(number), "Invalid or duplicate id in preserved manifest");
 		}
 		return result;
+	}
+
+	private static int preservedLimit(String key)
+	{
+		require(key.matches("(?:scroll|support)\\.preserved\\.[1-9][0-9]{0,4}"), "Unknown preserved baseline key");
+		final int maximum = Integer.parseInt(key.substring(key.lastIndexOf('.') + 1));
+		require(maximum <= 65535, "Preserved maxEnchant must be within XML/runtime range 1..65535");
+		return maximum;
+	}
+
+	private Set<String> questKeys()
+	{
+		final Set<String> result = new HashSet<>();
+		for (String key : _preserved.getProperty("quest.keys").split(",", -1))
+		{
+			require(key.matches("[A-Za-z][A-Za-z0-9]*Quest[A-Za-z0-9]*|Quest[A-Za-z0-9]+") && result.add(key), "Invalid or duplicate quest baseline key");
+		}
+		return result;
+	}
+
+	private Properties questRates() throws IOException
+	{
+		final Properties rates = properties("config/Rates.ini", name -> name.contains("Quest"));
+		require(!rates.isEmpty(), "Quest effective key set is empty");
+		for (String key : rates.stringPropertyNames())
+		{
+			final String value = rates.getProperty(key).trim();
+			if (key.equals("UseQuestRewardMultipliers"))
+			{
+				validatedValue(ValueType.BOOLEAN, value);
+			}
+			else
+			{
+				// RatesConfig loads quest multipliers as floats, not doubles.
+				final float number = Float.parseFloat(value);
+				require(Float.isFinite(number) && (number >= 0), "Quest multiplier must be a finite nonnegative float");
+			}
+		}
+		return rates;
+	}
+
+	private void printQuestHash() throws Exception
+	{
+		final Properties rates = questRates();
+		System.out.println("quest.keys=" + String.join(",", rates.stringPropertyNames().stream().sorted().toList()));
+		System.out.println("quest.sha256=" + normalizedHash(rates));
+		System.out.println("READ_ONLY=true; review these values before explicitly changing the preserved baseline");
+	}
+
+	private static String identity(String section, String relative, String key)
+	{
+		return section + "\t" + relative + "\t" + key;
+	}
+
+	private static Map<String, ValueType> canonicalRules()
+	{
+		final Map<String, ValueType> rules = new HashMap<>();
+		addRules(rules, "PLAYER", "config/Player.ini", ValueType.WEIGHT, "AltWeightLimit");
+		addRules(rules, "PLAYER", "config/Player.ini", ValueType.INTEGER, "MaxPvtStoreSellSlotsDwarf,MaxPvtStoreSellSlotsOther,MaxPvtStoreBuySlotsDwarf,MaxPvtStoreBuySlotsOther,MaximumSlotsForNoDwarf,MaximumSlotsForDwarf,MaximumSlotsForGMPlayer,MaximumSlotsForQuestItems,MaximumFreightSlots,DwarfRecipeLimit,CommonRecipeLimit");
+		addRules(rules, "PLAYER", "config/Player.ini", ValueType.WAREHOUSE, "MaximumWarehouseSlotsForDwarf,MaximumWarehouseSlotsForNoDwarf,MaximumWarehouseSlotsForClan");
+		addRules(rules, "ENCHANT", "config/Player.ini", ValueType.BOOLEAN, "DisableOverEnchanting,OverEnchantProtection");
+		addRules(rules, "ENCHANT", "data/EnchantItemGroups.xml", ValueType.RANGES, "ARMOR_GROUP/FIGHTER_WEAPON_GROUP/MAGE_WEAPON_GROUP.current,FULL_ARMOR_GROUP.current");
+		addRules(rules, "ENCHANT", "data/EnchantItemData.xml", ValueType.ENCHANT_LIMIT, "standard scroll maxEnchant previously16");
+		addRules(rules, "SERVITOR", "config/Custom/ServitorShare.ini", ValueType.BOOLEAN, "EnableServitorShareBonusTuning");
+		addRules(rules, "SERVITOR", "config/Custom/ServitorShare.ini", ValueType.SERVITOR, "ServitorSharePAtkBonusMultiplier,ServitorSharePDefBonusMultiplier,ServitorShareMAtkBonusMultiplier,ServitorShareMDefBonusMultiplier,ServitorShareMaxHpBonusMultiplier,ServitorShareMaxMpBonusMultiplier,ServitorShareMaxRecoverableHpBonusMultiplier,ServitorShareMaxRecoverableMpBonusMultiplier,ServitorShareCritRateBonusMultiplier,ServitorSharePAtkSpdBonusMultiplier,ServitorShareMAtkSpdBonusMultiplier");
+		addRules(rules, "STORE", "config/Custom/PrivateStoreRange.ini", ValueType.INTEGER, "ShopMinRangeFromPlayer,ShopMinRangeFromNpc");
+		addRules(rules, "STORE", "config/Custom/PhantomMerchants.ini", ValueType.MERCHANT, "MerchantLinesPerStore");
+		addRules(rules, "CUBIC", "config/Custom/PersonalCharacterQoL.ini", ValueType.BOOLEAN, "EnablePersonalWondrousCubicCooldown");
+		addRules(rules, "CUBIC", "config/Custom/PersonalCharacterQoL.ini", ValueType.CUBIC, "PersonalWondrousCubicCooldownMinutes");
+		addRules(rules, "QUEST", "config/Rates.ini", ValueType.PRESERVE, "Quest rates (all keys)");
+		require(rules.size() == 38, "Internal canonical owner rule shape differs");
+		return Map.copyOf(rules);
+	}
+
+	private static void addRules(Map<String, ValueType> rules, String section, String relative, ValueType type, String keys)
+	{
+		for (String key : keys.split(","))
+		{
+			require(rules.put(identity(section, relative, key), type) == null, "Internal duplicate canonical owner rule");
+		}
+	}
+
+	private static String validatedValue(ValueType type, String value)
+	{
+		value = value.trim();
+		if (type == ValueType.BOOLEAN)
+		{
+			require(value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false"), "Owner switch must be True or False");
+			return Boolean.toString(Boolean.parseBoolean(value));
+		}
+		if ((type == ValueType.SERVITOR) || (type == ValueType.WEIGHT))
+		{
+			final double number = Double.parseDouble(value);
+			require(Double.isFinite(number) && (number >= 0), "Owner multiplier must be finite and nonnegative");
+			require((type != ValueType.SERVITOR) || (number <= 100), "Servitor Share multiplier exceeds runtime range 0..100");
+			return Double.toString(number == 0 ? 0 : number);
+		}
+		if (type == ValueType.PRESERVE)
+		{
+			require(value.equals("PRESERVE_EXISTING_VALUES"), "Quest rule requires an explicit preserved baseline");
+			return value;
+		}
+		if (type == ValueType.RANGES)
+		{
+			return validatedRanges(value);
+		}
+		final int number = Integer.parseInt(value);
+		require(number >= 0, "Owner count/range must be a nonnegative int");
+		// The warehouse ceiling is documented in Player.ini; the other bounds are runtime validators.
+		require((type != ValueType.WAREHOUSE) || (number < 300), "Warehouse base slots must remain below 300");
+		require((type != ValueType.MERCHANT) || ((number >= 1) && (number <= 20)), "Merchant lines exceed runtime range 1..20");
+		require((type != ValueType.CUBIC) || (value.matches("[1-9][0-9]{0,3}") && (number <= 1440)), "Cubic cooldown exceeds runtime range 1..1440 minutes");
+		require((type != ValueType.ENCHANT_LIMIT) || ((number >= 1) && (number <= ORDINARY_RUNTIME_LIMIT)), "Ordinary enchant maximum exceeds the current runtime ceiling 25");
+		return Integer.toString(number);
+	}
+
+	private static String validatedRanges(String value)
+	{
+		int next = 0;
+		final List<String> normalized = new ArrayList<>();
+		for (String entry : value.split(";", -1))
+		{
+			final String[] fields = entry.split(":", -1);
+			require((fields.length == 2) && fields[0].matches("[0-9]+(?:-[0-9]+)?"), "Invalid enchant chance range");
+			final String[] bounds = fields[0].split("-");
+			final int first = Integer.parseInt(bounds[0]);
+			final int last = Integer.parseInt(bounds[bounds.length - 1]);
+			final double chance = Double.parseDouble(fields[1]);
+			require((first == next) && (last >= first) && (last <= 65535), "Enchant ranges must cover 0..65535 once without gaps or overlap");
+			require(Double.isFinite(chance) && (chance >= 0) && (chance <= 100), "Enchant chance must be finite and within 0..100");
+			normalized.add(first + "-" + last + ":" + Double.toString(chance == 0 ? 0 : chance));
+			next = last + 1;
+		}
+		require(next == 65536, "Enchant ranges must cover 0..65535");
+		return String.join(";", normalized);
+	}
+
+	private static void requireZeroAboveLimit(String ranges, int maximum)
+	{
+		validatedRanges(ranges);
+		for (String range : ranges.split(";"))
+		{
+			final String[] fields = range.split(":");
+			final String[] bounds = fields[0].split("-");
+			final int last = Integer.parseInt(bounds[bounds.length - 1]);
+			require((last < maximum) || (Double.parseDouble(fields[1]) == 0), "Enchant chance must be zero at and above the ordinary maximum");
+		}
 	}
 
 	private Properties properties(String relative, Predicate<String> selected) throws IOException
