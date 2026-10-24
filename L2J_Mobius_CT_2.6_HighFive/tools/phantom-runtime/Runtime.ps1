@@ -28,6 +28,18 @@ $settings = Join-Path $runtime 'runtime.local.ini'
 $manifest = Get-Content -LiteralPath (Join-Path $runtime 'local-play.json') -Raw | ConvertFrom-Json
 $build = Get-Content -LiteralPath (Join-Path $runtime 'BUILD_INFO.json') -Raw | ConvertFrom-Json
 $database = Read-Ini $settings 'DatabaseName'
+if ($database -ceq 'l2jmobiush5_phantom_release_078') {
+    $expected078 = Join-Path ([IO.Path]::GetPathRoot($runtime)) 'PhantomWorld/Playable-078-owner'
+    if ($runtime -ine $expected078 -or $manifest.owner -cne 'PHANTOM-OWNER-PLAYABLE-078' -or $build.owner -cne $manifest.owner -or $manifest.runtimeRoot -ine $runtime -or $build.runtimeRoot -ine $runtime -or (Test-Path -LiteralPath (Join-Path $runtime 'DB_CONFIG_REQUIRED.txt'))) { throw 'OWN078 root/owner/provisioning mismatch.' }
+    foreach ($entry078 in @($build.initialConfiguration) + @($build.operatorInputs)) {
+        $path078 = [IO.Path]::GetFullPath((Join-Path $runtime $entry078.path))
+        if (!$path078.StartsWith($runtime+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'OWN078 manifest path escapes runtime.' }
+        Assert-NoAlias $path078
+        if ((Get-FileHash -LiteralPath $path078).Hash -ine $entry078.sha256) { throw "OWN078 config/operator drift: $($entry078.path)." }
+    }
+    if (@(Get-ChildItem -LiteralPath (Join-Path $runtime 'game/data/geodata') -File -Filter '*.l2j').Count -ne 203) { throw 'OWN078 GeoData203 required.' }
+    if ($Action -ceq 'Start' -and (Test-Path -LiteralPath (Join-Path $runtime 'BLOCKED_078.txt'))) { throw '078 BLOCKED: прочитайте BLOCKED_078.txt и итоговый отчёт. Новый запуск запрещён.' }
+}
 if ($database -notmatch '^l2jmobiush5_phantom_(test_041final|test_058a|release_[A-Za-z0-9_]{1,24})$' -or $manifest.databaseName -cne $database -or $manifest.databaseConfig -cne 'USER_CONFIRMED_EXISTING') { throw 'Схема runtime не подтверждена; действие запрещено.' }
 if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a','l2jmobiush5_phantom_release_059a','l2jmobiush5_phantom_release_060a','l2jmobiush5_phantom_release_061a')) {
     . (Join-Path $PSScriptRoot 'Campaign058Ownership.ps1')
@@ -47,6 +59,7 @@ $ports = @{
 $allPorts = @($ports.GameServer + $ports.LoginServer)
 if (@($allPorts | Select-Object -Unique).Count -ne 3 -or @($allPorts | Where-Object {$_ -lt 1024 -or $_ -gt 65535}).Count) { throw 'Нужны три различных допустимых порта.' }
 if ([int](Read-Ini (Join-Path $runtime 'game/config/Server.ini') 'LoginPort') -ne $ports.LoginServer[1]) { throw 'Login/Game control ports не совпадают.' }
+if ($database -ceq 'l2jmobiush5_phantom_release_078' -and ($ports.GameServer[0] -ne 7777 -or $ports.LoginServer[0] -ne 2106 -or $ports.LoginServer[1] -ne 9014)) { throw 'OWN078 port binding mismatch.' }
 if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a') -and ($ports.GameServer[0] -ne 7838 -or $ports.LoginServer[0] -ne 2138 -or $ports.LoginServer[1] -ne 9138)) {throw 'TASK058: actual runtime ports отличаются от binding.'}
 if ($database -ceq 'l2jmobiush5_phantom_release_059a') {
     if ($ports.GameServer[0] -ne 7839 -or $ports.LoginServer[0] -ne [int]$campaignOwner.clientLoginPort -or $ports.LoginServer[1] -ne 9139) {throw 'TASK059: actual runtime ports отличаются от записанного layout.'}
@@ -108,6 +121,11 @@ function Read-Observer {
 }
 function Write-Status {
     Assert-Jars
+    if ($database -ceq 'l2jmobiush5_phantom_release_078') {
+        $statusJava078 = Join-Path (Read-Ini $settings 'JavaHome') 'bin/java.exe'
+        & $statusJava078 --add-modules jdk.attach -cp ((Join-Path $PSScriptRoot 'classes')+';'+(Join-Path $runtime 'libs/*')) Owner078Probe status $runtime
+        if ($LASTEXITCODE -ne 0) { throw 'OWN078 read-only DB status failed.' }
+    }
     $acceptance=[ordered]@{m1='UNKNOWN';readyForM2=$false;reason='ACCEPTANCE_RESULT_ABSENT'}
     $resultPath=Join-Path $runtime 'ACCEPTANCE_STATUS.json'
     if (Test-Path -LiteralPath $resultPath) {
@@ -115,6 +133,13 @@ function Write-Status {
         if ($result.format -eq 1 -and $result.codeCommit -ceq $build.codeCommit -and $result.gameJarSha256 -ieq $build.gameJarSha256 -and $result.updatedUtc) {$acceptance=$result}
     }
     [ordered]@{runtime=$runtime;runtimeId=$runtimeId;database=$database;source=$build.codeCommit;game=(Role-State 'GameServer');login=(Role-State 'LoginServer');ports=$ports;observer=(Read-Observer);acceptance=$acceptance} | ConvertTo-Json -Depth 7
+    if ($database -ceq 'l2jmobiush5_phantom_release_078') {
+        $login078 = Role-State 'LoginServer'; $game078 = Role-State 'GameServer'
+        if (Test-Path -LiteralPath (Join-Path $runtime 'BLOCKED_078.txt')) { Write-Output '078: BLOCKED. Прочитайте BLOCKED_078.txt. Поставка не объявлена готовой к игре.' }
+        elseif ($login078.state -ceq 'RUNNING' -and $game078.state -ceq 'RUNNING') { Write-Output '078: оба сервера работают. Клиентская приёмка ещё не выполнена.' }
+        elseif ($login078.state -cin @('STOPPED','STALE_RECORD') -and $game078.state -cin @('STOPPED','STALE_RECORD')) { Write-Output '078: оба сервера остановлены. Следующий START использует сохранённую БД.' }
+        else { Write-Output '078: состояние требует внимания. Сохраните сообщения и проверьте логи.' }
+    }
 }
 if ($Action -ceq 'Status') { Write-Status; exit 0 }
 $javaHome = Read-Ini $settings 'JavaHome'
@@ -168,8 +193,15 @@ function Start-Role([string]$Role) {
     Wait-Role $Role $process ([int](Read-Ini $settings $timeoutKey))
 }
 try {
-    if ($Action -ceq 'Stop') { Stop-Owned 'GameServer'; Stop-Owned 'LoginServer'; Write-Status; exit 0 }
+    if ($Action -ceq 'Stop') { Assert-Jars; Stop-Owned 'GameServer'; Stop-Owned 'LoginServer'; Write-Status; exit 0 }
     Assert-Jars
+    if ($database -ceq 'l2jmobiush5_phantom_release_078') {
+        foreach ($geo078 in $build.externalGeodata) {
+            $geoPath078 = Join-Path $runtime ('game/data/geodata/'+$geo078.name)
+            Assert-NoAlias $geoPath078
+            if ((Get-FileHash -LiteralPath $geoPath078).Hash -ine $geo078.sha256) { throw 'OWN078 GeoData hash mismatch.' }
+        }
+    }
     $login = Role-State 'LoginServer'; $game = Role-State 'GameServer'
     if ($login.state -ceq 'RUNNING' -and $game.state -ceq 'RUNNING' -and $login.recordVerified -and $game.recordVerified) { Write-Status; exit 0 }
     foreach ($state in @($login,$game)) { if ($state.state -cnotin @('STOPPED','STALE_RECORD')) { throw "START запрещён: $($state.state)/$($state.reason). Сначала штатный STOP." } }

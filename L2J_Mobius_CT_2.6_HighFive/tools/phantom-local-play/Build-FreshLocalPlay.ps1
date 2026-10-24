@@ -8,7 +8,8 @@ param(
 	[string] $Account = "localplayer",
 	[switch] $Mature,
 	[switch] $Diagnostics,
-	[switch] $SanitizedZip
+	[switch] $SanitizedZip,
+	[switch] $LibraryOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -182,6 +183,8 @@ function Set-ProvisioningFailure
 		$manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 	}
 }
+
+if ($LibraryOnly) { return }
 
 $script:moduleRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 $sourceLoginDatabase = Join-Path $script:moduleRoot "dist\login\config\Database.ini"
