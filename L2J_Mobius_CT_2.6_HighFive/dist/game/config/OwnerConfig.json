@@ -79,44 +79,9 @@
     "overrides":  [
                       {
                           "file":  "Player.ini",
-                          "key":  "MaxPvtStoreBuySlotsOther",
-                          "kind":  "integer",
-                          "baseValue":  "4",
-                          "value":  "20"
-                      },
-                      {
-                          "file":  "Player.ini",
                           "key":  "MaximumSlotsForNoDwarf",
                           "kind":  "integer",
                           "baseValue":  "80",
-                          "value":  "250"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "MaxPvtStoreSellSlotsOther",
-                          "kind":  "integer",
-                          "baseValue":  "3",
-                          "value":  "20"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "MaxPvtStoreBuySlotsDwarf",
-                          "kind":  "integer",
-                          "baseValue":  "5",
-                          "value":  "20"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "MaximumWarehouseSlotsForDwarf",
-                          "kind":  "integer",
-                          "baseValue":  "120",
-                          "value":  "250"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "MaximumWarehouseSlotsForNoDwarf",
-                          "kind":  "integer",
-                          "baseValue":  "100",
                           "value":  "250"
                       },
                       {
@@ -128,10 +93,52 @@
                       },
                       {
                           "file":  "Player.ini",
+                          "key":  "MaxPvtStoreBuySlotsDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "5",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxPvtStoreBuySlotsOther",
+                          "kind":  "integer",
+                          "baseValue":  "4",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumWarehouseSlotsForNoDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "100",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumWarehouseSlotsForClan",
+                          "kind":  "integer",
+                          "baseValue":  "200",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
                           "key":  "MaximumSlotsForQuestItems",
                           "kind":  "integer",
                           "baseValue":  "100",
                           "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaximumWarehouseSlotsForDwarf",
+                          "kind":  "integer",
+                          "baseValue":  "120",
+                          "value":  "250"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxPvtStoreSellSlotsOther",
+                          "kind":  "integer",
+                          "baseValue":  "3",
+                          "value":  "20"
                       },
                       {
                           "file":  "Player.ini",
@@ -191,52 +198,10 @@
                       },
                       {
                           "file":  "Player.ini",
-                          "key":  "MaximumWarehouseSlotsForClan",
-                          "kind":  "integer",
-                          "baseValue":  "200",
-                          "value":  "250"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "AugmentationNGGlowChance",
-                          "kind":  "integer",
-                          "baseValue":  "0",
-                          "value":  "20"
-                      },
-                      {
-                          "file":  "Player.ini",
                           "key":  "AugmentationMidGlowChance",
                           "kind":  "integer",
                           "baseValue":  "40",
                           "value":  "55"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "AugmentationTopSkillChance",
-                          "kind":  "integer",
-                          "baseValue":  "60",
-                          "value":  "75"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "AugmentationBaseStatChance",
-                          "kind":  "integer",
-                          "baseValue":  "1",
-                          "value":  "10"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "SoulCrystalChanceMultiplier",
-                          "kind":  "double",
-                          "baseValue":  "1",
-                          "value":  "10"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "AltKarmaPlayerCanBeKilledInPeaceZone",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
                       },
                       {
                           "file":  "Player.ini",
@@ -247,10 +212,52 @@
                       },
                       {
                           "file":  "Player.ini",
+                          "key":  "AugmentationBaseStatChance",
+                          "kind":  "integer",
+                          "baseValue":  "1",
+                          "value":  "10"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "AugmentationNGGlowChance",
+                          "kind":  "integer",
+                          "baseValue":  "0",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "AltKarmaPlayerCanBeKilledInPeaceZone",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "AltKarmaPlayerCanUseGK",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
                           "key":  "AltAllowAugmentTrade",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "SoulCrystalChanceMultiplier",
+                          "kind":  "double",
+                          "baseValue":  "1",
+                          "value":  "10"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "AugmentationTopSkillChance",
+                          "kind":  "integer",
+                          "baseValue":  "60",
+                          "value":  "75"
                       },
                       {
                           "file":  "Player.ini",
@@ -309,53 +316,11 @@
                           "value":  "30"
                       },
                       {
-                          "file":  "Player.ini",
-                          "key":  "MaxExpBonus",
-                          "kind":  "double",
-                          "baseValue":  "3.5",
-                          "value":  "9.5"
-                      },
-                      {
-                          "file":  "NPC.ini",
-                          "key":  "MaximumSlotsForPet",
-                          "kind":  "integer",
-                          "baseValue":  "12",
-                          "value":  "24"
-                      },
-                      {
                           "file":  "NPC.ini",
                           "key":  "PetHpRegenMultiplier",
                           "kind":  "double",
                           "baseValue":  "100",
                           "value":  "200"
-                      },
-                      {
-                          "file":  "NPC.ini",
-                          "key":  "DefaultCorpseTime",
-                          "kind":  "integer",
-                          "baseValue":  "7",
-                          "value":  "8"
-                      },
-                      {
-                          "file":  "NPC.ini",
-                          "key":  "SpoiledCorpseExtendTime",
-                          "kind":  "integer",
-                          "baseValue":  "10",
-                          "value":  "12"
-                      },
-                      {
-                          "file":  "Olympiad.ini",
-                          "key":  "OlympiadMaxBuffs",
-                          "kind":  "integer",
-                          "baseValue":  "5",
-                          "value":  "24"
-                      },
-                      {
-                          "file":  "Olympiad.ini",
-                          "key":  "OlympiadWPeriod",
-                          "kind":  "long",
-                          "baseValue":  "604800000",
-                          "value":  "86400000"
                       },
                       {
                           "file":  "NPC.ini",
@@ -366,10 +331,52 @@
                       },
                       {
                           "file":  "NPC.ini",
+                          "key":  "SpoiledCorpseExtendTime",
+                          "kind":  "integer",
+                          "baseValue":  "10",
+                          "value":  "12"
+                      },
+                      {
+                          "file":  "NPC.ini",
+                          "key":  "MaximumSlotsForPet",
+                          "kind":  "integer",
+                          "baseValue":  "12",
+                          "value":  "24"
+                      },
+                      {
+                          "file":  "Olympiad.ini",
+                          "key":  "OlympiadWPeriod",
+                          "kind":  "long",
+                          "baseValue":  "604800000",
+                          "value":  "86400000"
+                      },
+                      {
+                          "file":  "Olympiad.ini",
+                          "key":  "OlympiadUseCustomPeriodSettings",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "NPC.ini",
                           "key":  "RaidMinionRespawnTime",
                           "kind":  "integer",
                           "baseValue":  "300000",
                           "value":  "600000"
+                      },
+                      {
+                          "file":  "Olympiad.ini",
+                          "key":  "OlympiadMaxBuffs",
+                          "kind":  "integer",
+                          "baseValue":  "5",
+                          "value":  "24"
+                      },
+                      {
+                          "file":  "NPC.ini",
+                          "key":  "DefaultCorpseTime",
+                          "kind":  "integer",
+                          "baseValue":  "7",
+                          "value":  "8"
                       },
                       {
                           "file":  "NPC.ini",
@@ -428,53 +435,11 @@
                           "value":  "0.9, 0.8, 0.8, 0.78"
                       },
                       {
-                          "file":  "Olympiad.ini",
-                          "key":  "OlympiadUseCustomPeriodSettings",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "FakeDeathUntarget",
-                          "kind":  "boolean",
-                          "baseValue":  "False ",
-                          "value":  "True"
-                      },
-                      {
                           "file":  "Player.ini",
                           "key":  "FakeDeathDamageStand",
                           "kind":  "boolean",
                           "baseValue":  "True",
                           "value":  "False"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "DanceConsumeAdditionalMP",
-                          "kind":  "boolean",
-                          "baseValue":  "True",
-                          "value":  "False"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "PlayerFakeDeathUpProtection",
-                          "kind":  "integer",
-                          "baseValue":  "0",
-                          "value":  "5"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "StartingVitalityPoints",
-                          "kind":  "integer",
-                          "baseValue":  "20000",
-                          "value":  "200000"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "RaidbossUseVitality",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
                       },
                       {
                           "file":  "Player.ini",
@@ -485,10 +450,52 @@
                       },
                       {
                           "file":  "Player.ini",
+                          "key":  "PlayerFakeDeathUpProtection",
+                          "kind":  "integer",
+                          "baseValue":  "0",
+                          "value":  "5"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "FakeDeathUntarget",
+                          "kind":  "boolean",
+                          "baseValue":  "False ",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "RaidbossUseVitality",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "MaxExpBonus",
+                          "kind":  "double",
+                          "baseValue":  "3.5",
+                          "value":  "9.5"
+                      },
+                      {
+                          "file":  "Player.ini",
                           "key":  "AltTransformationWithoutQuest",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "StartingVitalityPoints",
+                          "kind":  "integer",
+                          "baseValue":  "20000",
+                          "value":  "200000"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "DanceConsumeAdditionalMP",
+                          "kind":  "boolean",
+                          "baseValue":  "True",
+                          "value":  "False"
                       },
                       {
                           "file":  "Player.ini",
@@ -545,13 +552,6 @@
                           "kind":  "long",
                           "baseValue":  "12",
                           "value":  "24"
-                      },
-                      {
-                          "file":  "Player.ini",
-                          "key":  "AltKarmaPlayerCanUseGK",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
                       },
                       {
                           "file":  "Rates.ini",
@@ -611,24 +611,10 @@
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "HerbDropAmountMultiplier",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "2"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RaidDropAmountMultiplier",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "10"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "DeathDropAmountMultiplier",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "10"
+                          "key":  "DropMaxOccurrencesNormal",
+                          "kind":  "integer",
+                          "baseValue":  "2",
+                          "value":  "7"
                       },
                       {
                           "file":  "Rates.ini",
@@ -639,24 +625,24 @@
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "RaidDropChanceMultiplier",
+                          "key":  "HerbDropAmountMultiplier",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "2"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "MonsterExpMaxLevelDifference",
+                          "kind":  "integer",
+                          "baseValue":  "11",
+                          "value":  "75"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "DeathDropAmountMultiplier",
                           "kind":  "number",
                           "baseValue":  "1",
                           "value":  "10"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "DropMaxOccurrencesNormal",
-                          "kind":  "integer",
-                          "baseValue":  "2",
-                          "value":  "7"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "DeathDropChanceMultiplier",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "8"
                       },
                       {
                           "file":  "Rates.ini",
@@ -667,10 +653,24 @@
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "RateVitalityLevel1",
+                          "key":  "RaidDropChanceMultiplier",
                           "kind":  "number",
-                          "baseValue":  "1.5",
-                          "value":  "2.5"
+                          "baseValue":  "1",
+                          "value":  "10"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RaidDropAmountMultiplier",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "10"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "DeathDropChanceMultiplier",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "8"
                       },
                       {
                           "file":  "Rates.ini",
@@ -730,24 +730,10 @@
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "RateVitalityLevel4",
-                          "kind":  "number",
-                          "baseValue":  "3.",
-                          "value":  "6."
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RateVitalityGain",
-                          "kind":  "number",
-                          "baseValue":  "1.",
-                          "value":  "5."
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RateVitalityLevel2",
-                          "kind":  "number",
-                          "baseValue":  "2.",
-                          "value":  "3."
+                          "key":  "PlayerDropLimit",
+                          "kind":  "integer",
+                          "baseValue":  "0",
+                          "value":  "10"
                       },
                       {
                           "file":  "Rates.ini",
@@ -758,24 +744,24 @@
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "RateRecoveryOnReconnect",
+                          "key":  "RateVitalityLevel4",
                           "kind":  "number",
-                          "baseValue":  "4.",
-                          "value":  "20."
+                          "baseValue":  "3.",
+                          "value":  "6."
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "PlayerDropLimit",
-                          "kind":  "integer",
-                          "baseValue":  "0",
-                          "value":  "10"
+                          "key":  "RateVitalityLevel1",
+                          "kind":  "number",
+                          "baseValue":  "1.5",
+                          "value":  "2.5"
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "RateVitalityLost",
+                          "key":  "RateVitalityLevel2",
                           "kind":  "number",
-                          "baseValue":  "0.6",
-                          "value":  "0.4"
+                          "baseValue":  "2.",
+                          "value":  "3."
                       },
                       {
                           "file":  "Rates.ini",
@@ -786,17 +772,24 @@
                       },
                       {
                           "file":  "Rates.ini",
-                          "key":  "MonsterExpMaxLevelDifference",
-                          "kind":  "integer",
-                          "baseValue":  "11",
-                          "value":  "75"
+                          "key":  "RateRecoveryOnReconnect",
+                          "kind":  "number",
+                          "baseValue":  "4.",
+                          "value":  "20."
                       },
                       {
-                          "file":  "Player.ini",
-                          "key":  "AltMembersCanWithdrawFromClanWH",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
+                          "file":  "Rates.ini",
+                          "key":  "RateVitalityGain",
+                          "kind":  "number",
+                          "baseValue":  "1.",
+                          "value":  "5."
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RateVitalityLost",
+                          "kind":  "number",
+                          "baseValue":  "0.6",
+                          "value":  "0.4"
                       },
                       {
                           "file":  "Player.ini",
@@ -807,10 +800,10 @@
                       },
                       {
                           "file":  "Player.ini",
-                          "key":  "DaysToPassToDissolveAClan",
+                          "key":  "AltPartyRange",
                           "kind":  "integer",
-                          "baseValue":  "7",
-                          "value":  "1"
+                          "baseValue":  "1500",
+                          "value":  "2500"
                       },
                       {
                           "file":  "Player.ini",
@@ -821,10 +814,10 @@
                       },
                       {
                           "file":  "Player.ini",
-                          "key":  "StartingAdena",
-                          "kind":  "long",
-                          "baseValue":  "0",
-                          "value":  "5000"
+                          "key":  "AltMembersCanWithdrawFromClanWH",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
                       },
                       {
                           "file":  "Player.ini",
@@ -835,10 +828,10 @@
                       },
                       {
                           "file":  "Player.ini",
-                          "key":  "AltPartyRange",
+                          "key":  "RaidLootRightsInterval",
                           "kind":  "integer",
-                          "baseValue":  "1500",
-                          "value":  "2500"
+                          "baseValue":  "900",
+                          "value":  "5"
                       },
                       {
                           "file":  "Player.ini",
@@ -846,6 +839,20 @@
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "StartingAdena",
+                          "kind":  "long",
+                          "baseValue":  "0",
+                          "value":  "5000"
+                      },
+                      {
+                          "file":  "Player.ini",
+                          "key":  "DaysToPassToDissolveAClan",
+                          "kind":  "integer",
+                          "baseValue":  "7",
+                          "value":  "1"
                       },
                       {
                           "file":  "Player.ini",
@@ -904,53 +911,11 @@
                           "value":  "100"
                       },
                       {
-                          "file":  "Player.ini",
-                          "key":  "RaidLootRightsInterval",
-                          "kind":  "integer",
-                          "baseValue":  "900",
-                          "value":  "5"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RateExtractable",
-                          "kind":  "number",
-                          "baseValue":  "1.",
-                          "value":  "5."
-                      },
-                      {
                           "file":  "Rates.ini",
                           "key":  "RateHellboundTrustIncrease",
                           "kind":  "number",
                           "baseValue":  "1",
                           "value":  "20"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RatePartySp",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "2"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RateDropManor",
-                          "kind":  "integer",
-                          "baseValue":  "1",
-                          "value":  "10"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RateQuestRewardSP",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "35"
-                      },
-                      {
-                          "file":  "Rates.ini",
-                          "key":  "RateQuestRewardAdena",
-                          "kind":  "number",
-                          "baseValue":  "1",
-                          "value":  "25"
                       },
                       {
                           "file":  "Rates.ini",
@@ -961,10 +926,52 @@
                       },
                       {
                           "file":  "Rates.ini",
+                          "key":  "RateDropManor",
+                          "kind":  "integer",
+                          "baseValue":  "1",
+                          "value":  "10"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RateExtractable",
+                          "kind":  "number",
+                          "baseValue":  "1.",
+                          "value":  "5."
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RateQuestRewardAdena",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "25"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RateQuestReward",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "50"
+                      },
+                      {
+                          "file":  "Rates.ini",
                           "key":  "RateQuestRewardXP",
                           "kind":  "number",
                           "baseValue":  "1",
                           "value":  "25"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RateQuestRewardSP",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "35"
+                      },
+                      {
+                          "file":  "Rates.ini",
+                          "key":  "RatePartySp",
+                          "kind":  "number",
+                          "baseValue":  "1",
+                          "value":  "2"
                       },
                       {
                           "file":  "Player.ini",
@@ -1023,20 +1030,6 @@
                           "value":  "3"
                       },
                       {
-                          "file":  "NPC.ini",
-                          "key":  "AnnounceMammonSpawn",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
-                          "file":  "Custom/PersonalCharacterQoL.ini",
-                          "key":  "EnablePersonalCrystallization",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
                           "file":  "Custom/PersonalCharacterQoL.ini",
                           "key":  "EnablePersonalSevenSignsAccess",
                           "kind":  "boolean",
@@ -1045,7 +1038,7 @@
                       },
                       {
                           "file":  "Custom/PersonalCharacterQoL.ini",
-                          "key":  "EnablePersonalCharacterQoL",
+                          "key":  "EnablePersonalPartySupport",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
@@ -1059,10 +1052,10 @@
                       },
                       {
                           "file":  "Custom/PersonalCharacterQoL.ini",
-                          "key":  "PersonalBuffDurationMultiplier",
-                          "kind":  "double",
-                          "baseValue":  "1.0",
-                          "value":  "5.0"
+                          "key":  "EnablePersonalCrystallization",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
                       },
                       {
                           "file":  "Custom/PersonalCharacterQoL.ini",
@@ -1073,14 +1066,28 @@
                       },
                       {
                           "file":  "Custom/PersonalCharacterQoL.ini",
-                          "key":  "EnablePersonalPartySupport",
+                          "key":  "PersonalSongDurationMultiplier",
+                          "kind":  "double",
+                          "baseValue":  "1.0",
+                          "value":  "15.0"
+                      },
+                      {
+                          "file":  "Custom/PersonalCharacterQoL.ini",
+                          "key":  "EnablePersonalEffectDurations",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
                       },
                       {
                           "file":  "Custom/PersonalCharacterQoL.ini",
-                          "key":  "EnablePersonalEffectDurations",
+                          "key":  "PersonalBuffDurationMultiplier",
+                          "kind":  "double",
+                          "baseValue":  "1.0",
+                          "value":  "5.0"
+                      },
+                      {
+                          "file":  "Custom/PersonalCharacterQoL.ini",
+                          "key":  "EnablePersonalCharacterQoL",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
@@ -1142,20 +1149,6 @@
                           "value":  "True"
                       },
                       {
-                          "file":  "Custom/PersonalCharacterQoL.ini",
-                          "key":  "PersonalSongDurationMultiplier",
-                          "kind":  "double",
-                          "baseValue":  "1.0",
-                          "value":  "15.0"
-                      },
-                      {
-                          "file":  "Custom/PersonalProgressionQoL.ini",
-                          "key":  "EnablePersonalQuestOverLevelRelief",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
                           "file":  "Custom/PhantomMerchants.ini",
                           "key":  "MerchantLinesPerStore",
                           "kind":  "long",
@@ -1163,11 +1156,11 @@
                           "value":  "20"
                       },
                       {
-                          "file":  "Custom/PersonalPremiumQoL.ini",
-                          "key":  "EnablePersonalPremiumQoL",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
+                          "file":  "Feature.ini",
+                          "key":  "FortressMaxSupplyLevel",
+                          "kind":  "integer",
+                          "baseValue":  "6",
+                          "value":  "21"
                       },
                       {
                           "file":  "Custom/PersonalPremiumQoL.ini",
@@ -1177,8 +1170,8 @@
                           "value":  "True"
                       },
                       {
-                          "file":  "Feature.ini",
-                          "key":  "AltOpenNecropolis",
+                          "file":  "Custom/PersonalProgressionQoL.ini",
+                          "key":  "EnablePersonalQuestOverLevelRelief",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
@@ -1192,14 +1185,28 @@
                       },
                       {
                           "file":  "Feature.ini",
-                          "key":  "FortressMaxSupplyLevel",
-                          "kind":  "integer",
-                          "baseValue":  "6",
-                          "value":  "21"
+                          "key":  "AltCastleForDusk",
+                          "kind":  "boolean",
+                          "baseValue":  "True",
+                          "value":  "False"
                       },
                       {
                           "file":  "Feature.ini",
                           "key":  "AltOpenCatacumbs",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "AltOpenNecropolis",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "Custom/PersonalPremiumQoL.ini",
+                          "key":  "EnablePersonalPremiumQoL",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
@@ -1261,11 +1268,25 @@
                           "value":  "FLIP_NEGATIVE"
                       },
                       {
-                          "file":  "Custom/CommunityBoard.ini",
-                          "key":  "CustomCommunityBoard",
+                          "file":  "Custom/ChampionMonsters.ini",
+                          "key":  "ChampionSpdAtk",
+                          "kind":  "number",
+                          "baseValue":  "1.0",
+                          "value":  "1.1"
+                      },
+                      {
+                          "file":  "Custom/ChampionMonsters.ini",
+                          "key":  "ChampionEnableInInstances",
                           "kind":  "boolean",
                           "baseValue":  "False",
                           "value":  "True"
+                      },
+                      {
+                          "file":  "Custom/ChampionMonsters.ini",
+                          "key":  "ChampionAdenasRewardsAmount",
+                          "kind":  "number",
+                          "baseValue":  "1.0",
+                          "value":  "50.0"
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
@@ -1276,21 +1297,21 @@
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "ChampionSpdAtk",
-                          "kind":  "number",
-                          "baseValue":  "1.0",
-                          "value":  "1.1"
+                          "key":  "BlueChampionEnable",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "ChampionAdenasRewardsChance",
-                          "kind":  "number",
-                          "baseValue":  "1.0",
-                          "value":  "50.0"
+                          "key":  "BlueChampionFrequency",
+                          "kind":  "integer",
+                          "baseValue":  "2",
+                          "value":  "10"
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "ChampionAdenasRewardsAmount",
+                          "key":  "ChampionSpoilChance",
                           "kind":  "number",
                           "baseValue":  "1.0",
                           "value":  "50.0"
@@ -1304,21 +1325,7 @@
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionEnable",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
-                          "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "ChampionEnableInInstances",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
-                          "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "ChampionSpoilChance",
+                          "key":  "ChampionAdenasRewardsChance",
                           "kind":  "number",
                           "baseValue":  "1.0",
                           "value":  "50.0"
@@ -1381,20 +1388,6 @@
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionFrequency",
-                          "kind":  "integer",
-                          "baseValue":  "2",
-                          "value":  "10"
-                      },
-                      {
-                          "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionAdenasRewardsAmount",
-                          "kind":  "number",
-                          "baseValue":  "1.0",
-                          "value":  "10.0"
-                      },
-                      {
-                          "file":  "Custom/ChampionMonsters.ini",
                           "key":  "BlueChampionSealStonesRewardsChance",
                           "kind":  "number",
                           "baseValue":  "1.0",
@@ -1402,7 +1395,7 @@
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionRewardsAmount",
+                          "key":  "BlueChampionSealStonesRewardsAmount",
                           "kind":  "number",
                           "baseValue":  "1.0",
                           "value":  "10.0"
@@ -1416,7 +1409,7 @@
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionSpoilAmount",
+                          "key":  "BlueChampionAdenasRewardsAmount",
                           "kind":  "number",
                           "baseValue":  "1.0",
                           "value":  "10.0"
@@ -1429,15 +1422,29 @@
                           "value":  "True"
                       },
                       {
+                          "file":  "Custom/CommunityBoard.ini",
+                          "key":  "CustomCommunityBoard",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionSealStonesRewardsAmount",
+                          "key":  "BlueChampionSpoilChance",
                           "kind":  "number",
                           "baseValue":  "1.0",
                           "value":  "10.0"
                       },
                       {
                           "file":  "Custom/ChampionMonsters.ini",
-                          "key":  "BlueChampionSpoilChance",
+                          "key":  "BlueChampionSpoilAmount",
+                          "kind":  "number",
+                          "baseValue":  "1.0",
+                          "value":  "10.0"
+                      },
+                      {
+                          "file":  "Custom/ChampionMonsters.ini",
+                          "key":  "BlueChampionRewardsAmount",
                           "kind":  "number",
                           "baseValue":  "1.0",
                           "value":  "10.0"
@@ -1499,52 +1506,10 @@
                           "value":  "1.1"
                       },
                       {
-                          "file":  "Feature.ini",
-                          "key":  "AltCastleForDusk",
-                          "kind":  "boolean",
-                          "baseValue":  "True",
-                          "value":  "False"
-                      },
-                      {
-                          "file":  "General.ini",
-                          "key":  "HellboundWithoutQuest",
-                          "kind":  "boolean",
-                          "baseValue":  "False",
-                          "value":  "True"
-                      },
-                      {
                           "file":  "GraciaSeeds.ini",
                           "key":  "MinPlayers",
                           "kind":  "integer",
                           "baseValue":  "36",
-                          "value":  "1"
-                      },
-                      {
-                          "file":  "General.ini",
-                          "key":  "JailDisableChat",
-                          "kind":  "boolean",
-                          "baseValue":  "True",
-                          "value":  "False"
-                      },
-                      {
-                          "file":  "General.ini",
-                          "key":  "BlockCheckerMinTeamMembers",
-                          "kind":  "integer",
-                          "baseValue":  "2",
-                          "value":  "1"
-                      },
-                      {
-                          "file":  "GraciaSeeds.ini",
-                          "key":  "MaxEroAttPlayers",
-                          "kind":  "integer",
-                          "baseValue":  "27",
-                          "value":  "85"
-                      },
-                      {
-                          "file":  "GraciaSeeds.ini",
-                          "key":  "MinEroDefPlayers",
-                          "kind":  "integer",
-                          "baseValue":  "18",
                           "value":  "1"
                       },
                       {
@@ -1555,11 +1520,53 @@
                           "value":  "85"
                       },
                       {
+                          "file":  "General.ini",
+                          "key":  "BlockCheckerMinTeamMembers",
+                          "kind":  "integer",
+                          "baseValue":  "2",
+                          "value":  "1"
+                      },
+                      {
+                          "file":  "General.ini",
+                          "key":  "HellboundWithoutQuest",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
+                          "file":  "GraciaSeeds.ini",
+                          "key":  "MinEroDefPlayers",
+                          "kind":  "integer",
+                          "baseValue":  "18",
+                          "value":  "1"
+                      },
+                      {
+                          "file":  "GraciaSeeds.ini",
+                          "key":  "MaxEroDefPlayers",
+                          "kind":  "integer",
+                          "baseValue":  "27",
+                          "value":  "85"
+                      },
+                      {
                           "file":  "GraciaSeeds.ini",
                           "key":  "MinEroAttPlayers",
                           "kind":  "integer",
                           "baseValue":  "18",
                           "value":  "1"
+                      },
+                      {
+                          "file":  "GraciaSeeds.ini",
+                          "key":  "MaxEroAttPlayers",
+                          "kind":  "integer",
+                          "baseValue":  "27",
+                          "value":  "85"
+                      },
+                      {
+                          "file":  "General.ini",
+                          "key":  "JailDisableChat",
+                          "kind":  "boolean",
+                          "baseValue":  "True",
+                          "value":  "False"
                       },
                       {
                           "file":  "General.ini",
@@ -1618,20 +1625,6 @@
                           "value":  "6"
                       },
                       {
-                          "file":  "GraciaSeeds.ini",
-                          "key":  "MaxEroDefPlayers",
-                          "kind":  "integer",
-                          "baseValue":  "27",
-                          "value":  "85"
-                      },
-                      {
-                          "file":  "GrandBoss.ini",
-                          "key":  "IntervalOfCoreSpawn",
-                          "kind":  "integer",
-                          "baseValue":  "30",
-                          "value":  "2"
-                      },
-                      {
                           "file":  "GrandBoss.ini",
                           "key":  "IntervalOfOrfenSpawn",
                           "kind":  "integer",
@@ -1640,9 +1633,9 @@
                       },
                       {
                           "file":  "GrandBoss.ini",
-                          "key":  "IntervalOfBaiumSpawn",
+                          "key":  "IntervalOfQueenAntSpawn",
                           "kind":  "integer",
-                          "baseValue":  "120",
+                          "baseValue":  "24",
                           "value":  "2"
                       },
                       {
@@ -1654,9 +1647,9 @@
                       },
                       {
                           "file":  "GrandBoss.ini",
-                          "key":  "RandomOfBelethSpawn",
+                          "key":  "IntervalOfCoreSpawn",
                           "kind":  "integer",
-                          "baseValue":  "24",
+                          "baseValue":  "30",
                           "value":  "2"
                       },
                       {
@@ -1667,15 +1660,29 @@
                           "value":  "1"
                       },
                       {
+                          "file":  "NPC.ini",
+                          "key":  "AnnounceMammonSpawn",
+                          "kind":  "boolean",
+                          "baseValue":  "False",
+                          "value":  "True"
+                      },
+                      {
                           "file":  "GrandBoss.ini",
-                          "key":  "IntervalOfQueenAntSpawn",
+                          "key":  "IntervalOfBelethSpawn",
+                          "kind":  "integer",
+                          "baseValue":  "120",
+                          "value":  "2"
+                      },
+                      {
+                          "file":  "GrandBoss.ini",
+                          "key":  "RandomOfBelethSpawn",
                           "kind":  "integer",
                           "baseValue":  "24",
                           "value":  "2"
                       },
                       {
                           "file":  "GrandBoss.ini",
-                          "key":  "IntervalOfBelethSpawn",
+                          "key":  "IntervalOfBaiumSpawn",
                           "kind":  "integer",
                           "baseValue":  "120",
                           "value":  "2"
@@ -1737,53 +1744,11 @@
                           "value":  "1"
                       },
                       {
-                          "file":  "General.ini",
-                          "key":  "GMStartupInvulnerable",
-                          "kind":  "boolean",
-                          "baseValue":  "True",
-                          "value":  "False"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "BloodOathPoints",
-                          "kind":  "integer",
-                          "baseValue":  "200",
-                          "value":  "2000"
-                      },
-                      {
                           "file":  "Feature.ini",
                           "key":  "KnightsEpaulettePoints",
                           "kind":  "integer",
                           "baseValue":  "20",
                           "value":  "200"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "KillBallistaPoints",
-                          "kind":  "integer",
-                          "baseValue":  "30",
-                          "value":  "300"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "BloodAlliancePoints",
-                          "kind":  "integer",
-                          "baseValue":  "500",
-                          "value":  "5000"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "3rdRaidRankingPoints",
-                          "kind":  "integer",
-                          "baseValue":  "700",
-                          "value":  "7000"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "4thRaidRankingPoints",
-                          "kind":  "integer",
-                          "baseValue":  "600",
-                          "value":  "6000"
                       },
                       {
                           "file":  "Feature.ini",
@@ -1794,10 +1759,52 @@
                       },
                       {
                           "file":  "Feature.ini",
+                          "key":  "BloodAlliancePoints",
+                          "kind":  "integer",
+                          "baseValue":  "500",
+                          "value":  "5000"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "BloodOathPoints",
+                          "kind":  "integer",
+                          "baseValue":  "200",
+                          "value":  "2000"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "4thRaidRankingPoints",
+                          "kind":  "integer",
+                          "baseValue":  "600",
+                          "value":  "6000"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "5thRaidRankingPoints",
+                          "kind":  "integer",
+                          "baseValue":  "450",
+                          "value":  "4500"
+                      },
+                      {
+                          "file":  "Feature.ini",
                           "key":  "2ndRaidRankingPoints",
                           "kind":  "integer",
                           "baseValue":  "900",
                           "value":  "9000"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "3rdRaidRankingPoints",
+                          "kind":  "integer",
+                          "baseValue":  "700",
+                          "value":  "7000"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "KillBallistaPoints",
+                          "kind":  "integer",
+                          "baseValue":  "30",
+                          "value":  "300"
                       },
                       {
                           "file":  "Feature.ini",
@@ -1857,52 +1864,10 @@
                       },
                       {
                           "file":  "Feature.ini",
-                          "key":  "5thRaidRankingPoints",
-                          "kind":  "integer",
-                          "baseValue":  "450",
-                          "value":  "4500"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "ClanLevel8Requirement",
-                          "kind":  "integer",
-                          "baseValue":  "80",
-                          "value":  "1"
-                      },
-                      {
-                          "file":  "Feature.ini",
                           "key":  "ClanLevel9Requirement",
                           "kind":  "integer",
                           "baseValue":  "120",
                           "value":  "1"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "ClanLevel6Requirement",
-                          "kind":  "integer",
-                          "baseValue":  "30",
-                          "value":  "1"
-                      },
-                      {
-                          "file":  "Feature.ini",
-                          "key":  "ClanLevel7Requirement",
-                          "kind":  "integer",
-                          "baseValue":  "50",
-                          "value":  "1"
-                      },
-                      {
-                          "file":  "FortSiege.ini",
-                          "key":  "CountDownLength",
-                          "kind":  "long",
-                          "baseValue":  "10",
-                          "value":  "20"
-                      },
-                      {
-                          "file":  "General.ini",
-                          "key":  "GMStartupBuilderHide",
-                          "kind":  "boolean",
-                          "baseValue":  "True",
-                          "value":  "False"
                       },
                       {
                           "file":  "Feature.ini",
@@ -1913,9 +1878,51 @@
                       },
                       {
                           "file":  "Feature.ini",
+                          "key":  "ClanLevel7Requirement",
+                          "kind":  "integer",
+                          "baseValue":  "50",
+                          "value":  "1"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "ClanLevel8Requirement",
+                          "kind":  "integer",
+                          "baseValue":  "80",
+                          "value":  "1"
+                      },
+                      {
+                          "file":  "General.ini",
+                          "key":  "GMStartupBuilderHide",
+                          "kind":  "boolean",
+                          "baseValue":  "True",
+                          "value":  "False"
+                      },
+                      {
+                          "file":  "General.ini",
+                          "key":  "GMStartupInvulnerable",
+                          "kind":  "boolean",
+                          "baseValue":  "True",
+                          "value":  "False"
+                      },
+                      {
+                          "file":  "Feature.ini",
                           "key":  "ClanLevel11Requirement",
                           "kind":  "integer",
                           "baseValue":  "170",
+                          "value":  "1"
+                      },
+                      {
+                          "file":  "FortSiege.ini",
+                          "key":  "CountDownLength",
+                          "kind":  "long",
+                          "baseValue":  "10",
+                          "value":  "20"
+                      },
+                      {
+                          "file":  "Feature.ini",
+                          "key":  "ClanLevel6Requirement",
+                          "kind":  "integer",
+                          "baseValue":  "30",
                           "value":  "1"
                       },
                       {

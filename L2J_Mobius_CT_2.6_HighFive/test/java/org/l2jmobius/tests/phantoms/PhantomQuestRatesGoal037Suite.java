@@ -84,6 +84,7 @@ public final class PhantomQuestRatesGoal037Suite implements PhantomTestSuite
 			{
 				registry.add("01-full-ast-inventory-manifest-and-determinism", this::staticAudit);
 				registry.add("02-manifest-negative-controls", this::manifestNegativeControls);
+				registry.add("03-casino-terminal-prizes-use-native-reward-rates", this::casinoPrizeRates);
 				break;
 			}
 			case CORPUS:
@@ -115,6 +116,28 @@ public final class PhantomQuestRatesGoal037Suite implements PhantomTestSuite
 		context.record("goal037.rateSites", verification.audit().sites().size());
 		context.record("goal037.inventory", verification.inventorySha256() + "/" + verification.inventoryBytes());
 		context.record("goal037.sites", verification.sitesSha256() + "/" + verification.sitesBytes());
+	}
+
+	private void casinoPrizeRates(PhantomTestContext context) throws Exception
+	{
+		final QuestRatesAstAuditor.Audit audit = QuestRatesAstAuditor.scan(context.moduleRoot());
+		final String[] names = { "Q00663_SeductiveWhispers", "Q00384_WarehouseKeepersPastime", "Q00386_StolenDignity", "Q00662_AGameOfCards" };
+		final long[] expected = { 46, 20, 33, 11 };
+		final List<String> failures = new ArrayList<>();
+		for (int index = 0; index < names.length; index++)
+		{
+			final String path = QuestRatesAstAuditor.QUEST_ROOT + "/" + names[index] + "/" + names[index] + ".java";
+			final long canonical = audit.sites().stream().filter(site -> path.equals(site.path())
+				&& site.semanticClass() == QuestRatesAstAuditor.SemanticClass.TERMINAL_ITEM_REWARD
+				&& site.rateAuthority() == QuestRatesAstAuditor.RateAuthority.RATE_QUEST_REWARD_ITEM
+				&& site.decision() == QuestRatesAstAuditor.Decision.CANONICAL).count();
+			if (canonical != expected[index])
+			{
+				failures.add(names[index] + " native prize sites=" + canonical + ", expected=" + expected[index]);
+			}
+		}
+		PhantomAssertions.assertTrue(failures.isEmpty(), "Casino payouts bypass native quest reward rates: " + failures);
+		context.record("goal037.casinoPrizeSites", "Q663=46,Q384=20,Q386=33,Q662=11; source-contract-only");
 	}
 
 	private void manifestNegativeControls(PhantomTestContext context) throws Exception

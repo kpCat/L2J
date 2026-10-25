@@ -36,4 +36,4 @@ STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromNpc	100	curr
 STORE	dist/game/config/Custom/PhantomMerchants.ini	MerchantLinesPerStore	20	needs compatible code change hard limit8; no static fallback to3
 CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	EnablePersonalWondrousCubicCooldown	True	preserve allowlist-based owner choice
 CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	PersonalWondrousCubicCooldownMinutes	10	already exists, keep
-QUEST	dist/game/config/Rates.ini	Quest rates (all keys)	PRESERVE_EXISTING_VALUES	never invent lost rates; source currently1
+QUEST	dist/game/config/Rates.ini	Quest rates (all keys)	PRESERVE_EXISTING_VALUES	RateQuestReward=50; other quest keys preserved

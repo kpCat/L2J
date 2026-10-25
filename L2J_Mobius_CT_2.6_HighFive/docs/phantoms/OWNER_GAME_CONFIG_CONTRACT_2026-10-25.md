@@ -87,3 +87,24 @@ AutoPlay=False/AutoPotions=False и существующие GeoEngine/Threads/N
 **NAV_087_OPEN; NAVIGATION_FIXED=NOT_ATTEMPTED_088.** SEARCH_LIMIT087 — исчерпание finite budget на длинных starter→GK legs, не доказанная непроходимость. Будущая089 требует hierarchical region route, finite geo-attested corridor/waypoint legs, native GK debit и durable checkpoint/recovery с causal RED/GREEN. Не менять владельцу RandomRespawn/MaxOffset/Unstuck ради обхода; не увеличивать budgets и не добавлять фиктивные teleports/edges в088.089/R2 автоматически не начинать.
 
 Database.ini, Network.ini, hexid.txt, реальные IDs/аккаунты и защищённые поставки остаются вне публичного набора и вне разрешения этой задачи. Финальный release остаётся отдельной будущей задачей; этот контракт не является разрешением запустить его сейчас.
+
+## Дополнение TASK090 — 25.10.2026
+
+Новое явное решение владельца: текущий `Rates.ini / RateQuestReward = 50` вместо исторического `1`. RAW/APPROVED088, их таблица SHA256 выше и manifests088 неизменны. Это единственное новое отклонение effective public config: сравнение всех68 public INI/1521 ключа дало ровно `RateQuestReward: 1→50`; остальные67 INI и `ClassMaster.xml` byte-identical исходному088/089 baseline. Все271 прежних overrides сохранены с теми же file/key/kind/baseValue/value; штатный Save добавил272-ю запись `Rates.ini / RateQuestReward`, kind=number, baseValue=1, value=50.
+
+`UseQuestRewardMultipliers=False`, `RateQuestRewardAdena=25`, XP25/SP35, QuestItemDropAmountMultiplier50 и category multipliers1 сохранены. Конечные предметные призы Q663/Q384/Q386 используют native `Quest.rewardItems`; Q662 уже использовал этот helper и не изменён. Денежные призы Q663 остаются на native Adena×25; стоимость участия и quest-objective drops не переведены на reward rate.
+
+Фактические SHA256 текущих source bytes090:
+
+| Файл | SHA256 |
+|---|---|
+| Rates.ini | `ba9c6fcbd364e09588f50a4d507d06fc9f21f0bfeaaba229977b44124db819f2` |
+| OwnerConfig.json | `cbb60daacc466518459faf536f4d088ad85ec160568d57f54f248de74fd704ac` |
+| OwnerProfile38.tsv | `4f25d9419b1a01aff2792a29f09a6b12f6fc464314ace73419ea4590a6ad3244` |
+| OwnerProfilePreserved.properties | `c49b6a7e3aa04f55c287dd28212ef9935b478aa78e31d74c2e6caa2d8712e9fc` |
+
+Штатный Save→Verify прошёл на source; повторный Save changed0 и все3 metadata hashes неизменны. Отдельный физический TASK090 TEMP stage восстановил все272 base values перед Apply→Verify; после применения все68 public INI byte-identical текущему source. Повторные Apply→Verify: changed0,77/77 staged files byte-identical. Native Java verifier подтвердил `OWNER_PROFILE_PASS rules=38`, XML_XSD=PASS и новый quest digest `5f62ca25a25eb94773e58c2e43689fc8ed125d2923552e38ea085f639b2ae256`; остальные preserved properties сохранены.
+
+Таблица090 выше фиксирует фактические source bytes штатного Save. При staging Git нормализовал только CRLF→LF в OwnerConfig.json: SHA256 Git blob `62fb313d5e59f5b703efc8af914806efa76ff9f8bc5f85b127eaef5fa121ff4e`. Полное содержимое после этой единственной EOL-нормализации совпало; overrides и другие metadata не изменены.
+
+Полная матрица и границы проверок — [отчёт090](reports/PHANTOM-QUEST-REWARD-RATES-090.md). Native Player выигрыши/ставки/replay090 не запускались: FULL090 остаётся PARTIAL/NATIVE_NOT_RUN. Публичная конфигурация готова к будущему штатному Apply; финальная поставка, private activation, прежние открытые QoL/navigation gates этим дополнением не принимаются.

@@ -467,31 +467,31 @@ public class Q00384_WarehouseKeepersPastime extends Quest
 				final int random = getRandom(100);
 				if (random < 16)
 				{
-					giveItems(player, SYNTHESIS_COKES, 1);
+					rewardItems(player, SYNTHESIS_COKES, 1);
 				}
 				else if (random < 32)
 				{
-					giveItems(player, VARNISH_OF_PURITY, 1);
+					rewardItems(player, VARNISH_OF_PURITY, 1);
 				}
 				else if (random < 50)
 				{
-					giveItems(player, CRAFTED_LEATHER, 1);
+					rewardItems(player, CRAFTED_LEATHER, 1);
 				}
 				else if (random < 80)
 				{
-					giveItems(player, SCRL_OF_ENCH_AM_C, 1);
+					rewardItems(player, SCRL_OF_ENCH_AM_C, 1);
 				}
 				else if (random < 89)
 				{
-					giveItems(player, MITHIRL_ALLOY, 1);
+					rewardItems(player, MITHIRL_ALLOY, 1);
 				}
 				else if (random < 98)
 				{
-					giveItems(player, ORIHARUKON, 1);
+					rewardItems(player, ORIHARUKON, 1);
 				}
 				else
 				{
-					giveItems(player, SCRL_OF_ENCH_WP_C, 1);
+					rewardItems(player, SCRL_OF_ENCH_WP_C, 1);
 				}
 			}
 			else if (qs.getMemoState() == 20)
@@ -499,19 +499,19 @@ public class Q00384_WarehouseKeepersPastime extends Quest
 				final int random = getRandom(100);
 				if (random < 50)
 				{
-					giveItems(player, AQUASTONE_RING, 1);
+					rewardItems(player, AQUASTONE_RING, 1);
 				}
 				else if (random < 80)
 				{
-					giveItems(player, SCRL_OF_ENCH_WP_C, 1);
+					rewardItems(player, SCRL_OF_ENCH_WP_C, 1);
 				}
 				else if (random < 98)
 				{
-					giveItems(player, MOONSTONE_EARING, 1);
+					rewardItems(player, MOONSTONE_EARING, 1);
 				}
 				else
 				{
-					giveItems(player, DRAKE_LEATHER_MAIL, 1);
+					rewardItems(player, DRAKE_LEATHER_MAIL, 1);
 				}
 			}
 		}
@@ -522,19 +522,19 @@ public class Q00384_WarehouseKeepersPastime extends Quest
 				final int random = getRandom(100);
 				if (random < 50)
 				{
-					giveItems(player, MOLD_HARDENER, 1);
+					rewardItems(player, MOLD_HARDENER, 1);
 				}
 				else if (random < 80)
 				{
-					giveItems(player, SCRL_OF_ENCH_AM_C, 1);
+					rewardItems(player, SCRL_OF_ENCH_AM_C, 1);
 				}
 				else if (random < 98)
 				{
-					giveItems(player, BLACKSMITH_S_FRAME, 1);
+					rewardItems(player, BLACKSMITH_S_FRAME, 1);
 				}
 				else
 				{
-					giveItems(player, NECKLACE_OF_MERMAID, 1);
+					rewardItems(player, NECKLACE_OF_MERMAID, 1);
 				}
 			}
 			else if (qs.getMemoState() == 20)
@@ -542,20 +542,20 @@ public class Q00384_WarehouseKeepersPastime extends Quest
 				final int random = getRandom(100);
 				if (random < 50)
 				{
-					giveItems(player, SCRL_OF_ENCH_WP_C, 1);
+					rewardItems(player, SCRL_OF_ENCH_WP_C, 1);
 				}
 				else if (random < 80)
 				{
-					giveItems(player, GREAT_HELMET, 1);
+					rewardItems(player, GREAT_HELMET, 1);
 				}
 				else if (random < 98)
 				{
-					giveItems(player, DRAKE_LEATHER_BOOTS, 1);
-					giveItems(player, BLESSED_GLOVES, 1);
+					rewardItems(player, DRAKE_LEATHER_BOOTS, 1);
+					rewardItems(player, BLESSED_GLOVES, 1);
 				}
 				else
 				{
-					giveItems(player, SAMURAI_LONGSWORD, 1);
+					rewardItems(player, SAMURAI_LONGSWORD, 1);
 				}
 			}
 		}

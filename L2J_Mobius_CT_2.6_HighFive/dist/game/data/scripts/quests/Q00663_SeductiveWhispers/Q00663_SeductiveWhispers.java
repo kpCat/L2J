@@ -190,8 +190,8 @@ public class Q00663_SeductiveWhispers extends Quest
 							{
 								qs.setMemoState(1);
 								giveAdena(player, 2384000, true);
-								giveItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE);
-								giveItems(player, SCROLL_ENCHANT_ARMOR_A_GRADE);
+								rewardItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE);
+								rewardItems(player, SCROLL_ENCHANT_ARMOR_A_GRADE);
 								htmltext = "30846-17.html";
 							}
 							else
@@ -297,8 +297,8 @@ public class Q00663_SeductiveWhispers extends Quest
 							if (((qs.getMemoState() % 100) / 10) >= 7)
 							{
 								giveAdena(player, 2384000, true);
-								giveItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE);
-								giveItems(player, SCROLL_ENCHANT_ARMOR_A_GRADE);
+								rewardItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE);
+								rewardItems(player, SCROLL_ENCHANT_ARMOR_A_GRADE);
 								qs.setMemoState(4);
 								htmltext = getHtml(player, "30846-14.html", card1pic, card2pic, winCount, -1);
 							}
@@ -322,8 +322,8 @@ public class Q00663_SeductiveWhispers extends Quest
 							if (((qs.getMemoState() % 100) / 10) >= 7)
 							{
 								giveAdena(player, 2384000, true);
-								giveItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE);
-								giveItems(player, SCROLL_ENCHANT_ARMOR_A_GRADE);
+								rewardItems(player, SCROLL_ENCHANT_WEAPON_A_GRADE);
+								rewardItems(player, SCROLL_ENCHANT_ARMOR_A_GRADE);
 								qs.setMemoState(4);
 								htmltext = getHtml(player, "30846-14.html", card1pic, card2pic, winCount, -1);
 							}
@@ -412,12 +412,12 @@ public class Q00663_SeductiveWhispers extends Quest
 					else if (i0 == 2)
 					{
 						giveAdena(player, 110000, true);
-						giveItems(player, SCROLL_ENCHANT_WEAPON_D_GRADE);
+						rewardItems(player, SCROLL_ENCHANT_WEAPON_D_GRADE);
 					}
 					else if (i0 == 3)
 					{
 						giveAdena(player, 199000, true);
-						giveItems(player, SCROLL_ENCHANT_WEAPON_C_GRADE);
+						rewardItems(player, SCROLL_ENCHANT_WEAPON_C_GRADE);
 					}
 					else if (i0 == 4)
 					{
@@ -425,75 +425,75 @@ public class Q00663_SeductiveWhispers extends Quest
 						final int rdn = getRandom(18) + 1;
 						if (rdn == 1)
 						{
-							giveItems(player, RECIPE_GREAT_SWORD_60);
+							rewardItems(player, RECIPE_GREAT_SWORD_60);
 						}
 						else if (rdn == 2)
 						{
-							giveItems(player, RECIPE_HEAVY_WAR_AXE_60);
+							rewardItems(player, RECIPE_HEAVY_WAR_AXE_60);
 						}
 						else if (rdn == 3)
 						{
-							giveItems(player, RECIPE_SPRITES_STAFF_60);
+							rewardItems(player, RECIPE_SPRITES_STAFF_60);
 						}
 						else if (rdn == 4)
 						{
-							giveItems(player, RECIPE_KESHANBERK_60);
+							rewardItems(player, RECIPE_KESHANBERK_60);
 						}
 						else if (rdn == 5)
 						{
-							giveItems(player, RECIPE_SWORD_OF_VALHALLA_60);
+							rewardItems(player, RECIPE_SWORD_OF_VALHALLA_60);
 						}
 						else if (rdn == 6)
 						{
-							giveItems(player, RECIPE_KRIS_60);
+							rewardItems(player, RECIPE_KRIS_60);
 						}
 						else if (rdn == 7)
 						{
-							giveItems(player, RECIPE_HELL_KNIFE_60);
+							rewardItems(player, RECIPE_HELL_KNIFE_60);
 						}
 						else if (rdn == 8)
 						{
-							giveItems(player, RECIPE_ARTHRO_NAIL_60);
+							rewardItems(player, RECIPE_ARTHRO_NAIL_60);
 						}
 						else if (rdn == 9)
 						{
-							giveItems(player, RECIPE_DARK_ELVEN_LONG_BOW_60);
+							rewardItems(player, RECIPE_DARK_ELVEN_LONG_BOW_60);
 						}
 						else if (rdn == 10)
 						{
-							giveItems(player, RECIPE_GREAT_AXE_60);
+							rewardItems(player, RECIPE_GREAT_AXE_60);
 						}
 						else if (rdn == 11)
 						{
-							giveItems(player, RECIPE_SWORD_OF_DAMASCUS_60);
+							rewardItems(player, RECIPE_SWORD_OF_DAMASCUS_60);
 						}
 						else if (rdn == 12)
 						{
-							giveItems(player, RECIPE_LANCE_60);
+							rewardItems(player, RECIPE_LANCE_60);
 						}
 						else if (rdn == 13)
 						{
-							giveItems(player, RECIPE_DEADMANS_GLORY_60);
+							rewardItems(player, RECIPE_DEADMANS_GLORY_60);
 						}
 						else if (rdn == 14)
 						{
-							giveItems(player, RECIPE_ART_OF_BATTLE_AXE_60);
+							rewardItems(player, RECIPE_ART_OF_BATTLE_AXE_60);
 						}
 						else if (rdn == 15)
 						{
-							giveItems(player, RECIPE_TAFF_OF_EVIL_SPIRITS_60);
+							rewardItems(player, RECIPE_TAFF_OF_EVIL_SPIRITS_60);
 						}
 						else if (rdn == 16)
 						{
-							giveItems(player, RECIPE_DEMONS_DAGGER_60);
+							rewardItems(player, RECIPE_DEMONS_DAGGER_60);
 						}
 						else if (rdn == 17)
 						{
-							giveItems(player, RECIPE_BELLION_CESTUS_60);
+							rewardItems(player, RECIPE_BELLION_CESTUS_60);
 						}
 						else if (rdn == 18)
 						{
-							giveItems(player, RECIPE_BOW_OF_PERIL_60);
+							rewardItems(player, RECIPE_BOW_OF_PERIL_60);
 						}
 					}
 					else if (i0 == 5)
@@ -502,82 +502,82 @@ public class Q00663_SeductiveWhispers extends Quest
 						final int rnd = getRandom(18) + 1;
 						if (rnd == 1)
 						{
-							giveItems(player, GREAT_SWORD_BLADE);
+							rewardItems(player, GREAT_SWORD_BLADE);
 						}
 						else if (rnd == 2)
 						{
-							giveItems(player, GREAT_AXE_HEAD);
+							rewardItems(player, GREAT_AXE_HEAD);
 						}
 						else if (rnd == 3)
 						{
-							giveItems(player, DARK_ELVEN_LONGBOW_SHAFT);
+							rewardItems(player, DARK_ELVEN_LONGBOW_SHAFT);
 						}
 						else if (rnd == 4)
 						{
-							giveItems(player, SWORD_OF_VALHALLA_BLADE);
+							rewardItems(player, SWORD_OF_VALHALLA_BLADE);
 						}
 						else if (rnd == 5)
 						{
-							giveItems(player, ARTHRO_NAIL_BLADE);
+							rewardItems(player, ARTHRO_NAIL_BLADE);
 						}
 						else if (rnd == 6)
 						{
-							giveItems(player, SPRITES_STAFF_HEAD);
+							rewardItems(player, SPRITES_STAFF_HEAD);
 						}
 						else if (rnd == 7)
 						{
-							giveItems(player, KRIS_EDGE);
+							rewardItems(player, KRIS_EDGE);
 						}
 						else if (rnd == 8)
 						{
-							giveItems(player, KESHANBERK_BLADE);
+							rewardItems(player, KESHANBERK_BLADE);
 						}
 						else if (rnd == 9)
 						{
-							giveItems(player, HEAVY_WAR_AXE_HEAD);
+							rewardItems(player, HEAVY_WAR_AXE_HEAD);
 						}
 						else if (rnd == 10)
 						{
-							giveItems(player, HELL_KNIFE_EDGE);
+							rewardItems(player, HELL_KNIFE_EDGE);
 						}
 						else if (rnd == 11)
 						{
-							giveItems(player, SWORD_OF_DAMASCUS_BLADE);
+							rewardItems(player, SWORD_OF_DAMASCUS_BLADE);
 						}
 						else if (rnd == 12)
 						{
-							giveItems(player, LANCE_BLADE);
+							rewardItems(player, LANCE_BLADE);
 						}
 						else if (rnd == 13)
 						{
-							giveItems(player, BELLION_CESTUS_EDGE);
+							rewardItems(player, BELLION_CESTUS_EDGE);
 						}
 						else if (rnd == 14)
 						{
-							giveItems(player, EVIL_SPIRIT_HEAD);
+							rewardItems(player, EVIL_SPIRIT_HEAD);
 						}
 						else if (rnd == 15)
 						{
-							giveItems(player, DEADMANS_GLORY_STONE);
+							rewardItems(player, DEADMANS_GLORY_STONE);
 						}
 						else if (rnd == 16)
 						{
-							giveItems(player, ART_OF_BATTLE_AXE_BLADE);
+							rewardItems(player, ART_OF_BATTLE_AXE_BLADE);
 						}
 						else if (rnd == 17)
 						{
-							giveItems(player, DEMONS_DAGGER_EDGE);
+							rewardItems(player, DEMONS_DAGGER_EDGE);
 						}
 						else if (rnd == 18)
 						{
-							giveItems(player, BOW_OF_PERIL_SHAFT);
+							rewardItems(player, BOW_OF_PERIL_SHAFT);
 						}
 					}
 					else if (i0 == 6)
 					{
 						giveAdena(player, 1284000, true);
-						giveItems(player, SCROLL_ENCHANT_WEAPON_B_GRADE);
-						giveItems(player, SCROLL_ENCHANT_ARMOR_B_GRADE);
+						rewardItems(player, SCROLL_ENCHANT_WEAPON_B_GRADE);
+						rewardItems(player, SCROLL_ENCHANT_ARMOR_B_GRADE);
 					}
 					
 					qs.setMemoState(1);

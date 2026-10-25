@@ -398,167 +398,167 @@ public class Q00386_StolenDignity extends Quest
 		{
 			case 0:
 			{
-				giveItems(player, DRAGON_SLAYER_EDGE, count);
+				rewardItems(player, DRAGON_SLAYER_EDGE, count);
 				break;
 			}
 			case 1:
 			{
-				giveItems(player, METEOR_SHOWER_HEAD, count);
+				rewardItems(player, METEOR_SHOWER_HEAD, count);
 				break;
 			}
 			case 2:
 			{
-				giveItems(player, ELYSIAN_HEAD, count);
+				rewardItems(player, ELYSIAN_HEAD, count);
 				break;
 			}
 			case 3:
 			{
-				giveItems(player, SOUL_BOW_SHAFT, count);
+				rewardItems(player, SOUL_BOW_SHAFT, count);
 				break;
 			}
 			case 4:
 			{
-				giveItems(player, CARNIUM_BOW_SHAFT, count);
+				rewardItems(player, CARNIUM_BOW_SHAFT, count);
 				break;
 			}
 			case 5:
 			{
-				giveItems(player, BLOODY_ORCHID_HEAD, count);
+				rewardItems(player, BLOODY_ORCHID_HEAD, count);
 				break;
 			}
 			case 6:
 			{
-				giveItems(player, SOUL_SEPARATOR_HEAD, count);
+				rewardItems(player, SOUL_SEPARATOR_HEAD, count);
 				break;
 			}
 			case 7:
 			{
-				giveItems(player, DRAGON_GRINDER_EDGE, count);
+				rewardItems(player, DRAGON_GRINDER_EDGE, count);
 				break;
 			}
 			case 8:
 			{
-				giveItems(player, BLOOD_TORNADO_EDGE, count);
+				rewardItems(player, BLOOD_TORNADO_EDGE, count);
 				break;
 			}
 			case 9:
 			{
-				giveItems(player, TALLUM_GLAIVE_EDGE, count);
+				rewardItems(player, TALLUM_GLAIVE_EDGE, count);
 				break;
 			}
 			case 10:
 			{
-				giveItems(player, HALBARD_EDGE, count);
+				rewardItems(player, HALBARD_EDGE, count);
 				break;
 			}
 			case 11:
 			{
-				giveItems(player, DASPARIONS_STAFF_HEAD, count);
+				rewardItems(player, DASPARIONS_STAFF_HEAD, count);
 				break;
 			}
 			case 12:
 			{
-				giveItems(player, WORLDTREES_BRANCH_HEAD, count);
+				rewardItems(player, WORLDTREES_BRANCH_HEAD, count);
 				break;
 			}
 			case 13:
 			{
-				giveItems(player, DARK_LEGIONS_EDGE_EDGE, count);
+				rewardItems(player, DARK_LEGIONS_EDGE_EDGE, count);
 				break;
 			}
 			case 14:
 			{
-				giveItems(player, SWORD_OF_MIRACLE_EDGE, count);
+				rewardItems(player, SWORD_OF_MIRACLE_EDGE, count);
 				break;
 			}
 			case 15:
 			{
-				giveItems(player, ELEMENTAL_SWORD_EDGE, count);
+				rewardItems(player, ELEMENTAL_SWORD_EDGE, count);
 				break;
 			}
 			case 16:
 			{
-				giveItems(player, TALLUM_BLADE_EDGE, count);
+				rewardItems(player, TALLUM_BLADE_EDGE, count);
 				break;
 			}
 			case 17:
 			{
-				giveItems(player, INFERNO_MASTER_BLADE, count);
+				rewardItems(player, INFERNO_MASTER_BLADE, count);
 				break;
 			}
 			case 18:
 			{
-				giveItems(player, EYE_OF_SOUL_PIECE, count);
+				rewardItems(player, EYE_OF_SOUL_PIECE, count);
 				break;
 			}
 			case 19:
 			{
-				giveItems(player, DRAGON_FLAME_HEAD_PIECE, count);
+				rewardItems(player, DRAGON_FLAME_HEAD_PIECE, count);
 				break;
 			}
 			case 20:
 			{
-				giveItems(player, DOOM_CRUSHER_HEAD, count);
+				rewardItems(player, DOOM_CRUSHER_HEAD, count);
 				break;
 			}
 			case 21:
 			{
-				giveItems(player, HAMMER_OF_DESTROYER_PIECE, count);
+				rewardItems(player, HAMMER_OF_DESTROYER_PIECE, count);
 				break;
 			}
 			case 22:
 			{
-				giveItems(player, SIRR_BLADE_BLADE, count);
+				rewardItems(player, SIRR_BLADE_BLADE, count);
 				break;
 			}
 			case 23:
 			{
-				giveItems(player, SWORD_OF_IPOS_BLADE, count);
+				rewardItems(player, SWORD_OF_IPOS_BLADE, count);
 				break;
 			}
 			case 24:
 			{
-				giveItems(player, BARAKIEL_AXE_PIECE, count);
+				rewardItems(player, BARAKIEL_AXE_PIECE, count);
 				break;
 			}
 			case 25:
 			{
-				giveItems(player, TUNING_FORK_OF_BEHEMOTH_PIECE, count);
+				rewardItems(player, TUNING_FORK_OF_BEHEMOTH_PIECE, count);
 				break;
 			}
 			case 26:
 			{
-				giveItems(player, NAGA_STORM_PIECE, count);
+				rewardItems(player, NAGA_STORM_PIECE, count);
 				break;
 			}
 			case 27:
 			{
-				giveItems(player, TIPHON_SPEAR_EDGE, count);
+				rewardItems(player, TIPHON_SPEAR_EDGE, count);
 				break;
 			}
 			case 28:
 			{
-				giveItems(player, SHYID_BOW_SHAFT, count);
+				rewardItems(player, SHYID_BOW_SHAFT, count);
 				break;
 			}
 			case 29:
 			{
-				giveItems(player, SOBEKK_HURRICANE_EDGE, count);
+				rewardItems(player, SOBEKK_HURRICANE_EDGE, count);
 				break;
 			}
 			case 30:
 			{
-				giveItems(player, TONGUE_OF_THEMIS_PIECE, count);
+				rewardItems(player, TONGUE_OF_THEMIS_PIECE, count);
 				break;
 			}
 			case 31:
 			{
-				giveItems(player, HAND_OF_CABRIO_HEAD, count);
+				rewardItems(player, HAND_OF_CABRIO_HEAD, count);
 				break;
 			}
 			case 32:
 			{
-				giveItems(player, CRYSTAL_OF_DEAMON_PIECE, count);
+				rewardItems(player, CRYSTAL_OF_DEAMON_PIECE, count);
 				break;
 			}
 		}
