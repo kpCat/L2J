@@ -4,10 +4,10 @@ PLAYER	dist/game/config/Player.ini	MaxPvtStoreSellSlotsDwarf	20	client GUI QA pe
 PLAYER	dist/game/config/Player.ini	MaxPvtStoreSellSlotsOther	20	client GUI QA pending
 PLAYER	dist/game/config/Player.ini	MaxPvtStoreBuySlotsDwarf	20	client GUI QA pending
 PLAYER	dist/game/config/Player.ini	MaxPvtStoreBuySlotsOther	20	client GUI QA pending
-PLAYER	dist/game/config/Player.ini	MaximumSlotsForNoDwarf	200	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaximumSlotsForNoDwarf	250	client GUI QA pending
 PLAYER	dist/game/config/Player.ini	MaximumSlotsForDwarf	250	client GUI QA pending
 PLAYER	dist/game/config/Player.ini	MaximumSlotsForGMPlayer	250	retain to avoid packet max growth
-PLAYER	dist/game/config/Player.ini	MaximumSlotsForQuestItems	200	client GUI QA pending
+PLAYER	dist/game/config/Player.ini	MaximumSlotsForQuestItems	250	client GUI QA pending
 PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForDwarf	250	strict under 300 inclusive WH_LIM if applicable
 PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForNoDwarf	250	strict under 300
 PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForClan	250	strict under 300
@@ -34,6 +34,6 @@ SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMAtkSpdBonusMult
 STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromPlayer	50	current default already 50; respect in all stores
 STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromNpc	100	current default already100
 STORE	dist/game/config/Custom/PhantomMerchants.ini	MerchantLinesPerStore	20	needs compatible code change hard limit8; no static fallback to3
-CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	EnablePersonalWondrousCubicCooldown	False	preserve allowlist-based owner choice
-CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	PersonalWondrousCubicCooldownMinutes	60	already exists, keep
+CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	EnablePersonalWondrousCubicCooldown	True	preserve allowlist-based owner choice
+CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	PersonalWondrousCubicCooldownMinutes	10	already exists, keep
 QUEST	dist/game/config/Rates.ini	Quest rates (all keys)	PRESERVE_EXISTING_VALUES	never invent lost rates; source currently1
