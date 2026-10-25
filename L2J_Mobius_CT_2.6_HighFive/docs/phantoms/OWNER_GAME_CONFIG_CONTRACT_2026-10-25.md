@@ -108,3 +108,72 @@ Database.ini, Network.ini, hexid.txt, реальные IDs/аккаунты и �
 Таблица090 выше фиксирует фактические source bytes штатного Save. При staging Git нормализовал только CRLF→LF в OwnerConfig.json: SHA256 Git blob `62fb313d5e59f5b703efc8af914806efa76ff9f8bc5f85b127eaef5fa121ff4e`. Полное содержимое после этой единственной EOL-нормализации совпало; overrides и другие metadata не изменены.
 
 Полная матрица и границы проверок — [отчёт090](reports/PHANTOM-QUEST-REWARD-RATES-090.md). Native Player выигрыши/ставки/replay090 не запускались: FULL090 остаётся PARTIAL/NATIVE_NOT_RUN. Публичная конфигурация готова к будущему штатному Apply; финальная поставка, private activation, прежние открытые QoL/navigation gates этим дополнением не принимаются.
+
+## Дополнение владельца TASK091 — 25.10.2026
+
+Явное дополнительное решение владельца из приложенного текста применено **после** завершения native тестовой фазы и отдельной публикации навигации `179cfc6f3a6365950488170e729bbff9f6083b20`. FULL091 остаётся **PARTIAL**, подробности — [отчёт091](reports/PHANTOM-INTERREGIONAL-TRAVEL-CLOSURE-091.md). Новые INI не применялись к frozen native TEST091, не меняют её доказательства и не принимают открытые graph0/Elf/foreground gameplay/farm/paid resume gates. Аварийный fallback не реализован; точка безопасной интеграции указана в отчёте.
+
+Изменены ровно15 ключей в трёх публичных INI; остальные байты всех68 public INI сохранены, включая комментарии и обе per-ID premium строки:
+
+| Файл | Новые утверждённые значения |
+|---|---|
+| Custom/PhantomPlayers.ini | EnablePhantomSystem=True; PhantomPopulationTarget=5000; MaxMaterializedPhantoms=128; PhantomPopulationActiveTarget=128 |
+| Custom/PhantomMerchants.ini | EnableOfflinePhantomMerchants=True |
+| Custom/PremiumSystem.ini | EnablePremiumSystem=True; PremiumRateXp=4; PremiumRateSp=4; PremiumRateDropChance=5; PremiumRateDropAmount=5; PremiumRateSpoilChance=5; PremiumRateSpoilAmount=5; PremiumRateQuestXp=5; PremiumRateQuestSp=5; PremiumMaximumCombinedChanceBonus=5 |
+
+Сохранены PhantomMaterializationBurstSlots=0, MaxScheduledPhantomProfiles=10000, PhantomPopulationCreationInFlight=2, scheduler/queue/job budgets, Ecology и календари. Native `PhantomPlayersConfig.read` принял target5000/active128/cap128/burst0 без fail-closed. Это значения будущей поставки:5000 durable profiles не означают5000 одновременно материализованных Player. Массовое создание профилей/128 Player и CPU/heap/GC/latency нагрузка **NOT_RUN/NOT_MEASURED**, производительность этим решением не доказана.
+
+MerchantTargetStores=200, MerchantHardCap=250, MerchantLifetimeIdentityLimit=300 и MerchantLinesPerStore=20 сохранены. Native `PhantomMerchantPolicy.load` принял эти bounds. OfflineTradeEnable=True и OfflineCraftEnable=True уже включены; OfflineTrade.ini не менялся. Независимый `PhantomMarketMaximumOpenStores` и его отдельная подсистема не изменялись.200 лавок не создавались, runtime admission/rotation/торговля **NOT_RUN**.
+
+Штатный Save сохранил все272 прежних overrides с идентичными file/key/kind/baseValue/value, включая RateQuestReward=50; добавил15 новых, итого287. Старые overrides не пересчитывались/не терялись. Rates.ini, ClassMaster.xml, OwnerProfile38.tsv и OwnerProfilePreserved.properties побайтово совпадают с source090. Save изменил только OwnerConfig.json; два разрешённых projection metadata не требуют фиктивного изменения.
+
+Штатная сериализация Save также изменила порядок записей overrides в JSON; поэтому текстовый diff metadata шире15 добавлений. Полное сравнение по уникальному file/key подтвердило идентичность всех272 прежних tuples и неизменность format/files. Ручного пересортирования или изменения tool ради этого diff нет. Обычный `diff --check` отметил CR в10 изменённых строках исходного CRLF PremiumSystem.ini; CRLF-aware `git -c core.whitespace=cr-at-eol diff --check -- <exact paths>` прошёл. Исходный EOL INI сохранён, реальные trailing spaces не добавлены.
+
+### Premium: смысл новых значений и исключения
+
+Источник — существующие `Attackable`/`Party`, `Quest.addExpAndSp`, grouped/ungrouped `NpcTemplate`, `PremiumLootPolicy` и `PremiumManager`; Java не меняется. XP/SP множители premium применяются поверх native server rates; при текущих RateXp3/RateSp5 произведения4×3=12 и4×5=20. Quest premium5 применяется перед Rates questXP25/SP35, произведения125/175. Это описание порядка native кода, **не измеренные выигрыши Player**; party distribution, level/other native modifiers сохраняются. Drop/spoil используют premium chance/amount, собственные native/server/champion modifiers и roll rules; cap действует на combined chance bonus до независимых server/champion rates, не на amount.
+
+Общий cap3→5 затрагивает также обычного nonpremium игрока с native item bonus>3: `min(cap,1×itemBonus)`. При itemBonus4 теперь4 вместо3, при itemBonus1 по-прежнему1. Premium ordinary chance5×native bonus2 ограничится5, не10. Та же общая chance политика используется Spoil; managed/headless исключение premium не отменяет применение cap к собственному native item bonus. Включение системы не создаёт premium подписки: сохраняются expiration/admission в PremiumManager и исключения managed/headless в PremiumLootPolicy. Автоматических выдач premium аккаунтам/Phantom нет.
+
+Обе неизменённые per-ID строки имеют одинаковые11 исключений, которые приоритетнее ordinary premium5:
+
+| ID и native название | Premium chance / amount |
+|---|---|
+| 57 Adena |2 / 2|
+| 6656 Earring of Antharas |1 / 1|
+| 6657 Necklace of Valakas |1 / 1|
+| 6658 Ring of Baium |1 / 1|
+| 6659 Earring of Zaken |1 / 1|
+| 6660 Ring of Queen Ant |1 / 1|
+| 6661 Earring of Orfen |1 / 1|
+| 6662 Ring of Core |1 / 1|
+| 8191 Necklace of Frintezza |1 / 1|
+| 10170 Baylor's Earring |1 / 1|
+| 10314 Ring of Beleth |1 / 1|
+
+Это premium bonus, не обещание финального количества/шанса; независимые native/server/champion множители остаются. Herbs/immediate без explicit override получают1; explicit0 остаётся0. DB-free smoke через реальные публичные API загрузил новые staged INI и подтвердил policy bounds, rates, все11 исключений обеих карт, ordinary5/herb1/explicit0, nonpremium cap4=4 и premium5×2=5. `DatabaseFactory.isInitialized=false`; materialization, реальные grouped/ungrouped drops, Spoil, Quest/kill XP/SP и payout с новыми значениями **NOT_RUN**. Historical070 native tests/его конфиги не изменялись и не переиспользовались как ложное доказательство091.
+
+### Сохранение и независимый Apply
+
+До правок SHA-checked byte backups76 файлов и прежнего текста контракта сохранены вне checkout. Отдельная private ACL stage: `%TEMP%/phantom091-config-db2d5314c8af4e56a6ff6f0fe2b02421/game`; public68 INI +3 metadata +ClassMaster.xml +4 enchant XML/XSD. Исходный stage уже содержал прежние272 применённых overrides; они не откатывались к base. Первоначальная копия остановилась на неверном optional `data/ClassMaster.xml`; путь проверен как `config/ClassMaster.xml`, копирование завершено до изменений source. Никакой private Database/Network/Server конфигурации, DB/JVM или защищённой поставки в stage нет.
+
+Вместо BAT с pause выполнен разрешённый штатный `powershell -NoProfile -ExecutionPolicy Bypass -File tools/OwnerConfig.ps1 -Action Save`, затем `-Action Verify`: оба exit0, filesChecked68/overridesStored287/conflicts0; Save changed1 (OwnerConfig.json), Verify changed0. На отдельной stage выполнены `-Action Apply -GameRoot <stage/game> -ProfilePath <source/config/OwnerConfig.json>`, затем Verify: exit0, Apply changed4 (три INI и OwnerConfig.json), Verify changed0. Все68 INI и все76 staged файлов byte-identical source. Повторные Apply→Verify: exit0, changed0/0, все76 hashes неизменны. Прямой `java java/org/l2jmobius/gameserver/config/OwnerProfileVerifier.java <stage/game>`: exit0, `OWNER_PROFILE_PASS rules=38`, XML_XSD=PASS, quest digest `5f62ca25a25eb94773e58c2e43689fc8ed125d2923552e38ea085f639b2ae256`. Доказательства и snapshots сохранены в своей private stage, secret values не публикуются.
+
+Фактические SHA256 source bytes после Save091 (Git может нормализовать CRLF→LF при staging):
+
+| Файл | SHA256 |
+|---|---|
+| Custom/PhantomPlayers.ini | `55043b107c918d5232b838cb56583ab3dfda2b4530b2c5321fddf35c660180b2` |
+| Custom/PhantomMerchants.ini | `11684ea937af679931abc253e01d7825de5fe9d1f3acac5437be90091f8981b3` |
+| Custom/PremiumSystem.ini | `6772ddc9a713152e338dbf90ef83c5f07b37e41d0cd77aefd9beaeda41c897a4` |
+| OwnerConfig.json | `5776e83810689da1acf94d0a3d8ee54d204e87ca0bf7488e685034b57c61f4e8` |
+| OwnerProfile38.tsv (unchanged) | `4f25d9419b1a01aff2792a29f09a6b12f6fc464314ace73419ea4590a6ad3244` |
+| OwnerProfilePreserved.properties (unchanged) | `c49b6a7e3aa04f55c287dd28212ef9935b478aa78e31d74c2e6caa2d8712e9fc` |
+| Rates.ini (unchanged) | `ba9c6fcbd364e09588f50a4d507d06fc9f21f0bfeaaba229977b44124db819f2` |
+
+Config commit ограничен3 INI +OwnerConfig.json +этим append-only дополнением; отдельный ordinary non-force push в feature/phantom-world. Git-команды разрешены дополнением владельца: exact `git diff --/--cached --check/--name-only/--raw --no-abbrev/--stat`, `git add -- <five paths>`, `git commit --only -m <subject> -- <five paths>`, `git push origin HEAD:refs/heads/feature/phantom-world`, `git rev-parse HEAD/'@{upstream}'`, `git ls-remote origin refs/heads/feature/phantom-world`, `git status --porcelain=v1 --untracked-files=no`. Штатный Save дополнительно читает `git rev-parse --show-toplevel`, `git rev-parse --verify HEAD^{commit}`, `git show <revision>:<exact INI path>` для managed base. История/чужой dirt/worktrees не меняются; финальный второй SHA/parity сообщается отдельно.
+
+- mojibake-маркеры в изменённых файлах проверены: полный набор27 markers,0 совпадений.
+- escaped Cyrillic в изменённых файлах проверены: все6 regex patterns,0 совпадений.
+
+Конфигурация сохранена для будущей поставки, сервер не запущен. Protected078 и старые runtime/DB/JVM/worktrees не затронуты. **STOP: следующая задача не начинается.**
