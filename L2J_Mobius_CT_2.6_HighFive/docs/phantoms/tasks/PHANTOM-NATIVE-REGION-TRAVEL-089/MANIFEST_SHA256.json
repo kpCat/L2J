@@ -1,0 +1,44 @@
+{
+  "task": "PHANTOM-NATIVE-REGION-TRAVEL-089",
+  "prepared_on": "2026-10-25",
+  "repository": "https://github.com/kpCat/L2J",
+  "baseline_remote_head": "48a5c7f1f1b14cd0b09c4a461e4da7e4b4549560",
+  "root_unpack": "D:\\Codex\\repos\\L2J-phantom-world",
+  "relative_root": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-NATIVE-REGION-TRAVEL-089",
+  "algorithm": "SHA-256",
+  "note": "Manifest excludes itself; verify each path against the canonical UTF-8 bytes in ZIP. Never silently modify package.",
+  "files": {
+    "GOAL.txt": {
+      "sha256": "ccd9110da97dcf897bc7c886af9788419b0ecea2a659f5fc42b232de178e60aa",
+      "bytes": 1125
+    },
+    "TASK.md": {
+      "sha256": "9038b36dbad01f5bbb17bbc2a148d870c6b8d3741f579b3b72b6de63f7b64afa",
+      "bytes": 23905
+    },
+    "SOURCE_MAP.md": {
+      "sha256": "59acba88b82d4c781e630a8bcb9a089aed36092ae5ad9c921485a737b278113f",
+      "bytes": 6325
+    },
+    "PRODUCT_DECISIONS.md": {
+      "sha256": "96139728b7f40b06120b46e894a360a4517e22d09e6c2a982eb8c3c78b4eabb3",
+      "bytes": 3530
+    },
+    "ACCEPTANCE.md": {
+      "sha256": "60a2d3a2d5a13d785391cbca810e89462b7d05c969f00fa64578d683f9182dd9",
+      "bytes": 4559
+    },
+    "TEST_PLAN.md": {
+      "sha256": "ed3aabff0be03af8ccbe9181282684b0cab17b2e7eba28a0613ba261545b3c08",
+      "bytes": 7199
+    },
+    "EVIDENCE.md": {
+      "sha256": "716888fae19ea618bad6ee49c129aa232d65d4ab921ddbb91d16a0814ebb1263",
+      "bytes": 2840
+    },
+    "DELIVERY.md": {
+      "sha256": "bc9ed1c1d0a92a9af0be92f560f9ca1f40359e36afd0d7d667ef84d47fa22276",
+      "bytes": 2829
+    }
+  }
+}

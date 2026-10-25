@@ -151,6 +151,16 @@ public final class PhantomNavigationService
 	{
 		return submit(request, true, null);
 	}
+	/** Opt-in hierarchical WALK. A successful route ends at its factual local checkpoint. */
+	public Submission submitWalkEpisode(PhantomNavigationRequest request)
+	{
+		return submit(request, true, true, null);
+	}
+	public Submission submitWalkEpisode(PhantomNavigationRequest request, java.util.Set<PhantomNavigationPoint> visited)
+	{
+		if (visited.size() > 64) { throw new IllegalArgumentException("Too many physical episode checkpoints."); }
+		return submit(request, true, true, null, java.util.Set.copyOf(visited));
+	}
 	public Submission submitTravelPlan(PhantomNavigationRequest request, PhantomTravelStrategy.Options options)
 	{
 		return submit(request, true, Objects.requireNonNull(options, "options"));
@@ -161,6 +171,14 @@ public final class PhantomNavigationService
 	}
 
 	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, PhantomTravelStrategy.Options travelOptions)
+	{
+		return submit(request, walkCorridor, false, travelOptions);
+	}
+	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions)
+	{
+		return submit(request, walkCorridor, walkEpisode, travelOptions, java.util.Set.of());
+	}
+	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions, java.util.Set<PhantomNavigationPoint> visited)
 	{
 		Objects.requireNonNull(request, "request");
 		final RequestEntry entry;
@@ -187,7 +205,7 @@ public final class PhantomNavigationService
 				_metrics.recordNavigationSubmissionRejected();
 				return rejected(request.profileId(), Status.BACKEND_FAILURE);
 			}
-			entry = new RequestEntry(requestId, request, walkCorridor, travelOptions);
+			entry = new RequestEntry(requestId, request, walkCorridor, walkEpisode, travelOptions, visited);
 			_activeByRequest.put(requestId, entry);
 			_activeByProfile.put(request.profileId(), entry);
 		}
@@ -382,7 +400,8 @@ public final class PhantomNavigationService
 		{
 			capability = Objects.requireNonNull(_backend.capability(entry._request.origin(), entry._request.destination()), "Backend capability must not be null.");
 			entry._capability = capability;
-			direct = (entry._travelOptions == null || directDistance <= _policy.maximumLocalStraightDistance()) && canMove(entry, entry._request.origin(), entry._request.destination());
+			direct = (!entry._walkEpisode || directDistance <= PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
+				&& (entry._travelOptions == null || directDistance <= _policy.maximumLocalStraightDistance()) && canMove(entry, entry._request.origin(), entry._request.destination());
 		}
 		catch (Throwable throwable)
 		{
@@ -443,7 +462,7 @@ public final class PhantomNavigationService
 				return completeSubmission(entry, Status.BACKEND_FAILURE, null, false);
 		}
 
-		if (entry._travelOptions == null && entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance())
+		if (entry._travelOptions == null && !entry._walkEpisode && entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance())
 		{
 			_metrics.recordNavigationRouteBudgetRejected();
 			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
@@ -681,8 +700,11 @@ public final class PhantomNavigationService
 					else if (entry._walkCorridor)
 					{
 						final var nativeBackend = _backend instanceof L2jNavigationBackend nativeValue ? nativeValue : new L2jNavigationBackend();
-						final var corridor = nativeBackend.findWalkCorridor(entry._request, entry._cancellation, _policy, _clock, _backend);
+						final var corridor = entry._walkEpisode
+							? nativeBackend.findWalkEpisode(entry._request, entry._cancellation, _policy, _clock, _backend, entry._episodeVisited)
+							: nativeBackend.findWalkCorridor(entry._request, entry._cancellation, _policy, _clock, _backend);
 						backendPath = corridor.points();
+						if (entry._walkEpisode && corridor.status() == PhantomWalkCorridorPlanner.Status.FOUND && !backendPath.isEmpty()) { entry._episodeDestination = backendPath.getLast(); }
 						corridorStatus = switch (corridor.status())
 						{
 							case FOUND -> Status.PATH_FOUND;
@@ -774,7 +796,7 @@ public final class PhantomNavigationService
 	private ValidatedPath validateBackendPath(RequestEntry entry, List<PhantomNavigationPoint> backendPath, long cancellationGeneration)
 	{
 		final double maximumDistance = routeDistanceBudget(entry._request);
-		final var destination = entry._selectedPlan == null ? entry._request.destination() : entry._selectedPlan.stages().getFirst().to();
+		final var destination = entry._episodeDestination != null ? entry._episodeDestination : entry._selectedPlan == null ? entry._request.destination() : entry._selectedPlan.stages().getFirst().to();
 		if (entry._selectedPlan != null && entry._request.origin().equals(destination))
 		{
 			final var status = interruption(entry, cancellationGeneration);
@@ -1044,6 +1066,9 @@ public final class PhantomNavigationService
 		private final long _requestId;
 		private final PhantomNavigationRequest _request;
 		private final boolean _walkCorridor;
+		private final boolean _walkEpisode;
+		private PhantomNavigationPoint _episodeDestination;
+		private final java.util.Set<PhantomNavigationPoint> _episodeVisited;
 		private final PhantomTravelStrategy.Options _travelOptions;
 		private PhantomTravelStrategy.Candidate _selectedPlan;
 		private final PhantomNavigationCancellationToken _cancellation = new PhantomNavigationCancellationToken();
@@ -1053,11 +1078,13 @@ public final class PhantomNavigationService
 		private PhantomNavigationResult _terminalResult;
 		private boolean _submissionCounted;
 
-		private RequestEntry(long requestId, PhantomNavigationRequest request, boolean walkCorridor, PhantomTravelStrategy.Options travelOptions)
+		private RequestEntry(long requestId, PhantomNavigationRequest request, boolean walkCorridor, boolean walkEpisode, PhantomTravelStrategy.Options travelOptions, java.util.Set<PhantomNavigationPoint> visited)
 		{
 			_requestId = requestId;
 			_request = request;
 			_walkCorridor = walkCorridor;
+			_walkEpisode = walkEpisode;
+			_episodeVisited = visited;
 			_travelOptions = travelOptions;
 		}
 	}

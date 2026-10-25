@@ -36,6 +36,81 @@ public final class PhantomWalkCorridorPlanner
 		}
 	}
 	public PhantomWalkCorridorPlanner(Oracle oracle, LongSupplier clock) { _oracle = oracle; _clock = clock; }
+	/**
+	 * One local proof, not an arrival at the remote destination. The caller must
+	 * observe physical arrival at points.getLast() before admitting another episode.
+	 * No unproved tail is appended and every alternative shares the original budget.
+	 */
+	public Result planEpisode(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy)
+	{
+		return planEpisode(request, cancellation, policy, java.util.Set.of());
+	}
+	public Result planEpisode(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, java.util.Set<PhantomNavigationPoint> visited)
+	{
+		if (visited.size() > 64) { throw new IllegalArgumentException("Too many physical episode checkpoints."); }
+		final var budget = new Budget();
+		if (request.origin().instanceId() != request.destination().instanceId()) { return new Result(Status.NO_ROUTE_WITHIN_BUDGET, List.of(), 0, 0, 0, 0); }
+		final double bearing = Math.atan2((double) request.destination().y() - request.origin().y(), (double) request.destination().x() - request.origin().x());
+		final List<PhantomNavigationPoint> candidates = new ArrayList<>();
+		if (request.origin().distanceTo(request.destination()) <= LOCAL_SPAN) { candidates.add(request.destination()); }
+		// Probe the intended surface as well as the current one. A different Z is
+		// only a candidate: normalize must still prove every native connecting segment.
+		for (var surface : request.origin().z() == request.destination().z() ? List.of(request.origin()) : List.of(request.destination(), request.origin()))
+		{
+			for (int span : new int[] {LOCAL_SPAN, 1500, 750})
+			{
+				for (double turn : new double[] {0, -Math.PI / 6, Math.PI / 6})
+				{
+					final Status interrupted = episodeInterruption(request, cancellation);
+					if (interrupted != null) { return episodeResult(interrupted, List.of(), budget); }
+					final var from = request.origin();
+					final var checkpoint = _oracle.project(from.x() + (int) Math.round(span * Math.cos(bearing + turn)), from.y() + (int) Math.round(span * Math.sin(bearing + turn)), surface);
+					if (checkpoint != null && checkpoint.instanceId() == from.instanceId() && !checkpoint.equals(from) && !candidates.contains(checkpoint)) { candidates.add(checkpoint); }
+				}
+			}
+			// A heuristic orders work; it is not a reachability veto.
+			final var escapes = new ArrayList<PhantomNavigationPoint>();
+			for (var direction : DIRECTIONS)
+			{
+				final var point = _oracle.project(request.origin().x() + direction[0] * STRIDE, request.origin().y() + direction[1] * STRIDE, surface);
+				if (point != null && point.instanceId() == request.origin().instanceId() && !point.equals(request.origin()) && !candidates.contains(point)) { escapes.add(point); }
+			}
+			escapes.sort(java.util.Comparator.comparingDouble(point -> point.distanceTo(request.destination())));
+			candidates.addAll(escapes);
+		}
+		budget.nodes = 1; budget.labels = 1;
+		PhantomNavigationPoint fallback = null;
+		for (var target : candidates)
+		{
+			final Status interrupted = episodeInterruption(request, cancellation);
+			if (interrupted != null) { return episodeResult(interrupted, List.of(), budget); }
+			if (!target.equals(request.destination()) && visited.stream().anyMatch(point -> point.instanceId() == target.instanceId() && Math.hypot((long) point.x() - target.x(), (long) point.y() - target.y()) < 256 && Math.abs((long) point.z() - target.z()) < 100)) { continue; }
+			if (fallback == null) { fallback = target; }
+			if (!budget.reserve(1, 1)) { return episodeResult(Status.SEARCH_LIMIT, List.of(), budget); }
+			budget.labels++;
+			List<PhantomNavigationPoint> points;
+			if (_oracle.direct(request.origin(), target)) { points = List.of(target); }
+			else
+			{
+				if (budget.queries >= MAX_QUERIES) { return episodeResult(Status.SEARCH_LIMIT, List.of(), budget); }
+				budget.queries++;
+				points = _oracle.path(request.origin(), target);
+			}
+			final var proof = PhantomNativeRouteContract.normalize(request.origin(), target, points, policy, request.maximumRouteDistance(), _oracle::direct,
+				() -> cancellation.changedSince(0) ? PhantomNavigationResult.Status.CANCELLED : _clock.getAsLong() >= request.deadlineLogicalNanos() ? PhantomNavigationResult.Status.DEADLINE_EXPIRED : PhantomNavigationResult.Status.PATH_FOUND);
+			if (episodeInterruption(request, cancellation) != null) { return episodeResult(episodeInterruption(request, cancellation), List.of(), budget); }
+			if (proof.status() == PhantomNavigationResult.Status.PATH_FOUND) { return episodeResult(Status.FOUND, proof.waypoints(), budget); }
+		}
+		if (fallback == null) { return episodeResult(Status.NO_ROUTE_WITHIN_BUDGET, List.of(), budget); }
+		final var local = new PhantomNavigationRequest(request.profileId(), request.origin(), fallback, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance());
+		final var result = plan(local, cancellation, policy, budget);
+		return episodeResult(result.status(), result.points(), budget);
+	}
+	private Status episodeInterruption(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation)
+	{
+		return cancellation.changedSince(0) ? Status.CANCELLED : _clock.getAsLong() >= request.deadlineLogicalNanos() ? Status.DEADLINE_EXPIRED : null;
+	}
+	private static Result episodeResult(Status status, List<PhantomNavigationPoint> points, Budget budget) { return new Result(status, points, budget.nodes, budget.edges, budget.queries, budget.labels); }
 	public Result plan(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy)
 	{
 		return plan(request, cancellation, policy, new Budget());

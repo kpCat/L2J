@@ -78,7 +78,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		// Preserve Navigation's existing NO_GEODATA policy when no surface is known.
 		if (!geo.hasGeo(hint.x(), hint.y())) { return java.util.Optional.of(hint); }
 		final int z = geo.getHeight(hint.x(), hint.y(), hint.z());
-		if (Math.abs((long) z - hint.z()) > verticalTolerance || geo.getHeight(hint.x(), hint.y(), z) != z || ZoneManager.getInstance().getZone(hint.x(), hint.y(), z, WaterZone.class) != null) { return java.util.Optional.empty(); }
+		if (z < org.l2jmobius.gameserver.model.World.WORLD_Z_MIN || z > org.l2jmobius.gameserver.model.World.WORLD_Z_MAX || Math.abs((long) z - hint.z()) > verticalTolerance || geo.getHeight(hint.x(), hint.y(), z) != z || ZoneManager.getInstance().getZone(hint.x(), hint.y(), z, WaterZone.class) != null) { return java.util.Optional.empty(); }
 		return java.util.Optional.of(new PhantomNavigationPoint(hint.x(), hint.y(), z, hint.instanceId()));
 	}
 
@@ -114,11 +114,28 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	{
 		return findWalkCorridor(request,cancellation,policy,clock,paths,java.util.Set.of());
 	}
+	/** One proven physical checkpoint; never a certificate for the unsearched tail. */
+	public PhantomWalkCorridorPlanner.Result findWalkEpisode(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths)
+	{
+		return findWalkEpisode(request, cancellation, policy, clock, paths, java.util.Set.of());
+	}
+	public PhantomWalkCorridorPlanner.Result findWalkEpisode(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomNavigationPoint> visited)
+	{
+		return findWalkCorridor(request, cancellation, policy, clock, paths, java.util.Set.of(), new PhantomWalkCorridorPlanner.Budget(), true, visited);
+	}
 	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges)
 	{
 		return findWalkCorridor(request, cancellation, policy, clock, paths, blockedEdges, new PhantomWalkCorridorPlanner.Budget());
 	}
 	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges, PhantomWalkCorridorPlanner.Budget budget)
+	{
+		return findWalkCorridor(request, cancellation, policy, clock, paths, blockedEdges, budget, false);
+	}
+	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges, PhantomWalkCorridorPlanner.Budget budget, boolean episode)
+	{
+		return findWalkCorridor(request, cancellation, policy, clock, paths, blockedEdges, budget, episode, java.util.Set.of());
+	}
+	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges, PhantomWalkCorridorPlanner.Budget budget, boolean episode, java.util.Set<PhantomNavigationPoint> visited)
 	{
 		final var planner = new PhantomWalkCorridorPlanner(new PhantomWalkCorridorPlanner.Oracle()
 		{
@@ -127,7 +144,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 				final var geo = GeoEngine.getInstance();
 				if (!geo.hasGeo(x, y)) { return null; }
 				final int z = geo.getHeight(x, y, surface.z());
-				if (z != geo.getHeight(x, y, z) || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) { return null; }
+				if (z < org.l2jmobius.gameserver.model.World.WORLD_Z_MIN || z > org.l2jmobius.gameserver.model.World.WORLD_Z_MAX || z != geo.getHeight(x, y, z) || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) { return null; }
 				return new PhantomNavigationPoint(x, y, z, surface.instanceId());
 			}
 			@Override public boolean direct(PhantomNavigationPoint from, PhantomNavigationPoint to) { return !blockedEdges.contains(new PhantomWalkCorridorPlanner.Edge(from, to)) && canWalkDirect(from, to); }
@@ -136,7 +153,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 				return paths.findPath(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance()), cancellation);
 			}
 		}, clock);
-		return planner.plan(request, cancellation, policy, budget);
+		return episode ? planner.planEpisode(request, cancellation, policy, visited) : planner.plan(request, cancellation, policy, budget);
 	}
 
 	public record TravelPlan(PhantomNavigationResult.Status status, PhantomTravelStrategy.Candidate candidate) { }
