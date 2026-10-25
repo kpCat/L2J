@@ -162,6 +162,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	private static BootstrapResult initializeNativeInfrastructure(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
+		if (PhantomTask091Lane.enabled()) { PhantomTask091Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
 		if (PhantomTask087Lane.enabled()) { PhantomTask087Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
 		if (PhantomTask086Lane.enabled()) { PhantomTask086Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
 		final Path expectedWorkingDirectory = PhantomTask074Lane.enabled() ? PhantomTask074Lane.task(context.moduleRoot()).resolve("native-test/game").normalize() : context.moduleRoot().resolve("dist/game").normalize();
@@ -170,7 +171,11 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
 
-		if (PhantomTask087Lane.enabled())
+		if (PhantomTask091Lane.enabled())
+		{
+			PhantomTask091Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
+		}
+		else if (PhantomTask087Lane.enabled())
 		{
 			PhantomTask087Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
 		}
@@ -236,7 +241,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomTask087Lane.enabled())
+		if (PhantomTask091Lane.enabled())
+		{
+			PhantomTask091Lane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomTask087Lane.enabled())
 		{
 			PhantomTask087Lane.initialize(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -373,6 +383,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
+		if (PhantomTask091Lane.enabled()) { throw new IllegalArgumentException("TASK091 infrastructure only; mutable generic fixtures forbidden."); }
 		if (PhantomTask087Lane.enabled()) { throw new IllegalArgumentException("Own087 native lane preserves its fixture; infrastructure only."); }
 		if (PhantomTask086Lane.enabled()) { throw new IllegalArgumentException("TASK086 infrastructure only; mutable fixtures forbidden."); }
 		if (PhantomTask074Lane.enabled()) { throw new IllegalArgumentException("Own074 native lane preserves its fixture; infrastructure only."); }

@@ -1,0 +1,49 @@
+{
+  "algorithm": "SHA-256",
+  "baseline_remote_head": "627bca947fd565ce18aa5cc85c7e1aa1288ccaef",
+  "branch": "feature/phantom-world",
+  "files": {
+    "ACCEPTANCE.md": {
+      "bytes": 3371,
+      "sha256": "f8fb7c93260a88d482c33ee1b9800ee6d16571f348a62f8173a699654e567a17"
+    },
+    "DELIVERY.md": {
+      "bytes": 2304,
+      "sha256": "23e448d4475da49ece19cdc9704952153b9cf101e0c61fc5d152db88f8fb7563"
+    },
+    "EVIDENCE.md": {
+      "bytes": 2247,
+      "sha256": "d09ed4619acb7d21f61c06b344eba74f8e33508370b5aa5c8ac61cd0c37d7202"
+    },
+    "GOAL.txt": {
+      "bytes": 1017,
+      "sha256": "c473d184ba947b11c5a80f0c2298aaee1c4f1ff4af1741bac5eb666138276dd9"
+    },
+    "PRODUCT_DECISIONS.md": {
+      "bytes": 3226,
+      "sha256": "fa7927cb709ed68f69b1a89ea21d331b39b4da345a5de47e62722bf214673395"
+    },
+    "SAFETY.md": {
+      "bytes": 3797,
+      "sha256": "7f44067ea7ba674a932129cd60252a7cf48f6f694977413e36e9bd0cdeba889f"
+    },
+    "SOURCE_MAP.md": {
+      "bytes": 5834,
+      "sha256": "0cccd37032967a6dd8eaa18a582868fa0b2ea937a5418a3161b65536cd148725"
+    },
+    "TASK.md": {
+      "bytes": 18780,
+      "sha256": "c6df53af9db26bf7fb4f1acb2501bb216183ac91c4949b147821da67469041a6"
+    },
+    "TEST_PLAN.md": {
+      "bytes": 4699,
+      "sha256": "db32b2a88b8d17e2ba73b5751ba5b38cb1eb5bc4b581a7af4814ffe5e3ac6f9e"
+    }
+  },
+  "notes": "Manifest excludes itself. Verify UTF-8 bytes/size of each file exactly. Actual Git live HEAD must be checked again at execution; old modules Agents.md paths are historical.",
+  "prepared_on": "2026-10-25",
+  "relative_root": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-INTERREGIONAL-TRAVEL-CLOSURE-091",
+  "repository": "https://github.com/kpCat/L2J",
+  "root_unpack": "D:\\Codex\\repos\\L2J-phantom-world",
+  "task": "PHANTOM-INTERREGIONAL-TRAVEL-CLOSURE-091"
+}

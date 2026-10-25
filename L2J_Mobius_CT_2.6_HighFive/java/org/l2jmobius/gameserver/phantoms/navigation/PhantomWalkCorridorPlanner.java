@@ -78,6 +78,11 @@ public final class PhantomWalkCorridorPlanner
 			escapes.sort(java.util.Comparator.comparingDouble(point -> point.distanceTo(request.destination())));
 			candidates.addAll(escapes);
 		}
+		// XY-first success can keep a multilayer journey on the wrong floor forever.
+		// Rank actual projected surfaces before spending the shared native-query budget.
+		// This is only frontier ordering: every released segment still needs native proof.
+		candidates.sort(java.util.Comparator.comparingDouble((PhantomNavigationPoint point) -> point.distanceTo(request.destination())
+			+ 2d * Math.abs((long) point.z() - request.destination().z())).thenComparingInt(PhantomNavigationPoint::x).thenComparingInt(PhantomNavigationPoint::y).thenComparingInt(PhantomNavigationPoint::z));
 		budget.nodes = 1; budget.labels = 1;
 		PhantomNavigationPoint fallback = null;
 		for (var target : candidates)
