@@ -1,0 +1,11 @@
+# Acceptance and bounded evidence
+
+**Gate A — production retention memory.** Verify LIVE observed → STORED before 60s → still recently observed (DENY), `refresh(List.of())` does not purge unexpired mark, 59.999s DENY, expiry after ≥60s permits only *this* boundary; no storage retention/activity admission confusion; stale entries removed bounded. Actual `recentHumanMillis` injected into test, no sleeps, no wall-time race. If unknown/startup: no ALLOW until conservative warm-up.
+
+**Gate B — human census is honest.** Live handler extracts exactly connected ordinary humans (and owner QA sentinel), excludes real offline stores/managed Phantom. 0,1,256 humans with full list give complete result; 257th yields overflow/UNKNOWN. A human at *either* source or destination blocks. Z-layer mismatch handled by native prewarm, instance0-only. Unknown/null/invalid coords fail closed; observer movement after old snapshot causes new denial when rechecked.
+
+**Gate C — actual production API.** At least one existing production Java changed and new callable immutable typed observation result is exposed in actual `PhantomSystem` wiring; focused tests invoke real changed classes, not a copied mock of the behavior. No unconditional success, no hardcoded test-only paths, no `catch(Exception ignored) => ALLOW`, no direct mutation/teleport/SQL; profiling concern: not called in common scheduler pulse. Observability decision is NOT proof that relocation has occurred.
+
+**Gate D — compatibility/delivery.** Source `OwnerConfig.ps1 -Action Verify` unchanged, 287 overrides at baseline; Rates.ini/PremiumSystem.ini/PhantomPlayers.ini/PhantomMerchants.ini unchanged. Nearest retention/locality regressions GREEN or exact unrun reasons. Java25 focused compile/JAR once (plus one explained correction). No DB/Geo native bootstrap; all changes staged by exact path; normal non-force push once. Preserve protected078, other runtime/JVM/DB/worktrees/untracked. Report list of changed files, evidence, blocked `092B graph0 + canonical travel binding`, and no false product PASS.
+
+Outcome `SUCCESS_092A_OBSERVER_GUARD` only if A–D true. Never report FULL092/FARM/REAL_TELEPORT as success. If inability to implement, show `BLOCKED_092A` with specific code contradiction and stop without adding only tests/README or report-only commit.

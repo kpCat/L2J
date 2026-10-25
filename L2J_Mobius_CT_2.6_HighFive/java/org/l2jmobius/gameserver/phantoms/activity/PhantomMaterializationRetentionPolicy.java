@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.phantoms.activity;
 
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -14,12 +15,17 @@ import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.model.actor.Player;
 
-/** Bounded to live materializations; reasons never replace native ownership. */
+/** Physical holds belong to live materializations; recent observation survives storage until expiry. */
 public final class PhantomMaterializationRetentionPolicy
 {
 	public enum Reason
 	{
 		NATIVE_VISIBLE, REAL_PARTY, ACTIVE_ACTION, RECENT_HUMAN
+	}
+
+	public enum HumanObservation
+	{
+		RECENT, CLEAR, UNKNOWN
 	}
 
 	public record Facts(boolean materialized, boolean humanLocal, boolean nativeVisible, boolean realParty, boolean activeAction)
@@ -58,7 +64,9 @@ public final class PhantomMaterializationRetentionPolicy
 	private final LongFunction<Facts> _facts;
 	private final LongSupplier _clock;
 	private final long _recentHumanNanos;
+	private final long _startedAtNanos;
 	private final Map<Long, Long> _lastHuman = new ConcurrentHashMap<>();
+	private Iterator<Map.Entry<Long, Long>> _expiryCursor;
 
 	public PhantomMaterializationRetentionPolicy(LongFunction<Facts> facts, LongSupplier clock, long recentHumanMillis)
 	{
@@ -69,20 +77,24 @@ public final class PhantomMaterializationRetentionPolicy
 		_facts = Objects.requireNonNull(facts);
 		_clock = Objects.requireNonNull(clock);
 		_recentHumanNanos = recentHumanMillis * 1_000_000L;
+		_startedAtNanos = _clock.getAsLong();
 	}
 
 	public Hold observe(long profileId)
 	{
 		final Facts facts = _facts.apply(profileId);
+		final long now = _clock.getAsLong();
+		final Long previous = _lastHuman.get(profileId);
+		if ((previous != null) && ((now - previous) >= _recentHumanNanos)) { _lastHuman.remove(profileId, previous); }
 		if (!facts.materialized())
 		{
-			_lastHuman.remove(profileId);
-			return new Hold(Set.of(), 0, false, false);
+			final Long lastHuman = _lastHuman.get(profileId);
+			return new Hold(Set.of(), lastHuman == null ? 0 : lastHuman, false, false);
 		}
-		final long now = _clock.getAsLong();
 		if (facts.humanLocal() || facts.nativeVisible())
 		{
-			_lastHuman.put(profileId, now);
+			// A delayed observer must not shorten a newer confirmation's full grace.
+			_lastHuman.merge(profileId, now, (previousTime, currentTime) -> (currentTime - previousTime) >= 0 ? currentTime : previousTime);
 		}
 		final Long lastHuman = _lastHuman.get(profileId);
 		final var reasons = EnumSet.noneOf(Reason.class);
@@ -98,7 +110,7 @@ public final class PhantomMaterializationRetentionPolicy
 		{
 			reasons.add(Reason.ACTIVE_ACTION);
 		}
-		if ((lastHuman != null) && (now >= lastHuman) && ((now - lastHuman) < _recentHumanNanos))
+		if ((lastHuman != null) && ((now - lastHuman) >= 0) && ((now - lastHuman) < _recentHumanNanos))
 		{
 			reasons.add(Reason.RECENT_HUMAN);
 		}
@@ -114,9 +126,36 @@ public final class PhantomMaterializationRetentionPolicy
 
 	public void refresh(List<Long> materializedProfiles)
 	{
-		final Set<Long> live = Set.copyOf(materializedProfiles);
-		_lastHuman.keySet().removeIf(id -> !live.contains(id));
+		expireObservations();
 		materializedProfiles.forEach(this::observe);
+	}
+
+	/** Read-only: missing restart history cannot certify absence until one full grace has elapsed. */
+	public HumanObservation recentHumanObservation(long profileId)
+	{
+		if (profileId <= 0) { return HumanObservation.UNKNOWN; }
+		final long now = _clock.getAsLong();
+		final Long last = _lastHuman.get(profileId);
+		if (last != null)
+		{
+			final long elapsed = now - last;
+			if (elapsed < 0) { return HumanObservation.UNKNOWN; }
+			if (elapsed < _recentHumanNanos) { return HumanObservation.RECENT; }
+		}
+		final long uptime = now - _startedAtNanos;
+		return (uptime < 0) || (uptime < _recentHumanNanos) ? HumanObservation.UNKNOWN : HumanObservation.CLEAR;
+	}
+
+	/** A resumable bounded sweep also reclaims stored profiles that are never observed again. */
+	private synchronized void expireObservations()
+	{
+		final long now = _clock.getAsLong();
+		if ((_expiryCursor == null) || !_expiryCursor.hasNext()) { _expiryCursor = _lastHuman.entrySet().iterator(); }
+		for (int inspected = 0; (inspected < 256) && _expiryCursor.hasNext(); inspected++)
+		{
+			final var entry = _expiryCursor.next();
+			if ((now - entry.getValue()) >= _recentHumanNanos) { _lastHuman.remove(entry.getKey(), entry.getValue()); }
+		}
 	}
 
 	public long oldestSoft(List<Long> materializedProfiles)

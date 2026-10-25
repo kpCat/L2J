@@ -1,0 +1,36 @@
+{
+  "schema": "PHANTOM-092A-TASK-PACKAGE/1",
+  "baseline": "63f7c819c3ea51d7b1bbe83476e590bdb235180b",
+  "files": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OFFSCREEN-OBSERVATION-092A/ACCEPTANCE.md",
+      "size": 2333,
+      "sha256": "9dafce091ecdbe5279649dd82388ec984b0964c7fae9c9c2d928d45b080633ee"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OFFSCREEN-OBSERVATION-092A/DELIVERY.md",
+      "size": 1846,
+      "sha256": "3bc1657b5fd7513a094eb28c37c931296586a7f747645daa19fbaf441f2e0ac3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OFFSCREEN-OBSERVATION-092A/GOAL.txt",
+      "size": 884,
+      "sha256": "fe203949543afd310c2045d5b045cd027456165d0e03d36abaef4d7ee568d89e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OFFSCREEN-OBSERVATION-092A/SOURCE_MAP.md",
+      "size": 3559,
+      "sha256": "979e733451b4fbf3a97dbdde05a8a815eda785f4dc2a9f5c4125255adf8c0dd9"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OFFSCREEN-OBSERVATION-092A/TASK.md",
+      "size": 8912,
+      "sha256": "cced947e80cb0f5136ba667c729c76d98e93bbe9e688e0dfb73372bbc79c2299"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OFFSCREEN-OBSERVATION-092A/TEST_PLAN.md",
+      "size": 1587,
+      "sha256": "33cdf2e8f48edb173dad7bd9e5ac54b51dbabd5570f27efbc801de8a8f0c5e5f"
+    }
+  ]
+}

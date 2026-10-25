@@ -214,6 +214,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPositionPublisher;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomOffscreenObserverAdmission;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /**
@@ -247,6 +248,7 @@ public final class PhantomSystem
 	private PhantomTopologyService _topologyService;
 	private PhantomHumanLocalityControl _humanLocality;
 	private PhantomMaterializationRetentionPolicy _materializationRetention;
+	private PhantomOffscreenObserverAdmission _offscreenObservers;
 	private long _nextRetentionRefreshNanos;
 	private PhantomGameKnowledgeService _gameKnowledgeService;
 	private PhantomSemanticUnderstandingService _semanticUnderstandingService;
@@ -661,6 +663,7 @@ public final class PhantomSystem
 				}
 				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology, this::hasAcceptedNativeJourney);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
+				_offscreenObservers = new PhantomOffscreenObserverAdmission(_materializationRetention, System::nanoTime);
 				if (_settings.materializationBurstSlots() > 0) { _materializationService.installSoftCleanupAdmission(this::softCleanupHumanAbsent); }
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
@@ -3363,6 +3366,34 @@ public final class PhantomSystem
 	{
 	}
 
+	/** Read-only call-time guard for a future canonical offscreen transition; never called by the common pulse. */
+	public static PhantomOffscreenObserverAdmission.Verdict offscreenObserverAdmission(long profileId, PhantomTopologyPoint source, PhantomTopologyPoint destination, int instanceId)
+	{
+		final PhantomSystem configured;
+		synchronized (PhantomSystem.class) { configured = _configuredInstance; }
+		if ((configured == null) || (configured._state != State.RUNNING) || (configured._offscreenObservers == null) || (configured._topologyService == null))
+		{
+			return new PhantomOffscreenObserverAdmission.Verdict(PhantomOffscreenObserverAdmission.Code.UNKNOWN_RUNTIME, profileId, source, destination, instanceId, System.nanoTime(), 0);
+		}
+		try
+		{
+			final var profile = configured._topologyService.findProfile(profileId).orElse(null);
+			if ((profile == null) || !Objects.equals(source, profile.point()))
+			{
+				return new PhantomOffscreenObserverAdmission.Verdict(PhantomOffscreenObserverAdmission.Code.UNKNOWN_PROFILE, profileId, source, destination, instanceId, System.nanoTime(), 0);
+			}
+			final var result = configured._offscreenObservers.evaluate(profileId, source, destination, instanceId,
+				() -> () -> World.getInstance().getPlayers().stream().filter(PhantomSystem::humanObserver)
+					.map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).iterator(),
+				() -> org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().autonomousObservationPoint());
+			return configured._state == State.RUNNING ? result : new PhantomOffscreenObserverAdmission.Verdict(PhantomOffscreenObserverAdmission.Code.UNKNOWN_RUNTIME, profileId, source, destination, instanceId, System.nanoTime(), result.inspectedHumans());
+		}
+		catch (RuntimeException unavailable)
+		{
+			return new PhantomOffscreenObserverAdmission.Verdict(PhantomOffscreenObserverAdmission.Code.UNKNOWN_HUMAN_CENSUS, profileId, source, destination, instanceId, System.nanoTime(), 0);
+		}
+	}
+
 	/** The production locality supplier; bounded and independent of transport/identity kind. */
 	public static java.util.List<PhantomTopologyPoint> onlineHumanPoints()
 	{
@@ -3377,8 +3408,9 @@ public final class PhantomSystem
 	{
 		if (!player.isOnline() || player.hasHeadlessOutboundSession()) { return false; }
 		final var client = player.getClient();
-		return client != null && !client.isDetached() && client.getPlayer() == player
-			|| PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == OwnerKind.LOCALPLAY_TEST_HUMAN;
+		final boolean connected = client != null && !client.isDetached() && client.getPlayer() == player;
+		return PhantomOffscreenObserverAdmission.humanObserver(true, false, connected,
+			!connected && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == OwnerKind.LOCALPLAY_TEST_HUMAN);
 	}
 
 	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive, Map<String, String> nativeEvidence)
