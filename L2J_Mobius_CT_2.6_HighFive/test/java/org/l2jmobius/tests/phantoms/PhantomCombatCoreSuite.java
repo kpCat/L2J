@@ -271,6 +271,49 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveResourcesReady(80, 100, 20, 20, true), "Recovered native actor cannot resume.");
 			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveResourcesReady(100, 100, 19, 20, false), "Magic readiness ignored its real MP cost.");
 		});
+		registry.add("092c-primary-mode-preserves-native-autouse-cursor", _ ->
+		{
+			final var settings = new org.l2jmobius.gameserver.model.actor.holders.player.AutoUseSettingsHolder();
+			settings.getAutoActions().add(2); settings.getAutoActions().add(9);
+			org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(settings, List.of(101), 202, true);
+			PhantomAssertions.assertFalse(settings.getAutoActions().contains(2), "MAGIC primary must not authorize the stock melee auto-attack path.");
+			PhantomAssertions.assertTrue(settings.getAutoActions().contains(9), "Damage-mode alignment changed an unrelated native action.");
+			PhantomAssertions.assertEquals(List.of(101, 202), settings.getAutoSkills(), "The native primary or profession utility was lost.");
+			settings.incrementSkillOrder();
+			org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(settings, List.of(101), 202, true);
+			PhantomAssertions.assertEquals(202, settings.getNextSkillId(), "Repeated AutoPlay ticks starved the AutoUse primary by resetting its cursor.");
+			org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(settings, List.of(101), 202, false);
+			PhantomAssertions.assertTrue(settings.getAutoActions().contains(2), "A physical native primary lost ordinary auto-attack.");
+			org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(settings, List.of(), 0, false);
+			PhantomAssertions.assertTrue(settings.getAutoActions().contains(2) && settings.getAutoSkills().isEmpty(), "Skill-less melee fallback did not retain its actual native damage mode.");
+			PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Mode contracts initialized a database.");
+		});
+		registry.add("092c-busy-pve-safety-settles-before-native-retreat", _ ->
+		{
+			final var wait = PhantomCombatPolicy.PveRecoveryAction.WAIT_NATIVE;
+			PhantomAssertions.assertEquals(wait, PhantomCombatPolicy.pveRecoveryAction(false, true, true, true, false), "An attacking/casting actor bypassed the low-resource safety verdict.");
+			PhantomAssertions.assertEquals(wait, PhantomCombatPolicy.pveRecoveryAction(true, false, true, true, false), "An unsafe target admitted a new root while a native action was settling.");
+			PhantomAssertions.assertEquals(wait, PhantomCombatPolicy.pveRecoveryAction(false, false, true, true, true), "A deadline canceled already accepted native work instead of waiting for settlement.");
+			PhantomAssertions.assertEquals(PhantomCombatPolicy.PveRecoveryAction.RETREAT, PhantomCombatPolicy.pveRecoveryAction(false, true, true, false, false), "A threatened actor stayed available for another offensive root.");
+			PhantomAssertions.assertEquals(PhantomCombatPolicy.PveRecoveryAction.REST, PhantomCombatPolicy.pveRecoveryAction(false, true, false, false, false), "Unthreatened native recovery lost its rest path.");
+			PhantomAssertions.assertEquals(PhantomCombatPolicy.PveRecoveryAction.EXPIRED, PhantomCombatPolicy.pveRecoveryAction(true, false, false, false, false), "An unsuitable unengaged target did not return to existing reconsideration.");
+			PhantomAssertions.assertEquals(PhantomCombatPolicy.PveRecoveryAction.EXPIRED, PhantomCombatPolicy.pveRecoveryAction(false, true, true, false, true), "Native retreat renewed its finite recovery budget.");
+			PhantomAssertions.assertEquals(PhantomCombatPolicy.PveRecoveryAction.ALLOW, PhantomCombatPolicy.pveRecoveryAction(true, true, true, false, false), "A viable resource-ready actor was blocked.");
+			PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Safety contracts initialized a database.");
+		});
+		registry.add("092c-earned-continuation-remains-nonoffensive", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveEarnedContinuation(true, false, false), "A safety pause blocked earned pickup/Sweep continuation in an unthreatened quiet actor.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveEarnedContinuation(true, true, false), "Earned continuation bypassed actual native threat recovery.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveEarnedContinuation(true, false, true), "Another loot root interrupted already accepted native work.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveEarnedContinuation(false, false, false), "An offensive root was disguised as earned continuation.");
+		});
+		registry.add("092c-existing-recovery-reserves-two-casts", _ ->
+		{
+			PhantomAssertions.assertEquals(40d, PhantomCombatPolicy.pveRecoveryMpCost(20, 100, true), "Recovery weakened its existing two-cast MP reserve.");
+			PhantomAssertions.assertEquals(30d, PhantomCombatPolicy.pveRecoveryMpCost(20, 30, true), "Recovery required more than actual maximum MP.");
+			PhantomAssertions.assertEquals(20d, PhantomCombatPolicy.pveRecoveryMpCost(20, 100, false), "Initial admission inherited an unrelated recovery reserve.");
+		});
 		registry.add("061-content-critical-health-retains-owned-care-and-bounded-retreat", _ ->
 		{
 			final Fixture escaping = fixture(1);

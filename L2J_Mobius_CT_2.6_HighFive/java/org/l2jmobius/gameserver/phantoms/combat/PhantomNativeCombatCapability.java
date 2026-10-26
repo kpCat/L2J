@@ -136,6 +136,14 @@ public final class PhantomNativeCombatCapability
 		{ settings.getAutoSkills().clear(); settings.getAutoSkills().addAll(desired); settings.resetSkillOrder(); }
 	}
 
+	public static void alignAutoSkills(org.l2jmobius.gameserver.model.actor.holders.player.AutoUseSettingsHolder settings, List<Integer> utilities, int primary, boolean magicPrimary)
+	{
+		alignAutoSkills(settings, utilities, primary);
+		// Stock AutoPlay uses action2 to distinguish melee roots from AutoUse casting.
+		if (magicPrimary) { settings.getAutoActions().remove(2); }
+		else { settings.getAutoActions().add(2); }
+	}
+
 	/** Only a plain instant single-target native hit (optionally its native HP drain). */
 	public static Mechanics mechanics(Skill skill)
 	{

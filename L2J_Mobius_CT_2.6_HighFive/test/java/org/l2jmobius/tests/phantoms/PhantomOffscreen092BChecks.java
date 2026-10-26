@@ -39,7 +39,7 @@ public final class PhantomOffscreen092BChecks
 		}
 		finally
 		{
-			if (List.of("native", "continue", "verified", "restart", "final-live-authority-diagnostic").contains(args[0])) { org.l2jmobius.commons.threads.ThreadPool.shutdown(); }
+			if (List.of("native", "continue", "verified", "restart", "final-live-authority-diagnostic", "continuity092c", "restart092c", "accept092c", "accept-restart092c").contains(args[0])) { org.l2jmobius.commons.threads.ThreadPool.shutdown(); }
 			if (DatabaseFactory.isInitialized()) { DatabaseFactory.close(); }
 		}
 		System.exit(exit);
@@ -361,11 +361,13 @@ public final class PhantomOffscreen092BChecks
 	{
 		PhantomTask091Lane.require(Boolean.getBoolean("phantom.task092b.native") && args.length == 2, "092B_EXPLICIT");
 		final String launchName = args[0];
+		final boolean acceptance092C = List.of("accept092c", "accept-restart092c").contains(launchName);
+		final boolean continuity092C = acceptance092C || List.of("continuity092c", "restart092c").contains(launchName);
 		final boolean authorityDiagnostic = launchName.equals("final-live-authority-diagnostic");
 		final boolean nativeBinding = List.of("binding-a5", "binding-restart", "binding-correction-a5", "binding-correction-restart").contains(launchName);
 		final boolean productA5 = nativeBinding || List.of("a5-proof", "a5-restart").contains(launchName);
 		PhantomTask091Lane.require(!Boolean.getBoolean("phantom.task092b.safeCleanupOverlay"), "092B_NO_EXTERNAL_DIAGNOSTIC_OVERRIDE");
-		if (authorityDiagnostic || productA5) { System.setProperty("phantom.task092b.safeCleanupOverlay", "true"); }
+		if (authorityDiagnostic || productA5 || continuity092C) { System.setProperty("phantom.task092b.safeCleanupOverlay", "true"); }
 		if (productA5)
 		{
 			args[0] = List.of("a5-proof", "binding-a5", "binding-correction-a5").contains(launchName) ? "verified" : "restart";
@@ -489,12 +491,12 @@ public final class PhantomOffscreen092BChecks
 			return;
 		}
 		if (List.of("bootstrap", "connections").contains(args[0])) { PhantomTask091Lane.environment(module, config, args[0]); return; }
-		PhantomTask091Lane.require(List.of("native", "continue", "verified", "restart").contains(args[0]), "092B_MODE");
+		PhantomTask091Lane.require(continuity092C || List.of("native", "continue", "verified", "restart").contains(args[0]), "092B_MODE");
 		final Path root = PhantomTask091Lane.root();
 		final String baselineFile = nativeBinding ? "native-binding-baseline.bin" : "corrected-baseline.bin";
 		Files.writeString(root.resolve(launchName + ".started"), "One own campaign; no reseed", StandardOpenOption.CREATE_NEW);
 		PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(920092, module, root.resolve("reports")));
-		if (productA5) { PhantomTask091Lane.require(!org.l2jmobius.gameserver.config.IdManagerConfig.DATABASE_CLEAN_UP, "092B_A5_CLEANUP_DISABLED"); }
+		if (productA5 || continuity092C) { PhantomTask091Lane.require(!org.l2jmobius.gameserver.config.IdManagerConfig.DATABASE_CLEAN_UP, "092B_A5_CLEANUP_DISABLED"); }
 		try (var fixture = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
 			if (productA5)
@@ -524,7 +526,9 @@ public final class PhantomOffscreen092BChecks
 				fixture.authority(), new PhantomBackgroundCompetitionRegistry(), signals, () -> materialization);
 			final var topology = PhantomTopologyService.fromSnapshotForTesting(fixture.topology().snapshot(), fixture.topologyBackend(), PhantomTopologyPolicy.productionDefaults(), signals);
 			PhantomTask091Lane.require(topology.start() && materialization.start() && background.start(), "092B_OWNERS_START");
-			bridge.install(background);
+			final var continuityHistory = continuity092C ? new PhantomHistoricalBackgroundService(profiles, goals,
+				new PhantomHistoricalBackgroundPlanner(fixture.knowledge(), fixture.topology(), fixture.authority()), background, materialization) : null;
+			bridge.install(continuityHistory == null ? background : PhantomArrivalFarmContinuity092CChecks.lifecycle(background, continuityHistory));
 			final var publisher = new PhantomTopologyPositionPublisher(topology, background::acquisitionSnapshot);
 			background.installCommittedPositionPublisher(publisher::committed);
 			final var retention = new PhantomMaterializationRetentionPolicy(id -> new PhantomMaterializationRetentionPolicy.Facts(false, false, false, false, false), System::nanoTime, 60_000);
@@ -549,6 +553,17 @@ public final class PhantomOffscreen092BChecks
 				return verdict;
 			};
 			background.installOffscreenObserverAdmission(admission);
+			if (continuity092C)
+			{
+				publisher.ready(1);
+				try { PhantomArrivalFarmContinuity092CChecks.run(launchName.equals("restart092c") || launchName.equals("accept-restart092c"), acceptance092C, fixture, profiles, goals, transactions, background, materialization, continuityHistory, topology, signals); }
+				finally
+				{
+					System.out.println("092C_FINAL_STOP " + materialization.shutdown());
+					topology.beginStop(); System.out.println("092C_FINAL_TOPOLOGY_STOP " + topology.finishStop());
+				}
+				return;
+			}
 			long profile;
 			if (args[0].equals("native"))
 			{

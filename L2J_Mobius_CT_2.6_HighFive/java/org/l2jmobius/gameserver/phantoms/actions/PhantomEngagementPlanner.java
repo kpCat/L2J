@@ -94,7 +94,8 @@ public final class PhantomEngagementPlanner
 	}
 	public static Skill offensiveSkill(Player player, Creature target)
 	{
-		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.offensiveSkill(player, target);
+		// Planning retains the AutoUse primary during native reuse; AutoUse still owns readiness and MP debit.
+		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.preparationSkill(player, target);
 	}
 	public static PlayerNativeEvidence.Target key(Creature target){return target!=null&&target.isAttackable()?target.asAttackable().getNativeEvidenceTarget():null;}
 	private static Opportunity unavailable(){return new Opportunity(Kind.UNAVAILABLE,null,null,0,0,false,List.of());}

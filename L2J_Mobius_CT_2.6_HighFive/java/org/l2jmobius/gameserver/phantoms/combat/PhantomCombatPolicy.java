@@ -27,6 +27,26 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 		return absenceNanos >= (rewardedFarm ? usefulWaitNanos : initialWaitNanos);
 	}
 
+	public enum PveRecoveryAction { ALLOW, WAIT_NATIVE, RETREAT, REST, EXPIRED }
+
+	public static boolean pveEarnedContinuation(boolean pending, boolean threatened, boolean nativeBusy)
+	{
+		return pending && !threatened && !nativeBusy;
+	}
+
+	public static double pveRecoveryMpCost(double cost, double maximumMp, boolean recovering)
+	{
+		return recovering ? Math.min(maximumMp, cost * 2) : cost;
+	}
+
+	public static PveRecoveryAction pveRecoveryAction(boolean resourcesReady, boolean viable, boolean threatened, boolean nativeBusy, boolean expired)
+	{
+		if (resourcesReady && viable) { return PveRecoveryAction.ALLOW; }
+		if (nativeBusy) { return PveRecoveryAction.WAIT_NATIVE; }
+		if (expired || !viable && !threatened) { return PveRecoveryAction.EXPIRED; }
+		return threatened ? PveRecoveryAction.RETREAT : PveRecoveryAction.REST;
+	}
+
 	public PhantomCombatPolicy
 	{
 		if ((maximumSessions < 1) || (maximumSessions > 1_000_000) || (maximumSessionsPerPulse != 64) || (maximumThreatEntries != 32) || (maximumSelectedSkills != 4) || (maximumObservedAttackers != 16) || (maximumLootCandidates != 32) || (maximumRememberedLootIds != 64) || (maximumAcquisitionDistance != 2000) || (maximumLootDistance < 200) || (maximumLootDistance > 1200) || (pulseIntervalMillis != 250) || (defaultTimeoutMillis != 30_000) || (maximumTimeoutMillis != MAXIMUM_TIMEOUT_MILLIS) || (lootTimeoutMillis != 5000) || (lowHpPercent != 15) || (minimumMpReservePercent != 10))

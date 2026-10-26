@@ -16,6 +16,7 @@ import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
@@ -29,6 +30,10 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController;
 import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl;
+import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.PveRecoveryAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TargetDirective;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -51,6 +56,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private static final long STALL_DELAY_NANOS = 90_000_000_000L;
 	private static final long RESOURCE_RECOVERY_NANOS = 45_000_000_000L;
 	private final PhantomMaterializationService _materialization;
+	private final L2jCombatBackend _recoveryBackend;
 	private final Supplier<PhantomDecisionEngine> _decision;
 	private final LongPredicate _permitsOrdinary;
 	private final LongPredicate _permitsNewRoots;
@@ -73,6 +79,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots, LongSupplier clock)
 	{
 		_materialization = Objects.requireNonNull(materialization, "materialization");
+		// This native retreat path needs no knowledge/catalog query and shares the existing actor lease.
+		_recoveryBackend = new L2jCombatBackend(_materialization, () -> null);
 		_decision = Objects.requireNonNull(decision, "decision");
 		_permitsOrdinary = Objects.requireNonNull(permitsOrdinary, "permitsOrdinary");
 		_permitsNewRoots = Objects.requireNonNull(permitsNewRoots, "permitsNewRoots");
@@ -120,9 +128,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			if (!commandGate.compareAndSet(false, true)) { return false; }
 			try
 			{
-			if (previous != null && previous.player() == player && previous._epoch == snapshot.materializedAtNanos() && previous._engagement != null)
+			if (previous != null && previous.player() == player && previous._epoch == snapshot.materializedAtNanos())
 			{
-				previous._engagement.stopMovement(player, previous._epoch);
+				if (previous._engagement != null) { previous._engagement.stopMovement(player, previous._epoch); }
+				stopResourceRetreat(previous, player);
 			}
 			configure(player);
 			final PhantomPolicy policy = new Policy(player, profileId, goal.goalId(), goal.revision(), spec.npcId());
@@ -226,11 +235,15 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	{
 		if (session == null) { return; }
 		if (session._engagement != null) { session._engagement.revoke(); }
-		if (session._engagement != null && session._commandGate.compareAndSet(false, true))
+		if ((session._engagement != null || session._resourceRetreatDestination != null) && session._commandGate.compareAndSet(false, true))
 		{
 			try (var action = _materialization.tryAcquireAction(session._profileId).orElse(null))
 			{
-				if (action != null && action.player() == session.player()) { session._engagement.stopMovement(action.player(), session._epoch); }
+				if (action != null && action.player() == session.player())
+				{
+					if (session._engagement != null) { session._engagement.stopMovement(action.player(), session._epoch); }
+					stopResourceRetreat(session, action.player());
+				}
 			}
 			finally { session._commandGate.set(false); }
 		}
@@ -353,6 +366,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		if (!expired || org.l2jmobius.gameserver.managers.RecipeManager.getInstance().isMakingItem(player)) { return false; }
 		final var nativeOwner = player.getNativeWorkOwner();
 		if (!session._current.get() || _sessions.get(session._profileId) != session || session.player() != player || nativeOwner == null || !nativeOwner.isCurrent() || nativeOwner.epoch() != session._epoch) { return false; }
+		if (nativeBusy(player)) { pauseOffensiveRoots(session, player); return false; }
 		// A captured stock Sweep may finish before the existing replan quiet-boundary proceeds.
 		if (player.getTarget() instanceof Creature corpse && corpse.isAlikeDead()) { return true; }
 		if (session._engagement != null) { session._engagement.revoke(); }
@@ -365,14 +379,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	/** Exact session policy uses stock sit/stand and existing regeneration; useful farm debt is never renewed by rest. */
 	private boolean resourcePause(Session session, Player player)
 	{
-		if (player.isCastingNow() || player.isAttackingNow()) { return false; }
 		final long now = _clock.getAsLong();
-		synchronized (session)
-		{
-			if (!session._current.get() || _sessions.get(session._profileId) != session) { return false; }
-			if (now < session._resourceCheckDue) { return session._recovering; }
-			session._resourceCheckDue = now + 500_000_000L;
-		}
 		double cost = Double.POSITIVE_INFINITY;
 		for (Integer skillId : player.getAutoUseSettings().getAutoSkills())
 		{
@@ -387,42 +394,97 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		final double mp = player.getCurrentMp();
 		final double maximumMp = player.getMaxMp();
 		final boolean sitting = player.isSitting();
-		final boolean threatened = World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
-			.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(creature, player));
-		final boolean sit, stand, pause;
+		final Creature threat = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player);
+		final boolean viable = !(player.getTarget() instanceof Creature selected) || selected.isAlikeDead() || PhantomEngagementPlanner.viable(player, selected);
+		final boolean busy = nativeBusy(player);
+		final PveRecoveryAction recovery;
+		final boolean due;
 		synchronized (session)
 		{
-			if (!session._current.get()) { return false; }
+			if (!session._current.get() || _sessions.get(session._profileId) != session) { return true; }
 			session._resourceCost = cost;
-			if (!session._recovering && org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), mp, cost, false))
+			final double reserve = PhantomCombatPolicy.pveRecoveryMpCost(cost, maximumMp, session._recovering);
+			final boolean ready = PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), mp, reserve, session._recovering);
+			final boolean expired = cost > maximumMp || session._resourceSince != 0 && now - session._resourceSince >= RESOURCE_RECOVERY_NANOS
+				|| session._resourceRetreatAttempts >= 6 && !ownsResourceRetreat(session, player);
+			recovery = PhantomCombatPolicy.pveRecoveryAction(ready, viable, threat != null, busy, expired);
+			if (recovery == PveRecoveryAction.ALLOW)
 			{
-				session._resourceSince = 0; session._resourceExpired = false;
-				if (!sitting) { return false; }
-				// A current policy may replace the one that began this actual native rest.
-				session._recovering = true;
-			}
-			if (session._resourceSince == 0) { session._resourceSince = now; }
-			session._resourceExpired = cost > maximumMp || now - session._resourceSince >= RESOURCE_RECOVERY_NANOS;
-			if (threatened || session._resourceExpired)
-			{
-				stand = sitting; sit = false; pause = session._resourceExpired;
-				session._recovering = false; session._resourceReason = threatened ? "resource.native_threat" : "resource.bounded_unavailable";
-			}
-			else if (session._recovering && org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), mp, Math.min(maximumMp, cost * 2), true))
-			{
-				stand = sitting; sit = false; pause = stand;
-				session._recovering = stand; session._resourceReason = stand ? "resource.native_stand_pending" : "resource.affordable";
-				if (!stand) { session._resourceSince = 0; session._resourceExpired = false; }
+				session._recovering = false; session._resourceExpired = false; session._resourceSince = 0;
+				session._resourceRetreatAttempts = 0; session._resourceReason = "resource.affordable";
 			}
 			else
 			{
-				stand = false; sit = !sitting; pause = true;
-				session._recovering = true; session._resourceReason = "resource.native_rest";
+				if (session._resourceSince == 0) { session._resourceSince = now; }
+				session._recovering = true; session._resourceExpired = expired || recovery == PveRecoveryAction.EXPIRED;
+				session._resourceReason = "resource." + recovery.name().toLowerCase(java.util.Locale.ROOT);
+			}
+			due = now >= session._resourceCheckDue;
+			if (due) { session._resourceCheckDue = now + 500_000_000L; }
+		}
+		if (recovery == PveRecoveryAction.ALLOW)
+		{
+			if (sitting) { player.standUp(); return true; }
+			return false;
+		}
+		if (PhantomCombatPolicy.pveEarnedContinuation(session._loot.pending(player, now), threat != null, busy)
+			&& (session._loot.tick(player, now) || nativeBusy(player))) { return true; }
+		pauseOffensiveRoots(session, player);
+		if (recovery == PveRecoveryAction.WAIT_NATIVE) { return true; }
+		if (recovery == PveRecoveryAction.REST)
+		{
+			if (due && !sitting) { player.stopMove(null); player.sitDown(); }
+		}
+		else if (recovery == PveRecoveryAction.RETREAT && due)
+		{
+			if (sitting) { player.standUp(); }
+			if (!ownsResourceRetreat(session, player))
+			{
+				try (var actor = _recoveryBackend.tryAcquireActor(session._profileId))
+				{
+					final var outcome = actor == null ? ActionOutcome.REJECTED : actor.retreatFrom(threat.getObjectId());
+					if (outcome == ActionOutcome.ISSUED)
+					{
+						session._resourceRetreatAttempts++;
+						session._resourceRetreatDestination = new Location(player.getXdestination(), player.getYdestination(), player.getZdestination());
+					}
+					session._resourceReason = "resource.native_retreat." + outcome.name().toLowerCase(java.util.Locale.ROOT);
+				}
 			}
 		}
-		if (stand) { player.standUp(); }
-		if (sit) { player.sitDown(); }
-		return pause;
+		return true;
+	}
+
+	private static boolean nativeBusy(Player player)
+	{
+		return player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null;
+	}
+
+	private static boolean ownsResourceRetreat(Session session, Player player)
+	{
+		final var point = session._resourceRetreatDestination;
+		return point != null && player.isMoving() && player.hasAI() && player.getAI().getIntention() == Intention.MOVE_TO
+			&& player.getXdestination() == point.getX() && player.getYdestination() == point.getY() && player.getZdestination() == point.getZ();
+	}
+
+	private static void pauseOffensiveRoots(Session session, Player player)
+	{
+		// Retire the next AI attack without canceling an accepted cast/queued action or the owned escape.
+		if (player.hasAI() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && player.getQueuedSkill() == null
+			&& !ownsResourceRetreat(session, player) && player.getAI().getIntention() != Intention.IDLE)
+		{ player.getAI().setIntention(Intention.IDLE); }
+	}
+
+	private static void stopResourceRetreat(Session session, Player player)
+	{
+		final var nativeOwner = player.getNativeWorkOwner();
+		if (player != session.player() || nativeOwner == null || !nativeOwner.isCurrent() || nativeOwner.epoch() != session._epoch) { return; }
+		if (ownsResourceRetreat(session, player))
+		{
+			player.stopMove(null);
+			if (player.hasAI() && player.getAI().getIntention() == Intention.MOVE_TO) { player.getAI().setIntention(Intention.IDLE); }
+		}
+		session._resourceRetreatDestination = null;
 	}
 
 	private static PlayerNativeEvidence.Snapshot nativeProgress(Player player, long epoch)
@@ -501,7 +563,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		// Shared lawful NPCs remain selectable; targetSelectionLoad only prefers a free target.
 		player.getAutoPlaySettings().setRespectfulHunting(false);
 		player.getAutoPlaySettings().setPickup(true);
-		player.getAutoUseSettings().getAutoActions().add(2);
 		if (AutoPlayConfig.ENABLE_AUTO_SKILL)
 		{
 			for (Skill skill : player.getAllSkills())
@@ -519,8 +580,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			}
 			// One attested damage action: AutoUse, admission and capture share its actual native rank.
 			if (preferred != null) { player.getAutoUseSettings().getAutoSkills().add(preferred.getId()); }
-			alignOffensiveSkill(player, null);
 		}
+		alignOffensiveSkill(player, null);
 		if (AutoPlayConfig.ENABLE_AUTO_ITEM || AutoPlayConfig.ENABLE_AUTO_POTION)
 		{
 			for (Item item : player.getInventory().getItems())
@@ -557,7 +618,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		// Retain recovery intent only after ready alternatives; remove stale unsupported damage IDs.
 		final var configured = player.getAutoUseSettings().getAutoSkills();
 		final var utilities = configured.stream().map(player::getKnownSkill).filter(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability::ordinaryUtility).map(Skill::getId).toList();
-		org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(player.getAutoUseSettings(), utilities, primary == null ? 0 : primary.getId());
+		org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(player.getAutoUseSettings(), utilities, primary == null ? 0 : primary.getId(), primary != null && primary.isMagic());
 	}
 
 	private final class Policy implements PhantomPolicy
@@ -631,17 +692,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "native_combat_settlement_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "native_combat_settlement");
 				}
-				if (session != null && session._policy == this && !session._loot.pending(player, _clock.getAsLong()) && resourcePause(session, player))
+				alignOffensiveSkill(player, player.getTarget() instanceof Creature target ? target : null);
+				if (session != null && session._policy == this && resourcePause(session, player))
 				{
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "resource_recovery");
-				}
-				alignOffensiveSkill(player, player.getTarget() instanceof Creature target ? target : null);
-				if (player.getTarget() instanceof Creature selected && !selected.isAlikeDead() && !PhantomEngagementPlanner.viable(player, selected)
-					&& player.hasAI() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && player.getAI().getIntention() == Intention.ATTACK)
-				{
-					// End the next stock attack intention under this writer; captured hit tickets still settle.
-					player.getAI().setIntention(Intention.IDLE);
 				}
 				if (session != null && session._policy == this && "AutoPlay".equals(source)) { session._shots.activate(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.magicShots(player)); }
 				publishTick(source, new TickObservation(sequence, started, 0, "acquired"));
@@ -832,6 +887,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private volatile long _resourceSince, _resourceCheckDue;
 		private volatile double _resourceCost;
 		private volatile String _resourceReason = "resource.not_required";
+		private volatile int _resourceRetreatAttempts;
+		private volatile Location _resourceRetreatDestination;
 
 		private Session(Player player, long goalId, long revision, PhantomPolicy policy, long epoch, long now, Session previous, AtomicBoolean commandGate, PhantomNavigationService navigation, java.util.function.BooleanSupplier permits)
 		{
@@ -857,6 +914,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					_recovering = previous._recovering; _resourceExpired = previous._resourceExpired;
 					_resourceSince = previous._resourceSince; _resourceCheckDue = previous._resourceCheckDue;
 					_resourceCost = previous._resourceCost; _resourceReason = previous._resourceReason;
+					_resourceRetreatAttempts = previous._resourceRetreatAttempts; _resourceRetreatDestination = previous._resourceRetreatDestination;
 				}
 			}
 		}
