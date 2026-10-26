@@ -269,8 +269,12 @@ public final class PhantomProgressionModel
 		}
 	}
 
-	public record SkillFact(int skillId, int skillLevel, boolean active, boolean passive, boolean toggle, boolean physical, boolean magic, String targetType, boolean damage, boolean negative, boolean heal, boolean resurrection, boolean buff, boolean debuff, boolean control, int itemConsumeId, int itemConsumeCount, int chargeConsumeCount, int maximumSoulConsumeCount, int mpConsume, int hpConsume, int reuseDelay, ConditionPresence conditionPresence, boolean blockedInOlympiad, boolean pvpOnly, boolean suicideAttack, boolean removedOnActionExceptMove, boolean transformation, Authority authority, List<String> sourcePaths)
+	public record SkillFact(int skillId, int skillLevel, boolean active, boolean passive, boolean toggle, boolean physical, boolean magic, String targetType, boolean damage, boolean negative, boolean heal, boolean resurrection, boolean buff, boolean debuff, boolean control, int itemConsumeId, int itemConsumeCount, int chargeConsumeCount, int maximumSoulConsumeCount, int mpConsume, int hpConsume, int reuseDelay, ConditionPresence conditionPresence, boolean blockedInOlympiad, boolean pvpOnly, boolean suicideAttack, boolean removedOnActionExceptMove, boolean transformation, Authority authority, List<String> sourcePaths, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics combatMechanics)
 	{
+		public SkillFact(int skillId, int skillLevel, boolean active, boolean passive, boolean toggle, boolean physical, boolean magic, String targetType, boolean damage, boolean negative, boolean heal, boolean resurrection, boolean buff, boolean debuff, boolean control, int itemConsumeId, int itemConsumeCount, int chargeConsumeCount, int maximumSoulConsumeCount, int mpConsume, int hpConsume, int reuseDelay, ConditionPresence conditionPresence, boolean blockedInOlympiad, boolean pvpOnly, boolean suicideAttack, boolean removedOnActionExceptMove, boolean transformation, Authority authority, List<String> sourcePaths)
+		{
+			this(skillId, skillLevel, active, passive, toggle, physical, magic, targetType, damage, negative, heal, resurrection, buff, debuff, control, itemConsumeId, itemConsumeCount, chargeConsumeCount, maximumSoulConsumeCount, mpConsume, hpConsume, reuseDelay, conditionPresence, blockedInOlympiad, pvpOnly, suicideAttack, removedOnActionExceptMove, transformation, authority, sourcePaths, null);
+		}
 		public SkillFact
 		{
 			if ((skillId <= 0) || (skillLevel <= 0) || (targetType == null) || targetType.isBlank() || (itemConsumeId < 0) || (itemConsumeCount < 0) || (chargeConsumeCount < 0) || (maximumSoulConsumeCount < 0) || (mpConsume < 0) || (hpConsume < 0) || (reuseDelay < 0) || (authority != Authority.SERVER_LOADER_FACT))

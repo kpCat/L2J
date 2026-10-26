@@ -48,6 +48,8 @@ import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.geoengine.geodata.Cell;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.handler.ItemHandler;
@@ -219,8 +221,9 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		// Native occupancy excludes quest objects but includes equipped non-quest objects.
 		final InventoryFacts inventory = InventoryFacts.sorted(tracking.mutableItemIds(), tracking.objects(), "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getNonQuestSize(), player.getInventoryLimit());
 		final List<AutoGetSkill> autoSkills = nativePersistence && previous != null && previous.identity().equals(identity) ? previous.retainAutoGetRanks(autoGetSkills(identity, player.getLevel())) : autoGetSkills(identity, player.getLevel());
-		final Clock clock = previous == null ? new Clock(INITIAL_RNG_SEED, 0, 0) : previous.clock();
-		final Receipt receipt = previous == null ? Receipt.empty() : previous.receipt();
+		final Clock clock = PhantomOffscreenOutdoorTravel.nativeClock(previous);
+		final Receipt receipt = PhantomOffscreenOutdoorTravel.nativeReceipt(previous,
+			World.getInstance().getPlayer(player.getObjectId()) == player && World.getInstance().findObject(player.getObjectId()) == player);
 		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());
 	}
 
@@ -258,8 +261,9 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		// Acquisition capture must report the same stock non-quest occupancy as native store.
 		final InventoryFacts inventory = InventoryFacts.sorted(List.of(targetItemId), objects, "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getNonQuestSize(), player.getInventoryLimit());
 		final List<AutoGetSkill> autoSkills = nativePersistence && previous != null && previous.identity().equals(identity) ? previous.retainAutoGetRanks(autoGetSkills(identity, player.getLevel())) : autoGetSkills(identity, player.getLevel());
-		final Clock clock = previous == null ? new Clock(INITIAL_RNG_SEED, 0, 0) : previous.clock();
-		final Receipt receipt = previous == null ? Receipt.empty() : previous.receipt();
+		final Clock clock = PhantomOffscreenOutdoorTravel.nativeClock(previous);
+		final Receipt receipt = PhantomOffscreenOutdoorTravel.nativeReceipt(previous,
+			World.getInstance().getPlayer(player.getObjectId()) == player && World.getInstance().findObject(player.getObjectId()) == player);
 		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());
 	}
 
@@ -319,7 +323,34 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public boolean viableTarget(PlanningCombat combat, int npcId)
 	{
-		return planningTarget(npcId).map(combat::viable).orElse(false);
+		final var mechanics = combat.mechanics() != null ? combat.mechanics() : storedMechanics(combat.skillId(), combat.skillLevel(), combat.requiredMp(), combat.combat().modelKind(), combat.classId());
+		final var bound = combat.combat().modelKind() == ModelKind.SUMMON_PRIMARY ? new PlanningCombat(combat.combat(), combat.vitals(), combat.requiredMp())
+			: new PlanningCombat(combat.combat(), combat.vitals(), combat.requiredMp(), combat.skillId(), combat.skillLevel(), mechanics, combat.classId(), combat.actorLevel());
+		return planningTarget(npcId).map(bound::viable).orElse(false);
+	}
+
+	private org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics storedMechanics(int skillId, int skillLevel, double mp, ModelKind kind, int classId)
+	{
+		if (skillId == 0 || kind == ModelKind.SUMMON_PRIMARY) { return null; }
+		final SkillFact fact = _progression.get().skill(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef(skillId, skillLevel));
+		if (fact == null || fact.combatMechanics() == null || mp < fact.mpConsume() || fact.hpConsume() != 0 || fact.itemConsumeCount() != 0 || fact.chargeConsumeCount() != 0 || fact.maximumSoulConsumeCount() != 0) { return null; }
+		return (kind == ModelKind.MAGIC) == (fact.combatMechanics().kind() == org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.DamageKind.MAGIC) ? org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.classBound(fact.combatMechanics(), classId) : null;
+	}
+
+	private org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics storedMechanics(PhantomBackgroundState state)
+	{
+		final var mechanics = storedMechanics(state.loadout().selectedSkillId(), state.loadout().selectedSkillLevel(), state.loadout().skillMpPerEncounter(), state.combat().modelKind(), state.identity().activeClassId());
+		if (state.loadout().selectedSkillId() > 0 && state.combat().modelKind() != ModelKind.SUMMON_PRIMARY && mechanics == null)
+		{ throw new FarmInputRejected(FarmInputFailure.AUTHORITY_STALE, "farm.unsupported_skill_mechanics"); }
+		return mechanics;
+	}
+
+	private org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics farmMechanics(PhantomBackgroundState state, Target target)
+	{
+		final var raw = storedMechanics(state);
+		final var bound = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.targetBound(raw, state.progress().level(), target.level());
+		if (raw != null && bound == null) { throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.unsupported_native_level_penalty"); }
+		return bound;
 	}
 
 	/** Native getters already include current equipment, passives, buffs and target-sensitive stats. */
@@ -328,7 +359,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final double mp = skill == null ? 0 : Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
 		final ModelKind kind = skill != null && skill.isDamage() && skill.isMagic() ? ModelKind.MAGIC : ModelKind.MELEE;
 		final CombatFacts combat = new CombatFacts(kind, player.getPAtk(target), player.getMAtk(target, skill), player.getPDef(target), player.getMDef(target, skill), player.getPAtkSpd(), player.getMAtkSpd(), Formulas.calcHpRegen(player) / 3d, Formulas.calcMpRegen(player) / 3d, 1, 1, 0, 1, 1, 1, 1);
-		return new PlanningCombat(combat, new Vitals(player.getCurrentHp(), player.getMaxHp(), Math.min(player.getCurrentMp(), player.getMaxMp()), player.getMaxMp(), Math.min(player.getCurrentCp(), player.getMaxCp()), player.getMaxCp()), mp);
+		return new PlanningCombat(combat, new Vitals(player.getCurrentHp(), player.getMaxHp(), Math.min(player.getCurrentMp(), player.getMaxMp()), player.getMaxMp(), Math.min(player.getCurrentCp(), player.getMaxCp()), player.getMaxCp()), mp,
+			skill == null ? 0 : skill.getId(), skill == null ? 0 : skill.getLevel(), org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.classBound(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.mechanics(skill), player.getPlayerClass().getId()), player.getPlayerClass().getId(), player.getLevel());
 	}
 
 	/** Champion HP is damage mitigation in Creature.reduceCurrentHp; maxHP alone hides it. */
@@ -336,7 +368,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	{
 		final double championHp = target.isChampion() ? ChampionMonstersConfig.profile(target).hp() : 1;
 		final double hp = Math.max(1, remainingHp ? target.getCurrentHp() : target.getMaxHp()) * Math.max(1, championHp);
-		return new Target(target.asNpc().getId(), target.getLevel(), target.isMonster() && !target.isRaid(), hp, target.getMaxMp(), target.getPAtk(null), target.getMAtk(null, null), target.getPDef(null), target.getMDef(null, null), target.getPAtkSpd(), target.getMAtkSpd(), 0, 0, List.of(), 1, (float) target.getMaxHp());
+		return new Target(target.asNpc().getId(), target.getLevel(), target.isMonster() && !target.isRaid(), hp, target.getMaxMp(), target.getPAtk(null), target.getMAtk(null, null), target.getPDef(null), target.getMDef(null, null), target.getPAtkSpd(), target.getMAtkSpd(), 0, 0, List.of(), 1, (float) target.getMaxHp(),
+			new PhantomBackgroundModel.CastDefense(java.util.stream.IntStream.range(0, 6).mapToObj(element -> target.getDefenseElementValue((byte) element)).toList(), target.calcStat(Stat.MAGIC_SUCCESS_RES, 1, null, null)));
 	}
 
 	/** Stock death/level loss can retain MP above the new maximum; use the native-store bound. */
@@ -443,14 +476,14 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			throw new FarmInputRejected(FarmInputFailure.UNSUPPORTED_LOOT, "farm.loot_evidence_bound");
 		}
-		final Target target = new Target(goal.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), drops, RatesConfig.DROP_MAX_OCCURRENCES_NORMAL, nativeVitalityMaximumHp(template));
+		final Target target = nativeFarmTarget(template, npc.exp(), npc.sp(), drops);
 		final double expRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicExpRate(state.progress().level()) : RatesConfig.RATE_XP;
 		final double spRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicSpRate(state.progress().level()) : RatesConfig.RATE_SP;
-		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), anchor.nodeId(), (int) Math.clamp(configuredAmount, 1, 32));
+		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), anchor.nodeId(), (int) Math.clamp(configuredAmount, 1, 32), farmMechanics(state, target));
 	}
 
     /** Stock passive NPC stat projection, without spawn or World admission; only scalars reach the model. */
-    private static float nativeVitalityMaximumHp(NpcTemplate template)
+    private static Target nativeFarmTarget(NpcTemplate template, double experience, double sp, List<Drop> drops)
     {
         final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(template);
         try
@@ -458,7 +491,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
             if (org.l2jmobius.gameserver.model.World.getInstance().findObject(monster.getObjectId()) != null) { throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.native_scalar_world_admission"); }
             final float hp = (float) monster.getMaxHp();
             if (!Float.isFinite(hp) || hp <= 0) { throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.native_scalar_hp"); }
-            return hp;
+            final Target facts = nativePlanningTarget(monster, false);
+            return new Target(facts.npcId(), facts.level(), facts.normalMonster(), facts.maximumHp(), facts.maximumMp(), facts.physicalOffense(), facts.magicOffense(), facts.physicalDefense(), facts.magicDefense(), facts.attackSpeed(), facts.castSpeed(), experience, sp, List.copyOf(drops), RatesConfig.DROP_MAX_OCCURRENCES_NORMAL, hp, facts.castDefense());
         }
         finally { monster.deleteMe(); }
     }
@@ -513,14 +547,100 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			result.add(drop(state, npc.level(), selected, DropOrigin.ACQUISITION_TARGET, true));
 		}
-		final Target target = new Target(source.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), List.copyOf(result), RatesConfig.DROP_MAX_OCCURRENCES_NORMAL);
+		final Target target = nativeFarmTarget(template, npc.exp(), npc.sp(), result);
 		final double expRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicExpRate(state.progress().level()) : RatesConfig.RATE_XP;
 		final double spRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicSpRate(state.progress().level()) : RatesConfig.RATE_SP;
 		final long configuredAmount = knowledge.spawnAreasByNpc().getOrDefault(source.npcId(), List.of()).stream().filter(area -> source.topologyNodeId().equals(area.topologyNodeId())).mapToLong(SpawnAreaFact::totalConfiguredAmount).sum();
-		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), source.topologyNodeId(), (int) Math.clamp(configuredAmount, 1, 32));
+		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), source.topologyNodeId(), (int) Math.clamp(configuredAmount, 1, 32), farmMechanics(state, target));
 	}
 
     @Override public long topologyGeneration() { return _topology.get().snapshot().generation(); }
+
+	@Override
+	public boolean offscreenOutdoorCandidate(PhantomTopologyQuery topology, String sourceAnchorId,
+		org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact target, String destinationAnchorId)
+	{
+		return offscreenOutdoorRejection(topology, sourceAnchorId, target, destinationAnchorId).isEmpty();
+	}
+
+	@Override
+	public String offscreenOutdoorRejection(PhantomTopologyQuery topology, String sourceAnchorId,
+		org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact target, String destinationAnchorId)
+	{
+		final long zoneGeneration = offscreenAdmissionGeneration();
+		if (zoneGeneration < 0) { return "native.zones.unavailable"; }
+		if (!PhantomOffscreenOutdoorTravel.sourceBacked(topology, sourceAnchorId, target, destinationAnchorId)) { return "topology.not_public_outdoor"; }
+		for (String id : List.of(sourceAnchorId, destinationAnchorId))
+		{
+			final var anchor = topology.findAnchor(id).orElseThrow();
+			final var nativePosition = canonicalCommittedAnchorPosition(anchor, 0).orElse(null);
+			if (nativePosition == null) { return "native.anchor.unverified"; }
+			final boolean destination = id.equals(destinationAnchorId);
+			final String rejected = offscreenNativePointRejection(nativePosition, destination);
+			if (!rejected.isEmpty()) { return (destination ? "destination." : "source.") + rejected; }
+			if (destination)
+			{
+				final String stock = PhantomOffscreenOutdoorTravel.stockRejection(topology, id, target.npc().npcId(),
+					_knowledge.get().snapshot().spawnFactsByNpc().getOrDefault(target.npc().npcId(), List.of()),
+					new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(nativePosition.x(), nativePosition.y(), nativePosition.z(), 0));
+				if (!stock.isEmpty()) { return stock; }
+			}
+		}
+		return zoneGeneration == offscreenAdmissionGeneration() ? "" : "native.zones.changed";
+	}
+
+	@Override public long offscreenAdmissionGeneration() { return ZoneManager.getInstance().loadedGeneration(); }
+
+	private static String offscreenNativePointRejection(Position point, boolean destination)
+	{
+		final var geo = GeoEngine.getInstance();
+		if (point.instanceId() != 0 || !geo.hasGeo(point.x(), point.y()) || geo.getHeight(point.x(), point.y(), point.z()) != point.z()
+			|| geo.getHeight(point.x(), point.y(), 32767) != point.z()) { return "native.geo.not_surface"; }
+		if (!geo.checkNearestNswe(GeoEngine.getGeoX(point.x()), GeoEngine.getGeoY(point.y()), point.z(), Cell.NSWE_ALL))
+		{ return "native.geo.obstructed"; }
+		final var zones = ZoneManager.getInstance().getLoadedZones(point.x(), point.y(), point.z());
+		return zones.isEmpty() ? "native.zones.unavailable" : PhantomOffscreenOutdoorTravel.zoneRejection(zones.get(), destination);
+	}
+
+	@Override
+	public Optional<Position> offscreenDestination(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal)
+	{
+		return _topology.get().findAnchor(goal.anchorId()).flatMap(anchor -> canonicalCommittedAnchorPosition(anchor, state.position().heading()));
+	}
+
+	@Override
+	public TravelAdvance advanceOffscreenTravel(PhantomBackgroundState state, PhantomGoal goal, PhantomBackgroundOperationKey key,
+		long elapsedBudgetMillis, PhantomBackgroundSimulationPolicy policy)
+	{
+		final var denied = unchanged(Status.NO_ROUTE, state, "offscreen-outdoor");
+		if (!PhantomOffscreenOutdoorTravel.pending(goal) || policy == null || !policy.rulesFingerprint().equals(configuredSimulationFingerprint())
+			|| !policy.permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, configuredSimulationFingerprint()) || !state.hashes().equals(hashes())
+			|| key.goalId() != goal.goalId() || key.goalRevision() != goal.revision()) { return denied; }
+		final var spec = PhantomBackgroundGoalSpec.parse(goal);
+		final var topology = _topology.get();
+		final var source = topology.findAnchor(state.position().committedAnchorId()).orElse(null);
+		final var destination = topology.findAnchor(spec.anchorId()).orElse(null);
+		final var knowledge = _knowledge.get().snapshot();
+		final var npc = knowledge.npcById().get(spec.npcId());
+		if (source == null || destination == null || npc == null || key.targetNpcId() != spec.npcId()
+			|| spec.shotItemId() > 0 && state.inventory().itemCount(spec.shotItemId()) < spec.shotsPerEncounter()
+			|| spec.summonResourceItemId() > 0 && state.inventory().itemCount(spec.summonResourceItemId()) < spec.summonResourcesPerEncounter()
+			|| npc.level() < Math.max(1, state.progress().level() - 10) || npc.level() > state.progress().level() + 2
+			|| !viableTarget(PlanningCombat.from(state), spec.npcId())
+			|| travelQuery(topology).route(source.id(), destination.id()).isPresent()) { return denied; }
+		final var areas = knowledge.spawnAreasByNpc().getOrDefault(spec.npcId(), List.of()).stream()
+			.filter(area -> destination.nodeId().equals(area.topologyNodeId())).limit(64).toList();
+		final var target = new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact(npc, areas.size(),
+			areas.stream().map(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaSummary::from).toList(), false);
+		final var position = canonicalCommittedAnchorPosition(destination, state.position().heading()).orElse(null);
+		if (!offscreenOutdoorCandidate(topology, source.id(), target, destination.id()) || position == null
+			|| !atCanonicalAnchor(state.position(), source) || !uniquelyIdentifiesAnchor(topology, state.position(), source.id())
+			|| !uniquelyIdentifiesAnchor(topology, position, destination.id())
+			|| !offscreenNativePointRejection(state.position(), false).isEmpty()
+			|| !GeoEngine.getInstance().hasGeo(state.position().x(), state.position().y())
+			|| GeoEngine.getInstance().getHeight(state.position().x(), state.position().y(), state.position().z()) != state.position().z()) { return denied; }
+		return PhantomOffscreenOutdoorTravel.advance(state, position, key, elapsedBudgetMillis, policy);
+	}
     @Override public boolean canFarmAt(Position position, PhantomBackgroundGoalSpec goal)
     {
         final var anchor = _topology.get().findAnchor(goal.anchorId()).orElse(null);
@@ -857,6 +977,17 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	private Capability capability(Player player, PhantomBackgroundGoalSpec goal)
 	{
 		final PhantomProgressionCatalog catalog = _progression.get();
+		if (goal == null || goal.summonNpcId() == 0)
+		{
+			final Skill selected = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.offensiveSkill(player, null);
+			if (selected == null) { return new Capability(ModelKind.MELEE, 0, 0, 0, 0, 0, null, null); }
+			final ModelKind kind = selected.isMagic() ? ModelKind.MAGIC : ModelKind.MELEE;
+			final int mp = Math.max(selected.getMpInitialConsume() + selected.getMpConsume(), player.getStat().getMpInitialConsume(selected) + player.getStat().getMpConsume(selected));
+			final var mechanics = storedMechanics(selected.getId(), selected.getLevel(), mp, kind, player.getPlayerClass().getId());
+			if (mechanics == null || !mechanics.equals(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.classBound(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.mechanics(selected), player.getPlayerClass().getId())))
+			{ return new Capability(ModelKind.MELEE, 0, 0, 0, 0, 0, null, null); } // Unsupported/unattested rank cannot abort the native store or claim MAGIC.
+			return new Capability(kind, selected.getId(), selected.getLevel(), mp, 0, 0, null, null);
+		}
 		final List<CapabilityRule> rules = catalog.capabilities(player.getActiveClass()).stream().filter(rule -> supportedCapability(rule.capabilityKey())).sorted(Comparator.comparingInt(CapabilityRule::rank).reversed().thenComparing(CapabilityRule::stableKey)).toList();
 		final Map<String, Boolean> equippedFamilies = new HashMap<>();
 		player.getInventory().getPaperdollItems().forEach(item ->
@@ -1233,6 +1364,12 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	private PhantomTopologyAnchor nativeAnchor(Player player, PhantomGoal goal, PhantomBackgroundState previous)
 	{
 		final var topology = _topology.get();
+		// Initial historical capture has no durable lineage. Intent is not a source
+		// anchor: require the same unique native point used by planInitial(). A later
+		// native store may repair legacy intent-labelled XYZ at an exact factual point.
+		if (previous == null) { return exactAnchor(player, null); }
+		try { return exactAnchor(player, null); }
+		catch (IllegalArgumentException offAnchor) { /* Preserve existing off-anchor native lineage below. */ }
 		final var prior = previous == null ? null : topology.findAnchor(previous.position().committedAnchorId()).orElse(null);
 		final var intended = goal.selectedAnchor() == null ? null : topology.findAnchor(goal.selectedAnchor().key()).orElse(null);
 		if ((prior != null) && livePositionAllowed(topology, player, prior)) { return prior; }
@@ -1310,12 +1447,18 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
     public static String configuredSimulationFingerprint()
     {
-        return digest("ORDINARY_SCALAR_V2_NATIVE_TARGET_HP_OPTIONAL_SHOTS_066", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
+        return digest("ORDINARY_SCALAR_V3_PAID_NATIVE_CAST_DRAIN_092B", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
             PlayerConfig.MAX_BONUS_SP, RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
             RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
             RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,
             RatesConfig.RATE_XP, RatesConfig.RATE_SP, RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE,
-            DynamicExpRateData.getInstance().isEnabled());
+            DynamicExpRateData.getInstance().isEnabled(), PlayerConfig.ALT_GAME_MAGICFAILURES, PlayerConfig.CALCULATE_MAGIC_SUCCESS_BY_SKILL_MAGIC_LEVEL,
+            org.l2jmobius.gameserver.config.custom.AutoPlayConfig.ENABLE_AUTO_SKILL, org.l2jmobius.gameserver.config.custom.AutoPlayConfig.DISABLED_AUTO_SKILLS.stream().sorted().toList(),
+            java.util.Arrays.toString(org.l2jmobius.gameserver.config.custom.ClassBalanceConfig.PVE_MAGICAL_SKILL_DAMAGE_MULTIPLIERS),
+            java.util.Arrays.toString(org.l2jmobius.gameserver.config.custom.ClassBalanceConfig.PVE_PHYSICAL_SKILL_DAMAGE_MULTIPLIERS),
+            java.util.Arrays.toString(org.l2jmobius.gameserver.config.custom.ClassBalanceConfig.SKILL_REUSE_MULTIPLIERS),
+            org.l2jmobius.gameserver.config.NpcConfig.MIN_NPC_LEVEL_DMG_PENALTY, java.util.Arrays.toString(org.l2jmobius.gameserver.config.NpcConfig.NPC_SKILL_DMG_PENALTY),
+            org.l2jmobius.gameserver.config.NpcConfig.MIN_NPC_LEVEL_MAGIC_PENALTY, java.util.Arrays.toString(org.l2jmobius.gameserver.config.NpcConfig.NPC_SKILL_CHANCE_PENALTY));
     }
 	private static PhantomNativeContext.Capture nativeContext(Player player)
 	{

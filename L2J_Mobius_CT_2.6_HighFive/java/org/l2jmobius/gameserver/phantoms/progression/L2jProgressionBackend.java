@@ -525,6 +525,27 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 				referenced.add(new SkillRef(skill.skillId(), Math.max(1, skill.skillLevel())));
 			}
 		}
+		// Actual enchanted ranks are native actions too. Enumerate only supported ordinary damage families.
+		for (int id : referenced.stream().map(SkillRef::skillId).distinct().sorted().toList())
+		{
+			if (!SkillData.getInstance().isEnchantable(id)) { continue; }
+			final var enchant = org.l2jmobius.gameserver.data.xml.EnchantSkillGroupsData.getInstance().getSkillEnchantmentBySkillId(id);
+			if (enchant == null) { continue; }
+			final Skill base = requireSkill(id, enchant.getBaseLevel());
+			if (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.mechanics(base) == null) { continue; }
+			for (int route : enchant.getAllRoutes().stream().sorted().toList())
+			{
+				for (int index = 1; index < 100; index++) // Native route/index encoding, not a character level band.
+				{
+					final int rank = route * 100 + index;
+					final Skill nativeRank = requireSkill(id, rank);
+					if (nativeRank.getLevel() != rank) { throw failure("reference", "Enchanted native rank is not exact."); }
+					referenced.add(new SkillRef(id, rank));
+					if (referenced.size() > policy.maximumSkillFacts()) { throw failure("count", "Referenced skill count exceeds policy."); }
+					if (enchant.isMaxEnchant(rank)) { break; }
+				}
+			}
+		}
 		if (referenced.size() > policy.maximumSkillFacts())
 		{
 			throw failure("count", "Referenced skill count exceeds policy.");
@@ -538,7 +559,7 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 			{
 				throw failure("reference", "Referenced Skill has no exact datapack source.");
 			}
-			result.add(new SkillFact(skill.getId(), skill.getLevel(), skill.isActive(), skill.isPassive(), skill.isToggle(), skill.isPhysical(), skill.isMagic(), skill.getTargetType().name(), skill.isDamage(), skill.hasNegativeEffect(), hasAny(skill, HEAL_EFFECTS), hasAny(skill, RESURRECTION_EFFECTS), skill.hasEffectType(EffectType.BUFF), skill.isDebuff() || skill.hasEffectType(EffectType.DEBUFF), hasAny(skill, CONTROL_EFFECTS), skill.getItemConsumeId(), skill.getItemConsumeCount(), skill.getChargeConsumeCount(), skill.getMaxSoulConsumeCount(), skill.getMpConsume() + skill.getMpInitialConsume(), skill.getHpConsume(), skill.getReuseDelay(), ConditionPresence.DYNAMIC_SERVER_CONDITION, skill.isBlockedInOlympiad(), skill.isPvPOnly(), skill.isSuicideAttack(), skill.isRemovedOnAnyActionExceptMove(), skill.isTransformation(), Authority.SERVER_LOADER_FACT, List.of(source)));
+			result.add(new SkillFact(skill.getId(), skill.getLevel(), skill.isActive(), skill.isPassive(), skill.isToggle(), skill.isPhysical(), skill.isMagic(), skill.getTargetType().name(), skill.isDamage(), skill.hasNegativeEffect(), hasAny(skill, HEAL_EFFECTS), hasAny(skill, RESURRECTION_EFFECTS), skill.hasEffectType(EffectType.BUFF), skill.isDebuff() || skill.hasEffectType(EffectType.DEBUFF), hasAny(skill, CONTROL_EFFECTS), skill.getItemConsumeId(), skill.getItemConsumeCount(), skill.getChargeConsumeCount(), skill.getMaxSoulConsumeCount(), skill.getMpConsume() + skill.getMpInitialConsume(), skill.getHpConsume(), skill.getReuseDelay(), ConditionPresence.DYNAMIC_SERVER_CONDITION, skill.isBlockedInOlympiad(), skill.isPvPOnly(), skill.isSuicideAttack(), skill.isRemovedOnAnyActionExceptMove(), skill.isTransformation(), Authority.SERVER_LOADER_FACT, List.of(source), org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.mechanics(skill)));
 		}
 		return List.copyOf(result);
 	}

@@ -131,6 +131,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private volatile LongPredicate _ordinaryPresence = profileId -> true;
 	private volatile LongPredicate _nativeContextDemand = profileId -> true;
 	private volatile BiConsumer<Long, PhantomBackgroundState.Position> _committedPosition = (profileId, position) -> {};
+	private volatile PhantomOffscreenOutdoorTravel.ObserverAdmission _offscreenAdmission = (id, from, to) ->
+		org.l2jmobius.gameserver.phantoms.PhantomSystem.offscreenObserverAdmission(id,
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(from.x(), from.y(), from.z(), from.instanceId()),
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(to.x(), to.y(), to.z(), to.instanceId()), 0);
+
+	/** Native composition boundary: implementations must use the full 092A census and recent-human facts. */
+	public void installOffscreenObserverAdmission(PhantomOffscreenOutdoorTravel.ObserverAdmission admission)
+	{
+		if (!_operations.isEmpty() || !_transitions.isEmpty()) { throw new IllegalStateException("Background owner is busy."); }
+		_offscreenAdmission = Objects.requireNonNull(admission);
+	}
 	private boolean _positionPublisherInstalled;
 	private boolean _presenceInstalled;
 	private boolean _nativeContextDemandInstalled;
@@ -484,7 +495,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return retry("competition.capacity");
 				}
-				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false), claim._nativeContext.afterPolicy());
+				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, input.mechanics()), claim._nativeContext.afterPolicy());
 				if (!batch.mutated())
 				{
 					return switch (batch.reason())
@@ -539,8 +550,27 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return replay;
 			}
-			final var nativeGate = ordinaryContextGate(claim, null);
+			final var nativeGate = ordinaryContextGate(claim, PhantomOffscreenOutdoorTravel.pendingDebt(state) ? PhantomBackgroundSimulationPolicy.Operation.TRAVEL : null);
 			if (nativeGate != null) { return nativeGate; }
+			if (PhantomOffscreenOutdoorTravel.pendingDebt(state))
+			{
+				final var continuation = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0,
+					PhantomOffscreenOutdoorTravel.RECEIPT_TICK, ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, spec.npcId(), spec.anchorId(),
+					PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+				if (!PhantomOffscreenOutdoorTravel.pending(goal) || !PhantomOffscreenOutdoorTravel.ownsResidual(state, continuation))
+				{
+					// A new request/goal may abandon old virtual debt, never inherit it as a
+					// WALK/GK duration. Cancellation consumes this minute at the same XYZ.
+					final var key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0,
+						PhantomOffscreenOutdoorTravel.RECEIPT_TICK, ActionKind.HISTORICAL_OFFSCREEN_CANCEL, spec.npcId(), spec.anchorId(),
+						PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+					final var proof = new PhantomBackgroundTransaction.OffscreenProof(_offscreenAdmission, _authority, _authority.topologyGeneration(), FARM_TRAVEL_BUDGET_MILLIS, state.position());
+					return commit(claim, new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), state.position(),
+						new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), Map.of(), state.autoGetSkills(), List.of(), null, mutation,
+						new PhantomBackgroundTransaction.PolicyMutation(claim._nativeContext, PhantomBackgroundSimulationPolicy.Operation.TRAVEL,
+							claim._nativeContext.afterPolicy(), claim._lease, null, proof)));
+				}
+			}
 			if (state.state() == State.DEAD)
 			{
 				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_DEAD_IDLE, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
@@ -554,6 +584,29 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			if (!state.position().committedAnchorId().equals(spec.anchorId()) || claim._nativeContext.afterPolicy() != null && !claim._nativeContext.afterPolicy().farmPosition())
 			{
+				if (PhantomOffscreenOutdoorTravel.pending(goal))
+				{
+					// The operation claim excludes beforeMaterialize; the BACKGROUND lease excludes
+					// native load/save. An absent World Player alone is insufficient admission.
+					final var materialization = _materialization.get();
+					if (materialization == null || materialization.find(profileId).isPresent() || state.state() != State.READY
+						|| claim._nativeContext.afterPolicy() == null) { return retry("catchup.offscreen.materialization_busy"); }
+					final var key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0,
+						PhantomOffscreenOutdoorTravel.RECEIPT_TICK, ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, spec.npcId(), spec.anchorId(),
+						PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+					final var advance = _authority.advanceOffscreenTravel(state, goal, key, FARM_TRAVEL_BUDGET_MILLIS, claim._nativeContext.afterPolicy());
+					if (!advance.mutated()) { return retry("catchup.offscreen.proof_or_residual_stale"); }
+					final var admission = _offscreenAdmission;
+					// A partial step still checks the final destination, not the unchanged source.
+					final var destination = _authority.offscreenDestination(state, spec).orElse(null);
+					if (destination == null) { return retry("catchup.offscreen.destination_stale"); }
+					final var proof = new PhantomBackgroundTransaction.OffscreenProof(admission, _authority, _authority.topologyGeneration(), FARM_TRAVEL_BUDGET_MILLIS, destination);
+					final var policy = claim._nativeContext.afterPolicy().withPosition(_authority.canFarmAt(advance.position(), spec), claim._nativeContext.afterPolicy().travelPosition());
+					final var command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(),
+						Map.of(), state.autoGetSkills(), List.of(), null, mutation, new PhantomBackgroundTransaction.PolicyMutation(claim._nativeContext,
+							PhantomBackgroundSimulationPolicy.Operation.TRAVEL, policy, claim._lease, null, proof));
+					return commit(claim, command);
+				}
 				final TravelAdvance advance;
 				try
 				{
@@ -598,7 +651,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return retry("competition.capacity");
 				}
-				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false), claim._nativeContext.afterPolicy());
+				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, input.mechanics()), claim._nativeContext.afterPolicy());
 				if (!batch.mutated())
 				{
 					if (batch.indivisibleObjectCap())
@@ -617,11 +670,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationResult reconcileHistoricalReplay(OperationClaim claim, PhantomGoal goal, PhantomBackgroundGoalSpec spec, HistoricalIdentity historical, PhantomBackgroundTransaction.CatchupMutation catchup)
 	{
-		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE, ActionKind.HISTORICAL_IDLE))
+		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE, ActionKind.HISTORICAL_IDLE, ActionKind.HISTORICAL_OFFSCREEN_TRAVEL, ActionKind.HISTORICAL_OFFSCREEN_CANCEL))
 		{
 			for (String legId : actionKind == ActionKind.HISTORICAL_TRAVEL ? java.util.stream.Stream.concat(java.util.stream.Stream.of(""), _authority.travelLegIds().stream()).toList() : List.of(""))
 			{
-				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(claim.profileId(), claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, actionKind, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical, legId);
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(claim.profileId(), claim.characterObjectId(), goal.goalId(), goal.revision(), 0, actionKind == ActionKind.HISTORICAL_OFFSCREEN_TRAVEL || actionKind == ActionKind.HISTORICAL_OFFSCREEN_CANCEL ? PhantomOffscreenOutdoorTravel.RECEIPT_TICK : 0, actionKind, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical, legId);
 				if (!claim.state().receipt().operationKey().equals(key.digest()))
 				{
 					continue;
@@ -763,7 +816,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return OperationResult.replan("acquisition.item_stale");
 				}
-				final BatchResult batch = _model.evaluate(new BatchRequest(background, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, acquisitionState.targetItemId(), remaining, true, manorFormula, questFormula, (method == Method.MANOR_CROP) || (method == Method.QUEST_COLLECTION) ? 1 : PhantomBackgroundModel.MAX_ENCOUNTERS, item.isStackable(), item.getWeight()));
+				final BatchResult batch = _model.evaluate(new BatchRequest(background, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false, mode, acquisitionState.targetItemId(), remaining, true, manorFormula, questFormula, (method == Method.MANOR_CROP) || (method == Method.QUEST_COLLECTION) ? 1 : PhantomBackgroundModel.MAX_ENCOUNTERS, item.isStackable(), item.getWeight(), input.mechanics()));
 				if (!batch.mutated())
 				{
 					return switch (batch.reason())
@@ -1912,6 +1965,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				throw new IllegalStateException("Background state reconciliation failed.");
 			}
+			if (reconciled.state().receipt().activityGeneration() == 0 && reconciled.state().receipt().tickSequence() == PhantomOffscreenOutdoorTravel.RECEIPT_TICK)
+			{
+				final var position = reconciled.state().position();
+				if (!PhantomBackgroundTransaction.offscreenAllowed(_offscreenAdmission, profileId, position, position))
+				{ throw new AdmissionRejectedException("background.offscreen.observer_or_travel_pending"); }
+			}
 			if ((purpose != MaterializationPurpose.NORMAL) && !currentHistoricalComponents(profileId, _historicalAdmissions.get(profileId))) { throw new AdmissionRejectedException("background.historical_claim_or_goal_changed"); }
 			retained = true;
 		}
@@ -1921,6 +1980,22 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				releaseTransition(profileId, TransitionKind.MATERIALIZING);
 			}
+		}
+	}
+
+	@Override
+	public void beforeWorldSpawn(long profileId, Player player)
+	{
+		final var loaded = transaction(() -> _transactions.load(profileId));
+		if (!loaded.successful() && loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT)
+		{ throw new AdmissionRejectedException("background.offscreen.pre_spawn_state_unavailable"); }
+		if (loaded.state() == null) { return; }
+		final var receipt = loaded.state().receipt();
+		if (receipt.activityGeneration() == 0 && receipt.tickSequence() == PhantomOffscreenOutdoorTravel.RECEIPT_TICK)
+		{
+			final var position = loaded.state().position();
+			if (!PhantomBackgroundTransaction.offscreenAllowed(_offscreenAdmission, profileId, position, position))
+			{ throw new AdmissionRejectedException("background.offscreen.observer_before_spawn"); }
 		}
 	}
 
@@ -2312,6 +2387,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				closeLease(lease);
 				return releaseFailedOperation(profileId, OperationResult.replan("authority.hash_stale"));
 			}
+			if (!historical && PhantomOffscreenOutdoorTravel.taggedReceipt(loaded.state()))
+			{
+				closeLease(lease);
+				return releaseFailedOperation(profileId, retry("offscreen.debt_requires_historical_or_native"));
+			}
 			return OperationClaim.acquired(this, profileId, characterObjectId, lease, loaded.state(), spec);
 		}
 		catch (RuntimeException exception)
@@ -2472,6 +2552,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (_partyParticipation.blocksBackground(claim.profileId()))
 		{
 			return retry("party.materialized_only");
+		}
+		if (command.policy() != null && command.policy().offscreen() != null && !PhantomBackgroundTransaction.offscreenAdmission(command))
+		{
+			return retry("catchup.offscreen.observer_denied");
 		}
 		PhantomBackgroundTransaction.Result result = transaction(() -> _transactions.execute(command));
 		if ((result.status() == PhantomBackgroundTransaction.Status.COMMIT_OUTCOME_UNKNOWN) || (result.status() == PhantomBackgroundTransaction.Status.POST_COMMIT_VERIFICATION_FAILED))

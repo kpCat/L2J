@@ -226,7 +226,7 @@ public final class PhantomSystem
 	public static final int TRACE_SAMPLE_EVERY = 16;
 	public static final long SOCIAL_PERSONALITY_SEED = 18001801L;
 
-	private static PhantomSystem _configuredInstance;
+	private static volatile PhantomSystem _configuredInstance;
 	private static OperatorMode _operatorMode = OperatorMode.AUTO;
 	private static PhantomDecisionReplay.Bundle _operatorReplayBundle;
 	private static PhantomPopulationResetService _populationResetService;
@@ -3369,8 +3369,9 @@ public final class PhantomSystem
 	/** Read-only call-time guard for a future canonical offscreen transition; never called by the common pulse. */
 	public static PhantomOffscreenObserverAdmission.Verdict offscreenObserverAdmission(long profileId, PhantomTopologyPoint source, PhantomTopologyPoint destination, int instanceId)
 	{
-		final PhantomSystem configured;
-		synchronized (PhantomSystem.class) { configured = _configuredInstance; }
+		// This callback also executes under canonical row locks. Never acquire the
+		// class monitor: operator/startup paths may own it while accessing JDBC.
+		final PhantomSystem configured = _configuredInstance;
 		if ((configured == null) || (configured._state != State.RUNNING) || (configured._offscreenObservers == null) || (configured._topologyService == null))
 		{
 			return new PhantomOffscreenObserverAdmission.Verdict(PhantomOffscreenObserverAdmission.Code.UNKNOWN_RUNTIME, profileId, source, destination, instanceId, System.nanoTime(), 0);

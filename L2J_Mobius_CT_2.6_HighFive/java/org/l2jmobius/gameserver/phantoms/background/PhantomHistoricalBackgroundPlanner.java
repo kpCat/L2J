@@ -60,6 +60,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	private static final int MAXIMUM_TARGETS = 64;
 	private static final int FALLBACK_TARGETS = 256;
 	private static final int MAXIMUM_TARGET_PAGES = 8;
+	private static final int MAXIMUM_OFFSCREEN_NATIVE_PROOFS = 256;
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
@@ -79,7 +80,9 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result planInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)
 	{
 		final PlanningSnapshot facts = _authority.planningSnapshot(player);
-		return plan(profileId, facts.level(), facts.activeClassId(), facts.currentAnchorId(), facts.shotItemId(), facts.shotsPerEncounter(), facts.summonNpcId(), facts.summonResourceItemId(), facts.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, 0, 0, Set.of(), Set.of(), null, _authority.planningCombat(player).orElse(null));
+		return plan(profileId, facts.level(), facts.activeClassId(), facts.currentAnchorId(), facts.shotItemId(), facts.shotsPerEncounter(), facts.summonNpcId(), facts.summonResourceItemId(), facts.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, 0, 0, Set.of(), Set.of(), null, _authority.planningCombat(player).orElse(null),
+			(facts.shotItemId() == 0 || player.getInventory().getInventoryItemCount(facts.shotItemId(), -1) >= facts.shotsPerEncounter())
+			&& (facts.summonResourceItemId() == 0 || player.getInventory().getInventoryItemCount(facts.summonResourceItemId(), -1) >= facts.summonResourcesPerEncounter()));
 	}
 
 	public Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
@@ -90,7 +93,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result replan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
 		final PhantomBackgroundGoalSpec previous = PhantomBackgroundGoalSpec.parse(previousGoal);
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, PlanningCombat.from(state), offscreenSupplied(state));
 	}
 
 	public Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
@@ -102,7 +105,14 @@ public final class PhantomHistoricalBackgroundPlanner
 			return Result.blocked("planner.previous_goal.unsupported");
 		}
 		final PhantomBackgroundState.Loadout loadout = state.loadout();
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state), offscreenSupplied(state));
+	}
+
+	private static boolean offscreenSupplied(PhantomBackgroundState state)
+	{
+		final var loadout = state.loadout();
+		return (loadout.shotItemId() == 0 || state.inventory().itemCount(loadout.shotItemId()) >= loadout.shotsPerEncounter())
+			&& (loadout.summonResourceItemId() == 0 || state.inventory().itemCount(loadout.summonResourceItemId()) >= loadout.summonResourcesPerEncounter());
 	}
 
 	/** Prefer factual local anchors; exhaustion may propose an existing topology itinerary, never movement. */
@@ -221,7 +231,7 @@ public final class PhantomHistoricalBackgroundPlanner
 					final List<Candidate> local = new ArrayList<>(); addLocalCandidates(local, live, List.of(target));
 					return local.stream().anyMatch(value -> value.anchor().id().equals(spec.anchorId()));
 				}
-				return candidate(state.position().committedAnchorId(), target, spec.anchorId()) != null;
+				return candidate(state.position().committedAnchorId(), target, spec.anchorId(), true) != null;
 			}
 			cursor = page.nextCursor();
 			if (cursor == null)
@@ -234,6 +244,11 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, false);
+	}
+
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -245,25 +260,39 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
+		final List<String> rejections = new ArrayList<>();
 		final Set<String> seenCandidates = new java.util.HashSet<>();
 		final Map<Integer, Boolean> viability = new java.util.HashMap<>();
+		final int[] offscreenAttempts = { 0 };
 		for (int radius : LOWER_LEVEL_TIERS)
 		{
 			String cursor = null;
 			for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 			{
 				final KnowledgePage<TargetFact> page = targets(Math.max(1, level - radius), maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
-				if (live == null) { addCandidates(candidates, seenCandidates, currentAnchorId, page.values()); }
+				if (live == null) { addCandidates(candidates, seenCandidates, currentAnchorId, page.values(), allowOffscreen, rejections, offscreenAttempts, combat, viability, excludedTargets); }
 				else { addLocalCandidates(candidates, live, page.values()); }
-				candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains) || (combat != null && !viability.computeIfAbsent(candidate.target().npc().npcId(), npcId -> _authority.viableTarget(combat, npcId))));
+				candidates.removeIf(candidate ->
+				{
+					final boolean denied = excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id())
+						|| candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains)
+						|| combat != null && !viability.computeIfAbsent(candidate.target().npc().npcId(), npcId -> _authority.viableTarget(combat, npcId));
+					if (denied) { reject(rejections, candidate.target().npc().npcId(), candidate.anchor().id(), "combat_or_current_exclusion"); }
+					return denied;
+				});
 				cursor = page.nextCursor();
 				if (cursor == null) { break; }
 			}
-			if (!candidates.isEmpty()) { break; }
+			if (candidates.stream().anyMatch(value -> value.mode() == PhantomOffscreenOutdoorTravel.Mode.CERTIFIED)) { break; }
 		}
 		if (candidates.isEmpty())
 		{
-			return Result.blocked(live == null ? "planner.target_or_route.absent" : "LOCAL_FARM_UNAVAILABLE");
+			return Result.blocked(live == null ? "planner.target_or_route.absent" : "LOCAL_FARM_UNAVAILABLE").withRejections(rejections);
+		}
+		// A pending virtual option never displaces an existing suitable certified itinerary.
+		if (candidates.stream().anyMatch(value -> value.mode() == PhantomOffscreenOutdoorTravel.Mode.CERTIFIED))
+		{
+			candidates.removeIf(value -> value.mode() != PhantomOffscreenOutdoorTravel.Mode.CERTIFIED);
 		}
 		if (live != null)
 		{
@@ -282,10 +311,11 @@ public final class PhantomHistoricalBackgroundPlanner
 		final long goalId = previousGoalId > 0 ? previousGoalId : positiveLong(digest("BACKGROUND_CATCHUP_GOAL_V1", profileId, deterministicSeed, generation.knowledgeGeneration(), generation.topologyGeneration()));
 		final int npcId = selected.target().npc().npcId();
 		final String anchorId = selected.anchor().id();
-		final PhantomGoal goal = new PhantomGoal(goalId, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.NPC_NAMESPACE, Integer.toString(npcId)), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npcId + "@" + anchorId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchorId), "farm.background", 500, 0, 0, 0, constraints, "background.catchup.plan", revision);
+		final boolean offscreen = selected.mode() == PhantomOffscreenOutdoorTravel.Mode.OFFSCREEN_OUTDOOR_PENDING;
+		final PhantomGoal goal = new PhantomGoal(goalId, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.NPC_NAMESPACE, Integer.toString(npcId)), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npcId + "@" + anchorId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchorId), "farm.background", 500, 0, 0, 0, constraints, offscreen ? PhantomOffscreenOutdoorTravel.PENDING_REASON : "background.catchup.plan", revision);
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
-		final String identity = digest("BACKGROUND_CATCHUP_PLAN_V1", profileId, level, activeClassId, currentAnchorId, deterministicSeed, planOrdinal, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes(), npcId, anchorId, selected.routeEdgeIds(), constraints);
-		return new Result(goal, spec, identity, generation, selected.routeEdgeIds(), "planner.ready");
+		final String identity = digest(offscreen ? "BACKGROUND_OFFSCREEN_PLAN_V1" : "BACKGROUND_CATCHUP_PLAN_V1", profileId, level, activeClassId, currentAnchorId, deterministicSeed, planOrdinal, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes(), npcId, anchorId, selected.routeEdgeIds(), constraints);
+		return new Result(goal, spec, identity, generation, selected.routeEdgeIds(), "planner.ready").withRejections(rejections);
 	}
 
 	public Result idleInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)
@@ -356,16 +386,21 @@ public final class PhantomHistoricalBackgroundPlanner
 		return selected;
 	}
 
-	private void addCandidates(List<Candidate> candidates, Set<String> seen, String currentAnchorId, List<TargetFact> targets)
+	private void addCandidates(List<Candidate> candidates, Set<String> seen, String currentAnchorId, List<TargetFact> targets, boolean allowOffscreen,
+		List<String> rejections, int[] offscreenAttempts, PlanningCombat combat, Map<Integer, Boolean> viability, Set<String> excludedTargets)
 	{
 		for (TargetFact target : targets)
 		{
+			if (combat != null && !viability.computeIfAbsent(target.npc().npcId(), npcId -> _authority.viableTarget(combat, npcId)))
+			{ reject(rejections, target.npc().npcId(), "", "combat_or_current_exclusion"); continue; }
 			for (var area : target.representativeAreas().stream().filter(value -> (value.instanceId() == 0) && (value.totalConfiguredAmount() > 0) && (value.topologyNodeId() != null)).toList())
 			{
 				for (PhantomTopologyAnchor anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()).stream().filter(value -> (value.role() == PhantomTopologyAnchorRole.FARMING) && (value.point().instanceId() == 0) && ((value.npcId() == null) || (value.npcId() == target.npc().npcId()))).toList())
 				{
 					if (!seen.add(target.npc().npcId() + "@" + anchor.id())) { continue; }
-					final Candidate candidate = candidate(currentAnchorId, target, anchor.id());
+					if (excludedTargets.contains(target.npc().npcId() + "@" + anchor.id()))
+					{ reject(rejections, target.npc().npcId(), anchor.id(), "combat_or_current_exclusion"); continue; }
+					final Candidate candidate = candidate(currentAnchorId, target, anchor.id(), allowOffscreen, rejections, offscreenAttempts);
 					if (candidate != null)
 					{
 						candidates.add(candidate);
@@ -375,7 +410,29 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 	}
 
-	private Candidate candidate(String currentAnchorId, TargetFact target, String anchorId)
+	private Candidate candidate(String currentAnchorId, TargetFact target, String anchorId, boolean allowOffscreen)
+	{
+		return candidate(currentAnchorId, target, anchorId, allowOffscreen, new ArrayList<>(), new int[1]);
+	}
+
+	private static void reject(List<String> rejections, int npcId, String anchorId, String reason)
+	{
+		final String evidence = npcId + "@" + anchorId + ":" + reason;
+		if (rejections.size() < 32) { rejections.add(evidence); return; }
+		if (preliminaryRejection(reason)) { return; }
+		// Preserve the first native/budget failures when cheap rejects filled the log.
+		for (int index = 0; index < rejections.size(); index++)
+		{
+			if (preliminaryRejection(rejections.get(index))) { rejections.set(index, evidence); return; }
+		}
+	}
+
+	private static boolean preliminaryRejection(String reason)
+	{
+		return reason.endsWith("topology.not_public_outdoor") || reason.endsWith("combat_or_current_exclusion");
+	}
+
+	private Candidate candidate(String currentAnchorId, TargetFact target, String anchorId, boolean allowOffscreen, List<String> rejections, int[] offscreenAttempts)
 	{
 		final PhantomTopologyAnchor anchor = _topology.findAnchor(anchorId).orElse(null);
 		if ((anchor == null) || (anchor.role() != PhantomTopologyAnchorRole.FARMING) || (anchor.point().instanceId() != 0) || ((anchor.npcId() != null) && (anchor.npcId() != target.npc().npcId())) || target.representativeAreas().stream().noneMatch(area -> (area.instanceId() == 0) && (area.totalConfiguredAmount() > 0) && anchor.nodeId().equals(area.topologyNodeId())))
@@ -384,6 +441,19 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		final PhantomNormalGatekeeperTravel travel = _authority.travelQuery(_topology);
 		final List<PhantomNormalGatekeeperTravel.Step> route = travel.route(currentAnchorId, anchorId).orElse(null);
+		if (route == null && allowOffscreen)
+		{
+			// Static topology/reward rejection is not a native proof attempt. Counting
+			// every seen anchor lets early event/closed templates starve later sources.
+			if (!PhantomOffscreenOutdoorTravel.sourceBacked(_topology, currentAnchorId, target, anchorId))
+			{ reject(rejections, target.npc().npcId(), anchorId, "topology.not_public_outdoor"); return null; }
+			if (offscreenAttempts[0] >= MAXIMUM_OFFSCREEN_NATIVE_PROOFS)
+			{ reject(rejections, target.npc().npcId(), anchorId, "planner.offscreen_candidate_budget"); return null; }
+			offscreenAttempts[0]++;
+			final String denied = _authority.offscreenOutdoorRejection(_topology, currentAnchorId, target, anchorId);
+			if (denied.isEmpty()) { return new Candidate(target, anchor, List.of(), 0, 0, PhantomOffscreenOutdoorTravel.Mode.OFFSCREEN_OUTDOOR_PENDING); }
+			reject(rejections, target.npc().npcId(), anchorId, denied);
+		}
 		if ((route == null) || (!currentAnchorId.equals(anchorId) && route.isEmpty()))
 		{
 			return null;
@@ -454,8 +524,12 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 	}
 
-	private record Candidate(TargetFact target, PhantomTopologyAnchor anchor, List<String> routeEdgeIds, long travelMillis, long feeAdena)
+	private record Candidate(TargetFact target, PhantomTopologyAnchor anchor, List<String> routeEdgeIds, long travelMillis, long feeAdena, PhantomOffscreenOutdoorTravel.Mode mode)
 	{
+		private Candidate(TargetFact target, PhantomTopologyAnchor anchor, List<String> routeEdgeIds, long travelMillis, long feeAdena)
+		{
+			this(target, anchor, routeEdgeIds, travelMillis, feeAdena, PhantomOffscreenOutdoorTravel.Mode.CERTIFIED);
+		}
 		private Candidate
 		{
 			routeEdgeIds = List.copyOf(routeEdgeIds);
@@ -474,10 +548,17 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 	}
 
-	public record Result(PhantomGoal goal, PhantomBackgroundGoalSpec spec, String planIdentity, PlanningGeneration generation, List<String> routeEdgeIds, String reasonKey)
+	public record Result(PhantomGoal goal, PhantomBackgroundGoalSpec spec, String planIdentity, PlanningGeneration generation, List<String> routeEdgeIds, String reasonKey, List<String> candidateRejections)
 	{
+		public Result(PhantomGoal goal, PhantomBackgroundGoalSpec spec, String planIdentity, PlanningGeneration generation, List<String> routeEdgeIds, String reasonKey)
+		{
+			this(goal, spec, planIdentity, generation, routeEdgeIds, reasonKey, List.of());
+		}
+
 		public Result
 		{
+			candidateRejections = List.copyOf(candidateRejections);
+			if (candidateRejections.size() > 32) { throw new IllegalArgumentException("Unbounded candidate diagnostics."); }
 			planIdentity = Objects.requireNonNullElse(planIdentity, "");
 			routeEdgeIds = List.copyOf(routeEdgeIds);
 			reasonKey = Objects.requireNonNull(reasonKey, "reasonKey");
@@ -495,6 +576,16 @@ public final class PhantomHistoricalBackgroundPlanner
 		public boolean ready()
 		{
 			return goal != null;
+		}
+
+		private Result withRejections(List<String> rejections)
+		{
+			return new Result(goal, spec, planIdentity, generation, routeEdgeIds, reasonKey, rejections);
+		}
+
+		public PhantomOffscreenOutdoorTravel.Mode travelMode()
+		{
+			return goal != null && PhantomOffscreenOutdoorTravel.pending(goal) ? PhantomOffscreenOutdoorTravel.Mode.OFFSCREEN_OUTDOOR_PENDING : PhantomOffscreenOutdoorTravel.Mode.CERTIFIED;
 		}
 	}
 }

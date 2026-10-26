@@ -104,33 +104,91 @@ public final class PhantomOffscreen092Checks
 		facts.set(new PhantomMaterializationRetentionPolicy.Facts(false, false, false, false, false));
 		now.addAndGet(1_000_000);
 		final var stored = policy.observe(92);
-		PhantomAssertions.assertTrue(!stored.materialized() && stored.reasons().isEmpty() && stored.lastHumanNanos() == 0,
-			"Current retention deliberately forgets a stored actor; this empty hold is not permission for offscreen movement.");
-		System.out.println("PASS092 recent-human/stored-retention-boundary; offscreen-absence-proof=UNAVAILABLE");
+		PhantomAssertions.assertTrue(!stored.materialized() && stored.reasons().isEmpty() && stored.lastHumanNanos() > 0
+			&& policy.recentHumanObservation(92) == PhantomMaterializationRetentionPolicy.HumanObservation.RECENT,
+			"092A must retain recent-human after STORED without granting native actions.");
+		System.out.println("PASS092 recent-human/stored-retention-boundary updated for092A; no offscreen mutation claim");
 	}
 
-	private static PhantomHistoricalBackgroundPlanner planner(Witness witness, boolean linked)
+	static PhantomHistoricalBackgroundPlanner planner(Witness witness, boolean linked)
 	{
-		final var anchors = List.of(witness.origin(), witness.destination());
+		return planner(witness, linked, false);
+	}
+
+	public static PhantomHistoricalBackgroundPlanner planner(Witness witness, boolean linked, boolean offscreen)
+	{
+		return planner(witness, linked, offscreen, false);
+	}
+
+	public static PhantomHistoricalBackgroundPlanner planner(Witness witness, boolean linked, boolean offscreen, boolean lowerCertified)
+	{
+		return planner(List.of(witness), linked, offscreen, lowerCertified, Set.of());
+	}
+
+	public static PhantomHistoricalBackgroundPlanner alternatives(List<Witness> witnesses, Set<Integer> nonviable)
+	{
+		return planner(witnesses, false, true, false, nonviable);
+	}
+
+	public static PhantomHistoricalBackgroundPlanner alternatives(List<Witness> witnesses, Set<Integer> nonviable,
+		Map<String, List<org.l2jmobius.gameserver.model.zone.ZoneType>> nativeZones)
+	{
+		return planner(witnesses, false, true, false, nonviable, nativeZones);
+	}
+
+	private static PhantomHistoricalBackgroundPlanner planner(List<Witness> witnesses, boolean linked, boolean offscreen, boolean lowerCertified, Set<Integer> nonviable)
+	{
+		return planner(witnesses, linked, offscreen, lowerCertified, nonviable, Map.of());
+	}
+
+	private static PhantomHistoricalBackgroundPlanner planner(List<Witness> witnesses, boolean linked, boolean offscreen, boolean lowerCertified, Set<Integer> nonviable,
+		Map<String, List<org.l2jmobius.gameserver.model.zone.ZoneType>> nativeZones)
+	{
+		final var witness = witnesses.getFirst();
+		final var anchors = java.util.stream.Stream.concat(java.util.stream.Stream.of(witness.origin()), witnesses.stream().map(Witness::destination)).distinct().toList();
 		final var backend = new PhantomTopologyValidationBackend()
 		{
-			@Override public int mapRegionLocId(int x, int y) { return 1; }
+			@Override public int mapRegionLocId(int x, int y)
+			{
+				return anchors.stream().filter(anchor -> anchor.mapRegionLocId() != null && x == anchor.point().x() && y == anchor.point().y())
+					.map(PhantomTopologyAnchor::mapRegionLocId).findFirst().orElse(1);
+			}
 			@Override public Optional<NpcFact> npc(int id) { return Optional.of(new NpcFact(id, "Monster", true)); }
 			@Override public List<SpawnFact> spawns(int id, int bound) { return List.of(new SpawnFact(id, witness.destination().point())); }
 			@Override public Optional<DoorFact> door(int id) { return Optional.empty(); }
 			@Override public DoorState doorState(int id) { return DoorState.MISSING; }
 			@Override public boolean sourceExists(String source) { return true; }
 		};
-		final var nodes = witness.nodes();
+		final var nodes = List.copyOf(witnesses.stream().flatMap(value -> value.nodes().stream())
+			.collect(java.util.stream.Collectors.toMap(PhantomTopologyNode::id, value -> value, (first, ignored) -> first, java.util.LinkedHashMap::new)).values());
 		final var edges = linked ? List.of(new PhantomTopologyEdge("fixture092.certified", witness.origin().nodeId(), witness.destination().nodeId(),
 			PhantomTopologyEdgeMode.BACKGROUND, true, 1, 60_000, true, Set.of(), null, witness.origin().id(), witness.destination().id(), List.of())) : List.<PhantomTopologyEdge>of();
 		final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.create(1, "fixture092", 1, 1, nodes, anchors, edges, backend, PhantomTopologyPolicy.productionDefaults()), backend, new PhantomTopologyMetrics());
+		final var npcs = new ArrayList<NpcFact>(witnesses.stream().map(Witness::npc).distinct().toList());
+		final var areas = new ArrayList<SpawnAreaFact>();
+		for (var value : witnesses) { areas.add(new SpawnAreaFact(value.npc().npcId(), 0, value.destination().nodeId(), 1, 1, 1, value.spawns(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT)); }
+		if (lowerCertified)
+		{
+			npcs.add(new NpcFact(999997, 76, NpcKind.MONSTER, true, true, false, 1000, 100, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+			areas.add(new SpawnAreaFact(999997, 0, witness.origin().nodeId(), 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT));
+		}
 		final var snapshot = new PhantomGameKnowledgeSnapshot("fixture092", 1, topology.snapshot().canonicalHash(), PhantomGameKnowledgePolicy.productionDefaults(),
-			List.of(), List.of(witness.npc()), List.of(), List.of(), List.of(new SpawnAreaFact(witness.npc().npcId(), 0, witness.destination().nodeId(), 1, 1, 1,
-				List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT)), List.of(), List.of(), List.of(), List.of(), List.of());
+			List.of(), npcs, List.of(), List.of(), areas.stream().distinct().toList(), List.of(), List.of(), List.of(), List.of(), List.of());
 		final var authority = new PhantomBackgroundAuthority()
 		{
 			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
+			@Override public boolean offscreenOutdoorCandidate(PhantomTopologyQuery topology, String from, TargetFact target, String to)
+			{
+				return offscreenOutdoorRejection(topology, from, target, to).isEmpty();
+			}
+			@Override public String offscreenOutdoorRejection(PhantomTopologyQuery topology, String from, TargetFact target, String to)
+			{
+				if (!offscreen || !PhantomOffscreenOutdoorTravel.sourceBacked(topology, from, target, to)) { return "topology.not_public_outdoor"; }
+				final var zones = PhantomOffscreenOutdoorTravel.zoneRejection(nativeZones.getOrDefault(to, List.of()), true);
+				if (!zones.isEmpty()) { return zones; }
+				return PhantomOffscreenOutdoorTravel.stockRejection(topology, to, target.npc().npcId(), witnesses.stream().flatMap(value -> value.spawns().stream()).toList(), topology.findAnchor(to).orElseThrow().point());
+			}
+			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { return !nonviable.contains(npcId); }
 			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }
 			@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return false; }
 			@Override public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { throw new UnsupportedOperationException(); }
@@ -142,7 +200,7 @@ public final class PhantomOffscreen092Checks
 	}
 
 	/** Read actual stock coordinates and rewards; fixture validation is explicitly not native Geo proof. */
-	private static Witness witness(Path module) throws Exception
+	public static Witness witness(Path module) throws Exception
 	{
 		final var root = xml(module.resolve("dist/game/data/phantoms/topology/high-five-core.xml"));
 		final var outdoor = new java.util.HashSet<String>();
@@ -185,9 +243,77 @@ public final class PhantomOffscreen092Checks
 			PhantomAssertions.assertTrue(found, "The destination must match an exact stock spawn, not only a topology tag.");
 			return new Witness(origin, destination, new NpcFact(id, number(npc, "level"), NpcKind.MONSTER, true, true, false,
 				Double.parseDouble(acquire.getAttribute("exp")), Double.parseDouble(acquire.getAttribute("sp")), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
-				List.of(farmingNode(root, origin), farmingNode(root, destination)));
+				List.of(farmingNode(root, origin), farmingNode(root, destination)),
+				List.of(new SpawnFact(id, 0, 0, destination.point().x(), destination.point().y(), destination.point().z(), 1, 0,
+					SpawnPointKind.EXACT, destination.nodeId(), null, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
 		}
 		throw new AssertionError("Stock NPC witness is absent.");
+	}
+
+	/** Read the one separately audited public generated area; no fixture geometry substitution. */
+	public static Witness auditedRuneWitness(Path module) throws Exception
+	{
+		return stockGeneratedWitness(module, "high-five-generated-01.xml", "generated.farm.38c53f8eca6872bcfcd4ae69.anchor", 21515);
+	}
+
+	public static Witness stockGeneratedWitness(Path module, String pack, String anchorId, int npcId) throws Exception
+	{
+		final var core = witness(module);
+		final var root = xml(module.resolve("dist/game/data/phantoms/topology/" + pack));
+		Element selected = null;
+		final var anchors = root.getElementsByTagName("anchor");
+		for (int index = 0; index < anchors.getLength(); index++)
+		{
+			final var element = (Element) anchors.item(index);
+			if (element.getAttribute("id").equals(anchorId)) { selected = element; break; }
+		}
+		if (selected == null) { throw new AssertionError("Audited Rune anchor is absent."); }
+		final var refs = new ArrayList<String>();
+		final var sources = selected.getElementsByTagName("source");
+		for (int index = 0; index < sources.getLength(); index++) { refs.add(((Element) sources.item(index)).getAttribute("path")); }
+		final var anchor = new PhantomTopologyAnchor(selected.getAttribute("id"), PhantomTopologyAnchorRole.FARMING, selected.getAttribute("nodeId"),
+			new PhantomTopologyPoint(number(selected, "x"), number(selected, "y"), number(selected, "z"), number(selected, "instanceId")), null,
+			selected.hasAttribute("mapRegionLocId") ? number(selected, "mapRegionLocId") : null, number(selected, "tolerance"), List.of(selected.getAttribute("tags").split(",")), refs);
+		final var facts = new ArrayList<SpawnFact>();
+		final var node = farmingNode(root, anchor);
+		final var spawns = xml(module.resolve("dist/game/" + refs.getFirst())).getElementsByTagName("spawn");
+		for (int index = 0; index < spawns.getLength(); index++)
+		{
+			final var spawn = (Element) spawns.item(index);
+			final var shapes = spawn.getElementsByTagName("territory");
+			if (shapes.getLength() != 1) { continue; }
+			final var shape = (Element) shapes.item(0);
+			final var vertices = new ArrayList<TerritoryVertex>();
+			final var points = shape.getElementsByTagName("node");
+			for (int row = 0; row < points.getLength(); row++) { vertices.add(new TerritoryVertex(number((Element) points.item(row), "x"), number((Element) points.item(row), "y"))); }
+			if (vertices.size() < 3 || number(shape, "minZ") != node.area().minZ() || number(shape, "maxZ") != node.area().maxZ()
+				|| !vertices.stream().map(value -> new PhantomTopologyArea.Vertex(value.x(), value.y())).toList().equals(node.area().vertices())) { continue; }
+			PhantomAssertions.assertEquals(0, spawn.getElementsByTagName("banned_territory").getLength(), "This stock fixture does not substitute unsupported holes.");
+			final var ids = spawn.getElementsByTagName("npc");
+			for (int row = 0; row < ids.getLength(); row++)
+			{
+				final var npc = (Element) ids.item(row);
+				if (number(npc, "id") == npcId)
+				{
+					final var geometry = new TerritoryGeometry(spawn.getAttribute("zone"), refs.getFirst(), new TerritoryPolygon(vertices, number(shape, "minZ"), number(shape, "maxZ")), List.of(), "a".repeat(64));
+					facts.add(new SpawnFact(npcId, facts.size(), 0, 0, 0, 0, number(npc, "count"), 0, SpawnPointKind.TERRITORY_POLYGON,
+						anchor.nodeId(), null, PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT, geometry));
+				}
+			}
+		}
+		PhantomAssertions.assertFalse(facts.isEmpty(), "The stock territory must actually spawn the selected NPC.");
+		final var npcs = xml(module.resolve("dist/game/data/stats/npcs/" + npcId / 100 * 100 + "-" + (npcId / 100 * 100 + 99) + ".xml")).getElementsByTagName("npc");
+		for (int index = 0; index < npcs.getLength(); index++)
+		{
+			final var npc = (Element) npcs.item(index);
+			if (number(npc, "id") != npcId) { continue; }
+			final var acquire = (Element) npc.getElementsByTagName("acquire").item(0);
+			PhantomAssertions.assertEquals("Monster", npc.getAttribute("type"), "Audited public target must be a stock Monster.");
+			return new Witness(core.origin(), anchor, new NpcFact(npcId, number(npc, "level"), NpcKind.MONSTER, true, true, false,
+				acquire == null ? 0 : Double.parseDouble(acquire.getAttribute("exp")), acquire == null ? 0 : Double.parseDouble(acquire.getAttribute("sp")), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT),
+				List.of(core.nodes().getFirst(), node), facts);
+		}
+		throw new AssertionError("Audited Rune NPC is absent.");
 	}
 
 	private static PhantomTopologyNode farmingNode(Element root, PhantomTopologyAnchor anchor)
@@ -227,16 +353,34 @@ public final class PhantomOffscreen092Checks
 	}
 
 	private static int number(Element element, String key) { return Integer.parseInt(element.getAttribute(key)); }
-	private record Witness(PhantomTopologyAnchor origin, PhantomTopologyAnchor destination, NpcFact npc, List<PhantomTopologyNode> nodes) { }
+	public static record Witness(PhantomTopologyAnchor origin, PhantomTopologyAnchor destination, NpcFact npc, List<PhantomTopologyNode> nodes, List<SpawnFact> spawns)
+	{
+		public Witness(PhantomTopologyAnchor origin, PhantomTopologyAnchor destination, NpcFact npc, List<PhantomTopologyNode> nodes) { this(origin, destination, npc, nodes, List.of()); }
+	}
 
-	private static PhantomGoal goal(Witness witness, long id, long revision)
+	public static PhantomGoal goal(Witness witness, long id, long revision)
 	{
 		return new PhantomGoal(id, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "92"), new PhantomDomainRef("npc", Integer.toString(witness.npc().npcId())),
 			1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", witness.npc().npcId() + "@" + witness.destination().id())),
 			new PhantomDomainRef("topology.anchor", witness.destination().id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture092", revision);
 	}
 
-	private static PhantomBackgroundState state(PhantomTopologyAnchor origin, List<PhantomBackgroundState.ItemObject> items)
+	public static PhantomBackgroundAuthority generationAuthority(AtomicLong generation)
+	{
+		return new PhantomBackgroundAuthority()
+		{
+			@Override public long offscreenAdmissionGeneration() { return generation.get(); }
+			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
+			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }
+			@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return false; }
+			@Override public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { throw new UnsupportedOperationException(); }
+			@Override public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long budget) { throw new UnsupportedOperationException(); }
+			@Override public Optional<PhantomBackgroundState.Position> canonicalRecoveryPosition(int x, int y, int z, int instance, int heading) { return Optional.empty(); }
+			@Override public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level) { return List.of(); }
+		};
+	}
+
+	public static PhantomBackgroundState state(PhantomTopologyAnchor origin, List<PhantomBackgroundState.ItemObject> items)
 	{
 		return new PhantomBackgroundState(PhantomBackgroundState.State.READY, new PhantomBackgroundState.Identity(92, 920092, 0, 1, 0), new PhantomBackgroundState.Progress(80, 0, 0, 0),
 			new PhantomBackgroundState.Vitals(100, 100, 100, 100, 100, 100), new PhantomBackgroundState.Position(0, origin.point().x(), origin.point().y(), origin.point().z(), 0, origin.id()),

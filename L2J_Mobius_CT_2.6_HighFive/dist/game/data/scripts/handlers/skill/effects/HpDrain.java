@@ -46,6 +46,9 @@ public class HpDrain extends AbstractEffect
 	{
 		return EffectType.HP_DRAIN;
 	}
+
+	@Override
+	public double getHpDrainRatio() { return _power; }
 	
 	@Override
 	public boolean isInstant()

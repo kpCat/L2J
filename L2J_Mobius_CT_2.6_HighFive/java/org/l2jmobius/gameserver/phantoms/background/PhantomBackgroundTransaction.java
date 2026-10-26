@@ -1262,6 +1262,23 @@ public final class PhantomBackgroundTransaction
 				}
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
                 if (command.policy() != null) { requirePolicyOwner(command.policy(), expected.identity().characterObjectId()); }
+				if (command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL
+					|| command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL)
+				{
+					// Profile/goal/catchup/canonical rows are still locked. The live World census
+					// is bounded to 257 and acquires no global System monitor or JDBC owner.
+					if (command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL)
+					{
+						// Geo reload does not change topology/zone generation. Recompute the same
+						// bounded endpoint proof immediately before committing the locked rows.
+						final var proof = command.policy().offscreen();
+						final var advance = proof.authority().advanceOffscreenTravel(expected, command.goal(), command.operationKey(), proof.elapsedBudgetMillis(), command.policy().expectedContext().afterPolicy());
+						if (!advance.mutated() || advance.feeAdena() != 0 || !advance.position().equals(command.position()) || !advance.clock().equals(command.clock()))
+						{ throw new StateConflict(Status.OFFSCREEN_WAIT); }
+					}
+					if (!offscreenAdmission(command) || command.policy().offscreen().authority().topologyGeneration() != command.policy().offscreen().topologyGeneration()
+						|| !command.expectedState().hashes().equals(command.policy().offscreen().authority().hashes())) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
+				}
 				commitAttempted = true;
 				commitWithWitness(connection);
 				for (int objectId : releasedIds)
@@ -2486,10 +2503,15 @@ public final class PhantomBackgroundTransaction
 
     private void requireSimulationContext(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical, Command command) throws SQLException
     {
+		if (PhantomOffscreenOutdoorTravel.taggedReceipt(state)
+			&& command.operationKey().actionKind() != PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL
+			&& command.operationKey().actionKind() != PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
         final var context = boundContext(lockComponent(connection, state.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, state.identity());
         if (context != null && !context.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
         if (command.policy() == null)
         {
+			if (command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL
+				|| command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
             if (context == null || !context.simulationEligible()) { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
             return;
         }
@@ -2500,6 +2522,29 @@ public final class PhantomBackgroundTransaction
             || lockComponent(connection, state.identity().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE) != null)
         { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
         final var kind = command.operationKey().actionKind();
+		if (kind == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL || kind == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL)
+		{
+			final var proof = mutation.offscreen();
+			if (proof == null || mutation.travel() != null || mutation.operation() != PhantomBackgroundSimulationPolicy.Operation.TRAVEL
+				|| proof.authority().topologyGeneration() != proof.topologyGeneration() || !state.hashes().equals(proof.authority().hashes())
+				|| !state.receipt().expectedAfterHash().isEmpty() && !state.receipt().expectedAfterHash().equals(expectedAfterHash(state)))
+			{ throw new StateConflict(Status.OFFSCREEN_WAIT); }
+			if (kind == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL)
+			{
+				if (!PhantomOffscreenOutdoorTravel.pendingDebt(state) || !proof.destination().equals(state.position())
+					|| !command.position().equals(state.position()) || !command.clock().equals(new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()))
+					|| !mutation.proposedPolicy().equals(context.afterPolicy()) || !offscreenAdmission(command)) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
+				return;
+			}
+			final var advance = proof.authority().advanceOffscreenTravel(state, command.goal(), command.operationKey(), proof.elapsedBudgetMillis(), context.afterPolicy());
+			final var destination = proof.authority().offscreenDestination(state, PhantomBackgroundGoalSpec.parse(command.goal())).orElse(null);
+			if (!advance.mutated() || advance.feeAdena() != 0 || !advance.position().equals(command.position()) || !advance.clock().equals(command.clock())
+				|| !proof.destination().equals(destination) || !mutation.proposedPolicy().equals(context.afterPolicy().withPosition(
+					proof.authority().canFarmAt(command.position(), PhantomBackgroundGoalSpec.parse(command.goal())), context.afterPolicy().travelPosition()))
+				|| !offscreenAdmission(command)) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
+			return;
+		}
+		if (mutation.offscreen() != null) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
         if (mutation.operation() == PhantomBackgroundSimulationPolicy.Operation.FARM)
         {
             if (kind != PhantomBackgroundOperationKey.ActionKind.FARM && kind != PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM
@@ -2537,9 +2582,50 @@ public final class PhantomBackgroundTransaction
     }
     public record TravelProof(PhantomBackgroundAuthority authority, long topologyGeneration, long elapsedBudgetMillis, long logicalEpochMinute)
     { public TravelProof { Objects.requireNonNull(authority); } }
+	public record OffscreenProof(PhantomOffscreenOutdoorTravel.ObserverAdmission admission, PhantomBackgroundAuthority authority,
+		long topologyGeneration, long elapsedBudgetMillis, Position destination, long nativeZoneGeneration)
+	{
+		public OffscreenProof(PhantomOffscreenOutdoorTravel.ObserverAdmission admission, PhantomBackgroundAuthority authority,
+			long topologyGeneration, long elapsedBudgetMillis, Position destination)
+		{
+			this(admission, authority, topologyGeneration, elapsedBudgetMillis, destination, authority.offscreenAdmissionGeneration());
+		}
+		public OffscreenProof { Objects.requireNonNull(admission); Objects.requireNonNull(authority); Objects.requireNonNull(destination); }
+	}
+
+	public static boolean offscreenProofCurrent(OffscreenProof proof)
+	{
+		return proof != null && proof.nativeZoneGeneration() >= 0 && proof.nativeZoneGeneration() == proof.authority().offscreenAdmissionGeneration();
+	}
+
+	static boolean offscreenAllowed(PhantomOffscreenOutdoorTravel.ObserverAdmission admission, long id, Position source, Position destination)
+	{
+		try
+		{
+			final long started = System.nanoTime();
+			final var verdict = admission.evaluate(id, source, destination);
+			return verdict != null && verdict.code() == org.l2jmobius.gameserver.phantoms.activity.PhantomOffscreenObserverAdmission.Code.ALLOW
+				&& verdict.inspectedHumans() >= 0 && verdict.inspectedHumans() <= 256
+				&& verdict.profileId() == id && verdict.instanceId() == 0 && source.instanceId() == 0 && destination.instanceId() == 0
+				&& new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(source.x(), source.y(), source.z(), source.instanceId()).equals(verdict.source())
+				&& new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(destination.x(), destination.y(), destination.z(), destination.instanceId()).equals(verdict.destination())
+				&& verdict.checkedAtNanos() - started >= 0 && System.nanoTime() - verdict.checkedAtNanos() >= 0;
+		}
+		catch (RuntimeException unavailable) { return false; }
+	}
+
+	static boolean offscreenAdmission(Command command)
+	{
+		final var proof = command.policy() == null ? null : command.policy().offscreen();
+		return offscreenProofCurrent(proof) && offscreenAllowed(proof.admission(), command.expectedState().identity().profileId(), command.expectedState().position(), proof.destination())
+			&& offscreenProofCurrent(proof);
+	}
     public record PolicyMutation(PhantomNativeContext expectedContext, PhantomBackgroundSimulationPolicy.Operation operation,
-        PhantomBackgroundSimulationPolicy proposedPolicy, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, TravelProof travel)
+        PhantomBackgroundSimulationPolicy proposedPolicy, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, TravelProof travel, OffscreenProof offscreen)
     {
+		public PolicyMutation(PhantomNativeContext expectedContext, PhantomBackgroundSimulationPolicy.Operation operation, PhantomBackgroundSimulationPolicy proposedPolicy,
+			org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, TravelProof travel)
+		{ this(expectedContext, operation, proposedPolicy, lease, travel, null); }
         public PolicyMutation(PhantomNativeContext expectedContext, PhantomBackgroundSimulationPolicy.Operation operation, PhantomBackgroundSimulationPolicy proposedPolicy,
             org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
         { this(expectedContext, operation, proposedPolicy, lease, null); }
@@ -2763,7 +2849,8 @@ public final class PhantomBackgroundTransaction
 		COMMIT_OUTCOME_UNKNOWN,
 		POST_COMMIT_VERIFICATION_FAILED,
 		OWNED_STORE_CANONICAL_NEITHER,
-		NATIVE_CONTEXT_REQUIRED
+		NATIVE_CONTEXT_REQUIRED,
+		OFFSCREEN_WAIT
 	}
 
 	public enum FaultPoint
@@ -2875,6 +2962,19 @@ public final class PhantomBackgroundTransaction
 			Objects.requireNonNull(clock, "clock");
 			itemDeltas = Map.copyOf(itemDeltas);
 			autoGetSkills = List.copyOf(autoGetSkills);
+			if (operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL
+				|| operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL)
+			{
+				if (catchup == null || policy == null || policy.offscreen() == null
+					|| operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL && !PhantomOffscreenOutdoorTravel.pending(goal)
+					|| expectedState.state() != State.READY || !progress.equals(expectedState.progress()) || !vitals.equals(expectedState.vitals())
+					|| !itemDeltas.isEmpty() || !autoGetSkills.equals(expectedState.autoGetSkills()) || acquisition != null || !additionalMutableItemIds.isEmpty()
+					|| goal.goalId() != operationKey.goalId() || goal.revision() != operationKey.goalRevision()
+					|| catchup.expectedState().goalId() != goal.goalId() || catchup.expectedState().goalRevision() != goal.revision()
+					|| catchup.expectedState().topologyGeneration() != policy.offscreen().topologyGeneration()
+					|| !catchup.expectedState().planIdentity().equals(operationKey.historical().planIdentity()))
+				{ throw new IllegalArgumentException("Offscreen travel requires exact historical/native proof and no rewards."); }
+			}
 			if (operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE)
 			{
 				if ((catchup == null) || (expectedState.state() != State.READY) || !progress.equals(expectedState.progress()) || !vitals.equals(expectedState.vitals()) || !position.equals(expectedState.position()) || !clock.equals(expectedState.clock()) || !itemDeltas.isEmpty() || !autoGetSkills.equals(expectedState.autoGetSkills()) || (acquisition != null) || !additionalMutableItemIds.isEmpty() || (operationKey.targetNpcId() != 0) || !operationKey.anchorId().equals(expectedState.position().committedAnchorId()))

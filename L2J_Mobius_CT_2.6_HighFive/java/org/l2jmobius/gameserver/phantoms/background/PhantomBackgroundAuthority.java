@@ -62,15 +62,18 @@ public interface PhantomBackgroundAuthority
 	default Optional<Target> planningTarget(int npcId) { return Optional.empty(); }
 	default boolean viableTarget(PlanningCombat combat, int npcId) { return true; }
 
-	record PlanningCombat(PhantomBackgroundState.CombatFacts combat, PhantomBackgroundState.Vitals vitals, double requiredMp)
+	record PlanningCombat(PhantomBackgroundState.CombatFacts combat, PhantomBackgroundState.Vitals vitals, double requiredMp, int skillId, int skillLevel, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics mechanics, int classId, int actorLevel)
 	{
+		public PlanningCombat(PhantomBackgroundState.CombatFacts combat, PhantomBackgroundState.Vitals vitals, double requiredMp) { this(combat, vitals, requiredMp, 0, 0, null, -1, 0); }
+		public PlanningCombat(PhantomBackgroundState.CombatFacts combat, PhantomBackgroundState.Vitals vitals, double requiredMp, int skillId, int skillLevel, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics mechanics) { this(combat, vitals, requiredMp, skillId, skillLevel, mechanics, -1, 0); }
 		public PlanningCombat
 		{
 			Objects.requireNonNull(combat, "combat"); Objects.requireNonNull(vitals, "vitals");
 			if (!Double.isFinite(requiredMp) || requiredMp < 0) { throw new IllegalArgumentException("Invalid native planning MP cost."); }
 		}
-		public boolean viable(Target target) { return PhantomBackgroundModel.viableEncounter(combat, vitals, requiredMp, target); }
-		public static PlanningCombat from(PhantomBackgroundState state) { return new PlanningCombat(state.combat(), state.vitals(), state.loadout().skillMpPerEncounter()); }
+		public org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics forTarget(Target target) { return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.targetBound(mechanics, actorLevel, target.level()); }
+		public boolean viable(Target target) { return mechanics == null ? skillId == 0 && PhantomBackgroundModel.viableEncounter(combat, vitals, requiredMp, target) : forTarget(target) != null && PhantomBackgroundModel.castEncounter(combat, vitals, requiredMp, target, forTarget(target), List.of()).viable(); }
+		public static PlanningCombat from(PhantomBackgroundState state) { return new PlanningCombat(state.combat(), state.vitals(), state.loadout().skillMpPerEncounter(), state.loadout().selectedSkillId(), state.loadout().selectedSkillLevel(), null, state.identity().activeClassId(), state.progress().level()); }
 	}
 
 	default NativeCapture captureOwnedNativeAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
@@ -173,6 +176,24 @@ public interface PhantomBackgroundAuthority
 
 	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);
 
+	/** Separate native proof. Legacy/test authorities never acquire an implicit offscreen permission. */
+	default boolean offscreenOutdoorCandidate(PhantomTopologyQuery topology, String sourceAnchorId,
+		org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact target, String destinationAnchorId) { return false; }
+	default String offscreenOutdoorRejection(PhantomTopologyQuery topology, String sourceAnchorId,
+		org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact target, String destinationAnchorId)
+	{
+		return offscreenOutdoorCandidate(topology, sourceAnchorId, target, destinationAnchorId) ? "" : "offscreen.unverified";
+	}
+	default long offscreenAdmissionGeneration() { return -1; }
+
+	default TravelAdvance advanceOffscreenTravel(PhantomBackgroundState state, PhantomGoal goal, PhantomBackgroundOperationKey key,
+		long elapsedBudgetMillis, PhantomBackgroundSimulationPolicy policy)
+	{
+		return new TravelAdvance(TravelAdvance.Status.NO_ROUTE, state.position(), state.clock(), "offscreen-outdoor");
+	}
+
+	default Optional<Position> offscreenDestination(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { return Optional.empty(); }
+
     /** Compatibility default: a policy alone does not manufacture an actual-origin route. */
     default TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute, PhantomBackgroundSimulationPolicy policy)
     { return advanceTravel(state, goal, elapsedBudgetMillis, logicalEpochMinute); }
@@ -233,8 +254,10 @@ public interface PhantomBackgroundAuthority
 		public boolean successful() { return failure == FarmInputFailure.NONE; }
 	}
 
-	record FarmInput(Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, String topologyNodeId, int spawnCapacity)
+	record FarmInput(Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, String topologyNodeId, int spawnCapacity, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics mechanics)
 	{
+		public FarmInput(Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, String topologyNodeId, int spawnCapacity)
+		{ this(target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, topologyNodeId, spawnCapacity, null); }
 		public FarmInput
 		{
 			Objects.requireNonNull(target, "target");

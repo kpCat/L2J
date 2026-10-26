@@ -115,6 +115,12 @@ public abstract class AbstractEffect
 	{
 		return (_attachCond == null) || _attachCond.test(caster, target, skill);
 	}
+
+	/** Read-only metadata for conservative simulation admission; never executes an effect. */
+	public boolean hasAttachCondition() { return _attachCond != null; }
+
+	/** Fraction of actual HP damage recovered by an ordinary native drain; unsupported by default. */
+	public double getHpDrainRatio() { return 0; }
 	
 	/**
 	 * Attaches a function template.

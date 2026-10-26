@@ -48,7 +48,9 @@ public final class PhantomEngagementPlanner
 		final var threats = World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
 			.filter(other -> other != target && !other.isAlikeDead() && other.isAttackable() && other.getInstanceId() == player.getInstanceId() && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(other, player)).limit(MAXIMUM_THREATS + 1).toList();
 		if (threats.size() > MAXIMUM_THREATS || threats.stream().anyMatch(other -> !other.isMonster() || other.isRaid())) { return false; }
-		return threats.isEmpty() || PhantomBackgroundModel.viableEncounter(combat.combat(), combat.vitals(), combat.requiredMp(), projected, threats.stream().map(other -> L2jPhantomBackgroundAuthority.nativePlanningTarget(other, true)).toList());
+		final var additional = threats.stream().map(other -> L2jPhantomBackgroundAuthority.nativePlanningTarget(other, true)).toList();
+		return threats.isEmpty() || (combat.mechanics() == null ? PhantomBackgroundModel.viableEncounter(combat.combat(), combat.vitals(), combat.requiredMp(), projected, additional)
+			: combat.forTarget(projected) != null && PhantomBackgroundModel.castEncounter(combat.combat(), combat.vitals(), combat.requiredMp(), projected, combat.forTarget(projected), additional).viable());
 	}
 	private static int localRange(Player player) { return player.getAutoPlaySettings().isShortRange()?AutoPlayConfig.AUTO_PLAY_SHORT_RANGE:AutoPlayConfig.AUTO_PLAY_LONG_RANGE; }
 	public Opportunity inspect(Player player, int npcId, Set<PlayerNativeEvidence.Target> excluded, ToIntFunction<Creature> load)
@@ -92,20 +94,7 @@ public final class PhantomEngagementPlanner
 	}
 	public static Skill offensiveSkill(Player player, Creature target)
 	{
-		final var skills=List.copyOf(player.getAutoUseSettings().getAutoSkills());
-		if(skills.isEmpty()){return null;}
-		// AutoUse rotates from its current cursor; class labels and numeric IDs do not select its next action.
-		final int start=Math.max(0,skills.indexOf(player.getAutoUseSettings().getNextSkillId()));
-		for(int offset=0;offset<skills.size();offset++)
-		{
-			final Skill skill=player.getKnownSkill(skills.get((start+offset)%skills.size()));
-			if(skill==null||!skill.isActive()||skill.isPassive()||skill.isToggle()||!skill.hasNegativeEffect()||player.isSkillDisabled(skill)){continue;}
-			if(player.getCurrentMp()<Math.max(skill.getMpInitialConsume()+skill.getMpConsume(),player.getStat().getMpInitialConsume(skill)+player.getStat().getMpConsume(skill))||player.getCharges()<skill.getChargeConsumeCount()){continue;}
-			if(skill.getItemConsumeCount()>0&&player.getInventory().getInventoryItemCount(skill.getItemConsumeId(),-1)<skill.getItemConsumeCount()){continue;}
-			if(target!=null&&!skill.checkCondition(player,target,false)){continue;}
-			return skill;
-		}
-		return null;
+		return org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.offensiveSkill(player, target);
 	}
 	public static PlayerNativeEvidence.Target key(Creature target){return target!=null&&target.isAttackable()?target.asAttackable().getNativeEvidenceTarget():null;}
 	private static Opportunity unavailable(){return new Opportunity(Kind.UNAVAILABLE,null,null,0,0,false,List.of());}

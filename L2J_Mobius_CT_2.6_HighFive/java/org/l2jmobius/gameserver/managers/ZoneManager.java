@@ -102,6 +102,11 @@ public class ZoneManager implements IXmlReader
 	private final Map<String, NpcSpawnTerritory> _spawnTerritories = new ConcurrentHashMap<>();
 	private final AtomicInteger _lastDynamicId = new AtomicInteger(300000);
 	private List<Item> _debugItems;
+	private volatile boolean _zonesReady;
+	private volatile long _zoneGeneration;
+	private volatile boolean _zoneLoadFailed;
+	private final AtomicInteger _zoneFilesComplete = new AtomicInteger();
+	private final ThreadLocal<Boolean> _zoneFileComplete = ThreadLocal.withInitial(() -> false);
 	
 	private final ZoneRegion[][] _zoneRegions = new ZoneRegion[(World.WORLD_X_MAX >> SHIFT_BY) + OFFSET_X + 1][(World.WORLD_Y_MAX >> SHIFT_BY) + OFFSET_Y + 1];
 	
@@ -126,8 +131,9 @@ public class ZoneManager implements IXmlReader
 	/**
 	 * Reload.
 	 */
-	public void reload()
+	public synchronized void reload()
 	{
+		_zonesReady = false;
 		// Get the world regions
 		int count = 0;
 		
@@ -172,8 +178,23 @@ public class ZoneManager implements IXmlReader
 	}
 	
 	@Override
+	public void parseFile(File file)
+	{
+		_zoneFileComplete.set(false);
+		try { IXmlReader.super.parseFile(file); }
+		finally
+		{
+			if (_zoneFileComplete.get()) { _zoneFilesComplete.incrementAndGet(); }
+			else { _zoneLoadFailed = true; }
+			_zoneFileComplete.remove();
+		}
+	}
+
+	@Override
 	public void parseDocument(Document document, File file)
 	{
+		if (document.getDocumentElement() == null || !"list".equalsIgnoreCase(document.getDocumentElement().getNodeName()))
+		{ _zoneLoadFailed = true; return; }
 		NamedNodeMap attrs;
 		Node attribute;
 		String zoneName;
@@ -208,6 +229,7 @@ public class ZoneManager implements IXmlReader
 						else
 						{
 							LOGGER.warning("ZoneData: Missing type for zone in file: " + file.getName());
+							_zoneLoadFailed = true;
 							continue;
 						}
 						
@@ -237,11 +259,13 @@ public class ZoneManager implements IXmlReader
 							if (zoneName == null)
 							{
 								LOGGER.warning("ZoneData: Missing name for NpcSpawnTerritory in file: " + file.getName() + ", skipping zone");
+								_zoneLoadFailed = true;
 								continue;
 							}
 							else if (_spawnTerritories.containsKey(zoneName))
 							{
 								LOGGER.warning("ZoneData: Name " + zoneName + " already used for another zone, check file: " + file.getName() + ". Skipping zone");
+								_zoneLoadFailed = true;
 								continue;
 							}
 						}
@@ -273,6 +297,7 @@ public class ZoneManager implements IXmlReader
 							if ((coords == null) || (coords.length == 0))
 							{
 								LOGGER.warning(getClass().getSimpleName() + ": ZoneData: missing data for zone: " + zoneId + " XML file: " + file.getName());
+								_zoneLoadFailed = true;
 								continue;
 							}
 							
@@ -287,6 +312,7 @@ public class ZoneManager implements IXmlReader
 								else
 								{
 									LOGGER.warning(getClass().getSimpleName() + ": ZoneData: Missing cuboid vertex data for zone: " + zoneId + " in file: " + file.getName());
+									_zoneLoadFailed = true;
 									continue;
 								}
 							}
@@ -308,6 +334,7 @@ public class ZoneManager implements IXmlReader
 								else
 								{
 									LOGGER.warning(getClass().getSimpleName() + ": ZoneData: Bad data for zone: " + zoneId + " in file: " + file.getName());
+									_zoneLoadFailed = true;
 									continue;
 								}
 							}
@@ -324,18 +351,21 @@ public class ZoneManager implements IXmlReader
 								else
 								{
 									LOGGER.warning(getClass().getSimpleName() + ": ZoneData: Bad data for zone: " + zoneId + " in file: " + file.getName());
+									_zoneLoadFailed = true;
 									continue;
 								}
 							}
 							else
 							{
 								LOGGER.warning(getClass().getSimpleName() + ": ZoneData: Unknown shape: \"" + zoneShape + "\"  for zone: " + zoneId + " in file: " + file.getName());
+								_zoneLoadFailed = true;
 								continue;
 							}
 						}
 						catch (Exception e)
 						{
 							LOGGER.log(Level.WARNING, getClass().getSimpleName() + ": ZoneData: Failed to load zone " + zoneId + " coordinates: " + e.getMessage(), e);
+							_zoneLoadFailed = true;
 						}
 						
 						// No further parameters needed, if NpcSpawnTerritory is loading
@@ -359,6 +389,7 @@ public class ZoneManager implements IXmlReader
 						catch (Exception e)
 						{
 							LOGGER.warning(getClass().getSimpleName() + ": ZoneData: No such zone type: " + zoneType + " in file: " + file.getName());
+							_zoneLoadFailed = true;
 							continue;
 						}
 						
@@ -423,11 +454,17 @@ public class ZoneManager implements IXmlReader
 				}
 			}
 		}
+		_zoneFileComplete.set(true);
 	}
 	
 	@Override
-	public void load()
+	public synchronized void load()
 	{
+		_zonesReady = false;
+		_zoneGeneration++;
+		_zoneLoadFailed = false;
+		_zoneFilesComplete.set(0);
+		final File[] zoneFiles = new File("data/zones").listFiles(this::isValidXmlFile);
 		_classZones.clear();
 		_classZones.put(ArenaZone.class, new ConcurrentHashMap<>());
 		_classZones.put(BossZone.class, new ConcurrentHashMap<>());
@@ -464,6 +501,22 @@ public class ZoneManager implements IXmlReader
 		LOGGER.info(getClass().getSimpleName() + ": Loaded " + _classZones.size() + " zone classes and " + getSize() + " zones.");
 		final OptionalInt maxId = _classZones.values().stream().flatMap(map -> map.keySet().stream()).mapToInt(Integer.class::cast).filter(value -> value < 300000).max();
 		LOGGER.info(getClass().getSimpleName() + ": Last static id " + maxId.getAsInt() + ".");
+		_zonesReady = !_zoneLoadFailed && zoneFiles != null && zoneFiles.length > 0 && _zoneFilesComplete.get() == zoneFiles.length;
+	}
+
+	/** A missing or reloading zone index must never be interpreted as unrestricted terrain. */
+	public java.util.Optional<List<ZoneType>> getLoadedZones(int x, int y, int z)
+	{
+		final long generation = _zoneGeneration;
+		if (!_zonesReady || getRegion(x, y) == null) { return java.util.Optional.empty(); }
+		final List<ZoneType> zones = List.copyOf(getZones(x, y, z));
+		return _zonesReady && generation == _zoneGeneration ? java.util.Optional.of(zones) : java.util.Optional.empty();
+	}
+
+	public long loadedGeneration()
+	{
+		final long generation = _zoneGeneration;
+		return _zonesReady && generation == _zoneGeneration ? generation : -1;
 	}
 	
 	/**

@@ -136,7 +136,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			try
 			{
 				stopRegistrations(replaced);
-				session._shots.activate(player.isMageClass());
+				session._shots.activate(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.magicShots(player));
 				if (session._engagement != null)
 				{
 					session._engagement.advance(profileId, player, goal, spec.npcId(), policy::targetSelectionLoad, _clock.getAsLong());
@@ -490,6 +490,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	private static void configure(Player player)
 	{
+		final Skill preferred = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.preparationSkill(player, null);
 		player.getAutoUseSettings().getAutoActions().clear();
 		player.getAutoUseSettings().getAutoSkills().clear();
 		player.getAutoUseSettings().getAutoBuffs().clear();
@@ -509,15 +510,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				{
 					continue;
 				}
-				if (skill.hasNegativeEffect())
-				{
-					player.getAutoUseSettings().getAutoSkills().add(skill.getId());
-				}
-				else if (autoBuffEligible(skill))
+				if (!skill.hasNegativeEffect() && autoBuffEligible(skill))
 				{
 					player.getAutoUseSettings().getAutoBuffs().add(skill.getId());
 				}
+				else if (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.ordinaryUtility(skill))
+				{ player.getAutoUseSettings().getAutoSkills().add(skill.getId()); }
 			}
+			// One attested damage action: AutoUse, admission and capture share its actual native rank.
+			if (preferred != null) { player.getAutoUseSettings().getAutoSkills().add(preferred.getId()); }
+			alignOffensiveSkill(player, null);
 		}
 		if (AutoPlayConfig.ENABLE_AUTO_ITEM || AutoPlayConfig.ENABLE_AUTO_POTION)
 		{
@@ -546,6 +548,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	public static boolean autoBuffEligible(Skill skill)
 	{
 		return (skill.getTargetType() == TargetType.SELF) && skill.isContinuous();
+	}
+
+	/** Called only under this Phantom session's native writer, before stock AutoUse reads its cursor. */
+	private static void alignOffensiveSkill(Player player, Creature target)
+	{
+		final Skill primary = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.preparationSkill(player, target);
+		// Retain recovery intent only after ready alternatives; remove stale unsupported damage IDs.
+		final var configured = player.getAutoUseSettings().getAutoSkills();
+		final var utilities = configured.stream().map(player::getKnownSkill).filter(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability::ordinaryUtility).map(Skill::getId).toList();
+		org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.alignAutoSkills(player.getAutoUseSettings(), utilities, primary == null ? 0 : primary.getId());
 	}
 
 	private final class Policy implements PhantomPolicy
@@ -624,13 +636,14 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "resource_recovery");
 				}
+				alignOffensiveSkill(player, player.getTarget() instanceof Creature target ? target : null);
 				if (player.getTarget() instanceof Creature selected && !selected.isAlikeDead() && !PhantomEngagementPlanner.viable(player, selected)
 					&& player.hasAI() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && player.getAI().getIntention() == Intention.ATTACK)
 				{
 					// End the next stock attack intention under this writer; captured hit tickets still settle.
 					player.getAI().setIntention(Intention.IDLE);
 				}
-				if (session != null && session._policy == this && "AutoPlay".equals(source)) { session._shots.activate(player.isMageClass()); }
+				if (session != null && session._policy == this && "AutoPlay".equals(source)) { session._shots.activate(org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.magicShots(player)); }
 				publishTick(source, new TickObservation(sequence, started, 0, "acquired"));
 				return new TickAdmission(TickStatus.ACQUIRED, () -> { try { lease.close(); } finally { publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "completed")); } }, "acquired");
 			}

@@ -55,12 +55,16 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		Objects.requireNonNull(anchorId, "anchorId");
 		Objects.requireNonNull(hashes, "hashes");
 		travelLegId = Objects.requireNonNull(travelLegId, "travelLegId");
+		if ((actionKind == ActionKind.HISTORICAL_OFFSCREEN_TRAVEL || actionKind == ActionKind.HISTORICAL_OFFSCREEN_CANCEL) && (activityGeneration != 0 || tickSequence != PhantomOffscreenOutdoorTravel.RECEIPT_TICK))
+		{
+			throw new IllegalArgumentException("Offscreen travel requires its typed historical receipt tag.");
+		}
 		if (!travelLegId.isEmpty() && (((actionKind != ActionKind.TRAVEL) && (actionKind != ActionKind.HISTORICAL_TRAVEL)) || !travelLegId.matches("leg[.][0-9a-f]{24}")))
 		{
 			throw new IllegalArgumentException("Invalid NORMAL GK travel leg identity.");
 		}
 		final boolean acquisitionAction = (actionKind == ActionKind.ACQUISITION_DEATH_DROP) || (actionKind == ActionKind.ACQUISITION_SPOIL_SWEEP) || (actionKind == ActionKind.ACQUISITION_MANOR_CROP) || (actionKind == ActionKind.ACQUISITION_QUEST_COLLECTION) || (actionKind == ActionKind.ACQUISITION_TRAVEL);
-		final boolean historicalAction = (actionKind == ActionKind.HISTORICAL_FARM) || (actionKind == ActionKind.HISTORICAL_TRAVEL) || (actionKind == ActionKind.HISTORICAL_DEAD_IDLE) || (actionKind == ActionKind.HISTORICAL_IDLE);
+		final boolean historicalAction = (actionKind == ActionKind.HISTORICAL_FARM) || (actionKind == ActionKind.HISTORICAL_TRAVEL) || (actionKind == ActionKind.HISTORICAL_DEAD_IDLE) || (actionKind == ActionKind.HISTORICAL_IDLE) || (actionKind == ActionKind.HISTORICAL_OFFSCREEN_TRAVEL) || (actionKind == ActionKind.HISTORICAL_OFFSCREEN_CANCEL);
 		if (((acquisition != null) != acquisitionAction) || ((historical != null) != historicalAction) || ((acquisition != null) && (historical != null)))
 		{
 			throw new IllegalArgumentException("Background operation identity does not match its action family.");
@@ -133,6 +137,8 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		ACQUISITION_SPOIL_SWEEP,
 		ACQUISITION_MANOR_CROP,
 		ACQUISITION_QUEST_COLLECTION,
-		ACQUISITION_TRAVEL
+		ACQUISITION_TRAVEL,
+		HISTORICAL_OFFSCREEN_TRAVEL,
+		HISTORICAL_OFFSCREEN_CANCEL
 	}
 }

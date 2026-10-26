@@ -20,12 +20,14 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 /** Test-only exact091 authority. No historical lane or generic DB guard is widened. */
 public final class PhantomTask091Lane
 {
-	static final String SCHEMA = "l2jmobiush5_phantom_test_091";
-	static final String BASELINE = "627bca947fd565ce18aa5cc85c7e1aa1288ccaef";
+	private static final boolean OFFSCREEN092B = Boolean.getBoolean("phantom.task092b.native");
+	private static final String FLAG = OFFSCREEN092B ? "phantom.task092b" : "phantom.task091";
+	static final String SCHEMA = OFFSCREEN092B ? "l2jmobiush5_phantom_test_092b" : "l2jmobiush5_phantom_test_091";
+	static final String BASELINE = OFFSCREEN092B ? "ac5931941f36fbdbb1a64e8d848b5fb57853b74c" : "627bca947fd565ce18aa5cc85c7e1aa1288ccaef";
 	static final String SQL_HASH = "8699ACDD436D29F5666CCC501E6B8D9A09265F064FC16AB7A7166BE04C84AEA2";
 	static final String MIGRATION = "e6c39363c6ca288196f90f0808d062d7e50ca9acace56f2e63e1242b7dd212e3";
-	static boolean enabled() { return Boolean.getBoolean("phantom.task091.native"); }
-	static Path root() { return Path.of(System.getProperty("phantom.task091.root", "")); }
+	static boolean enabled() { return Boolean.getBoolean(FLAG + ".native"); }
+	static Path root() { return Path.of(System.getProperty(FLAG + ".root", "")); }
 	static void require(boolean value, String key) { if (!value) { throw new IllegalArgumentException("TASK091_" + key); } }
 	static Path plain(Path path) throws Exception
 	{
@@ -59,7 +61,7 @@ public final class PhantomTask091Lane
 	}
 	static void ownerFields(Properties owner, Path module, String uuid) throws Exception
 	{
-		require("TASK091_NATIVE_FARM".equals(owner.getProperty("owner")) && SCHEMA.equals(owner.getProperty("schema")) && BASELINE.equals(owner.getProperty("baseline")), "OWNER_SCHEMA_BASELINE");
+		require((OFFSCREEN092B ? "TASK092B_NATIVE_TRAVEL" : "TASK091_NATIVE_FARM").equals(owner.getProperty("owner")) && SCHEMA.equals(owner.getProperty("schema")) && BASELINE.equals(owner.getProperty("baseline")), "OWNER_SCHEMA_BASELINE");
 		require(UUID.fromString(uuid).toString().equals(uuid) && uuid.equals(owner.getProperty("installationId")), "OWNER_UUID");
 		require(plain(module).equals(plain(Path.of(owner.getProperty("shadowModule", "")))) && plain(root()).equals(plain(Path.of(owner.getProperty("stage", "")))), "OWNER_ROOT");
 		require(Instant.now().isBefore(Instant.parse(owner.getProperty("expiresUtc"))), "EXPIRED");
@@ -77,7 +79,7 @@ public final class PhantomTask091Lane
 		require(enabled(), "NATIVE_FLAG");
 		for (String key : System.getProperties().stringPropertyNames())
 		{
-			require(!(key.startsWith("phantom.task") && key.endsWith(".native") && !key.equals("phantom.task091.native") && Boolean.getBoolean(key)), "FOREIGN_NATIVE");
+			require(!(key.startsWith("phantom.task") && key.endsWith(".native") && !key.equals(FLAG + ".native") && Boolean.getBoolean(key)), "FOREIGN_NATIVE");
 			require(!(key.startsWith("phantom.") && (key.endsWith(".manifest") || key.endsWith(".persistent") || key.endsWith(".control"))), "FOREIGN_AUTHORITY");
 		}
 	}
@@ -94,7 +96,15 @@ public final class PhantomTask091Lane
 			final String[] parts = line.split("\t", -1); require(parts.length == 3 && parts[2].matches("[0-9a-f]{64}"), "INPUT_MANIFEST");
 			final Path source = plain(Path.of(parts[0])), copy = plain(Path.of(parts[1]));
 			require((source.startsWith(origin) || source.startsWith(geo)) && copy.startsWith(module) && !copy.equals(module.resolve("dist/game/config/Database.ini")), "INPUT_ESCAPE");
-			inputFile(source, parts[2]); inputFile(copy, parts[2]); count++;
+			inputFile(source, parts[2]);
+			if (OFFSCREEN092B && Boolean.getBoolean("phantom.task092b.safeCleanupOverlay") && copy.equals(module.resolve("dist/game/config/IdManager.ini")))
+			{
+				final String original = Files.readString(source, StandardCharsets.UTF_8);
+				require(original.indexOf("DatabaseCleanUp = True") >= 0 && original.indexOf("DatabaseCleanUp = True") == original.lastIndexOf("DatabaseCleanUp = True"), "DIAGNOSTIC_CLEANUP_PREIMAGE");
+				require(Files.readString(copy, StandardCharsets.UTF_8).equals(original.replace("DatabaseCleanUp = True", "DatabaseCleanUp = False")), "DIAGNOSTIC_CLEANUP_EXACT_OVERLAY");
+			}
+			else { inputFile(copy, parts[2]); }
+			count++;
 		}
 		require(count > 1000 && SQL_HASH.equals(PhantomTestSchemaManifest.current(module).aggregateSha256()), "CANONICAL_SQL_DRIFT");
 	}
@@ -102,7 +112,7 @@ public final class PhantomTask091Lane
 	{
 		flags(); plain(root()); privateAcl(root());
 		final Path ownership = root().resolve("private/owner.properties"); privateAcl(ownership);
-		final Properties owner = read(ownership); ownerFields(owner, module, System.getProperty("phantom.task091.uuid", ""));
+		final Properties owner = read(ownership); ownerFields(owner, module, System.getProperty(FLAG + ".uuid", ""));
 		require(plain(cwd).equals(module.resolve("dist/game")) && plain(config).equals(module.resolve("dist/game/config/Database.ini")), "CWD_CONFIG");
 		require(!Files.isSameFile(config, Path.of(owner.getProperty("sourceModule")).resolve("dist/game/config/Database.ini")), "PRODUCTION_CONFIG");
 		privateAcl(config); settings(read(config), owner); inputs(owner, module); return owner;
@@ -129,7 +139,7 @@ public final class PhantomTask091Lane
 		try (var query = connection.prepareStatement("SELECT task_id,installation_id,migration_sha256 FROM economy071_authority WHERE schema_name=?"))
 		{
 			query.setString(1, SCHEMA);
-			try (var rows = query.executeQuery()) { require(rows.next() && rows.getInt(1) == 91 && owner.getProperty("installationId").equals(rows.getString(2)) && MIGRATION.equals(rows.getString(3)) && !rows.next(), "DATABASE_OWNER"); }
+			try (var rows = query.executeQuery()) { require(rows.next() && rows.getInt(1) == (OFFSCREEN092B ? 92 : 91) && owner.getProperty("installationId").equals(rows.getString(2)) && MIGRATION.equals(rows.getString(3)) && !rows.next(), "DATABASE_OWNER"); }
 		}
 		PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection, PhantomTestSchemaManifest.current(Path.of(owner.getProperty("shadowModule"))));
 	}
@@ -160,7 +170,7 @@ public final class PhantomTask091Lane
 				{ require(sql.matches("(?is)\\s*DROP\\s+TABLE\\s+IF\\s+EXISTS\\s+`?[A-Za-z0-9_]+`?\\s*"), "DESTRUCTIVE_INSTALLER"); }
 			}
 			Files.writeString(root().resolve("bootstrap.started"), owner.getProperty("installationId"), StandardOpenOption.CREATE_NEW);
-			try (var statement = admin.createStatement()) { statement.execute("CREATE DATABASE `l2jmobiush5_phantom_test_091` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"); }
+			try (var statement = admin.createStatement()) { statement.execute("CREATE DATABASE `" + SCHEMA + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"); }
 			try (var connection = connect(settings, false))
 			{
 				require(SCHEMA.equals(connection.getCatalog()), "CATALOG");
@@ -183,7 +193,7 @@ public final class PhantomTask091Lane
 					}
 				}
 				System.out.println("TASK091_CANONICAL_INSTALL omittedAbsentDropNoops=" + omittedNoops[0] + "; DROP/TRUNCATE/DELETE=0");
-				try (var insert = connection.prepareStatement("INSERT INTO economy071_authority(schema_name,task_id,installation_id,schema_version,migration_sha256) VALUES(?,91,?,1,?)"))
+				try (var insert = connection.prepareStatement("INSERT INTO economy071_authority(schema_name,task_id,installation_id,schema_version,migration_sha256) VALUES(?," + (OFFSCREEN092B ? 92 : 91) + ",?,1,?)"))
 				{ insert.setString(1, SCHEMA); insert.setString(2, owner.getProperty("installationId")); insert.setString(3, MIGRATION); insert.executeUpdate(); }
 				PhantomTestSchemaManifest.writeDatabaseMetadata(connection, PhantomTestSchemaManifest.current(module)); owned(connection, owner);
 			}

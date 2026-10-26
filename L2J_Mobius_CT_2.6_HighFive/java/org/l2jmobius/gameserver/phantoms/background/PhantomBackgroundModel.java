@@ -36,6 +36,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Loado
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ModelKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.DamageKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics;
 
 /**
  * BACKGROUND_MODEL_V1 is a deterministic bounded approximation. Reward and drop
@@ -140,7 +142,9 @@ public final class PhantomBackgroundModel
 					break;
 				}
 			}
-			final long encounterMillis = encounterMillis(state.combat(), target, random);
+			final CastEncounter cast = request.mechanics() == null ? null : castEncounter(state.combat(), new Vitals(hp, state.vitals().maximumHp(), mp, state.vitals().maximumMp(), state.vitals().currentCp(), state.vitals().maximumCp()), state.loadout().skillMpPerEncounter(), target, request.mechanics(), List.of());
+			if (cast != null && !cast.viable()) { reason = ResultReason.RESOURCE_RESERVE; break; }
+			final long encounterMillis = cast == null ? encounterMillis(state.combat(), target, random) : cast.durationMillis();
 			if ((elapsed + encounterMillis) > MAX_ELAPSED_MILLIS)
 			{
 				reason = ResultReason.TIME_BUDGET;
@@ -148,8 +152,10 @@ public final class PhantomBackgroundModel
 			}
 			final Loadout loadout = state.loadout();
 			// An amplifier is optional in every supported encounter mode; skill/upkeep/seed costs remain mandatory.
-			final int shots = !has(counts, loadout.shotItemId(), loadout.shotsPerEncounter()) ? 0 : loadout.shotsPerEncounter();
-			if ((mp < loadout.skillMpPerEncounter()) || !has(counts, loadout.shotItemId(), shots) || !has(counts, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter()))
+			final int desiredShots = Math.multiplyExact(loadout.shotsPerEncounter(), cast == null ? 1 : cast.casts());
+			final int shots = !has(counts, loadout.shotItemId(), desiredShots) ? 0 : desiredShots;
+			final double mpCost = cast == null ? loadout.skillMpPerEncounter() : cast.requiredMp();
+			if ((mp < mpCost) || !has(counts, loadout.shotItemId(), shots) || !has(counts, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter()))
 			{
 				reason = ResultReason.RESOURCE_RESERVE;
 				break;
@@ -223,7 +229,7 @@ public final class PhantomBackgroundModel
 			consume(counts, deltas, request.manorFormula() == null ? 0 : request.manorFormula().seedItemId(), consumedSeeds);
 			consume(counts, deltas, loadout.shotItemId(), shots);
 			consume(counts, deltas, loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter());
-			mp -= loadout.skillMpPerEncounter();
+			mp -= mpCost;
 			final double seconds = encounterMillis / 1000d;
 			mp = Math.min(state.vitals().maximumMp(), mp + (state.combat().mpRegenPerSecond() * seconds));
 
@@ -250,9 +256,13 @@ public final class PhantomBackgroundModel
                 final float delta = PhantomBackgroundRewardKernel.targetDelta((long) Math.ceil(target.vitalityMaximumHp()), target.level(), targetExp, (float) target.maximumHp(), target.vitalityMaximumHp());
                 points = PhantomBackgroundRewardKernel.update(points, delta, ordinary);
             }
-			final double incoming = incomingDamage(state.combat(), target, encounterMillis, random);
-			hp = Math.min(state.vitals().maximumHp(), hp + (state.combat().hpRegenPerSecond() * seconds));
-			hp = Math.max(0, hp - incoming);
+			if (cast == null)
+			{
+				final double incoming = incomingDamage(state.combat(), target, encounterMillis, random);
+				hp = Math.min(state.vitals().maximumHp(), hp + (state.combat().hpRegenPerSecond() * seconds));
+				hp = Math.max(0, hp - incoming);
+			}
+			else { hp = cast.remainingHp(); } // Paid drain only; no prospective regeneration or compressed cast time.
 			elapsed += encounterMillis;
 			encounters++;
 			if (hp == 0)
@@ -439,6 +449,55 @@ public final class PhantomBackgroundModel
 	}
 
 	public record EncounterEstimate(long durationMillis, double incomingDamage) { }
+
+	/** Baseline native plain-hit formulas, without criticals, shots, buffs or a promise of retail equivalence. */
+	public static CastEncounter castEncounter(CombatFacts combat, Vitals vitals, double mpPerCast, Target target, Mechanics mechanics, List<Target> threats)
+	{
+		final boolean magic = mechanics.kind() == DamageKind.MAGIC;
+		// A deterministic reduction envelope must never be presented as guaranteed full-power drain.
+		if (threats.size() > 64 || magic && (mechanics.magicLevel() > 0 && target.level() > mechanics.magicLevel() || target.castDefense().magicSuccessResistance() > 1))
+		{ return new CastEncounter(false, "unsupported_magic_success_or_threat_envelope", 0, 0, 0, 0, 0, 0, vitals.currentHp()); }
+		final int elementDiff = mechanics.element() < 0 ? 0 : mechanics.elementPower() - target.castDefense().elements().get(mechanics.element());
+		final double attribute = elementDiff >= 0 ? 1 : Math.max(0.975 - Math.sqrt(Math.pow(-elementDiff, 3) / 2) * 0.0001, 0.75);
+		final double damage = Math.max(1, Math.floor((magic ? 91d * Math.sqrt(combat.magicOffense()) * mechanics.power() / Math.max(1, target.magicDefense())
+			: 76d * (combat.physicalOffense() + mechanics.power()) / Math.max(1, target.physicalDefense())) * attribute * mechanics.damageMultiplier()));
+		final double speed = Math.max(1, magic ? combat.castSpeed() : combat.attackSpeed());
+		long castMillis = mechanics.staticCast() ? mechanics.castMillis() : (long) (mechanics.castMillis() * (magic ? 333d : 300d) / speed);
+		if (magic && mechanics.castMillis() > 550) { castMillis = Math.max(550, castMillis); }
+		if (!magic && mechanics.castMillis() >= 500) { castMillis = Math.max(500, castMillis); }
+		castMillis = Math.max(1, castMillis);
+		final long cycle = Math.max(castMillis, mechanics.reuseMillis());
+		final double needed = Math.ceil(target.maximumHp() / damage);
+		if (!Double.isFinite(needed) || needed > 256 || needed < 1) { return new CastEncounter(false, "cast_limit", 0, 0, 0, damage, 0, 0, vitals.currentHp()); }
+		final int casts = (int) needed;
+		final long duration = castMillis + (casts - 1L) * cycle;
+		final double mp = mpPerCast * casts;
+		if (!target.normalMonster() || vitals.currentHp() <= 0 || !Double.isFinite(mpPerCast) || mpPerCast < 0 || !Double.isFinite(mp) || mp > vitals.currentMp())
+		{ return new CastEncounter(false, "resource_or_target", duration, casts, mp, damage, 0, 0, vitals.currentHp()); }
+		if (duration > org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS)
+		{ return new CastEncounter(false, "encounter_timeout", duration, casts, mp, damage, 0, 0, vitals.currentHp()); }
+		double hp = vitals.currentHp();
+		double remaining = target.maximumHp();
+		double incomingTotal = 0;
+		double restored = 0;
+		for (int index = 0; index < casts; index++)
+		{
+			final long interval = index == 0 ? castMillis : cycle;
+			double incoming = incomingDamage(combat, target, interval);
+			for (Target threat : threats) { incoming += incomingDamage(combat, threat, interval); }
+			incomingTotal += incoming;
+			hp -= incoming;
+			if (!Double.isFinite(hp) || hp <= 0) { return new CastEncounter(false, "predicted_death_before_hit", duration, casts, mp, damage, incomingTotal, restored, 0); }
+			final double dealt = Math.min(remaining, damage);
+			remaining -= dealt;
+			final double heal = Math.min(vitals.maximumHp() - hp, dealt * mechanics.drainRatio());
+			hp += heal;
+			restored += heal;
+		}
+		return new CastEncounter(true, "ready", duration, casts, mp, damage, incomingTotal, restored, hp);
+	}
+
+	public record CastEncounter(boolean viable, String reason, long durationMillis, int casts, double requiredMp, double damagePerCast, double incomingDamage, double restoredHp, double remainingHp) { }
 
 	private static DropRoll rollDrops(Target target, DeterministicRandom random)
 	{
@@ -778,8 +837,13 @@ public final class PhantomBackgroundModel
 		ACQUISITION_QUEST_COLLECTION
 	}
 
-	public record BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, BatchMode mode, int targetItemId, long maximumTargetAmount, boolean acquisitionEligible, ManorFormula manorFormula, QuestFormula questFormula, int maximumEncounters, boolean itemStackable, int itemWeight)
+	public record BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, BatchMode mode, int targetItemId, long maximumTargetAmount, boolean acquisitionEligible, ManorFormula manorFormula, QuestFormula questFormula, int maximumEncounters, boolean itemStackable, int itemWeight, Mechanics mechanics)
 	{
+		public BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, BatchMode mode, int targetItemId, long maximumTargetAmount, boolean acquisitionEligible, ManorFormula manorFormula, QuestFormula questFormula, int maximumEncounters, boolean itemStackable, int itemWeight)
+		{ this(state, target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, unsupportedContext, mode, targetItemId, maximumTargetAmount, acquisitionEligible, manorFormula, questFormula, maximumEncounters, itemStackable, itemWeight, null); }
+
+		public BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext, Mechanics mechanics)
+		{ this(state, target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, unsupportedContext, BatchMode.ORDINARY_DEATH_DROP, 0, 0, true, null, null, MAX_ENCOUNTERS, true, 0, mechanics); }
 		public BatchRequest(PhantomBackgroundState state, Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, boolean unsupportedContext)
 		{
 			this(state, target, rewardPolicy, deathPolicy, experienceTable, levelForExperience, unsupportedContext, BatchMode.ORDINARY_DEATH_DROP, 0, 0, true, null, null, MAX_ENCOUNTERS, true, 0);
@@ -830,14 +894,23 @@ public final class PhantomBackgroundModel
 		}
 	}
 
-	public record Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences, float vitalityMaximumHp)
+	public record CastDefense(List<Integer> elements, double magicSuccessResistance)
 	{
+		public CastDefense { elements = List.copyOf(elements); if (elements.size() != 6 || !Double.isFinite(magicSuccessResistance) || magicSuccessResistance < 0) { throw new IllegalArgumentException("Invalid native cast defenses."); } }
+		public static CastDefense neutral() { return new CastDefense(List.of(0, 0, 0, 0, 0, 0), 1); }
+	}
+
+	public record Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences, float vitalityMaximumHp, CastDefense castDefense)
+	{
+		public Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences, float vitalityMaximumHp)
+		{ this(npcId, level, normalMonster, maximumHp, maximumMp, physicalOffense, magicOffense, physicalDefense, magicDefense, attackSpeed, castSpeed, baseExperience, baseSkillPoints, drops, maximumRandomDropOccurrences, vitalityMaximumHp, CastDefense.neutral()); }
         public Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences)
         {
             this(npcId, level, normalMonster, maximumHp, maximumMp, physicalOffense, magicOffense, physicalDefense, magicDefense, attackSpeed, castSpeed, baseExperience, baseSkillPoints, drops, maximumRandomDropOccurrences, (float) maximumHp);
         }
 		public Target
 		{
+			Objects.requireNonNull(castDefense, "castDefense");
 			if ((npcId <= 0) || (level < 1) || !Double.isFinite(maximumHp) || (maximumHp <= 0) || !Double.isFinite(maximumMp) || (maximumMp < 0) || !Double.isFinite(baseExperience) || (baseExperience < 0) || !Double.isFinite(baseSkillPoints) || (baseSkillPoints < 0) || (maximumRandomDropOccurrences < 0) || !Float.isFinite(vitalityMaximumHp) || vitalityMaximumHp <= 0)
 			{
 				throw new IllegalArgumentException("Invalid background target.");
