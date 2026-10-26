@@ -194,6 +194,19 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}).orElse(null);
 	}
 
+	/** Visible PvE uses the same native control-item executor, under its existing session command gate. */
+	public boolean prepareNativeSupportPet(long profileId, Player expected, long epoch)
+	{
+		try (var action = _materializationService.tryAcquireAction(profileId).orElse(null))
+		{
+			if (action == null || action.player() != expected || expected.hasPendingOwnedStore() || expected.isAlikeDead()
+				|| expected.isMoving() || expected.isCastingSimultaneouslyNow() || expected.getQueuedSkill() != null) { return false; }
+			final var owner = expected.getNativeWorkOwner();
+			if (owner == null || !owner.isCurrent() || owner.player() != expected || owner.epoch() != epoch) { return false; }
+			return new L2jActorLease(profileId, action, _knowledgeSupplier, _progressionCatalog).tryNativeSupportPet();
+		}
+	}
+
 	private static final class L2jActorLease implements PhantomCombatActorLease
 	{
 		private final long _profileId;

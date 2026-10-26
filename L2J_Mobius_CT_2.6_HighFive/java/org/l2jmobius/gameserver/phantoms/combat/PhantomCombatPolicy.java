@@ -28,6 +28,28 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 	}
 
 	public enum PveRecoveryAction { ALLOW, WAIT_NATIVE, RETREAT, REST, EXPIRED }
+	public enum PvePreparationAction { ALLOW, WAIT_NATIVE, RECOVER, MAINTAIN_SUPPLIES, SAFER_FARM_OR_OTHER_ACTIVITY }
+	public record PvePreparation(int level, double hpPercent, double mpPercent, boolean weaponReady, boolean magicPrimary,
+		boolean primaryMpReady, long shotHits, long healingStock, boolean activeBuff, boolean supportPet, boolean party, boolean funds) { }
+	public record PvePreparationVerdict(PvePreparationAction action, String reason) { }
+
+	/** Preferences over actual native inputs; support presence never supplies damage or future buff credit. */
+	public static PvePreparationVerdict pvePreparation(PvePreparation facts, boolean viable, boolean risky, boolean busy)
+	{
+		if (busy) { return new PvePreparationVerdict(PvePreparationAction.WAIT_NATIVE, "readiness.native_inflight"); }
+		if (facts == null || facts.level() < 1 || !Double.isFinite(facts.hpPercent()) || !Double.isFinite(facts.mpPercent()) || !viable)
+		{ return new PvePreparationVerdict(PvePreparationAction.SAFER_FARM_OR_OTHER_ACTIVITY, "readiness.native_target_or_facts_unavailable"); }
+		if (facts.hpPercent() <= PVE_CROWD_RETREAT_HP_PERCENT || facts.magicPrimary() && !facts.primaryMpReady())
+		{ return new PvePreparationVerdict(PvePreparationAction.RECOVER, "readiness.native_hp_mp"); }
+		if (!facts.party() && risky && facts.level() >= 40)
+		{
+			if (!facts.weaponReady() || facts.shotHits() < (facts.level() >= 76 ? 10 : 3))
+			{ return new PvePreparationVerdict(facts.funds() ? PvePreparationAction.MAINTAIN_SUPPLIES : PvePreparationAction.SAFER_FARM_OR_OTHER_ACTIVITY, "readiness.gear_or_shots.existing_supply_required"); }
+			if (facts.level() >= 76 && (!facts.activeBuff() || facts.hpPercent() < 90 || facts.magicPrimary() && facts.mpPercent() < 25 || facts.healingStock() == 0))
+			{ return new PvePreparationVerdict(PvePreparationAction.SAFER_FARM_OR_OTHER_ACTIVITY, "readiness.high_solo.native_support_or_resources_missing"); }
+		}
+		return new PvePreparationVerdict(PvePreparationAction.ALLOW, risky ? "readiness.native_prepared" : "readiness.native_lower_risk");
+	}
 
 	public static boolean pveEarnedContinuation(boolean pending, boolean threatened, boolean nativeBusy)
 	{

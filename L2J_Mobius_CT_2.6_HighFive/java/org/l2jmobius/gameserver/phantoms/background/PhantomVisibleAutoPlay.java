@@ -313,6 +313,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				final var outcome = session._engagement.advance(profileId, player, goal, npcId, session._policy::targetSelectionLoad, _clock.getAsLong());
 				if (outcome == PhantomEngagementController.Outcome.EXHAUSTED) { return stopExpiredCombat(session, player, true); }
 			}
+			if (session._readinessSince != 0 && _clock.getAsLong() - session._readinessSince >= RESOURCE_RECOVERY_NANOS
+				&& !session._loot.pending(player, _clock.getAsLong()))
+			{ return stopExpiredCombat(session, player, true); }
 			final boolean checkDue, expiredBeforeCheck;
 			synchronized (session)
 			{
@@ -395,6 +398,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		final double maximumMp = player.getMaxMp();
 		final boolean sitting = player.isSitting();
 		final Creature threat = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player);
+		session._preparation = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.pvePreparation(player);
+		session._preparationThreat = threat != null;
 		final boolean viable = !(player.getTarget() instanceof Creature selected) || selected.isAlikeDead() || PhantomEngagementPlanner.viable(player, selected);
 		final boolean busy = nativeBusy(player);
 		final PveRecoveryAction recovery;
@@ -693,6 +698,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					return new TickAdmission(TickStatus.PAUSED, null, "native_combat_settlement");
 				}
 				alignOffensiveSkill(player, player.getTarget() instanceof Creature target ? target : null);
+				if (session != null && session._policy == this && !nativeBusy(player) && !session._loot.pending(player, _clock.getAsLong())
+					&& !session._yieldRequested && !ownsResourceRetreat(session, player) && _clock.getAsLong() >= session._supportPetCheckDue)
+				{
+					session._supportPetCheckDue = _clock.getAsLong() + 5_000_000_000L;
+					if (_recoveryBackend.prepareNativeSupportPet(_profileId, player, session._epoch))
+					{
+						lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "native_support_pet_summoning"));
+						return new TickAdmission(TickStatus.PAUSED, null, "native_support_pet_summoning");
+					}
+				}
 				if (session != null && session._policy == this && resourcePause(session, player))
 				{
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
@@ -786,11 +801,31 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final Session session = _sessions.get(_profileId);
 			return session != null && session._policy == this && session._current.get() && session._loot.tick(player, _clock.getAsLong());
 		}
+		@Override public boolean allowSummonAttack(Player player, org.l2jmobius.gameserver.model.actor.Summon summon)
+		{
+			return player == _player && org.l2jmobius.gameserver.phantoms.combat.PhantomNativePetRolePolicy.allowAttack(player, summon);
+		}
+
+		private boolean preparedTarget(Creature target)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (session == null || session._policy != this || !session._current.get()) { return false; }
+			if (target.isAlikeDead()) { return true; } // Existing earned Sweep retains its owner.
+			if (nativeBusy(_player)) { return target == _player.getTarget(); }
+			final var preparation = session._preparation;
+			final boolean risky = session._preparationThreat || target.getLevel() >= _player.getLevel() || target.getMaxHp() > _player.getMaxHp() * 1.5;
+			final var verdict = PhantomCombatPolicy.pvePreparation(preparation, PhantomEngagementPlanner.viable(_player, target), risky, false);
+			session._readinessReason = verdict.reason();
+			if (verdict.action() == PhantomCombatPolicy.PvePreparationAction.ALLOW)
+			{ session._readinessSince = 0; return true; }
+			if (session._readinessSince == 0) { session._readinessSince = _clock.getAsLong(); }
+			return false;
+		}
 		@Override
 		public boolean permitsTarget(Creature target)
 		{
 			// Corpse eligibility belongs to native Sweep, including retained valuable spoil.
-			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId && (target.isAlikeDead() || PhantomEngagementPlanner.rewardingFarmTarget(_player, target)) || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target));
+			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId && (target.isAlikeDead() || PhantomEngagementPlanner.rewardingFarmTarget(_player, target)) || org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) && (target.isAlikeDead() || PhantomEngagementPlanner.viable(_player, target)) && preparedTarget(target);
 		}
 	}
 
@@ -826,6 +861,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			fields.put("livePolicyIdentity", Integer.toHexString(System.identityHashCode(session._policy)));
 			fields.put("liveSessionEpoch", Long.toString(session._epoch));
 			fields.put("liveSessionCurrent", Boolean.toString(session._current.get()));
+			fields.put("liveReadinessReason", session._readinessReason);
+			fields.put("liveReadinessSinceNanos", Long.toString(session._readinessSince));
 			// Copy the resource/debt tuple under its existing writer monitor, without nested calls.
 			synchronized (session)
 			{
@@ -889,6 +926,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private volatile String _resourceReason = "resource.not_required";
 		private volatile int _resourceRetreatAttempts;
 		private volatile Location _resourceRetreatDestination;
+		private volatile PhantomCombatPolicy.PvePreparation _preparation;
+		private volatile boolean _preparationThreat;
+		private volatile long _supportPetCheckDue, _readinessSince;
+		private volatile String _readinessReason = "readiness.not_sampled";
 
 		private Session(Player player, long goalId, long revision, PhantomPolicy policy, long epoch, long now, Session previous, AtomicBoolean commandGate, PhantomNavigationService navigation, java.util.function.BooleanSupplier permits)
 		{
@@ -915,6 +956,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					_resourceSince = previous._resourceSince; _resourceCheckDue = previous._resourceCheckDue;
 					_resourceCost = previous._resourceCost; _resourceReason = previous._resourceReason;
 					_resourceRetreatAttempts = previous._resourceRetreatAttempts; _resourceRetreatDestination = previous._resourceRetreatDestination;
+					_supportPetCheckDue = previous._supportPetCheckDue;
+					if (previous._goalId == goalId && previous._revision == revision)
+					{ _readinessSince = previous._readinessSince; _readinessReason = previous._readinessReason; }
 				}
 			}
 		}

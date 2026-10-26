@@ -100,6 +100,36 @@ public final class PhantomNativeCombatCapability
 		return primary != null && primary.isMagic() && mechanics(primary) != null;
 	}
 
+	/** One ephemeral sample under the visible session's admitted native writer, never a durable combat bonus. */
+	public static PhantomCombatPolicy.PvePreparation pvePreparation(Player player)
+	{
+		// alignOffensiveSkill already selected the actual learned primary under this writer.
+		final Skill primary = player.getAutoUseSettings().getAutoSkills().stream().map(player::getKnownSkill).filter(skill -> mechanics(skill) != null).findFirst().orElse(null);
+		final boolean magic = primary != null && primary.isMagic();
+		final var weapon = player.getActiveWeaponItem();
+		final boolean gear = weapon != null && weapon != player.getFistsWeaponItem() && player.getActiveWeaponInstance() != null
+			&& weapon.getCrystalType().getLevel() <= player.getExpertiseLevel();
+		final var action = magic ? org.l2jmobius.gameserver.model.item.type.ActionType.SPIRITSHOT : org.l2jmobius.gameserver.model.item.type.ActionType.SOULSHOT;
+		final int perHit = weapon == null ? 0 : magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
+		long shots = 0;
+		for (var item : player.getInventory().getItems().stream().limit(256).toList())
+		{
+			if (gear && item.getOwnerId() == player.getObjectId() && item.getCount() > 0 && item.getEtcItem() != null
+				&& item.getTemplate().getDefaultAction() == action && item.getTemplate().getCrystalType() == weapon.getCrystalTypePlus()
+				&& org.l2jmobius.gameserver.handler.ItemHandler.getInstance().getHandler(item.getEtcItem()) != null)
+			{ shots += Math.min(100_000, item.getCount()); }
+		}
+		final boolean buff = player.getEffectList().getBuffs().stream().anyMatch(info -> !info.getSkill().hasNegativeEffect()
+			&& info.getSkill().isContinuous() && !info.getSkill().isHealingPotionSkill() && (info.getTime() > 10 || info.getTime() < 0));
+		final var summon = player.getSummon();
+		final boolean support = summon instanceof org.l2jmobius.gameserver.model.actor.instance.BabyPet pet && pet.getOwner() == player
+			&& !pet.isAlikeDead() && pet.getCurrentFed() > 0 && pet.getCurrentMp() > 0;
+		final double mpCost = primary == null ? 0 : Math.max(primary.getMpInitialConsume() + primary.getMpConsume(), player.getStat().getMpInitialConsume(primary) + player.getStat().getMpConsume(primary));
+		return new PhantomCombatPolicy.PvePreparation(player.getLevel(), player.getCurrentHpPercent(), player.getMaxMp() > 0 ? player.getCurrentMp() * 100 / player.getMaxMp() : 0,
+			gear, magic, !magic || player.getCurrentMp() >= mpCost, perHit > 0 ? shots / perHit : 0,
+			L2jCombatBackend.ownedHealingStock(player), buff, support, player.isInParty(), player.getAdena() > 0);
+	}
+
 	private static Candidate candidate(Player player, Creature target, Skill skill, boolean readyNow)
 	{
 		final Mechanics mechanics = mechanics(skill);

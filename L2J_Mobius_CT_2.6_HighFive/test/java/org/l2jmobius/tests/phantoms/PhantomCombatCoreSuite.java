@@ -68,6 +68,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (!_normalTargetPreflightOnly) { new PhantomPveReadiness093Suite().register(registry); }
 		registry.add("072-native-reward-gap-allows-higher-mobs-and-rejects-zero-reward", _ ->
 		{
 			for (int difference : new int[] {-2, -1, 0, 1, 2}) { PhantomAssertions.assertTrue(PhantomCombatPolicy.farmRewardAvailable(difference, 11, 633, 28), "Rewardable +/-2 target was rejected."); }

@@ -71,6 +71,7 @@ public class AutoPlayTaskManager
 		}
 
 		boolean permitsTarget(Creature target);
+		default boolean allowSummonAttack(Player player, Summon summon) { return true; }
 		/** Advisory ranking only; it cannot grant or deny target admission. */
 		default int targetSelectionLoad(Creature target) { return 0; }
 		default TargetDirective targetDirective(Player player) { return new TargetDirective(TargetDirective.Mode.STOCK, null); }
@@ -191,7 +192,7 @@ public class AutoPlayTaskManager
 						
 						// Logic adjustment for summons not attacking.
 						final Summon summon = player.getSummon();
-						if ((summon != null) && summon.hasAI() && !summon.isMoving() && !summon.isDisabled() && (summon.getAI().getIntention() != Intention.ATTACK) && (summon.getAI().getIntention() != Intention.CAST) && creature.isAutoAttackable(player) && GeoEngine.getInstance().canSeeTarget(player, creature))
+						if ((summon != null) && (phantomPolicy == null || phantomPolicy.allowSummonAttack(player, summon)) && summon.hasAI() && !summon.isMoving() && !summon.isDisabled() && (summon.getAI().getIntention() != Intention.ATTACK) && (summon.getAI().getIntention() != Intention.CAST) && creature.isAutoAttackable(player) && GeoEngine.getInstance().canSeeTarget(player, creature))
 						{
 							summon.getAI().setIntention(Intention.ATTACK, creature);
 						}
