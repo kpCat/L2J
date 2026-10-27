@@ -57,7 +57,7 @@ public final class PhantomMaterializationRetentionPolicy
 
 		public boolean reclaimable()
 		{
-			return materialized && !humanLocal && !hard();
+			return materialized && !humanLocal && !retained();
 		}
 	}
 

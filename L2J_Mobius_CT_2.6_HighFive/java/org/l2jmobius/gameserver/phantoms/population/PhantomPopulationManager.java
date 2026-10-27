@@ -96,6 +96,10 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final Map<Integer, TreeSet<Long>> _desiredActiveIdsByRegion = new HashMap<>();
 	private final Set<Long> _admittedIds = new HashSet<>();
 	private final Set<Long> _eligibleActiveIds = new HashSet<>();
+	private final Map<Long, PhantomPopulationEcologyService.DemandFact> _humanDemand = new HashMap<>();
+	private final Map<Long, Instant> _lastDemandAdmission = new HashMap<>();
+	private final Set<Long> _priorityDemandIds = new HashSet<>();
+	private Instant _nextDemandRotation = Instant.MIN;
 	private final Set<Long> _participants = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	private LongPredicate _retirementProtected = _ -> false;
 	private final Map<Integer, Integer> _classHistogram = new HashMap<>();
@@ -178,6 +182,23 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		validateTargets(target, activeTarget);
 		_target = target;
 		_activeTarget = activeTarget;
+	}
+
+	public void updateMaterializationDemand(List<PhantomPopulationEcologyService.DemandFact> facts)
+	{
+		Objects.requireNonNull(facts);
+		if (facts.size() > _maximumScheduled) { throw new IllegalArgumentException("Demand exceeds scheduled population bound."); }
+		synchronized (_monitor)
+		{
+			final Map<Long, PhantomPopulationEcologyService.DemandFact> current = new HashMap<>();
+			for (var fact : facts) { if (_participants.contains(fact.profileId())) { current.put(fact.profileId(), fact); } }
+			if (!current.keySet().equals(_humanDemand.keySet())) { _admissionDirty = true; }
+			if (_humanDemand.isEmpty() && !current.isEmpty()) { _nextDemandRotation = Instant.MIN; }
+			_humanDemand.clear();
+			_humanDemand.putAll(current);
+			_lastDemandAdmission.keySet().retainAll(current.keySet());
+			_priorityDemandIds.retainAll(current.keySet());
+		}
 	}
 
 	public void installDecisionEngine(PhantomDecisionEngine decisionEngine)
@@ -591,7 +612,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				processed++;
 			}
 			final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
-			if (_admissionDirty || (_lastEpochDay != epochDay))
+			if (_admissionDirty || (_lastEpochDay != epochDay) || (!_humanDemand.isEmpty() && !now.isBefore(_nextDemandRotation)))
 			{
 				rebalanceAdmissionLocked(now);
 				_admissionDirty = false;
@@ -866,6 +887,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				}
 			}
 		}
+		prioritizeHumanDemandLocked(admitted, limit, now);
 		final Set<Long> changed = new HashSet<>(_admittedIds);
 		changed.addAll(admitted);
 		changed.removeIf(profileId -> _admittedIds.contains(profileId) == admitted.contains(profileId));
@@ -881,6 +903,31 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				queueActionLocked(entry, RetryActionType.READY_SCHEDULE, 0, _controlCalls);
 			}
 		}
+	}
+
+	/** Keep ordinary regional allocation; lend at most eight slots to lawful physical demand. */
+	private void prioritizeHumanDemandLocked(Set<Long> admitted, int limit, Instant now)
+	{
+		final boolean rotate = !now.isBefore(_nextDemandRotation) || now.isBefore(_lastAdmissionInstant);
+		_priorityDemandIds.retainAll(_eligibleActiveIds);
+		if (rotate) { _priorityDemandIds.clear(); }
+		final int budget = Math.min(8, limit);
+		final var order = Comparator.comparingInt((PhantomPopulationEcologyService.DemandFact fact) -> fact.couldKnow() ? 0 : 1)
+			.thenComparing(fact -> _lastDemandAdmission.getOrDefault(fact.profileId(), Instant.MIN))
+			.thenComparingLong(PhantomPopulationEcologyService.DemandFact::firstDemandNanos)
+			.thenComparingLong(PhantomPopulationEcologyService.DemandFact::profileId);
+		final var candidates = _humanDemand.values().stream().filter(fact -> _eligibleActiveIds.contains(fact.profileId())).sorted(order).toList();
+		// A target reduction must also bound the sticky set.
+		final Set<Long> priority = new HashSet<>();
+		for (var fact : candidates) { if (priority.size() < budget && _priorityDemandIds.contains(fact.profileId())) { priority.add(fact.profileId()); } }
+		for (var fact : candidates) { if (priority.size() < budget) { priority.add(fact.profileId()); } }
+		for (long id : priority) { if (!_priorityDemandIds.contains(id)) { _lastDemandAdmission.put(id, now); } }
+		_priorityDemandIds.clear();
+		_priorityDemandIds.addAll(priority);
+		if (rotate) { _nextDemandRotation = now.plusSeconds(30); }
+		final var ordinary = admitted.stream().filter(id -> !priority.contains(id)).sorted(Comparator.reverseOrder()).toList();
+		admitted.addAll(priority);
+		for (long id : ordinary) { if (admitted.size() <= limit) { break; } admitted.remove(id); }
 	}
 
 	private static Map<Integer, Integer> largestRemainderCounts(Map<Integer, Integer> population, Map<Integer, Integer> desired, int limit)

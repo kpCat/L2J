@@ -512,7 +512,7 @@ public final class PhantomSystem
 				}
 				final PhantomTopologyPositionPublisher positionPublisher = new PhantomTopologyPositionPublisher(_topologyService, _backgroundService::acquisitionSnapshot);
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
-				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.presence().isOnline(profileId), this::liveMaterializedPoints);
+				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.admissionProfile(profileId).map(profile -> profile.eligible()).orElse(false), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime);
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
@@ -658,17 +658,21 @@ public final class PhantomSystem
 				if (periodicEcology != null)
 				{
 					periodicEcology.installMaterializationDemand(profileId -> hasAcceptedNativeJourney(profileId) || _populationManager.presence().isOnline(profileId) && _humanLocality.isCurrentLocal(profileId));
-					_humanLocality.installPreparationDemand((facts, slots) -> periodicEcology.updateMaterializationDemand(withAcceptedNativeJourneys(facts), slots), () ->
-					{
-						final var capacity = _materializationService.snapshot();
-						final long soft = capacity.materializations().stream().filter(entry -> entry.worldPresent() && (_materializationRetention != null) && _materializationRetention.observe(entry.profileId()).reclaimable()).count();
-						return Math.min(8, capacity.availablePermits() + Math.toIntExact(soft));
-					});
 				}
-				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology, this::hasAcceptedNativeJourney);
+				_humanLocality.installPreparationDemand((facts, slots) ->
+				{
+					_populationManager.updateMaterializationDemand(facts);
+					if (periodicEcology != null) { periodicEcology.updateMaterializationDemand(withAcceptedNativeJourneys(facts.stream().filter(fact -> _populationManager.admissionProfile(fact.profileId()).map(profile -> profile.admitted()).orElse(false)).toList()), slots); }
+				}, () ->
+				{
+					final var capacity = _materializationService.snapshot();
+					final long soft = capacity.materializations().stream().filter(entry -> entry.worldPresent() && (_materializationRetention != null) && _materializationRetention.observe(entry.profileId()).reclaimable()).count();
+					return Math.min(8, capacity.availablePermits() + Math.toIntExact(soft));
+				});
+				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology, this::hasAcceptedNativeJourney, profileId -> _populationManager.admissionProfile(profileId).map(profile -> profile.admitted()).orElse(false));
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
 				_offscreenObservers = new PhantomOffscreenObserverAdmission(_materializationRetention, System::nanoTime);
-				if (_settings.materializationBurstSlots() > 0) { _materializationService.installSoftCleanupAdmission(this::softCleanupHumanAbsent); }
+				_materializationService.installSoftCleanupAdmission(this::softCleanupHumanAbsent);
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING)
@@ -3242,7 +3246,7 @@ public final class PhantomSystem
 		try
 		{
 			final var hold = _materializationRetention.observe(profileId);
-			if (!hold.reclaimable() || _settings.materializationBurstSlots() > 0 && hold.retained()) { return false; }
+			if (!hold.reclaimable() || _materializationRetention.recentHumanObservation(profileId) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR) { return false; }
 			final var runtime = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
 			if ((runtime != null) && (runtime.inFlight() || runtime.persistenceInFlight())) { return false; }
 			final var stored = goals.load(profileId).orElse(null);
@@ -3287,11 +3291,15 @@ public final class PhantomSystem
 	/** Called under this actor's admission monitor: never enumerate other materialization monitors. */
 	private boolean softCleanupHumanAbsent(long profileId)
 	{
+		final var observation = _humanLocality.physicalSnapshot();
+		if (observation.overflow() || (System.currentTimeMillis() - observation.timestampMillis() < 0) || (System.currentTimeMillis() - observation.timestampMillis() >= 10_000)
+			|| _materializationRetention.recentHumanObservation(profileId) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR) { return false; }
 		final var entry = _materializationService.find(profileId).orElse(null);
 		final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
 		if (player == null) { return false; }
 		final var point = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
-		return onlineHumanPoints().stream().noneMatch(human -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(human, point));
+		final var humans = onlineHumanPoints();
+		return humans.size() <= 256 && humans.stream().noneMatch(human -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(human, point));
 	}
 
 	private Map<Long, PhantomTopologyPoint> liveMaterializedPoints()
@@ -3459,7 +3467,7 @@ public final class PhantomSystem
 	/** The production locality supplier; bounded and independent of transport/identity kind. */
 	public static java.util.List<PhantomTopologyPoint> onlineHumanPoints()
 	{
-		final var humans = World.getInstance().getPlayers().stream().filter(PhantomSystem::humanObserver).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
+		final var humans = World.getInstance().getPlayers().stream().filter(PhantomSystem::humanObserver).limit(257).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
 		if (!humans.isEmpty()) { return humans; }
 		final var autonomous = org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().autonomousObservationPoint();
 		return autonomous == null ? humans : java.util.List.of(autonomous);

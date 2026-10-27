@@ -87,9 +87,10 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		recorder.record(0, "HUMAN_REFRESH_BEGIN", "", "", "local.pulse", now, _local.size(), 0);
 		final TreeSet<Long> candidates = new TreeSet<>();
 		final Map<Long, Long> revisions = new HashMap<>();
-		boolean overflow = false;
 		final Map<Long, PhantomTopologyPoint> livePlayers = _livePlayers.get();
-		final List<PhantomTopologyPoint> humans = _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList();
+		final List<PhantomTopologyPoint> census = _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH + 1L).toList();
+		boolean overflow = census.size() > MAXIMUM_HUMANS_PER_REFRESH;
+		final List<PhantomTopologyPoint> humans = census.stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList();
 		for (PhantomTopologyPoint human : humans)
 		{
 			for (var entry : livePlayers.entrySet())

@@ -23,6 +23,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	private volatile LongPredicate _reclaimSoft;
 	private volatile LongPredicate _currentRequestDemand;
 	private volatile LongFunction<SoftReclaimSelection> _softCandidate;
+	private volatile LongPredicate _populationRequestAdmission = _ -> true;
 
 	public PhantomReconcileFirstActivityPort(PhantomActivityMaterializationPort delegate)
 	{
@@ -54,7 +55,13 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 
 	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology, LongPredicate acceptedJourney)
 	{
+		installPopulationReadiness(presence, locality, ecology, acceptedJourney, _ -> true);
+	}
+
+	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology, LongPredicate acceptedJourney, LongPredicate admitted)
+	{
 		Objects.requireNonNull(acceptedJourney);
+		Objects.requireNonNull(admitted);
 		installReadiness(profileId ->
 		{
 			final var recorder = PhantomRuntimeFlightRecorder.getInstance();
@@ -70,6 +77,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				return TransitionOutcome.deferred("presence.no_current_local_demand");
 			}
 			MaterializationRequest request = MaterializationRequest.normal();
+			if (!continuation && !admitted.test(profileId)) { return TransitionOutcome.deferred("population.not_admitted"); }
 			if (ecology != null)
 			{
 				final var due = ecology.requestMaterializationDue(profileId);
@@ -82,6 +90,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");
 		});
+		_populationRequestAdmission = profileId -> acceptedJourney.test(profileId) || admitted.test(profileId);
 	}
 
 	public synchronized void installRetention(LongPredicate retainNativeVisible)
@@ -144,6 +153,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	@Override
 	public SoftReclaimSelection softReclaimSelection(long requestingProfileId)
 	{
+		if (!_populationRequestAdmission.test(requestingProfileId)) { return SoftReclaimSelection.none(); }
 		final var candidate = _softCandidate;
 		final var selected = candidate == null ? SoftReclaimSelection.none() : candidate.apply(requestingProfileId);
 		return selected == null || selected.profileId() <= 0 ? SoftReclaimSelection.none() : new SoftReclaimSelection(selected.profileId(), selected.materializedAtNanos(), requestingProfileId);
@@ -169,7 +179,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	public TransitionOutcome reclaimSoft(long profileId, long expectedEpoch, long requestingProfileId)
 	{
 		final LongPredicate demand = _currentRequestDemand;
-		if (demand == null || !demand.test(requestingProfileId)) { return TransitionOutcome.deferred("materialization.soft_request_demand_stale"); }
+		if (demand == null || !_populationRequestAdmission.test(requestingProfileId) || !demand.test(requestingProfileId)) { return TransitionOutcome.deferred("materialization.soft_request_demand_stale"); }
 		if (expectedEpoch == 0) { return reclaimSoft(profileId); }
 		final LongPredicate reclaimable = _reclaimSoft;
 		return ((reclaimable != null) && reclaimable.test(profileId)) ? _delegate.reclaimSoft(profileId, expectedEpoch, requestingProfileId) : TransitionOutcome.deferred();

@@ -651,9 +651,10 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, false, false, false, false));
 		clock.advanceMillis(59_999);
 		PhantomAssertions.assertTrue(policy.observe(1).retained(), "Short human exit lost continuity.");
-		PhantomAssertions.assertEquals(1L, policy.oldestSoft(List.of(1L)), "Soft continuity was not reclaimable.");
+		PhantomAssertions.assertEquals(0L, policy.oldestSoft(List.of(1L)), "Recent human continuity was reclaimed before its full grace.");
 		clock.advanceMillis(1);
 		PhantomAssertions.assertFalse(policy.observe(1).retained(), "Recent human hold did not expire after 60 seconds.");
+		PhantomAssertions.assertEquals(1L, policy.oldestSoft(List.of(1L)), "Old unseen idle did not become reclaimable after full human grace.");
 		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, true, false, false, false));
 		policy.observe(1);
 		clock.advanceMillis(20_000);
@@ -714,6 +715,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			scheduler.pulse();
 			PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Nonlocal admission refusal reclaimed a recent-human Player.");
 			local.add(2L);
+			if (!oldUnseen) { clock.advanceMillis(60_001); }
 			scheduler.submitSignal(2, signal("human.local", 1, PhantomActivityState.ACTIVE, 120_000));
 			scheduler.pulse();
 			scheduler.pulse();
@@ -732,6 +734,8 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(delegate.isMaterialized(1), "A fresh signal bypassed soft reclamation hysteresis and ping-ponged the same slot.");
 				PhantomAssertions.assertTrue(delegate.isMaterialized(2), "One grace period evicted both owners.");
 				clock.advanceMillis(2_001);
+				PhantomAssertions.assertTrue(delegate.isMaterialized(2), "Scheduler cooldown replaced the longer recent-human grace.");
+				clock.advanceMillis(58_000);
 				for (int pulse = 0; pulse < 3; pulse++) { scheduler.pulse(); }
 				clock.advanceMillis(1_001); scheduler.pulse();
 				PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Soft cooldown permanently starved a new current-local request after its bounded grace.");
