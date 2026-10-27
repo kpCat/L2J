@@ -162,6 +162,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	private static BootstrapResult initializeNativeInfrastructure(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
+		if (PhantomTask096NativeLane.enabled()) { PhantomTask096NativeLane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
 		if (PhantomTask091Lane.enabled()) { PhantomTask091Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
 		if (PhantomTask087Lane.enabled()) { PhantomTask087Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
 		if (PhantomTask086Lane.enabled()) { PhantomTask086Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", ""))); }
@@ -245,7 +246,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomTask094Lane.nativeEnabled())
+		if (PhantomTask096NativeLane.enabled())
+		{
+			PhantomTask096NativeLane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomTask094Lane.nativeEnabled())
 		{
 			PhantomTask094Lane.initializeNative(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -392,6 +398,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
+		if (PhantomTask096NativeLane.enabled()) { throw new IllegalArgumentException("Own096N infrastructure only; mutable generic fixtures forbidden."); }
 		if (PhantomTask091Lane.enabled()) { throw new IllegalArgumentException("TASK091 infrastructure only; mutable generic fixtures forbidden."); }
 		if (PhantomTask094Lane.nativeEnabled()) { throw new IllegalArgumentException("Own094 native lane preserves its fixture; infrastructure only."); }
 		if (PhantomTask087Lane.enabled()) { throw new IllegalArgumentException("Own087 native lane preserves its fixture; infrastructure only."); }
