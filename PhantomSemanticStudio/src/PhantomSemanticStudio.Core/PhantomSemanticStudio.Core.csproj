@@ -3,6 +3,11 @@
   <ItemGroup><PackageReference Include="Microsoft.Data.Sqlite" Version="[10.0.12]" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="PhantomSemanticStudio.Tests" /></ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\..\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\semantic\v4\registry.tsv" LogicalName="V4.registry.tsv" />
+    <EmbeddedResource Include="..\..\..\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\semantic\v4\voices.tsv" LogicalName="V4.voices.tsv" />
+    <EmbeddedResource Include="..\..\..\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\semantic\v4\events.tsv" LogicalName="V4.events.tsv" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="..\..\scripts\Test-PSS008-V3-Java.ps1" Link="operator\Test-PSS008-V3-Java.ps1" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\scripts\java\Pss008V3CatalogProbe.java" Link="operator\Pss008V3CatalogProbe.java" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

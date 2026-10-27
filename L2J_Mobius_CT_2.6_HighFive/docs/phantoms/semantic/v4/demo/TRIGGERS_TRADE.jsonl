@@ -1,0 +1,4 @@
+{"schema":"pw-semantic-batch/1","category":"hybrid.trade.absurd_offers","mode":"TRIGGER","act":"hybrid.trade.absurd_offers.reply","language":"ru","count":3}
+{"text":"куплю валакаса за целку","intent":"hybrid.trade.absurd_offers.observe","ambiguity":"POSSIBLE_JOKE"}
+{"text":"обменяю будильник на эпик","intent":"hybrid.trade.absurd_offers.observe","ambiguity":"POSSIBLE_JOKE"}
+{"text":"продам совесть за мешок адены","intent":"hybrid.trade.absurd_offers.observe","ambiguity":"POSSIBLE_JOKE"}

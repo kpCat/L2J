@@ -185,6 +185,7 @@ partial class MainForm
             btnCheckLm = new System.Windows.Forms.Button();
             btnImport = new System.Windows.Forms.Button();
             btnChatCorpus = new System.Windows.Forms.Button();
+            btnV4Import = new System.Windows.Forms.Button();
             btnDialogueLab = new System.Windows.Forms.Button();
             txtSettingsResult = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)nudCount).BeginInit();
@@ -1252,6 +1253,12 @@ partial class MainForm
             btnChatCorpus.Text = "Корпус чатов…";
             btnChatCorpus.UseVisualStyleBackColor = true;
             btnChatCorpus.Click += ChatCorpus_Click;
+            btnV4Import.Name = "btnV4Import";
+            btnV4Import.Location = new System.Drawing.Point(16, 548);
+            btnV4Import.Size = new System.Drawing.Size(440, 36);
+            btnV4Import.Text = "Импортировать файл ChatGPT / категории v4…";
+            btnV4Import.UseVisualStyleBackColor = true;
+            btnV4Import.Click += V4Import_Click;
             btnDialogueLab.Name = "btnDialogueLab";
             btnDialogueLab.Location = new System.Drawing.Point(910, 601);
             btnDialogueLab.Size = new System.Drawing.Size(316, 40);
@@ -1261,7 +1268,7 @@ partial class MainForm
             btnDialogueLab.Click += DialogueLab_Click;
             // txtSettingsResult
             txtSettingsResult.Name = "txtSettingsResult";
-            txtSettingsResult.Location = new System.Drawing.Point(16, 558);
+            txtSettingsResult.Location = new System.Drawing.Point(16, 598);
             txtSettingsResult.Size = new System.Drawing.Size(1210, 83);
             txtSettingsResult.Text = "Настройки загружаются при запуске, а не в конструкторе формы.";
             txtSettingsResult.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -1438,6 +1445,7 @@ partial class MainForm
             contentSettings.Controls.Add(btnCheckLm);
             contentSettings.Controls.Add(btnImport);
             contentSettings.Controls.Add(btnChatCorpus);
+            contentSettings.Controls.Add(btnV4Import);
             contentSettings.Controls.Add(txtSettingsResult);
             layoutGenerate.Controls.Add(contentGenerate, 0, 0);
             tabGenerate.Controls.Add(layoutGenerate);
@@ -1719,6 +1727,7 @@ partial class MainForm
     private System.Windows.Forms.Button btnCheckLm = null!;
     private System.Windows.Forms.Button btnImport = null!;
     private System.Windows.Forms.Button btnChatCorpus = null!;
+    private System.Windows.Forms.Button btnV4Import = null!;
     private System.Windows.Forms.Button btnDialogueLab = null!;
     private System.Windows.Forms.TextBox txtSettingsResult = null!;
 }

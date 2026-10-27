@@ -12,6 +12,8 @@
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="..\PhantomSemanticStudio.Core\PhantomSemanticStudio.Core.csproj" /></ItemGroup>
   <ItemGroup>
+    <Compile Update="V4ImportForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="V4ImportForm.Designer.cs"><DependentUpon>V4ImportForm.cs</DependentUpon></Compile>
     <Compile Update="V3ProposalForm.cs"><SubType>Form</SubType></Compile>
     <Compile Update="V3ProposalForm.Designer.cs"><DependentUpon>V3ProposalForm.cs</DependentUpon></Compile>
     <EmbeddedResource Update="V3ProposalForm.resx"><DependentUpon>V3ProposalForm.cs</DependentUpon></EmbeddedResource>

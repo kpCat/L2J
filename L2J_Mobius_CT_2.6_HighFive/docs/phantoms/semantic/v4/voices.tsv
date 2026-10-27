@@ -1,0 +1,24 @@
+calm	Спокойный	calm	20	20	15	20	60	aggression=15,cunning=35,gossip=30,humor=40,reserved=65,romance=25,roughness=15,sarcasm=25,swagger=20,timidity=30
+open	Общительный	open	45	40	35	35	40	aggression=25,cunning=35,gossip=75,humor=70,reserved=15,romance=45,roughness=30,sarcasm=40,swagger=45,timidity=15
+direct	Прямолинейный	direct	55	25	25	65	65	aggression=55,cunning=25,gossip=15,humor=30,reserved=45,romance=15,roughness=65,sarcasm=35,swagger=55,timidity=10
+empathetic	Чуткий	empathetic	25	15	20	10	45	aggression=10,cunning=20,gossip=45,humor=45,reserved=30,romance=55,roughness=10,sarcasm=15,swagger=15,timidity=30
+rough_joker	Грубоватый шутник	open	90	75	70	55	40	aggression=40,cunning=40,gossip=55,humor=90,reserved=15,romance=35,roughness=85,sarcasm=65,swagger=60,timidity=10
+dry_wit	Сухой острослов	calm	50	35	30	40	60	aggression=25,cunning=65,gossip=30,humor=65,reserved=70,romance=20,roughness=30,sarcasm=90,swagger=35,timidity=15
+warm_friend	Тёплый друг	empathetic	50	60	45	15	30	aggression=10,cunning=25,gossip=60,humor=65,reserved=15,romance=60,roughness=25,sarcasm=25,swagger=20,timidity=20
+stern_guard	Строгий защитник	direct	25	10	10	80	80	aggression=65,cunning=40,gossip=10,humor=15,reserved=80,romance=10,roughness=60,sarcasm=20,swagger=60,timidity=5
+shy_observer	Робкий наблюдатель	calm	10	10	5	10	90	aggression=5,cunning=30,gossip=20,humor=35,reserved=90,romance=40,roughness=5,sarcasm=15,swagger=5,timidity=95
+bold_rival	Дерзкий соперник	direct	80	70	35	85	75	aggression=85,cunning=50,gossip=20,humor=55,reserved=25,romance=25,roughness=80,sarcasm=70,swagger=95,timidity=5
+patient_mentor	Терпеливый наставник	empathetic	35	20	15	20	50	aggression=15,cunning=45,gossip=25,humor=40,reserved=50,romance=15,roughness=20,sarcasm=20,swagger=30,timidity=15
+curious_scholar	Любознательный знаток	calm	20	20	15	20	65	aggression=10,cunning=70,gossip=35,humor=45,reserved=65,romance=20,roughness=10,sarcasm=40,swagger=25,timidity=25
+cheerful_optimist	Весёлый оптимист	open	60	65	45	20	30	aggression=15,cunning=20,gossip=65,humor=90,reserved=10,romance=45,roughness=30,sarcasm=25,swagger=50,timidity=10
+cautious_trader	Осторожный торговец	calm	40	20	10	40	85	aggression=25,cunning=95,gossip=45,humor=40,reserved=70,romance=10,roughness=25,sarcasm=45,swagger=30,timidity=20
+silver_tongue	Обаятельный переговорщик	open	50	45	50	25	50	aggression=20,cunning=85,gossip=75,humor=65,reserved=20,romance=70,roughness=20,sarcasm=50,swagger=65,timidity=10
+quiet_veteran	Молчаливый ветеран	calm	75	30	20	60	80	aggression=50,cunning=60,gossip=5,humor=30,reserved=95,romance=10,roughness=70,sarcasm=50,swagger=35,timidity=10
+romantic_dreamer	Романтичный мечтатель	empathetic	20	15	60	10	55	aggression=5,cunning=20,gossip=40,humor=45,reserved=35,romance=95,roughness=5,sarcasm=15,swagger=20,timidity=45
+playful_tease	Игривый насмешник	open	65	75	65	40	40	aggression=25,cunning=55,gossip=70,humor=85,reserved=10,romance=65,roughness=45,sarcasm=75,swagger=60,timidity=10
+formal_diplomat	Учтивый дипломат	calm	5	10	5	15	65	aggression=10,cunning=75,gossip=30,humor=25,reserved=80,romance=20,roughness=5,sarcasm=30,swagger=35,timidity=15
+skeptical_realist	Скептичный реалист	direct	65	35	25	55	80	aggression=40,cunning=70,gossip=20,humor=40,reserved=65,romance=10,roughness=50,sarcasm=80,swagger=35,timidity=10
+loyal_companion	Верный товарищ	empathetic	65	50	30	35	30	aggression=35,cunning=25,gossip=40,humor=60,reserved=25,romance=35,roughness=45,sarcasm=25,swagger=40,timidity=15
+proud_knight	Гордый рыцарь	direct	20	5	10	80	90	aggression=60,cunning=25,gossip=10,humor=20,reserved=70,romance=30,roughness=45,sarcasm=20,swagger=90,timidity=5
+gossip_weaver	Любитель слухов	open	45	50	45	25	45	aggression=15,cunning=70,gossip=95,humor=70,reserved=5,romance=50,roughness=25,sarcasm=55,swagger=40,timidity=15
+rough_sensitive	Резкий с личными границами	direct	90	5	10	70	85	aggression=55,cunning=35,gossip=15,humor=40,reserved=50,romance=10,roughness=95,sarcasm=45,swagger=55,timidity=10

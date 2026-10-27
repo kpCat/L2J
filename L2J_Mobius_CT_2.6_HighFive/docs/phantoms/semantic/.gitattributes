@@ -1,0 +1,5 @@
+# The strict authoring/embedded registry and exported passport have byte-exact UTF-8/LF contracts.
+CHATGPT_GENERATION_RU.md -text
+CATEGORY_INDEX_RU.md -text
+v4/*.tsv -text
+v4/demo/*.jsonl -text

@@ -1,0 +1,3 @@
+{"schema":"pw-semantic-batch/1","category":"social.friendship.support","mode":"INITIATIVE","act":"social.friendship.support.reply","language":"ru","count":2}
+{"text":"Спасибо за помощь, вместе спокойнее.","stance":"SUPPORTIVE","requiredEvent":"pvp.help.received"}
+{"text":"Выручил в нужный момент. Спасибо.","stance":"SUPPORTIVE","requiredEvent":"pvp.help.received"}

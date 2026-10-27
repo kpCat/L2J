@@ -1,0 +1,4 @@
+{"schema":"pw-semantic-batch/1","category":"hybrid.trade.absurd_offers","mode":"REPLY","act":"hybrid.trade.absurd_offers.reply","language":"ru","count":3}
+{"text":"За такую цену ещё половину Гирана в рассрочку попроси.","stance":"AMUSED","tone":"PLAYFUL","relations":["UNKNOWN","FAMILIAR"],"voices":["ANY"],"facets":{"humor":45},"profanity":"NONE","maturity":"GENERAL","tags":["irony"],"weight":1}
+{"text":"У тебя в объявлении точно валик, а не приданое?","stance":"AMUSED","tone":"PLAYFUL","relations":["FAMILIAR","TRUSTED"],"voices":["rough_joker"],"facets":{"humor":60},"profanity":"NONE","maturity":"GENERAL","tags":["bargain"],"weight":1}
+{"text":"Такой обмен даже гномы не оценят, вернись к адене.","stance":"REFUSE","tone":"DRY","relations":["UNKNOWN","NEUTRAL"],"voices":["ANY"],"profanity":"NONE","maturity":"GENERAL","tags":["refusal"],"weight":1}

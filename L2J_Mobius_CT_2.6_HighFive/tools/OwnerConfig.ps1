@@ -116,6 +116,14 @@ function Invoke-OwnerNative([string]$Exe,[string[]]$Arguments,[string]$Directory
     $process=[Diagnostics.Process]::new();$process.StartInfo=$start
     try{if(!$process.Start()){throw 'OwnerConfig: helper unavailable.'};$out=$process.StandardOutput.ReadToEndAsync();$err=$process.StandardError.ReadToEndAsync();if(!$process.WaitForExit(55000)){if(!$process.HasExited){$process.Kill();$null=$process.WaitForExit(5000)};throw 'OwnerConfig: owned read-only helper timed out; no changes applied.'};return [pscustomobject]@{code=$process.ExitCode;output=$out.Result;error=$err.Result}}finally{$process.Dispose()}
 }
+function Add-OwnerOptionalManagedDefaults([string]$File,[string]$Text){
+    # TASK095 preserves the original INI bytes; only this supported opt-in has a virtual managed default.
+    if($null -ne $Text -and $File -ceq 'Custom/PhantomPlayers.ini' -and $Text -notmatch '(?m)^[ \t]*EnablePhantomSemanticV4[ \t]*[=:]'){
+        $separator=if($Text.Length -gt 0 -and !$Text.EndsWith("`n") -and !$Text.EndsWith("`r")){"`n"}else{''}
+        return $Text+$separator+"EnablePhantomSemanticV4=False`n"
+    }
+    return $Text
+}
 function Read-OwnerManagedFile([string]$File,[string]$Revision){
     Assert-OwnerRelative $File
     $cacheKey=$Revision+"`t"+$File
@@ -127,7 +135,7 @@ function Read-OwnerManagedFile([string]$File,[string]$Revision){
     if(!$script:OwnerRevisions.ContainsKey($Revision)){$resolved=Invoke-OwnerNative $git @('-C',$repo,'rev-parse','--verify',($Revision+'^{commit}')) $repo;if($resolved.code -ne 0 -or $resolved.output.Trim() -notmatch '^[0-9a-f]{40}$'){throw 'OwnerConfig: managed revision unavailable.'};$script:OwnerRevisions[$Revision]=$resolved.output.Trim()}
     $relative=$script:OwnerModule.Substring($repo.Length+1).Replace('\','/')+'/dist/game/config/'+$File
     $result=Invoke-OwnerNative $git @('-C',$repo,'show',($script:OwnerRevisions[$Revision]+':'+$relative)) $repo
-    $text=if($result.code -eq 0){$result.output.TrimStart([char]0xFEFF)}else{$null}
+    $text=if($result.code -eq 0){Add-OwnerOptionalManagedDefaults $File $result.output.TrimStart([char]0xFEFF)}else{$null}
     $script:OwnerManagedCache[$cacheKey]=$text
     return $text
 }
@@ -340,6 +348,11 @@ function Invoke-OwnerConfig {
     $existing=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
     foreach($entry in @($profile.data.overrides)){
         $identity=$entry.file+"`t"+$entry.key;$existing.Add($identity,$entry)
+        if($Action -eq 'Apply' -and $entry.file -ceq 'Custom/PhantomPlayers.ini' -and $entry.key -ceq 'EnablePhantomSemanticV4' -and $entry.kind -ceq 'boolean' -and $files.ContainsKey($entry.file) -and !$files[$entry.file].entries.ContainsKey($entry.key)){
+            # Materialize only the supported optional default inside the already guarded transaction.
+            $files[$entry.file].document.text=Add-OwnerOptionalManagedDefaults $entry.file $files[$entry.file].document.text
+            $files[$entry.file].entries=Read-OwnerIni $files[$entry.file].document.text $entry.file
+        }
         if(!$files.ContainsKey($entry.file) -or !$files[$entry.file].entries.ContainsKey($entry.key)){throw "OwnerConfig: missing/renamed target file=$($entry.file) key=$($entry.key); no writes."}
         $current=$files[$entry.file].entries[$entry.key].value
         if((Test-OwnerPrivateKey $entry.key) -or (Test-OwnerPrivateValue $current)){throw "OwnerConfig: protected target file=$($entry.file) key=$($entry.key); values withheld."}

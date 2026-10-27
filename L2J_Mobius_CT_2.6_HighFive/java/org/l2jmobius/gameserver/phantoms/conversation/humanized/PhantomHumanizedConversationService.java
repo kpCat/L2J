@@ -8,9 +8,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.Origin;
 import org.l2jmobius.gameserver.network.enums.ChatType;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Match;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.ProfanityMode;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Register;
@@ -31,7 +33,7 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
  * Caller-driven social planner. The existing Conversation pulse invokes this
  * only after the accepted functional semantic authority has rejected input.
  */
-public final class PhantomHumanizedConversationService
+public final class PhantomHumanizedConversationService implements PhantomSchedulerControlPort
 {
 	public record Settings(boolean enabled, Register register, ProfanityMode profanity, Variation variation, boolean matureEnabled)
 	{
@@ -98,18 +100,42 @@ public final class PhantomHumanizedConversationService
 	{
 	}
 
+	public record InitiativeContext(String ownerName, RuntimeIdentity identity, long nowMinute)
+	{
+	}
+
+	/** Existing native context and Conversation execution remain the only outbound authority. */
+	public interface InitiativePort
+	{
+		Optional<InitiativeContext> context(SocialEvent event);
+
+		boolean submit(SocialEvent event, Decision decision);
+	}
+
 	private static final int MAX_ATTEMPTS = 3;
 	private final PhantomHumanizedCatalog _catalog;
 	private final PhantomPersonalConversationStore _personal;
 	private final PhantomSocialService _social;
 	private final Settings _settings;
+	private final PhantomHumanizedV4Catalog _v4;
+	private final ArrayBlockingQueue<SocialEvent> _initiativeEvents = new ArrayBlockingQueue<>(128);
+	private volatile InitiativePort _initiatives;
+	private final java.util.concurrent.atomic.AtomicBoolean _initiativePulseOwner = new java.util.concurrent.atomic.AtomicBoolean();
+	private final java.util.concurrent.atomic.LongAdder _initiativeFailures = new java.util.concurrent.atomic.LongAdder();
+	private volatile boolean _initiativesStopping;
 
 	public PhantomHumanizedConversationService(PhantomHumanizedCatalog catalog, PhantomPersonalConversationStore personal, PhantomSocialService social, Settings settings)
+	{
+		this(catalog, personal, social, settings, null);
+	}
+
+	public PhantomHumanizedConversationService(PhantomHumanizedCatalog catalog, PhantomPersonalConversationStore personal, PhantomSocialService social, Settings settings, PhantomHumanizedV4Catalog v4)
 	{
 		_catalog = Objects.requireNonNull(catalog);
 		_personal = Objects.requireNonNull(personal);
 		_social = Objects.requireNonNull(social);
 		_settings = Objects.requireNonNull(settings);
+		_v4 = v4;
 	}
 
 	public boolean enabled()
@@ -117,9 +143,63 @@ public final class PhantomHumanizedConversationService
 		return _settings.enabled();
 	}
 
+	public void initiatives(InitiativePort port)
+	{
+		if ((_initiatives != null) || _initiativesStopping) { throw new IllegalStateException("Initiative owner already installed or stopping."); }
+		_initiatives = Objects.requireNonNull(port);
+	}
+
+	public void onSocialEvent(SocialEvent event)
+	{
+		if (!_initiativesStopping && (_v4 != null) && _settings.enabled() && (_initiatives != null) && !_v4.initiativeCategories(event.eventKey()).isEmpty()) { _initiativeEvents.offer(event); }
+	}
+
+	@Override
+	public void onPulse()
+	{
+		final InitiativePort port = _initiatives;
+		if ((port == null) || _initiativesStopping || !_initiativePulseOwner.compareAndSet(false, true)) { return; }
+		try
+		{
+			for (int operation = 0; (operation < 2) && !_initiativesStopping; operation++)
+			{
+				final SocialEvent event = _initiativeEvents.poll();
+				if (event == null) { return; }
+				try
+				{
+					final Optional<InitiativeContext> context = port.context(event);
+					if (context.isEmpty()) { continue; }
+					final InitiativeContext owner = context.get();
+					final Decision decision = planEvent(event, owner.ownerName(), owner.identity(), owner.nowMinute());
+					if (decision.eligible() && !decision.suppressed() && !port.submit(event, decision)) { _initiativeFailures.increment(); }
+				}
+				catch (RuntimeException contentFailure) { _initiativeFailures.increment(); }
+			}
+		}
+		finally { _initiativePulseOwner.set(false); }
+	}
+
+	public boolean stopInitiatives()
+	{
+		_initiativesStopping = true;
+		_initiatives = null;
+		_initiativeEvents.clear();
+		return !_initiativePulseOwner.get();
+	}
+
+	public long initiativeFailures() { return _initiativeFailures.sum(); }
+
+	public Decision planEvent(SocialEvent event, String ownerName, RuntimeIdentity identity, long nowMinute)
+	{
+		Objects.requireNonNull(event);
+		if ((_v4 == null) || !_settings.enabled() || _v4.initiativeCategories(event.eventKey()).isEmpty()) { return Decision.ineligible(); }
+		// The string here is an event correlation ID, never an observed or fabricated chat message.
+		return planV4(new Request(event.ownerProfileId(), ownerName, event.subject(), Origin.PHANTOM_SOCIAL, ChatType.WHISPER, event.eventId(), event.eventId(), nowMinute, identity), event);
+	}
+
 	public String authorityHash()
 	{
-		return _catalog.combinedHash();
+		return _v4 == null ? _catalog.combinedHash() : PhantomHumanizedCatalog.sha256(_catalog.combinedHash() + "|v4|" + _v4.hash());
 	}
 
 	public Optional<SupportRequest> requestedSupport(Request request)
@@ -167,7 +247,7 @@ public final class PhantomHumanizedConversationService
 		}
 		if (matched.isEmpty())
 		{
-			return Decision.ineligible();
+			return _v4 == null ? Decision.ineligible() : planV4(request, null);
 		}
 		final Match match = matched.get();
 		final var socialResult = _social.snapshot(request.ownerProfileId(), request.speaker(), 4, request.nowMinute());
@@ -191,7 +271,7 @@ public final class PhantomHumanizedConversationService
 		for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++)
 		{
 			final StoredState stored = _personal.load(request.ownerProfileId()).orElse(null);
-			PersonalState state = stored == null ? PersonalState.empty(_catalog.combinedHash(), request.nowMinute()) : PhantomPersonalConversationStore.prepare(stored.state(), _catalog.combinedHash(), request.nowMinute());
+			PersonalState state = stored == null ? PersonalState.empty(authorityHash(), request.nowMinute()) : PhantomPersonalConversationStore.prepare(stored.state(), authorityHash(), request.nowMinute());
 			if ((request.origin() == Origin.PHANTOM_SOCIAL) && !PhantomPersonalConversationStore.generatedEligible(state, subjectKey, request.nowMinute(), _catalog.limits()))
 			{
 				return new Decision(true, true, match.topic(), match.act(), "", match.normalizedHash(), "", personaKey, band, false, false, false, "", List.of(new Evidence("humanized.loop_guard", "turn_budget_or_cooldown"), new Evidence("humanized.origin", "phantom_social")));
@@ -225,6 +305,75 @@ public final class PhantomHumanizedConversationService
 			}
 		}
 		throw new IllegalStateException("conversation.personal optimistic retries exhausted.", lastFailure);
+	}
+
+	private Decision planV4(Request request, SocialEvent actualEvent)
+	{
+		final var result = _social.snapshot(request.ownerProfileId(), request.speaker(), 4, request.nowMinute());
+		if (!result.available() || (result.value() == null)) { return Decision.ineligible(); }
+		final SocialSnapshot social = result.value();
+		final RelationshipBand band = relationshipBand(social.relationship().relationship());
+		final var persona = _v4.persona(social.personality());
+		final Optional<PhantomHumanizedV4Catalog.Trigger> trigger = actualEvent == null ? _v4.understand(request.text()) : Optional.empty();
+		final var memory = actualEvent == null ? Optional.<org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.MemorySnapshot>empty() : social.memories().stream()
+			.filter(item -> item.eventId().equals(actualEvent.eventId()) && item.eventKey().equals(actualEvent.eventKey()) && item.evidenceHash().equals(actualEvent.evidenceHash()) && item.subject().equals(request.speaker()) && (item.happenedMinute() <= request.nowMinute()) && (request.nowMinute() - item.happenedMinute() <= 1) && (item.expiryMinute() > request.nowMinute()) && !_v4.initiativeCategories(item.eventKey()).isEmpty())
+			.max(java.util.Comparator.comparingLong(org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.MemorySnapshot::happenedMinute));
+		if (trigger.isEmpty() && memory.isEmpty()) { return Decision.ineligible(); }
+		final boolean initiative = memory.isPresent();
+		final String event = initiative ? memory.get().eventKey() : "";
+		final String semanticHash = initiative ? memory.get().evidenceHash() : trigger.get().normalizedHash();
+		final String consumedEvent = initiative ? PhantomHumanizedCatalog.sha256("v4.initiative|" + memory.get().eventId()) : "";
+		final String subject = request.speaker().kind() == SubjectKind.PHANTOM_PROFILE ? "profile:" + request.speaker().id() : "character.object:" + request.speaker().id();
+		final List<String> categories = initiative ? _v4.initiativeCategories(event) : List.of(trigger.get().category());
+		final List<String> stances = initiative ? switch (event)
+		{
+			case "pvp.attack.received" -> List.of("SET_BOUNDARY", "DISENGAGE", "NEUTRAL");
+			case "pvp.death.suffered" -> List.of("SUPPORTIVE", "NEUTRAL", "DISENGAGE");
+			case "pvp.kill.caused" -> List.of("AMUSED", "NEUTRAL", "SUPPORTIVE");
+			default -> List.of("SUPPORTIVE", "AMUSED", "NEUTRAL", "CURIOUS");
+		} : List.of(_v4.stance(trigger.get(), persona, band, social.memories(), request.speaker(), request.nowMinute()));
+		RuntimeException lastFailure = null;
+		for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++)
+		{
+			final StoredState stored = _personal.load(request.ownerProfileId()).orElse(null);
+			PersonalState state = stored == null ? PersonalState.empty(authorityHash(), request.nowMinute()) : PhantomPersonalConversationStore.prepare(stored.state(), authorityHash(), request.nowMinute());
+			final Set<String> recent = PhantomPersonalConversationStore.recentResponses(state, subject);
+			if (((initiative || (request.origin() == Origin.PHANTOM_SOCIAL)) && !PhantomPersonalConversationStore.generatedEligible(state, subject, request.nowMinute(), _catalog.limits())) || (initiative && recent.contains(consumedEvent)))
+			{
+				return suppressedV4(categories.getFirst(), persona.key(), band, semanticHash, "cooldown_or_consumed_event");
+			}
+			Optional<Selection> selection = Optional.empty();
+			String category = categories.getFirst();
+			String stance = stances.getFirst();
+			for (String candidate : categories)
+			{
+				for (String candidateStance : stances)
+				{
+					selection = _v4.select(candidate, initiative ? "INITIATIVE" : "REPLY", candidateStance, event, persona, band, _settings.register(), _settings.profanity(), _settings.matureEnabled(), request.channel() == ChatType.WHISPER, request.speaker().kind() == SubjectKind.PHANTOM_PROFILE, request.identity().available() ? request.identity().displayName() : request.ownerName(), selector(request.observationHash() + '|' + persona.key()), recent);
+					if (selection.isPresent()) { stance = candidateStance; break; }
+				}
+				if (selection.isPresent()) { category = candidate; break; }
+			}
+			if (selection.isEmpty()) { return suppressedV4(category, persona.key(), band, semanticHash, "no_permitted_candidate"); }
+			final Selection selected = selection.get();
+			final String act = _v4.act(category);
+			final Match match = new Match("v4." + semanticHash, category.length() <= 64 ? category : "v4." + PhantomHumanizedCatalog.sha256(category).substring(0, 32), act, null, null, "", 0, 0, semanticHash);
+			state = PhantomPersonalConversationStore.apply(state, subject, match, initiative ? consumedEvent : selected.responseHash(), initiative ? Origin.PHANTOM_SOCIAL : request.origin(), request.nowMinute(), _catalog.limits());
+			try
+			{
+				_personal.save(request.ownerProfileId(), stored == null ? -1 : stored.rowVersion(), state);
+			}
+			catch (RuntimeException exception) { lastFailure = exception; continue; }
+			final String socialEvent = Set.of("OFFENDED", "SET_BOUNDARY", "DISENGAGE").contains(stance) ? "conversation.conflict" : stance.equals("SUPPORTIVE") ? "conversation.supportive" : "";
+			if (!socialEvent.isEmpty()) { _social.record(new SocialEvent(request.ownerProfileId(), org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.sha256("v4.social|" + request.observationHash() + '|' + socialEvent), socialEvent, request.speaker(), request.nowMinute(), 1000, semanticHash.toUpperCase(java.util.Locale.ROOT))); }
+			return new Decision(true, false, category, act, selected.text(), semanticHash, selected.templateId(), persona.key(), band, initiative, selected.profanityUsed(), selected.matureUsed(), socialEvent, List.of(new Evidence("humanized.v4", _v4.hash()), new Evidence("humanized.stance", stance.toLowerCase(java.util.Locale.ROOT)), new Evidence("humanized.persona", persona.key()), new Evidence("humanized.event", initiative ? event : "none")));
+		}
+		throw new IllegalStateException("conversation.personal v4 optimistic retries exhausted.", lastFailure);
+	}
+
+	private Decision suppressedV4(String category, String persona, RelationshipBand band, String semanticHash, String reason)
+	{
+		return new Decision(true, true, category, _v4.act(category), "", semanticHash, "", persona, band, false, false, false, "", List.of(new Evidence("humanized.v4_gate", reason)));
 	}
 
 	public static RelationshipBand relationshipBand(Map<String, Integer> relationship)

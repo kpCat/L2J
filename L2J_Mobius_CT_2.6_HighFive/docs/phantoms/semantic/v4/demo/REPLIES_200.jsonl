@@ -1,0 +1,201 @@
+{"schema":"pw-semantic-batch/1","category":"hybrid.trade.absurd_offers","mode":"REPLY","act":"hybrid.trade.absurd_offers.reply","language":"ru","count":200}
+{"text":"Давай начнём с цены, которую можно обсуждать.","stance":"AMUSED","tone":"CALM","relations":["UNKNOWN","NEUTRAL","FAMILIAR","TRUSTED","RIVAL","TENSE","HOSTILE"],"voices":["ANY"],"profanity":"NONE","maturity":"GENERAL"}
+{"text":"Ценник будто с приданым. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ценник будто с приданым. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За такой лот впору просить трон. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут торгуют вещью или мечтой? Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Похоже, скидку забыли в другом измерении. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это цена или заявка на бессмертие? Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У этого объявления слишком дорогая осанка. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Кошелёк от такого предложения притих. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Твой торг уже просится в легенду. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"За эти деньги лот должен сам себя хвалить. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Обмен смелый, спору нет. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Цифры тут явно решили стать эпиком. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Такую наценку ещё надо приручить. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Лот скромный, а аппетит как у дракона. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Тут ценник тяжелее самого товара. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Ты продаёшь вещь или право удивиться? Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Предложение звучит богаче кошелька. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Это уже торг с фантазией. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"У твоего ценника отдельная биография. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"Размах обмена почти осадный. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Начни торг с чего-нибудь земного.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. За такую мечту адену ещё не чеканят.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Покупатель пока уносит только брови.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Оставь скидку на чувство реальности.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Пусть сначала кошелёк придёт в себя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Гномы за оценку попросят выходной.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Добавь хотя бы весёлое описание.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Обмен на здравый смысл ещё открыт.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Такую цену читать надо сидя.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}
+{"text":"С таким курсом даже мечты подорожают. Запасной кошелёк тут не помешает.","stance":"AMUSED","tone":"PLAYFUL","tags":["irony","bargain"]}

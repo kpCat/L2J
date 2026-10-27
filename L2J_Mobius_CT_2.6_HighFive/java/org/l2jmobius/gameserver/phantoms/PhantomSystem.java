@@ -97,6 +97,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedV4Catalog;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
@@ -289,6 +290,8 @@ public final class PhantomSystem
 	private PhantomQuestInstanceService _questInstanceService;
 	private PhantomSocialService _socialService;
 	private PhantomConversationService _conversationService;
+	private PhantomHumanizedV4Catalog _humanizedV4Catalog;
+	private PhantomHumanizedConversationService _humanizedConversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
 	private PhantomPvpService _pvpService;
 	private volatile State _state = State.NEW;
@@ -777,13 +780,19 @@ public final class PhantomSystem
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();
 				final PhantomConversationGoalRuntimePort.Bridge conversationGoalRuntime = PhantomConversationGoalRuntimePort.bridge();
 				final PhantomHumanizedCatalog humanizedCatalog = PhantomHumanizedCatalog.loadV3(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms").toPath(), _settings.conversation().customPackEnabled());
+				if (_settings.conversation().semanticV4Enabled())
+				{
+					try { _humanizedV4Catalog = PhantomHumanizedV4Catalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/humanized/v4").toPath()); }
+					catch (IllegalArgumentException invalidPack) { java.util.logging.Logger.getLogger(PhantomSystem.class.getName()).warning("Phantom Semantic v4 rejected; using the validated v3 catalog."); }
+				}
 				final PhantomHumanizedConversationService.Settings humanizedSettings = new PhantomHumanizedConversationService.Settings(
 					_settings.conversation().humanizedEnabled(),
 					PhantomHumanizedCatalog.Register.valueOf(_settings.conversation().register().name()),
 					PhantomHumanizedCatalog.ProfanityMode.valueOf(_settings.conversation().profanity().name()),
 					PhantomHumanizedCatalog.Variation.valueOf(_settings.conversation().variation().name()),
 					_settings.conversation().matureEnabled());
-				final PhantomHumanizedConversationService humanizedConversation = new PhantomHumanizedConversationService(humanizedCatalog, PhantomPersonalConversationStore.production(productionProfiles), _socialService, humanizedSettings);
+				final PhantomHumanizedConversationService humanizedConversation = new PhantomHumanizedConversationService(humanizedCatalog, PhantomPersonalConversationStore.production(productionProfiles), _socialService, humanizedSettings, _humanizedV4Catalog);
+				_humanizedConversationService = humanizedConversation;
 				final File clanDirectiveCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/clan/high-five-clan-directives-v1.xml");
 				final PhantomClanDirectiveCatalog clanDirectiveCatalog = PhantomClanDirectiveCatalog.load(clanDirectiveCatalogFile.toPath());
 				_clanDirectiveService = new PhantomClanDirectiveService(clanDirectiveCatalog, _materializationService, _socialService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
@@ -802,7 +811,37 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom conversation service could not enter the running state.");
 				}
-				final PhantomPvpSocialBridge pvpSocial = new PhantomPvpSocialBridge(_socialService, socialAffiliations);
+				if (_humanizedV4Catalog != null)
+				{
+					humanizedConversation.initiatives(new PhantomHumanizedConversationService.InitiativePort()
+					{
+						@Override
+						public java.util.Optional<PhantomHumanizedConversationService.InitiativeContext> context(org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent event)
+						{
+							final var acquired = _materializationService.tryAcquireAction(event.ownerProfileId());
+							if (acquired.isEmpty()) { return java.util.Optional.empty(); }
+							try (var lease = acquired.get())
+							{
+								final var player = lease.player();
+								final String name = player.getAppearance().getVisibleName();
+								final var activeClass = player.getPlayerClass();
+								final var identity = new PhantomHumanizedCatalog.RuntimeIdentity(event.ownerProfileId(), player.getObjectId(), player.getName(), name, player.getAppearance().isFemale() ? PhantomHumanizedCatalog.Gender.FEMALE : PhantomHumanizedCatalog.Gender.MALE, activeClass.getId(), activeClass.name());
+								return java.util.Optional.of(new PhantomHumanizedConversationService.InitiativeContext(name, identity, System.currentTimeMillis() / 60000L));
+							}
+						}
+
+						@Override
+						public boolean submit(org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SocialEvent event, PhantomHumanizedConversationService.Decision decision)
+						{
+							final String planId = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256("v4.initiative|" + event.ownerProfileId() + '|' + event.eventId());
+							final var counterpart = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef(event.subject().kind() == org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectKind.PHANTOM_PROFILE ? "profile" : "character.object", Long.toString(event.subject().id()));
+							final var entry = new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry(planId, event.evidenceHash(), org.l2jmobius.gameserver.network.enums.ChatType.WHISPER, counterpart, "social.reply", PhantomHumanizedConversationService.executionStyle(decision.relationshipBand()), decision.text(), null, null, java.util.List.of(), event.happenedEpochMinute(), event.happenedEpochMinute() + 2, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState.PREPARED, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ActionState.NONE, 0, 0, "execution.prepared", 0, 0, -1);
+							final var submitted = _conversationExecutionService.submitOutbound(event.ownerProfileId(), entry);
+							return (submitted.status() == PhantomConversationExecutionService.OutboundSubmissionStatus.ACCEPTED) || (submitted.status() == PhantomConversationExecutionService.OutboundSubmissionStatus.IDEMPOTENT);
+						}
+					});
+				}
+				final PhantomPvpSocialBridge pvpSocial = new PhantomPvpSocialBridge(_socialService, socialAffiliations, humanizedConversation::onSocialEvent);
 				_pvpService = new PhantomPvpService(
 					pvpPolicy,
 					new PhantomPvpStore(productionProfiles),
@@ -861,8 +900,10 @@ public final class PhantomSystem
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
-				controlPorts.add(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney,
-					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _visibleFarmTravel))));
+				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney,
+					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _visibleFarmTravel)));
+				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
+				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
 				if (_autonomousMarketProducer != null)
 				{
 					controlPorts.add(_autonomousMarketProducer);
@@ -955,6 +996,7 @@ public final class PhantomSystem
 					throw e;
 				}
 			}
+			closeHumanizedV4Content();
 			if (_clanDirectiveService != null)
 			{
 				_clanDirectiveService.close();
@@ -1056,6 +1098,7 @@ public final class PhantomSystem
 			{
 				_scheduler.finishStop();
 			}
+			closeHumanizedV4Content();
 			final boolean semanticStopped = (_semanticUnderstandingService == null) || _semanticUnderstandingService.finishStop();
 			if (backgroundStopped && semanticStopped && (_gameKnowledgeService != null))
 			{
@@ -1106,6 +1149,16 @@ public final class PhantomSystem
 		}
 	}
 
+	private void closeHumanizedV4Content()
+	{
+		final boolean initiativesDrained = (_humanizedConversationService == null) || _humanizedConversationService.stopInitiatives();
+		if ((_humanizedV4Catalog != null) && initiativesDrained && ((_conversationService == null) || (_conversationService.snapshot().state() == PhantomConversationService.ServiceState.STOPPED)) && ((_scheduler == null) || (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.STOPPED)))
+		{
+			_humanizedV4Catalog.close();
+			_humanizedV4Catalog = null;
+		}
+	}
+
 	private boolean shutdownClaimed()
 	{
 		if (_offlineMerchantService != null && !_offlineMerchantService.beginStop()) { _metrics.recordShutdownFailure(); return false; }
@@ -1128,6 +1181,7 @@ public final class PhantomSystem
 		{
 			if (_stopProgress.phase() == StopPhase.CLOSE_PRODUCERS)
 			{
+				if (_humanizedConversationService != null) { _humanizedConversationService.stopInitiatives(); }
 				// Admission closes once; accepted writers retain their executors and dependencies.
 				if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
 				if (_autonomousMarketProducer != null) { _autonomousMarketProducer.beginStop(); }
@@ -1211,6 +1265,7 @@ public final class PhantomSystem
 				if ((_progressionService != null) && !_progressionService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "progression:" + _progressionService.snapshot()); }
 				if (_gameKnowledgeService != null) { _gameKnowledgeService.beginStop(); }
 				if ((_scheduler != null) && (_scheduler.snapshot().state() != PhantomScheduler.SchedulerState.STOPPED) && !_scheduler.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "scheduler:" + _scheduler.snapshot()); }
+				closeHumanizedV4Content();
 				if ((_semanticUnderstandingService != null) && !_semanticUnderstandingService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "semantic_understanding"); }
 				if ((_gameKnowledgeService != null) && !_gameKnowledgeService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "game_knowledge"); }
 				if ((_topologyService != null) && !_topologyService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "topology:" + _topologyService.snapshot()); }
@@ -1327,6 +1382,7 @@ public final class PhantomSystem
 					return false;
 				}
 			}
+			closeHumanizedV4Content();
 			if (_clanDirectiveService != null)
 			{
 				_clanDirectiveService.close();
@@ -1506,6 +1562,7 @@ public final class PhantomSystem
 				_state = State.FAILED;
 				return false;
 			}
+			closeHumanizedV4Content();
 			if ((_semanticUnderstandingService != null) && !_semanticUnderstandingService.finishStop())
 			{
 				_metrics.recordShutdownFailure();
@@ -1601,6 +1658,7 @@ public final class PhantomSystem
 					return false;
 				}
 			}
+			closeHumanizedV4Content();
 			if (_clanDirectiveService != null)
 			{
 				_clanDirectiveService.close();
@@ -1741,6 +1799,7 @@ public final class PhantomSystem
 			{
 				return false;
 			}
+			closeHumanizedV4Content();
 			if ((_semanticUnderstandingService != null) && (_semanticUnderstandingService.snapshot().state() != PhantomSemanticUnderstandingService.State.STOPPED))
 			{
 				_semanticUnderstandingService.beginStop();

@@ -1,0 +1,4 @@
+{"schema":"pw-semantic-batch/1","category":"hybrid.pvp.offline_threats","mode":"REPLY","act":"hybrid.pvp.offline_threats.reply","language":"ru","count":3}
+{"text":"Игровую драку оставим в игре, угрозы в реале мне не подходят.","stance":"SET_BOUNDARY"}
+{"text":"Если это была шутка, давай без угроз за пределами игры.","stance":"DISENGAGE"}
+{"text":"Мне неприятно это слышать. На этом разговор закончим.","stance":"OFFENDED"}

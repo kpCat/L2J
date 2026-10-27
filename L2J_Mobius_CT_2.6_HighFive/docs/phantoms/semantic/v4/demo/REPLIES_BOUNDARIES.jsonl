@@ -1,0 +1,6 @@
+{"schema":"pw-semantic-batch/1","category":"hybrid.trade.absurd_offers","mode":"REPLY","act":"hybrid.trade.absurd_offers.reply","language":"ru","count":5}
+{"text":"Не мой вариант обмена, но шутку понял.","stance":"NEUTRAL"}
+{"text":"Посмеялись и хватит, давай без пошлости.","stance":"SET_BOUNDARY"}
+{"text":"Такой торг мне неприятен. Вернёмся к обычным предложениям.","stance":"OFFENDED"}
+{"text":"Смешной заход, но согласия на такой обмен я не давал.","stance":"REFUSE"}
+{"text":"Это шутка или ты всерьёз предлагаешь такой обмен?","stance":"CURIOUS"}

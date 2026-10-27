@@ -1,12 +1,12 @@
 ﻿[CmdletBinding()]
-param()
+param([string]$OutputRoot='')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $core=Join-Path $module 'tools/OwnerConfig.ps1'
 if(!(Test-Path -LiteralPath $core -PathType Leaf)){throw 'OwnerConfig core is missing.'}
 . $core
-$work=Join-Path (Split-Path $module -Parent) ('.phantom-local/task075/ownerconfig-checks-'+[guid]::NewGuid().ToString('N'))
+$work=if($OutputRoot){[IO.Path]::GetFullPath($OutputRoot)}else{Join-Path (Split-Path $module -Parent) ('.phantom-local/task075/ownerconfig-checks-'+[guid]::NewGuid().ToString('N'))}
 New-Item -ItemType Directory -Path $work | Out-Null
 function Assert-Check([bool]$Condition,[string]$Reason){if(!$Condition){throw ('CHECK_FAIL '+$Reason)}}
 function Write-Check([string]$Path,[string]$Text){[IO.File]::WriteAllText($Path,$Text,[Text.UTF8Encoding]::new($false))}
@@ -18,7 +18,7 @@ function Expect-Conflict([scriptblock]$Work,[string]$Forbidden=''){
     return $message
 }
 $script:OwnerChecksManaged=@{}
-function Read-OwnerManagedFile([string]$File,[string]$Revision){if($script:OwnerChecksManaged.ContainsKey($File)){return $script:OwnerChecksManaged[$File]};return $null}
+function Read-OwnerManagedFile([string]$File,[string]$Revision){if($script:OwnerChecksManaged.ContainsKey($File)){return Add-OwnerOptionalManagedDefaults $File $script:OwnerChecksManaged[$File]};return $null}
 function New-CheckFixture([string]$Name){
     $root=Join-Path $work ($Name+'/Путь с пробелом/game')
     New-Item -ItemType Directory -Path (Join-Path $root 'config/Custom/Дополнительно'),(Join-Path $root 'data/xsd') -Force | Out-Null
@@ -48,6 +48,27 @@ function Invoke-CheckOwner([string]$Operation,[string]$Root,[string]$Profile='')
     Invoke-OwnerConfig -Action $Operation -GameRoot $Root -ProfilePath $Profile
 }
 function Copy-CheckGame([string]$Source,[string]$Name){$target=Join-Path $work ($Name+'/game');New-Item -ItemType Directory -Path $target -Force | Out-Null;Copy-Item -Path (Join-Path $Source '*') -Destination $target -Recurse;return $target}
+
+# TASK095: additive managed default must not require editing the existing source INI.
+$v4=New-CheckFixture 'v4-optin';$v4File='Custom/PhantomPlayers.ini';$v4Path=Join-Path $v4 ('config/'+$v4File)
+Write-Check $v4Path "# OwnerConfig: public`r`n"
+$script:OwnerChecksManaged[$v4File]="# OwnerConfig: public`r`n"
+Write-Check $v4Path ([IO.File]::ReadAllText($v4Path)+"EnablePhantomSemanticV4=True`r`n")
+Invoke-CheckOwner 'Save' $v4
+$v4Profile=[IO.File]::ReadAllText((Join-Path $v4 'config/OwnerConfig.json')) | ConvertFrom-Json
+$v4Override=@($v4Profile.overrides | Where-Object key -CEQ 'EnablePhantomSemanticV4')
+Assert-Check ($v4Override.Count -eq 1 -and $v4Override[0].kind -eq 'boolean' -and $v4Override[0].baseValue -ieq 'false' -and $v4Override[0].value -ieq 'true') 'v4 typed optional default'
+Invoke-CheckOwner 'Verify' $v4
+$v4Fresh=Copy-CheckGame $v4 'v4-fresh-default'
+$v4FreshPath=Join-Path $v4Fresh ('config/'+$v4File)
+Write-Check $v4FreshPath ([regex]::Replace([IO.File]::ReadAllText($v4FreshPath),'(?m)^EnablePhantomSemanticV4[^\r\n]*(?:\r?\n)?',''))
+Invoke-CheckOwner 'Apply' $v4Fresh
+Invoke-CheckOwner 'Verify' $v4Fresh
+Assert-Check ([IO.File]::ReadAllText($v4FreshPath) -match '(?m)^EnablePhantomSemanticV4=True') 'saved v4 opt-in applies to old INI without key'
+Write-Check $v4Path ([IO.File]::ReadAllText($v4Path)+"UnknownOptionalKey=True`r`n")
+$v4Before=Hash-Checks $v4;$null=Expect-Conflict {Invoke-CheckOwner 'Save' $v4}
+Assert-Check ((Hash-Checks $v4) -eq $v4Before) 'unrelated missing managed key guard changed'
+Write-Output 'OWNER_CONFIG_CHECK semantic_v4 PASS'
 
 # One composed evolution scenario, including actual RatesConfig primitive discovery and continuations.
 $first=New-CheckFixture 'evolution'
@@ -203,4 +224,4 @@ try{
     }
 }finally{$env:OWNERCONFIG_STUB_MODE=$savedMode}
 Write-Output 'OWNER_CONFIG_CHECK wrapper PASS'
-Write-Output ('OWNER_CONFIG_CHECKS PASS scenarios=4 fixtureRoot='+$work)
+Write-Output ('OWNER_CONFIG_CHECKS PASS scenarios=5 fixtureRoot='+$work)

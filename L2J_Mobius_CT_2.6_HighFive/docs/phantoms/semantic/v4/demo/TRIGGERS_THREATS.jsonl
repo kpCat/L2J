@@ -1,0 +1,3 @@
+{"schema":"pw-semantic-batch/1","category":"hybrid.pvp.offline_threats","mode":"TRIGGER","act":"hybrid.pvp.offline_threats.reply","language":"ru","count":2}
+{"text":"В риле бы тебе ебало разбил","intent":"hybrid.pvp.offline_threats.observe","ambiguity":"POSSIBLE_THREAT"}
+{"text":"найду тебя в реале после этой драки","intent":"hybrid.pvp.offline_threats.observe","ambiguity":"POSSIBLE_THREAT"}

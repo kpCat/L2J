@@ -104,6 +104,8 @@ public final class PhantomPlayersConfig
 			final ConversationProfanity conversationProfanity = strictOptionalEnum(config.getValue("PhantomConversationProfanity"), ConversationProfanity.CONTEXTUAL, ConversationProfanity.class);
 			final ConversationVariation conversationVariation = strictOptionalEnum(config.getValue("PhantomConversationVariation"), ConversationVariation.HIGH, ConversationVariation.class);
 			final Boolean matureConversation = strictOptionalBoolean(config.getValue("EnablePhantomMatureConversation"), DEFAULT_MATURE_CONVERSATION);
+			// Startup-only opt-in; old owner profiles without this key retain the exact v3 path.
+			final Boolean semanticV4 = strictOptionalBoolean(config.getValue("EnablePhantomSemanticV4"), false);
 			final Integer starterShotLifetimeLimit = strictInteger(config.getValue("PhantomStarterShotLifetimeLimit"), 0, 5000, 0);
 			if (starterShotLifetimeLimit == null) { return Settings.disabled(); }
 			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null) || (ecologyEnabled == null) || (ecologyPreset == null) || (ecologyWorldAgeDays == null) || (ecologyArchiveLimit == null) || (humanizedConversation == null) || (customConversationPack == null) || (conversationRegister == null) || (conversationProfanity == null) || (conversationVariation == null) || (matureConversation == null))
@@ -111,7 +113,7 @@ public final class PhantomPlayersConfig
 				return Settings.disabled();
 			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
-			final ConversationSettings conversation = new ConversationSettings(humanizedConversation, customConversationPack, conversationRegister, conversationProfanity, conversationVariation, matureConversation);
+			final ConversationSettings conversation = new ConversationSettings(humanizedConversation, customConversationPack, conversationRegister, conversationProfanity, conversationVariation, matureConversation, Boolean.TRUE.equals(semanticV4));
 			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, burstSlots, starterShotLifetimeLimit);
 		}
 		catch (RuntimeException e)
@@ -150,7 +152,7 @@ public final class PhantomPlayersConfig
 		HIGH
 	}
 
-	public record ConversationSettings(boolean humanizedEnabled, boolean customPackEnabled, ConversationRegister register, ConversationProfanity profanity, ConversationVariation variation, boolean matureEnabled)
+	public record ConversationSettings(boolean humanizedEnabled, boolean customPackEnabled, ConversationRegister register, ConversationProfanity profanity, ConversationVariation variation, boolean matureEnabled, boolean semanticV4Enabled)
 	{
 		public ConversationSettings
 		{
@@ -158,6 +160,12 @@ public final class PhantomPlayersConfig
 			Objects.requireNonNull(profanity);
 			Objects.requireNonNull(variation);
 			matureEnabled = humanizedEnabled && matureEnabled;
+			semanticV4Enabled = humanizedEnabled && semanticV4Enabled;
+		}
+
+		public ConversationSettings(boolean humanizedEnabled, boolean customPackEnabled, ConversationRegister register, ConversationProfanity profanity, ConversationVariation variation, boolean matureEnabled)
+		{
+			this(humanizedEnabled, customPackEnabled, register, profanity, variation, matureEnabled, false);
 		}
 
 		public static ConversationSettings disabled()

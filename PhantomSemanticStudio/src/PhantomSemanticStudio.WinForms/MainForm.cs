@@ -741,6 +741,20 @@ public partial class MainForm : Form
         if (snapshot == null) { statusLabel.Text = "Сначала импортируйте Semantic Pack."; return; }
         using var form = new V3ProposalForm(); form.SetContext(Store, Snapshot, session.Candidates); form.ShowDialog(this);
     }
+    private void V4Import_Click(object? sender, EventArgs e)
+    {
+        if (!ready || busy) return;
+        try
+        {
+            using var form = new V4ImportForm();
+            form.SetContext(Path.Combine(Store.Root, "semantic-v4"), Store.ProtectedRoot);
+            form.ShowDialog(this);
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException)
+        {
+            statusLabel.Text = "Импорт v4 недоступен: " + ex.Message;
+        }
+    }
     private void ChatCorpus_Click(object? sender, EventArgs e)
     {
         if (!ready || busy) return;

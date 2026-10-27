@@ -68,6 +68,8 @@ public final class PhantomPvpSocialBridge
 	private static final Set<String> REVENGE_EVENTS = Set.of(EventKind.ATTACK_RECEIVED.eventKey(), EventKind.DEATH_SUFFERED.eventKey());
 	private final PhantomSocialService _social;
 	private final PhantomSocialAffiliationContextPort _affiliationContexts;
+	private final java.util.function.Consumer<SocialEvent> _contentEvents;
+	private final java.util.concurrent.atomic.LongAdder _contentCallbackFailures = new java.util.concurrent.atomic.LongAdder();
 
 	public PhantomPvpSocialBridge(PhantomSocialService social)
 	{
@@ -76,8 +78,14 @@ public final class PhantomPvpSocialBridge
 
 	public PhantomPvpSocialBridge(PhantomSocialService social, PhantomSocialAffiliationContextPort affiliationContexts)
 	{
+		this(social, affiliationContexts, event -> { });
+	}
+
+	public PhantomPvpSocialBridge(PhantomSocialService social, PhantomSocialAffiliationContextPort affiliationContexts, java.util.function.Consumer<SocialEvent> contentEvents)
+	{
 		_social = Objects.requireNonNull(social);
 		_affiliationContexts = Objects.requireNonNull(affiliationContexts);
+		_contentEvents = Objects.requireNonNull(contentEvents);
 	}
 
 	public Delivery record(long ownerProfileId, SubjectRef subject, EventKind kind, String operationId, String evidenceHash, long minute, int magnitude)
@@ -91,9 +99,17 @@ public final class PhantomPvpSocialBridge
 			throw new IllegalArgumentException("Invalid typed PvP social event.");
 		}
 		final String eventId = PhantomSocialModel.sha256("pvp.social|" + kind.name() + '|' + ownerProfileId + '|' + subject.stableKey() + '|' + operationId);
-		final PhantomSocialEventSink.Result result = _social.record(new SocialEvent(ownerProfileId, eventId, kind.eventKey(), subject, minute, magnitude, evidenceHash, _affiliationContexts.resolve(ownerProfileId, subject)));
+		final SocialEvent event = new SocialEvent(ownerProfileId, eventId, kind.eventKey(), subject, minute, magnitude, evidenceHash, _affiliationContexts.resolve(ownerProfileId, subject));
+		final PhantomSocialEventSink.Result result = _social.record(event);
+		if (result.status() == Status.RECORDED)
+		{
+			try { _contentEvents.accept(event); }
+			catch (RuntimeException contentFailure) { _contentCallbackFailures.increment(); }
+		}
 		return new Delivery(result.durable(), result.status(), eventId);
 	}
+
+	public long contentCallbackFailures() { return _contentCallbackFailures.sum(); }
 
 	public Optional<RevengeEvidence> revenge(long ownerProfileId, SubjectRef exactSubject, long minute)
 	{

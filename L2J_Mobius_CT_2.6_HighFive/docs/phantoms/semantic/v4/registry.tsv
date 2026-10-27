@@ -1,0 +1,142 @@
+hybrid.absurd.chaotic_barter	безумный торг	hybrid.absurd.chaotic_barter.reply	hybrid.absurd.chaotic_barter.observe
+hybrid.absurd.life_as_quest	жизнь как квест	hybrid.absurd.life_as_quest.reply	hybrid.absurd.life_as_quest.observe
+hybrid.absurd.meme_crossovers	смешение мемов и игры	hybrid.absurd.meme_crossovers.reply	hybrid.absurd.meme_crossovers.observe
+hybrid.life.game_addiction_jokes	шутки о гринде и реальной жизни	hybrid.life.game_addiction_jokes.reply	hybrid.life.game_addiction_jokes.observe
+hybrid.life.pets_as_summons	питомцы как саммоны	hybrid.life.pets_as_summons.reply	hybrid.life.pets_as_summons.observe
+hybrid.life.relationships_vs_l2	личная жизнь против игры	hybrid.life.relationships_vs_l2.reply	hybrid.life.relationships_vs_l2.observe
+hybrid.life.sleep_vs_raid	сон или рейд	hybrid.life.sleep_vs_raid.reply	hybrid.life.sleep_vs_raid.observe
+hybrid.pvp.offline_threats	офлайн угрозы в PvP	hybrid.pvp.offline_threats.reply	hybrid.pvp.offline_threats.observe
+hybrid.pvp.schoolyard	школьные разборки через игровую драку	hybrid.pvp.schoolyard.reply	hybrid.pvp.schoolyard.observe
+hybrid.pvp.sports_metaphors	спорт как PvP	hybrid.pvp.sports_metaphors.reply	hybrid.pvp.sports_metaphors.observe
+hybrid.romance.adena_flirting	подкаты с аденой	hybrid.romance.adena_flirting.reply	hybrid.romance.adena_flirting.observe
+hybrid.romance.epic_gifts	эпик как подарок	hybrid.romance.epic_gifts.reply	hybrid.romance.epic_gifts.observe
+hybrid.romance.noblesse_love	романтика ноблесса	hybrid.romance.noblesse_love.reply	hybrid.romance.noblesse_love.observe
+hybrid.trade.absurd_offers	абсурдные предложения в торговле	hybrid.trade.absurd_offers.reply	hybrid.trade.absurd_offers.observe
+hybrid.trade.life_for_adena	жизнь в обмен на адену	hybrid.trade.life_for_adena.reply	hybrid.trade.life_for_adena.observe
+hybrid.trade.real_money_jokes	шутки про реальные деньги	hybrid.trade.real_money_jokes.reply	hybrid.trade.real_money_jokes.observe
+hybrid.trade.romantic_barter	флирт через игровые покупки	hybrid.trade.romantic_barter.reply	hybrid.trade.romantic_barter.observe
+hybrid.work.boss_as_rb	начальник как рейдбосс	hybrid.work.boss_as_rb.reply	hybrid.work.boss_as_rb.observe
+hybrid.work.clan_as_job	клан как работа	hybrid.work.clan_as_job.reply	hybrid.work.clan_as_job.observe
+hybrid.work.loot_as_salary	дроп как зарплата	hybrid.work.loot_as_salary.reply	hybrid.work.loot_as_salary.observe
+hybrid.work.raid_as_shift	рейд как рабочая смена	hybrid.work.raid_as_shift.reply	hybrid.work.raid_as_shift.observe
+life.daily.chores	бытовуха	life.daily.chores.reply	life.daily.chores.observe
+life.daily.neighbors	соседи	life.daily.neighbors.reply	life.daily.neighbors.observe
+life.daily.sleep_schedule	режим дня	life.daily.sleep_schedule.reply	life.daily.sleep_schedule.observe
+life.daily.weather	погода	life.daily.weather.reply	life.daily.weather.observe
+life.family.kids	дети	life.family.kids.reply	life.family.kids.observe
+life.family.parents	родители	life.family.parents.reply	life.family.parents.observe
+life.family.partner	отношения с партнёром	life.family.partner.reply	life.family.partner.observe
+life.family.pets	домашние животные	life.family.pets.reply	life.family.pets.observe
+life.food.cooking	готовка	life.food.cooking.reply	life.food.cooking.observe
+life.food.delivery	доставка еды	life.food.delivery.reply	life.food.delivery.observe
+life.food.hunger	голод	life.food.hunger.reply	life.food.hunger.observe
+life.health.exercise	спорт	life.health.exercise.reply	life.health.exercise.observe
+life.health.fatigue	усталость	life.health.fatigue.reply	life.health.fatigue.observe
+life.health.sleep	сон	life.health.sleep.reply	life.health.sleep.observe
+life.health.stress	стресс	life.health.stress.reply	life.health.stress.observe
+life.leisure.films	кино	life.leisure.films.reply	life.leisure.films.observe
+life.leisure.memes	мемы	life.leisure.memes.reply	life.leisure.memes.observe
+life.leisure.music	музыка	life.leisure.music.reply	life.leisure.music.observe
+life.leisure.travel	путешествия	life.leisure.travel.reply	life.leisure.travel.observe
+life.leisure.weekend	выходные	life.leisure.weekend.reply	life.leisure.weekend.observe
+life.love.breakups	расставания	life.love.breakups.reply	life.love.breakups.observe
+life.love.dating	знакомства	life.love.dating.reply	life.love.dating.observe
+life.love.flirting	флирт	life.love.flirting.reply	life.love.flirting.observe
+life.love.jealousy	ревность	life.love.jealousy.reply	life.love.jealousy.observe
+life.money.budget	финансовые трудности	life.money.budget.reply	life.money.budget.observe
+life.money.debts	долги	life.money.debts.reply	life.money.debts.observe
+life.money.purchases	покупки	life.money.purchases.reply	life.money.purchases.observe
+life.school.exams	экзамены	life.school.exams.reply	life.school.exams.observe
+life.school.homework	домашка	life.school.homework.reply	life.school.homework.observe
+life.school.teachers	преподаватели	life.school.teachers.reply	life.school.teachers.observe
+life.work.boss	начальство	life.work.boss.reply	life.work.boss.observe
+life.work.burnout	выгорание	life.work.burnout.reply	life.work.burnout.observe
+life.work.deadlines	дедлайны	life.work.deadlines.reply	life.work.deadlines.observe
+life.work.salary	зарплата	life.work.salary.reply	life.work.salary.observe
+life.work.shift	смены	life.work.shift.reply	life.work.shift.observe
+lineage.clan.drama	драмы в клане	lineage.clan.drama.reply	lineage.clan.drama.observe
+lineage.clan.leaders	кланлидер	lineage.clan.leaders.reply	lineage.clan.leaders.observe
+lineage.clan.recruitment	набор в клан	lineage.clan.recruitment.reply	lineage.clan.recruitment.observe
+lineage.clan.sieges	осады	lineage.clan.sieges.reply	lineage.clan.sieges.observe
+lineage.classes.choice	выбор профессии	lineage.classes.choice.reply	lineage.classes.choice.observe
+lineage.classes.noblesse	ноблесс	lineage.classes.noblesse.reply	lineage.classes.noblesse.observe
+lineage.classes.skills	обсуждение скиллов	lineage.classes.skills.reply	lineage.classes.skills.observe
+lineage.classes.subclass	сабклассы	lineage.classes.subclass.reply	lineage.classes.subclass.observe
+lineage.classes.summons	саммоны и петы	lineage.classes.summons.reply	lineage.classes.summons.observe
+lineage.commerce.bargaining	торг	lineage.commerce.bargaining.reply	lineage.commerce.bargaining.observe
+lineage.commerce.manufacture	частное производство	lineage.commerce.manufacture.reply	lineage.commerce.manufacture.observe
+lineage.commerce.offline	оффлайн лавки	lineage.commerce.offline.reply	lineage.commerce.offline.observe
+lineage.commerce.prices	цены	lineage.commerce.prices.reply	lineage.commerce.prices.observe
+lineage.commerce.scammers	мошенничество	lineage.commerce.scammers.reply	lineage.commerce.scammers.observe
+lineage.craft.failures	неудачный крафт	lineage.craft.failures.reply	lineage.craft.failures.observe
+lineage.craft.materials	материалы	lineage.craft.materials.reply	lineage.craft.materials.observe
+lineage.craft.recipes	рецепты	lineage.craft.recipes.reply	lineage.craft.recipes.observe
+lineage.craft.workshop	крафт	lineage.craft.workshop.reply	lineage.craft.workshop.observe
+lineage.enchant.fail	сломанная вещь	lineage.enchant.fail.reply	lineage.enchant.fail.observe
+lineage.enchant.gamble	риск и азарт	lineage.enchant.gamble.reply	lineage.enchant.gamble.observe
+lineage.enchant.streaks	серии везения	lineage.enchant.streaks.reply	lineage.enchant.streaks.observe
+lineage.enchant.success	удачная заточка	lineage.enchant.success.reply	lineage.enchant.success.observe
+lineage.farming.competition	конкуренция за спот	lineage.farming.competition.reply	lineage.farming.competition.observe
+lineage.farming.failed_drop	пустой дроп	lineage.farming.failed_drop.reply	lineage.farming.failed_drop.observe
+lineage.farming.loot	редкий дроп	lineage.farming.loot.reply	lineage.farming.loot.observe
+lineage.farming.mana	нехватка маны	lineage.farming.mana.reply	lineage.farming.mana.observe
+lineage.farming.pickup	подбор дропа	lineage.farming.pickup.reply	lineage.farming.pickup.observe
+lineage.farming.shots	соски и расходники	lineage.farming.shots.reply	lineage.farming.shots.observe
+lineage.farming.spoiling	спойл и свип	lineage.farming.spoiling.reply	lineage.farming.spoiling.observe
+lineage.farming.spot	выбор спота	lineage.farming.spot.reply	lineage.farming.spot.observe
+lineage.leveling.alts	прокачка твинков	lineage.leveling.alts.reply	lineage.leveling.alts.observe
+lineage.leveling.delevel	потеря опыта	lineage.leveling.delevel.reply	lineage.leveling.delevel.observe
+lineage.leveling.fatigue	усталость от кача	lineage.leveling.fatigue.reply	lineage.leveling.fatigue.observe
+lineage.leveling.grind	долгий кач	lineage.leveling.grind.reply	lineage.leveling.grind.observe
+lineage.leveling.newbies	первые уровни	lineage.leveling.newbies.reply	lineage.leveling.newbies.observe
+lineage.leveling.progress	счастье от уровня	lineage.leveling.progress.reply	lineage.leveling.progress.observe
+lineage.party.buffs	бафы и танцы	lineage.party.buffs.reply	lineage.party.buffs.observe
+lineage.party.disband	распад пати	lineage.party.disband.reply	lineage.party.disband.observe
+lineage.party.healer	работа хилера	lineage.party.healer.reply	lineage.party.healer.observe
+lineage.party.mistakes	ошибки участников	lineage.party.mistakes.reply	lineage.party.mistakes.observe
+lineage.party.recruitment	набор группы	lineage.party.recruitment.reply	lineage.party.recruitment.observe
+lineage.party.roles	распределение ролей	lineage.party.roles.reply	lineage.party.roles.observe
+lineage.party.tank_hate	танк и агр	lineage.party.tank_hate.reply	lineage.party.tank_hate.observe
+lineage.party.voice_chat	общение в группе	lineage.party.voice_chat.reply	lineage.party.voice_chat.observe
+lineage.pvp.duel	дуэли	lineage.pvp.duel.reply	lineage.pvp.duel.observe
+lineage.pvp.pks	ПК и карма	lineage.pvp.pks.reply	lineage.pvp.pks.observe
+lineage.pvp.retreat	отступление	lineage.pvp.retreat.reply	lineage.pvp.retreat.observe
+lineage.pvp.revenge	месть	lineage.pvp.revenge.reply	lineage.pvp.revenge.observe
+lineage.pvp.rivalry	соперничество	lineage.pvp.rivalry.reply	lineage.pvp.rivalry.observe
+lineage.pvp.trash_talk	провокации	lineage.pvp.trash_talk.reply	lineage.pvp.trash_talk.observe
+lineage.quests.grind_items	квестовый дроп	lineage.quests.grind_items.reply	lineage.quests.grind_items.observe
+lineage.quests.minigames	миниигры	lineage.quests.minigames.reply	lineage.quests.minigames.observe
+lineage.quests.routines	повторяемые квесты	lineage.quests.routines.reply	lineage.quests.routines.observe
+lineage.raids.drop_split	распределение дропа	lineage.raids.drop_split.reply	lineage.raids.drop_split.observe
+lineage.raids.epics	эпики	lineage.raids.epics.reply	lineage.raids.epics.observe
+lineage.raids.healing	хил на рейде	lineage.raids.healing.reply	lineage.raids.healing.observe
+lineage.raids.recruitment	сбор рейда	lineage.raids.recruitment.reply	lineage.raids.recruitment.observe
+lineage.raids.tank	танкование рейдбосса	lineage.raids.tank.reply	lineage.raids.tank.observe
+social.banter.absurd	абсурдный юмор	social.banter.absurd.reply	social.banter.absurd.observe
+social.banter.double_meanings	двусмысленности	social.banter.double_meanings.reply	social.banter.double_meanings.observe
+social.banter.friendly	дружеские подколы	social.banter.friendly.reply	social.banter.friendly.observe
+social.banter.rough	грубоватые шутки	social.banter.rough.reply	social.banter.rough.observe
+social.banter.sarcasm	сарказм	social.banter.sarcasm.reply	social.banter.sarcasm.observe
+social.boundaries.personal_attacks	реакция на личные нападки	social.boundaries.personal_attacks.reply	social.boundaries.personal_attacks.observe
+social.boundaries.profanity	отношение к мату	social.boundaries.profanity.reply	social.boundaries.profanity.observe
+social.boundaries.real_threats	реакция на угрозы в реальности	social.boundaries.real_threats.reply	social.boundaries.real_threats.observe
+social.boundaries.sexual_humor	отношение к пошлости	social.boundaries.sexual_humor.reply	social.boundaries.sexual_humor.observe
+social.conflict.apology	извинения	social.conflict.apology.reply	social.conflict.apology.observe
+social.conflict.boundaries	личные границы	social.conflict.boundaries.reply	social.conflict.boundaries.observe
+social.conflict.deescalation	успокоение конфликта	social.conflict.deescalation.reply	social.conflict.deescalation.observe
+social.conflict.insult	оскорбления	social.conflict.insult.reply	social.conflict.insult.observe
+social.conflict.reconcile	примирение	social.conflict.reconcile.reply	social.conflict.reconcile.observe
+social.conversation.followups	уточнение темы	social.conversation.followups.reply	social.conversation.followups.observe
+social.conversation.interruptions	перебивания	social.conversation.interruptions.reply	social.conversation.interruptions.observe
+social.conversation.silence	молчание	social.conversation.silence.reply	social.conversation.silence.observe
+social.conversation.topic_switch	смена темы	social.conversation.topic_switch.reply	social.conversation.topic_switch.observe
+social.flirt.bold	дерзкий флирт	social.flirt.bold.reply	social.flirt.bold.observe
+social.flirt.light	лёгкий флирт	social.flirt.light.reply	social.flirt.light.observe
+social.flirt.rejection	вежливый отказ	social.flirt.rejection.reply	social.flirt.rejection.observe
+social.friendship.jealousy	ревность к друзьям	social.friendship.jealousy.reply	social.friendship.jealousy.observe
+social.friendship.loyalty	преданность	social.friendship.loyalty.reply	social.friendship.loyalty.observe
+social.friendship.support	поддержка друга	social.friendship.support.reply	social.friendship.support.observe
+social.friendship.trust	доверие	social.friendship.trust.reply	social.friendship.trust.observe
+social.greeting.casual	простое приветствие	social.greeting.casual.reply	social.greeting.casual.observe
+social.greeting.return	возвращение знакомого	social.greeting.return.reply	social.greeting.return.observe
+social.greeting.teasing	приветствие с подколом	social.greeting.teasing.reply	social.greeting.teasing.observe
