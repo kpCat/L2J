@@ -22,6 +22,43 @@ public final class PhantomSupportEffectAuthority
 	{
 	}
 
+	/** Native maintenance uses the same low-MP boundary as party recharge planning. */
+	public static boolean maintenanceAffordable(double currentMp, double maximumMp, double cost)
+	{
+		return Double.isFinite(currentMp) && Double.isFinite(maximumMp) && Double.isFinite(cost) && maximumMp > 0 && cost >= 0 && currentMp - cost >= maximumMp * 0.35;
+	}
+
+	public static boolean maintenanceAffordable(Player caster, Skill skill)
+	{
+		return caster != null && skill != null && maintenanceAffordable(caster.getCurrentMp(), caster.getMaxMp(), Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), caster.getStat().getMpInitialConsume(skill) + caster.getStat().getMpConsume(skill)));
+	}
+
+	/** Learned native support outside the sparse authored progression catalog. No skill is granted. */
+	public static String nativeCapability(Skill skill)
+	{
+		if (skill == null || !skill.isActive() || skill.isPassive() || skill.isToggle() || skill.hasNegativeEffect() || skill.isDebuff() || skill.isPvPOnly() || skill.isSuicideAttack() || skill.isHeroSkill() || skill.isGMSkill() || skill.is7Signs() || skill.isTransformation() || skill.isChanneling() || skill.isSimultaneousCast() || nativeScope(skill) == null) { return null; }
+		if (supportsCapability(skill, "combat.heal")) { return "combat.heal"; }
+		if (supportsCapability(skill, "combat.recharge")) { return "combat.recharge"; }
+		if (supportsCapability(skill, "combat.resurrection")) { return "combat.resurrection"; }
+		return skill.isContinuous() && !skill.getAbnormalType().isNone() ? "combat.buff" : null;
+	}
+
+	public static String nativeScope(Skill skill)
+	{
+		return switch (skill.getTargetType())
+		{
+			case SELF -> "SELF";
+			case ONE, PC_BODY -> "SINGLE_TARGET";
+			case PARTY, PARTY_MEMBER, PARTY_NOTME, PARTY_OTHER, TARGET_PARTY -> "PARTY";
+			default -> null;
+		};
+	}
+
+	public static String nativeVariant(Skill skill)
+	{
+		return "native.skill." + skill.getId();
+	}
+
 	/** Descriptive class evidence never substitutes for the learned native action's actual effect. */
 	public static boolean supportsCapability(Skill skill, String capabilityKey)
 	{

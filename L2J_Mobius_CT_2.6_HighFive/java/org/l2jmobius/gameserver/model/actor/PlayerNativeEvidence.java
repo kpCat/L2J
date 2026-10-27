@@ -11,6 +11,7 @@ public final class PlayerNativeEvidence
 	public enum Phase { NONE, ROUTE, COMBAT, REGEN, DEATH_RECOVERY }
 	public enum UnprovenReason { NONE, OWNER_FAILURE, INVALID_VALUE, INVALID_TARGET, TARGET_CAP, COUNTER_OVERFLOW, TIME_REGRESSION, INVALID_PHASE, PHASE_DEADLINE, COMBAT_ACCOUNTING }
 	public record Target(int objectId, int instanceId, long spawnGeneration) { }
+	public record TargetReceipts(long rewardSequence, Target rewardTarget, long killSequence, Target killTarget, long settledRewardSequence, Target settledTarget) { }
 	public static final int MAX_TARGETS = 16;
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
 	private static final ThreadLocal<RewardFrame> REWARD_CONTEXT = new ThreadLocal<>();
@@ -104,6 +105,8 @@ public final class PlayerNativeEvidence
 	private long _damageSequence;
 	private long _killSequence;
 	private long _rewardSequence;
+	private Target _lastRewardTarget, _lastKillTarget, _lastSettledTarget;
+	private long _lastSettledRewardSequence;
 	private long _targetSequence;
 	private long _farmCycleSequence;
 	private long _expGained;
@@ -179,6 +182,7 @@ public final class PlayerNativeEvidence
 		_expGained = add(_expGained, actualExp);
 		_spGained = add(_spGained, actualSp);
 		_rewardSequence = add(_rewardSequence, 1);
+		if (!_overflow) { _lastRewardTarget = target; }
 		event(now, state._damaged);
 	}
 
@@ -190,6 +194,7 @@ public final class PlayerNativeEvidence
 		state._killed = true;
 		completeCycle(target, state);
 		_killSequence = add(_killSequence, 1);
+		if (!_overflow) { _lastKillTarget = target; }
 		event(now, state._damaged);
 	}
 
@@ -204,9 +209,29 @@ public final class PlayerNativeEvidence
 	 * Zero-SP or zero-award settlement is terminal truth, never an attributed farm cycle. */
 	public synchronized void rewardSettled(Target target)
 	{
+		rewardSettled(target, true);
+	}
+
+	/** Frozen native positive-damage/last-attacker truth, never inferred from delayed sensor ordering. */
+	public synchronized void rewardSettled(Target target, boolean contributing)
+	{
 		if (_overflow) { return; }
+		// Early next-target selection can retire a completed cycle before the native
+		// reward writer closes. Preserve only its exact latest award receipt, never a new cycle.
+		if (valid(target) && _rewardSequence > 0 && target.equals(_lastRewardTarget))
+		{
+			_lastSettledTarget = target;
+			_lastSettledRewardSequence = _rewardSequence;
+		}
 		final TargetState state = _targets.get(target);
 		if (state == null) { return; }
+		if (!contributing && !state._damaged)
+		{
+			// A pure Party recipient has no own pending damage/kill cycle or next hostile selection.
+			// Keep actual EXP/SP totals, but free this terminal receipt without fabricating a farm cycle.
+			_targets.remove(target);
+			return;
+		}
 		state._rewardSettled = true;
 		completeCycle(target, state);
 	}
@@ -363,6 +388,12 @@ public final class PlayerNativeEvidence
 			case COMBAT -> 3;
 			case DEATH_RECOVERY -> 4;
 		};
+	}
+
+	/** Bounded source receipts; reading never awards credit or creates an own farm cycle. */
+	public synchronized TargetReceipts targetReceipts()
+	{
+		return new TargetReceipts(_rewardSequence, _lastRewardTarget, _killSequence, _lastKillTarget, _lastSettledRewardSequence, _lastSettledTarget);
 	}
 
 	public synchronized Snapshot snapshot(long sampleNanos)

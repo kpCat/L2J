@@ -118,6 +118,26 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		return resumeStep(route, departure == null ? null : departure.id(), canonical,
 			new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), destination);
 	}
+	/** A proposal only: native movement and factual anchor capture remain mandatory. */
+	public static PhantomTopologyAnchor idleIngress(List<PhantomTopologyAnchor> anchors, PhantomTopologyPoint live, String destination, int maximumDistance, java.util.function.Predicate<PhantomTopologyAnchor> connected)
+	{
+		return anchors.stream().filter(anchor -> !anchor.id().equals(destination) && anchor.point().instanceId() == live.instanceId()
+			&& anchor.point().distance3D(live) > 0 && anchor.point().distance3D(live) <= maximumDistance)
+			.sorted(java.util.Comparator.comparingDouble((PhantomTopologyAnchor anchor) -> anchor.point().distance3D(live)).thenComparing(PhantomTopologyAnchor::id))
+			.limit(16).filter(connected).findFirst().orElse(null);
+	}
+	public static PhantomTopologyAnchor idleIngress(PhantomNormalGatekeeperTravel travel, PhantomTopologyPoint live, String destination, int maximumDistance, int heading)
+	{
+		final var target = travel.topology().findAnchor(destination).orElse(null);
+		if (target == null) { return null; }
+		return idleIngress(travel.topology().snapshot().anchors(), live, destination, Math.min(maximumDistance, (int) Math.floor(target.point().distance3D(live))), anchor ->
+		{
+			if (L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading).isEmpty()) { return false; }
+			final var route = travel.route(anchor.id(), destination).orElse(null);
+			return route != null && !route.isEmpty() && route.size() <= 64 && itineraryStep(route, anchor.id(), destination) != null
+				&& route.stream().allMatch(step -> step.type() == PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND);
+		});
+	}
 
 	static PhantomNormalGatekeeperTravel.Step resumeStep(List<PhantomNormalGatekeeperTravel.Step> route, String factualDeparture,
 		PhantomBackgroundState.Position committedTarget, PhantomTopologyPoint live, String destination)
@@ -271,7 +291,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var anchor = _travel.topology().findAnchor(pending.anchorId).orElse(null);
 		if (anchor == null || !L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), pending.player, anchor)
 			|| (pending.journey != null && !currentJourney(profileId, pending.journey))) { return false; }
-		final boolean destination = pending.anchorId.equals(PhantomBackgroundGoalSpec.parse(pending.goal).anchorId());
+		final boolean destination = pending.anchorId.equals(travelSpec(profileId, pending.goal).anchorId());
 		synchronized (_attempts)
 		{
 			if (pending.journey != null && (_journeys.get(profileId) != pending.journey
@@ -314,7 +334,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			final Player player = action.player();
 			final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
-			final var spec = PhantomBackgroundGoalSpec.parse(goal);
+			final var spec = travelSpec(profileId, goal);
+			final boolean idle = PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal);
 			var state = _background.acquisitionSnapshot(profileId).orElse(null);
 			if (player.hasPendingOwnedStore())
 			{
@@ -335,7 +356,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				journey = null;
 			}
 			// A stand-point receipt forbids that route, not a fresh independently proven native target.
-			if (sameAnchor && (targetAnchor != null) && hasLocalOpportunity(profileId, player, targetAnchor, spec.npcId()))
+			if (!idle && sameAnchor && (targetAnchor != null) && hasLocalOpportunity(profileId, player, targetAnchor, spec.npcId()))
 			{
 				if (journey != null) { remove(profileId, journey); }
 				return true;
@@ -343,7 +364,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((existingAttempt != null) && existingAttempt.matches(goal, player, epoch) && existingAttempt.terminal) { return false; }
 			// Same-anchor local execution can discover a lawful target before its exact action position is ready.
 			// Travel releases only its own route; the Session controller then owns any approach.
-			if (sameAnchor && targetAnchor != null && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor)
+			if (!idle && sameAnchor && targetAnchor != null && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor)
 				&& isUsableLocalFarmPosition(player, targetAnchor)
 				&& _engagementPlanner.inspect(player, spec.npcId(), java.util.Set.of(), _ -> 0).kind() != PhantomEngagementPlanner.Kind.UNAVAILABLE)
 			{
@@ -362,7 +383,21 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				final var step = proposedStep(player, state.position().committedAnchorId(), spec.anchorId());
+				var step = proposedStep(player, state.position().committedAnchorId(), spec.anchorId());
+				if (idle && step != null && step.type() == PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND)
+				{
+					// A connected source itinerary is guidance. Native WALK may approach the
+					// actual goal without awarding its intermediate anchors offscreen.
+					step = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "native.idle.walk." + spec.anchorId(), state.position().committedAnchorId(), spec.anchorId(), 0, null);
+				}
+				if (step == null && idle && targetAnchor != null && PhantomNativeTravelActions.ordinary(player)
+					&& player.getInstanceId() == targetAnchor.point().instanceId() && player.calculateDistance3D(targetAnchor.point().x(), targetAnchor.point().y(), targetAnchor.point().z()) <= _navigation.policy().maximumRouteDistance())
+				{
+					// An ephemeral native WALK request is not an offscreen graph edge or a factual arrival.
+					final var ingress = idleIngress(_travel, new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), spec.anchorId(), _navigation.policy().maximumRouteDistance(), player.getHeading());
+					final String walkTarget = ingress == null ? spec.anchorId() : ingress.id();
+					step = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "native.idle.walk." + walkTarget, state.position().committedAnchorId(), walkTarget, 0, null);
+				}
 				if (step == null)
 				{
 					fail(profileId, attempt, "", "travel.route_absent", Disposition.ROUTE_UNUSABLE);
@@ -374,7 +409,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 					if ((_attempts.get(profileId) != attempt) || attempt.terminal || (_journeys.putIfAbsent(profileId, journey) != null)) { return false; }
 				}
 			}
-			if ((_clock.getAsLong() - attempt.startedNanos) >= _navigation.policy().maximumAttemptDurationNanos())
+			if ((journey.nativeBudget == null && !journey.nativeIdleWalk && (_clock.getAsLong() - attempt.startedNanos) >= _navigation.policy().maximumAttemptDurationNanos())
+				|| (journey.nativeBudget != null && journey.nativeBudget.expired(_clock.getAsLong())))
 			{
 				fail(profileId, journey, "travel.journey_deadline", Disposition.NATIVE_ACTION_REJECTED);
 				return false;
@@ -397,6 +433,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 					fail(profileId, journey, "travel.farming_standpoint_unproven", Disposition.ROUTE_UNUSABLE);
 					return false;
 				}
+			}
+			if (journey.nativeIdleWalk && journey.nativeBudget == null)
+			{
+				journey.nativeBudget = new NativeWalkBudget(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), journey.arrivalPoint, _clock.getAsLong(), player.getMoveSpeed(), _navigation.policy());
+				attempt.phaseSince = journey.nativeBudget.episodeSince;
 			}
 			if (!executePlan(profileId, player, journey))
 			{
@@ -529,6 +570,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 		final var current = new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		final boolean idle = PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, journey.goal);
+		if (idle && journey.moveIssued && player.isMoving())
+		{
+			final var issued = new PhantomNavigationPoint(journey.moveX, journey.moveY, player.getZdestination(), player.getInstanceId());
+			if (!safeIdlePveSegment(player, issued)) { replanEdge(profileId, player, journey, current, issued, "travel.native_pve_threat"); return false; }
+		}
 		if ((current.instanceId() == destination.instanceId()) && (Math.hypot((long) current.x() - destination.x(), (long) current.y() - destination.y()) <= radius) && (Math.abs((long) current.z() - destination.z()) <= (radius == 0 ? 0 : 100)))
 		{
 			clearRoute(profileId, journey);
@@ -555,8 +602,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
-			final var request = new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000);
-			final var submission = journey.plan == null && !journey.currentAnchorReturn
+			final List<PhantomNavigationRequest.PveThreat> threats;
+			try { threats = idle ? pveThreats(current, player.getLevel(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class, 3500))) : List.of(); }
+			catch (IllegalArgumentException overflow) { fail(profileId, journey, "travel.native_threat_snapshot_limit", Disposition.ROUTE_UNUSABLE); return false; }
+			final var request = new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000, threats);
+			final var submission = journey.nativeBudget != null ? _navigation.submitWalkEpisode(request, journey.nativeBudget.visited)
+				: journey.plan == null && !journey.currentAnchorReturn
 				? _navigation.submitTravelPlan(request, PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, (_navigation.policy().maximumAttemptDurationNanos() - (now - journey.attempt.startedNanos)) / 1_000_000), journey.attempt.blockedEdges))
 				: _navigation.submitWalkCorridor(request);
 			journey.requestId = submission.requestId();
@@ -589,6 +640,17 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			if (!terminalResult(profileId, journey, result)) { return false; }
+		}
+		if (journey.nativeBudget != null && current.equals(journey.route.destination()) && !current.equals(destination))
+		{
+			stopOwnedMove(journey, player);
+			closeRoutePhase(profileId, journey);
+			if (!journey.nativeBudget.checkpoint(current, now)) { fail(profileId, journey, "travel.native_episode_checkpoint_rejected", Disposition.ROUTE_UNUSABLE); return false; }
+			clearRoute(profileId, journey);
+			journey.attempt.phaseSince = journey.nativeBudget.episodeSince;
+			journey.phaseClosed = false;
+			journey.reason = "travel.native_episode_arrived";
+			return false;
 		}
 		if (journey.plan != null && journey.stageIndex < journey.plan.stages().size() && !destination.equals(journey.plan.stages().get(journey.stageIndex).to())) { return false; }
 		while ((journey.index < journey.waypoints.size() - 1) && (current.distanceTo(journey.waypoints.get(journey.index)) <= _navigation.arrivalRadius()))
@@ -624,6 +686,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			final var waypoint = journey.waypoints.get(journey.index);
+			if (idle && !safeIdlePveSegment(player, waypoint)) { replanEdge(profileId, player, journey, current, waypoint, "travel.native_pve_threat"); return false; }
 			final boolean waterExit = player.isInsideZone(ZoneId.WATER) || (ZoneManager.getInstance().getZone(current.x(), current.y(), current.z(), WaterZone.class) != null);
 			final String unsafe = unsafeSegment(current, waypoint, waterExit, radius, witness -> journey.attempt.segmentWitness = witness);
 			if (unsafe != null)
@@ -659,6 +722,19 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	}
 
 	/** Inspect stock native legs; water is allowed only before the first dry cell of an exit. */
+	public static List<PhantomNavigationRequest.PveThreat> pveThreats(PhantomNavigationPoint from, int level, List<org.l2jmobius.gameserver.model.actor.instance.Monster> visible)
+	{
+		final var result = visible.stream().filter(monster -> !monster.isAlikeDead() && monster.getInstanceId() == from.instanceId()
+			&& (monster.isAggressive() || monster.getLevel() > level + 3)
+			&& Math.hypot(Math.hypot((long) monster.getX() - from.x(), (long) monster.getY() - from.y()), (long) monster.getZ() - from.z()) <= 3500)
+			.limit(65).map(monster -> new PhantomNavigationRequest.PveThreat(new PhantomNavigationPoint(monster.getX(), monster.getY(), monster.getZ(), monster.getInstanceId()), Math.max(300, monster.getAggroRange() + 100))).toList();
+		if (result.size() > 64) { throw new IllegalArgumentException("Too many observed native threats."); }
+		return result;
+	}
+	private static boolean safeIdlePveSegment(Player player, PhantomNavigationPoint to)
+	{
+		return PhantomNativeTravelActions.safePveWalkSegment(player, to.x(), to.y(), to.z(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class, 3500)), java.util.Set.of());
+	}
 	private static String unsafeSegment(PhantomNavigationPoint from, PhantomNavigationPoint to, boolean waterExit, int destinationTolerance)
 	{
 		return unsafeSegment(from, to, waterExit, destinationTolerance, null);
@@ -717,6 +793,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING, CANCELLED, DEADLINE_EXPIRED, ROUTE_BUDGET_EXCEEDED -> retryOrFail(profileId, journey, Disposition.TRANSIENT_SERVICE);
 				default -> fail(profileId, journey, journey.reason, Disposition.ROUTE_UNUSABLE);
 			}
+			return false;
+		}
+		if (journey.nativeBudget != null && !journey.nativeBudget.admit(result.route(), _clock.getAsLong()))
+		{
+			fail(profileId, journey, "travel.native_episode_route_budget", Disposition.ROUTE_UNUSABLE);
 			return false;
 		}
 		final var planned = _navigation.consumeTravelPlan(journey.requestId).orElse(null);
@@ -848,6 +929,15 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	public TerminalFailure lastFailure(long profileId) { return _terminalReasons.get(profileId); }
 
+	/** Passive witness of the existing three-attempt service fence for this exact actor/root. */
+	public boolean transientServiceExhausted(long profileId, PhantomGoal goal)
+	{
+		final var attempt = _attempts.get(profileId); final var lifetime = _materialization.find(profileId).orElse(null);
+		return attempt != null && attempt.transientExhausted && attempt.goal.equals(goal) && lifetime != null
+			&& lifetime.characterObjectId() == attempt.player.getObjectId() && lifetime.materializedAtNanos() == attempt.epoch
+			&& World.getInstance().getPlayer(attempt.player.getObjectId()) == attempt.player;
+	}
+
 	public enum ArrivalKind { ARRIVED, PENDING, STALE_GOAL, TERMINAL }
 	public record ArrivalResult(ArrivalKind kind, long goalId, long revision, int objectId, long epoch, long failureSequence, String reason) { }
 
@@ -876,7 +966,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean currentGoal(long profileId, PhantomGoal goal)
 	{
-		return Objects.equals(_background.ordinaryGoal(profileId).orElse(null), goal);
+		return Objects.equals(_background.ordinaryTravelGoal(profileId).orElse(null), goal);
+	}
+
+	static PhantomBackgroundGoalSpec travelSpec(long profileId, PhantomGoal goal)
+	{
+		return PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal) ? PhantomBackgroundGoalSpec.parseLifecycle(goal) : PhantomBackgroundGoalSpec.parse(goal);
 	}
 
 	private boolean currentJourney(long profileId, Journey journey)
@@ -993,7 +1088,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		synchronized (_attempts)
 		{
 			if ((_journeys.get(profileId) != journey) || (_attempts.get(profileId) != attempt) || attempt.terminal || journey.phaseClosed) { return; }
-			evidence.phase(PlayerNativeEvidence.Phase.ROUTE, attempt.startedNanos, attempt.startedNanos + _navigation.policy().maximumAttemptDurationNanos());
+			evidence.phase(PlayerNativeEvidence.Phase.ROUTE, attempt.phaseSince, attempt.phaseSince + (journey.nativeBudget == null ? _navigation.policy().maximumAttemptDurationNanos() : journey.nativeBudget.episodeNanos));
 		}
 	}
 
@@ -1013,7 +1108,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if ((attempt != null) && (attempt.evidence != null) && attempt.evidence.matches(attempt.player.getObjectId(), attempt.epoch))
 			{
-				attempt.evidence.clearPhase(PlayerNativeEvidence.Phase.ROUTE, attempt.startedNanos);
+				attempt.evidence.clearPhase(PlayerNativeEvidence.Phase.ROUTE, attempt.phaseSince);
 			}
 		}
 	}
@@ -1094,6 +1189,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private final PhantomGoal goal;
 		private final Attempt attempt;
 		private final boolean currentAnchorReturn;
+		private final boolean nativeIdleWalk;
+		private NativeWalkBudget nativeBudget;
 		private int returnWaypoints;
 		private double returnDistance;
 		private PhantomTravelStrategy.Candidate plan;
@@ -1123,10 +1220,69 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			this.goal = goal;
 			this.attempt = attempt;
 			currentAnchorReturn = step.id().startsWith("live.approach.") && step.fromAnchorId().equals(step.toAnchorId());
+			nativeIdleWalk = step.id().startsWith("native.idle.walk.");
 		}
 	}
 
 	private record PendingStore(Player player, long epoch, PhantomGoal goal, String anchorId, Journey journey) { }
+
+	/** Idle native WALK only: retries consume complete proven corridors, never just checkpoint displacement. */
+	static final class NativeWalkBudget
+	{
+		private final long startedNanos, episodeNanos;
+		private final double speed;
+		private long deadline;
+		private final double maximumDistance;
+		private final int maximumWaypoints;
+		private final java.util.Set<PhantomNavigationPoint> visited = new java.util.HashSet<>();
+		private long episodeSince;
+		private double chargedDistance;
+		private int routes;
+		private PhantomNavigationPoint releasedDestination;
+
+		NativeWalkBudget(PhantomNavigationPoint origin, PhantomNavigationPoint destination, long now, double speed, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy policy)
+		{
+			final double distance = origin.distanceTo(destination);
+			if (now < 0 || origin.instanceId() != destination.instanceId() || !Double.isFinite(speed) || speed <= 0 || distance > policy.maximumRouteDistance()) { throw new IllegalArgumentException("Invalid native idle WALK budget."); }
+			startedNanos = now; this.speed = speed;
+			deadline = deadlineFor(distance);
+			episodeSince = now;
+			episodeNanos = Math.min(policy.maximumAttemptDurationNanos(), PlayerNativeEvidence.MAX_PHASE_NANOS);
+			maximumDistance = policy.maximumRouteDistance(); maximumWaypoints = policy.maximumWaypoints(); visited.add(origin);
+		}
+		private long deadlineFor(double distance)
+		{
+			// Same bounded formula, always anchored to the original start. A newly
+			// admitted detour may cost more than its chord; the hard ceiling stays 30 minutes.
+			final long millis = Math.min(java.util.concurrent.TimeUnit.MINUTES.toMillis(30), Math.max(30_000, (long) Math.ceil(2000 * distance / speed) + 5000L * (long) Math.ceil(distance / 3000) + 30_000));
+			return Math.addExact(startedNanos, java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(millis));
+		}
+
+		boolean expired(long now) { return now < episodeSince || now >= deadline || now - episodeSince >= episodeNanos; }
+
+		boolean admit(PhantomNavigationRoute route, long now)
+		{
+			if (expired(now) || routes >= 64 || route.waypoints().isEmpty() || route.waypoints().size() > maximumWaypoints || visited.contains(route.destination())) { return false; }
+			double distance = 0;
+			var point = route.origin();
+			for (var next : route.waypoints())
+			{
+				if (point.instanceId() != next.instanceId()) { return false; }
+				distance += point.distanceTo(next); point = next;
+			}
+			if (!point.equals(route.destination()) || !Double.isFinite(distance) || distance <= 0 || chargedDistance + distance > maximumDistance) { return false; }
+			chargedDistance += distance; routes++; releasedDestination = route.destination();
+			deadline = Math.max(deadline, deadlineFor(chargedDistance));
+			return true;
+		}
+
+		boolean checkpoint(PhantomNavigationPoint actual, long now)
+		{
+			if (expired(now) || releasedDestination == null || !actual.equals(releasedDestination) || visited.size() >= 64 || !visited.add(actual)) { return false; }
+			releasedDestination = null; episodeSince = now;
+			return true;
+		}
+	}
 
 	private static final class Attempt
 	{
@@ -1134,6 +1290,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private final Player player;
 		private final long epoch;
 		private final long startedNanos;
+		private long phaseSince;
 		private final PlayerNativeWork.Owner nativeOwner;
 		private final PlayerNativeEvidence evidence;
 		private int failures;
@@ -1145,7 +1302,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 		private Attempt(PhantomGoal goal, Player player, long epoch, long startedNanos, PlayerNativeWork.Owner nativeOwner, PlayerNativeEvidence evidence)
 		{
-			this.goal = goal; this.player = player; this.epoch = epoch; this.startedNanos = startedNanos;
+			this.goal = goal; this.player = player; this.epoch = epoch; this.startedNanos = startedNanos; phaseSince = startedNanos;
 			this.nativeOwner = nativeOwner; this.evidence = evidence;
 		}
 

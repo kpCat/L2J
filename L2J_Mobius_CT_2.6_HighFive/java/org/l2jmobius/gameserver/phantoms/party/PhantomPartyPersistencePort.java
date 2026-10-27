@@ -16,6 +16,21 @@ public interface PhantomPartyPersistencePort
 
 	List<StoredPartyState> loadManagedAfter(long exclusiveProfileId, int pageSize);
 
+	default Optional<StoredRegroupClock> loadRegroupClock(long profileId) { return Optional.empty(); }
+
+	default StoredRegroupClock saveRegroupClock(long profileId, long expectedRowVersion, PhantomPartyRegroupState state)
+	{
+		throw new UnsupportedOperationException("Durable regroup CAS is unavailable.");
+	}
+
+	record StoredRegroupClock(long profileId, long rowVersion, PhantomPartyRegroupState state)
+	{
+		public StoredRegroupClock
+		{
+			if (profileId <= 0 || rowVersion < 0 || state == null || state.actor().profileId() != profileId) { throw new IllegalArgumentException("Foreign regroup component."); }
+		}
+	}
+
 	record StoredPartyState(long profileId, long rowVersion, PartyState state)
 	{
 		public StoredPartyState

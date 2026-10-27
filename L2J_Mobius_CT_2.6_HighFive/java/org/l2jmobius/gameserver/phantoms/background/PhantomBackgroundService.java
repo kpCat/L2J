@@ -948,9 +948,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return OperationResult.replan("recovery.background_state_invalid");
 			}
+			final Lease recoveryLease = lease;
 			PhantomBackgroundTransaction.Result recovered = loaded.state().state() == State.VERIFY_PENDING
-				? transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId))
+				? transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId, recoveryLease))
 				: transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+			if (recovered.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT) { return OperationResult.success("recovery.abandoned_absent_restored"); }
 			if (recovered.successful() && (recovered.state() != null) && (recovered.state().state() == State.MATERIALIZED))
 			{
 				// Keep the lease/transition through a bounded abandoned transition; no actor may enter between steps.
@@ -1029,6 +1031,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public Optional<PhantomGoal> ordinaryGoal(long profileId)
 	{
 		return _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).filter(goal -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()));
+	}
+	/** Physical travel only; accepting an idle root here never admits solo farming or AutoPlay. */
+	Optional<PhantomGoal> ordinaryTravelGoal(long profileId)
+	{
+		return _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).filter(goal -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) || PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal));
 	}
 	/** Recovery control only; ordinary gameplay and arrival remain farm-only. */
 	public boolean isCurrentRecoveryGoal(long profileId, PhantomGoal expected)
@@ -1769,7 +1776,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		try
 		{
-			PhantomBackgroundGoalSpec.parse(goal);
+			if (PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal)) { PhantomBackgroundGoalSpec.parseLifecycle(goal); }
+			else { PhantomBackgroundGoalSpec.parse(goal); }
 		}
 		catch (IllegalArgumentException exception)
 		{
@@ -1960,7 +1968,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				throw new IllegalStateException("Background state cannot enter materialization.");
 			}
-			final PhantomBackgroundTransaction.Result reconciled = transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId));
+			final PhantomBackgroundTransaction.Result reconciled = reconcileNativeAdmission(profileId, characterObjectId);
+			if (reconciled.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
+			{
+				if ((purpose == MaterializationPurpose.NATIVE_CONTEXT_HANDOFF) && !currentHistoricalComponents(profileId, _historicalAdmissions.get(profileId))) { throw new AdmissionRejectedException("background.historical_claim_or_goal_changed"); }
+				retained = true;
+				return;
+			}
 			if (!reconciled.successful() || (reconciled.state() == null) || ((reconciled.state().state() != State.READY) && (reconciled.state().state() != State.DEAD)))
 			{
 				throw new IllegalStateException("Background state reconciliation failed.");
@@ -1996,6 +2010,28 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final var position = loaded.state().position();
 			if (!PhantomBackgroundTransaction.offscreenAllowed(_offscreenAdmission, profileId, position, position))
 			{ throw new AdmissionRejectedException("background.offscreen.observer_before_spawn"); }
+		}
+	}
+
+	private PhantomBackgroundTransaction.Result reconcileNativeAdmission(long profileId, int objectId)
+	{
+		final var receipt = _profiles.findComponent(profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE).orElse(null);
+		if (receipt == null || receipt.componentSchemaVersion() != PhantomOwnedStoreIntent.SCHEMA_VERSION || PhantomOwnedStoreIntent.decode(receipt.payload()).rawBeforeVitals() == null)
+		{
+			return transaction(() -> _transactions.reconcileVerifyPending(profileId, objectId));
+		}
+		// beforeMaterialize precedes native PHANTOM acquisition. Reuse the existing
+		// absent-Player BACKGROUND lease, and release it before native admission.
+		try (Lease lease = _identities.tryAcquire(objectId, OwnerKind.BACKGROUND))
+		{
+			if (lease == null) { throw new AdmissionRejectedException("background.raw_store.identity_busy"); }
+			increment(_currentIdentityLeases, _peakIdentityLeases);
+			try
+			{
+				if (_materialization.get() == null || _materialization.get().find(profileId).isPresent() || World.getInstance().getPlayer(objectId) != null || World.getInstance().findObject(objectId) != null || PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId)) { throw new AdmissionRejectedException("background.raw_store.runtime_busy"); }
+				return transaction(() -> _transactions.reconcileVerifyPending(profileId, objectId, lease));
+			}
+			finally { _currentIdentityLeases.decrementAndGet(); }
 		}
 	}
 
@@ -2156,7 +2192,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var normalized = new PhantomBackgroundState(state.state(), state.identity(), progress, vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
 		if (!_authority.matchesRuntime(player, normalized)) { reason.append("OTHER_RUNTIME_FIELDS"); return null; }
 		final var goal = _goals.load(profileId).orElse(null);
-		if ((goal == null) || (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && !(historical && PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goal().goalType()))) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { reason.append("GOAL:").append(goal == null ? "ABSENT" : goal.goal().goalType() + "/" + goal.goal().status()); return null; }
+		if ((goal == null) || (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && !(historical && PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goal().goalType())) && !PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal.goal())) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { reason.append("GOAL:").append(goal == null ? "ABSENT" : goal.goal().goalType() + "/" + goal.goal().status()); return null; }
 		final var captured = _authority.captureOwnedNative(profileId, player, goal.goal(), normalized).state();
 		if (!captured.vitals().equals(vitals)) { reason.append("CAPTURE_VITALS"); return null; }
 		if (!captured.progress().equals(progress) || !captured.identity().equals(state.identity()) || !captured.position().equals(state.position()) || !captured.receipt().equals(state.receipt()) || !captured.clock().equals(state.clock()) || !captured.hashes().equals(hashes)) { reason.append("CAPTURE_DURABLE_FIELDS"); return null; }

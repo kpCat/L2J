@@ -21,9 +21,9 @@ public final class PhantomTravelGeoProbe
 {
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 2) && ((args.length != 3) || (!"--heights".equals(args[2]) && !"--waypoints".equals(args[2]))))
+		if ((args.length != 2) && ((args.length != 3) || (!"--heights".equals(args[2]) && !"--waypoints".equals(args[2]) && !"--episode".equals(args[2]) && !"--episode-journey".equals(args[2]))))
 		{
-			throw new IllegalArgumentException("Usage: candidate-tsv proof-tsv [--heights|--waypoints]");
+			throw new IllegalArgumentException("Usage: candidate-tsv proof-tsv [--heights|--waypoints|--episode|--episode-journey]");
 		}
 		ServerConfig.DATAPACK_ROOT = new File(".").getCanonicalFile();
 		GeoEngineConfig.load();
@@ -94,6 +94,48 @@ public final class PhantomTravelGeoProbe
 		if (!lines.getFirst().equals("connector_id\tfrom_x\tfrom_y\tfrom_z\tfrom_instance\tto_x\tto_y\tto_z\tto_instance"))
 		{
 			throw new IllegalArgumentException("Unexpected connector candidate header");
+		}
+		if (args.length == 3 && ("--episode".equals(args[2]) || "--episode-journey".equals(args[2])))
+		{
+			final var oracle = new org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Oracle()
+			{
+				@Override public org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint project(int x, int y, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint surface)
+				{
+					final int z = geo.getHeight(x, y, surface.z());
+					return geo.hasGeo(x, y) && z == geo.getHeight(x, y, z) ? new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, surface.instanceId()) : null;
+				}
+				@Override public boolean direct(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
+				{
+					return probe.canMove(new PhantomGeoValidationRules.Point(from.x(), from.y(), from.z(), from.instanceId()), new PhantomGeoValidationRules.Point(to.x(), to.y(), to.z(), to.instanceId()));
+				}
+				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> path(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
+				{
+					final var result = probe.path(new PhantomGeoValidationRules.Point(from.x(), from.y(), from.z(), from.instanceId()), new PhantomGeoValidationRules.Point(to.x(), to.y(), to.z(), to.instanceId()));
+					return result == null ? null : result.stream().map(point -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(point.x(), point.y(), point.z(), point.instanceId())).toList();
+				}
+			};
+			final List<String> result = new ArrayList<>(List.of("connector_id\tepisode\tfrom\tstatus\tnodes\tedges\tqueries\tlabels\twaypoints\tlast_point"));
+			for (String line : lines.subList(1, lines.size()))
+			{
+				final var row = line.split("\t", -1); if (row.length != 9) { throw new IllegalArgumentException("Malformed episode candidate"); }
+				var from = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(Integer.parseInt(row[1]), Integer.parseInt(row[2]), Integer.parseInt(row[3]), Integer.parseInt(row[4]));
+				final var to = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(Integer.parseInt(row[5]), Integer.parseInt(row[6]), Integer.parseInt(row[7]), Integer.parseInt(row[8]));
+				final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+				final var visited = new java.util.HashSet<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint>(); double distance = 0;
+				for (int index = 0; index < ("--episode-journey".equals(args[2]) ? 64 : 1); index++)
+				{
+					visited.add(from); final long now = System.nanoTime();
+					final var request = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(94, from, to, now, now + policy.defaultRequestDeadlineNanos(), 100_000);
+					final var episode = new org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner(oracle, System::nanoTime).planEpisode(request, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), policy, visited);
+					result.add(String.join("\t", row[0], Integer.toString(index), from.toString(), episode.status().name(), Integer.toString(episode.nodes()), Integer.toString(episode.edges()), Integer.toString(episode.queries()), Integer.toString(episode.labels()), Integer.toString(episode.points().size()), episode.points().isEmpty() ? "none" : episode.points().getLast().toString()));
+					if (episode.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND) { break; }
+					for (var point : episode.points()) { distance += from.distanceTo(point); from = point; }
+					if (from.equals(to) || distance > 100_000) { break; }
+				}
+			}
+			Files.writeString(Path.of(args[1]), String.join("\n", result) + "\n", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
+			System.out.println("TRAVEL_GEO_EPISODE_DIAGNOSTIC candidates=" + (lines.size() - 1) + " database=false actors=false collision=staticXML waterFilter=notApplied nativeGameplayNotClaimed=true");
+			return;
 		}
 		final List<String> output = new ArrayList<>();
 		final List<String> runtimeOutput = new ArrayList<>();

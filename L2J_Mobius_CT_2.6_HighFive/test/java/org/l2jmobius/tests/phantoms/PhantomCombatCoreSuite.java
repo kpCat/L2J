@@ -69,6 +69,30 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		if (!_normalTargetPreflightOnly) { new PhantomPveReadiness093Suite().register(registry); }
+		if (!_normalTargetPreflightOnly) { registry.add("094-rejected-approach-cancels-exact-previous-owned-action", _ ->
+		{
+			for (var mode : List.of(PhantomCombatMode.MELEE_PHYSICAL, PhantomCombatMode.RANGED_MAGIC))
+			{
+				final Fixture fixture = fixture(1);
+				try
+				{
+					if (mode == PhantomCombatMode.RANGED_MAGIC) { fixture.capabilities = capabilities(mode, List.of(new SelectedSkill(20, 1))); fixture.lease.supportedSkills.add(20); }
+					fixture.start(1, mode); fixture.dispatcher.runNext();
+					final long generation = fixture.service.find(1).orElseThrow().generation();
+					PhantomAssertions.assertEquals(1, mode == PhantomCombatMode.MELEE_PHYSICAL ? fixture.lease.attackCount : fixture.lease.castCount, "Initial owned approach was not issued.");
+					fixture.lease.attackOutcome = ActionOutcome.REJECTED; fixture.lease.castOutcome = ActionOutcome.REJECTED;
+					fixture.dispatcher.runNext();
+					assertTerminal(fixture, PhantomCombatResult.REJECTED);
+					PhantomAssertions.assertEquals(1, fixture.lease.cancelCount, "Rejected approach did not cancel its exact previous action once.");
+					PhantomAssertions.assertEquals(1, fixture.lease.closeCount, "Rejected approach retained its actor lease.");
+					PhantomAssertions.assertTrue(fixture.lease.cancelledAction.sessionGeneration() == generation && fixture.lease.cancelledAction.combatTargetObjectId() == 100, "Rejection cancelled a foreign generation or target.");
+					PhantomAssertions.assertEquals(mode == PhantomCombatMode.MELEE_PHYSICAL ? null : new SelectedSkill(20, 1), fixture.lease.cancelledAction.selectedSkill(), "Rejected cast changed the previously owned skill before cleanup.");
+					PhantomAssertions.assertTrue(fixture.service.consumeTerminal(1).isPresent(), "Completed exact cleanup did not expose its terminal receipt.");
+					PhantomAssertions.assertFalse(fixture.service.hasClaim(1), "Consumed terminal session retained an actor claim.");
+				}
+				finally { fixture.stop(); }
+			}
+		}); }
 		registry.add("072-native-reward-gap-allows-higher-mobs-and-rejects-zero-reward", _ ->
 		{
 			for (int difference : new int[] {-2, -1, 0, 1, 2}) { PhantomAssertions.assertTrue(PhantomCombatPolicy.farmRewardAvailable(difference, 11, 633, 28), "Rewardable +/-2 target was rejected."); }
@@ -1203,6 +1227,8 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private int attackCount;
 		private int castCount;
 		private int closeCount;
+		private int cancelCount;
+		private PhantomOwnedAction cancelledAction;
 		private SelectedSkill aggression;
 		private int aggressionCount;
 
@@ -1312,6 +1338,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			cancelCount++; cancelledAction = action;
 		}
 
 		@Override

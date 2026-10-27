@@ -93,6 +93,16 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 		return nativeFloor.stream().map(skill -> new AutoGetSkill(skill.skillId(), Math.max(skill.skillLevel(), autoGetSkills.stream().filter(previous -> previous.skillId() == skill.skillId()).mapToInt(AutoGetSkill::skillLevel).findFirst().orElse(0)))).toList();
 	}
 
+	/** First native corpse capture: retain only an exact observed rank from the proven prior native floor. */
+	public static List<AutoGetSkill> retainObservedAutoGetRanks(List<AutoGetSkill> nativeFloor, List<AutoGetSkill> priorFloor, java.util.Map<Integer, Integer> observed)
+	{
+		return nativeFloor.stream().map(skill ->
+		{
+			final int prior = priorFloor.stream().filter(previous -> previous.skillId() == skill.skillId()).mapToInt(AutoGetSkill::skillLevel).findFirst().orElse(0);
+			return prior > skill.skillLevel() && observed.getOrDefault(skill.skillId(), 0) == prior ? new AutoGetSkill(skill.skillId(), prior) : skill;
+		}).toList();
+	}
+
 	public PhantomBackgroundState after(Progress nextProgress, Vitals nextVitals, Position nextPosition, InventoryFacts nextInventory, List<AutoGetSkill> nextAutoGetSkills, Clock nextClock, Receipt nextReceipt)
 	{
 		final State nextState = nextVitals.currentHp() == 0 ? State.DEAD : State.READY;

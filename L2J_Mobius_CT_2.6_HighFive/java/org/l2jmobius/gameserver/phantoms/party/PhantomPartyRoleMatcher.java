@@ -143,6 +143,11 @@ public final class PhantomPartyRoleMatcher
 		Candidate best = null;
 		for (MemberCapability capability : member.capabilities())
 		{
+			if (role.roleKey().startsWith("support.") && ("SELF".equals(capability.targetScope()) || capability.actionSkillId() <= 0 || capability.actionSkillLevel() <= 0)) { continue; }
+			if ("frontline.guardian".equals(role.roleKey()) && (!"combat.tank".equals(capability.capabilityKey()) || (capability.actionSkillId() <= 0) || (capability.actionSkillLevel() <= 0)))
+			{
+				continue;
+			}
 			final Integer weight = role.capabilityWeights().get(capability.capabilityKey());
 			if ((weight == null) || !capability.intrinsic() || !capability.learned())
 			{

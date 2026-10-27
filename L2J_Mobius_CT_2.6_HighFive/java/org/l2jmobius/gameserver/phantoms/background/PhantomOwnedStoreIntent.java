@@ -15,16 +15,36 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
 /** Bounded receipt for the existing background transaction, not a second canonical writer. */
-public record PhantomOwnedStoreIntent(long preparedRowVersion, long materializedAtNanos, State targetState, String previousState, String previousPayloadHash, String skillsHash, PhantomBackgroundState before, PhantomBackgroundState after)
+public record PhantomOwnedStoreIntent(long preparedRowVersion, long materializedAtNanos, State targetState, String previousState, String previousPayloadHash, String skillsHash, PhantomBackgroundState before, PhantomBackgroundState after, RawDeadVitals rawBeforeVitals)
 {
 	public static final String COMPONENT_TYPE = "background.owned-store";
 	public static final int SCHEMA_VERSION = 1;
 	private static final int MAGIC = 0x504f5331; // Existing POS1 receipt layout.
-	private static final int COMPRESSED_MAGIC = 0x504f5a31; // POZ1: size + one zlib stream containing exact POS1 bytes.
+	private static final int RAW_MAGIC = 0x504f5332; // POS2: POS1 fields followed by exact raw corpse MP/CP.
+	private static final int COMPRESSED_MAGIC = 0x504f5a31; // POZ1: size + one zlib stream containing exact plain receipt bytes.
 	private static final int MAX_LEGACY_BYTES = 65536;
-	// Two existing bounded state payloads and <=175 bytes of POS1 header; 256 keeps the derivation explicit.
+	// Two bounded state payloads and <=191 bytes of header/raw tail; existing256 bound is unchanged.
 	private static final int MAX_EXPANDED_BYTES = (2 * PhantomProfileComponent.MAX_PAYLOAD_BYTES) + 256;
 	private static final int COMPRESSED_HEADER_BYTES = 8;
+
+	public PhantomOwnedStoreIntent(long preparedRowVersion, long materializedAtNanos, State targetState, String previousState, String previousPayloadHash, String skillsHash, PhantomBackgroundState before, PhantomBackgroundState after)
+	{
+		this(preparedRowVersion, materializedAtNanos, targetState, previousState, previousPayloadHash, skillsHash, before, after, null);
+	}
+
+	/** Exact SQL preimage; deliberately separate from the strict bounded Background vitals. */
+	public record RawDeadVitals(double currentMp, double currentCp)
+	{
+		public RawDeadVitals
+		{
+			if (!Double.isFinite(currentMp) || !Double.isFinite(currentCp) || currentMp < 0 || currentCp < 0) { throw new IllegalArgumentException("OWNED_STORE_RAW_DEAD_VITALS_INVALID"); }
+		}
+		public boolean projectsTo(PhantomBackgroundState.Vitals vitals)
+		{
+			return vitals.currentHp() == 0 && currentMp > vitals.maximumMp() && vitals.maximumMp() > 0
+				&& Math.min(currentMp, vitals.maximumMp()) == vitals.currentMp() && Math.min(currentCp, vitals.maximumCp()) == vitals.currentCp();
+		}
+	}
 
 	public PhantomOwnedStoreIntent
 	{
@@ -32,6 +52,11 @@ public record PhantomOwnedStoreIntent(long preparedRowVersion, long materialized
 		if ((preparedRowVersion < 0) || (!before.identity().equals(after.identity()) && !nativeWarriorTransition(before, after)) || !previousState.matches("ABSENT|MATERIALIZED|READY|DEAD") || !previousPayloadHash.matches("[0-9a-f]{64}|ABSENT") || !skillsHash.matches("[0-9a-f]{64}") || ((targetState != State.MATERIALIZED) && (targetState != State.READY) && (targetState != State.DEAD)) || ((targetState == State.DEAD) && (after.vitals().currentHp() != 0)) || ((targetState == State.READY) && (after.vitals().currentHp() == 0)))
 		{
 			throw new IllegalArgumentException("OWNED_STORE_INTENT_INVALID");
+		}
+		if (rawBeforeVitals != null && (preparedRowVersion != 0 || materializedAtNanos <= 0 || targetState != State.DEAD || !previousState.equals("ABSENT") || !previousPayloadHash.equals("ABSENT")
+			|| before.state() != State.DEAD || before.identity().classIndex() != 0 || !before.identity().equals(after.identity()) || !before.progress().equals(after.progress()) || !rawBeforeVitals.projectsTo(before.vitals())))
+		{
+			throw new IllegalArgumentException("OWNED_STORE_RAW_DEAD_RECEIPT_INVALID");
 		}
 	}
 
@@ -86,8 +111,9 @@ public record PhantomOwnedStoreIntent(long preparedRowVersion, long materialized
 			final var codec = new PhantomBackgroundStateCodec();
 			try (var out = new DataOutputStream(bytes))
 			{
-				out.writeInt(MAGIC); out.writeLong(preparedRowVersion); out.writeLong(materializedAtNanos); out.writeByte(targetState.ordinal()); out.writeUTF(previousState); out.writeUTF(previousPayloadHash); out.writeUTF(skillsHash);
+				out.writeInt(rawBeforeVitals == null ? MAGIC : RAW_MAGIC); out.writeLong(preparedRowVersion); out.writeLong(materializedAtNanos); out.writeByte(targetState.ordinal()); out.writeUTF(previousState); out.writeUTF(previousPayloadHash); out.writeUTF(skillsHash);
 				for (var state : java.util.List.of(before, after)) { final byte[] payload = codec.encode(state); out.writeInt(payload.length); out.write(payload); }
+				if (rawBeforeVitals != null) { out.writeDouble(rawBeforeVitals.currentMp()); out.writeDouble(rawBeforeVitals.currentCp()); }
 			}
 			if (bytes.size() > MAX_EXPANDED_BYTES) { throw new IllegalArgumentException("OWNED_STORE_INTENT_TOO_LARGE"); }
 			return bytes.toByteArray();
@@ -101,7 +127,7 @@ public record PhantomOwnedStoreIntent(long preparedRowVersion, long materialized
 		try (var in = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
 			final int magic = in.readInt();
-			if (magic == MAGIC) { return decodePlain(payload); }
+			if (magic == MAGIC || magic == RAW_MAGIC) { return decodePlain(payload); }
 			if (magic != COMPRESSED_MAGIC) { throw new IllegalArgumentException("OWNED_STORE_INTENT_MAGIC"); }
 			if ((payload.length <= COMPRESSED_HEADER_BYTES) || (payload.length > PhantomProfileComponent.MAX_PAYLOAD_BYTES)) { throw new IllegalArgumentException("OWNED_STORE_INTENT_SIZE"); }
 			final int size = in.readInt();
@@ -135,13 +161,15 @@ public record PhantomOwnedStoreIntent(long preparedRowVersion, long materialized
 	{
 		try (var in = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
-			if (in.readInt() != MAGIC) { throw new IllegalArgumentException("OWNED_STORE_INTENT_MAGIC"); }
+			final int magic = in.readInt();
+			if (magic != MAGIC && magic != RAW_MAGIC) { throw new IllegalArgumentException("OWNED_STORE_INTENT_MAGIC"); }
 			final long version = in.readLong(); final long epoch = in.readLong(); final int target = in.readUnsignedByte(); final String previous = in.readUTF(); final String hash = in.readUTF(); final String skills = in.readUTF();
 			if (target >= State.values().length) { throw new IllegalArgumentException("OWNED_STORE_INTENT_TARGET"); }
 			final var codec = new PhantomBackgroundStateCodec();
 			final var before = codec.decode(readPayload(in)); final var after = codec.decode(readPayload(in));
+			final var raw = magic == RAW_MAGIC ? new RawDeadVitals(in.readDouble(), in.readDouble()) : null;
 			if (in.available() != 0) { throw new IllegalArgumentException("OWNED_STORE_INTENT_TRAILING_BYTES"); }
-			return new PhantomOwnedStoreIntent(version, epoch, State.values()[target], previous, hash, skills, before, after);
+			return new PhantomOwnedStoreIntent(version, epoch, State.values()[target], previous, hash, skills, before, after, raw);
 		}
 		catch (IOException failure) { throw new IllegalArgumentException("OWNED_STORE_INTENT_DECODE", failure); }
 	}

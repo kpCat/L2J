@@ -16,6 +16,17 @@ public final class PhantomPveReadiness093Suite implements PhantomTestSuite
 
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("094-maintenance-keeps-native-support-mp-reserve", _ ->
+		{
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.maintenanceAffordable(400, 1000, 60), "Maintenance spent the native support recovery reserve.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.maintenanceAffordable(410, 1000, 60), "Exact reserve boundary rejected an affordable native buff.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.maintenanceAffordable(Double.NaN, 1000, 10), "Unknown native resources authorized maintenance.");
+		});
+		registry.add("094-target-race-requires-an-observed-target", _ ->
+		{
+			final var condition = new org.l2jmobius.gameserver.model.conditions.ConditionTargetRace(org.l2jmobius.gameserver.model.actor.enums.creature.Race.UNDEAD);
+			PhantomAssertions.assertFalse(condition.testImpl(null, null, null, null), "Unresolved planning target cannot satisfy a race-restricted native skill.");
+		});
 		registry.add("093-continuation-and-readiness-debt-retain-exact-owner", _ ->
 		{
 			final String visible = Files.readString(Path.of(System.getProperty("phantom.module.root")).resolve("java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java"));

@@ -22,10 +22,13 @@ public final class PhantomHistoricalIdleVisible068Checks implements PhantomTestS
 		registry.add("01-historical-idle-enters-existing-local-planner", _ -> predecessor());
 		registry.add("02-foreign-predecessor-rejected-and-calendar-retained", _ -> fences());
 		registry.add("03-recovery-control-accepts-only-exact-current-root", _ -> recoveryControl());
+		registry.add("04-idle-travel-keeps-solo-farm-closed", _ -> travelAdmission());
+		registry.add("05-native-walk-checkpoints-retain-bounds", _ -> walkBudget());
+		registry.add("06-idle-native-ingress-uses-existing-connected-anchor", _ -> idleIngress());
 	}
 	public static void main(String[] args)
 	{
-		predecessor(); fences(); recoveryControl();
+		predecessor(); fences(); recoveryControl(); travelAdmission(); walkBudget(); idleIngress();
 		System.out.println("OWN068_HISTORICAL_IDLE_VISIBLE_PASS; DB_CONNECTIONS=0; ACTORS=0");
 	}
 	private static PhantomGoal idle()
@@ -33,6 +36,73 @@ public final class PhantomHistoricalIdleVisible068Checks implements PhantomTestS
 		final var owner = new PhantomDomainRef("profile", "5");
 		return new PhantomGoal(55, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, owner, owner, 1, 0,
 			"background.idle", List.of(), new PhantomDomainRef("topology.anchor", "anchor"), "background.history", 500, 0, 0, 0, Map.of(), "planner.target_or_route.absent", 7);
+	}
+	private static PhantomTopologyAnchor ingressAnchor(String id, int x, int instance)
+	{
+		return new PhantomTopologyAnchor(id, PhantomTopologyAnchorRole.FARMING, id + ".node", new PhantomTopologyPoint(x, 0, 0, instance), null, null, 0, List.of(), List.of("fixture"));
+	}
+	private static void idleIngress()
+	{
+		final var live = new PhantomTopologyPoint(0, 0, 0, 0); final var goal = ingressAnchor("goal", 10000, 0);
+		final var disconnected = ingressAnchor("disconnected", 10, 0); final var foreign = ingressAnchor("foreign", 20, 1);
+		final var entry = ingressAnchor("entry", 2000, 0); final var farther = ingressAnchor("farther", 3000, 0);
+		final var anchors = List.of(goal, disconnected, foreign, farther, entry);
+		PhantomAssertions.assertEquals(entry, PhantomVisibleFarmTravel.idleIngress(anchors, live, goal.id(), 12000, anchor -> !anchor.id().equals(disconnected.id())), "Idle native travel must enter the nearest same-instance existing itinerary instead of greedily aiming at its distant final anchor.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.idleIngress(anchors, live, goal.id(), 1000, anchor -> !anchor.id().equals(disconnected.id())), "An ingress cannot enlarge the existing local-distance bound or borrow another instance.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.idleIngress(anchors, live, goal.id(), 12000, _ -> false), "A disconnected anchor cannot become an implicit topology edge.");
+		final var calls = new java.util.concurrent.atomic.AtomicInteger();
+		final var many = java.util.stream.IntStream.rangeClosed(1, 32).mapToObj(index -> ingressAnchor("candidate." + index, index * 100, 0)).toList();
+		PhantomVisibleFarmTravel.idleIngress(many, live, goal.id(), 12000, _ -> { calls.incrementAndGet(); return false; });
+		PhantomAssertions.assertEquals(16, calls.get(), "A missing entry cannot trigger unbounded itinerary queries in a shared scheduler slice.");
+	}
+	private static void travelAdmission()
+	{
+		PhantomAssertions.assertEquals("anchor", PhantomVisibleFarmTravel.travelSpec(5, idle()).anchorId(), "Canonical idle may physically return to its exact source anchor.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomBackgroundGoalSpec.parse(idle()), "Travel must not admit idle to solo farming.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomVisibleFarmTravel.travelSpec(6, idle()), "A different profile cannot borrow idle travel.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomVisibleFarmTravel.travelSpec(5, idle().withStatus(PhantomGoalStatus.COMPLETED)), "Terminal idle cannot start movement.");
+	}
+	private static void walkBudget()
+	{
+		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		final var origin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 0, 0, 0);
+		final var checkpoint = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(1000, 0, 0, 0);
+		final var destination = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(25_000, 0, 0, 0);
+		final var capability = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_PATHFINDING, 1);
+		final var route = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.COMPUTED, origin, checkpoint, List.of(checkpoint), capability, 1, false, 1, 100_000);
+		final var budget = new PhantomVisibleFarmTravel.NativeWalkBudget(origin, destination, 1, 120, policy);
+		PhantomAssertions.assertTrue(budget.admit(route, 2), "A proven local route fits the unchanged corridor bounds.");
+		PhantomAssertions.assertFalse(budget.checkpoint(origin, 3), "PATH_FOUND or wrong feet cannot renew the native phase.");
+		PhantomAssertions.assertTrue(budget.checkpoint(checkpoint, 4), "Only physical released checkpoint arrival admits another episode.");
+		PhantomAssertions.assertFalse(budget.admit(route, 5), "A previously reached checkpoint cannot cause a loop.");
+		PhantomAssertions.assertTrue(budget.expired(4 + policy.maximumAttemptDurationNanos()), "A retry cannot renew the 120 second episode.");
+		final var charged = new PhantomVisibleFarmTravel.NativeWalkBudget(origin, destination, 1, 120, policy);
+		for (int index = 0; index < 64; index++) { PhantomAssertions.assertTrue(charged.admit(route, 2), "Each retry charges its whole proven corridor."); }
+		PhantomAssertions.assertFalse(charged.admit(route, 2), "Route retries remain bounded even before reaching a checkpoint.");
+		final var detour = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.COMPUTED, origin, checkpoint, List.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 40_000, 0, 0), checkpoint), capability, 1, false, 2, 100_000);
+		final var distanceBudget = new PhantomVisibleFarmTravel.NativeWalkBudget(origin, destination, 1, 120, policy);
+		PhantomAssertions.assertTrue(distanceBudget.admit(detour, 2), "A proven detour fits the actual distance cap.");
+		PhantomAssertions.assertFalse(distanceBudget.admit(detour, 3), "A retry charges all detour segments, not the short checkpoint displacement.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomVisibleFarmTravel.NativeWalkBudget(origin, destination, 1, 0, policy), "Native speed cannot be fabricated.");
+		final var shortGoal = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(1000, 0, 0, 0);
+		final var provenDetour = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.COMPUTED, origin, shortGoal, List.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 4000, 0, 0), shortGoal), capability, 1, false, 2, 100_000);
+		final var timedDetour = new PhantomVisibleFarmTravel.NativeWalkBudget(origin, shortGoal, 1, 100, policy);
+		PhantomAssertions.assertTrue(timedDetour.admit(provenDetour, 2), "A fully proven detour is admitted under the existing distance and waypoint bounds.");
+		PhantomAssertions.assertTrue(timedDetour.checkpoint(shortGoal, java.util.concurrent.TimeUnit.SECONDS.toNanos(90)), "A paid-for proven detour must budget its actual native corridor length, while the original 120 second phase and 30 minute total ceiling remain closed.");
+		final var rejectedDetour = new PhantomVisibleFarmTravel.NativeWalkBudget(origin, shortGoal, 1, 100, policy);
+		final var repeatedDestination = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.COMPUTED, origin, origin, List.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 4000, 0, 0), origin), capability, 1, false, 2, 100_000);
+		PhantomAssertions.assertFalse(rejectedDetour.admit(repeatedDestination, 2), "A proven loop to a visited endpoint is never admitted or allowed to extend time.");
+		PhantomAssertions.assertTrue(rejectedDetour.expired(java.util.concurrent.TimeUnit.SECONDS.toNanos(60)), "Rejected routes cannot extend the original work deadline.");
+		final var hardBound = new PhantomVisibleFarmTravel.NativeWalkBudget(origin, destination, 1, 1, policy);
+		var prior = origin;
+		for (int index = 1; index <= 18; index++)
+		{
+			final var next = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(index * 100, 0, 0, 0);
+			final var leg = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.COMPUTED, prior, next, List.of(next), capability, 1, false, index, 100_000);
+			PhantomAssertions.assertTrue(hardBound.admit(leg, 2 + java.util.concurrent.TimeUnit.SECONDS.toNanos((index - 1) * 100L)), "A new fully proven phase is admitted before its original hard deadline.");
+			PhantomAssertions.assertEquals(index < 18, hardBound.checkpoint(next, 1 + java.util.concurrent.TimeUnit.SECONDS.toNanos(index * 100L)), "Physical checkpoints cannot reset the original 30 minute ceiling.");
+			prior = next;
+		}
 	}
 	private static PhantomBackgroundState state()
 	{

@@ -65,4 +65,25 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		}
 		return new StoredPartyState(component.profileId(), component.rowVersion(), state);
 	}
+
+	@Override
+	public Optional<StoredRegroupClock> loadRegroupClock(long profileId)
+	{
+		return _profiles.findComponent(profileId, PhantomPartyRegroupState.COMPONENT_TYPE).map(this::decodeRegroup);
+	}
+
+	@Override
+	public StoredRegroupClock saveRegroupClock(long profileId, long expectedRowVersion, PhantomPartyRegroupState state)
+	{
+		if (state.actor().profileId() != profileId) { throw new IllegalArgumentException("Foreign regroup owner."); }
+		return decodeRegroup(expectedRowVersion < 0
+			? _profiles.insertComponent(profileId, PhantomPartyRegroupState.COMPONENT_TYPE, PhantomPartyRegroupState.SCHEMA_VERSION, state.encode())
+			: _profiles.updateComponent(profileId, PhantomPartyRegroupState.COMPONENT_TYPE, expectedRowVersion, PhantomPartyRegroupState.SCHEMA_VERSION, state.encode()));
+	}
+
+	private StoredRegroupClock decodeRegroup(PhantomProfileComponent component)
+	{
+		if (component.componentSchemaVersion() != PhantomPartyRegroupState.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown regroup schema."); }
+		return new StoredRegroupClock(component.profileId(), component.rowVersion(), PhantomPartyRegroupState.decode(component.payload()));
+	}
 }

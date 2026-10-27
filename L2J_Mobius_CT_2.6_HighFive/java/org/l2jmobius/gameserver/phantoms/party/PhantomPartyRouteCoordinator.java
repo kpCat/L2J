@@ -301,7 +301,7 @@ public final class PhantomPartyRouteCoordinator
 	/** One follower owns its own path; neither the human nor another follower visits its old waypoints. */
 	public int follow(String groupId, long generation, MemberSnapshot actor, MemberSnapshot leader, String topologyHash, long logicalNow, int operationBudget, PhantomCancellationToken token)
 	{
-		if (!_followPolicy.enabled() || (_navigation == null) || (_combat == null) || (operationBudget < 3) || (actor == null) || (leader == null) || (actor.ref().kind() != MemberKind.PHANTOM) || (leader.ref().kind() != MemberKind.REAL))
+		if (!_followPolicy.enabled() || (_navigation == null) || (_combat == null) || (operationBudget < 3) || (actor == null) || (leader == null) || (actor.ref().kind() != MemberKind.PHANTOM) || actor.ref().equals(leader.ref()))
 		{
 			return 0;
 		}
@@ -456,7 +456,7 @@ public final class PhantomPartyRouteCoordinator
 			releaseMovementReservation(actor.ref().profileId());
 			return 3;
 		}
-		final ActionOutcome outcome = lease.moveTo(target.x(), target.y(), target.z(), target.instanceId());
+		final ActionOutcome outcome = leader.ref().kind() == MemberKind.PHANTOM && !lease.partyWalkSafe(target.x(), target.y(), target.z(), target.instanceId()) ? ActionOutcome.UNAVAILABLE : lease.moveTo(target.x(), target.y(), target.z(), target.instanceId());
 		if (((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED)) && rememberMovement(actor.ref().profileId(), route.routeId(), lease))
 		{
 			return 3;

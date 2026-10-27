@@ -1058,7 +1058,7 @@ public final class PhantomNavigationService
 
 	private boolean canMove(RequestEntry entry, PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
-		return entry._walkCorridor ? (_backend instanceof L2jNavigationBackend nativeBackend ? nativeBackend : new L2jNavigationBackend()).canWalkDirect(from, to) : _backend.canMoveDirect(from, to);
+		return entry._request.permitsWalkSegment(from, to) && (entry._walkCorridor ? (_backend instanceof L2jNavigationBackend nativeBackend ? nativeBackend : new L2jNavigationBackend()).canWalkDirect(from, to) : _backend.canMoveDirect(from, to));
 	}
 
 	private static final class RequestEntry

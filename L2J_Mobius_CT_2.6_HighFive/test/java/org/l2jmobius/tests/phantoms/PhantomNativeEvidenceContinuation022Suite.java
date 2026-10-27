@@ -15,6 +15,86 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("094-completed-cycle-retains-late-native-settlement-receipt", _ ->
+		{
+			for (int order = 0; order < 3; order++)
+			{
+				final var sensor = new PlayerNativeEvidence(1, 100);
+				final var a = new Target(10, 0, 1); final var b = new Target(11, 0, 1);
+				sensor.selected(a, 100); sensor.damage(a, 5, 101);
+				if (order == 0) { sensor.selected(b, 102); sensor.reward(a, 20, 2, 103); sensor.killed(a, 104); }
+				else if (order == 1) { sensor.reward(a, 20, 2, 102); sensor.selected(b, 103); sensor.killed(a, 104); }
+				else { sensor.killed(a, 102); sensor.selected(b, 103); sensor.reward(a, 20, 2, 104); }
+				PhantomAssertions.assertEquals(1L, sensor.snapshot(105).farmCycleSequence(), "Actual completed cycle changed, order=" + order);
+				sensor.rewardSettled(a);
+				PhantomAssertions.assertEquals(a, sensor.targetReceipts().settledTarget(), "Native settlement was lost after cycle retirement, order=" + order);
+				PhantomAssertions.assertEquals(1L, sensor.targetReceipts().settledRewardSequence(), "Receipt did not bind the actual native award sequence.");
+				sensor.rewardSettled(b);
+				PhantomAssertions.assertEquals(a, sensor.targetReceipts().settledTarget(), "Unawarded target borrowed another target's native sequence.");
+				sensor.reward(b, 30, 3, 106); sensor.rewardSettled(b); sensor.rewardSettled(a);
+				PhantomAssertions.assertEquals(b, sensor.targetReceipts().settledTarget(), "Old boundary overwrote the latest exact native settlement.");
+				final var now = sensor.snapshot(107);
+				PhantomAssertions.assertTrue(!now.overflow() && now.expGained() == 50 && now.spGained() == 5 && now.rewardSequence() == 2 && now.killSequence() == 1 && now.farmCycleSequence() == 1, "Receipt changes fabricated awards or cycles.");
+			}
+		});
+		registry.add("094-native-target-receipts-disambiguate-interleaved-settlements", _ ->
+		{
+			final var sensor = new PlayerNativeEvidence(1, 100);
+			final var a = new Target(10, 0, 1); final var b = new Target(11, 0, 1);
+			sensor.damage(a, 1, 101); sensor.damage(b, 1, 102);
+			sensor.reward(b, 20, 2, 103); sensor.killed(b, 104); sensor.rewardSettled(b);
+			final var global = sensor.snapshot(105); final var other = sensor.targetReceipts();
+			PhantomAssertions.assertEquals(1L, global.rewardSequence(), "Exactly one other NPC settlement was observed.");
+			PhantomAssertions.assertEquals(1L, global.killSequence(), "Exactly one other NPC kill was observed.");
+			PhantomAssertions.assertEquals(b, other.rewardTarget(), "Global +1 cannot attribute NPC B reward to a dead NPC A with a pending boundary.");
+			PhantomAssertions.assertEquals(b, other.killTarget(), "Kill receipt belongs to its actual native target.");
+			PhantomAssertions.assertEquals(b, other.settledTarget(), "Only a completed exact target boundary proves settlement.");
+			PhantomAssertions.assertFalse(a.equals(other.rewardTarget()), "The delayed A boundary cannot borrow B counters.");
+			sensor.reward(a, 20, 2, 106); sensor.killed(a, 107); sensor.rewardSettled(a);
+			final var exact = sensor.targetReceipts();
+			PhantomAssertions.assertEquals(a, exact.rewardTarget(), "Actual A award replaces only the bounded latest receipt.");
+			PhantomAssertions.assertEquals(a, exact.killTarget(), "Actual A kill remains source bound.");
+			PhantomAssertions.assertEquals(2L, exact.settledRewardSequence(), "Settlement receipt stamps the exact award sequence.");
+			final var support = new PlayerNativeEvidence(2, 100);
+			support.reward(a, 20, 2, 101); support.rewardSettled(a, false);
+			PhantomAssertions.assertEquals(a, support.targetReceipts().settledTarget(), "Pure support keeps its exact terminal receipt after retiring the unfinished map entry.");
+			PhantomAssertions.assertEquals(0, support.snapshot(102).trackedTargets(), "Exact receipt does not retain unbounded target state.");
+			final var respawn = new Target(a.objectId(), a.instanceId(), 2);
+			support.reward(respawn, 20, 2, 103); support.rewardSettled(respawn, false);
+			PhantomAssertions.assertEquals(respawn, support.targetReceipts().rewardTarget(), "A reused object ID requires its actual new spawn generation.");
+			PhantomAssertions.assertFalse(a.equals(support.targetReceipts().settledTarget()), "A previous incarnation cannot satisfy a new spawn receipt.");
+		});
+		registry.add("094-pure-party-support-settlements-do-not-exhaust-unfinished-cap", _ ->
+		{
+			final var sensor = new PlayerNativeEvidence(1, System.nanoTime());
+			for (int index = 1; index <= 32; index++)
+			{
+				final var target = new Target(index, 0, 1);
+				sensor.reward(target, 20, 2); sensor.rewardSettled(target, false);
+			}
+			final var snapshot = sensor.snapshot();
+			PhantomAssertions.assertFalse(snapshot.overflow(), "Settled non-damaging Party support must not overflow the unfinished target cap.");
+			PhantomAssertions.assertEquals(640L, snapshot.expGained(), "Only actual Party EXP remains recorded.");
+			PhantomAssertions.assertEquals(64L, snapshot.spGained(), "Only actual Party SP remains recorded.");
+			PhantomAssertions.assertEquals(0L, snapshot.farmCycleSequence(), "Pure support rewards never fabricate own damage/kill cycles.");
+		});
+		registry.add("094-frozen-contributor-preserves-late-one-HP-damage-and-native-cycle", _ ->
+		{
+			for (boolean frozenContributor : new boolean[] {true, false})
+			{
+				final var sensor = new PlayerNativeEvidence(1, System.nanoTime());
+				final var target = new Target(10, 0, 1);
+				sensor.selected(target); sensor.reward(target, 20, 2);
+				if (!frozenContributor) { sensor.damage(target, 1); }
+				sensor.rewardSettled(target, frozenContributor);
+				if (frozenContributor) { sensor.damage(target, 1); }
+				sensor.killed(target); sensor.selected(new Target(11, 0, 1));
+				final var snapshot = sensor.snapshot();
+				PhantomAssertions.assertFalse(snapshot.overflow(), "Frozen contributor or existing damage cannot be retired as pure support.");
+				PhantomAssertions.assertEquals(1L, snapshot.farmCycleSequence(), "Reward-before-damage and one-HP contribution preserve exactly one native cycle.");
+				PhantomAssertions.assertEquals(20L, snapshot.expGained(), "Settlement never duplicates the native award.");
+			}
+		});
 		registry.add("S11-useful-native-offense-finishes-rest-gap-without-clearing-invalidity", _ ->
 		{
 			final var sensor = new PlayerNativeEvidence(1, System.nanoTime());

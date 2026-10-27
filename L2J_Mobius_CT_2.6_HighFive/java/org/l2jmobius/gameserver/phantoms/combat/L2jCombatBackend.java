@@ -90,6 +90,10 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorKind;
@@ -1343,6 +1347,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			PlayerNativeWork.run(_player, "combat-target-selection", () ->
 			{
 				if (_closed.get() || _player.getNativeWorkOwner() != owner || !owner.isCurrent() || World.getInstance().getPlayer(_player.getObjectId()) != _player || !target.isSpawned() || target.isAlikeDead()) { return; }
+				if (_player.getParty() != null && _player.getParty().getMembers().stream().allMatch(Player::isNativeWorkManaged) && !safePartyApproach(_player, target)) { return; }
 				_player.setTarget(target);
 				selected[0] = _player.getTarget() == target;
 			});
@@ -1615,7 +1620,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
 			final CapabilityRule rule = catalog == null ? null : catalog.capabilities(_player.getActiveClass()).stream().filter(candidate -> candidate.capabilityKey().equals(action.capabilityKey()) && candidate.variantKey().equals(action.variantKey()) && candidate.targetScope().name().equals(action.targetScope()) && (candidate.actionSkill().skillId() == action.skill().skillId()) && (candidate.actionSkill().skillLevel() <= action.skill().skillLevel())).findFirst().orElse(null);
-			if (rule == null)
+			final Skill skill = _player.getKnownSkill(action.skill().skillId());
+			final boolean nativeSupport = skill != null && action.variantKey().equals(PhantomSupportEffectAuthority.nativeVariant(skill)) && action.capabilityKey().equals(PhantomSupportEffectAuthority.nativeCapability(skill)) && action.targetScope().equals(PhantomSupportEffectAuthority.nativeScope(skill));
+			if (rule == null && !nativeSupport)
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -1626,7 +1633,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final boolean self = target == _player;
 			final boolean sameParty = self || ((_player.getParty() != null) && (_player.getParty() == target.getParty()));
-			final boolean targetScopeAllowed = switch (rule.targetScope())
+			final var scope = rule == null ? org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.TargetScope.valueOf(action.targetScope()) : rule.targetScope();
+			final boolean targetScopeAllowed = switch (scope)
 			{
 				case SELF -> self;
 				case SINGLE_TARGET, ALLY -> action.audience() == PhantomPartySupportAction.Audience.EXACT_REQUESTER || sameParty;
@@ -1637,7 +1645,6 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final Skill skill = _player.getKnownSkill(action.skill().skillId());
 			if ((skill == null) || (skill.getLevel() != action.skill().skillLevel()) || skill.isPassive() || skill.isToggle() || skill.isDebuff() || skill.hasNegativeEffect() || !PARTY_SUPPORT_TARGET_TYPES.contains(skill.getTargetType()) || !PhantomSupportEffectAuthority.supportsCapability(skill, action.capabilityKey()))
 			{
 				return ActionOutcome.REJECTED;
@@ -1655,6 +1662,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
+			if (Set.of("combat.buff", "combat.song", "combat.dance").contains(action.capabilityKey()) && !PhantomSupportEffectAuthority.maintenanceAffordable(_player, skill)) { return ActionOutcome.UNAVAILABLE; }
 			final int castRange = Math.max(0, skill.getCastRange());
 			if (action.stationary() && (_player.isMoving() || _player.isCastingNow() || _player.isAttackingNow() || (!self && (distance(_player, target) > Math.max(0, Math.min(castRange, _player.getMagicalAttackRange(skill)))))))
 			{
@@ -1673,13 +1681,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return ActionOutcome.ALREADY_OWNED;
 			}
+			if (_player.isCastingNow() || _player.isCastingSimultaneouslyNow()) { return ActionOutcome.UNAVAILABLE; }
 			_player.setTarget(target);
-			if (action.stationary())
-			{
-				return _player.useMagic(skill, false, true) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
-			}
-			_player.getAI().setIntention(Intention.CAST, skill, target);
-			return ActionOutcome.ISSUED;
+			// Player.useMagic owns currentSkill and native cast/queue checks; direct AI.CAST
+			// can replace a pending native task when an external lease is retried.
+			return _player.useMagic(skill, false, action.stationary()) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
 		}
 
 		@Override
@@ -2096,6 +2102,82 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public boolean regroupReady() { return !_closed.get() && !_materializationLease.isClosed() && regroupIdle(_player); }
+
+		@Override
+		public boolean partyWalkSafe(int x, int y, int z, int instanceId)
+		{
+			if (!regroupReady() || instanceId != 0 || Math.hypot((long) _player.getX() - x, (long) _player.getY() - y) > 3000) { return false; }
+			if (Math.hypot((long) _player.getX() - x, (long) _player.getY() - y) <= 50 && Math.abs((long) _player.getZ() - z) <= 50) { return true; }
+			final var geo = GeoEngine.getInstance();
+			return new L2jNavigationBackend().canWalkDirect(new PhantomNavigationPoint(_player.getX(), _player.getY(), geo.getHeight(_player.getX(), _player.getY(), _player.getZ()), 0), new PhantomNavigationPoint(x, y, z, 0))
+				&& ZoneManager.getInstance().getZone(x, y, z, org.l2jmobius.gameserver.model.zone.type.SiegeZone.class) == null
+				&& org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(_player, x, y, z, World.getInstance().getVisibleObjectsInRange(_player, Monster.class, 3500), Set.of());
+		}
+
+		@Override
+		public ActionOutcome regroupParty(MemberRef actor, MemberRef leader, List<MemberRef> roster, List<MemberRef> majority, java.util.function.BooleanSupplier authority)
+		{
+			if (actor.kind() != MemberKind.PHANTOM || actor.profileId() != _profileId || actor.characterObjectId() != _player.getObjectId() || _closed.get() || _materializationLease.isClosed()
+				|| roster.size() < 3 || roster.size() > 9 || majority.size() <= roster.size() / 2 || !roster.contains(actor) || !roster.containsAll(majority) || majority.contains(actor) || !authority.getAsBoolean()) { return ActionOutcome.REJECTED; }
+			final Player nativeLeader = World.getInstance().getPlayer(leader.characterObjectId());
+			final var party = nativeLeader == null ? null : nativeLeader.getParty();
+			if (party == null || party.getLeader() != nativeLeader || party.getMembers().stream().anyMatch(member -> !roster.stream().anyMatch(ref -> ref.kind() == MemberKind.PHANTOM && ref.characterObjectId() == member.getObjectId()) || !regroupPresent(member))
+				|| _player.getParty() != null && _player.getParty() != party || !regroupIdle(_player)) { return ActionOutcome.REJECTED; }
+			final var cohort = majority.stream().map(ref -> World.getInstance().getPlayer(ref.characterObjectId())).toList();
+			if (cohort.stream().anyMatch(member -> member == null || member.getParty() != party || !regroupPresent(member))) { return ActionOutcome.REJECTED; }
+			final Player anchor = cohort.getFirst();
+			if (cohort.stream().anyMatch(member -> member.calculateDistance2D(anchor) > 1200 || Math.abs((long) member.getZ() - anchor.getZ()) > 200)
+				|| cohort.stream().anyMatch(member -> member.calculateDistance2D(_player) <= 1200 && Math.abs((long) member.getZ() - _player.getZ()) <= 200)) { return ActionOutcome.REJECTED; }
+			final var geo = GeoEngine.getInstance(); final var navigation = new L2jNavigationBackend();
+			final var monsters = World.getInstance().getVisibleObjectsInRange(anchor, Monster.class, 1600);
+			final var start = new PhantomNavigationPoint(anchor.getX(), anchor.getY(), geo.getHeight(anchor.getX(), anchor.getY(), anchor.getZ()), 0);
+			for (int radius : new int[] {128, 192, 256})
+			{
+				for (int turn = 0; turn < 8; turn++)
+				{
+					final int x = anchor.getX() + (int) Math.round(radius * Math.cos(turn * Math.PI / 4)), y = anchor.getY() + (int) Math.round(radius * Math.sin(turn * Math.PI / 4));
+					if (!geo.hasGeo(x, y)) { continue; }
+					final int z = geo.getHeight(x, y, anchor.getZ()); final var landing = new PhantomNavigationPoint(x, y, z, 0);
+					if (Math.abs((long) z - anchor.getZ()) > 100 || ZoneManager.getInstance().getZone(x, y, z, org.l2jmobius.gameserver.model.zone.type.SiegeZone.class) != null || !navigation.canWalkDirect(start, landing)
+						|| monsters.stream().anyMatch(monster -> !monster.isAlikeDead() && Math.abs((long) monster.getZ() - z) <= 256 && (monster.isAggressive() || monster.getLevel() > _player.getLevel() + 3) && Math.hypot((long) monster.getX() - x, (long) monster.getY() - y) < Math.max(300, monster.getAggroRange() + 100))) { continue; }
+					final var owner = _player.getNativeWorkOwner();
+					if (!authority.getAsBoolean() || !regroupIdle(_player) || nativeLeader.getParty() != party || cohort.stream().anyMatch(member -> member.getParty() != party || !regroupPresent(member) || Math.hypot((long) member.getX() - x, (long) member.getY() - y) > 1200)) { return ActionOutcome.REJECTED; }
+					if (!authority.getAsBoolean() || !regroupIdle(_player) || _player.getNativeWorkOwner() != owner) { return ActionOutcome.REJECTED; }
+					if (nativeLeader.getParty() != party || party.getLeader() != nativeLeader || _player.getParty() != null && _player.getParty() != party
+						|| party.getMembers().stream().anyMatch(member -> !regroupPresent(member) || roster.stream().noneMatch(ref -> ref.kind() == MemberKind.PHANTOM && ref.characterObjectId() == member.getObjectId()))
+						|| cohort.stream().anyMatch(member -> member.getParty() != party || !party.getMembers().contains(member) || !regroupPresent(member) || Math.abs((long) member.getZ() - z) > 200 || Math.hypot((long) member.getX() - x, (long) member.getY() - y) > 1200
+							|| member.calculateDistance2D(anchor) > 1200 || Math.abs((long) member.getZ() - anchor.getZ()) > 200 || member.calculateDistance2D(_player) <= 1200 && Math.abs((long) member.getZ() - _player.getZ()) <= 200)
+						|| !navigation.canWalkDirect(new PhantomNavigationPoint(anchor.getX(), anchor.getY(), geo.getHeight(anchor.getX(), anchor.getY(), anchor.getZ()), 0), landing)
+						|| World.getInstance().getVisibleObjectsInRange(anchor, Monster.class, 1600).stream().anyMatch(monster -> !monster.isAlikeDead() && Math.abs((long) monster.getZ() - z) <= 256 && (monster.isAggressive() || monster.getLevel() > _player.getLevel() + 3) && Math.hypot((long) monster.getX() - x, (long) monster.getY() - y) < Math.max(300, monster.getAggroRange() + 100))) { return ActionOutcome.REJECTED; }
+					final String before = _player.getX() + "," + _player.getY() + "," + _player.getZ();
+					_player.teleToLocation(x, y, z, _player.getHeading(), 0, 0);
+					if (_player.hasHeadlessOutboundSession() && _player.isTeleporting()) { _player.onTeleported(); }
+					final boolean arrived = _player.getNativeWorkOwner() == owner && owner.isCurrent() && World.getInstance().getPlayer(_player.getObjectId()) == _player && World.getInstance().findObject(_player.getObjectId()) == _player && _player.getInstanceId() == 0 && _player.getX() == x && _player.getY() == y && _player.getZ() == z + 5;
+					java.util.logging.Logger.getLogger(L2jCombatBackend.class.getName()).info("Phantom native party teleport profile=" + _profileId + " from=" + before + " to=" + _player.getX() + "," + _player.getY() + "," + _player.getZ() + " majority=" + majority.size() + "/" + roster.size() + " sameOwnerEpoch=" + arrived + " nativeVisibleTeleport=true");
+					return arrived ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+				}
+			}
+			return ActionOutcome.UNAVAILABLE;
+		}
+
+		private static boolean regroupPresent(Player player)
+		{
+			final var owner = player.getNativeWorkOwner();
+			return player.isNativeWorkManaged() && player.hasHeadlessOutboundSession() && owner != null && owner.player() == player && owner.isCurrent() && !owner.sealed() && owner.nativeObservationHealthy()
+				&& World.getInstance().getPlayer(player.getObjectId()) == player && World.getInstance().findObject(player.getObjectId()) == player && player.getInstanceId() == 0 && !player.isAlikeDead()
+				&& !player.isGM() && !player.isJailed() && !player.inObserverMode() && !player.isFestivalParticipant() && !player.isOnEvent() && !player.isInOlympiadMode() && !player.isInDuel() && !player.isInSiege() && !player.isInsideZone(ZoneId.SIEGE)
+				&& !player.isTeleporting() && !player.isInBoat() && !player.isInAirShip() && !player.isFlying() && !player.isFlyingMounted() && !player.isInStoreMode() && !player.hasPendingOwnedStore() && !player.isProcessingTransaction();
+		}
+
+		private static boolean regroupIdle(Player player)
+		{
+			return regroupPresent(player) && !player.isMoving() && !player.isAttackingNow() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && player.getQueuedSkill() == null && !player.isInCombat()
+				&& !player.isMovementDisabled() && !player.isOutOfControl() && !player.isSitting() && !player.isPendingRevive() && !player.isCombatFlagEquipped()
+				&& World.getInstance().getVisibleObjectsInRange(player, Creature.class, 2000).stream().noneMatch(creature -> creature.hasAI() && (creature.getAI().getAttackTarget() == player || creature.getAI().getCastTarget() == player));
+		}
+
+		@Override
 		public void close()
 		{
 			if (_closed.compareAndSet(false, true))
@@ -2128,6 +2210,19 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return NativeSide.DEFENDER;
 		}
 		return NativeSide.NONE;
+	}
+
+	/** Fresh long normal-Party approach proof, shared by discovery and the native issue boundary. */
+	public static boolean safePartyApproach(Player player, Creature target)
+	{
+		if (player == null || target == null || player.getInstanceId() != target.getInstanceId() || World.getInstance().getPlayer(player.getObjectId()) != player || World.getInstance().findObject(target.getObjectId()) != target || distance(player, target) > MAXIMUM_ACQUISITION_DISTANCE || Math.abs((long) player.getZ() - target.getZ()) > 200) { return false; }
+		if (distance(player, target) <= 1200) { return true; }
+		final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		final var from = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		final var to = navigation.walkSurface(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId()), 200).orElse(null);
+		final var visible = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 3500).stream().limit(65).toList();
+		return to != null && visible.size() <= 64 && navigation.canWalkDirect(from, to)
+			&& org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(player, to.x(), to.y(), to.z(), visible, java.util.Set.of(target.getObjectId()));
 	}
 
 	private static double distance(WorldObject left, WorldObject right)

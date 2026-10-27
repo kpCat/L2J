@@ -9038,11 +9038,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 		static ProductionAuthorityFixture start()
 		{
+			return start(Path.of("data/phantoms/topology"));
+		}
+		static ProductionAuthorityFixture start(Path topologyDirectory)
+		{
 			MapRegionData.getInstance();
 			SpawnData.getInstance();
 			DoorData.getInstance();
 			final L2jTopologyValidationBackend topologyBackend = new L2jTopologyValidationBackend();
-			final PhantomTopologySnapshot topologySnapshot = new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1);
+			final PhantomTopologySnapshot topologySnapshot = new PhantomTopologyLoader(topologyDirectory, topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1);
 			final PhantomTopologyQuery topology = new PhantomTopologyQuery(topologySnapshot, topologyBackend, new PhantomTopologyMetrics());
 			final PhantomGameKnowledgePolicy knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults();
 			final L2jGameKnowledgeBackend knowledgeBackend = new L2jGameKnowledgeBackend();

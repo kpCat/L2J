@@ -220,7 +220,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final Loadout loadout = new Loadout(capability.skillId(), capability.skillLevel(), capability.summonNpcId(), capability.mpConsume(), spec.shotItemId(), spec.shotsPerEncounter(), spec.summonResourceItemId(), spec.summonResourcesPerEncounter());
 		// Native occupancy excludes quest objects but includes equipped non-quest objects.
 		final InventoryFacts inventory = InventoryFacts.sorted(tracking.mutableItemIds(), tracking.objects(), "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getNonQuestSize(), player.getInventoryLimit());
-		final List<AutoGetSkill> autoSkills = nativePersistence && previous != null && previous.identity().equals(identity) ? previous.retainAutoGetRanks(autoGetSkills(identity, player.getLevel())) : autoGetSkills(identity, player.getLevel());
+		final List<AutoGetSkill> autoSkills = persistenceAutoGetSkills(identity, player, previous, nativePersistence);
 		final Clock clock = PhantomOffscreenOutdoorTravel.nativeClock(previous);
 		final Receipt receipt = PhantomOffscreenOutdoorTravel.nativeReceipt(previous,
 			World.getInstance().getPlayer(player.getObjectId()) == player && World.getInstance().findObject(player.getObjectId()) == player);
@@ -260,7 +260,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final List<ItemObject> objects = player.getInventory().getItems().stream().filter(item -> ((item.getId() == targetItemId) && (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY)) || (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL)).sorted(Comparator.comparingInt(Item::getObjectId)).map(item -> new ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), ItemLocation.valueOf(item.getItemLocation().name()))).toList();
 		// Acquisition capture must report the same stock non-quest occupancy as native store.
 		final InventoryFacts inventory = InventoryFacts.sorted(List.of(targetItemId), objects, "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getNonQuestSize(), player.getInventoryLimit());
-		final List<AutoGetSkill> autoSkills = nativePersistence && previous != null && previous.identity().equals(identity) ? previous.retainAutoGetRanks(autoGetSkills(identity, player.getLevel())) : autoGetSkills(identity, player.getLevel());
+		final List<AutoGetSkill> autoSkills = persistenceAutoGetSkills(identity, player, previous, nativePersistence);
 		final Clock clock = PhantomOffscreenOutdoorTravel.nativeClock(previous);
 		final Receipt receipt = PhantomOffscreenOutdoorTravel.nativeReceipt(previous,
 			World.getInstance().getPlayer(player.getObjectId()) == player && World.getInstance().findObject(player.getObjectId()) == player);
@@ -972,6 +972,19 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			}
 		}
 		return levels.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(entry -> new AutoGetSkill(entry.getKey(), entry.getValue())).toList();
+	}
+
+	private List<AutoGetSkill> persistenceAutoGetSkills(Identity identity, Player player, PhantomBackgroundState previous, boolean nativePersistence)
+	{
+		final var floor = autoGetSkills(identity, player.getLevel());
+		if (nativePersistence && previous != null && previous.identity().equals(identity)) { return previous.retainAutoGetRanks(floor); }
+		final var owner = player.getNativeWorkOwner();
+		if (!nativePersistence || previous != null || !player.isDead() || identity.classIndex() != 0 || !player.hasHeadlessOutboundSession() || owner == null || owner.player() != player || !owner.isCurrent() || !owner.sealed()
+			|| World.getInstance().getPlayer(player.getObjectId()) != player || World.getInstance().findObject(player.getObjectId()) != player || player.getExpBeforeDeath() <= player.getExp()
+			|| levelForExperience().levelFor(player.getExp()) != player.getLevel() || levelForExperience().levelFor(player.getExpBeforeDeath()) != player.getLevel() + 1) { return floor; }
+		final Map<Integer, Integer> observed = new HashMap<>();
+		for (var skill : floor) { final var known = player.getKnownSkill(skill.skillId()); if (known != null) { observed.put(skill.skillId(), known.getLevel()); } }
+		return PhantomBackgroundState.retainObservedAutoGetRanks(floor, autoGetSkills(identity, player.getLevel() + 1), observed);
 	}
 
 	private Capability capability(Player player, PhantomBackgroundGoalSpec goal)

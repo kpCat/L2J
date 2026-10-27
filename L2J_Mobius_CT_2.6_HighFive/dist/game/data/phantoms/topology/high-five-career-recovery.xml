@@ -7,4 +7,10 @@
 	<anchor id="gludin.recovery.anchor" role="RESPAWN" nodeId="gludin.recovery" x="-83520" y="150560" z="-3000" instanceId="0" mapRegionLocId="911" tolerance="256" tags="town-recovery">
 		<source path="data/mapregion/gludin_town.xml" />
 	</anchor>
+	<node id="hunters.recovery" kind="CITY" instanceId="0" form="POINT_RADIUS" x="116737" y="76738" z="-2650" radius="256" tags="town-recovery">
+		<source path="data/mapregion/hunter_town.xml" />
+	</node>
+	<anchor id="hunters.recovery.anchor" role="RESPAWN" nodeId="hunters.recovery" x="116737" y="76738" z="-2650" instanceId="0" mapRegionLocId="923" tolerance="256" tags="town-recovery">
+		<source path="data/mapregion/hunter_town.xml" />
+	</anchor>
 </topology>

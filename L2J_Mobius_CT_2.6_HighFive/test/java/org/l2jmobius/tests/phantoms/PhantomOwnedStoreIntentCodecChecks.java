@@ -41,11 +41,40 @@ public final class PhantomOwnedStoreIntentCodecChecks implements PhantomTestSuit
 		registry.add("02-strict-malformed-and-inflation-bound", _ -> malformed());
 		registry.add("03-original-intent-guards", _ -> guards());
 		registry.add("04-native-profession-receipt-edges061", _ -> professionEdges());
+		registry.add("094-exact-raw-dead-before-with-strict-bounded-after", _ -> rawDeadBefore());
+		registry.add("094-retained-native-auto-get-needs-exact-observed-prior-rank", _ -> observedNativeRanks());
 	}
 	public static void main(String[] args) throws Exception
 	{
-		conservation(); malformed(); guards(); professionEdges();
-		System.out.println("OWNED_STORE_INTENT_CODEC_PASS groups=4 nativeSqlAndWorld=REQUIRED");
+		conservation(); malformed(); guards(); professionEdges(); rawDeadBefore(); observedNativeRanks();
+		System.out.println("OWNED_STORE_INTENT_CODEC_PASS groups=6 nativeSqlAndWorld=REQUIRED");
+	}
+	private static void observedNativeRanks()
+	{
+		final var floor = List.of(new AutoGetSkill(239, 3), new AutoGetSkill(1320, 6));
+		final var prior = List.of(new AutoGetSkill(239, 3), new AutoGetSkill(999, 1), new AutoGetSkill(1320, 7));
+		PhantomAssertions.assertEquals(List.of(new AutoGetSkill(239, 3), new AutoGetSkill(1320, 7)), PhantomBackgroundState.retainObservedAutoGetRanks(floor, prior, java.util.Map.of(239, 3, 999, 1, 1320, 7)), "Exact native pre-death rank was lost or a new skill ID was invented.");
+		PhantomAssertions.assertEquals(floor, PhantomBackgroundState.retainObservedAutoGetRanks(floor, prior, java.util.Map.of(1320, 8)), "Unsupported higher observed rank was admitted as an earned floor.");
+		PhantomAssertions.assertEquals(floor, PhantomBackgroundState.retainObservedAutoGetRanks(floor, prior, java.util.Map.of()), "Missing learned rank was inferred from the previous level.");
+	}
+	private static void rawDeadBefore() throws Exception
+	{
+		final var base = state(false, false);
+		final var dead = new PhantomBackgroundState(State.DEAD, base.identity(), base.progress(), new Vitals(0, 100, 60, 60, 20, 20), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
+		final var legacy = new PhantomOwnedStoreIntent(0, 42, State.DEAD, "ABSENT", "ABSENT", "b".repeat(64), dead, dead);
+		final byte[] prefix = legacy(legacy), raw = Arrays.copyOf(prefix, prefix.length + 16);
+		ByteBuffer.wrap(raw).putInt(0x504f5332); ByteBuffer.wrap(raw, prefix.length, 16).putDouble(85).putDouble(23);
+		final var decoded = PhantomOwnedStoreIntent.decode(raw);
+		PhantomAssertions.assertTrue(Arrays.equals(raw, decoded.encode()), "Exact raw corpse MP/CP preimage did not survive receipt round-trip.");
+		PhantomAssertions.assertEquals(dead, decoded.before(), "Raw receipt weakened bounded BackgroundState vitals.");
+		final byte[] other = raw.clone(); ByteBuffer.wrap(other, prefix.length, 16).putDouble(86).putDouble(23);
+		PhantomAssertions.assertFalse(decoded.equals(PhantomOwnedStoreIntent.decode(other)), "Distinct raw SQL BEFORE values collapsed into one witness.");
+		for (double[] invalid : List.of(new double[] {60, 23}, new double[] {85, -1}, new double[] {Double.NaN, 23}, new double[] {85, Double.POSITIVE_INFINITY}))
+		{
+			final byte[] changed = raw.clone(); ByteBuffer.wrap(changed, prefix.length, 16).putDouble(invalid[0]).putDouble(invalid[1]); rejected(changed, "invalid raw dead range");
+		}
+		rejected(Arrays.copyOf(raw, raw.length - 1), "truncated raw witness");
+		final byte[] zeroEpoch = raw.clone(); ByteBuffer.wrap(zeroEpoch).putLong(12, 0); rejected(zeroEpoch, "raw witness without native epoch");
 	}
 	private static void professionEdges()
 	{

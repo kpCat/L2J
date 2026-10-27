@@ -114,7 +114,7 @@ public final class PhantomPartyTactics
 				candidates.add(new TacticalDirective(DirectiveKind.ASSIST_TARGET, actor, leader, leaderSnapshot.targetObjectId(), "", "", "", 0, 0, "leader.target", 6000));
 			}
 		}
-		final List<TacticalDirective> ordered = candidates.stream().filter(permitted).sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(value -> value.kind() == DirectiveKind.PARTY_SUPPORT && value.reasonKey().endsWith(".idle") && value.actor().equals(value.targetMember()) ? 0 : 1).thenComparingInt(TacticalDirective::targetObjectId).thenComparingInt(TacticalDirective::actionSkillId)).toList();
+		final List<TacticalDirective> ordered = candidates.stream().filter(permitted).sorted(Comparator.comparingInt(TacticalDirective::priority).reversed().thenComparing(value -> value.actor().stableKey()).thenComparing(value -> value.kind().name()).thenComparingInt(value -> value.kind() == DirectiveKind.PARTY_SUPPORT && value.reasonKey().endsWith(".protection.idle") ? 0 : 1).thenComparingInt(value -> value.kind() == DirectiveKind.PARTY_SUPPORT && value.reasonKey().endsWith(".idle") && value.actor().equals(value.targetMember()) ? 1 : 0).thenComparingInt(TacticalDirective::targetObjectId).thenComparingInt(TacticalDirective::actionSkillId)).toList();
 		final List<TacticalDirective> result = new ArrayList<>();
 		final Set<String> maintenance = new java.util.HashSet<>();
 		int maintenanceCount = 0;
@@ -239,6 +239,8 @@ public final class PhantomPartyTactics
 
 	private void addMaintenance(List<TacticalDirective> output, MemberSnapshot actor, MemberSnapshot target, List<MemberCapability> capabilities, boolean combat)
 	{
+		// This is an expense policy, not loss of a learned native role or urgent support.
+		if (actor.mpPercent() <= 35) { return; }
 		for (String key : List.of("combat.buff", "combat.song", "combat.dance"))
 		{
 			for (MemberCapability capability : capabilities.stream().filter(value -> value.capabilityKey().equals(key) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).toList())
@@ -249,7 +251,8 @@ public final class PhantomPartyTactics
 					continue;
 				}
 				final String reason = status == Status.NEAR_EXPIRY ? "support.effect.expiring" : "support.effect.missing";
-				output.add(new TacticalDirective(DirectiveKind.PARTY_SUPPORT, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason + (combat ? ".combat" : ".idle"), combat ? _policy.combatPriority() : _policy.idlePriority()));
+				final String phase = combat ? ".combat" : _backend.protectiveMaintenance(actor.ref(), capability) ? ".protection.idle" : ".idle";
+				output.add(new TacticalDirective(DirectiveKind.PARTY_SUPPORT, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason + phase, combat ? _policy.combatPriority() : _policy.idlePriority()));
 			}
 		}
 	}

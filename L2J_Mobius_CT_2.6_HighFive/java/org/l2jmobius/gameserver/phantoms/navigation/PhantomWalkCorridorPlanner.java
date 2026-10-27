@@ -22,6 +22,7 @@ public final class PhantomWalkCorridorPlanner
 	}
 	private static final int MAX_NODES = 128, MAX_EDGES = 512, MAX_QUERIES = 32, MAX_LABELS = 4096;
 	private static final int STRIDE = 1024, LOCAL_SPAN = 3000;
+	private static final int MAX_EPISODE_PROBE_QUERIES = MAX_QUERIES / 2;
 	private static final int[][] DIRECTIONS = {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
 	private final Oracle _oracle;
 	private final LongSupplier _clock;
@@ -89,7 +90,7 @@ public final class PhantomWalkCorridorPlanner
 		{
 			final Status interrupted = episodeInterruption(request, cancellation);
 			if (interrupted != null) { return episodeResult(interrupted, List.of(), budget); }
-			if (!target.equals(request.destination()) && visited.stream().anyMatch(point -> point.instanceId() == target.instanceId() && Math.hypot((long) point.x() - target.x(), (long) point.y() - target.y()) < 256 && Math.abs((long) point.z() - target.z()) < 100)) { continue; }
+			if (!target.equals(request.destination()) && nearVisited(target, visited)) { continue; }
 			if (fallback == null) { fallback = target; }
 			if (!budget.reserve(1, 1)) { return episodeResult(Status.SEARCH_LIMIT, List.of(), budget); }
 			budget.labels++;
@@ -97,7 +98,8 @@ public final class PhantomWalkCorridorPlanner
 			if (_oracle.direct(request.origin(), target)) { points = List.of(target); }
 			else
 			{
-				if (budget.queries >= MAX_QUERIES) { return episodeResult(Status.SEARCH_LIMIT, List.of(), budget); }
+				// Straight probes share the original cap with the bounded detour search.
+				if (budget.queries >= MAX_EPISODE_PROBE_QUERIES) { continue; }
 				budget.queries++;
 				points = _oracle.path(request.origin(), target);
 			}
@@ -107,9 +109,15 @@ public final class PhantomWalkCorridorPlanner
 			if (proof.status() == PhantomNavigationResult.Status.PATH_FOUND) { return episodeResult(Status.FOUND, proof.waypoints(), budget); }
 		}
 		if (fallback == null) { return episodeResult(Status.NO_ROUTE_WITHIN_BUDGET, List.of(), budget); }
-		final var local = new PhantomNavigationRequest(request.profileId(), request.origin(), fallback, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance());
-		final var result = plan(local, cancellation, policy, budget);
+		// Old checkpoints may be interiors of a new, fully proven local corridor.
+		// Keep the same spent budget and require an unvisited endpoint; do not chase
+		// only the first blocked target while another reachable frontier exists.
+		final var result = new Search(request, cancellation, policy, budget, visited).run();
 		return episodeResult(result.status(), result.points(), budget);
+	}
+	private static boolean nearVisited(PhantomNavigationPoint target, java.util.Set<PhantomNavigationPoint> visited)
+	{
+		return visited.stream().anyMatch(point -> point.instanceId() == target.instanceId() && Math.hypot((long) point.x() - target.x(), (long) point.y() - target.y()) < STRIDE / 2 && Math.abs((long) point.z() - target.z()) < 100);
 	}
 	private Status episodeInterruption(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation)
 	{
@@ -131,13 +139,19 @@ public final class PhantomWalkCorridorPlanner
 		private final long generation;
 		private final PhantomNavigationPolicy policy;
 		private final Budget budget;
+		private final java.util.Set<PhantomNavigationPoint> episodeVisited;
 		private final Map<PhantomNavigationPoint, Label> best = new HashMap<>();
 		private final PriorityQueue<Label> open = new PriorityQueue<>((a,b) -> { int c = Double.compare(a.priority, b.priority); return c != 0 ? c : Long.compare(a.sequence, b.sequence); });
 		private int edges, queries, labels;
 		private boolean limited;
 		private Search(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, Budget budget)
 		{
+			this(request, cancellation, policy, budget, null);
+		}
+		private Search(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, Budget budget, java.util.Set<PhantomNavigationPoint> episodeVisited)
+		{
 			this.request = request; this.cancellation = cancellation; generation = cancellation.generation(); this.policy = policy; this.budget = budget;
+			this.episodeVisited = episodeVisited;
 		}
 		private Result run()
 		{
@@ -146,7 +160,7 @@ public final class PhantomWalkCorridorPlanner
 			if (request.origin().instanceId() != request.destination().instanceId()) { return result(Status.NO_ROUTE_WITHIN_BUDGET, List.of()); }
 			if (budget.nodes >= MAX_NODES || budget.labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
 			add(request.origin(), 0, null, List.of());
-			if (_oracle.direct(request.origin(), request.destination()))
+			if (acceptableEndpoint(request.destination()) && _oracle.direct(request.origin(), request.destination()))
 			{
 				if (budget.edges >= MAX_EDGES || budget.labels >= MAX_LABELS || (!best.containsKey(request.destination()) && budget.nodes >= MAX_NODES)) { return result(Status.SEARCH_LIMIT, List.of()); }
 				edges++; budget.edges++;
@@ -166,7 +180,7 @@ public final class PhantomWalkCorridorPlanner
 					return status == Status.CANCELLED ? PhantomNavigationResult.Status.CANCELLED : status == Status.DEADLINE_EXPIRED ? PhantomNavigationResult.Status.DEADLINE_EXPIRED : PhantomNavigationResult.Status.PATH_FOUND;
 				});
 				if (interrupted() != null) { return result(interrupted(), List.of()); }
-				if (proof.status() == PhantomNavigationResult.Status.PATH_FOUND && proof.waypoints().size() <= policy.maximumWaypoints())
+				if (proof.status() == PhantomNavigationResult.Status.PATH_FOUND && proof.waypoints().size() <= policy.maximumWaypoints() && acceptableEndpoint(request.destination()))
 				{
 					if (budget.edges >= MAX_EDGES || budget.nodes >= MAX_NODES || budget.labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
 					double distance = 0; var previous = request.origin();
@@ -183,7 +197,7 @@ public final class PhantomWalkCorridorPlanner
 				if (interrupted != null) { return result(interrupted, List.of()); }
 				final Label current = open.poll();
 				if (best.get(current.point) != current) { continue; }
-				if (current.point.equals(request.destination())) { return result(Status.FOUND, points(current)); }
+				if (acceptableEndpoint(current.point)) { return result(Status.FOUND, points(current)); }
 				final List<PhantomNavigationPoint> candidates = new ArrayList<>();
 				if (local(current.point, request.destination())) { candidates.add(request.destination()); }
 				else
@@ -198,11 +212,28 @@ public final class PhantomWalkCorridorPlanner
 					final var candidate = _oracle.project(current.point.x() + direction[0] * STRIDE, current.point.y() + direction[1] * STRIDE, current.point);
 					if ((candidate != null) && !candidate.equals(current.point) && !candidates.contains(candidate)) { candidates.add(candidate); }
 				}
+				if (episodeVisited != null)
+				{
+					// Factual checkpoints need not lie on the coarse grid. They are only
+					// candidate interiors: every connecting edge still needs a fresh oracle proof.
+					for (var checkpoint : episodeVisited.stream().filter(point -> point.instanceId() == current.point.instanceId() && !point.equals(current.point) && local(current.point, point))
+						.sorted(java.util.Comparator.comparingDouble((PhantomNavigationPoint point) -> point.distanceTo(current.point)).thenComparingInt(PhantomNavigationPoint::x).thenComparingInt(PhantomNavigationPoint::y).thenComparingInt(PhantomNavigationPoint::z)).toList())
+					{
+						if (!candidates.contains(checkpoint)) { candidates.add(checkpoint); }
+					}
+				}
 				// Ordering saves native queries; it never rejects a lateral or backwards candidate.
 				candidates.sort((a,b) -> Double.compare(a.distanceTo(request.destination()), b.distanceTo(request.destination())));
 				for (var candidate : candidates)
 				{
 					if (interrupted() != null) { return result(interrupted(), List.of()); }
+					final var old = best.get(candidate);
+					// Every retained corridor adds nonnegative distance. An already cheaper
+					// label cannot improve even before paying for a new native edge proof.
+					if (old != null && old.distance <= current.distance) { continue; }
+					// Even a straight chord cannot improve this label. The conservative
+					// margin exceeds double roundoff for the existing 64-point/100km bound.
+					if (old != null && old.distance + 1e-6 < current.distance + current.point.distanceTo(candidate)) { continue; }
 					if (budget.edges >= MAX_EDGES) { return result(Status.SEARCH_LIMIT, List.of()); }
 					edges++; budget.edges++;
 					if (current.distance + current.point.distanceTo(candidate) > Math.min(request.maximumRouteDistance(), policy.maximumRouteDistance())) { limited = true; continue; }
@@ -226,7 +257,6 @@ public final class PhantomWalkCorridorPlanner
 					var previous = current.point; double distance = current.distance;
 					for (var point : corridor) { distance += previous.distanceTo(point); previous = point; }
 					if (distance > Math.min(request.maximumRouteDistance(), policy.maximumRouteDistance()) || points(current).size() + corridor.size() > policy.maximumWaypoints()) { limited = true; continue; }
-					final var old = best.get(candidate);
 					if ((old == null) || distance < old.distance)
 					{
 						if (budget.labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
@@ -236,11 +266,16 @@ public final class PhantomWalkCorridorPlanner
 			}
 			return result(limited ? Status.SEARCH_LIMIT : Status.NO_ROUTE_WITHIN_BUDGET, List.of());
 		}
+		private boolean acceptableEndpoint(PhantomNavigationPoint point)
+		{
+			return episodeVisited == null ? point.equals(request.destination()) : !point.equals(request.origin()) && local(request.origin(), point) && (point.equals(request.destination()) || !nearVisited(point, episodeVisited));
+		}
 		private void add(PhantomNavigationPoint point, double distance, Label parent, List<PhantomNavigationPoint> corridor)
 		{
 			if (!best.containsKey(point)) { budget.nodes++; }
 			budget.labels++;
-			final var label = new Label(point, distance, distance + point.distanceTo(request.destination()), ++labels, parent, List.copyOf(corridor));
+			final double surface = episodeVisited == null ? 0 : 2d * Math.abs((long) point.z() - request.destination().z());
+			final var label = new Label(point, distance, distance + point.distanceTo(request.destination()) + surface, ++labels, parent, List.copyOf(corridor));
 			best.put(point, label); open.add(label);
 		}
 		private List<PhantomNavigationPoint> points(Label label)

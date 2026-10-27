@@ -37,6 +37,14 @@ public interface PhantomCombatActorLease extends AutoCloseable
 {
 	int MAX_ACQUISITION_INVENTORY_ITEM_IDS = 128;
 	ActorSnapshot actorSnapshot();
+	default boolean regroupReady() { return false; }
+	default boolean partyWalkSafe(int x, int y, int z, int instanceId) { return false; }
+
+	default ActionOutcome regroupParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef actor, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef leader,
+		List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef> roster, List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef> majority, java.util.function.BooleanSupplier authority)
+	{
+		return ActionOutcome.REJECTED;
+	}
 
 	TargetSnapshot targetSnapshot(int targetObjectId);
 

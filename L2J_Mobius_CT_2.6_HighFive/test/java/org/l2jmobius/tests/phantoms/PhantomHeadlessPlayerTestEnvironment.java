@@ -171,7 +171,11 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
 
-		if (PhantomTask091Lane.enabled())
+		if (PhantomTask094Lane.nativeEnabled())
+		{
+			PhantomTask094Lane.validateNative(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
+		}
+		else if (PhantomTask091Lane.enabled())
 		{
 			PhantomTask091Lane.validate(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")));
 		}
@@ -241,7 +245,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomTask091Lane.enabled())
+		if (PhantomTask094Lane.nativeEnabled())
+		{
+			PhantomTask094Lane.initializeNative(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomTask091Lane.enabled())
 		{
 			PhantomTask091Lane.initialize(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -384,6 +393,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
 		if (PhantomTask091Lane.enabled()) { throw new IllegalArgumentException("TASK091 infrastructure only; mutable generic fixtures forbidden."); }
+		if (PhantomTask094Lane.nativeEnabled()) { throw new IllegalArgumentException("Own094 native lane preserves its fixture; infrastructure only."); }
 		if (PhantomTask087Lane.enabled()) { throw new IllegalArgumentException("Own087 native lane preserves its fixture; infrastructure only."); }
 		if (PhantomTask086Lane.enabled()) { throw new IllegalArgumentException("TASK086 infrastructure only; mutable fixtures forbidden."); }
 		if (PhantomTask074Lane.enabled()) { throw new IllegalArgumentException("Own074 native lane preserves its fixture; infrastructure only."); }

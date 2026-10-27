@@ -102,6 +102,7 @@ public final class PhantomCombatService
 		PARTY_TACTIC,
 		PARTY_SUPPORT,
 		PARTY_ROUTE,
+		PARTY_REJOIN,
 		PVP_RETREAT,
 		SIEGE_ROUTE
 	}
@@ -1810,6 +1811,7 @@ public final class PhantomCombatService
 				{
 					_metrics.castRejected();
 				}
+				if (outcome == ActionOutcome.REJECTED) { finish(session, PhantomCombatResult.REJECTED); return; }
 				if ((outcome == ActionOutcome.UNAVAILABLE) && session._loadout.normalAttackFallback())
 				{
 					issueNormalAttack(session);
@@ -1830,6 +1832,7 @@ public final class PhantomCombatService
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);
 			_metrics.attackIssued();
 		}
+		else if (outcome == ActionOutcome.REJECTED) { finish(session, PhantomCombatResult.REJECTED); }
 	}
 
 	private void processLoot(PhantomCombatSession session, long now)
@@ -2453,6 +2456,22 @@ public final class PhantomCombatService
 		public ActorSnapshot actorSnapshot()
 		{
 			return active() ? _actorLease.actorSnapshot() : null;
+		}
+
+		public ActionOutcome regroupParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef actor, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef leader,
+			List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef> roster, List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef> majority, java.util.function.BooleanSupplier authority)
+		{
+			return active() && kind() == ExternalActionKind.PARTY_REJOIN && actor.profileId() == profileId() && authority.getAsBoolean() ? _actorLease.regroupParty(actor, leader, roster, majority, () -> active() && authority.getAsBoolean()) : ActionOutcome.REJECTED;
+		}
+
+		public boolean regroupReady()
+		{
+			return active() && kind() == ExternalActionKind.PARTY_REJOIN && _actorLease.regroupReady();
+		}
+
+		public boolean partyWalkSafe(int x, int y, int z, int instanceId)
+		{
+			return active() && kind() == ExternalActionKind.PARTY_ROUTE && _actorLease.partyWalkSafe(x, y, z, instanceId);
 		}
 
 		public PlayableSnapshot playableSnapshot(int objectId)

@@ -48,6 +48,17 @@ public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItem
 	public static final String SUMMON_RESOURCE_COUNT = "summon.resource.count";
 	private static final List<String> SUPPORTED_CONSTRAINTS = List.of(SHOT_ITEM, SHOT_COUNT, SUMMON_NPC, SUMMON_RESOURCE_ITEM, SUMMON_RESOURCE_COUNT);
 
+	/** Exact existing planner fallback; an arbitrary idle label is not ordinary farm intent. */
+	public static boolean canonicalHistoricalIdle(long profileId, PhantomGoal goal)
+	{
+		if (profileId <= 0 || goal == null || goal.status() != PhantomGoalStatus.ACTIVE) { return false; }
+		final var owner = new PhantomDomainRef("profile", Long.toString(profileId));
+		return HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goalType()) && owner.equals(goal.subject()) && owner.equals(goal.target())
+			&& goal.requiredAmount() == 1 && goal.currentAmount() == 0 && "background.idle".equals(goal.acquisitionMethod()) && "background.history".equals(goal.purposeKey())
+			&& "planner.target_or_route.absent".equals(goal.reasonKey()) && goal.validSources().isEmpty() && goal.constraints().isEmpty()
+			&& goal.selectedAnchor() != null && ANCHOR_NAMESPACE.equals(goal.selectedAnchor().namespace()) && goal.payloadText() == null;
+	}
+
 	public PhantomBackgroundGoalSpec
 	{
 		if ((npcId < 0) || (anchorId == null) || anchorId.isBlank() || (shotItemId < 0) || (shotsPerEncounter < 0) || (summonNpcId < 0) || (summonResourceItemId < 0) || (summonResourcesPerEncounter < 0))

@@ -386,14 +386,16 @@ public class Attackable extends Npc
 	{
 		final List<NativeRewardDamage> damage = new ArrayList<>();
 		final List<Player> seeds = new ArrayList<>();
+		final var contributors = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Player, Boolean>());
 		for (AggroInfo info : _aggroList.values())
 		{
 			if ((info == null) || (info.getAttacker() == null)) { continue; }
 			final Creature attacker = info.getAttacker(); final long amount = info.getDamage();
 			damage.add(new NativeRewardDamage(attacker, amount));
+			if ((amount > 0) && (attacker.asPlayer() != null)) { contributors.add(attacker.asPlayer()); }
 			if ((amount > 1) && (attacker.asPlayer() != null)) { seeds.add(attacker.asPlayer()); }
 		}
-		if ((lastAttacker != null) && (lastAttacker.asPlayer() != null)) { seeds.add(lastAttacker.asPlayer()); }
+		if ((lastAttacker != null) && (lastAttacker.asPlayer() != null)) { seeds.add(lastAttacker.asPlayer()); contributors.add(lastAttacker.asPlayer()); }
 		final var roster = new PlayerNativeWork.RewardRoster(seeds);
 		final List<NativeRewardDamage> frozenDamage = List.copyOf(damage);
 		PlayerNativeWork.runAtNativeWriteBoundary(lastAttacker, roster.recipients(), "npc-reward-write", () ->
@@ -417,7 +419,7 @@ public class Attackable extends Npc
 					for (Player recipient : roster.recipients())
 					{
 						final var evidence = PlayerNativeWork.observationEvidence(recipient);
-						if (evidence != null) { evidence.rewardSettled(getNativeEvidenceTarget()); }
+						if (evidence != null) { evidence.rewardSettled(getNativeEvidenceTarget(), contributors.contains(recipient)); }
 					}
 				}
 			}

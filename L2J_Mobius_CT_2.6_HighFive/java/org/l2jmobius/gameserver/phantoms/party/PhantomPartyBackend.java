@@ -74,6 +74,25 @@ public interface PhantomPartyBackend
 
 	Optional<MemberSnapshot> memberSnapshot(MemberRef member);
 
+	record FarmPage(List<MemberSnapshot> members, long lastExaminedProfileId)
+	{
+		public FarmPage { members = List.copyOf(members); }
+	}
+
+	default FarmPage materializedFarmMembers(long afterProfileId, int limit)
+	{
+		return new FarmPage(List.of(), afterProfileId);
+	}
+
+	default boolean autonomousFarmReady(PartySnapshot party) { return false; }
+	default boolean autonomousFarmAvailable(MemberRef member) { return false; }
+	default boolean autonomousFarmConsentAvailable(MemberRef requester, MemberRef invitee, InvitationIdentity identity) { return false; }
+
+	default OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers)
+	{
+		return OptionalInt.empty();
+	}
+
 	default OptionalInt currentLevel(MemberRef member)
 	{
 		return OptionalInt.empty();
@@ -90,6 +109,8 @@ public interface PhantomPartyBackend
 	{
 		return Status.MISSING;
 	}
+
+	default boolean protectiveMaintenance(MemberRef actor, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability capability) { return false; }
 
 	default List<PvpProtection> pvpProtection(MemberRef helper, int limit)
 	{

@@ -147,10 +147,10 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 				if (z < org.l2jmobius.gameserver.model.World.WORLD_Z_MIN || z > org.l2jmobius.gameserver.model.World.WORLD_Z_MAX || z != geo.getHeight(x, y, z) || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) { return null; }
 				return new PhantomNavigationPoint(x, y, z, surface.instanceId());
 			}
-			@Override public boolean direct(PhantomNavigationPoint from, PhantomNavigationPoint to) { return !blockedEdges.contains(new PhantomWalkCorridorPlanner.Edge(from, to)) && canWalkDirect(from, to); }
+			@Override public boolean direct(PhantomNavigationPoint from, PhantomNavigationPoint to) { return request.permitsWalkSegment(from, to) && !blockedEdges.contains(new PhantomWalkCorridorPlanner.Edge(from, to)) && canWalkDirect(from, to); }
 			@Override public List<PhantomNavigationPoint> path(PhantomNavigationPoint from, PhantomNavigationPoint to)
 			{
-				return paths.findPath(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance()), cancellation);
+				return paths.findPath(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance(), request.pveThreats()), cancellation);
 			}
 		}, clock);
 		return episode ? planner.planEpisode(request, cancellation, policy, visited) : planner.plan(request, cancellation, policy, budget);
@@ -171,7 +171,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		final var budget = new PhantomWalkCorridorPlanner.Budget();
 		final var corridors = new java.util.HashMap<PhantomWalkCorridorPlanner.Edge, PhantomWalkCorridorPlanner.Result>();
 		final java.util.function.BiFunction<PhantomNavigationPoint, PhantomNavigationPoint, PhantomWalkCorridorPlanner.Result> walk = (from, to) -> corridors.computeIfAbsent(new PhantomWalkCorridorPlanner.Edge(from, to), edge ->
-			findWalkCorridor(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance()), cancellation, policy, clock, paths, options.blockedEdges(), budget));
+			findWalkCorridor(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance(), request.pveThreats()), cancellation, policy, clock, paths, options.blockedEdges(), budget));
 		PhantomNavigationResult.Status absent = PhantomNavigationResult.Status.NO_PATH;
 		if (request.origin().distanceTo(request.destination()) <= policy.maximumLocalStraightDistance())
 		{

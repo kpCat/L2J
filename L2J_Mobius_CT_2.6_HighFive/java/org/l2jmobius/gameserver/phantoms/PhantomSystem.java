@@ -136,6 +136,7 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator
 import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyDecision;
+import org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleMatcher;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
@@ -860,7 +861,8 @@ public final class PhantomSystem
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
-				controlPorts.add(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney)));
+				controlPorts.add(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney,
+					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _visibleFarmTravel))));
 				if (_autonomousMarketProducer != null)
 				{
 					controlPorts.add(_autonomousMarketProducer);
