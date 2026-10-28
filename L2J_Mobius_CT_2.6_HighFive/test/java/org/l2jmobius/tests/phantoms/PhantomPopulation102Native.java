@@ -36,21 +36,24 @@ public final class PhantomPopulation102Native
     private static Path _receipts;
     private static int _phase;
     private static boolean _recovery103;
+    private static boolean _recovery104;
+    private static List<Integer> _ordinaryCharacterIds = List.of();
 
     public static void main(String[] args) throws Exception
     {
         if (args.length == 2 && args[0].equals("config")) { configChecks(Path.of(args[1]).toRealPath()); return; }
-        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]"), "OWN102 exact phase required; JDBC=0");
+        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery104[ABC]"), "OWN102 exact phase required; JDBC=0");
+        _recovery104 = args[0].startsWith("recovery104");
         _recovery103 = args[0].startsWith("recovery");
-        _phase = Integer.parseInt(args[0].substring(args[0].length() - 1));
+        _phase = _recovery104 ? switch (args[0].charAt(args[0].length() - 1)) { case 'A' -> 6; case 'B' -> 4; default -> 5; } : Integer.parseInt(args[0].substring(args[0].length() - 1));
         final Path module = Path.of(System.getProperty("phantom.module.root", "")).toRealPath();
         PhantomTask102Lane.validate(module, Path.of(System.getProperty("phantom.test.config", "")));
         final boolean continuation = Files.exists(PhantomTask102Lane.stage().resolve("private/continuation2.begun"));
-        _receipts = PhantomTask102Lane.stage().resolve(_recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
+        _receipts = PhantomTask102Lane.stage().resolve(_recovery104 ? "private/receipts104" : _recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
         if (_recovery103)
         {
-            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve("private/recovery103.properties"));
-            check("PHANTOM-SHUTDOWN-RECOVERY-103".equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103 recovery authority required");
+            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
+            check((_recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103/104 recovery authority required");
             check(PhantomTask102Lane.hash(module.resolve("dist/libs/GameServer.jar")).equals(authority.getProperty("jarSha256")), "OWN103 repaired JAR drift");
             if (_phase == 5) { check(Files.readString(_receipts.resolve("stop4.txt")).startsWith("drained=true;"), "OWN103 prior clean stop required"); }
         }
@@ -77,10 +80,11 @@ public final class PhantomPopulation102Native
             {
                 preserve(initial, Files.readAllLines(PhantomTask102Lane.stage().resolve("private/origin103-ids.tsv")));
                 check(initial.size() == 5000 && initial.stream().allMatch(row -> row.state().state() == PhantomPopulationState.State.READY), "OWN103 must reuse exactly5000 existing READY");
+                _ordinaryCharacterIds = initial.stream().map(row -> row.profile().characterObjectId()).toList();
                 Files.writeString(_receipts.resolve("before" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW);
                 if (_phase != 6)
                 {
-                    final int previous = _phase == 7 ? 6 : _phase == 4 ? 7 : 4;
+                    final int previous = _phase == 7 ? 6 : _phase == 4 ? (_recovery104 ? 6 : 7) : 4;
                     verifyCheckpoint(Files.readString(_receipts.resolve("stopped" + previous + ".checkpoint")), durableCheckpoint());
                 }
             }
@@ -149,11 +153,11 @@ public final class PhantomPopulation102Native
             }
             final var firstCohort = worldCohort(rows);
             final int first = firstCohort.size();
-            Files.write(_receipts.resolve("world" + _phase + "-first.tsv"), firstCohort.stream().map(value -> value.profileId()+"\t"+value.objectId()+"\t"+value.epoch()).toList(), StandardOpenOption.CREATE_NEW);
+            Files.write(_receipts.resolve("world" + _phase + "-first.tsv"), firstCohort.stream().map(PhantomPopulation102Native::worldReceipt).toList(), StandardOpenOption.CREATE_NEW);
             Thread.sleep(30000);
             final var secondCohort = worldCohort(rows);
             final int second = secondCohort.size();
-            Files.write(_receipts.resolve("world" + _phase + "-second.tsv"), secondCohort.stream().map(value -> value.profileId()+"\t"+value.objectId()+"\t"+value.epoch()).toList(), StandardOpenOption.CREATE_NEW);
+            Files.write(_receipts.resolve("world" + _phase + "-second.tsv"), secondCohort.stream().map(PhantomPopulation102Native::worldReceipt).toList(), StandardOpenOption.CREATE_NEW);
             sample(rows, start, "stable30s");
             if (_phase >= 4 && !_recovery103)
             {
@@ -164,10 +168,11 @@ public final class PhantomPopulation102Native
             else { check(first > 0 && second > 0, "OWN102 lower phase has no legitimate native World presence"); }
             if (_recovery103)
             {
-                if (_phase == 6 || _phase == 7)
+                if (_phase == 6 || _phase == 7 || _recovery104)
                 {
                     final var repeated = new java.util.HashMap<Long,WorldWitness>(); for(var value : secondCohort) { repeated.put(value.profileId(),value); }
-                    check(first == settings.maxMaterializedPhantoms() && stableCohort(firstCohort,repeated::get).size() == first, "OWN103 small native cohort gate not reached/stable");
+                    final int stable = stableCohort(firstCohort,repeated::get).size();
+                    check(_recovery104 ? stable > 0 : first == settings.maxMaterializedPhantoms() && stable == first, "OWN103/104 native cohort absent/unstable");
                 }
                 final var player = (Player) secondCohort.getFirst().playerIdentity();
                 final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
@@ -182,7 +187,7 @@ public final class PhantomPopulation102Native
                 }, calls));
                 _logout103Calls = calls;
                 _logout103Scope = scope;
-                Files.writeString(_receipts.resolve("world" + _phase + "-status.txt"), "actual=" + first + "/" + second + ";normalACTIVE=NOT_PROVEN;typedNativeOwnerOnly=true\n", StandardOpenOption.CREATE_NEW);
+                Files.writeString(_receipts.resolve("world" + _phase + "-status.txt"), "actual=" + first + "/" + second + ";requestedCap=" + settings.maxMaterializedPhantoms() + ";normalACTIVE=NOT_PROVEN;typedNativeOwnerOnly=true\n", StandardOpenOption.CREATE_NEW);
             }
             if (_phase == 5)
             {
@@ -205,6 +210,12 @@ public final class PhantomPopulation102Native
                 if (_recovery103 && _logout103Calls != null) { check(_logout103Calls.get() == 1 && _logout103Scope.outstanding() == 0, "OWN103 actual logout completion not proven"); }
                 for (Player observer : OBSERVERS) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
                 for (var lease : LEASES) { lease.close(); }
+                if (_recovery104)
+                {
+                    for (int objectId : _ordinaryCharacterIds) { check(World.getInstance().getPlayer(objectId) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == null, "OWN104 STOP retained ordinary World/lease identity"); }
+                    check(PhantomIdentityLeaseRegistry.getInstance().getActiveLeaseCount() == 0, "OWN104 STOP retained leases");
+                    Files.writeString(_receipts.resolve("stop" + _phase + "-world-leases.txt"), "ordinaryWorld=0;allLeases=0;observerOwners=0\n", StandardOpenOption.CREATE_NEW);
+                }
                 if (DatabaseFactory.isInitialized()) { Files.writeString(_receipts.resolve("stopped" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW); }
                 ThreadPool.shutdown(); DatabaseFactory.close();
             }
@@ -247,7 +258,14 @@ public final class PhantomPopulation102Native
     private static void preserve(List<ManagedSnapshot> rows, List<String> previous)
     { final var current = new HashSet<>(rows.stream().map(PhantomPopulation102Native::identity).toList()); check(current.containsAll(previous), "OWN102 lost/changed prior durable identity or initialization receipt"); }
 
-    private record WorldWitness(long profileId, int objectId, long epoch, Object playerIdentity) { }
+    private record WorldWitness(long profileId, int objectId, long epoch, Object playerIdentity, long leaseToken)
+    {
+        WorldWitness(long profileId, int objectId, long epoch, Object playerIdentity) { this(profileId, objectId, epoch, playerIdentity, 0); }
+    }
+    private static String worldReceipt(WorldWitness value)
+    {
+        return value.profileId() + "\t" + value.objectId() + "\t" + value.epoch() + (_recovery104 ? "\t" + value.leaseToken() + "\t" + System.identityHashCode(value.playerIdentity()) : "");
+    }
     private static int world(List<ManagedSnapshot> rows) { return worldCohort(rows).size(); }
     private static WorldWitness witness(long profileId)
     {
@@ -257,7 +275,8 @@ public final class PhantomPopulation102Native
         final Player player = World.getInstance().getPlayer(material.characterObjectId());
         if (player == null || player.getClient() != null || !player.hasHeadlessOutboundSession() || !PhantomSystem.isMaterializationManaged(player)
             || PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) != OwnerKind.PHANTOM) { return null; }
-        return new WorldWitness(profileId, player.getObjectId(), material.materializedAtNanos(), player);
+        final var lease = PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId());
+        return lease == null || lease.ownerKind() != OwnerKind.PHANTOM ? null : new WorldWitness(profileId, player.getObjectId(), material.materializedAtNanos(), player, lease.token());
     }
     private static List<WorldWitness> stableCohort(List<WorldWitness> first, java.util.function.LongFunction<WorldWitness> current)
     {
@@ -265,7 +284,7 @@ public final class PhantomPopulation102Native
         for (var before : first)
         {
             final var after = current.apply(before.profileId());
-            if (after != null && before.objectId() == after.objectId() && before.epoch() == after.epoch() && before.playerIdentity() == after.playerIdentity()) { result.add(before); }
+            if (after != null && before.objectId() == after.objectId() && before.epoch() == after.epoch() && before.playerIdentity() == after.playerIdentity() && before.leaseToken() == after.leaseToken()) { result.add(before); }
         }
         return List.copyOf(result);
     }
@@ -372,6 +391,7 @@ public final class PhantomPopulation102Native
         final var identity = new Object(); final var first = List.of(new WorldWitness(1,10,100,identity),new WorldWitness(2,20,200,new Object()));
         check(stableCohort(first,id -> id==1 ? first.getFirst() : null).size()==1,"OWN102 vanished cohort member counted");
         check(stableCohort(first,id -> new WorldWitness(id,id==1?10:20,id==1?101:200,new Object())).isEmpty(),"OWN102 replaced Player/epoch counted as continuous World");
+        check(stableCohort(first,id -> { final var before = first.get((int)id-1); return new WorldWitness(id,before.objectId(),before.epoch(),before.playerIdentity(),1); }).isEmpty(),"OWN104 replaced identity lease counted as continuous World");
         final var rotating = new ArrayList<>(first); rotating.add(new WorldWitness(3,30,300,new Object()));
         check(stableCohort(rotating,id -> id<=2 ? first.get((int)id-1) : null).size()==2,"OWN102 historical turnover union mistaken for simultaneous cap violation");
         verifyCheckpoint("EXP=10;SP=2;shots=8;receipt=1","EXP=10;SP=2;shots=8;receipt=1");

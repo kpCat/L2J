@@ -108,6 +108,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomPopulationOwnershipPort _ownership;
 	private PhantomPopulationEcologyService _ecology;
+	private boolean _ecologyInstalled;
+	private boolean _targetReconcilePending;
+	private PhantomPopulationEcologyService.SchedulingSnapshot _admissionEcology;
 	private LongConsumer _topologyReady = profileId -> {};
 	private LongConsumer _topologyRetired = profileId -> {};
 	private boolean _topologyInstalled;
@@ -237,8 +240,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				throw new IllegalStateException("Population ecology can only be installed once before start.");
 			}
 			_ecology = Objects.requireNonNull(ecology, "Population ecology must not be null.");
-			_ecology.holdStartupPopulationPlan();
-			_ecology.installRuntime(this::find, new PhantomPopulationEcologyService.PopulationEvents()
+		}
+		ecology.holdStartupPopulationPlan();
+		ecology.installRuntime(this::find, new PhantomPopulationEcologyService.PopulationEvents()
 			{
 				@Override
 				public void requestArchive(long profileId)
@@ -258,14 +262,14 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 					queueEcologyScheduleRefresh(profileId);
 				}
 			});
-		}
+		synchronized (_monitor) { _ecologyInstalled = true; }
 	}
 
 	public boolean start()
 	{
 		synchronized (_monitor)
 		{
-			if ((_lifecycle != LifecycleState.NEW) || (_ownership == null))
+			if ((_lifecycle != LifecycleState.NEW) || (_ownership == null) || ((_ecology != null) && !_ecologyInstalled))
 			{
 				return false;
 			}
@@ -286,14 +290,11 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				}
 				synchronized (_monitor)
 				{
+					if (_lifecycle != LifecycleState.STARTING) { return false; }
 					for (ManagedSnapshot snapshot : page)
 					{
 						final long profileId = snapshot.profile().profileId();
 						publishEntryLocked(new Entry(snapshot));
-						if (_ecology != null)
-						{
-							_ecology.register(snapshot);
-						}
 						restoreIds.add(profileId);
 						cursor = profileId;
 						_creationOrdinal = Math.max(_creationOrdinal, snapshot.state().creationOrdinal());
@@ -304,6 +305,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 						}
 					}
 				}
+				// Publish before waking ecology: metadata workers must be able to find every registered entry.
+				if (_ecology != null) { for (var snapshot : page) { _ecology.register(snapshot); } }
 				if (page.size() < pageSize)
 				{
 					break;
@@ -311,6 +314,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			synchronized (_monitor)
 			{
+				if (_lifecycle != LifecycleState.STARTING) { return false; }
 				_lifecycle = LifecycleState.RUNNING;
 			}
 			reconcileTarget(_target, _activeTarget);
@@ -334,21 +338,32 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		final List<Long> returnIds = new ArrayList<>();
 		final List<Long> retireIds = new ArrayList<>();
 		final List<Long> resumeIds = new ArrayList<>();
-		final List<Long> candidates;
-		synchronized (_monitor) { candidates = _entries.values().stream().filter(entry -> entry._snapshot.state().state() == State.READY).map(entry -> entry._snapshot.profile().profileId()).toList(); }
+		final Map<Long, ManagedSnapshot> candidates = new HashMap<>();
+		synchronized (_monitor)
+		{
+			if (_lifecycle != LifecycleState.RUNNING) { return; }
+			_target = target;
+			_activeTarget = activeTarget;
+			_targetReconcilePending = true;
+			_admissionDirty = true;
+			_entries.forEach((id, entry) -> candidates.put(id, entry._snapshot));
+		}
 		// Native ownership callbacks must never run under the population monitor.
 		final Set<Long> protectedIds = new HashSet<>();
-		for (long id : candidates) { if (_retirementProtected.test(id)) { protectedIds.add(id); } }
+		for (var candidate : candidates.entrySet()) { if (candidate.getValue().state().state() == State.READY && _retirementProtected.test(candidate.getKey())) { protectedIds.add(candidate.getKey()); } }
+		final var ecology = _ecology == null ? null : _ecology.schedulingSnapshot(candidates.keySet(), _clock.instant());
+		final int registered = _ownership.registeredCount();
 		int shellsToCreate = 0;
 		synchronized (_monitor)
 		{
-			if (_lifecycle != LifecycleState.RUNNING)
+			if ((_lifecycle != LifecycleState.RUNNING) || (_target != target) || (_activeTarget != activeTarget)
+				|| !candidates.keySet().equals(_entries.keySet()) || candidates.entrySet().stream().anyMatch(value -> _entries.get(value.getKey())._snapshot != value.getValue())
+				|| !ecologyCurrent(ecology))
 			{
 				return;
 			}
-			_target = target;
-			_activeTarget = activeTarget;
-			final List<Entry> counted = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() != State.RETIRED) && ((_ecology == null) || _ecology.managed(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
+			_targetReconcilePending = false;
+			final List<Entry> counted = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() != State.RETIRED) && ((ecology == null) || ecology.managed(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
 			int planned = (int) counted.stream().filter(entry -> entry._retirementPending || entry._snapshot.state().state() == State.RETIRE_REQUESTED).count();
 			int deficit = target - (counted.size() - planned) - (int) _entries.values().stream().filter(entry -> entry._returnPending).count();
 			if (deficit > 0)
@@ -365,9 +380,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 					}
 				}
 			}
-			if ((deficit > 0) && ((_ecology == null) || _ecology.inventoryReady()))
+			if ((deficit > 0) && ((ecology == null) || ecology.inventoryReady()))
 			{
-				final List<Entry> retired = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() == State.RETIRED) && !entry._returnPending && ((_ecology == null) || _ecology.returnable(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
+				final List<Entry> retired = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() == State.RETIRED) && !entry._returnPending && ((ecology == null) || ecology.returnable(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
 				for (Entry entry : retired)
 				{
 					if (deficit <= 0)
@@ -382,7 +397,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				{
 					final long creationPending = counted.stream().filter(entry -> entry._snapshot.state().creationPending()).count();
 					final int creationCapacity = Math.max(0, _creationLimit - (int) creationPending);
-					final int schedulerCapacity = Math.max(0, _maximumScheduled - _ownership.registeredCount());
+					final int schedulerCapacity = Math.max(0, _maximumScheduled - registered);
 					shellsToCreate = _inconsistentDeficit ? 0 : Math.min(deficit, Math.min(creationCapacity, schedulerCapacity));
 				}
 			}
@@ -542,7 +557,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		synchronized (_monitor)
 		{
 			final long minute = Math.floorDiv(now.toEpochMilli(), 60_000L);
-			retryProtectedResize = (_participants.size() > _target) && (minute != _lastResizeReconcileMinute);
+			retryProtectedResize = _targetReconcilePending || (_participants.size() > _target) && (minute != _lastResizeReconcileMinute);
 			if (retryProtectedResize) { _lastResizeReconcileMinute = minute; }
 		}
 		if (retryProtectedResize) { reconcileTarget(_target, _activeTarget); }
@@ -571,6 +586,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			remaining--;
 			processed++;
 		}
+		final List<Long> ecologyCandidates;
+		final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
 		synchronized (_monitor)
 		{
 			if (now.isBefore(_lastControlInstant))
@@ -611,14 +628,24 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				remaining--;
 				processed++;
 			}
-			final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
-			if (_admissionDirty || (_lastEpochDay != epochDay) || (!_humanDemand.isEmpty() && !now.isBefore(_nextDemandRotation)))
-			{
-				rebalanceAdmissionLocked(now);
-				_admissionDirty = false;
-				_lastEpochDay = epochDay;
-			}
+			ecologyCandidates = _admissionDirty || !ecologyCurrent(_admissionEcology) || (_lastEpochDay != epochDay) || (!_humanDemand.isEmpty() && !now.isBefore(_nextDemandRotation))
+				? (_ecology == null ? List.of() : List.copyOf(_readyIds)) : null;
 			_lastPulseOperations = processed;
+		}
+		if (ecologyCandidates != null)
+		{
+			final var ecology = _ecology == null ? null : _ecology.schedulingSnapshot(ecologyCandidates, now);
+			synchronized (_monitor)
+			{
+				if ((_lifecycle == LifecycleState.RUNNING) && ecologyCurrent(ecology) && (_ecology == null || _readyIds.size() == ecologyCandidates.size() && _readyIds.containsAll(ecologyCandidates)))
+				{
+					_admissionEcology = ecology;
+					rebalanceAdmissionLocked(now, ecology);
+					_admissionDirty = false;
+					_lastEpochDay = epochDay;
+				}
+				else { _admissionDirty = true; }
+			}
 		}
 	}
 
@@ -832,7 +859,12 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		_admissionDirty = true;
 	}
 
-	private void rebalanceAdmissionLocked(Instant now)
+	private boolean ecologyCurrent(PhantomPopulationEcologyService.SchedulingSnapshot snapshot)
+	{
+		return _ecology == null || _ecology.schedulingSnapshotCurrent(snapshot);
+	}
+
+	private void rebalanceAdmissionLocked(Instant now, PhantomPopulationEcologyService.SchedulingSnapshot ecology)
 	{
 		final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
 		final Map<Integer, Integer> population = new HashMap<>();
@@ -845,7 +877,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			final TreeSet<Long> eligible = new TreeSet<>();
 			for (long profileId : regional.getValue())
 			{
-				if (_participants.contains(profileId) && ((_ecology == null) || _ecology.permitsScheduling(profileId, now)))
+				if (_participants.contains(profileId) && ((ecology == null) || ecology.permitted(profileId)))
 				{
 					eligible.add(profileId);
 					_eligibleActiveIds.add(profileId);
@@ -1154,26 +1186,30 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			return;
 		}
 		_topologyReady.accept(action.profileId());
+		final var ecology = _ecology == null ? null : _ecology.schedulingSnapshot(List.of(action.profileId()), now);
 		final PhantomActivityState effective;
 		final PhantomActivityState calendar;
 		final long sequence;
 		final long ttl;
 		synchronized (_monitor)
 		{
+			if ((currentEntry(action) != entry) || (entry._snapshot.state().state() != State.READY) || entry._retirementPending) { return; }
+			if (!ecologyCurrent(ecology)) { queueActionLocked(entry, RetryActionType.READY_SCHEDULE, 0, _controlCalls + 1); return; }
 			if (entry._forceScheduleEvaluation || entry._nextBoundary.equals(Instant.MAX) || !entry._nextBoundary.isAfter(now) || !entry._heartbeatDue.isAfter(now))
 			{
 				entry._forceScheduleEvaluation = false;
 				evaluateScheduleLocked(entry, now);
 			}
-			entry._effectiveState = ((_ecology != null) && !_ecology.permitsScheduling(action.profileId(), now)) ? PhantomActivityState.SLEEPING : effectiveStateLocked(entry);
-			calendar = ((_ecology != null) && !_ecology.managed(action.profileId())) ? PhantomActivityState.SLEEPING : entry._desiredState;
+			entry._effectiveState = ((ecology != null) && !ecology.permitted(action.profileId())) ? PhantomActivityState.SLEEPING : effectiveStateLocked(entry);
+			calendar = ((ecology != null) && !ecology.managed(action.profileId())) ? PhantomActivityState.SLEEPING : entry._desiredState;
 			// Calendar admission permits ordinary work; current locality owns physical detail.
 			effective = entry._effectiveState == PhantomActivityState.ACTIVE ? PhantomActivityState.BACKGROUND : entry._effectiveState;
 			sequence = ++entry._signalSequence;
 			final long untilBoundary = Math.max(1, ChronoUnit.MILLIS.between(now, entry._nextBoundary));
 			ttl = Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, Math.min(SIGNAL_HEARTBEAT_MILLIS, untilBoundary));
 		}
-		if (actionCurrent(action) && !_presence.schedule(action.profileId(), calendar))
+		if (!actionCurrent(action) || !ecologyCurrent(ecology)) { queueNext(action, RetryActionType.READY_SCHEDULE); return; }
+		if (!_presence.schedule(action.profileId(), calendar))
 		{
 			retryOrFail(action, "presence.capacity");
 			return;
@@ -1527,13 +1563,14 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	private void queueEcologyScheduleRefresh(long profileId)
 	{
+		final var ecology = _ecology == null ? null : _ecology.schedulingSnapshot(List.of(profileId), _clock.instant());
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
 			if ((_lifecycle == LifecycleState.RUNNING) && (entry != null) && (entry._snapshot.state().state() == State.READY))
 			{
 				_admissionDirty = true;
-				queueActionLocked(entry, ((_ecology != null) && _ecology.permitsScheduling(profileId)) ? RetryActionType.READY_RELOAD : RetryActionType.READY_SCHEDULE, 0, _controlCalls);
+				queueActionLocked(entry, ((ecology != null) && ecologyCurrent(ecology) && ecology.permitted(profileId)) ? RetryActionType.READY_RELOAD : RetryActionType.READY_SCHEDULE, 0, _controlCalls);
 			}
 		}
 	}
@@ -1731,7 +1768,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				desired += ids.size();
 			}
-			return new AdmissionSnapshot(_lastAdmissionInstant, desired, _eligibleActiveIds.size(), _admittedIds.size(), _activeTarget, _maximumMaterialized, _admissionDirty);
+			final boolean current = ecologyCurrent(_admissionEcology);
+			return new AdmissionSnapshot(_lastAdmissionInstant, desired, current ? _eligibleActiveIds.size() : 0, current ? _admittedIds.size() : 0, _activeTarget, _maximumMaterialized, _admissionDirty || !current);
 		}
 	}
 
@@ -1758,7 +1796,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			final boolean ready = (entry._snapshot.state().state() == State.READY) && !entry._retirementPending;
 			final boolean desired = ready && (entry._desiredState == PhantomActivityState.ACTIVE);
-			final boolean eligible = desired && _eligibleActiveIds.contains(profileId);
+			final boolean eligible = desired && ecologyCurrent(_admissionEcology) && _eligibleActiveIds.contains(profileId);
 			final boolean admitted = eligible && _admittedIds.contains(profileId);
 			final String reason = !ready ? "not_ready" : !desired ? "schedule_not_active" : !eligible ? "ecology_fenced" : !admitted ? "capacity" : "admitted";
 			return Optional.of(new AdmissionProfileSnapshot(profileId, entry._snapshot.state().state(), entry._desiredState, entry._effectiveState, eligible, admitted, reason, _admissionDirty, entry._nextBoundary, _presence.isOnline(profileId)));
@@ -1902,7 +1940,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 
 	private PhantomActivityState effectiveStateLocked(Entry entry)
 	{
-		return (entry._desiredState == PhantomActivityState.ACTIVE) && !_admittedIds.contains(entry._snapshot.profile().profileId()) ? PhantomActivityState.WARM : entry._desiredState;
+		return (entry._desiredState == PhantomActivityState.ACTIVE) && (!ecologyCurrent(_admissionEcology) || !_admittedIds.contains(entry._snapshot.profile().profileId())) ? PhantomActivityState.WARM : entry._desiredState;
 	}
 
 	private void queueActionLocked(Entry entry, RetryActionType type, int attempt, long duePulse)
