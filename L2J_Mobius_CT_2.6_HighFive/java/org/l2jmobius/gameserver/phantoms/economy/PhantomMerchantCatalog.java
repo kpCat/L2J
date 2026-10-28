@@ -34,25 +34,29 @@ public final class PhantomMerchantCatalog
 		{
 			final var accepted = new ArrayList<Entry>();
 			// Zero-reference event templates must not hide ordinary source-backed resources and equipment.
-			for (var item : group.getValue().stream().sorted(Comparator.comparingLong((ItemTemplate item) -> item.getReferencePrice() > 0 ? item.getReferencePrice() : Long.MAX_VALUE).thenComparingInt(ItemTemplate::getId)).limit(24).toList())
+			for (var item : group.getValue().stream().sorted(Comparator.comparingLong((ItemTemplate item) -> item.getReferencePrice() > 0 ? item.getReferencePrice() : Long.MAX_VALUE).thenComparingInt(ItemTemplate::getId)).toList())
 			{
 				final var quote = pricing.quoteItem(item.getId());
 				if (!quote.priced()) { continue; }
 				accepted.add(new Entry(item, quote, group.getKey()));
-				if (accepted.size() == 3) { break; }
+				if (accepted.size() == 128) { break; }
 			}
 			acceptedGroups.add(accepted);
 		}
+		_entries = selectEntries(acceptedGroups);
+		if (_entries.isEmpty()) { throw new IllegalArgumentException("No source-priced native merchant assortment."); }
+	}
+	static List<Entry> selectEntries(List<? extends List<Entry>> acceptedGroups)
+	{
 		final var entries = new ArrayList<Entry>();
-		for (int index = 0; index < 3; index++)
+		for (int index = 0; index < 128 && entries.size() < 128; index++)
 		{
 			for (var group : acceptedGroups)
 			{
 				if (index < group.size() && entries.size() < 128) { entries.add(group.get(index)); }
 			}
 		}
-		_entries = List.copyOf(entries);
-		if (_entries.isEmpty()) { throw new IllegalArgumentException("No source-priced native merchant assortment."); }
+		return List.copyOf(entries);
 	}
 	public List<Entry> entries() { return _entries; }
 	public List<Entry> bootstrapEntries()

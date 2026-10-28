@@ -380,14 +380,14 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 
 	private void refreshListing(Role role, Player player)
 	{
-		if (RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
+		if (_stopping || !ownsNative(player) || World.getInstance().getPlayer(player.getObjectId()) != player || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
 		synchronized (player.getSellList())
 		{
 			synchronized (player.getBuyList())
 			{
 				synchronized (player.getManufactureItems())
 				{
-					if (RecipeManager.getInstance().isMakingItem(player)) { return; }
+					if (_stopping || !ownsNative(player) || player.isCrafting() || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
 					if (nonempty(player))
 					{
 						boolean safe;
@@ -397,10 +397,19 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 							catch (RuntimeException invalid) { safe = false; }
 						}
 						else { safe = safeTradePrices(player, player.getPrivateStoreType() == PrivateStoreType.BUY ? player.getBuyList() : player.getSellList()); }
-						if (safe) { return; }
+						// A BUY birth has no item stock. Its current inventory is the durable purchase
+						// receipt, including after restart between native close and reopen. Never reseed it.
+						boolean recycle = false;
+						if (safe && role.storeKind() == 1 && player.getPrivateStoreType() == PrivateStoreType.BUY && !observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())))
+						{
+							final var purchased = sellPlan(player);
+							if (purchased != null) { _pricing.get().pricePlan(player, purchased); recycle = true; }
+						}
+						if (safe && !recycle) { return; }
 						// Price/profile changes never mutate stock or subsidize the owner; only this owner's offers close.
 						player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear(); player.setPrivateStoreType(PrivateStoreType.NONE);
 						OfflineTraderTable.getInstance().onTransaction(player, true, false);
+						refreshWanted();
 					}
 					open(role, player);
 				}
@@ -410,15 +419,13 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 
 	private void open(Role role, Player player)
 	{
-		if (_stopping || role.stage() != Stage.READY || player.isAlikeDead() || player.isCrafting() || player.isProcessingTransaction() || player.hasPendingOwnedStore() || !player.isInsideZone(ZoneId.PEACE)) { return; }
+		if (_stopping || role.stage() != Stage.READY || !ownsNative(player) || World.getInstance().getPlayer(player.getObjectId()) != player || player.isAlikeDead() || player.isCrafting() || player.isProcessingTransaction() || player.hasPendingOwnedStore() || !player.isInsideZone(ZoneId.PEACE) || player.getInstanceId() != 0 || observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))) { return; }
 		synchronized (player.getSellList())
 		{
 			synchronized (player.getBuyList())
 			{
 				if (nonempty(player)) { return; }
-				PhantomStorePlan plan = role.storeKind() == 2 ? manufacturePlan(player) : null;
-				if (plan == null && role.storeKind() == 1) { plan = buyPlan(role, player); }
-				if (plan == null) { plan = sellPlan(player); }
+				final PhantomStorePlan plan = selectPlan(role.storeKind(), () -> manufacturePlan(player), () -> sellPlan(player), () -> buyPlan(role, player));
 				if (plan == null) { return; }
 				player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear(); player.setPrivateStoreType(PrivateStoreType.NONE);
 				final var priced = _pricing.get().pricePlan(player, plan);
@@ -442,6 +449,13 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			if (lines.size() == Math.min(_policy.linesPerStore(), player.getPrivateSellStoreLimit())) { break; }
 		}
 		return lines.isEmpty() ? null : new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.REQUESTED, "Supplies / materials", lines, Long.MAX_VALUE);
+	}
+	static PhantomStorePlan selectPlan(int kind, Supplier<PhantomStorePlan> manufacture, Supplier<PhantomStorePlan> sell, Supplier<PhantomStorePlan> buy)
+	{
+		PhantomStorePlan plan = kind == 2 ? manufacture.get() : null;
+		if (plan == null) { plan = sell.get(); }
+		if (plan == null && kind == 1) { plan = buy.get(); }
+		return plan;
 	}
 	private PhantomStorePlan buyPlan(Role role, Player player)
 	{
