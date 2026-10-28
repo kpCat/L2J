@@ -1,0 +1,5 @@
+file	key	kind	baseValue	savedValue	sourceIni	baselineApply	stagedVerify	repeatApplyChanged	compiledReadback	loadedFinalRuntime
+Custom/PhantomPlayers.ini	EnablePhantomSystem	boolean	False	True	True	True	PASS	0	True	NOT_RUN
+Custom/PhantomPlayers.ini	PhantomPopulationTarget	long	0	5000	5000	5000	PASS	0	5000	NOT_RUN
+Custom/PhantomPlayers.ini	PhantomPopulationActiveTarget	long	0	128	128	128	PASS	0	128	NOT_RUN
+Custom/PhantomPlayers.ini	MaxMaterializedPhantoms	long	32	128	128	128	PASS	0	128	NOT_RUN

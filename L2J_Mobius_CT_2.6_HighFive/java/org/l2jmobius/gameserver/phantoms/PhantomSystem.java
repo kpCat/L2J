@@ -2228,6 +2228,13 @@ public final class PhantomSystem
 			localSignaled);
 	}
 
+	/** Bounded read-only population census, including creation failures and pulse work. */
+	public static synchronized PhantomPopulationManager.Snapshot operatorPopulationSnapshot()
+	{
+		return (_configuredInstance == null) || (_configuredInstance._populationManager == null)
+			? PhantomPopulationManager.Snapshot.inactive() : _configuredInstance._populationManager.snapshot();
+	}
+
 	public static synchronized java.util.Optional<OperatorAdmissionProfile> operatorAdmissionProfile(long profileId)
 	{
 		final PhantomSystem configured = _configuredInstance;

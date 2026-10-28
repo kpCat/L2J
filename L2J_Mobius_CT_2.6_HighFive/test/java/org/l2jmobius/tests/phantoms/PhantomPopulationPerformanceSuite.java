@@ -109,14 +109,16 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 		final long rebalanceStart = System.nanoTime();
 		PhantomAssertions.assertTrue(manager.start(), "Ten-thousand READY manager did not start.");
 		drain(manager, 5000);
-		final Set<Long> first = ownership.activeIds();
+		final Set<Long> first = admittedIds(manager);
 		PhantomAssertions.assertEquals(2000, first.size(), "Actual manager ACTIVE admission cap mismatch.");
+		PhantomAssertions.assertEquals(0, ownership.activeIds().size(), "Calendar admission must not request physical ACTIVE without locality.");
 		clock.set(Instant.parse("2026-07-28T20:00:00Z"));
 		manager.onPulse();
 		drain(manager, REBALANCES);
-		final Set<Long> second = ownership.activeIds();
+		final Set<Long> second = admittedIds(manager);
 		final long rebalanceElapsed = System.nanoTime() - rebalanceStart;
 		PhantomAssertions.assertEquals(2000, second.size(), "Daily ACTIVE rotation changed the cap.");
+		PhantomAssertions.assertEquals(0, ownership.activeIds().size(), "Daily rotation must preserve locality-owned physical admission.");
 		PhantomAssertions.assertTrue(!first.equals(second), "Actual manager daily ACTIVE rotation did not change membership.");
 		PhantomAssertions.assertEquals(0L, store.writes(), "Admission and rotation wrote synthetic persistence.");
 		PhantomAssertions.assertTrue(manager.snapshot().lastPulseOperations() <= BOUNDARY_BUDGET, "Admission pulse exceeded its operation budget.");
@@ -156,6 +158,17 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 		stop(manager);
 		context.record("populationPerformance.syntheticProfiles", SYNTHETIC_PROFILES);
 		context.record("populationPerformance.syntheticElapsedNanos", scaleElapsed);
+	}
+
+	private static Set<Long> admittedIds(PhantomPopulationManager manager)
+	{
+		final Set<Long> admitted = new java.util.HashSet<>();
+		for (long profileId = 1; profileId <= READY_PROFILES; profileId++)
+		{
+			if (manager.admissionProfile(profileId).orElseThrow().admitted()) { admitted.add(profileId); }
+		}
+		PhantomAssertions.assertEquals(manager.admissionSnapshot().admittedActive(), admitted.size(), "Per-profile admission disagrees with manager census.");
+		return Set.copyOf(admitted);
 	}
 
 	private static PhantomPopulationCatalog catalog()
