@@ -341,17 +341,26 @@ public final class PhantomNormalGatekeeperTravel
 
 	public static long fee(Leg leg, int classIndex, int level, long logicalEpochMinute)
 	{
-		if ((classIndex < 0) || (level < 1) || (logicalEpochMinute < 0))
+		if (logicalEpochMinute < 0)
 		{
 			throw new IllegalArgumentException("Invalid NORMAL GK fee context.");
 		}
+		final long maximum = maximumFee(leg, classIndex, level);
+		if (maximum == 0) { return 0; }
+		final ZonedDateTime time = Instant.ofEpochSecond(Math.multiplyExact(logicalEpochMinute, 60)).atZone(ZoneId.systemDefault());
+		final int day = time.getDayOfWeek().getValue();
+		return ((day == 1) || (day == 2)) && (time.getHour() >= 20) ? maximum / 2 : maximum;
+	}
+
+	/** A long itinerary cannot reserve a temporary discount. Native payment still uses fee at the current minute. */
+	public static long maximumFee(Leg leg, int classIndex, int level)
+	{
+		if (classIndex < 0 || level < 1) { throw new IllegalArgumentException("Invalid NORMAL GK fee context."); }
 		if ((leg.feeId() == 0) || (leg.feeCount() == 0) || ((classIndex == 0) && (level <= PlayerConfig.MAX_FREE_TELEPORT_LEVEL)))
 		{
 			return 0;
 		}
-		final ZonedDateTime time = Instant.ofEpochSecond(Math.multiplyExact(logicalEpochMinute, 60)).atZone(ZoneId.systemDefault());
-		final int day = time.getDayOfWeek().getValue();
-		return ((day == 1) || (day == 2)) && (time.getHour() >= 20) ? leg.feeCount() / 2 : leg.feeCount();
+		return leg.feeCount();
 	}
 
 	public String hash()

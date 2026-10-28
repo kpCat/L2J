@@ -220,7 +220,7 @@ public final class PhantomStoreService
 		if (previous != null && previous.goal().deadlineEpochMillis() > now) { return Optional.empty(); }
 		final var currentRoot = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
 		if (currentRoot == null || !_journeyCodec.decode(currentRoot.payload()).equals(root)) { return Optional.empty(); }
-		final var intent = RestJourney.intent(root, player.getObjectId(), player.getActiveClass(), player.getClassIndex(), plan, anchorId, destination, now);
+		final var intent = RestJourney.cityIntent(root, player.getObjectId(), player.getActiveClass(), player.getClassIndex(), plan, anchorId, destination, now);
 		_profiles.mutateComponentsAtomically(profileId, List.of(
 			new PhantomProfileRepository.ComponentMutation(JOURNEY_COMPONENT, previous == null ? -1 : previous.rowVersion(), 1, _journeyCodec.encode(intent)),
 			new PhantomProfileRepository.ComponentMutation(PhantomStorePlan.COMPONENT_TYPE, -1, PhantomStorePlan.SCHEMA_VERSION, plan.withState(PhantomStorePlan.State.REQUESTED).encode())));
@@ -232,6 +232,25 @@ public final class PhantomStoreService
 	public Optional<RetainedPlan> finishRestJourney(long profileId, RetainedPlan expected, boolean successful)
 	{
 		return restJourneyStatus(profileId, expected, successful ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.FAILED);
+	}
+
+	/** Arrival replaces an expired purpose quote only after native XYZ/stock have been checkpointed. */
+	public Optional<RetainedPlan> completeRestJourney(long profileId, Player player, PhantomGoal root, RetainedPlan expected, PhantomStorePlan fresh, long now)
+	{
+		try (ActionLease lease = acquireExclusive(profileId))
+		{
+			if (lease == null || lease.player() != player || expected.journey() == null || !expected.journey().travelling()
+				|| !expected.journey().bound(expected, root, now) || !expected.journey().matches(player) || !expected.equals(retainedPlan(profileId).orElse(null))
+				|| !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || fresh.expiresEpochMillis() <= now || !matchesQuote(player, fresh)) { return Optional.empty(); }
+			final var currentRoot = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
+			if (currentRoot == null || !_journeyCodec.decode(currentRoot.payload()).equals(root)) { return Optional.empty(); }
+			final var completed = expected.journey().arrived(fresh);
+			_profiles.mutateComponentsAtomically(profileId, List.of(
+				new PhantomProfileRepository.ComponentMutation(JOURNEY_COMPONENT, expected.journey().rowVersion(), 1, _journeyCodec.encode(completed)),
+				new PhantomProfileRepository.ComponentMutation(PhantomStorePlan.COMPONENT_TYPE, expected.rowVersion(), PhantomStorePlan.SCHEMA_VERSION, fresh.withState(PhantomStorePlan.State.REQUESTED).encode())));
+			return retainedPlan(profileId);
+		}
+		catch (RuntimeException conflict) { return Optional.empty(); }
 	}
 
 	/** Only after the native arrival checkpoint; a pre-armed payment is otherwise terminal. */
@@ -742,6 +761,7 @@ public final class PhantomStoreService
 
 	public record RetainedPlan(int characterObjectId, long rowVersion, PhantomStorePlan plan, RestJourney journey)
 	{
+		public long recoveryDeadline() { return journey != null && journey.goal().status() != PhantomGoalStatus.COMPLETED ? journey.goal().deadlineEpochMillis() : plan.expiresEpochMillis(); }
 		public RetainedPlan(int characterObjectId, long rowVersion, PhantomStorePlan plan) { this(characterObjectId, rowVersion, plan, null); }
 		public RetainedPlan
 		{
@@ -753,16 +773,18 @@ public final class PhantomStoreService
 	/** One finite market trip inside the existing Goal codec; the ordinary farm root remains unchanged. */
 	public record RestJourney(long rowVersion, PhantomGoal goal)
 	{
+		private static final long MAXIMUM_VISIT_MILLIS = java.util.concurrent.TimeUnit.HOURS.toMillis(1);
 		private static final java.util.Set<String> KEYS = java.util.Set.of("owner.revision", "owner.object", "owner.class", "owner.index", "destination.x", "destination.y", "destination.z", "journey.started", "journey.paused", "journey.remaining");
 		public RestJourney
 		{
 			Objects.requireNonNull(goal);
 			if (rowVersion < 0 || !java.util.Set.of(PhantomGoalStatus.ACTIVE, PhantomGoalStatus.COMPLETED, PhantomGoalStatus.FAILED).contains(goal.status()) || !"market.rest.travel".equals(goal.goalType()) || !"market.rest".equals(goal.purposeKey()) || goal.selectedAnchor() == null || !"topology.anchor".equals(goal.selectedAnchor().namespace())
 				|| !Objects.equals(goal.target(), goal.selectedAnchor()) || goal.subject() == null || !"profile".equals(goal.subject().namespace()) || !goal.validSources().isEmpty()
-				|| !goal.constraints().keySet().equals(KEYS) || !PhantomJourneyLifetime.valid(goal) || goal.payloadText() == null || !goal.payloadText().matches("[0-9a-f]{64}")) { throw new IllegalArgumentException("Invalid market journey binding."); }
+				|| !(goal.constraints().keySet().equals(KEYS) || goal.constraints().size() == KEYS.size() + 1 && goal.constraints().keySet().containsAll(KEYS) && goal.constraints().containsKey("quote.expires")) || !PhantomJourneyLifetime.valid(goal) || goal.payloadText() == null || !goal.payloadText().matches("[0-9a-f]{64}")) { throw new IllegalArgumentException("Invalid market journey binding."); }
 			final var values = goal.constraints();
 			if (values.get("owner.revision") < 0 || values.get("owner.object") <= 0 || values.get("owner.object") > Integer.MAX_VALUE || values.get("owner.class") < 0 || values.get("owner.class") > 255 || values.get("owner.index") < 0 || values.get("owner.index") > 255
 				|| values.get("journey.paused") != 0 || goal.deadlineEpochMillis() <= values.get("journey.started") || goal.deadlineEpochMillis() - values.get("journey.started") != values.get("journey.remaining")) { throw new IllegalArgumentException("Invalid fixed market journey lifetime or owner."); }
+			if (values.containsKey("quote.expires") && (values.get("quote.expires") <= values.get("journey.started") || values.get("journey.remaining") > MAXIMUM_VISIT_MILLIS)) { throw new IllegalArgumentException("Invalid finite city visit or quote binding."); }
 			new PhantomNavigationPoint(Math.toIntExact(values.get("destination.x")), Math.toIntExact(values.get("destination.y")), Math.toIntExact(values.get("destination.z")), 0);
 		}
 		public static PhantomGoal intent(PhantomGoal root, int objectId, int classId, int classIndex, PhantomStorePlan plan, String anchorId, PhantomNavigationPoint destination, long now)
@@ -772,13 +794,39 @@ public final class PhantomStoreService
 			return PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), "market.rest.travel", PhantomGoalStatus.ACTIVE, root.subject(), anchor, 1, 0, "travel.native", List.of(), anchor, "market.rest", 0, 0, 0, plan.expiresEpochMillis(),
 				java.util.Map.of("owner.revision", root.revision(), "owner.object", (long) objectId, "owner.class", (long) classId, "owner.index", (long) classIndex, "destination.x", (long) destination.x(), "destination.y", (long) destination.y(), "destination.z", (long) destination.z()), "market.rest.accepted", 0, plan.contentHash()), now);
 		}
+		public static PhantomGoal cityIntent(PhantomGoal root, int objectId, int classId, int classIndex, PhantomStorePlan plan, String anchorId, PhantomNavigationPoint destination, long now)
+		{
+			final var legacy = intent(root, objectId, classId, classIndex, plan, anchorId, destination, now);
+			final long deadline = visitDeadline(root, now);
+			final var values = new java.util.LinkedHashMap<>(legacy.constraints());
+			values.put("quote.expires", plan.expiresEpochMillis()); values.put("journey.remaining", deadline - now);
+			return copy(legacy, PhantomGoalStatus.ACTIVE, deadline, values, plan.contentHash());
+		}
+		public static long visitDeadline(PhantomGoal root, long now)
+		{
+			final long maximum = Math.addExact(now, MAXIMUM_VISIT_MILLIS);
+			final long deadline = root.deadlineEpochMillis() > 0 ? Math.min(maximum, root.deadlineEpochMillis()) : maximum;
+			if (now <= 0 || deadline <= now) { throw new IllegalArgumentException("City visit requires a live finite root lifetime."); }
+			return deadline;
+		}
+		public PhantomGoal arrived(PhantomStorePlan fresh)
+		{
+			final var values = new java.util.LinkedHashMap<>(goal.constraints());
+			if (!travelling() || !values.containsKey("quote.expires")) { throw new IllegalArgumentException("Only an active city visit can accept an arrival quote."); }
+			values.put("quote.expires", fresh.expiresEpochMillis());
+			return copy(goal, PhantomGoalStatus.COMPLETED, goal.deadlineEpochMillis(), values, fresh.contentHash());
+		}
+		private static PhantomGoal copy(PhantomGoal old, PhantomGoalStatus status, long deadline, java.util.Map<String, Long> values, String hash)
+		{
+			return new PhantomGoal(old.goalId(), old.goalType(), status, old.subject(), old.target(), old.requiredAmount(), old.currentAmount(), old.acquisitionMethod(), old.validSources(), old.selectedAnchor(), old.purposeKey(), old.priority(), old.riskBudget(), old.expenseBudget(), deadline, values, status == PhantomGoalStatus.COMPLETED ? "market.rest.arrived" : old.reasonKey(), old.revision(), hash);
+		}
 		public boolean travelling() { return goal.status() == PhantomGoalStatus.ACTIVE; }
 		public PhantomNavigationPoint destination() { return new PhantomNavigationPoint(Math.toIntExact(goal.constraints().get("destination.x")), Math.toIntExact(goal.constraints().get("destination.y")), Math.toIntExact(goal.constraints().get("destination.z")), 0); }
 		public boolean bound(RetainedPlan retained, PhantomGoal root, long now)
 		{
 			return retained != null && supportsRoot(root) && root.goalId() == goal.goalId() && root.revision() == goal.constraints().get("owner.revision")
-				&& Objects.equals(root.subject(), goal.subject()) && retained.characterObjectId() == goal.constraints().get("owner.object") && retained.plan().contentHash().equals(goal.payloadText()) && retained.plan().expiresEpochMillis() == goal.deadlineEpochMillis()
-				&& goal.status() != PhantomGoalStatus.FAILED && goal.deadlineEpochMillis() > now;
+				&& Objects.equals(root.subject(), goal.subject()) && retained.characterObjectId() == goal.constraints().get("owner.object") && retained.plan().contentHash().equals(goal.payloadText()) && retained.plan().expiresEpochMillis() == goal.constraints().getOrDefault("quote.expires", goal.deadlineEpochMillis())
+				&& goal.status() != PhantomGoalStatus.FAILED && retained.recoveryDeadline() > now && goal.constraints().get("journey.started") <= now;
 		}
 		public boolean matches(Player player) { return player.getObjectId() == goal.constraints().get("owner.object") && player.getActiveClass() == goal.constraints().get("owner.class") && player.getClassIndex() == goal.constraints().get("owner.index"); }
 		public static boolean supportsRoot(PhantomGoal root)

@@ -219,6 +219,24 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		if (cancellation.changedSince(generation)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
 		if (clock.getAsLong() >= request.deadlineLogicalNanos()) { return new TravelPlan(PhantomNavigationResult.Status.DEADLINE_EXPIRED, null); }
 		final var selected = PhantomTravelStrategy.select(candidates, options.adena(), options.scrolls(), options.remainingMillis());
+		if (selected.candidate() == null)
+		{
+			final var composite = PhantomCompositeTravelPlanner.plan(request, policy, options, walk, (x, y, hint) ->
+			{
+				final var geo = GeoEngine.getInstance();
+				return geo.hasGeo(x, y) ? new PhantomNavigationPoint(x, y, geo.getHeight(x, y, hint.z()), hint.instanceId()) : null;
+			}, leg ->
+			{
+				if (!PhantomNativeTravelActions.available(leg)) { return null; }
+				final var geo = GeoEngine.getInstance();
+				final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), geo.getHeight(leg.sourceX(), leg.sourceY(), leg.sourceZ()), 0);
+				final var landing = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), geo.getHeight(leg.destinationX(), leg.destinationY(), leg.destinationZ()) + 5, 0);
+				return new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, source, landing, List.of(), leg, 0, org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(leg, options.classIndex(), options.level(), options.epochMinute()), 0);
+			}, () -> cancellation.changedSince(generation) || clock.getAsLong() >= request.deadlineLogicalNanos());
+			if (cancellation.changedSince(generation)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
+			if (clock.getAsLong() >= request.deadlineLogicalNanos()) { return new TravelPlan(PhantomNavigationResult.Status.DEADLINE_EXPIRED, null); }
+			return new TravelPlan(composite.status() == PhantomNavigationResult.Status.NO_PATH ? absent : composite.status(), composite.candidate());
+		}
 		return new TravelPlan(selected.status() == PhantomTravelStrategy.Status.FOUND ? PhantomNavigationResult.Status.PATH_FOUND : absent, selected.candidate());
 	}
 	private static PhantomTravelStrategy.Stage walkStage(PhantomNavigationPoint from, PhantomNavigationPoint to, List<PhantomNavigationPoint> points, double speed)

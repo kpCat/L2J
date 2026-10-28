@@ -164,7 +164,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			final var retained = _stores.retainedPlan(profileId).orElse(null);
 			if (retained == null) { continue; }
-			if (retained.plan().expiresEpochMillis() <= System.currentTimeMillis()) { _stores.discardDormant(profileId, retained); continue; }
+			if (retained.recoveryDeadline() <= System.currentTimeMillis()) { _stores.discardDormant(profileId, retained); continue; }
 			final var current = goal(profileId);
 			_recoveries.putIfAbsent(profileId, recoveryRequest(retained, current));
 			if (retained.journey() != null && retained.journey().goal().status() == PhantomGoalStatus.FAILED) { _cancelledRecoveries.add(profileId); }
@@ -176,7 +176,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	@Override public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
 	{
 		final var request = _recoveries.get(profileId);
-		return OfflineTradeConfig.OFFLINE_TRADE_ENABLE && !_stopping && request != null && !_cancelledRecoveries.contains(profileId) && request.retained().plan().expiresEpochMillis() > System.currentTimeMillis()
+		return OfflineTradeConfig.OFFLINE_TRADE_ENABLE && !_stopping && request != null && !_cancelledRecoveries.contains(profileId) && request.retained().recoveryDeadline() > System.currentTimeMillis()
 			&& (request.retained().journey() == null || request.retained().journey().goal().status() != PhantomGoalStatus.FAILED)
 			&& (rootId == 0 || request.goalId() == rootId && request.goalRevision() == rootRevision);
 	}
@@ -356,7 +356,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (retained == null) { releaseRecovery(profileId); return true; }
 		if (!_recoveryScheduleKnown.test(profileId)) { return true; }
 		final var current = goal(profileId);
-		if (retained.plan().expiresEpochMillis() <= now || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, now)
+		if (retained.recoveryDeadline() <= now || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, now)
 			|| !marketGoalEligible(current, acquisition(profileId, current)))
 		{
 			if (request != null) { cancelRecovery(profileId); }
@@ -372,7 +372,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (!request.validFor(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), now)) { cancelRecovery(profileId); return true; }
 		if (retained.journey() != null && !retained.journey().bound(retained, current, now)) { cancelRecovery(profileId); return true; }
 		if (_materialization.find(profileId).isPresent()) { consider(profileId, now); return true; }
-		final long ttl = Math.max(1, Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, retained.plan().expiresEpochMillis() - now));
+		final long ttl = Math.max(1, Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, retained.recoveryDeadline() - now));
 		new PhantomSchedulerRelevanceSignalPort(_scheduler).submit(profileId, new PhantomRelevanceSignal(RECOVERY_SIGNAL_SOURCE, request.sequence(), PhantomActivityState.ACTIVE, ttl));
 		return true;
 	}
@@ -406,7 +406,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			if (_recoveryEnabled && OfflineTradeConfig.OFFLINE_TRADE_ENABLE && _stores.retainedPlan(profileId).isPresent()) { throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.awaiting_bounded_admission"); }
 			return;
 		}
-		if (_stopping || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || _cancelledRecoveries.contains(profileId) || !_recoveryScheduleKnown.test(profileId) || request.retained().characterObjectId() != characterObjectId || request.retained().plan().expiresEpochMillis() <= System.currentTimeMillis())
+		if (_stopping || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || _cancelledRecoveries.contains(profileId) || !_recoveryScheduleKnown.test(profileId) || request.retained().characterObjectId() != characterObjectId || request.retained().recoveryDeadline() <= System.currentTimeMillis())
 		{
 			throw new PhantomMaterializationLifecyclePort.AdmissionRejectedException("market.restore.binding_or_expiry");
 		}
@@ -470,7 +470,8 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 
 	private void requestRestJourney(long profileId, Player player, PhantomGoal root, PhantomStorePlan plan, long now)
 	{
-		if (!_yieldFarm.test(profileId, plan.expiresEpochMillis()) || !ownerQuiescent(profileId, player) || !sameGoal(root, goal(profileId)) || !retainedEligible(player, plan, root, acquisition(profileId, root))) { return; }
+		final long deadline = PhantomStoreService.RestJourney.visitDeadline(root, now);
+		if (!_yieldFarm.test(profileId, deadline) || !ownerQuiescent(profileId, player) || !sameGoal(root, goal(profileId)) || !retainedEligible(player, plan, root, acquisition(profileId, root))) { return; }
 		_admittingRest.add(profileId);
 		try
 		{
@@ -488,7 +489,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 				final var geo = GeoEngine.getInstance(); final int x = canonical.x() + offset[0], y = canonical.y() + offset[1];
 				if (!geo.hasGeo(x, y)) { continue; }
 				final var destination = new PhantomNavigationPoint(x, y, geo.getHeight(x, y, canonical.z()), 0);
-				if (!validRestDestination(anchor.id(), destination, player) || !plausibleRoute(player, origin, destination, plan.expiresEpochMillis() - now, restTravelBudget(plan, player.getAdena()))) { continue; }
+				if (!validRestDestination(anchor.id(), destination, player) || !plausibleRoute(player, origin, destination, deadline - now, restTravelBudget(plan, player.getAdena()))) { continue; }
 				final var saved = _stores.requestRestJourney(profileId, player, root, plan, anchor.id(), destination, now).orElse(null);
 				if (saved != null) { _recoveries.put(profileId, recoveryRequest(saved, root)); advanceRestJourney(profileId, now); }
 				return;
@@ -498,13 +499,12 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		finally { _admittingRest.remove(profileId); if (!_recoveries.containsKey(profileId)) { _lastClosed.put(profileId, now); } }
 	}
 
-	/** Only complete existing-planner candidates are admitted; no distant straight-line substitute. */
+	/** Cheap admission bound only; the existing planner must prove the entire composite before any movement. */
 	private boolean plausibleRoute(Player player, PhantomNavigationPoint from, PhantomNavigationPoint to, long remainingMillis, long availableAdena)
 	{
-		final double maximum = Math.min(_navigation.policy().maximumLocalStraightDistance(), player.getMoveSpeed() * Math.max(0, remainingMillis) / 1000.0);
+		final double maximum = Math.min(_navigation.policy().maximumRouteDistance(), player.getMoveSpeed() * Math.max(0, remainingMillis) / 1000.0);
 		if (from.distanceTo(to) <= maximum) { return true; }
 		return _travel.legs().stream().anyMatch(leg -> Math.hypot((long) from.x() - leg.sourceX(), (long) from.y() - leg.sourceY()) <= maximum
-			&& Math.hypot((long) to.x() - leg.destinationX(), (long) to.y() - leg.destinationY()) <= maximum
 			&& PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000) <= availableAdena && PhantomNativeTravelActions.available(leg));
 	}
 
@@ -569,9 +569,17 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			if (!freeDestination(player, child.destination()) || !ownerReady(profileId, player) || !sameGoal(route.root, goal(profileId))) { cancelRecovery(profileId); return; }
 			if (!_background.captureVisibleArrival(profileId, player, route.root, child.goal().selectedAnchor().key())) { return; }
-			final var arrived = _stores.finishRestJourney(profileId, request.retained(), true).orElse(null);
+			// The purpose quote never becomes a long-lived store. Reevaluate real need, stock and canonical price here.
+			final var arrivalRoot = route.root;
+			final var state = acquisition(profileId, arrivalRoot);
+			final var fresh = buy(profileId, player, arrivalRoot, state, now).or(() -> manufacture(profileId, player, arrivalRoot, state, now)).or(() -> sell(profileId, player, arrivalRoot, state, now)).orElse(null);
+			final var arrived = fresh == null || !child.goal().constraints().containsKey("quote.expires")
+				? _stores.finishRestJourney(profileId, request.retained(), true).orElse(null)
+				: _stores.completeRestJourney(profileId, player, route.root, request.retained(), fresh, now).orElse(null);
 			if (arrived == null) { cancelRecovery(profileId); return; }
-			stopRestRoute(profileId); _recoveries.put(profileId, recoveryRequest(arrived, route.root)); consider(profileId, now); return;
+			stopRestRoute(profileId); _recoveries.put(profileId, recoveryRequest(arrived, route.root));
+			if (fresh == null) { cancelRecovery(profileId); return; }
+			consider(profileId, now); return;
 		}
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
@@ -602,12 +610,14 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			if (stage.mode() == PhantomTravelStrategy.Mode.GK)
 			{
 				if (!_recoveryUnobserved.test(new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), 0)) || !_recoveryUnobserved.test(new PhantomTopologyPoint(stage.to().x(), stage.to().y(), stage.to().z(), 0))) { return; }
-				if (!sameGoal(route.root, goal(profileId)) || !retainedEligible(player, request.retained().plan(), route.root, acquisition(profileId, route.root))
+				if (!_tripAllowed.test(profileId, route.root) || !sameGoal(route.root, goal(profileId)) || !retainedEligible(player, request.retained().plan(), route.root, acquisition(profileId, route.root))
 					|| PhantomNormalGatekeeperTravel.fee(stage.gatekeeper(), player.getClassIndex(), player.getLevel(), now / 60_000) > restTravelBudget(request.retained().plan(), player.getAdena())) { failRestRoute(profileId, request, false); return; }
 				// Arm a terminal durable marker before the native side effect. Any ambiguous exception/restart cannot replay a fee.
 				final var armed = _stores.finishRestJourney(profileId, request.retained(), false).orElse(null);
 				if (armed == null) { failRestRoute(profileId, request, false); return; }
 				_recoveries.put(profileId, recoveryRequest(armed, route.root)); route.binding = armed;
+				if (!sameGoal(route.root, goal(profileId)) || !_tripAllowed.test(profileId, route.root) || !child.matches(player) || !PhantomNativeTravelActions.ordinary(player)
+					|| _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L) != route.epoch) { _cancelledRecoveries.add(profileId); return; }
 				final PhantomNativeTravelActions.GatekeeperResult receipt;
 				try { receipt = PhantomNativeTravelActions.gatekeeper(player, stage.gatekeeper()); }
 				catch (RuntimeException failure) { _cancelledRecoveries.add(profileId); return; }
@@ -653,7 +663,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 
 	private void checkpointRestPayment(long profileId, RestRoute route)
 	{
-		if (!sameGoal(route.root, goal(profileId)) || route.binding.plan().expiresEpochMillis() <= System.currentTimeMillis()) { _cancelledRecoveries.add(profileId); route.paidArrival = false; return; }
+		if (!sameGoal(route.root, goal(profileId)) || route.binding.recoveryDeadline() <= System.currentTimeMillis()) { _cancelledRecoveries.add(profileId); route.paidArrival = false; return; }
 		if (!_background.captureVisibleArrival(profileId, route.player, route.root, route.checkpoint)) { return; }
 		final var resumed = _stores.resumeRestJourney(profileId, route.binding).orElse(null);
 		if (resumed == null) { _cancelledRecoveries.add(profileId); return; }
@@ -708,7 +718,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		}
 		public boolean validFor(PhantomStoreService.RetainedPlan current, long rootId, long rootRevision, long now)
 		{
-			return retained.equals(current) && goalId == rootId && goalRevision == rootRevision && now < retained.plan().expiresEpochMillis();
+			return retained.equals(current) && goalId == rootId && goalRevision == rootRevision && now < retained.recoveryDeadline();
 		}
 	}
 
