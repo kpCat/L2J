@@ -167,7 +167,8 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 		final long identityStockLimit = _ledger.stockValueLimit() / _ledger.identityLimit();
 		if (kind != 1)
 		{
-			for (int offset = 0; offset < pool.size() && stock.size() < _policy.linesPerStore(); offset++)
+			// Durable birth receipts allow eight stock kinds even when native listing policy allows twenty.
+			for (int offset = 0; offset < pool.size() && stock.size() < Math.min(8, _policy.linesPerStore()); offset++)
 			{
 				final var entry = pool.get(Math.floorMod(ordinal * _policy.linesPerStore() + offset, pool.size()));
 				final long count = entry.item().isStackable() ? _policy.stackCount() : 1;
