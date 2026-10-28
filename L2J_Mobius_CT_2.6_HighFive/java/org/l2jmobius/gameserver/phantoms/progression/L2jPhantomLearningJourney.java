@@ -79,6 +79,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	private String _knowledgeHash;
 	private volatile State _state = State.NEW;
 	private PhantomAutonomousLearning _automatic;
+	private PhantomOrdinaryCraftRecipes _craftRecipes;
 	private org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort _signals;
 	private final Map<Long, Demand> _demands = new HashMap<>();
 	private static final String SIGNAL_SOURCE = "learning.journey";
@@ -105,6 +106,11 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	}
 
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public void useCraftRecipeRewards(PhantomOrdinaryCraftRecipes rewards)
+	{
+		if (_state != State.NEW) { throw new IllegalStateException("Recipe rewards must be installed before learning starts."); }
+		_craftRecipes = rewards;
+	}
 	public boolean protectsAutomaticRoot(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.protectsRoot(profileId, root); }
 	public boolean needsOrOwnsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
 	public void requireField(java.util.function.BiPredicate<PhantomGoal, Player> predicate)
@@ -276,6 +282,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 						trainer.onAction(player);
 						final int nextRank = Math.min(request.skillLevel(), Math.max(1, player.getSkillLevel(request.skillId()) + 1));
 						final var result = _progression.learnClassSkill(new LearnSkillRequest(profileId, trainer.getObjectId(), AcquireKind.CLASS, request.skillId(), nextRank, () -> cancelled(intent, request, player, token)));
+						if (_state == State.RUNNING && _craftRecipes != null && switch (result.status()) { case SUCCESS, IDEMPOTENT -> true; default -> false; }) { _craftRecipes.catchUp(profileId); }
 						return switch (result.status())
 						{
 							case SUCCESS, IDEMPOTENT -> retry("learning.skill.committed");
@@ -528,7 +535,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 
 	@Override public void beforeMaterialize(long profileId, int objectId) { }
 	@Override public void afterPlayerLoad(long profileId, Player player) { }
-	@Override public void materializeSucceeded(long profileId, int objectId) { }
+	@Override public void materializeSucceeded(long profileId, int objectId) { if (_state == State.RUNNING && _craftRecipes != null && _actionAllowed.test(profileId)) { _craftRecipes.catchUp(profileId); } }
 	@Override public void materializeAborted(long profileId, int objectId) { }
 	@Override public void beforeStore(long profileId, Player player)
 	{

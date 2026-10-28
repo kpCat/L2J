@@ -71,6 +71,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	private final Map<Integer, Due> _dueByOwner = new HashMap<>();
 	private final java.util.Set<Integer> _dirty = ConcurrentHashMap.newKeySet();
 	private PhantomMerchantCatalog _catalog;
+	private PhantomMerchantCraftProvision _craftProvision;
 	private List<PhantomNavigationPoint> _slots;
 	private PhantomProfileComponent _server;
 	private Ledger _ledger;
@@ -104,6 +105,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			if (!component.componentType().equals(role.component()) || role.ordinal() >= _ledger.nextOrdinal() || _roles.put(role.ordinal(), new SavedRole(role, component.rowVersion())) != null) { throw new IllegalStateException("Merchant role/issued quota differs."); }
 		}
 		_catalog = new PhantomMerchantCatalog(_pricing.get());
+		_craftProvision = PhantomMerchantCraftProvision.load(new java.io.File(org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT, PhantomMerchantCraftProvision.FILE).toPath(), _profiles, _pricing.get());
 		_slots = legalSlots();
 		for (int id : _policy.preparedOfflineIds())
 		{
@@ -184,7 +186,9 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 		final byte[] token = new byte[32]; new SecureRandom().nextBytes(token);
 		final String suffix = Long.toUnsignedString(_server.profileId(), 36) + 'x' + Integer.toString(ordinal, 36);
 		final String name = "Trader" + suffix;
-		final var role = new Role(ordinal, 0, "phm_" + suffix, Base64.getUrlEncoder().withoutPadding().encodeToString(token), name, _policy.classIds().get(ordinal % _policy.classIds().size()), kind, point.x(), point.y(), point.z(), _policy.capitalPerIdentity(), stock, Stage.RESERVED);
+		final int birthClass = _policy.classIds().get(ordinal % _policy.classIds().size());
+		final int classId = _craftProvision == null ? birthClass : org.l2jmobius.gameserver.phantoms.progression.PhantomCraftRecipePolicy.startingClass(kind, _policy.classIds(), birthClass);
+		final var role = new Role(ordinal, 0, "phm_" + suffix, Base64.getUrlEncoder().withoutPadding().encodeToString(token), name, classId, kind, point.x(), point.y(), point.z(), _policy.capitalPerIdentity(), stock, Stage.RESERVED);
 		commitNewRole(role, next);
 		return role;
 	}
@@ -297,6 +301,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 				role = role.withStage(Stage.READY); save(role);
 			}
 			if (role.stage() != Stage.READY) { throw new IllegalStateException("Merchant bootstrap not settled."); }
+			if (_craftProvision != null && !observed(new PhantomNavigationPoint(role.x(), role.y(), role.z(), 0))) { _craftProvision.qualify(_server.profileId(), role, player, lease); }
 			player.abortAttack(); player.abortCast(); player.stopMove(null); player.setAutoPlaying(false); player.getAI().setIntention(Intention.IDLE); player.getAI().stopAITask();
 			player.setOnlineStatus(true, false);
 			if (!restored)
@@ -381,6 +386,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	private void refreshListing(Role role, Player player)
 	{
 		if (_stopping || !ownsNative(player) || World.getInstance().getPlayer(player.getObjectId()) != player || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
+		if (_craftProvision != null && !observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))) { _craftProvision.qualify(_server.profileId(), role, player, _leases.get(role.ordinal())); }
 		synchronized (player.getSellList())
 		{
 			synchronized (player.getBuyList())
@@ -590,6 +596,8 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 		return new Snapshot(_roles.size(), _owners.size(), liveStoreCount(), _leases.size(), _slots == null ? 0 : _slots.size(), _opened, _transactions.sum(), _pulses, _blocked, _ledger == null ? 0 : _ledger.issuedCapital(), _ledger == null ? 0 : _ledger.issuedStockValue(), activeCombat, _due.size());
 	}
 	public record Snapshot(int durableRoles, int nativeOwners, int nonemptyStores, int identityLeases, int legalSlots, long openings, long transactionCallbacks, long sharedPulses, long blocked, long issuedCapital, long issuedStockValue, long combatOrMaterializationOwners, int dueOwners) { }
+	/** Immutable admission evidence; a later mutable World census is a separate observation. */
+	public synchronized List<PhantomNavigationPoint> admissionSlots() { return _slots == null ? List.of() : _slots; }
 
 	private record SavedRole(Role role, long version) { }
 	private record Due(int ordinal, long time) { }
