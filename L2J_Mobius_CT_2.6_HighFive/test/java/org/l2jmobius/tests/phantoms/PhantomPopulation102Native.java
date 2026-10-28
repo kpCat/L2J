@@ -14,10 +14,12 @@ import java.util.TreeMap;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.config.custom.OfflineTradeConfig;
 import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance;
+import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -37,23 +39,26 @@ public final class PhantomPopulation102Native
     private static int _phase;
     private static boolean _recovery103;
     private static boolean _recovery104;
+    private static boolean _recovery105;
+    private static String _boundary105;
     private static List<Integer> _ordinaryCharacterIds = List.of();
 
     public static void main(String[] args) throws Exception
     {
         if (args.length == 2 && args[0].equals("config")) { configChecks(Path.of(args[1]).toRealPath()); return; }
-        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery104[ABC]"), "OWN102 exact phase required; JDBC=0");
+        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery10[45][ABC]"), "OWN102 exact phase required; JDBC=0");
         _recovery104 = args[0].startsWith("recovery104");
+        _recovery105 = args[0].startsWith("recovery105");
         _recovery103 = args[0].startsWith("recovery");
-        _phase = _recovery104 ? switch (args[0].charAt(args[0].length() - 1)) { case 'A' -> 6; case 'B' -> 4; default -> 5; } : Integer.parseInt(args[0].substring(args[0].length() - 1));
+        _phase = _recovery104 || _recovery105 ? switch (args[0].charAt(args[0].length() - 1)) { case 'A' -> 6; case 'B' -> 4; default -> 5; } : Integer.parseInt(args[0].substring(args[0].length() - 1));
         final Path module = Path.of(System.getProperty("phantom.module.root", "")).toRealPath();
         PhantomTask102Lane.validate(module, Path.of(System.getProperty("phantom.test.config", "")));
         final boolean continuation = Files.exists(PhantomTask102Lane.stage().resolve("private/continuation2.begun"));
-        _receipts = PhantomTask102Lane.stage().resolve(_recovery104 ? "private/receipts104" : _recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
+        _receipts = PhantomTask102Lane.stage().resolve(_recovery105 ? "private/receipts105" : _recovery104 ? "private/receipts104" : _recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
         if (_recovery103)
         {
-            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
-            check((_recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103/104 recovery authority required");
+            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_recovery105 ? "private/recovery105.properties" : _recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
+            check((_recovery105 ? "PHANTOM-LEASE-STOP-CLOSURE-105" : _recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103/104/105 recovery authority required");
             check(PhantomTask102Lane.hash(module.resolve("dist/libs/GameServer.jar")).equals(authority.getProperty("jarSha256")), "OWN103 repaired JAR drift");
             if (_phase == 5) { check(Files.readString(_receipts.resolve("stop4.txt")).startsWith("drained=true;"), "OWN103 prior clean stop required"); }
         }
@@ -84,7 +89,7 @@ public final class PhantomPopulation102Native
                 Files.writeString(_receipts.resolve("before" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW);
                 if (_phase != 6)
                 {
-                    final int previous = _phase == 7 ? 6 : _phase == 4 ? (_recovery104 ? 6 : 7) : 4;
+                    final int previous = _phase == 7 ? 6 : _phase == 4 ? (_recovery104 || _recovery105 ? 6 : 7) : 4;
                     verifyCheckpoint(Files.readString(_receipts.resolve("stopped" + previous + ".checkpoint")), durableCheckpoint());
                 }
             }
@@ -168,11 +173,11 @@ public final class PhantomPopulation102Native
             else { check(first > 0 && second > 0, "OWN102 lower phase has no legitimate native World presence"); }
             if (_recovery103)
             {
-                if (_phase == 6 || _phase == 7 || _recovery104)
+                if (_phase == 6 || _phase == 7 || _recovery104 || _recovery105)
                 {
                     final var repeated = new java.util.HashMap<Long,WorldWitness>(); for(var value : secondCohort) { repeated.put(value.profileId(),value); }
                     final int stable = stableCohort(firstCohort,repeated::get).size();
-                    check(_recovery104 ? stable > 0 : first == settings.maxMaterializedPhantoms() && stable == first, "OWN103/104 native cohort absent/unstable");
+                    check(_recovery104 ? stable > 0 : first == settings.maxMaterializedPhantoms() && second == first && stable == first, "OWN103/104/105 native cohort absent/unstable");
                 }
                 final var player = (Player) secondCohort.getFirst().playerIdentity();
                 final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
@@ -205,7 +210,16 @@ public final class PhantomPopulation102Native
             Files.writeString(_receipts.resolve("stop" + _phase + ".txt"), "drained=" + drained + ";snapshot=" + PhantomSystem.configuredShutdownSnapshot() + "\n", StandardOpenOption.CREATE_NEW);
             if (_recovery103) { Files.writeString(_receipts.resolve("stop" + _phase + "-performance.txt"), "elapsedMs=" + ((System.nanoTime() - stopStart) / 1_000_000) + ";logout=" + _logout103Evidence + ";finalInstant=" + instant103() + "\n", StandardOpenOption.CREATE_NEW); }
             // Do not remove observers while native owners are still draining.
-            if (drained)
+            if (_recovery105)
+            {
+                final boolean completedDrain = drained;
+                finishBoundary105(completedDrain, PhantomPopulation102Native::proveStop105,
+                    () -> Files.writeString(_receipts.resolve("stop" + _phase + "-world-leases.txt"), _boundary105, StandardOpenOption.CREATE_NEW),
+                    () -> Files.writeString(_receipts.resolve("stopped" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW),
+                    ThreadPool::shutdown, DatabaseFactory::close,
+                    () -> Files.writeString(_receipts.resolve("stop" + _phase + ".blocked"), "status=BLOCKED;noExitClean=true;drained=" + completedDrain + "\n", StandardOpenOption.CREATE_NEW));
+            }
+            else if (drained)
             {
                 if (_recovery103 && _logout103Calls != null) { check(_logout103Calls.get() == 1 && _logout103Scope.outstanding() == 0, "OWN103 actual logout completion not proven"); }
                 for (Player observer : OBSERVERS) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
@@ -221,6 +235,193 @@ public final class PhantomPopulation102Native
             }
             check(drained, "OWN102 graceful STOP failed; no forced kill or pool teardown");
         }
+    }
+
+    static void finishBoundary105(boolean drained, PhantomLease105Checks.Step proof, PhantomLease105Checks.Step receipt,
+        PhantomLease105Checks.Step checkpoint, PhantomLease105Checks.Step pools, PhantomLease105Checks.Step database, PhantomLease105Checks.Step blocked) throws Exception
+    {
+        PhantomLease105Checks.finish(drained, proof, () -> { receipt.run(); checkpoint.run(); }, pools, database, blocked);
+    }
+
+    private record Merchant105(Player player, org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService service,
+        org.l2jmobius.gameserver.phantoms.economy.PhantomMerchantBootstrap.Role role, PhantomIdentityLeaseRegistry.Lease lease)
+    {
+    }
+
+    private static Object field105(Object instance, Class<?> type, String name) throws ReflectiveOperationException
+    {
+        final var field = type.getDeclaredField(name); field.setAccessible(true); return field.get(instance);
+    }
+
+    /** Read-only test diagnostics of the actual service, including its original lease token. */
+    @SuppressWarnings("unchecked")
+    private static List<Merchant105> merchants105() throws Exception
+    {
+        final Class<?> type = org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.class;
+        final var nativeOwners = java.util.Map.copyOf((java.util.Map<Integer, ?>) field105(null, type, "NATIVE_OWNERS"));
+        check(nativeOwners.size() <= 512, "OWN105 merchant inventory bound");
+        final var result = new ArrayList<Merchant105>();
+        for (var entry : nativeOwners.entrySet())
+        {
+            final var nativeOwner = entry.getValue();
+            final Player player = (Player) field105(nativeOwner, nativeOwner.getClass(), "player");
+            final var service = (org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService) field105(nativeOwner, nativeOwner.getClass(), "service");
+            synchronized (service)
+            {
+                check(Boolean.TRUE.equals(field105(service, type, "_stopping")), "OWN105 merchant producer not stopped");
+                final var owners = (java.util.Map<Integer, Player>) field105(service, type, "_owners");
+                final var leases = (java.util.Map<Integer, PhantomIdentityLeaseRegistry.Lease>) field105(service, type, "_leases");
+                final var roles = (java.util.Map<Integer, ?>) field105(service, type, "_roles");
+                final var ordinals = owners.entrySet().stream().filter(value -> value.getValue() == player).map(java.util.Map.Entry::getKey).toList();
+                check(ordinals.size() == 1 && player.getObjectId() == entry.getKey(), "OWN105 ambiguous service Player identity");
+                final int ordinal = ordinals.getFirst();
+                final var saved = roles.get(ordinal);
+                check(saved != null, "OWN105 service role absent");
+                final var role = (org.l2jmobius.gameserver.phantoms.economy.PhantomMerchantBootstrap.Role) field105(saved, saved.getClass(), "role");
+                final var lease = leases.get(ordinal);
+                check(lease != null && !lease.isClosed() && lease.objectId() == player.getObjectId() && lease.ownerKind() == OwnerKind.PHANTOM,
+                    "OWN105 service lease missing/stale");
+                check(role.ordinal() == ordinal && role.characterId() == player.getObjectId() && role.account().equals(player.getAccountName())
+                    && role.stage() == org.l2jmobius.gameserver.phantoms.economy.PhantomMerchantBootstrap.Stage.READY, "OWN105 merchant role identity not READY");
+                final var server = (org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent) field105(service, type, "_server");
+                try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT component_schema_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type=?"))
+                {
+                    query.setLong(1, server.profileId()); query.setString(2, role.component());
+                    try (var sql = query.executeQuery())
+                    {
+                        check(sql.next() && sql.getInt(1) == 1 && java.util.Arrays.equals(sql.getBytes(2), org.l2jmobius.gameserver.phantoms.economy.PhantomMerchantBootstrap.encode(role)) && !sql.next(), "OWN105 durable merchant role differs");
+                    }
+                }
+                result.add(new Merchant105(player, service, role, lease));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static boolean quiescent105(Merchant105 merchant)
+    {
+        final Player player = merchant.player();
+        return World.getInstance().getPlayer(player.getObjectId()) == player && player.getClient() == null && !player.hasHeadlessOutboundSession()
+            && player.getNativeWorkOwner() == null && player.getAccessLevel().getLevel() == 0 && !player.isAlikeDead()
+            && !player.isCrafting() && !org.l2jmobius.gameserver.managers.RecipeManager.getInstance().isMakingItem(player)
+            && !player.isProcessingTransaction() && !player.hasPendingOwnedStore()
+            && org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.ownsNative(player);
+    }
+
+    private static List<String> listing105(Player player)
+    {
+        final var lines = new ArrayList<String>();
+        switch (player.getPrivateStoreType())
+        {
+            case SELL, PACKAGE_SELL -> { for (var item : player.getSellList().getItems()) { lines.add(item.getObjectId() + "\t" + item.getCount() + "\t" + item.getPrice()); } }
+            case BUY -> { for (var item : player.getBuyList().getItems()) { lines.add(item.getItem().getId() + "\t" + item.getCount() + "\t" + item.getPrice()); } }
+            case MANUFACTURE -> { for (var item : player.getManufactureItems().values()) { lines.add(item.getRecipeId() + "\t0\t" + item.getCost()); } }
+            default -> throw new AssertionError("OWN105 lease owner has no supported native store");
+        }
+        check(!lines.isEmpty() && new HashSet<>(lines.stream().map(line -> line.split("\t")[0]).toList()).size() == lines.size(), "OWN105 empty/duplicate native listing");
+        return lines.stream().sorted().toList();
+    }
+
+    private static boolean persisted105(Merchant105 merchant) throws Exception
+    {
+        final Player player = merchant.player();
+        synchronized (player.getSellList()) { synchronized (player.getBuyList()) { synchronized (player.getManufactureItems())
+        {
+            check(quiescent105(merchant), "OWN105 native merchant mutation is pending");
+            final var expected = listing105(player);
+            try (var connection = DatabaseFactory.getConnection())
+            {
+                try (var query = connection.prepareStatement("SELECT c.account_name,c.accesslevel,a.accessLevel,a.password FROM characters c JOIN accounts a ON a.login=c.account_name WHERE c.charId=?"))
+                {
+                    query.setInt(1, player.getObjectId());
+                    try (var sql = query.executeQuery())
+                    {
+                        check(sql.next() && merchant.role().account().equals(sql.getString(1)) && sql.getInt(2) == 0 && sql.getInt(3) == -1
+                            && (!merchant.role().account().startsWith("phm_") || merchant.role().token().equals(sql.getString(4))) && !sql.next(), "OWN105 native merchant account/access authority differs");
+                    }
+                }
+                try (var query = connection.prepareStatement("SELECT time,type,title FROM character_offline_trade WHERE charId=?"))
+                {
+                    query.setInt(1, player.getObjectId());
+                    try (var sql = query.executeQuery())
+                    {
+                        final String title = switch (player.getPrivateStoreType()) { case BUY -> player.getBuyList().getTitle(); case MANUFACTURE -> player.getStoreName(); default -> player.getSellList().getTitle(); };
+                        check(sql.next() && sql.getLong(1) == player.getOfflineStartTime() && sql.getInt(2) == player.getPrivateStoreType().getId()
+                            && java.util.Objects.equals(title, sql.getString(3)) && !sql.next(), "OWN105 native offline metadata not persisted");
+                    }
+                }
+                try (var query = connection.prepareStatement("SELECT item,count,price FROM character_offline_trade_items WHERE charId=? ORDER BY item"))
+                {
+                    query.setInt(1, player.getObjectId());
+                    final var actual = new ArrayList<String>();
+                    try (var sql = query.executeQuery()) { while (sql.next()) { actual.add(sql.getInt(1) + "\t" + sql.getLong(2) + "\t" + sql.getLong(3)); } }
+                    check(expected.equals(actual.stream().sorted().toList()), "OWN105 native offline listing not persisted exactly");
+                }
+                if (player.getPrivateStoreType() == PrivateStoreType.SELL || player.getPrivateStoreType() == PrivateStoreType.PACKAGE_SELL)
+                {
+                    for (var item : player.getSellList().getItems())
+                    {
+                        try (var query = connection.prepareStatement("SELECT item_id,count FROM items WHERE object_id=? AND owner_id=?"))
+                        {
+                            query.setInt(1, item.getObjectId()); query.setInt(2, player.getObjectId());
+                            try (var sql = query.executeQuery()) { check(sql.next() && sql.getInt(1) == item.getItem().getId() && sql.getLong(2) >= item.getCount() && !sql.next(), "OWN105 offline listing lacks native item ownership/quantity"); }
+                        }
+                    }
+                }
+            }
+            return true;
+        } } }
+    }
+
+    private static PhantomLease105Checks.Sample leaseSample105(String cut) throws Exception
+    {
+        final var registry = PhantomIdentityLeaseRegistry.getInstance();
+        final int before = registry.getActiveLeaseCount();
+        final var merchants = merchants105();
+        final var witnesses = new ArrayList<PhantomLease105Checks.Witness>();
+        final var privateRows = new ArrayList<String>();
+        for (var merchant : merchants)
+        {
+            final var player = merchant.player();
+            final var owner = registry.getOwnerSnapshot(player.getObjectId());
+            check(owner != null, "OWN105 native merchant has no identity lease");
+            witnesses.add(new PhantomLease105Checks.Witness(owner, _ordinaryCharacterIds.contains(player.getObjectId()), OBSERVERS.contains(player),
+                World.getInstance().getPlayer(player.getObjectId()), player, merchant.lease().token(),
+                org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.ownsNative(player), quiescent105(merchant), persisted105(merchant), player.getAccountName(), merchant.role().account()));
+            privateRows.add(owner.objectId() + "\t" + owner.ownerKind() + "\t" + owner.state() + "\t" + owner.token() + "\t" + merchant.lease().token() + "\t" + System.identityHashCode(player) + "\t" + merchant.role().ordinal());
+        }
+        check(World.getInstance().getPlayers().size() == merchants.size() && World.getInstance().getPlayers().stream().allMatch(player -> merchants.stream().anyMatch(merchant -> merchant.player() == player)), "OWN105 unknown World owner remains");
+        check(before == registry.getActiveLeaseCount(), "OWN105 unstable global lease census");
+        try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement(); var sql = query.executeQuery("SELECT COUNT(*) FROM character_offline_trade"))
+        { check(sql.next() && sql.getInt(1) == merchants.size(), "OWN105 persisted offliners differ from native service owners"); }
+        Files.write(_receipts.resolve("stop" + _phase + "-leases-" + cut + ".private.tsv"), privateRows.stream().sorted().toList(), StandardOpenOption.CREATE_NEW);
+        return new PhantomLease105Checks.Sample(before, witnesses);
+    }
+
+    private static void proveStop105() throws Exception
+    {
+        check(_ordinaryCharacterIds.size() == 5000 && _logout103Calls != null && _logout103Calls.get() == 1 && _logout103Scope.outstanding() == 0, "OWN105 ordinary census/actual EARNED logout completion not proven");
+        for (Player observer : OBSERVERS) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
+        for (var lease : LEASES) { lease.close(); }
+        for (int objectId : _ordinaryCharacterIds) { check(World.getInstance().getPlayer(objectId) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId) == null, "OWN105 ordinary World/lease retained"); }
+        for (Player observer : OBSERVERS) { check(World.getInstance().getPlayer(observer.getObjectId()) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(observer.getObjectId()) == null, "OWN105 observer World/lease retained"); }
+        final var merchants = merchants105();
+        final var registry = PhantomIdentityLeaseRegistry.getInstance();
+        check(World.getInstance().getPlayers().size() == merchants.size() && registry.getActiveLeaseCount() == merchants.size(), "UNATTRIBUTED_LEASE_BLOCKED before native save");
+        check(World.getInstance().getPlayers().stream().allMatch(player -> merchants.stream().anyMatch(merchant -> merchant.player() == player)), "OWN105 unknown World owner before native save");
+        for (var merchant : merchants)
+        {
+            final var owner = registry.getOwnerSnapshot(merchant.player().getObjectId());
+            check(quiescent105(merchant) && owner != null && owner.ownerKind() == OwnerKind.PHANTOM && owner.token() == merchant.lease().token(), "OWN105 pending/stale native merchant blocks persistence/teardown");
+        }
+        // Follow Shutdown.finishCountdown's stock bulk-save condition; realtime mode is verified without rewriting it.
+        if ((OfflineTradeConfig.OFFLINE_TRADE_ENABLE || OfflineTradeConfig.OFFLINE_CRAFT_ENABLE)
+            && OfflineTradeConfig.RESTORE_OFFLINERS && !OfflineTradeConfig.STORE_OFFLINE_TRADE_IN_REALTIME)
+        { org.l2jmobius.gameserver.data.sql.OfflineTraderTable.getInstance().storeOffliners(); }
+        final var first = leaseSample105("first");
+        final var second = leaseSample105("second");
+        final int legitimate = PhantomLease105Checks.verify(first, second);
+        _boundary105 = "ordinaryWorld=0;ordinaryLeases=0;observerOwners=0;unknown=0;global=" + second.global() + ";attributedMerchants=" + legitimate + ";samples=2;nativePersisted=true\n";
     }
 
     private static java.util.concurrent.atomic.AtomicInteger _logout103Calls;
@@ -264,7 +465,7 @@ public final class PhantomPopulation102Native
     }
     private static String worldReceipt(WorldWitness value)
     {
-        return value.profileId() + "\t" + value.objectId() + "\t" + value.epoch() + (_recovery104 ? "\t" + value.leaseToken() + "\t" + System.identityHashCode(value.playerIdentity()) : "");
+        return value.profileId() + "\t" + value.objectId() + "\t" + value.epoch() + (_recovery104 || _recovery105 ? "\t" + value.leaseToken() + "\t" + System.identityHashCode(value.playerIdentity()) : "");
     }
     private static int world(List<ManagedSnapshot> rows) { return worldCohort(rows).size(); }
     private static WorldWitness witness(long profileId)
@@ -327,6 +528,13 @@ public final class PhantomPopulation102Native
             "SELECT s.profile_id,s.component_type,s.component_schema_version,s.row_version,HEX(s.payload) FROM phantom_profile_components s JOIN phantom_profile_components membership ON membership.profile_id=s.profile_id AND membership.component_type='population.state' ORDER BY s.profile_id,s.component_type"
         ));
         if (_recovery103) { queries.add("SELECT r.* FROM character_recipebook r JOIN characters c ON c.charId=r.charId" + membership + "ORDER BY r.charId,r.id,r.classIndex"); }
+        if (_recovery105)
+        {
+            queries.addAll(List.of("SELECT * FROM character_offline_trade ORDER BY charId", "SELECT * FROM character_offline_trade_items ORDER BY charId,item",
+                "SELECT * FROM characters ORDER BY charId", "SELECT * FROM items ORDER BY object_id",
+                "SELECT profile_id,component_type,component_schema_version,row_version,HEX(payload) FROM phantom_profile_components ORDER BY profile_id,component_type",
+                "SELECT * FROM character_recipebook ORDER BY charId,id,classIndex"));
+        }
         final var result = new StringBuilder();
         try (var connection = DatabaseFactory.getConnection())
         {
@@ -357,6 +565,14 @@ public final class PhantomPopulation102Native
             try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT charId FROM characters WHERE account_name=? AND char_name=? AND accesslevel=0"))
             { query.setString(1, account); query.setString(2, name); try (var sql = query.executeQuery()) { if (sql.next()) { id = sql.getInt(1); check(!sql.next(), "OWN102 observer ambiguous"); } } }
             if (_recovery103) { check(id != null, "OWN103 only existing labelled test humans may be reused"); }
+            if (_recovery105)
+            {
+                try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT accessLevel,password FROM accounts WHERE login=?"))
+                {
+                    query.setString(1, account);
+                    try (var sql = query.executeQuery()) { check(sql.next() && sql.getInt(1) == -1 && "DISABLED_OWN102_TEST_HUMAN".equals(sql.getString(2)) && !sql.next(), "OWN105 observer provenance differs"); }
+                }
+            }
             if (id == null) { try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES(?,'DISABLED_OWN102_TEST_HUMAN',-1,1)")) { insert.setString(1, account); insert.executeUpdate(); } }
             final Player observer = id == null ? Player.create(PlayerTemplateData.getInstance().getTemplate(0), account, name, new PlayerAppearance((byte)0,(byte)0,(byte)0,false)) : Player.load(id);
             check(observer != null && !observer.isGM() && observer.getClient() == null && !observer.hasHeadlessOutboundSession(), "OWN102 labelled observer invalid");
