@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Seal','Plan','Create','Phase1','RetryPhase1','Phase2','Phase3','Phase4','Phase5','Postflight')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('Seal','Plan','Create','Phase1','RetryPhase1','ResumePhase1','Phase2','Phase3','Phase4','Phase5','Postflight')][string]$Action,
     [Parameter(Mandatory)][string]$SourceRoot,[Parameter(Mandatory)][string]$StageRoot,[Parameter(Mandatory)][string]$InstallationId
 )
 $ErrorActionPreference='Stop'
@@ -61,14 +61,26 @@ if($Action -eq 'RetryPhase1'){
     foreach($name in @('native-inputs1.tsv','native1.properties')){Copy-Item -LiteralPath (Join-Path $private $name) -Destination (Join-Path $archive $name);if((Hash (Join-Path $private $name)) -cne (Hash (Join-Path $archive $name))){throw 'OWN102_RED_MANIFEST_COPY_DRIFT'}}
     $Action='Phase1'
 }
+if($Action -eq 'ResumePhase1'){
+    $approval=Join-Path $private 'continuation2.authorized'
+    if(!(Test-Path -LiteralPath $approval) -or [IO.File]::ReadAllText($approval) -notmatch 'allowAdditionalRetry=1' -or (Test-Path -LiteralPath (Join-Path $private 'continuation2.begun'))){throw 'OWN102_EXPLICIT_ONE_OWNER_CONTINUATION_REQUIRED'}
+    $prior=Join-Path $private 'receipts-retry1'
+    if((Test-Path -LiteralPath (Join-Path $prior 'phase1.complete')) -or [IO.File]::ReadAllText((Join-Path $prior 'stop1.txt')) -notmatch '^drained=true;' -or @([IO.File]::ReadAllLines((Join-Path $prior 'ids1.tsv'))).Count -ne 500){throw 'OWN102_PRESERVED_STOPPED500_REQUIRED'}
+    Probe 'postflight'
+    Put-New (Join-Path $private 'continuation2.begun') 'ownerAuthorizedAdditionalRetry=1;remainingRetries=0;sameDB=true;preserve500=true;cause=ecology_locality_initial_native_context_cycle;thirdBlocker=STOP'
+    New-Item -ItemType Directory -Path (Join-Path $private 'receipts-continuation2') | Out-Null
+    $Action='Phase1'
+}
 $phase=[int]$Action.Substring(5)
-$receiptRoot=if(Test-Path -LiteralPath (Join-Path $private 'retry1.begun')){'receipts-retry1'}else{'receipts'}
+$continuation=Test-Path -LiteralPath (Join-Path $private 'continuation2.begun')
+$receiptRoot=if($continuation){'receipts-continuation2'}elseif(Test-Path -LiteralPath (Join-Path $private 'retry1.begun')){'receipts-retry1'}else{'receipts'}
 if(!(Test-Path -LiteralPath (Join-Path $private 'db.created')) -or (Test-Path -LiteralPath (Join-Path $private "$receiptRoot/start$phase.begun"))){throw 'OWN102_CREATED_SINGLE_PHASE_REQUIRED'}
 if($phase -gt 1){
     $previous=$phase-1
     if(!(Test-Path -LiteralPath (Join-Path $private "$receiptRoot/phase$previous.complete")) -or [IO.File]::ReadAllText((Join-Path $private "$receiptRoot/stop$previous.txt")) -notmatch '^drained=true;'){throw 'OWN102_PREVIOUS_CHECKPOINT_STOP_REQUIRED'}
 }
-$sealed=[IO.File]::ReadAllText((Join-Path $private 'sealed.properties'))
+$sealName=if($continuation){'continuation2.sealed.properties'}else{'sealed.properties'}
+$sealed=[IO.File]::ReadAllText((Join-Path $private $sealName))
 if(!$sealed.Contains('jarSha256='+(Hash (Join-Path $module 'dist/libs/GameServer.jar'))) -or !$sealed.Contains('sourceOwnerConfigSha256='+(Hash (Join-Path $source 'dist/game/config/OwnerConfig.json')))){throw 'OWN102_SAME_JAR_OR_OWNER_DRIFT'}
 $databaseTarget=Join-Path $module 'dist/game/config/Database.ini'
 if(!$owner.Contains('sourceDatabaseSha256='+(Hash (Join-Path $source 'dist/game/config/Database.ini')))){throw 'OWN102_DATABASE_ORIGIN_DRIFT'}
@@ -103,7 +115,7 @@ foreach($root in @($module,(Join-Path $stage 'build/phantom-test/bin'),(Join-Pat
         $nativeRows.Add($relative+"`t"+(Hash $file.FullName))
     }
 }
-$generation=if($phase -eq 1 -and (Test-Path -LiteralPath (Join-Path $private 'retry1.begun'))){'1-retry'}else{[string]$phase}
+$generation=if($continuation){[string]$phase+'-continuation2'}elseif($phase -eq 1 -and (Test-Path -LiteralPath (Join-Path $private 'retry1.begun'))){'1-retry'}else{[string]$phase}
 $manifest=Join-Path $private "native-inputs$generation.tsv"
 Put-New $manifest (($nativeRows|Sort-Object) -join "`n")
 Copy-Item -LiteralPath $manifest -Destination (Join-Path $private 'native-inputs.tsv')
@@ -113,7 +125,8 @@ Put-New (Join-Path $private "native$generation.properties") ($lines -join "`n")
 Copy-Item -LiteralPath (Join-Path $private "native$generation.properties") -Destination (Join-Path $private 'native.properties')
 Push-Location (Join-Path $module 'dist/game')
 try{
-    & java -Xms512m -Xmx4g '-Dphantom.task102.native=true' "-Dphantom.task102.stage=$stage" "-Dphantom.task102.uuid=$InstallationId" "-Dphantom.module.root=$module" "-Dphantom.test.config=$databaseTarget" -cp $cp org.l2jmobius.tests.phantoms.PhantomPopulation102Native $phase
+    $heap=if($continuation){'-Xmx8g'}else{'-Xmx4g'}
+    & java -Xms512m $heap '-Dphantom.task102.native=true' "-Dphantom.task102.stage=$stage" "-Dphantom.task102.uuid=$InstallationId" "-Dphantom.module.root=$module" "-Dphantom.test.config=$databaseTarget" -cp $cp org.l2jmobius.tests.phantoms.PhantomPopulation102Native $phase
     if($LASTEXITCODE -ne 0){throw "OWN102_NATIVE_FAILED phase=$phase exit=$LASTEXITCODE"}
 }finally{
     Pop-Location

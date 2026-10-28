@@ -77,7 +77,6 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				return TransitionOutcome.deferred("presence.no_current_local_demand");
 			}
 			MaterializationRequest request = MaterializationRequest.normal();
-			if (!continuation && !admitted.test(profileId)) { return TransitionOutcome.deferred("population.not_admitted"); }
 			if (ecology != null)
 			{
 				final var due = ecology.requestMaterializationDue(profileId);
@@ -85,6 +84,12 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				if (!due.complete()) { recorder.record(profileId, "READY_ECOLOGY_DEFER", "LOCAL", "DEFERRED", due.reason(), 0, 0, 0); }
 				if (!due.complete()) { return TransitionOutcome.deferred(due.reason()); }
 				request = due.request();
+			}
+			// An exact bounded historical handoff supplies the prerequisite for ordinary admission.
+			// NORMAL work still requires final population admission; lifecycle validates the original claim.
+			if (!continuation && !admitted.test(profileId) && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			{
+				return TransitionOutcome.deferred("population.not_admitted");
 			}
 			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);

@@ -16,7 +16,7 @@ public final class Task102DatabaseProbe
     private static final String SCHEMA = "l2jmobiush5_phantom_test_102";
     public static void main(String[] args) throws Exception
     {
-        if (args.length != 3 || !java.util.Set.of("preflight", "plan", "create", "postflight").contains(args[0])) { throw new IllegalArgumentException("OWN102 exact preflight/plan/create/postflight mode required."); }
+        if (args.length != 3 || !java.util.Set.of("preflight", "plan", "create", "postflight", "diagnose").contains(args[0])) { throw new IllegalArgumentException("OWN102 exact preflight/plan/create/postflight/diagnose mode required."); }
         final Path stage = Path.of(args[1]).toAbsolutePath().normalize();
         physical(stage);
         final Properties owner = read(stage.resolve("private/owner.properties"));
@@ -62,7 +62,7 @@ public final class Task102DatabaseProbe
                 }
             }
             if (!select || !process || !showDatabase) { throw new IllegalStateException("OWN102_INCOMPLETE_METADATA_VISIBILITY; no DDL/DML."); }
-            if (args[0].equals("postflight")) { postflight(connection, stage, owner); return; }
+            if (args[0].equals("postflight") || args[0].equals("diagnose")) { postflight(connection, stage, owner); if (args[0].equals("diagnose")) { diagnose(connection, source); } return; }
             try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='" + SCHEMA + "'"))
             {
                 rows.next(); if (rows.getLong(1) != 0) { throw new IllegalStateException("OWN102_SCHEMA_ALREADY_EXISTS; no adopt/reset/drop."); }
@@ -112,6 +112,41 @@ public final class Task102DatabaseProbe
             System.out.println("OWN102_POST_HASH " + slice[0] + "=" + HexFormat.of().formatHex(digest.digest()));
         }
         System.out.println("OWN102_POSTFLIGHT_PASS ownSessions=0;DDL_DML=0;World=0");
+    }
+    private static void diagnose(java.sql.Connection connection, Path source) throws Exception
+    {
+        final var witnesses = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint>();
+        try (var query = connection.createStatement(); var rows = query.executeQuery("SELECT x,y,z FROM characters WHERE account_name LIKE 'own102view%' ORDER BY charId LIMIT 16"))
+        { while(rows.next()) { witnesses.add(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(rows.getInt(1),rows.getInt(2),rows.getInt(3),0)); } }
+        final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(source.resolve("dist/game/data/phantoms/population/high-five-population-v3.xml"),java.time.ZoneOffset.UTC);
+        final var populationCodec = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec();
+        final var ecologyCodec = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStateCodec();
+        final var backgroundCodec = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec();
+        int managed=0, ready=0, desired=0, pending=0, near=0, nearPending=0;
+        final var ids = new java.util.HashSet<Integer>();
+        final String sql="SELECT p.profile_id,p.character_object_id,s.payload,e.payload,b.payload FROM phantom_profiles p JOIN phantom_profile_components s ON s.profile_id=p.profile_id AND s.component_type='population.state' LEFT JOIN phantom_profile_components e ON e.profile_id=p.profile_id AND e.component_type='population.ecology' LEFT JOIN phantom_profile_components b ON b.profile_id=p.profile_id AND b.component_type='background.state' ORDER BY p.profile_id LIMIT 10001";
+        try (var query=connection.createStatement();var rows=query.executeQuery(sql))
+        {
+            while(rows.next())
+            {
+                if(++managed>10000){throw new IllegalStateException("OWN102_DIAGNOSIS_BOUND");}
+                final var population=populationCodec.decode(rows.getBytes(3));
+                if(population.state()!=org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY){continue;}
+                ready++; if(!ids.add(rows.getInt(2)) || population.reservedAccount().startsWith("phm_")){throw new IllegalStateException("OWN102_DIAGNOSIS_ORDINARY_IDENTITY");}
+                final boolean active=catalog.evaluate(population.scheduleTemplate(),Instant.now(),java.time.ZoneOffset.UTC,population.schedulePhaseMinutes()).state()==org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.ACTIVE;
+                if(active){desired++;}
+                final var ecology=rows.getBytes(4)==null?null:ecologyCodec.decode(rows.getBytes(4));
+                final boolean incomplete=ecology!=null && (!ecology.initialCatchupComplete() || ecology.requestPending());
+                if(incomplete){pending++;}
+                if(rows.getBytes(5)==null){continue;}
+                final var background=backgroundCodec.decode(rows.getBytes(5));final var point=background.position();
+                final var committed=new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(point.x(),point.y(),point.z(),point.instanceId());
+                if(witnesses.stream().noneMatch(human->org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(human,committed))){continue;}
+                near++;
+                if(active && incomplete){nearPending++;if(nearPending<=3){System.out.println("OWN102_RECORDED_DEMAND profile="+rows.getLong(1)+";character="+rows.getInt(2)+";READY=true;calendar=ACTIVE;catchupComplete="+ecology.initialCatchupComplete()+";pending="+ecology.requestPending()+";prewarm=true");}}
+            }
+        }
+        System.out.println("OWN102_DIAGNOSE managed="+managed+";READY="+ready+";distinctCharacters="+ids.size()+";desiredNow="+desired+";pending="+pending+";savedWitnesses="+witnesses.size()+";nearSavedWitness="+near+";activeNearPending="+nearPending+";replay=STOPPED_SAVED_GEOMETRY_NOT_LIVE_WORLD;DDL_DML=0");
     }
     private static void bootstrap(java.sql.Connection connection, Path stage, Properties owner, String uuid, boolean dryRun) throws Exception
     {

@@ -1,5 +1,5 @@
-file	key	kind	baseValue	savedValue	sourceIni	baselineApply	stagedVerify	repeatApplyChanged	compiledReadback	loadedFinalRuntime
-Custom/PhantomPlayers.ini	EnablePhantomSystem	boolean	False	True	True	True	PASS	0	True	NOT_RUN
-Custom/PhantomPlayers.ini	PhantomPopulationTarget	long	0	5000	5000	5000	PASS	0	5000	NOT_RUN
-Custom/PhantomPlayers.ini	PhantomPopulationActiveTarget	long	0	128	128	128	PASS	0	128	NOT_RUN
-Custom/PhantomPlayers.ini	MaxMaterializedPhantoms	long	32	128	128	128	PASS	0	128	NOT_RUN
+file	key	kind	baseValue	savedValue	sourceIni	baselineApply	stagedVerify	repeatApplyChanged	compiledReadback	loadedFinalRuntime	sourceVerifyFiles	overridesStored	ownerRules	sourceOwnerConfigSha256	sourcePhantomPlayersIniSha256	finalStageApplyChanged	finalStageVerify	finalRepeatApplyChanged	loadedPhase	finalRestart
+Custom/PhantomPlayers.ini	EnablePhantomSystem	boolean	False	True	True	True	PASS	0	True	True	68	287	38	5776e83810689da1acf94d0a3d8ee54d204e87ca0bf7488e685034b57c61f4e8	55043b107c918d5232b838cb56583ab3dfda2b4530b2c5321fddf35c660180b2	0	PASS	0	4	NOT_RUN
+Custom/PhantomPlayers.ini	PhantomPopulationTarget	long	0	5000	5000	5000	PASS	0	5000	5000	68	287	38	5776e83810689da1acf94d0a3d8ee54d204e87ca0bf7488e685034b57c61f4e8	55043b107c918d5232b838cb56583ab3dfda2b4530b2c5321fddf35c660180b2	0	PASS	0	4	NOT_RUN
+Custom/PhantomPlayers.ini	PhantomPopulationActiveTarget	long	0	128	128	128	PASS	0	128	128	68	287	38	5776e83810689da1acf94d0a3d8ee54d204e87ca0bf7488e685034b57c61f4e8	55043b107c918d5232b838cb56583ab3dfda2b4530b2c5321fddf35c660180b2	0	PASS	0	4	NOT_RUN
+Custom/PhantomPlayers.ini	MaxMaterializedPhantoms	long	32	128	128	128	PASS	0	128	128	68	287	38	5776e83810689da1acf94d0a3d8ee54d204e87ca0bf7488e685034b57c61f4e8	55043b107c918d5232b838cb56583ab3dfda2b4530b2c5321fddf35c660180b2	0	PASS	0	4	NOT_RUN

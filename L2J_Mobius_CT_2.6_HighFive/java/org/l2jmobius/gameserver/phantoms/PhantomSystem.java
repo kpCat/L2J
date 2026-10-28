@@ -512,7 +512,7 @@ public final class PhantomSystem
 				}
 				final PhantomTopologyPositionPublisher positionPublisher = new PhantomTopologyPositionPublisher(_topologyService, _backgroundService::acquisitionSnapshot);
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
-				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.admissionProfile(profileId).map(profile -> profile.eligible()).orElse(false), this::liveMaterializedPoints);
+				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> localityPreparationCandidate(_populationManager, profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime);
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
@@ -662,7 +662,7 @@ public final class PhantomSystem
 				_humanLocality.installPreparationDemand((facts, slots) ->
 				{
 					_populationManager.updateMaterializationDemand(facts);
-					if (periodicEcology != null) { periodicEcology.updateMaterializationDemand(withAcceptedNativeJourneys(facts.stream().filter(fact -> _populationManager.admissionProfile(fact.profileId()).map(profile -> profile.admitted()).orElse(false)).toList()), slots); }
+					if (periodicEcology != null) { periodicEcology.updateMaterializationDemand(withAcceptedNativeJourneys(facts.stream().filter(fact -> localityPreparationCandidate(_populationManager, fact.profileId())).toList()), slots); }
 				}, () ->
 				{
 					final var capacity = _materializationService.snapshot();
@@ -3188,6 +3188,13 @@ public final class PhantomSystem
 	private PhantomScheduler createScheduler(PhantomActivityMaterializationPort materializationPort)
 	{
 		return createScheduler(materializationPort, PhantomActivityWorkSink.noop());
+	}
+
+	static boolean localityPreparationCandidate(PhantomPopulationManager population, long profileId)
+	{
+		// Native context can complete ecology readiness. Physical preparation must not require its own result.
+		return (population != null) && population.admissionProfile(profileId).map(profile ->
+			profile.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY && profile.calendarOnline()).orElse(false);
 	}
 
 	private boolean nativeContextDemand(long profileId)
