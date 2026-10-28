@@ -57,8 +57,10 @@ final class PhantomTask102Lane
         if (!pins.containsKey("dist/libs/GameServer.jar") || !pins.containsKey("dist/game/config/Database.ini") || !pins.containsKey("dist/game/config/Custom/PhantomPlayers.ini")) { throw new IllegalArgumentException("OWN102 required native pins missing."); }
         final var population = org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.read(module.resolve("dist/game/config/Custom/PhantomPlayers.ini"));
         final java.util.Map<Integer,Integer> phases = java.util.Map.of(500,16,1000,32,3000,64,5000,128);
-        if (!population.enabled() || !phases.containsKey(population.populationTarget())
-            || population.populationActiveTarget() != phases.get(population.populationTarget())
+        final boolean recovery = Files.exists(stage.resolve("private/recovery103.properties"));
+        final boolean policy = recovery ? population.populationTarget() == 5000 && java.util.Set.of(16,32,128).contains(population.populationActiveTarget())
+            : phases.containsKey(population.populationTarget()) && population.populationActiveTarget() == phases.get(population.populationTarget());
+        if (!population.enabled() || !policy
             || population.maxMaterializedPhantoms() != population.populationActiveTarget()
             || population.materializationBurstSlots() != 0 || population.maxScheduledPhantomProfiles() != 10000
             || population.populationCreationInFlight() != 2 || population.populationBoundariesPerPulse() != 64
@@ -78,6 +80,11 @@ final class PhantomTask102Lane
         {
             connection.setReadOnly(true);
             if (!SCHEMA.equals(connection.getCatalog())) { throw new IllegalArgumentException("OWN102 connected catalog mismatch."); }
+            if (Files.exists(stage().resolve("private/recovery103.properties")))
+            {
+                try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID<>CONNECTION_ID()"))
+                { rows.next(); if (rows.getLong(1) != 0) { throw new IllegalArgumentException("OWN103 foreign or own sessions remain; no native start."); } }
+            }
             try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT installation_id,source_head,inputs_sha256 FROM own102_authority"))
             {
                 if (!rows.next() || !owner.getProperty("installationId").equals(rows.getString(1)) || !owner.getProperty("sourceHead").equals(rows.getString(2)) || !owner.getProperty("inputsSha256").equals(rows.getString(3)) || rows.next()) { throw new IllegalArgumentException("OWN102 durable origin mismatch."); }

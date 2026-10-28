@@ -118,6 +118,9 @@ public final class PhantomMaterializationService
 	private volatile ServiceState _state = ServiceState.NEW;
 	private boolean _requiresOffensiveShots;
 	private DrainAttempt _drainAttempt;
+	private boolean _cleanupDispatchInFlight;
+	private long _controlStopDeadlineNanos;
+	private boolean _controlStopClosingAdmissions;
 
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized)
 	{
@@ -510,14 +513,25 @@ public final class PhantomMaterializationService
 		}
 		catch (RuntimeException failure)
 		{
+			synchronized (entry)
+			{
+				if (entry._released || _activeByProfile.get(entry._profileId) != entry) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+				if (entry._controlCleanupQueued || entry._cleanupInProgress) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
+			}
 			archiveCleanupIncident(entry);
 			return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
 		}
-		synchronized (entry)
+		synchronized (_stateMonitor)
 		{
-			if (entry._released) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
-			if (entry._controlCleanupQueued || entry._cleanupInProgress) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
-			entry._controlCleanupQueued = true;
+			synchronized (entry)
+			{
+				if (entry._released) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+				if (_state == ServiceState.FAILED || System.nanoTime() >= deadlineNanos) { return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry)); }
+				// Cleanup waits for earned callbacks on this same instant executor. Leave workers for those callbacks.
+				if (_cleanupDispatchInFlight || entry._controlCleanupQueued || entry._cleanupInProgress || (!shutdown && _state == ServiceState.STOPPING)) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
+				_cleanupDispatchInFlight = true;
+				entry._controlCleanupQueued = true;
+			}
 		}
 		try
 		{
@@ -528,12 +542,30 @@ public final class PhantomMaterializationService
 				{
 					if (_activeByProfile.get(entry._profileId) == entry) { result = cleanupEntry(entry, deadlineNanos, entry._shutdownRequested); }
 				}
-				finally { synchronized (entry) { entry._controlCleanupResult = result; entry._controlCleanupQueued = false; } }
+				finally
+				{
+					final long continueDeadline;
+					synchronized (_stateMonitor)
+					{
+						synchronized (entry) { entry._controlCleanupResult = result; entry._controlCleanupQueued = false; }
+						if (_state == ServiceState.STOPPING && (result == null || result.status() == ResultStatus.CLEANUP_FAILED_RETAINED)) { _state = ServiceState.FAILED; }
+						_cleanupDispatchInFlight = false;
+						continueDeadline = _state == ServiceState.STOPPING ? _controlStopDeadlineNanos : 0;
+					}
+					// Publish the next body outside all monitors, retaining the first STOP deadline.
+					if (continueDeadline != 0) { requestShutdown(continueDeadline); }
+				}
 			});
 		}
-		catch (RuntimeException failure)
+		catch (RuntimeException | Error failure)
 		{
-			synchronized (entry) { entry._controlCleanupQueued = false; }
+			synchronized (_stateMonitor)
+			{
+				synchronized (entry) { entry._controlCleanupQueued = false; }
+				_cleanupDispatchInFlight = false;
+				if (_state == ServiceState.STOPPING) { _state = ServiceState.FAILED; }
+			}
+			if (failure instanceof Error error) { throw error; }
 			return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
 		}
 		return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry));
@@ -562,21 +594,53 @@ public final class PhantomMaterializationService
 
 	public ShutdownResult requestShutdown(long deadlineNanos)
 	{
+		final boolean closeAdmissions;
 		synchronized (_stateMonitor)
 		{
 			if ((_state == ServiceState.STOPPED) || (_state == ServiceState.NEW)) { _state = ServiceState.STOPPED; return new ShutdownResult(_state, List.of()); }
 			if (_state == ServiceState.FAILED) { return new ShutdownResult(_state, failedProfileIds()); }
+			if (_controlStopClosingAdmissions) { return new ShutdownResult(ServiceState.STOPPING, List.of()); }
+			closeAdmissions = _controlStopDeadlineNanos == 0;
+			if (closeAdmissions)
+			{
+				_controlStopDeadlineNanos = _drainAttempt == null ? deadlineNanos : Math.min(deadlineNanos, _drainAttempt._deadlineNanos);
+				_controlStopClosingAdmissions = true;
+			}
 			_state = ServiceState.STOPPING;
 		}
-		boolean failed = System.nanoTime() >= deadlineNanos;
-		for (Entry entry : sortedEntries())
+		final List<Entry> entries = sortedEntries();
+		boolean failed = System.nanoTime() >= _controlStopDeadlineNanos;
+		// Close every admission before serial dispatch; a pending actor must not keep producing work.
+		try
 		{
-			final var result = requestCleanup(entry, deadlineNanos, true);
-			failed |= result.status() == ResultStatus.CLEANUP_FAILED_RETAINED;
+			if (closeAdmissions) for (Entry entry : entries)
+			{
+				synchronized (entry)
+				{
+					entry._shutdownRequested = true;
+					if (entry._released || entry._controlCleanupQueued || entry._cleanupInProgress || entry._retryRegistered) { continue; }
+				}
+				try { if (entry._materializationCompletion.getCount() == 0) { entry._materializedPlayer.prepareCleanupDrain(); } }
+				catch (RuntimeException failure)
+				{
+					synchronized (entry) { if (entry._released || _activeByProfile.get(entry._profileId) != entry) { continue; } }
+					archiveCleanupIncident(entry); failed = true;
+				}
+			}
+		}
+		finally { if (closeAdmissions) { synchronized (_stateMonitor) { if (failed) { _state = ServiceState.FAILED; } _controlStopClosingAdmissions = false; } } }
+		if (!failed)
+		{
+			for (Entry entry : entries)
+			{
+				final var result = requestCleanup(entry, _controlStopDeadlineNanos, true);
+				if (result.status() == ResultStatus.CLEANUP_FAILED_RETAINED) { failed = true; break; }
+				if (result.status() == ResultStatus.CLEANUP_PENDING) { break; }
+			}
 		}
 		synchronized (_stateMonitor)
 		{
-			_state = failed ? ServiceState.FAILED : _activeByProfile.isEmpty() ? ServiceState.STOPPED : ServiceState.STOPPING;
+			_state = failed || _state == ServiceState.FAILED ? ServiceState.FAILED : _activeByProfile.isEmpty() ? ServiceState.STOPPED : ServiceState.STOPPING;
 			return new ShutdownResult(_state, failedProfileIds());
 		}
 	}

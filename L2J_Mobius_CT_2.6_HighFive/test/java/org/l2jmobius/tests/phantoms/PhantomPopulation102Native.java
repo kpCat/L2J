@@ -35,16 +35,25 @@ public final class PhantomPopulation102Native
     private static final List<PhantomIdentityLeaseRegistry.Lease> LEASES = new ArrayList<>();
     private static Path _receipts;
     private static int _phase;
+    private static boolean _recovery103;
 
     public static void main(String[] args) throws Exception
     {
         if (args.length == 2 && args[0].equals("config")) { configChecks(Path.of(args[1]).toRealPath()); return; }
-        check(args.length == 1 && args[0].matches("[1-5]"), "OWN102 exact phase required; JDBC=0");
-        _phase = Integer.parseInt(args[0]);
+        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]"), "OWN102 exact phase required; JDBC=0");
+        _recovery103 = args[0].startsWith("recovery");
+        _phase = Integer.parseInt(args[0].substring(args[0].length() - 1));
         final Path module = Path.of(System.getProperty("phantom.module.root", "")).toRealPath();
         PhantomTask102Lane.validate(module, Path.of(System.getProperty("phantom.test.config", "")));
         final boolean continuation = Files.exists(PhantomTask102Lane.stage().resolve("private/continuation2.begun"));
-        _receipts = PhantomTask102Lane.stage().resolve(continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
+        _receipts = PhantomTask102Lane.stage().resolve(_recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
+        if (_recovery103)
+        {
+            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve("private/recovery103.properties"));
+            check("PHANTOM-SHUTDOWN-RECOVERY-103".equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103 recovery authority required");
+            check(PhantomTask102Lane.hash(module.resolve("dist/libs/GameServer.jar")).equals(authority.getProperty("jarSha256")), "OWN103 repaired JAR drift");
+            if (_phase == 5) { check(Files.readString(_receipts.resolve("stop4.txt")).startsWith("drained=true;"), "OWN103 prior clean stop required"); }
+        }
         final Path begun = _receipts.resolve("start" + _phase + ".begun");
         Files.writeString(begun, "utc=" + java.time.Instant.now() + "\n", StandardOpenOption.CREATE_NEW);
         final long start = System.nanoTime();
@@ -56,14 +65,26 @@ public final class PhantomPopulation102Native
             org.l2jmobius.gameserver.data.xml.MapRegionData.getInstance();
             PhantomSupportedContentScriptBootstrap.loadGoal036Owners(new PhantomTestContext(10210201L, module, _receipts));
             final var settings = PhantomPlayersConfig.settings();
-            final int target = new int[] {500,1000,3000,5000,5000}[_phase - 1];
+            final int target = _recovery103 ? 5000 : new int[] {500,1000,3000,5000,5000}[_phase - 1];
             check(settings.populationTarget() == target, "OWN102 phase target mismatch");
+            if (_recovery103) { check(settings.populationActiveTarget() == (_phase == 6 ? 16 : _phase == 7 ? 32 : 128) && settings.maxMaterializedPhantoms() == settings.populationActiveTarget(), "OWN103 phase cap mismatch"); }
             final var catalog = PhantomPopulationCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-population-v3.xml"), settings.populationTimeZone());
             final var predecessor = PhantomPopulationCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), settings.populationTimeZone());
             final var v2 = PhantomPopulationCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-population-v2.xml"), settings.populationTimeZone());
             final var store = new PhantomPopulationStore(PhantomProfileRepository.open(), catalog, predecessor, v2, settings.populationTimeZone());
             final var initial = census(store);
-            if (_phase == 1 && continuation)
+            if (_recovery103)
+            {
+                preserve(initial, Files.readAllLines(PhantomTask102Lane.stage().resolve("private/origin103-ids.tsv")));
+                check(initial.size() == 5000 && initial.stream().allMatch(row -> row.state().state() == PhantomPopulationState.State.READY), "OWN103 must reuse exactly5000 existing READY");
+                Files.writeString(_receipts.resolve("before" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW);
+                if (_phase != 6)
+                {
+                    final int previous = _phase == 7 ? 6 : _phase == 4 ? 7 : 4;
+                    verifyCheckpoint(Files.readString(_receipts.resolve("stopped" + previous + ".checkpoint")), durableCheckpoint());
+                }
+            }
+            else if (_phase == 1 && continuation)
             {
                 final var previous = PhantomTask102Lane.stage().resolve("private/receipts-retry1");
                 preserve(initial, Files.readAllLines(previous.resolve("ids1.tsv")));
@@ -101,7 +122,8 @@ public final class PhantomPopulation102Native
                 Thread.sleep(10000);
             }
             check(rows.size() == target && new HashSet<>(rows.stream().map(row -> row.profile().characterObjectId()).toList()).size() == target, "OWN102 non-unique durable native identities");
-            if (_phase > 1) { preserve(rows, Files.readAllLines(_receipts.resolve("ids" + (_phase - 1) + ".tsv"))); }
+            if (_phase > 1 && !_recovery103) { preserve(rows, Files.readAllLines(_receipts.resolve("ids" + (_phase - 1) + ".tsv"))); }
+            if (_recovery103) { check(PhantomSystem.operatorPopulationSnapshot().peakCreationClaims() == 0, "OWN103 recovery replayed creation"); }
             final var ids = rows.stream().map(PhantomPopulation102Native::identity).sorted().toList();
             Files.write(_receipts.resolve("ids" + _phase + ".tsv"), ids, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
             if (world(rows) < settings.maxMaterializedPhantoms()) { addObservers(rows); }
@@ -111,12 +133,17 @@ public final class PhantomPopulation102Native
             while (true)
             {
                 final int actual = world(rows);
+                if (_recovery103) for (int milestone : new int[] {16,32})
+                {
+                    final Path receipt = _receipts.resolve("world" + _phase + "-milestone" + milestone + ".tsv");
+                    if (actual >= milestone && !Files.exists(receipt)) { Files.write(receipt, worldCohort(rows).stream().limit(milestone).map(value -> value.profileId()+"\t"+value.objectId()+"\t"+value.epoch()).toList(), StandardOpenOption.CREATE_NEW); }
+                }
                 sample(rows, start, "world");
                 if (actual > best) { best = actual; worldProgress = System.nanoTime(); }
                 if (actual == settings.maxMaterializedPhantoms()) { break; }
                 // Measured3000 convergence is slower than five minutes; final128 uses a bounded thirty-minute window.
                 // Net World progress must still occur within each pair of sixty-second observation windows.
-                final long worldBoundNanos = (_phase >= 4 ? 1800L : 300L) * 1_000_000_000L;
+                final long worldBoundNanos = (_recovery103 ? 300L : _phase >= 4 ? 1800L : 300L) * 1_000_000_000L;
                 if (System.nanoTime() - worldProgress >= 120_000_000_000L || System.nanoTime() - worldStart >= worldBoundNanos) { break; }
                 Thread.sleep(10000);
             }
@@ -128,13 +155,35 @@ public final class PhantomPopulation102Native
             final int second = secondCohort.size();
             Files.write(_receipts.resolve("world" + _phase + "-second.tsv"), secondCohort.stream().map(value -> value.profileId()+"\t"+value.objectId()+"\t"+value.epoch()).toList(), StandardOpenOption.CREATE_NEW);
             sample(rows, start, "stable30s");
-            if (_phase >= 4)
+            if (_phase >= 4 && !_recovery103)
             {
                 check(first == 128 && second == 128, "OWN102 legitimate World128 not reached; first=" + first + ";second=" + second);
                 final var repeated = new java.util.HashMap<Long,WorldWitness>(); for(var value : secondCohort) { repeated.put(value.profileId(),value); }
                 check(stableCohort(firstCohort,repeated::get).size()==128,"OWN102 World cohort changed during 30s stability interval");
             }
             else { check(first > 0 && second > 0, "OWN102 lower phase has no legitimate native World presence"); }
+            if (_recovery103)
+            {
+                if (_phase == 6 || _phase == 7)
+                {
+                    final var repeated = new java.util.HashMap<Long,WorldWitness>(); for(var value : secondCohort) { repeated.put(value.profileId(),value); }
+                    check(first == settings.maxMaterializedPhantoms() && stableCohort(firstCohort,repeated::get).size() == first, "OWN103 small native cohort gate not reached/stable");
+                }
+                final var player = (Player) secondCohort.getFirst().playerIdentity();
+                final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
+                final var calls = new java.util.concurrent.atomic.AtomicInteger();
+                player.addListener(new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(player, org.l2jmobius.gameserver.model.events.EventType.ON_PLAYER_LOGOUT, (org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerLogout event) ->
+                {
+                    final var ticket = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(scope);
+                    check(event.getPlayer() == player && ticket != null && ticket.isRunning() && ticket.semantics() == org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics.EARNED, "OWN103 actual logout lost earned owner");
+                    check(calls.incrementAndGet() == 1, "OWN103 repeated logout callback");
+                    _logout103Evidence = "event=ON_PLAYER_LOGOUT;semantics=" + ticket.semantics() + ";ownerCurrent=" + scope.isCurrent() + ";outstanding=" + scope.outstanding() + ";instant=" + instant103();
+                    try { Thread.sleep(100); } catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException("OWN103 listener interrupted", failure); }
+                }, calls));
+                _logout103Calls = calls;
+                _logout103Scope = scope;
+                Files.writeString(_receipts.resolve("world" + _phase + "-status.txt"), "actual=" + first + "/" + second + ";normalACTIVE=NOT_PROVEN;typedNativeOwnerOnly=true\n", StandardOpenOption.CREATE_NEW);
+            }
             if (_phase == 5)
             {
                 check(PhantomSystem.operatorPopulationSnapshot().peakCreationClaims()==0,"OWN102 repeat boot replayed the creation saga");
@@ -145,12 +194,15 @@ public final class PhantomPopulation102Native
         finally
         {
             boolean drained = !PhantomSystem.hasConfiguredInstance();
+            final long stopStart = System.nanoTime();
             final long deadline = System.nanoTime() + 60_000_000_000L;
             while (!drained && System.nanoTime() < deadline) { drained = PhantomSystem.shutdownIfStarted(); if (!drained) { Thread.sleep(100); } }
             Files.writeString(_receipts.resolve("stop" + _phase + ".txt"), "drained=" + drained + ";snapshot=" + PhantomSystem.configuredShutdownSnapshot() + "\n", StandardOpenOption.CREATE_NEW);
+            if (_recovery103) { Files.writeString(_receipts.resolve("stop" + _phase + "-performance.txt"), "elapsedMs=" + ((System.nanoTime() - stopStart) / 1_000_000) + ";logout=" + _logout103Evidence + ";finalInstant=" + instant103() + "\n", StandardOpenOption.CREATE_NEW); }
             // Do not remove observers while native owners are still draining.
             if (drained)
             {
+                if (_recovery103 && _logout103Calls != null) { check(_logout103Calls.get() == 1 && _logout103Scope.outstanding() == 0, "OWN103 actual logout completion not proven"); }
                 for (Player observer : OBSERVERS) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
                 for (var lease : LEASES) { lease.close(); }
                 if (DatabaseFactory.isInitialized()) { Files.writeString(_receipts.resolve("stopped" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW); }
@@ -158,6 +210,20 @@ public final class PhantomPopulation102Native
             }
             check(drained, "OWN102 graceful STOP failed; no forced kill or pool teardown");
         }
+    }
+
+    private static java.util.concurrent.atomic.AtomicInteger _logout103Calls;
+    private static org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope _logout103Scope;
+    private static volatile String _logout103Evidence = "NOT_OBSERVED";
+    private static String instant103()
+    {
+        try
+        {
+            final var field = ThreadPool.class.getDeclaredField("INSTANT_POOL"); field.setAccessible(true);
+            final var pool = (java.util.concurrent.ThreadPoolExecutor) field.get(null);
+            return "core=" + pool.getCorePoolSize() + ",active=" + pool.getActiveCount() + ",queued=" + pool.getQueue().size() + ",completed=" + pool.getCompletedTaskCount();
+        }
+        catch (ReflectiveOperationException failure) { throw new IllegalStateException("OWN103 instant sampling unavailable", failure); }
     }
 
     private static List<ManagedSnapshot> census(PhantomPopulationStore store) throws Exception
@@ -236,18 +302,19 @@ public final class PhantomPopulation102Native
     private static String durableCheckpoint() throws Exception
     {
         final String membership = " JOIN phantom_profiles p ON p.character_object_id=c.charId JOIN phantom_profile_components membership ON membership.profile_id=p.profile_id AND membership.component_type='population.state' ";
-        final String[] queries = {
+        final var queries = new ArrayList<String>(List.of(
             "SELECT c.* FROM characters c" + membership + "ORDER BY c.charId",
             "SELECT i.* FROM items i JOIN characters c ON c.charId=i.owner_id" + membership + "ORDER BY i.object_id",
             "SELECT s.profile_id,s.component_type,s.component_schema_version,s.row_version,HEX(s.payload) FROM phantom_profile_components s JOIN phantom_profile_components membership ON membership.profile_id=s.profile_id AND membership.component_type='population.state' ORDER BY s.profile_id,s.component_type"
-        };
+        ));
+        if (_recovery103) { queries.add("SELECT r.* FROM character_recipebook r JOIN characters c ON c.charId=r.charId" + membership + "ORDER BY r.charId,r.id,r.classIndex"); }
         final var result = new StringBuilder();
         try (var connection = DatabaseFactory.getConnection())
         {
-            for (int index=0;index<queries.length;index++)
+            for (int index=0;index<queries.size();index++)
             {
                 final var digest = java.security.MessageDigest.getInstance("SHA-256"); long count=0;
-                try (var query = connection.createStatement(); var sql = query.executeQuery(queries[index]))
+                try (var query = connection.createStatement(); var sql = query.executeQuery(queries.get(index)))
                 {
                     while (sql.next()) { count++; for(int column=1;column<=sql.getMetaData().getColumnCount();column++) { final String value=sql.getString(column); digest.update((value==null ? "NULL\n" : value.length()+":"+value+"\n").getBytes(StandardCharsets.UTF_8)); } }
                 }
@@ -270,6 +337,7 @@ public final class PhantomPopulation102Native
             Integer id = null;
             try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT charId FROM characters WHERE account_name=? AND char_name=? AND accesslevel=0"))
             { query.setString(1, account); query.setString(2, name); try (var sql = query.executeQuery()) { if (sql.next()) { id = sql.getInt(1); check(!sql.next(), "OWN102 observer ambiguous"); } } }
+            if (_recovery103) { check(id != null, "OWN103 only existing labelled test humans may be reused"); }
             if (id == null) { try (var connection = DatabaseFactory.getConnection(); var insert = connection.prepareStatement("INSERT INTO accounts(login,password,accessLevel,lastServer) VALUES(?,'DISABLED_OWN102_TEST_HUMAN',-1,1)")) { insert.setString(1, account); insert.executeUpdate(); } }
             final Player observer = id == null ? Player.create(PlayerTemplateData.getInstance().getTemplate(0), account, name, new PlayerAppearance((byte)0,(byte)0,(byte)0,false)) : Player.load(id);
             check(observer != null && !observer.isGM() && observer.getClient() == null && !observer.hasHeadlessOutboundSession(), "OWN102 labelled observer invalid");
