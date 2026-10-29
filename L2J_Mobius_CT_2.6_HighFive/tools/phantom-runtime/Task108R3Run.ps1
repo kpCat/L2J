@@ -6,6 +6,24 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+function Hold-ProcessHandle([Diagnostics.Process]$Process) {
+    if ($null -eq $Process) { throw 'OWN108R3C_PROCESS_REQUIRED' }
+    # Start-Process redirection on Windows PowerShell 5.1 can lose ExitCode unless
+    # this Process owns its cached handle before waiting (PowerShell issue 5421).
+    $handle = $Process.Handle
+    if ($null -eq $handle -or $handle -isnot [IntPtr] -or $handle -eq [IntPtr]::Zero) { throw 'OWN108R3C_PROCESS_HANDLE_UNAVAILABLE' }
+    return $handle
+}
+function Assert-ObservedExitCode([object]$Value) {
+    # Do not cast: PowerShell converts a null value to integer zero.
+    if ($null -eq $Value -or $Value -isnot [int]) { throw 'OWN108R3C_EXIT_STATUS_UNKNOWN' }
+    return $Value
+}
+function Get-TrackedProcessExitCode([Diagnostics.Process]$Process, [object]$Handle) {
+    if ($null -eq $Process -or $null -eq $Handle -or $Handle -isnot [IntPtr] -or $Handle -eq [IntPtr]::Zero) { throw 'OWN108R3C_EXIT_HANDLE_UNKNOWN' }
+    if (!$Process.HasExited) { throw 'OWN108R3C_PROCESS_NOT_EXITED' }
+    return Assert-ObservedExitCode $Process.ExitCode
+}
 function Physical([string]$Path) {
     $item = Get-Item -LiteralPath $Path -Force
     for ($walk = $item; $null -ne $walk; $walk = if ($walk -is [IO.FileInfo]) { $walk.Directory } else { $walk.Parent }) {
@@ -486,11 +504,19 @@ $uuid = $original.installationId
 $arguments = @('-Xms512m', '-Xmx8g', '-Dphantom.task102.native=true', "-Dphantom.task102.stage=$stage", "-Dphantom.task102.uuid=$uuid", "-Dphantom.module.root=$shadow", "-Dphantom.test.config=$database", '-cp', $cp, 'org.l2jmobius.tests.phantoms.PhantomPopulation102Native', ('recovery108R3C' + $Action))
 $line = ($arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
 $process = Start-Process -FilePath (Get-Command java.exe).Source -ArgumentList $line -WorkingDirectory $game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $receipts "native$phase.private.log") -RedirectStandardError (Join-Path $receipts "native$phase.stderr.private.log")
+$processHandle = $null
+$handleFailure = $null
+try { $processHandle = Hold-ProcessHandle $process }
+catch { $handleFailure = $_.Exception.GetType().FullName }
 $os = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $process.Id)
 if (!$os -or (Invoke-CimMethod -InputObject $os -MethodName GetOwnerSid).Sid -cne $sid -or !$os.CommandLine.Contains($stage) -or !$os.CommandLine.Contains($uuid)) { throw 'OWN108R3C_NEW_PROCESS_IDENTITY_UNPROVEN_NO_RETRY' }
 $digest = [Security.Cryptography.SHA256]::Create()
 try { $commandHash = ([BitConverter]::ToString($digest.ComputeHash([Text.Encoding]::UTF8.GetBytes($os.CommandLine)))).Replace('-', '').ToLowerInvariant() } finally { $digest.Dispose() }
 New-Text (Join-Path $receipts "process$phase.private.json") (@{ PID = $process.Id; CreationUTC = $os.CreationDate.ToUniversalTime().ToString('o'); SID = $sid; Executable = $os.ExecutablePath; CommandSHA256 = $commandHash; Stage = $stage; Installation = $uuid; JarSHA256 = $seal.jarSha256 } | ConvertTo-Json)
+if ($null -ne $handleFailure) {
+    New-Text (Join-Path $receipts "retained$phase.private.json") (@{ PID = $process.Id; CreationUTC = $os.CreationDate.ToUniversalTime().ToString('o'); SID = $sid; Executable = $os.ExecutablePath; CommandSHA256 = $commandHash; Stage = $stage; Installation = $uuid; JarSHA256 = $seal.jarSha256; status = 'HANDLE_UNAVAILABLE_NO_RETRY'; failure = $handleFailure; forceApproval = $false } | ConvertTo-Json)
+    throw 'OWN108R3C_HANDLE_UNAVAILABLE;NO_B;NO_RETRY;NO_FORCE'
+}
 Write-Output "OWN108R3C_NATIVE_STARTED generation=$Action;cap=16;newProfiles=FORBIDDEN"
 $deadline = [DateTime]::UtcNow.AddMinutes(12)
 while (!$process.WaitForExit(1000)) {
@@ -499,7 +525,11 @@ while (!$process.WaitForExit(1000)) {
         throw 'OWN108R3C_STOP_BLOCKED;NO_B;NO_RETRY;NO_FORCE'
     }
 }
-$exit = $process.ExitCode
+try { $exit = Get-TrackedProcessExitCode $process $processHandle }
+catch {
+    New-Text (Join-Path $receipts "exit$phase.unknown") ('status=UNKNOWN;utc=' + [DateTime]::UtcNow.ToString('o') + ';failure=' + $_.Exception.GetType().FullName)
+    throw 'OWN108R3C_EXIT_STATUS_UNKNOWN;NO_B;NO_RETRY;NO_FORCE'
+}
 New-Text (Join-Path $receipts "exit$phase.observed") ("exit=$exit;utc=" + [DateTime]::UtcNow.ToString('o'))
 if ($exit -ne 0) { throw 'OWN108R3C_NATIVE_EXIT_FAILED_NO_NEXT_RUNTIME' }
 Java0
