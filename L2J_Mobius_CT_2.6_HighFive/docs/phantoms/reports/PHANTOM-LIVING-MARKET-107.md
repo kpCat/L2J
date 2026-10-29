@@ -20,6 +20,8 @@ Baseline: live/local/tracking `feature/phantom-world`, `795b160b9dc7ffb4005be577
 
 Существующая source-aware стоимость учитывает native drop/spoil chance/amount и текущие rates8/10/10/20. DB-free проверка удвоения spoil amount меняет source fair в ожидаемую сторону. Native цены требуют реального runtime generation, NPC availability и tax corridor; статические source candidate fair не названы ценой сделки.
 
+После managed commit проверен обычный OwnerConfig Save→Apply→Verify→Apply→Verify на отдельной config-only fixture без Database.ini: grant60000000, refresh2400, stock global20000000000, gear share25. Save сохранил4 новых long overrides (291 total), все исходные287 tuples file/key/kind/baseValue/value совпали. Apply changed1, оба Verify changed0, повторный Apply changed0. Source OwnerConfig.json/INI и sealed stage не менялись. До корректного запуска временная fixture трижды была остановлена orchestration guards (слишком широкий filename filter, excluded catalog entries, затем неверный leaf/ProfilePath); после переиспользования точного public/excluded и CLI contract проверка прошла. Это config-only fixture attempts, не дополнительные native107 shadows.
+
 ## Проверки до native
 
 - G0: exact OWN102 owner/schema/SID/UUID/source inputs/DB-config hash, полная SQL visibility, foreign0/JVM0/SQL0/TCP0; два одинаковых whole-schema preimages; SQL writes0.
@@ -67,5 +69,9 @@ Raw SQL/owner/account/character/object/lease/process/receipts находятся
 
 - Mojibake-маркеры в изменённых файлах проверены:20 файлов, полный набор, совпадений0.
 - Escaped Cyrillic в изменённых файлах проверены:20 файлов, все6 patterns, совпадений0.
-- Git использовался по прямому разрешению TASK107 для live baseline/scope и будущего normal commit/push. Финальные exact команды/commit/remote equality: PENDING.
+- Git использовался по прямому разрешению TASK107 для baseline/scope, штатного OwnerConfig managed-source чтения и normal commit/push. Code commit `711426efcecabbcc5d0d3923e0cef4bcbabb16dd`; normal push exit0 обновил только feature/phantom-world с795b160b9dc. Финальные документы публикуются отдельным обычным commit; его SHA и final remote equality фиксируются в итоговом сообщении, без самоссылочного изменения отчёта.
 - Итоговый independent source/report review после post-A correction: P1=0/P2=0 для PARTIAL/BLOCKED поставки; native correction NOT_RUN. До correction найденный P2 не скрывался.
+
+Git-команды: `git rev-parse HEAD`, `git rev-parse --show-toplevel`, `git symbolic-ref --short HEAD`, `git status --short --untracked-files=no`, `git status --porcelain=v1 --untracked-files=no`, bounded `git worktree list`/`git for-each-ref`, `git merge-base --is-ancestor 795b160b9dc7ffb4005be577941080286edf3aef HEAD`, Task102 Prepare ancestry check `git merge-base --is-ancestor 9245f95aa6c4dd7c50df47c71cd68f2aa4b0b9d0 HEAD`, `git ls-remote origin refs/heads/feature/phantom-world`. OwnerConfig Save штатно выполняет `git rev-parse --verify <revision>^{commit}` и `git show <resolvedCommit>:<module>/dist/game/config/<publicFile>`; только68 public catalog INI, без private configs.
+
+Для scope20 (exact allowlist плана плюс сам план) выполнены `git diff --stat -- <8 exact tracked paths>`, `git -c core.whitespace=cr-at-eol diff --check -- <scope20>`, `git add -- <scope20>`, `git diff --cached --name-only -- <scope20>`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <scope20>`, `git commit -m 'phantom(task-107): add finite living market with audited blocked native proof'`, `git push origin HEAD:feature/phantom-world`; exit0. Финальный doc commit использует только два exact report/plan paths. Git LF→CRLF warnings не изменили source bytes; staged whitespace check exit0. Add-all/stash/reset/restore/force/amend/merge/rebase не использовались.
