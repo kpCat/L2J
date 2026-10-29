@@ -199,6 +199,7 @@ public final class PhantomPopulation102Native
                 check(PhantomSystem.operatorPopulationSnapshot().peakCreationClaims()==0,"OWN102 repeat boot replayed the creation saga");
                 starterReceipt("after");
             }
+            if (_recovery105) { captureBeforeStop105(); }
             Files.writeString(_receipts.resolve("phase" + _phase + ".complete"), "ready=" + target + ";world1=" + first + ";world2=" + second + ";controlledHumans=" + OBSERVERS.size() + "\n", StandardOpenOption.CREATE_NEW);
         }
         finally
@@ -257,6 +258,12 @@ public final class PhantomPopulation102Native
     @SuppressWarnings("unchecked")
     private static List<Merchant105> merchants105() throws Exception
     {
+        return merchants105(true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Merchant105> merchants105(boolean requireStopped) throws Exception
+    {
         final Class<?> type = org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService.class;
         final var nativeOwners = java.util.Map.copyOf((java.util.Map<Integer, ?>) field105(null, type, "NATIVE_OWNERS"));
         check(nativeOwners.size() <= 512, "OWN105 merchant inventory bound");
@@ -268,7 +275,7 @@ public final class PhantomPopulation102Native
             final var service = (org.l2jmobius.gameserver.phantoms.economy.PhantomOfflineMerchantService) field105(nativeOwner, nativeOwner.getClass(), "service");
             synchronized (service)
             {
-                check(Boolean.TRUE.equals(field105(service, type, "_stopping")), "OWN105 merchant producer not stopped");
+                check(!requireStopped || Boolean.TRUE.equals(field105(service, type, "_stopping")), "OWN105 merchant producer not stopped");
                 final var owners = (java.util.Map<Integer, Player>) field105(service, type, "_owners");
                 final var leases = (java.util.Map<Integer, PhantomIdentityLeaseRegistry.Lease>) field105(service, type, "_leases");
                 final var roles = (java.util.Map<Integer, ?>) field105(service, type, "_roles");
@@ -296,6 +303,24 @@ public final class PhantomPopulation102Native
             }
         }
         return List.copyOf(result);
+    }
+
+    private static void captureBeforeStop105() throws Exception
+    {
+        final var rows = new ArrayList<String>();
+        final var registry = PhantomIdentityLeaseRegistry.getInstance();
+        for (var player : List.copyOf(World.getInstance().getPlayers()))
+        {
+            final var owner = registry.getOwnerSnapshot(player.getObjectId());
+            rows.add("WORLD\t" + player.getObjectId() + "\t" + System.identityHashCode(player) + "\t" + player.getAccountName() + "\t" + owner
+                + "\tordinary=" + _ordinaryCharacterIds.contains(player.getObjectId()) + "\tobserver=" + OBSERVERS.contains(player));
+        }
+        for (var merchant : merchants105(false))
+        {
+            rows.add("NATIVE_MERCHANT\t" + merchant.player().getObjectId() + "\t" + merchant.role().ordinal() + "\t" + merchant.lease().token()
+                + "\t" + merchant.role().stage() + "\t" + System.identityHashCode(merchant.player()) + "\tquiescent=" + quiescent105(merchant));
+        }
+        Files.write(_receipts.resolve("before-stop" + _phase + "-owners.private.tsv"), rows.stream().sorted().toList(), StandardOpenOption.CREATE_NEW);
     }
 
     private static boolean quiescent105(Merchant105 merchant)

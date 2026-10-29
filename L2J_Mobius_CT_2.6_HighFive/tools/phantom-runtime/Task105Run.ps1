@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Audit104','CheckSessionOwnership')][string]$Action,
-    [string]$SqlClient
+    [Parameter(Mandatory)][ValidateSet('Audit104','CheckSessionOwnership','CheckBoundary','Clearance','Bind','Seal','A','B','C')][string]$Action,
+    [string]$SqlClient,
+    [string]$StageRoot
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -27,6 +28,19 @@ function Owned-Session([string[]]$Columns,[object[]]$Connections,[int]$ExpectedP
     $matched=@($Connections|Where-Object {$_.OwningProcess -eq $ExpectedPid -and $_.LocalPort -eq $port -and $_.RemotePort -eq 3308 -and
         $_.State -eq 'Established' -and $_.LocalAddress -eq '127.0.0.1' -and $_.RemoteAddress -eq '127.0.0.1'})
     return $matched.Count -eq 1
+}
+function Valid-Boundary105([string]$Value){
+    if($Value -cnotmatch '^ordinaryWorld=0;ordinaryLeases=0;observerOwners=0;unknown=0;global=([0-9]+);attributedMerchants=([0-9]+);samples=2;nativePersisted=true\r?\n?$'){return $false}
+    return [long]$matches[1] -eq [long]$matches[2]
+}
+if($Action -eq 'CheckBoundary'){
+    $value="ordinaryWorld=0;ordinaryLeases=0;observerOwners=0;unknown=0;global=17;attributedMerchants=17;samples=2;nativePersisted=true`n"
+    if(!(Valid-Boundary105 $value)){throw 'OWN105_LAWFUL_RESIDUAL_REJECTED'}
+    if(Valid-Boundary105 $value.Replace('global=17','global=18')){throw 'OWN105_UNATTRIBUTED_TOTAL_ACCEPTED'}
+    if(Valid-Boundary105 $value.Replace('unknown=0','unknown=1')){throw 'OWN105_UNKNOWN_ACCEPTED'}
+    if(Valid-Boundary105 "ordinaryWorld=0;allLeases=0;observerOwners=0`n"){throw 'OWN105_LEGACY_ZERO_ACCEPTED'}
+    Write-Output 'BOUNDARY105_CHECK_PASS lawfulResidual=ACCEPTED;unknownAndUnattributedAndLegacy=REJECTED;SQL=0;OS=0'
+    return
 }
 if($Action -eq 'CheckSessionOwnership'){
     $schema='l2jmobiush5_phantom_test_102'
@@ -61,6 +75,157 @@ function Private-Directory([string]$Path){
 $module=Physical (Join-Path $PSScriptRoot '../..')
 $repo=Physical (Split-Path -Parent $module)
 $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if($Action -in @('Bind','Seal','A','B','C')){
+    $index=Join-Path $repo '.phantom-local/logs/PHANTOM-LEASE-STOP-CLOSURE-105'
+    $resumeInfo=Get-Content -LiteralPath (Join-Path $index 'resume105.private.json') -Raw|ConvertFrom-Json
+    $resume=Physical $resumeInfo.resume
+    $stageInfo=Get-Content -LiteralPath (Join-Path $resume 'stage105.private.json') -Raw|ConvertFrom-Json
+    $stage=Physical $StageRoot
+    $origin=Physical $resumeInfo.origin
+    if($stage -ine (Physical $stageInfo.stage) -or $stage -ieq $origin -or $stage.StartsWith($origin+'\',[StringComparison]::OrdinalIgnoreCase) -or
+        $stage -ieq $repo -or $stage.StartsWith($repo+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'OWN105_EXACT_NEW_EXTERNAL_STAGE_REQUIRED'}
+    foreach($root in @($stage,$origin,$resume)){
+        $acl=Get-Acl -LiteralPath $root
+        if(!$acl.AreAccessRulesProtected -or [Security.Principal.NTAccount]::new($acl.Owner).Translate([Security.Principal.SecurityIdentifier]).Value -cne $sid){throw 'OWN105_PRIVATE_OWNER_REQUIRED'}
+        foreach($rule in $acl.Access){if($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -notin @($sid,'S-1-5-18')){throw 'OWN105_FOREIGN_ACL'}}
+    }
+    $clearance=Get-Content -LiteralPath (Join-Path $resume 'clearance105.json') -Raw|ConvertFrom-Json
+    if($clearance.JVM -ne 0 -or $clearance.SQL -ne 0 -or $clearance.TCP -ne 0 -or !$clearance.fullVisibility -or !$clearance.preimagesStable){throw 'OWN105_CLEARANCE_PROOF_REQUIRED'}
+    function Java0 {
+        if(@(Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'").Count -ne 0){throw 'OWN105_JAVA_PRESENT_NO_NATIVE'}
+        if(@(Get-NetTCPConnection -ErrorAction Stop|Where-Object {$_.State -eq 'Established' -and ($_.LocalPort -eq 3308 -or $_.RemotePort -eq 3308)}).Count -ne 0){throw 'OWN105_SQL_TCP_PRESENT'}
+    }
+    Java0
+    $source=$module
+    $module=Physical (Join-Path $stage 'L2J_Mobius_CT_2.6_HighFive')
+    $private=Physical (Join-Path $stage 'private')
+    $game=Physical (Join-Path $module 'dist/game')
+    $database=Join-Path $game 'config/Database.ini'
+    $originOwner=[IO.File]::ReadAllText((Physical (Join-Path $origin 'private/owner.properties')))
+    $originProperties=Properties (Join-Path $origin 'private/owner.properties')
+    if($originProperties.owner -cne 'TASK102_POPULATION_SCALE' -or $originProperties.schema -cne 'l2jmobiush5_phantom_test_102' -or $originProperties.ownerSid -cne $sid){throw 'OWN105_ORIGINAL_AUTHORITY_REQUIRED'}
+    $uuid=$originProperties.installationId
+    if($Action -eq 'Bind'){
+        foreach($path in @('private/db.created','private/native.properties','private/recovery103.properties','private/recovery104.properties','private/recovery105.bound','private/recovery105.properties','private/receipts105','L2J_Mobius_CT_2.6_HighFive/dist/game/config/Database.ini')){
+            if(Test-Path -LiteralPath (Join-Path $stage $path)){throw 'OWN105_FRESH_PREPARE_ONLY'}
+        }
+        $prepared=Properties (Join-Path $private 'owner.properties')
+        if($prepared.installationId -cne $stageInfo.preparationId -or $prepared.installationId -ceq $uuid -or (Physical $prepared.stage) -ine $stage -or
+            (Physical $prepared.sourceModule) -ine $source -or $prepared.ownerSid -cne $sid -or $prepared.branch -cne 'feature/phantom-world' -or
+            $prepared.inputsSha256 -cne (Hash (Join-Path $stage 'inputs.tsv')) -or
+            ![IO.File]::ReadAllText((Physical (Join-Path $stage 'prepare.completed'))).Contains('installationId='+$prepared.installationId+"`n")){throw 'OWN105_PREPARATION_MISMATCH'}
+        Copy-Item -LiteralPath (Join-Path $private 'owner.properties') -Destination (Join-Path $private 'prepared105-owner.properties')
+        Copy-Item -LiteralPath (Join-Path $stage 'inputs.tsv') -Destination (Join-Path $private 'source105-inputs.tsv')
+        $owner=[regex]::Replace($originOwner,'(?m)^stage=.*$',('stage='+$stage.Replace('\','/')))
+        $owner=[regex]::Replace($owner,'(?m)^expiresUtc=.*$',('expiresUtc='+[DateTime]::UtcNow.AddHours(3).ToString('yyyy-MM-ddTHH:mm:ssZ')))
+        [IO.File]::WriteAllText((Join-Path $private 'owner.properties'),$owner,[Text.UTF8Encoding]::new($false))
+        foreach($path in @('inputs.tsv','private/db.created')){
+            Copy-Item -LiteralPath (Join-Path $origin $path) -Destination (Join-Path $stage $path) -Force
+            if((Hash (Join-Path $origin $path)) -cne (Hash (Join-Path $stage $path))){throw 'OWN105_ORIGIN_COPY_DRIFT'}
+        }
+        Copy-Item -LiteralPath (Join-Path $origin 'private/receipts-continuation2/ids4.tsv') -Destination (Join-Path $private 'origin103-ids.tsv')
+        Copy-Item -LiteralPath (Join-Path $origin 'L2J_Mobius_CT_2.6_HighFive/dist/game/config/Database.ini') -Destination $database
+        New-Item -ItemType Directory -Path (Join-Path $private 'receipts105')|Out-Null
+        New-Text (Join-Path $private 'recovery105.bound') 'priorExit=UNCLEAN_UNPROVEN;clearance=JVM0_SQL0_TCP0;noReseed=true;DDL_DML=0'
+        Write-Output 'OWN105_BOUND freshStage=true;originalAuthority=true;historicalArtifactsUntouched=true;SQL_WRITES=0'
+        return
+    }
+    $cp=(Join-Path $stage 'build/phantom-test/bin')+';'+(Join-Path $stage 'build/phantom-test/resources')+';'+(Join-Path $module 'dist/libs/*')
+    $receipts=Physical (Join-Path $private 'receipts105')
+    $client=Physical $SqlClient
+    $options=Physical (Join-Path $resumeInfo.archive 'sql-client.private.cnf')
+    function Census([string]$Cut){
+        Java0
+        $out=Join-Path $receipts ('readonly-'+$Cut)
+        New-Item -ItemType Directory -Path $out|Out-Null
+        & java -cp $cp Task105Census snapshot $origin $out 1>(Join-Path $out 'census.log') 2>(Join-Path $out 'census.stderr.private.txt')
+        if($LASTEXITCODE -ne 0 -or [IO.File]::ReadAllText((Join-Path $out 'sessions.txt')) -notmatch ';own=0;foreign=0;fullVisibility=true'){throw 'OWN105_READONLY_CENSUS_FAILED'}
+        Get-Content -LiteralPath (Join-Path $resumeInfo.archive 'first-preimage.sql') -Raw|& $client "--defaults-extra-file=$options" --batch --skip-column-names --database=l2jmobiush5_phantom_test_102 2>(Join-Path $out 'frame.stderr.private.txt')|Out-File -LiteralPath (Join-Path $out 'frame105.private.tsv') -Encoding utf8
+        if($LASTEXITCODE -ne 0){throw 'OWN105_FRAME_SQL_FAILED'}
+        Java0
+        return $out
+    }
+    if($Action -eq 'Seal'){
+        if(!(Test-Path -LiteralPath (Join-Path $private 'recovery105.bound')) -or (Test-Path -LiteralPath (Join-Path $private 'recovery105.properties'))){throw 'OWN105_SINGLE_SEAL_REQUIRED'}
+        $null=Census 'seal'
+        $rows=[Collections.Generic.List[string]]::new()
+        foreach($root in @($module,(Join-Path $stage 'build/phantom-test/bin'),(Join-Path $stage 'build/phantom-test/resources'))){
+            foreach($file in Get-ChildItem -LiteralPath $root -File -Recurse -Force){
+                Physical $file.FullName|Out-Null
+                $relative=$file.FullName.Substring($stage.Length+1).Replace('\','/')
+                if($relative -match '/dist/(?:game|login)/(?:log|logs)/'){continue}
+                $rows.Add($relative+"`t"+(Hash $file.FullName))
+            }
+        }
+        New-Text (Join-Path $private 'native-inputs.tsv') (($rows|Sort-Object) -join "`n")
+        $pins=@('dist/libs/GameServer.jar','dist/game/config/Database.ini','dist/game/config/Custom/PhantomPlayers.ini')|ForEach-Object{$_+'='+(Hash (Join-Path $module $_))}
+        New-Text (Join-Path $private 'native.properties') (($pins -join "`n")+"`nnativeInputsSha256="+(Hash (Join-Path $private 'native-inputs.tsv')))
+        Copy-Item -LiteralPath (Join-Path $source 'dist/game/config/Custom/PhantomPlayers.ini') -Destination (Join-Path $private 'runtime105-final.ini')
+        New-Text (Join-Path $private 'recovery105.properties') ("task=PHANTOM-LEASE-STOP-CLOSURE-105`nnoReseed=true`njarSha256="+(Hash (Join-Path $module 'dist/libs/GameServer.jar'))+"`noriginIdsSha256="+(Hash (Join-Path $private 'origin103-ids.tsv'))+"`nsourceOwnerSha256="+(Hash (Join-Path $source 'dist/game/config/OwnerConfig.json'))+"`nsourceIniSha256="+(Hash (Join-Path $source 'dist/game/config/Custom/PhantomPlayers.ini')))
+        Write-Output 'OWN105_SEALED originalDB=true;currentJAR=true;allInputsPinned=true'
+        return
+    }
+    $authority=Properties (Join-Path $private 'recovery105.properties')
+    foreach($pair in @(@('jarSha256',(Join-Path $module 'dist/libs/GameServer.jar')),@('originIdsSha256',(Join-Path $private 'origin103-ids.tsv')),@('sourceOwnerSha256',(Join-Path $source 'dist/game/config/OwnerConfig.json')),@('sourceIniSha256',(Join-Path $source 'dist/game/config/Custom/PhantomPlayers.ini')),@('sourceIniSha256',(Join-Path $private 'runtime105-final.ini')))){
+        if($authority[$pair[0]] -cne (Hash $pair[1])){throw 'OWN105_SEALED_SOURCE_DRIFT'}
+    }
+    $phase=switch($Action){'A'{6};'B'{4};'C'{5}}
+    $previous=switch($Action){'B'{6};'C'{4};default{0}}
+    if(Test-Path -LiteralPath (Join-Path $receipts ("launch$phase.begun"))){throw 'OWN105_SINGLE_GENERATION_REQUIRED'}
+    if($previous){
+        foreach($name in @("phase$previous.complete","stopped$previous.checkpoint","stop$previous-world-leases.txt","exit$previous.clean")){if(!(Test-Path -LiteralPath (Join-Path $receipts $name))){throw 'OWN105_PREVIOUS_COMPLETE_STOP_REQUIRED'}}
+        if(!(Valid-Boundary105 ([IO.File]::ReadAllText((Join-Path $receipts "stop$previous-world-leases.txt"))))){throw 'OWN105_PREVIOUS_ATTRIBUTION_INVALID'}
+        if([IO.File]::ReadAllText((Join-Path $receipts "exit$previous.clean")) -notmatch '^exit=0;JVM=0;SQL=0;TCP=0;'){throw 'OWN105_PREVIOUS_PROCESS_EXIT_REQUIRED'}
+    }
+    $pre=Census ('before'+$Action)
+    if($previous -and [IO.File]::ReadAllText((Join-Path $pre 'durable105.checkpoint')).TrimEnd([char[]]"`r`n") -cne [IO.File]::ReadAllText((Join-Path $receipts "stopped$previous.checkpoint")).TrimEnd([char[]]"`r`n")){throw 'OWN105_PRESTART_STOPPED_DATA_DRIFT'}
+    $cap=if($Action -eq 'A'){16}else{128}
+    $ini=Join-Path $game 'config/Custom/PhantomPlayers.ini'
+    $text=[IO.File]::ReadAllText((Join-Path $private 'runtime105-final.ini'))
+    foreach($key in @('PhantomPopulationActiveTarget','MaxMaterializedPhantoms')){
+        $pattern='(?m)^('+[regex]::Escape($key)+'[ \t]*=[ \t]*)[^\r\n]*'
+        if([regex]::Matches($text,$pattern).Count -ne 1){throw 'OWN105_OVERLAY_KEY'}
+        $text=[regex]::Replace($text,$pattern,{param($match)$match.Groups[1].Value+[string]$cap})
+    }
+    [IO.File]::WriteAllText($ini,$text,[Text.UTF8Encoding]::new($false))
+    $manifest=Join-Path $private 'native-inputs.tsv'
+    $pinsPath=Join-Path $private 'native.properties'
+    $relative='L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/PhantomPlayers.ini'
+    $rows=@([IO.File]::ReadAllLines($manifest)|ForEach-Object{if($_.StartsWith($relative+"`t")){$relative+"`t"+(Hash $ini)}else{$_}})
+    [IO.File]::WriteAllText($manifest,($rows -join "`n"),[Text.UTF8Encoding]::new($false))
+    $pins=[regex]::Replace([IO.File]::ReadAllText($pinsPath),'(?m)^dist/game/config/Custom/PhantomPlayers.ini=.*$',('dist/game/config/Custom/PhantomPlayers.ini='+(Hash $ini)))
+    $pins=[regex]::Replace($pins,'(?m)^nativeInputsSha256=.*$',('nativeInputsSha256='+(Hash $manifest)))
+    [IO.File]::WriteAllText($pinsPath,$pins,[Text.UTF8Encoding]::new($false))
+    Copy-Item -LiteralPath $manifest -Destination (Join-Path $private ("generation$Action-native-inputs.tsv"))
+    Copy-Item -LiteralPath $pinsPath -Destination (Join-Path $private ("generation$Action-native.properties"))
+    Java0
+    New-Text (Join-Path $receipts "launch$phase.begun") ('utc='+[DateTime]::UtcNow.ToString('o'))
+    $arguments=@('-Xms512m','-Xmx8g','-Dphantom.task102.native=true',"-Dphantom.task102.stage=$stage","-Dphantom.task102.uuid=$uuid","-Dphantom.module.root=$module","-Dphantom.test.config=$database",'-cp',$cp,'org.l2jmobius.tests.phantoms.PhantomPopulation102Native',('recovery105'+$Action))
+    $line=($arguments|ForEach-Object {'"'+$_.Replace('"','\"')+'"'}) -join ' '
+    $process=Start-Process -FilePath (Get-Command java.exe).Source -ArgumentList $line -WorkingDirectory $game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $receipts "native$phase.private.log") -RedirectStandardError (Join-Path $receipts "native$phase.stderr.private.log")
+    $os=Get-CimInstance Win32_Process -Filter ('ProcessId='+$process.Id)
+    if(!$os -or (Invoke-CimMethod -InputObject $os -MethodName GetOwnerSid).Sid -cne $sid -or !$os.CommandLine.Contains($stage) -or !$os.CommandLine.Contains($uuid)){throw 'OWN105_LAUNCHED_PROCESS_IDENTITY_UNPROVEN_NO_RETRY'}
+    New-Text (Join-Path $receipts "process$phase.private.json") (@{PID=$process.Id;CreationUTC=$os.CreationDate.ToUniversalTime().ToString('o');SID=$sid;Executable=$os.ExecutablePath;CommandSHA256=(TextHash $os.CommandLine);Stage=$stage;Installation=$uuid;JarSHA256=(Hash (Join-Path $module 'dist/libs/GameServer.jar'))}|ConvertTo-Json)
+    Write-Output "OWN105_NATIVE_STARTED generation=$Action;cap=$cap;newProfiles=FORBIDDEN"
+    while(!$process.WaitForExit(1000)){
+        if(Test-Path -LiteralPath (Join-Path $receipts "stop$phase.blocked")){
+            New-Text (Join-Path $receipts "retained$phase.private.json") (@{PID=$process.Id;live=(!$process.HasExited);status='STOP_BLOCKED_NO_RETRY';forceApproval=$false}|ConvertTo-Json)
+            throw 'OWN105_NATIVE_STOP_BLOCKED;NO_NEXT_GENERATION;NO_FORCE'
+        }
+    }
+    $exit=$process.ExitCode
+    New-Text (Join-Path $receipts "exit$phase.observed") ("exit=$exit;utc="+[DateTime]::UtcNow.ToString('o'))
+    if($exit -ne 0){throw 'OWN105_NATIVE_EXIT_FAILED;NO_NEXT_GENERATION'}
+    Java0
+    $post=Census ('after'+$Action)
+    if(!(Test-Path -LiteralPath (Join-Path $receipts "phase$phase.complete")) -or
+        [IO.File]::ReadAllText((Join-Path $receipts "stop$phase.txt")) -notmatch '^drained=true;' -or
+        !(Valid-Boundary105 ([IO.File]::ReadAllText((Join-Path $receipts "stop$phase-world-leases.txt"))))){throw 'OWN105_COMPLETE_NATIVE_STOP_PROOF_REQUIRED'}
+    if([IO.File]::ReadAllText((Join-Path $post 'durable105.checkpoint')).TrimEnd([char[]]"`r`n") -cne [IO.File]::ReadAllText((Join-Path $receipts "stopped$phase.checkpoint")).TrimEnd([char[]]"`r`n")){throw 'OWN105_POSTEXIT_STOPPED_DATA_DRIFT'}
+    New-Text (Join-Path $receipts "exit$phase.clean") ("exit=0;JVM=0;SQL=0;TCP=0;nativePersistence=VERIFIED;jarSha256="+$authority.jarSha256)
+    Write-Output "OWN105_GENERATION_CLEAN generation=$Action;cap=$cap;JVM=0;SQL=0;TCP=0;allResidualLeasesAttributed=true"
+    return
+}
 $prior=Join-Path $repo '.phantom-local/logs/PHANTOM-LOCK-ORDER-RECOVERY-104'
 $e=Get-Content -LiteralPath (Join-Path $prior 'evidence104.private.json') -Raw|ConvertFrom-Json
 $retained=Get-Content -LiteralPath (Join-Path $prior 'retained104.private.json') -Raw|ConvertFrom-Json
@@ -82,6 +247,50 @@ if($owner.owner -cne 'TASK102_POPULATION_SCALE' -or $owner.schema -cne 'l2jmobiu
     $owner.inputsSha256 -cne (Hash (Join-Path $stage 'inputs.tsv')) -or
     $nativePins.nativeInputsSha256 -cne (Hash (Join-Path $stage 'private/native-inputs.tsv')) -or
     $original.inputsSha256 -cne (Hash (Join-Path $origin 'inputs.tsv'))) {throw 'OWN105_PRIOR_AUTHORITY_MISMATCH'}
+if($Action -eq 'Clearance'){
+    $index=Join-Path $repo '.phantom-local/logs/PHANTOM-LEASE-STOP-CLOSURE-105'
+    $previous=Get-Content -LiteralPath (Join-Path $index 'audit105-complete.private.json') -Raw|ConvertFrom-Json
+    $archive=Physical $previous.archive
+    $resume=Join-Path $archive ('resume-'+[guid]::NewGuid().ToString('N'))
+    Private-Directory $resume
+    $client=Physical $SqlClient
+    if([IO.Path]::GetFileName($client) -cne 'mariadb.exe'){throw 'OWN105_SQL_CLIENT_REQUIRED'}
+    $options=Physical (Join-Path $archive 'sql-client.private.cnf')
+    function Empty-Process105 {
+        if(@(Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'").Count -ne 0){throw 'OWN105_JAVA_PRESENT_NO_CLEARANCE'}
+        if(@(Get-NetTCPConnection -ErrorAction Stop|Where-Object {$_.State -eq 'Established' -and ($_.LocalPort -eq 3308 -or $_.RemotePort -eq 3308)}).Count -ne 0){throw 'OWN105_SQL_TCP_PRESENT_NO_CLEARANCE'}
+    }
+    function Read-Sql105([string]$Query,[string]$Name){
+        $inputPath=Join-Path $resume ($Name+'.sql')
+        New-Text $inputPath $Query
+        $output=Join-Path $resume ($Name+'.private.tsv')
+        Get-Content -LiteralPath $inputPath -Raw|& $client "--defaults-extra-file=$options" --batch --skip-column-names --database=l2jmobiush5_phantom_test_102 2>(Join-Path $resume ($Name+'.stderr.private.txt'))|Out-File -LiteralPath $output -Encoding utf8
+        if($LASTEXITCODE -ne 0){throw 'OWN105_CLEARANCE_SQL_FAILED'}
+        return $output
+    }
+    Empty-Process105
+    $grants=Read-Sql105 'SHOW GRANTS FOR CURRENT_USER;' 'grants'
+    if(!(Get-Content -LiteralPath $grants -Raw).Contains('GRANT ALL PRIVILEGES ON *.*')){throw 'OWN105_FULL_SQL_VISIBILITY_REQUIRED'}
+    $authority=Read-Sql105 'SELECT installation_id,source_head,inputs_sha256 FROM own102_authority;' 'authority'
+    if((Get-Content -LiteralPath $authority -Raw).Trim() -cne ($original.installationId+"`t"+$original.sourceHead+"`t"+$original.inputsSha256)){throw 'OWN105_DURABLE_AUTHORITY_DRIFT'}
+    foreach($cut in @('first','second')){
+        Empty-Process105
+        $sessions=Read-Sql105 'SELECT ID,USER,HOST,DB,COMMAND,TIME,STATE FROM information_schema.PROCESSLIST WHERE ID<>CONNECTION_ID() ORDER BY ID;' ($cut+'-sessions')
+        if(@([IO.File]::ReadAllLines($sessions)|Where-Object {$_}).Count -ne 0){throw 'OWN105_SQL_NOT_EMPTY'}
+        $null=Read-Sql105 ([IO.File]::ReadAllText((Physical (Join-Path $archive 'first-preimage.sql')))) ($cut+'-preimage')
+    }
+    Empty-Process105
+    $pins=Get-Content -LiteralPath (Join-Path $archive 'protected-source105.json') -Raw|ConvertFrom-Json
+    foreach($pin in $pins){if((Hash (Join-Path $repo $pin.relative)) -cne $pin.sha256){throw 'OWN105_PROTECTED_SOURCE_DRIFT'}}
+    $stable=(Hash (Join-Path $resume 'first-preimage.private.tsv')) -ceq (Hash (Join-Path $resume 'second-preimage.private.tsv'))
+    if(!$stable){throw 'OWN105_UNSTABLE_CLEARANCE_PREIMAGE'}
+    New-Text (Join-Path $resume 'clearance105.json') (@{status='PRIOR_EXIT_UNCLEAN_UNPROVEN';exact104Absent=$true;JVM=0;SQL=0;TCP=0;fullVisibility=$true;preimagesStable=$stable;protectedDrift=0;forceApprovalReceived=$true;forceUsed=$false;utc=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json)
+    $manifest=@(Get-ChildItem -LiteralPath $resume -File|ForEach-Object {@{name=$_.Name;sha256=(Hash $_.FullName);bytes=$_.Length}})
+    New-Text (Join-Path $resume 'clearance105-manifest.json') ($manifest|ConvertTo-Json)
+    New-Text (Join-Path $index 'resume105.private.json') (@{archive=$archive;resume=$resume;origin=$origin;stage104=$stage;approval='Exact104 one targeted force approved; unused because already absent';createdUtc=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json)
+    Write-Output 'PROCESS105_CLEARANCE JVM=0;SQL=0;TCP=0;fullVisibility=true;preimagesStable=true;priorExit=UNCLEAN_UNPROVEN;force=0;native105=0'
+    return
+}
 function Exact-Process {
     $process=Get-CimInstance Win32_Process -Filter ('ProcessId='+$retained.PID)
     if($null -eq $process){throw 'OWN105_PRIOR_PROCESS_ABSENT_REQUIRES_UNCLEAN_CLEARANCE_AUDIT'}
