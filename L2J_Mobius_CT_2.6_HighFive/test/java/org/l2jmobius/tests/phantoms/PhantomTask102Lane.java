@@ -60,7 +60,9 @@ final class PhantomTask102Lane
         final boolean recovery104 = Files.exists(stage.resolve("private/recovery104.properties"));
         final boolean recovery105 = Files.exists(stage.resolve("private/recovery105.properties"));
         final boolean recovery106 = Files.exists(stage.resolve("private/recovery106.properties"));
-        final boolean recovery107 = Files.exists(stage.resolve("private/recovery107.properties"));
+        final boolean recovery108 = Files.exists(stage.resolve("private/recovery108.properties"));
+        final boolean recovery107 = Files.exists(stage.resolve("private/recovery107.properties")) || recovery108;
+        if (recovery108 && Files.exists(stage.resolve("private/recovery107.properties"))) { throw new IllegalArgumentException("OWN108 fresh authority namespace required."); }
         final boolean recovery = Files.exists(stage.resolve("private/recovery103.properties")) || recovery104 || recovery105 || recovery106 || recovery107;
         if (recovery107 && (recovery104 || recovery105 || recovery106 || Files.exists(stage.resolve("private/recovery103.properties")))) { throw new IllegalArgumentException("OWN107 fresh authority namespace required."); }
         if (recovery106 && (recovery104 || recovery105 || Files.exists(stage.resolve("private/recovery103.properties")))) { throw new IllegalArgumentException("OWN106 fresh authority namespace required."); }
@@ -87,7 +89,7 @@ final class PhantomTask102Lane
         {
             connection.setReadOnly(true);
             if (!SCHEMA.equals(connection.getCatalog())) { throw new IllegalArgumentException("OWN102 connected catalog mismatch."); }
-            if (Files.exists(stage().resolve("private/recovery103.properties")) || Files.exists(stage().resolve("private/recovery104.properties")) || Files.exists(stage().resolve("private/recovery105.properties")) || Files.exists(stage().resolve("private/recovery106.properties")) || Files.exists(stage().resolve("private/recovery107.properties")))
+            if (Files.exists(stage().resolve("private/recovery103.properties")) || Files.exists(stage().resolve("private/recovery104.properties")) || Files.exists(stage().resolve("private/recovery105.properties")) || Files.exists(stage().resolve("private/recovery106.properties")) || Files.exists(stage().resolve("private/recovery107.properties")) || Files.exists(stage().resolve("private/recovery108.properties")))
             {
                 try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID<>CONNECTION_ID()"))
                 { rows.next(); if (rows.getLong(1) != 0) { throw new IllegalArgumentException("OWN103 foreign or own sessions remain; no native start."); } }
