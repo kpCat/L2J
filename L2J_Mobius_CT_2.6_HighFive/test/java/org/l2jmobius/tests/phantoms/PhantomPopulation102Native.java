@@ -43,6 +43,7 @@ public final class PhantomPopulation102Native
     private static boolean _recovery106;
     private static boolean _recovery107;
     private static boolean _recovery108;
+    private static boolean _recovery108R;
     private static String _boundary105;
     private static final java.util.Map<String, List<String>> _leaseRows106 = new TreeMap<>();
     private static List<Integer> _ordinaryCharacterIds = List.of();
@@ -51,22 +52,24 @@ public final class PhantomPopulation102Native
     {
         if (args.length == 1 && args[0].equals("logout107-check")) { logout107Checks(); return; }
         if (args.length == 2 && args[0].equals("config")) { configChecks(Path.of(args[1]).toRealPath()); return; }
-        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery10[45][ABC]|recovery10[678][AB]"), "OWN102 exact phase required; JDBC=0");
+        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery10[45][ABC]|recovery10[678][AB]|recovery108R[AB]"), "OWN102 exact phase required; JDBC=0");
         _recovery104 = args[0].startsWith("recovery104");
         _recovery105 = args[0].startsWith("recovery105");
         _recovery106 = args[0].startsWith("recovery106");
         _recovery108 = args[0].startsWith("recovery108");
+        _recovery108R = args[0].startsWith("recovery108R");
         _recovery107 = args[0].startsWith("recovery107") || _recovery108;
         _recovery103 = args[0].startsWith("recovery");
         _phase = _recovery104 || _recovery105 || _recovery106 || _recovery107 ? switch (args[0].charAt(args[0].length() - 1)) { case 'A' -> 6; case 'B' -> 4; default -> 5; } : Integer.parseInt(args[0].substring(args[0].length() - 1));
         final Path module = Path.of(System.getProperty("phantom.module.root", "")).toRealPath();
+        check(_recovery108R == PhantomTask102Lane.recovery108R(PhantomTask102Lane.stage()), "OWN108R entrypoint/authority namespace mismatch; JDBC=0");
         PhantomTask102Lane.validate(module, Path.of(System.getProperty("phantom.test.config", "")));
         final boolean continuation = Files.exists(PhantomTask102Lane.stage().resolve("private/continuation2.begun"));
-        _receipts = PhantomTask102Lane.stage().resolve(_recovery108 ? "private/receipts108" : _recovery107 ? "private/receipts107" : _recovery106 ? "private/receipts106" : _recovery105 ? "private/receipts105" : _recovery104 ? "private/receipts104" : _recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
+        _receipts = PhantomTask102Lane.stage().resolve(_recovery108R ? "private/receipts108R" : _recovery108 ? "private/receipts108" : _recovery107 ? "private/receipts107" : _recovery106 ? "private/receipts106" : _recovery105 ? "private/receipts105" : _recovery104 ? "private/receipts104" : _recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
         if (_recovery103)
         {
-            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_recovery108 ? "private/recovery108.properties" : _recovery107 ? "private/recovery107.properties" : _recovery106 ? "private/recovery106.properties" : _recovery105 ? "private/recovery105.properties" : _recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
-            check((_recovery108 ? "PHANTOM-MARKET-STOP-RESTART-108" : _recovery107 ? "PHANTOM-LIVING-MARKET-107" : _recovery106 ? "PHANTOM-MERCHANT-IDLE-RECOVERY-106" : _recovery105 ? "PHANTOM-LEASE-STOP-CLOSURE-105" : _recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103/104/105/106/107/108 recovery authority required");
+            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_recovery108R ? "private/recovery108R.properties" : _recovery108 ? "private/recovery108.properties" : _recovery107 ? "private/recovery107.properties" : _recovery106 ? "private/recovery106.properties" : _recovery105 ? "private/recovery105.properties" : _recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
+            check((_recovery108R ? "PHANTOM-MARKET-STOP-RESTART-108R" : _recovery108 ? "PHANTOM-MARKET-STOP-RESTART-108" : _recovery107 ? "PHANTOM-LIVING-MARKET-107" : _recovery106 ? "PHANTOM-MERCHANT-IDLE-RECOVERY-106" : _recovery105 ? "PHANTOM-LEASE-STOP-CLOSURE-105" : _recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103/104/105/106/107/108/108R recovery authority required");
             check(PhantomTask102Lane.hash(module.resolve("dist/libs/GameServer.jar")).equals(authority.getProperty("jarSha256")), "OWN103 repaired JAR drift");
             if (_recovery108 && _phase == 4) { PhantomStop108Checks.restart(_receipts, authority.getProperty("jarSha256")); }
             if (_phase == 5) { check(Files.readString(_receipts.resolve("stop4.txt")).startsWith("drained=true;"), "OWN103 prior clean stop required"); }
@@ -463,6 +466,11 @@ public final class PhantomPopulation102Native
     {
         check(_ordinaryCharacterIds.size() == 5000 && _logout103Calls != null && _logout103Calls.get() == 1 && _logout103Scope.outstanding() == 0, "OWN105 ordinary census/actual EARNED logout completion not proven");
         if (_recovery108) { PhantomStop108Checks.terminal(_logout103Calls.get(), _logout103Scope.outstanding(), _logout103Evidence); }
+        if (_recovery108R)
+        {
+            PhantomStop108RChecks.earned(_logout103Calls.get(), _logout103Scope.outstanding(), _logout103Evidence);
+            Files.writeString(_receipts.resolve("logout108R-terminal" + _phase + ".txt"), "calls=1;outstanding=0;" + _logout103Evidence, StandardOpenOption.CREATE_NEW);
+        }
         for (Player observer : OBSERVERS) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
         for (var lease : LEASES) { lease.close(); }
         for (int objectId : _ordinaryCharacterIds) { check(World.getInstance().getPlayer(objectId) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId) == null, "OWN105 ordinary World/lease retained"); }

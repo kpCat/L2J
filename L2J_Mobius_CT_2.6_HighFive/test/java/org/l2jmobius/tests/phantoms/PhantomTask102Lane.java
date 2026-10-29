@@ -27,6 +27,18 @@ final class PhantomTask102Lane
         try (var input = Files.newInputStream(file)) { final byte[] buffer = new byte[65536]; int length; while ((length = input.read(buffer)) >= 0) { digest.update(buffer, 0, length); } }
         return java.util.HexFormat.of().formatHex(digest.digest());
     }
+    static boolean recovery108R(Path stage)
+    {
+        final boolean selected = Files.exists(stage.resolve("private/recovery108R.properties"));
+        if (selected)
+        {
+            for (int prior = 103; prior <= 108; prior++)
+            {
+                if (Files.exists(stage.resolve("private/recovery" + prior + ".properties"))) { throw new IllegalArgumentException("OWN108R fresh authority namespace required before JDBC."); }
+            }
+        }
+        return selected;
+    }
     static Properties validate(Path module, Path config) throws Exception
     {
         final Path stage = stage();
@@ -60,7 +72,7 @@ final class PhantomTask102Lane
         final boolean recovery104 = Files.exists(stage.resolve("private/recovery104.properties"));
         final boolean recovery105 = Files.exists(stage.resolve("private/recovery105.properties"));
         final boolean recovery106 = Files.exists(stage.resolve("private/recovery106.properties"));
-        final boolean recovery108 = Files.exists(stage.resolve("private/recovery108.properties"));
+        final boolean recovery108 = Files.exists(stage.resolve("private/recovery108.properties")) || recovery108R(stage);
         final boolean recovery107 = Files.exists(stage.resolve("private/recovery107.properties")) || recovery108;
         if (recovery108 && Files.exists(stage.resolve("private/recovery107.properties"))) { throw new IllegalArgumentException("OWN108 fresh authority namespace required."); }
         final boolean recovery = Files.exists(stage.resolve("private/recovery103.properties")) || recovery104 || recovery105 || recovery106 || recovery107;
@@ -89,7 +101,7 @@ final class PhantomTask102Lane
         {
             connection.setReadOnly(true);
             if (!SCHEMA.equals(connection.getCatalog())) { throw new IllegalArgumentException("OWN102 connected catalog mismatch."); }
-            if (Files.exists(stage().resolve("private/recovery103.properties")) || Files.exists(stage().resolve("private/recovery104.properties")) || Files.exists(stage().resolve("private/recovery105.properties")) || Files.exists(stage().resolve("private/recovery106.properties")) || Files.exists(stage().resolve("private/recovery107.properties")) || Files.exists(stage().resolve("private/recovery108.properties")))
+            if (Files.exists(stage().resolve("private/recovery103.properties")) || Files.exists(stage().resolve("private/recovery104.properties")) || Files.exists(stage().resolve("private/recovery105.properties")) || Files.exists(stage().resolve("private/recovery106.properties")) || Files.exists(stage().resolve("private/recovery107.properties")) || Files.exists(stage().resolve("private/recovery108.properties")) || recovery108R(stage()))
             {
                 try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID<>CONNECTION_ID()"))
                 { rows.next(); if (rows.getLong(1) != 0) { throw new IllegalArgumentException("OWN103 foreign or own sessions remain; no native start."); } }
