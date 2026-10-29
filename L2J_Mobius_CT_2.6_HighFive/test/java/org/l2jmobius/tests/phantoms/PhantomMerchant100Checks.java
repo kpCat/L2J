@@ -28,10 +28,10 @@ public final class PhantomMerchant100Checks
         }
         final var groups = List.of(first, second);
         final var selected = PhantomMerchantCatalog.selectEntries(groups);
-        check(selected.size() == 128, "Priced candidates were truncated by the old three-per-group shortlist");
-        check(selected.get(0).quote().itemId() == 1 && selected.get(1).quote().itemId() == 1001 && selected.get(127).quote().itemId() == 1064, "Deterministic group interleave lost category coverage");
+        check(selected.size() == 160, "Priced eligible universe was truncated by an old shortlist");
+        check(selected.get(0).quote().itemId() == 1 && selected.get(1).quote().itemId() == 1001 && selected.get(159).quote().itemId() == 1080, "Deterministic group interleave lost category coverage");
         check(selected.equals(PhantomMerchantCatalog.selectEntries(groups)), "Selection changed on identical inputs");
-        check(selected.stream().map(e -> e.quote().itemId()).distinct().count() == 128, "Duplicate catalog entries");
+        check(selected.stream().map(e -> e.quote().itemId()).distinct().count() == 160, "Duplicate catalog entries");
         check(PhantomMerchantCatalog.selectEntries(List.of(List.of(), first)).size() == 80, "Empty group hid eligible stock");
         final var stock = Map.of(1835, 1L, 1864, 1L, 1865, 1L, 1866, 1L, 1867, 1L, 1868, 1L, 1869, 1L, 1870, 1L);
         final var role = new PhantomMerchantBootstrap.Role(0, 42, "merchant100", "A".repeat(43), "Trader100", 53, 0, 81800, 148700, -3400, 100000, stock, PhantomMerchantBootstrap.Stage.READY);
@@ -44,7 +44,7 @@ public final class PhantomMerchant100Checks
         final Supplier<PhantomStorePlan> noMaker = () -> null;
         check(PhantomOfflineMerchantService.selectPlan(1, noMaker, () -> physical, () -> demand) == physical, "BUY purchased inventory was stranded behind fresh BUY demand");
         check(PhantomOfflineMerchantService.selectPlan(1, noMaker, () -> null, () -> demand) == demand, "Sold-out buyer did not return to native BUY");
-        check(PhantomOfflineMerchantService.selectPlan(0, noMaker, () -> null, () -> demand) == null, "SELL role became a subsidized buyer");
+        check(PhantomOfflineMerchantService.selectPlan(0, noMaker, () -> null, () -> demand) == demand, "Sold-out SELL ignored available finite funded BUY demand");
         check(PhantomOfflineMerchantService.selectPlan(2, () -> physical, () -> { throw new AssertionError("Active MFG displaced"); }, () -> demand) == physical, "Qualified MFG did not retain priority");
         check(physical.lines().getFirst().objectOrRecipeId() == 345 && physical.lines().getFirst().count() == 2, "Stock identity/count changed");
     }

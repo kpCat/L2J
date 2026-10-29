@@ -49,6 +49,8 @@ public final class PhantomPrivateMarketPricingAuthority
 	private double _highJewelAnchor;
 	private final Map<Integer, Double> _source = new ConcurrentHashMap<>();
 	private final Map<Integer, String> _sourceReasons = new ConcurrentHashMap<>();
+	private final java.util.concurrent.atomic.LongAdder _itemQuotes = new java.util.concurrent.atomic.LongAdder();
+	private final java.util.concurrent.atomic.LongAdder _stockQuotes = new java.util.concurrent.atomic.LongAdder();
 
 	public PhantomPrivateMarketPricingAuthority(PhantomGameKnowledgeSnapshot knowledge, PhantomCommerceCatalog commerce, PhantomRateAwareLootFairValue.Rates rates, Policy policy, Collection<WorldObject> visibleMerchants)
 	{
@@ -99,6 +101,7 @@ public final class PhantomPrivateMarketPricingAuthority
 	/** Read-only unenchanted template quote. Inventory ownership is validated only when a plan is applied. */
 	public ItemQuote quoteItem(int itemId)
 	{
+		_itemQuotes.increment();
 		try
 		{
 			final ItemTemplate template = ItemData.getInstance().getTemplate(itemId);
@@ -156,15 +159,27 @@ public final class PhantomPrivateMarketPricingAuthority
 		{
 			throw new IllegalArgumentException("SELL ownership or item eligibility failed.");
 		}
-		final ItemTemplate template = item.getTemplate();
+		return quoteStock(itemId, item.getEnchantLevel()).ask();
+	}
+
+	public record StockQuote(int itemId, int enchant, long fair, long ask, List<PhantomEnchantExpectedCost.Route> routes) { }
+
+	/** Pure canonical pre-effect valuation for finite owner stock. It grants no item or enchant success. */
+	public StockQuote quoteStock(int itemId, int enchant)
+	{
+		_stockQuotes.increment();
+		final ItemTemplate template = ItemData.getInstance().getTemplate(itemId);
 		validateMarketable(template);
+		if (enchant < 0 || enchant > 25 || enchant > 0 && !template.isEnchantable()) { throw new IllegalArgumentException("Unsupported native stock enchant level."); }
 		final double base = base(itemId, template);
 		final long craftFloor = craftFloor(itemId);
 		final long enchantFloor;
-		if (item.getEnchantLevel() > 0)
+		List<PhantomEnchantExpectedCost.Route> routes = List.of();
+		if (enchant > 0)
 		{
-			final var steps = PhantomCanonicalEnchantRoutes.steps(template, item.getEnchantLevel(), _supportIds, this::sourceFair);
-			enchantFloor = checkedLong(PhantomEnchantExpectedCost.quote(Math.max(base, craftFloor), steps).fairValue());
+			final var steps = PhantomCanonicalEnchantRoutes.steps(template, enchant, _supportIds, this::sourceFair);
+			final var expected = PhantomEnchantExpectedCost.quote(Math.max(base, craftFloor), steps);
+			enchantFloor = checkedLong(expected.fairValue()); routes = expected.chosenRoutes();
 		}
 		else
 		{
@@ -176,8 +191,10 @@ public final class PhantomPrivateMarketPricingAuthority
 			throw new IllegalArgumentException("Ordinary free NPC acquisition excludes private-market listing.");
 		}
 		final PhantomPrivateMarketQuote.Quote quoted = PhantomPrivateMarketQuote.quote(new Inputs(checkedLong(Math.max(base, enchantFloor)), liquidation(template), npc.exists() && npc.exact(), npc.exact() ? npc.price() : 0, craftFloor, enchantFloor, PlayerConfig.MAX_ADENA), _policy);
-		return quoted.ask();
+		return new StockQuote(itemId, enchant, checkedLong(Math.max(base, enchantFloor)), quoted.ask(), List.copyOf(routes));
 	}
+	public record QuoteMetrics(long templateQuotes, long stockQuotes, int sourceCacheEntries) { }
+	public QuoteMetrics quoteMetrics() { return new QuoteMetrics(_itemQuotes.sum(), _stockQuotes.sum(), _source.size()); }
 
 	private long bid(int itemId)
 	{

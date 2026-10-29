@@ -69,12 +69,20 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
-		registry.add("config-canonical-disabled", context ->
+		registry.add("config-explicit-disabled", _ ->
 		{
-			final Path canonical = context.moduleRoot().resolve("dist/game/config/Custom/PhantomPlayers.ini");
-			final var settings = PhantomPlayersConfig.read(canonical);
+			final var settings = readConfig("explicit-disabled.ini", "EnablePhantomSystem = False\nEnablePhantomDiagnostics = False\n");
 			PhantomAssertions.assertFalse(settings.enabled(), "Canonical Phantom system flag must be false.");
 			PhantomAssertions.assertFalse(settings.diagnosticsEnabled(), "Canonical Phantom diagnostics flag must be false.");
+		});
+		registry.add("config-canonical-read-inert", context ->
+		{
+			final Path canonical = context.moduleRoot().resolve("dist/game/config/Custom/PhantomPlayers.ini");
+			final byte[] before = Files.readAllBytes(canonical);
+			PhantomPlayersConfig.read(canonical);
+			PhantomAssertions.assertTrue(java.util.Arrays.equals(before, Files.readAllBytes(canonical)), "Reading owner settings changed their source bytes.");
+			PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Reading owner settings started Phantom runtime.");
+			PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Reading owner settings initialized JDBC.");
 		});
 		registry.add("config-diagnostics-fail-closed", _ ->
 		{

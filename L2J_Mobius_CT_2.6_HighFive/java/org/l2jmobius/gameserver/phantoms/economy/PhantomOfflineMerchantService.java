@@ -72,6 +72,10 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	private final java.util.Set<Integer> _dirty = ConcurrentHashMap.newKeySet();
 	private PhantomMerchantCatalog _catalog;
 	private PhantomMerchantCraftProvision _craftProvision;
+	private PhantomMerchantMarketProvision _marketProvision;
+	private final Map<Integer, Long> _assortmentAt = new HashMap<>();
+	private final Map<Integer, Long> _listingEpochs = new HashMap<>();
+	private final Map<Integer, Idle> _idle = new HashMap<>();
 	private List<PhantomNavigationPoint> _slots;
 	private PhantomProfileComponent _server;
 	private Ledger _ledger;
@@ -105,6 +109,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			if (!component.componentType().equals(role.component()) || role.ordinal() >= _ledger.nextOrdinal() || _roles.put(role.ordinal(), new SavedRole(role, component.rowVersion())) != null) { throw new IllegalStateException("Merchant role/issued quota differs."); }
 		}
 		_catalog = new PhantomMerchantCatalog(_pricing.get());
+		_marketProvision = new PhantomMerchantMarketProvision(_profiles, _server.profileId(), PhantomMerchantMarketPolicy.load(new java.io.File(org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT, PhantomMerchantPolicy.FILE).toPath()), _roles.values().stream().collect(java.util.stream.Collectors.toMap(saved -> saved.role().ordinal(), SavedRole::role)));
 		_craftProvision = PhantomMerchantCraftProvision.load(new java.io.File(org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT, PhantomMerchantCraftProvision.FILE).toPath(), _profiles, _pricing.get());
 		_slots = legalSlots();
 		for (int id : _policy.preparedOfflineIds())
@@ -140,7 +145,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			}
 			try
 			{
-				if (player != null && World.getInstance().getPlayer(player.getObjectId()) == player && !player.isAlikeDead()) { refreshListing(_roles.get(due.ordinal()).role(), player); }
+				if (player != null && World.getInstance().getPlayer(player.getObjectId()) == player && !player.isAlikeDead()) { refreshListing(_roles.get(due.ordinal()).role(), player, now); }
 			}
 			catch (RuntimeException failure) { _blocked++; LOGGER.log(Level.WARNING, "Merchant listing held ordinal=" + due.ordinal(), failure); }
 			schedule(due.ordinal(), now + _policy.rotationSeconds() * 1000L);
@@ -361,12 +366,13 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	/** Current native tax/stock and the immutable price generation are checked under the native list lock. */
 	private boolean safeTradePrices(Player player, org.l2jmobius.gameserver.network.holders.TradeList list)
 	{
-		if (player.getAccessLevel().getLevel() != 0 || player.getClient() != null || player.getNativeWorkOwner() != null) { return false; }
+		if (player.getAccessLevel().getLevel() != 0 || player.getClient() != null || player.getNativeWorkOwner() != null || _marketProvision != null && !_marketProvision.canTrade(player.getObjectId())) { return false; }
 		try
 		{
 			final var type = list == player.getBuyList() ? PhantomStorePlan.Type.BUY : PhantomStorePlan.Type.SELL;
 			if (list.getItems().isEmpty()) { return false; }
 			final var lines = list.getItems().stream().map(item -> new PhantomStorePlan.Line(type == PhantomStorePlan.Type.BUY ? item.getItem().getId() : item.getObjectId(), item.getItem().getId(), item.getCount(), item.getPrice())).toList();
+			if (lines.stream().anyMatch(line -> line.count() <= 0 || line.price() <= 0 || !_catalog.contains(line.itemId()) || type == PhantomStorePlan.Type.SELL && !saleable(player.getInventory().getItemByObjectId(line.objectOrRecipeId())))) { return false; }
 			final var priced = _pricing.get().pricePlan(player, new PhantomStorePlan(type, PhantomStorePlan.State.REQUESTED, "Supplies", lines, Long.MAX_VALUE));
 			long committedBudget = 0;
 			for (int index = 0; index < lines.size(); index++)
@@ -385,6 +391,10 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 
 	private void refreshListing(Role role, Player player)
 	{
+		refreshListing(role, player, System.currentTimeMillis());
+	}
+	private void refreshListing(Role role, Player player, long now)
+	{
 		if (_stopping || !ownsNative(player) || World.getInstance().getPlayer(player.getObjectId()) != player || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
 		if (_craftProvision != null && !observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))) { _craftProvision.qualify(_server.profileId(), role, player, _leases.get(role.ordinal())); }
 		synchronized (player.getSellList())
@@ -394,6 +404,13 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 				synchronized (player.getManufactureItems())
 				{
 					if (_stopping || !ownsNative(player) || player.isCrafting() || RecipeManager.getInstance().isMakingItem(player) || player.isProcessingTransaction() || player.hasPendingOwnedStore()) { return; }
+					// No visible shop disappears or changes underneath an observer/customer, including unsafe prices.
+					if (observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))) { if (!nonempty(player)) { idle(role, player, now, "OBSERVED"); } return; }
+					if (_marketProvision != null && !_marketProvision.canTrade(player.getObjectId()))
+					{
+						player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear(); player.setPrivateStoreType(PrivateStoreType.NONE);
+						OfflineTraderTable.getInstance().onTransaction(player, true, false); idle(role, player, now, "MARKET_GRANT_UNCERTAIN"); refreshWanted(); return;
+					}
 					if (nonempty(player))
 					{
 						boolean safe;
@@ -411,13 +428,15 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 							final var purchased = sellPlan(player);
 							if (purchased != null) { _pricing.get().pricePlan(player, purchased); recycle = true; }
 						}
-						if (safe && !recycle) { return; }
+						final long listedAt = _assortmentAt.computeIfAbsent(role.ordinal(), _ -> now);
+						final boolean rotate = player.getPrivateStoreType() != PrivateStoreType.MANUFACTURE && assortmentDue(listedAt, now, _marketProvision.policy().assortmentSeconds(), false, false);
+						if (safe && !recycle && !rotate) { return; }
 						// Price/profile changes never mutate stock or subsidize the owner; only this owner's offers close.
 						player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear(); player.setPrivateStoreType(PrivateStoreType.NONE);
 						OfflineTraderTable.getInstance().onTransaction(player, true, false);
 						refreshWanted();
 					}
-					open(role, player);
+					open(role, player, now);
 				}
 			}
 		}
@@ -425,14 +444,46 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 
 	private void open(Role role, Player player)
 	{
+		open(role, player, System.currentTimeMillis());
+	}
+	static boolean assortmentDue(long listedAt, long now, int seconds, boolean observed, boolean pending)
+	{
+		return !observed && !pending && now >= listedAt && now - listedAt >= seconds * 1000L;
+	}
+	private boolean marketOwner(Role role, Player player, Lease lease)
+	{
+		final var current = _roles.get(role.ordinal());
+		final var owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId());
+		return !_stopping && current != null && current.role().stage() == Stage.READY && current.role().characterId() == player.getObjectId()
+			&& role.stage() == Stage.READY && role.characterId() == player.getObjectId() && role.account().equals(player.getAccountName()) && role.name().equals(player.getName())
+			&& lease != null && _leases.get(role.ordinal()) == lease && lease.objectId() == player.getObjectId() && lease.ownerKind() == OwnerKind.PHANTOM && owner != null && owner.token() == lease.token()
+			&& ownsNative(player) && World.getInstance().getPlayer(player.getObjectId()) == player && player.getAccessLevel().getLevel() == 0 && player.getClient() == null && !player.hasHeadlessOutboundSession()
+			&& player.getNativeWorkOwner() == null && !player.isInParty() && player.getClanId() == 0 && player.getClassIndex() == 0 && !player.isChangingClass() && !player.isAlikeDead()
+			&& !player.isCrafting() && !RecipeManager.getInstance().isMakingItem(player) && !player.isProcessingTransaction() && !player.hasPendingOwnedStore() && player.isInsideZone(ZoneId.PEACE) && player.getInstanceId() == 0
+			&& Thread.holdsLock(player.getSellList()) && Thread.holdsLock(player.getBuyList()) && Thread.holdsLock(player.getManufactureItems())
+			&& !observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()));
+	}
+	private void open(Role role, Player player, long now)
+	{
 		if (_stopping || role.stage() != Stage.READY || !ownsNative(player) || World.getInstance().getPlayer(player.getObjectId()) != player || player.isAlikeDead() || player.isCrafting() || player.isProcessingTransaction() || player.hasPendingOwnedStore() || !player.isInsideZone(ZoneId.PEACE) || player.getInstanceId() != 0 || observed(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))) { return; }
 		synchronized (player.getSellList())
 		{
 			synchronized (player.getBuyList())
 			{
 				if (nonempty(player)) { return; }
+				if (_marketProvision != null && !_marketProvision.canTrade(player.getObjectId())) { return; }
+				_listingEpochs.put(role.ordinal(), now / (_marketProvision.policy().assortmentSeconds() * 1000L));
+				if (role.storeKind() != 2)
+				{
+					final var lease = _leases.get(role.ordinal());
+					if (!marketOwner(role, player, lease)) { return; }
+					// BUY births keep their funded demand. Purchased goods take priority on the next opening.
+					if (role.storeKind() != 1) { _marketProvision.stock(role, player, now, _catalog, _pricing.get(), sellPlan(player) != null, () -> marketOwner(role, player, lease)); }
+					if (sellPlan(player) == null) { _marketProvision.fund(role, player, now, () -> marketOwner(role, player, lease)); }
+					if (!_marketProvision.canTrade(player.getObjectId())) { return; }
+				}
 				final PhantomStorePlan plan = selectPlan(role.storeKind(), () -> manufacturePlan(player), () -> sellPlan(player), () -> buyPlan(role, player));
-				if (plan == null) { return; }
+				if (plan == null) { idle(role, player, now, "NO_ADMISSIBLE_STOCK_OR_AFFORDABLE_PLAN"); return; }
 				player.getSellList().clear(); player.getBuyList().clear(); player.getManufactureItems().clear(); player.setPrivateStoreType(PrivateStoreType.NONE);
 				final var priced = _pricing.get().pricePlan(player, plan);
 				if (!PhantomStoreService.installNative(player, priced)) { throw new IllegalStateException("Native merchant listing rejected."); }
@@ -440,19 +491,54 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 				// The same native per-character writer handles both ordinary and merchant stores. No second bulk save.
 				OfflineTraderTable.getInstance().onTransaction(player, true, false);
 				player.storeMe(); OfflineTraderTable.getInstance().onTransaction(player, false, true); _opened++;
+				_assortmentAt.put(role.ordinal(), now);
+				_idle.remove(role.ordinal());
 				refreshWanted();
 			}
 		}
 	}
+	private record Idle(long sinceMillis, String reason, long wallet) { }
+	private void idle(Role role, Player player, long now, String reason)
+	{
+		final var prior = _idle.get(role.ordinal());
+		_idle.put(role.ordinal(), new Idle(prior != null && prior.reason().equals(reason) ? prior.sinceMillis() : now, reason, player.getAdena()));
+	}
+	private boolean saleable(org.l2jmobius.gameserver.model.item.instance.Item item)
+	{
+		if (item == null || item.getId() == 57 || !_catalog.contains(item.getId()) || !item.isTradeable() || item.isEquipped() || item.getCount() <= 0 || item.getEnchantLevel() < 0 || item.getEnchantLevel() > 25 || item.isAugmented() || item.isPvp() || item.isShadowItem() || item.isTimeLimitedItem() || item.getElementals() != null || item.getTemplate().getElementals() != null) { return false; }
+		return _marketProvision == null || !_catalog.classification(item.getId()).category().equals("FINISHED_GEAR") || _marketProvision.policy().gearGrades().contains(item.getTemplate().getCrystalType());
+	}
 	private PhantomStorePlan sellPlan(Player player)
 	{
 		final var lines = new ArrayList<PhantomStorePlan.Line>();
-		for (var item : player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getId)).toList())
+		final var role = _roles.values().stream().map(SavedRole::role).filter(value -> value.characterId() == player.getObjectId()).findFirst().orElse(null);
+		final int limit = Math.min(_policy.linesPerStore(), player.getPrivateSellStoreLimit());
+		if (limit <= 0 || _marketProvision != null && !_marketProvision.canTrade(player.getObjectId())) { return null; }
+		final var stock = player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getId).thenComparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).toList();
+		final long epoch = role == null ? 0 : _listingEpochs.getOrDefault(role.ordinal(), 0L);
+		final int start = stock.isEmpty() ? 0 : (int) Math.floorMod((role == null ? 0 : role.ordinal() * 20L) + epoch * 20L, stock.size());
+		int gearLines = 0; final int gearLimit = _marketProvision == null ? limit : _marketProvision.policy().gearShare() == 0 ? 0 : Math.max(1, limit * _marketProvision.policy().gearShare() / 100);
+		final var gearStock = stock.stream().filter(this::saleable).filter(item -> _catalog.classification(item.getId()).category().equals("FINISHED_GEAR")).toList();
+		final int reservedGear = Math.min(gearLimit, gearStock.size());
+		final boolean positive = gearStock.stream().anyMatch(item -> item.getEnchantLevel() > 0), zero = gearStock.stream().anyMatch(item -> item.getEnchantLevel() == 0);
+		int nonGearLines = 0, positiveLines = 0, zeroLines = 0;
+		final var pricing = _pricing.get();
+		for (int offset = 0; offset < stock.size() && lines.size() < limit; offset++)
 		{
-			if (item.getId() == 57 || !item.isTradeable() || item.isEquipped() || item.getCount() <= 0 || item.isAugmented() || item.isShadowItem() || item.isTimeLimitedItem()) { continue; }
-			final var quote = _pricing.get().quoteItem(item.getId()); if (!quote.priced()) { continue; }
-			lines.add(new PhantomStorePlan.Line(item.getObjectId(), item.getId(), item.getCount(), quote.ask()));
-			if (lines.size() == Math.min(_policy.linesPerStore(), player.getPrivateSellStoreLimit())) { break; }
+			final var item = stock.get((start + offset) % stock.size());
+			if (!saleable(item)) { continue; }
+			final boolean gear = _catalog.classification(item.getId()).category().equals("FINISHED_GEAR");
+			if (gear && (gearLines >= gearLimit || _marketProvision != null && !_marketProvision.policy().gearGrades().contains(item.getTemplate().getCrystalType()))) { continue; }
+			if (!gear && nonGearLines >= limit - reservedGear) { continue; }
+			if (gear && gearLines == reservedGear - 1 && positive && positiveLines == 0 && item.getEnchantLevel() == 0) { continue; }
+			if (gear && reservedGear >= 2 && gearLines == reservedGear - 1 && zero && zeroLines == 0 && item.getEnchantLevel() > 0) { continue; }
+			try
+			{
+				final var quote = pricing.quoteStock(item.getId(), item.getEnchantLevel());
+				lines.add(new PhantomStorePlan.Line(item.getObjectId(), item.getId(), item.getCount(), quote.ask()));
+				if (gear) { gearLines++; if (item.getEnchantLevel() > 0) { positiveLines++; } else { zeroLines++; } } else { nonGearLines++; }
+			}
+			catch (IllegalArgumentException unpriced) { continue; }
 		}
 		return lines.isEmpty() ? null : new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.REQUESTED, "Supplies / materials", lines, Long.MAX_VALUE);
 	}
@@ -460,23 +546,40 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	{
 		PhantomStorePlan plan = kind == 2 ? manufacture.get() : null;
 		if (plan == null) { plan = sell.get(); }
-		if (plan == null && kind == 1) { plan = buy.get(); }
+		if (plan == null && kind != 2) { plan = buy.get(); }
 		return plan;
 	}
 	private PhantomStorePlan buyPlan(Role role, Player player)
 	{
-		final var lines = new ArrayList<PhantomStorePlan.Line>(); long budget = player.getAdena();
-		final var pool = _catalog.entries().stream().filter(entry -> entry.item().isStackable() && entry.quote().bidAllowed()).toList();
-		for (int offset = 0; offset < pool.size() && lines.size() < Math.min(_policy.linesPerStore(), player.getPrivateBuyStoreLimit()); offset++)
-		{
-			final var entry = pool.get(Math.floorMod(role.ordinal() * _policy.linesPerStore() + offset, pool.size()));
-			final var quote = _pricing.get().quoteItem(entry.item().getId());
-			if (!quote.priced() || !quote.bidAllowed() || quote.bid() <= 0) { continue; }
-			final long count = Math.min(_policy.stackCount(), budget / (_policy.linesPerStore() - lines.size()) / quote.bid());
-			if (count <= 0) { continue; }
-			lines.add(new PhantomStorePlan.Line(entry.item().getId(), entry.item().getId(), count, quote.bid())); budget -= Math.multiplyExact(count, quote.bid());
-		}
+		final long epoch = _listingEpochs.getOrDefault(role.ordinal(), 0L);
+		final var pool = _catalog.buySample(role.ordinal() * 20L + epoch * 20L, 128);
+		final var pricing = _pricing.get();
+		final var quotes = pool.stream().map(entry -> pricing.quoteItem(entry.item().getId())).toList();
+		final var lines = allocateBuyLines(quotes, player.getAdena(), _policy.linesPerStore(), player.getPrivateBuyStoreLimit(), _policy.stackCount(), 0);
 		return lines.isEmpty() ? null : new PhantomStorePlan(PhantomStorePlan.Type.BUY, PhantomStorePlan.State.REQUESTED, "Buying craft supplies", lines, Long.MAX_VALUE);
+	}
+	static List<PhantomStorePlan.Line> allocateBuyLines(List<PhantomPrivateMarketPricingAuthority.ItemQuote> pool, long budget, int configuredSlots, int nativeSlots, int stackCount, long cursor)
+	{
+		if (pool.isEmpty() || budget <= 0 || configuredSlots <= 0 || nativeSlots <= 0 || stackCount <= 0) { return List.of(); }
+		final int limit = Math.min(configuredSlots, nativeSlots);
+		final var selected = new ArrayList<PhantomPrivateMarketPricingAuthority.ItemQuote>();
+		final var seen = new java.util.HashSet<Integer>();
+		final int start = (int) Math.floorMod(cursor, pool.size());
+		// Reserve the first real unit before allocating extra stacks. Empty native slots cost nothing.
+		for (int offset = 0; offset < pool.size() && selected.size() < limit; offset++)
+		{
+			final var quote = pool.get((start + offset) % pool.size());
+			if (quote == null || !quote.priced() || !quote.bidAllowed() || quote.itemId() <= 0 || quote.bid() <= 0 || quote.bid() > budget || !seen.add(quote.itemId())) { continue; }
+			selected.add(quote); budget -= quote.bid();
+		}
+		final var lines = new ArrayList<PhantomStorePlan.Line>();
+		for (int index = 0; index < selected.size(); index++)
+		{
+			final var quote = selected.get(index);
+			final long extra = Math.min(stackCount - 1L, budget / (selected.size() - index) / quote.bid());
+			lines.add(new PhantomStorePlan.Line(quote.itemId(), quote.itemId(), 1 + extra, quote.bid())); budget -= Math.multiplyExact(extra, quote.bid());
+		}
+		return List.copyOf(lines);
 	}
 	private PhantomStorePlan manufacturePlan(Player player)
 	{
@@ -562,6 +665,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 	public synchronized boolean beginStop()
 	{
 		_stopping = true;
+		if (_marketProvision != null && _marketProvision.snapshot().quarantinedOwners() > 0) { return false; }
 		if (_owners.values().stream().anyMatch(player -> RecipeManager.getInstance().isMakingItem(player))) { return false; }
 		for (var player : _owners.values())
 		{
