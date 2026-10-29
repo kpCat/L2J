@@ -52,7 +52,7 @@ public final class PhantomWorldCohort108R3Checks
     }
     static void restart(Path stage, String jar) throws Exception
     {
-        final Path receipts = stage.resolve("private/receipts" + (PhantomTask102Lane.recovery108R3C(stage) ? "108R3C" : "108R3"));
+        final Path receipts = stage.resolve("private/receipts" + (PhantomTask102Lane.recovery108R3D(stage) ? "108R3D" : PhantomTask102Lane.recovery108R3C(stage) ? "108R3C" : "108R3"));
         require(Files.readString(receipts.resolve("world6.pass")).startsWith("WORLD_GATE=PASS;first=16;second=16;stable=16;"), "full World16 A required before JDBC");
         require(Files.exists(receipts.resolve("stop6.natural")), "natural STOP A required before JDBC");
         PhantomStop108Checks.restart(receipts, jar);
@@ -63,7 +63,7 @@ public final class PhantomWorldCohort108R3Checks
     }
     static void census(Path stage, String classpath) throws Exception
     {
-        final String namespace = Files.exists(stage.resolve("private/smoke108R3C.complete")) ? "108R3C" : "108R3";
+        final String namespace = Files.exists(stage.resolve("private/smoke108R3D.complete")) ? "108R3D" : Files.exists(stage.resolve("private/smoke108R3C.complete")) ? "108R3C" : "108R3";
         final var smoke = PhantomTask102Lane.read(stage.resolve("private/smoke" + namespace + ".complete"));
         final Path pins = stage.resolve("private/census" + namespace + "-classes.tsv");
         require(classpath.equals(smoke.getProperty("classpath")) && PhantomTask102Lane.hash(pins).equals(smoke.getProperty("classesSha256")), "census classpath/pins drift");

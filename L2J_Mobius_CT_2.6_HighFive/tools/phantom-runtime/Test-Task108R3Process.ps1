@@ -1,14 +1,15 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Legacy','Fixed')][string]$Mode = 'Fixed',
-    [string]$OutputRoot = (Join-Path ([IO.Path]::GetTempPath()) ('Task108R3Process-' + [guid]::NewGuid().ToString('N')))
+    [string]$OutputRoot = (Join-Path ([IO.Path]::GetTempPath()) ('Task108R3Process-' + [guid]::NewGuid().ToString('N'))),
+    [string]$WrapperPath = (Join-Path $PSScriptRoot 'Task108R3Run.ps1')
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'WINDOWS_POWERSHELL_51_REQUIRED' }
 if (Test-Path -LiteralPath $OutputRoot) { throw 'FRESH_TEST_OUTPUT_REQUIRED' }
 New-Item -ItemType Directory -Path $OutputRoot | Out-Null
-$wrapper = Join-Path $PSScriptRoot 'Task108R3Run.ps1'
+$wrapper = (Resolve-Path -LiteralPath $WrapperPath).Path
 if ($Mode -eq 'Fixed') {
     # Load only the three pure process functions; never execute wrapper authority/runtime code.
     $parseErrors = $null; $tokens = $null
