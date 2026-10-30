@@ -49,21 +49,25 @@ public final class PhantomPopulation102Native
     private static boolean _continuation108R3;
     private static boolean _restartClosure108R3;
     private static boolean _world108R3Pass;
+    private static boolean _complete108;
     private static String _boundary105;
     private static final java.util.Map<String, List<String>> _leaseRows106 = new TreeMap<>();
     private static List<Integer> _ordinaryCharacterIds = List.of();
+    static List<ManagedSnapshot> diagnosticProfiles = List.of();
+    static final java.util.Map<Integer, PhantomSystem.OperatorLocalityTarget> observerTargets = new TreeMap<>();
 
     public static void main(String[] args) throws Exception
     {
         if (args.length == 1 && args[0].equals("logout107-check")) { logout107Checks(); return; }
         if (args.length == 2 && args[0].equals("config")) { configChecks(Path.of(args[1]).toRealPath()); return; }
-        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery10[45][ABC]|recovery10[678][AB]|recovery108R[AB]|recovery108R[23][AB]|recovery108R3[CD][AB]"), "OWN102 exact phase required; JDBC=0");
+        check(args.length == 1 && args[0].matches("[1-5]|recovery[4567]|recovery10[45][ABC]|recovery10[678][AB]|recovery108R[AB]|recovery108R[23][AB]|recovery108R3[CD][AB]|recovery108Complete[AB]"), "OWN102 exact phase required; JDBC=0");
+        _complete108 = args[0].startsWith("recovery108Complete");
         _recovery104 = args[0].startsWith("recovery104");
         _recovery105 = args[0].startsWith("recovery105");
         _recovery106 = args[0].startsWith("recovery106");
         _recovery108 = args[0].startsWith("recovery108");
         _recovery108R2 = args[0].startsWith("recovery108R2");
-        _recovery108R3 = args[0].startsWith("recovery108R3");
+        _recovery108R3 = args[0].startsWith("recovery108R3") || _complete108;
         _restartClosure108R3 = args[0].startsWith("recovery108R3D");
         _continuation108R3 = args[0].startsWith("recovery108R3C") || _restartClosure108R3;
         _recovery108R = args[0].startsWith("recovery108R") && !_recovery108R2 && !_recovery108R3;
@@ -71,18 +75,20 @@ public final class PhantomPopulation102Native
         _recovery103 = args[0].startsWith("recovery");
         _phase = _recovery104 || _recovery105 || _recovery106 || _recovery107 ? switch (args[0].charAt(args[0].length() - 1)) { case 'A' -> 6; case 'B' -> 4; default -> 5; } : Integer.parseInt(args[0].substring(args[0].length() - 1));
         final Path module = Path.of(System.getProperty("phantom.module.root", "")).toRealPath();
+        check(_complete108 == PhantomTask102Lane.complete108(PhantomTask102Lane.stage()), "OWN108_COMPLETE entrypoint/authority mismatch; JDBC=0");
         check(_recovery108R == PhantomTask102Lane.recovery108R(PhantomTask102Lane.stage()), "OWN108R entrypoint/authority namespace mismatch; JDBC=0");
         check(_recovery108R2 == PhantomTask102Lane.recovery108R2(PhantomTask102Lane.stage()), "OWN108R2 entrypoint/authority namespace mismatch; JDBC=0");
         check(_restartClosure108R3 == PhantomTask102Lane.recovery108R3D(PhantomTask102Lane.stage()), "OWN108R3D entrypoint/authority namespace mismatch; JDBC=0");
         check(_continuation108R3 == (PhantomTask102Lane.recovery108R3C(PhantomTask102Lane.stage()) || _restartClosure108R3), "OWN108R3C entrypoint/authority namespace mismatch; JDBC=0");
-        check(_recovery108R3 == (PhantomTask102Lane.recovery108R3(PhantomTask102Lane.stage()) || _continuation108R3), "OWN108R3 entrypoint/authority namespace mismatch; JDBC=0");
+        check(_recovery108R3 == (PhantomTask102Lane.recovery108R3(PhantomTask102Lane.stage()) || _continuation108R3 || _complete108), "OWN108R3 entrypoint/authority namespace mismatch; JDBC=0");
         PhantomTask102Lane.validate(module, Path.of(System.getProperty("phantom.test.config", "")));
         final boolean continuation = Files.exists(PhantomTask102Lane.stage().resolve("private/continuation2.begun"));
         _receipts = PhantomTask102Lane.stage().resolve(_restartClosure108R3 ? "private/receipts108R3D" : _continuation108R3 ? "private/receipts108R3C" : _recovery108R3 ? "private/receipts108R3" : _recovery108R2 ? "private/receipts108R2" : _recovery108R ? "private/receipts108R" : _recovery108 ? "private/receipts108" : _recovery107 ? "private/receipts107" : _recovery106 ? "private/receipts106" : _recovery105 ? "private/receipts105" : _recovery104 ? "private/receipts104" : _recovery103 ? "private/receipts103" : continuation ? "private/receipts-continuation2" : Files.exists(PhantomTask102Lane.stage().resolve("private/retry1.begun")) ? "private/receipts-retry1" : "private/receipts");
+        if (_complete108) { _receipts = PhantomTask102Lane.stage().resolve("private/receipts108-COMPLETE"); }
         if (_recovery103)
         {
-            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_restartClosure108R3 ? "private/recovery108R3D.properties" : _continuation108R3 ? "private/recovery108R3C.properties" : _recovery108R3 ? "private/recovery108R3.properties" : _recovery108R2 ? "private/recovery108R2.properties" : _recovery108R ? "private/recovery108R.properties" : _recovery108 ? "private/recovery108.properties" : _recovery107 ? "private/recovery107.properties" : _recovery106 ? "private/recovery106.properties" : _recovery105 ? "private/recovery105.properties" : _recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
-            check((_restartClosure108R3 ? "PHANTOM-WORLD-RESTART-CLOSURE-108R3D" : _continuation108R3 ? "PHANTOM-WORLD-COHORT-RECOVERY-108R3C" : _recovery108R3 ? "PHANTOM-WORLD-COHORT-RECOVERY-108R3" : _recovery108R2 ? "PHANTOM-MARKET-DELTA-RESTART-108R2" : _recovery108R ? "PHANTOM-MARKET-STOP-RESTART-108R" : _recovery108 ? "PHANTOM-MARKET-STOP-RESTART-108" : _recovery107 ? "PHANTOM-LIVING-MARKET-107" : _recovery106 ? "PHANTOM-MERCHANT-IDLE-RECOVERY-106" : _recovery105 ? "PHANTOM-LEASE-STOP-CLOSURE-105" : _recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103..108R3C recovery authority required");
+            final var authority = PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve(_complete108 ? "private/recovery108-COMPLETE.properties" : _restartClosure108R3 ? "private/recovery108R3D.properties" : _continuation108R3 ? "private/recovery108R3C.properties" : _recovery108R3 ? "private/recovery108R3.properties" : _recovery108R2 ? "private/recovery108R2.properties" : _recovery108R ? "private/recovery108R.properties" : _recovery108 ? "private/recovery108.properties" : _recovery107 ? "private/recovery107.properties" : _recovery106 ? "private/recovery106.properties" : _recovery105 ? "private/recovery105.properties" : _recovery104 ? "private/recovery104.properties" : "private/recovery103.properties"));
+            check((_complete108 ? "PHANTOM-WORLD-COMPLETE-108" : _restartClosure108R3 ? "PHANTOM-WORLD-RESTART-CLOSURE-108R3D" : _continuation108R3 ? "PHANTOM-WORLD-COHORT-RECOVERY-108R3C" : _recovery108R3 ? "PHANTOM-WORLD-COHORT-RECOVERY-108R3" : _recovery108R2 ? "PHANTOM-MARKET-DELTA-RESTART-108R2" : _recovery108R ? "PHANTOM-MARKET-STOP-RESTART-108R" : _recovery108 ? "PHANTOM-MARKET-STOP-RESTART-108" : _recovery107 ? "PHANTOM-LIVING-MARKET-107" : _recovery106 ? "PHANTOM-MERCHANT-IDLE-RECOVERY-106" : _recovery105 ? "PHANTOM-LEASE-STOP-CLOSURE-105" : _recovery104 ? "PHANTOM-LOCK-ORDER-RECOVERY-104" : "PHANTOM-SHUTDOWN-RECOVERY-103").equals(authority.getProperty("task")) && "true".equals(authority.getProperty("noReseed")), "OWN103..108 recovery authority required");
             check(PhantomTask102Lane.hash(module.resolve("dist/libs/GameServer.jar")).equals(authority.getProperty("jarSha256")), "OWN103 repaired JAR drift");
             if (_recovery108R3 && _phase == 4) { PhantomWorldCohort108R3Checks.restart(PhantomTask102Lane.stage(), authority.getProperty("jarSha256")); }
             else if (_recovery108R2 && _phase == 4) { PhantomMarketDelta108R2Checks.restart(PhantomTask102Lane.stage(), authority.getProperty("jarSha256")); }
@@ -94,6 +100,7 @@ public final class PhantomPopulation102Native
         final long start = System.nanoTime();
         try
         {
+            if (_complete108) { PhantomComplete108Checks.recordNative(_receipts, _phase); }
             PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(10210201L, module, _receipts));
             org.l2jmobius.gameserver.data.xml.InitialEquipmentData.getInstance();
             org.l2jmobius.gameserver.data.xml.InitialShortcutData.getInstance();
@@ -161,8 +168,10 @@ public final class PhantomPopulation102Native
             if (_phase > 1 && !_recovery103) { preserve(rows, Files.readAllLines(_receipts.resolve("ids" + (_phase - 1) + ".tsv"))); }
             if (_recovery103) { check(PhantomSystem.operatorPopulationSnapshot().peakCreationClaims() == 0, "OWN103 recovery replayed creation"); }
             final var ids = rows.stream().map(PhantomPopulation102Native::identity).sorted().toList();
+            diagnosticProfiles = List.copyOf(rows);
             Files.write(_receipts.resolve("ids" + _phase + ".tsv"), ids, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-            if (world(rows) < settings.maxMaterializedPhantoms()) { addObservers(rows); }
+            if (_complete108 || world(rows) < settings.maxMaterializedPhantoms()) { addObservers(rows); }
+            if (_complete108) { check(currentObservers(), "OWN108_COMPLETE two current native human observers required before World window"); }
             if (_recovery108R3) { PhantomWorldCohort108R3Checks.capture(_receipts, _phase, "start", OBSERVERS, worldCohort(rows), 0, 0, "START"); }
             final long worldStart = System.nanoTime();
             int best = 0;
@@ -189,12 +198,14 @@ public final class PhantomPopulation102Native
                 Thread.sleep(10000);
             }
             final var firstCohort = worldCohort(rows);
+            if (_complete108) { check(currentObservers(), "OWN108 two observers lost before first stability cut"); }
             final int first = firstCohort.size();
             if (_recovery106) { PhantomMerchant106Native.capture(merchants105(false), _receipts, "first" + _phase, false); }
             if (_recovery107) { PhantomMerchant107Native.capture(merchants105(false), _receipts, "first" + _phase, false); }
             Files.write(_receipts.resolve("world" + _phase + "-first.tsv"), firstCohort.stream().map(PhantomPopulation102Native::worldReceipt).toList(), StandardOpenOption.CREATE_NEW);
             Thread.sleep(30000);
             final var secondCohort = worldCohort(rows);
+            if (_complete108) { check(currentObservers(), "OWN108 two observers lost before second stability cut"); }
             final int second = secondCohort.size();
             if (_recovery106) { PhantomMerchant106Native.capture(merchants105(false), _receipts, "second" + _phase, false); }
             if (_recovery107) { PhantomMerchant107Native.capture(merchants105(false), _receipts, "second" + _phase, false); }
@@ -305,6 +316,7 @@ public final class PhantomPopulation102Native
                 if (DatabaseFactory.isInitialized()) { Files.writeString(_receipts.resolve("stopped" + _phase + ".checkpoint"), durableCheckpoint(), StandardOpenOption.CREATE_NEW); }
                 ThreadPool.shutdown(); DatabaseFactory.close();
             }
+            if (_complete108) { PhantomComplete108Checks.finishNative(); }
             check(drained, "OWN102 graceful STOP failed; no forced kill or pool teardown");
         }
     }
@@ -503,7 +515,7 @@ public final class PhantomPopulation102Native
         if (_recovery108R || _recovery108R2 || _recovery108R3)
         {
             PhantomStop108RChecks.earned(_logout103Calls.get(), _logout103Scope.outstanding(), _logout103Evidence);
-            Files.writeString(_receipts.resolve((_restartClosure108R3 ? "logout108R3D-terminal" : _continuation108R3 ? "logout108R3C-terminal" : _recovery108R3 ? "logout108R3-terminal" : _recovery108R2 ? "logout108R2-terminal" : "logout108R-terminal") + _phase + ".txt"), "calls=1;outstanding=0;" + _logout103Evidence, StandardOpenOption.CREATE_NEW);
+            Files.writeString(_receipts.resolve((_complete108 ? "logout108-COMPLETE-terminal" : _restartClosure108R3 ? "logout108R3D-terminal" : _continuation108R3 ? "logout108R3C-terminal" : _recovery108R3 ? "logout108R3-terminal" : _recovery108R2 ? "logout108R2-terminal" : "logout108R-terminal") + _phase + ".txt"), "calls=1;outstanding=0;" + _logout103Evidence, StandardOpenOption.CREATE_NEW);
         }
         for (Player observer : OBSERVERS) { observer.stopAllTasks(); observer.storeMe(); observer.deleteMe(); }
         for (var lease : LEASES) { lease.close(); }
@@ -674,13 +686,62 @@ public final class PhantomPopulation102Native
         return result.toString();
     }
 
+    record ObserverCandidate(long profileId, int region) { }
+    @FunctionalInterface interface ObserverSpawn<T> { boolean spawn(T target) throws Exception; }
+    static <T> int selectObservers(List<ObserverCandidate> candidates, java.util.Set<Integer> regions,
+        java.util.function.Function<ObserverCandidate, T> lookup, ObserverSpawn<T> spawn, java.util.function.Consumer<String> trace) throws Exception
+    {
+        int created = 0;
+        for (var candidate : candidates)
+        {
+            if (regions.size() == 2) { break; }
+            if (regions.contains(candidate.region())) { trace.accept("DUPLICATE_REGION"); continue; }
+            final T target = lookup.apply(candidate);
+            if (target == null) { trace.accept("NO_TARGET"); continue; }
+            if (!spawn.spawn(target)) { trace.accept("SPAWN_REJECTED"); continue; }
+            regions.add(candidate.region()); created++; trace.accept("SELECTED");
+        }
+        return created;
+    }
     private static void addObservers(List<ManagedSnapshot> rows) throws Exception
+    {
+        if (!_complete108) { addLegacyObservers(rows); return; }
+        final var regions = new HashSet<Integer>();
+        final var candidates = rows.stream().map(row -> new ObserverCandidate(row.profile().profileId(), row.state().homeMapRegionId())).toList();
+        final var outcomes = new ArrayList<String>();
+        final var counters = new TreeMap<String, Integer>();
+        final ObserverCandidate[] current = { null };
+        final java.util.function.Consumer<String> trace = outcome -> {
+            counters.merge(outcome, 1, Integer::sum);
+            if (!outcome.equals("DUPLICATE_REGION") && outcomes.size() < 62) { outcomes.add("CANDIDATE\t" + current[0] + "\toutcome=" + outcome); }
+        };
+        // Retry only absent topology, with the World timeout unchanged. Never reserve a failed region.
+        for (int attempt = 0; attempt < 3 && OBSERVERS.size() < 2; attempt++)
+        {
+            final int noTargetBefore = counters.getOrDefault("NO_TARGET", 0);
+            selectObservers(candidates, regions, candidate -> {
+                current[0] = candidate; counters.merge("SCAN", 1, Integer::sum);
+                final var target = PhantomSystem.operatorLocalityTarget(candidate.profileId()).orElse(null);
+                counters.merge("LOOKUP", 1, Integer::sum);
+                return target;
+            }, target -> OBSERVERS.size() < 2 && spawnObserver(target, trace), trace);
+            final var progress = PhantomSystem.operatorReadinessProgress(current[0] == null ? 0 : current[0].profileId());
+            final boolean preparing = !progress.getOrDefault("ordinaryQueued", "0").equals("0") || !progress.getOrDefault("urgentQueued", "0").equals("0") || !progress.getOrDefault("activeProfile", "0").equals("0");
+            if (OBSERVERS.size() == 2 || counters.getOrDefault("NO_TARGET", 0) == noTargetBefore || !preparing) { break; }
+            if (attempt < 2) { Thread.sleep(1000); }
+        }
+        for (var entry : observerTargets.entrySet()) { outcomes.add("SELECTED\tobserver=" + entry.getKey() + ";target=" + entry.getValue()); }
+        outcomes.add("COUNTERS\t" + counters + ";created=" + OBSERVERS.size() + ";selected=" + regions.size());
+        Files.write(_receipts.resolve("observers108-" + _phase + ".private.tsv"), outcomes, StandardOpenOption.CREATE_NEW);
+        check(currentObservers(), "OWN102 two labelled current native witnesses required; see bounded observer outcomes");
+    }
+    private static void addLegacyObservers(List<ManagedSnapshot> rows) throws Exception
     {
         final var regions = new HashSet<Integer>();
         for (var row : rows)
         {
             if (OBSERVERS.size() >= 16) { break; }
-            if (!regions.add(row.state().homeMapRegionId())) { continue; }
+            if (regions.contains(row.state().homeMapRegionId())) { continue; }
             final var target = PhantomSystem.operatorLocalityTarget(row.profile().profileId()).orElse(null);
             if (target == null) { continue; }
             final int index = OBSERVERS.size(); final String account = "own102view" + index; final String name = "Own102View" + index;
@@ -702,8 +763,73 @@ public final class PhantomPopulation102Native
             final var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(observer.getObjectId(), OwnerKind.LOCALPLAY_TEST_HUMAN);
             check(lease != null, "OWN102 observer lease conflict"); LEASES.add(lease); OBSERVERS.add(observer);
             final var point = target.committedPosition(); observer.setXYZInvisible(point.x(),point.y(),point.z()); observer.setOnlineStatus(true,false); observer.stopAllTasks(); observer.spawnMe();
+            regions.add(row.state().homeMapRegionId());
         }
         check(!PhantomSystem.onlineHumanPoints().isEmpty(), "OWN102 labelled witnesses unavailable to canonical locality");
+    }
+
+    static boolean observerIdentity(int index, int expectedId, int actualId, String account, String name, boolean disabled, boolean ordinaryHuman, boolean lease, boolean world, boolean online, int instance)
+    {
+        return index >= 0 && index < 2 && expectedId > 0 && expectedId == actualId && ("own102view" + index).equals(account)
+            && ("Own102View" + index).equals(name) && disabled && ordinaryHuman && lease && world && online && instance == 0;
+    }
+    private static boolean spawnObserver(PhantomSystem.OperatorLocalityTarget target, java.util.function.Consumer<String> trace) throws Exception
+    {
+        if (target.committedPosition().instanceId() != 0) { trace.accept("ILLEGAL_TARGET_INSTANCE"); return false; }
+        final int index = OBSERVERS.size(); final String account = "own102view" + index, name = "Own102View" + index;
+        Integer id = null;
+        try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT c.charId FROM characters c JOIN accounts a ON a.login=c.account_name WHERE c.account_name=? AND c.char_name=? AND c.accesslevel=0 AND a.accessLevel=-1 AND a.password='DISABLED_OWN102_TEST_HUMAN'"))
+        {
+            query.setString(1, account); query.setString(2, name);
+            try (var sql = query.executeQuery()) { if (sql.next()) { id = sql.getInt(1); check(!sql.next(), "OWN108 observer ambiguous identity"); } }
+        }
+        check(id != null, "OWN108 only existing disabled labelled test humans may be reused");
+        if (World.getInstance().findObject(id) != null) { trace.accept("WORLD_ALREADY_OWNED"); return false; }
+        final var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(id, OwnerKind.LOCALPLAY_TEST_HUMAN);
+        if (lease == null) { trace.accept("LEASE_REFUSED"); return false; }
+        Player observer = null; boolean selected = false;
+        try
+        {
+            observer = Player.load(id);
+            check(observer != null && observer.getObjectId() == id && account.equals(observer.getAccountName()) && name.equals(observer.getName())
+                && !observer.isGM() && observer.getClient() == null && !observer.hasHeadlessOutboundSession(), "OWN108 observer loaded identity mismatch");
+            final var point = target.committedPosition();
+            observer.setXYZInvisible(point.x(), point.y(), point.z()); observer.setOnlineStatus(true, false); observer.stopAllTasks(); observer.spawnMe();
+            final var owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(id);
+            if (!observerIdentity(index, id, observer.getObjectId(), observer.getAccountName(), observer.getName(), true, !observer.isGM() && observer.getClient() == null && !observer.hasHeadlessOutboundSession(),
+                owner != null && owner.ownerKind() == OwnerKind.LOCALPLAY_TEST_HUMAN && owner.token() == lease.token() && !lease.isClosed(), World.getInstance().getPlayer(id) == observer, observer.isOnline(), observer.getInstanceId()))
+            { trace.accept("WORLD_READBACK_FAILED"); return false; }
+            LEASES.add(lease); OBSERVERS.add(observer); observerTargets.put(id, target); selected = true; trace.accept("CREATED"); return true;
+        }
+        catch (RuntimeException failure) { trace.accept("SPAWN_FAILED_" + failure.getClass().getSimpleName()); return false; }
+        finally
+        {
+            if (!selected)
+            {
+                // Only this exact lease/Player may be cleaned; a conflicting World identity is never deleted.
+                if (observer != null)
+                {
+                    check(World.getInstance().getPlayer(id) == null || World.getInstance().getPlayer(id) == observer, "OWN108 foreign World identity during partial cleanup");
+                    observer.stopAllTasks(); observer.setOnlineStatus(false, false); observer.deleteMe();
+                    check(World.getInstance().getPlayer(id) == null, "OWN108 partial observer retained; no retry");
+                }
+                lease.close(); trace.accept("PARTIAL_CLEAN");
+            }
+        }
+    }
+    static boolean currentObservers()
+    {
+        if (OBSERVERS.size() != 2 || LEASES.size() != 2 || OBSERVERS.get(0).getObjectId() == OBSERVERS.get(1).getObjectId()) { return false; }
+        for (int index = 0; index < 2; index++)
+        {
+            final var player = OBSERVERS.get(index); final var lease = LEASES.get(index);
+            final var owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId());
+            if (!observerIdentity(index, lease.objectId(), player.getObjectId(), player.getAccountName(), player.getName(), true,
+                !player.isGM() && player.getClient() == null && !player.hasHeadlessOutboundSession(),
+                !lease.isClosed() && owner != null && owner.ownerKind() == OwnerKind.LOCALPLAY_TEST_HUMAN && owner.token() == lease.token(),
+                World.getInstance().getPlayer(player.getObjectId()) == player, player.isOnline(), player.getInstanceId())) { return false; }
+        }
+        return true;
     }
 
     private static void sample(List<ManagedSnapshot> rows, long start, String label) throws Exception

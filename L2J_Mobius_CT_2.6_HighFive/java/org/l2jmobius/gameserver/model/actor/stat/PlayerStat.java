@@ -56,6 +56,13 @@ import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 
 public class PlayerStat extends PlayableStat
 {
+    public record NativeTestSpCredit(int characterId, int classId, int classIndex, long before, long after, long requested, boolean earned) { }
+    private static volatile java.util.function.Consumer<NativeTestSpCredit> _nativeTestSpObserver;
+    public static void observeNativeTestSp(java.util.function.Consumer<NativeTestSpCredit> observer)
+    {
+        if (!Boolean.getBoolean("phantom.task102.native")) { throw new IllegalStateException("Owned native TEST lane required."); }
+        _nativeTestSpObserver = observer;
+    }
 	/** Transient witnesses are rebuilt only by native load or successful durable writes. Guarded by Player. */
 	private record SkillPointWitness(long durable, long credited) { }
 	private final Map<Integer, SkillPointWitness> _skillPointWitnesses = new HashMap<>();
@@ -382,6 +389,14 @@ public class PlayerStat extends PlayableStat
 			final SkillPointWitness witness = _skillPointWitnesses.get(index);
 			if (!super.addSp(value)) { return false; }
 			final long after = getSp();
+            final var observer = _nativeTestSpObserver;
+            if (observer != null)
+            {
+                final var scope = player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner ? owner : null;
+                final var work = scope == null ? null : org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(scope);
+                observer.accept(new NativeTestSpCredit(player.getObjectId(), player.getActiveClass(), index, before, after, value,
+                    scope != null && scope.isCurrent() && work != null && work.isRunning() && work.semantics() == org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics.EARNED));
+            }
 			if ((witness != null) && (before >= witness.durable()) && ((before - witness.durable()) == witness.credited()) && (after >= before))
 			{
 				_skillPointWitnesses.put(index, new SkillPointWitness(witness.durable(), after - witness.durable()));

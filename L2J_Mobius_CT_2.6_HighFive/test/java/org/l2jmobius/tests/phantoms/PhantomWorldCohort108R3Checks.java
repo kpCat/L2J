@@ -52,7 +52,7 @@ public final class PhantomWorldCohort108R3Checks
     }
     static void restart(Path stage, String jar) throws Exception
     {
-        final Path receipts = stage.resolve("private/receipts" + (PhantomTask102Lane.recovery108R3D(stage) ? "108R3D" : PhantomTask102Lane.recovery108R3C(stage) ? "108R3C" : "108R3"));
+        final Path receipts = stage.resolve("private/receipts" + (PhantomTask102Lane.complete108(stage) ? "108-COMPLETE" : PhantomTask102Lane.recovery108R3D(stage) ? "108R3D" : PhantomTask102Lane.recovery108R3C(stage) ? "108R3C" : "108R3"));
         require(Files.readString(receipts.resolve("world6.pass")).startsWith("WORLD_GATE=PASS;first=16;second=16;stable=16;"), "full World16 A required before JDBC");
         require(Files.exists(receipts.resolve("stop6.natural")), "natural STOP A required before JDBC");
         PhantomStop108Checks.restart(receipts, jar);
@@ -63,7 +63,7 @@ public final class PhantomWorldCohort108R3Checks
     }
     static void census(Path stage, String classpath) throws Exception
     {
-        final String namespace = Files.exists(stage.resolve("private/smoke108R3D.complete")) ? "108R3D" : Files.exists(stage.resolve("private/smoke108R3C.complete")) ? "108R3C" : "108R3";
+        final String namespace = Files.exists(stage.resolve("private/smoke108-COMPLETE.complete")) ? "108-COMPLETE" : Files.exists(stage.resolve("private/smoke108R3D.complete")) ? "108R3D" : Files.exists(stage.resolve("private/smoke108R3C.complete")) ? "108R3C" : "108R3";
         final var smoke = PhantomTask102Lane.read(stage.resolve("private/smoke" + namespace + ".complete"));
         final Path pins = stage.resolve("private/census" + namespace + "-classes.tsv");
         require(classpath.equals(smoke.getProperty("classpath")) && PhantomTask102Lane.hash(pins).equals(smoke.getProperty("classesSha256")), "census classpath/pins drift");
@@ -89,28 +89,45 @@ public final class PhantomWorldCohort108R3Checks
         require(configured != null, "diagnostic runtime absent");
         final var locality = (PhantomHumanLocalityControl) PhantomPopulation102Native.field105(configured, PhantomSystem.class, "_humanLocality");
         final var physical = locality.physicalSnapshot();
+        final var population = (org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager) PhantomPopulation102Native.field105(configured, PhantomSystem.class, "_populationManager");
+        final var ecology = (org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService) PhantomPopulation102Native.field105(configured, PhantomSystem.class, "_populationEcology");
         final var selected = new java.util.LinkedHashSet<Long>();
         for (var value : cohort) { if (selected.size() < 64) { selected.add(value.profileId()); } }
         for (long id : new java.util.TreeSet<>(physical.positionRevisions().keySet())) { if (selected.size() >= 64) { break; } selected.add(id); }
+        final var reasons = new TreeMap<String, Integer>();
+        for (var row : PhantomPopulation102Native.diagnosticProfiles)
+        {
+            final var admission = PhantomSystem.operatorAdmissionProfile(row.profile().profileId()).orElse(null);
+            reasons.merge(admission == null ? "ABSENT" : admission.admission().reason(), 1, Integer::sum);
+            if (selected.size() < 64 && admission != null && admission.admission().desiredState() == org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.ACTIVE) { selected.add(row.profile().profileId()); }
+        }
         final var lines = new ArrayList<String>();
         final var now = java.time.Instant.now();
+        final var scheduling = ecology.schedulingSnapshot(selected, now);
         final var timezone = org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().populationTimeZone();
         lines.add("SUMMARY\tutc=" + now + ";jvmZone=" + java.time.ZoneId.systemDefault() + ";populationZone=" + timezone + ";calendar=" + now.atZone(timezone)
             + ";best=" + best + ";actual=" + cohort.size() + ";noProgressMillis=" + noProgressMillis + ";cutoff=" + reason
             + ";physical=" + physical.positionRevisions().size() + ";facts=" + physical.facts().size() + ";demandAgeMillis=" + Math.max(0, now.toEpochMilli() - physical.timestampMillis()) + ";overflow=" + physical.overflow());
         lines.add("STATUS\t" + PhantomSystem.operatorStatus());
+        lines.add("ADMISSION\t" + population.admissionSnapshot());
+        lines.add("REASONS\t" + reasons + ";selected=" + selected.size() + ";individualLimit=64");
+        lines.add("STAMPS\t" + PhantomTask102Lane.read(PhantomTask102Lane.stage().resolve("private/native.properties")) + ";codeSource=" + Player.class.getProtectionDomain().getCodeSource().getLocation());
+        lines.add("SCHEDULING\trevision=" + scheduling.revision() + ";current=" + ecology.schedulingSnapshotCurrent(scheduling) + ";epochMinute=" + scheduling.epochMinute() + ";inventoryReady=" + scheduling.inventoryReady() + ";periodic=" + scheduling.periodic());
         lines.add("PREPARATION\t" + PhantomSystem.operatorReadinessProgress(selected.isEmpty() ? 0 : selected.iterator().next()));
         lines.add("HUMANS\t" + PhantomSystem.onlineHumanPoints());
         for (var observer : observers)
         {
             lines.add("OBSERVER\t" + observer.getObjectId() + ";reference=" + System.identityHashCode(observer) + ";worldCurrent=" + (World.getInstance().getPlayer(observer.getObjectId()) == observer)
                 + ";online=" + observer.isOnline() + ";x=" + observer.getX() + ";y=" + observer.getY() + ";z=" + observer.getZ() + ";instance=" + observer.getInstanceId()
-                + ";lease=" + org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(observer.getObjectId()));
+                + ";lease=" + org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(observer.getObjectId())
+                + ";setupTarget=" + PhantomPopulation102Native.observerTargets.get(observer.getObjectId()));
         }
         for (long id : selected)
         {
             lines.add("PROFILE\t" + id + "\t" + PhantomSystem.operatorAdmissionProfile(id) + "\tlocality=" + PhantomSystem.operatorLocalityTarget(id)
-                + "\tprogress=" + PhantomSystem.operatorReadinessProgress(id));
+                + "\thomeRegion=" + population.find(id).map(row -> row.state().homeMapRegionId()) + "\tphysicalRevision=" + physical.positionRevisions().get(id)
+                + "\tphysicalFact=" + physical.facts().stream().filter(fact -> fact.profileId() == id).findFirst()
+                + "\tpermitted=" + scheduling.permitted(id) + "\tschedulingFact=" + scheduling.facts().get(id) + "\tprogress=" + PhantomSystem.operatorReadinessProgress(id));
         }
         for (var value : cohort)
         {
@@ -308,6 +325,7 @@ public final class PhantomWorldCohort108R3Checks
         }
         if (args.length == 3 && args[0].equals("census")) { census(Path.of(args[1]).toRealPath(), args[2]); System.out.println("COHORT108R3_CENSUS_PASS exactCP;bothHashes;JDBC=0"); return; }
         require(args.length == 0, "exact DB-free command required");
+        observerChecks();
         final var first = cohort(16);
         require(evaluate(first, first).pass(), "actual stable16 rejected");
         final var nine = first.subList(0, 9);
@@ -340,6 +358,27 @@ public final class PhantomWorldCohort108R3Checks
         require(!org.l2jmobius.commons.database.DatabaseFactory.isInitialized()
             && !org.l2jmobius.gameserver.phantoms.PhantomSystem.hasConfiguredInstance(), "DB-free checks started runtime");
         System.out.println("COHORT108R3_PASS stable16;shortfall9Late10;churn;witnessBeforeWorld;canonicalStop;JDBC=0;NATIVE=NOT_RUN");
+    }
+    private static void observerChecks() throws Exception
+    {
+        final var candidates = List.of(new PhantomPopulation102Native.ObserverCandidate(1, 10), new PhantomPopulation102Native.ObserverCandidate(2, 10),
+            new PhantomPopulation102Native.ObserverCandidate(3, 20));
+        final var selected = new ArrayList<Long>();
+        require(PhantomPopulation102Native.selectObservers(candidates, new java.util.HashSet<>(),
+            value -> value.profileId() == 1 ? null : value, value -> { selected.add(value.profileId()); return true; }, value -> { }) == 2
+            && selected.equals(List.of(2L, 3L)), "observer region reserved before successful target/spawn");
+        final var failures = new ArrayList<String>();
+        require(PhantomPopulation102Native.selectObservers(candidates, new java.util.HashSet<>(), value -> value,
+            value -> value.profileId() != 1, failures::add) == 2, "failed lease/World reserved region");
+        final var duplicates = new ArrayList<String>();
+        require(PhantomPopulation102Native.selectObservers(candidates, new java.util.HashSet<>(), value -> value, value -> true, duplicates::add) == 2
+            && duplicates.equals(List.of("SELECTED", "DUPLICATE_REGION", "SELECTED")), "duplicate observer region accepted");
+        require(PhantomPopulation102Native.observerIdentity(0, 7, 7, "own102view0", "Own102View0", true, true, true, true, true, 0), "valid observer rejected");
+        require(!PhantomPopulation102Native.observerIdentity(0, 7, 8, "own102view0", "Own102View0", true, true, true, true, true, 0)
+            && !PhantomPopulation102Native.observerIdentity(0, 7, 7, "foreign", "Own102View0", true, true, true, true, true, 0)
+            && !PhantomPopulation102Native.observerIdentity(0, 7, 7, "own102view0", "Own102View0", true, true, false, true, true, 0)
+            && !PhantomPopulation102Native.observerIdentity(0, 7, 7, "own102view0", "Own102View0", true, true, true, false, true, 0), "wrong identity/account/lease/World observer accepted");
+        System.out.println("OBSERVER108_PASS firstNullSecondValid;failedLeaseOrWorld;duplicateRegion;identity;twoSelected;JDBC=0");
     }
     private static void authorityChecks() throws Exception
     {
@@ -374,6 +413,21 @@ public final class PhantomWorldCohort108R3Checks
                 Files.write(file, bytes);
             }
             census(stage, cp);
+            Files.delete(selected);
+            final Path complete = privateRoot.resolve("recovery108-COMPLETE.properties");
+            require(!PhantomTask102Lane.complete108(stage), "unselected Complete authority");
+            Files.writeString(complete, "fixture");
+            try
+            {
+                require(PhantomTask102Lane.complete108(stage), "Complete authority absent");
+                for (String prior : List.of("103", "104", "105", "106", "107", "108", "108R", "108R2", "108R3", "108R3C", "108R3D"))
+                {
+                    final Path marker = privateRoot.resolve("recovery" + prior + ".properties"); Files.writeString(marker, "fixture");
+                    try { rejects(() -> PhantomTask102Lane.complete108(stage)); } finally { Files.delete(marker); }
+                }
+                rejects(() -> restart(stage, "fixture"));
+            }
+            finally { Files.delete(complete); }
         }
         finally
         {

@@ -26,6 +26,25 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Req
  */
 public final class PhantomClassSkillLearningTransaction
 {
+    /** Optional result observation for the explicitly owned native TEST lane; absent in GameServer. */
+    public record LearningEvidence(int characterId, int classId, int classIndex, int skillId, int previousLevel, int targetLevel, int cost,
+        long runtimeBefore, long runtimeAfter, OperationResult result) { }
+    private static volatile java.util.function.Consumer<LearningEvidence> _nativeTestObserver;
+    public static void observeNativeTest(java.util.function.Consumer<LearningEvidence> observer)
+    {
+        if (!Boolean.getBoolean("phantom.task102.native")) { throw new IllegalStateException("Owned native TEST lane required."); }
+        _nativeTestObserver = observer;
+    }
+    private OperationResult executeObservedLocked(Player player, Skill skill, Npc trainer, int previousSkillLevel, int spCost, Item exactItem, RequiredItem requiredItem)
+    {
+        final var observer = _nativeTestObserver;
+        if (observer == null) { return executeLocked(player, skill, trainer, previousSkillLevel, spCost, exactItem, requiredItem); }
+        final int characterId = player.getObjectId(), classId = player.getActiveClass(), classIndex = player.getClassIndex();
+        final long before = player.getSp();
+        final var result = executeLocked(player, skill, trainer, previousSkillLevel, spCost, exactItem, requiredItem);
+        observer.accept(new LearningEvidence(characterId, classId, classIndex, skill.getId(), previousSkillLevel, skill.getLevel(), spCost, before, player.getSp(), result));
+        return result;
+    }
 	private static final int QUERY_TIMEOUT_SECONDS = 10;
 	private static final String SELECT_MAIN_SP = "SELECT sp, classid FROM characters WHERE charId = ? FOR UPDATE";
 	private static final String UPDATE_MAIN_SP = "UPDATE characters SET sp = ? WHERE charId = ? AND sp = ?";
@@ -66,11 +85,11 @@ public final class PhantomClassSkillLearningTransaction
 				if (player.isChangingClass()) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
 				if (exactItem == null)
 				{
-					return executeLocked(player, skill, trainer, previousSkillLevel, spCost, null, null);
+                    return executeObservedLocked(player, skill, trainer, previousSkillLevel, spCost, null, null);
 				}
 				synchronized (exactItem)
 				{
-					return executeLocked(player, skill, trainer, previousSkillLevel, spCost, exactItem, requiredItem);
+                    return executeObservedLocked(player, skill, trainer, previousSkillLevel, spCost, exactItem, requiredItem);
 				}
 			}
 		}
