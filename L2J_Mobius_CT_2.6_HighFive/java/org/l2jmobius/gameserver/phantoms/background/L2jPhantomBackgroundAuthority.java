@@ -1481,11 +1481,12 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
         final boolean staticEffects = player.getEffectList().getEffects().stream().allMatch(info -> info.getSkill().isPassive());
         // The scalar FARM model has no arrow/bolt debit; only native combat may consume this loadout.
         final boolean nativeAmmunition = player.getActiveWeaponItem() != null && player.getActiveWeaponItem().isRange();
-        final boolean rewards = !player.hasPremiumStatus() && !player.isInParty() && !player.hasSummon()
+        final boolean ordinaryContext = persistenceContextAllowed(false, player.isInCombat(), player.getKarma());
+        final boolean rewards = ordinaryContext && !player.hasPremiumStatus() && !player.isInParty() && !player.hasSummon()
             && !player.getNevitSystem().isAdventBlessingActive() && player.getNevitHourglassMultiplier() == 1 && staticEffects
             && !DynamicExpRateData.getInstance().isEnabled() && player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) == 1 && !nativeAmmunition;
         final var policy = new PhantomBackgroundSimulationPolicy(PhantomBackgroundSimulationPolicy.ALGORITHM_VERSION, player.getLevel(), points, points,
-            rewards, false, player.getInstanceId() == 0, PlayerConfig.ENABLE_VITALITY, player.isLucky(), consume,
+            rewards, false, ordinaryContext && player.getInstanceId() == 0, PlayerConfig.ENABLE_VITALITY, player.isLucky(), consume,
             RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
             RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
             RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,
@@ -1515,10 +1516,16 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final var topology = _topology.get();
 		final var anchor = topology.findAnchor(captured.position().committedAnchorId()).orElseThrow(() -> new IllegalArgumentException("Native context anchor is absent."));
 		final var vitality = nativeContext(player);
+        final boolean ordinaryContext = persistenceContextAllowed(false, player.isInCombat(), player.getKarma());
         final boolean farmPosition = livePositionAllowed(topology, player, anchor);
         return new PhantomNativeContext.Capture(vitality.vitalityPoints(), farmPosition ? vitality.eligibility()
             : PhantomNativeContext.Eligibility.POSITION_REQUIRES_NATIVE,
-            vitality.policy().withPosition(farmPosition, captured.position().instanceId() == 0));
+            vitality.policy().withPosition(ordinaryContext && farmPosition, ordinaryContext && captured.position().instanceId() == 0));
+	}
+
+	private static boolean persistenceContextAllowed(boolean nativePersistence, boolean inCombat, int karma)
+	{
+		return karma == 0 && (nativePersistence || !inCombat);
 	}
 
 	private static void requireSupportedPlayer(Player player, boolean nativePersistence)
@@ -1529,13 +1536,12 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		else if (player.isFlyingMounted()) { reason = "flyingMounted"; }
 		else if (player.isMounted()) { reason = "mounted"; }
 		else if (player.isInParty() && !nativePersistence) { reason = "party"; }
-		else if (player.isInCombat()) { reason = "combat"; }
+		else if (!persistenceContextAllowed(nativePersistence, player.isInCombat(), player.getKarma())) { reason = player.isInCombat() ? "combat" : "karma"; }
 		else if (player.isCombatFlagEquipped()) { reason = "combatFlag"; }
 		else if (player.isGM()) { reason = "gm"; }
 		else if (player.hasPremiumStatus() && !nativePersistence) { reason = "premium"; }
 		else if (player.isOnEvent()) { reason = "event"; }
 		else if (player.isFestivalParticipant()) { reason = "festival"; }
-		else if (player.getKarma() != 0) { reason = "karma"; }
 		else
 		{
 			final double nevit = player.getNevitHourglassMultiplier();

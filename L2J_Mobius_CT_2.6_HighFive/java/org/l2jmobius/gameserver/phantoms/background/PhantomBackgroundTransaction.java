@@ -238,6 +238,27 @@ public final class PhantomBackgroundTransaction
 		_acquisitionCodec = Objects.requireNonNull(acquisitionCodec, "acquisitionCodec");
 	}
 
+	/** SELECT-only witness for native persistence when optional first lineage was refused. */
+	public void verifyNativeOnlyStore(long profileId, int objectId, org.l2jmobius.gameserver.model.actor.Player.OwnedStoreSnapshot expected, String inventoryHash)
+	{
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), objectId);
+				final var actual = lockCanonical(connection, new Identity(profileId, objectId, expected.classIndex(), expected.classId(), expected.race()), true);
+				final String actualInventory = PhantomBackgroundInventoryHash.compute(lockItems(connection, objectId).stream().map(item -> new PhantomBackgroundInventoryHash.CanonicalItem(item.objectId(), item.itemId(), item.count(), item.location())).toList());
+				if (actual.level() != expected.level() || actual.experience() != expected.experience() || actual.skillPoints() != expected.skillPoints() || actual.experienceBeforeDeath() != expected.experienceBeforeDeath() || actual.classId() != expected.classId() || actual.raceOrdinal() != expected.race() || actual.position().x() != expected.x() || actual.position().y() != expected.y() || actual.position().z() != expected.z() || actual.position().heading() != expected.heading() || actual.vitalityPoints() != expected.vitalityPoints() || !actualInventory.equals(inventoryHash))
+				{
+					throw new IllegalStateException("OWNED_STORE_NATIVE_ONLY_SQL_MISMATCH");
+				}
+			}
+			finally { connection.rollback(); }
+		}
+		catch (SQLException failure) { throw new IllegalStateException("OWNED_STORE_NATIVE_ONLY_SQL_FAILURE", failure); }
+	}
+
 	public EligibilityResult readAcquisitionEligibility(long profileId, int characterObjectId, int classIndex, int activeClassId, List<Integer> requestedSkillIds, String progressionHash, PhantomBackgroundState.Hashes expectedBackgroundHashes)
 	{
 		final List<Integer> requested = requestedSkillIds == null ? List.of() : requestedSkillIds.stream().distinct().sorted().toList();

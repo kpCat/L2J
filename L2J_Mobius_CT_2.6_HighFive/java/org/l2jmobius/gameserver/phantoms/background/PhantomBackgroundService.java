@@ -1264,6 +1264,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		try
 		{
+			if (player.isInCombat() || player.getKarma() != 0) { throw new IllegalArgumentException("Canonical Player is in an unsupported background context. firstPredicate=" + (player.isInCombat() ? "combat" : "karma")); }
 			final PhantomBackgroundState previous = acquisitionSnapshot(profileId).orElse(null);
 			if ((previous == null) || (previous.state() != State.MATERIALIZED) || (previous.identity().characterObjectId() != player.getObjectId()))
 			{
@@ -1305,6 +1306,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var owner = _identities.getOwnerSnapshot(player.getObjectId());
 		if ((owner == null) || (owner.ownerKind() != OwnerKind.PHANTOM)) { throw new IllegalStateException("OWNED_STORE_IDENTITY_MISSING"); }
 		if (player.hasOwnedStoreBoundary(this)) { return; }
+		// First native farm work can move before the first durable background row.
+		// Retain the factual admission capture under this exact Player/owner lifetime;
+		// intent is never substituted for its initial, strictly validated source.
+		final PhantomBackgroundState admittedSource = initialOwnedStoreSource(profileId, player);
 		player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
 		{
 			@Override public Object ownerKey() { return PhantomBackgroundService.this; }
@@ -1315,6 +1320,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			private String _before;
 			private String _kind;
 			private boolean _recaptureAfterResume;
+			private Player.OwnedStoreSnapshot _nativeOnlySnapshot;
+			private long _nativeOnlyEpoch;
+			private PlayerNativeWork.Owner _nativeOnlyOwner;
+			private String _nativeOnlyInventory;
+			private boolean _optionalRefusalLogged;
 
 			@Override public boolean hasPending() { return _intent != null; }
 
@@ -1368,6 +1378,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			private Player.OwnedStoreSnapshot prepareStore()
 			{
 				checkOwner();
+				_nativeOnlySnapshot = null;
 				final var resumed = resumeIntent();
 				if (resumed != null) { return resumed; }
 				final var entry = _materialization.get().find(profileId).orElseThrow();
@@ -1375,13 +1386,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final var previous = loaded.successful() ? loaded.state() : null;
 				if (!loaded.successful() && (loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT)) { throw new IllegalStateException("OWNED_STORE_BACKGROUND_READ:" + loaded.status()); }
 				final var goal = _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null);
-				if ((goal == null) && (previous == null)) { return null; }
+				if ((goal == null) && (previous == null)) { return nativeOnlyStore("GOAL_ABSENT"); }
 				if (goal == null) { throw new IllegalStateException("OWNED_STORE_GOAL_MISSING"); }
 				if (!PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()))
 				{
 					try { PhantomBackgroundGoalSpec.parseLifecycle(goal); }
-					catch (IllegalArgumentException unsupported) { if (previous == null) { return null; } throw new IllegalStateException("OWNED_STORE_UNSUPPORTED_GOAL", unsupported); }
+					catch (IllegalArgumentException unsupported) { if (previous == null) { return nativeOnlyStore("UNSUPPORTED_LINEAGE"); } throw new IllegalStateException("OWNED_STORE_UNSUPPORTED_GOAL", unsupported); }
 				}
+				// Partial delivery retains the supported-goal karma refusal before optional fallback.
+				if (player.getKarma() != 0) { throw new IllegalArgumentException("Canonical Player is in an unsupported background context. firstPredicate=karma"); }
 				final boolean cleanup = _cleanupStores.containsKey(profileId);
 				final var arrival = _arrivalCaptures.get(profileId);
 				checkpointStage(player, "INVENTORY_FLUSH");
@@ -1398,9 +1411,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					}
 					else
 					{
-						final var capture = PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())
-							? _authority.captureOwnedNativeAcquisition(profileId, player, goal, previous, PhantomAcquisitionGoalSpec.parse(goal).itemId())
-							: _authority.captureOwnedNative(profileId, player, goal, previous);
+						final var lineage = ownedStoreLineage(profileId, player.getObjectId(), _authority.hashes(), previous, admittedSource);
+						final var capture = optionalFirstStoreCapture(lineage, () -> PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())
+							? _authority.captureOwnedNativeAcquisition(profileId, player, goal, lineage, PhantomAcquisitionGoalSpec.parse(goal).itemId())
+							: _authority.captureOwnedNative(profileId, player, goal, lineage));
+						if (capture == null) { return nativeOnlyStore("STRICT_FIRST_LINEAGE_REFUSED", false); }
 						captured = capture.state(); nativeCapture = capture.context();
 					}
 				}
@@ -1421,9 +1436,39 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return ownedSnapshot(player, _intent.after(), _nativeCapture.vitalityPoints());
 			}
 
+			private Player.OwnedStoreSnapshot nativeOnlyStore(String reason) { return nativeOnlyStore(reason, true); }
+			private Player.OwnedStoreSnapshot nativeOnlyStore(String reason, boolean flushInventory)
+			{
+				checkOwner();
+				if (flushInventory) { player.getInventory().updateDatabase(); }
+				_nativeOnlyEpoch = _materialization.get().find(profileId).orElseThrow().materializedAtNanos();
+				_nativeOnlyOwner = player.getNativeWorkOwner();
+				synchronized (player.getStatus()) { _nativeOnlySnapshot = factualOwnedSnapshot(player); }
+				_nativeOnlyInventory = factualInventoryHash(player);
+				if (!_optionalRefusalLogged)
+				{
+					System.getLogger(PhantomBackgroundService.class.getName()).log(System.Logger.Level.WARNING, "OWNED_STORE_OPTIONAL_LINEAGE_REFUSED profile=" + profileId + " epoch=" + _nativeOnlyEpoch + " reason=" + reason + " lineageSaved=false nativeStorePending=true");
+					_optionalRefusalLogged = true;
+				}
+				return _nativeOnlySnapshot;
+			}
+
 			@Override
 			public void afterStore(boolean nativeStoreCompleted)
 			{
+				if (_nativeOnlySnapshot != null)
+				{
+					checkOwner();
+					if ((_materialization.get().find(profileId).orElseThrow().materializedAtNanos() != _nativeOnlyEpoch) || player.getNativeWorkOwner() != _nativeOnlyOwner) { throw new IllegalStateException("OWNED_STORE_NATIVE_ONLY_EPOCH_CHANGED"); }
+					if (!nativeStoreCompleted) { return; }
+					final var current = transaction(() -> _transactions.load(profileId));
+					if (current.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT) { throw new IllegalStateException("OWNED_STORE_NATIVE_ONLY_LINEAGE_CHANGED:" + current.status()); }
+					synchronized (player.getStatus()) { if (!_nativeOnlySnapshot.equals(factualOwnedSnapshot(player))) { throw new IllegalStateException("OWNED_STORE_NATIVE_ONLY_FACTS_CHANGED"); } }
+					if (!_nativeOnlyInventory.equals(factualInventoryHash(player))) { throw new IllegalStateException("OWNED_STORE_NATIVE_ONLY_INVENTORY_CHANGED"); }
+					_transactions.verifyNativeOnlyStore(profileId, player.getObjectId(), _nativeOnlySnapshot, _nativeOnlyInventory);
+					_nativeOnlySnapshot = null;
+					return;
+				}
 				if (_intent == null) { return; }
 				String status = nativeStoreCompleted ? "FINALIZE_NOT_REACHED" : "NATIVE_STORE_THROW";
 				boolean finalizedSuccessfully = false;
@@ -1452,6 +1497,67 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				if (recaptureCleanup && finalizedSuccessfully) { player.storeMe(); }
 			}
 		});
+	}
+
+	private static PhantomBackgroundAuthority.NativeCapture optionalFirstStoreCapture(PhantomBackgroundState lineage, Supplier<PhantomBackgroundAuthority.NativeCapture> capture)
+	{
+		try { return capture.get(); }
+		catch (IllegalArgumentException strictRefusal) { if (lineage != null) { throw strictRefusal; } return null; }
+	}
+
+	private static Player.OwnedStoreSnapshot factualOwnedSnapshot(Player player)
+	{
+		return new Player.OwnedStoreSnapshot(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp(), player.getX(), player.getY(), player.getZ(), player.getHeading(), player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath(), player.getActiveClass(), player.getRace().ordinal(), player.getClassIndex(), player.getStat().getBaseLevel(), player.getStat().getBaseExp(), player.getStat().getBaseSp(), player.getVitalityPoints());
+	}
+
+	private static String factualInventoryHash(Player player)
+	{
+		return PhantomBackgroundInventoryHash.compute(player.getInventory().getItems().stream().filter(item -> item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY || item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL).map(item -> new PhantomBackgroundInventoryHash.CanonicalItem(item.getObjectId(), item.getId(), item.getCount(), PhantomBackgroundState.ItemLocation.valueOf(item.getItemLocation().name()))).toList());
+	}
+
+	private PhantomBackgroundState initialOwnedStoreSource(long profileId, Player player)
+	{
+		final var loaded = transaction(() -> _transactions.load(profileId));
+		if (loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT)
+		{
+			if (!loaded.successful()) { throw new IllegalStateException("OWNED_STORE_ADMITTED_SOURCE_READ:" + loaded.status()); }
+			return null;
+		}
+		final var goal = _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null);
+		if (goal == null) { return null; }
+		final boolean acquisition = PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType());
+		final int acquisitionItem;
+		if (acquisition) { acquisitionItem = PhantomAcquisitionGoalSpec.parse(goal).itemId(); }
+		else
+		{
+			try { PhantomBackgroundGoalSpec.parseLifecycle(goal); }
+			catch (IllegalArgumentException unsupported) { return null; }
+			acquisitionItem = 0;
+		}
+		synchronized (player.getStatus())
+		{
+			try
+			{
+				return acquisition ? _authority.captureOwnedNativeAcquisition(profileId, player, goal, null, acquisitionItem).state()
+					: _authority.captureOwnedNative(profileId, player, goal, null).state();
+			}
+			catch (IllegalArgumentException unprovenSource)
+			{
+				// Optional admission lineage must not turn a strict capture refusal into
+				// a new load gate. A later first STORE still requires its strict source.
+				return null;
+			}
+		}
+	}
+
+	private static PhantomBackgroundState ownedStoreLineage(long profileId, int objectId, PhantomBackgroundState.Hashes hashes, PhantomBackgroundState durable, PhantomBackgroundState admitted)
+	{
+		if (durable != null) { return durable; }
+		if (admitted != null && (admitted.identity().profileId() != profileId || admitted.identity().characterObjectId() != objectId || admitted.state() != State.MATERIALIZED || !admitted.hashes().equals(hashes)))
+		{
+			throw new IllegalStateException("OWNED_STORE_ADMITTED_SOURCE_CHANGED");
+		}
+		return admitted;
 	}
 
 	private static boolean ownedProgressMatches(Player player, PhantomBackgroundState state)

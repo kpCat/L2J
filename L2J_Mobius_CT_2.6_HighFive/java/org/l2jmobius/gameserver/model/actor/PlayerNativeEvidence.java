@@ -16,6 +16,9 @@ public final class PlayerNativeEvidence
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
 	private static final ThreadLocal<RewardFrame> REWARD_CONTEXT = new ThreadLocal<>();
 	private static final ThreadLocal<PickupFrame> PICKUP_CONTEXT = new ThreadLocal<>();
+	// TEST-only observer of existing successful writers; it never selects or changes a recipient.
+	private static volatile java.util.function.BiConsumer<String, long[]> _pickupObserver;
+	private static volatile String _pickupObserverFailure = "";
 	public record PickupReceipt(int sourceObjectId, int itemId, long count, long actorCount, long sequence, boolean nativeConsumed) { }
 	private final Map<Integer, PickupReceipt> _pickups = new LinkedHashMap<>();
 	private long _pickupSequence;
@@ -41,11 +44,13 @@ public final class PlayerNativeEvidence
 		final PickupFrame previous = PICKUP_CONTEXT.get();
 		final PickupFrame frame = new PickupFrame(sink, sourceObjectId, itemId, count);
 		PICKUP_CONTEXT.set(frame);
+		observePickup("START", frame, 0, 0);
 		try { action.run(); }
 		finally
 		{
 			if (previous == null) { PICKUP_CONTEXT.remove(); } else { PICKUP_CONTEXT.set(previous); }
 			if (frame.count > 0) { sink.publishPickup(frame); }
+			observePickup("END", frame, 0, 0);
 		}
 	}
 
@@ -63,6 +68,15 @@ public final class PlayerNativeEvidence
 		final long gain = Math.min(actualGain, frame.maximum - frame.count);
 		frame.count += gain;
 		if (recipientObjectId == frame.sink._objectId) { frame.actorCount += gain; }
+		observePickup("GAIN", frame, recipientObjectId, actualGain);
+	}
+
+	private static void observePickup(String stage, PickupFrame frame, int recipient, long actualGain)
+	{
+		final var observer = _pickupObserver;
+		if (observer == null) { return; }
+		try { observer.accept(stage, new long[] { frame.sink._objectId, frame.sourceObjectId, frame.itemId, frame.maximum, recipient, actualGain, frame.count, frame.nativeConsumed ? 1 : 0 }); }
+		catch (Throwable unavailable) { _pickupObserverFailure = unavailable.getClass().getName(); }
 	}
 
 	/** Called only after the exact stock immediate-effect item was picked and destroyed. No inventory credit. */

@@ -76,6 +76,9 @@ public final class PlayerNativeWork
 	private record CombatFrame(Owner owner, PlayerNativeEvidence.CombatEpisode episode, CombatFrame previous) { }
 	private static final ThreadLocal<CombatFrame> COMBAT_CONTEXT = new ThreadLocal<>();
 	private static final ThreadLocal<RewardRoster> REWARD_ROSTER = new ThreadLocal<>();
+	// TEST-only scalar observer, installed reflectively by the acceptance harness; absent in production.
+	private static volatile java.util.function.BiConsumer<String, List<Ticket>> _participantObserver;
+	private static volatile String _participantObserverFailure = "";
 	private PlayerNativeWork() { }
 
 	/** Operation-local native loot/EXP membership; null parties are also frozen. */
@@ -282,7 +285,7 @@ public final class PlayerNativeWork
 			final Ticket parent = participant.owner() == null ? null : current(participant.owner());
 			if ((parent != null) && (parent.semantics() == Semantics.EARNED)) { semantics = Semantics.EARNED; break; }
 		}
-		requireCapturedEarnedParticipants(participants);
+		requireCapturedEarnedParticipants(actor, kind, participants);
 		final ParticipantWork work = reserve(participants, kind, semantics);
 		if (work == null) { return; }
 		if (work.ordinary()) { action.run(); } else { work.run(action); }
@@ -292,6 +295,7 @@ public final class PlayerNativeWork
 	public static NativeBoundaryOutcome runAtNativeWriteBoundary(Creature actor, Collection<? extends WorldObject> frozenRecipients, String kind, Runnable nativeBody)
 	{
 		final List<Participant> participants = capture(actor, frozenRecipients, kind);
+		if ("party-pickup".equals(kind)) { observeParticipants(actor, kind, "DISCOVER", participants); }
 		final var published = Collections.newSetFromMap(new IdentityHashMap<Owner, Boolean>());
 		for (Frame frame = CONTEXT.get(); frame != null; frame = frame.previous())
 		{
@@ -319,7 +323,12 @@ public final class PlayerNativeWork
 			// writer/continuation now has an earned child before the first native mutation.
 			final ParticipantWork work = reserve(earned, kind, Semantics.EARNED);
 			if (work == null) { throw new IllegalStateException("NATIVE_ADMITTED_WRITER_CHILD_REFUSED"); }
-			work.run(() -> { outcome[0] = NativeBoundaryOutcome.EXECUTED; nativeBody.run(); });
+			work.run(() ->
+			{
+				outcome[0] = NativeBoundaryOutcome.EXECUTED;
+				if ("party-pickup".equals(kind)) { observeParticipants(actor, kind, "WRITE", earned); }
+				nativeBody.run();
+			});
 		});
 		return outcome[0];
 	}
@@ -421,7 +430,7 @@ public final class PlayerNativeWork
 	private static ParticipantWork reserve(Creature actor, Collection<? extends WorldObject> targets, String kind, Semantics semantics)
 	{
 		final List<Participant> participants = capture(actor, targets, kind);
-		requireCapturedEarnedParticipants(participants);
+		requireCapturedEarnedParticipants(actor, kind, participants);
 		return reserve(participants, kind, semantics);
 	}
 
@@ -435,7 +444,7 @@ public final class PlayerNativeWork
 	}
 
 	/** A delayed earned body cannot discover and silently borrow a different live lifetime. */
-	private static void requireCapturedEarnedParticipants(List<Participant> participants)
+	private static void requireCapturedEarnedParticipants(Creature actor, String kind, List<Participant> participants)
 	{
 		boolean earned = false;
 		for (Frame frame = CONTEXT.get(); frame != null; frame = frame.previous())
@@ -447,12 +456,38 @@ public final class PlayerNativeWork
 		{
 			if (!participant.current() || current(participant.owner()) == null)
 			{
+				observeParticipants(actor, kind, "STRICT_REFUSAL", participants);
 				final var failure = new IllegalStateException("NATIVE_EARNED_RECIPIENT_NOT_CAPTURED");
 				recordFailure(failure);
 				if (participant.owner() != null) { participant.owner().recordFailure(failure); }
 				throw failure;
 			}
 		}
+	}
+
+	/** No World scans, I/O or owner mutations. Optional sampling cannot replace a safety verdict. */
+	private static void observeParticipants(Creature actor, String kind, String stage, List<Participant> participants)
+	{
+		final var observer = _participantObserver;
+		if (observer == null) { return; }
+		try
+		{
+			final var thread = Thread.currentThread();
+			final var facts = new StringBuilder("stage=" + stage + " kind=" + kind.substring(0, Math.min(kind.length(), 80))
+				+ " actor=" + (actor == null ? 0 : actor.getObjectId()) + " thread=" + thread.getName() + ":" + thread.threadId() + " nanos=" + System.nanoTime());
+			for (Participant participant : participants.stream().limit(16).toList())
+			{
+				final var attached = participant.player().getNativeWorkOwner(); final var parent = current(participant.owner());
+				facts.append(" recipient=").append(participant.player().getObjectId()).append(":owner@").append(System.identityHashCode(participant.owner()))
+					.append(":epoch=").append(participant.epoch()).append(":current=").append(participant.current())
+					.append(":attached@").append(System.identityHashCode(attached)).append(":attachedEpoch=").append(attached == null ? -1 : attached.epoch())
+					.append(":contextTicket@").append(System.identityHashCode(parent));
+			}
+			final List<Ticket> context = new ArrayList<>();
+			for (Frame frame = CONTEXT.get(); frame != null && context.size() < 16; frame = frame.previous()) { context.add(frame.ticket()); }
+			observer.accept(facts.toString(), List.copyOf(context));
+		}
+		catch (Throwable unavailable) { _participantObserverFailure = unavailable.getClass().getName(); }
 	}
 
 	private static ParticipantWork reserve(List<Participant> participants, String kind, Semantics semantics)

@@ -4813,8 +4813,9 @@ public class Player extends Playable
 	{
 		final Party party = getParty();
 		final List<Player> recipients = party == null ? List.of() : List.copyOf(party.getMembers());
-		// Admission precedes the original ground monitor; this same roster must select every native recipient.
-		PlayerNativeWork.run(this, recipients, "party-pickup", () ->
+		// Stock CANCEL can synchronously reach this new writer from an older earned hit.
+		// Admit the frozen Party before the ground monitor, without borrowing delayed lineage.
+		PlayerNativeWork.runAtNativeWriteBoundary(this, recipients, "party-pickup", () ->
 		{
 			final var owner = getNativeWorkOwner();
 			final var evidence = owner != null && owner.isCurrent() && owner.player() == this ? owner.evidence() : null;
