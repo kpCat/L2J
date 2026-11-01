@@ -1109,6 +1109,42 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Generic failure fixture did not drain."); }
 			}
 		});
+		registry.add("109-generic-three-member-cold-restart-retains-recovery-authority", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true;
+			final var leader = backend.add(1, 101); final var damage = backend.add(2, 102); final var support = backend.add(3, 103);
+			goals.put(1, goal(109001, PhantomPartyCoordinator.FORM_GOAL, null, 0));
+			for (long id : List.of(2L, 3L)) { goals.put(id, goal(109000 + id, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "101"), 0)); }
+			var coordinator = coordinator(context, states, goals, backend, 16); backend.connect(coordinator);
+			PhantomAssertions.assertTrue(coordinator.start(), "Generic cold restart fixture did not start.");
+			try
+			{
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.form(1, 109001, 0, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "task109.gameplay"), List.of()), "Generic three-member form failed.");
+				for (var member : List.of(damage, support))
+				{
+					if (!coordinator.committed(member.profileId())) { PhantomAssertions.assertEquals(PhantomPartyCoordinator.CommandOutcome.ACCEPTED, coordinator.invite(1, member, PartyDistributionType.FINDERS_KEEPERS), "Generic initial invitation failed."); }
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				}
+				PhantomAssertions.assertEquals(3, backend.observe(leader).orElseThrow().members().size(), "Generic fixture never formed three real backend members.");
+				final var before = coordinator.claim(1).orElseThrow().state();
+				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertTrue(coordinator.committed(id) && coordinator.claim(id).orElseThrow().state().leaderManifestHash().equals(before.leaderManifestHash()), "Initial generic shared authority is not committed."); }
+				coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Generic party did not stop before cold restart.");
+				backend._parties.clear(); backend._lastInvitation = null;
+				coordinator = coordinator(context, states, goals, backend, 16); backend.connect(coordinator);
+				PhantomAssertions.assertTrue(coordinator.start(), "Generic cold party did not restart.");
+				for (int pulse = 0; pulse < 32; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(3, backend.observe(leader).map(party -> party.members().size()).orElse(0), "Generic recovery stranded the third member after the first canonical JOIN.");
+				final var restored = coordinator.claim(1).orElseThrow().state();
+				for (long id : List.of(1L, 2L, 3L))
+				{
+					final var claim = coordinator.claim(id).orElseThrow().state();
+					PhantomAssertions.assertTrue(coordinator.committed(id) && claim.groupId().equals(before.groupId()) && claim.groupGeneration() == restored.groupGeneration() && claim.leaderManifestHash().equals(restored.leaderManifestHash()), "Generic restored member lost exact shared authority.");
+				}
+				PhantomAssertions.assertEquals(4, backend.invitationCount(), "Generic recovery duplicated or bypassed native invitations.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Generic cold restart fixture did not drain."); }
+		});
 		registry.add("094-pending-remote-join-defers-and-resumes-exact-operation", context ->
 		{
 			for (boolean farm : List.of(true, false))

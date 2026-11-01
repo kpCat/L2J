@@ -2298,7 +2298,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				return;
 			}
 		}
-		if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()))
+		final boolean farmRecovery = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace());
+		final boolean genericPhantomRecovery = authority.objectiveMode() == ObjectiveMode.GENERAL_PVE
+			&& authority.leader().kind() == MemberKind.PHANTOM && authority.leader().equals(party.leader())
+			&& authority.realMembers().isEmpty() && reals.isEmpty();
+		if (farmRecovery || genericPhantomRecovery)
 		{
 			for (var absent : existing)
 			{
@@ -2306,7 +2310,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				final var current = _claims.get(absent.profileId());
 				if (current == null || current.rowVersion() != absent.rowVersion()) { continue; }
 				final var previous = current.state();
-				final var recovering = new PartyState(previous.groupId(), generation, draft.membershipRevision(), StateStatus.RECOVERING, party.leader(), previous.ownRoleKey(), manifest, previous.phantomMembers(), List.of(), previous.objectiveMode(), previous.objectiveRef(), previous.requirements(), previous.assignments(), null, authority.operation(), previous.progressionHash(), previous.topologyHash(), "");
+				if (!farmRecovery)
+				{
+					final var member = previous.phantomMembers().stream().filter(value -> value.profileId() == absent.profileId()).findFirst().orElse(null);
+					if (!previous.groupId().equals(authority.groupId()) || previous.groupGeneration() != authority.groupGeneration()
+						|| !previous.leaderManifestHash().equals(authority.leaderManifestHash()) || !previous.leader().equals(authority.leader())
+						|| !previous.realMembers().isEmpty() || previous.objectiveMode() != authority.objectiveMode()
+						|| !previous.objectiveRef().equals(authority.objectiveRef()) || member == null || !authority.phantomMembers().contains(member)) { continue; }
+				}
+				// A partial native rejoin must retain the exact absent member's old roster and owned root.
+				final var recoveryOperation = farmRecovery ? authority.operation() : previous.operation();
+				final var recovering = new PartyState(previous.groupId(), generation, draft.membershipRevision(), StateStatus.RECOVERING, party.leader(), previous.ownRoleKey(), manifest, previous.phantomMembers(), List.of(), previous.objectiveMode(), previous.objectiveRef(), previous.requirements(), previous.assignments(), null, recoveryOperation, previous.progressionHash(), previous.topologyHash(), "");
 				try { putClaim(save(current.profileId(), current.rowVersion(), recovering)); }
 				catch (RuntimeException failure) { _metrics.conflict(); return; }
 			}

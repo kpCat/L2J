@@ -198,6 +198,16 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		return List.copyOf(requirements);
 	}
 
+	/** Remaining native HP determines the next episode; the original risk deadline is unchanged. */
+	public static double projectedFarmDuration(double remainingHp, double damagePerSecond, double regenerationPerSecond)
+	{
+		if (!Double.isFinite(remainingHp) || remainingHp <= 0 || !Double.isFinite(damagePerSecond) || !Double.isFinite(regenerationPerSecond) || regenerationPerSecond < 0) { return Double.POSITIVE_INFINITY; }
+		final double effective = damagePerSecond - regenerationPerSecond;
+		if (effective <= 0) { return Double.POSITIVE_INFINITY; }
+		final double millis = remainingHp * 1000d / effective;
+		return Double.isFinite(millis) && millis <= 60_000 ? millis : Double.POSITIVE_INFINITY;
+	}
+
 	/** Distance and observed-threat proof only; native Geo/door/dry checks remain mandatory. */
 	public static boolean permitsFarmApproach(MemberSnapshot actor, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint destination, List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest.PveThreat> threats)
 	{

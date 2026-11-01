@@ -375,6 +375,13 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		return true;
 	}
 
+	/** Planning HP includes the champion divisor; live HP and regeneration use native units. */
+	private static double nativeDamagePerSecond(double rawDamagePerSecond, double nativeHpDivisor)
+	{
+		if (!Double.isFinite(rawDamagePerSecond) || rawDamagePerSecond <= 0 || !Double.isFinite(nativeHpDivisor) || nativeHpDivisor < 1) { return Double.NaN; }
+		return rawDamagePerSecond / nativeHpDivisor;
+	}
+
 	/** Combine factual native damage estimates; never require every member to solo the mob. */
 	private static boolean groupViable(List<Player> actors, List<MemberSnapshot> members, Player leader, Creature target, Set<MemberRef> supportMembers, java.util.function.Consumer<String> witness)
 	{
@@ -402,9 +409,12 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			else { duration = PhantomBackgroundModel.estimateEncounter(combat.combat(), projected).durationMillis(); }
 			if (duration > 0) { damagePerSecond += projected.maximumHp() * 1000d / duration; }
 		}
-		final double effective = damagePerSecond - Math.max(0, Formulas.calcHpRegen(target) / 3d);
+		final double nativeHpDivisor = target.isChampion() ? Math.max(1, org.l2jmobius.gameserver.config.custom.ChampionMonstersConfig.profile(target).hp()) : 1;
+		damagePerSecond = nativeDamagePerSecond(damagePerSecond, nativeHpDivisor);
+		final double nativeRegenPerSecond = Math.max(0, Formulas.calcHpRegen(target) / 3d);
+		final double effective = damagePerSecond - nativeRegenPerSecond;
 		if (!Double.isFinite(effective) || effective <= 0) { if (witness != null) { witness.accept("target=" + target.getObjectId() + ":effectiveDPS=" + effective); } return false; }
-		final double millis = projected.maximumHp() * 1000d / effective;
+		final double millis = PhantomAutonomousFarmParty.projectedFarmDuration(target.getCurrentHp(), damagePerSecond, nativeRegenPerSecond);
 		if (!Double.isFinite(millis) || millis > 60_000) { if (witness != null) { witness.accept("target=" + target.getObjectId() + ":durationMillis=" + millis + ":DPS=" + effective + ":HP=" + projected.maximumHp()); } return false; }
 		for (int index = 0; index < actors.size(); index++)
 		{
