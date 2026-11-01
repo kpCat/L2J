@@ -234,6 +234,24 @@ public final class PhantomStoreService
 		return restJourneyStatus(profileId, expected, successful ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.FAILED);
 	}
 
+	/** Admission is durable before travel; a cold, unaccepted proposal must never become another journey owner. */
+	public Optional<RetainedPlan> admitRestJourney(long profileId, RetainedPlan expected, PhantomGoal root, long now)
+	{
+		try (ActionLease lease = acquireExclusive(profileId))
+		{
+			if (lease == null || lease.player().getObjectId() != expected.characterObjectId() || expected.journey() == null || !expected.journey().proposed()
+				|| !expected.journey().matches(lease.player()) || !expected.journey().bound(expected, root, now)
+				|| !expected.equals(retainedPlan(profileId).orElse(null)) || !matchesQuote(lease.player(), expected.plan())) { return Optional.empty(); }
+			final var currentRoot = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
+			if (currentRoot == null || !_journeyCodec.decode(currentRoot.payload()).equals(root)) { return Optional.empty(); }
+			final var admitted = expected.journey().admitted();
+			_profiles.updateComponent(profileId, JOURNEY_COMPONENT, expected.journey().rowVersion(), 1, _journeyCodec.encode(admitted));
+			return Optional.of(retainedPlan(profileId).filter(value -> value.rowVersion() == expected.rowVersion() && value.plan().equals(expected.plan())
+				&& value.journey() != null && value.journey().goal().equals(admitted)).orElseThrow(() -> new IllegalStateException("Market journey admission outcome is unknown.")));
+		}
+		// A failed/ambiguous CAS must propagate to the caller's closed admission fence, never look like a clean refusal.
+	}
+
 	/** Arrival replaces an expired purpose quote only after native XYZ/stock have been checkpointed. */
 	public Optional<RetainedPlan> completeRestJourney(long profileId, Player player, PhantomGoal root, RetainedPlan expected, PhantomStorePlan fresh, long now)
 	{
@@ -800,7 +818,7 @@ public final class PhantomStoreService
 			final long deadline = visitDeadline(root, now);
 			final var values = new java.util.LinkedHashMap<>(legacy.constraints());
 			values.put("quote.expires", plan.expiresEpochMillis()); values.put("journey.remaining", deadline - now);
-			return copy(legacy, PhantomGoalStatus.ACTIVE, deadline, values, plan.contentHash());
+			return copy(legacy, PhantomGoalStatus.ACTIVE, deadline, values, plan.contentHash(), "market.rest.proposed");
 		}
 		public static long visitDeadline(PhantomGoal root, long now)
 		{
@@ -814,11 +832,17 @@ public final class PhantomStoreService
 			final var values = new java.util.LinkedHashMap<>(goal.constraints());
 			if (!travelling() || !values.containsKey("quote.expires")) { throw new IllegalArgumentException("Only an active city visit can accept an arrival quote."); }
 			values.put("quote.expires", fresh.expiresEpochMillis());
-			return copy(goal, PhantomGoalStatus.COMPLETED, goal.deadlineEpochMillis(), values, fresh.contentHash());
+			return copy(goal, PhantomGoalStatus.COMPLETED, goal.deadlineEpochMillis(), values, fresh.contentHash(), "market.rest.arrived");
 		}
-		private static PhantomGoal copy(PhantomGoal old, PhantomGoalStatus status, long deadline, java.util.Map<String, Long> values, String hash)
+		public boolean proposed() { return travelling() && "market.rest.proposed".equals(goal.reasonKey()); }
+		public PhantomGoal admitted()
 		{
-			return new PhantomGoal(old.goalId(), old.goalType(), status, old.subject(), old.target(), old.requiredAmount(), old.currentAmount(), old.acquisitionMethod(), old.validSources(), old.selectedAnchor(), old.purposeKey(), old.priority(), old.riskBudget(), old.expenseBudget(), deadline, values, status == PhantomGoalStatus.COMPLETED ? "market.rest.arrived" : old.reasonKey(), old.revision(), hash);
+			if (!proposed()) { throw new IllegalArgumentException("Only an active market proposal can be admitted."); }
+			return copy(goal, PhantomGoalStatus.ACTIVE, goal.deadlineEpochMillis(), goal.constraints(), goal.payloadText(), "market.rest.accepted");
+		}
+		private static PhantomGoal copy(PhantomGoal old, PhantomGoalStatus status, long deadline, java.util.Map<String, Long> values, String hash, String reason)
+		{
+			return new PhantomGoal(old.goalId(), old.goalType(), status, old.subject(), old.target(), old.requiredAmount(), old.currentAmount(), old.acquisitionMethod(), old.validSources(), old.selectedAnchor(), old.purposeKey(), old.priority(), old.riskBudget(), old.expenseBudget(), deadline, values, reason, old.revision(), hash);
 		}
 		public boolean travelling() { return goal.status() == PhantomGoalStatus.ACTIVE; }
 		public PhantomNavigationPoint destination() { return new PhantomNavigationPoint(Math.toIntExact(goal.constraints().get("destination.x")), Math.toIntExact(goal.constraints().get("destination.y")), Math.toIntExact(goal.constraints().get("destination.z")), 0); }

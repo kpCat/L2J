@@ -166,6 +166,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			final var retained = _stores.retainedPlan(profileId).orElse(null);
 			if (retained == null) { continue; }
 			if (retained.recoveryDeadline() <= System.currentTimeMillis()) { _stores.discardDormant(profileId, retained); continue; }
+			if (retained.journey() != null && retained.journey().proposed()) { _stores.discardDormant(profileId, retained); continue; }
 			final var current = goal(profileId);
 			_recoveries.putIfAbsent(profileId, recoveryRequest(retained, current));
 			if (retained.journey() != null && retained.journey().goal().status() == PhantomGoalStatus.FAILED) { _cancelledRecoveries.add(profileId); }
@@ -315,10 +316,6 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		{
 			return Optional.empty();
 		}
-		if (!ownerQuiescent(profileId, owner))
-		{
-			return Optional.empty();
-		}
 		if (_reservations.findActive(profileId).isPresent())
 		{
 			return Optional.empty();
@@ -327,11 +324,12 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		final PhantomAcquisitionState state = acquisition(profileId, current);
 		if (!legalLocation(owner))
 		{
-			if (_navigation == null || !PhantomStoreService.RestJourney.supportsRoot(current) || !_tripAllowed.test(profileId, current)) { return Optional.empty(); }
+			if (_navigation == null || !PhantomStoreService.RestJourney.supportsRoot(current) || !ownerMayRequestRest(profileId, owner) || !_tripAllowed.test(profileId, current)) { return Optional.empty(); }
 			final var plan = buy(profileId, owner, current, state, now).or(() -> manufacture(profileId, owner, current, state, now)).or(() -> sell(profileId, owner, current, state, now));
 			plan.ifPresent(quote -> requestRestJourney(profileId, owner, current, quote, now));
 			return Optional.empty();
 		}
+		if (!ownerQuiescent(profileId, owner)) { return Optional.empty(); }
 		final Optional<PhantomStorePlan> buy = buy(profileId, owner, current, state, now);
 		if (buy.isPresent() && publish(profileId, owner, current, buy.get(), now))
 		{
@@ -358,20 +356,25 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (!_recoveryScheduleKnown.test(profileId)) { return true; }
 		final var current = goal(profileId);
 		if (retained.recoveryDeadline() <= now || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, now)
-			|| !marketGoalEligible(current, acquisition(profileId, current)))
+			|| !marketGoalEligible(current, acquisition(profileId, current)) || retained.journey() != null && !retained.journey().bound(retained, current, now))
 		{
 			if (request != null) { cancelRecovery(profileId); }
-			else { _stores.discardDormant(profileId, retained); }
+			else if (_stores.discardRecovery(profileId, retained) == PhantomStoreService.Result.CLOSED) { _lastClosed.put(profileId, now); }
 			return true;
 		}
 		if (request == null)
 		{
 			if (occupiedStoreSlots() >= _policy.maximumOpenStores()) { return true; }
+			if (retained.journey() != null && retained.journey().proposed())
+			{
+				if (_materialization.find(profileId).isPresent()) { activateRestJourney(profileId, retained, current, now); }
+				else if (_stores.discardDormant(profileId, retained) == PhantomStoreService.Result.CLOSED) { _lastClosed.put(profileId, now); }
+				return true;
+			}
 			request = recoveryRequest(retained, current);
 			_recoveries.put(profileId, request); // Fence ordinary Decision before requesting the existing Player admission queue.
 		}
 		if (!request.validFor(retained, current == null ? 0 : current.goalId(), current == null ? 0 : current.revision(), now)) { cancelRecovery(profileId); return true; }
-		if (retained.journey() != null && !retained.journey().bound(retained, current, now)) { cancelRecovery(profileId); return true; }
 		if (_materialization.find(profileId).isPresent()) { consider(profileId, now); return true; }
 		final long ttl = Math.max(1, Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, retained.recoveryDeadline() - now));
 		new PhantomSchedulerRelevanceSignalPort(_scheduler).submit(profileId, new PhantomRelevanceSignal(RECOVERY_SIGNAL_SOURCE, request.sequence(), PhantomActivityState.ACTIVE, ttl));
@@ -473,11 +476,10 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	{
 		if (root.deadlineEpochMillis() > 0 && root.deadlineEpochMillis() <= now) { return; }
 		final long deadline = PhantomStoreService.RestJourney.visitDeadline(root, now);
-		if (!_yieldFarm.test(profileId, deadline) || !ownerQuiescent(profileId, player) || !sameGoal(root, goal(profileId)) || !retainedEligible(player, plan, root, acquisition(profileId, root))) { return; }
-		_admittingRest.add(profileId);
+		if (!ownerMayRequestRest(profileId, player) || !sameGoal(root, goal(profileId)) || !retainedEligible(player, plan, root, acquisition(profileId, root))) { return; }
 		try
 		{
-		if (!ownerQuiescent(profileId, player) || !_tripAllowed.test(profileId, root) || !sameGoal(root, goal(profileId))) { return; }
+		if (!ownerMayRequestRest(profileId, player) || !_tripAllowed.test(profileId, root) || !sameGoal(root, goal(profileId))) { return; }
 		final var origin = PhantomNativeTravelActions.point(player);
 		final var sites = _travel.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.CITY_CENTER)
 			.sorted(Comparator.comparingDouble((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> Math.hypot((long) anchor.point().x() - origin.x(), (long) anchor.point().y() - origin.y()))
@@ -493,12 +495,44 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 				final var destination = new PhantomNavigationPoint(x, y, geo.getHeight(x, y, canonical.z()), 0);
 				if (!validRestDestination(anchor.id(), destination, player) || !plausibleRoute(player, origin, destination, deadline - now, restTravelBudget(plan, player.getAdena()))) { continue; }
 				final var saved = _stores.requestRestJourney(profileId, player, root, plan, anchor.id(), destination, now).orElse(null);
-				if (saved != null) { _recoveries.put(profileId, recoveryRequest(saved, root)); advanceRestJourney(profileId, now); }
+				if (saved != null)
+				{
+					activateRestJourney(profileId, saved, root, now);
+				}
 				return;
 			}
 		}
 		}
-		finally { _admittingRest.remove(profileId); if (!_recoveries.containsKey(profileId)) { _lastClosed.put(profileId, now); } }
+		finally { if (!_recoveries.containsKey(profileId)) { _lastClosed.put(profileId, now); } }
+	}
+
+	/** A retained proposal does not own travel until its farm has yielded and no other Decision owns an action. */
+	private void activateRestJourney(long profileId, PhantomStoreService.RetainedPlan retained, PhantomGoal root, long now)
+	{
+		final var player = liveOwner(profileId);
+		if (player == null || !stableActive(profileId) || !ownerMayRequestRest(profileId, player) || !_tripAllowed.test(profileId, root)
+			|| !retained.equals(_stores.retainedPlan(profileId).orElse(null)) || !retainedEligible(player, retained.plan(), root, acquisition(profileId, root))
+			|| !retained.journey().matches(player) || _reservations.findActive(profileId).isPresent()) { return; }
+		if (!yieldRestJourney(retained, goal(profileId), now, deadline -> _yieldFarm.test(profileId, deadline))) { return; }
+		_admittingRest.add(profileId);
+		boolean admissionUncertain = false;
+		try
+		{
+			// Closing the Decision fence precedes the final in-flight/root/competing-owner check.
+			if (!ownerQuiescent(profileId, player) || !_tripAllowed.test(profileId, root) || !sameGoal(root, goal(profileId))
+				|| !retained.equals(_stores.retainedPlan(profileId).orElse(null)) || !retainedEligible(player, retained.plan(), root, acquisition(profileId, root))) { return; }
+			admissionUncertain = true;
+			final var admitted = _stores.admitRestJourney(profileId, retained, root, now).orElse(null);
+			if (admitted == null) { admissionUncertain = false; return; }
+			_recoveries.put(profileId, recoveryRequest(admitted, root));
+			admissionUncertain = false;
+			advanceRestJourney(profileId, now);
+		}
+		finally
+		{
+			if (admissionUncertain) { _stopping = true; } // Unknown durable ownership cannot reopen Decision or replay admission.
+			else { _admittingRest.remove(profileId); }
+		}
 	}
 
 	/** Cheap admission bound only; the existing planner must prove the entire composite before any movement. */
@@ -677,6 +711,11 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	}
 
 	public static boolean acceptedRestGatekeeper(PhantomNativeTravelActions.Status status) { return status == PhantomNativeTravelActions.Status.ARRIVED; }
+	static boolean yieldRestJourney(PhantomStoreService.RetainedPlan retained, PhantomGoal root, long now, java.util.function.LongPredicate finishTarget)
+	{
+		return retained != null && retained.journey() != null && retained.journey().proposed() && retained.journey().bound(retained, root, now)
+			&& finishTarget.test(retained.journey().goal().deadlineEpochMillis());
+	}
 	static long remainingRestTravelFee(PhantomTravelStrategy.Candidate plan, int stage, int classIndex, int level)
 	{
 		if (stage < 0 || stage > plan.stages().size()) { throw new IllegalArgumentException("Invalid remaining travel stage."); }
@@ -1139,6 +1178,16 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		final var runtime = decision == null ? null : decision.find(profileId).orElse(null);
 		return (runtime == null || (!runtime.inFlight() && !runtime.persistenceInFlight())) && (owner.getParty() == null) && !owner.isInCombat() && !owner.isMoving() && !owner.isAttackingNow() && !owner.isInStoreMode()
 			&& !owner.isProcessingTransaction() && !owner.hasPendingOwnedStore() && !RecipeManager.getInstance().isMakingItem(owner) && owner.canMakeSocialAction() && !owner.isTeleporting();
+	}
+
+	/** Reading a real need does not require native combat/movement to have stopped already. */
+	private boolean ownerMayRequestRest(long profileId, Player owner)
+	{
+		final var decision = _decision.get();
+		final var runtime = decision == null ? null : decision.find(profileId).orElse(null);
+		return (runtime == null || (!runtime.inFlight() && !runtime.persistenceInFlight())) && routeLocation(owner) && owner.getParty() == null
+			&& !owner.isSitting() && !owner.isInStoreMode() && !owner.isProcessingTransaction() && !owner.hasPendingOwnedStore()
+			&& !RecipeManager.getInstance().isMakingItem(owner) && !owner.isTeleporting();
 	}
 
 	private static boolean legalLocation(Player owner)

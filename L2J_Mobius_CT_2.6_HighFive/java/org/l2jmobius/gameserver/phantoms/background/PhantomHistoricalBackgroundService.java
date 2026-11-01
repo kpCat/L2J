@@ -1149,10 +1149,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Fresh trips start at a native town, local farm or accepted dependency; existing children keep their saved origin. */
 	public boolean canStartNativeJourney(PhantomGoal root, Player player)
 	{
-		if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || player.isMoving()
+		if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
 			|| player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { return false; }
 		try
 		{
+			// A genuine life need may be selected while our exact farm session still approaches its current target.
+			// Its owner must yield that target/loot before the journey executor can issue movement.
+			if (player.isMoving() && (_visibleAutoPlay == null || root.subject() == null || !"profile".equals(root.subject().namespace())
+				|| !_visibleAutoPlay.running(Long.parseLong(root.subject().key()), root))) { return false; }
 			return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(player)
 				|| _planner.isVisibleLocal(root, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))
 				|| root.subject() != null && "profile".equals(root.subject().namespace()) && _acceptedIntent.test(Long.parseLong(root.subject().key()), root);
