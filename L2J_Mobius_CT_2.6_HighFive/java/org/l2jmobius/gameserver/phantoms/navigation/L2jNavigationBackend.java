@@ -218,7 +218,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		}
 		if (cancellation.changedSince(generation)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
 		if (clock.getAsLong() >= request.deadlineLogicalNanos()) { return new TravelPlan(PhantomNavigationResult.Status.DEADLINE_EXPIRED, null); }
-		final var selected = PhantomTravelStrategy.select(candidates, options.adena(), options.scrolls(), options.remainingMillis());
+		final var selected = selectTravel(candidates, options);
 		if (selected.candidate() == null)
 		{
 			final var composite = PhantomCompositeTravelPlanner.plan(request, policy, options, walk, (x, y, hint) ->
@@ -238,6 +238,15 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 			return new TravelPlan(composite.status() == PhantomNavigationResult.Status.NO_PATH ? absent : composite.status(), composite.candidate());
 		}
 		return new TravelPlan(selected.status() == PhantomTravelStrategy.Status.FOUND ? PhantomNavigationResult.Status.PATH_FOUND : absent, selected.candidate());
+	}
+	static PhantomTravelStrategy.Selection selectTravel(List<PhantomTravelStrategy.Candidate> candidates, PhantomTravelStrategy.Options options)
+	{
+		// Fast-path candidates must reserve the same full tariff as the composite fallback.
+		// A current discount is a debit quote, not funding for a later mandatory transfer.
+		final var reserved = candidates.stream().map(candidate -> new PhantomTravelStrategy.Candidate(candidate.id(), candidate.stages().stream().map(stage ->
+			stage.mode() != PhantomTravelStrategy.Mode.GK ? stage : new PhantomTravelStrategy.Stage(stage.mode(), stage.from(), stage.to(), stage.points(), stage.gatekeeper(), stage.millis(),
+				org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.maximumFee(stage.gatekeeper(), options.classIndex(), options.level()), stage.scrolls())).toList())).toList();
+		return PhantomTravelStrategy.select(reserved, options.adena(), options.scrolls(), options.remainingMillis());
 	}
 	private static PhantomTravelStrategy.Stage walkStage(PhantomNavigationPoint from, PhantomNavigationPoint to, List<PhantomNavigationPoint> points, double speed)
 	{

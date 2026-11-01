@@ -60,6 +60,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleP
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy;
 import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
@@ -470,6 +471,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 
 	private void requestRestJourney(long profileId, Player player, PhantomGoal root, PhantomStorePlan plan, long now)
 	{
+		if (root.deadlineEpochMillis() > 0 && root.deadlineEpochMillis() <= now) { return; }
 		final long deadline = PhantomStoreService.RestJourney.visitDeadline(root, now);
 		if (!_yieldFarm.test(profileId, deadline) || !ownerQuiescent(profileId, player) || !sameGoal(root, goal(profileId)) || !retainedEligible(player, plan, root, acquisition(profileId, root))) { return; }
 		_admittingRest.add(profileId);
@@ -478,8 +480,8 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (!ownerQuiescent(profileId, player) || !_tripAllowed.test(profileId, root) || !sameGoal(root, goal(profileId))) { return; }
 		final var origin = PhantomNativeTravelActions.point(player);
 		final var sites = _travel.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.CITY_CENTER)
-			.sorted(Comparator.comparingInt((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> "giran.city.center".equals(anchor.id()) ? 0 : 1)
-				.thenComparingDouble(anchor -> Math.hypot((long) anchor.point().x() - origin.x(), (long) anchor.point().y() - origin.y()))).limit(3).toList();
+			.sorted(Comparator.comparingDouble((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor) -> Math.hypot((long) anchor.point().x() - origin.x(), (long) anchor.point().y() - origin.y()))
+				.thenComparing(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor::id)).limit(3).toList();
 		for (var anchor : sites)
 		{
 			final var canonical = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, player.getHeading()).orElse(null);
@@ -560,6 +562,21 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		if (_stopping || !OfflineTradeConfig.OFFLINE_TRADE_ENABLE || !_tradingWindow.test(profileId, now) || child.goal().deadlineEpochMillis() <= now || !child.matches(player)
 			|| !sameRuntimeGoal(profileId, new Opened(request.retained().plan(), request.goalId(), request.goalRevision())) || !routeLocation(player)
 			|| !validRestDestination(child.goal().selectedAnchor().key(), child.destination(), player)) { cancelRecovery(profileId); return; }
+		if (player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.isInParty() || player.isSitting()
+			|| player.isInStoreMode() || player.isProcessingTransaction() || player.hasPendingOwnedStore() || RecipeManager.getInstance().isMakingItem(player)
+			|| player.isMoving() && (route.walk == null || !route.walk.equals(PhantomNativeTravelActions.captureWalk(player))))
+		{
+			// Yield only our request/walk. Combat, loot, Party and foreign movement keep their owner.
+			// The finite durable child and original PvE root remain unchanged throughout the interruption.
+			route.interrupted = true;
+			clearRestNavigation(profileId, route);
+			return;
+		}
+		if (route.interrupted)
+		{
+			if (!clearRestNavigation(profileId, route)) { return; }
+			route.resetNavigation(now); // Replan from factual XYZ, never resume a stale waypoint/stage.
+		}
 		if (route.checkpoint != null)
 		{
 			if (!_background.captureVisibleArrival(profileId, player, route.root, route.checkpoint)) { return; }
@@ -594,23 +611,31 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			{
 				if (route.requestId == 0)
 				{
+					if (!route.planningReady(now)) { return; }
 					final long logical = System.nanoTime();
 					final var options = PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, child.goal().deadlineEpochMillis() - now));
 					final var noReturn = new PhantomTravelStrategy.Options(options.legs(), options.speed(), restTravelBudget(request.retained().plan(), options.adena()), 0, options.classIndex(), options.level(), options.epochMinute(), options.gatekeeperAllowed(), "market.no_return", null, 0, options.remainingMillis(), options.blockedEdges());
 					final var submission = _navigation.submitTravelPlan(new PhantomNavigationRequest(profileId, PhantomNativeTravelActions.point(player), child.destination(), logical, logical + _navigation.policy().defaultRequestDeadlineNanos(), _navigation.policy().maximumRouteDistance()), noReturn);
 					route.requestId = submission.requestId();
-					if (submission.status() == PhantomNavigationService.SubmissionStatus.REJECTED) { route.requestId = 0; return; }
+					if (submission.status() == PhantomNavigationService.SubmissionStatus.REJECTED)
+					{
+						if (!route.deferPlanning(now)) { failRestRoute(profileId, request, false); }
+						return;
+					}
 				}
 				final var result = _navigation.consume(route.requestId).orElse(null);
 				if (result == null) { return; }
-				route.plan = _navigation.consumeTravelPlan(route.requestId).orElse(null);
-				if (!completeRestRoute(route.plan, PhantomNativeTravelActions.point(player), child.destination(), restTravelBudget(request.retained().plan(), player.getAdena()), child.goal().deadlineEpochMillis() - now)) { failRestRoute(profileId, request, false); return; }
+				final var plan = _navigation.consumeTravelPlan(route.requestId).orElse(null);
+				final var accepted = route.acceptPlan(result.status(), plan, PhantomNativeTravelActions.point(player), child.destination(), restTravelBudget(request.retained().plan(), player.getAdena()), child.goal().deadlineEpochMillis() - now, now);
+				if (accepted == RestPlanResult.FAILED) { failRestRoute(profileId, request, false); return; }
+				if (accepted == RestPlanResult.DEFERRED) { return; }
 			}
 			final var stage = route.plan.stages().get(route.stage);
 			if (stage.mode() == PhantomTravelStrategy.Mode.GK)
 			{
 				if (!_recoveryUnobserved.test(new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), 0)) || !_recoveryUnobserved.test(new PhantomTopologyPoint(stage.to().x(), stage.to().y(), stage.to().z(), 0))) { return; }
 				if (!_tripAllowed.test(profileId, route.root) || !sameGoal(route.root, goal(profileId)) || !retainedEligible(player, request.retained().plan(), route.root, acquisition(profileId, route.root))
+					|| remainingRestTravelFee(route.plan, route.stage, player.getClassIndex(), player.getLevel()) > restTravelBudget(request.retained().plan(), player.getAdena())
 					|| PhantomNormalGatekeeperTravel.fee(stage.gatekeeper(), player.getClassIndex(), player.getLevel(), now / 60_000) > restTravelBudget(request.retained().plan(), player.getAdena())) { failRestRoute(profileId, request, false); return; }
 				// Arm a terminal durable marker before the native side effect. Any ambiguous exception/restart cannot replay a fee.
 				final var armed = _stores.finishRestJourney(profileId, request.retained(), false).orElse(null);
@@ -652,6 +677,17 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	}
 
 	public static boolean acceptedRestGatekeeper(PhantomNativeTravelActions.Status status) { return status == PhantomNativeTravelActions.Status.ARRIVED; }
+	static long remainingRestTravelFee(PhantomTravelStrategy.Candidate plan, int stage, int classIndex, int level)
+	{
+		if (stage < 0 || stage > plan.stages().size()) { throw new IllegalArgumentException("Invalid remaining travel stage."); }
+		long reserve = 0;
+		for (int index = stage; index < plan.stages().size(); index++)
+		{
+			final var remaining = plan.stages().get(index);
+			if (remaining.mode() == PhantomTravelStrategy.Mode.GK) { reserve = Math.addExact(reserve, PhantomNormalGatekeeperTravel.maximumFee(remaining.gatekeeper(), classIndex, level)); }
+		}
+		return reserve;
+	}
 
 	public static long restTravelBudget(PhantomStorePlan plan, long adena)
 	{
@@ -685,15 +721,21 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	{
 		final var route = _restRoutes.get(profileId);
 		if (route == null) { return true; }
-		if (route.walk != null && route.player.isMoving())
+		if (!clearRestNavigation(profileId, route)) { return false; }
+		_restRoutes.remove(profileId, route); return true;
+	}
+
+	private boolean clearRestNavigation(long profileId, RestRoute route)
+	{
+		if (!route.releaseWalk(route.player.isMoving(), PhantomNativeTravelActions.captureWalk(route.player), () ->
 		{
 			try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
-				if (lease == null || lease.player() != route.player || !PhantomNativeTravelActions.cancelWalk(route.walk)) { return false; }
+				return lease != null && lease.player() == route.player && PhantomNativeTravelActions.cancelWalk(route.walk);
 			}
-		}
-		if (route.requestId > 0) { _navigation.cancel(profileId, route.requestId); _navigation.consume(route.requestId); _navigation.consumeTravelPlan(route.requestId); }
-		_restRoutes.remove(profileId, route); return true;
+		})) { return false; }
+		if (route.requestId > 0) { _navigation.cancel(profileId, route.requestId); _navigation.consume(route.requestId); _navigation.consumeTravelPlan(route.requestId); route.requestId = 0; }
+		return true;
 	}
 
 	private static boolean routeLocation(Player player)
@@ -702,11 +744,41 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		return player.getInstanceId() == 0 && !player.isDead() && !player.isInsideZone(ZoneId.WATER) && geo.hasGeo(player.getX(), player.getY()) && Math.abs((long) geo.getHeight(player.getX(), player.getY(), player.getZ()) - player.getZ()) <= 64;
 	}
 
-	private static final class RestRoute
+	enum RestPlanResult { READY, DEFERRED, FAILED }
+	static final class RestRoute
 	{
-		private final Player player; private final long epoch; private PhantomStoreService.RetainedPlan binding; private final PhantomGoal root;
-		private long requestId, nextFresh; private PhantomTravelStrategy.Candidate plan; private int stage, waypoint; private String checkpoint; private boolean paidArrival; private PhantomNativeTravelActions.OwnedWalk walk;
-		private RestRoute(Player actor, long lifetime, PhantomStoreService.RetainedPlan retained, PhantomGoal originalRoot) { player = actor; epoch = lifetime; binding = retained; root = originalRoot; }
+		final Player player; final long epoch; PhantomStoreService.RetainedPlan binding; final PhantomGoal root;
+		long requestId, nextFresh, nextPlanAt; PhantomTravelStrategy.Candidate plan; int stage, waypoint, deferredPlans; String checkpoint; boolean paidArrival, interrupted; PhantomNativeTravelActions.OwnedWalk walk;
+		RestRoute(Player actor, long lifetime, PhantomStoreService.RetainedPlan retained, PhantomGoal originalRoot) { player = actor; epoch = lifetime; binding = retained; root = originalRoot; }
+		boolean releaseWalk(boolean moving, PhantomNativeTravelActions.OwnedWalk current, java.util.function.BooleanSupplier cancellation)
+		{
+			// A stale witness gives no authority to cancel foreign motion and cannot retain a terminal child fence.
+			if (walk != null && moving && walk.equals(current) && !cancellation.getAsBoolean()) { return false; }
+			walk = null; return true;
+		}
+		boolean planningReady(long now) { return !interrupted && now >= nextPlanAt; }
+		boolean deferPlanning(long now)
+		{
+			requestId = 0; nextPlanAt = Math.addExact(now, ATTEMPT_INTERVAL_MILLIS);
+			return ++deferredPlans < 3; // Same finite service-retry bound as VisibleFarmTravel; never erase the root.
+		}
+		void resetNavigation(long now)
+		{
+			if (paidArrival) { throw new IllegalStateException("Paid arrival must checkpoint before replanning."); }
+			requestId = 0; plan = null; stage = 0; waypoint = 0; interrupted = false;
+			nextPlanAt = Math.max(nextPlanAt, Math.addExact(now, ATTEMPT_INTERVAL_MILLIS));
+		}
+		RestPlanResult acceptPlan(PhantomNavigationResult.Status status, PhantomTravelStrategy.Candidate candidate, PhantomNavigationPoint origin, PhantomNavigationPoint destination, long adena, long remainingMillis, long now)
+		{
+			requestId = 0;
+			if (java.util.Set.of(PhantomNavigationResult.Status.QUEUE_BACKPRESSURE, PhantomNavigationResult.Status.PROFILE_BUSY, PhantomNavigationResult.Status.COOLDOWN, PhantomNavigationResult.Status.SERVICE_NOT_RUNNING,
+				PhantomNavigationResult.Status.DEADLINE_EXPIRED, PhantomNavigationResult.Status.CANCELLED, PhantomNavigationResult.Status.BACKEND_FAILURE, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(status))
+			{
+				return deferPlanning(now) ? RestPlanResult.DEFERRED : RestPlanResult.FAILED;
+			}
+			if (status != PhantomNavigationResult.Status.PATH_FOUND || !completeRestRoute(candidate, origin, destination, adena, remainingMillis)) { return RestPlanResult.FAILED; }
+			plan = candidate; return RestPlanResult.READY;
+		}
 	}
 
 	public record RecoveryRequest(PhantomStoreService.RetainedPlan retained, long goalId, long goalRevision, long sequence)
