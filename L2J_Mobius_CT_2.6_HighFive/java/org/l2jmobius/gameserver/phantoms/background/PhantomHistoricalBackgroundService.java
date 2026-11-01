@@ -24,6 +24,7 @@ package org.l2jmobius.gameserver.phantoms.background;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -56,6 +57,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 {
 	public static final int MAXIMUM_INTERVALS_PER_CALL = 64;
 	public static final int MAXIMUM_SIMULATED_MINUTES_PER_CALL = 1440;
+	private static final int IDLE_RECHECK_MINUTES = 60;
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStateStore _goals;
 	private final PhantomBackgroundCatchupStore _store;
@@ -612,30 +614,36 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			storedGoal = _goals.load(profileId).orElse(null);
 			final String remaining = recoveryPrerequisite(profileId, current, backgroundState, storedGoal);
 			if (!remaining.isEmpty()) { return Result.rejected(ResultStatusCode.RETRY, remaining, current); }
-			if ((backgroundState.state() == PhantomBackgroundState.State.READY) && !_planner.remainsSuitable(backgroundState, storedGoal.goal()))
+			if (backgroundState.state() == PhantomBackgroundState.State.READY)
 			{
-				final long nextPlanOrdinal = Math.addExact(current.state().planOrdinal(), 1);
-				final var replanned = planOrIdle(profileId, backgroundState, storedGoal.goal(), current.state().deterministicSeed(), nextPlanOrdinal, Set.of());
+				final PhantomGoal previousGoal = storedGoal.goal();
+				final var replanned = reconsiderHistorical(_planner, profileId, backgroundState, previousGoal, current.state(), () -> _acceptedIntent.test(profileId, previousGoal));
 				if (!replanned.ready())
 				{
+					if (historicalPlanningFailureStatus(replanned.reasonKey()) == ResultStatusCode.RETRY) { return Result.rejected(ResultStatusCode.RETRY, replanned.reasonKey(), current); }
 					return fail(profileId, current, replanned.reasonKey());
 				}
-				try
+				if (!replanned.goal().equals(storedGoal.goal()))
 				{
-					final PhantomBackgroundCatchupState replannedState = current.state().withPlan(replanned.goal().goalId(), replanned.goal().revision(), nextPlanOrdinal, replanned.planIdentity(), replanned.generation().knowledgeGeneration(), replanned.generation().topologyGeneration());
-					final PlannedSnapshot persisted = _store.replacePlan(profileId, current, replannedState, storedGoal, replanned.goal());
-					current = persisted.catchup();
-					if (farmProjectionChanged(storedGoal.goal(), replanned.goal()))
+					try
 					{
-						final Result refreshed = refreshCanonicalBaseline(profileId, current);
-						if (!refreshed.successful()) { return refreshed; }
-						backgroundState = _background.acquisitionSnapshot(profileId).orElseThrow();
+						if (!_planner.generation().equals(replanned.generation())) { return Result.rejected(ResultStatusCode.RETRY, "catchup.replan.generation_changed", current); }
+						final long nextPlanOrdinal = Math.addExact(current.state().planOrdinal(), 1);
+						final PhantomBackgroundCatchupState replannedState = current.state().withPlan(replanned.goal().goalId(), replanned.goal().revision(), nextPlanOrdinal, replanned.planIdentity(), replanned.generation().knowledgeGeneration(), replanned.generation().topologyGeneration());
+						final PlannedSnapshot persisted = _store.replacePlan(profileId, current, replannedState, storedGoal, replanned.goal());
+						current = persisted.catchup();
+						if (farmProjectionChanged(storedGoal.goal(), replanned.goal()))
+						{
+							final Result refreshed = refreshCanonicalBaseline(profileId, current);
+							if (!refreshed.successful()) { return refreshed; }
+							backgroundState = _background.acquisitionSnapshot(profileId).orElseThrow();
+						}
+						storedGoal = persisted.goal();
 					}
-					storedGoal = persisted.goal();
-				}
-				catch (RuntimeException exception)
-				{
-					return Result.rejected(ResultStatusCode.RETRY, "catchup.replan.persistence_retry", _store.load(profileId).orElse(current));
+					catch (RuntimeException exception)
+					{
+						return Result.rejected(ResultStatusCode.RETRY, "catchup.replan.persistence_retry", _store.load(profileId).orElse(current));
+					}
 				}
 			}
 			final PhantomBackgroundCatchupState next = current.state().advanceTo(Math.addExact(current.state().cursorEpochMinute(), 1));
@@ -917,6 +925,42 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return plan;
 	}
 
+	/** Shared planning stage of advance(); the interval transaction still owns time and all rewards.
+	 * Absolute durable minutes stagger finite retries and survive both renewal and process restart. */
+	static PhantomHistoricalBackgroundPlanner.Result reconsiderHistorical(PhantomHistoricalBackgroundPlanner planner, long profileId, PhantomBackgroundState state, PhantomGoal goal, PhantomBackgroundCatchupState catchup, java.util.function.BooleanSupplier acceptedIntent)
+	{
+		final var generation = planner.generation();
+		if (state.identity().profileId() != profileId || catchup.status() != Status.RUNNING || goal.goalId() != catchup.goalId() || goal.revision() != catchup.goalRevision()
+			|| goal.status() != PhantomGoalStatus.ACTIVE || !state.hashes().equals(catchup.authorityHashes()) || !generation.authorityHashes().equals(catchup.authorityHashes())
+			|| generation.knowledgeGeneration() != catchup.knowledgeGeneration() || generation.topologyGeneration() != catchup.topologyGeneration())
+		{ return PhantomHistoricalBackgroundPlanner.Result.blocked("catchup.replan.prerequisite_changed"); }
+		final boolean idle = PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal);
+		final boolean suitable = planner.remainsSuitable(state, goal);
+		final boolean due = idle && Math.floorMod(catchup.cursorEpochMinute(), IDLE_RECHECK_MINUTES) == Math.floorMod(profileId, IDLE_RECHECK_MINUTES);
+		if (!suitable || due)
+		{
+			if (acceptedIntent.getAsBoolean()) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
+			final long ordinal = Math.addExact(catchup.planOrdinal(), 1);
+			var replacement = planner.replaceFromState(profileId, state, goal, catchup.deterministicSeed(), ordinal);
+			if ("planner.target_or_route.absent".equals(replacement.reasonKey()))
+			{
+				// An unchanged absence is not a new goal or plan. In particular do not reset
+				// the cursor/cadence merely because another catch-up request was opened.
+				if (!idle || !suitable) { replacement = planner.idleFromState(profileId, state, goal, catchup.deterministicSeed(), ordinal); }
+				else { replacement = null; }
+			}
+			if (!planner.generation().equals(generation)) { return PhantomHistoricalBackgroundPlanner.Result.blocked("catchup.replan.generation_changed"); }
+			if (replacement != null) { return replacement; }
+		}
+		return new PhantomHistoricalBackgroundPlanner.Result(goal, PhantomBackgroundGoalSpec.parseLifecycle(goal), catchup.planIdentity(), generation, List.of(), "planner.historical_hold");
+	}
+
+	static ResultStatusCode historicalPlanningFailureStatus(String reason)
+	{
+		return "catchup.replan.prerequisite_changed".equals(reason) || "catchup.replan.generation_changed".equals(reason) ? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED;
+	}
+
+
 	private Result recoverStale(long profileId, Snapshot current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
 	{
 		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) && (current.state().goalId() == 0) && (current.state().cursorEpochMinute() == current.state().fromEpochMinute()) && (current.state().intervalOrdinal() == 0))
@@ -936,7 +980,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final Result prerequisite = restorePrerequisite(profileId, current, backgroundState, storedGoal);
 		if (!prerequisite.successful()) { return prerequisite; }
 		current = prerequisite.snapshot();
-		if ((current.state().status() == Status.RUNNING) && current.state().authorityHashes().equals(generation.authorityHashes())) { return Result.success(current, 0); }
+		if (canResumeGeneration(current.state(), generation)) { return Result.success(current, 0); }
 		backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
 		storedGoal = _goals.load(profileId).orElse(null);
 		if (!backgroundState.hashes().equals(generation.authorityHashes()))
@@ -979,6 +1023,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.persistence_retry", _store.load(profileId).orElse(current));
 		}
+	}
+
+	/** A hash-equivalent reload still has to renew knowledge/topology ownership before attestation. */
+	static boolean canResumeGeneration(PhantomBackgroundCatchupState current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
+	{
+		return current.status() == Status.RUNNING && current.authorityHashes().equals(generation.authorityHashes())
+			&& current.knowledgeGeneration() == generation.knowledgeGeneration() && current.topologyGeneration() == generation.topologyGeneration();
 	}
 
 	/** An offline DEAD return uses the existing exact claim-owned baseline before NORMAL recovery. */

@@ -179,12 +179,12 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 			final CareerArchetype archetype = _catalog.chooseArchetype(deterministicSeed, creationOrdinal);
 			final ClassEntry classEntry = _catalog.chooseClass(identitySeed, archetype);
 			final boolean female = classEntry.sex().female(identitySeed >>> 7);
-			final ScheduleTemplate schedule = scheduleTemplate == null ? _catalog.chooseSchedule(identitySeed >>> 13) : Objects.requireNonNull(_catalog.templates().get(scheduleTemplate), "Ecology schedule is absent from the population catalog.");
+			final ShellSchedule birthSchedule = scheduleForShell(_catalog, profileId, deterministicSeed, scheduleTemplate);
+			final ScheduleTemplate schedule = birthSchedule.template();
 			final PlayerTemplate template = requireTemplate(classEntry.classId());
 			final Location creationLocation = PlayerCreationInitializer.resolveCreationLocation(template);
 			final PopulationInitializationContract authority = PopulationInitializationContract.resolve(_catalog.hash(), _zoneId, classEntry.classId(), creationLocation);
-			final int maximumPhase = schedule.maximumPhaseMinutes();
-			final int phase = maximumPhase == 0 ? 0 : (int) Math.floorMod(identitySeed >>> 23, (maximumPhase * 2L) + 1L) - maximumPhase;
+			final int phase = birthSchedule.phaseMinutes();
 			final byte[] tokenBytes = new byte[32];
 			_secureRandom.nextBytes(tokenBytes);
 			final PhantomPopulationState state = new PhantomPopulationState(
@@ -219,6 +219,18 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 			org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.COMPONENT,
 			org.l2jmobius.gameserver.phantoms.commerce.PhantomStarterShotBudget.birth(org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().starterShotLifetimeLimit()).encode())));
 	}
+
+	/** The ordinary birth rule is also usable for a DB-free calendar census before bootstrap. */
+	public static ShellSchedule scheduleForShell(PhantomPopulationCatalog catalog, long profileId, long deterministicSeed, String fixedSchedule)
+	{
+		if (profileId <= 0) { throw new IllegalArgumentException("Shell profile ID must be positive."); }
+		final long identitySeed = mix(deterministicSeed, profileId);
+		final ScheduleTemplate schedule = fixedSchedule == null ? catalog.chooseSchedule(identitySeed >>> 13) : Objects.requireNonNull(catalog.templates().get(fixedSchedule), "Ecology schedule is absent from the population catalog.");
+		final int maximumPhase = schedule.maximumPhaseMinutes();
+		return new ShellSchedule(schedule, maximumPhase == 0 ? 0 : (int) Math.floorMod(identitySeed >>> 23, (maximumPhase * 2L) + 1L) - maximumPhase);
+	}
+
+	public record ShellSchedule(ScheduleTemplate template, int phaseMinutes) {}
 
 	public ManagedSnapshot reload(long profileId)
 	{

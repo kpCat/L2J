@@ -100,6 +100,10 @@ public final class PhantomHistoricalBackgroundPlanner
 	{
 		Objects.requireNonNull(state, "state");
 		Objects.requireNonNull(previousGoal, "previousGoal");
+		if (PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType()) && !PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, previousGoal))
+		{
+			return Result.blocked("planner.previous_idle.invalid");
+		}
 		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(previousGoal.goalType()) && !PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType()))
 		{
 			return Result.blocked("planner.previous_goal.unsupported");
@@ -206,6 +210,10 @@ public final class PhantomHistoricalBackgroundPlanner
 		if (!state.hashes().equals(_authority.hashes()))
 		{
 			return false;
+		}
+		if ((live == null) && PhantomBackgroundGoalSpec.canonicalHistoricalIdle(state.identity().profileId(), goal))
+		{
+			return goal.selectedAnchor().key().equals(state.position().committedAnchorId()) && _topology.findAnchor(goal.selectedAnchor().key()).isPresent();
 		}
 		final PhantomBackgroundGoalSpec spec;
 		try
