@@ -656,7 +656,9 @@ public final class PhantomPopulationEcologyService
 					final long released = ordinary > 0 ? 0 : pollClaimLocked(_nativeReleaseDue, _nativeReleaseQueued, profiles);
 					final long urgent = ordinary > 0 ? ordinary : released > 0 ? released : pollClaimLocked(_materializationDue, _materializationQueued, profiles);
 					profileId = urgent == 0 ? pollClaimLocked(_due, _queued, profiles) : urgent;
-					slice = ((focus > 0 || !_nativeReleaseDue.isEmpty()) && ordinary > 0) ? Math.min(4, intervalsRemaining) : intervalsRemaining;
+					// A cold focus already reserved the tail. Ordinary work cannot consume the released owner's last interval.
+					final int ordinaryLimit = _nativeReleaseDue.isEmpty() ? 4 : Math.min(4, Math.max(1, intervalsRemaining - 1));
+					slice = ((focus > 0 || !_nativeReleaseDue.isEmpty()) && ordinary > 0) ? Math.min(ordinaryLimit, intervalsRemaining) : intervalsRemaining;
 				}
 				if (profileId == 0) { if (focus > 0 && profiles.isEmpty()) { focus = 0; continue; } break; }
 				profiles.add(profileId);
@@ -1020,8 +1022,9 @@ public final class PhantomPopulationEcologyService
 		final var stored = entry == null ? null : entry._stored;
 		final var state = stored == null ? null : stored.state();
 		final long horizon = entry == null ? 0 : entry._requestedMinute;
-		final String stateReason = _stopping ? "ecology.stopping" : _wakeFailure != null ? _wakeFailure : entry == null ? "ecology.profile_unknown" : !entry._participating ? "ecology.population_paused" : (state == null) || !_populationPlanApplied || !_inventoryReady || _metadataDraining ? "ecology.inventory_pending" : state.disposition() != Disposition.MANAGED ? "ecology.archived" : entry._lastReportedFailure != null ? entry._lastReportedFailure : state.requestPending() ? "ecology.commit_pending" : !state.initialCatchupComplete() ? "ecology.initial_catchup_pending" : state.calendarCursorEpochMinute() < horizon ? "ecology.cursor_pending" : "ecology.cursor_current";
-		final String reason = (entry != null) && !entry._terminal && entry._participating && entry._materializationDemand && _batchAdmission && !_admittedPreparation.contains(profileId) && !"ecology.cursor_current".equals(stateReason) ? "ecology.preparation_capacity" : stateReason;
+		final boolean livePending = (entry != null) && !entry._terminal && entry._liveOwner && (state != null) && state.requestPending();
+		final String stateReason = _stopping ? "ecology.stopping" : _wakeFailure != null ? _wakeFailure : entry == null ? "ecology.profile_unknown" : !entry._participating ? "ecology.population_paused" : (state == null) || !_populationPlanApplied || !_inventoryReady || _metadataDraining ? "ecology.inventory_pending" : state.disposition() != Disposition.MANAGED ? "ecology.archived" : livePending ? "ecology.live_owner" : entry._lastReportedFailure != null ? entry._lastReportedFailure : state.requestPending() ? "ecology.commit_pending" : !state.initialCatchupComplete() ? "ecology.initial_catchup_pending" : state.calendarCursorEpochMinute() < horizon ? "ecology.cursor_pending" : "ecology.cursor_current";
+		final String reason = (entry != null) && !entry._terminal && !livePending && entry._participating && entry._materializationDemand && _batchAdmission && !_admittedPreparation.contains(profileId) && !"ecology.cursor_current".equals(stateReason) ? "ecology.preparation_capacity" : stateReason;
 		return new DueSnapshot(profileId, horizon, state == null ? 0 : state.calendarCursorEpochMinute(), (state != null) && state.initialCatchupComplete(), (state != null) && state.requestPending(), _queued.contains(profileId) || _materializationQueued.contains(profileId) || _nativeReleaseQueued.contains(profileId), (entry != null) && entry._claimed, entry == null ? 0 : entry._readinessRevision, "ecology.cursor_current".equals(reason), reason);
 	}
 

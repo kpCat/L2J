@@ -122,32 +122,33 @@ public final class PhantomLivingWorld112Checks
 		}
 		System.out.println("PASS stale goal/generation, foreign profile, terminal/STOP, accepted intent and visible farm fences; no interval is committed by planning");
 	}
-	private static void loadBound()
+	private static void loadBound(int profiles, int minutes)
 	{
 		final var f = fixture(); final var base = state();
-		final var states = new PhantomBackgroundState[5000]; final var goals = new PhantomGoal[5000]; final var cursors = new PhantomBackgroundCatchupState[5000];
+		final var states = new PhantomBackgroundState[profiles]; final var goals = new PhantomGoal[profiles]; final var cursors = new PhantomBackgroundCatchupState[profiles];
 		for (int index = 0; index < states.length; index++)
 		{
 			final long id = index + 1;
 			states[index] = new PhantomBackgroundState(base.state(), new Identity(id, 1000000 + index, 0, 44, 1), base.progress(), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
-			goals[index] = idle(id); cursors[index] = catchup(f, 0, 121);
+			goals[index] = idle(id); cursors[index] = catchup(f, 0, minutes);
 		}
 		final long start = System.nanoTime(); final int threads = java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount();
-		for (int minute = 0; minute < 121; minute++)
+		for (int minute = 0; minute < minutes; minute++)
 		{
 			for (int index = 0; index < states.length; index++)
 			{
 				final var result = PhantomHistoricalBackgroundService.reconsiderHistorical(f.planner(), index + 1, states[index], goals[index], cursors[index], () -> false);
 				check(result.ready() && result.goal().equals(goals[index]), "LOAD_IDLE_CHURN");
 				cursors[index] = cursors[index].advanceTo(minute + 1);
+				if (minute == minutes / 2) { final var codec = new PhantomBackgroundCatchupStateCodec(); cursors[index] = codec.decode(codec.encode(cursors[index])); }
 			}
 		}
-		check(f.probes().get() >= 10000 && f.probes().get() <= 15000, "LOAD_SEARCH_BOUND");
-		System.out.println("PASS LOAD_BOUND identities=5000 virtualMinutes=121 planningCalls=605000 goalChanges=0 authorityProbes=" + f.probes().get() + " elapsedMs=" + (System.nanoTime() - start) / 1000000 + " threadDelta=" + (java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount() - threads) + "; planner-stage-only; no Player/DB");
+		check(f.probes().get() >= profiles * (minutes / 60) && f.probes().get() <= profiles * ((minutes / 60) + 1), "LOAD_SEARCH_BOUND");
+		System.out.println("PASS LOAD_BOUND identities=" + profiles + " virtualMinutes=" + minutes + " planningCalls=" + profiles * minutes + " goalChanges=0 authorityProbes=" + f.probes().get() + " elapsedMs=" + (System.nanoTime() - start) / 1000000 + " threadDelta=" + (java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount() - threads) + "; planner-stage-only; no Player/DB");
 	}
 	public static void main(String[] args)
 	{
-		stableAndWake(); fences(); loadBound();
+		stableAndWake(); fences(); loadBound(5000, 121); loadBound(32, 1441);
 		System.out.println("TASK112_IDLE_PLANNING_PASS DB=0 ACTORS=0; transaction/native cursor persistence not simulated");
 	}
 }

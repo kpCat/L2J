@@ -83,6 +83,13 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("continuity113"))
+		{
+			registry.add("25-cold-focus-does-not-starve-released-history", this::testColdFocusRelease113);
+			registry.add("26-live-history-reports-owner-not-capacity", this::testLiveOwnerReason113);
+			registry.add("27-large-debt-and-5000-identity-queue-model", this::testColdQueueModel113);
+			return;
+		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("stop075"))
 		{
 			registry.add("22-stop-settles-live-tail-before-downtime-once", this::testStopLiveTail075);
@@ -129,10 +136,130 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("22-stop-settles-live-tail-before-downtime-once", this::testStopLiveTail075);
 		registry.add("23-stop-retries-cas-without-clock-regression", this::testStopCursorConflict075);
 		registry.add("24-stop-batches-preserve-pending-history", this::testStopPendingHistory075);
+		registry.add("25-cold-focus-does-not-starve-released-history", this::testColdFocusRelease113);
+		registry.add("26-live-history-reports-owner-not-capacity", this::testLiveOwnerReason113);
+		registry.add("27-large-debt-and-5000-identity-queue-model", this::testColdQueueModel113);
 		for (int control = 1; control <= 12; control++)
 		{
 			final int selected = control;
 			registry.add("O%02d-orphan-ownership-contract".formatted(control), context -> testOrphanOwnership(context, selected));
+		}
+	}
+
+	private void seedColdRequest113(PhantomPopulationTestDoubles.MemoryStore population, EcologyMemoryStore store, HistoricalMemoryPort history, long id, long from, long target)
+	{
+		final var ready = population.seedReady(id, Math.toIntExact(id));
+		final var request = history.begin(id, from, target, id).snapshot();
+		store.insert(id, new PhantomPopulationEcologyState(_ecology.hash(), Preset.LIVING, 1, id, target, from, from, target,
+			Pace.OUTLIER, 10_000, _ecology.limits().productiveBlockMinutes(), Personality.BALANCED,
+			Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), ready.state().scheduleTemplate(), Disposition.MANAGED,
+			target + 10_000, 0, request.state().requestId(), target, 0, 0, ""));
+	}
+
+	private void testColdFocusRelease113(PhantomTestContext context)
+	{
+		final var now = Instant.parse("2026-01-20T20:30:00Z");
+		final long target = minute(now), from = target - 23_000;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var history = new HistoricalMemoryPort();
+		for (long id = 1; id <= 3; id++) { seedColdRequest113(population, store, history, id, from, target); }
+		final var live = new AtomicBoolean(true);
+		final var service = new PhantomPopulationEcologyService(_ecology, _population, store, history, id -> id == 3 && live.get(), id -> "",
+			new PhantomPopulationTestDoubles.MutableClock(now), ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		service.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents());
+		for (long id = 1; id <= 3; id++) { service.register(population.loadManagedAfter(id - 1, 1).getFirst()); }
+		loadMetadata(service, 3);
+		final var focus = new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1);
+		service.updateMaterializationDemand(List.of(focus, new PhantomPopulationEcologyService.DemandFact(3, 1, true, 1, 3)), 2);
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(from, history.status(3).orElseThrow().state().cursorEpochMinute(), "Historical advance raced a live native owner.");
+		service.updateMaterializationDemand(List.of(focus), 2);
+		service.onPopulationPulse(); // Physical demand leaves before the native STORE releases its owner.
+		live.set(false);
+		service.updateMaterializationDemand(List.of(focus), 2);
+		for (int batch = 0; batch < 8; batch++)
+		{
+			final long beforeFocus = history.status(1).orElseThrow().state().cursorEpochMinute();
+			final long beforeOrdinary = history.status(2).orElseThrow().state().cursorEpochMinute();
+			final long beforeRelease = history.status(3).orElseThrow().state().cursorEpochMinute();
+			service.onPopulationPulse();
+			PhantomAssertions.assertTrue(history.status(1).orElseThrow().state().cursorEpochMinute() > beforeFocus && history.status(2).orElseThrow().state().cursorEpochMinute() > beforeOrdinary, "Release priority starved focus or ordinary work: batch=" + batch);
+			PhantomAssertions.assertTrue(history.status(3).orElseThrow().state().cursorEpochMinute() > beforeRelease, "Released request lost its bounded share: batch=" + batch);
+		}
+		for (long id = 1; id <= 3; id++)
+		{
+			PhantomAssertions.assertTrue(history.status(id).orElseThrow().state().cursorEpochMinute() > from,
+				"Cold focus/ordinary debt starved a released historical owner: profile=" + id);
+		}
+		PhantomAssertions.assertTrue(service.snapshot().maximumPulseIntervals() <= 16 && service.snapshot().maximumPulseProfiles() <= 4, "Three queues exceeded the unchanged source budgets.");
+		context.record("task113.threeQueueCursors", java.util.stream.LongStream.rangeClosed(1, 3).map(id -> history.status(id).orElseThrow().state().cursorEpochMinute() - from).boxed().toList());
+		service.beginStop();
+	}
+
+	private void testLiveOwnerReason113(PhantomTestContext context)
+	{
+		final var now = Instant.parse("2026-01-20T20:30:00Z");
+		final long target = minute(now), from = target - 23_000;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var history = new HistoricalMemoryPort();
+		seedColdRequest113(population, store, history, 1, from, target);
+		final var original = store.require(1);
+		final var request = history.status(1);
+		final var service = service(store, history, new AtomicBoolean(true), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+		service.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents()); service.register(population.loadManagedAfter(0, 1).getFirst()); loadMetadata(service, 1);
+		service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 0);
+		final var due = service.dueSnapshot(1);
+		PhantomAssertions.assertEquals("ecology.live_owner", due.reason(), "A live pending native owner was misreported as preparation capacity.");
+		PhantomAssertions.assertFalse(due.complete() || service.permitsScheduling(1), "Diagnostic owner reason weakened the historical fence.");
+		PhantomAssertions.assertEquals(original, store.require(1), "Diagnostic snapshot wrote ecology.");
+		PhantomAssertions.assertEquals(request, history.status(1), "Diagnostic snapshot wrote the historical request.");
+		context.record("task113.liveOwner", due); service.beginStop();
+		PhantomAssertions.assertEquals("ecology.stopping", service.dueSnapshot(1).reason(), "A live-owner diagnostic hid the STOP fence.");
+	}
+
+	private void testColdQueueModel113(PhantomTestContext context)
+	{
+		final var now = Instant.parse("2026-01-20T20:30:00Z");
+		final long target = minute(now);
+		for (int count : List.of(2, 5000))
+		{
+			final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+			final var store = new EcologyMemoryStore(null);
+			final var history = new HistoricalMemoryPort();
+			for (long id = 1; id <= count; id++) { seedColdRequest113(population, store, history, id, target - 23_000 - id, target); }
+			final var service = service(store, history, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+			service.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents());
+			for (long id = 1; id <= count; id++) { service.register(population.loadManagedAfter(id - 1, 1).getFirst()); }
+			loadMetadata(service, count);
+			final int batches = count == 2 ? 3000 : 5000;
+			final long started = System.nanoTime();
+			for (int batch = 0; batch < batches; batch++) { service.onPopulationPulse(); }
+			for (long id = 1; id <= count; id++)
+			{
+				final var due = service.dueSnapshot(id);
+				PhantomAssertions.assertTrue(history.status(id).orElseThrow().state().cursorEpochMinute() > target - 23_000 - id, "Cold ordinary queue starved profile=" + id);
+				if (count == 2) { PhantomAssertions.assertTrue(due.complete() && service.permitsScheduling(id), "Finite two-actor debt never reached readiness."); }
+			}
+			PhantomAssertions.assertTrue(service.snapshot().maximumPulseIntervals() <= 16 && service.snapshot().maximumPulseProfiles() <= 4, "Cold queue exceeded source budgets.");
+			if (count == 2)
+			{
+				PhantomAssertions.assertEquals(46_003L, history.advancedMinutes(), "Cold request was skipped or counted twice.");
+				final long earned = history.advancedMinutes();
+				for (int replay = 0; replay < 8; replay++) { service.requestBackgroundDue(1); service.onPopulationPulse(); }
+				PhantomAssertions.assertEquals(earned, history.advancedMinutes(), "Completed request replay advanced history twice.");
+				service.beginStop();
+				final var restored = service(store, history, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+				restored.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents());
+				for (long id = 1; id <= count; id++) { restored.register(population.loadManagedAfter(id - 1, 1).getFirst()); }
+				loadMetadata(restored, count); restored.onPopulationPulse();
+				PhantomAssertions.assertTrue(restored.permitsScheduling(1) && restored.permitsScheduling(2), "Memory-store restart lost completed admission readiness.");
+				PhantomAssertions.assertEquals(earned, history.advancedMinutes(), "Memory-store restart replayed completed history.");
+				restored.beginStop();
+			}
+			context.record("task113.queueModel" + count, "batches=" + batches + ", elapsedMs=" + (System.nanoTime() - started) / 1_000_000 + ", historicalPort=MEMORY_NOT_NATIVE");
+			service.beginStop();
 		}
 	}
 
@@ -439,7 +566,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 				final var due = ecology.dueSnapshot(id);
 				PhantomAssertions.assertFalse(due.complete(), "Pending live history became current.");
 				PhantomAssertions.assertEquals(from, due.committedCursorMinute(), "Live owner advanced a pending cursor.");
-				PhantomAssertions.assertEquals("ecology.preparation_capacity", due.reason(), "Occupied live preparation gate changed.");
+				PhantomAssertions.assertEquals("ecology.live_owner", due.reason(), "Occupied live preparation gate lost its native owner reason.");
 			}
 			// Only external lifetime/capacity facts change; the owners drain their original queues and requests.
 			liveOwners.set(false);
