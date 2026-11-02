@@ -723,17 +723,18 @@ public final class PhantomSystem
 				_questInstanceService = new PhantomQuestInstanceService(productionGoals, questInstanceCatalog, questCollectionCatalog, new L2jPhantomQuestInstanceBackend(_materializationService, questInstanceCatalog, _gameKnowledgeService::query), _combatService, _navigationService, _progressionService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				final PhantomQuestInstanceDecision questInstanceDecision = new PhantomQuestInstanceDecision(_questInstanceService);
 				_learningJourney = new L2jPhantomLearningJourney(productionGoals, _materializationService, _progressionService, _navigationService, _gameKnowledgeService::query, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
-				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::yieldAfterCurrentTarget, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
+				final java.util.function.BiPredicate<Long, Long> yieldFarm = (profileId, deadline) -> _visibleAutoPlay.yieldAfterCurrentTarget(profileId, deadline) && _visibleFarmTravel.yieldForPreparation(profileId);
+				_learningJourney.enableAutonomous(productionProfiles, yieldFarm, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				_learningJourney.useCraftRecipeRewards(org.l2jmobius.gameserver.phantoms.progression.PhantomOrdinaryCraftRecipes.load(new File(ServerConfig.DATAPACK_ROOT, org.l2jmobius.gameserver.phantoms.progression.PhantomOrdinaryCraftRecipes.FILE).toPath(), productionProfiles, _materializationService, marketPricingAuthority()));
 				_learningJourney.useRelevanceSignals(new PhantomSchedulerRelevanceSignalPort(_scheduler));
-				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), _visibleAutoPlay::yieldAfterCurrentTarget, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
+				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), yieldFarm, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
 				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
 				if (_autonomousMarketProducer != null)
 				{
-					_autonomousMarketProducer.installTravel(_navigationService, travel, _backgroundService, _visibleAutoPlay::yieldAfterCurrentTarget, (profileId, root) ->
+					_autonomousMarketProducer.installTravel(_navigationService, travel, _backgroundService, yieldFarm, (profileId, root) ->
 					{
 						final var entry = _materializationService.find(profileId).orElse(null);
 						final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
@@ -741,7 +742,7 @@ public final class PhantomSystem
 							&& !_learningJourney.ownsAutomaticIntent(profileId, root) && !_questInstanceService.ownsAutonomousIntent(profileId, root);
 					});
 				}
-				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, _visibleAutoPlay::yieldAfterCurrentTarget,
+				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, yieldFarm,
 					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
 					profileId -> _populationManager.careerArchetype(profileId).orElse(null),
 					org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-career-v1.xml").toPath()));

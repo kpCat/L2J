@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.phantoms.background;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -110,6 +111,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private PhantomNormalGatekeeperTravel.Step proposedStep(Player player, String committedAnchorId, String destination)
 	{
 		final var departure = departure(player, committedAnchorId);
+		final var local = localFarmApproach(_travel.topology().findAnchor(destination).orElse(null),
+			new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), _navigation.policy().maximumLocalStraightDistance());
+		if (local != null) { return local; }
 		final var committed = _travel.topology().findAnchor(committedAnchorId).orElse(null);
 		final String from = departure != null ? departure.id() : committed == null ? null : committed.id();
 		final var route = from == null ? null : _travel.route(from, destination).orElse(null);
@@ -117,6 +121,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var canonical = departure == null && committed != null ? L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(committed, player.getHeading()).orElse(null) : null;
 		return resumeStep(route, departure == null ? null : departure.id(), canonical,
 			new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), destination);
+	}
+
+	/** A local WALK proposal starts at the live Player, without claiming any factual anchor departure. */
+	static PhantomNormalGatekeeperTravel.Step localFarmApproach(PhantomTopologyAnchor target, PhantomTopologyPoint live, int maximumDistance)
+	{
+		if (target == null || target.role() != PhantomTopologyAnchorRole.FARMING || target.point().instanceId() != live.instanceId()
+			|| maximumDistance <= 0 || target.point().distance3D(live) > maximumDistance) { return null; }
+		return new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + target.id(), target.id(), target.id(), 0, null);
 	}
 	/** A proposal only: native movement and factual anchor capture remain mandatory. */
 	public static PhantomTopologyAnchor idleIngress(List<PhantomTopologyAnchor> anchors, PhantomTopologyPoint live, String destination, int maximumDistance, java.util.function.Predicate<PhantomTopologyAnchor> connected)
@@ -434,7 +446,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 					return false;
 				}
 			}
-			if (journey.nativeIdleWalk && journey.nativeBudget == null)
+			if ((journey.nativeIdleWalk || journey.currentAnchorReturn) && journey.nativeBudget == null)
 			{
 				journey.nativeBudget = new NativeWalkBudget(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), journey.arrivalPoint, _clock.getAsLong(), player.getMoveSpeed(), _navigation.policy());
 				attempt.phaseSince = journey.nativeBudget.episodeSince;
@@ -605,9 +617,18 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			final List<PhantomNavigationRequest.PveThreat> threats;
 			try { threats = idle ? pveThreats(current, player.getLevel(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class, 3500))) : List.of(); }
 			catch (IllegalArgumentException overflow) { fail(profileId, journey, "travel.native_threat_snapshot_limit", Disposition.ROUTE_UNUSABLE); return false; }
-			final var request = new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000, threats);
-			final var submission = journey.nativeBudget != null ? _navigation.submitWalkEpisode(request, journey.nativeBudget.visited)
-				: journey.plan == null && !journey.currentAnchorReturn
+			var requestDestination = destination;
+			if (journey.currentAnchorReturn)
+			{
+				final var checkpoints = PhantomNativeTravelActions.localWalkDestinations(current, destination, _navigation.policy().maximumLocalStraightDistance());
+				if (journey.localApproach >= checkpoints.size()) { fail(profileId, journey, "travel.no_local_approach", Disposition.ROUTE_UNUSABLE); return false; }
+				requestDestination = checkpoints.get(journey.localApproach);
+			}
+			final var request = new PhantomNavigationRequest(profileId, current, requestDestination, now, journey.deadline, 100_000, threats);
+			final var submission = journey.currentAnchorReturn ? _navigation.submitWalkCorridor(request)
+				: journey.nativeBudget != null ? _navigation.submitWalkEpisode(request, journey.nativeBudget.visited)
+				// The stored anchor label does not make a displaced native return a local corridor.
+				: journey.plan == null
 				? _navigation.submitTravelPlan(request, PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, (_navigation.policy().maximumAttemptDurationNanos() - (now - journey.attempt.startedNanos)) / 1_000_000), journey.attempt.blockedEdges))
 				: _navigation.submitWalkCorridor(request);
 			journey.requestId = submission.requestId();
@@ -649,6 +670,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			clearRoute(profileId, journey);
 			journey.attempt.phaseSince = journey.nativeBudget.episodeSince;
 			journey.phaseClosed = false;
+			journey.localApproach = 0;
 			journey.reason = "travel.native_episode_arrived";
 			return false;
 		}
@@ -702,6 +724,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			{
 				// Native swimming may shorten a leg; validate the actual native destination too.
 				final var issued = new PhantomNavigationPoint(journey.moveX, journey.moveY, player.getZdestination(), player.getInstanceId());
+				final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
+				if (recorder.isRecording())
+				{
+					recorder.record(profileId, "VISIBLE_NATIVE_MOVE", current.toString(), waypoint.toString(), "issued=" + issued + ";goal=" + journey.arrivalPoint, player.getObjectId(), journey.epoch, journey.revision);
+				}
 				final String actualUnsafe = unsafeSegment(current, issued, waterExit, waterExit ? 100 : radius, witness -> journey.attempt.segmentWitness = witness);
 				if (actualUnsafe != null)
 				{
@@ -787,12 +814,21 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		if ((result.route() == null) || (result.route().mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA))
 		{
 			journey.reason = result.status() == PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED ? "travel.search_limit" : result.status() == PhantomNavigationResult.Status.NO_PATH ? "travel.no_route_within_budget" : "travel.navigation_" + result.status().name().toLowerCase(java.util.Locale.ROOT);
-			clearRoute(profileId, journey);
-			switch (result.status())
+			if (journey.currentAnchorReturn && Set.of(PhantomNavigationResult.Status.NO_PATH, PhantomNavigationResult.Status.ROUTE_OBSTRUCTED, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()))
 			{
-				case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING, CANCELLED, DEADLINE_EXPIRED, ROUTE_BUDGET_EXCEEDED -> retryOrFail(profileId, journey, Disposition.TRANSIENT_SERVICE);
-				default -> fail(profileId, journey, journey.reason, Disposition.ROUTE_UNUSABLE);
+				final var checkpoints = PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(journey.player), journey.arrivalPoint, _navigation.policy().maximumLocalStraightDistance());
+				if (++journey.localApproach < checkpoints.size())
+				{
+					clearRoute(profileId, journey);
+					journey.attempt.retryAtNanos = _clock.getAsLong() + _navigation.policy().pathfindingCooldownMillis() * 1_000_000L;
+					journey.reason = "travel.local_checkpoint_retry";
+					return false;
+				}
 			}
+			clearRoute(profileId, journey);
+			final var disposition = navigationFailureDisposition(result.status());
+			if (disposition == Disposition.TRANSIENT_SERVICE) { retryOrFail(profileId, journey, disposition); }
+			else { fail(profileId, journey, journey.reason, disposition); }
 			return false;
 		}
 		if (journey.nativeBudget != null && !journey.nativeBudget.admit(result.route(), _clock.getAsLong()))
@@ -826,6 +862,16 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private void hold(long profileId)
 	{
 		_signals.submit(profileId, new PhantomRelevanceSignal("visible.farm.travel", signalSequence(), PhantomActivityState.NEARBY_PERCEPTIBLE, 5_000));
+	}
+
+	/** A completed bounded search cannot improve by replaying the exact same attempt under the same budget. */
+	static Disposition navigationFailureDisposition(PhantomNavigationResult.Status status)
+	{
+		return switch (status)
+		{
+			case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING, CANCELLED, DEADLINE_EXPIRED -> Disposition.TRANSIENT_SERVICE;
+			default -> Disposition.ROUTE_UNUSABLE;
+		};
 	}
 
 	private void retryOrFail(long profileId, Journey journey, Disposition disposition)
@@ -984,6 +1030,16 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		final var journey = _journeys.get(profileId);
 		if ((journey != null) && journey.attempt.goal.equals(goal) && (_materialization.find(profileId).map(value -> (value.characterObjectId() == journey.objectId) && (value.materializedAtNanos() == journey.epoch)).orElse(false))) { remove(profileId, journey); }
+	}
+
+	/** Recovery stops only the captured current goal's movement, never a foreign lifetime. */
+	public boolean yieldForPreparation(long profileId)
+	{
+		final var journey = _journeys.get(profileId);
+		if (journey == null) { return true; }
+		if (!currentJourney(profileId, journey) || !currentGoal(profileId, journey.goal) || _pendingStores.containsKey(profileId)) { return false; }
+		// End only this physical route phase. The original Attempt and its deadline remain unchanged.
+		return remove(profileId, journey);
 	}
 
 	/** Recovery stops only the captured current goal's movement, never a foreign lifetime. */
@@ -1207,6 +1263,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private PhantomNavigationRoute route;
 		private int trackedIndex = -1;
 		private int index;
+		private int localApproach;
 		private volatile String reason = "travel.started";
 
 		private Journey(PhantomGoal goal, Player player, long epoch, PhantomNormalGatekeeperTravel.Step step, Attempt attempt)

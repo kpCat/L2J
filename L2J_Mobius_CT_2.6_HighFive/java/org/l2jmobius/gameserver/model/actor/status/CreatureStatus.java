@@ -449,7 +449,10 @@ public class CreatureStatus
 		if (_creature instanceof Player player)
 		{
 			final var evidence = PlayerNativeWork.observationEvidence(player);
-			if (evidence != null) { evidence.nativeRegeneration(hpGain, mpGain, nativeVitalsFull(), _creature.isDead()); }
+			if (evidence != null)
+			{
+				evidence.nativeRegeneration(hpGain, mpGain, nativeVitalsFull(), _creature.isDead(), player.isMoving(), player.getX(), player.getY(), player.getZ());
+			}
 		}
 	}
 	

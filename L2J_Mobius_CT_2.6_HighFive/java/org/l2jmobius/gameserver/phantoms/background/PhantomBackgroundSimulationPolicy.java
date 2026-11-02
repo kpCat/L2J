@@ -15,6 +15,7 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
     String rulesFingerprint, double runSpeed, long maximumBatchMillis, int unsupportedFacts)
 {
     public static final int ALGORITHM_VERSION = 2;
+    public static final int NATIVE_LEVEL_REFRESH_REQUIRED = 128;
     public static final int NATIVE_AMMUNITION_REQUIRED = 256;
     public enum Operation { FARM, TRAVEL, REST }
     public PhantomBackgroundSimulationPolicy
@@ -47,7 +48,7 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
         return new PhantomBackgroundSimulationPolicy(algorithmVersion, nextLevel, (int) nextPoints,
             nextPoints, ordinaryRewards && nextLevel == level, farmPosition, travelPosition, vitalityEnabled, lucky,
             consumeStat, gainRate, lostRate, level1Rate, level2Rate, level3Rate, level4Rate,
-            bonusExpPercent, bonusSpPercent, maxExpBonus, maxSpBonus, rulesFingerprint, runSpeed, maximumBatchMillis, nextLevel == level ? unsupportedFacts : unsupportedFacts | 128);
+            bonusExpPercent, bonusSpPercent, maxExpBonus, maxSpBonus, rulesFingerprint, runSpeed, maximumBatchMillis, nextLevel == level ? unsupportedFacts : unsupportedFacts | NATIVE_LEVEL_REFRESH_REQUIRED);
     }
     public PhantomBackgroundSimulationPolicy withPosition(boolean farm, boolean travel)
     {

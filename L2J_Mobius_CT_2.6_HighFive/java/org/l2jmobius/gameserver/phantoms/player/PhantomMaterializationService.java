@@ -376,7 +376,9 @@ public final class PhantomMaterializationService
 			_metrics.recordMaterializationSucceeded();
 			_trace.record("mat.success." + profileId);
 			lifecycleAttempt.succeed();
-			return new MaterializeResult(ResultStatus.SUCCESS, snapshot(entry));
+			final var materialized = snapshot(entry);
+			org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(profileId, "MATERIALIZE_SUCCESS", purpose.name(), materialized.worldPresent() ? "WORLD" : "PRE_WORLD", "", characterObjectId, materialized.materializedAtNanos(), 0);
+			return new MaterializeResult(ResultStatus.SUCCESS, materialized);
 		}
 		catch (RuntimeException | Error e)
 		{

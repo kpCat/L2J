@@ -132,6 +132,12 @@ public record PhantomNativeContext(Identity identity, Phase phase, int beforePoi
         return afterPolicy.permits(operation, currentRules);
     }
 	public boolean simulationEligible() { return (phase == Phase.COMPLETED) && (afterEligibility == Eligibility.SUPPORTED) && (afterPoints == 1); }
+	/** A simulated level change invalidates scalar facts until the existing canonical native load/store re-attests them. */
+	public boolean requiresCanonicalRefresh()
+	{
+		return phase == Phase.UNKNOWN || phase == Phase.COMPLETED && afterPolicy != null
+			&& (afterPolicy.unsupportedFacts() & PhantomBackgroundSimulationPolicy.NATIVE_LEVEL_REFRESH_REQUIRED) != 0;
+	}
 	public boolean binds(Identity expected, long version, byte[] payload) { return identity.equals(expected) && (stateRowVersion == version) && stateDigest.equals(digest(payload)); }
 	public boolean matchesReceipt(long version, long expectedEpoch, byte[] payload) { return (phase == Phase.PENDING) && (preparedRowVersion == version) && (epoch == expectedEpoch) && receiptDigest.equals(digest(payload)); }
 	public boolean matchesBefore(int canonicalPoints) { return canonicalPoints == beforePoints; }

@@ -85,6 +85,8 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	{
 		if (System.getProperty("phantom.m1.native.focus", "").equals("continuity113"))
 		{
+			registry.add("14-periodic-cursor-materialized-boundary-and-resume", this::testPeriodicMaterializedBoundary);
+			registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
 			registry.add("25-cold-focus-does-not-starve-released-history", this::testColdFocusRelease113);
 			registry.add("26-live-history-reports-owner-not-capacity", this::testLiveOwnerReason113);
 			registry.add("27-large-debt-and-5000-identity-queue-model", this::testColdQueueModel113);
@@ -645,6 +647,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 				PhantomAssertions.assertFalse(service.permitsScheduling(1), "Materialization exception weakened ordinary scheduling.");
 			}
 			service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 1);
+			PhantomAssertions.assertEquals(nativeRequired, service.requestMaterializationDue(1).complete(), "Native prerequisite backoff stranded bounded preparation admission: " + reason);
 			for (int pulse = 0; pulse < 256; pulse++) { service.onPopulationPulse(); }
 			PhantomAssertions.assertTrue(nativeRequired ? attempts.get() > 1 && attempts.get() <= (pending ? 10 : 3) : attempts.get() == 1, "Native retry must remain bounded and permanent failures terminal: " + reason + " attempts=" + attempts.get());
 			if (nativeRequired)
@@ -922,11 +925,13 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "First ten-minute due did not award exactly once.");
 		materialized.set(true);
 		clock.set(from.plusSeconds(15 * 60));
+		service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 1);
 		PhantomAssertions.assertTrue(drainDue(service, 1).complete(), "Materialized boundary did not commit calendar time.");
 		PhantomAssertions.assertEquals(fromMinute + 15, store.require(1).state().calendarCursorEpochMinute(), "Materialized boundary left historical time replayable.");
 		PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Materialized boundary awarded historical minutes.");
 		materialized.set(false);
 		clock.set(from.plusSeconds(25 * 60));
+		service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 1);
 		PhantomAssertions.assertTrue(drainDue(service, 1).complete(), "Dematerialized boundary did not resume periodic due.");
 		PhantomAssertions.assertEquals(fromMinute + 25, store.require(1).state().calendarCursorEpochMinute(), "Resumed cursor regressed or skipped the due target.");
 		PhantomAssertions.assertEquals(20L, historical.advancedMinutes(), "Dematerialized window double-awarded materialized time.");

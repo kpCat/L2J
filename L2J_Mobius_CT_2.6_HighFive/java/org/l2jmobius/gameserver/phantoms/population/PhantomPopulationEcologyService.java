@@ -292,6 +292,7 @@ public final class PhantomPopulationEcologyService
 				entry._materializationDemand = true;
 				final long requested = Math.max(entry._requestedMinute, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
 				if (requested != entry._requestedMinute) { schedulingChangedLocked(); entry._readinessRevision++; entry._requestedMinute = requested; }
+				if (entry._liveOwner) { queueLocked(fact.profileId()); }
 			}
 			for (long id : previous.keySet()) { if (!_demandFacts.containsKey(id)) { final Entry entry = _entries.get(id); if (entry != null) { entry._materializationDemand = false; } } }
 			rebuildAdmissionLocked();
@@ -317,7 +318,9 @@ public final class PhantomPopulationEcologyService
 
 	private List<DemandFact> preparationCandidatesLocked()
 	{
-		return _demandFacts.values().stream().filter(fact -> { final Entry entry = _entries.get(fact.profileId()); return entry != null && entry._participating && !entry._liveOwner && !entry._terminal && needsWorkLocked(entry) && progressClock() >= entry._nextRetryPulse; }).sorted(DEMAND_ORDER).toList();
+		// Native prerequisites need a bounded materialization grant while historical probes back off.
+		return _demandFacts.values().stream().filter(fact -> { final Entry entry = _entries.get(fact.profileId()); return entry != null && entry._participating && !entry._liveOwner && !entry._terminal && needsWorkLocked(entry)
+			&& (progressClock() >= entry._nextRetryPulse || PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure)); }).sorted(DEMAND_ORDER).toList();
 	}
 
 	/** The existing focus cursor rotates over stable demand age after its bounded quantum. */
@@ -803,10 +806,13 @@ public final class PhantomPopulationEcologyService
 	private boolean needsWorkLocked(Entry entry)
 	{
 		if (entry._stored == null) { return true; }
-		if (!entry._participating || entry._liveOwner || entry._terminal || entry._stored.state().disposition() != Disposition.MANAGED) { return false; }
+		if (!entry._participating || entry._terminal || entry._stored.state().disposition() != Disposition.MANAGED) { return false; }
 		if (entry._schedulingPublicationPending) { return true; }
 		final var state = entry._stored.state();
 		final long horizon = _periodicDueMode ? entry._requestedMinute : Math.max(0, _clock.millis() / MINUTE_MILLIS);
+		// A live owner accounts only calendar time through the existing materialized branch;
+		// its pending historical claim must never run concurrently with native work.
+		if (entry._liveOwner) { return !state.requestPending() && state.initialCatchupComplete() && state.calendarCursorEpochMinute() < horizon; }
 		final long now = Math.max(0, _clock.millis() / MINUTE_MILLIS);
 		return state.requestPending() || !state.initialCatchupComplete() || state.calendarCursorEpochMinute() < horizon || (_populationPlanApplied && _inventoryReady && _archived < _archiveLimit && !entry._archiveRequested && now >= state.turnoverEligibleEpochMinute() && entry._lastArchiveProbeMinute != now);
 	}

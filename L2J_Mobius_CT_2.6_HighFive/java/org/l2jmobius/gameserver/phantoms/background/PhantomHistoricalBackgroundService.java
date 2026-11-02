@@ -699,7 +699,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (proof.context().phase() == PhantomNativeContext.Phase.PENDING) { return Result.rejected(ResultStatusCode.RETRY, "native_context.pending", current); }
 			final int beforePoints = proof.canonicalPoints();
 			final boolean unknown = proof.context().phase() == PhantomNativeContext.Phase.UNKNOWN;
-			if (unknown)
+			if (proof.context().requiresCanonicalRefresh())
 			{
 				final Result refreshed = refreshCanonicalBaseline(profileId, current);
 				if (!refreshed.successful()) { return refreshed; }
@@ -1260,6 +1260,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 			stage = "permits_decision";
 			if (!permitsDecision(profileId)) { return false; }
+			stage = "native_handoff_completion";
+			if (finishNativeContextHandoff(profileId, stored.goal())) { return false; }
 			stage = "materialization";
 			final var admitted = _materialization.find(profileId).orElse(null);
 			if ((admitted == null) || !admitted.worldPresent() || !admitted.actionAdmissionOpen() || (admitted.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
@@ -1440,6 +1442,39 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			|| (_visiblePublications.get(profileId) != receipt) || !visibleActorQuiet(profileId, receipt.player, receipt.epoch)) { return false; }
 		_visiblePublications.remove(profileId, receipt);
 		return permitsDecision(profileId);
+	}
+
+	/** Temporary native work returns its unchanged historical claim through the normal STORE boundary. */
+	private boolean finishNativeContextHandoff(long profileId, PhantomGoal goal)
+	{
+		var handoff = _foregroundHandoffs.get(profileId);
+		if (handoff == null || !exactForegroundHandoff(profileId, handoff) || _visibleAutoPlay == null || _visibleTravel == null
+			|| _acceptedIntent.test(profileId, goal)) { return false; }
+		final var player = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(handoff.admission().characterObjectId());
+		final var owner = player == null ? null : player.getNativeWorkOwner();
+		if (owner == null || owner.player() != player || !owner.isCurrent() || owner.epoch() != handoff.materializedAtNanos()) { return false; }
+		final var proof = owner.evidence() == null ? null : owner.evidence().snapshot();
+		if (!nativeHandoffWorkComplete(proof, player.getObjectId(), handoff.materializedAtNanos())) { return false; }
+		if (handoff.completionDeadlineEpochMillis() == 0)
+		{
+			final var completing = new ActiveForegroundHandoff(handoff.admission(), handoff.materializedAtNanos(),
+				Math.addExact(System.currentTimeMillis(), java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(_visibleTravel.navigation().policy().maximumAttemptDurationNanos())));
+			if (!_foregroundHandoffs.replace(profileId, handoff, completing)) { return true; }
+			handoff = completing;
+		}
+		if (System.currentTimeMillis() >= handoff.completionDeadlineEpochMillis()) { return true; }
+		if (!_visibleAutoPlay.yieldAfterCurrentTarget(profileId, handoff.completionDeadlineEpochMillis())
+			|| !_visibleTravel.stopForRecovery(profileId, goal, player.getObjectId(), handoff.materializedAtNanos())
+			|| player.isInCombat() || !visibleActorQuiet(profileId, player, handoff.materializedAtNanos())
+			|| !exactForegroundHandoff(profileId, handoff) || !Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal)) { return true; }
+		_materialization.dematerialize(profileId);
+		// No cursor or reward mutation here: the existing interval transaction resumes only after STORE.
+		return true;
+	}
+
+	static boolean nativeHandoffWorkComplete(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot proof, int objectId, long epoch)
+	{
+		return proof != null && proof.objectId() == objectId && proof.epoch() == epoch && !proof.overflow() && proof.farmCycleSequence() > 0;
 	}
 
 	private boolean visibleActorQuiet(long profileId, Player player, long epoch)
@@ -1697,7 +1732,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 	}
 
-	private record ActiveForegroundHandoff(Admission admission, long materializedAtNanos) { }
+	private record ActiveForegroundHandoff(Admission admission, long materializedAtNanos, long completionDeadlineEpochMillis)
+	{
+		ActiveForegroundHandoff(Admission admission, long materializedAtNanos) { this(admission, materializedAtNanos, 0); }
+	}
 
 	private static final class VisibleEpisode
 	{

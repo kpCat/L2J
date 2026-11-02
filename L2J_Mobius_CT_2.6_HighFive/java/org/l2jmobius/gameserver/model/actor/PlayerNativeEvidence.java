@@ -134,6 +134,8 @@ public final class PlayerNativeEvidence
 	private long _phaseDeadlineNanos;
 	private boolean _nativeEpisodesRetired;
 	private long _regenSinceNanos;
+	private boolean _regenPositionObserved;
+	private int _regenX, _regenY, _regenZ;
 	private CombatEpisode _combatEpisode;
 	/** Scalar token; its retired identity is retained by already captured work, never by an unbounded history. */
 	public static final class CombatEpisode
@@ -318,10 +320,25 @@ public final class PlayerNativeEvidence
 	/** Called at the original tagged HP/MP assignment; full generic healing can retire but cannot begin this gap. */
 	public synchronized void nativeRegeneration(double hpGain, double mpGain, boolean full, boolean dead)
 	{
+		nativeRegenerationObserved(hpGain, mpGain, full, dead, true);
+	}
+
+	/** Only observed displacement during native movement ends passive rest; a stuck MOVE_TO flag cannot renew it. */
+	public synchronized void nativeRegeneration(double hpGain, double mpGain, boolean full, boolean dead, boolean moving, int x, int y, int z)
+	{
+		final boolean advanced = _regenPositionObserved && moving && (x != _regenX || y != _regenY || z != _regenZ);
+		_regenPositionObserved = true;
+		_regenX = x; _regenY = y; _regenZ = z;
+		nativeRegenerationObserved(hpGain, mpGain, full, dead, !advanced);
+	}
+
+	private void nativeRegenerationObserved(double hpGain, double mpGain, boolean full, boolean dead, boolean passive)
+	{
 		if (_nativeEpisodesRetired) { return; }
 		if (dead || full) { retireRegeneration(); return; }
 		if (!Double.isFinite(hpGain) || !Double.isFinite(mpGain)) { invalidate(UnprovenReason.INVALID_VALUE, System.nanoTime()); return; }
 		if ((hpGain <= 0) && (mpGain <= 0)) { return; }
+		if (!passive) { retireRegeneration(); return; }
 		final long now = System.nanoTime();
 		if (_regenSinceNanos == 0) { _regenSinceNanos = now; }
 		publishBounded(Phase.REGEN, _regenSinceNanos);
