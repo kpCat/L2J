@@ -14,8 +14,20 @@ public final class PhantomPveReadiness093Suite implements PhantomTestSuite
 {
 	@Override public String id() { return "pve-readiness093"; }
 
+	private static final long SECOND = 1_000_000_000L;
+
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("115-native-low-hp-rest-gets-one-finite-regen-budget", _ ->
+		{
+			final long budget = PhantomCombatPolicy.pveRecoveryBudgetNanos(183 * 0.8 - 72, 1.16, 0, 0, 45 * SECOND, 90 * SECOND);
+			PhantomAssertions.assertTrue(budget >= 65 * SECOND && budget <= 90 * SECOND, "Native9 Fighter recovery expired at45s just before native80% HP readiness.");
+			PhantomAssertions.assertEquals(45 * SECOND, PhantomCombatPolicy.pveRecoveryBudgetNanos(0, 1.16, 0, 0, 45 * SECOND, 90 * SECOND), "Healthy/basic-melee input received an extra recovery window.");
+			PhantomAssertions.assertEquals(90 * SECOND, PhantomCombatPolicy.pveRecoveryBudgetNanos(1000, 1, 1000, 1, 45 * SECOND, 90 * SECOND), "Recovery prediction escaped the existing useful-stall bound.");
+			PhantomAssertions.assertEquals(45 * SECOND, PhantomCombatPolicy.pveRecoveryBudgetNanos(72, 0, 0, 0, 45 * SECOND, 90 * SECOND), "Unknown/zero native regen extended recovery.");
+			PhantomAssertions.assertEquals(45 * SECOND, PhantomCombatPolicy.pveRecoveryBudgetNanos(Double.NaN, 1, 0, 0, 45 * SECOND, 90 * SECOND), "Unproven native deficit extended recovery.");
+			PhantomAssertions.assertTrue(!PhantomCombatPolicy.pveResourcesReady(133, 183, 59, 0, true) && PhantomCombatPolicy.pveResourcesReady(147, 183, 59, 0, true), "Native recovery hysteresis changed instead of allowing its actual elapsed time.");
+		});
 		registry.add("094-maintenance-keeps-native-support-mp-reserve", _ ->
 		{
 			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.maintenanceAffordable(400, 1000, 60), "Maintenance spent the native support recovery reserve.");

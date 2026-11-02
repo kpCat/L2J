@@ -18,6 +18,51 @@ public final class PhantomSupply071Suite implements PhantomTestSuite
 	@Override public String id() { return "supply071"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("115-optional-cp-stock-does-not-liquidate-low-level-farm-loot", context ->
+		{
+			final var policy = org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/life/high-five-autonomous-supply-v1.xml"));
+			for (int level : new int[] {1, 3, 6, 7, 17}) { PhantomAssertions.assertTrue(!policy.optionalPotionsAllowed(level), "Optional CP stock can turn low-level loot into repeated maintenance trips at level " + level); }
+			for (int level : new int[] {18, 20, 40, 85}) { PhantomAssertions.assertTrue(policy.optionalPotionsAllowed(level), "Existing higher-level potion restock was suppressed at level " + level); }
+			PhantomAssertions.assertTrue(policy.availableBudget(996, 0, 0, true) > 0 && policy.usefulPurchase(true, 0, 60, 1), "Low-level potion gate changed productive ammunition/amplifier budgeting.");
+			context.record("supply115.optionalPotions", "Native6 level6,17 spiritshots,pressure0,996A: optional CP shortage must not cause repeated liquidation; existing level18 potion boundary retained");
+		});
+		registry.add("115-paid-surplus-continues-at-counter-without-renewing-journey", context ->
+		{
+			final long now = System.currentTimeMillis();
+			final var root = new PhantomGoal(115, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("npc", "20481"), 1, 0, "background.farm", java.util.List.of(), null, "farm.background", 500, 0, 0, 0, java.util.Map.of(), "fixture115.root", 1);
+			final var binding = new PhantomSupplyIntentStore.Binding(1, 111, 10, 0, 222, new PhantomNavigationPoint(100, 200, -300, 0), 0);
+			final var sold = new PhantomInventoryMaintenanceIntent.Operation(PhantomCommerceReceipt.OperationKind.SELL, 30138, 333, 11, 426, 444, 1);
+			final var goal = PhantomInventoryMaintenanceIntent.create(root, binding, java.util.List.of(sold), 4, 100, now + 60_000, now, false);
+			final var request = new PhantomCommerceReceipt.OperationRequest(sold.kind(), sold.npcId(), sold.npcObjectId(), sold.listId(), sold.itemId(), sold.itemObjectId(), 1, 56, 0, 1, 0, "", 0, 0, 0);
+			final var prepared = PhantomCommerceReceipt.prepared(1, 115, 4, request, new PhantomCommerceReceipt.ConservationFacts(100, 22, 1, 0, 100, 200, -300), new PhantomCommerceReceipt.ConservationFacts(156, 21, 0, 0, 100, 200, -300));
+			final var paid = prepared.withState(PhantomCommerceReceipt.State.COMMITTING).withState(PhantomCommerceReceipt.State.COMMITTED);
+			final var completed = PhantomInventoryMaintenanceIntent.advance(goal, new PhantomInventoryMaintenanceIntent.Spec(java.util.List.of(sold), 1, false, false), 156, "maintenance.native.operation_confirmed");
+			final var remaining = java.util.stream.IntStream.rangeClosed(445, 447).mapToObj(object -> new PhantomInventoryMaintenanceIntent.Operation(sold.kind(), 30138, 333, 11, 426, object, 1)).toList();
+			final var full = new java.util.ArrayList<>(remaining); full.add(new PhantomInventoryMaintenanceIntent.Operation(sold.kind(), 30138, 333, 11, 426, 448, 1));
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(completed, full, paid, 156), "Full sale continuation removed the reserved funded-supply BUY slot.");
+			final var next = PhantomInventoryMaintenanceIntent.continueSales(completed, remaining, paid, 156);
+			final var spec = PhantomInventoryMaintenanceIntent.parse(next);
+			PhantomAssertions.assertTrue(!spec.returning() && spec.index() == 0 && spec.operations().size() == 3 && spec.current().itemObjectId() == 445, "Remaining paid-sale surplus returned to the field instead of using the same counter.");
+			PhantomAssertions.assertTrue(next.revision() == 6 && next.deadlineEpochMillis() == goal.deadlineEpochMillis() && next.payloadText().equals(goal.payloadText()) && PhantomSupplyIntentStore.bound(next, root), "Sale continuation renewed lifetime or changed field/actor/root ownership.");
+			final var codec = new PhantomGoalStateCodec();
+			PhantomAssertions.assertEquals(next, codec.decode(codec.encode(next)), "Bounded sale continuation lost item/ordinal identity at restart.");
+			final var withBuy = new java.util.ArrayList<>(remaining);
+			withBuy.add(new PhantomInventoryMaintenanceIntent.Operation(PhantomCommerceReceipt.OperationKind.BUY, 30004, 555, 3000400, 3947, 0, 1));
+			final var restock = PhantomInventoryMaintenanceIntent.advance(next, new PhantomInventoryMaintenanceIntent.Spec(withBuy, 3, false, true), 324, "maintenance.supplies.rechecked_after_bank");
+			PhantomAssertions.assertTrue(PhantomInventoryMaintenanceIntent.parse(restock).current().kind() == PhantomCommerceReceipt.OperationKind.BUY && restock.deadlineEpochMillis() == goal.deadlineEpochMillis() && restock.payloadText().equals(goal.payloadText()), "Confirmed sales could not fund a bounded supply BUY before the original field return.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(goal, remaining, paid, 156), "Unconfirmed operation was discarded.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(completed, remaining, prepared, 156), "Prepared sale was treated as committed.");
+			final var foreign = PhantomCommerceReceipt.prepared(2, 115, 4, request, prepared.before(), prepared.expectedAfter()).withState(PhantomCommerceReceipt.State.COMMITTING).withState(PhantomCommerceReceipt.State.COMMITTED);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(completed, remaining, foreign, 156), "Foreign profile receipt authorized another batch.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(completed, java.util.List.of(sold), paid, 156), "Already sold exact object was proposed again.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(completed, java.util.List.of(remaining.getFirst(), remaining.getFirst()), paid, 156), "Duplicate exact object entered a batch.");
+			final var changedItem = new PhantomInventoryMaintenanceIntent.Operation(sold.kind(), 30138, 333, 11, 462, 449, 1);
+			final var mixed = PhantomInventoryMaintenanceIntent.continueSales(completed, java.util.List.of(changedItem), paid, 156);
+			PhantomAssertions.assertTrue(PhantomInventoryMaintenanceIntent.parse(mixed).current().itemId() == 462 && mixed.target().key().equals("462") && mixed.payloadText().equals(goal.payloadText()) && mixed.deadlineEpochMillis() == goal.deadlineEpochMillis(), "Another legal surplus item at the same counter forced another round trip or renewed ownership/lifetime.");
+			final var changedCounter = new PhantomInventoryMaintenanceIntent.Operation(sold.kind(), 30138, 334, 11, 462, 449, 1);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.continueSales(completed, java.util.List.of(changedCounter), paid, 156), "Continuation changed the exact native counter.");
+			context.record("supply115.sales", "Exact committed sale -> bounded mixed-item same-counter surplus -> codec/restart; original field/deadline retained; pending/replayed/duplicate/changed-counter requests rejected");
+		});
 		registry.add("01-level-thresholds-do-not-skip-next-grade", context ->
 		{
 			final int[] levels = {1, 19, 20, 39, 40, 51, 52, 60, 61, 75, 76, 79, 80, 83, 84, 85};

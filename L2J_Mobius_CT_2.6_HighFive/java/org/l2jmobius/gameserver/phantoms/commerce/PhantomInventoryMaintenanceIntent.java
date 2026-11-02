@@ -83,10 +83,42 @@ public final class PhantomInventoryMaintenanceIntent
 
 	public static PhantomGoal advance(PhantomGoal goal, Spec replacement, long budget, String reason)
 	{
+		return advance(goal, replacement, budget, reason, goal.target());
+	}
+
+	private static PhantomGoal advance(PhantomGoal goal, Spec replacement, long budget, String reason, PhantomDomainRef target)
+	{
 		parse(goal);
 		final var values = new LinkedHashMap<>(goal.constraints()); values.put("source.index", (long) replacement.index()); values.put("maintenance.failed", replacement.failed() ? 1L : 0L); values.put("maintenance.buy_checked", replacement.buyChecked() ? 1L : 0L);
-		final var changed = new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), replacement.operations().size(), replacement.index(), goal.acquisitionMethod(), sources(replacement.operations()), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), budget, goal.deadlineEpochMillis(), values, reason, Math.addExact(goal.revision(), 1), goal.payloadText());
+		final var changed = new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), target, replacement.operations().size(), replacement.index(), goal.acquisitionMethod(), sources(replacement.operations()), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), budget, goal.deadlineEpochMillis(), values, reason, Math.addExact(goal.revision(), 1), goal.payloadText());
 		parse(changed); return changed;
+	}
+
+	public static PhantomGoal continueSales(PhantomGoal goal, List<Operation> operations, PhantomCommerceReceipt receipt, long budget)
+	{
+		final var previous = parse(goal);
+		final var last = previous.operations().getLast();
+		if (operations.size() >= MAXIMUM_OPERATIONS) { throw new IllegalArgumentException("Sale continuation must reserve the existing supply BUY slot."); }
+		if (goal.status() != PhantomGoalStatus.ACTIVE || !previous.returning() || previous.failed() || previous.buyChecked() || PhantomJourneyLifetime.paused(goal)
+			|| receipt == null || receipt.state() != PhantomCommerceReceipt.State.COMMITTED || receipt.goalId() != goal.goalId() || receipt.goalRevision() >= goal.revision()
+			|| !"profile".equals(goal.subject().namespace()) || receipt.profileId() != Long.parseLong(goal.subject().key()) || !last.matches(receipt.request()))
+		{ throw new IllegalArgumentException("Only an exactly committed maintenance sale may continue at its counter."); }
+		final var used = new HashSet<Integer>();
+		for (var operation : previous.operations())
+		{
+			if (operation.kind() != OperationKind.SELL || operation.npcId() != last.npcId() || operation.npcObjectId() != last.npcObjectId() || operation.listId() != last.listId())
+			{ throw new IllegalArgumentException("Only confirmed sales at the same native counter may continue."); }
+			used.add(operation.itemObjectId());
+		}
+		final var replacement = new Spec(operations, 0, false, false);
+		for (var operation : replacement.operations())
+		{
+			if (operation.kind() != OperationKind.SELL || operation.npcId() != last.npcId() || operation.npcObjectId() != last.npcObjectId() || operation.listId() != last.listId() || !used.add(operation.itemObjectId()))
+			{ throw new IllegalArgumentException("Sale continuation repeated an object or changed its selected counter."); }
+		}
+		// Completed receipts stay immutable; a fresh bounded batch uses new revisions
+		// while the original field, actor binding and finite journey deadline survive.
+		return advance(goal, replacement, budget, "maintenance.native.surplus_continue", new PhantomDomainRef("item", Integer.toString(replacement.operations().getFirst().itemId())));
 	}
 
 	/** Only an unprepared counter reference can change after a JVM restart; receipt identities are immutable. */

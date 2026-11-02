@@ -345,9 +345,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final var shots = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item.getDefaultAction() == action && compatible(player, item)).toList();
 		final boolean shotNeeded = shotCount > 0 && shots.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < (long) shotCount * _policy.lowWaterHits();
 		// Mandatory ammunition and productive amplification must not starve behind an optional potion stock target.
-		final boolean healing = !ammoNeeded && !shotNeeded && player.getLevel() >= 18 && _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
+		final boolean healing = !ammoNeeded && !shotNeeded && _policy.optionalPotionsAllowed(player.getLevel()) && _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
 		final var cpItems = _cpItems.stream().filter(item -> compatible(player, item)).toList();
-		final boolean cp = !ammoNeeded && !shotNeeded && !healing && !cpItems.isEmpty() && cpItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
+		final boolean cp = !ammoNeeded && !shotNeeded && !healing && _policy.optionalPotionsAllowed(player.getLevel()) && !cpItems.isEmpty() && cpItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < 3;
 		final int perHit = healing || ammoNeeded || cp ? 1 : shotCount;
 		if (perHit <= 0 || perHit > 100) { return null; }
 		final var all = healing ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammoNeeded ? ammunition : cp ? cpItems : shots;
@@ -867,6 +867,28 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				if (!spec.failed() && !spec.buyChecked())
 				{
+					final var last = spec.operations().getLast();
+					final var counterObject = World.getInstance().findObject(last.npcObjectId());
+					if (last.kind() == OperationKind.SELL && spec.operations().stream().allMatch(operation -> operation.kind() == OperationKind.SELL
+						&& operation.npcId() == last.npcId() && operation.npcObjectId() == last.npcObjectId() && operation.listId() == last.listId())
+						&& counterObject instanceof Npc counter && counter.getId() == last.npcId() && counter.getInstanceId() == 0 && counter.isSpawned() && !counter.isAlikeDead() && counter.canInteract(actor)
+						&& _maintenanceAllowed.test(id) && !_equipmentWeaponProtected.test(id, context.goal()))
+					{
+						final var needs = maintenanceNeeds(actor);
+						final var soldObjects = spec.operations().stream().map(PhantomInventoryMaintenanceIntent.Operation::itemObjectId).collect(java.util.stream.Collectors.toSet());
+						final var sales = actor.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256)
+							.filter(item -> item.getOwnerId() == actor.getObjectId() && !soldObjects.contains(item.getObjectId()))
+							.map(item -> Map.entry(item, PhantomLootDispositionPolicy.getInstance().evaluate(actor, item, needs, false, intent.constraints().get("maintenance.pressure") == 1)))
+							.filter(entry -> entry.getValue().disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC && entry.getValue().count() > 0)
+							.limit(PhantomInventoryMaintenanceIntent.MAXIMUM_OPERATIONS - 1)
+							.map(entry -> new PhantomInventoryMaintenanceIntent.Operation(OperationKind.SELL, last.npcId(), last.npcObjectId(), last.listId(), entry.getKey().getId(), entry.getKey().getObjectId(), entry.getValue().count())).toList();
+						if (!sales.isEmpty())
+						{
+							final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+							save(id, context.goal(), cached, PhantomInventoryMaintenanceIntent.continueSales(intent, sales, receipt, actor.getAdena()));
+							cleanup(id); return retry("maintenance.native.surplus_continue");
+						}
+					}
 					final var operations = new ArrayList<>(spec.operations()); final var need = supplyNeed(actor);
 					if (need != null && operations.size() < PhantomInventoryMaintenanceIntent.MAXIMUM_OPERATIONS)
 					{

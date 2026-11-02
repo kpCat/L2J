@@ -23,6 +23,12 @@ public record PhantomAutonomousSupplyPolicy(boolean enabled, int lowWaterHits, i
 		return !optionalAmplifier || count >= Math.max(perHit, Math.multiplyExact((long) perHit, Math.max(lowWaterHits + 1, targetHits / 3)) - stock);
 	}
 
+	/** Optional stock trips share the existing healing-potion boundary; ammunition and shots stay independent. */
+	public boolean optionalPotionsAllowed(int level)
+	{
+		return level >= 18;
+	}
+
 	/** Route fees and earmarks are obligations; the consumable reserve is only a savings target. */
 	public long availableBudget(long balance, long mandatoryFees, long earmarked, boolean productiveConsumable)
 	{

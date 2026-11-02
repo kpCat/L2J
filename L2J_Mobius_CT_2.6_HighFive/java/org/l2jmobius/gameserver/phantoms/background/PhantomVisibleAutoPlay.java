@@ -410,7 +410,14 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			session._resourceCost = cost;
 			final double reserve = PhantomCombatPolicy.pveRecoveryMpCost(cost, maximumMp, session._recovering);
 			final boolean ready = PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), mp, reserve, session._recovering);
-			final boolean expired = cost > maximumMp || session._resourceSince != 0 && now - session._resourceSince >= RESOURCE_RECOVERY_NANOS
+			if (session._resourceSince == 0 && !ready)
+			{
+				session._resourceBudgetNanos = PhantomCombatPolicy.pveRecoveryBudgetNanos(
+					Math.max(0, player.getMaxHp() * PhantomCombatPolicy.PVE_RECOVERY_HP_PERCENT / 100d - player.getCurrentHp()), org.l2jmobius.gameserver.model.stats.Formulas.calcHpRegen(player) / 3d,
+					Math.max(0, PhantomCombatPolicy.pveRecoveryMpCost(cost, maximumMp, true) - mp), org.l2jmobius.gameserver.model.stats.Formulas.calcMpRegen(player) / 3d,
+					RESOURCE_RECOVERY_NANOS, STALL_DELAY_NANOS);
+			}
+			final boolean expired = cost > maximumMp || session._resourceSince != 0 && now - session._resourceSince >= session._resourceBudgetNanos
 				|| session._resourceRetreatAttempts >= 6 && !ownsResourceRetreat(session, player);
 			recovery = PhantomCombatPolicy.pveRecoveryAction(ready, viable, threat != null, busy, expired);
 			if (recovery == PveRecoveryAction.ALLOW)
@@ -867,6 +874,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			synchronized (session)
 			{
 				fields.put("liveResourceRecovery", Boolean.toString(session._recovering));
+				fields.put("liveResourceBudgetNanos", Long.toString(session._resourceBudgetNanos));
 				fields.put("liveResourceReason", session._resourceReason);
 				fields.put("liveResourceCost", Double.toString(session._resourceCost));
 				fields.put("liveResourceSinceNanos", Long.toString(session._resourceSince));
@@ -922,6 +930,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private volatile Creature _yieldTarget;
 		private volatile long _yieldDeadlineEpochMillis;
 		private volatile long _resourceSince, _resourceCheckDue;
+		private volatile long _resourceBudgetNanos = RESOURCE_RECOVERY_NANOS;
 		private volatile double _resourceCost;
 		private volatile String _resourceReason = "resource.not_required";
 		private volatile int _resourceRetreatAttempts;
@@ -954,6 +963,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					_repairAttempted = previous._repairAttempted; _stallReported = previous._stallReported;
 					_recovering = previous._recovering; _resourceExpired = previous._resourceExpired;
 					_resourceSince = previous._resourceSince; _resourceCheckDue = previous._resourceCheckDue;
+					_resourceBudgetNanos = previous._resourceBudgetNanos;
 					_resourceCost = previous._resourceCost; _resourceReason = previous._resourceReason;
 					_resourceRetreatAttempts = previous._resourceRetreatAttempts; _resourceRetreatDestination = previous._resourceRetreatDestination;
 					_supportPetCheckDue = previous._supportPetCheckDue;

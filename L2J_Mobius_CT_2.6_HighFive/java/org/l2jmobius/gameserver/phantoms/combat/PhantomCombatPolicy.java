@@ -61,6 +61,16 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 		return recovering ? Math.min(maximumMp, cost * 2) : cost;
 	}
 
+	public static long pveRecoveryBudgetNanos(double hpDeficit, double hpPerSecond, double mpDeficit, double mpPerSecond, long ordinaryBudget, long maximumBudget)
+	{
+		if (ordinaryBudget <= 0 || maximumBudget < ordinaryBudget) { throw new IllegalArgumentException("Invalid bounded recovery budget."); }
+		if (!Double.isFinite(hpDeficit) || !Double.isFinite(mpDeficit) || !Double.isFinite(hpPerSecond) || !Double.isFinite(mpPerSecond)
+			|| hpDeficit < 0 || mpDeficit < 0 || hpPerSecond < 0 || mpPerSecond < 0 || hpDeficit > 0 && hpPerSecond == 0 || mpDeficit > 0 && mpPerSecond == 0) { return ordinaryBudget; }
+		final double seconds = Math.max(hpDeficit > 0 ? hpDeficit / hpPerSecond : 0, mpDeficit > 0 ? mpDeficit / mpPerSecond : 0);
+		// One stock three-second regeneration tick of tolerance; never slide this deadline on a later pulse.
+		return (long) Math.min(maximumBudget, Math.max(ordinaryBudget, Math.ceil(seconds + 3) * 1_000_000_000d));
+	}
+
 	public static PveRecoveryAction pveRecoveryAction(boolean resourcesReady, boolean viable, boolean threatened, boolean nativeBusy, boolean expired)
 	{
 		if (resourcesReady && viable) { return PveRecoveryAction.ALLOW; }
