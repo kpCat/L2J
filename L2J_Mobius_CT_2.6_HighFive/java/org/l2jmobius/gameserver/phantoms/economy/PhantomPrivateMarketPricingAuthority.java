@@ -98,6 +98,21 @@ public final class PhantomPrivateMarketPricingAuthority
 
 	public record ItemQuote(int itemId, boolean priced, boolean bidAllowed, long bid, long ask, long fair, String sourceReason) { }
 
+	/** Expected forgone cash, not a receipt: native target/rates with the existing author throughput/cost policy. */
+	public java.util.OptionalLong farmingOpportunityCost(int npcId, long minimumMillis)
+	{
+		if (minimumMillis < 0 || !_eligibleNpcIds.contains(npcId)) { return java.util.OptionalLong.empty(); }
+		final var drops = _knowledge.dropFactsByNpc().getOrDefault(npcId, List.of());
+		double adena = 0;
+		for (var drop : drops)
+		{
+			if (drop.itemId() == 57) { adena += PhantomRateAwareLootFairValue.expectedYield(drop, drops, _rates); }
+		}
+		if (!Double.isFinite(adena) || adena <= 0) { return java.util.OptionalLong.empty(); }
+		final double cost = Math.ceil(Math.max(0, adena - _valuation.consumableCostPerKill()) * _valuation.killsPerMinute() * minimumMillis / 60_000d);
+		return Double.isFinite(cost) && cost >= 0 && cost <= PlayerConfig.MAX_ADENA ? java.util.OptionalLong.of((long) cost) : java.util.OptionalLong.empty();
+	}
+
 	/** Read-only unenchanted template quote. Inventory ownership is validated only when a plan is applied. */
 	public ItemQuote quoteItem(int itemId)
 	{

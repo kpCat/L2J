@@ -77,6 +77,14 @@ public final class PhantomEconomy118Checks
 		final var commerce = new PhantomCommerceCatalog(List.of(), List.of(), List.of(), List.of());
 		final var before = new PhantomPrivateMarketPricingAuthority(knowledge, commerce, old, policy, List.of());
 		final var after = new PhantomPrivateMarketPricingAuthority(knowledge, commerce, current, policy, List.of());
+		// Native NPC18342: certain7..13 Adena, amount5, configured4kills/min and0 author cost ->200/min.
+		check(after.farmingOpportunityCost(18342, 60_000).orElseThrow() == 200, "119 Current native Adena opportunity was not priced from the selected NPC/current rates");
+		check(before.farmingOpportunityCost(18342, 60_000).orElseThrow() == 40, "119 Adena override compounded the global death rate");
+		check(after.farmingOpportunityCost(18342, 1).orElseThrow() == 1, "119 Fractional opportunity was rounded down to free travel");
+		check(after.farmingOpportunityCost(18342, 0).orElseThrow() == 0, "119 Zero travel created an opportunity charge");
+		check(after.farmingOpportunityCost(-1, 60_000).isEmpty() && after.farmingOpportunityCost(18342, -1).isEmpty()
+			&& after.farmingOpportunityCost(18342, Long.MAX_VALUE).isEmpty(), "119 Unknown or unbounded opportunity became a safe sale");
+		System.out.println("TASK119_NATIVE_XML_OPPORTUNITY_PASS npc18342=200/min source=Adena5/chance1 throughput=AUTHOR_CONFIG_NOT_MEASURED");
 		final var oldQuotes = new ArrayList<PhantomPrivateMarketPricingAuthority.ItemQuote>();
 		final var newQuotes = new ArrayList<PhantomPrivateMarketPricingAuthority.ItemQuote>();
 		final var rows = new StringBuilder("itemId\tnpcLiquidation\toldRawFair\tnewRawFair\toldFair\tnewFair\toldBid\tnewBid\toldAsk\tnewAsk\tnewReason\n");

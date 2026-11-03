@@ -1182,7 +1182,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				final var decisions = new LinkedHashMap<org.l2jmobius.gameserver.model.item.instance.Item, PhantomLootDispositionPolicy.Decision>();
 				player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256)
 					.forEach(item -> decisions.put(item, PhantomLootDispositionPolicy.getInstance().evaluate(player, item, needs, false, cached.maintenancePressure)));
-				if (roundTrip == null || !_offline.saleStillEligible(player, intent, decisions, roundTrip, returnEstimate, System.currentTimeMillis())) { return terminal(profileId, context.goal(), cached, false, "income.offline.quote_changed"); }
+				if (roundTrip == null || !_offline.saleStillEligible(player, intent, decisions, roundTrip, returnEstimate, System.currentTimeMillis(), context.goal())) { return terminal(profileId, context.goal(), cached, false, "income.offline.quote_changed"); }
 			}
 			final int componentProduct = PhantomOfflineSupply.componentProduct(intent);
 			final var componentTemplate = componentProduct <= 0 ? null : ItemData.getInstance().getTemplate(componentProduct);

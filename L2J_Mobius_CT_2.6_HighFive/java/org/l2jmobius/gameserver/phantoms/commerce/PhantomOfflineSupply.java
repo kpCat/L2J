@@ -68,9 +68,22 @@ public final class PhantomOfflineSupply
 		}
 		public TravelEstimate plus(TravelEstimate other) { return new TravelEstimate(Math.addExact(fees, other.fees), Math.addExact(minimumMillis, other.minimumMillis)); }
 	}
-	private record SaleChoice(String key, SaleTerms terms, long minimumMillis, int ownerId)
+	record SaleChoice(String key, SaleTerms terms, long minimumMillis, int ownerId, long lostFarmAdena)
 	{
-		private double premiumPerMillis() { return terms.netPremium() / (double) Math.max(1, minimumMillis); }
+		private long netIncome() { return terms.netPremium() - lostFarmAdena; }
+		private double premiumPerMillis() { return netIncome() / (double) Math.max(1, minimumMillis); }
+	}
+	static Optional<SaleChoice> selectSale(List<SaleChoice> choices)
+	{
+		return choices.stream().filter(choice -> choice.lostFarmAdena() >= 0 && choice.lostFarmAdena() < choice.terms().netPremium())
+			.sorted(Comparator.comparingDouble(SaleChoice::premiumPerMillis).reversed()
+			.thenComparing(Comparator.comparingLong(SaleChoice::netIncome).reversed()).thenComparingInt(SaleChoice::ownerId).thenComparing(SaleChoice::key)).findFirst();
+	}
+	private static int farmingNpcId(PhantomGoal root)
+	{
+		if (root == null || root.target() == null || !"npc".equals(root.target().namespace())) { return 0; }
+		try { return Integer.parseInt(root.target().key()); }
+		catch (NumberFormatException unknown) { return 0; }
 	}
 	public static Optional<SaleTerms> saleTerms(int itemId, long allowed, long owned, long wanted, long price,
 		org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketPricingAuthority.ItemQuote quote, long buyerWallet, long sellerWallet, long npcUnitPrice, long fees)
@@ -138,13 +151,12 @@ public final class PhantomOfflineSupply
 						final var terms = saleTerms(item.getId(), entry.getValue().count(), item.getCount(), line.getCount(), line.getPrice(), prices.get(item.getId()), owner.getAdena(), seller.getAdena(), npc, travel.fees()).orElse(null);
 						if (terms == null) { continue; }
 						final String key = owner.getObjectId() + ";0;" + hash + ';' + terms.proceeds() + ";S:" + item.getObjectId() + ':' + terms.count() + ':' + line.getPrice() + ':' + item.getId();
-						choices.add(new SaleChoice(key, terms, travel.minimumMillis(), owner.getObjectId()));
+						choices.add(new SaleChoice(key, terms, travel.minimumMillis(), owner.getObjectId(), pricing.farmingOpportunityCost(farmingNpcId(root), travel.minimumMillis()).orElse(-1)));
 					}
 				}
 			}
 		}
-		return choices.stream().sorted(Comparator.comparingDouble(SaleChoice::premiumPerMillis).reversed()
-			.thenComparing(Comparator.comparingLong((SaleChoice choice) -> choice.terms().netPremium()).reversed()).thenComparingInt(SaleChoice::ownerId).thenComparing(SaleChoice::key)).findFirst().map(choice ->
+		return selectSale(choices).map(choice ->
 		{
 			final String type = PhantomSocialEconomyGoalSpec.STORE_SELL_GOAL;
 			final var goal = new PhantomGoal(root.goalId(), type, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, choice.key()),
@@ -158,7 +170,7 @@ public final class PhantomOfflineSupply
 		return decision != null && decision.count() > 0 && (decision.disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC || decision.disposition() == PhantomLootDispositionPolicy.Disposition.MARKET_RESERVE);
 	}
 	/** Fresh pre-dispatch checks; native service still owns reservation, effect and reconciliation. */
-	public boolean saleStillEligible(Player seller, PhantomGoal goal, Map<Item, PhantomLootDispositionPolicy.Decision> disposition, TravelEstimate roundTrip, TravelEstimate returning, long now)
+	public boolean saleStillEligible(Player seller, PhantomGoal goal, Map<Item, PhantomLootDispositionPolicy.Decision> disposition, TravelEstimate roundTrip, TravelEstimate returning, long now, PhantomGoal root)
 	{
 		if (!(spec(goal) instanceof PhantomSocialEconomyGoalSpec.StoreSell sale) || sale.lines().size() != 1
 			|| roundTrip.fees() != 0 || returning.fees() != 0 || returning.minimumMillis() > remaining(goal, now) || seller.getAdena() < returning.fees()) { return false; }
@@ -166,6 +178,8 @@ public final class PhantomOfflineSupply
 		// Resolve service and pricing snapshots before entering the native list monitor.
 		final var published = _buyOwners.get(); final var pricing = _pricing.get();
 		if (pricing == null || !published.contains(owner) || !eligibleOwner(seller, owner) || owner.getPrivateStoreType() != PrivateStoreType.BUY) { return false; }
+		final long opportunity = pricing.farmingOpportunityCost(farmingNpcId(root), roundTrip.minimumMillis()).orElse(-1);
+		if (opportunity < 0) { return false; }
 		final var requested = sale.lines().getFirst();
 		final var item = seller.getInventory().getItemByObjectId(requested.objectId());
 		final var decision = item == null ? null : disposition.get(item);
@@ -182,7 +196,7 @@ public final class PhantomOfflineSupply
 			if (line == null) { return false; }
 			final var terms = saleTerms(item.getId(), Math.min(decision.count(), requested.count()), item.getCount(), line.getCount(), line.getPrice(), quote,
 				owner.getAdena(), seller.getAdena(), npc, roundTrip.fees(), returning.fees()).orElse(null);
-			return terms != null && terms.count() == requested.count() && terms.proceeds() >= sale.minimumTotalProceeds();
+			return terms != null && terms.count() == requested.count() && terms.proceeds() >= sale.minimumTotalProceeds() && terms.netPremium() > opportunity;
 		}
 	}
 
