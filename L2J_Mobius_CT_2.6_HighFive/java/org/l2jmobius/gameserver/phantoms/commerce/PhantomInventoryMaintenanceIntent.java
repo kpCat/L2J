@@ -100,7 +100,7 @@ public final class PhantomInventoryMaintenanceIntent
 		final var last = previous.operations().getLast();
 		if (operations.size() >= MAXIMUM_OPERATIONS) { throw new IllegalArgumentException("Sale continuation must reserve the existing supply BUY slot."); }
 		if (goal.status() != PhantomGoalStatus.ACTIVE || !previous.returning() || previous.failed() || previous.buyChecked() || PhantomJourneyLifetime.paused(goal)
-			|| receipt == null || receipt.state() != PhantomCommerceReceipt.State.COMMITTED || receipt.goalId() != goal.goalId() || receipt.goalRevision() >= goal.revision()
+			|| receipt == null || receipt.state() != PhantomCommerceReceipt.State.COMMITTED || receipt.goalId() != goal.goalId() || receipt.goalRevision() != goal.revision() - 1
 			|| !"profile".equals(goal.subject().namespace()) || receipt.profileId() != Long.parseLong(goal.subject().key()) || !last.matches(receipt.request()))
 		{ throw new IllegalArgumentException("Only an exactly committed maintenance sale may continue at its counter."); }
 		final var used = new HashSet<Integer>();

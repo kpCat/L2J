@@ -228,6 +228,7 @@ public final class PhantomTestLauncher
 			case "negative" -> new PhantomNegativeControlSuite();
 			case "db" -> new PhantomTestDatabaseIntegrationSuite();
 			case "scenario" -> new PhantomScenarioSmokeSuite();
+			case "life-scenarios116" -> new PhantomLifeScenarios116Suite();
 			case "performance" -> new PhantomPerformanceSmokeSuite();
 			case "skeleton" -> new PhantomSkeletonSuite();
 			case "scale-environment-goal029cp2" -> new PhantomScaleEnvironmentGoal029Checkpoint2Suite();
