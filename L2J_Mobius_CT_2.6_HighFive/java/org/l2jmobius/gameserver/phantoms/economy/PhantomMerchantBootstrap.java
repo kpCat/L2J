@@ -14,6 +14,8 @@ public final class PhantomMerchantBootstrap
 {
 	public static final String COMPONENT = "merchant.server.v1";
 	public static final String ROLE_PREFIX = "merchant.owner.";
+	private static final int MAX_STOCK_KINDS = 128;
+	private static final int MAX_BIRTH_STOCK_KINDS = 8;
 	public enum Stage { RESERVED, CHARACTER, PENDING, READY, INCONSISTENT }
 	private PhantomMerchantBootstrap() { }
 
@@ -25,6 +27,22 @@ public final class PhantomMerchantBootstrap
 			if (identityLimit < 1 || identityLimit > 512 || capitalLimit < 0 || stockValueLimit < 0 || perItemLimit < 1 || nextOrdinal < 0 || nextOrdinal > identityLimit || issuedCapital < 0 || issuedCapital > capitalLimit || issuedStockValue < 0 || issuedStockValue > stockValueLimit || issuedItems.values().stream().anyMatch(count -> count > perItemLimit)) { throw new IllegalArgumentException("Invalid merchant lifetime quota."); }
 		}
 		public static Ledger empty(int identities, long capital, long stock, long perItem) { return new Ledger(identities, capital, stock, perItem, 0, 0, 0, Map.of()); }
+		public boolean canReserveStockKind(java.util.Set<Integer> selected, int itemId)
+		{
+			if (selected == null || itemId <= 0 || selected.size() > MAX_BIRTH_STOCK_KINDS) { return false; }
+			int kinds = issuedItems.size();
+			for (Integer id : selected)
+			{
+				if (id == null || id <= 0) { return false; }
+				if (!issuedItems.containsKey(id)) { kinds++; }
+			}
+			if (!selected.contains(itemId))
+			{
+				if (selected.size() == MAX_BIRTH_STOCK_KINDS) { return false; }
+				if (!issuedItems.containsKey(itemId)) { kinds++; }
+			}
+			return kinds <= MAX_STOCK_KINDS;
+		}
 		public Ledger reserve(long capital, long stockValue, Map<Integer, Long> stock)
 		{
 			if (capital < 0 || stockValue < 0 || nextOrdinal == identityLimit || capital > capitalLimit - issuedCapital || stockValue > stockValueLimit - issuedStockValue) { throw new IllegalArgumentException("Merchant lifetime bootstrap exhausted."); }
@@ -40,7 +58,7 @@ public final class PhantomMerchantBootstrap
 		public Role
 		{
 			stock = checkedItems(stock);
-			if (ordinal < 0 || ordinal >= 512 || characterId < 0 || account == null || !account.matches("[a-z0-9_]{1,45}") || token == null || !token.matches("[A-Za-z0-9_-]{43}") || name == null || !name.matches("[A-Za-z0-9]{1,16}") || classId < 0 || storeKind < 0 || storeKind > 2 || capital < 0 || stage == null || stock.size() > 8 || stage != Stage.RESERVED && characterId == 0) { throw new IllegalArgumentException("Invalid merchant birth receipt."); }
+			if (ordinal < 0 || ordinal >= 512 || characterId < 0 || account == null || !account.matches("[a-z0-9_]{1,45}") || token == null || !token.matches("[A-Za-z0-9_-]{43}") || name == null || !name.matches("[A-Za-z0-9]{1,16}") || classId < 0 || storeKind < 0 || storeKind > 2 || capital < 0 || stage == null || stock.size() > MAX_BIRTH_STOCK_KINDS || stage != Stage.RESERVED && characterId == 0) { throw new IllegalArgumentException("Invalid merchant birth receipt."); }
 		}
 		public String component() { return ROLE_PREFIX + String.format(java.util.Locale.ROOT, "%04d", ordinal); }
 		public Role withCharacter(int id) { return new Role(ordinal, id, account, token, name, classId, storeKind, x, y, z, capital, stock, Stage.CHARACTER); }
@@ -51,7 +69,7 @@ public final class PhantomMerchantBootstrap
 
 	private static Map<Integer, Long> checkedItems(Map<Integer, Long> stock)
 	{
-		if (stock == null || stock.size() > 128 || stock.entrySet().stream().anyMatch(entry -> entry.getKey() == null || entry.getKey() <= 0 || entry.getValue() == null || entry.getValue() <= 0)) { throw new IllegalArgumentException("Invalid bounded merchant stock."); }
+		if (stock == null || stock.size() > MAX_STOCK_KINDS || stock.entrySet().stream().anyMatch(entry -> entry.getKey() == null || entry.getKey() <= 0 || entry.getValue() == null || entry.getValue() <= 0)) { throw new IllegalArgumentException("Invalid bounded merchant stock."); }
 		return Map.copyOf(stock);
 	}
 	public static byte[] encode(Ledger value)
@@ -73,7 +91,7 @@ public final class PhantomMerchantBootstrap
 	private static void items(DataOutputStream out, Map<Integer, Long> values) throws IOException { out.writeInt(values.size()); for (var entry : new TreeMap<>(values).entrySet()) { out.writeInt(entry.getKey()); out.writeLong(entry.getValue()); } }
 	private static Map<Integer, Long> items(DataInputStream in) throws IOException
 	{
-		final int count = in.readInt(); if (count < 0 || count > 128) { throw new IllegalArgumentException("Merchant stock count outside bound."); }
+		final int count = in.readInt(); if (count < 0 || count > MAX_STOCK_KINDS) { throw new IllegalArgumentException("Merchant stock count outside bound."); }
 		final var values = new TreeMap<Integer, Long>(); for (int i = 0; i < count; i++) { if (values.put(in.readInt(), in.readLong()) != null) { throw new IllegalArgumentException("Duplicate merchant item."); } } return values;
 	}
 	private interface Writer { void write(DataOutputStream out) throws IOException; }

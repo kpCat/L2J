@@ -400,7 +400,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		final Creature threat = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player);
 		session._preparation = org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.pvePreparation(player);
 		session._preparationThreat = threat != null;
-		final boolean viable = !(player.getTarget() instanceof Creature selected) || selected.isAlikeDead() || PhantomEngagementPlanner.viable(player, selected);
+		final Creature selected = player.getTarget() instanceof Creature creature ? creature : null;
+		final boolean viable = !PhantomCombatPolicy.pveResourceTargetRequiresViability(selected != null, selected != null && selected.isMonster(), selected != null && !selected.isAlikeDead()) || PhantomEngagementPlanner.viable(player, selected);
 		final boolean busy = nativeBusy(player);
 		final PveRecoveryAction recovery;
 		final boolean due;

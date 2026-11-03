@@ -81,5 +81,35 @@ public final class PhantomLivingCycle111Test
 		check(!attemptYield(admitted, root(4), NOW + 1, _ -> { throw new AssertionError("TASK111_ACCEPTED_TRAVEL_YIELDED_FARM_AGAIN"); }), "ACCEPTED_TRAVEL_REYIELDED");
 		System.out.println("PASS living111.restart proposed/admitted codec distinct; accepted root/TTL unchanged; farm-yield not replayed");
 	}
-	public static void main(String[] args) throws Exception { restartProposal(); cause(); continuation(); paymentFence(); }
+	private static RestJourney status(RestJourney journey, PhantomGoalStatus status)
+	{
+		final var old = journey.goal();
+		final var changed = new PhantomGoal(old.goalId(), old.goalType(), status, old.subject(), old.target(), old.requiredAmount(), old.currentAmount(), old.acquisitionMethod(), old.validSources(), old.selectedAnchor(), old.purposeKey(), old.priority(), old.riskBudget(), old.expenseBudget(), old.deadlineEpochMillis(), old.constraints(), "market.rest.native_unknown", old.revision(), old.payloadText());
+		return new RestJourney(journey.rowVersion(), new PhantomGoalStateCodec().decode(new PhantomGoalStateCodec().encode(changed)));
+	}
+	private static void observedCityArrival()
+	{
+		final var proposed = retained();
+		final var codec = new PhantomGoalStateCodec();
+		final var admitted = new RestJourney(1, codec.decode(codec.encode(proposed.journey().admitted())));
+		final var fresh = new PhantomStorePlan(PhantomStorePlan.Type.SELL, PhantomStorePlan.State.REQUESTED, "Ресурсы", List.of(new PhantomStorePlan.Line(12, 1865, 6, 110)), NOW + 240000);
+		final var arrived = new RestJourney(2, codec.decode(codec.encode(admitted.arrived(fresh))));
+		final var completed = new RetainedPlan(42, 1, fresh, arrived);
+		final var legacy = new RestJourney(1, RestJourney.intent(root(4), 42, 0, 0, fresh, "fixture.city", new PhantomNavigationPoint(1000, 0, 0, 0), NOW));
+		check(PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(42, 1, fresh, status(legacy, PhantomGoalStatus.COMPLETED)), root(4), NOW + 130000, true), "UNOBSERVED_LEGACY_RECOVERY_LOST");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(null, root(4), NOW + 130000, false), "OBSERVED_MISSING_RECOVERY_ALLOWED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(42, 1, fresh, null), root(4), NOW + 130000, false), "OBSERVED_QUOTE_ONLY_ALLOWED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(proposed, root(4), NOW + 1, false), "OBSERVED_PROPOSAL_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(42, 0, proposed.plan(), admitted), root(4), NOW + 1, false), "OBSERVED_ACTIVE_CHILD_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(42, 1, fresh, status(arrived, PhantomGoalStatus.FAILED)), root(4), NOW + 130000, false), "OBSERVED_ARMED_PAYMENT_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(42, 1, fresh, status(legacy, PhantomGoalStatus.COMPLETED)), root(4), NOW + 130000, false), "OBSERVED_LEGACY_COMPLETION_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(completed, root(5), NOW + 130000, false), "OBSERVED_STALE_ROOT_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(43, 1, fresh, arrived), root(4), NOW + 130000, false), "OBSERVED_FOREIGN_ACTOR_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(new RetainedPlan(42, 1, proposed.plan(), arrived), root(4), NOW + 130000, false), "OBSERVED_OLD_QUOTE_PUBLISHED");
+		check(!PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(completed, root(4), fresh.expiresEpochMillis(), false), "OBSERVED_EXPIRED_QUOTE_PUBLISHED");
+		check(PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(completed, root(4), NOW + 130000, true), "UNOBSERVED_CITY_ARRIVAL_LOST");
+		check(PhantomAutonomousMarketProducer.recoveryVisibilityAllowed(completed, root(4), NOW + 130000, false), "TASK117_OBSERVED_BOUND_CITY_ARRIVAL_BLOCKED");
+		System.out.println("PASS living117.observed-city-arrival bound completed fresh city quote; legacy/active/failed/stale/foreign/expired rejected; POLICY_CODEC_ONLY native=NOT_RUN");
+	}
+	public static void main(String[] args) throws Exception { restartProposal(); cause(); continuation(); paymentFence(); observedCityArrival(); }
 }

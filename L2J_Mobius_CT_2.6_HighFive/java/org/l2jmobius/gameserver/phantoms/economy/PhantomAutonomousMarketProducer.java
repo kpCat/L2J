@@ -294,7 +294,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 			{
 				advanceRestJourney(profileId, now); return Optional.empty();
 			}
-			if (recovery != null && (!recoveryLocation(owner) || !_recoveryUnobserved.test(new PhantomTopologyPoint(owner.getX(), owner.getY(), owner.getZ(), owner.getInstanceId())))) { return Optional.empty(); }
+			if (recovery != null && (!recoveryLocation(owner) || !recoveryVisibilityAllowed(recovery.retained(), current, now, _recoveryUnobserved.test(new PhantomTopologyPoint(owner.getX(), owner.getY(), owner.getZ(), owner.getInstanceId()))))) { return Optional.empty(); }
 			if ((retained.expiresEpochMillis() <= now) || (owner == null) || !stableActive(profileId) || !retainedEligible(owner, retained, current, state) || owner.isInStoreMode() || !ownerReady(profileId, owner) || _reservations.findActive(profileId).isPresent())
 			{
 				close(profileId, now);
@@ -547,8 +547,8 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	private boolean freeDestination(Player player, PhantomNavigationPoint point)
 	{
 		final var zones = ZoneManager.getInstance().getZones(point.x(), point.y(), point.z());
-		if (zones.stream().noneMatch(zone -> zone instanceof PeaceZone) || zones.stream().anyMatch(zone -> zone instanceof NoStoreZone)
-			|| !_recoveryUnobserved.test(new PhantomTopologyPoint(point.x(), point.y(), point.z(), 0))) { return false; }
+		// Native WALK may enter a watched town; the existing slot/World spacing checks still apply.
+		if (zones.stream().noneMatch(zone -> zone instanceof PeaceZone) || zones.stream().anyMatch(zone -> zone instanceof NoStoreZone)) { return false; }
 		for (var request : _recoveries.values())
 		{
 			final var child = request.retained().journey();
@@ -711,6 +711,12 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 	}
 
 	public static boolean acceptedRestGatekeeper(PhantomNativeTravelActions.Status status) { return status == PhantomNativeTravelActions.Status.ARRIVED; }
+	/** A bound native city arrival may trade in view; cold/legacy recovery retains its visibility fence. */
+	static boolean recoveryVisibilityAllowed(PhantomStoreService.RetainedPlan retained, PhantomGoal root, long now, boolean unobserved)
+	{
+		return unobserved || retained != null && retained.journey() != null && retained.journey().goal().status() == PhantomGoalStatus.COMPLETED
+			&& retained.journey().goal().constraints().containsKey("quote.expires") && retained.journey().bound(retained, root, now);
+	}
 	static boolean yieldRestJourney(PhantomStoreService.RetainedPlan retained, PhantomGoal root, long now, java.util.function.LongPredicate finishTarget)
 	{
 		return retained != null && retained.journey() != null && retained.journey().proposed() && retained.journey().bound(retained, root, now)

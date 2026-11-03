@@ -18,6 +18,23 @@ public final class PhantomPveReadiness093Suite implements PhantomTestSuite
 
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("117-commerce-target-does-not-poison-pve-resource-recovery", _ ->
+		{
+			final boolean ready = PhantomCombatPolicy.pveResourcesReady(129, 129, 138, 0, true);
+			PhantomAssertions.assertTrue(ready, "Observed fully recovered native resources were not ready.");
+			final boolean[][] facts = {{false, false, false, false}, {true, false, true, false}, {true, true, false, false}, {true, true, true, true}, {true, true, true, false}};
+			final String[] names = {"no target", "live merchant", "dead monster", "viable live monster", "nonviable live monster"};
+			final var allow = PhantomCombatPolicy.PveRecoveryAction.ALLOW;
+			final var expected = new PhantomCombatPolicy.PveRecoveryAction[] {allow, allow, allow, allow, PhantomCombatPolicy.PveRecoveryAction.EXPIRED};
+			for (int index = 0; index < facts.length; index++)
+			{
+				final var input = facts[index];
+				final boolean viable = !PhantomCombatPolicy.pveResourceTargetRequiresViability(input[0], input[1], input[2]) || input[3];
+				PhantomAssertions.assertEquals(expected[index], PhantomCombatPolicy.pveRecoveryAction(ready, viable, false, false, true), names[index] + " changed recovery admission after commerce.");
+			}
+			PhantomAssertions.assertEquals(PhantomCombatPolicy.PveRecoveryAction.REST, PhantomCombatPolicy.pveRecoveryAction(false, !PhantomCombatPolicy.pveResourceTargetRequiresViability(true, false, true), false, false, false), "A merchant target bypassed actual low-resource recovery.");
+			PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Primitive recovery facts initialized SQL.");
+		});
 		registry.add("115-native-low-hp-rest-gets-one-finite-regen-budget", _ ->
 		{
 			final long budget = PhantomCombatPolicy.pveRecoveryBudgetNanos(183 * 0.8 - 72, 1.16, 0, 0, 45 * SECOND, 90 * SECOND);

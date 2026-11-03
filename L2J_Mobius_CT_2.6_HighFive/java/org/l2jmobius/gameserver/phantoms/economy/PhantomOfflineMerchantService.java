@@ -178,6 +178,7 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 			for (int offset = 0; offset < pool.size() && stock.size() < Math.min(8, _policy.linesPerStore()); offset++)
 			{
 				final var entry = pool.get(Math.floorMod(ordinal * _policy.linesPerStore() + offset, pool.size()));
+				if (!_ledger.canReserveStockKind(stock.keySet(), entry.item().getId())) { continue; }
 				final long count = entry.item().isStackable() ? _policy.stackCount() : 1;
 				if (_ledger.issuedItems().getOrDefault(entry.item().getId(), 0L) + count > _ledger.perItemLimit()) { continue; }
 				final long cost = Math.multiplyExact(entry.quote().fair(), count);

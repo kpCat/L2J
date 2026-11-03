@@ -71,6 +71,12 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 		return (long) Math.min(maximumBudget, Math.max(ordinaryBudget, Math.ceil(seconds + 3) * 1_000_000_000d));
 	}
 
+	public static boolean pveResourceTargetRequiresViability(boolean creaturePresent, boolean monster, boolean alive)
+	{
+		// A shopkeeper selected by native commerce is not a failed PvE combat target.
+		return creaturePresent && monster && alive;
+	}
+
 	public static PveRecoveryAction pveRecoveryAction(boolean resourcesReady, boolean viable, boolean threatened, boolean nativeBusy, boolean expired)
 	{
 		if (resourcesReady && viable) { return PveRecoveryAction.ALLOW; }

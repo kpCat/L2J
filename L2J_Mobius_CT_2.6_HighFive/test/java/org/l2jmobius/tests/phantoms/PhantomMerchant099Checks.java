@@ -36,6 +36,39 @@ public final class PhantomMerchant099Checks
         PhantomAssertions.assertEquals(PhantomMerchantBootstrap.Stage.INCONSISTENT, uncertain.stage(), "Uncertain seed was eligible for replay.");
         PhantomAssertions.assertEquals(uncertain, uncertain.afterUncertainRestart(), "Repeated recovery changed the uncertainty fence.");
         PhantomAssertions.assertEquals(role, PhantomMerchantBootstrap.decodeRole(PhantomMerchantBootstrap.encode(role)).afterUncertainRestart(), "READY changed during recovery.");
+        stockKindCapacity();
         System.out.println("OWN099_DB_FREE_PASS groups=3;rawSlots=320;targetCapital=" + Math.multiplyExact(200L, policy.capitalPerIdentity()) + ";DB_WRITES=0;NATIVE_STORES=NOT_RUN");
+    }
+
+    private static void stockKindCapacity()
+    {
+        final var issued = new java.util.TreeMap<Integer, Long>();
+        for (int item = 1000; item < 1128; item++) { issued.put(item, 1L); }
+        final var full = new PhantomMerchantBootstrap.Ledger(32, 1000, 1000, 10, 16, 160, 128, issued);
+        final var selected = new java.util.TreeMap<Integer, Long>();
+        for (int item : new int[] {1128, 1000})
+        {
+            if (full.canReserveStockKind(selected.keySet(), item)) { selected.put(item, 1L); break; }
+        }
+        final var next = full.reserve(10, 1, selected);
+        PhantomAssertions.assertEquals(Map.of(1000, 1L), selected, "A full ledger selected an unrepresentable new stock kind.");
+        PhantomAssertions.assertEquals(128, next.issuedItems().size(), "Birth expanded the existing ledger kind bound.");
+        PhantomAssertions.assertEquals(2L, next.issuedItems().get(1000).longValue(), "Existing-kind birth reset its consumed quantity.");
+        PhantomAssertions.assertEquals(17, next.nextOrdinal(), "Existing-kind birth reused its ordinal.");
+        PhantomAssertions.assertEquals(170L, next.issuedCapital(), "Existing-kind birth skipped finite capital accounting.");
+        PhantomAssertions.assertEquals(129L, next.issuedStockValue(), "Existing-kind birth skipped finite stock accounting.");
+        final byte[] encoded = PhantomMerchantBootstrap.encode(next);
+        PhantomAssertions.assertTrue(encoded.length <= org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent.MAX_PAYLOAD_BYTES, "Birth exceeded the existing component envelope.");
+        PhantomAssertions.assertEquals(next, PhantomMerchantBootstrap.decodeLedger(encoded), "Restart lost the full kind ledger.");
+        PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> full.reserve(0, 1, Map.of(1128, 1L)), "Direct reserve bypassed the hard 128-kind validator.");
+        PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> full.reserve(0, 1, Map.of(1000, 10L)), "Existing-kind birth bypassed its per-item quota.");
+        issued.remove(1127);
+        final var almostFull = new PhantomMerchantBootstrap.Ledger(32, 1000, 1000, 10, 16, 160, 127, issued);
+        PhantomAssertions.assertTrue(almostFull.canReserveStockKind(java.util.Set.of(), 1127), "The final free kind was lost.");
+        PhantomAssertions.assertFalse(almostFull.canReserveStockKind(java.util.Set.of(1127), 1128), "Pending kind128 admitted a distinct kind129.");
+        PhantomAssertions.assertTrue(almostFull.canReserveStockKind(java.util.Set.of(1127), 1000), "Pending kind128 blocked an issued kind.");
+        PhantomAssertions.assertTrue(almostFull.canReserveStockKind(java.util.Set.of(1000), 1127), "Issued and pending kinds were double counted.");
+        PhantomAssertions.assertFalse(full.canReserveStockKind(java.util.Set.of(1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007), 1008), "A ninth birth kind bypassed the role bound.");
+        System.out.println("PASS merchant117.stock-kind-capacity finite128/role8/quotas/codec; DB_WRITES=0;NATIVE_STORES=NOT_RUN");
     }
 }
