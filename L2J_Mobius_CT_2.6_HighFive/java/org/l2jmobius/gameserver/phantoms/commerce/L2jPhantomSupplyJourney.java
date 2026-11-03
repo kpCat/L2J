@@ -528,7 +528,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			final var ownedItem = owned.stream().filter(value -> value.getId() == item.getId()).findFirst().orElse(null);
 			final var gearChoices = ownedItem == null ? choices(player, List.of(item), 0, 1, 1) : List.<Choice>of();
-			final var offline = ownedItem == null && gearChoices.isEmpty() ? offlineEquipmentOffer(root, player, cached, item, now) : null;
+			final var offline = ownedItem == null ? offlineEquipmentOffer(root, player, cached, item, gearChoices, now) : null;
 			if (ownedItem == null && gearChoices.isEmpty() && offline == null) { continue; }
 			final long reserve = ownedItem != null ? 0 : offline != null ? offline.expenseBudget() : gearChoices.getFirst().price;
 			if (item instanceof org.l2jmobius.gameserver.model.item.Weapon weapon && weapon.isRange())
@@ -581,9 +581,19 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		return Optional.empty();
 	}
 
-	private PhantomGoal offlineEquipmentOffer(PhantomGoal root, Player player, Cached cached, ItemTemplate item, long now)
+	private PhantomGoal offlineEquipmentOffer(PhantomGoal root, Player player, Cached cached, ItemTemplate item, List<Choice> npcChoices, long now)
 	{
-		return offlineSupplyOffer(root, player, cached, List.of(item), 1, null, 0, now);
+		final var offer = offlineSupplyOffer(root, player, cached, List.of(item), 1, null, 0, now);
+		if (offer == null) { return null; }
+		final var field = PhantomNativeTravelActions.point(player);
+		final var quote = PhantomOfflineSupply.quote(player, offer, owner ->
+		{
+			final var destination = PhantomNativeTravelActions.point(owner);
+			final long out = fee(player, field, destination), back = fee(player, destination, field);
+			return out < 0 || back < 0 ? -1 : Math.addExact(out, back);
+		}).orElse(null);
+		final var npc = npcChoices.isEmpty() ? null : new PhantomOfflineSupply.AcquisitionQuote(npcChoices.getFirst().price, npcChoices.getFirst().fees, 0, 1, npcChoices.getFirst().distance);
+		return PhantomOfflineSupply.preferEquipment(quote, npc) ? offer : null;
 	}
 
 	private PhantomGoal offlineSupplyOffer(PhantomGoal root, Player player, Cached cached, List<ItemTemplate> items, long wanted, org.l2jmobius.gameserver.model.item.Weapon prospectiveWeapon, long equipmentReserve, long now)

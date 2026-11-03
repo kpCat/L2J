@@ -497,6 +497,13 @@ public final class PhantomOfflineSupply
 		public String materialEvidence() { return materialAdena == 0 ? "none" : "native.reference_price.estimate_not_paid_basis"; }
 	}
 
+	/** Compare the same gear's delivered cost, including native input value and recipe risk. */
+	static boolean preferEquipment(AcquisitionQuote offline, AcquisitionQuote npc)
+	{
+		return offline != null && (npc == null || offline.deliveredUnitCost() < npc.deliveredUnitCost()
+			|| offline.deliveredUnitCost() == npc.deliveredUnitCost() && offline.distance() <= npc.distance());
+	}
+
 	/** Fresh read-only quote for comparison with NPC/self craft; dispatch still uses the native exact receipt path. */
 	public static Optional<AcquisitionQuote> quote(Player buyer, PhantomGoal goal, ToLongFunction<Player> roundTripFee)
 	{
