@@ -1284,7 +1284,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private record PendingStore(Player player, long epoch, PhantomGoal goal, String anchorId, Journey journey) { }
 
 	/** Idle native WALK only: retries consume complete proven corridors, never just checkpoint displacement. */
-	static final class NativeWalkBudget
+	public static final class NativeWalkBudget
 	{
 		private final long startedNanos, episodeNanos;
 		private final double speed;
@@ -1297,7 +1297,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private int routes;
 		private PhantomNavigationPoint releasedDestination;
 
-		NativeWalkBudget(PhantomNavigationPoint origin, PhantomNavigationPoint destination, long now, double speed, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy policy)
+		public NativeWalkBudget(PhantomNavigationPoint origin, PhantomNavigationPoint destination, long now, double speed, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy policy)
 		{
 			final double distance = origin.distanceTo(destination);
 			if (now < 0 || origin.instanceId() != destination.instanceId() || !Double.isFinite(speed) || speed <= 0 || distance > policy.maximumRouteDistance()) { throw new IllegalArgumentException("Invalid native idle WALK budget."); }
@@ -1315,9 +1315,10 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			return Math.addExact(startedNanos, java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(millis));
 		}
 
-		boolean expired(long now) { return now < episodeSince || now >= deadline || now - episodeSince >= episodeNanos; }
+		public boolean expired(long now) { return now < episodeSince || now >= deadline || now - episodeSince >= episodeNanos; }
+		public java.util.Set<PhantomNavigationPoint> visited() { return java.util.Set.copyOf(visited); }
 
-		boolean admit(PhantomNavigationRoute route, long now)
+		public boolean admit(PhantomNavigationRoute route, long now)
 		{
 			if (expired(now) || routes >= 64 || route.waypoints().isEmpty() || route.waypoints().size() > maximumWaypoints || visited.contains(route.destination())) { return false; }
 			double distance = 0;
@@ -1333,7 +1334,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			return true;
 		}
 
-		boolean checkpoint(PhantomNavigationPoint actual, long now)
+		public boolean checkpoint(PhantomNavigationPoint actual, long now)
 		{
 			if (expired(now) || releasedDestination == null || !actual.equals(releasedDestination) || visited.size() >= 64 || !visited.add(actual)) { return false; }
 			releasedDestination = null; episodeSince = now;

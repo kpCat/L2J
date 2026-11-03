@@ -87,6 +87,30 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		_clock = Objects.requireNonNull(clock);
 	}
 
+	/** Let a canonical low-HP idle recover before current-resource farm admission, without creating a farm session. */
+	void prepareHistoricalIdleRest(long profileId, PhantomGoal goal, int objectId, long epoch, java.util.function.BooleanSupplier claimCurrent)
+	{
+		if (!PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal) || !_permitsNewRoots.test(profileId)
+			|| !current(profileId, goal, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE)) { return; }
+		final var snapshot = _materialization.find(profileId).orElse(null);
+		if (snapshot == null || snapshot.state() != State.ACTIVE || !snapshot.worldPresent() || snapshot.characterObjectId() != objectId || snapshot.materializedAtNanos() != epoch) { return; }
+		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (action == null) { return; }
+			final Player player = action.player();
+			// Claim reads may wait on SQL; sample native work only after they have returned.
+			if (!claimCurrent.getAsBoolean() || !_permitsNewRoots.test(profileId) || !current(profileId, goal, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE)) { return; }
+			final var session = _sessions.get(profileId);
+			if (player.getObjectId() != objectId || !player.hasHeadlessOutboundSession() || !player.isOnline() || player.isAlikeDead() || player.isSitting()
+				|| session != null && session._current.get() || nativeProgress(player, epoch) == null) { return; }
+			final boolean quiet = !nativeBusy(player) && !player.isInCombat() && !player.isMoving() && !player.isTeleporting() && !player.isInParty()
+				&& !player.isInStoreMode() && !player.hasPendingOwnedStore() && !player.isProcessingTransaction()
+				&& !org.l2jmobius.gameserver.managers.RecipeManager.getInstance().isMakingItem(player) && player.canMakeSocialAction();
+			if (!PhantomCombatPolicy.pveIdleRestRequired(true, quiet, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player) != null, player.getCurrentHp(), player.getMaxHp())) { return; }
+			player.sitDown();
+		}
+	}
+
 	public boolean start(long profileId, PhantomGoal goal)
 	{
 		final PhantomBackgroundGoalSpec spec;
@@ -558,9 +582,15 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	private boolean current(long profileId, PhantomGoal goal)
 	{
+		return current(profileId, goal, PhantomBackgroundGoalSpec.GOAL_TYPE);
+	}
+
+	private boolean current(long profileId, PhantomGoal goal, String goalType)
+	{
 		final PhantomDecisionEngine engine = _decision.get();
 		final var runtime = engine == null ? null : engine.find(profileId).orElse(null);
-		return (runtime != null) && (runtime.goalId() == goal.goalId()) && (runtime.goalRevision() == goal.revision()) && (runtime.goalStatus() == PhantomGoalStatus.ACTIVE) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(runtime.goalType()) && _permitsOrdinary.test(profileId);
+		if (runtime == null || PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goalType) && (runtime.inFlight() || runtime.persistenceInFlight())) { return false; }
+		return (runtime.goalId() == goal.goalId()) && (runtime.goalRevision() == goal.revision()) && (runtime.goalStatus() == PhantomGoalStatus.ACTIVE) && goalType.equals(runtime.goalType()) && _permitsOrdinary.test(profileId);
 	}
 
 	private static void configure(Player player)

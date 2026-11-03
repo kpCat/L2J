@@ -13,6 +13,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.function.LongPredicate;
 import java.util.function.Supplier;
+import java.util.function.Predicate;
+import java.util.function.Function;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.ItemData;
@@ -33,6 +35,7 @@ import org.l2jmobius.gameserver.model.item.type.EtcItemType;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
+import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
@@ -57,6 +60,7 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
@@ -191,8 +195,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	public void useOfflineSupply(org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService service)
 	{
+		useOfflineSupply(service, () -> null, List::of);
+	}
+	public void useOfflineSupply(org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService service,
+		Supplier<org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketPricingAuthority> pricing, Supplier<List<Player>> buyOwners)
+	{
 		if (_state != State.NEW || _offline != null) { throw new IllegalStateException("Offline supply must bind before start."); }
-		_offline = new PhantomOfflineSupply(service);
+		_offline = new PhantomOfflineSupply(service, pricing, buyOwners);
 	}
 
 	public L2jPhantomSupplyJourney(PhantomSupplyIntentStore store, PhantomGoalStore roots, PhantomMaterializationService materialization,
@@ -401,6 +410,20 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			.filter(item -> player.getInventory().validateCapacity(item.isStackable() && player.getInventory().getItemByItemId(item.getId()) != null ? 0 : 1) && player.getInventory().validateWeight((long) item.getTemplate().getWeight())).findFirst().orElse(null);
 		final var decisions = new LinkedHashMap<org.l2jmobius.gameserver.model.item.instance.Item, PhantomLootDispositionPolicy.Decision>();
 		player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256).forEach(item -> decisions.put(item, PhantomLootDispositionPolicy.getInstance().evaluate(player, item, needs, false, cached.maintenancePressure)));
+		final var receipt = _receipts.find(id).orElse(null);
+		if (receipt != null && (!receipt.receipt().state().terminal() || receipt.receipt().state() == PhantomCommerceReceipt.State.INCONSISTENT)) { return Optional.empty(); }
+		long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
+		if (receipt != null && receipt.receipt().goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.receipt().goalRevision(), 1)); }
+		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), origin, 0);
+		if (_offline != null)
+		{
+			final var sale = _offline.offerSale(player, root, binding, revision, decisions, now, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), owner ->
+			{
+				final var destination = PhantomNativeTravelActions.point(owner);
+				return travelEstimate(player, origin, destination, true).flatMap(out -> travelEstimate(player, destination, origin, true).map(out::plus));
+			});
+			if (sale.isPresent()) { cached.maintenanceOffer = sale.orElseThrow(); return sale; }
+		}
 		final boolean housekeeping = cached.maintenancePressure || player.getAdena() < _policy.minimumAdenaReserve() || PhantomNativeTravelActions.safePreparationTown(player)
 			|| need != null && decisions.values().stream().anyMatch(decision -> decision.disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC)
 			|| decisions.values().stream().anyMatch(decision -> decision.disposition() == PhantomLootDispositionPolicy.Disposition.CRYSTALLIZE);
@@ -436,11 +459,6 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			operations.add(new PhantomInventoryMaintenanceIntent.Operation(OperationKind.WAREHOUSE_WITHDRAW, bank.getId(), bank.getObjectId(), 0, bankNeed.getId(), bankNeed.getObjectId(), Math.min(600, Math.min(wanted, bankNeed.getCount()))));
 		}
 		if (operations.isEmpty()) { return Optional.empty(); }
-		final var receipt = _receipts.find(id).orElse(null);
-		if (receipt != null && (!receipt.receipt().state().terminal() || receipt.receipt().state() == PhantomCommerceReceipt.State.INCONSISTENT)) { return Optional.empty(); }
-		long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
-		if (receipt != null && receipt.receipt().goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.receipt().goalRevision(), 1)); }
-		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), origin, 0);
 		cached.maintenanceOffer = PhantomInventoryMaintenanceIntent.create(root, binding, operations, revision, player.getAdena(), now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), now, cached.maintenancePressure);
 		return Optional.of(cached.maintenanceOffer);
 	}
@@ -723,20 +741,99 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		return player.getInventory().validateWeight(weight) && (player.getInventory().getItemByItemId(item.getId()) != null || player.getInventory().validateCapacity(1)) && (long) player.getCurrentLoad() + weight <= (long) (player.getMaxLoad() * .60);
 	}
 
+	public static Optional<PhantomOfflineSupply.TravelEstimate> itineraryEstimate(PhantomNavigationPoint from, PhantomNavigationPoint to,
+		List<PhantomNormalGatekeeperTravel.Step> steps, double speed, double maximumWalkingDistance, long maximumMillis, int classIndex, int level,
+		Predicate<PhantomNormalGatekeeperTravel.Leg> available, Function<String, PhantomNavigationPoint> anchorPoint)
+	{
+		if (from == null || to == null || from.instanceId() != 0 || to.instanceId() != 0 || steps == null || steps.size() > 128
+			|| !Double.isFinite(speed) || speed <= 0 || !Double.isFinite(maximumWalkingDistance) || maximumWalkingDistance < 0 || maximumMillis < 0
+			|| classIndex < 0 || level < 1 || available == null || anchorPoint == null) { return Optional.empty(); }
+		var cursor = from; double walking = 0; long fees = 0, fixedMillis = 0; int gatekeepers = 0;
+		final var used = new HashSet<String>();
+		try
+		{
+			for (var step : steps)
+			{
+				if (step == null || step.type() == null) { return Optional.empty(); }
+				if (step.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER)
+				{
+					final var leg = step.gatekeeper();
+					if (++gatekeepers > 4 || leg == null || !used.add(leg.id()) || !available.test(leg) || leg.feeCount() < 0 || leg.travelMillis() < 0) { return Optional.empty(); }
+					walking += cursor.distanceTo(new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0));
+					fees = Math.addExact(fees, PhantomNormalGatekeeperTravel.maximumFee(leg, classIndex, level));
+					fixedMillis = Math.addExact(fixedMillis, leg.travelMillis());
+					cursor = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), leg.destinationZ(), 0);
+				}
+				else
+				{
+					final var next = anchorPoint.apply(step.toAnchorId());
+					if (next == null || next.instanceId() != 0) { return Optional.empty(); }
+					walking += cursor.distanceTo(next); cursor = next;
+				}
+			}
+			walking += cursor.distanceTo(to);
+			if (!Double.isFinite(walking) || walking > maximumWalkingDistance) { return Optional.empty(); }
+			final long millis = Math.addExact((long) Math.ceil(1000 * walking / speed), fixedMillis);
+			return millis <= maximumMillis ? Optional.of(new PhantomOfflineSupply.TravelEstimate(fees, millis)) : Optional.empty();
+		}
+		catch (ArithmeticException invalid) { return Optional.empty(); }
+	}
+
 	private long fee(Player player, PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
+		return travelEstimate(player, from, to).map(PhantomOfflineSupply.TravelEstimate::fees).orElse(-1L);
+	}
+	/** Income does not yet retain a durable paid-travel ledger. Native paid legs must stay unavailable. */
+	public static PhantomTravelStrategy.Options incomeTravelOptions(PhantomTravelStrategy.Options options)
+	{
+		return new PhantomTravelStrategy.Options(options.legs().stream().filter(leg -> PhantomNormalGatekeeperTravel.maximumFee(leg, options.classIndex(), options.level()) == 0).toList(),
+			options.speed(), 0, 0, options.classIndex(), options.level(), options.epochMinute(), options.gatekeeperAllowed(), options.returnUnavailableReason(),
+			null, 0, options.remainingMillis(), options.blockedEdges());
+	}
+
+	private Optional<PhantomOfflineSupply.TravelEstimate> travelEstimate(Player player, PhantomNavigationPoint from, PhantomNavigationPoint to)
+	{
+		return travelEstimate(player, from, to, false);
+	}
+	private Optional<PhantomOfflineSupply.TravelEstimate> travelEstimate(Player player, PhantomNavigationPoint from, PhantomNavigationPoint to, boolean income)
+	{
 		final double speed = player.getMoveSpeed();
-		if (from.instanceId() != 0 || to.instanceId() != 0 || !Double.isFinite(speed) || speed <= 0) { return -1; }
+		if (from.instanceId() != 0 || to.instanceId() != 0 || !Double.isFinite(speed) || speed <= 0) { return Optional.empty(); }
 		// Admission estimates a whole finite round trip, not one Navigation segment.
 		// This lower bound grants no route authority: every checkpoint still needs native Geo/PathFinding.
 		final long oneWayMillis = Math.max(0, (TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()) - 30_000) / 2);
 		final double maximumWalkingDistance = Math.min(_navigation.policy().maximumRouteDistance(), speed * oneWayMillis / 1000.0);
-		if (from.distanceTo(to) <= maximumWalkingDistance) { return 0; }
-		return _travel.legs().stream().filter(leg ->
+		final var estimates = new ArrayList<PhantomOfflineSupply.TravelEstimate>();
+		if (from.distanceTo(to) <= maximumWalkingDistance) { estimates.add(new PhantomOfflineSupply.TravelEstimate(0, (long) Math.ceil(1000 * from.distanceTo(to) / speed))); }
+		final Function<String, PhantomNavigationPoint> anchors = id -> _travel.topology().findAnchor(id)
+			.map(anchor -> new PhantomNavigationPoint(anchor.point().x(), anchor.point().y(), anchor.point().z(), anchor.point().instanceId())).orElse(null);
+		final Predicate<PhantomNormalGatekeeperTravel.Leg> available = leg -> PhantomNativeTravelActions.available(leg)
+			&& (!income || PhantomNormalGatekeeperTravel.maximumFee(leg, player.getClassIndex(), player.getLevel()) == 0);
+		final var departures = new java.util.TreeSet<String>(); final var arrivals = new java.util.TreeSet<String>();
+		for (var leg : _travel.legs())
 		{
-			final double walking = Math.hypot((long) from.x() - leg.sourceX(), (long) from.y() - leg.sourceY()) + Math.hypot((long) to.x() - leg.destinationX(), (long) to.y() - leg.destinationY());
-			return walking <= maximumWalkingDistance && PhantomNativeTravelActions.available(leg);
-		}).mapToLong(leg -> PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000)).min().orElse(-1);
+			if (!available.test(leg)) { continue; }
+			final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0);
+			final var destination = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), leg.destinationZ(), 0);
+			if (from.distanceTo(source) <= maximumWalkingDistance && !leg.fromAnchorId().isBlank()) { departures.add(leg.fromAnchorId()); }
+			if (destination.distanceTo(to) <= maximumWalkingDistance && !leg.toAnchorId().isBlank()) { arrivals.add(leg.toAnchorId()); }
+			itineraryEstimate(from, to, List.of(new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER, leg.id(), leg.fromAnchorId(), leg.toAnchorId(), leg.travelMillis(), leg)),
+				speed, maximumWalkingDistance, oneWayMillis, player.getClassIndex(), player.getLevel(), available, anchors).ifPresent(estimates::add);
+		}
+		// These cached D1 hints price an opportunity only; they never become a native WALK/GK plan.
+		for (String departure : departures)
+		{
+			for (String arrival : arrivals)
+			{
+				_travel.route(departure, arrival).flatMap(steps -> itineraryEstimate(from, to, steps, speed, maximumWalkingDistance, oneWayMillis,
+					player.getClassIndex(), player.getLevel(), available, anchors)).ifPresent(estimates::add);
+			}
+		}
+		return estimates.stream().min(Comparator.comparingLong(PhantomOfflineSupply.TravelEstimate::fees).thenComparingLong(PhantomOfflineSupply.TravelEstimate::minimumMillis));
+	}
+	private static boolean income(PhantomGoal goal)
+	{
+		return PhantomSupplyIntentStore.social(goal) && org.l2jmobius.gameserver.phantoms.economy.PhantomSocialEconomyGoalSpec.STORE_SELL_GOAL.equals(goal.goalType());
 	}
 
 	private PhantomStepResult advance(PhantomStepContext context)
@@ -989,7 +1086,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final var destinations = returning ? returnDestination(binding.field()).map(List::of).orElse(List.of()) : approaches(player, merchant);
 			if (destinations.isEmpty()) { return alternative(profileId, context.goal(), cached, "supplies.destination.no_approach", returning); }
 			final long remaining = PhantomOfflineSupply.remaining(intent, System.currentTimeMillis());
-			trip = new Trip(player, intent.revision(), returning, destinations, context.logicalNowNanos() + TimeUnit.MILLISECONDS.toNanos(remaining), intent.deadlineEpochMillis());
+			final long started = context.logicalNowNanos();
+			trip = new Trip(player, intent.revision(), returning, destinations, started, started + TimeUnit.MILLISECONDS.toNanos(remaining), intent.deadlineEpochMillis());
 			synchronized (this) { if (_state != State.RUNNING || _trips.size() >= _policy.maximumProfiles()) { return retry("supplies.trip.capacity"); } _trips.put(profileId, trip); }
 		}
 		if (trip.plan != null && trip.stage >= trip.plan.stages().size() && !trip.plan.stages().getLast().to().equals(trip.destination()))
@@ -1039,7 +1137,20 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (returning || player.calculateDistance3D(owner) > interactionDistance) { return travel(profileId, context, cached, intent, binding, player, owner, returning); }
 			cleanup(profileId);
 			if (player.isMoving()) { return retry("supplies.offline.counter_movement_pending"); }
-			final long returnFee = fee(player, PhantomNativeTravelActions.point(player), binding.field());
+			final var currentPoint = PhantomNativeTravelActions.point(player);
+			final var returnEstimate = travelEstimate(player, currentPoint, binding.field(), income(intent)).orElse(null);
+			final long returnFee = returnEstimate == null ? -1 : returnEstimate.fees();
+			if (spec instanceof org.l2jmobius.gameserver.phantoms.economy.PhantomSocialEconomyGoalSpec.StoreSell)
+			{
+				final var roundTrip = travelEstimate(player, binding.field(), currentPoint, true).flatMap(out -> returnEstimate == null ? Optional.empty() : Optional.of(out.plus(returnEstimate))).orElse(null);
+				final long slots = player.getInventory().getSize() * 100L / Math.max(1, player.getInventoryLimit()), weight = player.getCurrentLoad() * 100L / Math.max(1, player.getMaxLoad());
+				cached.maintenancePressure = cached.maintenancePressure ? slots > 65 || weight > 65 : slots >= 80 || weight >= 80;
+				final var needs = maintenanceNeeds(player);
+				final var decisions = new LinkedHashMap<org.l2jmobius.gameserver.model.item.instance.Item, PhantomLootDispositionPolicy.Decision>();
+				player.getInventory().getItems().stream().sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.instance.Item::getObjectId)).limit(256)
+					.forEach(item -> decisions.put(item, PhantomLootDispositionPolicy.getInstance().evaluate(player, item, needs, false, cached.maintenancePressure)));
+				if (roundTrip == null || !_offline.saleStillEligible(player, intent, decisions, roundTrip, returnEstimate, System.currentTimeMillis())) { return terminal(profileId, context.goal(), cached, false, "income.offline.quote_changed"); }
+			}
 			final int componentProduct = PhantomOfflineSupply.componentProduct(intent);
 			final var componentTemplate = componentProduct <= 0 ? null : ItemData.getInstance().getTemplate(componentProduct);
 			if (!returning && intent.reasonKey().startsWith("supplies.component.") && (componentTemplate == null || binding.prospectiveWeaponTemplateId() == 0 && !compatible(player, componentTemplate))) { return terminal(profileId, context.goal(), cached, false, "supplies.offline.component_plan_changed"); }
@@ -1185,6 +1296,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private String navigate(long profileId, Player player, Trip trip, PhantomStepContext context, Binding binding)
 	{
 		final long now = context.logicalNowNanos();
+		if (trip.walkBudget != null && trip.walkBudget.expired(now)) { return "supplies.navigation.walk_budget"; }
 		if (now < trip.retryAt) { trip.reason = "supplies.navigation.cooldown"; return null; }
 		if (trip.plan == null)
 		{
@@ -1192,13 +1304,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				trip.origin = PhantomNativeTravelActions.point(player);
 				trip.requestDeadline = now + _navigation.policy().defaultRequestDeadlineNanos();
-				final var checkpoints = trip.localAttempt < 0 ? List.<PhantomNavigationPoint>of() : PhantomNativeTravelActions.localWalkDestinations(trip.origin, trip.destination(), _navigation.policy().maximumLocalStraightDistance());
-				if (trip.localAttempt >= checkpoints.size() && trip.localAttempt >= 0) { return "supplies.navigation.no_local_approach"; }
-				trip.requestDestination = trip.localAttempt < 0 ? trip.destination() : checkpoints.get(trip.localAttempt);
+				trip.requestDestination = trip.destination();
 				final var nativeOptions = PhantomNativeTravelActions.snapshot(player, _travel.legs(), Math.max(0, (trip.deadline - now) / 1_000_000));
-				final var options = new PhantomTravelStrategy.Options(nativeOptions.legs(), nativeOptions.speed(), nativeOptions.adena(), 0, nativeOptions.classIndex(), nativeOptions.level(), nativeOptions.epochMinute(), nativeOptions.gatekeeperAllowed(), "supplies.no_return_scroll", null, 0, nativeOptions.remainingMillis(), nativeOptions.blockedEdges());
+				final var suppliedOptions = new PhantomTravelStrategy.Options(nativeOptions.legs(), nativeOptions.speed(), nativeOptions.adena(), 0, nativeOptions.classIndex(), nativeOptions.level(), nativeOptions.epochMinute(), nativeOptions.gatekeeperAllowed(), "supplies.no_return_scroll", null, 0, nativeOptions.remainingMillis(), nativeOptions.blockedEdges());
+				final var options = income(cached(profileId).goal) ? incomeTravelOptions(suppliedOptions) : suppliedOptions;
 				final var request = new PhantomNavigationRequest(profileId, trip.origin, trip.requestDestination, now, trip.requestDeadline, _navigation.policy().maximumRouteDistance());
-				final var submission = trip.localAttempt < 0 ? _navigation.submitTravelPlan(request, options) : _navigation.submitWalkCorridor(request);
+				final var submission = trip.walkBudget == null ? _navigation.submitTravelPlan(request, options) : _navigation.submitWalkEpisode(request, trip.walkBudget.visited());
 				trip.requestId = submission.requestId();
 				if (submission.immediateResult() != null)
 				{
@@ -1218,6 +1329,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (cancelled(context, binding, player, trip.intentDeadline)) { return "supplies.navigation.cancelled"; }
 		if (stage.mode() == PhantomTravelStrategy.Mode.GK)
 		{
+			if (income(cached(profileId).goal) && PhantomNormalGatekeeperTravel.maximumFee(stage.gatekeeper(), player.getClassIndex(), player.getLevel()) != 0) { return "income.navigation.paid_gk_unsupported"; }
 			final var receipt = PhantomNativeTravelActions.gatekeeper(player, stage.gatekeeper());
 			final String evidence = "supplies.native_gatekeeper_" + receipt.status().name().toLowerCase(java.util.Locale.ROOT) + ";fee=" + receipt.fee() + ";adena=" + receipt.adenaBefore() + "->" + receipt.adenaAfter() + ";from=" + receipt.before() + ";to=" + receipt.after();
 			cached(profileId).gatekeeper = evidence; trip.reason = evidence;
@@ -1229,9 +1341,16 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		while (trip.waypoint + 1 < stage.points().size() && current.distanceTo(stage.points().get(trip.waypoint)) <= _navigation.arrivalRadius() && _native.canWalkDirect(current, stage.points().get(trip.waypoint + 1))) { trip.waypoint++; }
 		final var waypoint = stage.points().get(trip.waypoint);
 		final boolean lastWaypoint = trip.waypoint + 1 == stage.points().size();
-		if (current.distanceTo(waypoint) <= (lastWaypoint ? _navigation.arrivalRadius() : Math.min(4, _navigation.arrivalRadius())))
+		final boolean reached = lastWaypoint && trip.walkBudget != null ? current.equals(waypoint)
+			: current.distanceTo(waypoint) <= (lastWaypoint ? _navigation.arrivalRadius() : Math.min(4, _navigation.arrivalRadius()));
+		if (reached)
 		{
-			if (lastWaypoint) { stopOwnedMove(trip); trip.stage++; trip.waypoint = 0; }
+			if (lastWaypoint)
+			{
+				stopOwnedMove(trip);
+				if (trip.walkBudget != null && !trip.walkBudget.checkpoint(current, now)) { return "supplies.navigation.checkpoint_rejected"; }
+				trip.stage++; trip.waypoint = 0;
+			}
 			else { trip.waypoint++; }
 			trip.reason = "supplies.native.waypoint"; return null;
 		}
@@ -1263,33 +1382,41 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			cached(profileId).navigationRefusal = "status=" + result.status() + ";origin=" + trip.origin + ";requested=" + trip.requestDestination + ";destination=" + trip.destination()
 				+ ";actual=" + PhantomNativeTravelActions.point(trip.player) + ";approach=" + trip.destinationIndex + ";local=" + trip.localAttempt + ";stage=" + trip.stage + ";waypoint=" + trip.waypoint + ";remainingMs=" + Math.max(0, (trip.deadline - now) / 1_000_000);
-			if ((trip.localAttempt >= 0 || trip.origin.distanceTo(trip.destination()) > PhantomNativeTravelActions.LOCAL_WALK_DISTANCE)
+			if (trip.walkBudget == null && trip.player.getMoveSpeed() > 0 && trip.origin.distanceTo(trip.destination()) <= _navigation.policy().maximumRouteDistance()
 				&& Set.of(PhantomNavigationResult.Status.NO_PATH, PhantomNavigationResult.Status.ROUTE_OBSTRUCTED, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()))
 			{
-				final var checkpoints = PhantomNativeTravelActions.localWalkDestinations(PhantomNativeTravelActions.point(trip.player), trip.destination(), _navigation.policy().maximumLocalStraightDistance());
-				final int next = nextLocalCheckpoint(trip.localAttempt, checkpoints, trip.requestDestination);
-				if (next >= 0)
-				{
-					clearRoute(profileId, trip); trip.localAttempt = next;
-					trip.retryAt = now + TimeUnit.MILLISECONDS.toNanos(_navigation.policy().pathfindingCooldownMillis());
-					trip.reason = "supplies.navigation.local_checkpoint_retry"; return null;
-				}
+				// Reuse the existing native detour search and budget; retries never replace this Trip's clock/visited set.
+				trip.walkBudget = new NativeWalkBudget(trip.origin, trip.destination(), trip.startedNanos, trip.player.getMoveSpeed(), _navigation.policy());
+				clearRoute(profileId, trip);
+				trip.retryAt = now + TimeUnit.MILLISECONDS.toNanos(_navigation.policy().pathfindingCooldownMillis());
+				trip.reason = "supplies.navigation.walk_episode"; return null;
 			}
 			return "supplies.navigation." + result.status().name().toLowerCase(java.util.Locale.ROOT);
 		}
 		if (result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA) { return "supplies.navigation.unverified"; }
 		PhantomTravelStrategy.Candidate plan;
-		if (trip.localAttempt < 0) { plan = _navigation.consumeTravelPlan(trip.requestId).orElse(null); }
+		if (trip.walkBudget == null) { plan = _navigation.consumeTravelPlan(trip.requestId).orElse(null); }
 		else
 		{
-			if (!result.route().origin().equals(trip.origin) || !result.route().destination().equals(trip.requestDestination)) { return "supplies.navigation.plan_identity"; }
+			if (!result.route().origin().equals(trip.origin)) { return "supplies.navigation.plan_identity"; }
 			if (trip.player.getMoveSpeed() <= 0) { return "supplies.native.movement_disabled"; }
-			final long millis = (long) Math.ceil(1000 * result.route().totalDistance() / trip.player.getMoveSpeed());
-			if (millis > Math.max(0, (trip.deadline - now) / 1_000_000)) { return "supplies.navigation.travel_budget"; }
-			plan = new PhantomTravelStrategy.Candidate("walk.checkpoint", List.of(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.WALK, trip.origin, trip.requestDestination, result.route().waypoints(), null, millis, 0, 0)));
+			plan = nativeWalkPlan(result.route(), trip.origin, trip.requestDestination, trip.player.getMoveSpeed(), Math.max(0, (trip.deadline - now) / 1_000_000), trip.walkBudget, now);
+			if (plan == null) { return "supplies.navigation.travel_budget"; }
 		}
-		if (plan == null || !plan.stages().getFirst().from().equals(trip.origin) || !plan.stages().getLast().to().equals(trip.requestDestination)) { return "supplies.navigation.plan_identity"; }
+		final var endpoint = trip.walkBudget == null ? trip.requestDestination : result.route().destination();
+		if (plan == null || !plan.stages().getFirst().from().equals(trip.origin) || !plan.stages().getLast().to().equals(endpoint)) { return "supplies.navigation.plan_identity"; }
 		trip.plan = plan; trip.stage = 0; trip.waypoint = 0; trip.reason = "supplies.navigation.ready"; return null;
+	}
+
+	public static PhantomTravelStrategy.Candidate nativeWalkPlan(PhantomNavigationRoute route, PhantomNavigationPoint origin, PhantomNavigationPoint destination,
+		double speed, long remainingMillis, NativeWalkBudget budget, long now)
+	{
+		if (route == null || route.mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA || !route.origin().equals(origin)
+			|| budget == null && !route.destination().equals(destination) || !Double.isFinite(speed) || speed <= 0 || remainingMillis < 0) { return null; }
+		final long millis = (long) Math.ceil(1000 * route.totalDistance() / speed);
+		if (millis > remainingMillis) { return null; }
+		if (budget != null && !budget.admit(route, now)) { return null; }
+		return new PhantomTravelStrategy.Candidate("walk.checkpoint", List.of(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.WALK, origin, route.destination(), route.waypoints(), null, millis, 0, 0)));
 	}
 
 	private Optional<PhantomNavigationPoint> returnDestination(PhantomNavigationPoint field)
@@ -1422,17 +1549,18 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		private final Player player;
 		private final PlayerNativeWork.Owner owner;
-		private final long revision, deadline, intentDeadline;
+		private final long revision, startedNanos, deadline, intentDeadline;
 		private final boolean returning;
 		private final List<PhantomNavigationPoint> destinations;
 		private int destinationIndex, stage, waypoint, segmentReplans, localAttempt = -1;
 		private long requestId, requestDeadline, retryAt;
 		private PhantomNavigationPoint origin, issued, requestDestination;
 		private PhantomTravelStrategy.Candidate plan;
+		private NativeWalkBudget walkBudget;
 		private String reason = "supplies.navigation.new";
-		private Trip(Player actor, long childRevision, boolean returnTrip, List<PhantomNavigationPoint> points, long legDeadline, long durableDeadline)
+		private Trip(Player actor, long childRevision, boolean returnTrip, List<PhantomNavigationPoint> points, long started, long legDeadline, long durableDeadline)
 		{
-			player = actor; owner = actor.getNativeWorkOwner(); revision = childRevision; returning = returnTrip; destinations = points; deadline = legDeadline; intentDeadline = durableDeadline;
+			player = actor; owner = actor.getNativeWorkOwner(); revision = childRevision; returning = returnTrip; destinations = points; startedNanos = started; deadline = legDeadline; intentDeadline = durableDeadline;
 		}
 		private PhantomNavigationPoint destination() { return destinations.get(destinationIndex); }
 	}

@@ -1304,6 +1304,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					|| catchup.state().goalRevision() != stored.goal().revision() || !currentClaim(profileId, catchup)
 					|| baseline.state() != PhantomBackgroundState.State.MATERIALIZED || baseline.identity().characterObjectId() != lifetime.characterObjectId()
 					|| _acceptedIntent.test(profileId, stored.goal())) { return false; }
+				if (_visibleAutoPlay != null)
+				{
+					_visibleAutoPlay.prepareHistoricalIdleRest(profileId, stored.goal(), lifetime.characterObjectId(), lifetime.materializedAtNanos(),
+						() -> currentClaim(profileId, catchup) && Objects.equals(stored, _goals.load(profileId).orElse(null))
+							&& runtimeMatches(decision.find(profileId).orElse(null), stored) && !_acceptedIntent.test(profileId, stored.goal()));
+				}
 			}
 			final boolean authorityRenewal = (catchup != null) && (catchup.state().status() == Status.COMPLETE)
 				&& ((catchup.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (catchup.state().topologyGeneration() != generation.topologyGeneration())

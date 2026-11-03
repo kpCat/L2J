@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.l2jmobius.gameserver.data.xml.RecipeData;
 import org.l2jmobius.gameserver.model.World;
@@ -17,6 +19,7 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
+import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.network.holders.TradeItem;
 import org.l2jmobius.gameserver.model.skill.CommonSkill;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding;
@@ -27,6 +30,7 @@ import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService
 import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService.StepResult;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService.StepStatus;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomSocialEconomyGoalSpec;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketPricingAuthority;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.services.PrivateStoreService;
@@ -36,13 +40,150 @@ public final class PhantomOfflineSupply
 {
 	private static final int MAXIMUM_STORE_LINES = 64;
 	private final PhantomMultipartyEconomyService _service;
+	private final Supplier<PhantomPrivateMarketPricingAuthority> _pricing;
+	private final Supplier<List<Player>> _buyOwners;
 	private volatile org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionRecipePlanner _recipes;
 
-	public PhantomOfflineSupply(PhantomMultipartyEconomyService service) { _service = java.util.Objects.requireNonNull(service); }
+	public PhantomOfflineSupply(PhantomMultipartyEconomyService service) { this(service, () -> null, List::of); }
+	public PhantomOfflineSupply(PhantomMultipartyEconomyService service, Supplier<PhantomPrivateMarketPricingAuthority> pricing, Supplier<List<Player>> buyOwners)
+	{
+		_service = java.util.Objects.requireNonNull(service);
+		_pricing = java.util.Objects.requireNonNull(pricing);
+		_buyOwners = java.util.Objects.requireNonNull(buyOwners);
+	}
+
+	public record SaleTerms(long count, long proceeds, long netPremium)
+	{
+		public SaleTerms
+		{
+			if (count <= 0 || count > 600 || proceeds <= 0 || netPremium <= 0 || netPremium > proceeds) { throw new IllegalArgumentException("Invalid priced surplus sale."); }
+		}
+	}
+	/** Admission estimate only; native composite travel still proves and pays every actual leg. */
+	public record TravelEstimate(long fees, long minimumMillis)
+	{
+		public TravelEstimate
+		{
+			if (fees < 0 || minimumMillis < 0) { throw new IllegalArgumentException("Invalid income travel estimate."); }
+		}
+		public TravelEstimate plus(TravelEstimate other) { return new TravelEstimate(Math.addExact(fees, other.fees), Math.addExact(minimumMillis, other.minimumMillis)); }
+	}
+	private record SaleChoice(String key, SaleTerms terms, long minimumMillis, int ownerId)
+	{
+		private double premiumPerMillis() { return terms.netPremium() / (double) Math.max(1, minimumMillis); }
+	}
+	public static Optional<SaleTerms> saleTerms(int itemId, long allowed, long owned, long wanted, long price,
+		org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketPricingAuthority.ItemQuote quote, long buyerWallet, long sellerWallet, long npcUnitPrice, long fees)
+	{
+		return saleTerms(itemId, allowed, owned, wanted, price, quote, buyerWallet, sellerWallet, npcUnitPrice, fees, fees);
+	}
+	public static Optional<SaleTerms> saleTerms(int itemId, long allowed, long owned, long wanted, long price,
+		org.l2jmobius.gameserver.phantoms.economy.PhantomPrivateMarketPricingAuthority.ItemQuote quote, long buyerWallet, long sellerWallet, long npcUnitPrice, long fees, long requiredTravelFunds)
+	{
+		if (quote == null || !quote.priced() || !quote.bidAllowed() || quote.itemId() != itemId || quote.bid() <= 0 || quote.fair() <= 0
+			|| price < quote.bid() || allowed <= 0 || owned <= 0 || wanted <= 0 || buyerWallet < price || sellerWallet < 0 || fees < 0
+			|| requiredTravelFunds < 0 || requiredTravelFunds > fees || sellerWallet < requiredTravelFunds || npcUnitPrice < 0) { return Optional.empty(); }
+		final long count = Math.min(600, Math.min(Math.min(allowed, owned), Math.min(wanted, buyerWallet / price)));
+		if (count <= 0) { return Optional.empty(); }
+		try
+		{
+			final long proceeds = Math.multiplyExact(price, count);
+			final long premium = Math.subtractExact(Math.subtractExact(proceeds, Math.multiplyExact(npcUnitPrice, count)), fees);
+			return premium > 0 ? Optional.of(new SaleTerms(count, proceeds, premium)) : Optional.empty();
+		}
+		catch (ArithmeticException invalid) { return Optional.empty(); }
+	}
 	public synchronized void bindRecipePlanning(org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionRecipePlanner recipes)
 	{
 		if (_recipes != null) { throw new IllegalStateException("Offline recipe planning already bound."); }
 		_recipes = java.util.Objects.requireNonNull(recipes);
+	}
+
+	/** Discover only owned, presently disposable objects against real finite BUY demand. */
+	public Optional<PhantomGoal> offerSale(Player seller, PhantomGoal root, Binding binding, long revision, Map<Item, PhantomLootDispositionPolicy.Decision> disposition,
+		long now, long deadline, Function<Player, Optional<TravelEstimate>> roundTrip)
+	{
+		final var pricing = _pricing.get();
+		if (seller == null || pricing == null || deadline <= now) { return Optional.empty(); }
+		final var items = disposition.entrySet().stream().filter(entry -> marketSaleDisposition(entry.getValue())
+			&& entry.getKey().getOwnerId() == seller.getObjectId() && entry.getKey().getItemLocation() == ItemLocation.INVENTORY
+			&& !entry.getKey().isEquipped() && entry.getKey().isTradeable()).sorted(Comparator.comparingInt(entry -> entry.getKey().getObjectId())).toList();
+		if (items.isEmpty()) { return Optional.empty(); }
+		final var prices = new java.util.HashMap<Integer, PhantomPrivateMarketPricingAuthority.ItemQuote>();
+		for (var entry : items) { prices.computeIfAbsent(entry.getKey().getId(), pricing::quoteItem); }
+		final var choices = new ArrayList<SaleChoice>();
+		// The service snapshot is acquired before a native list lock, preserving service -> list ordering.
+		final var owners = _buyOwners.get();
+		for (var owner : owners)
+		{
+			if (!eligibleOwner(seller, owner) || owner.getPrivateStoreType() != PrivateStoreType.BUY) { continue; }
+			final var list = owner.getBuyList();
+			synchronized (list)
+			{
+				if (list.getItems().stream().limit(MAXIMUM_STORE_LINES).noneMatch(line -> line.getItem() != null && prices.containsKey(line.getItem().getId()))) { continue; }
+			}
+			final var travel = roundTrip.apply(owner).orElse(null);
+			if (travel == null || travel.fees() != 0 || travel.minimumMillis() > deadline - now) { continue; }
+			synchronized (list)
+			{
+				if (!eligibleOwner(seller, owner) || owner.getPrivateStoreType() != PrivateStoreType.BUY || owner.isProcessingTransaction() || owner.getNativeWorkOwner() != null) { continue; }
+				final String hash = PrivateStoreService.listingHash(list);
+				for (var line : list.getItems().stream().limit(MAXIMUM_STORE_LINES).toList())
+				{
+					for (var entry : items)
+					{
+						final var item = entry.getKey();
+						if (line.getItem() == null || line.getItem().getId() != item.getId()) { continue; }
+						final long npc = org.l2jmobius.gameserver.config.custom.MerchantZeroSellPriceConfig.MERCHANT_ZERO_SELL_PRICE || !item.getTemplate().isSellable() ? 0 : item.getReferencePrice() / 2L;
+						final var terms = saleTerms(item.getId(), entry.getValue().count(), item.getCount(), line.getCount(), line.getPrice(), prices.get(item.getId()), owner.getAdena(), seller.getAdena(), npc, travel.fees()).orElse(null);
+						if (terms == null) { continue; }
+						final String key = owner.getObjectId() + ";0;" + hash + ';' + terms.proceeds() + ";S:" + item.getObjectId() + ':' + terms.count() + ':' + line.getPrice() + ':' + item.getId();
+						choices.add(new SaleChoice(key, terms, travel.minimumMillis(), owner.getObjectId()));
+					}
+				}
+			}
+		}
+		return choices.stream().sorted(Comparator.comparingDouble(SaleChoice::premiumPerMillis).reversed()
+			.thenComparing(Comparator.comparingLong((SaleChoice choice) -> choice.terms().netPremium()).reversed()).thenComparingInt(SaleChoice::ownerId).thenComparing(SaleChoice::key)).findFirst().map(choice ->
+		{
+			final String type = PhantomSocialEconomyGoalSpec.STORE_SELL_GOAL;
+			final var goal = new PhantomGoal(root.goalId(), type, PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef(PhantomSocialEconomyGoalSpec.TARGET_NAMESPACE, choice.key()),
+				1, 0, null, List.of(), null, type, 750, 0, 0, deadline, Map.of(), "income.native.profitable_surplus", revision, binding.encode());
+			spec(goal);
+			return goal;
+		});
+	}
+	private static boolean marketSaleDisposition(PhantomLootDispositionPolicy.Decision decision)
+	{
+		return decision != null && decision.count() > 0 && (decision.disposition() == PhantomLootDispositionPolicy.Disposition.SELL_NPC || decision.disposition() == PhantomLootDispositionPolicy.Disposition.MARKET_RESERVE);
+	}
+	/** Fresh pre-dispatch checks; native service still owns reservation, effect and reconciliation. */
+	public boolean saleStillEligible(Player seller, PhantomGoal goal, Map<Item, PhantomLootDispositionPolicy.Decision> disposition, TravelEstimate roundTrip, TravelEstimate returning, long now)
+	{
+		if (!(spec(goal) instanceof PhantomSocialEconomyGoalSpec.StoreSell sale) || sale.lines().size() != 1
+			|| roundTrip.fees() != 0 || returning.fees() != 0 || returning.minimumMillis() > remaining(goal, now) || seller.getAdena() < returning.fees()) { return false; }
+		final var owner = World.getInstance().getPlayer(sale.counterpartyCharacterObjectId());
+		// Resolve service and pricing snapshots before entering the native list monitor.
+		final var published = _buyOwners.get(); final var pricing = _pricing.get();
+		if (pricing == null || !published.contains(owner) || !eligibleOwner(seller, owner) || owner.getPrivateStoreType() != PrivateStoreType.BUY) { return false; }
+		final var requested = sale.lines().getFirst();
+		final var item = seller.getInventory().getItemByObjectId(requested.objectId());
+		final var decision = item == null ? null : disposition.get(item);
+		if (!marketSaleDisposition(decision) || item.getOwnerId() != seller.getObjectId() || item.getId() != requested.itemId()
+			|| item.getItemLocation() != ItemLocation.INVENTORY || item.isEquipped() || !item.isTradeable()) { return false; }
+		final var quote = pricing.quoteItem(item.getId());
+		final long npc = org.l2jmobius.gameserver.config.custom.MerchantZeroSellPriceConfig.MERCHANT_ZERO_SELL_PRICE || !item.getTemplate().isSellable() ? 0 : item.getReferencePrice() / 2L;
+		final var list = owner.getBuyList();
+		synchronized (list)
+		{
+			if (!eligibleOwner(seller, owner) || owner.getPrivateStoreType() != PrivateStoreType.BUY || owner.isProcessingTransaction() || owner.getNativeWorkOwner() != null
+				|| !PrivateStoreService.listingHash(list).equals(sale.listingHash())) { return false; }
+			final var line = list.getItems().stream().filter(value -> value.getItem() != null && value.getItem().getId() == item.getId() && value.getPrice() == requested.price()).findFirst().orElse(null);
+			if (line == null) { return false; }
+			final var terms = saleTerms(item.getId(), Math.min(decision.count(), requested.count()), item.getCount(), line.getCount(), line.getPrice(), quote,
+				owner.getAdena(), seller.getAdena(), npc, roundTrip.fees(), returning.fees()).orElse(null);
+			return terms != null && terms.count() == requested.count() && terms.proceeds() >= sale.minimumTotalProceeds();
+		}
 	}
 
 	/** Only published, physically owned stock is a gear candidate; no hypothetical full-grade catalog. */

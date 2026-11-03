@@ -83,7 +83,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 
 	public static boolean social(PhantomGoal goal)
 	{
-		return goal != null && ("private.store.buy".equals(goal.goalType()) || "manufacture.item".equals(goal.goalType())) && goal.goalType().equals(goal.purposeKey());
+		return goal != null && ("private.store.buy".equals(goal.goalType()) || "private.store.sell".equals(goal.goalType()) || "manufacture.item".equals(goal.goalType())) && goal.goalType().equals(goal.purposeKey());
 	}
 	private static boolean supported(PhantomGoal goal)
 	{

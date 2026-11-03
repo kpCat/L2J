@@ -18,6 +18,21 @@ public final class PhantomPveReadiness093Suite implements PhantomTestSuite
 
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("117-canonical-idle-rests-before-farm-admission", _ ->
+		{
+			final double hp = 8.912675;
+			PhantomAssertions.assertTrue(PhantomCombatPolicy.pveIdleRestRequired(true, true, false, hp, 176), "Low-HP historical idle waited for farm viability before native REST.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveIdleRestRequired(false, true, false, hp, 176), "A noncanonical or foreign root acquired idle REST.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveIdleRestRequired(true, false, false, hp, 176), "Idle REST interrupted another native activity.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveIdleRestRequired(true, true, true, hp, 176), "Idle REST ignored a native threat.");
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveIdleRestRequired(true, true, false, 140.8, 176), "Recovered idle kept requesting REST at the existing 80 percent threshold.");
+			for (double invalid : new double[] {0, -1, Double.NaN, Double.POSITIVE_INFINITY, 177})
+			{
+				PhantomAssertions.assertFalse(PhantomCombatPolicy.pveIdleRestRequired(true, true, false, invalid, 176), "Unproven or dead native HP acquired idle REST.");
+			}
+			PhantomAssertions.assertFalse(PhantomCombatPolicy.pveIdleRestRequired(true, true, false, hp, Double.NaN), "Unknown native max HP acquired idle REST.");
+			PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Idle recovery policy initialized SQL.");
+		});
 		registry.add("117-commerce-target-does-not-poison-pve-resource-recovery", _ ->
 		{
 			final boolean ready = PhantomCombatPolicy.pveResourcesReady(129, 129, 138, 0, true);

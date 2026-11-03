@@ -77,6 +77,12 @@ public record PhantomCombatPolicy(int maximumSessions, int maximumSessionsPerPul
 		return creaturePresent && monster && alive;
 	}
 
+	public static boolean pveIdleRestRequired(boolean canonicalIdle, boolean quiet, boolean threatened, double hp, double maximumHp)
+	{
+		return canonicalIdle && quiet && !threatened && Double.isFinite(hp) && Double.isFinite(maximumHp)
+			&& hp > 0 && maximumHp > 0 && hp <= maximumHp && hp * 100 < maximumHp * PVE_RECOVERY_HP_PERCENT;
+	}
+
 	public static PveRecoveryAction pveRecoveryAction(boolean resourcesReady, boolean viable, boolean threatened, boolean nativeBusy, boolean expired)
 	{
 		if (resourcesReady && viable) { return PveRecoveryAction.ALLOW; }

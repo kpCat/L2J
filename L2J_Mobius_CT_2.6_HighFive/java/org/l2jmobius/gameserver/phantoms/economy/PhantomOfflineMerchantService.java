@@ -694,6 +694,21 @@ public final class PhantomOfflineMerchantService implements PhantomSchedulerCont
 		}
 	}
 	public synchronized List<Integer> characterIds() { return _owners.values().stream().map(Player::getObjectId).sorted().toList(); }
+	/** Identity snapshot only. Callers release this monitor before inspecting any native buy list. */
+	public synchronized List<Player> buyOwners()
+	{
+		if (_stopping) { return List.of(); }
+		return _owners.entrySet().stream().filter(entry ->
+		{
+			final var player = entry.getValue(); final var stored = _roles.get(entry.getKey()); final var lease = _leases.get(entry.getKey());
+			final var owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId());
+			return stored != null && stored.role().stage() == Stage.READY && stored.role().characterId() == player.getObjectId()
+				&& stored.role().account().equals(player.getAccountName()) && stored.role().name().equals(player.getName())
+				&& lease != null && lease.objectId() == player.getObjectId() && lease.ownerKind() == OwnerKind.PHANTOM && owner != null && owner.token() == lease.token()
+				&& ownsNative(player) && World.getInstance().getPlayer(player.getObjectId()) == player && player.getPrivateStoreType() == PrivateStoreType.BUY
+				&& player.getNativeWorkOwner() == null && player.getClient() == null && !player.hasHeadlessOutboundSession() && !player.isAlikeDead();
+		}).map(Map.Entry::getValue).sorted(Comparator.comparingInt(Player::getObjectId)).toList();
+	}
 	public boolean hasBuyDemand(int itemId) { return _wantedItems.contains(itemId); }
 	public synchronized Snapshot snapshot()
 	{

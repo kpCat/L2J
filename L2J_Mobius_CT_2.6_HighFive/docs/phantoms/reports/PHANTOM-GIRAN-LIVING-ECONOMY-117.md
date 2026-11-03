@@ -1,218 +1,267 @@
 # TASK117 — Giran Living Economy
 
-Статус: **PARTIAL_CITY / NATIVE_REQUIRED**, не FULL SUCCESS. Безопасный исправленный subset; gate B не закрыт.
-Дата: 03.11.2026. OWNER_VISUAL_PENDING учитывается отдельно.
-Baseline live GitHub `kpCat/L2J`, `feature/phantom-world`: `a7cb9a7c2bd4ced33ed693c4d6f3d22f809981a5`;
-parent `2b729ebed628d538fef8b8dae124d511658965c4`. SHA содержащего этот отчёт scoped commit и результат push — в финальном ответе.
+Статус: **PARTIAL_CITY / WEALTH_NOT_PROVEN**, не FULL SUCCESS.
+Дата: 03.11.2026. OWNER_VISUAL_PENDING отдельно. TASK118 не запускалась.
 
-## Read-first и сохранность
+Обычный NORMAL2 доказал native farm → собственную потребность → оплаченную NPC-покупку →
+возвращение → новые native rewards. SameDB/sameJAR restart10 сохранил того же персонажа и
+продолжил оплаченные улучшения экипировки и дал ещё11 native rewarded kills.
+Физический Giran visit с мотивом и paid trade не доказан. Долгосрочное богатство также не доказано.
+Последнее указание владельца: сначала осмысленное предложение, затем нужный конкретный маршрут;
+отсутствие выгодного Giran-предложения фиксировать честно.
 
-Полностью прочитаны TASK, ACCEPTANCE, EVIDENCE, GOAL, HANDOFF, PRODUCT_DECISIONS и SOURCE_MAP пакета117;
-root AGENTS.md, module Agents.md, CODEX_WORKFLOW_CONTRACT и PHANTOM_CODEX_EFFICIENCY_STANDARD.
-Также прочитаны root README, PHANTOM_CURRENT_STATUS, TASK_PACKAGE_STANDARD, bounded master plan/readme.txt/build.xml;
-bounded reports098/110/114/115/116 и заданные production seams. Устаревшие пути/credentials в Agents не использовались.
-Вышестоящие AGENTS.md и каталог `.agents` не найдены; модульного README.md нет, используется readme.txt.
-Расширения чтения: StoreService lifecycle/CAS, System admission wiring, LocalityEnvelope, существующие City098/Routes110/
-Supply071/LivingCycle111/OwnerWorld075 и private115 G0/probe/observer/version protocols — для конкретных safety/test границ.
-Большие production файлы обычно читались по symbols/ranges; несколько неудачно широких выводов были обрезаны.
-Это потеря эффективности, а не доказательство чтения полного вывода; позднее использованы нужные bounded ranges/XML attributes.
-Аналоги: настоящие planner/codec fixtures098, package-private seams111 и существующий native115 observer/G0.
-Стек сохранён: Temurin25.0.4.1, Ant1.10.17, MariaDB11.4.13, Geo203; новых зависимостей/schema продукта/AI нет.
+## Baseline, read-first и сохранность
 
-Основной checkout имеет HEAD `236b965a116bbc79cccbef78b04c628225a629cb` и уникальный dirty WIP109.
-Его branch/HEAD/файлы не обновлялись. Отдельная физическая source-копия создана `clone --no-hardlinks` из exact116 HEAD;
-существующие worktrees только читались. До начала сохранены текущие SHA-256/размеры1222 protected файлов, включая WIP и task117.
-Ни один уникальный WIP-файл не заменялся/не переносился. Runtime пишет только в собственный внешний TEST117 stage.
-Приватные evidence/source доступны только двум локальным execution identities и SYSTEM; сам runtime stage — owner+SYSTEM.
-MAIN/PLAY, TEST109–116, release057–061, исходная Geo, сервис MariaDB, UAC/firewall и клиент не изменялись.
+Начальный live GitHub kpCat/L2J feature/phantom-world:
+`a7cb9a7c2bd4ced33ed693c4d6f3d22f809981a5`, parent
+`2b729ebed628d538fef8b8dae124d511658965c4`.
+Уже опубликован безопасный subset `33251ecb6c39c5a3f297dbe1fb98a28303f7e7db`, parent a7cb9a7.
+Это собственная публикация TASK117; continuation проверяет live33251 и останавливается при внешнем drift.
+Следующий scoped commit/push и remote SHA указываются в финальном ответе после проверки.
 
-## Исправленный причинный blocker
+Полностью прочитаны семь файлов TASK/ACCEPTANCE/EVIDENCE/GOAL/HANDOFF/PRODUCT_DECISIONS/SOURCE_MAP,
+root AGENTS.md, module Agents.md, CODEX_WORKFLOW_CONTRACT, PHANTOM_CODEX_EFFICIENCY_STANDARD.
+Прочитаны README/readme.txt, PHANTOM_CURRENT_STATUS, TASK_PACKAGE_STANDARD, bounded master plan,
+build.xml, ближайшие reports098/110/114/115/116 и ответственные production seams.
+Вышестоящие AGENTS.md и .agents не найдены; модульного README.md нет.
+Аналоги: существующие City098/Routes110/Supply071/Living111, AutoPlay owner/ActionLease,
+конечный merchant Ledger099 и private115 G0/observer/version protocol.
 
-Source-review выявил два P1 на одной цепочке: `freeDestination` требовал отсутствия human PREWARM даже для native WALK,
-а `consider` применял тот же quiet recovery guard к только что прибывшему обычному city child.
-Удалён только human exclusion из destination: PeaceZone/NoStore/Geo/World/spacing/reservation остаются.
-В `consider` наблюдаемая торговля разрешена только для bound COMPLETED city child с `quote.expires`.
-Null/legacy/proposed/ACTIVE/FAILED, stale root, foreign actor, старый/истёкший quote исключения не получают.
-Сохранены actual identity/class/epoch, root/revision, fresh stock/price/need/funds, action admission, CAS и STORE.
-`beforeWorldSpawn` по-прежнему требует unobserved; native GK сохраняет обе visibility fences, arm-before-payment и receipt.
-Новых durable/runtime writers, workers/timers/caches и способов начисления денег/предметов нет.
+Основной checkout HEAD236b965a116bbc79cccbef78b04c628225a629cb с dirty WIP109 не изменялся.
+1222 protected текущих preimages проверяются SHA-256/размером в G0/postflight.
+Использована одна отдельная физическая source-копия exact116 HEAD, clone --no-hardlinks;
+runtime — единственная собственная TEST117:
+`l2jmobiush5_phantom_test_117`, UUID `aa8dfaf8-3df7-494f-af91-750d467a5eea`.
+MAIN/PLAY, TEST109–116, release057–061, клиент, исходная Geo и общая MariaDB не изменялись.
+Runtime ACL owner+SYSTEM, физические пути, Geo203/1063452308 bytes, inputs29091.
+JDK25.0.4.1, Ant1.10.17, MariaDB11.4.13, SQL loopback3308, собственный GS17777.
+Shadow cohort24/active8/materialized8/merchant target24 — разрешённый test scope;
+public owner rates, Geo, enchant, market policy, конфиги и secrets не менялись.
 
-Focused test добавлен в существующий same-package `PhantomLivingCycle111Test` с настоящими admitted/arrived/codec fixtures.
-При прежнем production predicate, выделенном без изменения семантики, получен RED1:
-`TASK117_OBSERVED_BOUND_CITY_ARRIVAL_BLOCKED`. После narrow fix — GREEN0, все прежние111 checks сохранены.
-Это **POLICY/CODEC_VERIFIED**, не DECISION/NATIVE proof. Малого готового DB-free seam для World/Geo destination нет;
-сохранность остальных guards проверена exact source review. Независимый review текущего diff: P1=0/P2=0.
+## Проверки и исправления
 
-Bounded exception:9 public файлов по одной цепочке economy/return/offline. Дополнительные3 файла необходимы для
-обнаруженного пользователем crash-loop admission; это не отдельный goal или housekeeping. Exact allowlist относительно High Five:
+Первый настоящий DB-free causal filter: life-scenarios116 seed11611601 32/32,
+Supply071 seed11711701 7/7, targeted City098 и Routes110 — exit0.
+Нативный запуск начат только после полного privileged G0, full metadata/grants/foreignSessions0,
+PID/FILETIME/binary/config/datadir identity и отсутствующей own117.
+CREATE был ровно один: stock121 SQL files/203 statements;18 DROP пропущены.
+Нет adopt/reset/reseed/drop чужой либо существующей БД.
 
-- `java/org/l2jmobius/gameserver/phantoms/economy/PhantomAutonomousMarketProducer.java`;
-- `test/java/org/l2jmobius/tests/phantoms/PhantomLivingCycle111Test.java`;
-- `java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java`;
-- `java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatPolicy.java`;
-- `test/java/org/l2jmobius/tests/phantoms/PhantomPveReadiness093Suite.java`;
-- `java/org/l2jmobius/gameserver/phantoms/economy/PhantomMerchantBootstrap.java`;
-- `java/org/l2jmobius/gameserver/phantoms/economy/PhantomOfflineMerchantService.java`;
-- `test/java/org/l2jmobius/tests/phantoms/PhantomMerchant099Checks.java`;
-- этот отчёт.
+Проверенные production изменения одной commerce/return цепочки:
 
-Native2 выявил настоящий RETURN blocker: selected target оставался merchant30002/object268462798; полные HP129/129,
-MP138/138 давали resource EXPIRED до штатной очистки target. Новый primitive classifier в существующем CombatPolicy
-проверяет PvE viability только живого Monster. Timers/threat/busy/attack permission/owner/epoch/CAS не изменены.
-Existing093 regression: RED69/70 merchant ALLOW→EXPIRED; GREEN70/70, nonviable Monster EXPIRED/low-resource REST сохранены.
-Native3 после исправления: тот же NORMAL3 получил3 rewarded kills,+315EXP/+30SP; merchant target штатно очищен.
+1. City visibility: lawful native WALK не отменяется из-за human PREWARM; observed trading допускается
+   только для свежего bound COMPLETED city child. GK/beforeWorldSpawn/NoStore/Geo/spacing/CAS fences сохранены.
+   Existing111 actual-policy RED→GREEN; это не native Giran proof.
+2. Combat после торговли: living NPC-merchant ошибочно попадал в resource viability как PvE target.
+   Теперь viability относится к living Monster; низкие ресурсы по-прежнему требуют REST.
+   Existing093 RED69/70→GREEN70/70.
+3. Merchant stock: cumulative128 kinds при очередном birth вызывали Invalid bounded merchant stock.
+   Учитывается distinct union issued/pending/new kinds до reserve, role8 и все finite quotas/CAS сохранены.
+   Existing099 exact exception RED→GREEN; лимит/schema не повышались.
+4. Early REST: canonical historical idle может сесть через существующий AutoPlay/ActionLease/player.sitDown
+   после проверки claim и свежих native quiet/threat/HP/epoch фактов.
+   Нет fake farm Session, HP projection, продления phase deadline или сброса proof debt.
+   Existing093 RED70/71→GREEN71/71; Native7 и Native9 прошли реальный sit→farm.
+5. Supply WALK: после отсутствия полного коридора переиспользуется существующий submitWalkEpisode/
+   NativeWalkBudget, с общим original-start budget, exact physical checkpoints и прежним durable journey.
+   Промежуточный endpoint не объявляется merchant arrival. Existing111 RED→GREEN; Native8/9 реально прошли WALK.
+6. Strict offline income: существующий Multiparty StoreSell/PrivateStoreService подключён к продаже
+   разрешённого disposable surplus действующему BUY Player. Реальные count/hash/price/capital и
+   PhantomLootDispositionPolicy повторно проверяются; starter/need/learned recipe/global craft reserves сохранены.
+   Snapshot READY/PHANTOM-owned BUY берётся до native-list lock. World/global player scan не добавлен.
+   Новый income допускает только WALK и штатные GK с maximumFee0: paid income travel UNSUPPORTED.
+   Это закрывает найденный review P2 min-fee estimate vs native time-first debit без нового fee-ledger.
+   Positive POLICY/CODEC проверены; paid StoreSell и полный native selector-positive НЕ наблюдались.
+7. Оценка Supply использует существующие certified D1 paths до4GK и maximum fees.
+   Это admission estimate, не Geo/native route proof; исходный GK catalog54 не расширен.
 
-По сообщению пользователя проверен основной GUI error log: native3 имел928 повторов `Invalid bounded merchant stock`.
-Причина: birth stock не учитывал cumulative ledger128 kinds. Новый read-only capacity guard считает distinct union
-issued/pending/candidate до подбора stock; final reserve/атомарный role+ledger commit и128/8/4096-byte/schema1 сохранены.
-099 regression воспроизвёл точное исключение RED, затем GREEN; existing-kind reserve потребляет прежние finite quotas.
-При отсутствии подходящего stock остаётся законный недобор target. Отдельный shutdown RuntimeException Own117View
-вызван premature online=false приватного observer; helper исправлен по existing Population102 stock deleteMe pattern.
-Это не изменение Player/ThreadPool. Старые native runs не считаются чистой приёмкой. Теперь main error0.log входит в gate.
+Read-only review исправленного e4 subset: P1/P2=0.
+Последний affected gate после exact source возврата: 11632/0717/City098/Routes110/Living111 exit0.
+Ранее для той же reviewed source: combat71, historical-idle-visible0686, Merchant099,
+Travel089/091 — exit0. Общий ant verify с DB-проверками не запускался.
+Optional OwnerWorld075: исправленная cwd-попытка7/8; оставшийся obsolete source-marker тест
+падает так же на baseline, вне изменённого scope. Не объявляется GREEN.
 
-## SQL/G0 и единственная среда
+## Native evidence и ограничения атрибуции
 
-Единственная схема: `l2jmobiush5_phantom_test_117`, installation UUID `aa8dfaf8-3df7-494f-af91-750d467a5eea`.
-Stage: `%TEMP%/Phantom-Native-Life-117-aa8dfaf8-3df7-494f-af91-750d467a5eea`.
-Полный G0 перед CREATE: свежий published privileged OS receipt, PID/FILETIME/binary/config/loopback3308/datadir/version,
-SQL full metadata visibility/grants, foreign sessions0, absent117, protected1222, disjoint physical ACL/UUID/owner,
-sealed source/JAR/input29091/Geo203 и stock SQL plan. OS identity отдельно не считалась полным G0.
-CREATE выполнен после `g0.full.pass`:121 stock SQL-файл,203 statement,18 DROP пропущены; adopt/reset/reseed=0.
-Перед каждым native/postflight повторяются OS/process/protected/ownership/input guards и проверка live baseline перед start.
-Shadow overrides: loopback17777, population24/active8/materialized8, merchant target/hard cap24.
-Сохранены ordinary market cap2, merchant lines20, цены/финансирование, rates/Premium/Alt+B/Owner38/enchant/QoL/Geo настройки.
-Merchant seed/funding конечен и классифицируется OWNER_PROVISIONED; это не native заработок обычного NORMAL.
+Текущий финальный production JAR:
+`e4e63f7438b2b2ed2ba46850acef4bd283cc0a13491f0cc99d5e78a124e47d10`.
+Все14 Java source/test файлов и JAR source-копии побайтово совпали с sealed runtime Native9.
+После этого JAR не пересобирался. Native9 и10 используют ту же DB и тот же JAR.
 
-## Native evidence и границы
+| Runs | Наблюдение |
+|---|---|
+| 1–3 | Диагностика; main error-log обнаружен поздно. Run3:928 merchant stock exceptions. Не clean acceptance. |
+| 4 | JAR7674, NORMAL3:7 rewards/+3570EXP/+340SP; error-log пуст. |
+| 5–6 | Тот же7674; native rewards0, finite REGEN PHASE_DEADLINE. Полезный restart не доказан. |
+| 7 | JAR3038, NORMAL4: early REST,4 rewards420EXP40SP; затем реальный cliff-route отказ. |
+| 8 | JARf243, selected с начала NORMAL5:7 rewards609EXP70SP. Вторичный NORMAL4 дошёл в DarkElfTown, купил и вернулся; его новых rewards8 нет. Акторы не объединяются. |
+| 9 | JAR e4, NORMAL2:13 rewards1098EXP126SP, paid1835, возврат, ещё6 rewarded kills. |
+| 10 | Тот же e4/DB, тот же NORMAL2, новый epoch; сохранены деньги/43shots, новые paid gear/equip, затем11 rewards957EXP110SP. |
 
-Private receipt family: `%TEMP%/phantom-giran-economy-117/`; samples/life/inventory/stores/STORE — в `stage/private`.
-Flight recorder эффективной policy выключен: flight log не получен и не объявляется evidence.
-Baseline diagnostic JAR: `44f06da50152d844a05f6cdf0dee4913c5fd18793574c4f464eb2e8db5a6d7f2`.
-Промежуточные JAR: `2199e4696c269fb8b80d9280a39c60ea1835a9b877ad713e9803a5a05d45756d` (city visibility)
-и `23faeb5911af3e477e2c50647b9702b3466bfffb152c7cd3a5d1ecd960d091be` (resource target).
-Final JAR: `7674c27298e4d8d4cf6f0d7f428cbe738665193d863275756f631c6eead94871` (merchant capacity).
-Каждая переустановка только exact изменённых Java/test/JAR после STOP/postflight предыдущего запуска, byte backups/SHA сохранены;
-initial DB authority/inputs receipt не переписывались. Диагностические успехи старого JAR не заменяют final pair.
+Native9: NORMAL/WORLD profile2/object268484316, class44, epoch508776837076600,
+root8649908324164858117. Начало12:54:06Z: level2/EXP348/SP40/Adena5047.
+До торговли7 native rewards, кошелёк5119.
+Receipt `88efb22492a699a8429d56f89bbaa979b353af182e8543d0ca2f54c6c4c10895`:
+root/child revision2, NPC30561/object268462872/list3056100, BUY1835×60 за480A,
+COMMITTED5119/0→4639/60, World(-44184,-115464,-216), instance0.
+Затем фактический return к PvE и ещё6 kills/+522EXP/+60SP/+74A.
+Итог13 rewards/+1098EXP/+126SP; level4/EXP1446/SP166.
+Всё это Orc area, не Giran и не координаты FOLLOW-наблюдателя.
 
-| Наблюдение native1 | Проверенный факт | Граница |
-|---|---|---|
-| NORMAL22 | object268484612, class10/level3, epoch491110545529900, root2708093140276295190 | Настоящий World Player; observer не является actor |
-| Paid NPC BUY22 | NPC30004/object268462800/list3000400, item3947×60,2400A; COMMITTED rev0;5078/0→2678/60;XYZ−84343,240597,−3720 | Talking Island, не Giran; initial5000+historical78 не native earnings |
-| Return/rewards22 | Возврат к полю,5 новых native rewarded kills,+1218EXP/+140SP; stock60→49 | Реальное продолжение; не доказывает Giran |
-| NORMAL3 | object268484369, epoch491193843190000, root5277150124167947492; тот же BUY3947×60,2400A,COMMITTED | Собственная identity/root/revision, не synthetic receipt |
-| Return/rewards3 | 6 native rewarded kills,+522EXP/+60SP; новая оплаченная equipment7 | Historical начальные609EXP/70SP отделены |
-| Giran stores | Физические offline Player SELL/BUY/MFG; ранний срез14SELL/7BUY/2MFG | OPEN/цена не объявляются paid trade |
-| MFG identity | objects268484359 и268484555; реальные recipe/fee lists, World XYZ/PHANTOM lease; client=null | Customer payment/manufacture не наблюдались |
-| Native1 finish | штатные STORE/STOP/exit0/postflight PASS; pending catchup0; identities/inventory сохранены | До production fix; только диагностическая эпоха |
+Native9 STOP/exit0/postflight PASS, UTC13:07:49Z; error9.log0 bytes.
+Restart10 восстановил profile2/object268484316, новый epoch514553377367400,
+Adena4713 и43shots: старые480A не списались повторно.
+Новые COMMITTED: item253×1/678A (4713→4035), item22×1/2150A (4035→1885),
+item29×1/1345A (1885→540), item35×1/32A (540→508), item48×1/32A.
+Предметы реально появились/экипировались; это новые операции/revisions, не replay старого receipt.
+После покупок/возвращения получены11 новых native rewards957EXP110SP, native unproven=NONE.
+Root8649908324164858117 сохранён, revision7/farm.background, targetNPC18342 — законное перепланирование.
+Final STORE: level4/EXP2403/SP276, cash577, тот же stack1835/object268488478 count22.
+Экипированы253/22/29/35/48; weapon253 — Spiked Gloves по stock ItemData.
+STOP/exit0/postflight10 PASS UTC14:51:20Z; archived error10.log0 bytes, own/foreign sessions0, World/JVM0.
+Сохранены24 cohort identities; старый receipt9 присутствует как история, не новая оплата.
 
-Final7674 native4: NORMAL3/object268484369, class10/level6, epoch497109374157700, root5277150124167947492;
-03.11.2026 09:41:59 UTC, XYZ−88699,241385,−3560:7 новых native kills/rewards,+3570EXP/+340SP, всего6066EXP/600SP.
-Native4 штатно STORE/STOP/exit0/postflight PASS. Native5 на той же DB/JAR сохранил identity/items/receipts и24 stores,
-но начал с HP8.9/176: длительное восстановление → sticky PHASE_DEADLINE → LOCAL_FARM_UNAVAILABLE; новых native rewards0.
-Его EXP7851/SP770/Adena682 включают historical catchup и не засчитываются native результатом рестарта.
-STOP/exit0/postflight5 PASS. Гипотеза native6 о здоровых сохранённых vitals опровергнута: начальные HP8.912675/176,
-MP69.010984/171 повторились; epoch498344026106200, native rewards0 и PHASE_DEADLINE. EXP9426/SP920/Adena764 — не native credit.
-Native6 штатно STORE/STOP/exit0/postflight PASS, game6.exit0 10:04:10UTC и postflight6.pass 10:04:34UTC, тот же final7674.
-Native4–6 error0.log0bytes, SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`, включая cleanup.
-Это исправляет наблюдавшийся exception-loop, но не закрывает gameplay restart. Source review подтверждает существующий
-конечный REGEN horizon120s/sticky proof debt и tests022: новый малый дефект для безопасного RED→GREEN не доказан.
-Debt/timers/caps/HP не сбрасывались. Полное восстановление live vitals нельзя объявлять сохранением native snapshot.
+Первый старт10 fail-closed до JDBC/GameServer: истёк локальный6h owner expiresUtc.
+После нового явного указания владельца продолжать тот же scope продлён только expiresUtc;
+тот же UUID/schema/SID/JAR/initial inputs, byte preimage/SHA сохранены, expiry check не отключён.
+Первый File.Replace с null backup-path не применился; предварительный receipt сохранён как failed,
+затем запись/readback проверены. SQL authority/db.created не менялись, полный G0 повторён.
+Это не изменение игрового времени, rates или данных персонажей.
 
-Фактический ordinary Giran motive/route/arrival, paid commerce там и последующий RETURN ещё не доказаны.
-Настоящий NPC BUY на другом острове не закрывает City gate; присутствие Гирана только в topology/quote не считается поездкой.
-Координаты/follow/телепортации labelled test-human не являются travel evidence фантома. После cut NORMAL не задавались XP/SP/items/Adena/goal/XYZ.
+## Экономика: факты вместо заявления о богатстве
 
-Route finding: обычные travel owners видят54 сертифицированных D1 GK legs, без исходящего Talking Island leg.
-Stock Roxxy30006 NORMAL0→Gludin имеет catalog/base fee18000A, фактический native debit не проверен.
-Effective MaxFreeTeleportLevel=40 сохранён: production maximumFee для main class level6 возвращает0;
-кошелёк NORMAL3 менее1000A сам по себе не доказывает недоступность поездки. Экономическая причина поездки не наблюдалась.
-`observeNativeLeg` используется career owner, но raw leg имеет пустой toAnchorId: без arrival/checkpoint контракта
-его включение в ordinary market может списать fee и затем сломать checkpoint. Исторические D1/provenance не подделывались.
-Это source compatibility finding; native отказ именно на Roxxy не наблюдался. Hardcoded mustVisitGiran не добавлялся.
-Не найден ordinary earned-surplus producer для продажи offline BUY; наличие generic executor не доказывает его вызов.
-Новый выбор города/сеть маршрутов/экономический стимул без доказанной ошибки не внедрялись.
+Rates.ini source==runtime: XP3/SP5; death amount10/chance8, spoil amount20/chance10.
+Для item57 overrides amount1/chance1 **заменяют**, а не дополняют global10/8.
+NpcTemplate использует if/else per-item selection; stat/champion/level-gap modifiers идут отдельно.
+PremiumLootPolicy.eligible исключает native-managed NORMAL, несмотря на EnablePremiumSystem=True.
+Индивидуальные per-kill champion/stat modifiers отдельно не измерены; base override1/1 доказан.
 
-Final offline срез:15SELL/7BUY/2MANUFACTURE, все World Player, client=null, headlessSession=false, PHANTOM leases.
-SELL268484273:XYZ82440,148860,−3464, например item12148/object268484276×1 по69634A.
-BUY268484282:XYZ82040,148700,−3248, капитал50100000A OWNER_PROVISIONED;3947×100 по36A, реальные20 buy lines.
-MFG268484359:XYZ82280,148780,−3464, recipes58:2340/59:2648/60:1748/61:3540/66:296/67:184A;
-MFG268484555:XYZ81960,148860,−3464, recipes110:1636/111:1433/112:1433/113:4368/114:2704/115:13900A.
-Каждый MFG имеет100000A finite provision. Paid manufacture/продажа BUY-покупателю/покупка SELL-клиентом не наблюдались.
+Native9 balance NORMAL2:
+
+| Категория | Adena / stock |
+|---|---:|
+| Исходный seed | 5000A |
+| Исторический earned до native9 | 47A |
+| Новый native-earned9 | +146A:72 до покупки +74 после |
+| Реальная закупка1835 | −480A,60шт по8A |
+| Финальный cash9 | 4713A, delta−334A |
+| Осталось1835 | 43шт;17 израсходовано |
+
+По закупочной стоимости расход17shots=136A;43 остатка=344A.
+Cash+stock cost basis даёт +10A относительно5047, **не cash profit и не liquidation/fair value**.
+После покупки6 kills дали74A при расходе136A:−62A по этой оценке.
+В native10 заработано101A, paid gear4237A:4713+101−4237=577.
+Израсходовано ещё21shots, осталось22; стоимость расхода168A против101A native income.
+Совместно9+10:24 native rewarded kills,2055EXP/236SP,247A gross native income;
+38 shots расхода по8A=304A, operating book result **−57A** до оценки gear/inventory по fair/liquidation.
+Полная cash identity:5047+247−480−4237=577. Начальный seed и historical47A отдельно.
+Cash+gear acquisition4237+остатокshots176=4990 против исходных5047;
+это отрицательный результат даже по закупочной оценке, не доказательство богатства.
+Долгосрочный положительный доход и постепенное богатство НЕ доказаны; обнаружен отрицательный короткий участок.
+Новые gear10 в основном оплачены сохранённым seed; не называются полностью native-earned развитием.
+NPC sales, доход от offline BUY, spoil и quests у NORMAL2 в9 не наблюдались.
+Merchant seed/provision, historical earned и native-earned не смешиваются.
+
+Для проверенных начальных SKU Orc NPC выгоднее текущего Giran SELL:
+1/13/308:678A против712A;35/48:32 против34;41:48 против51;28:81 против86.
+Native Product/CatalogLoader/baseTax Orc15% подтверждены source:
+Jakal30558/list3055800(item1/13)/3055801(item308), Kunai30559/list3055900(item28/48/35/41).
+Native10 действительно заплатил32A за35 и48 против Giran34A для каждого.
+Поэтому игроку не навязывался Giran и не менялись цены/ассортимент ради gate.
+В gear branch offline рассматривается только при пустом NPC choice; это ограничение будущего сравнения,
+но текущая более выгодная SAME-SKU Giran пара не обнаружена.
+
+## Торговцы и границы quantity/craft
+
+В own117 наблюдались24 настоящих offline Players:15 SELL/7 BUY/2 MFG, instance0 в Giran,
+finite inventory/capital/list, clientNull/identity/store ownership; captest24, а не заявленные250.
+Native4–10 error-logs пусты, stop/restart сохранял offline rows24; Native9/10 lines262.
+OPEN/цена/MFG menu не объявляются paid trade. Оплаченный customer у этих offline stores не наблюдался.
+Final10:15SELL/7BUY/2MFG; persisted offline hash9=10
+ae2c8361384748ac66b9d238384f5c37a230e4e6bd6627057c9159158a4c45ed.
+Legal spawn/NoStore/observed-rotation fences не менялись. Отдельный визуальный прогон клиента в Giran не выполнен.
+
+Quantity source-map:
+- dist/game/data/phantoms/life/high-five-autonomous-supply-v1.xml: targetHits60, lowWater3,
+  minimumAdenaReserve500, retry30s, journey8min; policy допускает targetHits≤100.
+- commerce/L2jPhantomSupplyJourney:369 targetStock=min600/perHit×targetHits;
+  mobilePurchase:737 count≤600, capacity/weight, движение и load≤60%; NPC-source parse:1477.
+- PhantomAutonomousSupplyPolicy:33–39 reserve — savings target, НЕ ROI/anti-bankruptcy guarantee;
+  полезность поездки не является полноценным farm-duration/cost-per-reward planner.
+- PhantomInventoryMaintenanceIntent:21/31: до4 операций и count≤600.
+  Существуют последовательные maintenance SELL после COMMITTED, а не общий bulk-shot purchase loop.
+- PhantomCommerceReceipt.OperationRequest не имеет общего cap600;
+  CommerceService:390–403 и backend требуют exact count/price×count/hash/conservation.
+
+60/600 не повышались. Текущую native цепочку они не остановили, но для долгого/high-level фарма
+тысячи shots/сотни-тысячи Blessed требуют отдельных подтверждённых последовательных партий
+или согласованного архитектурного решения, не механического изменения константы.
+
+PhantomLootDispositionPolicy сохраняет starter/need/learned recipe/unknown/enchanted/equipped,
+crystal/recipe/craft reserve; warehouse и native commerce остаются владельцами операций.
+OfflineSupply/acquisition planner имеет BOM/manufacture quotes и success-rate inputs;
+автономное сравнение всех keep/buy-BOM/learn-recipe/craft/60%-risk/buy-finished вариантов,
+самостоятельное производство гномами и положительный ROI этим прогоном НЕ доказаны.
+Это source-map ограничений, не новая микрозадача и не запуск TASK118.
+
+## Отклонённые эксперименты, scope, ресурсы
+
+До последнего уточнения владельца source-only audit нашёл missing Orc30576/return legs в54 D1
+и исследовал foreground catalog155/finite preselection. Это начато до подтверждённого Giran quote.
+По указанию владельца работу остановили: три source файла и private audit сохранены побайтово/SHA,
+затем exact пути возвращены из sealed native9. Ни новый catalog, ни preselection/hop-index
+не попали в JAR/runtime/публикацию. Их fixture/source результаты не выдаются за native evidence.
+Слишком широкие/обрезанные чтения и эта ненужная ветка увеличили расход; скрывать это нельзя.
+
+Bounded exception:15 public файлов одной causal commerce/return цепочки,14 Java/test + этот отчёт.
+Разрешённый Java prefix: java/org/l2jmobius/gameserver/phantoms/:
+PhantomSystem; background/{PhantomVisibleAutoPlay,PhantomHistoricalBackgroundService,PhantomVisibleFarmTravel};
+combat/PhantomCombatPolicy; commerce/{L2jPhantomSupplyJourney,PhantomOfflineSupply,PhantomSupplyIntentStore};
+economy/{PhantomAutonomousMarketProducer,PhantomMerchantBootstrap,PhantomOfflineMerchantService}.
+Tests: PhantomLivingCycle111Test, PhantomPveReadiness093Suite, PhantomMerchant099Checks.
+PhantomCompositeTravelPlanner, configs, schemas, Geo, binaries, secrets и private helpers исключены из public diff.
+
+JAR builds8, wall time177s; один earlyREST pre-review build отброшен и не установлен.
+Физических source checkout1, собственных DB1, native runs1–10; pre-DB expiry failure не является game run.
+Measured native wall sum10623019ms =2h57m3.019s; run9=844900ms, run10=1206876ms.
+Peak recorded heap4067342432bytes (около3.79GiB), max threads136, JVM -Xmx4g.
+14 активных private helpers переиспользуют115 protocol; архивные эксперименты не активны.
+Goal snapshot перед публикацией:2129942 tokens/26106s (7h15m6s), без заданных hard time/token limits.
+Это счётчик Goal, не invoice; денежная стоимость API и total CPU seconds недоступны.
+Финальный счётчик после commit/push — в ответе, без выдуманной USD-суммы.
+
+Git разрешён текущей задачей для baseline/scope/publication. Использованы команды с bounded путями:
+rev-parse HEAD / <baseline>^ / --abbrev-ref @{upstream} / --git-dir / --git-common-dir;
+symbolic-ref --short HEAD; status --short --branch; status --short --untracked-files=no;
+status --porcelain --untracked-files=all -- <protected paths>; worktree list --porcelain;
+for-each-ref; ls-tree; merge-base; ls-remote <canonical-or-origin> refs/heads/feature/phantom-world;
+clone --no-hardlinks --single-branch <exact116-local> <own-source>;
+diff [--stat|--check] [33251ecb] -- <exact paths>, review diff --unified=2 33251ecb -- <exact paths>.
+Изолированная sandbox-owned copy использует per-command -c safe.directory=<own-source> -C <own-source>;
+global safe.directory не менялся. Publication: add -- <exact9, затем exact12 paths>;
+diff --cached --name-only / --check / --stat / -- <exact paths>;
+commit -m "TASK117: guard native city continuation and finite merchant stock" для33251;
+commit -m "TASK117: preserve native commerce return and same-JAR restart" для следующего subset.
+Не выполнялись clean/reset--hard/stash/force checkout/add./force push/rebase/history rewrite.
+Source origin локальный, поэтому публикация — только явный https://github.com/kpCat/L2J.git
+HEAD:refs/heads/feature/phantom-world после fresh remote/scope/secrets/review gates.
+
+- Mojibake-маркеры в изменённых файлах проверены:27 markers,15 exact paths, PASS.
+- Escaped Cyrillic в изменённых файлах проверены:6 regex,15 exact paths, PASS.
+- Native10/postflight PASS; финальные staged scope/secrets/review/remote gates выполняются перед push.
+
+## Итоговые gates
 
 | Gate | Результат |
 |---|---|
-| A | POLICY/CODEC_VERIFIED: required fast checks GREEN; end-to-end ordinary city DECISION не доказан |
-| B | NATIVE_REQUIRED: NORMAL в Гиране не доказан |
-| C | PARTIAL: реальные оплаченные NPC BUY/RETURN/rewards на Talking Island, на диагностических JAR; связанного Giran cycle нет |
-| D | NATIVE_VERIFIED:24 физических offline stores BUY/SELL/MFG; оплаченные клиентские операции UNKNOWN |
-| E | G0/STORE/STOP/SQL/protected PASS; final sameDB/sameJAR4→5→6 есть, новые useful rewards после рестарта не доказаны; NATIVE_REQUIRED |
-| Visual | OWNER_VISUAL_PENDING; автоматические World samples не заменяют визуальную приёмку владельца |
+| A causal DB-free | PASS, уровни POLICY/CODEC/native в отчёте разделены |
+| B мотивированный physical Giran | NATIVE_REQUIRED; выгодного текущего предложения не установлено |
+| C paid commerce → return → new rewards | PASS, NORMAL2 в Orc area |
+| D настоящие offline BUY/SELL/MFG | World/identity/stock/restart PASS; paid customer/визуальный клиент NOT_RUN |
+| E sameDB/sameJAR restart/safety | PASS9→10, новые11 rewards, STORE, STOP/postflight, no replay |
+| Wealth growth / bulk shots / полный craft ROI | NOT_PROVEN; наблюдён operating book−57A, лимиты/source-map сохранены |
 
-## Проверки и промежуточные отказы
-
-- compile-tests host: exit0,31s,5 прежних warnings; OwnerProfile38/XML/quest verifier PASS.
-- Четыре `ant -f L2J_Mobius_CT_2.6_HighFive/build.xml jar`: exit0,25/21/20/24s. Ant запуски последовательны.
-- После последнего production fix: life-scenarios116 seed11611601:32/32; supply071 seed11711701:7/7;
-  combat-core seed11711701:70/70; City098, Routes110, LivingCycle111+117 и Merchant099+117 GREEN, exit0.
-- Focused checks запускались после причинных изменений; общий DB-containing `ant verify` не запускался.
-- Optional owner075: сначала4/8 из-за неправильного cwd; один исправленный game-cwd retry7/8.
-  Остался исторический `ordinary-shop-rest-trip-keeps-root-and-rejects-paid-replay`: source substring end marker отсутствует
-  уже в exact baseline116 (index−1), StringIndexOutOfBounds. Старый unrelated test не изменён; all-tests-green не заявляется.
-- Setup: PS7 ACL overload отсутствует; Set-Acl denied SeSecurityPrivilege; bounded icacls grant собственной директории выполнен.
-  Sandbox verifier/build AccessDenied; тот же неизменённый verifier host38 PASS. Никакие G0 guards не отключались.
-- Git host status собственной sandbox-owned clone один раз отказал dubious ownership; global safe.directory не менялся.
-
-## Ресурсы, Git и финальные guards
-
-Native starts6, одна DB; первые3 — диагностические,4–6 — final7674. Native elapsed по resources1–5:
-1647967/1184463/994069/388065/672436ms; native6=288992ms, всего5175992ms (86.27min).
-Peak heap1–5:4067342432 bytes; peak threads136; JVM Xmx4g. Geo203=1063452308bytes, только физическая собственная копия.
-Суммарные Ant jar90s; compile-tests31s. Final Java diff8файлов:120 insertions/8 deletions (production5,test3); report отдельно.
-Private helpers14 активных:6PS+5Java+3Python, единственная native115 family; immutable Run117 preimage отдельно.
-Включены G0/SQL/Geo/seal/version/observer/encoding guard, нового AI/DSL/экономики нет. Observer Java38226bytes;
-SQL probe22295bytes; все active helper files суммарно103595bytes. Это заметный частный test overhead.
-Поздняя проверка GUI error log стоила дополнительного diagnostic run; wrapper-only monitoring был недостаточен, исправлен gate.
-Полные логи не публикуются, secrets/Geo/binaries не stage. Денежная стоимость/модельные внутренние ресурсы недоступны.
-Git разрешён TASK117 для live baseline/local inventory/scope и scoped commit/обычного non-force push.
-Основной checkout: read-only rev-parse/symbolic-ref/status/worktree list и ls-remote; собственная clone: exact diff/status и publication.
-На resource snapshot перед публикацией:875893 tokens/8921s по goal tool; это не лимит, финальный счётчик — в ответе.
-Повторы чтения/обрезанный вывод и поздний main-error check увеличили стоимость; полного CPU-time/денежного счётчика нет.
-
-Точные семейства выполненных команд (пути source/module определены фактически):
-`ant -f <module>/build.xml compile-tests`, четыре `ant -f <module>/build.xml jar`;
-`java -cp <source>/build/phantom-test/bin;<module>/dist/libs/* org.l2jmobius.tests.phantoms.PhantomTestLauncher`
-с аргументами `life-scenarios116 11611601`, `supply071 11711701`, `combat-core 11711701`;
-тем же classpath main `org.l2jmobius.tests.phantoms.PhantomCityLife098Test`,
-`org.l2jmobius.gameserver.phantoms.navigation.PhantomLivingRoutes110Test`,
-`org.l2jmobius.gameserver.phantoms.economy.PhantomLivingCycle111Test`,
-`org.l2jmobius.tests.phantoms.PhantomMerchant099Checks <module>/dist/game/config/Custom/PhantomMerchants.ini`.
-Focused `javac` old-predicate/green пары использовали тот же existing runner; RED exit1/GREEN exit0, без новых test проектов.
-`powershell.exe -NoProfile -ExecutionPolicy Bypass -File <private>/Run117.ps1 -Mode provision` один раз,
-`-Mode run -Iteration 1..6` и `-Mode post -Iteration 1..6` последовательно; exit0 означает safety/STOP, не gameplay SUCCESS.
-
-SQL final6:characters49/profiles25/components218/offline stores24/lines261; native population managed24 и1 newcomer.
-Offline rows hash4=5=6: `261ca849b8f343e63a3d844fa57cc00c84e907b1c74568b07a550dc502d83630`.
-Merchant/inventory hashes менялись законно при finite provision/catchup; общей byte-identical inventory не заявляется.
-Final cleanup: foreign JVM/SQL0, charactersOnline0, materialization/navigation/combat actors/workers/leases0, штатный drain.
-
-Git использовался по прямому разрешению TASK117: `rev-parse HEAD`, `rev-parse <baseline>^`,
-`rev-parse --abbrev-ref @{upstream}`, `rev-parse --git-dir`, `rev-parse --git-common-dir`,
-`symbolic-ref --short HEAD`, `status --short --branch`, `status --porcelain --untracked-files=all -- <protected paths>`,
-`worktree list --porcelain`, `ls-remote origin refs/heads/feature/phantom-world`,
-`clone --no-hardlinks --single-branch <exact116-local> <own-source>`,
-`diff -- <exact scoped files>`, `diff --stat -- <exact scoped files>`, `diff --check -- <exact scoped files>`.
-Publication: `add -- <exact9 paths>`, `diff --cached --name-only`, `diff --cached --check`, `diff --cached --stat`,
-`diff --cached -- <exact9 paths>`, `commit -m "TASK117: guard native city continuation and finite merchant stock"`,
-обычный `push https://github.com/kpCat/L2J.git HEAD:refs/heads/feature/phantom-world`; local116 origin не используется для push.
-Для host own-source допускается только per-command `-c safe.directory=<exact-own-source>`, global config не меняется.
-Изменения main/history/reset/clean/stash/rebase/force/stage-all отсутствуют; task/historical reports не переписаны.
-Final scope9/private exclusion/protected1222 и live baseline проверяются перед commit/push; результат публикации — в ответе.
-Combined source review: code P1/P2=0; P2 отчёта о base/effective GK fee проверен по production/config и исправлен.
-
-- mojibake-маркеры в изменённых файлах проверены: отдельный27-marker guard,9 файлов.
-- escaped Cyrillic в изменённых файлах проверены: отдельный6-pattern guard,9 файлов.
-
-Незакрыто: motivated NORMAL Giran arrival/paid Giran commerce/return, final restart useful rewards;
-native customer BUY/SELL/MFG; OWNER_VISUAL_PENDING. Новый foreground raw-GK arrival/checkpoint contract не подменён
-выдуманным anchor или расширением исторической provenance. PARTIAL — разрешённый TASK117 безопасный subset, не принятие A–E.
-TASK118 не запускать.
+Честный результат — PARTIAL_CITY. Выгодная поездка в Giran и положительная долгосрочная экономика
+не выдумываются. Проверенный безопасный subset публикуется; текущая работа заканчивается на TASK117,
+без создания микрозадач, новых ресурсов и без запуска TASK118.
