@@ -165,13 +165,19 @@ function Write-OwnerTransaction($Writes,$Expected){
     }
     $needed=@($Writes.Keys | Where-Object {$null -eq $before[$_] -or (Get-OwnerHash $before[$_]) -ne (Get-OwnerHash $Writes[$_])})
     if(!$needed.Count){return}
+    # Ant may inherit a different PowerShell edition's module path. Use this host's ACL cmdlets.
+    $modulePath=$env:PSModulePath
+    try{
+        $env:PSModulePath=Join-Path $PSHOME 'Modules'
+        Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1') -ErrorAction Stop
+    }finally{$env:PSModulePath=$modulePath}
     $backupRoot=Join-Path ([IO.Path]::GetTempPath()) ('OwnerConfigBackup-'+[guid]::NewGuid().ToString('N'))
     Assert-OwnerPlain $backupRoot
     New-Item -ItemType Directory -Path $backupRoot | Out-Null
     $acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetAccessRuleProtection($true,$false)
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent().User
     $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($identity,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
-    Set-Acl -LiteralPath $backupRoot -AclObject $acl
+    Microsoft.PowerShell.Security\Set-Acl -LiteralPath $backupRoot -AclObject $acl
     $backups=@();$ordinal=0
     foreach($path in $needed){
         if($null -eq $before[$path]){$backups+=@{path=$path;backup=$null;sha256=$null};continue}

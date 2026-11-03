@@ -52,6 +52,17 @@ public final class PhantomInventoryMaintenanceIntent
 	}
 
 	public static boolean isMaintenance(PhantomGoal goal) { return goal != null && TYPE.equals(goal.goalType()); }
+	/** Prepares only scalar operations; Commerce must inspect, pay and commit each distinct revision. */
+	public static List<Operation> purchases(int npcId, int npcObjectId, int listId, int itemId, long count, int maximumOperations)
+	{
+		if (maximumOperations < 1 || maximumOperations > MAXIMUM_OPERATIONS || count <= 0 || count > 600L * maximumOperations) { throw new IllegalArgumentException("Purchase series exceeds the existing maintenance bound."); }
+		final var result = new ArrayList<Operation>();
+		for (long remaining = count; remaining > 0; remaining -= Math.min(600, remaining))
+		{
+			result.add(new Operation(OperationKind.BUY, npcId, npcObjectId, listId, itemId, 0, Math.min(600, remaining)));
+		}
+		return List.copyOf(result);
+	}
 	public static Spec parse(PhantomGoal goal)
 	{
 		if (!isMaintenance(goal) || !PURPOSE.equals(goal.purposeKey()) || goal.target() == null || !"item".equals(goal.target().namespace()) || !PhantomJourneyLifetime.valid(goal) || !goal.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)) { throw new IllegalArgumentException("Invalid maintenance goal/lifetime."); }

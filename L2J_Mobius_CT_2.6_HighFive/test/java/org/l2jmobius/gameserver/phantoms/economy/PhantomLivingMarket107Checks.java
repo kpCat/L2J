@@ -6,6 +6,16 @@ import java.util.List;
 /** DB-free checks of the allocator actually used by native merchant BUY plans. */
 public final class PhantomLivingMarket107Checks
 {
+	/** Exercises the production finite-wallet allocator with quotes from the actual pricing authority. */
+	public static long funded118(List<PhantomPrivateMarketPricingAuthority.ItemQuote> quotes, long wallet)
+	{
+		final var lines = PhantomOfflineMerchantService.allocateBuyLines(quotes, wallet, 20, 20, 100, 0);
+		final long reserved = reserve(lines);
+		check(reserved <= wallet, "TASK118 rate-aware bids exceeded the unchanged finite wallet");
+		check(PhantomOfflineMerchantService.allocateBuyLines(quotes, 0, 20, 20, 100, 0).isEmpty(), "TASK118 absent liquidity created funded BUY demand");
+		System.out.println("MARKET118_FUNDED wallet=" + wallet + ";kinds=" + lines.size() + ";units=" + lines.stream().mapToLong(PhantomStorePlan.Line::count).sum() + ";reserved=" + reserved);
+		return reserved;
+	}
 	public static void main(String[] args)
 	{
 		if (args.length == 2 && args[0].equals("grants")) { grants(java.nio.file.Path.of(args[1])); return; }

@@ -29,6 +29,25 @@ public record PhantomAutonomousSupplyPolicy(boolean enabled, int lowWaterHits, i
 		return level >= 18;
 	}
 
+	/** A finite planning window, not a new timer; the native four-operation child remains the upper bound. */
+	public long plannedStock(int perAction, long actionMillis)
+	{
+		if (perAction <= 0 || perAction > 100 || actionMillis <= 0) { return 0; }
+		final long horizon = journeyMinutes * 60_000L;
+		final long actions = Math.max(targetHits, horizon / actionMillis + (horizon % actionMillis == 0 ? 0 : 1));
+		return Math.min(600L * PhantomInventoryMaintenanceIntent.MAXIMUM_OPERATIONS, actions * perAction);
+	}
+
+	/** Quote, wallet and load constrain the whole trip; every native operation still buys at most600. */
+	public long purchaseCount(long wanted, long budget, long price, int itemWeight, long currentLoad, long maximumLoad, int maximumOperations)
+	{
+		if (wanted <= 0 || budget < 0 || price <= 0 || itemWeight < 0 || currentLoad < 0 || maximumLoad <= 0 || maximumOperations < 1 || maximumOperations > PhantomInventoryMaintenanceIntent.MAXIMUM_OPERATIONS) { return 0; }
+		final long mobileLoad = (long) (maximumLoad * .60);
+		if (currentLoad > mobileLoad) { return 0; }
+		final long count = Math.min(Math.min(wanted, budget / price), 600L * maximumOperations);
+		return itemWeight == 0 ? count : Math.min(count, (mobileLoad - currentLoad) / itemWeight);
+	}
+
 	/** Route fees and earmarks are obligations; the consumable reserve is only a savings target. */
 	public long availableBudget(long balance, long mandatoryFees, long earmarked, boolean productiveConsumable)
 	{

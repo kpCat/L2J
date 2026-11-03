@@ -224,4 +224,32 @@ try{
     }
 }finally{$env:OWNERCONFIG_STUB_MODE=$savedMode}
 Write-Output 'OWNER_CONFIG_CHECK wrapper PASS'
-Write-Output ('OWNER_CONFIG_CHECKS PASS scenarios=5 fixtureRoot='+$work)
+
+# A Windows PowerShell child must use its own ACL cmdlets even with an inherited foreign module path.
+$securityRoot=Join-Path $work 'security-module-path';New-Item -ItemType Directory -Path $securityRoot | Out-Null
+$shadow=Join-Path $securityRoot 'Microsoft.PowerShell.Security/99.0.0'
+New-Item -ItemType Directory -Path $shadow -Force | Out-Null
+Write-Check (Join-Path $shadow 'Microsoft.PowerShell.Security.psd1') "@{ModuleVersion='99.0.0';RootModule='ForeignSecurity.psm1';FunctionsToExport=@('Set-Acl')}"
+Write-Check (Join-Path $shadow 'ForeignSecurity.psm1') "throw 'Foreign security module must not load.'"
+$child=Join-Path $securityRoot 'check.ps1'
+Write-Check $child @'
+param([string]$Core,[string]$Root)
+$ErrorActionPreference='Stop'
+. $Core
+$path=Join-Path $Root 'target.ini'
+$before=[Text.Encoding]::UTF8.GetBytes('Count=1')
+[IO.File]::WriteAllBytes($path,$before)
+$originalModulePath=$env:PSModulePath
+Write-OwnerTransaction @{$path=[Text.Encoding]::UTF8.GetBytes('Count=2')} @{$path=$before}
+if([IO.File]::ReadAllText($path) -cne 'Count=2'){throw 'Owner transaction did not apply.'}
+if($env:PSModulePath -cne $originalModulePath){throw 'Owner transaction changed the inherited module path.'}
+'OWNER_CONFIG_CHILD_SECURITY PASS'
+'@
+$savedModulePath=$env:PSModulePath
+try{
+    $env:PSModulePath=$securityRoot+[IO.Path]::PathSeparator+$savedModulePath
+    $childOutput=& (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') -NoProfile -File $child -Core $core -Root $securityRoot 2>&1
+    Assert-Check ($LASTEXITCODE -eq 0 -and ($childOutput -join "`n").Contains('OWNER_CONFIG_CHILD_SECURITY PASS')) 'native security module in child process'
+}finally{$env:PSModulePath=$savedModulePath}
+Write-Output 'OWNER_CONFIG_CHECK security_module_path PASS'
+Write-Output ('OWNER_CONFIG_CHECKS PASS scenarios=6 fixtureRoot='+$work)

@@ -18,6 +18,53 @@ public final class PhantomSupply071Suite implements PhantomTestSuite
 	@Override public String id() { return "supply071"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("118-stock-horizon-keeps-poor-and-weight-bounds", context ->
+		{
+			final var policy = org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/life/high-five-autonomous-supply-v1.xml"));
+			final long fighter = policy.plannedStock(2, 500), caster = policy.plannedStock(1, 4000);
+			PhantomAssertions.assertEquals(1920L, fighter, "A funded fast weapon still plans only sixty hits or one600 batch.");
+			PhantomAssertions.assertEquals(120L, caster, "Slow magic consumption was blindly scaled to the physical stock target.");
+			PhantomAssertions.assertEquals(2400L, policy.plannedStock(100, 1), "Planning escaped the existing four-operation bound.");
+			final long funded = policy.availableBudget(100000, 1000, 5000, true);
+			PhantomAssertions.assertEquals(fighter, policy.purchaseCount(fighter, funded, 20, 1, 100, 10000, 4), "Funded mobile stock was truncated to one600 transaction.");
+			final long poor = policy.availableBudget(500, 100, 100, true);
+			PhantomAssertions.assertEquals(28L, policy.purchaseCount(fighter, poor, 8, 1, 100, 10000, 4), "Poor actor ignored travel/gear earmark and cash reserve.");
+			PhantomAssertions.assertEquals(5L, policy.purchaseCount(fighter, funded, 8, 2, 590, 1000, 4), "Weight admission discarded the useful smaller affordable purchase.");
+			PhantomAssertions.assertEquals(600L, policy.purchaseCount(Long.MAX_VALUE, Long.MAX_VALUE, 1, 0, 0, 1000, 1), "Single purchase escaped the native600 cap.");
+			PhantomAssertions.assertEquals(0L, policy.purchaseCount(fighter, funded, 0, 1, 0, 1000, 4), "Unquoted stock created a free purchase.");
+			PhantomAssertions.assertEquals(0L, policy.purchaseCount(fighter, funded, 8, 1, 601, 1000, 4), "Overloaded actor requested more stock.");
+			PhantomAssertions.assertEquals(0L, policy.plannedStock(0, 500), "Unknown native consumption produced a target.");
+			context.record("supply118.stock", "Actual production planning: weapon charges/native interval, finite configured horizon, wallet/return/earmark reserve, <=60% load and <=4x600; no paid trade simulated");
+		});
+		registry.add("118-paid-batches-keep-original-owner-and-codec", context ->
+		{
+			final long now = System.currentTimeMillis();
+			final var root = new PhantomGoal(118, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("npc", "20001"), 1, 0, "background.farm", java.util.List.of(), null, "farm.background", 500, 0, 0, 0, java.util.Map.of(), "fixture118.root", 1);
+			final var binding = new PhantomSupplyIntentStore.Binding(1, 111, 0, 0, 222, new PhantomNavigationPoint(100, 200, -300, 0), 0);
+			final var operations = PhantomInventoryMaintenanceIntent.purchases(30138, 333, 11, 1835, 1920, 4);
+			PhantomAssertions.assertEquals(java.util.List.of(600L, 600L, 600L, 120L), operations.stream().map(PhantomInventoryMaintenanceIntent.Operation::count).toList(), "Bulk stock is not a bounded series of legal native purchases.");
+			var intent = PhantomInventoryMaintenanceIntent.create(root, binding, operations, 2, 50000, now + 60000, now, false);
+			long wallet = 50000, stock = 0;
+			for (int index = 0; index < operations.size(); index++)
+			{
+				intent = new PhantomGoalStateCodec().decode(new PhantomGoalStateCodec().encode(intent));
+				final var spec = PhantomInventoryMaintenanceIntent.parse(intent);
+				PhantomAssertions.assertEquals(index, spec.index(), "Restart repeated or skipped a batch index.");
+				final var operation = spec.current();
+				final long cost = Math.multiplyExact(8, operation.count());
+				final var request = new PhantomCommerceReceipt.OperationRequest(operation.kind(), operation.npcId(), operation.npcObjectId(), operation.listId(), operation.itemId(), 0, operation.count(), cost, 0, 0, 0, "", 0, 0, 0);
+				final var before = new PhantomCommerceReceipt.ConservationFacts(wallet, stock, 1, 0, 100, 200, -300);
+				final var after = new PhantomCommerceReceipt.ConservationFacts(wallet - cost, stock + operation.count(), 1, 0, 100, 200, -300);
+				final var receipt = PhantomCommerceReceipt.prepared(1, intent.goalId(), intent.revision(), request, before, after).withState(PhantomCommerceReceipt.State.COMMITTING).withState(PhantomCommerceReceipt.State.COMMITTED);
+				PhantomAssertions.assertTrue(operation.matches(receipt.request()), "Batch changed its native counter/item/count authority.");
+				wallet -= cost; stock += operation.count();
+				intent = PhantomInventoryMaintenanceIntent.advance(intent, new PhantomInventoryMaintenanceIntent.Spec(operations, index + 1, false, true), wallet, "fixture118.committed");
+				PhantomAssertions.assertTrue(receipt.goalRevision() != intent.revision() && intent.deadlineEpochMillis() == now + 60000 && intent.payloadText().equals(binding.encode()) && PhantomSupplyIntentStore.bound(intent, root), "Continuation reused payment authority or renewed the journey.");
+			}
+			PhantomAssertions.assertTrue(PhantomInventoryMaintenanceIntent.parse(intent).returning() && stock == 1920 && wallet == 34640, "Four synthetic conservation receipts did not finish the original bounded child.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomInventoryMaintenanceIntent.purchases(30138, 333, 11, 1835, 2401, 4), "More than four native purchases admitted.");
+			context.record("supply118.batches", "Existing maintenance goal/codec/revisions/conservation contracts only; four distinct synthetic receipts; NATIVE_PAYMENT=NOT_RUN");
+		});
 		registry.add("115-optional-cp-stock-does-not-liquidate-low-level-farm-loot", context ->
 		{
 			final var policy = org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/life/high-five-autonomous-supply-v1.xml"));
