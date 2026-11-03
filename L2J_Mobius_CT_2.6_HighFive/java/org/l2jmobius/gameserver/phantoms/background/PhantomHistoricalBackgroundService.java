@@ -1035,6 +1035,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** An offline DEAD return uses the existing exact claim-owned baseline before NORMAL recovery. */
 	boolean nativeRecoveryControlPending(long profileId) { return _nativeRecoveryRefreshes.containsKey(profileId); }
 
+	static boolean visibleIdleClaimAccepted(Status status, java.util.function.BooleanSupplier exactHandoff)
+	{
+		return status == Status.COMPLETE || status == Status.RUNNING && exactHandoff.getAsBoolean();
+	}
+
 	static boolean nativeRecoveryGoalAccepted(long profileId, PhantomGoal expected, PhantomGoal actual)
 	{
 		return expected != null && expected.status() == PhantomGoalStatus.ACTIVE
@@ -1305,7 +1310,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (historicalIdle)
 			{
 				stage = "historical_idle_claim";
-				if (catchup == null || catchup.state().status() != Status.COMPLETE || catchup.state().goalId() != stored.goal().goalId()
+				if (catchup == null || !visibleIdleClaimAccepted(catchup.state().status(), () ->
+					{
+						final var idleHandoff = _foregroundHandoffs.get(profileId);
+						return idleHandoff != null && exactForegroundHandoff(profileId, idleHandoff);
+					}) || catchup.state().goalId() != stored.goal().goalId()
 					|| catchup.state().goalRevision() != stored.goal().revision() || !currentClaim(profileId, catchup)
 					|| baseline.state() != PhantomBackgroundState.State.MATERIALIZED || baseline.identity().characterObjectId() != lifetime.characterObjectId()
 					|| _acceptedIntent.test(profileId, stored.goal())) { return false; }

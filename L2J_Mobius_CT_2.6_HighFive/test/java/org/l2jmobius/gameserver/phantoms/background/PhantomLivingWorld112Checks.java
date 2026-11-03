@@ -149,9 +149,28 @@ public final class PhantomLivingWorld112Checks
 	public static void main(String[] args)
 	{
 		if (args.length == 1 && args[0].equals("--recovery121")) { recoveryAdmission121(); return; }
+		if (args.length == 1 && args[0].equals("--idle-handoff121")) { idleHandoff121(); return; }
 		stableAndWake(); fences(); loadBound(5000, 121); loadBound(32, 1441);
 		System.out.println("TASK112_IDLE_PLANNING_PASS DB=0 ACTORS=0; transaction/native cursor persistence not simulated");
 	}
+	private static void idleHandoff121()
+	{
+		final var before = catchup(fixture(), 500, 515);
+		check(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(before.status(), () -> true), "121_RUNNING_IDLE_HANDOFF_REJECTED");
+		check(!PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(before.status(), () -> false), "121_RUNNING_IDLE_WITHOUT_OWNER_ADMITTED");
+		for (var status : PhantomBackgroundCatchupState.Status.values())
+		{
+			if (status == PhantomBackgroundCatchupState.Status.RUNNING) { continue; }
+			check(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(status, () -> { throw new AssertionError("Unneeded owner/SQL read"); }) == (status == PhantomBackgroundCatchupState.Status.COMPLETE), "121_PENDING_OR_FAILED_IDLE_ADMITTED");
+		}
+		final var replacement = before.withPlan(before.goalId(), before.goalRevision() + 1, before.planOrdinal() + 1, "visible.replan", before.knowledgeGeneration(), before.topologyGeneration());
+		check(replacement.status() == before.status() && replacement.requestId().equals(before.requestId())
+			&& replacement.fromEpochMinute() == before.fromEpochMinute() && replacement.targetEpochMinute() == before.targetEpochMinute()
+			&& replacement.cursorEpochMinute() == before.cursorEpochMinute() && replacement.intervalOrdinal() == before.intervalOrdinal()
+			&& replacement.deterministicSeed() == before.deterministicSeed() && replacement.generation() == before.generation(), "121_VISIBLE_REPLAN_ERASED_HISTORICAL_DEBT");
+		System.out.println("TASK121_IDLE_HANDOFF_GATE_PASS running requires exact handoff; pending/failed rejected; COMPLETE skips owner query; real withPlan preserves debt; DB0 World0 NATIVE_NOT_PROVEN");
+	}
+
 	private static void recoveryAdmission121()
 	{
 		final var current = idle();
