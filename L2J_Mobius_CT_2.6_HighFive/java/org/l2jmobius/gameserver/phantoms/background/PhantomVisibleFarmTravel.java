@@ -720,6 +720,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			journey.moveIssued = player.isMoving();
 			journey.moveX = player.getXdestination();
 			journey.moveY = player.getYdestination();
+			journey.moveZ = player.getZdestination();
+			journey.moveInstance = player.getInstanceId();
 			if (journey.moveIssued)
 			{
 				// Native swimming may shorten a leg; validate the actual native destination too.
@@ -877,6 +879,19 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private void retryOrFail(long profileId, Journey journey, Disposition disposition)
 	{
 		if ((_journeys.get(profileId) != journey) || (_attempts.get(profileId) != journey.attempt)) { return; }
+		final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
+		if (recorder.isRecording())
+		{
+			final Player player = journey.player;
+			final var owner = player.getNativeWorkOwner();
+			final boolean exact = owner != null && owner == journey.attempt.nativeOwner && owner.isCurrent() && owner.epoch() == journey.epoch;
+			recorder.record(profileId, "VISIBLE_TRAVEL_RETRY", journey.reason, disposition.name(),
+				"moving=" + player.isMoving() + ";issued=" + journey.moveIssued + ";owner=" + exact + ";world=" + (World.getInstance().getPlayer(player.getObjectId()) == player), journey.goalId, journey.epoch, journey.revision);
+			recorder.record(profileId, "VISIBLE_RETRY_MOVE", player.getX() + "," + player.getY() + "," + player.getZ() + "," + player.getInstanceId(), journey.moveX + "," + journey.moveY + "," + journey.moveZ + "," + journey.moveInstance,
+				"actual=" + player.getXdestination() + "," + player.getYdestination() + "," + player.getZdestination(), player.getObjectId(), journey.requestId, journey.index);
+			recorder.record(profileId, "VISIBLE_RETRY_ROUTE", journey.route == null ? "NONE" : diagnosticPoint(journey.route.destination()), diagnosticPoint(journey.arrivalPoint),
+				"tracked=" + journey.trackedIndex + ";stage=" + journey.stageIndex + ";attemptSince=" + journey.attempt.startedNanos, journey.attempt.failures, journey.deadline, _clock.getAsLong());
+		}
 		clearRoute(profileId, journey);
 		_signals.withdraw(profileId, "visible.farm.travel", signalSequence());
 		if (++journey.attempt.failures >= 3)
@@ -892,6 +907,10 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			journey.attempt.retryAtNanos = _clock.getAsLong() + 1_000_000_000L;
 		}
+	}
+	private static String diagnosticPoint(PhantomNavigationPoint point)
+	{
+		return point == null ? "NONE" : point.x() + "," + point.y() + "," + point.z() + "," + point.instanceId();
 	}
 	/** A changed native edge invalidates the itinerary, not the farm area or its authoritative goal. */
 	private void replanEdge(long profileId, Player player, Journey journey, PhantomNavigationPoint from, PhantomNavigationPoint to, String reason)
@@ -1256,6 +1275,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private boolean moveIssued;
 		private int moveX;
 		private int moveY;
+		private int moveZ;
+		private int moveInstance;
 		private long requestId;
 		private long deadline;
 		private PhantomNavigationPoint arrivalPoint;

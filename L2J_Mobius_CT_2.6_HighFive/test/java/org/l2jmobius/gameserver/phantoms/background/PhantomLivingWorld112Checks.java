@@ -148,7 +148,23 @@ public final class PhantomLivingWorld112Checks
 	}
 	public static void main(String[] args)
 	{
+		if (args.length == 1 && args[0].equals("--recovery121")) { recoveryAdmission121(); return; }
 		stableAndWake(); fences(); loadBound(5000, 121); loadBound(32, 1441);
 		System.out.println("TASK112_IDLE_PLANNING_PASS DB=0 ACTORS=0; transaction/native cursor persistence not simulated");
+	}
+	private static void recoveryAdmission121()
+	{
+		final var current = idle();
+		final var revised = new PhantomGoal(current.goalId(), current.goalType(), current.status(), current.subject(), current.target(), current.requiredAmount(), current.currentAmount(), current.acquisitionMethod(), current.validSources(), current.selectedAnchor(), current.purposeKey(), current.priority(), current.riskBudget(), current.expenseBudget(), current.deadlineEpochMillis(), current.constraints(), current.reasonKey(), current.revision() + 1);
+		check(PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, current, current), "121_CANONICAL_IDLE_DEATH_RECOVERY_REJECTED");
+		check(!PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, idle(6), idle(6))
+			&& !PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, current, idle(6))
+			&& !PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, current, revised)
+			&& !PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, current.withStatus(PhantomGoalStatus.COMPLETED), current.withStatus(PhantomGoalStatus.COMPLETED))
+			&& !PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, null, null), "121_FOREIGN_STALE_TERMINAL_RECOVERY_ADMITTED");
+		final var farm = new PhantomGoal(55, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "5"), new PhantomDomainRef("npc", "20001"), 1, 0,
+			"background.farm", List.of(new PhantomDomainRef("background.farm", "20001@anchor")), new PhantomDomainRef("topology.anchor", "anchor"), "background.farm", 500, 0, 0, 0, Map.of(), "farm.ready", 7);
+		check(PhantomHistoricalBackgroundService.nativeRecoveryGoalAccepted(5, farm, farm), "121_FARM_RECOVERY_CHANGED");
+		System.out.println("TASK121_RECOVERY_GATE_PASS canonical idle/farm; foreign/stale/terminal denied; DB0 ACTORS0 NATIVE_RESTART_NOT_PROVEN");
 	}
 }

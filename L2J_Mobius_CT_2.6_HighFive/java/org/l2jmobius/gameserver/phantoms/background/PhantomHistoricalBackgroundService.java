@@ -1035,6 +1035,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** An offline DEAD return uses the existing exact claim-owned baseline before NORMAL recovery. */
 	boolean nativeRecoveryControlPending(long profileId) { return _nativeRecoveryRefreshes.containsKey(profileId); }
 
+	static boolean nativeRecoveryGoalAccepted(long profileId, PhantomGoal expected, PhantomGoal actual)
+	{
+		return expected != null && expected.status() == PhantomGoalStatus.ACTIVE
+			&& PhantomBackgroundService.recoveryGoalCurrent(profileId, expected, actual);
+	}
+
 	/** The accepted background control retains the existing baseline claim across nonblocking cleanup. */
 	Result prepareNativeRecoveryControl(long profileId, PhantomGoal expectedGoal, long deadline)
 	{
@@ -1042,7 +1048,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (refresh == null)
 		{
 			final var goal = _goals.load(profileId).orElse(null);
-			if ((goal == null) || !goal.goal().equals(expectedGoal) || (expectedGoal.status() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(expectedGoal.goalType())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.goal_mismatch", null); }
+			if (!nativeRecoveryGoalAccepted(profileId, expectedGoal, goal == null ? null : goal.goal())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.goal_mismatch", null); }
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime != null) { return lifetime.actionAdmissionOpen() ? Result.success(null, 0) : Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.owner_draining", null); }
 			final var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
@@ -1050,7 +1056,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var generation = _planner.generation();
 			if ((baseline.state() != PhantomBackgroundState.State.DEAD) || baseline.hashes().equals(generation.authorityHashes())) { return Result.success(null, 0); }
 			final var current = _store.load(profileId).orElse(null);
-			if ((goal == null) || !goal.goal().equals(expectedGoal) || (expectedGoal.status() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(expectedGoal.goalType())
+			if (!nativeRecoveryGoalAccepted(profileId, expectedGoal, goal == null ? null : goal.goal())
 				|| (current == null) || (current.state().status() != Status.COMPLETE) || !currentClaim(profileId, current) || (current.state().goalId() != expectedGoal.goalId()) || (current.state().goalRevision() != expectedGoal.revision())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.claim_goal_mismatch", current); }
 			final var recovery = new RecoveryClaim(current, _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
 			if (_recoveryClaims.putIfAbsent(profileId, recovery) != null) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.baseline_busy", current); }
@@ -1085,8 +1091,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		try
 		{
 			final var stored = _goals.load(profileId).orElse(null);
-			if ((stored == null) || !stored.goal().equals(expectedGoal) || (expectedGoal.status() != PhantomGoalStatus.ACTIVE)
-				|| !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(expectedGoal.goalType())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.goal_mismatch", null); }
+			if (!nativeRecoveryGoalAccepted(profileId, expectedGoal, stored == null ? null : stored.goal())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.goal_mismatch", null); }
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime != null) { return lifetime.actionAdmissionOpen() ? Result.success(null, 0) : Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.owner_draining", null); }
 			final var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
