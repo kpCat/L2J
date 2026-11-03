@@ -1243,7 +1243,6 @@ public final class PhantomSystem
 				if ((_combatService != null) && !_combatService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "combat:" + _combatService.snapshot()); }
 				if ((_commerceService != null) && !_commerceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "commerce"); }
 				if ((_populationManager != null) && !_populationManager.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "population:" + _populationManager.snapshot()); }
-				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.snapshot().firstFailure().isEmpty()) { return failStop("ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
 				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.drained()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
 				if (_backgroundService != null)
 				{
@@ -1262,6 +1261,8 @@ public final class PhantomSystem
 					if (result.state() == ServiceState.FAILED) { return failStop("materialization:" + _materializationService.cleanupBlockers()); }
 					if (result.state() != ServiceState.STOPPED) { return pendingStop(StopPhase.DRAIN_PLAYERS, "materialization:" + _materializationService.cleanupBlockers()); }
 				}
+				// Preserve the terminal failure after accepted writers and the other actors have drained.
+				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.snapshot().firstFailure().isEmpty()) { return failStop("ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
 				pendingStop(StopPhase.FINISH_DEPENDENCIES, "dependencies");
 			}
 			if (_stopProgress.phase() == StopPhase.FINISH_DEPENDENCIES)

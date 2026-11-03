@@ -7,11 +7,22 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
+import org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 
 /** Real dispatch owner with DB-free partial actors; callback models the queued earned logout body. */
 public final class PhantomShutdown103Checks
@@ -26,6 +37,7 @@ public final class PhantomShutdown103Checks
 		instant.set(null, executor);
 		try
 		{
+			if (args.length == 1 && args[0].equals("--stop121")) { ordinaryFailureDrainsOtherActors(); return; }
 			queuedCallback(executor);
 			expiredDeadline(executor);
 			concurrentClose(executor);
@@ -75,6 +87,7 @@ public final class PhantomShutdown103Checks
 		{
 			final var result = fixture.service().requestShutdown(System.nanoTime() - 1);
 			if (result.state() != PhantomMaterializationService.ServiceState.FAILED || executor.getTaskCount() != submissions) { throw new AssertionError("Expired STOP published new cleanup instead of retaining owners"); }
+			for (var actor : fixture.actors()) { if ((boolean) field(PhantomMaterializedPlayer.class, "_actionAdmissionOpen").get(actor)) { throw new AssertionError("Expired STOP left another actor admission open"); } }
 		}
 	}
 
@@ -102,6 +115,56 @@ public final class PhantomShutdown103Checks
 	}
 
 	private record Fixture(PhantomMaterializationService service, List<PhantomMaterializedPlayer> actors) { }
+
+	@SuppressWarnings("unchecked")
+	private static void ordinaryFailureDrainsOtherActors() throws Exception
+	{
+		if (DatabaseFactory.isInitialized() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121 requires DB-free isolated runtime"); }
+		final var fixture = fixture();
+		final var constructor = PhantomProfileRepository.class.getDeclaredConstructor(); constructor.setAccessible(true);
+		final var repository = constructor.newInstance();
+		final var goals = new PhantomGoalStateStore(repository);
+		final var transactions = new PhantomBackgroundTransaction(() -> { throw new AssertionError("STOP121 must not open SQL"); }, new PhantomBackgroundTransaction.ObjectIdAllocator()
+		{
+			@Override public int reserve() { throw new AssertionError("STOP121 must not create identity"); }
+			@Override public void release(int id) { throw new AssertionError("STOP121 must not release fixture identity"); }
+		}, PhantomBackgroundTransaction.FaultInjector.none());
+		final var authority = (PhantomBackgroundAuthority) java.lang.reflect.Proxy.newProxyInstance(PhantomBackgroundAuthority.class.getClassLoader(), new Class<?>[] { PhantomBackgroundAuthority.class }, (_, method, arguments) -> { throw new AssertionError("STOP121 unexpected authority: " + method.getName()); });
+		final var signals = (PhantomRelevanceSignalPort) java.lang.reflect.Proxy.newProxyInstance(PhantomRelevanceSignalPort.class.getClassLoader(), new Class<?>[] { PhantomRelevanceSignalPort.class }, (_, method, arguments) -> { throw new AssertionError("STOP121 unexpected signal: " + method.getName()); });
+		final var background = new PhantomBackgroundService(repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transactions, authority, new PhantomBackgroundCompetitionRegistry(), signals, fixture::service);
+		final var death = new PhantomOrdinaryDeathRecovery(fixture.service(), goals, background);
+		final var failure = (AtomicReference<String>) field(PhantomOrdinaryDeathRecovery.class, "_firstFailure").get(death);
+		final var accepted = (AtomicInteger) field(PhantomOrdinaryDeathRecovery.class, "_acceptedReconciliations").get(death);
+		final var operations = (AtomicInteger) field(PhantomBackgroundService.class, "_currentOperations").get(background);
+		final var configure = PhantomSystem.class.getDeclaredMethod("configureOperatorRuntimeForTesting", boolean.class); configure.setAccessible(true); configure.invoke(null, false);
+		final var configured = (PhantomSystem) field(PhantomSystem.class, "_configuredInstance").get(null);
+		field(PhantomSystem.class, "_materializationService").set(configured, fixture.service());
+		field(PhantomSystem.class, "_backgroundService").set(configured, background);
+		field(PhantomSystem.class, "_ordinaryDeathRecovery").set(configured, death);
+		failure.set("death.control_terminal:TEST121"); accepted.set(1); operations.set(1);
+		try
+		{
+			configured.shutdown();
+			if (configured.snapshot().state() != PhantomSystem.State.STOPPING || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.RUNNING) { throw new AssertionError("STOP121_TERMINAL_FAILURE_CUT_OFF_ACCEPTED_CONTROL"); }
+			accepted.set(0); configured.shutdown();
+			if (configured.snapshot().state() != PhantomSystem.State.STOPPING || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.RUNNING) { throw new AssertionError("STOP121_DRAIN_BYPASSED_BACKGROUND_QUIESCENCE"); }
+			operations.set(0);
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+			while (configured.snapshot().state() != PhantomSystem.State.FAILED && System.nanoTime() < deadline) { configured.shutdown(); Thread.sleep(1); }
+			if (configured.snapshot().state() != PhantomSystem.State.FAILED || fixture.service().snapshot().state() != PhantomMaterializationService.ServiceState.STOPPED || !fixture.service().snapshot().materializations().isEmpty()) { throw new AssertionError("STOP121_OTHER_ACTORS_RETAINED_BEFORE_DEATH_FAILURE"); }
+			for (var actor : fixture.actors()) { if ((boolean) field(PhantomMaterializedPlayer.class, "_actionAdmissionOpen").get(actor)) { throw new AssertionError("STOP121_OTHER_ACTOR_ADMISSION_OPEN"); } }
+			if (!failure.get().equals("death.control_terminal:TEST121") || PhantomSystem.shutdownIfStarted() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_FAILURE_ERASED_OR_CLEANUP_NOT_RELEASED"); }
+			System.out.println("TASK121_STOP_FAILURE_DRAIN_PASS accepted-control/background gates; other partial actors drained; FAILED preserved; DB0 World0 NATIVE_STOP_NOT_PROVEN");
+		}
+		finally
+		{
+			accepted.set(0); operations.set(0);
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+			while (fixture.service().requestShutdown(deadline).state() == PhantomMaterializationService.ServiceState.STOPPING && System.nanoTime() < deadline) { Thread.sleep(1); }
+			PhantomSystem.shutdownIfStarted();
+			if (DatabaseFactory.isInitialized() || PhantomSystem.hasConfiguredInstance()) { throw new AssertionError("STOP121_FIXTURE_CLEANUP_FAILED"); }
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	private static Fixture fixture() throws Exception
