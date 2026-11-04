@@ -47,6 +47,19 @@ public final class PhantomPvpCorrectiveSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		registry.add("126-party-defense-cancels-on-lost-exact-authority", _ ->
+		{
+			final long now = 20 * SECOND;
+			final Candidate defense = candidate(Source.PARTY_DEFENSE, counterpart(100), HASH_A, now);
+			final Encounter active = PhantomPvpService.initial(defense).withStage(Stage.ENGAGE, "", "", 0, 0, 0, "test.engage");
+			final PhantomDomainRef hostile = new PhantomDomainRef("character.object", "100"), member = new PhantomDomainRef("profile", "2");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, null, now), "Missing protected-member evidence retained a hostile Party lease.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(candidate(Source.PARTY_DEFENSE, counterpart(100), HASH_B, now), hostile, member), now), "Changed Party generation or manifest retained the previous defense lease.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now), hostile, member), now), "A new cause silently reused Party defense authority.");
+			PhantomAssertions.assertTrue(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(defense, hostile, member), defense.expiresLogicalNanos()), "Expired defense evidence retained its action owner.");
+			PhantomAssertions.assertFalse(PhantomPvpService.needsPartyDefenseCancellation(active, snapshot(defense, hostile, member), now), "Current exact Party defense was cancelled.");
+			PhantomAssertions.assertFalse(PhantomPvpService.needsPartyDefenseCancellation(PhantomPvpService.initial(candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now)), null, now), "Party-specific cancellation changed independent actual-attack policy.");
+		});
 		registry.add("01-party-help-selects-only-exact-member-counterpart", _ ->
 		{
 			final long now = 20 * SECOND;

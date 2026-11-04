@@ -197,7 +197,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			if (_combat.matchesPvpSession(profileId, encounter.counterpart().currentObjectId(), encounter.authorityHash()))
 			{
 				final Snapshot current = _context.observeOwned(encounter, now).orElse(null);
-				if ((current != null) && current.candidate().currentAt(now) && samePair(encounter.counterpart(), current.candidate().counterpart()) && (encounter.counterpart().currentObjectId() == current.candidate().counterpart().currentObjectId()))
+				if (needsPartyDefenseCancellation(encounter, current, now))
+				{
+					cancelOwned(encounter);
+				}
+				else if ((current != null) && current.candidate().currentAt(now) && samePair(encounter.counterpart(), current.candidate().counterpart()) && (encounter.counterpart().currentObjectId() == current.candidate().counterpart().currentObjectId()))
 				{
 					final Outcome liveRisk = _policy.decide(current.candidate(), current.risk(), encounter, now);
 					if (liveRisk.decision() == Decision.RETREAT)
@@ -581,6 +585,12 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			_combat.cancel(encounter.profileId());
 		}
 		_retreat.cancel(encounter.profileId(), encounter.authorityHash());
+	}
+
+	/** A Party defense lease cannot outlive the exact membership and aggression cause. */
+	static boolean needsPartyDefenseCancellation(Encounter encounter, Snapshot current, long now)
+	{
+		return encounter.source() == Source.PARTY_DEFENSE && (current == null || !current.candidate().currentAt(now) || !sameAuthority(encounter, current.candidate()));
 	}
 
 	private static boolean sameAuthority(Encounter encounter, Candidate candidate)

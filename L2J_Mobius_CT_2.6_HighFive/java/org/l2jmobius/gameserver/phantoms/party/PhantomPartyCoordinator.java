@@ -2449,7 +2449,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (!intent) { return 0; }
 		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
-		final List<TacticalDirective> directives = _tactics.plan(party.leader(), party.members(), snapshots);
+		// Farm projections already reserve assigned support members for native support.
+		// Do not give their weapon an autoattack owner that can starve an urgent heal.
+		final Set<MemberRef> supportMembers = farm ? farmClaim.state().assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet()) : Set.of();
+		final List<TacticalDirective> directives = _tactics.plan(party.leader(), party.members(), snapshots, directive -> !supportMembers.contains(directive.actor()) || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()));
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
 		final Set<Long> decided = new HashSet<>();
 		int examined = 0;

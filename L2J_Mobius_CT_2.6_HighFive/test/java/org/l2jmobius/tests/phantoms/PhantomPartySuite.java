@@ -901,6 +901,45 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	}
 
 	private static void tactics(PhantomTestRegistry registry)	{
+		registry.add("126-farm-healer-keeps-support-owner-while-damage-members-fight", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
+			final var clock = new AtomicLong(1_000_000_000L); final Map<Long, PartyActionLease> leases = new LinkedHashMap<>();
+			final var combat = new PhantomCombatService(leases::get, new PhantomCombatCapabilityResolver(_ -> List.of()), PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
+			{
+				private boolean cancelled;
+				@Override public boolean cancelIfNotStarted() { if (cancelled) { return false; } cancelled = true; return true; }
+				@Override public PhantomCombatService.DispatchState state() { return cancelled ? PhantomCombatService.DispatchState.CANCELLED : PhantomCombatService.DispatchState.SCHEDULED; }
+			}));
+			combat.start();
+			for (long id : List.of(1L, 2L, 3L))
+			{
+				final var ref = backend.add(id, 100 + (int) id); goals.put(id, goal(126000 + id, "farm.background", null, 0));
+				final var caps = id == 3 ? List.of(cap("combat.heal", "heal", 450, 1001), cap("combat.melee_damage", "native.weapon", 300, 0)) : List.of(cap("combat.melee_damage", "native.weapon", 300, 0));
+				backend.snapshot(ref, member(id, ref.characterObjectId(), 100, 100, false, 0, caps)); backend._capabilities.put(ref, caps);
+				final var lease = new PartyActionLease(); lease.objectId = ref.characterObjectId(); lease.target = new TargetSnapshot(900, 20001, 0, 1000, 1000, false, false, true, true, false, true, true, 50, false, true); leases.put(id, lease);
+			}
+			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+			new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				coordinator.formForGoal(1, 126001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,3,2"), List.of(new RoleRequirement("dd.1", "damage.melee", true, 1), new RoleRequirement("dd.2", "damage.melee", true, 1), new RoleRequirement("healer", "support.healer", true, 1)));
+				for (long id : List.of(2L, 3L)) { coordinator.invite(1, backend.currentMember(id).orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); } }
+				final var leader = backend.currentMember(1).orElseThrow();
+				backend.snapshot(leader, member(1, 101, 100, 100, false, 900, backend._capabilities.get(leader)));
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertTrue(combat.hasClaim(1) && combat.hasClaim(2), "Damage members did not retain cooperative combat.");
+				PhantomAssertions.assertFalse(combat.hasClaim(3), "Assigned healer acquired continuous melee assist instead of remaining available for support.");
+				final long generation = combat.find(1).orElseThrow().generation();
+				backend.snapshot(leader, member(1, 101, 40, 100, false, 900, backend._capabilities.get(leader)));
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(1, leases.get(3L).casts, "Wounded Party member did not receive one owned heal cast.");
+				PhantomAssertions.assertEquals(101, leases.get(3L).support.targetObjectId(), "Heal selected a different Party member.");
+				PhantomAssertions.assertTrue(combat.hasClaim(3) && leases.get(3L).casting, "Pending support cast lost its exact action owner.");
+				PhantomAssertions.assertEquals(generation, combat.find(1).orElseThrow().generation(), "Heal cancelled the damage member's combat generation.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party support fixture did not drain."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Combat fixture did not drain."); }
+		});
 		registry.add("094-low-mp-castable-support-retains-role-without-maintenance", context ->
 		{
 			final var backend = new MemoryPartyBackend(); final var snapshots = new LinkedHashMap<MemberRef, MemberSnapshot>();
@@ -2338,12 +2377,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	/** Only the native boundary is substituted; Party, routes, tactics and action ownership are production. */
 	private static final class PartyActionLease implements PhantomCombatActorLease
 	{
+		private int objectId = 101;
 		@Override public boolean partyWalkSafe(int x, int y, int z, int instanceId) { return true; }
 		private int moves, casts, cancels;
 		private boolean moving, casting;
 		private PhantomPartySupportAction support;
 		private TargetSnapshot target;
-		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(101, 0, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
+		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(objectId, 0, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
 		@Override public TargetSnapshot targetSnapshot(int objectId) { return target != null && target.objectId() == objectId ? target : null; }
 		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
 		@Override public List<ThreatObservation> observedAttackers(int limit) { return List.of(); }
