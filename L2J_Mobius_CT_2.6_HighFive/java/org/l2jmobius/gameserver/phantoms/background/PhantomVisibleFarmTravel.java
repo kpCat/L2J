@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongPredicate;
 import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
@@ -272,7 +273,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (advance(profileId, goal)) { return true; }
 			pending = _pendingStores.get(profileId);
 		}
-		if ((pending == null) || !pending.goal.equals(goal)) { return false; }
+		return drainArrival(profileId, goal, pending, false);
+	}
+
+	private boolean drainArrival(long profileId, PhantomGoal goal, PendingStore pending, boolean preparation)
+	{
+		if (!currentGoal(profileId, goal) || (preparation && ((pending == null) || (pending.anchorId == null)))) { return false; }
+		if ((pending == null) || (_pendingStores.get(profileId) != pending) || !pending.goal.equals(goal)) { return false; }
 		if ((pending.journey != null) && (_journeys.get(profileId) != pending.journey))
 		{
 			closeRoutePhase(profileId, pending.journey);
@@ -316,11 +323,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (pending.journey != null) { pending.journey.reason = checkpoint == null ? "travel.arrival_capture_pending" : "travel.checkpoint." + checkpoint.outcome() + ":" + checkpoint.phase() + ":" + checkpoint.reason(); }
 			return false;
 		}
-		return completeArrival(profileId, pending);
+		return completeArrival(profileId, pending, preparation);
 	}
 
 	/** Only an exact successful store/arrival receipt can start another bounded segment. */
-	private boolean completeArrival(long profileId, PendingStore pending)
+	private boolean completeArrival(long profileId, PendingStore pending, boolean preparation)
 	{
 		final var state = _background.acquisitionSnapshot(profileId).orElse(null);
 		if (state == null || !pending.anchorId.equals(state.position().committedAnchorId())
@@ -339,7 +346,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				_journeys.remove(profileId, pending.journey);
 				closeRoutePhase(profileId, pending.journey);
 			}
-			if (!destination && pending.journey != null && _attempts.remove(profileId, pending.journey.attempt))
+			if (!preparation && !destination && pending.journey != null && _attempts.remove(profileId, pending.journey.attempt))
 			{
 				clearRoutePhase(pending.journey.attempt);
 			}
@@ -351,7 +358,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			clearRoute(profileId, pending.journey);
 			_signals.withdraw(profileId, "visible.farm.travel", signalSequence());
 		}
-		return destination;
+		return preparation || destination;
 	}
 
 	private boolean advance(long profileId, PhantomGoal goal)
@@ -1093,6 +1100,25 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	/** Recovery stops only the captured current goal's movement, never a foreign lifetime. */
 	public boolean yieldForPreparation(long profileId)
 	{
+		return yieldForPreparation(() -> _pendingStores.containsKey(profileId), () ->
+		{
+			final var pending = _pendingStores.get(profileId);
+			// Finish only an existing factual arrival, outside ActionLease/Player/Attempt locks.
+			// Preparation must not advance travel or renew the original Attempt deadline.
+			return pending != null && drainArrival(profileId, pending.goal, pending, true);
+		}, () -> cancelForPreparation(profileId));
+	}
+
+	static boolean yieldForPreparation(BooleanSupplier pending, BooleanSupplier drain, BooleanSupplier cancel)
+	{
+		if (pending.getAsBoolean() && !drain.getAsBoolean()) { return false; }
+		if (pending.getAsBoolean()) { return false; }
+		return cancel.getAsBoolean();
+	}
+
+	private boolean cancelForPreparation(long profileId)
+	{
+		if (_pendingStores.containsKey(profileId)) { return false; }
 		final var journey = _journeys.get(profileId);
 		if (journey == null) { return true; }
 		if (!currentJourney(profileId, journey) || !currentGoal(profileId, journey.goal) || _pendingStores.containsKey(profileId)) { return false; }

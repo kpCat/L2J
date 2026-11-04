@@ -20,9 +20,11 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("04-native-current-anchor-return-is-only-a-bounded-walk-proposal", _ -> nativeReturn());
 		registry.add("05-exact-native-landing-retains-canonical-floor", _ -> nativeLanding());
 		registry.add("06-interrupted-native-route-may-propose-connected-ingress", _ -> interruptedIngress());
+		registry.add("07-preparation-drains-existing-arrival-before-yield", _ -> preparationArrival());
 	}
 	public static void main(String[] args)
 	{
+		if (args.length > 0 && args[0].equals("preparation121")) { preparationArrival(); System.out.println("OWN121_PREPARATION_ARRIVAL_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("landing121")) { nativeLanding(); System.out.println("OWN121_NATIVE_LANDING_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("ingress121")) { interruptedIngress(); System.out.println("OWN121_INTERRUPTED_INGRESS_PASS; SYNTHETIC_PROPOSAL=true; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("local-return")) { localReturn(); System.out.println("OWN068_LOCAL_RETURN_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
@@ -32,7 +34,23 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		nativeReturn();
 		nativeLanding();
 		interruptedIngress();
+		preparationArrival();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void preparationArrival()
+	{
+		final var pending = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var calls = new java.util.ArrayList<String>();
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.yieldForPreparation(pending::get,
+			() -> { calls.add("capture"); pending.set(false); return true; },
+			() -> { calls.add("yield"); return true; }), "Preparation must finish an existing arrival receipt before yielding, including an intermediate anchor.");
+		PhantomAssertions.assertEquals(List.of("capture", "yield"), calls, "Preparation cannot skip the pending checkpoint or start another travel segment.");
+		final java.util.function.BooleanSupplier forbidden = () -> { throw new AssertionError("An unproven checkpoint cannot yield or advance."); };
+		PhantomAssertions.assertTrue(!PhantomVisibleFarmTravel.yieldForPreparation(() -> true, () -> false, forbidden), "A refused or retrying capture retains ownership.");
+		PhantomAssertions.assertTrue(!PhantomVisibleFarmTravel.yieldForPreparation(() -> true, () -> true, forbidden), "A replaced pending checkpoint cannot borrow a successful earlier receipt.");
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.yieldForPreparation(() -> false, forbidden, () -> true), "No pending checkpoint must not create a new arrival or movement.");
+		final var reads = new java.util.concurrent.atomic.AtomicInteger();
+		PhantomAssertions.assertTrue(!PhantomVisibleFarmTravel.yieldForPreparation(() -> reads.incrementAndGet() > 1, forbidden, forbidden), "A checkpoint published after the first read must fence preparation even without a Journey.");
 	}
 	private static org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor entry(String id, int x, int instance)
 	{
