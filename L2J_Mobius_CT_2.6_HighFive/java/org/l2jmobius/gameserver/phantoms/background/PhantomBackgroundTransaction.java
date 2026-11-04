@@ -1397,6 +1397,7 @@ public final class PhantomBackgroundTransaction
 					{
 						_ids.release(objectId);
 					}
+					recordStateConflict(command, failure);
 					return failureResult(failure);
 				}
 				return new Result(Status.COMMIT_OUTCOME_UNKNOWN, null);
@@ -2949,6 +2950,26 @@ public final class PhantomBackgroundTransaction
 		catch (RuntimeException | Error ignored) { /* Keep the original result; never reset/spam the diagnostic latch. */ }
 	}
 
+	private static void recordStateConflict(Command command, Throwable failure)
+	{
+		try
+		{
+			if (!(failure instanceof StateConflict conflict) || conflict._status != Status.STATE_CONFLICT) { return; }
+			final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
+			if (!recorder.isRecording()) { return; }
+			final var frames = failure.getStackTrace();
+			for (int index = 0; index < Math.min(8, frames.length); index++)
+			{
+				final var frame = frames[index];
+				if (!frame.getClassName().equals(PhantomBackgroundTransaction.class.getName())) { continue; }
+				final var key = command.operationKey();
+				recorder.record(command.expectedState().identity().profileId(), "BG_TRANSACTION_REFUSED", conflict._status.name(), key.actionKind().name(),
+					frame.getMethodName() + ";adenaDelta=" + command.itemDeltas().getOrDefault(57, 0L) + ";leg=" + key.travelLegId(), frame.getLineNumber(), key.goalId(), key.goalRevision());
+				return;
+			}
+		}
+		catch (Throwable ignored) { }
+	}
 	private static Result failureResult(Throwable failure)
 	{
 		return failure instanceof StateConflict conflict ? Result.rejected(conflict._status) : Result.rejected(Status.BACKEND_FAILURE);
