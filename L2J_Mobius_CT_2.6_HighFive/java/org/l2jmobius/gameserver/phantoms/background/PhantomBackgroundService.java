@@ -616,18 +616,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return OperationResult.replan("catchup.travel.unsupported");
 				}
+				// Paid GK and unsupported dry returns belong to the existing native owner.
+				// No historical fee, position or cursor is committed by this handoff.
+				if (travelRequiresNative(advance, claim._nativeContext.afterPolicy())) { return requestNativeTravel(claim); }
 				if (!advance.mutated())
 				{
-					// A native-attested off-anchor position may permit TRAVEL while the exact dry route is unsupported.
-					// Keep the original history/cursor fenced and let its existing exact-owner native handoff execute it.
-					if ((advance.status() == TravelAdvance.Status.NO_ROUTE) && "local-return".equals(advance.edgeId())
-						&& (claim._nativeContext.afterPolicy() != null) && !claim._nativeContext.afterPolicy().farmPosition())
-					{
-						final var proof = transaction(() -> _transactions.nativeContext(profileId, claim.characterObjectId()));
-						if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS) { return mapTransactionFailure(proof.status()); }
-						if (!state.equals(proof.state()) || !claim._nativeContext.equals(proof.context())) { return OperationResult.replan("native_context.state_changed"); }
-						return OperationResult.replan(nativeContextReason(updateNativeContextSignal(profileId, proof, true)));
-					}
 					return switch (advance.status())
 					{
 						case EDGE_CLOSED, NO_ROUTE, INSUFFICIENT_ADENA -> retry("catchup.travel." + advance.status().name().toLowerCase());
@@ -1660,6 +1653,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final var nativeGate = ordinaryContextGate(claim, PhantomBackgroundSimulationPolicy.Operation.TRAVEL);
 			if (nativeGate != null) { return nativeGate; }
 			final TravelAdvance advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, logicalEpochMinute, claim._nativeContext.afterPolicy());
+			if (advance.mutated() && travelRequiresNative(advance, claim._nativeContext.afterPolicy())) { return requestNativeTravel(claim); }
 			if (!advance.mutated())
 			{
 				return switch (advance.status())
@@ -2456,6 +2450,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, boolean historical)
 	{
+		return acquire(profileId, goal, activityGeneration, tickSequence, historical, true);
+	}
+
+	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, boolean historical, boolean reconcilePending)
+	{
 		if ((activityGeneration <= 0) || (tickSequence <= 0))
 		{
 			return OperationClaim.failed(OperationResult.replan("activity.identity_invalid"));
@@ -2517,6 +2516,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 			if ((loaded.state() != null) && (loaded.state().state() == State.VERIFY_PENDING))
 			{
+				if (!reconcilePending)
+				{
+					closeLease(lease);
+					return releaseFailedOperation(profileId, retry("state.verify_pending"));
+				}
 				loaded = transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId));
 			}
 			if (!loaded.successful() || (loaded.state() == null))
@@ -2747,6 +2751,54 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			_failedOperations.incrementAndGet();
 		}
 		return failure;
+	}
+
+	static boolean travelRequiresNative(TravelAdvance advance, PhantomBackgroundSimulationPolicy policy)
+	{
+		return (advance.mutated() && advance.feeAdena() > 0)
+			|| (advance.status() == TravelAdvance.Status.NO_ROUTE) && "local-return".equals(advance.edgeId())
+			&& (policy != null) && !policy.farmPosition();
+	}
+
+	private OperationResult requestNativeTravel(OperationClaim claim)
+	{
+		final var proof = transaction(() -> _transactions.nativeContext(claim.profileId(), claim.characterObjectId()));
+		if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS) { return mapTransactionFailure(proof.status()); }
+		if (!claim.state().equals(proof.state()) || !claim._nativeContext.equals(proof.context())) { return OperationResult.replan("native_context.state_changed"); }
+		return OperationResult.replan(nativeContextReason(updateNativeContextSignal(claim.profileId(), proof, true)));
+	}
+
+	static boolean paidTravelConflictCandidate(PhantomBackgroundCatchupState state)
+	{
+		return state.status() == PhantomBackgroundCatchupState.Status.FAILED_REPLAN_REQUIRED
+			&& state.failureReason().equals("transaction.state_conflict") && state.goalId() > 0
+			&& state.cursorEpochMinute() < state.targetEpochMinute();
+	}
+
+	/** Re-prove a currently payable native leg; the old failed claim and its debt stay unchanged. */
+	OperationResult handoffPaidHistoricalConflict(long profileId, PhantomGoal goal, PhantomBackgroundCatchupStore.Snapshot expected, BooleanSupplier current)
+	{
+		final var history = expected.state();
+		if (!paidTravelConflictCandidate(history) || !current.getAsBoolean()) { return OperationResult.replan("transaction.state_conflict"); }
+		final var claim = acquire(profileId, goal, history.generation(), Math.addExact(history.intervalOrdinal(), 1), true, false);
+		if (!claim.acquired()) { return claim.failure(); }
+		try (claim)
+		{
+			final var state = claim.state();
+			if (state.state() != State.READY || PhantomOffscreenOutdoorTravel.taggedReceipt(state) || PhantomOffscreenOutdoorTravel.pending(goal)
+				|| _profiles.findComponent(profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent()) { return OperationResult.replan("transaction.state_conflict"); }
+			final var proof = transaction(() -> _transactions.nativeContext(profileId, claim.characterObjectId()));
+			if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS || !state.equals(proof.state()) || proof.context() == null
+				|| proof.context().phase() != PhantomNativeContext.Phase.COMPLETED || proof.context().afterPolicy() == null
+				|| !proof.context().permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()))
+			{ return OperationResult.replan("transaction.state_conflict"); }
+			claim._nativeContext = proof.context();
+			final var advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, history.cursorEpochMinute(), proof.context().afterPolicy());
+			if (!advance.mutated() || advance.feeAdena() <= 0 || !advance.edgeId().startsWith("leg.") || !current.getAsBoolean())
+			{ return OperationResult.replan("transaction.state_conflict"); }
+			return requestNativeTravel(claim);
+		}
+		catch (RuntimeException failure) { return retry("catchup.paid_travel.proof_unavailable"); }
 	}
 
     private static void observeCommittedOperation(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)

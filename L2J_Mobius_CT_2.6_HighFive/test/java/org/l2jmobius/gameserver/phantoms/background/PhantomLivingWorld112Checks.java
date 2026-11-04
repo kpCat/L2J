@@ -148,11 +148,47 @@ public final class PhantomLivingWorld112Checks
 	}
 	public static void main(String[] args)
 	{
+		if (args.length == 1 && args[0].equals("--paid-travel121")) { paidTravel121(); return; }
 		if (args.length == 1 && args[0].equals("--recovery121")) { recoveryAdmission121(); return; }
 		if (args.length == 1 && args[0].equals("--idle-handoff121")) { idleHandoff121(); return; }
 		stableAndWake(); fences(); loadBound(5000, 121); loadBound(32, 1441);
 		System.out.println("TASK112_IDLE_PLANNING_PASS DB=0 ACTORS=0; transaction/native cursor persistence not simulated");
 	}
+	private static void paidTravel121()
+	{
+		final var base = state();
+		final var paid = new PhantomBackgroundAuthority.TravelAdvance(PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED,
+			base.position(), base.clock(), "leg.508c6f61d235328d874037cf", 29000);
+		check(PhantomBackgroundService.travelRequiresNative(paid, null), "121_PAID_TRAVEL_SUBMITTED_TO_ZERO_DELTA_POLICY");
+		check(!PhantomBackgroundService.travelRequiresNative(new PhantomBackgroundAuthority.TravelAdvance(
+			PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED, base.position(), base.clock(), "walk", 0), null), "121_FREE_WALK_REQUIRES_NATIVE");
+		for (var status : PhantomBackgroundAuthority.TravelAdvance.Status.values())
+		{
+			if (status == PhantomBackgroundAuthority.TravelAdvance.Status.ARRIVED || status == PhantomBackgroundAuthority.TravelAdvance.Status.PARTIAL) { continue; }
+			check(!PhantomBackgroundService.travelRequiresNative(new PhantomBackgroundAuthority.TravelAdvance(status, base.position(), base.clock(), "leg.closed", 29000), null), "121_REFUSED_TRAVEL_REQUIRES_NATIVE");
+		}
+		final var running = catchup(fixture(), 500, 515);
+		final var failed = running.failed("transaction.state_conflict");
+		final var codec = new PhantomBackgroundCatchupStateCodec();
+		final var before = codec.encode(failed);
+		check(PhantomBackgroundService.paidTravelConflictCandidate(failed), "121_PAID_CONFLICT_NOT_PROBED");
+		final var generation = fixture().planner().generation();
+		check(PhantomHistoricalBackgroundService.paidTravelConflictGenerationCurrent(failed, generation), "121_FAILED_PAID_CONFLICT_BLOCKED_BY_RUNNING_GENERATION_GATE");
+		check(!PhantomHistoricalBackgroundService.paidTravelConflictGenerationCurrent(running, generation)
+			&& !PhantomHistoricalBackgroundService.paidTravelConflictGenerationCurrent(failed, new PhantomHistoricalBackgroundPlanner.PlanningGeneration(2, 1, base.hashes()))
+			&& !PhantomHistoricalBackgroundService.paidTravelConflictGenerationCurrent(failed, new PhantomHistoricalBackgroundPlanner.PlanningGeneration(1, 2, base.hashes()))
+			&& !PhantomHistoricalBackgroundService.paidTravelConflictGenerationCurrent(failed, new PhantomHistoricalBackgroundPlanner.PlanningGeneration(1, 1, new Hashes("changed", "t", "p", "c"))), "121_LEGACY_RUNNING_OR_STALE_GENERATION_ADMITTED");
+		check(!PhantomBackgroundService.paidTravelConflictCandidate(running), "121_RUNNING_CLASSIFIED_LEGACY_FAILURE");
+		for (String reason : List.of("transaction.item_conflict", "transaction.canonical_mismatch", "STOP", "catchup.authority.unsupported"))
+		{
+			check(!PhantomBackgroundService.paidTravelConflictCandidate(running.failed(reason)), "121_FOREIGN_FAILURE_PROBED");
+		}
+		check(!PhantomHistoricalBackgroundService.isRecoverableFailure(failed.failureReason())
+			&& !PhantomHistoricalBackgroundService.requiresNativeMaterialization(failed.failureReason()), "121_GENERIC_STATE_CONFLICT_RELAXED");
+		check(java.util.Arrays.equals(before, codec.encode(failed)), "121_FAILED_PAYLOAD_OR_DEBT_CHANGED");
+		System.out.println("TASK121_PAID_TRAVEL_GATE_PASS native paid leg requires existing handoff; free/refused paths unchanged; DB0 World0");
+	}
+
 	private static void idleHandoff121()
 	{
 		final var before = catchup(fixture(), 500, 515);

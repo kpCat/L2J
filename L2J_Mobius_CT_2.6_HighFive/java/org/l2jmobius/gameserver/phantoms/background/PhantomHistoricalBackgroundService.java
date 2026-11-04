@@ -370,6 +370,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		if (claimed.state().status() == Status.FAILED_REPLAN_REQUIRED)
 		{
+			if (PhantomBackgroundService.paidTravelConflictCandidate(claimed.state())) { return paidTravelConflictHandoff(profileId, claimed); }
 			if (requiresNativeMaterialization(claimed.state().failureReason())) { return recoverNativeContext(profileId, claimed); }
 			if (isRecoverableFailure(claimed.state().failureReason())) { return Result.success(claimed, 0); }
 			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, claimed.state().failureReason(), claimed);
@@ -559,6 +560,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		final var generation = _planner.generation();
 		final boolean stale = !current.state().authorityHashes().equals(generation.authorityHashes()) || (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration());
+		if (PhantomBackgroundService.paidTravelConflictCandidate(current.state())) { return paidTravelConflictHandoff(profileId, current); }
 		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) && requiresNativeMaterialization(current.state().failureReason()))
 		{
 			final Result recovered = recoverNativeContext(profileId, current);
@@ -737,6 +739,30 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return (after != null) && (before.state() == after.state()) && before.identity().equals(after.identity()) && before.progress().equals(after.progress())
 			&& before.position().equals(after.position()) && before.clock().equals(after.clock()) && before.receipt().equals(after.receipt())
 			&& before.inventory().objects().equals(after.inventory().objects()) && before.inventory().canonicalHash().equals(after.inventory().canonicalHash()) && before.autoGetSkills().equals(after.autoGetSkills());
+	}
+
+	private Result paidTravelConflictHandoff(long profileId, Snapshot current)
+	{
+		try
+		{
+			final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+			final var goal = _goals.load(profileId).orElse(null);
+			final var generation = _planner.generation();
+			if (!currentClaim(profileId, current) || !recoveryPrerequisite(profileId, current, state, goal).isEmpty()
+				|| !paidTravelConflictGenerationCurrent(current.state(), generation) || !state.hashes().equals(generation.authorityHashes()))
+			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current); }
+			final var operation = _background.handoffPaidHistoricalConflict(profileId, goal.goal(), current,
+				() -> currentClaim(profileId, current) && Objects.equals(goal, _goals.load(profileId).orElse(null)) && generation.equals(_planner.generation()));
+			return Result.rejected(operation.status() == OperationStatus.RETRY || requiresNativeMaterialization(operation.reason())
+				? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED, operation.reason(), current);
+		}
+		catch (RuntimeException failure) { return Result.rejected(ResultStatusCode.RETRY, "catchup.paid_travel.proof_unavailable", current); }
+	}
+
+	static boolean paidTravelConflictGenerationCurrent(PhantomBackgroundCatchupState current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
+	{
+		return PhantomBackgroundService.paidTravelConflictCandidate(current) && current.authorityHashes().equals(generation.authorityHashes())
+			&& current.knowledgeGeneration() == generation.knowledgeGeneration() && current.topologyGeneration() == generation.topologyGeneration();
 	}
 
 	public static boolean requiresNativeMaterialization(String reason)
