@@ -61,6 +61,16 @@ public final class PhantomOrdinaryCraftRecipes
             {
                 final var receipt = Receipt.decode(previous);
                 if (!receipt.source().equals("PROGRESSION_RECIPE_BONUS")) { throw new IllegalStateException("Ordinary recipe source differs."); }
+                // Native death can lower level without removing learned recipes. Defer this qualification,
+                // never replay it or mark it verified. Eligible levels retain the existing verifier/cache policy.
+                if (receipt.state().equals("READY") && player.getObjectId() == receipt.objectId() && player.getAccountName().equals(receipt.account())
+                    && player.getActiveClass() == receipt.classId() && player.getClassIndex() == receipt.classIndex() && player.getLevel() < receipt.level()
+                    && rank >= receipt.dwarvenRank() && common >= receipt.commonRank())
+                {
+                    org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(profileId,
+                        "NATIVE_RECIPE_DEFERRED_LEVEL", "READY", "NOT_REVERIFIED", "no_grant;rowVersion=" + previous.rowVersion(), player.getObjectId(), player.getLevel(), receipt.level());
+                    return;
+                }
                 _recipes.verify(player, receipt); _seen.add(key); return;
             }
             // Every previous intent, including an uncertain one, consumes its lifetime reservation.
