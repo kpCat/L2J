@@ -905,7 +905,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		for (PhantomTopologyAnchor anchor : topology.snapshot().anchors())
 		{
 			final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, position.heading());
-			if (canonical.isEmpty() || (position.instanceId() != canonical.get().instanceId()) || !withinAnchorTolerance(position.x(), position.y(), position.z(), canonical.get(), anchor.validationTolerance()))
+			if (canonical.isEmpty() || !atNativeAnchorPosition(position.x(), position.y(), position.z(), position.instanceId(), canonical.get(), anchor))
 			{
 				continue;
 			}
@@ -1418,13 +1418,13 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return false;
 		}
-		return withinAnchorTolerance(player.getX(), player.getY(), player.getZ(), canonical.get(), anchor.validationTolerance());
+		return atNativeAnchorPosition(player.getX(), player.getY(), player.getZ(), player.getInstanceId(), canonical.get(), anchor);
 	}
 
 	private boolean atCanonicalAnchor(Position position, PhantomTopologyAnchor anchor)
 	{
 		final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, position.heading());
-		return canonical.isPresent() && (position.instanceId() == canonical.get().instanceId()) && position.committedAnchorId().equals(anchor.id()) && (withinAnchorTolerance(position.x(), position.y(), position.z(), canonical.get(), anchor.validationTolerance()) || inFarmingArea(position.x(), position.y(), position.z(), position.instanceId(), anchor));
+		return canonical.isPresent() && (position.instanceId() == canonical.get().instanceId()) && position.committedAnchorId().equals(anchor.id()) && (atNativeAnchorPosition(position.x(), position.y(), position.z(), position.instanceId(), canonical.get(), anchor) || inFarmingArea(position.x(), position.y(), position.z(), position.instanceId(), anchor));
 	}
 
 	private boolean inFarmingArea(int x, int y, int z, int instanceId, PhantomTopologyAnchor anchor)
@@ -1440,6 +1440,27 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	private static boolean inFarmingArea(PhantomTopologyQuery topology, int x, int y, int z, int instanceId, PhantomTopologyAnchor anchor)
 	{
 		return (anchor.role() == PhantomTopologyAnchorRole.FARMING) && topology.findNode(anchor.nodeId()).map(node -> node.area().contains(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x, y, z, instanceId))).orElse(false);
+	}
+
+	private static boolean atNativeAnchorPosition(int x, int y, int z, int instanceId, Position canonical, PhantomTopologyAnchor anchor)
+	{
+		return nativeAnchorPositionAllowed(x, y, z, instanceId, canonical, anchor.role(), anchor.validationTolerance(), () ->
+		{
+			final var geo = GeoEngine.getInstance();
+			if (!geo.hasGeo(x, y)) { return Integer.MIN_VALUE; }
+			final int floor = geo.getHeight(x, y, z);
+			return floor == geo.getHeight(x, y, floor) ? floor : Integer.MIN_VALUE;
+		});
+	}
+
+	static boolean nativeAnchorPositionAllowed(int x, int y, int z, int instanceId, Position canonical, PhantomTopologyAnchorRole role, int tolerance, java.util.function.IntSupplier groundHeight)
+	{
+		if (instanceId != canonical.instanceId()) { return false; }
+		if (withinAnchorTolerance(x, y, z, canonical, tolerance)) { return true; }
+		// Preserve raw native XYZ: a stock GK landing is five units above the same proven floor.
+		return role == PhantomTopologyAnchorRole.ROUTE && tolerance == 0 && x == canonical.x() && y == canonical.y() && (long) z - canonical.z() == 5
+			&& PhantomVisibleFarmTravel.atWalkDestination(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, instanceId),
+				new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(canonical.x(), canonical.y(), canonical.z(), canonical.instanceId()), 0, groundHeight);
 	}
 
 	private static boolean withinAnchorTolerance(int x, int y, int z, Position canonical, int tolerance)

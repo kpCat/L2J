@@ -21,9 +21,11 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("05-exact-native-landing-retains-canonical-floor", _ -> nativeLanding());
 		registry.add("06-interrupted-native-route-may-propose-connected-ingress", _ -> interruptedIngress());
 		registry.add("07-preparation-drains-existing-arrival-before-yield", _ -> preparationArrival());
+		registry.add("08-native-route-landing-retains-physical-floor", _ -> authorityLanding());
 	}
 	public static void main(String[] args)
 	{
+		if (args.length > 0 && args[0].equals("authority-landing121")) { authorityLanding(); System.out.println("OWN121_AUTHORITY_ROUTE_LANDING_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("preparation121")) { preparationArrival(); System.out.println("OWN121_PREPARATION_ARRIVAL_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("landing121")) { nativeLanding(); System.out.println("OWN121_NATIVE_LANDING_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("ingress121")) { interruptedIngress(); System.out.println("OWN121_INTERRUPTED_INGRESS_PASS; SYNTHETIC_PROPOSAL=true; DB_CONNECTIONS=0; ACTORS=0"); return; }
@@ -35,7 +37,26 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		nativeLanding();
 		interruptedIngress();
 		preparationArrival();
+		authorityLanding();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void authorityLanding()
+	{
+		final var canonical = new PhantomBackgroundState.Position(0, 82971, 53207, -1488, 0, "oren.route");
+		final var route = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.ROUTE;
+		final java.util.function.IntSupplier unused = () -> { throw new AssertionError("Unrelated positions cannot query landing Geo."); };
+		PhantomAssertions.assertTrue(L2jPhantomBackgroundAuthority.nativeAnchorPositionAllowed(canonical.x(), canonical.y(), canonical.z(), 0, canonical, route, 0, unused), "Ordinary canonical arrival preserves the original strict branch.");
+		PhantomAssertions.assertTrue(L2jPhantomBackgroundAuthority.nativeAnchorPositionAllowed(canonical.x(), canonical.y(), canonical.z() + 5, 0, canonical, route, 0, canonical::z), "The actual native Oren landing needs the same physical-floor recognition for live and stored state.");
+		for (var role : List.of(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING))
+		{
+			PhantomAssertions.assertTrue(!L2jPhantomBackgroundAuthority.nativeAnchorPositionAllowed(canonical.x(), canonical.y(), canonical.z() + 5, 0, canonical, role, 0, unused), "The exception cannot relax city or farm position requirements.");
+		}
+		PhantomAssertions.assertTrue(!L2jPhantomBackgroundAuthority.nativeAnchorPositionAllowed(canonical.x(), canonical.y(), canonical.z() + 5, 0, canonical, route, 1, unused), "Nonzero tolerance keeps its original bounds.");
+		for (var point : List.of(new PhantomNavigationPoint(canonical.x() + 1, canonical.y(), canonical.z() + 5, 0), new PhantomNavigationPoint(canonical.x(), canonical.y(), canonical.z() + 5, 1), new PhantomNavigationPoint(canonical.x(), canonical.y(), canonical.z() - 5, 0), new PhantomNavigationPoint(canonical.x(), canonical.y(), canonical.z() + 6, 0)))
+		{
+			PhantomAssertions.assertTrue(!L2jPhantomBackgroundAuthority.nativeAnchorPositionAllowed(point.x(), point.y(), point.z(), point.instanceId(), canonical, route, 0, unused), "Landing recognition keeps exact XY/instance and the native positive five-unit offset.");
+		}
+		PhantomAssertions.assertTrue(!L2jPhantomBackgroundAuthority.nativeAnchorPositionAllowed(canonical.x(), canonical.y(), canonical.z() + 5, 0, canonical, route, 0, () -> canonical.z() - 64), "A different or unproven Geo floor cannot identify the canonical route anchor.");
 	}
 	private static void preparationArrival()
 	{
