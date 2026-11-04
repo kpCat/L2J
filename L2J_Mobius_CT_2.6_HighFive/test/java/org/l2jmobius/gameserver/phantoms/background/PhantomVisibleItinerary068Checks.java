@@ -18,15 +18,33 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("02-composite-route-uses-first-leg-and-full-native-fees", _ -> itinerary());
 		registry.add("03-off-anchor-background-return-retains-current-lineage", _ -> localReturn());
 		registry.add("04-native-current-anchor-return-is-only-a-bounded-walk-proposal", _ -> nativeReturn());
+		registry.add("05-exact-native-landing-retains-canonical-floor", _ -> nativeLanding());
 	}
 	public static void main(String[] args)
 	{
+		if (args.length > 0 && args[0].equals("landing121")) { nativeLanding(); System.out.println("OWN121_NATIVE_LANDING_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("local-return")) { localReturn(); System.out.println("OWN068_LOCAL_RETURN_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		canonicalFarm();
 		itinerary();
 		localReturn();
 		nativeReturn();
+		nativeLanding();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void nativeLanding()
+	{
+		final var floor = new PhantomNavigationPoint(82971, 53207, -1488, 0);
+		final var landing = new PhantomNavigationPoint(floor.x(), floor.y(), floor.z() + 5, 0);
+		final java.util.function.IntSupplier unused = () -> { throw new AssertionError("An ordinary arrival cannot require Geo lookup."); };
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.atWalkDestination(floor, floor, 0, unused), "Exact canonical arrival remains valid.");
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.atWalkDestination(landing, floor, 0, floor::z), "A proven native landing on the exact canonical Geo floor needs no zero-XY move.");
+		PhantomAssertions.assertTrue(!PhantomVisibleFarmTravel.atWalkDestination(landing, floor, 0, () -> floor.z() - 64), "The same XY and five-unit offset cannot stand for another Geo floor.");
+		for (var rejected : List.of(new PhantomNavigationPoint(floor.x() + 1, floor.y(), landing.z(), 0), new PhantomNavigationPoint(floor.x(), floor.y(), landing.z(), 1), new PhantomNavigationPoint(floor.x(), floor.y(), floor.z() - 5, 0), new PhantomNavigationPoint(floor.x(), floor.y(), floor.z() + 6, 0)))
+		{
+			PhantomAssertions.assertTrue(!PhantomVisibleFarmTravel.atWalkDestination(rejected, floor, 0, unused), "The exception cannot widen XY, instance, or Z acceptance.");
+		}
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.atWalkDestination(new PhantomNavigationPoint(floor.x() + 10, floor.y(), floor.z() + 100, 0), floor, 10, unused), "Existing nonzero-radius arrival keeps its prior bounds.");
+		PhantomAssertions.assertTrue(!PhantomVisibleFarmTravel.atWalkDestination(new PhantomNavigationPoint(floor.x() + 10, floor.y(), floor.z() + 101, 0), floor, 10, unused), "Existing nonzero-radius Z rejection remains intact.");
 	}
 	private static void nativeReturn()
 	{

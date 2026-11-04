@@ -578,6 +578,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		return false;
 	}
 
+	static boolean atWalkDestination(PhantomNavigationPoint current, PhantomNavigationPoint destination, int radius, java.util.function.IntSupplier groundHeight)
+	{
+		if (current.instanceId() != destination.instanceId() || Math.hypot((long) current.x() - destination.x(), (long) current.y() - destination.y()) > radius) { return false; }
+		if (Math.abs((long) current.z() - destination.z()) <= (radius == 0 ? 0 : 100)) { return true; }
+		// Native teleports land five units above their proven Geo floor. No move or position write is needed there.
+		return radius == 0 && (long) current.z() - destination.z() == 5 && groundHeight.getAsInt() == destination.z();
+	}
+
 	private boolean walk(long profileId, Player player, Journey journey, PhantomNavigationPoint destination, int radius)
 	{
 		if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
@@ -588,7 +596,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			final var issued = new PhantomNavigationPoint(journey.moveX, journey.moveY, player.getZdestination(), player.getInstanceId());
 			if (!safeIdlePveSegment(player, issued)) { replanEdge(profileId, player, journey, current, issued, "travel.native_pve_threat"); return false; }
 		}
-		if ((current.instanceId() == destination.instanceId()) && (Math.hypot((long) current.x() - destination.x(), (long) current.y() - destination.y()) <= radius) && (Math.abs((long) current.z() - destination.z()) <= (radius == 0 ? 0 : 100)))
+		if (atWalkDestination(current, destination, radius, () -> GeoEngine.getInstance().getHeight(current.x(), current.y(), current.z())))
 		{
 			clearRoute(profileId, journey);
 			return true;
