@@ -749,10 +749,18 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var goal = _goals.load(profileId).orElse(null);
 			final var generation = _planner.generation();
 			if (!currentClaim(profileId, current) || !recoveryPrerequisite(profileId, current, state, goal).isEmpty()
-				|| !paidTravelConflictGenerationCurrent(current.state(), generation) || !state.hashes().equals(generation.authorityHashes()))
+				|| !(paidTravelConflictGenerationCurrent(current.state(), generation) || paidTravelKnowledgeRefreshEligible(current.state(), generation))
+				|| !state.hashes().equals(generation.authorityHashes()) && !state.hashes().equals(current.state().authorityHashes()))
 			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current); }
 			final var operation = _background.handoffPaidHistoricalConflict(profileId, goal.goal(), current,
 				() -> currentClaim(profileId, current) && Objects.equals(goal, _goals.load(profileId).orElse(null)) && generation.equals(_planner.generation()));
+			if (operation.reason().equals("catchup.paid_travel.authority_refresh_required"))
+			{
+				if (!currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null)) || !generation.equals(_planner.generation()))
+				{ return Result.rejected(ResultStatusCode.RETRY, "catchup.paid_travel.claim_or_generation_changed", current); }
+				// The no-write paid proof has released its BACKGROUND lease. Existing native STORE/CAS recovery owns renewal.
+				return recoverStale(profileId, current, generation, state);
+			}
 			return Result.rejected(operation.status() == OperationStatus.RETRY || requiresNativeMaterialization(operation.reason())
 				? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED, operation.reason(), current);
 		}
@@ -762,6 +770,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	static boolean paidTravelConflictGenerationCurrent(PhantomBackgroundCatchupState current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
 	{
 		return PhantomBackgroundService.paidTravelConflictCandidate(current) && current.authorityHashes().equals(generation.authorityHashes())
+			&& current.knowledgeGeneration() == generation.knowledgeGeneration() && current.topologyGeneration() == generation.topologyGeneration();
+	}
+
+	static boolean paidTravelKnowledgeRefreshEligible(PhantomBackgroundCatchupState current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
+	{
+		return PhantomBackgroundService.paidTravelConflictCandidate(current) && !current.authorityHashes().equals(generation.authorityHashes())
+			&& PhantomBackgroundService.paidTravelKnowledgeCompatible(current.authorityHashes(), generation.authorityHashes())
 			&& current.knowledgeGeneration() == generation.knowledgeGeneration() && current.topologyGeneration() == generation.topologyGeneration();
 	}
 
@@ -989,6 +1004,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private Result recoverStale(long profileId, Snapshot current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
 	{
+		return recoverStale(profileId, current, generation, null);
+	}
+
+	private Result recoverStale(long profileId, Snapshot current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation, PhantomBackgroundState exactBaseline)
+	{
 		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) && (current.state().goalId() == 0) && (current.state().cursorEpochMinute() == current.state().fromEpochMinute()) && (current.state().intervalOrdinal() == 0))
 		{
 			try
@@ -1003,7 +1023,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
 		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
-		final Result prerequisite = restorePrerequisite(profileId, current, backgroundState, storedGoal);
+		final Result prerequisite;
+		if (exactBaseline != null)
+		{
+			if (!exactBaseline.equals(backgroundState) || backgroundState.state() != PhantomBackgroundState.State.READY || !currentClaim(profileId, current)
+				|| !_planner.generation().equals(generation) || !recoveryPrerequisite(profileId, current, backgroundState, storedGoal).isEmpty())
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.paid_travel.prerequisite_changed", current); }
+			final var proof = _background.historicalNativeContext(profileId, backgroundState);
+			if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS || !backgroundState.equals(proof.state()) || proof.context() == null
+				|| proof.context().phase() != PhantomNativeContext.Phase.COMPLETED || proof.context().afterPolicy() == null
+				|| !proof.context().permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()))
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.paid_travel.context_changed", current); }
+			prerequisite = Result.success(current, 0);
+		}
+		else { prerequisite = restorePrerequisite(profileId, current, backgroundState, storedGoal); }
 		if (!prerequisite.successful()) { return prerequisite; }
 		current = prerequisite.snapshot();
 		if (canResumeGeneration(current.state(), generation)) { return Result.success(current, 0); }

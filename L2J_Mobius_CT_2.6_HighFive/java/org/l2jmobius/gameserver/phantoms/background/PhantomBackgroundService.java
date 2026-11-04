@@ -2450,11 +2450,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, boolean historical)
 	{
-		return acquire(profileId, goal, activityGeneration, tickSequence, historical, true);
+		return acquire(profileId, goal, activityGeneration, tickSequence, historical, true, null);
 	}
 
-	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, boolean historical, boolean reconcilePending)
+	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, boolean historical, boolean reconcilePending, PhantomBackgroundState.Hashes observedHashes)
 	{
+		if (observedHashes != null && reconcilePending) { throw new IllegalArgumentException("Observation cannot reconcile pending writes."); }
 		if ((activityGeneration <= 0) || (tickSequence <= 0))
 		{
 			return OperationClaim.failed(OperationResult.replan("activity.identity_invalid"));
@@ -2528,7 +2529,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				closeLease(lease);
 				return releaseFailedOperation(profileId, mapTransactionFailure(loaded.status()));
 			}
-			if (!loaded.state().hashes().equals(_authority.hashes()))
+			if (!loaded.state().hashes().equals(_authority.hashes()) && !loaded.state().hashes().equals(observedHashes))
 			{
 				closeLease(lease);
 				return releaseFailedOperation(profileId, OperationResult.replan("authority.hash_stale"));
@@ -2780,7 +2781,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final var history = expected.state();
 		if (!paidTravelConflictCandidate(history) || !current.getAsBoolean()) { return OperationResult.replan("transaction.state_conflict"); }
-		final var claim = acquire(profileId, goal, history.generation(), Math.addExact(history.intervalOrdinal(), 1), true, false);
+		final var currentHashes = _authority.hashes();
+		if (!paidTravelKnowledgeCompatible(history.authorityHashes(), currentHashes)) { return OperationResult.replan("transaction.state_conflict"); }
+		final var claim = acquire(profileId, goal, history.generation(), Math.addExact(history.intervalOrdinal(), 1), true, false, history.authorityHashes());
 		if (!claim.acquired()) { return claim.failure(); }
 		try (claim)
 		{
@@ -2793,12 +2796,35 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				|| !proof.context().permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()))
 			{ return OperationResult.replan("transaction.state_conflict"); }
 			claim._nativeContext = proof.context();
-			final var advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, history.cursorEpochMinute(), proof.context().afterPolicy());
+			// Only the pure route query sees current knowledge; native proof remains bound to original bytes.
+			final var planning = paidTravelPlanningState(state, currentHashes);
+			final var advance = _authority.advanceTravel(planning, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, history.cursorEpochMinute(), proof.context().afterPolicy());
 			if (!advance.mutated() || advance.feeAdena() <= 0 || !advance.edgeId().startsWith("leg.") || !current.getAsBoolean())
 			{ return OperationResult.replan("transaction.state_conflict"); }
+			if (!history.authorityHashes().equals(currentHashes))
+			{
+				final var repeated = transaction(() -> _transactions.nativeContext(profileId, claim.characterObjectId()));
+				if (repeated.status() != PhantomBackgroundTransaction.Status.SUCCESS || !state.equals(repeated.state())
+					|| !proof.context().equals(repeated.context()) || !currentHashes.equals(_authority.hashes()) || !current.getAsBoolean())
+				{ return OperationResult.replan("transaction.state_conflict"); }
+				return OperationResult.replan("catchup.paid_travel.authority_refresh_required");
+			}
 			return requestNativeTravel(claim);
 		}
 		catch (RuntimeException failure) { return retry("catchup.paid_travel.proof_unavailable"); }
+	}
+
+	static boolean paidTravelKnowledgeCompatible(PhantomBackgroundState.Hashes original, PhantomBackgroundState.Hashes current)
+	{
+		return original.topology().equals(current.topology()) && original.progression().equals(current.progression())
+			&& original.commerce().equals(current.commerce());
+	}
+
+	static PhantomBackgroundState paidTravelPlanningState(PhantomBackgroundState original, PhantomBackgroundState.Hashes current)
+	{
+		if (!paidTravelKnowledgeCompatible(original.hashes(), current)) { throw new IllegalArgumentException("Paid route authority changed beyond knowledge."); }
+		return original.hashes().equals(current) ? original : new PhantomBackgroundState(original.state(), original.identity(), original.progress(),
+			original.vitals(), original.position(), original.combat(), original.loadout(), original.inventory(), original.autoGetSkills(), original.clock(), original.receipt(), current);
 	}
 
     private static void observeCommittedOperation(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)

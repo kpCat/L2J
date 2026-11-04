@@ -186,6 +186,28 @@ public final class PhantomLivingWorld112Checks
 		check(!PhantomHistoricalBackgroundService.isRecoverableFailure(failed.failureReason())
 			&& !PhantomHistoricalBackgroundService.requiresNativeMaterialization(failed.failureReason()), "121_GENERIC_STATE_CONFLICT_RELAXED");
 		check(java.util.Arrays.equals(before, codec.encode(failed)), "121_FAILED_PAYLOAD_OR_DEBT_CHANGED");
+		final var freshHashes = new Hashes("native12.knowledge", "t", "p", "c");
+		final var freshGeneration = new PhantomHistoricalBackgroundPlanner.PlanningGeneration(1, 1, freshHashes);
+		check(PhantomHistoricalBackgroundService.paidTravelKnowledgeRefreshEligible(failed, freshGeneration), "121_KNOWLEDGE_ONLY_PAID_PROOF_FENCED");
+		check(!PhantomHistoricalBackgroundService.paidTravelKnowledgeRefreshEligible(failed, generation)
+			&& !PhantomHistoricalBackgroundService.paidTravelKnowledgeRefreshEligible(running, freshGeneration), "121_NONSTALE_OR_RUNNING_REFRESHED");
+		for (var unsafeHashes : List.of(new Hashes("k", "changed", "p", "c"), new Hashes("k", "t", "changed", "c"), new Hashes("k", "t", "p", "changed")))
+		{
+			check(!PhantomHistoricalBackgroundService.paidTravelKnowledgeRefreshEligible(failed, new PhantomHistoricalBackgroundPlanner.PlanningGeneration(1, 1, unsafeHashes)), "121_NONKNOWLEDGE_DRIFT_ADMITTED");
+		}
+		check(!PhantomHistoricalBackgroundService.paidTravelKnowledgeRefreshEligible(failed, new PhantomHistoricalBackgroundPlanner.PlanningGeneration(2, 1, freshHashes))
+			&& !PhantomHistoricalBackgroundService.paidTravelKnowledgeRefreshEligible(failed, new PhantomHistoricalBackgroundPlanner.PlanningGeneration(1, 2, freshHashes)), "121_UNOWNED_GENERATION_REFRESHED");
+		final var stateCodec = new PhantomBackgroundStateCodec(); final var originalBytes = stateCodec.encode(base);
+		final var planning = PhantomBackgroundService.paidTravelPlanningState(base, freshHashes);
+		check(planning != base && planning.hashes().equals(freshHashes) && java.util.Arrays.equals(originalBytes, stateCodec.encode(base)), "121_ROUTE_PREVIEW_MUTATED_ORIGINAL_PROOF");
+		final var reconstructed = new PhantomBackgroundState(planning.state(), planning.identity(), planning.progress(), planning.vitals(), planning.position(),
+			planning.combat(), planning.loadout(), planning.inventory(), planning.autoGetSkills(), planning.clock(), planning.receipt(), base.hashes());
+		check(base.equals(reconstructed), "121_ROUTE_PREVIEW_CHANGED_GAMEPLAY_FACTS");
+		final var renewed = failed.withPlan(failed.goalId(), failed.goalRevision() + 1, failed.planOrdinal() + 1, "paid.revalidated", 1, 1, freshHashes);
+		check(renewed.status() == PhantomBackgroundCatchupState.Status.RUNNING && renewed.requestId().equals(failed.requestId())
+			&& renewed.deterministicSeed() == failed.deterministicSeed() && renewed.fromEpochMinute() == failed.fromEpochMinute()
+			&& renewed.targetEpochMinute() == failed.targetEpochMinute() && renewed.cursorEpochMinute() == failed.cursorEpochMinute()
+			&& renewed.intervalOrdinal() == failed.intervalOrdinal() && renewed.generation() == failed.generation(), "121_PAID_CAS_REPLAN_ERASED_DEBT_OR_RNG");
 		System.out.println("TASK121_PAID_TRAVEL_GATE_PASS native paid leg requires existing handoff; free/refused paths unchanged; DB0 World0");
 	}
 
