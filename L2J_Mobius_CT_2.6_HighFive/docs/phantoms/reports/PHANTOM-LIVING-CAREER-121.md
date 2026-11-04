@@ -22,6 +22,8 @@ Source commit c9b565b231: paid native handoff и focused regressions, тольк
 
 Promotion59d69486ca1e4a0ba9e2154d98918997 запечатала source repair JAR14e/controller и полный29115-file manifest, только authority input CAS, actor/receipt/debt writes0. Сцена12 запущена на том же31 без regrant, её readiness связана exact SHA checkpoint11/cut11/flight11/game11.exit0. Это SOURCE_REPAIR, не same-JAR restart11. Будущая13 допускается только после healthy12 с тем же JAR/public input seal. Состояние на данном checkpoint: native12 RUNNING, native GREEN/rewards/gear ещё не подтверждены. Работа TASK121 продолжается, TASK122 не запускалась.
 
+Native12 итог: selected31 снова READY_ECOLOGY_DUE/transaction.state_conflict, World/rewards/gear purchases0; устойчивое окно прекращено обычным STOP, run/postflight12 exit0, healthy STORE, JVM0/listeners0/SQL0. Inventory03f8acce… и offline4d287d… unchanged. Checkpoint12 сохраняет exact FAILED31/request/cursor/interval/reason. Одновременно обновлённый RUNNING27 содержит knowledge hashb5d99f7a3d9317c5e69f55caa7db5dbeec2e740c20dccf14205877ce144259cc, тогда как FAILED31 всё ещё5e05667dd85915c9d7020f69f86927193187a9d46575ad9da6670ac30185f50d; topology/progression/commerce и generation1/1 совпадают. Knowledge drift достаточно для отказа exact legacy guard; native GREEN12 не заявляется. Новый шаг требует текущего positive-fee route proof и штатного canonical/CAS recovery без generic failure reset. Бесполезное повторение12 не запускается. Исходная future13 same-JAR пара пока OPEN.
+
 ## Дополнение после source checkpoint7e8f9fb826 (срез до native11)
 
 Последующий срез native6–10 и source checks (работа продолжается, FULL121 не заявлен):
