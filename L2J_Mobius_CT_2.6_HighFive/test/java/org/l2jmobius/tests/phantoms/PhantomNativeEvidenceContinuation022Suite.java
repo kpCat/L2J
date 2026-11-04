@@ -15,6 +15,44 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("123-successful-consumption-is-exact-and-observational", _ ->
+		{
+			final var method = PlayerNativeEvidence.class.getMethod("consumed", int.class, long.class, int.class, int.class, long.class, long.class);
+			final var field = PlayerNativeEvidence.class.getDeclaredField("_pickupObserver"); field.setAccessible(true);
+			final Object previous = field.get(null);
+			final var events = new java.util.ArrayList<long[]>();
+			try
+			{
+				field.set(null, (java.util.function.BiConsumer<String, long[]>) (kind, values) -> { PhantomAssertions.assertEquals("CONSUME", kind, "Successful decrement needs a distinct event kind."); events.add(values); });
+				final var sensor = new PlayerNativeEvidence(1, 100);
+				method.invoke(sensor, 2, 100L, 33, 1835, 600L, 598L);
+				method.invoke(sensor, 1, 99L, 33, 1835, 600L, 598L);
+				method.invoke(sensor, 1, 100L, 33, 1835, 600L, 600L);
+				method.invoke(sensor, 1, 100L, 33, 1835, 600L, 601L);
+				method.invoke(sensor, 1, 100L, 33, 1835, 600L, 598L);
+				PhantomAssertions.assertEquals(1, events.size(), "Foreign/stale/no-decrement observations must not publish consumption.");
+				PhantomAssertions.assertTrue(java.util.Arrays.equals(new long[] {1, 33, 1835, 600, 1, 2, 598, 100}, events.getFirst()), "Receipt must bind actor, epoch, item object and actual locked before/after counts.");
+				final var snapshot = sensor.snapshot(101);
+				PhantomAssertions.assertTrue(snapshot.rewardSequence() == 0 && snapshot.lootSequence() == 0 && snapshot.expGained() == 0 && snapshot.spGained() == 0 && !snapshot.overflow(), "Observation must not create earned progress or loot credit.");
+			}
+			finally { field.set(null, previous); }
+		});
+		registry.add("123-consumption-observer-failure-cannot-change-native-outcome", _ ->
+		{
+			final var method = PlayerNativeEvidence.class.getMethod("consumed", int.class, long.class, int.class, int.class, long.class, long.class);
+			final var field = PlayerNativeEvidence.class.getDeclaredField("_pickupObserver"); field.setAccessible(true);
+			final var failureField = PlayerNativeEvidence.class.getDeclaredField("_pickupObserverFailure"); failureField.setAccessible(true);
+			final Object previous = field.get(null), previousFailure = failureField.get(null);
+			try
+			{
+				field.set(null, (java.util.function.BiConsumer<String, long[]>) (kind, values) -> { throw new IllegalStateException("TEST123_OBSERVER_FAILURE"); });
+				final var sensor = new PlayerNativeEvidence(1, 100);
+				method.invoke(sensor, 1, 100L, 33, 1835, 2L, 0L);
+				PhantomAssertions.assertEquals(IllegalStateException.class.getName(), failureField.get(null), "Diagnostic failure must be visible independently of native outcome.");
+				PhantomAssertions.assertFalse(sensor.snapshot(101).overflow(), "A diagnostic observer must not poison the native owner.");
+			}
+			finally { field.set(null, previous); failureField.set(null, previousFailure); }
+		});
 		registry.add("094-completed-cycle-retains-late-native-settlement-receipt", _ ->
 		{
 			for (int order = 0; order < 3; order++)

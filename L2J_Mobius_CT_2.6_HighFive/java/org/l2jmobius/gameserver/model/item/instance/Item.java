@@ -622,6 +622,18 @@ public class Item extends WorldObject
 
 			_storedInDb = false;
 
+			// The existing opt-in native observer needs the actual serialized count change,
+			// including ItemProcessType.NONE used by stock soulshot handlers.
+			if (count < 0 && creator != null && _ownerId == creator.getObjectId())
+			{
+				final var nativeOwner = creator.getNativeWorkOwner();
+				if (nativeOwner != null && nativeOwner.player() == creator && nativeOwner.isCurrent()
+					&& org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(nativeOwner) != null && nativeOwner.evidence() != null)
+				{
+					nativeOwner.evidence().consumed(creator.getObjectId(), nativeOwner.epoch(), getObjectId(), _itemId, old, _count);
+				}
+			}
+
 			if ((process != null) && (process != ItemProcessType.NONE))
 			{
 				if ((GeneralConfig.LOG_ITEMS && ((!GeneralConfig.LOG_ITEMS_SMALL_LOG) && (!GeneralConfig.LOG_ITEMS_IDS_ONLY))) || (GeneralConfig.LOG_ITEMS_SMALL_LOG && (_itemTemplate.isEquipable() || (_itemTemplate.getId() == ADENA_ID))) || (GeneralConfig.LOG_ITEMS_IDS_ONLY && GeneralConfig.LOG_ITEMS_IDS_LIST.contains(_itemTemplate.getId())))

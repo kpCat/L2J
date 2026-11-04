@@ -91,6 +91,7 @@ public final class PhantomPickup109Checks
 		scheduledField.set(null, scheduled); instantField.set(null, instant);
 		try
 		{
+			if (args.length == 1 && args[0].equals("consume123")) { consume123(); return; }
 			if (args.length == 1 && args[0].equals("delivery-ordinary")) { deliveryOrdinary(); return; }
 			if (args.length == 1 && args[0].equals("delivery-window")) { deliveryWindow(); return; }
 			if (args.length == 1 && args[0].equals("delivery-mismatch")) { deliveryMismatch(); return; }
@@ -109,6 +110,26 @@ public final class PhantomPickup109Checks
 			check(scheduled.awaitTermination(3, TimeUnit.SECONDS) && instant.awaitTermination(3, TimeUnit.SECONDS), "executor leaked");
 			scheduledField.set(null, oldScheduled); instantField.set(null, oldInstant);
 		}
+	}
+
+	private static void consume123() throws Exception
+	{
+		final Field observer = org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.class.getDeclaredField("_pickupObserver"); observer.setAccessible(true);
+		final Object previous = observer.get(null);
+		final var events = new ArrayList<long[]>();
+		try (var managed = new Managed())
+		{
+			observer.set(null, (java.util.function.BiConsumer<String, long[]>) (kind, values) -> { if (kind.equals("CONSUME")) { events.add(values); } });
+			final var item = new org.l2jmobius.gameserver.model.item.instance.Item(90123001, 1835);
+			item.setOwnerId(managed.player.getObjectId()); item.setCount(600);
+			item.changeCount(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.NONE, -2, managed.player, null);
+			check(events.isEmpty(), "unscoped count change fabricated a native consumption receipt");
+			PlayerNativeWork.run(managed.player, "TEST123_CONSUME", () -> item.changeCount(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.NONE, -2, managed.player, null));
+			check(events.size() == 1 && java.util.Arrays.equals(events.getFirst(), new long[] {managed.player.getObjectId(), item.getObjectId(), 1835, 598, managed.player.getObjectId(), 2, 596, managed.scope.epoch()}), "actual locked ItemProcessType.NONE decrement was not captured exactly");
+			check(item.getCount() == 596 && managed.scope.open() && managed.scope.firstNativeIncident() == null && !DatabaseFactory.isInitialized(), "observer changed native count/owner/DB outcome");
+			System.out.println("TASK123_CONSUME_HOOK_PASS realItemWriter=true currentTicket=true SQL0 WorldPublished0 GameServer0");
+		}
+		finally { observer.set(null, previous); }
 	}
 
 	private static Party party(Managed... members)

@@ -19,6 +19,14 @@ public final class PlayerNativeEvidence
 	// TEST-only observer of existing successful writers; it never selects or changes a recipient.
 	private static volatile java.util.function.BiConsumer<String, long[]> _pickupObserver;
 	private static volatile String _pickupObserverFailure = "";
+	/** Called under the item's native count lock, after a successful owned decrement. */
+	public void consumed(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after)
+	{
+		final var observer = _pickupObserver;
+		if (observer == null || !matches(actorObjectId, actorEpoch) || itemObjectId <= 0 || itemId <= 0 || before <= after || after < 0) { return; }
+		try { observer.accept("CONSUME", new long[] { _objectId, itemObjectId, itemId, before, _objectId, before - after, after, _epoch }); }
+		catch (Throwable unavailable) { _pickupObserverFailure = unavailable.getClass().getName(); }
+	}
 	public record PickupReceipt(int sourceObjectId, int itemId, long count, long actorCount, long sequence, boolean nativeConsumed) { }
 	private final Map<Integer, PickupReceipt> _pickups = new LinkedHashMap<>();
 	private long _pickupSequence;
