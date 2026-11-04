@@ -572,19 +572,36 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private Optional<PhantomGoal> readySaProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
 	{
-		if (_upgrades == null || _readySaOffers.isEmpty() || now < cached.nextSaCheck) { return Optional.empty(); }
-		cached.nextSaCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds());
-		final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
-		if (receipt != null && (!receipt.state().terminal() || receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT)) { return Optional.empty(); }
-		long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
-		if (receipt != null && receipt.goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.goalRevision(), 1)); }
-		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
-		final var counters = _blacksmiths.stream().map(spawn ->
+		synchronized (cached)
 		{
-			final var region = World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z());
-			return region == null ? null : region.getVisibleObjects().stream().filter(o -> o instanceof Npc npc && npc.getId() == spawn.npcId() && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && player.isInsideRadius3D(npc, Npc.INTERACTION_DISTANCE)).map(o -> (Npc) o).findFirst().orElse(null);
-		}).filter(java.util.Objects::nonNull).distinct().toList();
-		return org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.proposal(player, root, binding, revision, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), _policy.minimumAdenaReserve(), _readySaOffers, counters);
+			if (_upgrades == null || _readySaOffers.isEmpty()) { return Optional.empty(); }
+			if (cached.saOffer != null && cached.goal != null && cached.goal.revision() >= cached.saOffer.revision()) { cached.saOffer = null; }
+			final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
+			final var retained = cachedReadySa(cached.saOffer, root, binding, now);
+			if (retained.isPresent()) { return retained; }
+			cached.saOffer = null;
+			if (now < cached.nextSaCheck) { return Optional.empty(); }
+			cached.nextSaCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds());
+			final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+			if (receipt != null && (!receipt.state().terminal() || receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT)) { return Optional.empty(); }
+			long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
+			if (receipt != null && receipt.goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.goalRevision(), 1)); }
+			final var counters = _blacksmiths.stream().map(spawn ->
+			{
+				final var region = World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z());
+				return region == null ? null : region.getVisibleObjects().stream().filter(o -> o instanceof Npc npc && npc.getId() == spawn.npcId() && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && player.isInsideRadius3D(npc, Npc.INTERACTION_DISTANCE)).map(o -> (Npc) o).findFirst().orElse(null);
+			}).filter(java.util.Objects::nonNull).distinct().toList();
+			cached.saOffer = org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.proposal(player, root, binding, revision, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), _policy.minimumAdenaReserve(), _readySaOffers, counters).orElse(null);
+			return Optional.ofNullable(cached.saOffer);
+		}
+	}
+
+	/** Scoring and execution read the same proposal; only accepted children own durable effects. */
+	private static Optional<PhantomGoal> cachedReadySa(PhantomGoal offer, PhantomGoal root, Binding current, long now)
+	{
+		if (!PhantomSupplyIntentStore.readySa(offer) || offer.status() != PhantomGoalStatus.ACTIVE || !PhantomSupplyIntentStore.bound(offer, root) || !alive(offer, now)) { return Optional.empty(); }
+		final var previous = Binding.parse(offer);
+		return previous.rootRevision() == current.rootRevision() && previous.actorObjectId() == current.actorObjectId() && previous.classId() == current.classId() && previous.classIndex() == current.classIndex() && previous.weaponObjectId() == current.weaponObjectId() ? Optional.of(offer) : Optional.empty();
 	}
 
 	private Optional<PhantomGoal> equipmentProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
@@ -1523,7 +1540,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (cached != null && (PhantomSupplyIntentStore.social(cached.goal) || PhantomSupplyIntentStore.upgrade(cached.goal)))
 		{
 			final var current = _store.intent(profileId).orElse(null);
-			if (current != null && current.rowVersion() != cached.row) { cached.goal = current.goal(); cached.row = current.rowVersion(); cached.offer = null; }
+			if (current != null && current.rowVersion() != cached.row) { cached.goal = current.goal(); cached.row = current.rowVersion(); cached.offer = null; cached.saOffer = null; }
 		}
 		if (cached == null)
 		{
@@ -1536,7 +1553,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	}
 	private void save(long profileId, PhantomGoal root, Cached cached, PhantomGoal goal)
 	{
-		try { final var stored = _store.saveIntent(profileId, root, cached.row, goal); cached.goal = stored.goal(); cached.row = stored.rowVersion(); cached.offer = null; }
+		try { final var stored = _store.saveIntent(profileId, root, cached.row, goal); cached.goal = stored.goal(); cached.row = stored.rowVersion(); cached.offer = null; cached.saOffer = null; }
 		catch (RuntimeException exception) { synchronized (this) { _cache.remove(profileId); } throw exception; }
 	}
 	private static PhantomStepResult retry(String reason) { return PhantomStepResult.retry(500, reason); }
@@ -1809,7 +1826,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private static final class Cached
 	{
-		private volatile PhantomGoal goal, offer;
+		private volatile PhantomGoal goal, offer, saOffer;
 		private volatile long row;
 		private String facts = "";
 		private volatile String gatekeeper = "";

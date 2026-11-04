@@ -200,10 +200,11 @@ public final class PhantomMultipartyEconomyService
 			}
 			final Player initiator = participants.player(profileId);
 			final Player counterparty = World.getInstance().getPlayer(spec.counterpartyCharacterObjectId());
-			if ((counterparty == null) || !validateStandingOffer(spec, initiator, counterparty))
+			if (counterparty == null)
 			{
 				return StepResult.retry("economy.social.counterparty.awaiting");
 			}
+			if (!validateStandingOffer(spec, initiator, counterparty)) { return changedStandingOffer(spec); }
 			if (spec instanceof DirectTrade trade)
 			{
 				if (initiator.calculateDistance3D(counterparty) > trade.maximumDistance())
@@ -1107,6 +1108,12 @@ public final class PhantomMultipartyEconomyService
 			}
 		}
 		return result;
+	}
+
+	/** Immutable store terms cannot become valid again by waiting for consent. */
+	private static StepResult changedStandingOffer(PhantomSocialEconomyGoalSpec spec)
+	{
+		return spec instanceof DirectTrade ? StepResult.retry("economy.social.counterparty.awaiting") : StepResult.replan("economy.social.standing_offer.changed");
 	}
 
 	private boolean validateStandingOffer(PhantomSocialEconomyGoalSpec spec, Player initiator, Player counterparty)

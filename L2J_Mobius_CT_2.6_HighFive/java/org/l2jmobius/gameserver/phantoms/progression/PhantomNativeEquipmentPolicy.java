@@ -218,8 +218,15 @@ public final class PhantomNativeEquipmentPolicy
 	public static Comparator<ItemTemplate> preference(Player player)
 	{
 		final var values = new java.util.HashMap<Integer, Double>();
+		final var sets = new java.util.HashMap<Integer, Boolean>();
+		return preference(item -> values.computeIfAbsent(item.getId(), ignored -> utility(player, item)), item -> sets.computeIfAbsent(item.getId(), ignored -> completedSet(player, item)));
+	}
+
+	private static Comparator<ItemTemplate> preference(java.util.function.ToDoubleFunction<ItemTemplate> utility, java.util.function.Predicate<ItemTemplate> completedSet)
+	{
 		return Comparator.comparingInt((ItemTemplate item) -> item instanceof Weapon ? 0 : 1)
 			.thenComparing(Comparator.comparingInt((ItemTemplate item) -> item.getCrystalType().getLevel()).reversed())
-			.thenComparing(Comparator.comparingDouble((ItemTemplate item) -> values.computeIfAbsent(item.getId(), ignored -> utility(player, item))).reversed()).thenComparingInt(ItemTemplate::getId);
+			.thenComparingInt(item -> completedSet.test(item) ? 0 : 1)
+			.thenComparing(Comparator.comparingDouble(utility).reversed()).thenComparingInt(ItemTemplate::getId);
 	}
 }
