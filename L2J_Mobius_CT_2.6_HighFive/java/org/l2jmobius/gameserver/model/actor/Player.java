@@ -465,6 +465,7 @@ public class Player extends Playable
 	private volatile PlayerNativeWork.Owner _nativeWorkOwner;
 	private PlayerNativeWork.Ticket _nativeLoadTicket;
 	private PlayerNativeWork.Context _nativeLoadContext;
+	private boolean _nativeLoadVitalsRestored;
 
 	public PlayerNativeWork.Owner getNativeWorkOwner() { return _nativeWorkOwner; }
 	public boolean isNativeWorkManaged() { return _phantomNativeActionManaged; }
@@ -12366,7 +12367,8 @@ public class Player extends Playable
 		for (BuffInfo info : getEffectList().getEffects()) { combined.put(info.getSkill().getReuseHashCode(), info); }
 		if (combined.size() > 1024) { throw new IllegalStateException("NATIVE_TEARDOWN_EFFECT_SAVE_CAP"); }
 		_nativeCleanupEffects = new ArrayList<>(combined.values());
-		getEffectList().stopAllEffectsWithoutExclusions(false, false);
+		// STORE must retain learned passive maxima; final Creature.deleteMe removes them afterwards.
+		getEffectList().stopAllEffectsWithoutExclusions(false, false, false);
 		// Stock stat-only buffs can reduce a maximum without an onExit clamp.
 		if (getCurrentHp() > getMaxHp()) { setCurrentHp(getMaxHp()); }
 		if (getCurrentMp() > getMaxMp()) { setCurrentMp(getMaxMp()); }
@@ -15518,6 +15520,22 @@ public class Player extends Playable
 		_originalCp = cp;
 		_originalHp = hp;
 		_originalMp = mp;
+	}
+
+	/** Complete the stock login status correction synchronously before managed World admission. */
+	public synchronized void restoreNativeLoadVitals()
+	{
+		final var owner = getNativeWorkOwner();
+		if (!isNativeWorkManaged() || (owner == null) || (owner.player() != this) || !owner.isCurrent() || (PlayerNativeWork.current(owner) == null)
+			|| owner.sealed() || (_phantomNativeActionAdmission != null) || (World.getInstance().findObject(getObjectId()) != null) || (World.getInstance().getPlayer(getObjectId()) != null) || _nativeLoadVitalsRestored)
+		{ throw new IllegalStateException("NATIVE_LOAD_VITALS_CONTEXT_REQUIRED"); }
+		_nativeLoadVitalsRestored = true;
+		if (!isDead())
+		{
+			setCurrentHp(_originalHp);
+			setCurrentMp(_originalMp);
+			setCurrentCp(_originalCp);
+		}
 	}
 	
 	/**

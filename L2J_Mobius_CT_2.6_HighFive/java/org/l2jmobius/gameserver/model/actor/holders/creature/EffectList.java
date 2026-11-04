@@ -769,6 +769,12 @@ public class EffectList
 	 */
 	public void stopAllEffectsWithoutExclusions(boolean update, boolean broadcast)
 	{
+		stopAllEffectsWithoutExclusions(update, broadcast, true);
+	}
+
+	/** Removes temporary effects before native STORE while learned passive stats remain authoritative. */
+	public void stopAllEffectsWithoutExclusions(boolean update, boolean broadcast, boolean includePassives)
+	{
 		for (BuffInfo info : _buffs)
 		{
 			stopAndRemove(broadcast, info, _buffs);
@@ -794,9 +800,12 @@ public class EffectList
 			stopAndRemove(broadcast, info, _debuffs);
 		}
 		
-		for (BuffInfo info : _passives)
+		if (includePassives)
 		{
-			stopAndRemove(broadcast, info, _passives);
+			for (BuffInfo info : _passives)
+			{
+				stopAndRemove(broadcast, info, _passives);
+			}
 		}
 		
 		// Update stats, effect flags and icons.

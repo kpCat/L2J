@@ -91,6 +91,8 @@ public final class PhantomPickup109Checks
 		scheduledField.set(null, scheduled); instantField.set(null, instant);
 		try
 		{
+			if (args.length == 1 && args[0].equals("cleanup126")) { cleanup126(); return; }
+			if (args.length == 1 && args[0].equals("restore126")) { restore126(); return; }
 			if (args.length == 1 && args[0].equals("consume123")) { consume123(); return; }
 			if (args.length == 1 && args[0].equals("delivery-ordinary")) { deliveryOrdinary(); return; }
 			if (args.length == 1 && args[0].equals("delivery-window")) { deliveryWindow(); return; }
@@ -110,6 +112,99 @@ public final class PhantomPickup109Checks
 			check(scheduled.awaitTermination(3, TimeUnit.SECONDS) && instant.awaitTermination(3, TimeUnit.SECONDS), "executor leaked");
 			scheduledField.set(null, oldScheduled); instantField.set(null, oldInstant);
 		}
+	}
+
+	private static void cleanup126() throws Exception
+	{
+		try (var managed = new Managed())
+		{
+			final Player player = managed.player;
+			final var access = Player.class.getDeclaredField("_accessLevel"); access.setAccessible(true);
+			access.set(player, org.l2jmobius.gameserver.data.xml.AdminData.getInstance().getAccessLevel(0));
+			check(!player.isGM(), "native effect fixture must remain an ordinary Player");
+			final double base = player.getMaxMp();
+			final var passiveExits = new AtomicInteger(); final var activeExits = new AtomicInteger();
+			final var passive = manaSkill126(126213, true, 100, passiveExits);
+			final var active = manaSkill126(126214, false, 50, activeExits);
+			PlayerNativeWork.run(player, "TEST126_PREPARE_NATIVE_EFFECTS", () ->
+			{
+				player.addSkill(passive, false);
+				final var info = new org.l2jmobius.gameserver.model.skill.BuffInfo(player, player, active);
+				info.addEffect(active.getEffects(org.l2jmobius.gameserver.model.skill.EffectScope.GENERAL).getFirst());
+				player.getEffectList().add(info);
+				check(Math.abs(player.getMaxMp() - base - 150) < 0.01, "actual passive and active native MP functions were not installed");
+				player.setCurrentMp(base + 75); player.getStatus().stopHpMpRegeneration();
+			});
+			managed.scope.drainAndSeal(deadline());
+			managed.scope.teardown(player::completeNativeCleanupEffects, deadline());
+			managed.scope.teardown(player::completeNativeCleanupEffects, deadline());
+			check(activeExits.get() == 1 && passiveExits.get() == 0, "repeated pre-STORE cleanup replayed a callback or exited a learned passive");
+			check(Math.abs(player.getMaxMp() - base - 100) < 0.01, "pre-STORE cleanup removed learned passive MAX_MP");
+			check(Math.abs(player.getCurrentMp() - base - 75) < 0.01, "pre-STORE cleanup irreversibly clamped native MP to a passive-free maximum");
+			check(player.getKnownSkill(passive.getId()) == passive && player.getEffectList().getPassives().stream().anyMatch(info -> info.getSkill() == passive) && player.getEffectList().getEffects().isEmpty(), "cleanup lost passive identity or retained temporary effects");
+			managed.scope.terminalStore(() -> check(Math.abs(player.getMaxMp() - base - 100) < 0.01 && Math.abs(player.getCurrentMp() - base - 75) < 0.01, "native STORE boundary observed different passive-derived vitals"));
+			PhantomMaterializedPlayer.disposeStoredEffects(player, managed.scope, deadline());
+			player.getEffectList().stopAllEffectsWithoutExclusions(false, false);
+			check(activeExits.get() == 1 && passiveExits.get() == 1, "final sealed cleanup skipped or replayed a native effect callback");
+			check(player.getEffectList().getPassives().isEmpty() && Math.abs(player.getMaxMp() - base) < 0.01, "final full cleanup stopped removing passive native effects");
+			check(!DatabaseFactory.isInitialized() && World.getInstance().findObject(player.getObjectId()) == null, "native cleanup contract published a World Player or initialized DB");
+			System.out.println("TASK126_CLEANUP_PASS passiveMaxMp=true activeRemoved=true currentMpPreserved=true terminalStoreBoundary=true finalPassiveRemoval=true DB=false WorldPublished=0");
+		}
+	}
+
+	private static void restore126() throws Exception
+	{
+		try (var managed = new Managed())
+		{
+			final Player player = managed.player;
+			final var access = Player.class.getDeclaredField("_accessLevel"); access.setAccessible(true);
+			access.set(player, org.l2jmobius.gameserver.data.xml.AdminData.getInstance().getAccessLevel(0));
+			final double base = player.getMaxHp(), savedHp = base / 2, savedMp = player.getMaxMp() / 2, savedCp = player.getMaxCp() / 2;
+			player.setOriginalCpHpMp(savedCp, savedHp, savedMp);
+			try { player.restoreNativeLoadVitals(); throw new AssertionError("unowned restore accepted"); }
+			catch (IllegalStateException expected) { check("NATIVE_LOAD_VITALS_CONTEXT_REQUIRED".equals(expected.getMessage()), "wrong unowned restore failure"); }
+			PlayerNativeWork.run(player, "TEST126_RESTORE_EFFECTS", () ->
+			{
+				player.setCurrentHp(savedHp); player.setCurrentMp(savedMp); player.setCurrentCp(savedCp);
+				final var set = new org.l2jmobius.gameserver.model.StatSet();
+				set.set("skill_id", 126311); set.set("level", 1); set.set("name", "Restored native HP effect contract");
+				set.set("operateType", org.l2jmobius.gameserver.model.skill.SkillOperateType.A2); set.set("abnormalTime", -1);
+				final var skill = new org.l2jmobius.gameserver.model.skill.Skill(set);
+				final var effectSet = new org.l2jmobius.gameserver.model.StatSet(); effectSet.set("name", "Buff");
+				final var effect = new org.l2jmobius.gameserver.model.effects.AbstractEffect(null, null, effectSet, new org.l2jmobius.gameserver.model.StatSet())
+				{
+					@Override public void onStart(org.l2jmobius.gameserver.model.actor.Creature effector, org.l2jmobius.gameserver.model.actor.Creature effected, org.l2jmobius.gameserver.model.skill.Skill value) { effected.setCurrentHp(effected.getCurrentHp() + base / 10); }
+				};
+				effect.attach(new org.l2jmobius.gameserver.model.stats.functions.FuncTemplate(null, null, "Mul", -1, org.l2jmobius.gameserver.model.stats.Stat.MAX_HP, 1.1));
+				final var info = new org.l2jmobius.gameserver.model.skill.BuffInfo(player, player, skill); info.addEffect(effect); player.getEffectList().add(info);
+				check(player.getCurrentHp() > savedHp && player.getMaxHp() > base, "actual native continuous effect did not reproduce restore-time heal");
+				player.restoreNativeLoadVitals(); player.getStatus().stopHpMpRegeneration();
+				check(Math.abs(player.getCurrentHp() - savedHp) < 0.01 && Math.abs(player.getCurrentMp() - savedMp) < 0.01 && Math.abs(player.getCurrentCp() - savedCp) < 0.01, "native effect restoration replayed one-time healing over SQL vitals");
+				check(player.getMaxHp() > base && !player.getEffectList().getEffects().isEmpty(), "login correction removed the restored continuous effect");
+				try { player.restoreNativeLoadVitals(); throw new AssertionError("replayed login correction accepted"); }
+				catch (IllegalStateException expected) { check("NATIVE_LOAD_VITALS_CONTEXT_REQUIRED".equals(expected.getMessage()), "wrong repeated restore failure"); }
+			});
+			managed.scope.drainAndSeal(deadline()); managed.scope.teardown(player::completeNativeCleanupEffects, deadline());
+			check(managed.scope.firstNativeIncident() == null && !DatabaseFactory.isInitialized() && World.getInstance().findObject(player.getObjectId()) == null, "restore contract changed native ownership/DB/World");
+			System.out.println("TASK126_RESTORE_PASS savedSQLVitals=true continuousEffectRetained=true replayRejected=true unownedRejected=true DB=false WorldPublished=0");
+		}
+	}
+
+	private static org.l2jmobius.gameserver.model.skill.Skill manaSkill126(int id, boolean passive, int amount, AtomicInteger exits)
+	{
+		final var set = new org.l2jmobius.gameserver.model.StatSet();
+		set.set("skill_id", id); set.set("level", 1); set.set("name", "Native cleanup MP contract");
+		set.set("operateType", passive ? org.l2jmobius.gameserver.model.skill.SkillOperateType.P : org.l2jmobius.gameserver.model.skill.SkillOperateType.A2);
+		set.set("targetType", org.l2jmobius.gameserver.model.skill.targets.TargetType.SELF); set.set("abnormalTime", -1);
+		final var skill = new org.l2jmobius.gameserver.model.skill.Skill(set);
+		final var effectSet = new org.l2jmobius.gameserver.model.StatSet(); effectSet.set("name", "Buff");
+		final var effect = new org.l2jmobius.gameserver.model.effects.AbstractEffect(null, null, effectSet, new org.l2jmobius.gameserver.model.StatSet())
+		{
+			@Override public void onExit(org.l2jmobius.gameserver.model.actor.Creature effector, org.l2jmobius.gameserver.model.actor.Creature effected, org.l2jmobius.gameserver.model.skill.Skill skill) { exits.incrementAndGet(); }
+		};
+		effect.attach(new org.l2jmobius.gameserver.model.stats.functions.FuncTemplate(null, null, "Add", -1, org.l2jmobius.gameserver.model.stats.Stat.MAX_MP, amount));
+		skill.addEffect(passive ? org.l2jmobius.gameserver.model.skill.EffectScope.PASSIVE : org.l2jmobius.gameserver.model.skill.EffectScope.GENERAL, effect);
+		return skill;
 	}
 
 	private static void consume123() throws Exception

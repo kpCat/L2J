@@ -246,7 +246,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			{
 				throw new MaterializationException(MaterializationFailure.AUTOSAVE_IDENTITY_BUSY, "Loaded Player is not the only autosave owner for the claimed character");
 			}
-			PlayerNativeWork.run(_player, "PLAYER_RESTORE_EFFECTS", _player::restoreEffects);
+			PlayerNativeWork.run(_player, "PLAYER_RESTORE_EFFECTS", () -> { _player.restoreEffects(); _player.restoreNativeLoadVitals(); });
 			_lifecycleSupport.afterPlayerLoad(_player);
 			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_AFTER_PLAYER_LOAD_OK", _state.name(), "", _objectId);
 			PlayerNativeWork.run(_player, "PLAYER_LOGIN_DOMAIN", () ->
@@ -420,6 +420,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				});
 
 				_cleanupPhase = CleanupPhase.PRE_DELETE;
+				disposeStoredEffects(cleanupPlayer, _nativeWork, deadlineNanos);
 				try
 				{
 					failAfter(FailurePoint.AFTER_STORE_BEFORE_DELETE);
@@ -742,6 +743,14 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				finally { _ticket.complete(null); }
 			}
 		}
+	}
+
+	static void disposeStoredEffects(Player player, PhantomNativeWorkScope nativeWork, long deadlineNanos)
+	{
+		if (player.getNativeWorkOwner() != nativeWork || !nativeWork.isCurrent()) { throw new IllegalStateException("NATIVE_FINAL_EFFECT_OWNER_CHANGED"); }
+		// Final delete is outside a ticket. Dispose passive callbacks after STORE under the same sealed owner.
+		nativeWork.teardown(() -> player.getEffectList().stopAllEffectsWithoutExclusions(false, false), deadlineNanos);
+		if (!player.getEffectList().getEffects().isEmpty() || !player.getEffectList().getPassives().isEmpty()) { throw new IllegalStateException("NATIVE_FINAL_EFFECTS_NOT_QUIESCENT"); }
 	}
 
 	public static final class MaterializationException extends IllegalStateException
