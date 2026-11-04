@@ -516,6 +516,9 @@ public final class PhantomFarmingSuite implements PhantomTestSuite
 			fixture.service.advance(1);
 			PhantomAssertions.assertTrue(fixture.service.beginStop(), "Farming beginStop failed.");
 			PhantomAssertions.assertTrue(fixture.service.finishStop(), "Farming finishStop retained operations.");
+			final var stopped = fixture.service.snapshot();
+			PhantomAssertions.assertTrue(fixture.service.finishStop(), "Repeated accepted-control polling treated stopped farming as pending.");
+			PhantomAssertions.assertEquals(stopped, fixture.service.snapshot(), "Repeated farming STOP changed ownership or metrics.");
 			PhantomAssertions.assertEquals(0, fixture.service.snapshot().activeClaims(), "Shutdown retained runtime farming leases.");
 			PhantomAssertions.assertEquals(PhantomFarmingService.State.STOPPED, fixture.service.snapshot().state(), "Farming service did not stop.");
 			fixture.closeTopology();

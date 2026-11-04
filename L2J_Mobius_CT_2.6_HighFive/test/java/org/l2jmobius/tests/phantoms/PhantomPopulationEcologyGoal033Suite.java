@@ -83,6 +83,13 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("boundaries122"))
+		{
+			registry.add("28-preparation-capacity-preserves-stop-owner", this::testPreparationStopReason122);
+			registry.add("26-live-history-reports-owner-not-capacity", this::testLiveOwnerReason113);
+			registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
+			return;
+		}
 		if (System.getProperty("phantom.m1.native.focus", "").equals("continuity113"))
 		{
 			registry.add("14-periodic-cursor-materialized-boundary-and-resume", this::testPeriodicMaterializedBoundary);
@@ -141,6 +148,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("25-cold-focus-does-not-starve-released-history", this::testColdFocusRelease113);
 		registry.add("26-live-history-reports-owner-not-capacity", this::testLiveOwnerReason113);
 		registry.add("27-large-debt-and-5000-identity-queue-model", this::testColdQueueModel113);
+		registry.add("28-preparation-capacity-preserves-stop-owner", this::testPreparationStopReason122);
 		for (int control = 1; control <= 12; control++)
 		{
 			final int selected = control;
@@ -219,6 +227,30 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(request, history.status(1), "Diagnostic snapshot wrote the historical request.");
 		context.record("task113.liveOwner", due); service.beginStop();
 		PhantomAssertions.assertEquals("ecology.stopping", service.dueSnapshot(1).reason(), "A live-owner diagnostic hid the STOP fence.");
+	}
+
+	private void testPreparationStopReason122(PhantomTestContext context)
+	{
+		final var now = Instant.parse("2026-01-20T20:30:00Z");
+		final long target = minute(now), from = target - 23_000;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var history = new HistoricalMemoryPort();
+		seedColdRequest113(population, store, history, 1, from, target);
+		final var original = store.require(1);
+		final var request = history.status(1);
+		final var service = service(store, history, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+		service.installRuntime(id -> population.loadManagedAfter(id - 1, 1).stream().filter(actor -> actor.profile().profileId() == id).findFirst(), noEvents());
+		service.register(population.loadManagedAfter(0, 1).getFirst()); loadMetadata(service, 1);
+		service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 0);
+		PhantomAssertions.assertEquals("ecology.preparation_capacity", service.dueSnapshot(1).reason(), "Zero preparation slots lost their selection reason.");
+		service.beginStop();
+		final var stopped = service.dueSnapshot(1);
+		PhantomAssertions.assertEquals("ecology.stopping", stopped.reason(), "Preparation selection hid the STOP owner behind capacity.");
+		PhantomAssertions.assertFalse(stopped.complete() || service.permitsScheduling(1), "STOP admitted historical work.");
+		PhantomAssertions.assertEquals(original, store.require(1), "Capacity/STOP observation changed the durable ecology cursor.");
+		PhantomAssertions.assertEquals(request, history.status(1), "Capacity/STOP observation changed the historical claim or receipt.");
+		context.record("task122.preparationStop", stopped);
 	}
 
 	private void testColdQueueModel113(PhantomTestContext context)

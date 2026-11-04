@@ -250,6 +250,7 @@ public final class PhantomFarmingService implements PhantomFarmingConflictPort.E
 
 	public synchronized boolean finishStop()
 	{
+		if (_state == State.STOPPED) { return true; }
 		if (_state == State.RUNNING)
 		{
 			beginStop();
