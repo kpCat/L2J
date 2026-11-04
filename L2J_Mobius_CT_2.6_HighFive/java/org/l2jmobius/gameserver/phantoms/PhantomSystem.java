@@ -732,6 +732,7 @@ public final class PhantomSystem
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService, this::marketPricingAuthority, () -> _offlineMerchantService == null ? java.util.List.of() : _offlineMerchantService.buyOwners());
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
 				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
+				_supplyJourney.useThreatRetreat(_combatService);
 				if (_autonomousMarketProducer != null)
 				{
 					_autonomousMarketProducer.installTravel(_navigationService, travel, _backgroundService, yieldFarm, (profileId, root) ->

@@ -69,6 +69,30 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		if (!_normalTargetPreflightOnly) { new PhantomPveReadiness093Suite().register(registry); }
+		if (!_normalTargetPreflightOnly) { registry.add("124-content-retreat-guard-cannot-cancel-or-consume-replacement", _ ->
+		{
+			final Fixture fixture = fixture(1);
+			try
+			{
+				final var request = new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, false, 30_000, fixture.token);
+				final var first = fixture.service.startContentRetreatSession(request, "supplies.retreat.124");
+				PhantomAssertions.assertTrue(first.accepted(), "Canonical supply retreat was not admitted.");
+				final long generation = first.session().generation();
+				PhantomAssertions.assertEquals(CancelStatus.NOT_FOUND, fixture.service.cancelContentSession(1, generation, 100, "questinstance.foreign"), "Foreign owner cancelled a supply retreat.");
+				PhantomAssertions.assertEquals(CancelStatus.NOT_FOUND, fixture.service.cancelContentSession(1, generation, 101, "supplies.retreat.124"), "Wrong target cancelled a supply retreat.");
+				PhantomAssertions.assertTrue(!fixture.service.find(1).orElseThrow().result().terminal(), "Rejected cancellation changed native ownership.");
+				fixture.service.cancelContentSession(1, generation, 100, "supplies.retreat.124");
+				PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation + 1, 100, "supplies.retreat.124").isEmpty(), "Stale generation consumed terminal ownership.");
+				PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, "supplies.retreat.124").isPresent(), "Exact terminal retreat did not settle.");
+				final var replacement = fixture.service.startContentRetreatSession(request, "questinstance.foreign");
+				PhantomAssertions.assertTrue(replacement.accepted(), "Settled retreat prevented the next canonical owner.");
+				PhantomAssertions.assertEquals(CancelStatus.NOT_FOUND, fixture.service.cancelContentSession(1, generation, 100, "supplies.retreat.124"), "Check/use replacement race cancelled foreign ownership.");
+				fixture.service.cancel(1);
+				PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, generation, 100, "supplies.retreat.124").isEmpty() && fixture.service.find(1).isPresent(), "Old supply operation consumed a foreign terminal session.");
+				PhantomAssertions.assertTrue(fixture.service.consumeContentTerminal(1, replacement.session().generation(), 100, "questinstance.foreign").isPresent(), "Exact replacement could not settle.");
+			}
+			finally { fixture.stop(); }
+		}); }
 		if (!_normalTargetPreflightOnly) { registry.add("094-rejected-approach-cancels-exact-previous-owned-action", _ ->
 		{
 			for (var mode : List.of(PhantomCombatMode.MELEE_PHYSICAL, PhantomCombatMode.RANGED_MAGIC))

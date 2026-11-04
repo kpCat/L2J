@@ -825,10 +825,21 @@ public final class PhantomCombatService
 
 	public Optional<PhantomCombatSessionSnapshot> consumeTerminal(long profileId)
 	{
+		return consumeTerminal(profileId, 0, 0, null);
+	}
+
+	public Optional<PhantomCombatSessionSnapshot> consumeContentTerminal(long profileId, long generation, int targetObjectId, String operationOwner)
+	{
+		if (generation <= 0 || targetObjectId <= 0 || operationOwner == null || operationOwner.isBlank()) { return Optional.empty(); }
+		return consumeTerminal(profileId, generation, targetObjectId, operationOwner);
+	}
+
+	private Optional<PhantomCombatSessionSnapshot> consumeTerminal(long profileId, long generation, int targetObjectId, String operationOwner)
+	{
 		synchronized (_monitor)
 		{
 			final PhantomCombatSession session = _sessions.get(profileId);
-			if ((session == null) || !session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE) || session._startInProgress)
+			if ((session == null) || generation > 0 && (session._generation != generation || session._request.targetObjectId() != targetObjectId || !Objects.equals(_sessionOperationOwners.get(profileId), operationOwner)) || !session._result.terminal() || (session._cleanupState != CleanupState.COMPLETE) || session._startInProgress)
 			{
 				return Optional.empty();
 			}
@@ -841,6 +852,17 @@ public final class PhantomCombatService
 
 	public CancelStatus cancel(long profileId)
 	{
+		return cancel(profileId, 0, 0, null);
+	}
+
+	public CancelStatus cancelContentSession(long profileId, long generation, int targetObjectId, String operationOwner)
+	{
+		if (generation <= 0 || targetObjectId <= 0 || operationOwner == null || operationOwner.isBlank()) { return CancelStatus.NOT_FOUND; }
+		return cancel(profileId, generation, targetObjectId, operationOwner);
+	}
+
+	private CancelStatus cancel(long profileId, long generation, int targetObjectId, String operationOwner)
+	{
 		final PhantomCombatSession session;
 		synchronized (_monitor)
 		{
@@ -849,7 +871,7 @@ public final class PhantomCombatService
 				return CancelStatus.NOT_RUNNING;
 			}
 			session = _sessions.get(profileId);
-			if (session == null)
+			if (session == null || generation > 0 && (session._generation != generation || session._request.targetObjectId() != targetObjectId || !Objects.equals(_sessionOperationOwners.get(profileId), operationOwner)))
 			{
 				return CancelStatus.NOT_FOUND;
 			}

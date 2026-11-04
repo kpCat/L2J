@@ -228,6 +228,94 @@ public final class PhantomOfflineSupply
 		return Set.copyOf(needed);
 	}
 
+	static Map<Integer, Long> ingredientDeficits(org.l2jmobius.gameserver.model.item.recipe.RecipeList recipe, Map<Integer, Long> inventory)
+	{
+		final var needed = new java.util.TreeMap<Integer, Long>();
+		for (var ingredient : recipe.getRecipes()) { needed.merge(ingredient.getItemId(), (long) ingredient.getQuantity(), Math::addExact); }
+		needed.replaceAll((item, count) -> Math.max(0, count - Math.max(0, inventory.getOrDefault(item, 0L))));
+		needed.values().removeIf(count -> count == 0);
+		return Map.copyOf(needed);
+	}
+
+	/** Two exact bank objects fit beside the existing optional sale/deposit in the four-operation intent. */
+	static long warehouseTrips(List<Long> counts)
+	{
+		final long[] batches = counts.stream().mapToLong(count -> count <= 0 ? 0 : (count - 1) / 600 + 1).toArray();
+		long trips = 0;
+		for (int first = 0; first < batches.length; first++)
+		{
+			while (batches[first] > 0)
+			{
+				int second = first + 1; while (second < batches.length && batches[second] == 0) { second++; }
+				final long paired = second < batches.length ? Math.min(batches[first], batches[second]) : batches[first];
+				trips = Math.addExact(trips, paired); batches[first] -= paired;
+				if (second < batches.length) { batches[second] -= paired; }
+			}
+		}
+		return trips;
+	}
+
+	/** Quote one real, affordable batch before retrieving its own physical BOM; no warehouse stock is craft authority. */
+	public Map<Integer, Long> warehouseIngredients(Player buyer, List<ItemTemplate> products, long warehouseRoundTripFee, ToLongFunction<Player> roundTripFee,
+		LongUnaryOperator availableBudget, Predicate<AcquisitionQuote> admitted)
+	{
+		if (warehouseRoundTripFee < 0) { return Map.of(); }
+		final var ids = products.stream().map(ItemTemplate::getId).collect(java.util.stream.Collectors.toUnmodifiableSet());
+		Map<Integer, Long> selected = Map.of(); double best = Double.POSITIVE_INFINITY;
+		for (var maker : owners(buyer, World.getInstance().getPrivateStorePlayers(ids), owner -> owner.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && owner.getRace() == Race.DWARF && matches(owner, ids)))
+		{
+			final long fees = roundTripFee.applyAsLong(maker);
+			if (fees < 0 || maker.isCrafting()) { continue; }
+			for (var listing : manufactureListings(maker).stream().sorted(Comparator.comparingInt(value -> value.getRecipeId())).toList())
+			{
+				final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
+				if (recipe == null || !ids.contains(recipe.getItemId()) || !recipe.isDwarvenRecipe() || recipe.getCount() <= 0 || recipe.getCount() > 600 || recipe.getSuccessRate() <= 0
+					|| listing.getCost() <= 0 || listing.getCost() > availableBudget.applyAsLong(fees) || !maker.hasRecipeList(recipe.getId()) || maker.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) < recipe.getLevel()) { continue; }
+				long mp = 0, hp = 0;
+				for (var cost : recipe.getStatUse())
+				{
+					if (cost.getType() == org.l2jmobius.gameserver.data.enums.StatType.MP) { mp = Math.addExact(mp, cost.getValue()); }
+					if (cost.getType() == org.l2jmobius.gameserver.data.enums.StatType.HP) { hp = Math.addExact(hp, cost.getValue()); }
+				}
+				if (maker.getCurrentMp() < mp || maker.getCurrentHp() <= hp) { continue; }
+				final var inventory = new java.util.TreeMap<Integer, Long>();
+				for (var part : recipe.getRecipes()) { inventory.put(part.getItemId(), Math.max(0, buyer.getInventory().getInventoryItemCount(part.getItemId(), -1))); }
+				final var deficits = ingredientDeficits(recipe, inventory); final var bank = new java.util.TreeMap<Integer, Long>();
+				long money = listing.getCost(), travel = fees, addedWeight = 0, slots = 0, inputs = ingredientValue(recipe); boolean complete = true;
+				if (inputs < 0) { continue; }
+				for (var part : deficits.entrySet())
+				{
+					final var template = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(part.getKey());
+					if (template == null || template.getWeight() < 0) { complete = false; break; }
+					addedWeight = Math.addExact(addedWeight, Math.multiplyExact((long) template.getWeight(), part.getValue()));
+					if (!template.isStackable()) { slots = Math.addExact(slots, part.getValue()); }
+					else if (buyer.getInventory().getItemByItemId(part.getKey()) == null) { slots++; }
+					final var item = buyer.getWarehouse().getItemByItemId(part.getKey());
+					final long stored = item != null && item.getOwnerId() == buyer.getObjectId() && item.getItemLocation() == ItemLocation.WAREHOUSE ? Math.min(part.getValue(), Math.max(0, item.getCount())) : 0;
+					if (stored > 0) { bank.put(part.getKey(), stored); }
+					final long missing = part.getValue() - stored;
+					if (missing > 0)
+					{
+						final var purchase = componentPurchase(buyer, part.getKey(), missing, roundTripFee);
+						if (purchase == null) { complete = false; break; }
+						money = Math.addExact(money, purchase.cost()); travel = Math.addExact(travel, purchase.valuation().travelAdena());
+						inputs = Math.subtractExact(inputs, Math.multiplyExact(missing, template.getReferencePrice()));
+					}
+				}
+				final var product = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(recipe.getItemId());
+				if (!complete || bank.isEmpty() || product == null || product.getWeight() < 0) { continue; }
+				final var bankCounts = bank.entrySet().stream().sorted(Comparator.comparingInt(part -> buyer.getWarehouse().getItemByItemId(part.getKey()).getObjectId())).map(Map.Entry::getValue).toList();
+				travel = Math.addExact(travel, Math.multiplyExact(warehouseRoundTripFee, warehouseTrips(bankCounts)));
+				addedWeight = Math.addExact(addedWeight, Math.multiplyExact((long) product.getWeight(), recipe.getCount()));
+				slots = Math.addExact(slots, product.isStackable() ? buyer.getInventory().getItemByItemId(product.getId()) == null ? 1 : 0 : recipe.getCount());
+				if (!buyer.getInventory().validateCapacity(slots) || Math.addExact(buyer.getCurrentLoad(), addedWeight) > buyer.getMaxLoad() * 60L / 100 || money > availableBudget.applyAsLong(travel)) { continue; }
+				final var quote = new AcquisitionQuote(money, travel, inputs, recipe.getCount(), buyer.calculateDistance3D(maker), recipe.getSuccessRate());
+				if (admitted.test(quote) && quote.deliveredUnitCost() < best) { best = quote.deliveredUnitCost(); selected = Map.copyOf(bank); }
+			}
+		}
+		return selected;
+	}
+
 	private static List<Player> owners(Player buyer, Predicate<Player> matchesNeed)
 	{
 		return owners(buyer, World.getInstance().getPrivateStorePlayers(), matchesNeed);

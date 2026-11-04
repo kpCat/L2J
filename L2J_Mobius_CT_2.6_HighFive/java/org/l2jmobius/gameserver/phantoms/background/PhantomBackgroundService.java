@@ -2030,11 +2030,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return retry("recovery.town_absent");
 		}
 		final var canonical = _authority.canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), town.getInstanceId(), player.getHeading()).orElse(null);
-		if (canonical == null)
+		final Location destination = nativeRecoveryDestination(town, canonical);
+		if (destination == null)
 		{
 			return retry("recovery.canonical_town_absent");
 		}
-		final Location destination = new Location(canonical.x(), canonical.y(), canonical.z(), canonical.heading(), canonical.instanceId());
 		player.doRevive();
 		player.teleToLocation(destination, false);
 		final int expectedZ = GeoEngine.getInstance().getHeight(destination.getX(), destination.getY(), destination.getZ());
@@ -2053,6 +2053,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			player.setXYZInvisible(destination.getX(), destination.getY(), expectedZ);
 		}
 		return OperationResult.success("death.native_town_return");
+	}
+
+	static Location nativeRecoveryDestination(Location town, PhantomBackgroundState.Position canonical)
+	{
+		if (town == null) { return null; }
+		// Stock TOWN is already authoritative; a missing optional topology projection cannot strand a native corpse.
+		if (canonical == null) { return town; }
+		return new Location(canonical.x(), canonical.y(), canonical.z(), canonical.heading(), canonical.instanceId());
 	}
 
 	@Override
