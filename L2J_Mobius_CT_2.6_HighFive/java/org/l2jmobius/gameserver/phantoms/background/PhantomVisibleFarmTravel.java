@@ -91,7 +91,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		if (state == null || state.identity().characterObjectId() != player.getObjectId()) { return false; }
 		// A topology itinerary admits work, never movement or arrival. Each segment still
 		// needs the existing physical planner, actual native action and owned checkpoint.
-		return proposedStep(player, state.position().committedAnchorId(), anchor.id()) != null;
+		return proposedStep(player, state.position().committedAnchorId(), anchor.id(), true) != null;
 	}
 
 	/** Read-only admission before the history owner's atomic predecessor-to-replacement CAS. */
@@ -105,22 +105,47 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var state = _background.acquisitionSnapshot(lifetime.profileId()).orElse(null);
 		final var anchor = _travel.topology().findAnchor(PhantomBackgroundGoalSpec.parse(proposed).anchorId()).orElse(null);
 		return state != null && state.state() == PhantomBackgroundState.State.MATERIALIZED && state.identity().characterObjectId() == player.getObjectId()
-			&& anchor != null && anchor.point().instanceId() == live.instanceId() && proposedStep(player, state.position().committedAnchorId(), anchor.id()) != null;
+			&& anchor != null && anchor.point().instanceId() == live.instanceId() && proposedStep(player, state.position().committedAnchorId(), anchor.id(), true) != null;
 	}
 
-	private PhantomNormalGatekeeperTravel.Step proposedStep(Player player, String committedAnchorId, String destination)
+	private PhantomNormalGatekeeperTravel.Step proposedStep(Player player, String committedAnchorId, String destination, boolean recoverOffAnchor)
 	{
 		final var departure = departure(player, committedAnchorId);
+		final var live = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 		final var local = localFarmApproach(_travel.topology().findAnchor(destination).orElse(null),
-			new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), _navigation.policy().maximumLocalStraightDistance());
+			live, _navigation.policy().maximumLocalStraightDistance());
 		if (local != null) { return local; }
 		final var committed = _travel.topology().findAnchor(committedAnchorId).orElse(null);
 		final String from = departure != null ? departure.id() : committed == null ? null : committed.id();
 		final var route = from == null ? null : _travel.route(from, destination).orElse(null);
-		if (route == null || !itineraryAffordable(route, player.getClassIndex(), player.getLevel(), java.time.Instant.now().toEpochMilli()/60000, player.getAdena())) { return null; }
+		final long minute = java.time.Instant.now().toEpochMilli() / 60000;
+		final var affordable = route != null && itineraryAffordable(route, player.getClassIndex(), player.getLevel(), minute, player.getAdena()) ? route : null;
 		final var canonical = departure == null && committed != null ? L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(committed, player.getHeading()).orElse(null) : null;
-		return resumeStep(route, departure == null ? null : departure.id(), canonical,
-			new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), destination);
+		if (!recoverOffAnchor) { return affordable == null ? null : resumeStep(affordable, departure == null ? null : departure.id(), canonical, live, destination); }
+		return resumeWithIngress(affordable, departure == null ? null : departure.id(), canonical, live, destination,
+			_travel.topology().snapshot().anchors(), _navigation.policy().maximumRouteDistance(), anchor ->
+			{
+				if (!PhantomNativeTravelActions.ordinary(player) || L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, player.getHeading()).isEmpty()) { return false; }
+				final var lifetime = _materialization.findByCharacterObjectId(player.getObjectId()).orElse(null);
+				if (lifetime == null || !lifetime.actionAdmissionOpen()) { return false; }
+				final var onward = _travel.route(anchor.id(), destination).orElse(null);
+				final var excluded = _routeExclusions.apply(lifetime.profileId());
+				return onward != null && !onward.isEmpty() && onward.size() <= 64 && itineraryStep(onward, anchor.id(), destination) != null
+					&& onward.stream().noneMatch(step -> excluded.contains(step.id()))
+					&& itineraryAffordable(onward, player.getClassIndex(), player.getLevel(), minute, player.getAdena());
+			});
+	}
+
+	static PhantomNormalGatekeeperTravel.Step resumeWithIngress(List<PhantomNormalGatekeeperTravel.Step> route, String factualDeparture,
+		PhantomBackgroundState.Position committed, PhantomTopologyPoint live, String destination, List<PhantomTopologyAnchor> anchors, int maximumDistance,
+		java.util.function.Predicate<PhantomTopologyAnchor> connected)
+	{
+		final var resumed = route == null ? null : resumeStep(route, factualDeparture, committed, live, destination);
+		if (resumed != null || factualDeparture != null || committed == null) { return resumed; }
+		final var ingress = idleIngress(anchors, live, destination, maximumDistance, connected);
+		// This is a bounded WALK proposal. Its actual arrival/store must establish the new departure.
+		return ingress == null ? null : new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND,
+			"live.approach." + ingress.id(), ingress.id(), ingress.id(), 0, null);
 	}
 
 	/** A local WALK proposal starts at the live Player, without claiming any factual anchor departure. */
@@ -395,7 +420,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				var step = proposedStep(player, state.position().committedAnchorId(), spec.anchorId());
+				var step = proposedStep(player, state.position().committedAnchorId(), spec.anchorId(), !idle);
 				if (idle && step != null && step.type() == PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND)
 				{
 					// A connected source itinerary is guidance. Native WALK may approach the
@@ -448,7 +473,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			if ((journey.nativeIdleWalk || journey.currentAnchorReturn) && journey.nativeBudget == null)
 			{
-				journey.nativeBudget = new NativeWalkBudget(new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), journey.arrivalPoint, _clock.getAsLong(), player.getMoveSpeed(), _navigation.policy());
+				final var origin = new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+				final double speed = player.getMoveSpeed();
+				if (origin.instanceId() != journey.arrivalPoint.instanceId() || !Double.isFinite(speed) || speed <= 0 || origin.distanceTo(journey.arrivalPoint) > _navigation.policy().maximumRouteDistance())
+				{
+					fail(profileId, journey, "travel.native_walk_budget_rejected", Disposition.ROUTE_UNUSABLE); return false;
+				}
+				journey.nativeBudget = new NativeWalkBudget(origin, journey.arrivalPoint, _clock.getAsLong(), speed, _navigation.policy());
 				attempt.phaseSince = journey.nativeBudget.episodeSince;
 			}
 			if (!executePlan(profileId, player, journey))

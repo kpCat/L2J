@@ -19,17 +19,60 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("03-off-anchor-background-return-retains-current-lineage", _ -> localReturn());
 		registry.add("04-native-current-anchor-return-is-only-a-bounded-walk-proposal", _ -> nativeReturn());
 		registry.add("05-exact-native-landing-retains-canonical-floor", _ -> nativeLanding());
+		registry.add("06-interrupted-native-route-may-propose-connected-ingress", _ -> interruptedIngress());
 	}
 	public static void main(String[] args)
 	{
 		if (args.length > 0 && args[0].equals("landing121")) { nativeLanding(); System.out.println("OWN121_NATIVE_LANDING_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
+		if (args.length > 0 && args[0].equals("ingress121")) { interruptedIngress(); System.out.println("OWN121_INTERRUPTED_INGRESS_PASS; SYNTHETIC_PROPOSAL=true; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		if (args.length > 0 && args[0].equals("local-return")) { localReturn(); System.out.println("OWN068_LOCAL_RETURN_PASS; DB_CONNECTIONS=0; ACTORS=0"); return; }
 		canonicalFarm();
 		itinerary();
 		localReturn();
 		nativeReturn();
 		nativeLanding();
+		interruptedIngress();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor entry(String id, int x, int instance)
+	{
+		return new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor(id, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING,
+			id + ".node", new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x, 0, 0, instance), null, null, 0, List.of(), List.of("fixture"));
+	}
+	private static void interruptedIngress()
+	{
+		final var live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(0, 0, 0, 0);
+		final var committed = new PhantomBackgroundState.Position(0, 100_000, 0, 0, 0, "old");
+		final var original = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "original", "old", "final", 0, null);
+		final var route = List.of(original);
+		final var disconnected = entry("disconnected", 10, 0); final var foreign = entry("foreign", 20, 1);
+		final var ingress = entry("entry", 2000, 0); final var farther = entry("farther", 3000, 0);
+		final var anchors = List.of(disconnected, foreign, farther, ingress, entry("final", 10000, 0));
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeStep(route, null, committed, live, "final"), "Distant persisted lineage is not factual departure after an interrupted native journey.");
+		final var proposed = PhantomVisibleFarmTravel.resumeWithIngress(route, null, committed, live, "final", anchors, 12000, anchor -> !anchor.id().equals("disconnected"));
+		PhantomAssertions.assertTrue(proposed != null, "An off-anchor restart needs the nearest existing connected ingress proposal.");
+		PhantomAssertions.assertEquals("live.approach.entry", proposed.id(), "Only the existing bounded native WALK worker may approach that ingress.");
+		PhantomAssertions.assertEquals("entry", proposed.fromAnchorId(), "A proposal cannot claim its old distant lineage as departure.");
+		PhantomAssertions.assertEquals("entry", proposed.toAnchorId(), "Arrival must be captured at the ingress before any subsequent paid segment.");
+		PhantomAssertions.assertEquals(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, proposed.type(), "Admission cannot execute a gatekeeper.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(route, null, committed, live, "final", anchors, 1000, anchor -> !anchor.id().equals("disconnected")), "Ingress keeps the caller's existing distance and instance bound.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", anchors, 12000, _ -> false), "No connected affordable route must remain unavailable.");
+		final var paid = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER, "paid", "entry", "final", 1, leg("paid", "entry", "final", 500));
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", anchors, 12000,
+			_ -> PhantomVisibleFarmTravel.itineraryAffordable(List.of(paid), 0, 85, 0, 499)), "An ingress with unaffordable onward native fees cannot admit work.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, "old", committed, live, "final", anchors, 12000,
+			_ -> { throw new AssertionError("Factual departure cannot be replaced by an implicit alternate ingress."); }), "The fallback is limited to absence of factual departure.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, null, live, "final", anchors, 12000,
+			_ -> { throw new AssertionError("Unknown prior lineage cannot borrow an ingress."); }), "The new proposal still requires the original canonical lineage proof.");
+		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		final var outsideStraightLeg = List.of(entry("segmented", 14024, 0));
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", outsideStraightLeg, policy.maximumLocalStraightDistance(), _ -> true), "No ingress in one straight-leg radius is not a physical no-path witness.");
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", outsideStraightLeg, policy.maximumRouteDistance(), _ -> true) != null,
+			"The existing segmented native WALK budget can approach an ingress beyond one straight leg; its unchanged route/phase limits still own the work.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomVisibleFarmTravel.NativeWalkBudget(new PhantomNavigationPoint(0, 0, 0, 0), new PhantomNavigationPoint(policy.maximumRouteDistance(), 0, 1, 0), 1, 100, policy),
+			"Canonical Z or standpoint projection beyond the actual route-distance bound remains rejected by the budget owner.");
+		PhantomAssertions.assertEquals(original, PhantomVisibleFarmTravel.resumeWithIngress(route, "old", committed, live, "final", anchors, 12000,
+			_ -> { throw new AssertionError("An existing factual itinerary cannot query alternative ingress."); }), "Existing factual departure retains its original itinerary.");
 	}
 	private static void nativeLanding()
 	{
