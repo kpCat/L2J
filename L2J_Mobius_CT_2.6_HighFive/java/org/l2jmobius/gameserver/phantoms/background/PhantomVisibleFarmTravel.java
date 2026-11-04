@@ -278,20 +278,21 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean drainArrival(long profileId, PhantomGoal goal, PendingStore pending, boolean preparation)
 	{
-		if (!currentGoal(profileId, goal) || (preparation && ((pending == null) || (pending.anchorId == null)))) { return false; }
-		if ((pending == null) || (_pendingStores.get(profileId) != pending) || !pending.goal.equals(goal)) { return false; }
+		if (!currentGoal(profileId, goal)) { return arrivalRefused(profileId, goal, pending, "drain.current_goal"); }
+		if (preparation && ((pending == null) || (pending.anchorId == null))) { return arrivalRefused(profileId, goal, pending, "drain.factual_anchor"); }
+		if ((pending == null) || (_pendingStores.get(profileId) != pending) || !pending.goal.equals(goal)) { return arrivalRefused(profileId, goal, pending, "drain.pending_identity"); }
 		if ((pending.journey != null) && (_journeys.get(profileId) != pending.journey))
 		{
 			closeRoutePhase(profileId, pending.journey);
 			_pendingStores.remove(profileId, pending);
-			return false;
+			return arrivalRefused(profileId, goal, pending, "drain.journey_identity");
 		}
 		final var lifetime = _materialization.find(profileId).orElse(null);
 		if ((lifetime == null) || (lifetime.characterObjectId() != pending.player.getObjectId()) || (lifetime.materializedAtNanos() != pending.epoch))
 		{
 			if (pending.journey != null) { closeRoutePhase(profileId, pending.journey); }
 			_pendingStores.remove(profileId, pending);
-			return false;
+			return arrivalRefused(profileId, goal, pending, "drain.lifetime");
 		}
 		final var owner = pending.player.getNativeWorkOwner();
 		if (owner == null || owner.player() != pending.player || !owner.isCurrent() || owner.epoch() != pending.epoch
@@ -299,11 +300,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			|| pending.player.isDead() || pending.player.isInParty() || !pending.player.hasHeadlessOutboundSession())
 		{
 			if (pending.journey != null) { closeRoutePhase(profileId, pending.journey); }
-			return false;
+			return arrivalRefused(profileId, goal, pending, "drain.native_owner");
 		}
 		final PendingStore exactPending = pending;
 		if ((pending.anchorId != null) && _travel.topology().findAnchor(pending.anchorId)
-			.filter(anchor -> L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), exactPending.player, anchor) && isUsableLocalFarmPosition(exactPending.player, anchor)).isEmpty()) { return false; }
+			.filter(anchor -> L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), exactPending.player, anchor) && isUsableLocalFarmPosition(exactPending.player, anchor)).isEmpty()) { return arrivalRefused(profileId, goal, pending, "drain.anchor_position"); }
 		if (pending.player.hasPendingOwnedStore())
 		{
 			final var resumed = _background.resumeVisibleOwnedStore(profileId, pending.player, goal);
@@ -323,7 +324,23 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (pending.journey != null) { pending.journey.reason = checkpoint == null ? "travel.arrival_capture_pending" : "travel.checkpoint." + checkpoint.outcome() + ":" + checkpoint.phase() + ":" + checkpoint.reason(); }
 			return false;
 		}
-		return completeArrival(profileId, pending, preparation);
+		final boolean completed = completeArrival(profileId, pending, preparation);
+		return preparation && !completed ? arrivalRefused(profileId, goal, pending, "drain.completion") : completed;
+	}
+
+	private static boolean arrivalRefused(long profileId, PhantomGoal goal, PendingStore pending, String gate)
+	{
+		try
+		{
+			final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
+			if (recorder.isRecording() && pending != null)
+			{
+				recorder.record(profileId, "VISIBLE_ARRIVAL_REFUSED", gate, pending == null ? "0" : Integer.toString(pending.player.getObjectId()),
+					pending == null ? "" : pending.anchorId, pending == null ? 0 : pending.epoch, goal.goalId(), goal.revision());
+			}
+		}
+		catch (Throwable ignored) { }
+		return false;
 	}
 
 	/** Only an exact successful store/arrival receipt can start another bounded segment. */

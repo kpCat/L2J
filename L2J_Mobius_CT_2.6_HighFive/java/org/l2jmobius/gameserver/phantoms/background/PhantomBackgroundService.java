@@ -1104,7 +1104,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			if (!visibleCheckpointOwnerCurrent(candidate)) { return false; }
 			final var existing = _visibleCheckpoints.putIfAbsent(profileId, candidate);
 			final var request = existing == null ? candidate : existing;
-			if (request.player != player || request.scope != scope || !request.key.equals(candidate.key)) { return false; }
+			if (request.player != player || request.scope != scope || !request.key.equals(candidate.key))
+			{
+				arrivalCaptureRefused(request, "capture.existing_request");
+				return arrivalCaptureRefused(candidate, "capture.request_identity_mismatch");
+			}
 			final var result = runVisibleCheckpoint(request);
 			if (result.outcome() == CheckpointOutcome.RESUME) { _visibleCheckpoints.remove(profileId, request); return true; }
 			return false;
@@ -1153,15 +1157,39 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final long id = request.key.profileId();
 		final var entry = _materialization.get().find(id).orElse(null);
-		return _state == ServiceState.RUNNING && !_transitions.containsKey(id) && entry != null
-			&& entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE
-			&& entry.cleanupPhase() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE
-			&& entry.characterObjectId() == request.key.objectId() && entry.materializedAtNanos() == request.key.epoch()
-			&& entry.identityLeaseRetained() && entry.outboundAttached() && request.scope.isCurrent()
-			&& request.player.getNativeWorkOwner() == request.scope && request.player.getClient() == null
-			&& World.getInstance().getPlayer(request.key.objectId()) == request.player && World.getInstance().findObject(request.key.objectId()) == request.player
-			&& request.player.hasHeadlessOutboundSession() && request.player.hasOwnedStoreBoundary(this)
-			&& (!requireGoal || Objects.equals(_goals.load(id).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), request.goal));
+		if (_state != ServiceState.RUNNING) { return arrivalCaptureRefused(request, "capture.owner.service"); }
+		if (_transitions.containsKey(id)) { return arrivalCaptureRefused(request, "capture.owner.transition"); }
+		if (entry == null) { return arrivalCaptureRefused(request, "capture.owner.entry_absent"); }
+		if (entry.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) { return arrivalCaptureRefused(request, "capture.owner.entry_state"); }
+		if (entry.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE) { return arrivalCaptureRefused(request, "capture.owner.cleanup"); }
+		if (entry.characterObjectId() != request.key.objectId()) { return arrivalCaptureRefused(request, "capture.owner.object"); }
+		if (entry.materializedAtNanos() != request.key.epoch()) { return arrivalCaptureRefused(request, "capture.owner.epoch"); }
+		if (!entry.identityLeaseRetained()) { return arrivalCaptureRefused(request, "capture.owner.identity"); }
+		if (!entry.outboundAttached()) { return arrivalCaptureRefused(request, "capture.owner.outbound"); }
+		if (!request.scope.isCurrent()) { return arrivalCaptureRefused(request, "capture.owner.scope"); }
+		if (request.player.getNativeWorkOwner() != request.scope) { return arrivalCaptureRefused(request, "capture.owner.native_owner"); }
+		if (request.player.getClient() != null) { return arrivalCaptureRefused(request, "capture.owner.client"); }
+		if (World.getInstance().getPlayer(request.key.objectId()) != request.player) { return arrivalCaptureRefused(request, "capture.owner.world_player"); }
+		if (World.getInstance().findObject(request.key.objectId()) != request.player) { return arrivalCaptureRefused(request, "capture.owner.world_object"); }
+		if (!request.player.hasHeadlessOutboundSession()) { return arrivalCaptureRefused(request, "capture.owner.headless"); }
+		if (!request.player.hasOwnedStoreBoundary(this)) { return arrivalCaptureRefused(request, "capture.owner.store_boundary"); }
+		if (requireGoal && !Objects.equals(_goals.load(id).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), request.goal)) { return arrivalCaptureRefused(request, "capture.owner.current_goal"); }
+		return true;
+	}
+
+	private static boolean arrivalCaptureRefused(VisibleCheckpoint request, String gate)
+	{
+		try
+		{
+			final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
+			if (recorder.isRecording())
+			{
+				recorder.record(request.key.profileId(), "VISIBLE_ARRIVAL_REFUSED", gate, Integer.toString(request.key.objectId()),
+					request.anchor, request.key.epoch(), request.goal.goalId(), request.goal.revision());
+			}
+		}
+		catch (Throwable ignored) { }
+		return false;
 	}
 
 	private CheckpointResult runVisibleCheckpoint(VisibleCheckpoint request)
