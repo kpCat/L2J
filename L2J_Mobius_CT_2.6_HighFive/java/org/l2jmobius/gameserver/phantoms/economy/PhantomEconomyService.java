@@ -85,7 +85,7 @@ public final class PhantomEconomyService
 	private final PhantomEconomyBackgroundTransaction _background;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomAcquisitionStore _acquisition;
-	private final PhantomGoalStateStore _goals;
+	private final org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore _goals;
 	private final PhantomProfileRepository _profiles;
 	private final PhantomBackgroundStateCodec _backgroundCodec = new PhantomBackgroundStateCodec();
 	private final LongAdder _committed = new LongAdder();
@@ -100,7 +100,7 @@ public final class PhantomEconomyService
 	private final LongAdder _enchantDestroyed = new LongAdder();
 	private final LongAdder _reconciled = new LongAdder();
 
-	public PhantomEconomyService(PhantomEconomyPolicy policy, PhantomEconomyReservationService reservations, PhantomEconomyBackgroundTransaction background, PhantomMaterializationService materialization, PhantomAcquisitionStore acquisition, PhantomGoalStateStore goals, PhantomProfileRepository profiles)
+	public PhantomEconomyService(PhantomEconomyPolicy policy, PhantomEconomyReservationService reservations, PhantomEconomyBackgroundTransaction background, PhantomMaterializationService materialization, PhantomAcquisitionStore acquisition, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore goals, PhantomProfileRepository profiles)
 	{
 		_policy = Objects.requireNonNull(policy);
 		_reservations = Objects.requireNonNull(reservations);
@@ -113,6 +113,7 @@ public final class PhantomEconomyService
 
 	public boolean supports(long profileId, PhantomGoal goal, PhantomActivityState state)
 	{
+		if (org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.upgrade(goal) && (state == null || !state.requiresMaterialization())) { return false; }
 		if ((goal == null) || (goal.status() != PhantomGoalStatus.ACTIVE) || !supportedState(state))
 		{
 			return false;
@@ -121,6 +122,11 @@ public final class PhantomEconomyService
 		{
 			final var stored = _acquisition.load(profileId).orElse(null);
 			return (stored != null) && validCraftHandoff(stored.state());
+		}
+		if (PhantomReadySa.TYPE.equals(goal.goalType()))
+		{
+			try { return PhantomReadySa.parse(goal, true).attempts() == 0; }
+			catch (IllegalArgumentException invalid) { return false; }
 		}
 		if (PhantomEnchantGoalSpec.GOAL_TYPE.equals(goal.goalType()))
 		{
@@ -142,6 +148,11 @@ public final class PhantomEconomyService
 		if (!supports(profileId, goal, state))
 		{
 			return StepResult.replan(Result.STALE_AUTHORITY, "economy.quote.stale");
+		}
+		if (org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.upgrade(goal))
+		{
+			final var prior = _reservations.findForGoal(profileId, goal.goalId(), org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.attemptRevision(goal)).orElse(null);
+			if (prior != null && prior.state().terminal()) { return StepResult.replan(prior.state() == State.INCONSISTENT ? Result.INCONSISTENT : Result.CONFLICT, "gear.attempt.already_terminal"); }
 		}
 		final Optional<StoredOperation> active = _reservations.findActive(profileId);
 		if (active.isPresent())
@@ -178,6 +189,56 @@ public final class PhantomEconomyService
 			case ADMISSION_CLOSED -> StepResult.retry(Result.CONFLICT, "economy.admission.closed");
 			default -> StepResult.replan(Result.CONFLICT, "economy.reserve.conflict");
 		};
+	}
+
+	/** One affordable stock attempt on the actual top-grade weapon; no free level or repeated +25 policy. */
+	public Optional<PhantomGoal> automaticEnchant(Player player, PhantomGoal root, org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding binding, long revision, long deadline, long minimumReserve)
+	{
+		final Item target = player.getActiveWeaponInstance();
+		if (target == null || target.getEnchantLevel() != 0 || org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.protectedEffects(target)
+			|| org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.hasGradeDebt(player) || !binding.matches(player)) { return Optional.empty(); }
+		final long reserve = Math.max(minimumReserve, requiredReplacement(target));
+		if (player.getAdena() < reserve || target.getReferencePrice() <= 0) { return Optional.empty(); }
+		for (var item : player.getInventory().getItems().stream().filter(value -> value.getOwnerId() == player.getObjectId() && value.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY)
+			.sorted(Comparator.comparingInt(Item::getObjectId)).limit(256).toList())
+		{
+			final var scroll = EnchantItemData.getInstance().getEnchantScroll(item);
+			if (scroll == null || !scroll.isValid(target, null)) { continue; }
+			final long expense = Math.max(0, item.getReferencePrice());
+			final var constraints = java.util.Map.of(PhantomEnchantGoalSpec.TARGET_CONSTRAINT, (long) target.getObjectId(), PhantomEnchantGoalSpec.DESIRED_CONSTRAINT, 1L,
+				PhantomEnchantGoalSpec.MAXIMUM_ATTEMPTS_CONSTRAINT, 1L, PhantomEnchantGoalSpec.ATTEMPTS_USED_CONSTRAINT, 0L, PhantomEnchantGoalSpec.EXPENSE_USED_CONSTRAINT, 0L,
+				PhantomEnchantGoalSpec.DESTRUCTION_CONSTRAINT, 1L, PhantomEnchantGoalSpec.REPLACEMENT_RESERVE_CONSTRAINT, reserve, org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.ATTEMPT_REVISION, revision);
+			final var goal = new PhantomGoal(root.goalId(), PhantomEnchantGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("item.object", Integer.toString(target.getObjectId())),
+				1, 0, "native.enchant", List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("enchant.scroll", Integer.toString(item.getId()))), root.selectedAnchor(), PhantomEnchantGoalSpec.PURPOSE_KEY,
+				750, target.getReferencePrice(), expense, deadline, constraints, "gear.native.enchant", revision, binding.encode());
+			if (expense > 0 && enchantRiskAccepted(goal, PhantomEnchantGoalSpec.parse(goal), target, item, null, scroll, player.getAdena())) { return Optional.of(goal); }
+		}
+		return Optional.empty();
+	}
+
+	/** A child may be released only after its exact attempt is settled, never after an ambiguous debit. */
+	public boolean settleAutomatic(long profileId, PhantomGoal goal, long now)
+	{
+		final var operation = _reservations.findForGoal(profileId, goal.goalId(), org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.attemptRevision(goal)).orElse(null);
+		if (operation == null) { return _reservations.findActive(profileId).isEmpty(); }
+		if (operation.kind() != Kind.ITEM_ENCHANT && operation.kind() != Kind.NPC_SA) { return false; }
+		if (operation.state().terminal()) { return automaticAttemptSettled(operation.state(), goal.status() != PhantomGoalStatus.ACTIVE); }
+		if (operation.state() == State.OBSERVING) { return false; }
+		final var cancelled = cancel(profileId, goal, operation.activityGeneration(), now);
+		return cancelled.status() == StepStatus.SUCCESS && _reservations.find(operation.operationId()).map(value -> value.state() == State.ABORTED || value.state() == State.EXPIRED).orElse(false);
+	}
+
+	static boolean automaticAttemptSettled(State state, boolean projected)
+	{
+		return state == State.ABORTED || state == State.EXPIRED || state == State.COMMITTED && projected;
+	}
+
+	public void fenceAutomatic(long profileId)
+	{
+		final var entry = _materialization.find(profileId).orElse(null);
+		final var player = entry == null ? null : org.l2jmobius.gameserver.model.World.getInstance().getPlayer(entry.characterObjectId());
+		if (player != null && player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner && owner.isCurrent() && owner.epoch() == entry.materializedAtNanos())
+		{ owner.recordFailure(new IllegalStateException("GEAR_UPGRADE_UNRESOLVED_BEFORE_REPLACEMENT")); }
 	}
 
 	public StepResult dispatch(long profileId, PhantomGoal goal, long activityGeneration, long nowEpochMillis)
@@ -222,6 +283,7 @@ public final class PhantomEconomyService
 			{
 				result = executeActiveCraft(identity, nowEpochMillis).result();
 			}
+			else if (operation.kind() == Kind.NPC_SA) { result = executeActiveSa(identity, nowEpochMillis).result(); }
 			else
 			{
 				final PhantomEnchantGoalSpec spec;
@@ -294,6 +356,12 @@ public final class PhantomEconomyService
 				return Quote.rejected(Result.ACTIVE_REQUIRED);
 			}
 			final Player player = lease.player();
+			if (!nativeChildMatches(goal, player)) { return Quote.rejected(Result.STALE_AUTHORITY); }
+			if (PhantomReadySa.TYPE.equals(goal.goalType()))
+			{
+				final var quote = PhantomReadySa.quote(identity, player, goal);
+				return quote == null ? Quote.rejected(Result.CONFLICT) : new Quote(saOperation(identity, quote, nowEpochMillis), quote.resources(), Result.SUCCESS);
+			}
 			if (PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()))
 			{
 				final var acquisition = _acquisition.load(identity.profileId()).orElse(null);
@@ -348,7 +416,7 @@ public final class PhantomEconomyService
 						continue;
 					}
 					final List<Reservation> resources = enchantReservations(identity, player, target, scrollItem, supportItem, spec.replacementReserve());
-					final byte[] before = (target.getObjectId() + "|" + target.getId() + "|" + target.getEnchantLevel() + "|" + scrollItem.getObjectId() + "|" + scrollItem.getCount() + "|" + (supportItem == null ? 0 : supportItem.getObjectId()) + "|" + (supportItem == null ? 0 : supportItem.getCount())).getBytes(StandardCharsets.US_ASCII);
+					final byte[] before = enchantBefore(player, goal, target, scrollItem, supportItem);
 					final PhantomEconomyOperation operation = operation(identity, Kind.ITEM_ENCHANT, PhantomEconomyProjection.enchantAuthority(target.getTemplate(), target.getEnchantLevel(), scroll, support, _policy), PhantomEconomyOperation.sha256(identity.intentId() + "|" + new String(before, StandardCharsets.US_ASCII)), before, ("target=" + target.getObjectId()).getBytes(StandardCharsets.US_ASCII), nowEpochMillis);
 					return new Quote(operation, resources, Result.SUCCESS);
 				}
@@ -501,6 +569,45 @@ public final class PhantomEconomyService
 		}
 	}
 
+	private PhantomEconomyOperation saOperation(Identity identity, PhantomReadySa.Quote quote, long now)
+	{
+		return operation(identity, Kind.NPC_SA, quote.authority(), PhantomEconomyOperation.sha256(identity.intentId() + "|" + java.util.HexFormat.of().formatHex(quote.payload())), quote.payload(),
+			("SA|" + quote.spec().objectId() + "|" + quote.spec().listId() + "|" + quote.preparedEntry() + "|" + quote.spec().productId() + "|" + quote.npc().getObjectId()).getBytes(StandardCharsets.US_ASCII), now);
+	}
+
+	private ActiveResult executeActiveSa(Identity identity, long now)
+	{
+		final var durable = _reservations.findActive(identity.profileId()).orElse(null);
+		final var stored = _goals.load(identity.profileId()).orElse(null);
+		if (durable == null || durable.kind() != Kind.NPC_SA || durable.state() != State.DISPATCHING || !sameIdentity(durable, identity) || stored == null || !matches(identity, stored.goal())) { return ActiveResult.rejected(Result.STALE_AUTHORITY); }
+		try (var lease = _materialization.tryAcquireAction(identity.profileId()).orElse(null))
+		{
+			if (lease == null) { return ActiveResult.rejected(Result.ACTIVE_REQUIRED); }
+			if (!nativeChildMatches(stored.goal(), lease.player())) { return abortBeforeAction(durable, now, Result.STALE_AUTHORITY, "sa.native_owner.stale"); }
+			final var quote = PhantomReadySa.quote(identity, lease.player(), stored.goal());
+			if (quote == null) { return abortBeforeAction(durable, now, Result.STALE_AUTHORITY, "sa.quote.stale"); }
+			final var current = saOperation(identity, quote, now);
+			if (!current.operationId().equals(durable.operationId()) || !durable.authorityHash().equals(quote.authority()) || !_reservations.findReservations(durable.operationId()).equals(PhantomEconomyOperation.canonicalReservations(quote.resources(), _policy.limits().reservationsPerOperation())))
+			{ return abortBeforeAction(durable, now, Result.STALE_AUTHORITY, "sa.resources.stale"); }
+			if (_reservations.transition(durable.operationId(), State.DISPATCHING, State.OBSERVING, now, null).status() != PhantomEconomyReservationService.Status.TRANSITIONED) { return ActiveResult.rejected(Result.CONFLICT); }
+			try
+			{
+				final var outcome = PhantomReadySa.execute(quote);
+				if (outcome.result() == Result.ERROR || outcome.result() == Result.STALE_AUTHORITY)
+				{
+					_reservations.transition(durable.operationId(), State.OBSERVING, State.ABORTED, now, new Audit(outcome.result(), "sa.no_native_effect", new byte[0]));
+					return ActiveResult.rejected(outcome.result());
+				}
+				if (outcome.result() != Result.SUCCESS) { inconsistent(durable, now, "sa.attribution.ambiguous"); return ActiveResult.rejected(Result.INCONSISTENT); }
+				_goals.replace(identity.profileId(), stored.rowVersion(), PhantomReadySa.project(stored.goal()));
+				_reservations.transition(durable.operationId(), State.OBSERVING, State.COMMITTED, now, new Audit(Result.SUCCESS, "result.success", outcome.consequence(), outcome.consumed(), 1, 0, outcome.fee(), 0, 1));
+				_committed.increment();
+				return new ActiveResult(Result.SUCCESS, durable.operationId());
+			}
+			catch (RuntimeException failure) { inconsistent(durable, now, "sa.attribution.ambiguous"); return ActiveResult.rejected(Result.INCONSISTENT); }
+		}
+	}
+
 	public ActiveResult executeActiveEnchant(Identity identity, int targetObjectId, int scrollObjectId, int supportObjectId, long nowEpochMillis)
 	{
 		final StoredOperation durable = _reservations.findActive(identity.profileId()).orElse(null);
@@ -526,6 +633,7 @@ public final class PhantomEconomyService
 				return ActiveResult.rejected(Result.ACTIVE_REQUIRED);
 			}
 			final Player player = lease.player();
+			if (!nativeChildMatches(storedGoal.goal(), player)) { return abortBeforeAction(durable, nowEpochMillis, Result.STALE_AUTHORITY, "enchant.native_owner.stale"); }
 			final Item target = player.getInventory().getItemByObjectId(targetObjectId);
 			final Item scrollItem = player.getInventory().getItemByObjectId(scrollObjectId);
 			final Item supportItem = supportObjectId == 0 ? null : player.getInventory().getItemByObjectId(supportObjectId);
@@ -542,7 +650,7 @@ public final class PhantomEconomyService
 			}
 			final String authority = PhantomEconomyProjection.enchantAuthority(target.getTemplate(), target.getEnchantLevel(), scroll, support, _policy);
 			final List<Reservation> resources = enchantReservations(identity, player, target, scrollItem, supportItem, goal.replacementReserve());
-			final byte[] before = (targetObjectId + "|" + target.getId() + "|" + target.getEnchantLevel() + "|" + scrollObjectId + "|" + scrollItem.getCount() + "|" + supportObjectId + "|" + (supportItem == null ? 0 : supportItem.getCount())).getBytes(StandardCharsets.US_ASCII);
+			final byte[] before = enchantBefore(player, storedGoal.goal(), target, scrollItem, supportItem);
 			final PhantomEconomyOperation operation = operation(identity, Kind.ITEM_ENCHANT, authority, PhantomEconomyOperation.sha256(identity.intentId() + "|" + new String(before, StandardCharsets.US_ASCII)), before, ("target=" + targetObjectId).getBytes(StandardCharsets.US_ASCII), nowEpochMillis);
 			final List<Reservation> durableResources = _reservations.findReservations(durable.operationId());
 			if (!durable.operationId().equals(operation.operationId()) || !durable.authorityHash().equals(authority) || !durableResources.equals(PhantomEconomyOperation.canonicalReservations(resources, _policy.limits().reservationsPerOperation())))
@@ -926,6 +1034,7 @@ public final class PhantomEconomyService
 		{
 			attempt = _reservations.nextAttempt(profile.profileId(), goal.goalId(), Kind.SELF_CRAFT, 32);
 		}
+		else if (PhantomReadySa.TYPE.equals(goal.goalType())) { attempt = Math.addExact(PhantomReadySa.parse(goal, true).attempts(), 1); }
 		else
 		{
 			attempt = Math.addExact(PhantomEnchantGoalSpec.parse(goal).attemptsUsed(), 1);
@@ -940,7 +1049,7 @@ public final class PhantomEconomyService
 
 	private static boolean matches(StoredOperation operation, PhantomGoal goal, long activityGeneration)
 	{
-		return (operation.goalId() == goal.goalId()) && (operation.goalRevision() == goal.revision()) && (operation.activityGeneration() == activityGeneration) && ((PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()) && (operation.kind() == Kind.SELF_CRAFT)) || (PhantomEnchantGoalSpec.GOAL_TYPE.equals(goal.goalType()) && (operation.kind() == Kind.ITEM_ENCHANT)));
+		return (operation.goalId() == goal.goalId()) && (operation.goalRevision() == goal.revision()) && (operation.activityGeneration() == activityGeneration) && ((PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()) && (operation.kind() == Kind.SELF_CRAFT)) || (PhantomEnchantGoalSpec.GOAL_TYPE.equals(goal.goalType()) && (operation.kind() == Kind.ITEM_ENCHANT)) || (PhantomReadySa.TYPE.equals(goal.goalType()) && operation.kind() == Kind.NPC_SA));
 	}
 
 	private static boolean supportedState(PhantomActivityState state)
@@ -961,6 +1070,19 @@ public final class PhantomEconomyService
 		}
 		final long maximumExpense = Math.floorDiv(Math.multiplyExact((long) Math.max(0, target.getReferencePrice()), _policy.risk().maximumExpensePercent()), 100);
 		return goal.destructionPermitted() && (target.getReferencePrice() <= storedGoal.riskBudget()) && (expense <= maximumExpense);
+	}
+
+	private static boolean nativeChildMatches(PhantomGoal goal, Player player)
+	{
+		if (!org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.upgrade(goal)) { return true; }
+		return org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding.parse(goal).matches(player)
+			&& player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner && owner.isCurrent() && owner.nativeObservationHealthy();
+	}
+
+	private static byte[] enchantBefore(Player player, PhantomGoal goal, Item target, Item scroll, Item support)
+	{
+		final String ordinary = target.getObjectId() + "|" + target.getId() + "|" + target.getEnchantLevel() + "|" + scroll.getObjectId() + "|" + scroll.getCount() + "|" + (support == null ? 0 : support.getObjectId()) + "|" + (support == null ? 0 : support.getCount());
+		return (ordinary + (org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.enchant(goal) ? "|" + player.getNativeWorkOwner().epoch() + "|" + goal.payloadText() : "")).getBytes(StandardCharsets.US_ASCII);
 	}
 
 	private long requiredReplacement(Item target)

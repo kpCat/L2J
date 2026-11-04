@@ -97,7 +97,7 @@ public final class PhantomLootDispositionPolicy
 	}
 	public boolean protectedTemplate(ItemTemplate template)
 	{
-		return template == null || template.isQuestItem() || template.isHeroItem() || template.getTime() != -1 || _rareProducts.contains(template.getId())
+		return PhantomNativeEquipmentPolicy.protectedTemplateEffects(template) || template.getTime() != -1 || _rareProducts.contains(template.getId())
 			|| template.isArmor() && !ORDINARY_ARMOR.contains(template.getBodyPart());
 	}
 
@@ -152,7 +152,7 @@ public final class PhantomLootDispositionPolicy
 	{
 		if (item != null && PhantomStarterShotService.protectedStock(player, item.getId())) { return keep("protected.starter_subsidy"); }
 		if (player == null || item == null || reserved || item.getOwnerId() != player.getObjectId() || item.getItemLocation() != ItemLocation.INVENTORY
-			|| item.isEquipped() || item.getEnchantLevel() > 0 || item.isAugmented() || item.isShadowItem() || item.isTimeLimitedItem()
+			|| item.isEquipped() || PhantomNativeEquipmentPolicy.protectedEffects(item) || item.isShadowItem() || item.isTimeLimitedItem()
 			|| item.getElementals() != null && item.getElementals().length > 0 || !item.isAvailable(player, false, true)
 			|| player.isProcessingTransaction() || player.isInStoreMode() || player.hasPendingOwnedStore() || player.isCrafting()) { return keep("protected.native_owner_or_item"); }
 		if (neededItems.contains(item.getId()) || player.getCommonRecipeBook().stream().anyMatch(recipe -> java.util.Arrays.stream(recipe.getRecipes()).anyMatch(part -> part.getItemId() == item.getId()))

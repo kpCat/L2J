@@ -110,6 +110,14 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		_survival = java.util.Objects.requireNonNull(combat);
 	}
 	private org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService _progression;
+	private org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService _upgrades;
+	private Map<Integer, List<PhantomCommerceCatalog.MultisellOffer>> _readySaOffers = Map.of();
+	private List<SpawnFact> _blacksmiths = List.of();
+	public void useGearUpgrades(org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService economy)
+	{
+		if (_state != State.NEW || _upgrades != null) { throw new IllegalStateException("Supply upgrades must bind once before start."); }
+		_upgrades = java.util.Objects.requireNonNull(economy);
+	}
 	private BiPredicate<Long, PhantomGoal> _equipmentWeaponProtected = (_, _) -> false;
 	private List<ItemTemplate> _equipment = List.of();
 	public void useEquipment(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService progression, BiPredicate<Long, PhantomGoal> weaponProtected)
@@ -225,6 +233,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		if (_state != State.NEW) { return false; }
 		final var facts = _knowledge.get().snapshot();
+		if (_upgrades != null)
+		{
+			_readySaOffers = org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.offers(_commerce.catalog());
+			final var ids = _readySaOffers.values().stream().flatMap(List::stream).flatMap(offer -> offer.npcIds().stream()).collect(java.util.stream.Collectors.toSet());
+			_blacksmiths = facts.spawnFactsByNpc().entrySet().stream().filter(e -> ids.contains(e.getKey())).flatMap(e -> e.getValue().stream()).filter(p -> p.pointKind() == SpawnPointKind.EXACT && p.instanceId() == 0 && p.amount() > 0).limit(128).toList();
+		}
 		if (_offline != null)
 		{
 			final var acquisition = org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionCatalog.load(org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT.toPath().resolve("data/phantoms/acquisition/high-five-acquisition-v1.xml"));
@@ -276,6 +290,10 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final Player player = lease.player();
 			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.hasPendingOwnedStore() || player.getInstanceId() != 0 || player.isChangingClass() || player.isTransformed() || player.isMounted() || player.isInStoreMode()) { return Optional.empty(); }
 			final Cached cached = cached(profileId); final long now = System.currentTimeMillis();
+			if (PhantomSupplyIntentStore.upgrade(cached.goal) && (cached.goal.status() != PhantomGoalStatus.ACTIVE || !PhantomSupplyIntentStore.bound(cached.goal, root) || !matches(cached.goal, player)))
+			{
+				if (_upgrades == null || !_upgrades.settleAutomatic(profileId, cached.goal, now)) { if (_upgrades != null) { _upgrades.fenceAutomatic(profileId); } return Optional.empty(); }
+			}
 			if (PhantomSupplyIntentStore.bound(cached.goal, root) && matches(cached.goal, player))
 			{
 				// An expired ACTIVE child still needs the existing executor's terminal settlement.
@@ -287,6 +305,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final var maintenance = maintenanceProposal(profileId, root, player, cached, now);
 			if (maintenance.isPresent()) { return maintenance; }
+			final var readySa = readySaProposal(profileId, root, player, cached, now);
+			if (readySa.isPresent()) { return readySa; }
 			if (player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return equipmentProposal(profileId, root, player, cached, now); }
 			final var need = supplyNeed(player); if (need == null) { return equipmentProposal(profileId, root, player, cached, now); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
@@ -550,6 +570,23 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		return region == null ? null : region.getVisibleObjects().stream().filter(object -> object instanceof Npc).map(object -> (Npc) object).filter(npc -> npc.isWarehouse() && npc.getId() == spawn.npcId() && npc.getInstanceId() == 0 && npc.isSpawned() && !npc.isAlikeDead() && Math.hypot((long) npc.getX() - spawn.x(), (long) npc.getY() - spawn.y()) <= 200).findFirst().orElse(null);
 	}
 
+	private Optional<PhantomGoal> readySaProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
+	{
+		if (_upgrades == null || _readySaOffers.isEmpty() || now < cached.nextSaCheck) { return Optional.empty(); }
+		cached.nextSaCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds());
+		final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+		if (receipt != null && (!receipt.state().terminal() || receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT)) { return Optional.empty(); }
+		long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
+		if (receipt != null && receipt.goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.goalRevision(), 1)); }
+		final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
+		final var counters = _blacksmiths.stream().map(spawn ->
+		{
+			final var region = World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z());
+			return region == null ? null : region.getVisibleObjects().stream().filter(o -> o instanceof Npc npc && npc.getId() == spawn.npcId() && npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && player.isInsideRadius3D(npc, Npc.INTERACTION_DISTANCE)).map(o -> (Npc) o).findFirst().orElse(null);
+		}).filter(java.util.Objects::nonNull).distinct().toList();
+		return org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.proposal(player, root, binding, revision, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), _policy.minimumAdenaReserve(), _readySaOffers, counters);
+	}
+
 	private Optional<PhantomGoal> equipmentProposal(long id, PhantomGoal root, Player player, Cached cached, long now)
 	{
 		if (_progression == null) { return Optional.empty(); }
@@ -616,6 +653,18 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			}
 			cached.equipmentOffer = offline != null ? offline : equipmentOffer(root, player, cached, gearChoices, ownedItem == null ? Map.of() : Map.of("equipment.owned", (long) ownedItem.getObjectId()), item.getId(), now);
 			return Optional.ofNullable(cached.equipmentOffer);
+		}
+		if (_upgrades != null)
+		{
+			final var receipt = _receipts.find(id).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+			if (receipt == null || receipt.state().terminal() && receipt.state() != PhantomCommerceReceipt.State.INCONSISTENT)
+			{
+				long revision = cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1);
+				if (receipt != null && receipt.goalId() == root.goalId()) { revision = Math.max(revision, Math.addExact(receipt.goalRevision(), 1)); }
+				final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance() == null ? 0 : player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
+				cached.equipmentOffer = _upgrades.automaticEnchant(player, root, binding, revision, now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), _policy.minimumAdenaReserve()).orElse(null);
+				if (cached.equipmentOffer != null) { return Optional.of(cached.equipmentOffer); }
+			}
 		}
 		if (org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.hasGradeDebt(player))
 		{
@@ -927,6 +976,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (context.cancellationToken().isCancelled() || !_allowed.test(profileId) || !_roots.load(profileId).map(value -> value.goal().equals(context.goal())).orElse(false)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "supplies.owner.changed"); }
 			final Cached cached = cached(profileId);
 			PhantomGoal intent = cached.goal;
+			if (PhantomSupplyIntentStore.upgrade(intent) && PhantomSupplyIntentStore.bound(intent, context.goal()) && intent.status() != PhantomGoalStatus.ACTIVE && Binding.parse(intent).retryAfterEpochMillis() == 0)
+			{ return terminal(profileId, context.goal(), cached, intent.status() == PhantomGoalStatus.COMPLETED, intent.reasonKey()); }
 			if (!PhantomSupplyIntentStore.bound(intent, context.goal()) || (intent.status() != PhantomGoalStatus.ACTIVE && !PhantomOfflineSupply.returning(intent)))
 			{
 				intent = proposal(profileId, context.goal()).orElse(null);
@@ -955,6 +1006,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final var survival = advanceThreatRetreat(context, cached, intent);
 			if (survival != null) { return survival; }
 			final var binding = Binding.parse(intent);
+			if (PhantomSupplyIntentStore.upgrade(intent)) { return advanceEnchant(context, cached, intent); }
 			if (PhantomInventoryMaintenanceIntent.isMaintenance(intent)) { return advanceMaintenance(context, cached, intent, binding); }
 			if (PhantomSupplyIntentStore.social(intent)) { return advanceOffline(context, cached, intent, binding); }
 			try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
@@ -1361,6 +1413,26 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		return retry(result.reason());
 	}
 
+	private PhantomStepResult advanceEnchant(PhantomStepContext context, Cached cached, PhantomGoal intent)
+	{
+		if (_upgrades == null || context.cancellationToken().isCancelled()) { return terminal(context.profileId(), context.goal(), cached, false, "gear.enchant.owner_changed"); }
+		final long id = context.profileId(), now = System.currentTimeMillis();
+		try (var lease = _materialization.tryAcquireAction(id).orElse(null))
+		{
+			if (lease == null) { return retry("gear.enchant.actor_pending"); }
+			if (!matches(intent, lease.player()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return terminal(id, context.goal(), cached, false, "gear.enchant.authority_changed"); }
+			if (!PhantomNativeTravelActions.ordinary(lease.player()) || lease.player().hasPendingOwnedStore()) { return retry("gear.enchant.native_busy"); }
+		}
+		var result = _upgrades.reserve(id, intent, context.effectiveState(), context.activityGeneration(), context.tickSequence(), now);
+		if (result.status() == org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService.StepStatus.SUCCESS) { result = _upgrades.dispatch(id, intent, context.activityGeneration(), now); }
+		if (result.status() == org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService.StepStatus.SUCCESS) { result = _upgrades.reconcile(id, intent, context.effectiveState(), context.activityGeneration(), now); }
+		if (result.result() == org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Result.INCONSISTENT) { return retry("gear.enchant.fail_stop"); }
+		final var refreshed = cached(id);
+		if (refreshed.goal.status() != PhantomGoalStatus.ACTIVE) { return terminal(id, context.goal(), refreshed, refreshed.goal.status() == PhantomGoalStatus.COMPLETED, refreshed.goal.reasonKey()); }
+		if (result.status() == org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService.StepStatus.SUCCESS) { return terminal(id, context.goal(), refreshed, false, result.reason()); }
+		return result.status() == org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyService.StepStatus.REPLAN ? terminal(id, context.goal(), refreshed, false, result.reason()) : retry(result.reason());
+	}
+
 	private boolean matches(PhantomGoal goal, Player player)
 	{
 		final var binding = Binding.parse(goal);
@@ -1431,6 +1503,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private PhantomStepResult terminal(long profileId, PhantomGoal root, Cached cached, boolean complete, String reason)
 	{
 		cleanup(profileId);
+		if (PhantomSupplyIntentStore.upgrade(cached.goal) && (_upgrades == null || !_upgrades.settleAutomatic(profileId, cached.goal, System.currentTimeMillis()))) { return retry("gear.upgrade.settlement_required"); }
 		if (!complete && _offline != null && PhantomSupplyIntentStore.social(cached.goal) && cached.goal.status() == PhantomGoalStatus.ACTIVE)
 		{
 			final var cancellation = _offline.cancel(profileId, cached.goal);
@@ -1447,7 +1520,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private synchronized Cached cached(long profileId)
 	{
 		var cached = _cache.get(profileId);
-		if (cached != null && PhantomSupplyIntentStore.social(cached.goal))
+		if (cached != null && (PhantomSupplyIntentStore.social(cached.goal) || PhantomSupplyIntentStore.upgrade(cached.goal)))
 		{
 			final var current = _store.intent(profileId).orElse(null);
 			if (current != null && current.rowVersion() != cached.row) { cached.goal = current.goal(); cached.row = current.rowVersion(); cached.offer = null; }
@@ -1725,6 +1798,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	@Override public void beforeStore(long profileId, Player player)
 	{
 		final var root = _roots.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		final var child = cached(profileId).goal;
+		if (PhantomSupplyIntentStore.upgrade(child) && (_upgrades == null || !_upgrades.settleAutomatic(profileId, child, System.currentTimeMillis()))) { throw new IllegalStateException("Native gear upgrade remains uncertain before STORE."); }
 		if (root != null) { pause(profileId, root, player); }
 		cleanup(profileId);
 		synchronized (this) { if (_retreats.containsKey(profileId)) { throw new IllegalStateException("Supply survival cleanup is still pending before STORE."); } }
@@ -1741,6 +1816,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		private volatile String navigationRefusal = "";
 		private String equipmentFacts = "";
 		private long nextEquipmentCheck;
+		private long nextSaCheck;
 		private PhantomGoal equipmentOffer;
 		private long nextCheck;
 		private long nextMaintenanceCheck;

@@ -58,7 +58,25 @@ public record PhantomEnchantGoalSpec(int targetObjectId, int desiredLevel, int m
 
 	public static PhantomEnchantGoalSpec parse(PhantomGoal goal)
 	{
-		if ((goal == null) || !GOAL_TYPE.equals(goal.goalType()) || (goal.status() != PhantomGoalStatus.ACTIVE) || (goal.target() == null) || !TARGET_NAMESPACE.equals(goal.target().namespace()) || !PURPOSE_KEY.equals(goal.purposeKey()) || !goal.constraints().keySet().equals(EXACT_CONSTRAINTS))
+		return parse(goal, true);
+	}
+
+	/** Shape validation for the same persisted child after its native terminal projection. */
+	public static PhantomEnchantGoalSpec parseStored(PhantomGoal goal)
+	{
+		return parse(goal, false);
+	}
+
+	private static PhantomEnchantGoalSpec parse(PhantomGoal goal, boolean activeOnly)
+	{
+		final var keys = new HashSet<>(goal == null ? Set.<String>of() : goal.constraints().keySet());
+		keys.removeAll(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.KEYS);
+		if (goal != null && goal.payloadText() != null)
+		{
+			org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.attemptRevision(goal);
+			keys.remove(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.ATTEMPT_REVISION);
+		}
+		if ((goal == null) || !GOAL_TYPE.equals(goal.goalType()) || activeOnly && goal.status() != PhantomGoalStatus.ACTIVE || (goal.target() == null) || !TARGET_NAMESPACE.equals(goal.target().namespace()) || !PURPOSE_KEY.equals(goal.purposeKey()) || !keys.equals(EXACT_CONSTRAINTS) || !org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.valid(goal))
 		{
 			throw new IllegalArgumentException("Goal is not an exact active enchant.item Goal.");
 		}
@@ -103,7 +121,7 @@ public record PhantomEnchantGoalSpec(int targetObjectId, int desiredLevel, int m
 		final Map<String, Long> constraints = new java.util.TreeMap<>(goal.constraints());
 		constraints.put(ATTEMPTS_USED_CONSTRAINT, (long) nextAttempts);
 		constraints.put(EXPENSE_USED_CONSTRAINT, nextExpense);
-		return new PhantomGoal(goal.goalId(), goal.goalType(), status, goal.subject(), goal.target(), goal.requiredAmount(), completed ? goal.requiredAmount() : Math.min(goal.currentAmount(), goal.requiredAmount()), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), constraints, reason, Math.addExact(goal.revision(), 1));
+		return new PhantomGoal(goal.goalId(), goal.goalType(), status, goal.subject(), goal.target(), goal.requiredAmount(), completed ? goal.requiredAmount() : Math.min(goal.currentAmount(), goal.requiredAmount()), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), constraints, reason, Math.addExact(goal.revision(), 1), goal.payloadText());
 	}
 
 	public boolean accepts(int currentEnchant, int scrollItemId, int supportItemId, long expense)

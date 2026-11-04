@@ -449,8 +449,8 @@ public final class PhantomSystem
 				}
 				PhantomEconomyConflictPort.install(_economyReservations);
 				_economyOffers = new PhantomEconomyOfferService();
-				_economyService = new PhantomEconomyService(economyPolicy, _economyReservations, new PhantomEconomyBackgroundTransaction(_economyReservations, economyPolicy), _materializationService, acquisitionStore, productionGoals, productionProfiles);
 				final var commerceGoals = new PhantomSupplyIntentStore(productionProfiles, productionGoals);
+				_economyService = new PhantomEconomyService(economyPolicy, _economyReservations, new PhantomEconomyBackgroundTransaction(_economyReservations, economyPolicy), _materializationService, acquisitionStore, commerceGoals, productionProfiles);
 				_multipartyEconomyService = new PhantomMultipartyEconomyService(economyPolicy, _economyReservations, _economyOffers, _materializationService, commerceGoals, productionProfiles);
 				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
 				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService, this::marketPricingAuthority);
@@ -731,6 +731,7 @@ public final class PhantomSystem
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService, this::marketPricingAuthority, () -> _offlineMerchantService == null ? java.util.List.of() : _offlineMerchantService.buyOwners());
 				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
+				_supplyJourney.useGearUpgrades(_economyService);
 				_supplyJourney.useInventoryMaintenance(profileId -> (_economyReservations == null) || _economyReservations.findActive(profileId).isEmpty());
 				_supplyJourney.useThreatRetreat(_combatService);
 				if (_autonomousMarketProducer != null)

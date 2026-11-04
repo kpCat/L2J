@@ -693,6 +693,24 @@ public final class PhantomEconomyReservationService
 		}
 	}
 
+	/** Exact child attempt, including uncertainty that findActive deliberately does not return. */
+	public Optional<StoredOperation> findForGoal(long profileId, long goalId, long revision)
+	{
+		if (profileId <= 0 || goalId <= 0 || revision < 0) { throw new IllegalArgumentException("Invalid economy goal identity."); }
+		try (var connection = _connections.open(); var statement = connection.prepareStatement("SELECT operation_id,profile_id,character_object_id,goal_id,goal_revision,operation_kind,operation_state,attempt_no,intent_id,authority_hash,intent_hash,activity_generation,activity_tick,row_version FROM phantom_economy_operations WHERE profile_id=? AND goal_id=? AND goal_revision=? ORDER BY operation_id LIMIT 2"))
+		{
+			statement.setLong(1, profileId); statement.setLong(2, goalId); statement.setLong(3, revision);
+			try (var rows = statement.executeQuery())
+			{
+				if (!rows.next()) { return Optional.empty(); }
+				final var found = storedOperation(rows);
+				if (rows.next()) { throw new IllegalStateException("Ambiguous exact economy goal attempt."); }
+				return Optional.of(found);
+			}
+		}
+		catch (SQLException failure) { throw persistenceFailure("find exact economy goal", failure); }
+	}
+
 	public List<Reservation> findReservations(String operationId)
 	{
 		if ((operationId == null) || !operationId.matches("[0-9a-f]{64}"))

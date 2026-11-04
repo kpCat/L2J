@@ -18,6 +18,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 public final class PhantomSupplyIntentStore implements PhantomGoalStore
 {
 	public static final String COMPONENT = "supply.intent";
+	public static final String ATTEMPT_REVISION = "gear.attempt_revision";
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStore _roots;
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
@@ -76,6 +77,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 		if (root == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goal().goalType())) { return _roots.replace(profileId, expectedRowVersion, goal); }
 		final var previous = load(profileId).orElseThrow(() -> new IllegalStateException("No active bound supply operation."));
 		final var old = previous.goal();
+		if (previous.rowVersion() == expectedRowVersion && validUpgradeProjection(old, goal)) { return saveIntent(profileId, root.goal(), expectedRowVersion, goal); }
 		if (previous.rowVersion() != expectedRowVersion || !social(old) || goal.status() != PhantomGoalStatus.COMPLETED || goal.goalId() != old.goalId() || goal.revision() != Math.addExact(old.revision(), 1) || !Objects.equals(old.target(), goal.target()) || !Objects.equals(old.payloadText(), goal.payloadText()) || !old.goalType().equals(goal.goalType())) { throw new IllegalArgumentException("Supply operation completion authority changed."); }
 		return saveIntent(profileId, root.goal(), expectedRowVersion, goal);
 	}
@@ -87,8 +89,39 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	}
 	private static boolean supported(PhantomGoal goal)
 	{
+		if (readySa(goal)) { org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.parse(goal, false); return true; }
+		if (enchant(goal)) { return org.l2jmobius.gameserver.phantoms.economy.PhantomEnchantGoalSpec.parseStored(goal).maximumAttempts() == 1; }
 		if (PhantomInventoryMaintenanceIntent.isMaintenance(goal)) { PhantomInventoryMaintenanceIntent.parse(goal); return true; }
 		return goal != null && ((PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(goal.goalType()) && "supplies.autonomous".equals(goal.purposeKey())) || social(goal));
+	}
+
+	public static boolean enchant(PhantomGoal goal) { return goal != null && org.l2jmobius.gameserver.phantoms.economy.PhantomEnchantGoalSpec.GOAL_TYPE.equals(goal.goalType()) && goal.payloadText() != null; }
+	public static boolean readySa(PhantomGoal goal) { return goal != null && org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.TYPE.equals(goal.goalType()) && goal.payloadText() != null; }
+	public static boolean upgrade(PhantomGoal goal) { return enchant(goal) || readySa(goal); }
+	public static long attemptRevision(PhantomGoal goal)
+	{
+		final long revision = goal.constraints().getOrDefault(ATTEMPT_REVISION, -1L);
+		if (!upgrade(goal) || revision < 0 || revision > goal.revision()) { throw new IllegalArgumentException("Missing original upgrade attempt identity."); }
+		return revision;
+	}
+
+	static boolean validUpgradeProjection(PhantomGoal old, PhantomGoal next)
+	{
+		if (readySa(old))
+		{
+			try { return org.l2jmobius.gameserver.phantoms.economy.PhantomReadySa.project(old).equals(next); }
+			catch (IllegalArgumentException | ArithmeticException invalid) { return false; }
+		}
+		if (!enchant(old) || next == null || old.status() != PhantomGoalStatus.ACTIVE) { return false; }
+		try
+		{
+			final var spec = org.l2jmobius.gameserver.phantoms.economy.PhantomEnchantGoalSpec.parse(old);
+			if (spec.maximumAttempts() != 1 || spec.attemptsUsed() != 0 || spec.expenseUsed() != 0 || old.expenseBudget() <= 0) { return false; }
+			final boolean success = "result.success".equals(next.reasonKey());
+			if (!success && !java.util.Set.of("result.safe_failure", "result.blessed_reset", "result.destroyed").contains(next.reasonKey())) { return false; }
+			return spec.project(old, success ? spec.desiredLevel() : 0, !"result.destroyed".equals(next.reasonKey()), old.expenseBudget(), next.reasonKey()).equals(next);
+		}
+		catch (IllegalArgumentException | ArithmeticException invalid) { return false; }
 	}
 
 	/** Small typed ownership context inside the existing versioned Goal codec; no second schema/AI. */

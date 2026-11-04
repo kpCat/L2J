@@ -103,6 +103,7 @@ public record PhantomEconomyOperation(Identity identity, Kind kind, State state,
 	{
 		SELF_CRAFT,
 		ITEM_ENCHANT,
+		NPC_SA,
 		DIRECT_TRADE,
 		PRIVATE_STORE_BUY,
 		PRIVATE_STORE_SELL,

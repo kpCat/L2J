@@ -63,7 +63,7 @@ public final class PhantomNativeEquipmentPolicy
 			final var current = player.getActiveWeaponItem();
 			return player.isMageClass() || current == null || current == player.getFistsWeaponItem() || current.isMagicWeapon() || current.getItemType() == weapon.getItemType();
 		}
-		if (!(item instanceof Armor armor) || !ARMOR_SLOTS.contains(item.getBodyPart())) { return false; }
+		if (!(item instanceof Armor armor) || !ARMOR_SLOTS.contains(item.getBodyPart()) && !accessory(item.getBodyPart())) { return false; }
 		return armor.getItemType() == ArmorType.NONE || affinity(player, item) > 0 || (player.isMageClass() ? armor.getItemType() == ArmorType.MAGIC : armor.getItemType() == ArmorType.LIGHT || armor.getItemType() == ArmorType.HEAVY);
 	}
 
@@ -131,7 +131,7 @@ public final class PhantomNativeEquipmentPolicy
 	public static double power(Player player, ItemTemplate item)
 	{
 		if (item == null) { return 0; }
-		final Stat stat = item instanceof Weapon ? player.isMageClass() ? Stat.MAGIC_ATTACK : Stat.POWER_ATTACK : Stat.POWER_DEFENCE;
+		final Stat stat = item instanceof Weapon ? player.isMageClass() ? Stat.MAGIC_ATTACK : Stat.POWER_ATTACK : accessory(item.getBodyPart()) ? Stat.MAGIC_DEFENCE : Stat.POWER_DEFENCE;
 		return item.getStatFuncs(null, player).stream().filter(function -> function.getStat() == stat && function.getApplyCond() == null).mapToDouble(function -> Math.max(0, function.getValue())).max().orElse(0);
 	}
 
@@ -146,7 +146,8 @@ public final class PhantomNativeEquipmentPolicy
 			if (current != null && affinity(player, current.getTemplate()) > 0 && affinity(player, candidate) <= 0) { return false; }
 			return improvesLoadout(candidate, replaced, current == null ? 0 : utility(player, current.getTemplate()), utility(player, candidate));
 		}
-		final var replaced = player.getInventory().getItems().stream().filter(Item::isEquipped).filter(item -> overlaps(candidate.getBodyPart(), item.getTemplate().getBodyPart())).toList();
+		final var replaced = accessory(candidate.getBodyPart()) ? accessoryReplacements(candidate.getBodyPart(), player.getInventory()::getPaperdollItem)
+			: player.getInventory().getItems().stream().filter(Item::isEquipped).filter(item -> overlaps(candidate.getBodyPart(), item.getTemplate().getBodyPart())).toList();
 		if (replaced.stream().anyMatch(item -> affinity(player, item.getTemplate()) > 0) && affinity(player, candidate) <= 0) { return false; }
 		if (replaced.stream().anyMatch(item -> completedSet(player, item.getTemplate())) && !completedSet(player, candidate)) { return false; }
 		return improvesLoadout(candidate, replaced, replaced.stream().mapToDouble(item -> utility(player, item.getTemplate())).sum(), utility(player, candidate));
@@ -168,13 +169,43 @@ public final class PhantomNativeEquipmentPolicy
 				if (item.getItemType() == EtcItemType.ARROW || item.getItemType() == EtcItemType.BOLT) { continue; }
 				return false;
 			}
-			if (item.getEnchantLevel() > 0 || item.isAugmented() || item.getElementals() != null && item.getElementals().length > 0
-				|| template.isQuestItem() || template.isHeroItem() || template.isPvpItem() || template.getSkills() != null && template.getSkills().length > 0
-				|| template.getElementals() != null && template.getElementals().length > 0
-				|| template instanceof Weapon weapon && (weapon.hasTriggeredSkills() || weapon.getReducedSoulShot() > 0 || weapon.getReducedMpConsume() > 0)) { return false; }
+			if (protectedEffects(item)) { return false; }
 		}
 		final int grade = replaced.stream().filter(item -> item.getTemplate() instanceof Weapon || item.getTemplate() instanceof Armor).mapToInt(item -> item.getTemplate().getCrystalType().getLevel()).max().orElse(0);
 		return candidate.getCrystalType().getLevel() >= grade;
+	}
+
+	/** The same valuable native effects survive both replacement and later liquidation. */
+	public static boolean protectedTemplateEffects(ItemTemplate template)
+	{
+		return template == null || template.isQuestItem() || template.isHeroItem() || template.isPvpItem()
+			|| template.getSkills() != null && template.getSkills().length > 0 || template.getElementals() != null && template.getElementals().length > 0
+			|| template instanceof Weapon weapon && (weapon.hasTriggeredSkills() || weapon.getReducedSoulShot() > 0 || weapon.getReducedMpConsume() > 0);
+	}
+
+	public static boolean protectedEffects(Item item)
+	{
+		return item == null || item.getEnchantLevel() > 0 || item.isAugmented() || item.getElementals() != null && item.getElementals().length > 0 || protectedTemplateEffects(item.getTemplate());
+	}
+
+	private static boolean accessory(BodyPart body)
+	{
+		return switch (body) { case NECK, L_EAR, R_EAR, LR_EAR, L_FINGER, R_FINGER, LR_FINGER -> true; default -> false; };
+	}
+
+	/** Mirrors stock Inventory.equipItem: fill a free paired slot, otherwise displace LEFT only. */
+	public static List<Item> accessoryReplacements(BodyPart body, java.util.function.IntFunction<Item> paperdoll)
+	{
+		final int left, right;
+		switch (body)
+		{
+			case NECK -> { final var item = paperdoll.apply(Inventory.PAPERDOLL_NECK); return item == null ? List.of() : List.of(item); }
+			case L_EAR, R_EAR, LR_EAR -> { left = Inventory.PAPERDOLL_LEAR; right = Inventory.PAPERDOLL_REAR; }
+			case L_FINGER, R_FINGER, LR_FINGER -> { left = Inventory.PAPERDOLL_LFINGER; right = Inventory.PAPERDOLL_RFINGER; }
+			default -> throw new IllegalArgumentException("Unsupported accessory body part.");
+		}
+		final var item = paperdoll.apply(left);
+		return item == null || paperdoll.apply(right) == null ? List.of() : List.of(item);
 	}
 
 	private static boolean overlaps(BodyPart first, BodyPart second)
