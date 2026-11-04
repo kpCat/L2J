@@ -1401,7 +1401,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
 			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
 				candidate -> _planner.isVisibleLocal(candidate, live) || (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player)));
-			if (!replacement.ready()) { recovery.unavailable(now); return false; }
+			if (!replacement.ready())
+			{
+				final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
+				if (recorder.isRecording())
+				{
+					recorder.record(profileId, "VISIBLE_REPLAN_REJECTED", replacement.reasonKey(), baseline.position().committedAnchorId(),
+						"live=" + live.x() + "," + live.y() + "," + live.z() + ";reject=" + replacement.candidateRejections().stream().limit(2).toList(),
+						stored.goal().goalId(), lifetime.materializedAtNanos(), stored.goal().revision());
+				}
+				recovery.unavailable(now); return false;
+			}
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			final var state = catchup.state();
 			final var updated = historicalIdle
