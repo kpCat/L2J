@@ -1428,6 +1428,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (trip.walkBudget == null && trip.player.getMoveSpeed() > 0 && trip.origin.distanceTo(trip.destination()) <= _navigation.policy().maximumRouteDistance()
 				&& Set.of(PhantomNavigationResult.Status.NO_PATH, PhantomNavigationResult.Status.ROUTE_OBSTRUCTED, PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()))
 			{
+				if (!walkFitsRemaining(trip.origin, trip.destination(), trip.player.getMoveSpeed(), Math.max(0, (trip.deadline - now) / 1_000_000))) { return "supplies.navigation.walk_deadline"; }
 				// Reuse the existing native detour search and budget; retries never replace this Trip's clock/visited set.
 				trip.walkBudget = new NativeWalkBudget(trip.origin, trip.destination(), trip.startedNanos, trip.player.getMoveSpeed(), _navigation.policy());
 				clearRoute(profileId, trip);
@@ -1456,10 +1457,18 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		if (route == null || route.mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA || !route.origin().equals(origin)
 			|| budget == null && !route.destination().equals(destination) || !Double.isFinite(speed) || speed <= 0 || remainingMillis < 0) { return null; }
+		if (!walkFitsRemaining(origin, destination, speed, remainingMillis)) { return null; }
 		final long millis = (long) Math.ceil(1000 * route.totalDistance() / speed);
 		if (millis > remainingMillis) { return null; }
 		if (budget != null && !budget.admit(route, now)) { return null; }
 		return new PhantomTravelStrategy.Candidate("walk.checkpoint", List.of(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.WALK, origin, route.destination(), route.waypoints(), null, millis, 0, 0)));
+	}
+	static boolean walkFitsRemaining(PhantomNavigationPoint origin, PhantomNavigationPoint destination, double speed, long remainingMillis)
+	{
+		if (origin == null || destination == null || origin.instanceId() != destination.instanceId() || !Double.isFinite(speed) || speed <= 0 || remainingMillis < 0) { return false; }
+		// A proven checkpoint cannot make the remaining whole WALK faster than its straight chord.
+		final double minimumMillis = Math.ceil(1000 * origin.distanceTo(destination) / speed);
+		return Double.isFinite(minimumMillis) && minimumMillis <= remainingMillis;
 	}
 
 	private Optional<PhantomNavigationPoint> returnDestination(PhantomNavigationPoint field)
