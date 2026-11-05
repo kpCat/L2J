@@ -909,7 +909,7 @@ public final class PhantomSystem
 				_populationManager.installDecisionEngine(_decisionEngine);
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
 				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney,
-					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _visibleFarmTravel)));
+					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _supplyJourney::blocksAutonomousParty, _visibleFarmTravel::observeArrival)));
 				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
 				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
 				if (_autonomousMarketProducer != null)

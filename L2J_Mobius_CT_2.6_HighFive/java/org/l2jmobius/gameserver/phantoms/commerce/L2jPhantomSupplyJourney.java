@@ -266,6 +266,21 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	public boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root).isPresent(); }
 	public Optional<PhantomGoal> automaticIntent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
 
+	public static boolean requiresSoloPreparation(PhantomGoal root, PhantomGoal child, PhantomCommerceReceipt.State receiptState)
+	{
+		return PhantomSupplyIntentStore.bound(child, root) && (child.status() == PhantomGoalStatus.ACTIVE || PhantomOfflineSupply.returning(child)
+			|| PhantomSupplyIntentStore.upgrade(child) && Binding.parse(child).retryAfterEpochMillis() == 0)
+			|| receiptState != null && (receiptState == PhantomCommerceReceipt.State.INCONSISTENT || !receiptState.terminal());
+	}
+
+	/** Admission observes the existing child/receipt; it never settles or cancels their owners. */
+	public boolean blocksAutonomousParty(long profileId, PhantomGoal root)
+	{
+		final var child = cached(profileId).goal;
+		if (requiresSoloPreparation(root, child, null)) { return true; }
+		return requiresSoloPreparation(root, child, _receipts.find(profileId).map(value -> value.receipt().state()).orElse(null));
+	}
+
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root)
 	{
 		if (_state != State.RUNNING || !_policy.enabled()) { return false; }

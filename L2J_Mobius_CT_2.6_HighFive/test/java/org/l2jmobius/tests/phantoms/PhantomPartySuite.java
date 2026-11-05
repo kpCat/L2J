@@ -1344,6 +1344,124 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Absence fixture did not drain."); }
 		});
+		registry.add("127-supply-preparation-precedes-native-formation", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true;
+			for (long id : List.of(1L, 2L, 3L))
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 3 ? cap("combat.buff", "learned.might", 450, 1068) : cap("combat.melee_damage", "weapon", 300, 0))));
+				goals.put(id, goal(94000 + id, "farm.background", null, 0));
+			}
+			final var clock = new AtomicLong(1_000_000_000L); final var blocked = new java.util.HashSet<Long>(Set.of(3L));
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> blocked.contains(id), null);
+				autonomous.onPulse();
+				PhantomAssertions.assertEquals(0, backend.invitationCount(), "An unsettled supply child was captured by native JOIN.");
+				blocked.clear();
+				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				PhantomAssertions.assertEquals(3, backend.observe(backend.currentMember(1).orElseThrow()).map(party -> party.members().size()).orElse(0), "A settled supply obligation permanently disabled ordinary Party3.");
+				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, 0), goals.load(id).orElseThrow().goal(), "Preparation admission rewrote its durable root."); }
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Preparation fixture did not drain."); }
+		});
+		registry.add("127-late-supply-refuses-requester-and-invitee-consent", context ->
+		{
+			for (long changed : List.of(1L, 3L, 2L))
+			{
+				final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true; backend._observeFarmAbsence = true;
+				for (long id : List.of(1L, 2L, 3L))
+				{
+					final var actor = backend.add(id, 100 + (int) id);
+					backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 3 ? cap("combat.buff", "learned.might", 450, 1068) : cap("combat.melee_damage", "weapon", 300, 0))));
+					goals.put(id, goal(94000 + id, "farm.background", null, 0));
+				}
+				final var clock = new AtomicLong(1_000_000_000L); final var blocked = new java.util.HashSet<Long>();
+				final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+				try
+				{
+					final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> blocked.contains(id), null);
+					autonomous.onPulse(); PhantomAssertions.assertEquals(1, backend.invitationCount(), "Late-conflict fixture never issued its native invitation.");
+					if (changed == 2)
+					{
+						blocked.add(changed);
+						for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+						PhantomAssertions.assertEquals(2, backend.observe(backend.currentMember(1).orElseThrow()).orElseThrow().members().size(), "The retained-core fixture never formed native Party2.");
+						PhantomAssertions.assertEquals(2, backend.invitationCount(), "The retained-core fixture did not invite its third member.");
+					}
+					blocked.add(changed);
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					PhantomAssertions.assertEquals(PartyInvitationService.Response.REFUSE, backend.lastResponse(), "Late supply was accepted or left JOIN pending: " + changed);
+					for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); }
+					final long invitee = backend.lastInvitation().inviteeObjectId() - 100L;
+					PhantomAssertions.assertFalse(coordinator.blocksBackground(invitee), "Refused consent still retained the invitee's supply ownership fence; changed=" + changed + "; invitation=" + backend.lastInvitation() + "; claim=" + coordinator.claim(invitee));
+					PhantomAssertions.assertFalse(coordinator.blocksBackground(changed), "A refused first invitation retained the changed actor's supply fence: " + changed + "; claim=" + coordinator.claim(changed));
+					blocked.clear();
+					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+					PhantomAssertions.assertEquals(3, backend.observe(backend.currentMember(1).orElseThrow()).map(party -> party.members().size()).orElse(0), "A settled late preparation could not form a fresh native Party; changed=" + changed + "; invites=" + backend.invitationCount() + "; responses=" + backend.responseCount() + "; leader=" + coordinator.claim(1) + "; support=" + coordinator.claim(3));
+				}
+				finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Late supply fixture did not drain."); }
+			}
+		});
+		registry.add("127-solo-arrival-continuation-yields-to-supply", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
+			for (long id : List.of(1L, 2L, 3L))
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 3 ? cap("combat.buff", "learned.might", 450, 1068) : cap("combat.melee_damage", "weapon", 300, 0))));
+				goals.put(id, goal(94000 + id, "farm.background", null, 0));
+			}
+			final var clock = new AtomicLong(1_000_000_000L); final var blocked = new java.util.HashSet<Long>(); final Map<Long, Integer> observed = new LinkedHashMap<>();
+			final var preparationReads = new java.util.concurrent.atomic.AtomicInteger();
+			final var kind = new java.util.concurrent.atomic.AtomicReference<>(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.PENDING);
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> { preparationReads.incrementAndGet(); return blocked.contains(id); }, (id, root) ->
+				{
+					observed.merge(id, 1, Integer::sum);
+					return new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(kind.get(), root.goalId(), root.revision(), 100 + id.intValue(), 1, 0, "fixture127.arrival");
+				});
+				autonomous.onPulse();
+				PhantomAssertions.assertEquals(0, backend.invitationCount(), "A pending farm return was joined before native ARRIVED.");
+				PhantomAssertions.assertEquals(3, observed.size(), "The selected solo cohort did not enter its existing travel owner.");
+				backend._farmEnabled = false; blocked.add(1L); final int held = observed.get(1L);
+				final int initialLoads = goals._loads, initialPreparationReads = preparationReads.get(); final var initialObserved = Map.copyOf(observed);
+				for (int pulse = 0; pulse < 32; pulse++) { autonomous.onPulse(); }
+				PhantomAssertions.assertEquals(initialLoads, goals._loads, "Sub-window shared pulses repeated durable goal reads.");
+				PhantomAssertions.assertEquals(initialPreparationReads, preparationReads.get(), "Sub-window shared pulses repeated supply receipt reads.");
+				PhantomAssertions.assertEquals(initialObserved, observed, "Sub-window shared pulses advanced an owned journey.");
+				for (int pulse = 0; pulse < 4; pulse++)
+				{
+					final int before = observed.values().stream().mapToInt(Integer::intValue).sum();
+					clock.addAndGet(1_000_000_000L); autonomous.onPulse();
+					PhantomAssertions.assertTrue(observed.values().stream().mapToInt(Integer::intValue).sum() - before <= 2, "Continuation exceeded two journeys per control-plane window.");
+				}
+				PhantomAssertions.assertEquals(held, observed.get(1L), "A newly accepted supply child lost the movement handoff to a farm continuation.");
+				PhantomAssertions.assertTrue(observed.get(2L) > 1 && observed.get(3L) > 1, "Pending journeys vanished outside the materialized-ready page.");
+				final int groupedSecond = observed.get(2L), groupedThird = observed.get(3L);
+				final var second = backend.currentMember(2).orElseThrow(); final var third = backend.currentMember(3).orElseThrow();
+				backend.party(new PhantomPartyBackend.PartySnapshot(second, List.of(second, third), PartyDistributionType.FINDERS_KEEPERS));
+				for (int pulse = 0; pulse < 4; pulse++) { clock.addAndGet(1_000_000_000L); autonomous.onPulse(); }
+				backend._parties.clear();
+				for (int pulse = 0; pulse < 4; pulse++) { clock.addAndGet(1_000_000_000L); autonomous.onPulse(); }
+				PhantomAssertions.assertEquals(groupedSecond, observed.get(2L), "A native Party takeover retained obsolete solo queue bookkeeping.");
+				PhantomAssertions.assertEquals(groupedThird, observed.get(3L), "Grouped solo continuation resumed without a new preparation selection.");
+				kind.set(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.TERMINAL);
+				blocked.clear(); for (int pulse = 0; pulse < 3; pulse++) { clock.addAndGet(1_000_000_000L); autonomous.onPulse(); }
+				final var terminalCounts = Map.copyOf(observed); for (int pulse = 0; pulse < 4; pulse++) { clock.addAndGet(1_000_000_000L); autonomous.onPulse(); }
+				PhantomAssertions.assertEquals(terminalCounts, observed, "Terminal travel was requeued without a new goal/epoch witness.");
+				for (long id : List.of(1L, 2L, 3L)) { goals.put(id, goal(94000 + id, "farm.background", null, 1)); }
+				kind.set(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED); backend._farmEnabled = true;
+				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				PhantomAssertions.assertEquals(3, backend.observe(backend.currentMember(1).orElseThrow()).map(party -> party.members().size()).orElse(0), "Fresh ARRIVED for the current roots did not permit ordinary Party3.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Solo preparation fixture did not drain."); }
+		});
 		registry.add("094-ordinary-consent-fixed-roster-and-native-preparation-after-restart", context ->
 		{
 			final var states = new MemoryPartyStore();
@@ -2488,7 +2606,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			{
 				throw new AssertionError("Bounded lifecycle fixture must not fabricate an invitation.");
 			}
-			if ((_lastInvitation != null) && (_lastInvitation.requesterObjectId() == requester.characterObjectId()) && (_lastInvitation.inviteeObjectId() == target.characterObjectId()))
+			if ((_lastInvitation != null) && _lastInvitation.identity().equals(_nativePendingIdentity) && (_lastInvitation.requesterObjectId() == requester.characterObjectId()) && (_lastInvitation.inviteeObjectId() == target.characterObjectId()))
 			{
 				return new InviteResult(InviteOutcome.DELIVERED_MANAGED, _lastInvitation.identity());
 			}
@@ -2521,6 +2639,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				if (!members.contains(invitee)) { members.add(invitee); }
 				party(new PartySnapshot(requester, members, PartyDistributionType.FINDERS_KEEPERS));
 				_coordinator.terminal(_lastInvitation, OptionalLong.of(requester.profileId()), OptionalLong.of(invitee.profileId()), TerminalOutcome.ACCEPTED, "party.invite.accepted");
+			}
+			else if (_farmEnabled && response == PartyInvitationService.Response.REFUSE && _lastInvitation != null && _lastInvitation.identity().equals(identity))
+			{
+				final var requester = _members.values().stream().filter(member -> member.characterObjectId() == identity.requesterObjectId()).findFirst().orElseThrow();
+				_coordinator.terminal(_lastInvitation, OptionalLong.of(requester.profileId()), OptionalLong.of(invitee.profileId()), TerminalOutcome.REFUSED, "party.invite.refused");
 			}
 			final PartyInvitationService.RespondOutcome outcome = response == PartyInvitationService.Response.ACCEPT ? PartyInvitationService.RespondOutcome.ACCEPTED : response == PartyInvitationService.Response.REFUSE ? PartyInvitationService.RespondOutcome.REFUSED : PartyInvitationService.RespondOutcome.DISABLED;
 			return new PartyInvitationService.RespondResult(outcome, identity, null);

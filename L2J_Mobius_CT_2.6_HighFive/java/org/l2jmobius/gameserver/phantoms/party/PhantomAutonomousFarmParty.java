@@ -23,6 +23,8 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationPhase;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.OperationKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RoleRequirement;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.VacancyStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
@@ -40,9 +42,11 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private final PhantomGoalStore _goals;
 	private final PhantomPartyRoleMatcher _roles;
 	private final LongSupplier _clock;
-	private final PhantomVisibleFarmTravel _travel;
+	private final java.util.function.BiPredicate<Long, PhantomGoal> _preparationRequired;
+	private final java.util.function.BiFunction<Long, PhantomGoal, PhantomVisibleFarmTravel.ArrivalResult> _arrival;
 	private final Map<Long, PhantomGoal> _travelContinuations = new LinkedHashMap<>();
 	private long _nextPulse;
+	private long _nextContinuationPulse;
 	private long _cursor;
 
 	public PhantomAutonomousFarmParty(PhantomPartyCoordinator coordinator, PhantomPartyBackend backend, PhantomGoalStore goals, PhantomPartyRoleCatalog roles, LongSupplier clock)
@@ -52,8 +56,14 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	public PhantomAutonomousFarmParty(PhantomPartyCoordinator coordinator, PhantomPartyBackend backend, PhantomGoalStore goals, PhantomPartyRoleCatalog roles, LongSupplier clock, PhantomVisibleFarmTravel travel)
 	{
+		this(coordinator, backend, goals, roles, clock, (_, _) -> false, travel == null ? null : travel::observeArrival);
+	}
+
+	public PhantomAutonomousFarmParty(PhantomPartyCoordinator coordinator, PhantomPartyBackend backend, PhantomGoalStore goals, PhantomPartyRoleCatalog roles, LongSupplier clock,
+		java.util.function.BiPredicate<Long, PhantomGoal> preparationRequired, java.util.function.BiFunction<Long, PhantomGoal, PhantomVisibleFarmTravel.ArrivalResult> arrival)
+	{
 		_coordinator = coordinator; _backend = backend; _goals = goals; _roles = new PhantomPartyRoleMatcher(roles); _clock = clock;
-		_travel = travel;
+		_preparationRequired = java.util.Objects.requireNonNull(preparationRequired); _arrival = arrival;
 		_coordinator.installManagedInvitationPolicy(PhantomBackgroundGoalSpec.GOAL_TYPE, this::evaluateInvitation);
 		_coordinator.installManagedInvitationPolicy(PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE, this::evaluateInvitation);
 	}
@@ -62,18 +72,28 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	public void onPulse()
 	{
 		if (_coordinator.snapshot().state() != PhantomPartyCoordinator.State.RUNNING) { return; }
+		final long now = _clock.getAsLong();
 		// An admitted route/store may temporarily close action admission and leave the ready page.
-		// Continue at most two distinct owned journeys before consulting that page again.
-		if (_travel != null)
+		// Like refreshFarmIntent, durable reads belong to a one-second control-plane window.
+		// Continue at most two distinct owned journeys; native consent still reads preparation immediately.
+		if (_arrival != null && now >= _nextContinuationPulse)
 		{
-			for (var entry : _travelContinuations.entrySet().stream().limit(2).toList())
+			_nextContinuationPulse = now + 1_000_000_000L;
+			int examined = 0;
+			for (var entry : new ArrayList<>(_travelContinuations.entrySet()))
 			{
+				if (examined++ >= 2) { break; }
+				final var member = _backend.currentMember(entry.getKey()).orElse(null);
+				// Native Party takeover removes only this scheduler bookmark, never the travel owner's receipt.
+				if (member != null && _backend.observe(member).isPresent()) { _travelContinuations.remove(entry.getKey()); continue; }
+				final boolean current = _goals.load(entry.getKey()).map(PhantomGoalStore.StoredGoal::goal).filter(entry.getValue()::equals).isPresent();
+				// Supply owns its exact yield/drain path; a farm continuation must not cancel it.
+				if (current && _preparationRequired.test(entry.getKey(), entry.getValue())) { _travelContinuations.remove(entry.getKey()); _travelContinuations.put(entry.getKey(), entry.getValue()); continue; }
 				_travelContinuations.remove(entry.getKey());
-				final var arrival = _travel.observeArrival(entry.getKey(), entry.getValue());
+				final var arrival = _arrival.apply(entry.getKey(), entry.getValue());
 				if (arrival.kind() == PhantomVisibleFarmTravel.ArrivalKind.PENDING) { _travelContinuations.put(entry.getKey(), entry.getValue()); }
 			}
 		}
-		final long now = _clock.getAsLong();
 		if (now < _nextPulse || _coordinator.snapshot().state() != PhantomPartyCoordinator.State.RUNNING) { return; }
 		_nextPulse = now + 5_000_000_000L;
 		final var observed = _backend.materializedFarmMembers(_cursor, MAXIMUM_CANDIDATES);
@@ -83,12 +103,25 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (page.isEmpty()) { if (_cursor == previousCursor) { _cursor = 0; } return; }
 		if (page.size() > MAXIMUM_CANDIDATES) { return; }
 		final Map<Long, PhantomGoal> roots = new LinkedHashMap<>();
-		for (var member : page) { _goals.load(member.ref().profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(goal -> ordinaryIntent(member.ref().profileId(), goal)).ifPresent(goal -> roots.put(member.ref().profileId(), goal)); }
+		for (var member : page)
+		{
+			final long id = member.ref().profileId();
+			final var root = _goals.load(id).map(PhantomGoalStore.StoredGoal::goal).filter(goal -> ordinaryIntent(id, goal)).orElse(null);
+			if (root == null) { continue; }
+			if (_preparationRequired.test(id, root)) { _coordinator.reconcileAutonomousFarmAbsence(id, root.goalId(), root.revision()); }
+			else { roots.put(id, root); }
+		}
 		for (var member : page)
 		{
 			final long id = member.ref().profileId(); final var goal = roots.get(id);
 			final var claim = _coordinator.claim(id).orElse(null);
-			if (goal != null && claim != null && claim.state().status() == StateStatus.INCONSISTENT && "restart.claim_conflict".equals(claim.state().lastFailureKey()))
+			final var state = claim == null ? null : claim.state();
+			final boolean abortedFirstFormation = state != null && state.status() == StateStatus.LEADER && state.leader().profileId() == id
+				&& OBJECTIVE_NAMESPACE.equals(state.objectiveRef().namespace()) && state.phantomMembers().equals(List.of(state.leader()))
+				&& state.realMembers().isEmpty() && state.route() == null && state.operation() != null
+				&& state.operation().kind() == OperationKind.JOIN && state.operation().phase() == OperationPhase.ABORTED;
+			if (goal != null && claim != null && (claim.state().status() == StateStatus.INCONSISTENT && "restart.claim_conflict".equals(claim.state().lastFailureKey())
+				|| abortedFirstFormation))
 			{
 				if (_coordinator.reconcileAutonomousFarmAbsence(id, goal.goalId(), goal.revision())) { return; }
 				roots.remove(id);
@@ -118,9 +151,27 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			}
 			else { selected = selectTeam(_roles, leader, candidates); }
 			if (selected.isEmpty()) { if (_coordinator.committed(profileId)) { _coordinator.releaseAutonomousFarm(profileId); } continue; }
+			if (selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> _preparationRequired.test(ref.profileId(), root)).isPresent())) { continue; }
 			final var roster = selected.stream().map(_backend::memberSnapshot).flatMap(java.util.Optional::stream).toList();
 			if (roster.size() != selected.size() || roster.size() < 2 || !supportPresent(roster.get(1)) || selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> ordinaryIntent(ref.profileId(), root)).isEmpty())) { _coordinator.releaseAutonomousFarm(profileId); continue; }
 			if (leader.casting() || leader.attacking()) { continue; }
+			if (_arrival != null)
+			{
+				boolean arrived = true;
+				for (var member : selected)
+				{
+					final var memberClaim = _coordinator.claim(member.profileId()).orElse(null);
+					if (memberClaim != null && memberClaim.state().status() != StateStatus.SOLO || _backend.observe(member).isPresent()) { continue; }
+					if (!_travelContinuations.containsKey(member.profileId()) && _travelContinuations.size() >= MAXIMUM_CANDIDATES) { arrived = false; continue; }
+					final var root = _goals.load(member.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+					if (!ordinaryIntent(member.profileId(), root) || _preparationRequired.test(member.profileId(), root)) { arrived = false; continue; }
+					final var arrival = _arrival.apply(member.profileId(), root);
+					if (arrival.kind() == PhantomVisibleFarmTravel.ArrivalKind.PENDING) { _travelContinuations.put(member.profileId(), root); }
+					else { _travelContinuations.remove(member.profileId()); }
+					arrived &= arrival.kind() == PhantomVisibleFarmTravel.ArrivalKind.ARRIVED;
+				}
+				if (!arrived) { return; }
+			}
 			final String plan = selected.stream().map(ref -> Long.toString(ref.profileId())).collect(java.util.stream.Collectors.joining(","));
 			final var formed = _coordinator.formForGoal(profileId, goal.goalId(), goal.revision(), goal.goalType(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef(OBJECTIVE_NAMESPACE, plan), requirements(roster));
 			if (formed != CommandOutcome.ACCEPTED && formed != CommandOutcome.IDEMPOTENT) { continue; }
@@ -145,6 +196,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			|| context.inviteeSnapshot().ref().characterObjectId() != context.invitation().inviteeObjectId() || leader.operation() == null || invitee.operation() == null
 			|| leader.operation().invitationSequence() != context.invitation().identity().sequence() || invitee.operation().invitationSequence() != context.invitation().identity().sequence()) { return ManagedInvitationDecision.REFUSE; }
 		final PhantomGoal root = _goals.load(context.requesterProfileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		if (_preparationRequired.test(context.requesterProfileId(), root) || _preparationRequired.test(context.inviteeProfileId(), context.inviteeGoal())) { return ManagedInvitationDecision.REFUSE; }
 		final var currentLeader = _backend.memberSnapshot(leader.leader()).orElse(null);
 		final var currentInvitee = _backend.currentMember(context.inviteeProfileId()).orElse(null);
 		if (!ordinaryIntent(context.requesterProfileId(), root) || root.goalId() != leader.operation().leaderGoalId() || root.revision() != leader.operation().leaderGoalRevision()

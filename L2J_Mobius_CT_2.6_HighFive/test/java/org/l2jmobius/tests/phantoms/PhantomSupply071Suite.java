@@ -18,6 +18,26 @@ public final class PhantomSupply071Suite implements PhantomTestSuite
 	@Override public String id() { return "supply071"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("127-party-admission-retains-unsettled-supply-authority", context ->
+		{
+			final long now = System.currentTimeMillis();
+			final var root = new PhantomGoal(127, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("npc", "20001"), 1, 0, "background.farm", java.util.List.of(), null, "farm.background", 500, 0, 0, 0, java.util.Map.of(), "fixture127.root", 1);
+			final var binding = new PhantomSupplyIntentStore.Binding(1, 111, 0, 0, 222, new PhantomNavigationPoint(100, 200, -300, 0), 0);
+			final var child = PhantomInventoryMaintenanceIntent.create(root, binding, PhantomInventoryMaintenanceIntent.purchases(30138, 333, 11, 1835, 600, 1), 2, 50000, now + 60000, now, false);
+			final var paused = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(child, now);
+			final var expired = new PhantomGoal(child.goalId(), child.goalType(), child.status(), child.subject(), child.target(), child.requiredAmount(), child.currentAmount(), child.acquisitionMethod(), child.validSources(), child.selectedAnchor(), child.purposeKey(), child.priority(), child.riskBudget(), child.expenseBudget(), now - 1, child.constraints(), child.reasonKey(), child.revision(), child.payloadText());
+			for (var pending : java.util.List.of(child, paused, expired))
+			{
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresSoloPreparation(root, pending, null), "Active/paused/expired supply was treated as settled for Party admission.");
+				PhantomAssertions.assertEquals(pending, new PhantomGoalStateCodec().decode(new PhantomGoalStateCodec().encode(pending)), "Admission observation changed durable supply state.");
+			}
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresSoloPreparation(root, child.withStatus(PhantomGoalStatus.COMPLETED), PhantomCommerceReceipt.State.COMMITTED), "Settled maintenance permanently fenced Party admission.");
+			for (var state : java.util.List.of(PhantomCommerceReceipt.State.PREPARED, PhantomCommerceReceipt.State.COMMITTING, PhantomCommerceReceipt.State.INCONSISTENT))
+			{
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresSoloPreparation(root, null, state), "An unresolved receipt lost its solo settlement authority: " + state);
+			}
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresSoloPreparation(root, null, PhantomCommerceReceipt.State.ABORTED), "An exactly aborted receipt retained Party admission forever.");
+		});
 		registry.add("118-stock-horizon-keeps-poor-and-weight-bounds", context ->
 		{
 			final var policy = org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/life/high-five-autonomous-supply-v1.xml"));

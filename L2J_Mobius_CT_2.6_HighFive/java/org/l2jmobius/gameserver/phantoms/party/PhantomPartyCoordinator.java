@@ -695,7 +695,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (existing != null)
 			{
 				final PartyOperation live = existing.state().operation();
-				if (existing.state().groupId().equals(groupId) && (live != null) && (live.leaderGoalId() == goalId) && (live.leaderGoalRevision() == goalRevision) && (live.phase() != OperationPhase.ABORTED))
+				final var state = existing.state();
+				final boolean retryFarm = live != null && live.kind() == OperationKind.JOIN && live.phase() == OperationPhase.ABORTED
+					&& state.status() == StateStatus.LEADER && PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(state.objectiveRef().namespace())
+					&& state.realMembers().isEmpty() && state.phantomMembers().size() >= 2 && state.phantomMembers().size() <= 5
+					&& !routeActivity(state).nonTerminal() && state.phantomMembers().stream().allMatch(member -> _backend.autonomousFarmAvailable(member)
+						&& (_tactics.combatOwner() == null || !_tactics.combatOwner().hasClaim(member.profileId())))
+					&& _backend.observe(state.leader()).filter(party -> party.leader().equals(state.leader()) && sameRoster(roster(state), party.members())).isPresent();
+				if (existing.state().groupId().equals(groupId) && (live != null) && (live.leaderGoalId() == goalId) && (live.leaderGoalRevision() == goalRevision) && (live.phase() != OperationPhase.ABORTED || retryFarm))
 				{
 					return CommandOutcome.IDEMPOTENT;
 				}
@@ -1530,7 +1537,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return _state == State.RUNNING ? Optional.ofNullable(_pendingManagedInvitations.get(profileId)) : Optional.empty();
 	}
 
-	/** Reconcile only an individually observed absent native member after a fenced restart. */
+	/** Reconcile only native absence after a fenced restart or an aborted first farm invitation. */
 	public boolean reconcileAutonomousFarmAbsence(long profileId, long goalId, long goalRevision)
 	{
 		final var control = beginOperation();
@@ -1541,9 +1548,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (stored == null) { return false; }
 			final var state = stored.state(); final var operation = state.operation();
 			final var planned = PhantomAutonomousFarmParty.plannedProfiles(state.objectiveRef());
-			if (state.status() != StateStatus.INCONSISTENT || !"restart.claim_conflict".equals(state.lastFailureKey()) || !state.realMembers().isEmpty()
-				|| operation == null || operation.phase() != OperationPhase.CANONICAL_OBSERVED || state.command() != null
-				|| !planned.contains(profileId) || !planned.contains(state.leader().profileId()) || _groups.containsKey(state.groupId())) { return false; }
+			final boolean restartConflict = state.status() == StateStatus.INCONSISTENT && "restart.claim_conflict".equals(state.lastFailureKey())
+				&& operation != null && operation.phase() == OperationPhase.CANONICAL_OBSERVED && !_groups.containsKey(state.groupId());
+			final var routes = _routes.snapshot();
+			// A refused first JOIN can retain a leader claim without ever creating native Party.
+			// Reconcile only that exact empty formation; no native leave or owner cancellation.
+			final boolean absentFormation = state.status() == StateStatus.LEADER && state.leader().profileId() == profileId
+				&& state.phantomMembers().equals(List.of(state.leader())) && state.route() == null
+				&& operation != null && operation.kind() == OperationKind.JOIN && operation.phase() == OperationPhase.ABORTED
+				&& operation.leaderGoalId() == goalId && operation.leaderGoalRevision() == goalRevision
+				&& routes.navigationClaims() == 0 && routes.routeClaims() == 0 && routes.deadlineClaims() == 0 && routes.movementClaims() == 0
+				&& (_tactics.combatOwner() == null || !_tactics.combatOwner().hasClaim(profileId));
+			if ((!restartConflict && !absentFormation) || !state.realMembers().isEmpty() || state.command() != null
+				|| !planned.contains(profileId) || !planned.contains(state.leader().profileId())) { return false; }
 			final MemberRef actor = state.phantomMembers().stream().filter(member -> member.profileId() == profileId).findFirst().orElse(null);
 			final var root = _goals.load(profileId).orElse(null);
 			if (actor == null || root == null || root.goal().goalId() != goalId || root.goal().revision() != goalRevision
