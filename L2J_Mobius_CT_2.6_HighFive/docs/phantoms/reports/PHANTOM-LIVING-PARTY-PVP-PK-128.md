@@ -1,140 +1,152 @@
 # REPORT128 — Living Party / PvE / PvP / PK
 
-Дата: 2026-11-05. `PARTIAL`, `FULL128=NO`. STOP128; TASK129 не начиналась.
-Окно исполнения: 07:46–13:55 UTC (~6ч9мин на момент закрытия отчёта); final publication после этого снимка.
-Завершение расширено только для исправления STOP12 и обязательного restart/STORE/publication; новых gameplay starts после15 нет.
-Codex tokens:1547081 (goal tool,13:55 UTC; пользователь явно разрешил превышение токенов).
+2026-11-05. `PARTIAL`, `FULL128=NO`. STOP128 после завершённых проверок и безопасного drain. TASK129 не начиналась.
+Первый опубликованный снимок: 07:46–13:55 UTC, native1–15. Продолжение той же TASK128 явно разрешено пользователем;
+окончательный снимок: 2026-11-05T18:13:38.358176+00:00. Остановка обусловлена архитектурным rendezvous blocker, не временем/токенами.
+Пользователь отдельно разрешил Minecraft без фактических конфликтов и бесплатные путешествия всех managed Phantom.
+Последнее требование заменяет прежнюю обязанность оплачивать Phantom travel; остальные покупки/снабжение остаются платными.
 
-Прочитаны все 10 документов пакета TASK128. Один Goal, одна TEST128, без R2/R3.
-Live baseline `kpCat/L2J feature/phantom-world`: `6807ab3a7cc94522e3039214f73e7a93fc0f12e0`.
-Физический source clone: `D:/Codex/TASK128-20261105/candidate`, без alternates/hardlinks.
-Основной checkout с WIP109 (`236b965a116bbc79cccbef78b04c628225a629cb`) оставлен без записи.
+Прочитаны все10 документов пакета. Один Goal, одна TEST128, без R2/R3/reset/adopt.
+GitHub baseline: `kpCat/L2J feature/phantom-world`, `6807ab3a7cc94522e3039214f73e7a93fc0f12e0`.
+Независимый physical clone: `D:/Codex/TASK128-20261105/candidate`, без alternates/hardlinks.
+Primary WIP109/HEAD `236b965a116bbc79cccbef78b04c628225a629cb` не изменялся.
 
 | Gate | Результат и предел доказательства |
 |---|---|
-| A Party/logistics | NO: автономная NORMAL Party3 не наблюдалась. Исправлены supply handoff и orphan core; реальные расходы людей не являются снабжением фантомов. |
-| B rewarded PvE | PARTIAL: реальные solo native kill/reward/settled tuples/EXP/SP в9 и13. Финальный JAR14/15 не подтвердил требуемые ≥2 до и ≥1 после restart. |
-| C Heal | NO: нет qualified native Heal раненого товарища с MP/reuse и net HP witness. Buff/self-care не засчитаны. |
-| D PvP defense | PARTIAL: native9 Human134 stock hostile action → автономный Phantom3 damage → flagged human death; pvpKills 0→1, pk=0, karma=0. Party defense не подтверждена. |
-| E proactive PK | NO: отдельная сцена Human136→Phantom6 независимо от PvE выполнена; unflagged human kill фантомом/PK count/karma не получены. |
-| F durability | NO full gate: sameDB/JAR14→15 и original objects/PvP count сохранены;15 qualification FAIL, нового useful action нет. Healthy STOP/STORE и observed postflight не подменяют этот отказ. |
-| G logs | PARTIAL: финальный audit отделён от rotated logs. STOP12 исправлен;14 handled maxHP cleanup,15 uncaught qualification guard и product stalls не объявлены gameplay PASS. |
+| A Party/logistics | NO full gate: NORMAL Party3 не наблюдалась. Settled supply/warehouse receipts сохранены; человеческие расходы не засчитаны как Phantom supply. Bot travel теперь бесплатен по явному требованию пользователя. |
+| B rewarded PvE | PARTIAL: реальный solo native PvE был в3/6/9/13/19. C13/native19:9 damage,10893 EXP,1240 SP,2 loot sequences. Требуемые ≥2 kills до/≥1 после restart на финальном C15 не доказаны. |
+| C Heal | NO: нет qualified native Heal товарища с MP/reuse и net HP witness. Buff/self-care/regen не засчитаны. |
+| D PvP defense | PARTIAL: native9 Human134 hostile act → автономный Phantom3 damage → flagged human death; pvpKills0→1, pk0, karma0. Party defense не подтверждена. |
+| E proactive PK | NO: независимая сцена Human136/Phantom6 выполнена без ожидания PvE. Native unflagged kill/PK count/positive karma не получены. Memory discovery исправлена; policy не смягчалась. |
+| F durability | PARTIAL: sameDB/JAR20→21 и22→23; exact stored22→before23 rows, original identities/PvPcount, healthy STOP/STORE/postflight. Новый требуемый rewarded action после финального restart не доказан. |
+| G logs | PARTIAL: свежие stdout/stderr/java/error всех запусков проверены. STOP12/16 исправлены; исходные qualification/capture failures сохранены. Отсутствие uncaught в финальных raw logs не объявлено полноценной игровой жизнью. |
 
-## Исправления и локальные паттерны
+## Production changes и regression
 
-Переиспользованы PartyCoordinator CAS/identity lease, native supply journey, existing FarmSourceView cadence,
-NativeContext/Command transaction guards, HistoricalService recoverKnown и exact stock NORMAL gatekeeper.
-JDK25/Ant, существующая архитектура High Five; без новых зависимостей/слоёв, без изменений Geo/rates/karma policy.
-Bounded exception: 12 файлов кода/проверок + этот отчёт; дополнительные причины обнаружены в той же TEST128.
+Переиспользованы существующие CAS/identity leases, NativeContext/Command/STORE guards, recoverKnown,
+FarmSourceView cadence, stock NORMAL GK, commerce receipts, social cache/stripe/lifecycle и точечные PvP lookup.
+JDK25/Ant; без новых dependencies, executor/timer-per-profile, DB schema, Geo/rates/karma policy changes.
+Bounded exception по явному разрешению пользователя:36 code/test файлов + этот отчёт; независимый review всех delta.
 
-1. `PhantomAutonomousFarmParty`, `PhantomPartyCoordinator`, `PhantomPartyBackend`, `L2jPhantomPartyBackend`:
-   production low-stock фиксируется до Party gate; quiet native leave освобождает supply owner.
-   Obsolete RECOVERING orphan восстанавливает только собственный SOLO row под существующей PHANTOM identity lease,
-   при более новом SOLO leader/изменившемся root и положительном доказательстве отсутствия native core.
-   INCONSISTENT/currentForce не ослаблены; absence census256 отдельно от native party bound144, выше256 отказ.
-   Новые чтения goal ограничены существующим секундным FarmSourceView cache.
-2. `L2jPhantomSupplyJourney`: terminal FAILED income.farm backoff допускает заработок в Party;
-   unsettled/active/return ownership остаётся заблокированным.
-3. `PhantomBackgroundTransaction`: exact canonical HISTORICAL_IDLE с текущим bound v2 context
-   допускает no-effect продвижение исторического курсора при vitality6, сохраняя запрет gameplay effects,
-   проверки points/identity/rules/state и отсутствие owned STORE. FARM этим исключением не разрешается.
-4. `L2jPhantomBackgroundAuthority`: GATEKEEPER tolerance0 допускает стабильный Geo floor только с exact
-   живым Teleporter NPC/spawn/rawXYZ/World identity/instance proof. Исправляет Giran raw−3404/floor−3400.
-   FARM/ROUTE tolerance и native arrival XY/floor+5/exact fee debit сохранены; Geo/metadata не менялись.
-5. `PhantomHistoricalBackgroundService`: durable travel.anchor_mismatch перепланируется существующим CAS-путём.
-   Курсор/interval/rewards не выдаются классификацией; следующая transaction заново доказывает маршрут.
-6. `PhantomBackgroundService`: stale recovery control того же objectId с более новым epoch, без pending STORE/baseline,
-   завершается REPLAN перед deadline. Завершается только старый worker; новая lifetime/receipts/failure latch не меняются.
-   Foreign/older/ambiguous owner остаётся INCONSISTENT. Закрыт найденный reviewer P2 delayed-callback deadline ordering.
-7. Проверки: существующие `PhantomPartySuite`, `PhantomSupply071Suite`, `PhantomLivingWorld114Checks`.
+1. Party: low-stock до формирования; quiet native leave освобождает supply; obsolete RECOVERING own-row → SOLO
+   только под PHANTOM identity lease, newer SOLO leader/root и positive native absence. CurrentForce/INCONSISTENT защищены.
+   World207 требует отдельного absence census256; native force (Party/CC) census bound144 не менялся; goal reads — существующий cache1sec.
+2. Supply: terminal FAILED income.farm backoff допускает заработок в Party; active/unsettled/return fences сохранены.
+3. Historical idle: exact no-effect idle принимает bound v2 vitality context. Stable Giran rawZ−3404/floor−3400
+   доказан живым exact Teleporter/spawn/World/instance; FARM/ROUTE tolerance не расширялась.
+4. Travel recovery: durable anchor_mismatch и insufficient_adena перепланируются существующим accepted-journey/CAS.
+   Historical insufficient_adena теперь REPLAN, а не бесконечный RETRY. Старый wallet-aware filter проверен до free override;
+   текущая политика оценивает Phantom leg как0, сохраняя ordinary native price APIs и raw catalog identity.
+5. STOP: superseded same-object/newer-epoch recovery worker без pending STORE/baseline завершается REPLAN;
+   foreign/older/ambiguous остаются fenced. Commerce finishStop idempotent при уже STOPPED, admission/counters сохранены.
+6. Free travel: WALK/GK/RETURN_GK, historical/visible farm, composite navigation, supply, market, quest-instance callers
+   используют explicit phantomFee/phantomMaximumFee0. Shop/warehouse/craft/ordinary player fees сохранены.
+   Native waiver требует same World Player, headless session, current attached Phantom owner, running native-work ticket,
+   PHANTOM/RESERVED identity lease и повторной проверки owner. Имя/GM/account/bot flag не дают льготу.
+7. Receipt migration: только old unpaid TELEPORT PREPARED/COMMITTING + EXACT_BEFORE, current ACTIVE exact goal/revision,
+   fresh native quote, same destination/resources и CAS → new PREPARED fee0. Следующие вызовы SUCCESS/IDEMPOTENT.
+   Уже списанный FIRST_EFFECT_ONLY завершает старый destination без второго debit/refund. Zero-fee noop-first-effect распознаётся точно.
+   Tariff hash участвует в topology authority; старые catchup plans проходят штатный stale recovery.
+   NativeContext переаттестуется existing owner, вместо маскирования отключением debit.
+8. PK discovery: immutable own memory query с existing authority/TTL/STOP; max24 memories → distinct subjects до cap4;
+   Context заполняет только оставшиеся10 exact owner slots после party/farm. Реальные attackers первыми в native cap32.
+   socialSubject выводится из одного captured Counterpart и сравнивается с исходным expected memory subject; Snapshot запрещает split identity.
+   Редкий stable half-hour roll, disposition, kill-memory veto, locality/risk/peace/consent и pair budgets не менялись.
 
-RED→GREEN: supply handoff26/27→27/27; terminal backoff10/11→11/11; orphan27/28→28/28;
-cadence8192 лишних goal reads→исходный bounded count; v2 idle assertion→PASS;
-gatekeeper canonicalization compile RED→PASS; durable mismatch assertion→PASS;
-native12 shutdown poison→superseded-control regression PASS с foreign/older/STORE/baseline negatives.
-Финальный compile-tests и jar: exit0. Focused70/70: lifecycle28, recovery14, routes7, tactics10, supply07111.
-DB-free LivingWorld114Checks: PASS. Protected historical DB suites/общий ant verify не запускались.
-Независимый review всех12 source/test файлов: P1=0, P2=0; последний обнаруженный P2 исправлен; runtime SUCCESS reviewer не утверждал.
+Focused RED→GREEN: supply/backoff/orphan/cadence/v2 idle/GK floor/recovery/STOP; insufficient classification;
+free ordinary-vs-bot price/owner fences/old receipt second SUCCESS + third IDEMPOTENT; PK discovery/attacker slots/identity split.
+C14 regression86/86 (Party28/14/7/10, supply11, commerce9/7), quote5/5, DB-free114 and pricing/owner/city097/098/110 models PASS.
+C15 reviewed regression41/41 across11 existing Social/PvP suites; compile-tests/jar exit0.
+Protected historical DB suites и общий ant verify не запускались. Model PASS не считается native gameplay PASS.
+Independent `/root/review_party128`: C11–C14 delta и финальные PK6 P1=0/P2=0; найденный identity P2 исправлен и повторно проверен.
+Reviewer runtime не запускал и native SUCCESS не утверждал. Private Minecraft boundary/human helpers/capture bound также reviewed.
 
-## Native кампания и причинная прогрессия
+## Native campaign
 
-Все запуски одной TEST128, без reset/adopt. Глобальный CUT3: `2026-11-05T10:11:21Z`.
-После него нет ручных Phantom HP/items/EXP/party/goals/позиции/attack/karma/PK writes.
-Границы SQL — guarded SELECT; изменения игрового состояния выполнял production server.
+Глобальный CUT3: `2026-11-05T10:11:21.035268500Z`. После него нет ручных Phantom HP/items/EXP/SP/skills/
+party/goals/position/attack/karma/PK writes. SQL evidence — guarded SELECT; игровое состояние меняет production server.
 
-| JVM | Причина и результат |
+| JVM | Причина и фактический результат |
 |---|---|
-| 1–2 | Pre-CUT qualification/catchup/death/locality выявили исходные блокировки; без CUT, healthy drain/STORE, observed postflight; исходные FAIL сохранены. |
-| 3 | Первый CUT; solo native19890 EXP/2480 SP/3 loot sequences; NORMAL exit0/postflight. |
-| 4 | Исправление независимого scene gate; CUT не достигнут; healthy STOP/observed postflight. |
-| 5 | Observer load + null observerLease в finally; PhantomSystem уже drained. Exact-PID stock Shutdown через guarded JavaAttach, без force kill; emergency postflight. Обычный STOP5 receipt отсутствует, FAIL не переименован в PASS. |
-| 6 | Solo native73949 EXP/9339 SP/7 loot sequences; World207 выявил неверный absence census144; normal STOP/postflight. |
-| 7 | Новый census: реальный actor4 obsolete orphan → SOLO/none/cursor current; healer2 context fence ещё блокировал; normal STOP/postflight. |
-| 8 | SameJAR; scene observation guard и stock human economy/locality; CUT отсутствует, healthy observed postflight. |
-| 9 | SameJAR; независимые PvP/PK сцены, solo rewarded PvE; real PvP kill3; normal STOP/postflight. |
-| 10 | SameJAR durability PvPcount3=1; independent unflagged human return; настоящий paid NORMAL GK; PK не случился; normal STOP/postflight. |
-| 11 | Кандидат6: healer2 historical cursor current/admitted WARM/none; persisted route mismatch3 обнаружил отдельную recovery причину.15 native damage,0 reward; normal STOP/STORE/exit0/postflight, audit630files. |
-| 12 | Кандидат8:2 native damage,0 reward; route3 hard mismatch сменился native owner/recontext. STOP FAIL из-за latched stale recovery1, exit1. Public materialization.shutdown сохранил owner1 и освободил count0; затем public System retry + stock Shutdown. Emergency postflight PASS; исходный FAIL сохранён. |
-| 13 | Кандидат9:1 matching settled native kill,13515 EXP/1715 SP/1 loot; нормальные STOP/STORE/exit0/postflight. Native human drop/pickup20k conserved. Pre-native guard refusal сохранён отдельно: это не дополнительный GameServer start. |
-| 14 | Финальный кандидат10:0 observed damage/reward после CUT; handled canonical maxHP cleanup1, новый native epoch; нормальные STOP/STORE/exit0/postflight. |
-| 15 | SameJAR10/DB: no CUT,0 native actions, qualification FAIL.1/3 native_context.required;5 preparation_capacity;2/4/6 WARM. Healthy STOP/STORE/JVM exit0, original failure сохранён, game15.exit0 success marker отсутствует; observed postflight PASS. |
+| 1–2 | Pre-CUT qualification/catchup/death/locality; no CUT; healthy drain/STORE/observed postflight, original FAIL retained. |
+| 3 | First CUT, solo19890 EXP/2480 SP/3 loot; normal STOP/postflight. |
+| 4 | Independent scene gate; no CUT, healthy observed postflight. |
+| 5 | Observer load/null lease finally failure; Phantom уже drained. Exact-PID stock Shutdown, no force kill; emergency postflight, original FAIL. |
+| 6 | Solo73949 EXP/9339 SP/7 loot; World207 census defect found; normal STOP/postflight. |
+| 7 | Obsolete orphan4 → SOLO/none/cursor current; healer2 context fence; normal STOP/postflight. |
+| 8 | No CUT; observation guard, stock human sale/paidGK; healthy observed postflight. |
+| 9 | Separate PvP/PK scenes: actual PvP kill3;245 damage,10 matching kill/reward/settled tuples,145605 EXP/18655 SP; normal STOP/postflight. |
+| 10 | SameJAR: PvPcount3=1 durable;7 damage after local CUT,0 reward; normal STOP/postflight. |
+| 11 | Healer2 catchup current/WARM;15 damage,0 reward; normal STOP/STORE/postflight. |
+| 12 | Route mismatch recovery;2 damage,0 reward; STOP poisoned by stale control. Public materialization STORE count0/System retry/stock Shutdown; emergency postflight, original FAIL. |
+| 13 |1 matching settled solo kill,13515 EXP/1715 SP/1 loot; normal STOP/postflight. Human20k stock drop/pickup conserved. Prior guard refusal is not extra GameServer boot. |
+| 14–15 | C10:14 handled maxHP3226/2946 cleanup/new epoch,0 reward;15 no-CUT qualification FAIL. Both healthy STOP/STORE/JVM0;15 only observed postflight, no fake success marker. |
+| 16 | C10 + Minecraft: healer2 actual native full body; human paidGK5200. STOP deadline:commerce; public quiescent STORE count0 then retry/stock Shutdown; emergency postflight, original FAIL. |
+| 17 | C11 idempotent STOP; human136 stock GK9400, observer5200; actual2/3/5,3 natural death,0 damage/reward; normal STOP/postflight. |
+| 18 | C12 wallet planner;0 damage/reward. Passive retained1/available7 disproved capacity leak; historical RETRY classification identified; normal STOP/postflight. |
+| 19 | C13: actual6 native farming,9 damage/10893 EXP/1240 SP/2 loot; no Party/Heal/PK; normal STOP/postflight. |
+| 20 | C14: human stock GK5700 confirmed. Catchup3 cursor29897986→29898329; общий capture867 records/2MB, capture guard FAIL; healthy STOP/STORE/observed postflight, original FAIL. |
+| 21 | SameC14: raw capture bounded64MB, no sampling.15 damage,0 native reward; actual deaths/stock recovery, no Party/Heal/PK; normal STOP/postflight. |
+| 22 | C15:0 damage/0 EXP/0 SP/0 loot, settled tuples0;catchup6 current, human stockGK5700; no Party/Heal/PK; normal STOP/STORE/exit0/postflight. |
+| 23 | SameC15/DB:0 damage/0 EXP/0 SP/0 loot, settled tuples0;exact stored22→before23 boundary; no Party/Heal/PK; normal STOP/STORE/exit0/postflight. |
 
-Native9:245 damage events,10 matching kill/reward/settled target tuples,145605 EXP/18655 SP.
-19 raw loot sequences не объявлены все PvE loot: среди событий возможны native death drops.
-Native10 после своего local CUT:7 damage events, без qualified нового settled kill; SQL EXP delta включает history.
-Party3 samples/qualified Heal до native11:0. Предыдущие кандидаты не подменяют gate финального JAR.
-Во всех финальных сценах Party3 не собрана. Healer2 остался READY/WARM с текущим курсором, отдельной farm locality;
-native group arrival/совместный бой не доказаны. Нейтральный human остался в Oren: native путь к GK не завершился.
-Подготовка/локальность Party lane не достигла полноценной совместной qualification; независимые D/E выполнялись без неё.
+Native9 raw19 loot sequences не объявлены все PvE: возможны реальные death drops. SQL EXP/history не подменяет native counters.
+Финальный C15: native22:damage0,EXP0,SP0,settled0; native23:damage0,EXP0,SP0,settled0. Party3/qualified Heal/PK witnesses отсутствуют.
+В22 profile6 самостоятельно достиг committedCursor=requestedHorizon29898355; BACKGROUND из-за schedule_not_active,
+а не прежнего insufficient_adena/native-context catchup fence. Это useful historical continuation, не native rewarded kill.
+В sample23 в18:10 UTC cursors1/3/4/6 current;5 остаётся transaction.native_context_required, healer2 WARM/ecology fence.
+Оставшиеся fences/отсутствие совместного боя не объявлены исправленной полноценной жизнью.
 
-PK цепочка: native9 Human136 one stock onForcedAttack→Phantom6 ACTUAL_ATTACK/ENGAGE и настоящий damage;
-human fled3150, дождался фактического flag0 и вернулся. Phantom6 успел уйти примерно3.2км;
-production encounter COOLDOWN `pvp.combat.timeout`, proactiveEngagements0, WARN отсутствовал.
-Дальнейший human погиб до qualified unflagged contact. Нельзя утверждать, что policy признала legal PK,
-или придумать иной guard: фактически не дошли до proactive decision/kill. pk=0, karma=0.
-Human9 return adapter отказал по dead/stage guard до действий; exception сохранён.
-Human10 Town restart/paid NORMAL30177:15/finite native potions не выдавали ресурсов фантомам.
-Продажа людьми собственных armor2475 (309400A), покупка1061 и fee5200 — только человеческая экономика.
+PK causal history: native9 human136 one stock forced attack → Phantom6 ACTUAL_ATTACK/ENGAGE/реальный damage;
+human fled3150/unflagged return, Phantom ушёл~3.2км; COOLDOWN pvp.combat.timeout, proactive0.
+В22 настоящая attack memory сохранена. Read-only formula inference для окна996611:roll5932/threshold300, admission=false;
+это не native policy witness. Реальные locality/death/schedule guards также мешали. Roll/clock/subject не подбирались ради PASS.
+Обычный Human136 заплатил5700 (NORMAL30080:10) в20/22; native town restart/finite potions не выдавали ничего Phantom.
 
-## Safety, logs, доставка
+## Причина STOP128 и варианты
 
-G0: owner-approved Windows OS/SCM/JDBC attestation, MariaDB11.4.13 PID8692 port3308;
-схема `l2jmobiush5_phantom_test_128`, UUID `94015cfe-3141-4b57-b294-82a9d871b8ae`, game port17789.
-Stock schema created once:121 SQL files/203 statements,18 DROP omitted. Старые БД не использовались для записи.
-Geo203 — независимые физические копии, original SHA и2234 protected files сохранены.
-MAIN/PLAY/OwnerConfig/primary WIP109/старые worktrees не менялись.
-Foreign Minecraft/TLauncher остановили G0 перед postflight7; пользователь закрыл их сам; fresh Java0 G0 PASS.
-Чужие процессы не завершались, force kill отсутствует. Полные private logs/credentials в Git не включены.
+Для произвольной разнесённой когорты нужен owned rendezvous/bootstrap до первой native Party.
+Текущий selectTeam требует local DD core; pending remote JOIN требует уже существующую native Party/majority.
+Own-root arrival ведёт участников к разным farm anchors. Простое снятие1200/перестановка barrier не доказывает quiet travel/STORE handoff.
+Формирование в городе дополнительно требует group-owned departure: SOLO travel исключает Party-member, group farming ищет местных mobs.
+Reviewer подтвердил source dependencies; решение остановиться по архитектурному условию пользователя принимает исполнитель.
+Уже local core на общей farm position допускает более узкий existing form/invite handoff; такой core в финальных сценах не подтверждён.
+Combat/consent1200 не ослаблялись.
+Вариант продолжения той же TASK128: согласовать protocol с common destination, exact roots/epoch/pending claims,
+ожиданием текущих accepted owners, отменой только собственного нового route, irreversible-owner fences и recovery/restart contract.
+Альтернатива — принять PARTIAL и текущие полезные fixes.
+Повторять те же сцены без этого решения/менять редкую PK policy ради результата нецелесообразно.
 
-Log audit: stdout/stderr/stock java/error всех15 запусков сохраняются в hashed snapshots. Известные группы: optional buylists/custom,
-LoginServer reconnect (LS lane не запускалась), stock shutdown warnings, реальные death drops;
-materialization reconciliation и farm stalls — actionable product failures, не harmless PASS.
-Historical5 uncaught null observerLease исправлен; historical9 refused human Attach exception не скрыт.
-Historical12 OWN128_FAILED_STOP_NO_FORCE и background.recovery.control_owner_changed сохранены, не PASS.
-Native14 cleanup exception: maxHp3226/2946, refreshSUCCESS/nonAtomic, отказ первого load и следующий native epoch;
-без восстановления buffs/ручного HP. Stock error0 пуст; это handled diagnostic, а не отсутствие всех product problems.
-Только текущие raw stderr:14 cleanupIncident1/uncaught0/loginReconnect43/optionalBuylist1/stopFailure0;
-15 cleanupIncident0/uncaught1 (qualification guard)/loginReconnect38/optionalBuylist1/stopFailure0.
-Final GameServer SHA256: `790ff15f09f883cf84dc0477a1ae424acc3a90cf969f77c68a81b78799105728` (14/15).
-Final LoginServer SHA256: `955591ce6ae28ca5c228853a16993cc6c9d18004ad9d5bbbfdb0b4bdb78cfe87`.
-Final15: STOP drained=true/stopFailed=false, stored15 readback, fresh G0 JVM0/listeners0,
-guarded postflight ownSessions0/all characters offline/DDL_DML0. Archive15:834 SHA-verified files.
+## Safety, logs, delivery
 
-Артефакты: evidence root `C:/Users/ZBook/.codex/visualizations/2026/11/05/01a1aaac-a34e-7933-9651-3d276674a62b`;
-`logs128/runN`, `log-auditN.json`, `candidate10-128.json`, `summary128-current.json`, `summary128-globalcut.json`, guarded scope pairs.
-Исходные preimages вне checkout проверены SHA256; предыдущие JAR/input/helper seals сохранены.
-mojibake-маркеры в изменённых файлах проверены: all27 PASS, включая report.
-escaped Cyrillic в изменённых файлах проверены: all6 PASS, включая report.
-Два byte-identical final scope/encoding checks: exact13 allowlist, source/stage/JAR parity,2234 protected SHA PASS.
+G0: Windows OS/SCM/JDBC attestation; MariaDB11.4.13 PID8692 port3308; only `l2jmobiush5_phantom_test_128`;
+UUID `94015cfe-3141-4b57-b294-82a9d871b8ae`, game17789. Stock schema created once121 files/203 statements,18 DROP omitted.
+Geo203 — physical copies;2234 protected SHA сохранены. MAIN/PLAY/OwnerConfig/WIP109/старые БД/worktrees не менялись.
+Свежие полные G0/lease перед native; финальный lease истекал18:23:15 UTC. Final23:drained=true/stopFailed=false; stored23 readback; fresh G0 TEST_JVM0/reservedListeners0/ownSessions0/charactersOffline/DDL_DML0.
+Ранний blanket G0 остановил postflight7, пользователь закрыл Minecraft сам. По следующему явному разрешению guard сужен:
+exact image/main/cwd/javaHome/gameDir/SHA/start identity + TTL120sec receipt + SQL/TEST TCP/protected-path disjoint checks;
+unknown/conflicting JVM fail closed. Minecraft/TLauncher не останавливались/не менялись;16–23 выполнялись параллельно с ними.
 
-Git использован по прямому разрешению TASK128: `clone --no-hardlinks --single-branch --branch feature/phantom-world`,
-`ls-remote https://github.com/kpCat/L2J.git refs/heads/feature/phantom-world`, `rev-parse HEAD`,
-`symbolic-ref --short HEAD`, `status --short --untracked-files=all`, bounded exact-path `diff`,
-`diff --check -- <allowlist>`, `add -- <exact files>`, `diff --cached --check -- <exact files>`,
-`diff --cached --stat -- <exact files>`, `commit -m <scoped TASK128 title>`,
-`push origin HEAD:refs/heads/feature/phantom-world`. Ни force, ни reset/clean/stash/rebase/master/default writes.
-EOL diagnostics: `config --get core.autocrlf`, `check-attr text eol -- <Authority>`, `diff --unified=0 -- <exact background files>`.
-Code commits/non-force pushes: `88b835404c0abd183e29fd824517a300a8812e33`, `fb39357ffc21d706a9f37e5fc571e2d3d006b5b9`.
-Третий code commit/push: `7b3b5873d83bc4fb13581b0b20ddb4402e9e4276` (superseded recovery/STOP).
-Каждый push проверен fresh ls-remote == local HEAD. Report публикуется отдельным exact-path commit;
-окончательный receipt/remote parity в evidence `final-publication128.json`. FULL128=NO; STOP128, без TASK129.
+Все stdout/stderr/java/error каждого запуска archived/hashed (`logs128/runN`, `log-auditN.json`).
+Optional custom buylists, LS reconnect (LoginServer не запускался), stock shutdown/death drops отделены от actionable stalls/cleanup/STOP.
+Rotated cumulative warnings не приписывались новому запуску. Fresh final stderr: 22:error0=0B,errors0,cleanup0,stopFailure0,farmStall0,LSreconnect101,optionalBuylist1; 23:error0=0B,errors0,cleanup0,stopFailure0,farmStall0,LSreconnect101,optionalBuylist1.
+Диагностический инцидент: reused C11 verifier перезаписал3 private C11-final test logs; исходные bytes не восстановлены/не выдуманы.
+Native receipts/SQL snapshots/archives/source не затронуты; original C11 logs и последующие C12–C15 checks сохранены.
+Подробности: `diagnostic-log-integrity128.json`. Native20 capture FAIL не переименован в PASS.
+
+Final GameServer SHA256: `289f801122dfebfa14aebfa916da73dc3c051a9386b281158dd8afaa5231bfbe`.
+Final LoginServer SHA256: `3726103da2288d229093991c9d8c4c4740bc0dffd23d5da34e7833daed9f4e52`.
+Evidence: `C:/Users/ZBook/.codex/visualizations/2026/11/05/01a1aaac-a34e-7933-9651-3d276674a62b`;
+candidate15/seals/preimages, both summary128 files, exact scope pairs, continuation publication receipt; private logs/credentials вне Git.
+mojibake-маркеры в изменённых файлах проверены: все27 маркеров по final allowlist37 файлов — PASS.
+escaped Cyrillic в изменённых файлах проверены: все6 patterns по тому же final allowlist37 файлов — PASS.
+Два финальных byte-identical scope/encoding receipts: exact37 allowlist, source/stage/JAR parity и2234 protected SHA; final-scope-continuation128-a/b.json.
+
+Git разрешён явно TASK128: physical clone; ls-remote; rev-parse/symbolic-ref/status; exact-path diff/diff --check;
+exact-path add/diff --cached --check/commit; ordinary `push origin HEAD:refs/heads/feature/phantom-world`.
+Ни force, ни reset/clean/stash/rebase/master/default writes. Полные argv текущих commits: `continuation-code-commits128.json`;
+финальной публикации: `final-publication-continuation128.json`; scope/hash commands сохранены в Final-Scope128.py и receipts.
+Initial source commits:88b835404c0abd183e29fd824517a300a8812e33,fb39357ffc21d706a9f37e5fc571e2d3d006b5b9,
+7b3b5873d83bc4fb13581b0b20ddb4402e9e4276; first report000108db1105d4ed9245c6c45a27f4cdf40f78a2 сохранён.
+Continuation code commits:`3a73f087c0e946c6e6350e5f8874d158bfee0d30`,`52cf04ddabda9610166d37fe77a80c5ae4142556`.
+Final commit/ordinary-push/fresh remote parity и полные argv: `final-publication-continuation128.json`. FULL128=NO; STOP128, без TASK129.
