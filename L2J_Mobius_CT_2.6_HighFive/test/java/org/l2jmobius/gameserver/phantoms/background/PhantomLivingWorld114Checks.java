@@ -95,5 +95,10 @@ public final class PhantomLivingWorld114Checks
 		check(PhantomHistoricalBackgroundService.isRecoverableFailure("catchup.travel.anchor_mismatch"), "Durable route mismatch prevented re-proving an updated native anchor");
 		check(!PhantomHistoricalBackgroundService.isRecoverableFailure("transaction.native_context_required") && !PhantomHistoricalBackgroundService.isRecoverableFailure("transaction.state_conflict"), "Route replanning bypassed native context or state conflict ownership");
 		System.out.println("PASS durable route mismatch may replan through existing ownership and route checks; context and transaction conflicts remain fenced");
+		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, false, false).status() == PhantomBackgroundService.OperationStatus.REPLAN, "Superseded recovery poisoned shutdown of a newer native lifetime");
+		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 3, 11, false, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Foreign identity was treated as a superseded worker");
+		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 9, false, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Older lifetime bypassed recovery ownership");
+		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, true, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT && PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, false, true).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Pending STORE or baseline escaped recovery ownership");
+		System.out.println("PASS only a superseded same-identity non-STORE worker retires as REPLAN; no new-lifetime action, receipt or failure-latch clearing");
 	}
 }

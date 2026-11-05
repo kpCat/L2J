@@ -1812,11 +1812,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		try
 		{
 			if (_recoveryControls.get(control.profileId) != control) { finishRecovery(control, OperationResult.inconsistent("recovery.control_replaced")); return; }
-			if (System.nanoTime() >= control.deadline) { finishRecovery(control, OperationResult.inconsistent("recovery.control_deadline:object=" + control.objectId + ":epoch=" + control.epoch)); return; }
 			final var materialization = _materialization.get();
 			final var entry = materialization == null ? null : materialization.find(control.profileId).orElse(null);
 			if ((entry != null) && (control.epoch != 0) && ((entry.characterObjectId() != control.objectId) || (entry.materializedAtNanos() != control.epoch)))
-			{ finishRecovery(control, OperationResult.inconsistent("recovery.control_owner_changed")); return; }
+			{ finishRecovery(control, recoveryOwnerChangeResult(control.objectId, control.epoch, entry.characterObjectId(), entry.materializedAtNanos(), control.storeRequested, control.baselinePending)); return; }
+			if (System.nanoTime() >= control.deadline) { finishRecovery(control, OperationResult.inconsistent("recovery.control_deadline:object=" + control.objectId + ":epoch=" + control.epoch)); return; }
 			final OperationResult result;
 			if (control.storeRequested)
 			{
@@ -1846,6 +1846,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		catch (RuntimeException failure) { finishRecovery(control, OperationResult.inconsistent("recovery.control_failure:" + failure.getClass().getName() + ":" + failure.getMessage())); }
 		finally { control.queued.set(false); if (!control.finished.get()) { queueRecovery(control); } }
+	}
+
+	static OperationResult recoveryOwnerChangeResult(int expectedObject, long expectedEpoch, int currentObject, long currentEpoch, boolean storeRequested, boolean baselinePending)
+	{
+		// Retire only the stale worker. Native effects and receipts stay with their original lifetime.
+		return expectedObject == currentObject && expectedEpoch > 0 && currentEpoch > expectedEpoch && !storeRequested && !baselinePending
+			? OperationResult.replan("recovery.control_superseded") : OperationResult.inconsistent("recovery.control_owner_changed");
 	}
 
 	private void finishRecovery(RecoveryControl control, OperationResult result)
