@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 /** One immutable route query for topology BACKGROUND and D1-proven NORMAL GK legs. */
 public final class PhantomNormalGatekeeperTravel
 {
+	public static final String PHANTOM_TRAVEL_TARIFF = "PHANTOM_FREE_TRAVEL_V1";
 	private static final int MAX_BYTES = 256 * 1024;
 	private static final int MAX_LEGS = 128;
 	private static final int MAX_ROUTE_STEPS = 128;
@@ -361,6 +362,19 @@ public final class PhantomNormalGatekeeperTravel
 			return 0;
 		}
 		return leg.feeCount();
+	}
+
+	/** Phantom tariff only. The ordinary fee and immutable native catalog facts remain unchanged. */
+	public static long phantomFee(Leg leg, int classIndex, int level, long logicalEpochMinute)
+	{
+		if (logicalEpochMinute < 0) { throw new IllegalArgumentException("Invalid NORMAL GK fee context."); }
+		return phantomMaximumFee(leg, classIndex, level);
+	}
+
+	public static long phantomMaximumFee(Leg leg, int classIndex, int level)
+	{
+		maximumFee(leg, classIndex, level);
+		return 0;
 	}
 
 	public String hash()

@@ -938,7 +938,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					final var leg = step.gatekeeper();
 					if (++gatekeepers > 4 || leg == null || !used.add(leg.id()) || !available.test(leg) || leg.feeCount() < 0 || leg.travelMillis() < 0) { return Optional.empty(); }
 					walking += cursor.distanceTo(new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0));
-					fees = Math.addExact(fees, PhantomNormalGatekeeperTravel.maximumFee(leg, classIndex, level));
+					fees = Math.addExact(fees, PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, classIndex, level));
 					fixedMillis = Math.addExact(fixedMillis, leg.travelMillis());
 					cursor = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), leg.destinationZ(), 0);
 				}
@@ -964,7 +964,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	/** Income does not yet retain a durable paid-travel ledger. Native paid legs must stay unavailable. */
 	public static PhantomTravelStrategy.Options incomeTravelOptions(PhantomTravelStrategy.Options options)
 	{
-		return new PhantomTravelStrategy.Options(options.legs().stream().filter(leg -> PhantomNormalGatekeeperTravel.maximumFee(leg, options.classIndex(), options.level()) == 0).toList(),
+		return new PhantomTravelStrategy.Options(options.legs().stream().filter(leg -> PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, options.classIndex(), options.level()) == 0).toList(),
 			options.speed(), 0, 0, options.classIndex(), options.level(), options.epochMinute(), options.gatekeeperAllowed(), options.returnUnavailableReason(),
 			null, 0, options.remainingMillis(), options.blockedEdges());
 	}
@@ -986,7 +986,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		final Function<String, PhantomNavigationPoint> anchors = id -> _travel.topology().findAnchor(id)
 			.map(anchor -> new PhantomNavigationPoint(anchor.point().x(), anchor.point().y(), anchor.point().z(), anchor.point().instanceId())).orElse(null);
 		final Predicate<PhantomNormalGatekeeperTravel.Leg> available = leg -> PhantomNativeTravelActions.available(leg)
-			&& (!income || PhantomNormalGatekeeperTravel.maximumFee(leg, player.getClassIndex(), player.getLevel()) == 0);
+			&& (!income || PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, player.getClassIndex(), player.getLevel()) == 0);
 		final var departures = new java.util.TreeSet<String>(); final var arrivals = new java.util.TreeSet<String>();
 		for (var leg : _travel.legs())
 		{
@@ -1625,7 +1625,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (cancelled(context, binding, player, trip.intentDeadline)) { return "supplies.navigation.cancelled"; }
 		if (stage.mode() == PhantomTravelStrategy.Mode.GK)
 		{
-			if (income(cached(profileId).goal) && PhantomNormalGatekeeperTravel.maximumFee(stage.gatekeeper(), player.getClassIndex(), player.getLevel()) != 0) { return "income.navigation.paid_gk_unsupported"; }
+			if (income(cached(profileId).goal) && PhantomNormalGatekeeperTravel.phantomMaximumFee(stage.gatekeeper(), player.getClassIndex(), player.getLevel()) != 0) { return "income.navigation.paid_gk_unsupported"; }
 			final var receipt = PhantomNativeTravelActions.gatekeeper(player, stage.gatekeeper());
 			final String evidence = "supplies.native_gatekeeper_" + receipt.status().name().toLowerCase(java.util.Locale.ROOT) + ";fee=" + receipt.fee() + ";adena=" + receipt.adenaBefore() + "->" + receipt.adenaAfter() + ";from=" + receipt.before() + ";to=" + receipt.after();
 			cached(profileId).gatekeeper = evidence; trip.reason = evidence;

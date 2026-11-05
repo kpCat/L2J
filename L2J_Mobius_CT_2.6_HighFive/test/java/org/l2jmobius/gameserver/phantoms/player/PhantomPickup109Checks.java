@@ -79,6 +79,34 @@ public final class PhantomPickup109Checks
 		}
 	}
 
+	private static void freeTravel128() throws Exception
+	{
+		try (var managed = new Managed())
+		{
+			final var player = managed.player;
+			try (var outbound = player.attachOutboundSession(new HeadlessPlayerOutboundSession(16, 256)))
+			{
+				PlayerNativeWork.run(player, "TEST128_NO_WORLD", () -> check(!org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player), "Unpublished actor received the Phantom waiver"));
+				World.getInstance().addObject(player);
+				try
+				{
+					check(!org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player), "Tariff waiver accepted a missing native action ticket");
+					PlayerNativeWork.run(player, "TEST128_FREE_TRAVEL", () ->
+					{
+						check(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player), "Exact owned Phantom action did not receive its free tariff");
+						player.detachNativeWorkOwner(managed.scope);
+						try { check(!org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player), "Ownerless human-like Player received the Phantom waiver"); }
+						finally { player.attachNativeWorkOwner(managed.scope); }
+					});
+				}
+				finally { World.getInstance().removeObject(player); }
+			}
+			PlayerNativeWork.run(player, "TEST128_CLIENT_BOUND", () -> check(!org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player), "Client-bound or absent-World actor received the Phantom waiver"));
+		}
+		check(!DatabaseFactory.isInitialized(), "Free travel contract initialized JDBC");
+		System.out.println("TASK128_FREE_TRAVEL_OWNER_PASS DB=false nativeActions0 temporaryWorldIdentityRemoved=true ordinaryOwnerExcluded=true");
+	}
+
 	public static void main(String[] args) throws Exception
 	{
 		check(!DatabaseFactory.isInitialized(), "DB must remain uninitialized");
@@ -91,6 +119,7 @@ public final class PhantomPickup109Checks
 		scheduledField.set(null, scheduled); instantField.set(null, instant);
 		try
 		{
+			if (args.length == 1 && args[0].equals("free-travel128")) { freeTravel128(); return; }
 			if (args.length == 1 && args[0].equals("cleanup126")) { cleanup126(); return; }
 			if (args.length == 1 && args[0].equals("restore126")) { restore126(); return; }
 			if (args.length == 1 && args[0].equals("consume123")) { consume123(); return; }

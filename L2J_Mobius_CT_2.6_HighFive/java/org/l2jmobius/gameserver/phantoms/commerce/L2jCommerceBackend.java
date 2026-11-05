@@ -152,6 +152,9 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		}
 
 		@Override
+		public boolean freeTravel() { return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(_player); }
+
+		@Override
 		public Quote quote(OperationIntent intent)
 		{
 			return switch (intent.kind())
@@ -762,6 +765,7 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 
 		private static long teleportFee(Player player, TeleportHolder holder, TeleportLocation location, Clock clock)
 		{
+			if (org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player)) { return 0; }
 			if ((holder.getType() == TeleportType.NORMAL) && !player.isSubClassActive() && (player.getLevel() <= PlayerConfig.MAX_FREE_TELEPORT_LEVEL))
 			{
 				return 0;

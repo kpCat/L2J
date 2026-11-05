@@ -541,7 +541,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		final double maximum = Math.min(_navigation.policy().maximumRouteDistance(), player.getMoveSpeed() * Math.max(0, remainingMillis) / 1000.0);
 		if (from.distanceTo(to) <= maximum) { return true; }
 		return _travel.legs().stream().anyMatch(leg -> Math.hypot((long) from.x() - leg.sourceX(), (long) from.y() - leg.sourceY()) <= maximum
-			&& PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000) <= availableAdena && PhantomNativeTravelActions.available(leg));
+			&& PhantomNormalGatekeeperTravel.phantomFee(leg, player.getClassIndex(), player.getLevel(), System.currentTimeMillis() / 60_000) <= availableAdena && PhantomNativeTravelActions.available(leg));
 	}
 
 	private boolean freeDestination(Player player, PhantomNavigationPoint point)
@@ -670,7 +670,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 				if (!_recoveryUnobserved.test(new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), 0)) || !_recoveryUnobserved.test(new PhantomTopologyPoint(stage.to().x(), stage.to().y(), stage.to().z(), 0))) { return; }
 				if (!_tripAllowed.test(profileId, route.root) || !sameGoal(route.root, goal(profileId)) || !retainedEligible(player, request.retained().plan(), route.root, acquisition(profileId, route.root))
 					|| remainingRestTravelFee(route.plan, route.stage, player.getClassIndex(), player.getLevel()) > restTravelBudget(request.retained().plan(), player.getAdena())
-					|| PhantomNormalGatekeeperTravel.fee(stage.gatekeeper(), player.getClassIndex(), player.getLevel(), now / 60_000) > restTravelBudget(request.retained().plan(), player.getAdena())) { failRestRoute(profileId, request, false); return; }
+					|| PhantomNormalGatekeeperTravel.phantomFee(stage.gatekeeper(), player.getClassIndex(), player.getLevel(), now / 60_000) > restTravelBudget(request.retained().plan(), player.getAdena())) { failRestRoute(profileId, request, false); return; }
 				// Arm a terminal durable marker before the native side effect. Any ambiguous exception/restart cannot replay a fee.
 				final var armed = _stores.finishRestJourney(profileId, request.retained(), false).orElse(null);
 				if (armed == null) { failRestRoute(profileId, request, false); return; }
@@ -729,7 +729,7 @@ public final class PhantomAutonomousMarketProducer implements PhantomSchedulerCo
 		for (int index = stage; index < plan.stages().size(); index++)
 		{
 			final var remaining = plan.stages().get(index);
-			if (remaining.mode() == PhantomTravelStrategy.Mode.GK) { reserve = Math.addExact(reserve, PhantomNormalGatekeeperTravel.maximumFee(remaining.gatekeeper(), classIndex, level)); }
+			if (remaining.mode() == PhantomTravelStrategy.Mode.GK) { reserve = Math.addExact(reserve, PhantomNormalGatekeeperTravel.phantomMaximumFee(remaining.gatekeeper(), classIndex, level)); }
 		}
 		return reserve;
 	}

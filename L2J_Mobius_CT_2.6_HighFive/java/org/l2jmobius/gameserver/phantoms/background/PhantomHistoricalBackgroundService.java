@@ -804,7 +804,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Only classified recoverable failures may re-enter the same optimistic history ownership. */
 	public static boolean isRecoverableFailure(String reason)
 	{
-		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "catchup.travel.anchor_mismatch", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
+		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "catchup.travel.anchor_mismatch", "catchup.travel.insufficient_adena", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
 	}
 
 	/** Resolve durable ownership before baseline/FAILED/policy gates, without granting simulation eligibility. */
@@ -941,7 +941,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			exclusions = Set.of(spec.npcId() + "@" + spec.anchorId());
 		}
 		final long ordinal = Math.addExact(current.state().planOrdinal(), 1);
-		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions);
+		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions, "catchup.travel.insufficient_adena".equals(reason));
 		if (!plan.ready()) { return fail(profileId, current, plan.reasonKey()); }
 		try
 		{
@@ -960,8 +960,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, Set<String> excludedTargets)
 	{
+		return planOrIdle(profileId, state, previous, seed, ordinal, excludedTargets, false);
+	}
+
+	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, Set<String> excludedTargets, boolean affordableTravel)
+	{
 		if (_acceptedIntent.test(profileId, previous)) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
-		var plan = excludedTargets.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, Set.of());
+		var plan = affordableTravel ? _planner.replaceAffordableFromState(profileId, state, previous, seed, ordinal)
+			: excludedTargets.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, Set.of());
 		if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleFromState(profileId, state, previous, seed, ordinal); }
 		return plan;
 	}

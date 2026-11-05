@@ -58,13 +58,13 @@ public final class PhantomLivingRoutes110Test
 			for (var leg : legs)
 			{
 				final var quoted = discounted(leg);
-				check(L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, leg.feeCount() - 1, 1, 80)).candidate() == null, "DISCOUNT_FAST_PATH_SPENDS_UNRESERVED_FEE npc=" + leg.teleporterNpcId());
+				check(L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, 0, 1, 80)).candidate() != null, "EMPTY_PHANTOM_WALLET_BLOCKS_NATIVE_ROUTE npc=" + leg.teleporterNpcId());
 				final var full = L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, leg.feeCount(), 1, 80)).candidate();
-				check(full != null && full.adena() == leg.feeCount(), "WHOLE_RESERVE_NOT_RETAINED");
+				check(full != null && full.adena() == 0, "PHANTOM_TRAVEL_RESERVE_NOT_ZERO");
 				final var buy = new PhantomStorePlan(PhantomStorePlan.Type.BUY, PhantomStorePlan.State.REQUESTED, "Ресурсы", List.of(new PhantomStorePlan.Line(1865, 1865, 10, 100)), 120001);
-				check(L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, PhantomAutonomousMarketProducer.restTravelBudget(buy, leg.feeCount() + 999), 1, 80)).candidate() == null, "BUY_RESERVE_CONSUMED");
+				check(PhantomAutonomousMarketProducer.restTravelBudget(buy, 1000) == 0 && L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, 0, 1, 80)).candidate().adena() == 0, "FREE_TRAVEL_CONSUMED_BUY_RESERVE");
 				check(L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, 0, 0, 40)).candidate().adena() == 0, "LAWFUL_FREE_LEVEL_LOST");
-				check(L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, 0, 1, 1)).candidate() == null, "SUBCLASS_FREE_TELEPORT_INVENTED");
+				check(L2jNavigationBackend.selectTravel(List.of(quoted), options(legs, 0, 1, 1)).candidate().adena() == 0, "PHANTOM_SUBCLASS_CHARGED");
 				check(PhantomNormalGatekeeperTravel.maximumFee(leg, 1, 80) == leg.feeCount(), "CANONICAL_PRICE_CHANGED");
 				System.out.println("PASS living110.fast-path-full-reserve npc=" + leg.teleporterNpcId() + " maxFee=" + full.adena() + " nativePayment=NOT_RUN geometry=STRUCTURAL_FIXTURE");
 			}

@@ -37,7 +37,7 @@ public final class PhantomCompositeTravelPlanner
 				if (interrupted.getAsBoolean()) { return new Result(PhantomNavigationResult.Status.CANCELLED, null); }
 				final var actual = teleport.apply(leg);
 				if (actual == null) { continue; }
-				final long reserve = PhantomNormalGatekeeperTravel.maximumFee(leg, options.classIndex(), options.level());
+				final long reserve = PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, options.classIndex(), options.level());
 				if (reserve <= options.adena()) { nativeLegs.add(new PhantomTravelStrategy.Stage(actual.mode(), actual.from(), actual.to(), actual.points(), actual.gatekeeper(), actual.millis(), reserve, actual.scrolls())); }
 			}
 		}

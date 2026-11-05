@@ -129,7 +129,7 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 		{
 			final double ingress = player.calculateDistance3D(leg.sourceX(), leg.sourceY(), leg.sourceZ());
 			final double egress = Math.hypot(Math.hypot((double) target.x() - leg.destinationX(), (double) target.y() - leg.destinationY()), (double) target.z() - leg.destinationZ());
-			if (ingress <= ESTIMATE_LOCAL_DISTANCE && egress <= ESTIMATE_LOCAL_DISTANCE && org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), minute) <= player.getAdena())
+			if (ingress <= ESTIMATE_LOCAL_DISTANCE && egress <= ESTIMATE_LOCAL_DISTANCE && org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.phantomFee(leg, player.getClassIndex(), player.getLevel(), minute) <= player.getAdena())
 			{
 				best = Math.min(best, ingress + egress + player.getMoveSpeed() * leg.travelMillis() / 1000.0);
 			}

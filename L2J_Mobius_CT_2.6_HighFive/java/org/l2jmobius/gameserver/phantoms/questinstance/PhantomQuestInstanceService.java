@@ -890,7 +890,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		final int local = _navigation.policy().maximumLocalStraightDistance();
 		return options.legs().stream().filter(leg -> Math.hypot((long) leg.sourceX() - origin.x(), (long) leg.sourceY() - origin.y()) <= local
 			&& Math.hypot((long) leg.destinationX() - target.x(), (long) leg.destinationY() - target.y()) <= local
-			&& org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(leg, options.classIndex(), options.level(), options.epochMinute()) <= options.adena())
+			&& org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.phantomFee(leg, options.classIndex(), options.level(), options.epochMinute()) <= options.adena())
 			.min(java.util.Comparator.comparingDouble((org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg) -> Math.hypot((long) leg.sourceX() - origin.x(), (long) leg.sourceY() - origin.y()) + Math.hypot((long) leg.destinationX() - target.x(), (long) leg.destinationY() - target.y())).thenComparing(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg::id)).orElse(null);
 	}
 

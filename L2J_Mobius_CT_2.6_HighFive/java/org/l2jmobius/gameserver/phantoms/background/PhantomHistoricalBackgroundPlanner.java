@@ -98,6 +98,17 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	public Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
 	{
+		return replaceFromState(profileId, state, previousGoal, deterministicSeed, planOrdinal, false);
+	}
+
+	/** An insufficient-funds recovery may select only an itinerary covered by the same factual wallet. */
+	public Result replaceAffordableFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal)
+	{
+		return replaceFromState(profileId, state, previousGoal, deterministicSeed, planOrdinal, true);
+	}
+
+	private Result replaceFromState(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, boolean affordableTravel)
+	{
 		Objects.requireNonNull(state, "state");
 		Objects.requireNonNull(previousGoal, "previousGoal");
 		if (PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType()) && !PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, previousGoal))
@@ -109,7 +120,17 @@ public final class PhantomHistoricalBackgroundPlanner
 			return Result.blocked("planner.previous_goal.unsupported");
 		}
 		final PhantomBackgroundState.Loadout loadout = state.loadout();
-		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state), offscreenSupplied(state));
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), Set.of(), null, PlanningCombat.from(state), offscreenSupplied(state), candidate -> !affordableTravel || affordableTravel(candidate, state));
+	}
+
+	private boolean affordableTravel(Candidate candidate, PhantomBackgroundState state)
+	{
+		final long wallet = state.inventory().itemCount(57);
+		if (candidate.feeAdena() <= wallet) { return true; }
+		// The immutable route query is cached; native fee policy includes base-class free travel.
+		return _authority.travelQuery(_topology).route(state.position().committedAnchorId(), candidate.anchor().id())
+			.map(route -> route.stream().filter(step -> step.gatekeeper() != null)
+				.mapToLong(step -> PhantomNormalGatekeeperTravel.phantomMaximumFee(step.gatekeeper(), state.identity().classIndex(), state.progress().level())).reduce(0, Math::addExact) <= wallet).orElse(false);
 	}
 
 	private static boolean offscreenSupplied(PhantomBackgroundState state)
@@ -257,6 +278,11 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, _ -> true);
+	}
+
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -285,8 +311,9 @@ public final class PhantomHistoricalBackgroundPlanner
 					final boolean denied = excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id())
 						|| candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains)
 						|| combat != null && !viability.computeIfAbsent(candidate.target().npc().npcId(), npcId -> _authority.viableTarget(combat, npcId));
-					if (denied) { reject(rejections, candidate.target().npc().npcId(), candidate.anchor().id(), "combat_or_current_exclusion"); }
-					return denied;
+					if (denied) { reject(rejections, candidate.target().npc().npcId(), candidate.anchor().id(), "combat_or_current_exclusion"); return true; }
+					if (!admitted.test(candidate)) { reject(rejections, candidate.target().npc().npcId(), candidate.anchor().id(), "travel.insufficient_adena"); return true; }
+					return false;
 				});
 				cursor = page.nextCursor();
 				if (cursor == null) { break; }
@@ -467,7 +494,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			return null;
 		}
 		return new Candidate(target, anchor, route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList(), route.stream().mapToLong(PhantomNormalGatekeeperTravel.Step::travelMillis).sum(),
-			route.stream().filter(step -> step.gatekeeper() != null).mapToLong(step -> step.gatekeeper().feeCount()).sum());
+			0);
 	}
 
 	private void addLocalCandidates(List<Candidate> candidates, PhantomTopologyPoint live, List<TargetFact> targets)

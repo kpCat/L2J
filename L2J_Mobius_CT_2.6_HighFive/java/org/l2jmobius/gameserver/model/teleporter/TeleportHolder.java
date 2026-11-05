@@ -242,6 +242,7 @@ public class TeleportHolder
 	 */
 	private boolean shouldPayFee(Player player, TeleportLocation loc)
 	{
+		if (org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player)) { return false; }
 		return !isNormalTeleport() || (((player.getLevel() > PlayerConfig.MAX_FREE_TELEPORT_LEVEL) || player.isSubClassActive()) && ((loc.getFeeId() != 0) && (loc.getFeeCount() > 0)));
 	}
 	
@@ -255,6 +256,7 @@ public class TeleportHolder
 	 */
 	private long calculateFee(Player player, TeleportLocation loc)
 	{
+		if (org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(player)) { return 0; }
 		if (isNormalTeleport())
 		{
 			if (!player.isSubClassActive() && (player.getLevel() <= PlayerConfig.MAX_FREE_TELEPORT_LEVEL))

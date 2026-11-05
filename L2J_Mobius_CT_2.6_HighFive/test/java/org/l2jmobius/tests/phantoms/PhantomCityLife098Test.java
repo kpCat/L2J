@@ -57,20 +57,20 @@ public final class PhantomCityLife098Test
 		check(result.status() == PhantomNavigationResult.Status.PATH_FOUND, "MISSING_DISTANT_MULTI_GK");
 		final var plan = result.candidate();
 		check(plan.stages().stream().filter(stage -> stage.mode() == PhantomTravelStrategy.Mode.GK).count() == 2, "BOTH_NATIVE_LEGS_REQUIRED");
-		check(plan.adena() == 700 && plan.millis() == 270000, "WHOLE_COST_AND_TIME");
+		check(plan.adena() == 0 && plan.millis() == 270000, "FREE_PHANTOM_COST_AND_UNCHANGED_TIME");
 		check(plan.stages().getFirst().from().equals(point(0)) && plan.stages().getLast().to().equals(point(201000)), "COMPLETE_ENDPOINTS");
 		final var buy = new PhantomStorePlan(PhantomStorePlan.Type.BUY, PhantomStorePlan.State.REQUESTED, "Ресурсы", List.of(new PhantomStorePlan.Line(1865, 1865, 10, 100)), 120001);
 		check(PhantomAutonomousMarketProducer.completeRestRoute(plan, point(0), point(201000), PhantomAutonomousMarketProducer.restTravelBudget(buy, 1700), 270000), "EXACT_BUY_RESERVE");
-		check(!PhantomAutonomousMarketProducer.completeRestRoute(plan, point(0), point(201000), PhantomAutonomousMarketProducer.restTravelBudget(buy, 1699), 270000), "BUY_RESERVE_SPENT_ON_TRAVEL");
+		check(PhantomAutonomousMarketProducer.restTravelBudget(buy, 1000) == 0 && PhantomAutonomousMarketProducer.completeRestRoute(plan, point(0), point(201000), 0, 270000), "FREE_TRAVEL_SPENT_BUY_RESERVE");
 		check(route(List.of(first), 700, false, () -> false).candidate() == null, "MISSING_EDGE_ACCEPTED");
 		final var single = route(List.of(leg("legacy", "field", "city", 25000, 200000, 300)), 300, false, () -> false);
-		check(single.candidate() != null && single.candidate().adena() == 300 && single.candidate().stages().stream().filter(stage -> stage.mode() == PhantomTravelStrategy.Mode.GK).count() == 1, "SINGLE_GK_REGRESSION");
-		System.out.println("PASS city098.composite-distant-ingress cost=700 walkMillis=270000 GK=2 geometry=FIXTURE_ONLY");
+		check(single.candidate() != null && single.candidate().adena() == 0 && single.candidate().stages().stream().filter(stage -> stage.mode() == PhantomTravelStrategy.Mode.GK).count() == 1, "SINGLE_GK_REGRESSION");
+		System.out.println("PASS city098.composite-distant-ingress PhantomCost=0 walkMillis=270000 GK=2 geometry=FIXTURE_ONLY");
 	}
 	private static void negatives()
 	{
 		final var legs = List.of(leg("first", "field", "hub", 25000, 100000, 300), leg("second", "hub", "city", 101000, 200000, 400));
-		check(route(legs, 699, false, () -> false).candidate() == null, "PARTIAL_FUNDS_ACCEPTED");
+		check(route(legs, 0, false, () -> false).candidate() != null, "EMPTY_PHANTOM_WALLET_BLOCKED_FREE_ROUTE");
 		check(route(legs, 700, true, () -> false).candidate() == null, "TORN_CORRIDOR_ACCEPTED");
 		check(route(legs, 700, false, () -> true).status() == PhantomNavigationResult.Status.CANCELLED, "CANCELLED_ROUTE_ACCEPTED");
 		final var crowded = new java.util.ArrayList<Leg>();
@@ -103,11 +103,11 @@ public final class PhantomCityLife098Test
 		final var result = PhantomCompositeTravelPlanner.plan(request, PhantomNavigationPolicy.productionDefaults(), options(legs, 350),
 			(from, to) -> new PhantomWalkCorridorPlanner.Result(PhantomWalkCorridorPlanner.Status.FOUND, List.of(to), 2, 1, 0, 2),
 			(x, y, hint) -> point(x), value -> new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, point(value.sourceX()), point(value.destinationX()), List.of(), value, 0, value.feeCount() / 2, 0), () -> false);
-		check(result.candidate() == null, "DISCOUNT_CAN_EXPIRE_BEFORE_SECOND_PAYMENT");
+		check(result.candidate() != null && result.candidate().adena() == 0, "PHANTOM_RESERVE_DEPENDS_ON_ORDINARY_DISCOUNT");
 		final long discountedMinute = java.time.ZonedDateTime.of(2026, 10, 27, 21, 0, 0, 0, java.time.ZoneId.systemDefault()).toEpochSecond() / 60;
 		check(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(legs.getFirst(), 1, 85, discountedMinute) == 150, "ACTUAL_DISCOUNT_CHANGED");
 		check(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.maximumFee(legs.getFirst(), 0, 1) == 0, "FREE_LEVEL_RESERVE_CHANGED");
-		System.out.println("PASS city098.discounted-quote-requires-full-itinerary-reserve actualDebit=NOT_RUN");
+		System.out.println("PASS city098.Phantom-reserve0 ordinary-discount-unchanged actualDebit=NOT_RUN");
 	}
 	private static void lifetime()
 	{

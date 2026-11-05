@@ -183,7 +183,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final PhantomTopologyQuery topology = _topology.get();
 		final PhantomProgressionCatalog progression = _progression.get();
 		final PhantomCommerceCatalog commerce = _commerce.get();
-		final String topologyHash = (_travel == null) || _travel.legs().isEmpty() ? topology.snapshot().canonicalHash() : digest("BACKGROUND_TRAVEL_V1", topology.snapshot().canonicalHash(), _travel.hash());
+		final String topologyHash = (_travel == null) || _travel.legs().isEmpty() ? topology.snapshot().canonicalHash() : digest("BACKGROUND_TRAVEL_V1", PhantomNormalGatekeeperTravel.PHANTOM_TRAVEL_TARIFF, topology.snapshot().canonicalHash(), _travel.hash());
 		return new Hashes(compositeKnowledgeHash(knowledge.combinedHash()), topologyHash, progression.combinedHash(), commerce.hashes().combined());
 	}
 
@@ -839,7 +839,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - budgetMillis, state.clock().residualEncounterMillis()), step.id());
 		}
-		final long fee = PhantomNormalGatekeeperTravel.fee(leg, state.identity().classIndex(), state.progress().level(), logicalEpochMinute);
+		final long fee = PhantomNormalGatekeeperTravel.phantomFee(leg, state.identity().classIndex(), state.progress().level(), logicalEpochMinute);
 		if (fee > state.inventory().itemCount(Inventory.ADENA_ID))
 		{
 			return unchanged(Status.INSUFFICIENT_ADENA, state, step.id());

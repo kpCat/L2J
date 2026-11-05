@@ -448,6 +448,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		registry.add("02-sell-conservation", _ -> testOperation(OperationKind.SELL));
 		registry.add("03-teleport-conservation", _ -> testOperation(OperationKind.TELEPORT));
 		registry.add("04-lifecycle-no-worker", _ -> testLifecycle());
+		registry.add("05-free-travel-retains-old-payment-boundaries", _ -> testFreeTravelReceipts());
 	}
 
 	private void registerReceipt(PhantomTestRegistry registry)
@@ -673,6 +674,38 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(State.COMMITTED, store.value.receipt().state(), kind + " receipt was not committed.");
 	}
 
+	private void testFreeTravelReceipts()
+	{
+		for (var state : List.of(State.PREPARED, State.COMMITTING))
+		{
+			final var store = new FakeStore();
+			final var original = receipt(OperationKind.TELEPORT, before(OperationKind.TELEPORT), after(OperationKind.TELEPORT));
+			store.save(-1, state == State.PREPARED ? original : original.withState(state));
+			final var actor = new FakeActor(OperationKind.TELEPORT, original.before()); actor.freeTravel = true;
+			final var service = service(store, actor, new FakeGoalStore(1, teleportGoal())); service.start();
+			try
+			{
+				PhantomAssertions.assertEquals(PhantomCommerceService.Reason.PRICE_CHANGED, service.execute(1, 7, 0, intent(OperationKind.TELEPORT), () -> false).reason(), "An unpaid old teleport did not safely replan its changed tariff.");
+				PhantomAssertions.assertTrue(store.value.receipt().state() == State.PREPARED && store.value.receipt().request().feeCount() == 0 && !store.value.receipt().operationKey().equals(original.operationKey()), "Unapplied old tariff did not receive an exact new free quote.");
+				PhantomAssertions.assertTrue(actor.firstCalls.get() == 0 && actor.secondCalls.get() == 0 && actor.current.equals(original.before()), "Requote changed money or position.");
+				PhantomAssertions.assertEquals(OperationStatus.SUCCESS, service.execute(1, 7, 0, intent(OperationKind.TELEPORT), () -> false).status(), "Same-goal tariff continuation remained cancelled instead of completing its free trip.");
+				PhantomAssertions.assertTrue(actor.current.primaryCount() == original.before().primaryCount() && actor.secondCalls.get() == 1, "Free continuation charged or duplicated the native destination.");
+				PhantomAssertions.assertEquals(OperationStatus.IDEMPOTENT, service.execute(1, 7, 0, intent(OperationKind.TELEPORT), () -> false).status(), "Completed free continuation was applied twice.");
+			}
+			finally { service.beginStop(); service.finishStop(); }
+		}
+		final var store = new FakeStore();
+		final var original = receipt(OperationKind.TELEPORT, before(OperationKind.TELEPORT), after(OperationKind.TELEPORT)); store.save(-1, original.withState(State.COMMITTING));
+		final var actor = new FakeActor(OperationKind.TELEPORT, new ConservationFacts(90, 0, 0, 0, 0, 0, 0)); actor.freeTravel = true;
+		final var service = service(store, actor, new FakeGoalStore(1, teleportGoal())); service.start();
+		try
+		{
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, service.execute(1, 7, 0, intent(OperationKind.TELEPORT), () -> false).status(), "Already charged old teleport lost its missing destination.");
+			PhantomAssertions.assertTrue(actor.firstCalls.get() == 0 && actor.secondCalls.get() == 1 && actor.current.equals(original.expectedAfter()), "Already paid travel was charged again or refunded.");
+		}
+		finally { service.beginStop(); service.finishStop(); }
+	}
+
 	private void testLifecycle()
 	{
 		final PhantomCommerceService service = service(new FakeStore(), new FakeActor(OperationKind.BUY, before(OperationKind.BUY)));
@@ -680,6 +713,9 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(service.start(), "Commerce start failed.");
 		PhantomAssertions.assertTrue(service.beginStop(), "Commerce beginStop failed.");
 		PhantomAssertions.assertTrue(service.finishStop(), "Commerce finishStop failed.");
+		PhantomAssertions.assertTrue(service.finishStop(), "A later shared shutdown poll treated already stopped commerce as pending.");
+		PhantomAssertions.assertEquals(PhantomCommerceService.Reason.SERVICE_NOT_RUNNING, service.execute(1, 7, 0, intent(OperationKind.BUY), () -> false).reason(), "Idempotent stop reopened commerce admission.");
+		PhantomAssertions.assertEquals(0, service.snapshot().currentOperations(), "Stopped commerce admitted an operation.");
 		PhantomAssertions.assertEquals(0, service.snapshot().workers(), "Commerce created a worker.");
 	}
 
@@ -1719,6 +1755,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 	private static final class FakeActor implements ActorLease
 	{
+		private boolean freeTravel;
 		private final OperationKind kind;
 		private final Runnable closeAction;
 		private final AtomicInteger firstCalls = new AtomicInteger();
@@ -1740,14 +1777,19 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		}
 
 		@Override
+		public boolean freeTravel() { return freeTravel; }
+
+		@Override
 		public Quote quote(OperationIntent intent)
 		{
-			final OperationRequest request = request(kind);
+			final OperationRequest captured = request(kind);
+			final OperationRequest request = freeTravel && kind == OperationKind.TELEPORT
+				? new OperationRequest(captured.kind(), captured.npcTemplateId(), captured.npcObjectId(), captured.listId(), captured.itemId(), captured.itemObjectId(), captured.count(), captured.amount(), captured.feeItemId(), 0, captured.ordinal(), captured.listName(), captured.destinationX(), captured.destinationY(), captured.destinationZ()) : captured;
 			final ConservationFacts expected = switch (kind)
 			{
 				case BUY -> new ConservationFacts(current.primaryCount() - 10, current.secondaryCount() + 5, current.objectCount() + 5, current.instanceId(), current.x(), current.y(), current.z());
 				case SELL -> new ConservationFacts(current.primaryCount() + 10, current.secondaryCount() - 5, current.objectCount() - 5, current.instanceId(), current.x(), current.y(), current.z());
-				case TELEPORT -> new ConservationFacts(current.primaryCount() - 10, 0, 0, 0, 100, 200, 300);
+				case TELEPORT -> new ConservationFacts(current.primaryCount() - request.feeCount(), 0, 0, 0, 100, 200, 300);
 				default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 			};
 			return Quote.accepted(request, current, expected, new ActorFacts(100, 20, 5, 0, 1000, 0, false, 0, false, false, false, false, false, 0, 0, 0, 0, 2, 2));
@@ -1767,7 +1809,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			{
 				case BUY -> new ConservationFacts(current.primaryCount() - 10, current.secondaryCount(), current.objectCount(), current.instanceId(), current.x(), current.y(), current.z());
 				case SELL -> new ConservationFacts(current.primaryCount(), current.secondaryCount() - 5, current.objectCount() - 5, current.instanceId(), current.x(), current.y(), current.z());
-				case TELEPORT -> new ConservationFacts(current.primaryCount() - 10, 0, 0, current.instanceId(), current.x(), current.y(), current.z());
+				case TELEPORT -> new ConservationFacts(current.primaryCount() - request.feeCount(), 0, 0, current.instanceId(), current.x(), current.y(), current.z());
 				default -> throw new IllegalArgumentException("Maintenance uses its named066 contract fixture.");
 			};
 			return true;

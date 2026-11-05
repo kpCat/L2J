@@ -621,11 +621,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				if (travelRequiresNative(advance, claim._nativeContext.afterPolicy())) { return requestNativeTravel(claim); }
 				if (!advance.mutated())
 				{
-					return switch (advance.status())
-					{
-						case EDGE_CLOSED, NO_ROUTE, INSUFFICIENT_ADENA -> retry("catchup.travel." + advance.status().name().toLowerCase());
-						default -> OperationResult.replan("catchup.travel." + advance.status().name().toLowerCase());
-					};
+					final String reason = "catchup.travel." + advance.status().name().toLowerCase();
+					return historicalTravelFailureStatus(advance.status()) == OperationStatus.RETRY ? retry(reason) : OperationResult.replan(reason);
 				}
 				final String travelLegId = advance.edgeId().startsWith("leg.") ? advance.edgeId() : "";
 				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_TRAVEL, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical, travelLegId);
@@ -2917,6 +2914,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			case INCONSISTENT, OWNED_STORE_CANONICAL_NEITHER, CANONICAL_MISMATCH, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
 			case ITEM_BUSY, ITEM_EXPECTED_COUNT_STALE -> retry("transaction." + status.name().toLowerCase());
 			default -> retry("transaction." + status.name().toLowerCase());
+		};
+	}
+
+	static OperationStatus historicalTravelFailureStatus(TravelAdvance.Status status)
+	{
+		return switch (status)
+		{
+			case EDGE_CLOSED, NO_ROUTE -> OperationStatus.RETRY;
+			default -> OperationStatus.REPLAN;
 		};
 	}
 

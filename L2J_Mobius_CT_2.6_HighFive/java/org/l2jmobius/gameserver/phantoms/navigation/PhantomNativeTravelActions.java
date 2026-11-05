@@ -27,6 +27,16 @@ public final class PhantomNativeTravelActions
 	public record GatekeeperResult(Status status, long fee, long adenaBefore, long adenaAfter, PhantomNavigationPoint before, PhantomNavigationPoint after) { }
 	public record OwnedWalk(Player player, PlayerNativeWork.Owner owner, PhantomNavigationPoint destination) { }
 	private PhantomNativeTravelActions() { }
+	/** Separate tariff authority; movement eligibility remains with the native route/action owners. */
+	public static boolean freeTravel(Player player)
+	{
+		if (player == null || player.getClient() != null || !player.hasHeadlessOutboundSession()
+			|| !(player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner)) { return false; }
+		final var identity = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId());
+		return owner.player() == player && owner.isCurrent() && PlayerNativeWork.current(owner) != null && World.getInstance().getPlayer(player.getObjectId()) == player
+			&& identity != null && identity.ownerKind() == org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM
+			&& identity.state() == org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerState.RESERVED && player.getNativeWorkOwner() == owner;
+	}
 	/** Native physical AI keeps its attack target independently of Creature's cast/selection target. */
 	public static boolean targetsForCombat(Creature attacker, Creature target)
 	{
@@ -142,7 +152,7 @@ public final class PhantomNativeTravelActions
 	public static GatekeeperResult gatekeeper(Player player, PhantomNormalGatekeeperTravel.Leg leg)
 	{
 		final var before = point(player); final long adena = player.getAdena();
-		final long fee = PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), Instant.now().toEpochMilli() / 60000);
+		final long fee = PhantomNormalGatekeeperTravel.phantomFee(leg, player.getClassIndex(), player.getLevel(), Instant.now().toEpochMilli() / 60000);
 		final var npc = gatekeeperAt(leg);
 		if (!ordinary(player) || !available(leg) || npc == null || !npc.canInteract(player)
 			|| !new L2jNavigationBackend().canWalkDirect(before,new PhantomNavigationPoint(npc.getX(),npc.getY(),GeoEngine.getInstance().getHeight(npc.getX(),npc.getY(),npc.getZ()),npc.getInstanceId()))) { return new GatekeeperResult(Status.UNAVAILABLE, fee, adena, adena, before, before); }

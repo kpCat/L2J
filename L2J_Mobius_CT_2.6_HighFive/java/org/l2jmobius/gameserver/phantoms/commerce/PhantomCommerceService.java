@@ -97,6 +97,10 @@ public final class PhantomCommerceService
 
 	public synchronized boolean finishStop()
 	{
+		if (_state == StateSnapshot.STOPPED)
+		{
+			return true;
+		}
 		if ((_state != StateSnapshot.STOPPING) && (_state != StateSnapshot.NEW))
 		{
 			return false;
@@ -262,6 +266,21 @@ public final class PhantomCommerceService
 			}
 			return applyMissingSecond(actor, versioned);
 		}
+		if (reconciliation == Reconciliation.EXACT_BEFORE && receipt.request().kind() == OperationKind.TELEPORT && receipt.request().feeCount() > 0 && actor.freeTravel())
+		{
+			// This exact unpaid quote keeps its accepted goal revision; generic new operations retain their previous-receipt fence.
+			final var authority = goalAuthority(receipt.profileId(), receipt.goalId(), receipt.goalRevision(), null);
+			if (authority != Reason.ACCEPTED) { return OperationResult.replan(authority); }
+			final var request = receipt.request();
+			final var quote = actor.quote(new OperationIntent(request.kind(), request.npcTemplateId(), request.npcObjectId(), request.listId(), request.itemId(), request.itemObjectId(), request.count(), request.ordinal(), request.listName(), 0));
+			if (!quote.accepted()) { return OperationResult.replan(quote.reason()); }
+			if (cancelled.getAsBoolean()) { return OperationResult.cancelled(); }
+			if (!quote.before().equals(current) || !actor.snapshot(request).equals(current)) { return OperationResult.retry(Reason.RECEIPT_RACE); }
+			final var currentAuthority = goalAuthority(receipt.profileId(), receipt.goalId(), receipt.goalRevision(), null);
+			if (currentAuthority != Reason.ACCEPTED) { return OperationResult.replan(currentAuthority); }
+			saveReceipt(versioned.rowVersion(), receipt.repriceUnappliedTeleport(quote.request(), current, quote.expectedAfter()));
+			return OperationResult.replan(Reason.PRICE_CHANGED);
+		}
 		if (receipt.state() == State.PREPARED)
 		{
 			versioned = saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTING));
@@ -296,7 +315,7 @@ public final class PhantomCommerceService
 			saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTED));
 			return OperationResult.success();
 		}
-		if (afterFirst != Reconciliation.FIRST_EFFECT_ONLY)
+		if (afterFirst != Reconciliation.FIRST_EFFECT_ONLY && !(receipt.noFeeTeleport() && afterFirst == Reconciliation.EXACT_BEFORE))
 		{
 			return markInconsistent(versioned, Reason.AMBIGUOUS_DELTA);
 		}
@@ -316,7 +335,7 @@ public final class PhantomCommerceService
 			saveReceipt(versioned.rowVersion(), receipt.withState(State.COMMITTED));
 			return OperationResult.success();
 		}
-		if ((receipt.request().kind() == OperationKind.TELEPORT) && (after == Reconciliation.FIRST_EFFECT_ONLY))
+		if ((receipt.request().kind() == OperationKind.TELEPORT) && (after == Reconciliation.FIRST_EFFECT_ONLY || receipt.noFeeTeleport() && after == Reconciliation.EXACT_BEFORE))
 		{
 			return OperationResult.retry(Reason.TELEPORT_PENDING);
 		}
@@ -491,6 +510,8 @@ public final class PhantomCommerceService
 
 	public interface ActorLease extends AutoCloseable
 	{
+		default boolean freeTravel() { return false; }
+
 		Quote quote(OperationIntent intent);
 
 		ConservationFacts snapshot(OperationRequest request);

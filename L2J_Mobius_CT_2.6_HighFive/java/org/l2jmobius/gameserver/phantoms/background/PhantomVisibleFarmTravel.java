@@ -227,7 +227,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (step.type() != PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER) { continue; }
 			if (step.gatekeeper() == null) { return false; }
-			final long fee = PhantomNormalGatekeeperTravel.fee(step.gatekeeper(), classIndex, level, epochMinute);
+			final long fee = PhantomNormalGatekeeperTravel.phantomFee(step.gatekeeper(), classIndex, level, epochMinute);
 			if (fee > remaining) { return false; }
 			remaining -= fee;
 		}

@@ -82,6 +82,23 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 		return new PhantomCommerceReceipt(operationKey, profileId, goalId, goalRevision, request, state, 1, before, expectedAfter);
 	}
 
+	/** Replace only a proven unpaid quote; native identity/destination and all non-fee facts are unchanged. */
+	public PhantomCommerceReceipt repriceUnappliedTeleport(OperationRequest replacement, ConservationFacts observed, ConservationFacts after)
+	{
+		if (request.kind() != OperationKind.TELEPORT || request.feeCount() <= 0 || (state != State.PREPARED && state != State.COMMITTING)
+			|| reconcile(observed) != Reconciliation.EXACT_BEFORE) { throw new IllegalStateException("Teleport receipt has an applied or ambiguous effect."); }
+		final var free = new OperationRequest(request.kind(), request.npcTemplateId(), request.npcObjectId(), request.listId(), request.itemId(), request.itemObjectId(), request.count(), request.amount(), request.feeItemId(), 0, request.ordinal(), request.listName(), request.destinationX(), request.destinationY(), request.destinationZ());
+		if (!free.equals(replacement) || !after.samePosition(expectedAfter) || after.primaryCount() != observed.primaryCount()
+			|| after.secondaryCount() != observed.secondaryCount() || after.objectCount() != observed.objectCount()) { throw new IllegalArgumentException("Free teleport quote changed its captured identity, destination or resources."); }
+		return prepared(profileId, goalId, goalRevision, replacement, observed, after);
+	}
+
+	boolean noFeeTeleport()
+	{
+		return request.kind() == OperationKind.TELEPORT && request.feeCount() == 0 && before.primaryCount() == expectedAfter.primaryCount()
+			&& before.secondaryCount() == expectedAfter.secondaryCount() && before.objectCount() == expectedAfter.objectCount();
+	}
+
 	public Reconciliation reconcile(ConservationFacts current)
 	{
 		Objects.requireNonNull(current);
