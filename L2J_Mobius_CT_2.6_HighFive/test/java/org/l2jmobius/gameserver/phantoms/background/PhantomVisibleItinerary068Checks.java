@@ -96,11 +96,21 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		PhantomAssertions.assertEquals(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, proposed.type(), "Admission cannot execute a gatekeeper.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(route, null, committed, live, "final", anchors, 1000, anchor -> !anchor.id().equals("disconnected")), "Ingress keeps the caller's existing distance and instance bound.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", anchors, 12000, _ -> false), "No connected affordable route must remain unavailable.");
-		final var paid = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER, "paid", "entry", "final", 1, leg("paid", "entry", "final", 500));
-		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", anchors, 12000,
-			_ -> PhantomVisibleFarmTravel.itineraryAffordable(List.of(paid), 0, 85, 0, 499)), "An ingress with unaffordable onward native fees cannot admit work.");
+		final var factualWithoutCanonical = PhantomVisibleFarmTravel.resumeWithIngress(null, "old", null, live, "final", anchors, 12000,
+			anchor -> !anchor.id().equals("disconnected"));
+		PhantomAssertions.assertEquals(proposed, factualWithoutCanonical, "A known factual departure passes no canonical fallback point in proposedStep; it must still admit the separately proven connected ingress WALK.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, "old", null, live, "final", anchors, 12000,
+			_ -> false), "The actual factual/null-canonical caller composition cannot waive connected onward proof.");
+		final var disconnectedFactual = PhantomVisibleFarmTravel.resumeWithIngress(null, "old", committed, live, "final", anchors, 12000,
+			anchor -> !anchor.id().equals("disconnected"));
+		PhantomAssertions.assertEquals(proposed, disconnectedFactual, "A factual but disconnected service anchor must admit the same bounded WALK to a separately proven connected ingress.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, "old", committed, live, "final", anchors, 12000,
-			_ -> { throw new AssertionError("Factual departure cannot be replaced by an implicit alternate ingress."); }), "The fallback is limited to absence of factual departure.");
+			_ -> false), "A factual departure does not waive onward route, exclusion or resource proof for an ingress.");
+		final var paid = new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER, "paid", "entry", "final", 1, leg("paid", "entry", "final", 500));
+		PhantomAssertions.assertEquals(500L, PhantomNormalGatekeeperTravel.maximumFee(paid.gatekeeper(), 1, 85), "Approved managed fare zero cannot change the ordinary native catalog fee.");
+		PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.itineraryAffordable(List.of(paid), 0, 85, 0, 0), "Approved managed Phantom travel does not require an ordinary player's fee.");
+		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, committed, live, "final", anchors, 12000,
+			_ -> PhantomVisibleFarmTravel.itineraryAffordable(List.of(paid), 0, 85, 0, -1)), "Even zero-fare travel cannot admit an invalid resource snapshot.");
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.resumeWithIngress(null, null, null, live, "final", anchors, 12000,
 			_ -> { throw new AssertionError("Unknown prior lineage cannot borrow an ingress."); }), "The new proposal still requires the original canonical lineage proof.");
 		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
@@ -110,7 +120,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			"The existing segmented native WALK budget can approach an ingress beyond one straight leg; its unchanged route/phase limits still own the work.");
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomVisibleFarmTravel.NativeWalkBudget(new PhantomNavigationPoint(0, 0, 0, 0), new PhantomNavigationPoint(policy.maximumRouteDistance(), 0, 1, 0), 1, 100, policy),
 			"Canonical Z or standpoint projection beyond the actual route-distance bound remains rejected by the budget owner.");
-		PhantomAssertions.assertEquals(original, PhantomVisibleFarmTravel.resumeWithIngress(route, "old", committed, live, "final", anchors, 12000,
+		PhantomAssertions.assertEquals(original, PhantomVisibleFarmTravel.resumeWithIngress(route, "old", null, live, "final", anchors, 12000,
 			_ -> { throw new AssertionError("An existing factual itinerary cannot query alternative ingress."); }), "Existing factual departure retains its original itinerary.");
 	}
 	private static void nativeLanding()
@@ -200,8 +210,9 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		PhantomAssertions.assertEquals(null, PhantomVisibleFarmTravel.itineraryStep(route, "start", "foreign"), "The physical itinerary must retain the exact final goal anchor.");
 		for (long budget : List.of(0L, 32_000L, 32_609L, 32_610L, 50_000L))
 		{
-			PhantomAssertions.assertEquals(budget >= 32_610, PhantomVisibleFarmTravel.itineraryAffordable(route, 1, 50, 0, budget), "All native fees are checked together; individually affordable legs must not overdraw the wallet.");
+			PhantomAssertions.assertTrue(PhantomVisibleFarmTravel.itineraryAffordable(route, 1, 50, 0, budget), "The approved managed zero fare applies to every native leg without a wallet grant.");
 		}
+		PhantomAssertions.assertEquals(32_610L, PhantomNormalGatekeeperTravel.maximumFee(second.gatekeeper(), 1, 50) + PhantomNormalGatekeeperTravel.maximumFee(third.gatekeeper(), 1, 50), "The managed tariff cannot rewrite the ordinary player's full native fees.");
 		final int previous = org.l2jmobius.gameserver.config.PlayerConfig.MAX_FREE_TELEPORT_LEVEL;
 		try
 		{

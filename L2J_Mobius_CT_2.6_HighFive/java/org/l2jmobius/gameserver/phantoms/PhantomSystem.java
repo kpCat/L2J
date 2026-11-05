@@ -103,6 +103,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyBackgroundTransaction;
@@ -145,6 +146,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFollowPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
@@ -918,7 +920,20 @@ public final class PhantomSystem
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
 				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney,
 					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _supplyJourney::blocksAutonomousParty, _visibleFarmTravel::observeArrival,
-						_settings.partySeeking(), (id, root, source, expiry, current) -> _historicalBackgroundService.prepareVisibleRendezvous(id, _decisionEngine, root, source, expiry, current), System::currentTimeMillis)));
+						_settings.partySeeking(), new PhantomAutonomousFarmParty.RendezvousPreparation()
+						{
+							@Override
+							public boolean prepare(long id, PhantomGoal root, PhantomDomainRef source, long expiry, java.util.function.BooleanSupplier current)
+							{ return _historicalBackgroundService.prepareVisibleRendezvous(id, _decisionEngine, root, source, expiry, current); }
+							@Override
+							public boolean unusable(MemberRef actor, long epoch, PhantomGoal root)
+							{
+								final var failure = _visibleFarmTravel.lastFailure(actor.profileId());
+								return failure != null && failure.disposition() == PhantomVisibleFarmTravel.Disposition.ROUTE_UNUSABLE
+									&& failure.goalId() == root.goalId() && failure.revision() == root.revision()
+									&& failure.objectId() == actor.characterObjectId() && failure.epoch() == epoch;
+								}
+						}, System::currentTimeMillis)));
 				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
 				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
 				if (_autonomousMarketProducer != null)

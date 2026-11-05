@@ -61,6 +61,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	public interface RendezvousPreparation
 	{
 		boolean prepare(long profileId, PhantomGoal expectedGoal, PhantomDomainRef sharedSource, long expiresMillis, java.util.function.BooleanSupplier currentReservation);
+		/** Cached negative proof only; this check must not advance travel or acquire persistence ownership. */
+		default boolean unusable(MemberRef actor, long epoch, PhantomGoal currentGoal) { return false; }
 	}
 
 	public PhantomAutonomousFarmParty(PhantomPartyCoordinator coordinator, PhantomPartyBackend backend, PhantomGoalStore goals, PhantomPartyRoleCatalog roles, LongSupplier clock,
@@ -312,7 +314,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 					.sorted(Comparator.comparing((MemberSnapshot member) -> !support(member)).thenComparingLong(member -> member.ref().profileId())).limit(MAXIMUM_CANDIDATES - 1).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 				nearby.removeIf(member -> member.ref().equals(leader.ref())); nearby.addFirst(leader);
 				final var team = selectRendezvousTeam(_roles, leader, nearby);
-				if (team.size() < 2) { continue; }
+				if (team.size() < 3) { continue; }
 				final var roster = new ArrayList<PhantomPartyRendezvousState.Participant>();
 				for (var actor : team)
 				{
@@ -378,6 +380,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	private boolean invalidOffer(PhantomPartyRendezvousState offer)
 	{
+		if (offer.roster().size() < 3) { return true; }
 		final int leaderLevel = _backend.currentLevel(offer.roster().getFirst().actor()).orElse(0);
 		for (int index = 0; index < offer.roster().size(); index++)
 		{
@@ -446,6 +449,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			var goal = _goals.load(participant.actor().profileId()).orElseThrow().goal();
 			if (current.state().phase() == PhantomPartyRendezvousState.Phase.ACCEPTED)
 			{
+				// A known unusable current source cannot be held ACCEPTED while preparation keeps refusing it.
+				if (offer.source().equals(farmSource(goal)) && _rendezvousPreparation.unusable(participant.actor(), participant.epoch(), goal))
+				{ cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); return true; }
 				if (!_rendezvousPreparation.prepare(participant.actor().profileId(), goal, offer.source(), offer.expiresMillis(), () -> currentOffer(offer, true))) { return true; }
 				goal = _goals.load(participant.actor().profileId()).orElseThrow().goal();
 				if (!offer.source().equals(farmSource(goal)) || goal.goalId() != participant.goalId() || goal.revision() < participant.goalRevision() || goal.revision() - participant.goalRevision() > 1) { cancelOffer(offer); return true; }
@@ -514,7 +520,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		final var team = new ArrayList<MemberSnapshot>();
 		team.add(leader); team.add(support);
 		candidates.stream().filter(member -> (rendezvous || compatible(leader, member)) && !member.ref().equals(support.ref()) && damage(member) && !prefersSupport(member) && !guardian(member)).findFirst().ifPresent(team::add);
-		if (team.size() < 3 && !rendezvous) { return List.of(); }
+		if (team.size() < 3) { return List.of(); }
 		candidates.stream().filter(member -> (rendezvous || compatible(leader, member)) && !team.contains(member) && guardian(member)).findFirst().ifPresent(team::add);
 		final var requirements = requirements(team);
 		if (roles.match(ObjectiveMode.GENERAL_PVE, requirements, team).vacancies().stream().anyMatch(vacancy -> vacancy.status() != VacancyStatus.FILLED)) { return List.of(); }

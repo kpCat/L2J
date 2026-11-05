@@ -142,7 +142,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		java.util.function.Predicate<PhantomTopologyAnchor> connected)
 	{
 		final var resumed = route == null ? null : resumeStep(route, factualDeparture, committed, live, destination);
-		if (resumed != null || factualDeparture != null || committed == null) { return resumed; }
+		if (resumed != null || (factualDeparture == null && committed == null)) { return resumed; }
 		final var ingress = idleIngress(anchors, live, destination, maximumDistance, connected);
 		// This is a bounded WALK proposal. Its actual arrival/store must establish the new departure.
 		return ingress == null ? null : new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND,

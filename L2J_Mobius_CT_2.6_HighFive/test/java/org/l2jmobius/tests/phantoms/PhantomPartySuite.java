@@ -523,6 +523,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final var damage = new MemberSnapshot(template.ref(), template.classId(), 0, 15000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), template.capabilities(), ZERO);
 			final var support = new MemberSnapshot(MemberRef.phantom(3, 103), 16, 0, -15000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(cap("combat.heal", "learned.heal", 100, 1011)), ZERO);
 			PhantomAssertions.assertEquals(3, PhantomAutonomousFarmParty.selectRendezvousTeam(matcher, leader, List.of(leader, damage, support)).size(), "Distant consenting DD core could not plan a rendezvous.");
+			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectRendezvousTeam(matcher, leader, List.of(leader, support)).isEmpty(), "A premature pair reserved the only healer before a second damage dealer became available.");
 			PhantomAssertions.assertFalse(PhantomAutonomousFarmParty.compatible(leader, damage), "Preparty negotiation loosened native locality.");
 			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, support)).isEmpty(), "Legacy selection silently bypassed rendezvous.");
 		});
@@ -1276,6 +1277,43 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, states.loadRendezvous(1).orElseThrow().state().phase(), "A terminal route kept consent active instead of returning to Solo.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Rendezvous fixture did not drain."); }
+		});
+		registry.add("129-terminal-current-source-cancels-before-adoption", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
+			for (long id : List.of(1L, 2L, 3L))
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				final var template = member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 3 ? cap("combat.heal", "learned.heal", 450, 1011) : cap("combat.melee_damage", "weapon", 300, 0)));
+				backend.snapshot(actor, new MemberSnapshot(actor, template.classId(), 0, (int) (id - 1) * 15000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), template.capabilities(), ZERO));
+				goals.put(id, new PhantomGoal(129000 + id, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "20101@farm.fixture")), new PhantomDomainRef("topology.anchor", "farm.fixture"), "background.history", 500, 0, 0, 0, Map.of(), "background.farm", 0));
+			}
+			final var clock = new AtomicLong(1_000_000_000L); final var preparationCalls = new java.util.concurrent.atomic.AtomicInteger();
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false,
+					(_, _) -> { throw new AssertionError("An unadopted reservation advanced native travel."); }, new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true),
+					new PhantomAutonomousFarmParty.RendezvousPreparation()
+					{
+						@Override
+						public boolean prepare(long id, PhantomGoal root, PhantomDomainRef source, long expiry, java.util.function.BooleanSupplier current)
+						{ preparationCalls.incrementAndGet(); return false; }
+						@Override
+						public boolean unusable(MemberRef actor, long epoch, PhantomGoal root)
+						{
+							PhantomAssertions.assertEquals(goals.load(actor.profileId()).orElseThrow().goal(), root, "Pre-adoption failure observation used a fabricated shared root.");
+							PhantomAssertions.assertEquals(1L, epoch, "Cached route proof used a different actor epoch.");
+							return true;
+						}
+					}, () -> 1000 + clock.get() / 1_000_000);
+				for (int pulse = 0; pulse < 12; pulse++) { clock.addAndGet(6_000_000_000L); adapter.onPulse(); coordinator.onPulse(); }
+				for (long id : List.of(1L, 2L, 3L))
+					{ PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, states.loadRendezvous(id).orElseThrow().state().phase(), "An already unusable current source kept preparty consent ACCEPTED."); }
+				PhantomAssertions.assertEquals(0, preparationCalls.get(), "Terminal route attempted a new shared-root handoff.");
+				PhantomAssertions.assertEquals(0, backend.invitationCount(), "An unusable source fabricated native membership.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Terminal source fixture did not drain."); }
 		});
 		registry.add("128-obsolete-restart-core-releases-only-proven-absent-orphan", context ->
 		{
