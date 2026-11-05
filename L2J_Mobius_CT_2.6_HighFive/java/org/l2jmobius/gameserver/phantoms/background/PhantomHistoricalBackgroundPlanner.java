@@ -168,6 +168,35 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		return Result.blocked("planner.visible_route.unavailable");
 	}
+	/** Select only the agreed farm source through the existing bounded target/route planner. */
+	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted)
+	{
+		final var source = rendezvousSource(sharedFarmSource);
+		final var previous = visiblePredecessor(profileId, previousGoal);
+		Objects.requireNonNull(admitted, "admitted");
+		if (state == null || state.identity().profileId() != profileId || !new PhantomDomainRef("profile", Long.toString(profileId)).equals(previousGoal.subject())
+			|| live == null || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
+		final var loadout = state.loadout();
+		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
+		final var candidate = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
+			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
+			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
+			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
+			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), excludedSteps, null, PlanningCombat.from(state), false,
+			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()));
+		return !candidate.ready() || admitted.test(candidate.goal()) ? candidate : Result.blocked("planner.rendezvous.travel_unavailable");
+	}
+
+	/** Exact shared source is an intent, never native arrival or an arbitrary XYZ. */
+	static PhantomBackgroundGoalSpec rendezvousSource(PhantomDomainRef source)
+	{
+		if (source == null || !PhantomBackgroundGoalSpec.SOURCE_NAMESPACE.equals(source.namespace()) || !source.key().matches("[1-9][0-9]{0,9}@[^@]+"))
+		{ throw new IllegalArgumentException("Invalid rendezvous farm source."); }
+		final int separator = source.key().indexOf('@');
+		return new PhantomBackgroundGoalSpec(Integer.parseInt(source.key().substring(0, separator)), source.key().substring(separator + 1), 0, 0, 0, 0, 0);
+	}
+
 	/** Historical idle is a predecessor only, never a visible farming candidate. */
 	static PhantomBackgroundGoalSpec visiblePredecessor(long profileId, PhantomGoal goal)
 	{

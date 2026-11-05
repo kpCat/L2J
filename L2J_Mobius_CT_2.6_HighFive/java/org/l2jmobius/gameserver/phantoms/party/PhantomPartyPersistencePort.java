@@ -16,6 +16,18 @@ public interface PhantomPartyPersistencePort
 
 	List<StoredPartyState> loadManagedAfter(long exclusiveProfileId, int pageSize);
 
+	default Optional<StoredRendezvous> loadRendezvous(long profileId) { return Optional.empty(); }
+	default StoredRendezvous saveRendezvous(long profileId, long expectedRowVersion, PhantomPartyRendezvousState state)
+	{ throw new UnsupportedOperationException("Durable rendezvous CAS is unavailable."); }
+	record StoredRendezvous(long profileId, long rowVersion, PhantomPartyRendezvousState state)
+	{
+		public StoredRendezvous
+		{
+			if (profileId <= 0 || rowVersion < 0 || state == null || state.profileId() != profileId)
+			{ throw new IllegalArgumentException("Foreign rendezvous component."); }
+		}
+	}
+
 	default Optional<StoredRegroupClock> loadRegroupClock(long profileId) { return Optional.empty(); }
 
 	default StoredRegroupClock saveRegroupClock(long profileId, long expectedRowVersion, PhantomPartyRegroupState state)

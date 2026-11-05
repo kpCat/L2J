@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStor
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -1310,18 +1311,38 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** The scheduler boundary owns sync and recovery, outside gameplay/decision locks. */
 	public boolean prepareVisibleDecision(long profileId, PhantomDecisionEngine decision)
 	{
+		return prepareVisibleDecision(profileId, decision, null, null, 0, () -> true);
+	}
+
+	/** Adopt an accepted shared source through the existing quiet Background publication. */
+	public boolean prepareVisibleRendezvous(long profileId, PhantomDecisionEngine decision, PhantomGoal expectedGoal,
+		PhantomDomainRef sharedFarmSource, long expiresEpochMillis, java.util.function.BooleanSupplier reservationCurrent)
+	{
+		Objects.requireNonNull(expectedGoal, "expectedGoal");
+		PhantomHistoricalBackgroundPlanner.rendezvousSource(sharedFarmSource);
+		Objects.requireNonNull(reservationCurrent, "reservationCurrent");
+		if (expiresEpochMillis <= System.currentTimeMillis()) { return false; }
+		return prepareVisibleDecision(profileId, decision, expectedGoal, sharedFarmSource, expiresEpochMillis,
+			() -> System.currentTimeMillis() < expiresEpochMillis && reservationCurrent.getAsBoolean());
+	}
+
+	private boolean prepareVisibleDecision(long profileId, PhantomDecisionEngine decision, PhantomGoal expectedGoal,
+		PhantomDomainRef sharedFarmSource, long expiresEpochMillis, java.util.function.BooleanSupplier reservationCurrent)
+	{
 		String stage = "runtime";
 		boolean prepared = false;
 		try
 		{
+			if (sharedFarmSource != null && !rendezvousCurrent(profileId, expectedGoal, reservationCurrent)) { return false; }
 			final var runtime = decision.find(profileId).orElse(null);
 			if ((runtime == null) || runtime.inFlight() || runtime.persistenceInFlight()) { return false; }
 			final var receipt = _visiblePublications.get(profileId);
 			stage = "pending_publication";
-			if (receipt != null) { prepared = finishVisiblePublication(profileId, decision, receipt); return prepared; }
+			if (receipt != null) { if (sharedFarmSource != null) { return false; } prepared = finishVisiblePublication(profileId, decision, receipt); return prepared; }
 			stage = "goal";
 			final StoredGoal stored = _goals.load(profileId).orElse(null);
 			if (stored == null) { return false; }
+			if (sharedFarmSource != null && !Objects.equals(stored.goal(), expectedGoal)) { return false; }
 			if (_foregroundDecisionsRevoked) { return false; }
 			stage = "checkpoint";
 			final var checkpoint = _background.continueVisibleCheckpoint(profileId, stored.goal()).orElse(null);
@@ -1329,6 +1350,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				&& checkpoint.outcome() != org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.RETRY_BEFORE_WRITE) { return false; }
 			if (_background.hasVisibleOwnedStorePending(profileId, stored.goal()))
 			{
+				if (sharedFarmSource != null) { return false; }
 				final var pending = _materialization.find(profileId).orElse(null);
 				final var player = pending == null ? null : org.l2jmobius.gameserver.model.World.getInstance().getPlayer(pending.characterObjectId());
 				if ((player == null) || (_background.resumeVisibleOwnedStore(profileId, player, stored.goal()).status() != PhantomBackgroundService.VisibleStoreStatus.SUCCESS)) { return false; }
@@ -1354,10 +1376,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					|| !Objects.equals(stored, _goals.load(profileId).orElse(null)) || !permitsDecision(profileId)) { return false; }
 			}
 			final boolean historicalIdle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(stored.goal().goalType());
-			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = true; return true; }
+			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = sharedFarmSource == null; return prepared; }
 			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
-			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal())) { prepared = true; return true; }
+			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal())) { prepared = sharedFarmSource == null; return prepared; }
 			stage = "lifetime";
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime == null) { return false; }
@@ -1372,6 +1394,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (baseline == null) { return false; }
 			final Snapshot catchup = _store.load(profileId).orElse(null);
 			final var generation = _planner.generation();
+			if (sharedFarmSource != null)
+			{
+				if (_acceptedIntent.test(profileId, stored.goal()) || !rendezvousCurrent(profileId, expectedGoal, reservationCurrent)) { return false; }
+				if (_visibleAutoPlay != null && _visibleAutoPlay.running(profileId, stored.goal())
+					&& !_visibleAutoPlay.yieldAfterCurrentTarget(profileId, expiresEpochMillis)) { return false; }
+				// Busy native owners keep their current action; recruitment cannot cancel a pull, cast or store.
+				try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+				{
+					if (action == null || action.player().isInCombat() || action.player().isAttackingNow() || action.player().isCastingNow()
+						|| action.player().isCastingSimultaneouslyNow() || action.player().getQueuedSkill() != null || action.player().hasPendingOwnedStore()
+						|| _visibleAutoPlay != null && _visibleAutoPlay.running(profileId, stored.goal())) { return false; }
+				}
+				if (!rendezvousCurrent(profileId, expectedGoal, reservationCurrent)) { return false; }
+			}
 			if (historicalIdle)
 			{
 				stage = "historical_idle_claim";
@@ -1421,7 +1457,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if (action == null) { return false; }
 				player = action.player();
 				if (player.hasPendingOwnedStore() || (player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId())) { return false; }
-				if (player.isDead()) { prepared = !historicalIdle; return prepared; } // Existing native farm death/recovery remains the decision adapter's responsibility.
+				if (player.isDead()) { prepared = sharedFarmSource == null && !historicalIdle; return prepared; } // Existing native farm death/recovery remains the decision adapter's responsibility.
 				final var progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 				// Planning reads current gear/resources; the persisted transaction baseline stays unchanged.
 				final var skill = org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.offensiveSkill(player, null);
@@ -1435,7 +1471,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final boolean routeRecovery = !historicalIdle && (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
 			stage = "suitability_travel";
-			if (!historicalIdle && !authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())))
+			if (!historicalIdle && !authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal()))
+				&& (sharedFarmSource == null || stored.goal().validSources().contains(sharedFarmSource)))
 			{
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
 				// A lawful assigned farm may differ from the last committed departure anchor.
@@ -1447,6 +1484,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			stage = "accepted_intent";
 			if (_acceptedIntent.test(profileId, stored.goal())) { return false; }
 			stage = "stop_for_recovery";
+			if (sharedFarmSource != null && !rendezvousCurrent(profileId, expectedGoal, reservationCurrent)) { return false; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
 			if (_visibleAutoPlay != null) { _visibleAutoPlay.stop(profileId); }
 			stage = "actor_quiet";
@@ -1459,13 +1497,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			stage = "local_replan";
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
 			if (routeRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
-			else if (!authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
+			else if (sharedFarmSource == null && !authorityRenewal && !historicalIdle) { recovery.targets.add(targetKey(stored.goal())); }
 			if ((recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now); return false; }
 			final var excluded = new java.util.HashSet<>(exclusions.targets()); excluded.addAll(recovery.targets);
 			if (routeRecovery) { excluded.add(targetKey(stored.goal())); }
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
-			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(),
-				candidate -> _planner.isVisibleLocal(candidate, live) || (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player)));
+			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate -> _planner.isVisibleLocal(candidate, live)
+				|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player));
+			final var replacement = sharedFarmSource == null
+				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
+				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(),
+					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
 			if (!replacement.ready())
 			{
 				final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
@@ -1484,6 +1526,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				: new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), nextOrdinal, state.intervalOrdinal(), state.generation(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.goal().goalId(), replacement.goal().revision(), replacement.planIdentity(), state.modelVersion(), replacement.generation().authorityHashes(), state.failureReason());
 			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal());
 			if (_visiblePublications.putIfAbsent(profileId, publication) != null) { return false; }
+			if (sharedFarmSource != null && (!rendezvousCurrent(profileId, expectedGoal, reservationCurrent)
+				|| !visibleActorQuiet(profileId, player, lifetime.materializedAtNanos()) || player.isInCombat()))
+			{ _visiblePublications.remove(profileId, publication); return false; }
 			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
 			catch (RuntimeException exception)
 			{
@@ -1492,7 +1537,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if ((persisted != null) && (persistedGoal != null) && persisted.state().equals(updated) && persistedGoal.goal().equals(replacement.goal()) && (persisted.rowVersion() == catchup.rowVersion() + 1) && (persistedGoal.rowVersion() == stored.rowVersion() + 1)) { publication.committed = new PlannedSnapshot(persisted, persistedGoal); }
 				else { _visiblePublications.remove(profileId, publication); return false; }
 			}
-			if (!historicalIdle && !authorityRenewal && !routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
+			if (sharedFarmSource == null && !historicalIdle && !authorityRenewal && !routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
 			stage = "finish_publication";
 			prepared = finishVisiblePublication(profileId, decision, publication);
 			return prepared;
@@ -1507,6 +1552,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				else if (_visiblePreparationStages.containsKey(profileId) || _visiblePreparationStages.size() < 1024) { _visiblePreparationStages.put(profileId, "pre_visible." + stage); }
 			}
 		}
+	}
+
+	private boolean rendezvousCurrent(long profileId, PhantomGoal expectedGoal, java.util.function.BooleanSupplier reservationCurrent)
+	{
+		return !_foregroundDecisionsRevoked && reservationCurrent.getAsBoolean()
+			&& Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), expectedGoal);
 	}
 
 	private boolean finishVisiblePublication(long profileId, PhantomDecisionEngine decision, VisiblePublication receipt)

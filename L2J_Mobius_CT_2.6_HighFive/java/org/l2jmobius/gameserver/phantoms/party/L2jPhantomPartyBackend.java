@@ -61,6 +61,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 {
 	// This is a World census budget, independent of the size of one Party/CommandChannel.
 	private static final int MAX_RESTART_ABSENCE_PLAYERS = 256;
+	private java.util.function.BiFunction<Long, Integer, List<Long>> _scheduledFarmDiscovery;
+	private java.util.function.LongPredicate _farmAdmission = _ -> false;
+	private long _scheduledFarmCursor;
+
+	public void installScheduledFarmDiscovery(java.util.function.BiFunction<Long, Integer, List<Long>> discovery, java.util.function.LongPredicate admitted)
+	{
+		_scheduledFarmDiscovery = java.util.Objects.requireNonNull(discovery);
+		_farmAdmission = java.util.Objects.requireNonNull(admitted);
+	}
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
@@ -267,9 +276,30 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	@Override
+	public long materializationEpoch(MemberRef member)
+	{
+		if (member == null || member.kind() != MemberKind.PHANTOM) { return 0; }
+		return _materialization.find(member.profileId()).filter(entry -> entry.worldPresent() && entry.characterObjectId() == member.characterObjectId())
+			.map(entry -> entry.materializedAtNanos()).orElse(0L);
+	}
+
+	@Override
 	public FarmPage materializedFarmMembers(long afterProfileId, int limit)
 	{
 		if (limit < 1 || limit > PhantomAutonomousFarmParty.MAXIMUM_CANDIDATES) { return new FarmPage(List.of(), afterProfileId); }
+		if (_scheduledFarmDiscovery != null)
+		{
+			// One shared durable page, at most one ordinary admitted materialization attempt.
+			// No capacity, ecology, historical catchup or visible-human retirement guard is bypassed.
+			final var scheduled = _scheduledFarmDiscovery.apply(_scheduledFarmCursor, limit);
+			if (scheduled.size() > limit || scheduled.stream().anyMatch(id -> id <= _scheduledFarmCursor)
+				|| scheduled.stream().distinct().count() != scheduled.size()) { return new FarmPage(List.of(), afterProfileId); }
+			_scheduledFarmCursor = scheduled.isEmpty() ? 0 : scheduled.getLast();
+			for (long id : scheduled)
+			{
+				if (_farmAdmission.test(id) && _materialization.find(id).isEmpty()) { materialize(id); break; }
+			}
+		}
 		final List<MemberSnapshot> result = new ArrayList<>();
 		long examined = afterProfileId;
 		for (var entry : _materialization.list().stream().filter(entry -> entry.worldPresent() && entry.profileId() > afterProfileId).sorted(java.util.Comparator.comparingLong(entry -> entry.profileId())).limit(limit).toList())
@@ -327,6 +357,16 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (acquired == null) { return false; }
 			final var player = acquired.player();
 			return farmAvailable(player) && farmIdle(player);
+		}
+	}
+
+	@Override
+	public boolean autonomousFarmReservationAvailable(MemberRef member)
+	{
+		if (member == null || member.kind() != MemberKind.PHANTOM) { return false; }
+		try (var acquired = acquire(member))
+		{
+			return acquired != null && farmAvailable(acquired.player()) && !acquired.player().isInParty();
 		}
 	}
 

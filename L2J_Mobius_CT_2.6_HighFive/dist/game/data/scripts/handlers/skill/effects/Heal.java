@@ -19,6 +19,7 @@ package handlers.skill.effects;
 import org.l2jmobius.gameserver.config.custom.ClassBalanceConfig;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.conditions.Condition;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectType;
@@ -117,7 +118,21 @@ public class Heal extends AbstractEffect
 		amount = Math.max(Math.min(amount, effected.getMaxRecoverableHp() - effected.getCurrentHp()), 0);
 		if (amount != 0)
 		{
-			effected.setCurrentHp(amount + effected.getCurrentHp());
+			if (PlayerNativeEvidence.observesHeal())
+			{
+				final double beforeHp, afterHp;
+				synchronized (effected.getStatus())
+				{
+					beforeHp = effected.getCurrentHp();
+					effected.setCurrentHp(amount + beforeHp);
+					afterHp = effected.getCurrentHp();
+				}
+				PlayerNativeEvidence.nativeHealWritten(effector, effected, skill, beforeHp, afterHp);
+			}
+			else
+			{
+				effected.setCurrentHp(amount + effected.getCurrentHp());
+			}
 		}
 		
 		if (effected.isPlayer())

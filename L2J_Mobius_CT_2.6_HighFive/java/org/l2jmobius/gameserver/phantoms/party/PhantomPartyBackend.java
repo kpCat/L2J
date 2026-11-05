@@ -84,8 +84,13 @@ public interface PhantomPartyBackend
 		return new FarmPage(List.of(), afterProfileId);
 	}
 
+	/** Current managed materialization lifetime; zero never authorizes a pre-party reservation. */
+	default long materializationEpoch(MemberRef member) { return 0; }
+
 	default boolean autonomousFarmReady(PartySnapshot party) { return false; }
 	default boolean autonomousFarmAvailable(MemberRef member) { return false; }
+	/** Agreement may wait for an ongoing owned pull; actual native invitation still requires idle availability. */
+	default boolean autonomousFarmReservationAvailable(MemberRef member) { return autonomousFarmAvailable(member); }
 	default boolean autonomousFarmConsentAvailable(MemberRef requester, MemberRef invitee, InvitationIdentity identity) { return false; }
 
 	/** Positive absence proof for an unmaterialized restart orphan; unavailable observation is insufficient. */

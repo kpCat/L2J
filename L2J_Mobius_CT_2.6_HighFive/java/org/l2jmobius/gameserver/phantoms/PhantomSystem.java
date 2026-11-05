@@ -551,8 +551,9 @@ public final class PhantomSystem
 				final PhantomPopulationCatalog populationCatalog = PhantomPopulationCatalog.load(populationCatalogFile.toPath(), _settings.populationTimeZone());
 				final PhantomPopulationCatalog populationPredecessor = PhantomPopulationCatalog.load(populationPredecessorFile.toPath(), _settings.populationTimeZone());
 				final PhantomPopulationCatalog populationV2Predecessor = PhantomPopulationCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-population-v2.xml").toPath(), _settings.populationTimeZone());
+				final var populationStore = new PhantomPopulationStore(productionProfiles, populationCatalog, populationPredecessor, populationV2Predecessor, _settings.populationTimeZone());
 				_populationManager = new PhantomPopulationManager(
-					new PhantomPopulationStore(productionProfiles, populationCatalog, populationPredecessor, populationV2Predecessor, _settings.populationTimeZone()),
+					populationStore,
 					populationCatalog,
 					productionGoals,
 					_scheduler,
@@ -590,6 +591,11 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom semantic understanding service could not enter the running state.");
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
+				if (_settings.partySeeking().enabled())
+				{
+					partyBackend.installScheduledFarmDiscovery((after, limit) -> populationStore.loadManagedAfter(after, limit).stream().map(entry -> entry.profile().profileId()).toList(),
+						profileId -> _populationManager.admissionProfile(profileId).map(profile -> profile.admitted()).orElse(false));
+				}
 				final PhantomPartySupportPolicy partySupportPolicy = PhantomPartySupportPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-support-v1.xml").toPath());
 				final L2jPhantomRaidAuthority raidAuthority = new L2jPhantomRaidAuthority();
 				final PhantomRaidEncounterCatalog raidCatalog = new PhantomRaidEncounterCatalog();
@@ -616,6 +622,8 @@ public final class PhantomSystem
 					_socialService,
 					() -> System.currentTimeMillis() / 60000L,
 					socialAffiliations);
+				_partyCoordinator.installHumanFollowPreference(_settings.partySeeking().preferHumanFollow());
+				_visibleAutoPlay.bindAssemblyWait(_partyCoordinator::assemblyDeadline);
 				if (!_partyCoordinator.start())
 				{
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
@@ -909,7 +917,8 @@ public final class PhantomSystem
 				_populationManager.installDecisionEngine(_decisionEngine);
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
 				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney,
-					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _supplyJourney::blocksAutonomousParty, _visibleFarmTravel::observeArrival)));
+					new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _supplyJourney::blocksAutonomousParty, _visibleFarmTravel::observeArrival,
+						_settings.partySeeking(), (id, root, source, expiry, current) -> _historicalBackgroundService.prepareVisibleRendezvous(id, _decisionEngine, root, source, expiry, current), System::currentTimeMillis)));
 				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
 				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
 				if (_autonomousMarketProducer != null)
@@ -2434,6 +2443,12 @@ public final class PhantomSystem
 		final PhantomSystem configured = _configuredInstance;
 		if (configured == null || configured._state != State.RUNNING) { return Map.of(); }
 		final Map<String, String> result = new java.util.LinkedHashMap<>();
+		if (configured._partyCoordinator != null)
+		{
+			result.put("party.rendezvous", configured._partyCoordinator.rendezvousProgress(profileId));
+			result.put("party.claim", configured._partyCoordinator.claim(profileId).toString());
+		}
+		if (configured._visibleFarmTravel != null) { result.put("farm.travel.reason", configured._visibleFarmTravel.reason(profileId)); }
 		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
 		if (configured._visibleAutoPlay != null) { result.put("native.autoplay", configured._visibleAutoPlay.snapshotContinuation(profileId).scalarMap().toString()); }
 		final var commerce = configured._commerceReceiptStore == null ? null : configured._commerceReceiptStore.find(profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);

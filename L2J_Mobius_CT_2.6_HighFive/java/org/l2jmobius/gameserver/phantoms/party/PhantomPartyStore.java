@@ -73,6 +73,27 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 	}
 
 	@Override
+	public Optional<StoredRendezvous> loadRendezvous(long profileId)
+	{
+		return _profiles.findComponent(profileId, PhantomPartyRendezvousState.COMPONENT_TYPE).map(this::decodeRendezvous);
+	}
+
+	@Override
+	public StoredRendezvous saveRendezvous(long profileId, long expectedRowVersion, PhantomPartyRendezvousState state)
+	{
+		if (state.profileId() != profileId) { throw new IllegalArgumentException("Foreign rendezvous owner."); }
+		return decodeRendezvous(expectedRowVersion < 0
+			? _profiles.insertComponent(profileId, PhantomPartyRendezvousState.COMPONENT_TYPE, PhantomPartyRendezvousState.SCHEMA_VERSION, state.encode())
+			: _profiles.updateComponent(profileId, PhantomPartyRendezvousState.COMPONENT_TYPE, expectedRowVersion, PhantomPartyRendezvousState.SCHEMA_VERSION, state.encode()));
+	}
+
+	private StoredRendezvous decodeRendezvous(PhantomProfileComponent component)
+	{
+		if (component.componentSchemaVersion() != PhantomPartyRendezvousState.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown rendezvous schema."); }
+		return new StoredRendezvous(component.profileId(), component.rowVersion(), PhantomPartyRendezvousState.decode(component.payload()));
+	}
+
+	@Override
 	public StoredRegroupClock saveRegroupClock(long profileId, long expectedRowVersion, PhantomPartyRegroupState state)
 	{
 		if (state.actor().profileId() != profileId) { throw new IllegalArgumentException("Foreign regroup owner."); }

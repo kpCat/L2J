@@ -15,6 +15,30 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("129-causal-heal-observation-is-exact-and-cannot-change-native-outcome", _ ->
+		{
+			final var method = PlayerNativeEvidence.class.getMethod("healed", int.class, long.class, int.class, long.class, int.class, int.class, double.class, double.class, double.class, long.class);
+			final var field = PlayerNativeEvidence.class.getDeclaredField("_healObserver"); field.setAccessible(true);
+			final var failureField = PlayerNativeEvidence.class.getDeclaredField("_healObserverFailure"); failureField.setAccessible(true);
+			final Object previous = field.get(null), previousFailure = failureField.get(null);
+			final var events = new java.util.ArrayList<long[]>();
+			try
+			{
+				field.set(null, (java.util.function.BiConsumer<String, long[]>) (kind, values) -> { PhantomAssertions.assertEquals("HEAL", kind, "Native HP writer needs a distinct event kind."); events.add(values); });
+				final var sensor = new PlayerNativeEvidence(1, 100);
+				method.invoke(sensor, 1, 99L, 2, 200L, 1011, 3, 50d, 80d, 90d, 500L);
+				method.invoke(sensor, 1, 100L, 1, 200L, 1011, 3, 50d, 80d, 90d, 500L);
+				method.invoke(sensor, 1, 100L, 2, 200L, 1011, 3, 50d, 50d, 90d, 500L);
+				method.invoke(sensor, 1, 100L, 2, 200L, 1011, 3, 50d, 80d, 90d, 500L);
+				PhantomAssertions.assertEquals(1, events.size(), "Stale/self/zero-HP observations must not publish Heal.");
+				PhantomAssertions.assertTrue(java.util.Arrays.equals(new long[] {1, 100, 2, 200, 1011, 3, Double.doubleToRawLongBits(50), Double.doubleToRawLongBits(80), Double.doubleToRawLongBits(90), 500}, events.getFirst()), "Receipt binds actual caster/recipient epochs, learned skill and native HP/MP/reuse.");
+				field.set(null, (java.util.function.BiConsumer<String, long[]>) (kind, values) -> { throw new IllegalStateException("TEST129_OBSERVER_FAILURE"); });
+				method.invoke(sensor, 1, 100L, 2, 200L, 1011, 3, 50d, 80d, 90d, 500L);
+				PhantomAssertions.assertEquals("java.lang.IllegalStateException", failureField.get(null), "Observer failure remains diagnostic only.");
+				PhantomAssertions.assertFalse(sensor.snapshot(101).overflow(), "Observer failure must not poison the native owner.");
+			}
+			finally { field.set(null, previous); failureField.set(null, previousFailure); }
+		});
 		registry.add("123-successful-consumption-is-exact-and-observational", _ ->
 		{
 			final var method = PlayerNativeEvidence.class.getMethod("consumed", int.class, long.class, int.class, int.class, long.class, long.class);

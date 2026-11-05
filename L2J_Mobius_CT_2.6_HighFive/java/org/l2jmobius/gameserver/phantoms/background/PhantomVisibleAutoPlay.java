@@ -51,6 +51,13 @@ import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
 /** Runs the existing AutoPlay and AutoUse pools only while an ordinary visible goal owns the materialized Player. */
 public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifecyclePort
 {
+	private java.util.function.LongUnaryOperator _assemblyDeadline = _ -> 0;
+
+	/** Bind the existing Party owner's finite pre-party wait; no Party authority is created here. */
+	public void bindAssemblyWait(java.util.function.LongUnaryOperator assemblyDeadline)
+	{
+		_assemblyDeadline = Objects.requireNonNull(assemblyDeadline);
+	}
 	private static final Logger LOGGER = Logger.getLogger(PhantomVisibleAutoPlay.class.getName());
 	private static final long RECOVERY_DELAY_NANOS = 30_000_000_000L;
 	private static final long STALL_DELAY_NANOS = 90_000_000_000L;
@@ -113,6 +120,12 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	public boolean start(long profileId, PhantomGoal goal)
 	{
+		final long assemblyDeadline = _assemblyDeadline.applyAsLong(profileId);
+		if (assemblyDeadline > System.currentTimeMillis())
+		{
+			yieldAfterCurrentTarget(profileId, assemblyDeadline);
+			return false;
+		}
 		final PhantomBackgroundGoalSpec spec;
 		try
 		{

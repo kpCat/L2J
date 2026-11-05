@@ -23,6 +23,7 @@ public final class PhantomFarm074Checks
 
 	public static void main(String[] args) throws Exception
 	{
+		rendezvous();
 		final java.lang.reflect.Method admittedReplan;
 		try { admittedReplan = PhantomHistoricalBackgroundPlanner.class.getMethod("replanVisibleLocal", long.class, PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, Set.class, Set.class, java.util.function.Predicate.class); }
 		catch (NoSuchMethodException missing) { throw new AssertionError("RED: rejected preferred distant route must not starve an admissible alternative.", missing); }
@@ -61,6 +62,40 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(rejected.ready(), "No admitted remote source must remain unavailable.");
 		PhantomAssertions.assertTrue(inspections.get() <= 3, "Remote admission exceeded the existing bounded retry budget.");
 		System.out.println("FARM074_ADMISSION_PASS; rejected preferred source skipped; affordable alternative selected; max3; DB_WRITES=0");
+	}
+
+	private static void rendezvous() throws Exception
+	{
+		final java.lang.reflect.Method replan;
+		try { replan = PhantomHistoricalBackgroundPlanner.class.getMethod("replanVisibleRendezvous", long.class, PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, PhantomDomainRef.class, Set.class, java.util.function.Predicate.class); }
+		catch (NoSuchMethodException missing) { throw new AssertionError("RED129: an accepted remote farm source must replace the local choice through the existing planner.", missing); }
+		final var planner = planner(true, true); final var previous = goal(); final var before = state();
+		final var source = new PhantomDomainRef("background.farm", "103@farm.alternative");
+		final java.util.function.Predicate<PhantomGoal> allow = _ -> true;
+		final var shared = (PhantomHistoricalBackgroundPlanner.Result) replan.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, source, Set.of(), allow);
+		PhantomAssertions.assertTrue(shared.ready(), "A distant accepted source must be selectable even while a different local farm remains suitable.");
+		PhantomAssertions.assertEquals("farm.alternative", shared.spec().anchorId(), "Rendezvous cannot silently fall back to an individually preferred spot.");
+		PhantomAssertions.assertEquals(103, shared.spec().npcId(), "Rendezvous must retain the exact accepted native target source.");
+		PhantomAssertions.assertEquals(List.of("farm.alternative.link"), shared.routeEdgeIds(), "A distant shared source needs its existing canonical itinerary.");
+		PhantomAssertions.assertEquals(740074L, shared.goal().goalId(), "Rendezvous retains the actor's own root identity.");
+		PhantomAssertions.assertEquals(2L, shared.goal().revision(), "Rendezvous advances the own root revision once.");
+		PhantomAssertions.assertEquals(before, state(), "Planning cannot mutate earned state or claim native arrival.");
+		System.out.println("RENDEZVOUS129_PLANNER_PASS; exact remote source; own root/revision; DB_WRITES=0; NATIVE_ARRIVAL=0");
+		final java.util.function.Predicate<PhantomGoal> deny = _ -> false;
+		for (var result : List.of(
+			(PhantomHistoricalBackgroundPlanner.Result) replan.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, source, Set.of("farm.alternative.link"), allow),
+			(PhantomHistoricalBackgroundPlanner.Result) replan.invoke(planner(false), 74L, before, previous, 740074L, 1L, LOCAL, new PhantomDomainRef("background.farm", "102@farm.far"), Set.of(), allow),
+			(PhantomHistoricalBackgroundPlanner.Result) replan.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, source, Set.of(), deny),
+			(PhantomHistoricalBackgroundPlanner.Result) replan.invoke(planner, 74L, before, previous, 740074L, 1L, new PhantomTopologyPoint(100, 100, 0, 1), source, Set.of(), allow)))
+		{
+			PhantomAssertions.assertFalse(result.ready(), "Rendezvous cannot bypass excluded, disconnected, denied or foreign-instance travel.");
+		}
+		for (var malformed : List.of(new PhantomDomainRef("npc", "103"), new PhantomDomainRef("background.farm", "103@farm.alternative@extra"), new PhantomDomainRef("background.farm", "0@farm.alternative")))
+		{
+			try { replan.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, malformed, Set.of(), allow); throw new AssertionError("Malformed rendezvous source was admitted."); }
+			catch (java.lang.reflect.InvocationTargetException rejected) { PhantomAssertions.assertTrue(rejected.getCause() instanceof IllegalArgumentException, "Malformed source must be rejected by its contract."); }
+		}
+		System.out.println("RENDEZVOUS129_FENCES_PASS; exact source; route/admission/instance negatives; DB_WRITES=0");
 	}
 
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked)

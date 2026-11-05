@@ -379,6 +379,42 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final AtomicLong _socialEventFailures = new AtomicLong();
 	private final PhantomPartyMetrics _metrics = new PhantomPartyMetrics();
 	private volatile State _state = State.NEW;
+	private boolean _preferHumanFollow = true;
+	private final java.util.concurrent.ConcurrentMap<Long, PhantomPartyRendezvousState> _rendezvousClaims = new java.util.concurrent.ConcurrentHashMap<>();
+
+	/** Memory-only admission for new Solo pulls, never a blanket Combat/STORE/travel fence. */
+	public long assemblyDeadline(long profileId)
+	{
+		final var reservation = _rendezvousClaims.get(profileId);
+		if (_state != State.RUNNING || reservation == null || !reservation.active(System.currentTimeMillis())
+			|| reservation.phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && reservation.phase() != PhantomPartyRendezvousState.Phase.ARRIVED
+			|| reservation.participant().epoch() != _backend.materializationEpoch(reservation.participant().actor())) { return 0; }
+		return reservation.expiresMillis();
+	}
+
+	/** Optional bounded operator evidence; no SQL reads and no effect on admission. */
+	public String rendezvousProgress(long profileId)
+	{
+		final var reservation = _rendezvousClaims.get(profileId);
+		return reservation == null ? "NONE" : reservation.toString();
+	}
+
+	/** Startup-only navigation preference, independent of native Party/Clan permissions. */
+	public void installHumanFollowPreference(boolean preferHumanFollow)
+	{
+		if (_state != State.NEW) { throw new IllegalStateException("Follow preference is startup-only."); }
+		_preferHumanFollow = preferHumanFollow;
+	}
+
+	public static MemberRef navigationAnchor(PartySnapshot party, boolean preferHumanFollow)
+	{
+		if (preferHumanFollow)
+		{
+			final var humans = party.members().stream().filter(member -> member.kind() == MemberKind.REAL).toList();
+			if (humans.size() == 1) { return humans.getFirst(); }
+		}
+		return party.leader();
+	}
 	private volatile DeliveryRegistration _deliveryRegistration;
 	private volatile int _lastPulseExamined;
 	private volatile int _maximumPulseExamined;
@@ -1495,6 +1531,32 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return Optional.ofNullable(_claims.get(profileId));
 	}
 
+	public Optional<PhantomPartyPersistencePort.StoredRendezvous> rendezvous(long profileId)
+	{
+		final var stored = _store.loadRendezvous(profileId);
+		stored.ifPresent(value -> _rendezvousClaims.put(profileId, value.state()));
+		return stored;
+	}
+
+	/** Per-profile CAS only: the autonomous owner re-observes the complete consent saga before movement. */
+	public Optional<PhantomPartyPersistencePort.StoredRendezvous> saveRendezvous(long expectedVersion, PhantomPartyRendezvousState proposed)
+	{
+		final OperationClaim control = beginOperation();
+		if (control == null) { return Optional.empty(); }
+		try (control)
+		{
+			final var own = proposed.participant();
+			if (!_backend.currentMember(proposed.profileId()).filter(own.actor()::equals).isPresent() || _backend.materializationEpoch(own.actor()) != own.epoch()) { return Optional.empty(); }
+			try
+			{
+				final var saved = _store.saveRendezvous(proposed.profileId(), expectedVersion, proposed);
+				_rendezvousClaims.put(proposed.profileId(), saved.state());
+				return Optional.of(saved);
+			}
+			catch (RuntimeException exception) { _metrics.conflict(); return Optional.empty(); }
+		}
+	}
+
 	/** A factual group pull still enters the same tactical combat owner as ASSIST. */
 	public boolean requestAutonomousFarm(long leaderProfileId)
 	{
@@ -2128,6 +2190,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			examined += dispatchTactics(party, remainingBudget - examined);
 		}
+		if (examined < remainingBudget)
+		{
+			examined += advanceRealFollow(party, remainingBudget - examined);
+		}
 		return Math.min(remainingBudget, examined);
 	}
 
@@ -2184,12 +2250,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private int advanceRealFollow(PartySnapshot party, int remainingBudget)
 	{
-		if (party.leader().kind() != MemberKind.REAL)
-		{
-			return 0;
-		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
-		final MemberSnapshot leader = snapshots.get(party.leader());
+		final MemberRef anchor = navigationAnchor(party, _preferHumanFollow);
+		final MemberSnapshot leader = snapshots.get(anchor);
 		int examined = 0;
 		for (MemberRef member : party.members())
 		{
@@ -2198,16 +2261,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				continue;
 			}
 			final StoredPartyState claim = _claims.get(member.profileId());
-			if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(party.leader()) || holdsMovement(member.profileId()))
+			if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(party.leader()) || holdsMovement(member.profileId()) || routeActivity(claim.state()).nonTerminal())
 			{
 				continue;
 			}
 			final String groupId = claim.state().groupId();
 			final long generation = claim.state().groupGeneration();
+			if (member.equals(anchor)) { _routes.cancelFollow(groupId, generation, member.profileId()); continue; }
 			examined += _routes.follow(groupId, generation, snapshots.get(member), leader, _topologyHash.get(), Math.max(0, _clock.getAsLong()), remainingBudget - examined, () ->
 			{
 				final StoredPartyState current = _claims.get(member.profileId());
-				return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(groupId) || (current.state().groupGeneration() != generation) || !current.state().leader().equals(party.leader()) || !current.state().phantomMembers().contains(member);
+				return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(groupId) || (current.state().groupGeneration() != generation) || !current.state().leader().equals(party.leader()) || !current.state().phantomMembers().contains(member)
+					// Cancellation is polled under Combat ownership: use the bounded native-reconcile cache, never JDBC.
+					|| !anchor.equals(_preferHumanFollow && current.state().realMembers().size() == 1 ? current.state().realMembers().getFirst() : current.state().leader());
 			});
 		}
 		return examined;

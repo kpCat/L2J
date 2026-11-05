@@ -19,6 +19,31 @@ public final class PlayerNativeEvidence
 	// TEST-only observer of existing successful writers; it never selects or changes a recipient.
 	private static volatile java.util.function.BiConsumer<String, long[]> _pickupObserver;
 	private static volatile String _pickupObserverFailure = "";
+	// TEST-only scalar witness of the existing successful native Heal HP writer.
+	private static volatile java.util.function.BiConsumer<String, long[]> _healObserver;
+	private static volatile String _healObserverFailure = "";
+	public static boolean observesHeal() { return _healObserver != null; }
+	public static void nativeHealWritten(Creature caster, Creature recipient, org.l2jmobius.gameserver.model.skill.Skill skill, double beforeHp, double afterHp)
+	{
+		if (_healObserver == null) { return; }
+		try
+		{
+			if (caster == null || recipient == null || caster == recipient || !caster.isPlayer() || !recipient.isPlayer() || skill == null) { return; }
+			final Player actor = caster.asPlayer(), target = recipient.asPlayer();
+			final var owner = actor.getNativeWorkOwner(); final var targetOwner = target.getNativeWorkOwner();
+			if (owner == null || targetOwner == null || !owner.isCurrent() || !targetOwner.isCurrent() || owner.player() != actor || targetOwner.player() != target || owner.evidence() == null || actor.getKnownSkill(skill.getId()) != skill) { return; }
+			owner.evidence().healed(actor.getObjectId(), owner.epoch(), target.getObjectId(), targetOwner.epoch(), skill.getId(), skill.getLevel(), beforeHp, afterHp, actor.getCurrentMp(), actor.getSkillRemainingReuseTime(skill.getReuseHashCode()));
+		}
+		catch (Throwable unavailable) { _healObserverFailure = unavailable.getClass().getName(); }
+	}
+	/** Values come only from the locked before/after snapshot around the successful native Heal writer. */
+	public void healed(int actorObjectId, long actorEpoch, int targetObjectId, long targetEpoch, int skillId, int skillLevel, double beforeHp, double afterHp, double casterMp, long reuseMillis)
+	{
+		final var observer = _healObserver;
+		if (observer == null || !matches(actorObjectId, actorEpoch) || targetObjectId <= 0 || targetObjectId == actorObjectId || targetEpoch <= 0 || skillId <= 0 || skillLevel <= 0 || !Double.isFinite(beforeHp) || !Double.isFinite(afterHp) || !Double.isFinite(casterMp) || beforeHp < 0 || afterHp <= beforeHp || casterMp < 0) { return; }
+		try { observer.accept("HEAL", new long[] { actorObjectId, actorEpoch, targetObjectId, targetEpoch, skillId, skillLevel, Double.doubleToRawLongBits(beforeHp), Double.doubleToRawLongBits(afterHp), Double.doubleToRawLongBits(casterMp), reuseMillis }); }
+		catch (Throwable unavailable) { _healObserverFailure = unavailable.getClass().getName(); }
+	}
 	/** Called under the item's native count lock, after a successful owned decrement. */
 	public void consumed(int actorObjectId, long actorEpoch, int itemObjectId, int itemId, long before, long after)
 	{
