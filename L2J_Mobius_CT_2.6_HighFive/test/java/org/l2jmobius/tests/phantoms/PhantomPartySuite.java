@@ -6,6 +6,7 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1113,6 +1114,52 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static void lifecycle(PhantomTestRegistry registry)
 	{
+		registry.add("128-obsolete-restart-core-releases-only-proven-absent-orphan", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			final var leader = backend.add(1, 101); final var peer = backend.add(4, 104); final var target = backend.add(2, 102);
+			for (long id : List.of(1L, 2L, 4L)) { goals.put(id, goal(94000 + id, "farm.background", null, id == 1 ? 1 : 0)); }
+			final var objective = new PhantomDomainRef("farm.party", "1,2,4"); final String group = PhantomPartyModel.sha256("128.obsolete.core");
+			final var draft = new PartyState(group, 1, 1, StateStatus.LEADER, leader, "", ZERO, List.of(leader, peer), List.of(), ObjectiveMode.GENERAL_PVE, objective, List.of(), List.of(), null, null, ZERO, ZERO, "");
+			final String manifest = draft.canonicalManifestHash();
+			final var pending = new PartyOperation(PhantomPartyModel.sha256("128.pending"), OperationKind.JOIN, OperationPhase.PREPARED, leader, target, 94001, 0, manifest, 0, Long.MAX_VALUE, "");
+			states.seed(1, new PartyState(group, 1, 1, StateStatus.INVITED_OUTBOUND, leader, "", manifest, draft.phantomMembers(), List.of(), draft.objectiveMode(), objective, List.of(), List.of(), null, pending, ZERO, ZERO, ""));
+			states.seed(4, new PartyState(group, 1, 1, StateStatus.MEMBER, leader, "", manifest, draft.phantomMembers(), List.of(), draft.objectiveMode(), objective, List.of(), List.of(), null, pending.withPhase(OperationPhase.COMMITTED, 1, ""), ZERO, ZERO, ""));
+			backend._unavailable.add(4L);
+			final var orphanClock = new AtomicLong(1);
+			final var coordinator = coordinator(context, states, goals, backend, 64, orphanClock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				PhantomAssertions.assertEquals(StateStatus.SOLO, coordinator.claim(1).orElseThrow().state().status(), "Changed prepared leader was not reconciled through existing startup owner.");
+				for (int pulse = 0; pulse < 4; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertTrue(coordinator.blocksBackground(4), "Unknown unmaterialized absence released a recovery fence.");
+				final int cachedLoads = goals._loads;
+				for (int pulse = 0; pulse < 64; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(cachedLoads, goals._loads, "Cached obsolete source performed per-pulse goal reads.");
+				backend._restartAbsent.add(4L);
+				orphanClock.addAndGet(1_000_000_001L);
+				final var preservedLeader = coordinator.claim(1).orElseThrow();
+				final var protectedPublications = new java.util.concurrent.atomic.AtomicInteger();
+				states._afterSave = saved ->
+				{
+					if (saved.profileId() == 4 && saved.state().status() == StateStatus.SOLO)
+					{
+						try (var admission = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(peer.characterObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+						{
+							PhantomAssertions.assertTrue(admission == null, "Native admission raced between SOLO publication and absence postcheck.");
+							protectedPublications.incrementAndGet();
+						}
+					}
+				};
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(1, protectedPublications.get(), "Own orphan release was not protected exactly once.");
+				PhantomAssertions.assertEquals(StateStatus.SOLO, coordinator.claim(4).orElseThrow().state().status(), "Obsolete orphan kept historical preparation blocked without a native actor.");
+				PhantomAssertions.assertFalse(coordinator.blocksBackground(4), "Recovered absent orphan retained Party ownership.");
+				PhantomAssertions.assertEquals(preservedLeader, coordinator.claim(1).orElseThrow(), "Orphan recovery rewrote the leader's newer row.");
+				for (long id : List.of(1L, 2L, 4L)) { PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, id == 1 ? 1 : 0), goals.load(id).orElseThrow().goal(), "Orphan recovery rewrote a root."); }
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Orphan fixture did not drain."); }
+		});
 		registry.add("094-negative-phase-and-runtime-close-share-finished-scheduler", _ ->
 		{
 			final var metrics = new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
@@ -1367,6 +1414,32 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, 0), goals.load(id).orElseThrow().goal(), "Preparation admission rewrote its durable root."); }
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Preparation fixture did not drain."); }
+		});
+		registry.add("128-formed-farm-yields-quiet-members-for-production-preparation", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
+			for (long id : List.of(1L, 2L, 3L))
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 3 ? cap("combat.buff", "learned.might", 450, 1068) : cap("combat.melee_damage", "weapon", 300, 0))));
+				goals.put(id, goal(94000 + id, "farm.background", null, 0));
+			}
+			final var clock = new AtomicLong(1_000_000_000L); final var blocked = new java.util.HashSet<Long>();
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> blocked.contains(id), null);
+				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				final var leader = backend.currentMember(1).orElseThrow();
+				PhantomAssertions.assertEquals(3, backend.observe(leader).orElseThrow().members().size(), "Preparation handoff fixture did not form Party3.");
+				blocked.add(3L); clock.addAndGet(6_000_000_000L); autonomous.onPulse();
+				PhantomAssertions.assertTrue(backend.observe(leader).isEmpty(), "Formed farm retained native membership and permanently blocked solo supply.");
+				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertFalse(coordinator.blocksBackground(id), "Preparation retained a Party owner: " + id); PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, 0), goals.load(id).orElseThrow().goal(), "Preparation replaced an ordinary root."); }
+				blocked.clear();
+				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				PhantomAssertions.assertEquals(3, backend.observe(leader).orElseThrow().members().size(), "Settled preparation could not reform the original Party3.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Preparation handoff did not drain."); }
 		});
 		registry.add("127-late-supply-refuses-requester-and-invitee-consent", context ->
 		{
@@ -2521,6 +2594,16 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static final class MemoryPartyBackend implements PhantomPartyBackend
 	{
+		private final Set<Long> _restartAbsent = new HashSet<>();
+		@Override
+		public boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)
+		{
+			if (!_restartAbsent.contains(actor.profileId()) || _parties.values().stream().anyMatch(party -> party.members().contains(actor))) { return false; }
+			try (var lease = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(actor.characterObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+			{
+				return lease != null && reconcile.getAsBoolean();
+			}
+		}
 		private boolean _farmEnabled;
 		private java.util.OptionalInt _farmTarget = java.util.OptionalInt.empty();
 		private java.util.function.Consumer<MemberRef> _afterSnapshot;

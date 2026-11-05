@@ -88,6 +88,9 @@ public interface PhantomPartyBackend
 	default boolean autonomousFarmAvailable(MemberRef member) { return false; }
 	default boolean autonomousFarmConsentAvailable(MemberRef requester, MemberRef invitee, InvitationIdentity identity) { return false; }
 
+	/** Positive absence proof for an unmaterialized restart orphan; unavailable observation is insufficient. */
+	default boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile) { return false; }
+
 	default OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers)
 	{
 		return OptionalInt.empty();

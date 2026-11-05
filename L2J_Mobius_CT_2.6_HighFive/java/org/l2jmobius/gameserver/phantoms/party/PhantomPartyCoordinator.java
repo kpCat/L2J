@@ -1584,6 +1584,69 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			&& _backend.currentForce(actor).status() == PhantomPartyBackend.CurrentForceStatus.PARTY_ABSENT && _goals.load(profileId).filter(root::equals).isPresent();
 	}
 
+	/** An obsolete prepared leader can leave a committed core member without a materializable owner. */
+	private void reconcileObsoleteFarmOrphan(StoredPartyState stored)
+	{
+		final var state = stored.state(); final var operation = state.operation();
+		final long profileId = stored.profileId();
+		final var planned = PhantomAutonomousFarmParty.plannedProfiles(state.objectiveRef());
+		if (state.status() != StateStatus.RECOVERING || operation == null || operation.kind() != OperationKind.JOIN || operation.phase() != OperationPhase.COMMITTED
+			|| state.leader().profileId() == profileId || !state.realMembers().isEmpty() || state.command() != null || state.route() != null
+			|| !planned.contains(profileId) || !planned.contains(state.leader().profileId()) || state.phantomMembers().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId()))) { return; }
+		final var leader = _claims.get(state.leader().profileId());
+		final var leaderRoot = _goals.load(state.leader().profileId()).orElse(null);
+		final var root = _goals.load(profileId).orElse(null);
+		final var actor = state.phantomMembers().stream().filter(member -> member.profileId() == profileId).findFirst().orElse(null);
+		if (leader == null || leader.state().status() != StateStatus.SOLO || leader.state().groupGeneration() <= state.groupGeneration() || leader.state().groupId().equals(state.groupId())
+			|| leaderRoot == null || (leaderRoot.goal().goalId() == operation.leaderGoalId() && leaderRoot.goal().revision() == operation.leaderGoalRevision())
+			|| root == null || actor == null || !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root.goal()) || !obsoleteFarmAbsence(stored, leader, root, leaderRoot, actor)) { return; }
+		_backend.withUnmaterializedNativeAbsence(actor, () ->
+		{
+			if (!obsoleteFarmAbsence(stored, leader, root, leaderRoot, actor)) { return false; }
+			final var repaired = moveToSolo(stored, "party.farm.obsolete_absent_core_reconciled");
+			if (repaired == null) { return false; }
+			if (obsoleteFarmAbsence(repaired, leader, root, leaderRoot, actor)) { return true; }
+			// The native identity lease still prevents admission while only our row is restored.
+			if (_claims.get(profileId) == repaired)
+			{
+				try { putClaim(save(profileId, repaired.rowVersion(), state)); }
+				catch (RuntimeException exception) { _metrics.conflict(); }
+			}
+			return false;
+		});
+	}
+
+	private boolean obsoleteFarmAbsence(StoredPartyState stored, StoredPartyState leader, StoredGoal root, StoredGoal leaderRoot, MemberRef actor)
+	{
+		final long profileId = stored.profileId();
+		return _claims.get(profileId) == stored && _claims.get(leader.profileId()) == leader && _inbound.isEmpty() && _terminalEvents.isEmpty()
+			&& !_tacticalActions.containsKey(profileId) && !_tacticalCombat.containsKey(profileId) && (_tactics.combatOwner() == null || !_tactics.combatOwner().hasClaim(profileId))
+			&& _pendingManagedInvitations.values().stream().noneMatch(invitation -> invitation.requesterObjectId() == actor.characterObjectId() || invitation.inviteeObjectId() == actor.characterObjectId())
+			&& _goals.load(profileId).filter(root::equals).isPresent() && _goals.load(leader.profileId()).filter(leaderRoot::equals).isPresent();
+	}
+
+	/** A supply handoff waits for native combat, pickup, support and group movement to finish. */
+	public boolean releaseAutonomousFarmForPreparation(long profileId, long goalId, long goalRevision)
+	{
+		final var control = beginOperation();
+		if (control == null) { return false; }
+		try (control)
+		{
+			final var claim = _claims.get(profileId);
+			if (!committedClaim(claim) || !PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(claim.state().objectiveRef().namespace()) || !claim.state().realMembers().isEmpty()) { return false; }
+			final var root = _goals.load(profileId).orElse(null);
+			if (root == null || root.goal().goalId() != goalId || root.goal().revision() != goalRevision || !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root.goal()) || routeActivity(claim.state()).nonTerminal()) { return false; }
+			for (var member : roster(claim.state()))
+			{
+				final var snapshot = _backend.memberSnapshot(member).orElse(null);
+				if (snapshot == null || snapshot.dead() || snapshot.casting() || snapshot.attacking() || snapshot.moving() || _tacticalActions.containsKey(member.profileId()) || _tacticalCombat.containsKey(member.profileId())
+					|| _tactics.combatOwner() != null && _tactics.combatOwner().hasClaim(member.profileId())
+					|| _pendingManagedInvitations.values().stream().anyMatch(invitation -> invitation.requesterObjectId() == member.characterObjectId() || invitation.inviteeObjectId() == member.characterObjectId())) { return false; }
+			}
+			return _claims.get(profileId) == claim && _goals.load(profileId).filter(root::equals).isPresent() && releaseAutonomousFarm(claim.state().leader().profileId());
+		}
+	}
+
 	/** Quiet farm members return through the existing native membership/CAS owner. */
 	public boolean releaseAutonomousFarm(long leaderProfileId)
 	{
@@ -1939,10 +2002,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return examined;
 		}
 		final var sourceAuthority = groupClaims.stream().filter(claim -> claim.profileId() == claim.state().leader().profileId()).findFirst().orElse(groupClaims.getFirst()).state();
+		final boolean refreshedFarmSource = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(sourceAuthority.objectiveRef().namespace()) && currentFarmIntentView(sourceAuthority) == null;
 		if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(sourceAuthority.objectiveRef().namespace())) { refreshFarmIntent(runtime, sourceAuthority); }
 		if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(sourceAuthority.objectiveRef().namespace()) && !currentFarmIntent(sourceAuthority))
 		{
-			releaseAutonomousFarm(sourceAuthority.leader().profileId());
+			if (!releaseAutonomousFarm(sourceAuthority.leader().profileId()) && refreshedFarmSource) { groupClaims.forEach(this::reconcileObsoleteFarmOrphan); }
 			return examined;
 		}
 		for (StoredPartyState claim : groupClaims)

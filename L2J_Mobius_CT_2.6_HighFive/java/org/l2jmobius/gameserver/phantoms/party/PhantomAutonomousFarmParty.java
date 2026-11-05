@@ -108,7 +108,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			final long id = member.ref().profileId();
 			final var root = _goals.load(id).map(PhantomGoalStore.StoredGoal::goal).filter(goal -> ordinaryIntent(id, goal)).orElse(null);
 			if (root == null) { continue; }
-			if (_preparationRequired.test(id, root)) { _coordinator.reconcileAutonomousFarmAbsence(id, root.goalId(), root.revision()); }
+			if (_preparationRequired.test(id, root))
+			{
+				if (!_coordinator.releaseAutonomousFarmForPreparation(id, root.goalId(), root.revision())) { _coordinator.reconcileAutonomousFarmAbsence(id, root.goalId(), root.revision()); }
+			}
 			else { roots.put(id, root); }
 		}
 		for (var member : page)

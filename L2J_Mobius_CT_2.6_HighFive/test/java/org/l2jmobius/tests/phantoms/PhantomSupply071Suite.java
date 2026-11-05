@@ -18,6 +18,18 @@ public final class PhantomSupply071Suite implements PhantomTestSuite
 	@Override public String id() { return "supply071"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("128-terminal-income-backoff-allows-party-earning", context ->
+		{
+			final long now = System.currentTimeMillis();
+			final var root = new PhantomGoal(128, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef("npc", "20001"), 1, 0, "background.farm", java.util.List.of(), null, "farm.background", 500, 0, 0, 0, java.util.Map.of(), "fixture128.root", 1);
+			final var binding = new PhantomSupplyIntentStore.Binding(1, 111, 0, 0, 222, new PhantomNavigationPoint(100, 200, -300, 0), now + 240000);
+			final var failed = new PhantomGoal(root.goalId(), org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceDecision.MAINTAIN_SUPPLIES, PhantomGoalStatus.FAILED, root.subject(), new PhantomDomainRef("item", "1835"), 1, 0, "income.farm", java.util.List.of(), null, "supplies.autonomous", 700, 0, 0, now + 60000, java.util.Map.of(), "supplies.stock.no_adena.income_farm", 2, binding.encode());
+			PhantomAssertions.assertTrue(PhantomSupplyIntentStore.bound(failed, root), "Income backoff fixture lost its production binding.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresPartyPreparation(root, failed, PhantomCommerceReceipt.State.COMMITTED, true, now), "Terminal no-adena backoff prevented Party earning despite no executable supply.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresPartyPreparation(root, failed, PhantomCommerceReceipt.State.COMMITTED, true, now + 240000), "Expired supply retry never reconsidered real low stock.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresPartyPreparation(root, failed, PhantomCommerceReceipt.State.COMMITTING, true, now), "Backoff bypassed an unsettled irreversible receipt.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.requiresPartyPreparation(root, failed.withStatus(PhantomGoalStatus.ACTIVE), null, false, now), "Backoff released a still-active supply child.");
+		});
 		registry.add("127-party-admission-retains-unsettled-supply-authority", context ->
 		{
 			final long now = System.currentTimeMillis();

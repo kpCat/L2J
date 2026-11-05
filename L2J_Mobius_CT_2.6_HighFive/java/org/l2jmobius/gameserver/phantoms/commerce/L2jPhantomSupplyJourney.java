@@ -273,12 +273,27 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			|| receiptState != null && (receiptState == PhantomCommerceReceipt.State.INCONSISTENT || !receiptState.terminal());
 	}
 
+	/** Failed supply deliberately leaves the ordinary farm root available to earn its next budget. */
+	public static boolean requiresPartyPreparation(PhantomGoal root, PhantomGoal child, PhantomCommerceReceipt.State receiptState, boolean lowStock, long nowEpochMillis)
+	{
+		if (requiresSoloPreparation(root, child, receiptState)) { return true; }
+		if (PhantomSupplyIntentStore.bound(child, root) && child.status() != PhantomGoalStatus.ACTIVE && Binding.parse(child).retryAfterEpochMillis() > nowEpochMillis) { return false; }
+		return lowStock;
+	}
+
 	/** Admission observes the existing child/receipt; it never settles or cancels their owners. */
 	public boolean blocksAutonomousParty(long profileId, PhantomGoal root)
 	{
 		final var child = cached(profileId).goal;
 		if (requiresSoloPreparation(root, child, null)) { return true; }
-		return requiresSoloPreparation(root, child, _receipts.find(profileId).map(value -> value.receipt().state()).orElse(null));
+		if (requiresSoloPreparation(root, child, _receipts.find(profileId).map(value -> value.receipt().state()).orElse(null))) { return true; }
+		// A formed Party cannot propose a solo child. Observe the same production low-water
+		// predicate before that admission gate, so its quiet native owner can hand off first.
+		if (_state != State.RUNNING || !_policy.enabled() || root == null || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return false; }
+		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			return lease != null && !lease.player().isAlikeDead() && requiresPartyPreparation(root, PhantomSupplyIntentStore.bound(child, root) && matches(child, lease.player()) ? child : null, null, supplyNeed(lease.player()) != null, System.currentTimeMillis());
+		}
 	}
 
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root)

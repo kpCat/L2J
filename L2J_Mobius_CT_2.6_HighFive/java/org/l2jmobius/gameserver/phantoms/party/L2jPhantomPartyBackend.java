@@ -59,6 +59,8 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 
 public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 {
+	// This is a World census budget, independent of the size of one Party/CommandChannel.
+	private static final int MAX_RESTART_ABSENCE_PLAYERS = 256;
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
@@ -85,6 +87,40 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	public Optional<MemberRef> currentMember(long profileId)
 	{
 		return _profiles.find(profileId).filter(profile -> profile.characterObjectId() != null).map(profile -> MemberRef.phantom(profileId, profile.characterObjectId()));
+	}
+
+	@Override
+	public boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)
+	{
+		if (actor.kind() != MemberKind.PHANTOM) { return false; }
+		final var registry = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance();
+		try (var lease = registry.tryAcquire(actor.characterObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+		{
+			return lease != null && unmaterializedNativeAbsence(actor, lease) && reconcile.getAsBoolean();
+		}
+	}
+
+	private boolean unmaterializedNativeAbsence(MemberRef actor, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+	{
+		if (actor.kind() != MemberKind.PHANTOM || !actor.equals(currentMember(actor.profileId()).orElse(null))) { return false; }
+		final var retained = _materialization.find(actor.profileId()).orElse(null);
+		if (retained != null && (retained.characterObjectId() != actor.characterObjectId() || retained.playerRetained() || retained.identityLeaseRetained() || retained.outboundAttached() || retained.actionAdmissionOpen() || retained.admittedActionCount() != 0 || retained.worldPresent())) { return false; }
+		final int objectId = actor.characterObjectId();
+		final var world = World.getInstance();
+		final var owner = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId);
+		if (world.findObject(objectId) != null || world.getPlayer(objectId) != null || owner == null || owner.token() != lease.token() || lease.isClosed()) { return false; }
+		int examined = 0;
+		for (Player player : world.getPlayers())
+		{
+			if (++examined > MAX_RESTART_ABSENCE_PLAYERS) { return false; }
+			if (player.getActiveRequester() != null && player.getActiveRequester().getObjectId() == objectId) { return false; }
+			final Party party = player.getParty();
+			if (party == null) { continue; }
+			if (party.getMembers().stream().anyMatch(member -> member.getObjectId() == objectId)) { return false; }
+			final CommandChannel channel = party.getCommandChannel();
+			if (channel != null && (channel.getParties().size() > MAX_FORCE_PARTIES || channel.getParties().stream().anyMatch(group -> group.getMembers().stream().anyMatch(member -> member.getObjectId() == objectId)))) { return false; }
+		}
+		return world.findObject(objectId) == null && actor.equals(currentMember(actor.profileId()).orElse(null));
 	}
 
 	@Override
