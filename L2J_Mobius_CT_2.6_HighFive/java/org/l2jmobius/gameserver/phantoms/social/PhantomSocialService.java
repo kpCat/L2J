@@ -360,6 +360,41 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 		}
 	}
 
+	/** Immutable, projected own-memory query using the same cache and lifecycle boundary as snapshot. */
+	public QueryResult<List<MemorySnapshot>> recentMemories(long ownerProfileId, int memoryLimit, long nowEpochMinute)
+	{
+		if ((ownerProfileId <= 0) || (memoryLimit < 0) || (memoryLimit > PhantomSocialModel.MAX_MEMORIES) || (nowEpochMinute < 0))
+		{
+			return queryFailure(Status.INCONSISTENT, "social.query_invalid");
+		}
+		final OperationClaim claim = beginOperation();
+		if (claim == null) { return queryFailure(Status.NOT_RUNNING, "social.not_running"); }
+		try (claim)
+		{
+			synchronized (stripe(ownerProfileId))
+			{
+				final EnsureResult ensured = ensureStored(ownerProfileId);
+				if (!ensured.available()) { return queryFailure(ensured.status(), ensured.detail()); }
+				final SocialState state = ensured.stored().state();
+				if (!authorityCurrent(state))
+				{
+					_authorityStale.increment();
+					return queryFailure(Status.AUTHORITY_STALE, "social.authority_stale");
+				}
+				try
+				{
+					final SocialState projected = project(state, nowEpochMinute);
+					return new QueryResult<>(ensured.initialized() ? Status.INITIALIZED : Status.READY, memorySnapshots(projected, memoryLimit, _ -> true), "social.memories.ready");
+				}
+				catch (RuntimeException e)
+				{
+					_failures.increment();
+					return queryFailure(Status.INCONSISTENT, "social.state_inconsistent");
+				}
+			}
+		}
+	}
+
 	public QueryResult<ModifierSnapshot> modifier(long ownerProfileId, SubjectRef subject, String modifierKey, long nowEpochMinute)
 	{
 		if ((ownerProfileId <= 0) || (subject == null) || (nowEpochMinute < 0))
@@ -705,13 +740,17 @@ public final class PhantomSocialService implements PhantomSocialEventSink
 			agreements.put(_catalog.agreementKey(index), relationship == null ? 0 : relationship.agreements().get(index));
 		}
 		final RelationshipSnapshot relationshipSnapshot = new RelationshipSnapshot(subject, relationshipValues, reputationValues, agreements, relationship == null ? state.logicalMinute() : relationship.lastDecayMinute(), relationship == null ? 0 : relationship.lastInteractionMinute());
-		final List<MemorySnapshot> memories = state.memories().stream()
-			.filter(memory -> memory.subject().equals(subject))
+		return new SocialSnapshot(profileId, personality(profileId, state), relationshipSnapshot, memorySnapshots(state, memoryLimit, memory -> memory.subject().equals(subject)), state.logicalMinute(), state.authorityHash());
+	}
+
+	private List<MemorySnapshot> memorySnapshots(SocialState state, int memoryLimit, java.util.function.Predicate<MemoryRecord> included)
+	{
+		return state.memories().stream()
+			.filter(included)
 			.sorted(Comparator.comparingInt((MemoryRecord memory) -> effectiveSalience(memory, state.logicalMinute())).reversed().thenComparing(Comparator.comparingLong(MemoryRecord::happenedMinute).reversed()).thenComparing(MemoryRecord::eventId))
 			.limit(memoryLimit)
 			.map(memory -> new MemorySnapshot(memory.eventId(), _catalog.requireEvent(memory.eventCode()).key(), memory.subject(), memory.happenedMinute(), memory.expiryMinute(), effectiveSalience(memory, state.logicalMinute()), memory.magnitude(), memory.evidenceHash()))
 			.toList();
-		return new SocialSnapshot(profileId, personality(profileId, state), relationshipSnapshot, memories, state.logicalMinute(), state.authorityHash());
 	}
 
 	private ModifierSnapshot evaluateModifier(SocialState state, SubjectRef subject, ModifierDefinition definition)

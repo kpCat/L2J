@@ -146,6 +146,19 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static void admission(PhantomTestRegistry registry)
 	{
+		registry.add("128-captured-counterpart-keeps-one-social-identity", _ ->
+		{
+			for (var kind : CounterpartKind.values())
+			{
+				final var counterpart = new Counterpart(kind, kind == CounterpartKind.PHANTOM_PROFILE ? 2 : 100, 100);
+				final var candidate = new Candidate(1, counterpart, Source.REVENGE, HASH, 0, SECOND, true, true, true);
+				final var expected = kind == CounterpartKind.PHANTOM_PROFILE ? org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef.phantom(2) : org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef.character(100);
+				final var changed = kind == CounterpartKind.PHANTOM_PROFILE ? org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef.character(100) : org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef.phantom(2);
+				final var conversation = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef(kind == CounterpartKind.PHANTOM_PROFILE ? "profile" : "character.object", Long.toString(counterpart.identity()));
+				new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpContext.Snapshot(candidate, risk(100, 100, false), PhantomCombatMode.MELEE_PHYSICAL, expected, conversation, null, HASH);
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpContext.Snapshot(candidate, risk(100, 100, false), PhantomCombatMode.MELEE_PHYSICAL, changed, conversation, null, HASH), "Peer presence/absence handoff split pair authority from social identity.");
+			}
+		});
 		registry.add("01-only-causal-source-vocabulary-and-current-authority", _ ->
 		{
 			PhantomAssertions.assertEquals(Set.of(Source.ACTUAL_ATTACK, Source.FARMING_ESCALATION, Source.PARTY_DEFENSE, Source.REVENGE, Source.CLAN_WAR), Set.of(Source.values()), "Aggression source vocabulary widened beyond actual native causes.");
@@ -169,6 +182,19 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static void combat(PhantomTestRegistry registry)
 	{
+		registry.add("128-causal-attackers-retain-observation-slots", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
+			{
+				fixture.lease.playerAttackers = java.util.stream.IntStream.rangeClosed(10001, 10016).mapToObj(id -> new ThreatObservation(id, 1)).toList();
+				fixture.lease.warEnemies = java.util.stream.IntStream.rangeClosed(11, 20).boxed().toList();
+				final var exact = java.util.stream.IntStream.rangeClosed(1, 10).boxed().toList();
+				fixture.service.observePvp(1, exact, 16, 16).orElseThrow();
+				PhantomAssertions.assertTrue(fixture.lease.playerAttackers.stream().allMatch(value -> fixture.lease.pvpReads.contains(value.targetObjectId())), "Low-object-id optional sources displaced a real attacker.");
+				PhantomAssertions.assertTrue(fixture.lease.pvpReads.size() <= 32, "Causal observation exceeded its native lookup bound.");
+				PhantomAssertions.assertEquals(0, fixture.lease.pvpAttacks + fixture.lease.pvpCasts, "Read-only discovery issued combat.");
+			}
+		});
 		registry.add("01-explicit-physical-path-isolated-from-monster-path", _ ->
 		{
 			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
@@ -609,6 +635,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private int learnedRank = 1;
 		private SelectedSkill lastPvpSkill;
 		private PvpTargetSnapshot pvpTarget = target(false, false, false);
+		private List<ThreatObservation> playerAttackers = List.of();
+		private List<Integer> warEnemies = List.of();
+		private final Set<Integer> pvpReads = new java.util.HashSet<>();
 		private List<CpPotionSnapshot> potions = List.of();
 		private int legacyTargetReads;
 		private int legacyAttacks;
@@ -654,8 +683,11 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		@Override
 		public PvpTargetSnapshot pvpTargetSnapshot(int targetObjectId)
 		{
+			pvpReads.add(targetObjectId);
 			return targetObjectId == 100 ? pvpTarget : null;
 		}
+		@Override public List<ThreatObservation> observedPlayerAttackers(int objectId, int limit) { return playerAttackers.stream().limit(limit).toList(); }
+		@Override public List<Integer> declaredWarEnemies(int limit) { return warEnemies.stream().limit(limit).toList(); }
 
 		@Override
 		public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode)

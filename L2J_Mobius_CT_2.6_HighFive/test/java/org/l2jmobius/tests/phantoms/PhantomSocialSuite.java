@@ -385,6 +385,8 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 				final int writes = store.writes();
 				final PhantomSocialService reader = service(second, store, 16);
 				PhantomAssertions.assertEquals(Status.AUTHORITY_STALE, reader.snapshot(1, SubjectRef.character(1), 1, 1000).status(), "Catalog drift was reinterpreted.");
+				PhantomAssertions.assertEquals(Status.AUTHORITY_STALE, reader.recentMemories(1, PhantomSocialModel.MAX_MEMORIES, 1000).status(), "Own-memory query bypassed stale catalog authority.");
+				PhantomAssertions.assertTrue(new org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge(reader).revengeSources(1, 1000).isEmpty(), "Stale social authority supplied revenge identities.");
 				PhantomAssertions.assertEquals(writes, store.writes(), "Catalog drift mutated the existing payload.");
 				reader.beginStop();
 				PhantomAssertions.assertTrue(reader.finishStop(), "Catalog-drift reader did not stop.");
@@ -398,6 +400,36 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 
 	private static void modifiers(PhantomTestRegistry registry)
 	{
+		registry.add("128-own-revenge-sources-deduplicate-before-cap-and-expire", context ->
+		{
+			final MemoryStore store = new MemoryStore(); store.addProfile(1);
+			final var social = service(catalog(context), store, 16);
+			final var bridge = new org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge(social);
+			final var attack = org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge.EventKind.ATTACK_RECEIVED;
+			try
+			{
+				for (int index = 0; index < 8; index++)
+				{
+					PhantomAssertions.assertTrue(bridge.record(1, SubjectRef.character(100), attack, "128repeat" + index, "A".repeat(64), 1000, 1000).durable(), "Repeated causal attack was not retained.");
+				}
+				for (int index = 0; index < 4; index++)
+				{
+					final var subject = index == 0 ? SubjectRef.phantom(2) : SubjectRef.character(100 + index);
+					PhantomAssertions.assertTrue(bridge.record(1, subject, attack, "128distinct" + index, "B".repeat(64), 1000, 1000).durable(), "Distinct causal attack was not retained.");
+				}
+				final int writes = store.writes();
+				final var sources = bridge.revengeSources(1, 1000);
+				PhantomAssertions.assertEquals(4, sources.size(), "Remembered attackers require bounded discovery after target loss.");
+				PhantomAssertions.assertEquals(4L, sources.stream().map(value -> value.subject()).distinct().count(), "Duplicate events consumed distinct-subject slots.");
+				PhantomAssertions.assertTrue(sources.stream().allMatch(value -> bridge.revenge(1, value.subject(), 1000).filter(value::equals).isPresent()), "Discovery bypassed exact current revenge evidence.");
+				final long expiry = sources.stream().mapToLong(value -> value.expiryMinute()).max().orElseThrow();
+				PhantomAssertions.assertTrue(bridge.revengeSources(1, expiry).isEmpty(), "Expired own memory remained a discovery source.");
+				PhantomAssertions.assertEquals(writes, store.writes(), "Read-only memory discovery wrote social state.");
+				social.beginStop();
+				PhantomAssertions.assertTrue(bridge.revengeSources(1, 1000).isEmpty(), "STOP admitted memory discovery.");
+			}
+			finally { social.beginStop(); PhantomAssertions.assertTrue(social.finishStop(), "Memory discovery leaked lifecycle claims."); }
+		});
 		registry.add("071-native-pvp-unit-retains-attack-and-kill-memory",context->
 		{
 			final MemoryStore store=new MemoryStore();store.addProfile(1);final var social=service(catalog(context),store,16);

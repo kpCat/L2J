@@ -689,17 +689,17 @@ public final class PhantomCombatService
 			{
 				attackers.add(observation.targetObjectId());
 			}
-			final Set<Integer> selected = new HashSet<>(exactTargetObjectIds);
 			final Set<Integer> wars = new HashSet<>(lease.declaredWarEnemies(10));
+			// Actual attackers retain the finite observation budget before optional remembered inputs.
+			final Set<Integer> identities = new java.util.LinkedHashSet<>(attackers.stream().sorted().toList());
 			if (actor.currentTargetObjectId() > 0)
 			{
-				selected.add(actor.currentTargetObjectId());
+				identities.add(actor.currentTargetObjectId());
 			}
+			identities.addAll(exactTargetObjectIds);
+			identities.addAll(wars.stream().sorted().toList());
 			final TreeMap<Integer, PvpObservedTarget> observed = new TreeMap<>();
-			final Set<Integer> identities = new HashSet<>(selected);
-			identities.addAll(wars);
-			identities.addAll(attackers);
-			for (int targetObjectId : identities.stream().sorted().limit(32).toList())
+			for (int targetObjectId : identities.stream().limit(32).toList())
 			{
 				final PvpTargetSnapshot target = lease.pvpTargetSnapshot(targetObjectId);
 				final PvpConsequenceSnapshot consequences = target == null ? null : lease.pvpConsequences(targetObjectId);

@@ -41,6 +41,7 @@ import org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source;
 import org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge;
 import org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge.RevengeEvidence;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectKind;
 
 /**
  * Deterministic bounded causal-source join. It never scans World players or the
@@ -57,11 +58,12 @@ public final class PhantomPvpContext
 			Objects.requireNonNull(mode);
 			Objects.requireNonNull(socialSubject);
 			Objects.requireNonNull(conversationCounterpart);
+			if (!socialSubject.equals(subject(candidate.counterpart()))) { throw new IllegalArgumentException("PvP counterpart and social identity differ."); }
 			sourceEvidenceHash = PhantomPvpModel.boundedHash(sourceEvidenceHash);
 		}
 	}
 
-	private record SourceEvidence(Source source, int targetObjectId, String authorityHash, long expiryLogicalNanos, PhantomDomainRef helpCounterpart)
+	private record SourceEvidence(Source source, int targetObjectId, String authorityHash, long expiryLogicalNanos, PhantomDomainRef helpCounterpart, SubjectRef expectedSubject)
 	{
 	}
 	/** Exact native evidence at successful tactical arrival, bounded by the existing profile owner. */
@@ -144,14 +146,30 @@ public final class PhantomPvpContext
 		{
 			final var member = evidence.directive().targetMember();
 			final PhantomDomainRef help = member.kind() == MemberKind.PHANTOM ? new PhantomDomainRef("profile", Long.toString(member.profileId())) : new PhantomDomainRef("character.object", Integer.toString(member.characterObjectId()));
-			exact.putIfAbsent(evidence.directive().targetObjectId(), new SourceEvidence(Source.PARTY_DEFENSE, evidence.directive().targetObjectId(), evidence.authorityHash(), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), help));
+			exact.putIfAbsent(evidence.directive().targetObjectId(), new SourceEvidence(Source.PARTY_DEFENSE, evidence.directive().targetObjectId(), evidence.authorityHash(), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), help, null));
 		}
 		if (farmingEvidence != null)
 		{
 			final var counterpart = _materialization.find(farmingEvidence.counterpartProfileId()).orElse(null);
 			if ((counterpart != null) && counterpart.worldPresent())
 			{
-				exact.putIfAbsent(counterpart.characterObjectId(), new SourceEvidence(Source.FARMING_ESCALATION, counterpart.characterObjectId(), farmingEvidence.authorityHash(), Math.min(expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), minuteNanos(farmingEvidence.expiryMinute())), null));
+				exact.putIfAbsent(counterpart.characterObjectId(), new SourceEvidence(Source.FARMING_ESCALATION, counterpart.characterObjectId(), farmingEvidence.authorityHash(), Math.min(expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), minuteNanos(farmingEvidence.expiryMinute())), null, null));
+			}
+		}
+		// Existing party/farming owner inputs keep their slots; memory only fills the remaining bound.
+		exact.keySet().retainAll(exact.keySet().stream().sorted().limit(10).toList());
+		if (owned == null)
+		{
+			for (RevengeEvidence evidence : _social.revengeSources(profileId, minute))
+			{
+				if (exact.size() >= 10) { break; }
+				final var remembered = evidence.subject();
+				final var lifetime = remembered.kind() == SubjectKind.PHANTOM_PROFILE ? _materialization.find(remembered.id()).orElse(null) : null;
+				final int objectId = remembered.kind() == SubjectKind.CHARACTER_OBJECT ? (int) remembered.id() : lifetime != null && lifetime.worldPresent() ? lifetime.characterObjectId() : 0;
+				if ((objectId > 0) && remembered.equals(subject(objectId)))
+				{
+					exact.putIfAbsent(objectId, new SourceEvidence(Source.REVENGE, objectId, evidence.authorityHash(), Math.min(expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), minuteNanos(evidence.expiryMinute())), null, remembered));
+				}
 			}
 		}
 		final List<Integer> exactTargets = exact.keySet().stream().sorted().limit(10).toList();
@@ -169,11 +187,11 @@ public final class PhantomPvpContext
 			if (observed.actualAttacker())
 			{
 				final String attackAuthority = PhantomPvpModel.sha256("pvp.actual.attack", observation.actor().objectId(), targetObjectId, observation.actor().instanceId());
-				candidates.add(new ObservedEvidence(new SourceEvidence(Source.ACTUAL_ATTACK, targetObjectId, attackAuthority, expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null), observed));
+				candidates.add(new ObservedEvidence(new SourceEvidence(Source.ACTUAL_ATTACK, targetObjectId, attackAuthority, expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null, null), observed));
 			}
 			if (observed.declaredClanWar())
 			{
-				candidates.add(new ObservedEvidence(new SourceEvidence(Source.CLAN_WAR, targetObjectId, PhantomPvpModel.sha256("pvp.native.clan-war", observation.actor().objectId(), targetObjectId, observation.actor().instanceId()), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null), observed));
+				candidates.add(new ObservedEvidence(new SourceEvidence(Source.CLAN_WAR, targetObjectId, PhantomPvpModel.sha256("pvp.native.clan-war", observation.actor().objectId(), targetObjectId, observation.actor().instanceId()), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), null, null), observed));
 			}
 			final SourceEvidence supplied = exact.get(targetObjectId);
 			if (supplied != null)
@@ -186,7 +204,7 @@ public final class PhantomPvpContext
 				final RevengeEvidence revenge = _social.revenge(profileId, subject, minute).orElse(null);
 				if (revenge != null)
 				{
-					candidates.add(new ObservedEvidence(new SourceEvidence(Source.REVENGE, targetObjectId, revenge.authorityHash(), Math.min(expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), minuteNanos(revenge.expiryMinute())), null), observed));
+					candidates.add(new ObservedEvidence(new SourceEvidence(Source.REVENGE, targetObjectId, revenge.authorityHash(), Math.min(expiry(logicalNanos, _policy.limits().encounterTtlSeconds()), minuteNanos(revenge.expiryMinute())), null, subject), observed));
 				}
 			}
 		}
@@ -209,6 +227,8 @@ public final class PhantomPvpContext
 		final PvpTargetSnapshot target = selected._target.target();
 		final ActorSnapshot actor = observation.actor();
 		final Counterpart counterpart = counterpart(target.objectId());
+		final SubjectRef socialSubject = subject(counterpart);
+		if ((selected._source.expectedSubject() != null) && !selected._source.expectedSubject().equals(socialSubject)) { return null; }
 		final String authority = PhantomPvpModel.sha256("pvp.current.authority", _policy.hash(), selected._source.source(), selected._source.authorityHash(), actor.objectId(), counterpart.kind(), counterpart.identity(), target.objectId(), actor.instanceId());
 		final long expires = Math.min(selected._source.expiryLogicalNanos(), expiry(logicalNanos, _policy.limits().encounterTtlSeconds()));
 		if (expires <= logicalNanos)
@@ -220,7 +240,7 @@ public final class PhantomPvpContext
 		final Candidate candidate = new Candidate(profileId, counterpart, selected._source.source(), authority, logicalNanos, expires, true, resolvable, visible);
 		final RiskSnapshot risk = risk(observation, selected._target);
 		final PhantomDomainRef conversation = counterpart.kind() == CounterpartKind.PHANTOM_PROFILE ? new PhantomDomainRef("profile", Long.toString(counterpart.identity())) : new PhantomDomainRef("character.object", Integer.toString(counterpart.currentObjectId()));
-		return new Snapshot(candidate, risk, observation.supportedModes().getFirst(), subject(target.objectId()), conversation, selected._source.helpCounterpart(), selected._source.authorityHash());
+		return new Snapshot(candidate, risk, observation.supportedModes().getFirst(), socialSubject, conversation, selected._source.helpCounterpart(), selected._source.authorityHash());
 	}
 
 	private RiskSnapshot risk(PvpObservation observation, PvpObservedTarget observed)
@@ -257,8 +277,12 @@ public final class PhantomPvpContext
 
 	private SubjectRef subject(int objectId)
 	{
-		final var materialized = _materialization.findByCharacterObjectId(objectId).orElse(null);
-		return (materialized != null) && materialized.worldPresent() ? SubjectRef.phantom(materialized.profileId()) : SubjectRef.character(objectId);
+		return subject(counterpart(objectId));
+	}
+
+	private static SubjectRef subject(Counterpart counterpart)
+	{
+		return counterpart.kind() == CounterpartKind.PHANTOM_PROFILE ? SubjectRef.phantom(counterpart.identity()) : SubjectRef.character(counterpart.currentObjectId());
 	}
 
 	private static long expiry(long now, int seconds)

@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.phantoms.social;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -110,6 +111,18 @@ public final class PhantomPvpSocialBridge
 	}
 
 	public long contentCallbackFailures() { return _contentCallbackFailures.sum(); }
+
+	/** Bounded own-memory evidence; no identity resolution or aggression admission. */
+	public List<RevengeEvidence> revengeSources(long ownerProfileId, long minute)
+	{
+		if ((ownerProfileId <= 0) || (minute < 0)) { return List.of(); }
+		final var memories = _social.recentMemories(ownerProfileId, PhantomSocialModel.MAX_MEMORIES, minute);
+		if (!memories.available()) { return List.of(); }
+		return memories.value().stream()
+			.filter(memory -> REVENGE_EVENTS.contains(memory.eventKey()) && (memory.expiryMinute() > minute))
+			.map(MemorySnapshot::subject).distinct().limit(4)
+			.map(subject -> revenge(ownerProfileId, subject, minute)).flatMap(Optional::stream).toList();
+	}
 
 	public Optional<RevengeEvidence> revenge(long ownerProfileId, SubjectRef exactSubject, long minute)
 	{
