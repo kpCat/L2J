@@ -20,11 +20,15 @@
  */
 package org.l2jmobius.gameserver.config.custom;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
 
 import org.l2jmobius.commons.util.ConfigReader;
 
@@ -108,15 +112,20 @@ public final class PhantomPlayersConfig
 			final Boolean semanticV4 = strictOptionalBoolean(config.getValue("EnablePhantomSemanticV4"), false);
 			final Integer starterShotLifetimeLimit = strictInteger(config.getValue("PhantomStarterShotLifetimeLimit"), 0, 5000, 0);
 			if (starterShotLifetimeLimit == null) { return Settings.disabled(); }
+			final PartySeekingSettings partySeeking = readPartySeeking(path);
+			if (partySeeking == null)
+			{
+				return Settings.disabled();
+			}
 			if ((populationTarget == null) || (populationActiveTarget == null) || (populationCreationInFlight == null) || (populationBoundariesPerPulse == null) || (partyOperationsPerPulse == null) || (socialCacheProfiles == null) || (populationTimeZone == null) || (ecologyEnabled == null) || (ecologyPreset == null) || (ecologyWorldAgeDays == null) || (ecologyArchiveLimit == null) || (humanizedConversation == null) || (customConversationPack == null) || (conversationRegister == null) || (conversationProfanity == null) || (conversationVariation == null) || (matureConversation == null))
 			{
 				return Settings.disabled();
 			}
 			final boolean diagnosticsEnabled = enabled && strictBoolean(config.getValue("EnablePhantomDiagnostics"));
 			final ConversationSettings conversation = new ConversationSettings(humanizedConversation, customConversationPack, conversationRegister, conversationProfanity, conversationVariation, matureConversation, Boolean.TRUE.equals(semanticV4));
-			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, burstSlots, starterShotLifetimeLimit);
+			return new Settings(true, diagnosticsEnabled, maximumMaterialized, maximumScheduled, pulseMillis, profilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, burstSlots, starterShotLifetimeLimit, partySeeking);
 		}
-		catch (RuntimeException e)
+		catch (IOException | RuntimeException e)
 		{
 			return Settings.disabled();
 		}
@@ -172,6 +181,85 @@ public final class PhantomPlayersConfig
 		{
 			return new ConversationSettings(false, false, ConversationRegister.CASUAL, ConversationProfanity.CONTEXTUAL, ConversationVariation.HIGH, false);
 		}
+	}
+
+	/** Stable interest in future autonomous searches; never an instruction to leave an existing native Party. */
+	public record PartySeekingSettings(boolean enabled, int chance1To39, int chance40To51, int chance52To60, int chance61To75, int chance76To85, boolean preferHumanFollow)
+	{
+		public PartySeekingSettings
+		{
+			if ((chance1To39 < 0) || (chance1To39 > 100) || (chance40To51 < 0) || (chance40To51 > 100) || (chance52To60 < 0) || (chance52To60 > 100) || (chance61To75 < 0) || (chance61To75 > 100) || (chance76To85 < 0) || (chance76To85 > 100))
+			{
+				throw new IllegalArgumentException("Party seeking percentages must be between 0 and 100.");
+			}
+		}
+
+		public int percentage(int level)
+		{
+			if (level <= 0) { return 0; }
+			if (level <= 39) { return chance1To39; }
+			if (level <= 51) { return chance40To51; }
+			if (level <= 60) { return chance52To60; }
+			if (level <= 75) { return chance61To75; }
+			return chance76To85;
+		}
+
+		public int percentile(long profileId)
+		{
+			// Immutable durable identity, not the current materialized character object ID or pulse time.
+			long mixed = profileId ^ 0x9e3779b97f4a7c15L;
+			mixed = (mixed ^ (mixed >>> 30)) * 0xbf58476d1ce4e5b9L;
+			mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
+			mixed ^= mixed >>> 31;
+			return Math.floorMod(mixed, 100);
+		}
+
+		public boolean seeks(long profileId, int level)
+		{
+			return enabled && (profileId > 0) && (level > 0) && (percentile(profileId) < percentage(level));
+		}
+
+		public static PartySeekingSettings defaults()
+		{
+			return new PartySeekingSettings(true, 0, 20, 35, 50, 80, true);
+		}
+
+		public static PartySeekingSettings disabled()
+		{
+			return new PartySeekingSettings(false, 0, 20, 35, 50, 80, false);
+		}
+	}
+
+	private static PartySeekingSettings readPartySeeking(Path path) throws IOException
+	{
+		final Set<String> keys = Set.of("EnablePhantomAutonomousPartySeeking", "PhantomPartySeekChance1To39", "PhantomPartySeekChance40To51", "PhantomPartySeekChance52To60", "PhantomPartySeekChance61To75", "PhantomPartySeekChance76To85", "PhantomPartyPreferHumanFollow");
+		// Same Properties escaping/continuation semantics and charset as ConfigReader, with local duplicate admission.
+		final Properties properties = new Properties()
+		{
+			@Override
+			public synchronized Object put(Object key, Object value)
+			{
+				if (!keys.contains(key)) { return null; }
+				if (containsKey(key)) { throw new IllegalArgumentException("Duplicate Party seeking property: " + key); }
+				return super.put(key, value);
+			}
+		};
+		try (var reader = Files.newBufferedReader(path, Charset.defaultCharset()))
+		{
+			properties.load(reader);
+		}
+		final Boolean enabled = strictOptionalBoolean(properties.getProperty("EnablePhantomAutonomousPartySeeking"), true);
+		final Integer low = strictInteger(properties.getProperty("PhantomPartySeekChance1To39"), 0, 100, 0);
+		final Integer first = strictInteger(properties.getProperty("PhantomPartySeekChance40To51"), 0, 100, 20);
+		final Integer second = strictInteger(properties.getProperty("PhantomPartySeekChance52To60"), 0, 100, 35);
+		final Integer third = strictInteger(properties.getProperty("PhantomPartySeekChance61To75"), 0, 100, 50);
+		final Integer fourth = strictInteger(properties.getProperty("PhantomPartySeekChance76To85"), 0, 100, 80);
+		final Boolean preferHumanFollow = strictOptionalBoolean(properties.getProperty("PhantomPartyPreferHumanFollow"), true);
+		if ((enabled == null) || (low == null) || (first == null) || (second == null) || (third == null) || (fourth == null) || (preferHumanFollow == null))
+		{
+			return null;
+		}
+		return new PartySeekingSettings(enabled, low, first, second, third, fourth, preferHumanFollow);
 	}
 
 	private static boolean strictBoolean(String value)
@@ -296,8 +384,13 @@ public final class PhantomPlayersConfig
 		}
 	}
 
-	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots, int starterShotLifetimeLimit)
+	public record Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots, int starterShotLifetimeLimit, PartySeekingSettings partySeeking)
 	{
+		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots, int starterShotLifetimeLimit)
+		{
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, materializationBurstSlots, starterShotLifetimeLimit, enabled ? PartySeekingSettings.defaults() : PartySeekingSettings.disabled());
+		}
+
 		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone, boolean ecologyEnabled, String ecologyPreset, int ecologyWorldAgeDays, int ecologyArchiveLimit, ConversationSettings conversation, int materializationBurstSlots)
 		{
 			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, ecologyEnabled, ecologyPreset, ecologyWorldAgeDays, ecologyArchiveLimit, conversation, materializationBurstSlots, 0);
@@ -325,6 +418,7 @@ public final class PhantomPlayersConfig
 			ecologyWorldAgeDays = enabled ? ecologyWorldAgeDays : DEFAULT_ECOLOGY_WORLD_AGE_DAYS;
 			ecologyArchiveLimit = enabled ? ecologyArchiveLimit : 0;
 			conversation = enabled ? Objects.requireNonNull(conversation) : ConversationSettings.disabled();
+			partySeeking = enabled ? Objects.requireNonNull(partySeeking) : PartySeekingSettings.disabled();
 			if (enabled && ((maxMaterializedPhantoms < 1) || (maxMaterializedPhantoms > 10000)))
 			{
 				throw new IllegalArgumentException("Enabled Phantom settings require a materialization cap between 1 and 10000.");

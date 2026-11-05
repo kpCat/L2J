@@ -120,6 +120,97 @@ public final class PhantomSkeletonSuite implements PhantomTestSuite
 			final var disabled = readConfig("false.ini", "EnablePhantomSystem = FaLsE\nEnablePhantomDiagnostics = FALSE\n");
 			PhantomAssertions.assertFalse(disabled.enabled(), "Case-insensitive false was not recognized.");
 		});
+		registry.add("129-party-seeking-config-admission", _ ->
+		{
+			final String[] percentages = { "PhantomPartySeekChance1To39", "PhantomPartySeekChance40To51", "PhantomPartySeekChance52To60", "PhantomPartySeekChance61To75", "PhantomPartySeekChance76To85" };
+			for (String key : percentages)
+			{
+				for (String invalid : List.of("-1", "101", "", "20.5", "twenty"))
+				{
+					PhantomAssertions.assertFalse(readConfig("seek129-invalid.ini", enabledConfig(key + " = " + invalid + "\n")).enabled(), "Invalid Party seeking percentage was admitted: " + key + "=" + invalid);
+				}
+				PhantomAssertions.assertFalse(readConfig("seek129-duplicate.ini", enabledConfig(key + "=20\n" + key + ":20\n")).enabled(), "Duplicate Party seeking percentage was admitted: " + key);
+			}
+			for (String key : List.of("EnablePhantomAutonomousPartySeeking", "PhantomPartyPreferHumanFollow"))
+			{
+				for (String invalid : List.of("yes", "1", ""))
+				{
+					PhantomAssertions.assertFalse(readConfig("seek129-boolean.ini", enabledConfig(key + "=" + invalid + "\n")).enabled(), "Malformed Party seeking boolean was admitted: " + key);
+				}
+				PhantomAssertions.assertFalse(readConfig("seek129-duplicate-boolean.ini", enabledConfig(key + "=True\n" + key + "=False\n")).enabled(), "Duplicate Party seeking boolean was admitted: " + key);
+			}
+			PhantomAssertions.assertFalse(readConfig("seek129-continued-duplicate.ini", enabledConfig("PhantomPartySeekChance40To\\\n51=20\nPhantomPartySeekChance40To51=20\n")).enabled(), "Properties continuation bypassed duplicate admission.");
+		});
+		registry.add("129-party-seeking-bands-reload-compatibility", _ ->
+		{
+			final var settings = readConfig("seek129-defaults.ini", enabledConfig(""));
+			final var preference = settings.partySeeking();
+			PhantomAssertions.assertTrue(settings.enabled() && preference.enabled() && preference.preferHumanFollow(), "Legacy config did not retain Party seeking defaults.");
+			final int[] levels = { -1, 0, 1, 39, 40, 51, 52, 60, 61, 75, 76, 85, 86, Integer.MAX_VALUE };
+			final int[] percentages = { 0, 0, 0, 0, 20, 20, 35, 35, 50, 50, 80, 80, 80, 80 };
+			for (int index = 0; index < levels.length; index++)
+			{
+				PhantomAssertions.assertEquals(percentages[index], preference.percentage(levels[index]), "Wrong active-class Party seeking band at level " + levels[index]);
+			}
+			final var oldCanonical = new PhantomPlayersConfig.Settings(true, false, 32, 10000, 100, 128, 0, 0, 2, 64, 64, 1024, java.time.ZoneId.of("UTC"), true, "LIVING", -1, 1000, settings.conversation(), 0, 0);
+			PhantomAssertions.assertEquals(preference, oldCanonical.partySeeking(), "Old canonical Settings constructor lost Party seeking defaults.");
+			PhantomAssertions.assertEquals(preference, new PhantomPlayersConfig.Settings(true, false).partySeeking(), "Short Settings constructor lost Party seeking defaults.");
+			PhantomAssertions.assertFalse(PhantomPlayersConfig.Settings.disabled().partySeeking().enabled(), "Disabled master retained enabled seeking.");
+			final var reloaded = readConfig("seek129-defaults.ini", enabledConfig("EnablePhantomAutonomousPartySeeking=fAlSe\nPhantomPartySeekChance1To39=100\nPhantomPartySeekChance40To51=0\nPhantomPartySeekChance52To60=100\nPhantomPartySeekChance61To75=0\nPhantomPartySeekChance76To85=100\nPhantomPartyPreferHumanFollow=FaLsE\n"));
+			PhantomAssertions.assertTrue(reloaded.enabled(), "Valid preference override disabled the master.");
+			PhantomAssertions.assertFalse(reloaded.partySeeking().enabled() || reloaded.partySeeking().preferHumanFollow() || reloaded.partySeeking().seeks(129, 80), "False preference switches were ignored.");
+			PhantomAssertions.assertEquals(List.of(100, 0, 100, 0, 100), List.of(reloaded.partySeeking().percentage(39), reloaded.partySeeking().percentage(40), reloaded.partySeeking().percentage(52), reloaded.partySeeking().percentage(61), reloaded.partySeeking().percentage(86)), "Reload lost valid percentage endpoints.");
+			PhantomAssertions.assertEquals(settings.maxMaterializedPhantoms(), reloaded.maxMaterializedPhantoms(), "Preference reload changed materialization capacity.");
+			PhantomAssertions.assertEquals(settings.conversation(), reloaded.conversation(), "Preference reload changed conversation policy.");
+			PhantomAssertions.assertEquals(settings.partyOperationsPerPulse(), reloaded.partyOperationsPerPulse(), "Preference reload changed Party work budget.");
+		});
+		registry.add("129-party-seeking-stable-thresholds", _ ->
+		{
+			final var preference = readConfig("seek129-stable.ini", enabledConfig("")).partySeeking();
+			final var restarted = readConfig("seek129-stable.ini", enabledConfig("")).partySeeking();
+			final long[] stableIds = { 1, 2, 42, 129, 123456789, Long.MAX_VALUE };
+			final int[] stablePercentiles = { 20, 94, 97, 16, 42, 44 };
+			for (int index = 0; index < stableIds.length; index++)
+			{
+				PhantomAssertions.assertEquals(stablePercentiles[index], preference.percentile(stableIds[index]), "Stable identity percentile changed across builds/restarts.");
+			}
+			final long[] bucketIds = new long[100];
+			final int[] levels = { 39, 40, 52, 61, 76 };
+			final int[] percentages = { 0, 20, 35, 50, 80 };
+			final int[] seekers = new int[levels.length];
+			for (long profileId = 1; profileId <= 10000; profileId++)
+			{
+				final int percentile = preference.percentile(profileId);
+				PhantomAssertions.assertTrue((percentile >= 0) && (percentile < 100), "Stable percentile escaped [0,99].");
+				bucketIds[percentile] = profileId;
+				PhantomAssertions.assertEquals(percentile, restarted.percentile(profileId), "Reconstructed config changed stable percentile.");
+				boolean previouslySeeking = false;
+				for (int band = 0; band < levels.length; band++)
+				{
+					final boolean seeking = preference.seeks(profileId, levels[band]);
+					PhantomAssertions.assertEquals(seeking, restarted.seeks(profileId, levels[band]), "Reconstructed config changed seek decision.");
+					PhantomAssertions.assertFalse(previouslySeeking && !seeking, "Growing default percentage reversed stable interest.");
+					if (seeking) { seekers[band]++; }
+					previouslySeeking = seeking;
+				}
+			}
+			for (int band = 0; band < levels.length; band++)
+			{
+				PhantomAssertions.assertTrue(Math.abs(seekers[band] - (percentages[band] * 100)) <= 200, "Synthetic population distribution diverged from configured percentage.");
+				int bucketSeekers = 0;
+				for (int percentile = 0; percentile < bucketIds.length; percentile++)
+				{
+					PhantomAssertions.assertTrue(bucketIds[percentile] > 0, "Stable hash did not cover every percentile bucket.");
+					final boolean seeking = preference.seeks(bucketIds[percentile], levels[band]);
+					PhantomAssertions.assertEquals(percentile < percentages[band], seeking, "Seeking did not use the strict percentile threshold.");
+					if (seeking) { bucketSeekers++; }
+				}
+				PhantomAssertions.assertEquals(percentages[band], bucketSeekers, "Exact threshold bucket count changed.");
+			}
+			final var all = new PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true);
+			PhantomAssertions.assertTrue(all.seeks(42, 1) && all.seeks(42, 86), "100 percent did not admit a valid identity.");
+			PhantomAssertions.assertFalse(all.seeks(42, 0) || all.seeks(42, -1) || all.seeks(0, 80) || all.seeks(-1, 80), "Invalid level or identity initiated seeking.");
+		});
 		registry.add("configured-disabled-no-instance", _ ->
 		{
 			PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "Configured shutdown created or found an unexpected instance.");
