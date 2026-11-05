@@ -72,5 +72,28 @@ public final class PhantomLivingWorld114Checks
 		nativeCycle.nativeRegeneration(Double.NaN, 1, false, false);
 		check(!PhantomHistoricalBackgroundService.nativeHandoffWorkComplete(nativeCycle.snapshot(107), 2, 100), "Unproven work completed a native handoff");
 		System.out.println("PASS only a proven useful native cycle of the exact lifetime may finish temporary handoff; cursor/rewards unchanged");
+		final var owner = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "1");
+		final var idle = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(128001, "idle.background.history", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+			owner, owner, 1, 0, "background.idle", java.util.List.of(), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("topology.anchor", "farm.fixture"),
+			"background.history", 500, 0, 0, 0, java.util.Map.of(), "planner.target_or_route.absent", 0);
+		final var sixPoints = ordinary.withPoints(6, 1);
+		final var attestedIdle = PhantomNativeContext.completed(identity, new PhantomNativeContext.Capture(6, PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE, sixPoints), 3, new byte[] { 1 });
+		check(!attestedIdle.simulationEligible() && attestedIdle.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, "a".repeat(64)), "Fixture must reproduce a current v2 proof rejected by legacy MIN1 eligibility");
+		check(PhantomBackgroundTransaction.attestedHistoricalIdleContext(PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE, 1, idle, PhantomNativeContext.decode(attestedIdle.encode()), "a".repeat(64)), "Attested non-MIN1 canonical idle stranded the historical cursor");
+		check(!PhantomBackgroundTransaction.attestedHistoricalIdleContext(PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM, 1, idle, attestedIdle, "a".repeat(64)), "Clock-only exception admitted farming");
+		check(!PhantomBackgroundTransaction.attestedHistoricalIdleContext(PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE, 2, idle, attestedIdle, "a".repeat(64)), "Clock-only exception crossed identity ownership");
+		check(!PhantomBackgroundTransaction.attestedHistoricalIdleContext(PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE, 1, idle, attestedIdle, "b".repeat(64)), "Stale configured policy admitted idle");
+		check(!PhantomBackgroundTransaction.attestedHistoricalIdleContext(PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE, 1, idle, pending, "a".repeat(64)), "Owned PENDING context admitted idle");
+		System.out.println("PASS canonical no-effect historical idle accepts current v2 native proof; rewards, pending STORE, identities and rules remain fenced");
+		final var gatekeeper = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("giran.gatekeeper.30080", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.GATEKEEPER, "giran.city",
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(83396, 147904, -3404, 0), 30080, 918, 0, java.util.List.of(), java.util.List.of());
+		check(L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(gatekeeper, 0, z -> -3400, () -> true).map(p -> p.z() == -3400 && p.x() == 83396 && p.y() == 147904).orElse(false), "Proven native gatekeeper raw spawn height rejected its stable Geo floor");
+		check(L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(gatekeeper, 0, z -> -3400, () -> false).isEmpty(), "Unproven gatekeeper bypassed strict tolerance");
+		check(L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(target, 0, z -> 4, () -> true).isEmpty(), "NPC floor exception admitted malformed FARM arrival");
+		check(L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(gatekeeper, 0, z -> z + 4, () -> true).isEmpty(), "NPC floor exception admitted unstable Geo floor");
+		System.out.println("PASS exact native gatekeeper proof canonicalizes only its stable floor; malformed farm and unstable or unproven arrivals remain fenced");
+		check(PhantomHistoricalBackgroundService.isRecoverableFailure("catchup.travel.anchor_mismatch"), "Durable route mismatch prevented re-proving an updated native anchor");
+		check(!PhantomHistoricalBackgroundService.isRecoverableFailure("transaction.native_context_required") && !PhantomHistoricalBackgroundService.isRecoverableFailure("transaction.state_conflict"), "Route replanning bypassed native context or state conflict ownership");
+		System.out.println("PASS durable route mismatch may replan through existing ownership and route checks; context and transaction conflicts remain fenced");
 	}
 }

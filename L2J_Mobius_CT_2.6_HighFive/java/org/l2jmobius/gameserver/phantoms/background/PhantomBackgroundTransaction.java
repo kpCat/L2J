@@ -2644,7 +2644,10 @@ public final class PhantomBackgroundTransaction
         {
 			if (command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_TRAVEL
 				|| command.operationKey().actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL) { throw new StateConflict(Status.OFFSCREEN_WAIT); }
-            if (context == null || !context.simulationEligible()) { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
+            if (context == null || !context.simulationEligible()
+                && (!attestedHistoricalIdleContext(command.operationKey().actionKind(), state.identity().profileId(), command.goal(), context, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint())
+                    || lockComponent(connection, state.identity().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE) != null))
+            { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
             return;
         }
         final var mutation = command.policy();
@@ -2699,6 +2702,19 @@ public final class PhantomBackgroundTransaction
         }
         else { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
     }
+    static boolean attestedHistoricalIdleContext(PhantomBackgroundOperationKey.ActionKind kind, long profileId, PhantomGoal goal, PhantomNativeContext context, String currentRules)
+    {
+        // Command's HISTORICAL_IDLE constructor forbids all gameplay mutations; only the
+        // exact catch-up owner advances. Current v2 facts need not have legacy MIN1 points.
+        return kind == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE
+            && PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal)
+            && context != null && context.identity().profileId() == profileId
+            && context.phase() == PhantomNativeContext.Phase.COMPLETED && context.afterPolicy() != null
+            && context.afterPolicy().rulesFingerprint().equals(currentRules)
+            && (context.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, currentRules)
+                || context.permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, currentRules));
+    }
+
     private static void requirePolicyOwner(PolicyMutation mutation, int objectId)
     { requireBackgroundOwner(mutation.lease(), objectId); }
     private static void requireBackgroundOwner(org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, int objectId)

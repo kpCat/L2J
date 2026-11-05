@@ -923,10 +923,15 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		Objects.requireNonNull(anchor, "anchor");
 		final PhantomTopologyPoint point = anchor.point();
 		final GeoEngine geoEngine = GeoEngine.getInstance();
-		return canonicalCommittedAnchorPosition(anchor, heading, z -> geoEngine.getHeight(point.x(), point.y(), z));
+		return canonicalCommittedAnchorPosition(anchor, heading, z -> geoEngine.getHeight(point.x(), point.y(), z), () -> nativeGatekeeperAnchor(anchor));
 	}
 
 	private static Optional<Position> canonicalCommittedAnchorPosition(PhantomTopologyAnchor anchor, int heading, IntUnaryOperator heightResolver)
+	{
+		return canonicalCommittedAnchorPosition(anchor, heading, heightResolver, () -> false);
+	}
+
+	static Optional<Position> canonicalCommittedAnchorPosition(PhantomTopologyAnchor anchor, int heading, IntUnaryOperator heightResolver, java.util.function.BooleanSupplier nativeGatekeeperProof)
 	{
 		Objects.requireNonNull(anchor, "anchor");
 		Objects.requireNonNull(heightResolver, "heightResolver");
@@ -942,7 +947,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return Optional.empty();
 		}
-		if (Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance())
+		if (Math.abs((long) normalizedZ - point.z()) > anchor.validationTolerance()
+			&& !(anchor.role() == PhantomTopologyAnchorRole.GATEKEEPER && anchor.npcId() != null && anchor.validationTolerance() == 0 && nativeGatekeeperProof.getAsBoolean()))
 		{
 			return Optional.empty();
 		}
@@ -952,6 +958,27 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			return Optional.empty();
 		}
 		return Optional.of(new Position(0, x, y, normalizedZ, heading, anchor.id()));
+	}
+
+	private static boolean nativeGatekeeperAnchor(PhantomTopologyAnchor anchor)
+	{
+		final var point = anchor.point();
+		final var geo = GeoEngine.getInstance();
+		if (point.instanceId() != 0 || !geo.hasGeo(point.x(), point.y())) { return false; }
+		final var region = World.getInstance().getRegion(point.x(), point.y(), point.z());
+		if (region == null) { return false; }
+		for (var object : region.getVisibleObjects())
+		{
+			if (object instanceof org.l2jmobius.gameserver.model.actor.instance.Teleporter npc && npc.getId() == anchor.npcId()
+				&& npc.getInstanceId() == 0 && !npc.isAlikeDead() && World.getInstance().findObject(npc.getObjectId()) == npc)
+			{
+				final var spawn = npc.getSpawn();
+				// Stock non-monster NPCs retain their exact raw spawn Z; Geo canonicalizes only the stored anchor.
+				if (spawn != null && spawn.getId() == npc.getId() && spawn.getX() == point.x() && spawn.getY() == point.y() && spawn.getZ() == point.z()
+					&& npc.getX() == point.x() && npc.getY() == point.y() && npc.getZ() == point.z()) { return true; }
+			}
+		}
+		return false;
 	}
 
 	@Override

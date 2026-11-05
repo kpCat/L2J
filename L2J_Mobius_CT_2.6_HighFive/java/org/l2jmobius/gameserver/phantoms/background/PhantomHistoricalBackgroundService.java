@@ -804,7 +804,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Only classified recoverable failures may re-enter the same optimistic history ownership. */
 	public static boolean isRecoverableFailure(String reason)
 	{
-		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
+		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "catchup.travel.anchor_mismatch", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
 	}
 
 	/** Resolve durable ownership before baseline/FAILED/policy gates, without granting simulation eligibility. */
