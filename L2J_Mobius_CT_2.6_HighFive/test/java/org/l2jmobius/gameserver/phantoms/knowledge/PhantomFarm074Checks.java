@@ -89,7 +89,9 @@ public final class PhantomFarm074Checks
 	public static PhantomNormalGatekeeperTravel sourceRoutes129() throws Exception { return sourceRoutes129(false); }
 	private static PhantomNormalGatekeeperTravel sourceRoutes129(boolean report) throws Exception
 	{
-		final var directory = java.nio.file.Path.of("data/phantoms/topology");
+		final var module = java.nio.file.Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
+		final var gameRoot = java.nio.file.Files.isDirectory(module.resolve("dist/game/data")) ? module.resolve("dist/game") : module;
+		final var directory = gameRoot.resolve("data/phantoms/topology");
 		final var nodes = new java.util.HashMap<String, org.w3c.dom.Element>();
 		final var anchors = new java.util.HashMap<String, org.w3c.dom.Element>();
 		final var edges = new java.util.ArrayList<org.w3c.dom.Element>();
@@ -144,10 +146,11 @@ public final class PhantomFarm074Checks
 			@Override public List<SpawnFact> spawns(int id, int maximum) { final var rows = spawns.getOrDefault(id, List.of()); return rows.subList(0, Math.min(maximum, rows.size())); }
 			@Override public Optional<DoorFact> door(int id) { return Optional.ofNullable(doors.get(id)); }
 			@Override public DoorState doorState(int id) { return DoorState.OPEN; }
-			@Override public boolean sourceExists(String path) { return java.nio.file.Files.isRegularFile(java.nio.file.Path.of(path)); }
+			@Override public boolean sourceExists(String path) { return java.nio.file.Files.isRegularFile(gameRoot.resolve(path)); }
 		};
 		final var topology = new PhantomTopologyQuery(new PhantomTopologyLoader(directory, modeled, PhantomTopologyPolicy.productionDefaults()).load(1), modeled, new PhantomTopologyMetrics());
-		final var catalog = java.nio.file.Path.of("data/phantoms/travel/high-five-normal-gk.xml");
+		final var catalog = gameRoot.resolve("data/phantoms/travel/high-five-normal-gk.xml");
+		if (org.l2jmobius.gameserver.data.xml.TeleporterData.getInstance().getTeleporterCount() == 0 && !org.l2jmobius.gameserver.data.xml.TeleporterData.getInstance().parseDirectory(gameRoot.resolve("data/teleporters").toFile(), true)) { throw new IllegalArgumentException("Route fixture teleporter data is absent."); }
 		final var travel = PhantomNormalGatekeeperTravel.load(catalog, topology);
 		if (!report)
 		{
