@@ -392,6 +392,85 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return reservation.expiresMillis();
 	}
 
+	/** Lifetime only: no ordinary action, travel, invitation or membership is granted here. */
+	public boolean retainsNativeLifetime(long profileId, PhantomGoal root, int objectId, long epoch)
+	{
+		return currentNativeLifetime(profileId, root, objectId, epoch);
+	}
+
+	/** Only confirmed native membership may bypass ordinary Solo preparation, never bilateral rendezvous preparation. */
+	public boolean permitsCommittedNativeDecision(long profileId, PhantomGoal root, int objectId, long epoch)
+	{
+		return currentCommittedNativeLifetime(profileId, root, objectId, epoch);
+	}
+
+	private boolean currentNativeLifetime(long profileId, PhantomGoal root, int objectId, long epoch)
+	{
+		if (_state != State.RUNNING || objectId <= 0 || epoch <= 0 || !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)
+			|| !new PhantomDomainRef("profile", Long.toString(profileId)).equals(root.subject())) { return false; }
+		final var actor = MemberRef.phantom(profileId, objectId);
+		if (_backend.materializationEpoch(actor) != epoch) { return false; }
+		final var reservation = _rendezvousClaims.get(profileId);
+		final long now = System.currentTimeMillis();
+		if (reservation != null && reservation.active(now) && reservation.roster().size() >= 3
+			&& Set.of(PhantomPartyRendezvousState.Phase.ACCEPTED, PhantomPartyRendezvousState.Phase.ASSEMBLING, PhantomPartyRendezvousState.Phase.ARRIVED).contains(reservation.phase()))
+		{
+			final var own = reservation.participant();
+			final boolean original = reservation.phase() == PhantomPartyRendezvousState.Phase.ACCEPTED && root.revision() == own.goalRevision();
+			final boolean adopted = root.validSources().contains(reservation.source()) && (reservation.phase() == PhantomPartyRendezvousState.Phase.ACCEPTED
+				? root.revision() - own.goalRevision() == 1 : root.revision() == reservation.adoptedRevision());
+			if (own.actor().equals(actor) && own.epoch() == epoch && own.goalId() == root.goalId() && (original || adopted))
+			{
+				boolean current = true;
+				for (var participant : reservation.roster())
+				{
+					final var peer = _rendezvousClaims.get(participant.actor().profileId());
+					current &= peer != null && reservation.sameOffer(peer) && peer.active(now)
+						&& _backend.materializationEpoch(participant.actor()) == participant.epoch();
+				}
+				if (current && _state == State.RUNNING && reservation == _rendezvousClaims.get(profileId) && reservation.active(System.currentTimeMillis())) { return true; }
+			}
+		}
+		return currentCommittedNativeLifetime(profileId, root, objectId, epoch);
+	}
+
+	private boolean currentCommittedNativeLifetime(long profileId, PhantomGoal root, int objectId, long epoch)
+	{
+		if (_state != State.RUNNING || objectId <= 0 || epoch <= 0 || !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)
+			|| !new PhantomDomainRef("profile", Long.toString(profileId)).equals(root.subject())) { return false; }
+		final var actor = MemberRef.phantom(profileId, objectId);
+		if (_backend.materializationEpoch(actor) != epoch) { return false; }
+		final var own = _claims.get(profileId);
+		if (own == null || !Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(own.state().status())) { return false; }
+		final var authority = _claims.get(own.state().leader().profileId());
+		if (authority == null || authority.state().status() != StateStatus.LEADER || !authority.state().realMembers().isEmpty()
+			|| !PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.state().objectiveRef().namespace())) { return false; }
+		final var source = currentFarmIntentView(authority.state());
+		final var runtime = _groups.get(authority.state().groupId());
+		final var nativeView = runtime == null ? null : runtime.nativeLifetime;
+		final long now = _clock.getAsLong();
+		if (source == null || !source.valid() || !source.roots().containsKey(profileId) || !source.roots().get(profileId).goal().equals(root)
+			|| !Objects.equals(source.epochs().get(profileId), epoch) || !authority.state().phantomMembers().contains(actor)
+			|| authority.state().phantomMembers().size() != PhantomAutonomousFarmParty.plannedProfiles(authority.state().objectiveRef()).size()
+			|| nativeView == null || now < nativeView.sampledNanos() || now >= nativeView.expiresNanos()
+			|| nativeView.groupGeneration() != authority.state().groupGeneration() || !nativeView.manifest().equals(authority.state().leaderManifestHash())
+			|| !nativeView.party().leader().equals(authority.state().leader()) || !sameRoster(nativeView.party().members(), authority.state().phantomMembers())) { return false; }
+		final var leaderRoot = source.roots().get(authority.state().leader().profileId());
+		final var sharedSource = leaderRoot == null ? null : leaderRoot.goal().validSources().stream().filter(value -> org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.SOURCE_NAMESPACE.equals(value.namespace())).findFirst().orElse(null);
+		if (sharedSource == null || !root.validSources().contains(sharedSource)) { return false; }
+		for (var member : authority.state().phantomMembers())
+		{
+			final var peer = _claims.get(member.profileId());
+			if (peer == null || !Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(peer.state().status()) || !peer.state().groupId().equals(authority.state().groupId())
+				|| peer.state().groupGeneration() != authority.state().groupGeneration() || !peer.state().leader().equals(authority.state().leader())
+				|| !peer.state().leaderManifestHash().equals(authority.state().leaderManifestHash()) || !peer.state().phantomMembers().equals(authority.state().phantomMembers())
+				|| !source.roots().containsKey(member.profileId()) || !source.roots().get(member.profileId()).goal().validSources().contains(sharedSource)
+				|| source.epochs().getOrDefault(member.profileId(), 0L) <= 0 || !Objects.equals(nativeView.epochs().get(member.profileId()), source.epochs().get(member.profileId()))
+				|| _backend.materializationEpoch(member) != source.epochs().get(member.profileId())) { return false; }
+		}
+		return _state == State.RUNNING && _claims.get(profileId) == own && currentFarmIntentView(authority.state()) == source && runtime.nativeLifetime == nativeView;
+	}
+
 	/** Memory-only role permission; the preparation owner still rechecks the complete consent saga before CAS. */
 	public boolean supportRendezvousPreparation(long profileId, PhantomGoal root)
 	{
@@ -2114,6 +2193,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(sourceAuthority.objectiveRef().namespace())) { refreshFarmIntent(runtime, sourceAuthority); }
 		if (PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(sourceAuthority.objectiveRef().namespace()) && !currentFarmIntent(sourceAuthority))
 		{
+			runtime.nativeLifetime = null;
 			if (!releaseAutonomousFarm(sourceAuthority.leader().profileId()) && refreshedFarmSource) { groupClaims.forEach(this::reconcileObsoleteFarmOrphan); }
 			return examined;
 		}
@@ -2165,6 +2245,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final Optional<PartySnapshot> observed = _backend.observe(leader);
 		if (observed.isEmpty())
 		{
+			runtime.nativeLifetime = null;
 			if (groupClaims.stream().anyMatch(claim -> !claim.state().realMembers().isEmpty()))
 			{
 				releaseLostMixedGroup(runtime, groupClaims);
@@ -2462,6 +2543,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			&& existing.stream().allMatch(claim -> Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(claim.state().status()) && claim.state().leaderManifestHash().equals(authority.leaderManifestHash()));
 		if (stable)
 		{
+			publishNativeLifetime(party, authority);
 			ensureCommittedGoals(existing);
 			return;
 		}
@@ -2519,7 +2601,26 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 		}
 		_metrics.commit();
+		final var committedLeader = _claims.get(party.leader().profileId());
+		if (committedLeader != null) { publishNativeLifetime(party, committedLeader.state()); }
 		emitJoined(phantoms, observedJoin, observedJoin == null ? null : observedJoin.withPhase(OperationPhase.COMMITTED, observedJoin.invitationSequence(), ""));
+	}
+
+	/** Reuses an actual canonical observation from the existing control pulse; never sampled by retention. */
+	private void publishNativeLifetime(PartySnapshot party, PartyState authority)
+	{
+		final var runtime = _groups.get(authority.groupId());
+		if (runtime == null) { return; }
+		if (!PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()) || !authority.realMembers().isEmpty()
+			|| !party.leader().equals(authority.leader()) || !sameRoster(party.members(), authority.phantomMembers())) { runtime.nativeLifetime = null; return; }
+		// A changed canonical generation needs its existing source refresh before COMPLETE transfers lifetime.
+		refreshFarmIntent(runtime, authority);
+		final var source = currentFarmIntentView(authority);
+		if (source == null || !source.valid()) { runtime.nativeLifetime = null; return; }
+		final Map<Long, Long> epochs = new java.util.LinkedHashMap<>();
+		for (var member : party.members()) { epochs.put(member.profileId(), _backend.materializationEpoch(member)); }
+		final long now = _clock.getAsLong();
+		runtime.nativeLifetime = new NativePartyView(authority.groupGeneration(), authority.leaderManifestHash(), party, Map.copyOf(epochs), now, now + 1_000_000_000L);
 	}
 
 	private static PartyOperation exactObservedJoin(List<StoredPartyState> existing, PartySnapshot party)
@@ -2589,18 +2690,21 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		runtime.farmSource = null; // A failed refresh cannot retain previously granted authority.
 		final var planned = PhantomAutonomousFarmParty.plannedProfiles(authority.objectiveRef());
 		final var operation = authority.operation();
-		final Map<Long, Long> versions = new java.util.LinkedHashMap<>();
+		final Map<Long, StoredGoal> roots = new java.util.LinkedHashMap<>();
+		final Map<Long, Long> epochs = new java.util.LinkedHashMap<>();
 		boolean valid = planned.size() >= 2 && planned.getFirst() == authority.leader().profileId() && operation != null;
 		for (long profile : planned)
 		{
 			final var source = _goals.load(profile).orElse(null);
 			if (source == null) { valid = false; continue; }
-			versions.put(profile, source.rowVersion());
+			roots.put(profile, source);
+			final var actor = authority.phantomMembers().stream().filter(member -> member.profileId() == profile).findFirst().orElse(null);
+			if (actor != null) { epochs.put(profile, _backend.materializationEpoch(actor)); }
 			final var goal = source.goal();
 			valid &= PhantomAutonomousFarmParty.ordinaryIntent(profile, goal);
 			if (profile == authority.leader().profileId()) { valid &= operation != null && goal.goalId() == operation.leaderGoalId() && goal.revision() == operation.leaderGoalRevision(); }
 		}
-		runtime.farmSource = new FarmSourceView(farmSourceKey(authority), now, now + 1_000_000_000L, Map.copyOf(versions), valid);
+		runtime.farmSource = new FarmSourceView(farmSourceKey(authority), now, now + 1_000_000_000L, Map.copyOf(roots), Map.copyOf(epochs), valid);
 	}
 
 	private static FarmSourceKey farmSourceKey(PartyState authority)
@@ -3776,12 +3880,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	/** Source identity excludes mutable HP/MP/readiness-dependent tactical assignment scores. */
 	private record FarmSourceKey(long groupGeneration, MemberRef leader, PhantomDomainRef objective, long goalId, long goalRevision) { }
-	private record FarmSourceView(FarmSourceKey key, long sampledNanos, long expiresNanos, Map<Long, Long> rowVersions, boolean valid) { }
+	private record FarmSourceView(FarmSourceKey key, long sampledNanos, long expiresNanos, Map<Long, StoredGoal> roots, Map<Long, Long> epochs, boolean valid) { }
+	private record NativePartyView(long groupGeneration, String manifest, PartySnapshot party, Map<Long, Long> epochs, long sampledNanos, long expiresNanos) { }
 
 	private static final class GroupRuntime
 	{
 		private final String _groupId;
 		private volatile FarmSourceView farmSource;
+		private volatile NativePartyView nativeLifetime;
 		private final Map<Long, Long> regroupDue = new HashMap<>();
 		private GroupRuntime(String groupId) { _groupId = groupId; }
 		private String groupId() { return _groupId; }

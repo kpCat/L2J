@@ -60,8 +60,14 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 
 	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology, LongPredicate acceptedJourney, LongPredicate admitted)
 	{
+		installPopulationReadiness(presence, locality, ecology, acceptedJourney, admitted, _ -> false);
+	}
+
+	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology, LongPredicate acceptedJourney, LongPredicate admitted, LongPredicate backgroundNativeRequest)
+	{
 		Objects.requireNonNull(acceptedJourney);
 		Objects.requireNonNull(admitted);
+		Objects.requireNonNull(backgroundNativeRequest);
 		installReadiness(profileId ->
 		{
 			final var recorder = PhantomRuntimeFlightRecorder.getInstance();
@@ -69,7 +75,9 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			final boolean continuation = acceptedJourney.test(profileId);
 			// An accepted finite owner finishes through the same gate after a cold load as while live.
 			// Calendar/locality still control new demand; the delegate still owns all capacity checks.
-			final boolean local = continuation || online && locality.isLocal(profileId);
+			final boolean ordinaryLocal = continuation || online && locality.isLocal(profileId);
+			final boolean background = online && backgroundNativeRequest.test(profileId);
+			final boolean local = ordinaryLocal || background;
 			if (!local)
 			{
 				recorder.record(profileId, online ? "READY_NOT_LOCAL" : "READY_PRESENCE_OFFLINE", online ? "ONLINE" : "OFFLINE", "DEFERRED", "presence.no_current_local_demand", 0, 0, 0);
@@ -85,13 +93,19 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				if (!due.complete()) { return TransitionOutcome.deferred(due.reason()); }
 				request = due.request();
 			}
+			// A Background request carries only its exact historical prerequisite, never NORMAL admission.
+			if (!ordinaryLocal && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			{
+				return TransitionOutcome.deferred("presence.background_native_handoff_required");
+			}
 			// An exact bounded historical handoff supplies the prerequisite for ordinary admission.
 			// NORMAL work still requires final population admission; lifecycle validates the original claim.
 			if (!continuation && !admitted.test(profileId) && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
 			{
 				return TransitionOutcome.deferred("population.not_admitted");
 			}
-			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId);
+			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId)
+				|| request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF && presence.isOnline(profileId) && backgroundNativeRequest.test(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");
 		});

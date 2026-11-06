@@ -191,6 +191,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, HistoricalAdmission> _historicalAdmissions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, NativeContextSignal> _nativeContextSignals = new ConcurrentHashMap<>();
+	private java.util.Iterator<Map.Entry<Long, NativeContextSignal>> _nativeContextRequestScan;
 	private int _currentContextSignals;
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
 	private final AtomicInteger _currentOperations = new AtomicInteger();
@@ -352,6 +353,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		_nativeTownReturns.clear();
 		_nativeContextSignals.clear();
+		_nativeContextRequestScan = null;
 		_visibleCheckpoints.clear();
 		_state = ServiceState.STOPPED;
 		return true;
@@ -890,7 +892,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if ((_state != ServiceState.RUNNING) || (proof.context() == null)) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
 		if ((expected.state() != State.VERIFY_PENDING) && (proof.context().phase() != PhantomNativeContext.Phase.PENDING))
 		{
-			updateNativeContextSignal(profileId, proof, historicalNativeContextRequired(expected, proof.context()));
+			updateNativeContextSignal(profileId, proof, historicalNativeContextRequired(profileId, expected, proof.context()));
 		}
 		return _state == ServiceState.RUNNING ? proof : PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE);
 	}
@@ -898,12 +900,23 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	/** Shared historical handoff admission; callers retain their exact state/context/claim guards. */
 	static boolean historicalNativeContextRequired(PhantomBackgroundState state, PhantomNativeContext context)
 	{
+		return historicalNativeContextRequired(state, context, false);
+	}
+
+	/** The existing Party owner forbids simulation; it may request only the already fenced typed native handoff. */
+	boolean historicalNativeContextRequired(long profileId, PhantomBackgroundState state, PhantomNativeContext context)
+	{
+		return historicalNativeContextRequired(state, context, _partyParticipation.blocksBackground(profileId));
+	}
+
+	static boolean historicalNativeContextRequired(PhantomBackgroundState state, PhantomNativeContext context, boolean partyNativeOnly)
+	{
 		final var operation = context.afterPolicy() != null && !context.afterPolicy().farmPosition()
 			? PhantomBackgroundSimulationPolicy.Operation.TRAVEL : PhantomBackgroundSimulationPolicy.Operation.FARM;
 		// Completed arrival retains its typed fence until canonical capture of the exact World Player.
 		final boolean completedOffscreen = state != null && state.state() == State.READY
 			&& PhantomOffscreenOutdoorTravel.taggedReceipt(state) && !PhantomOffscreenOutdoorTravel.pendingDebt(state);
-		return completedOffscreen || !context.permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
+		return partyNativeOnly || completedOffscreen || !context.permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
 	}
 
 	/** Uses the ordinary historical identity lease and transaction receipt to finish a pending commit. */
@@ -3149,6 +3162,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final boolean requested = required && _nativeContextDemand.test(profileId);
 		final boolean retiring = required && !requested;
 		final long sequence;
+		final long issuedAtNanos;
 		final long version = proof.context().stateRowVersion();
 		synchronized (this)
 		{
@@ -3159,13 +3173,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				if ((previous != null) && (previous.retiring() != retiring))
 				{
-					_nativeContextSignals.put(profileId, new NativeContextSignal(previous.sequence(), version, false, retiring, previous.delivery()));
+					_nativeContextSignals.put(profileId, new NativeContextSignal(previous.sequence(), version, false, retiring, previous.delivery(), previous.issuedAtNanos()));
 				}
 				return null;
 			}
 			if ((previous != null) && (previous.sequence() == Long.MAX_VALUE)) { return PhantomRelevanceSignalPort.SignalDelivery.SEQUENCE_EXHAUSTED; }
-			sequence = Math.max(Math.max(1, System.nanoTime()), previous == null ? 1 : previous.sequence() + 1);
-			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, requested, retiring, null));
+			issuedAtNanos = System.nanoTime();
+			sequence = Math.max(Math.max(1, issuedAtNanos), previous == null ? 1 : previous.sequence() + 1);
+			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, requested, retiring, null, issuedAtNanos));
 			_currentContextSignals++;
 		}
 		try
@@ -3174,7 +3189,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				? _signals.submit(profileId, new PhantomRelevanceSignal(NATIVE_CONTEXT_SIGNAL_SOURCE, sequence, PhantomActivityState.ACTIVE, NATIVE_CONTEXT_SIGNAL_TTL_MILLIS))
 				: _signals.withdraw(profileId, NATIVE_CONTEXT_SIGNAL_SOURCE, sequence);
 			_nativeContextSignals.computeIfPresent(profileId, (id, current) -> current.sequence() == sequence
-				? new NativeContextSignal(sequence, version, requested || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), retiring, delivery) : current);
+				? current.delivered(requested || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), retiring, delivery) : current);
 			return delivery;
 		}
 		finally { synchronized (this) { _currentContextSignals--; } }
@@ -3194,7 +3209,57 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return (signal != null) && signal.retiring();
 	}
 
-	private record NativeContextSignal(long sequence, long stateRowVersion, boolean requested, boolean retiring, PhantomRelevanceSignalPort.SignalDelivery delivery) {}
+	/** Current accepted request only; no durable/World lookup belongs to this scheduler gate. */
+	public boolean currentNativeContextRequest(long profileId)
+	{
+		final var captured = _nativeContextSignals.get(profileId);
+		return nativeContextRequestCurrent(_state, captured, _nativeContextSignals.get(profileId), System.nanoTime()) && _state == ServiceState.RUNNING;
+	}
+
+	static boolean nativeContextRequestCurrent(ServiceState state, NativeContextSignal captured, NativeContextSignal current, long nowNanos)
+	{
+		if (state != ServiceState.RUNNING || captured == null || captured != current || !captured.requested() || captured.retiring()
+			|| captured.delivery() != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED && captured.delivery() != PhantomRelevanceSignalPort.SignalDelivery.COALESCED) { return false; }
+		final long age = nowNanos - captured.issuedAtNanos();
+		return age >= 0 && age < java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(NATIVE_CONTEXT_SIGNAL_TTL_MILLIS);
+	}
+
+	/** One cache page per control refresh; stale entries cannot turn this into a full population scan. */
+	public synchronized List<Long> currentNativeContextRequestProfiles(int maximumExamined)
+	{
+		if (maximumExamined < 1 || maximumExamined > 256) { throw new IllegalArgumentException("Native context request page must be 1..256."); }
+		if (_state != ServiceState.RUNNING) { _nativeContextRequestScan = null; return List.of(); }
+		if (_nativeContextRequestScan == null || !_nativeContextRequestScan.hasNext()) { _nativeContextRequestScan = _nativeContextSignals.entrySet().iterator(); }
+		return nativeContextRequestPage(_state, _nativeContextRequestScan, _nativeContextSignals, System.nanoTime(), maximumExamined);
+	}
+
+	static List<Long> nativeContextRequestPage(ServiceState state, java.util.Iterator<Map.Entry<Long, NativeContextSignal>> scan,
+		Map<Long, NativeContextSignal> current, long nowNanos, int maximumExamined)
+	{
+		if (maximumExamined < 1 || maximumExamined > 256) { throw new IllegalArgumentException("Native context request page must be 1..256."); }
+		if (state != ServiceState.RUNNING) { return List.of(); }
+		final var result = new java.util.ArrayList<Long>();
+		for (int examined = 0; examined < maximumExamined && scan.hasNext(); examined++)
+		{
+			final var entry = scan.next();
+			if (nativeContextRequestCurrent(state, entry.getValue(), current.get(entry.getKey()), nowNanos)) { result.add(entry.getKey()); }
+		}
+		return List.copyOf(result);
+	}
+
+	/** Composition seam: Background signals previously conferred no independent local demand. */
+	public static boolean nativeContextMaterializationDemand(boolean calendarOnline, boolean currentRequest)
+	{
+		return calendarOnline && currentRequest;
+	}
+
+	record NativeContextSignal(long sequence, long stateRowVersion, boolean requested, boolean retiring, PhantomRelevanceSignalPort.SignalDelivery delivery, long issuedAtNanos)
+	{
+		NativeContextSignal delivered(boolean nextRequested, boolean nextRetiring, PhantomRelevanceSignalPort.SignalDelivery nextDelivery)
+		{
+			return new NativeContextSignal(sequence, stateRowVersion, nextRequested, nextRetiring, nextDelivery, issuedAtNanos);
+		}
+	}
 
 	public enum OperationStatus
 	{

@@ -1192,6 +1192,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static void lifecycle(PhantomTestRegistry registry)
 	{
+		registry.add("129-typed-handoff-consent-lifetime-and-native-party-restart", PhantomPartySuite::nativeHandoffPartyChain);
 		registry.add("129-support-travel-permission-is-exact-and-finite", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
@@ -2381,6 +2382,145 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		return new PhantomGoal(129000 + profileId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "20101@" + anchor)), new PhantomDomainRef("topology.anchor", anchor), "farm.background", 500, 0, 0, 0, Map.of(), "background.catchup.plan", revision);
 	}
 
+	private static void nativeHandoffPartyChain(PhantomTestContext context) throws Exception
+	{
+		final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
+		backend._farmLevel = 78;
+		final var clock = new AtomicLong(1_000_000_000L);
+		final var seeking = org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults();
+		final var ids = List.of(1L, 3L, 8L, 23L, 24L);
+		PhantomAssertions.assertTrue(List.of(1L, 3L, 8L, 23L).stream().allMatch(id -> seeking.seeks(id, 78)) && !seeking.seeks(24, 78), "The mixed policy controls are not independent SEEK/SOLO profiles.");
+		final var admissions = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.NativeRequestPresenceFixture>();
+		backend._requiresTypedAdmission = true;
+		final var coordinator = coordinator(context, states, goals, backend, 64, clock::get);
+		backend.connect(coordinator);
+		try
+		{
+			for (long id : ids)
+			{
+				final var admission = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.NativeRequestPresenceFixture(context.moduleRoot(), id);
+				admissions.add(admission); admission.prepare(0);
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, admission.materializeCurrent().outcome(), "The chain bypassed preparation capacity0.");
+				admission.prepare(1); final var loaded = admission.materializeCurrent();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS, loaded.outcome(), "Current calendar/request did not reach real Ecology/Presence admission.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF, loaded.request().kind(), "The exact pending history claim became NORMAL materialization.");
+				// Model-only native load leaf, reached only after the actual typed control-plane gate.
+				final var actor = backend.add(id, admission.characterObjectId());
+				backend._typedAdmitted.add(id);
+				final var template = member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 8 || id == 23 ? cap("combat.heal", "learned.heal", 450, 1011) : cap("combat.melee_damage", "weapon", 300, 0)));
+				backend.snapshot(actor, new MemberSnapshot(actor, template.classId(), 0, ids.indexOf(id) * 15000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), template.capabilities(), ZERO));
+				goals.put(id, supportTravelRoot(id, 0, id == 1 ? "farm.fixture" : "farm.origin." + id));
+			}
+			PhantomAssertions.assertTrue(coordinator.start(), "Typed handoff Party owner did not start.");
+			final var arrivals = new HashSet<Long>();
+			final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> id == 23,
+				(id, root) ->
+				{
+					if (!arrivals.contains(id)) { PhantomAssertions.assertEquals(0, backend.invitationCount(), "An invitation preceded the final bilateral arrival."); }
+					arrivals.add(id); final var actor = backend._members.get(id); final var before = backend._snapshots.get(actor);
+					// Model-only movement leaf; no native Geo/travel or gameplay outcome is claimed.
+					backend.snapshot(actor, new MemberSnapshot(actor, before.classId(), 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), before.capabilities(), ZERO));
+					return new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED, root.goalId(), root.revision(), actor.characterObjectId(), backend._nativeEpoch, 0, "fixture.arrived");
+				}, seeking, (id, root, source, _, current) ->
+				{
+					PhantomAssertions.assertTrue(current.getAsBoolean(), "Shared-root CAS preceded bilateral consent.");
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Shared-root adoption followed an early invitation.");
+					if (!root.validSources().contains(source)) { final var prior = goals.load(id).orElseThrow(); goals.replace(id, prior.rowVersion(), supportTravelRoot(id, root.revision() + 1, "farm.fixture")); }
+					return true;
+				}, System::currentTimeMillis);
+			for (int pulse = 0; pulse < 6 && states._rendezvous.values().stream().noneMatch(value -> value.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.ACCEPTED); pulse++)
+			{ clock.addAndGet(6_000_000_000L); adapter.onPulse(); }
+			final var accepted = states._rendezvous.values().stream().filter(value -> value.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.ACCEPTED).findFirst().orElseThrow();
+			final long acceptedId = accepted.profileId(); final var root = goals.load(acceptedId).orElseThrow().goal();
+			PhantomAssertions.assertEquals(Set.of(1L, 3L, 8L), accepted.state().roster().stream().map(value -> value.actor().profileId()).collect(java.util.stream.Collectors.toSet()), "SOLO or Supply-required control entered the offer.");
+			PhantomAssertions.assertTrue(states._rendezvous.values().stream().anyMatch(value -> value.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.PROPOSED), "The consent-to-consent lifetime gap was not exercised.");
+			PhantomAssertions.assertFalse(lifetimeHeld(coordinator, states, goals, backend, acceptedId, supportTravelRoot(acceptedId, 2, "farm.fixture")), "A stale root retained a lifetime.");
+			PhantomAssertions.assertFalse(coordinator.retainsNativeLifetime(acceptedId, root, 999, 1), "A foreign object retained a lifetime.");
+			PhantomAssertions.assertFalse(coordinator.retainsNativeLifetime(acceptedId, root, backend._members.get(acceptedId).characterObjectId(), 2), "A foreign epoch retained a lifetime.");
+			final var proof = new org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot(backend._members.get(acceptedId).characterObjectId(), 1, clock.get(), false, 1, 1, 1, 1, 1, 1, 1, 1, 0, clock.get(), org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Phase.NONE, clock.get(), 0, clock.get(), 0, 0, org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.UnprovenReason.NONE, 0);
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.nativeRetirementRequired(proof, proof.objectId(), proof.epoch(), false), "The counterexample lacks a completed current-epoch native farm cycle.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.nativePartyDecisionPrepared(false, lifetimePermission(coordinator, states, goals, backend, acceptedId, root, true)), "Accepted-only consent bypassed ordinary Solo preparation.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.nativeRetirementRequired(proof, proof.objectId(), proof.epoch(), lifetimeHeld(coordinator, states, goals, backend, acceptedId, root)), "RED129: current accepted consent must retain the native handoff while peers are still PROPOSED.");
+			PhantomAssertions.assertTrue(coordinator.assemblyDeadline(acceptedId) > System.currentTimeMillis(), "Final own-actor soft cleanup has no finite veto.");
+			final var prior = accepted.state(); final long now = System.currentTimeMillis();
+			states._rendezvous.put(acceptedId, new PhantomPartyPersistencePort.StoredRendezvous(acceptedId, accepted.rowVersion() + 1, new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState(acceptedId, prior.offerId(), prior.leaderProfileId(), prior.roster(), prior.source(), now - 120000, now - 1, prior.phase(), prior.adoptedRevision())));
+			coordinator.rendezvous(acceptedId);
+			PhantomAssertions.assertFalse(lifetimeHeld(coordinator, states, goals, backend, acceptedId, root), "Expired consent retained the handoff.");
+			PhantomAssertions.assertEquals(0L, coordinator.assemblyDeadline(acceptedId), "Expired consent retained the final soft-cleanup veto.");
+			states._rendezvous.put(acceptedId, accepted); coordinator.rendezvous(acceptedId);
+			final long peerId = prior.roster().stream().map(value -> value.actor().profileId()).filter(id -> id != acceptedId).findFirst().orElseThrow(); final var peer = states._rendezvous.get(peerId);
+			coordinator.saveRendezvous(peer.rowVersion(), peer.state().withPhase(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, peer.state().adoptedRevision())).orElseThrow();
+			PhantomAssertions.assertFalse(lifetimeHeld(coordinator, states, goals, backend, acceptedId, root), "Cancelled peer consent retained the handoff.");
+			states._rendezvous.put(peerId, peer); coordinator.rendezvous(peerId);
+			for (int pulse = 0; pulse < 30; pulse++) { clock.addAndGet(6_000_000_000L); adapter.onPulse(); for (int control = 0; control < 8; control++) { coordinator.onPulse(); } }
+			PhantomAssertions.assertEquals(Set.of(1L, 3L, 8L), arrivals, "The exact consent roster did not reach every modeled arrival.");
+			PhantomAssertions.assertEquals(2, backend.invitationCount(), "Canonical invitation dispatch was skipped or duplicated.");
+			for (long id : List.of(1L, 3L, 8L))
+			{
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.COMPLETE, states._rendezvous.get(id).state().phase(), "Native roster did not complete consent.");
+				PhantomAssertions.assertTrue(lifetimeHeld(coordinator, states, goals, backend, id, goals.load(id).orElseThrow().goal()), "COMPLETE failed to transfer lifetime to the current committed native Party.");
+				final var currentRoot = goals.load(id).orElseThrow().goal();
+				final boolean committed = lifetimePermission(coordinator, states, goals, backend, id, currentRoot, true);
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.nativePartyDecisionPrepared(false, committed), "Native Party still fell into the Solo suitability gate before ordinary Decision/Supply.");
+				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.nativePartyDecisionPrepared(true, committed), "Native decision retention bypassed bilateral shared-source preparation.");
+			}
+			clock.addAndGet(1_100_000_000L);
+			PhantomAssertions.assertFalse(lifetimePermission(coordinator, states, goals, backend, 1, goals.load(1).orElseThrow().goal(), true), "Expired native observation granted ordinary decisions.");
+			coordinator.onPulse();
+			PhantomAssertions.assertTrue(lifetimePermission(coordinator, states, goals, backend, 1, goals.load(1).orElseThrow().goal(), true), "Stable native reconciliation did not republish its observation.");
+			backend._nativeEpoch = 2;
+			PhantomAssertions.assertFalse(lifetimeHeld(coordinator, states, goals, backend, 1, goals.load(1).orElseThrow().goal()), "A replaced lifetime borrowed the old native observation."); backend._nativeEpoch = 1;
+			coordinator.beginStop(); PhantomAssertions.assertFalse(lifetimeHeld(coordinator, states, goals, backend, acceptedId, root), "STOPPING retained new lifetime authority.");
+			PhantomAssertions.assertEquals(0L, coordinator.assemblyDeadline(acceptedId), "STOPPING retained the final soft-cleanup veto.");
+			PhantomAssertions.assertTrue(coordinator.finishStop(), "Initial Party chain did not drain."); backend._parties.clear(); backend._typedAdmitted.clear(); backend._nativeEpoch = 2;
+			final var resumed = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(resumed);
+			new PhantomAutonomousFarmParty(resumed, backend, goals, currentCatalog(context), clock::get, (id, _) -> id == 23, null, seeking,
+			    (id, goal, source, deadline, consent) -> { throw new AssertionError("Restart attempted fresh rendezvous adoption."); }, System::currentTimeMillis);
+			resumed.start();
+			try
+			{
+				for (long id : List.of(1L, 3L, 8L)) { resumed.rendezvous(id); PhantomAssertions.assertFalse(lifetimeHeld(resumed, states, goals, backend, id, goals.load(id).orElseThrow().goal()), "Old consent/RECOVERING claim granted an unconfirmed native lifetime."); }
+				PhantomAssertions.assertFalse(backend.materialize(1), "The modeled NORMAL native leaf bypassed its pending-history fence.");
+				resumed.onPulse(); PhantomAssertions.assertEquals(2, backend.invitationCount(), "Cold RECOVERING claims bypassed typed materialization before invitation.");
+				for (int index = 0; index < admissions.size(); index++)
+				{
+					final var admission = admissions.get(index); final long id = ids.get(index); admission.expireRequest();
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, admission.materializeCurrent().outcome(), "Expired cache admitted the next native lifetime.");
+					// The real RECOVERING claim drives the same production verdict as native signal publication and History.
+					admission.bindNativeRequirement(() -> org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.nativeOnlyRestartRequired(resumed.blocksBackground(id)));
+					admission.prepare(1); final var loaded = admission.materializeCurrent();
+					if (id == 23 || id == 24)
+					{
+						PhantomAssertions.assertFalse(admission.backgroundDemand(id) || admission.hasTypedDue(), "An unowned FARM-permitted control retained native demand or typed Due.");
+						PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, loaded.outcome(), "An unowned control reached the modeled native leaf.");
+						PhantomAssertions.assertFalse(backend._typedAdmitted.contains(id), "A deferred control acquired a native epoch."); continue;
+					}
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS, loaded.outcome(), "Fresh request could not reuse its unchanged historical claim.");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF, loaded.request().kind(), "Restart lost the typed materialization claim.");
+					backend._typedAdmitted.add(id);
+				}
+				for (int pulse = 0; pulse < 24; pulse++) { resumed.onPulse(); }
+				PhantomAssertions.assertEquals(3, backend.observe(backend._members.get(1L)).orElseThrow().members().size(), "Restart stranded the durable Phantom roster.");
+				PhantomAssertions.assertEquals(4, backend.invitationCount(), "Restart replayed consent or bypassed the ordinary canonical invitation owner.");
+				for (long id : List.of(1L, 3L, 8L)) { PhantomAssertions.assertTrue(lifetimeHeld(resumed, states, goals, backend, id, goals.load(id).orElseThrow().goal()), "Current recovered native Party lost lifetime retention."); }
+			}
+			finally { resumed.beginStop(); PhantomAssertions.assertTrue(resumed.finishStop(), "Recovered Party chain did not drain."); }
+		}
+		finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party chain did not drain."); for (var admission : admissions) { admission.close(); } }
+	}
+
+	private static boolean lifetimeHeld(PhantomPartyCoordinator coordinator, MemoryPartyStore states, MemoryGoalStore goals, MemoryPartyBackend backend, long profileId, PhantomGoal root)
+	{
+		return lifetimePermission(coordinator, states, goals, backend, profileId, root, false);
+	}
+
+	private static boolean lifetimePermission(PhantomPartyCoordinator coordinator, MemoryPartyStore states, MemoryGoalStore goals, MemoryPartyBackend backend, long profileId, PhantomGoal root, boolean committedDecision)
+	{
+		states._rejectRendezvousReads = true; goals._failNextLoad = true; backend._rejectCurrentMemberReads = true; backend._rejectLifetimeReads = true;
+		try { return committedDecision ? coordinator.permitsCommittedNativeDecision(profileId, root, backend._members.get(profileId).characterObjectId(), backend._nativeEpoch) : coordinator.retainsNativeLifetime(profileId, root, backend._members.get(profileId).characterObjectId(), backend._nativeEpoch); }
+		finally { states._rejectRendezvousReads = false; goals._failNextLoad = false; backend._rejectCurrentMemberReads = false; backend._rejectLifetimeReads = false; }
+	}
+
 	private static PhantomGoal historicalIdle(long profileId, long goalId, long revision)
 	{
 		final var owner = new PhantomDomainRef("profile", Long.toString(profileId));
@@ -2876,7 +3016,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			}
 		}
 		private boolean _rejectCurrentMemberReads;
+		private boolean _rejectLifetimeReads;
+		private boolean _requiresTypedAdmission;
+		private final Set<Long> _typedAdmitted = new HashSet<>();
 		private boolean _farmEnabled;
+		private int _farmLevel = 50;
 		private java.util.OptionalInt _farmTarget = java.util.OptionalInt.empty();
 		private java.util.function.Consumer<MemberRef> _afterSnapshot;
 		private boolean _observeFarmAbsence;
@@ -3042,12 +3186,15 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public Optional<PartySnapshot> observe(MemberRef member)
 		{
+			if (_rejectLifetimeReads) { throw new AssertionError("Lifetime retention performed native/repository observation."); }
 			return Optional.ofNullable(_parties.get(member));
 		}
 
 		@Override
 		public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
 		{
+			if (_rejectLifetimeReads) { throw new AssertionError("Lifetime retention performed capability/role observation."); }
+			if (_requiresTypedAdmission && !_typedAdmitted.contains(member.profileId())) { return Optional.empty(); }
 			if (_afterSnapshot != null) { _afterSnapshot.accept(member); }
 			return Optional.ofNullable(_snapshots.getOrDefault(member, new MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO)));
 		}
@@ -3067,11 +3214,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public boolean materialize(long profileId)
 		{
-			return _members.containsKey(profileId);
+			return _members.containsKey(profileId) && (!_requiresTypedAdmission || _typedAdmitted.contains(profileId));
 		}
 
-		@Override public java.util.OptionalInt currentLevel(MemberRef member) { return _farmEnabled ? java.util.OptionalInt.of(50) : java.util.OptionalInt.empty(); }
-		@Override public long materializationEpoch(MemberRef member) { return _members.containsValue(member) ? _nativeEpoch : 0; }
+		@Override public java.util.OptionalInt currentLevel(MemberRef member) { return _farmEnabled ? java.util.OptionalInt.of(_farmLevel) : java.util.OptionalInt.empty(); }
+		@Override public long materializationEpoch(MemberRef member) { return _members.containsValue(member) && (!_requiresTypedAdmission || _typedAdmitted.contains(member.profileId())) ? _nativeEpoch : 0; }
 		@Override public CurrentForceObservation currentForce(MemberRef member)
 		{
 			final boolean absent = _observeFarmAbsence && _members.containsValue(member) && !_unavailable.contains(member.profileId()) && !_parties.containsKey(member);

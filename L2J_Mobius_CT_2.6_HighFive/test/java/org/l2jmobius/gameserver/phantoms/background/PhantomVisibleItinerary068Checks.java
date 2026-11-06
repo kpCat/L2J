@@ -1,10 +1,34 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.gameserver.phantoms.background;
 
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongPredicate;
 
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.TransitionOutcome;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
+import org.l2jmobius.tests.phantoms.PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore;
+import org.l2jmobius.tests.phantoms.PhantomPopulationTestDoubles;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
 
@@ -25,6 +49,9 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("09-historical-route-exclusion-requires-unchanged-failed-step", _ -> historicalFailedStep());
 		registry.add("10-offscreen-hash-fence-is-owned-only-by-typed-receipt", _ -> offscreenReceiptHash());
 		registry.add("11-completed-offscreen-arrival-requires-native-capture-before-history", _ -> completedOffscreenNativeHandoff());
+		registry.add("12-background-native-request-cache-is-current-finite-and-bounded", _ -> nativeContextRequestCache());
+		registry.add("13-background-native-request-reaches-bounded-ecology-handoff", context -> nativeRequestPresence(context.moduleRoot()));
+		registry.add("14-current-party-native-owner-requires-typed-restart-context", context -> nativePartyRestartContext(context.moduleRoot()));
 	}
 	public static void main(String[] args)
 	{
@@ -44,6 +71,9 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		historicalFailedStep();
 		offscreenReceiptHash();
 		completedOffscreenNativeHandoff();
+		nativeContextRequestCache();
+		try { final var module = java.nio.file.Path.of(System.getProperty("phantom.module.root", ".")); nativePartyRestartContext(module); nativeRequestPresence(module); }
+		catch (Exception failure) { throw new IllegalStateException("Native request presence fixture failed.", failure); }
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
 	}
 	private static void offscreenReceiptHash()
@@ -105,6 +135,280 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		return PhantomNativeContext.completed(state.identity(), new PhantomNativeContext.Capture(1, PhantomNativeContext.Eligibility.SUPPORTED, policy),
 			270, new PhantomBackgroundStateCodec().encode(state));
 	}
+
+	public static boolean nativeOnlyRestartRequired(boolean partyNativeOnly)
+	{
+		final var state = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, "a".repeat(64)), 0);
+		final var context = permittedHistoricalContext(state);
+		PhantomAssertions.assertTrue(context.phase() == PhantomNativeContext.Phase.COMPLETED && context.binds(state.identity(), 270, new PhantomBackgroundStateCodec().encode(state))
+			&& context.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()) && !PhantomOffscreenOutdoorTravel.taggedReceipt(state), "Restart prerequisite must be a current FARM-permitted COMPLETED context without outdoor debt.");
+		return PhantomBackgroundService.historicalNativeContextRequired(state, context, partyNativeOnly);
+	}
+	private static void nativePartyRestartContext(Path module) throws Exception
+	{
+		PhantomAssertions.assertFalse(nativeOnlyRestartRequired(false), "Unowned ordinary historical FARM gained native-only admission.");
+		try (var fixture = new NativeRequestPresenceFixture(module, 1))
+		{
+			fixture.bindNativeRequirement(() -> nativeOnlyRestartRequired(false)); fixture.prepare(1);
+			PhantomAssertions.assertFalse(fixture.backgroundDemand(1) || fixture.hasTypedDue(), "An unowned FARM-permitted context retained a native request or typed Due.");
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, fixture.materializeCurrent().outcome(), "An unowned FARM-permitted context reached the native delegate.");
+			fixture.bindNativeRequirement(() -> nativeOnlyRestartRequired(true)); fixture.prepare(1);
+			final var result = fixture.materializeCurrent();
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, result.outcome(), "RED129: current Party-native-only ownership must drive real Ecology/Presence typed admission even when the stored context permits FARM: " + result);
+			PhantomAssertions.assertEquals(MaterializationRequest.nativeContextHandoff(fixture.claim), result.request(), "The restart native request lost its exact pending historical claim.");
+		}
+	}
+	private static void nativeContextRequestCache()
+	{
+		final long issued = 1_000_000_000L, ttl = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(PhantomBackgroundService.NATIVE_CONTEXT_SIGNAL_TTL_MILLIS);
+		final var accepted = org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED;
+		final var running = PhantomBackgroundService.ServiceState.RUNNING;
+		final var published = new PhantomBackgroundService.NativeContextSignal(1, 1, true, false, null, issued);
+		final var request = published.delivered(true, false, accepted);
+		PhantomAssertions.assertEquals(issued, request.issuedAtNanos(), "An asynchronous ACK must not renew the published request age.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.nativeContextRequestCurrent(running, published, published, issued), "An unacknowledged request granted demand.");
+		PhantomAssertions.assertTrue(PhantomBackgroundService.nativeContextRequestCurrent(running, request, request, issued + ttl - 1), "An exact accepted request expired before its finite TTL.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.nativeContextRequestCurrent(running, request, request, issued + ttl), "A stale accepted ACK survived its published TTL.");
+		PhantomAssertions.assertFalse(PhantomBackgroundService.nativeContextRequestCurrent(running, request, request, issued - 1), "A future timestamp granted request demand.");
+		for (var state : List.of(PhantomBackgroundService.ServiceState.NEW, PhantomBackgroundService.ServiceState.STOPPING, PhantomBackgroundService.ServiceState.STOPPED, PhantomBackgroundService.ServiceState.FAILED))
+		{
+			PhantomAssertions.assertFalse(PhantomBackgroundService.nativeContextRequestCurrent(state, request, request, issued), "A non-running service retained demand: " + state);
+		}
+		for (var rejected : List.of(request.delivered(false, false, accepted), request.delivered(true, true, accepted),
+			request.delivered(true, false, org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort.SignalDelivery.STALE)))
+		{
+			PhantomAssertions.assertFalse(PhantomBackgroundService.nativeContextRequestCurrent(running, rejected, rejected, issued), "Withdrawn, retiring or nonaccepted delivery granted demand.");
+		}
+		final var coalesced = request.delivered(true, false, org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort.SignalDelivery.COALESCED);
+		PhantomAssertions.assertTrue(PhantomBackgroundService.nativeContextRequestCurrent(running, coalesced, coalesced, issued), "A current coalesced request lost its existing ACK semantics.");
+		final var newer = new PhantomBackgroundService.NativeContextSignal(2, 2, true, false, accepted, issued);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.nativeContextRequestCurrent(running, request, newer, issued), "An old sequence/record granted demand after replacement.");
+		final var values = new java.util.LinkedHashMap<Long, PhantomBackgroundService.NativeContextSignal>();
+		for (long id = 1; id <= 5000; id++) { values.put(id, id == 5000 ? newer : request.delivered(false, false, accepted)); }
+		final var delegate = values.entrySet().iterator();
+		final var examined = new java.util.concurrent.atomic.AtomicInteger();
+		final java.util.Iterator<java.util.Map.Entry<Long, PhantomBackgroundService.NativeContextSignal>> scan = new java.util.Iterator<>()
+		{
+			@Override public boolean hasNext() { return delegate.hasNext(); }
+			@Override public java.util.Map.Entry<Long, PhantomBackgroundService.NativeContextSignal> next() { examined.incrementAndGet(); return delegate.next(); }
+		};
+		final var found = new java.util.ArrayList<Long>();
+		while (scan.hasNext())
+		{
+			final int before = examined.get();
+			found.addAll(PhantomBackgroundService.nativeContextRequestPage(running, scan, values, issued, 256));
+			PhantomAssertions.assertTrue(examined.get() - before <= 256, "A request-cache page inspected more than256 entries.");
+		}
+		PhantomAssertions.assertEquals(List.of(5000L), found, "Bounded pages lost the current request behind5000 retained signal records.");
+		PhantomAssertions.assertEquals(5000, examined.get(), "Bounded pages rescanned or skipped cache entries.");
+		PhantomAssertions.assertTrue(PhantomBackgroundService.nativeContextRequestPage(PhantomBackgroundService.ServiceState.STOPPED, scan, values, issued, 256).isEmpty(), "Stopped discovery returned candidates.");
+		PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Cache-only admission initialized a database.");
+	}
+	private static void nativeRequestPresence(Path module) throws Exception
+	{
+		try (var fixture = new NativeRequestPresenceFixture(module))
+		{
+			fixture.prepare(0);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, fixture.port(fixture::backgroundDemand, false, _ -> false, fixture.ecology).materialize(1).outcome(), "Background demand bypassed preparation capacity0.");
+			fixture.prepare(1);
+			final var port = fixture.port(fixture::backgroundDemand, false, _ -> false, fixture.ecology);
+			port.installSoftReclamationEpochs(_ -> new PhantomActivityMaterializationPort.SoftReclaimSelection(2, 99), _ -> true, _ -> true);
+			PhantomAssertions.assertEquals(0L, port.softReclaimSelection(1).profileId(), "Sole Background demand obtained accepted-journey soft-reclaim rights.");
+			fixture.nowNanos.addAndGet(java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(PhantomBackgroundService.NATIVE_CONTEXT_SIGNAL_TTL_MILLIS));
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Expired request reached the delegate.");
+			fixture.resetRequest();
+			fixture.current.set(fixture.current.get().delivered(true, true, PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED));
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Retiring request reached the delegate.");
+			fixture.resetRequest();
+			fixture.serviceState.set(PhantomBackgroundService.ServiceState.STOPPING);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Stopped service reached the delegate.");
+			fixture.serviceState.set(PhantomBackgroundService.ServiceState.RUNNING);
+			fixture.current.set(new PhantomBackgroundService.NativeContextSignal(2, 2, true, false, PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED, fixture.nowNanos.get()));
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Replaced request sequence reached the delegate.");
+			fixture.resetRequest();
+			fixture.manager.presence().schedule(1, PhantomActivityState.SLEEPING);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Sole Background demand bypassed the current sleeping calendar.");
+			fixture.manager.presence().schedule(1, PhantomActivityState.ACTIVE);
+			PhantomAssertions.assertEquals(null, fixture.loaded.get(), "A negative native-request case reached materialization.");
+			fixture.ecology.installMaterializationDemand(_ -> true);
+			fixture.prepare(1);
+			fixture.manager.presence().schedule(1, PhantomActivityState.SLEEPING);
+			final var rawSleepingDue = fixture.ecology.requestMaterializationDue(1);
+			PhantomAssertions.assertTrue(!fixture.manager.presence().isOnline(1) && rawSleepingDue.complete()
+				&& rawSleepingDue.request().equals(MaterializationRequest.nativeContextHandoff(fixture.claim)),
+				"The raw-Background SLEEP negative must have a real typed ecology handoff available despite its sleeping calendar: " + rawSleepingDue);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED,
+				fixture.port(_ -> true, false, _ -> false, fixture.ecology).materialize(1).outcome(),
+				"A raw Background predicate bypassed the port's own sleeping-calendar guard.");
+			PhantomAssertions.assertEquals(null, fixture.loaded.get(), "The raw Background SLEEP negative reached materialization.");
+			fixture.manager.presence().schedule(1, PhantomActivityState.ACTIVE);
+			fixture.ecology.installMaterializationDemand(fixture::backgroundDemand);
+			try (var normal = new NativeRequestPresenceFixture(module))
+			{
+				normal.completeHistory();
+				final var due = normal.ecology.requestMaterializationDue(1);
+				PhantomAssertions.assertTrue(due.complete() && due.request().kind() == MaterializationRequest.Kind.NORMAL, "NORMAL-negative fixture did not finish its real ecology request.");
+				for (boolean admitted : List.of(false, true))
+				{
+					final var normalPort = normal.port(normal::backgroundDemand, admitted, _ -> false, normal.ecology);
+					PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, normalPort.materialize(1).outcome(), "Sole Background demand granted a NORMAL request; admitted=" + admitted);
+				}
+				PhantomAssertions.assertEquals(null, normal.loaded.get(), "Stale Background demand loaded after catchup became COMPLETE.");
+			}
+			fixture.prepare(1);
+			final var result = port.materialize(1);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, result.outcome(), "A current Background request must reach the real bounded ecology handoff: " + result + ";due=" + fixture.ecology.dueSnapshot(1));
+			PhantomAssertions.assertEquals(MaterializationRequest.nativeContextHandoff(fixture.claim), fixture.loaded.get(), "The exact historical owner claim was lost at the native delegate.");
+			PhantomAssertions.assertFalse(fixture.ecology.permitsScheduling(1), "Native-context handoff opened ordinary ecology admission.");
+			fixture.loaded.set(null);
+			final var reads = new java.util.concurrent.atomic.AtomicInteger();
+			final var expiredAfterDue = fixture.port(id -> fixture.backgroundDemand(id) && reads.incrementAndGet() == 1, false, _ -> false, fixture.ecology);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, expiredAfterDue.materialize(1).outcome(), "A request lost after due proof still materialized.");
+			PhantomAssertions.assertEquals(2, reads.get(), "The Background request was not rechecked after the typed due proof.");
+			PhantomAssertions.assertEquals(null, fixture.loaded.get(), "An expired final Background check reached the delegate.");
+			fixture.manager.presence().schedule(1, PhantomActivityState.SLEEPING);
+			final var acceptedJourney = fixture.port(_ -> false, false, _ -> true, null);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, acceptedJourney.materialize(1).outcome(), "The separate pre-existing accepted journey lost its ordinary continuation semantics.");
+			PhantomAssertions.assertEquals(MaterializationRequest.normal(), fixture.loaded.get(), "An ordinary accepted journey was converted to a Background typed request.");
+		}
+		PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "The memory-port handoff fixture initialized SQL.");
+	}
+
+	/** Reuses the public memory stores and HistoricalPort from the existing readiness102 fixture. */
+	/** Test composition bridge to the exact production retirement decision, without a native Player. */
+	public static boolean nativeRetirementRequired(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot proof, int objectId, long epoch, boolean partyRetained)
+	{
+		return PhantomHistoricalBackgroundService.nativeHandoffRetirementRequired(proof, objectId, epoch, partyRetained);
+	}
+	public static boolean nativePartyDecisionPrepared(boolean sharedRendezvousPreparation, boolean committedNativeParty)
+	{
+		return PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(sharedRendezvousPreparation, committedNativeParty);
+	}
+
+	public static final class NativeRequestPresenceFixture implements AutoCloseable
+	{
+		final long profileId;
+		private final int characterObjectId;
+		final String claim = "e".repeat(64);
+		final AtomicLong nowNanos = new AtomicLong(1_000_000_000L);
+		final AtomicReference<PhantomBackgroundService.ServiceState> serviceState = new AtomicReference<>(PhantomBackgroundService.ServiceState.RUNNING);
+		final AtomicReference<PhantomBackgroundService.NativeContextSignal> captured = new AtomicReference<>(), current = new AtomicReference<>();
+		final AtomicReference<MaterializationRequest> loaded = new AtomicReference<>();
+		final AtomicReference<PhantomBackgroundCatchupStore.Snapshot> history = new AtomicReference<>();
+		private java.util.function.BooleanSupplier nativeRequirement = () -> true;
+		final PhantomPopulationManager manager;
+		final PhantomPopulationEcologyService ecology;
+		final PhantomHumanLocalityControl locality;
+		final PhantomActivityMaterializationPort delegate = new PhantomActivityMaterializationPort()
+		{
+			@Override public TransitionOutcome materialize(long id) { loaded.set(MaterializationRequest.normal()); return TransitionOutcome.success(); }
+			@Override public TransitionOutcome materialize(long id, MaterializationRequest request) { loaded.set(request); return TransitionOutcome.success(request); }
+			@Override public TransitionOutcome dematerialize(long id) { return TransitionOutcome.success(); }
+			@Override public TransitionOutcome retryCleanup(long id) { return TransitionOutcome.deferred(); }
+			@Override public boolean isMaterialized(long id) { return false; }
+			@Override public boolean hasLifecycleOwnership(long id) { return false; }
+		};
+		NativeRequestPresenceFixture(Path module) throws Exception
+		{
+			this(module, 1);
+		}
+		public NativeRequestPresenceFixture(Path module, long profileId) throws Exception
+		{
+			this.profileId = profileId;
+			final var instant = Instant.parse("2026-01-05T20:30:00Z");
+			final long target = instant.toEpochMilli() / 60000, from = target - 120;
+			final var population = PhantomPopulationCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), ZoneOffset.UTC);
+			final var social = PhantomSocialCatalog.load(module.resolve("dist/game/data/phantoms/social/high-five-social-v1.xml"));
+			final var catalog = PhantomPopulationEcologyCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), population, social);
+			final var store = new PhantomPopulationTestDoubles.MemoryStore(population.hash());
+			final var ready = store.seedReady(profileId, 1);
+			characterObjectId = ready.profile().characterObjectId();
+			final var states = new EcologyMemoryStore(null);
+			states.insert(profileId, new PhantomPopulationEcologyState(catalog.hash(), PhantomPopulationEcologyState.Preset.LIVING, 1, 1, target, from, from, target,
+				PhantomPopulationEcologyState.Pace.OUTLIER, 10000, catalog.limits().productiveBlockMinutes(), PhantomPopulationEcologyState.Personality.BALANCED,
+				Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), ready.state().scheduleTemplate(), PhantomPopulationEcologyState.Disposition.MANAGED, target + 10000, 0, claim, target, 0, 0, ""));
+			history.set(new PhantomBackgroundCatchupStore.Snapshot(new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.PENDING, claim, 1, from, target, from, 0, 0, 1, 1, 1, 1, 0, "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce"), ""), 0));
+			final PhantomPopulationEcologyService.HistoricalPort historical = new PhantomPopulationEcologyService.HistoricalPort()
+			{
+				@Override public Optional<PhantomBackgroundCatchupStore.Snapshot> status(long id) { return Optional.of(history.get()); }
+				@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long end, long seed) { throw new AssertionError("The pending native request was restarted."); }
+				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes)
+				{
+					return nativeRequirement.getAsBoolean()
+						? PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, "native_context.required:accepted", history.get())
+						: PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, "fixture.native_context_not_required", history.get());
+				}
+			};
+			final var clock = new PhantomPopulationTestDoubles.MutableClock(instant);
+			ecology = new PhantomPopulationEcologyService(catalog, population, states, historical, _ -> false, _ -> "", clock, ZoneOffset.UTC, PhantomPopulationEcologyState.Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+			ecology.enablePeriodicDueMode();
+			manager = new PhantomPopulationManager(store, population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 1, 1, 2, 1, 1, 64);
+			manager.installEcology(ecology);
+			ecology.installMaterializationDemand(this::backgroundDemand);
+			final PhantomRelevanceSignalPort signals = new PhantomRelevanceSignalPort()
+			{
+				@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+				@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+			};
+			locality = new PhantomHumanLocalityControl(PhantomTopologyService.inertForTesting(signals, 2), signals, List::of, () -> 1000);
+			resetRequest();
+			PhantomAssertions.assertTrue(manager.start(), "Native request memory population did not start.");
+			for (int pulse = 0; pulse < 32; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertTrue(manager.presence().isOnline(profileId), "Fixture calendar is not online.");
+		}
+		public void resetRequest()
+		{
+			final var previous = current.get();
+			final long sequence = previous == null ? 1 : previous.sequence() + 1;
+			// A false production verdict models an accepted withdrawal, never an accepted native request.
+			final var request = new PhantomBackgroundService.NativeContextSignal(sequence, sequence, nativeRequirement.getAsBoolean(), false, PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED, nowNanos.get());
+			captured.set(request); current.set(request);
+		}
+		public void bindNativeRequirement(java.util.function.BooleanSupplier required)
+		{
+			nativeRequirement = java.util.Objects.requireNonNull(required); resetRequest();
+		}
+		public void expireRequest() { nowNanos.addAndGet(java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(PhantomBackgroundService.NATIVE_CONTEXT_SIGNAL_TTL_MILLIS)); }
+		public int characterObjectId() { return characterObjectId; }
+		public boolean backgroundDemand(long id)
+		{
+			return nativeRequirement.getAsBoolean() && PhantomBackgroundService.nativeContextMaterializationDemand(manager.presence().isOnline(id),
+				PhantomBackgroundService.nativeContextRequestCurrent(serviceState.get(), captured.get(), current.get(), nowNanos.get()));
+		}
+		public void prepare(int slots)
+		{
+			ecology.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(profileId, 0, false, Long.MAX_VALUE, nowNanos.get())), slots);
+			for (int pulse = 0; pulse < 32; pulse++) { manager.onPulse(); }
+		}
+		void completeHistory()
+		{
+			final var previous = history.get();
+			history.set(new PhantomBackgroundCatchupStore.Snapshot(previous.state().advanceTo(previous.state().targetEpochMinute()), previous.rowVersion() + 1));
+			for (int pulse = 0; pulse < 64; pulse++) { manager.onPulse(); }
+		}
+		PhantomReconcileFirstActivityPort port(LongPredicate background, boolean admitted, LongPredicate acceptedJourney, PhantomPopulationEcologyService due)
+		{
+			final var port = new PhantomReconcileFirstActivityPort(delegate);
+			port.installPopulationReadiness(manager.presence(), locality, due, acceptedJourney, _ -> admitted, background);
+			return port;
+		}
+		/** Existing real presence/ecology gate; only the native materialization leaf is modeled. */
+		public TransitionOutcome materializeCurrent()
+		{
+			return port(this::backgroundDemand, false, _ -> false, ecology).materialize(profileId);
+		}
+		public boolean hasTypedDue()
+		{
+			final var due = ecology.requestMaterializationDue(profileId);
+			return due.complete() && due.request().kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF;
+		}
+		@Override public void close()
+		{
+			manager.beginStop();
+			PhantomAssertions.assertTrue(manager.finishStop(), "Native request memory population did not stop.");
+		}
+	}
+
 	private static PhantomBackgroundState offscreenReceiptState(PhantomBackgroundState.Receipt receipt, long debt)
 	{
 		return new PhantomBackgroundState(PhantomBackgroundState.State.READY, new PhantomBackgroundState.Identity(1, 268480990, 0, 88, 0),

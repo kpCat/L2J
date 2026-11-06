@@ -79,6 +79,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _visibleIntent = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedIntent = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyNativeLifetime = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyCommittedDecision = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousPreparation = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousTravel = (_, _) -> false;
 
@@ -99,6 +101,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public void bindAcceptedIntent(java.util.function.BiPredicate<Long, PhantomGoal> intent)
 	{
 		_acceptedIntent = Objects.requireNonNull(intent);
+	}
+
+	/** Party owns lifetime retention only; it grants no ordinary intent or action permission. */
+	public void bindPartyNativeLifetime(java.util.function.BiPredicate<Long, PhantomGoal> retained, java.util.function.BiPredicate<Long, PhantomGoal> committedDecision)
+	{
+		_partyNativeLifetime = Objects.requireNonNull(retained);
+		_partyCommittedDecision = Objects.requireNonNull(committedDecision);
 	}
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
@@ -727,7 +736,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context.unattested", current);
 			}
-			if (PhantomBackgroundService.historicalNativeContextRequired(proof.state(), proof.context()))
+			if (_background.historicalNativeContextRequired(profileId, proof.state(), proof.context()))
 			{
 				final var delivery = _background.nativeContextSignalDelivery(profileId).orElse(null);
 				return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "native_context.required:" + (delivery == null ? "not_delivered" : delivery.name().toLowerCase(java.util.Locale.ROOT)), current);
@@ -1406,6 +1415,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = sharedFarmSource == null; return prepared; }
 			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
+			if (nativePartyDecisionPrepared(sharedFarmSource != null, _partyCommittedDecision.test(profileId, stored.goal()))) { prepared = true; return true; }
 			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal()))
 			{
 				prepared = sharedFarmSource == null || stored.goal().validSources().contains(sharedFarmSource) && _supportRendezvousTravel.test(profileId, stored.goal());
@@ -1628,12 +1638,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		var handoff = _foregroundHandoffs.get(profileId);
 		if (handoff == null || !exactForegroundHandoff(profileId, handoff) || _visibleAutoPlay == null || _visibleTravel == null
-			|| _acceptedIntent.test(profileId, goal)) { return false; }
+			|| _acceptedIntent.test(profileId, goal) || _partyNativeLifetime.test(profileId, goal)) { return false; }
 		final var player = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(handoff.admission().characterObjectId());
 		final var owner = player == null ? null : player.getNativeWorkOwner();
 		if (owner == null || owner.player() != player || !owner.isCurrent() || owner.epoch() != handoff.materializedAtNanos()) { return false; }
 		final var proof = owner.evidence() == null ? null : owner.evidence().snapshot();
-		if (!nativeHandoffWorkComplete(proof, player.getObjectId(), handoff.materializedAtNanos())) { return false; }
+		if (!nativeHandoffRetirementRequired(proof, player.getObjectId(), handoff.materializedAtNanos(), _partyNativeLifetime.test(profileId, goal))) { return false; }
 		if (handoff.completionDeadlineEpochMillis() == 0)
 		{
 			final var completing = new ActiveForegroundHandoff(handoff.admission(), handoff.materializedAtNanos(),
@@ -1646,6 +1656,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			|| !_visibleTravel.stopForRecovery(profileId, goal, player.getObjectId(), handoff.materializedAtNanos())
 			|| player.isInCombat() || !visibleActorQuiet(profileId, player, handoff.materializedAtNanos())
 			|| !exactForegroundHandoff(profileId, handoff) || !Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal)) { return true; }
+		if (_partyNativeLifetime.test(profileId, goal)) { return false; }
 		_materialization.dematerialize(profileId);
 		// No cursor or reward mutation here: the existing interval transaction resumes only after STORE.
 		return true;
@@ -1654,6 +1665,16 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	static boolean nativeHandoffWorkComplete(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot proof, int objectId, long epoch)
 	{
 		return proof != null && proof.objectId() == objectId && proof.epoch() == epoch && !proof.overflow() && proof.farmCycleSequence() > 0;
+	}
+
+	static boolean nativeHandoffRetirementRequired(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot proof, int objectId, long epoch, boolean partyRetained)
+	{
+		return !partyRetained && nativeHandoffWorkComplete(proof, objectId, epoch);
+	}
+
+	static boolean nativePartyDecisionPrepared(boolean sharedRendezvousPreparation, boolean committedNativeParty)
+	{
+		return !sharedRendezvousPreparation && committedNativeParty;
 	}
 
 	private boolean visibleActorQuiet(long profileId, Player player, long epoch)

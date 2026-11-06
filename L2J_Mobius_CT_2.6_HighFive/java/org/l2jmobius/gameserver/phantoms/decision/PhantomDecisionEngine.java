@@ -424,6 +424,16 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 	}
 
+	/** Immutable current root only; no persistence or handler is invoked by this lifetime observation. */
+	public Optional<PhantomGoal> currentGoal(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final RuntimeSlot slot = _slots.get(profileId);
+			return slot == null ? Optional.empty() : Optional.ofNullable(slot._goal);
+		}
+	}
+
 	public List<RuntimeSnapshot> list()
 	{
 		synchronized (_monitor)
