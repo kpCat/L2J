@@ -59,6 +59,46 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 		registry.add("02-ten-thousand-ready-dirty-admission-and-daily-rotation", this::testEvaluationAndAdmission);
 		registry.add("03-one-hundred-thousand-entry-memory-and-worker-contract", this::testScaleAndNoWorkerOwnership);
 	}
+	public static void registerCoordination130(PhantomTestRegistry registry)
+	{
+		registry.add("12-five-thousand-admission-ambient-target-and-offline-census", context ->
+		{
+			final long started = System.nanoTime(); final var catalog = PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"),ZoneOffset.UTC);
+			final var readRows = new java.util.concurrent.atomic.AtomicInteger();
+			final var store = new MemoryStore(catalog.hash())
+			{
+				@Override public synchronized java.util.List<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot> loadManagedAfter(long after,int limit)
+				{ final var page=super.loadManagedAfter(after,limit); readRows.addAndGet(page.size()); return page; }
+			};
+			for(long id=1;id<=5000;id++){store.seedReady(id,(int)(id%20));} store.resetWrites();
+			final var clock = new MutableClock(Instant.parse("2026-07-27T20:00:00Z")); final var ownership = new Ownership();
+			final var manager=manager(store,catalog,ownership,clock,5000,128,5000,128); PhantomAssertions.assertTrue(manager.start(),"Scale manager did not start.");
+			try
+			{
+				drain(manager,512); final var admitted=new java.util.HashSet<Long>(); final var slots=new java.util.HashSet<Integer>();
+				for(long id=1;id<=5000;id++)
+				{
+					final var fact=manager.admissionProfile(id).orElseThrow(); if(!fact.admitted()){continue;} admitted.add(id);
+					final var demand=org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(id,slots.size(),128,false,1000);
+					PhantomAssertions.assertTrue(demand!=null && demand.ordinaryAdmission(fact.calendarOnline(),fact.admitted(),1000),"Admitted profile could not contribute to the physical target without a human.");
+					slots.add(Math.toIntExact(100000+id)); // The existing physical-admission boundary is modeled; no native Player is created.
+				}
+				PhantomAssertions.assertEquals(128,slots.size(),"Ambient demand remained a ceiling rather than filling the admitted synthetic target.");
+				PhantomAssertions.assertEquals(null,org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(5001,slots.size(),128,false,1000),"Ambient target exceeded its physical quota.");
+				final var merchants=java.util.stream.IntStream.rangeClosed(1,250).map(id->200000+id).boxed().collect(java.util.stream.Collectors.toSet());
+				final var humans=new java.util.HashSet<>(Set.of(300001,200001)); final var world=new java.util.HashSet<>(slots); world.addAll(merchants); world.addAll(humans); world.add(400001); merchants.add(slots.iterator().next());
+				final var census=PhantomSystem.coordinationWorldCounts(world,slots,merchants,humans);
+				PhantomAssertions.assertTrue(census.get("materializedManaged")==128 && census.get("nativeOfflineMerchants")==250 && census.get("humanOnline")==1 && census.get("worldTotal")==380,"Offline/human identities overlapped managed capacity.");
+				for(int pulse=0;pulse<100;pulse++){readRows.set(0);manager.onPulse();PhantomAssertions.assertTrue(readRows.get()<=256 && manager.snapshot().lastPulseOperations()<=BOUNDARY_BUDGET,"A scale pulse performed an unbounded persistence page/control scan.");}
+				clock.set(Instant.parse("2026-07-28T20:00:00Z"));manager.onPulse();drain(manager,512);final var rotated=new java.util.HashSet<Long>();
+				for(long id=1;id<=5000;id++){if(manager.admissionProfile(id).orElseThrow().admitted()){rotated.add(id);}}
+				PhantomAssertions.assertTrue(rotated.size()==128 && !rotated.equals(admitted),"Daily rotation lost quota or permanently monopolized the initial slice.");
+				PhantomAssertions.assertEquals(0L,store.writes(),"Synthetic schedule/density checks wrote profile persistence.");
+				context.record("task130.admission5000With250OfflineMillis",(System.nanoTime()-started)/1_000_000);context.record("task130.syntheticManaged",128);context.record("task130.syntheticOffline",250);
+			}
+			finally{stop(manager);}
+		});
+	}
 
 	private void testControlPulses(PhantomTestContext context)
 	{

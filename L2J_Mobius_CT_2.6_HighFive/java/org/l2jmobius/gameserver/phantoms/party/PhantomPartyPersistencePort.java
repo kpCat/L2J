@@ -27,6 +27,8 @@ public interface PhantomPartyPersistencePort
 	/** Terminal release or idle roster revision, including all departed and incoming identity claims. */
 	default StoredLogicalGroup reviseLogicalGroup(StoredLogicalGroup expected, PhantomLogicalParty replacement)
 	{ throw new UnsupportedOperationException("Atomic logical membership revision is unavailable."); }
+	/** Observe settled member receipts without awarding or executing any interval. */
+	default StoredLogicalGroup refreshLogicalBackground(StoredLogicalGroup expected, long now) { return expected; }
 	record StoredLogicalGroup(long rowVersion, PhantomLogicalParty group)
 	{
 		public StoredLogicalGroup { if (rowVersion < 0 || group == null) { throw new IllegalArgumentException("Invalid stored logical group."); } }

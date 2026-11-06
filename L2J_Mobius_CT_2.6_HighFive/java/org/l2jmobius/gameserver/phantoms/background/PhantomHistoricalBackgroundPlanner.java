@@ -179,21 +179,39 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, boolean supportTravelOnly, java.util.function.Predicate<PhantomGoal> admitted)
 	{
-		final var source = rendezvousSource(sharedFarmSource);
-		final var previous = visiblePredecessor(profileId, previousGoal);
 		Objects.requireNonNull(admitted, "admitted");
 		if (state == null || state.identity().profileId() != profileId || !new PhantomDomainRef("profile", Long.toString(profileId)).equals(previousGoal.subject())
 			|| live == null || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
+		var candidate = rendezvousGraphPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, sharedFarmSource, excludedSteps, supportTravelOnly);
+		if (!candidate.ready()) { candidate = rendezvousIngressPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, sharedFarmSource, excludedSteps, supportTravelOnly); }
+		return !candidate.ready() || admitted.test(candidate.goal()) ? candidate : Result.blocked("planner.rendezvous.travel_unavailable");
+	}
+	/** Logical agreement constrains the ordinary planner; native-only WALK proposals never become offscreen edges. */
+	public Result replanLogicalRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long seed, long ordinal, PhantomDomainRef source)
+	{ return replanLogicalRendezvous(profileId,state,previousGoal,seed,ordinal,source,Set.of(),Set.of(),false); }
+	public Result replanLogicalRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long seed, long ordinal, PhantomDomainRef source,
+		Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel)
+	{
+		if (state == null || previousGoal == null || state.identity().profileId() != profileId) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
+		if ("support".equals(logicalRole(state))) { return Result.blocked("native_context.required:logical_party_support"); }
+		final var result = rendezvousGraphPlan(profileId, state, previousGoal, seed, ordinal, source, excludedTargets, excludedSteps, affordableTravel, false);
+		return result.ready() ? result : Result.blocked("native_context.required:logical_party_preparation");
+	}
+	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, boolean supportTravelOnly)
+	{ return rendezvousGraphPlan(profileId,state,previousGoal,deterministicSeed,planOrdinal,sharedFarmSource,Set.of(),excludedSteps,false,supportTravelOnly); }
+	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomDomainRef sharedFarmSource, Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel, boolean supportTravelOnly)
+	{
+		final var source = rendezvousSource(sharedFarmSource); final var previous = visiblePredecessor(profileId, previousGoal);
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		var candidate = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
 			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
 			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
 			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
-			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), false,
+			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), affordableTravel,
 			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()));
-		if (!candidate.ready()) { candidate = rendezvousIngressPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, sharedFarmSource, excludedSteps, supportTravelOnly); }
-		return !candidate.ready() || admitted.test(candidate.goal()) ? candidate : Result.blocked("planner.rendezvous.travel_unavailable");
 	}
 	private Result rendezvousIngressPlan(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
 		PhantomTopologyPoint live, PhantomDomainRef source, Set<String> excludedSteps, boolean supportTravelOnly)

@@ -106,7 +106,7 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 	{
 		final var prior = loadLogicalGroup(group.leaderProfileId()).orElse(null);
 		if ((prior == null ? -1 : prior.rowVersion()) != expected) { throw new java.util.ConcurrentModificationException("Stale formation aggregate."); }
-		if (group.phase() != PhantomLogicalParty.Phase.AGREED || versions.size() != group.members().size()
+		if (group.phase() != PhantomLogicalParty.Phase.AGREED || group.backgroundCursor() != 0 || versions.size() != group.members().size()
 			|| prior != null && (prior.group().active() || group.generation() != Math.addExact(prior.group().generation(), 1)))
 		{ throw new IllegalArgumentException("Formation requires a fresh agreement or the next released generation."); }
 		final var mutations = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
@@ -132,7 +132,7 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		{ throw new IllegalStateException("Physical projection must drain before logical membership changes."); }
 		final boolean terminal = replacement.phase() == PhantomLogicalParty.Phase.DISBANDED;
 		if (replacement.leaderProfileId() != old.leaderProfileId() || !replacement.groupId().equals(old.groupId())
-			|| replacement.backgroundCursor() != old.backgroundCursor() || !replacement.objective().equals(old.objective()) || !replacement.anchorId().equals(old.anchorId())
+			|| (terminal ? replacement.backgroundCursor() != old.backgroundCursor() : replacement.backgroundCursor() != 0) || !replacement.objective().equals(old.objective()) || !replacement.anchorId().equals(old.anchorId())
 			|| terminal && (!replacement.members().equals(old.members()) || replacement.generation() != old.generation())
 			|| !terminal && (replacement.generation() != Math.addExact(old.generation(), 1) || replacement.phase() != PhantomLogicalParty.Phase.BACKGROUND))
 		{ throw new IllegalArgumentException("Invalid logical membership revision."); }
@@ -157,11 +157,46 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		final var before = loadLogicalGroup(group.leaderProfileId()).orElseThrow();
 		final var old = before.group();
 		if (before.rowVersion() != expected) { throw new java.util.ConcurrentModificationException("Stale logical group version."); }
+		if (group.backgroundCursor() != old.backgroundCursor()) { throw new IllegalArgumentException("Group cursor requires committed member receipt guards."); }
 		if (!old.groupId().equals(group.groupId()) || old.generation() != group.generation() || !old.members().equals(group.members())
 			|| !old.objective().equals(group.objective()) || !old.anchorId().equals(group.anchorId())
 			|| !old.transition(group.phase(), group.backgroundCursor(), group.nextDueMillis(), group.waitReason()).equals(group))
 		{ throw new IllegalArgumentException("A phase update cannot replace logical membership or objective."); }
 		return decodeLogicalGroup(_profiles.updateComponent(group.leaderProfileId(), PhantomLogicalParty.COMPONENT_TYPE, expected, PhantomLogicalParty.SCHEMA_VERSION, group.encode()));
+	}
+	@Override public StoredLogicalGroup refreshLogicalBackground(StoredLogicalGroup expected, long now)
+	{
+		final var group = expected.group();
+		if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND) { return expected; }
+		if (loadLogicalGroup(group.leaderProfileId()).filter(expected::equals).isEmpty()) { throw new java.util.ConcurrentModificationException("Stale Background group watermark."); }
+		final var guards = new java.util.ArrayList<PhantomProfileComponent>(); long cursor = Long.MAX_VALUE;
+		for (var member : group.members())
+		{
+			final var claim = loadLogicalClaim(member.profileId()).orElse(null);
+			if (claim == null || !claim.active() || claim.leaderProfileId() != group.leaderProfileId() || claim.generation() != group.generation() || !claim.groupId().equals(group.groupId()))
+			{ throw new java.util.ConcurrentModificationException("Background group claim changed."); }
+			final var rows = new java.util.HashMap<String, PhantomProfileComponent>();
+			for (String type : List.of(PhantomLogicalParty.CLAIM_COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.COMPONENT_TYPE,
+				org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE))
+			{
+				final var row = _profiles.findComponent(member.profileId(), type).orElse(null);
+				if (row == null) { return expected; }
+				rows.put(type, row); guards.add(row);
+			}
+			final var state = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().decode(rows.get(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.COMPONENT_TYPE).payload());
+			final var history = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec().decode(rows.get(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE).payload());
+			final var goal = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(rows.get(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).payload());
+			if (state.identity().profileId() != member.profileId() || goal.goalId() != member.goalId() || goal.revision() < member.goalRevision()) { return expected; }
+			final var proof = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.committedHistoricalFarmMinute(group.objective(), state, goal, history);
+			if (proof.isEmpty()) { return expected; }
+			cursor = Math.min(cursor, proof.getAsLong());
+		}
+		if (cursor <= group.backgroundCursor()) { return expected; }
+		final var next = new PhantomLogicalParty(group.groupId(), group.generation(), group.leaderProfileId(), group.members(), group.objective(), group.anchorId(), group.phase(),
+			cursor, now + 5000, "", Math.max(group.expiresAtMillis(), Math.addExact(now, PhantomLogicalParty.IDLE_LIFETIME_MILLIS)));
+		return _profiles.mutateProfileComponentsAtomically(List.of(new PhantomProfileRepository.ProfileComponentMutation(group.leaderProfileId(),
+			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, expected.rowVersion(), PhantomLogicalParty.SCHEMA_VERSION, next.encode()))), guards)
+			.stream().map(this::decodeLogicalGroup).findFirst().orElseThrow();
 	}
 
 	@Override

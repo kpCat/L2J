@@ -113,14 +113,17 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
 			else if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND)
-			{ _logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), group.phase() == PhantomLogicalParty.Phase.DRAINING ? now + 300_000 : now, "WAIT_DEMAND"); }
+			{ _logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), group.phase() == PhantomLogicalParty.Phase.DRAINING && !"EXPIRED_ASSEMBLY".equals(group.waitReason()) ? now + 300_000 : now, "WAIT_DEMAND"); }
+			else { _logical.refreshBackground(row, now); }
 			return;
 		}
 		final var nativeParty = materialized.stream().map(_backend::observe).flatMap(java.util.Optional::stream)
 			.filter(party -> party.members().size() >= 2 && party.members().stream().allMatch(member -> member.kind() == MemberKind.PHANTOM && group.contains(member.profileId()))).findFirst().orElse(null);
+		if (now >= group.expiresAtMillis() && group.phase() != PhantomLogicalParty.Phase.NATIVE_ACTIVE && group.phase() != PhantomLogicalParty.Phase.DRAINING)
+		{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "EXPIRED_ASSEMBLY"); return; }
 		if (group.phase() == PhantomLogicalParty.Phase.DRAINING)
 		{
-			if (nativeParty != null) { _coordinator.releaseAutonomousFarm(nativeParty.leader().profileId()); }
+			if (nativeParty != null) { _coordinator.drainAutonomousFarm(nativeParty.leader().profileId()); }
 			return;
 		}
 		if (nativeParty != null)
@@ -651,7 +654,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	}
 
 	/** Existing historical fallback is ordinary unmet farm motivation, never an arbitrary idle command. */
-	static boolean ordinaryIntent(long profileId, PhantomGoal goal)
+	public static boolean ordinaryIntent(long profileId, PhantomGoal goal)
 	{
 		if (goal == null || goal.status() != PhantomGoalStatus.ACTIVE) { return false; }
 		if (PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType())) { return true; }

@@ -2390,7 +2390,8 @@ public final class PhantomBackgroundTransaction
 		return List.copyOf(result);
 	}
 
-	private String expectedAfterHash(PhantomBackgroundState state)
+	/** Read-only canonical receipt hash; computing it never authorizes a mutation. */
+	public static String expectedAfterHash(PhantomBackgroundState state)
 	{
 		try
 		{
@@ -2443,6 +2444,31 @@ public final class PhantomBackgroundTransaction
 		{
 			throw new IllegalStateException("SHA-256 is unavailable.", exception);
 		}
+	}
+
+	/** A lower watermark of already settled per-profile work, never a second reward/interval owner. */
+	public static java.util.OptionalLong committedHistoricalFarmMinute(org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source,
+		PhantomBackgroundState state, PhantomGoal goal, PhantomBackgroundCatchupState catchup)
+	{
+		if (state == null || goal == null || catchup == null || source == null || state.state() != State.READY
+			|| state.position().instanceId() != 0 || state.clock().residualTravelMillis() != 0 || catchup.intervalOrdinal() < 1 || catchup.cursorEpochMinute() < 1
+			|| catchup.status() != PhantomBackgroundCatchupState.Status.RUNNING && catchup.status() != PhantomBackgroundCatchupState.Status.COMPLETE
+			|| goal.goalId() != catchup.goalId() || goal.revision() != catchup.goalRevision() || catchup.modelVersion() != PhantomBackgroundState.MODEL_VERSION
+			|| !state.hashes().equals(catchup.authorityHashes()) || state.receipt().activityGeneration() != 0 || state.receipt().tickSequence() != 0
+			|| state.receipt().expectedAfterHash().isEmpty() || !state.receipt().expectedAfterHash().equals(expectedAfterHash(state))) { return java.util.OptionalLong.empty(); }
+		try
+		{
+			final var spec = PhantomBackgroundGoalSpec.parse(goal);
+			if (!goal.validSources().contains(source) || !source.key().equals(spec.npcId() + "@" + spec.anchorId())
+				|| !spec.anchorId().equals(state.position().committedAnchorId())
+				|| !new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", Long.toString(state.identity().profileId())).equals(goal.subject())) { return java.util.OptionalLong.empty(); }
+			final var history = new PhantomBackgroundOperationKey.HistoricalIdentity(catchup.requestId(), catchup.generation(), catchup.intervalOrdinal() - 1,
+				catchup.cursorEpochMinute() - 1, catchup.cursorEpochMinute(), catchup.planIdentity());
+			final var key = new PhantomBackgroundOperationKey(state.identity().profileId(), state.identity().characterObjectId(), goal.goalId(), goal.revision(), 0, 0,
+				PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, state.hashes(), null, history);
+			return key.digest().equals(state.receipt().operationKey()) ? java.util.OptionalLong.of(catchup.cursorEpochMinute()) : java.util.OptionalLong.empty();
+		}
+		catch (IllegalArgumentException invalid) { return java.util.OptionalLong.empty(); }
 	}
 
 	private Integer lockProfile(Connection connection, long profileId) throws SQLException

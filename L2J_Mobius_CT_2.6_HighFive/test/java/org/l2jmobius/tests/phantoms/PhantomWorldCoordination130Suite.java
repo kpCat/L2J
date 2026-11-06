@@ -20,6 +20,7 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomPartySuite.registerCoordination130(registry);
+		org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite.registerCoordination130(registry);
 		registry.add("01-logical-two-three-nine-survive-zero-native-recreation", _ ->
 		{
 			for (int size : List.of(2, 3, 9))
@@ -52,10 +53,11 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 		{
 			final var store = new MemoryStore(); final var coordinator = new PhantomLogicalPartyCoordinator(store);
 			final var before = coordinator.agree(group(1, 3)).orElseThrow();
-			final var next = coordinator.transition(before, PhantomLogicalParty.Phase.BACKGROUND, 12, 2000, "WAIT_CALENDAR");
-			PhantomAssertions.assertEquals(12L, next.group().backgroundCursor(), "Background cursor was lost.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> coordinator.transition(before, PhantomLogicalParty.Phase.BACKGROUND, 12, 2000, "WAIT_CALENDAR"), "A phase-only caller fabricated group time without receipts.");
+			final var next = coordinator.transition(before, PhantomLogicalParty.Phase.BACKGROUND, 0, 2000, "WAIT_CALENDAR");
+			PhantomAssertions.assertEquals(0L, next.group().backgroundCursor(), "Background cursor changed without receipts.");
 			PhantomAssertions.assertThrows(ConcurrentModificationException.class, () -> coordinator.transition(before, PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 1001, ""), "A stale aggregate overwrote a committed transition.");
-			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> coordinator.transition(next, PhantomLogicalParty.Phase.WAKE_REQUESTED, 11, 3000, ""), "A background cursor moved backwards.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> coordinator.transition(next, PhantomLogicalParty.Phase.WAKE_REQUESTED, -1, 3000, ""), "A background cursor moved backwards.");
 		});
 		registry.add("04-paged-discovery-reaches-fifth-source-and-sixteenth-peer", _ ->
 		{
@@ -114,6 +116,24 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			final var nativeRow = owner.agree(new PhantomLogicalParty("C".repeat(64), 1, 5, List.of(member(5), member(6)), original.group().objective(), original.group().anchorId(), PhantomLogicalParty.Phase.AGREED, 0, 4000, "")).orElseThrow();
 			final var waking = owner.transition(nativeRow, PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 5000, "");
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> owner.disband(waking, 6000, "UNSAFE"), "Membership changed before the physical owner drained.");
+		});
+		registry.add("11-assembly-lifetime-is-root-bound-finite-and-yields-to-drain", _ ->
+		{
+			final var initial = group(1, 3);
+			PhantomAssertions.assertTrue(initial.assemblyPending(1, 1001, 0, 1000), "Initial group could not retain the first member before rendezvous acceptance.");
+			final var background = initial.transition(PhantomLogicalParty.Phase.BACKGROUND, 0, 2000, "WAIT_DEMAND");
+			PhantomAssertions.assertTrue(background.assemblyPending(1, 1001, 0, 2000), "The first lawful member retired between Background recovery and the next Party pulse.");
+			PhantomAssertions.assertFalse(background.assemblyPending(1, 1001, 0, 1999), "Background cooldown inherited assembly lifetime.");
+			final var waking = initial.transition(PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 2000, "WAIT_ADMISSION");
+			final var assembling = waking.transition(PhantomLogicalParty.Phase.ASSEMBLING, 0, 3000, "WAIT_NATIVE_ARRIVAL");
+			PhantomAssertions.assertTrue(assembling.assemblyPending(1, 1001, 1, 4000), "Same-root preparation revision lost assembly lifetime.");
+			PhantomAssertions.assertFalse(assembling.assemblyPending(1, 9999, 0, 4000), "An unrelated Solo root inherited group lifetime.");
+			PhantomAssertions.assertFalse(assembling.assemblyPending(1, 1001, 0, initial.expiresAtMillis()), "Repeated phase deadlines extended assembly forever.");
+			final var draining = assembling.transition(PhantomLogicalParty.Phase.DRAINING, 0, 5000, "WAIT_STORE");
+			PhantomAssertions.assertFalse(draining.assemblyPending(1, 1001, 0, 5000), "Assembly permission survived accepted drain.");
+			final var expired = assembling.transition(PhantomLogicalParty.Phase.DRAINING, 0, initial.expiresAtMillis(), "EXPIRED_ASSEMBLY");
+			final var storeWait = expired.transition(PhantomLogicalParty.Phase.DRAINING,0,initial.expiresAtMillis()+5000,"WAIT_STORE");
+			PhantomAssertions.assertEquals(initial.expiresAtMillis(), storeWait.transition(PhantomLogicalParty.Phase.BACKGROUND,0,initial.expiresAtMillis()+5000,"WAIT_DEMAND").expiresAtMillis(), "Expired assembly renewed itself forever through retained STORE wait.");
 		});
 		registry.add("08-five-thousand-durable-discovery-stays-paged", context ->
 		{

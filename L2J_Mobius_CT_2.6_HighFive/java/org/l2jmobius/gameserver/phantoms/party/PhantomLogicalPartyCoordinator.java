@@ -126,6 +126,7 @@ public final class PhantomLogicalPartyCoordinator
 	}
 	public StoredLogicalGroup transition(StoredLogicalGroup expected, PhantomLogicalParty.Phase phase, long cursor, long nextDue, String reason)
 	{
+		if (cursor != expected.group().backgroundCursor()) { throw new IllegalArgumentException("Only settled Background receipts can advance group time."); }
 		if (phase == PhantomLogicalParty.Phase.DISBANDED)
 		{
 			if (cursor != expected.group().backgroundCursor()) { throw new IllegalArgumentException("Disband cannot advance Background time."); }
@@ -133,6 +134,7 @@ public final class PhantomLogicalPartyCoordinator
 		}
 		return remember(_store.updateLogicalGroup(expected.group().transition(phase, cursor, nextDue, reason), expected.rowVersion()));
 	}
+	public StoredLogicalGroup refreshBackground(StoredLogicalGroup expected, long now) { return remember(_store.refreshLogicalBackground(expected, now)); }
 	private void requireIdle(StoredLogicalGroup expected)
 	{
 		if (_store.loadLogicalGroup(expected.group().leaderProfileId()).filter(expected::equals).isEmpty()) { throw new java.util.ConcurrentModificationException("Stale logical agreement."); }
@@ -150,7 +152,7 @@ public final class PhantomLogicalPartyCoordinator
 		requireIdle(expected); final var old = expected.group();
 		if (old.members().equals(members)) { return remember(expected); }
 		final var next = new PhantomLogicalParty(old.groupId(), Math.addExact(old.generation(), 1), old.leaderProfileId(), members,
-			old.objective(), old.anchorId(), PhantomLogicalParty.Phase.BACKGROUND, old.backgroundCursor(), now, "ROSTER_CHANGED");
+			old.objective(), old.anchorId(), PhantomLogicalParty.Phase.BACKGROUND, 0, now, "ROSTER_CHANGED");
 		return remember(_store.reviseLogicalGroup(expected, next));
 	}
 	public StoredLogicalGroup leave(StoredLogicalGroup expected, long profileId, long now)

@@ -959,6 +959,7 @@ public final class PhantomSystem
 					}
 					return new PhantomAutonomousFarmParty.LogicalPage(candidates, page.isEmpty() ? 0 : page.getLast().profile().profileId());
 				}, this::requestLogicalWake, group -> !logicalGroupMayDrain(group));
+				_historicalBackgroundService.bindLogicalGroups(id -> _logicalParties.knownGroupFor(id).map(row -> row.group()));
 				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney, autonomousFarm));
 				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
 				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
@@ -2453,6 +2454,20 @@ public final class PhantomSystem
 	}
 
 	/** Disjoint census from the actual native owners and World; schedule admission is never a physical count. */
+	/** Disjoint projection of the existing owners' current World identities; never permit accounting. */
+	public static Map<String, Long> coordinationWorldCounts(java.util.Set<Integer> world, java.util.Set<Integer> managed, java.util.Set<Integer> merchants, java.util.Set<Integer> humans)
+	{
+		Objects.requireNonNull(world); Objects.requireNonNull(managed); Objects.requireNonNull(merchants); Objects.requireNonNull(humans);
+		long physical = 0, offline = 0, human = 0, other = 0;
+		for (int id : world)
+		{
+			if (managed.contains(id)) { physical++; }
+			else if (merchants.contains(id)) { offline++; }
+			else if (humans.contains(id)) { human++; }
+			else { other++; }
+		}
+		return Map.of("materializedManaged",physical,"nativeOfflineMerchants",offline,"humanOnline",human,"worldOther",other,"worldTotal",(long)world.size());
+	}
 	public static Map<String, Object> operatorCoordinationCensus()
 	{
 		final PhantomSystem configured;
@@ -2463,8 +2478,8 @@ public final class PhantomSystem
 		final var managed = lifecycle.materializations().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.characterObjectId()).collect(java.util.stream.Collectors.toSet());
 		final var merchants = configured._offlineMerchantService == null ? java.util.Set.<Integer>of() : java.util.Set.copyOf(configured._offlineMerchantService.characterIds());
 		final var managedWorld = world.stream().filter(player -> managed.contains(player.getObjectId())).toList();
-		final long offlineWorld = world.stream().filter(player -> merchants.contains(player.getObjectId()) && !managed.contains(player.getObjectId())).count();
 		final var humans = world.stream().filter(player -> !managed.contains(player.getObjectId()) && !merchants.contains(player.getObjectId()) && humanObserver(player)).toList();
+		final var worldCounts = coordinationWorldCounts(world.stream().map(Player::getObjectId).collect(java.util.stream.Collectors.toSet()),managed,merchants,humans.stream().map(Player::getObjectId).collect(java.util.stream.Collectors.toSet()));
 		final var admitted = configured._populationManager.admissionSnapshot();
 		final var groups = configured._logicalParties == null ? java.util.List.<org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup>of() : configured._logicalParties.knownGroups();
 		final var worldIds = managedWorld.stream().map(Player::getObjectId).collect(java.util.stream.Collectors.toSet());
@@ -2475,11 +2490,17 @@ public final class PhantomSystem
 		result.put("durableManaged", configured._populationManager.snapshot().managed()); result.put("scheduledEligible", admitted.eligibleActive()); result.put("presenceAdmitted", admitted.admittedActive());
 		result.put("logicalPartyCount", groups.size()); result.put("logicalPartyMembers", groups.stream().mapToInt(row -> row.group().members().size()).sum());
 		result.put("logicalInventoryComplete", configured._logicalParties != null && configured._logicalParties.inventoryComplete());
-		result.put("materializedManaged", managedWorld.size()); result.put("physicalTarget", configured.physicalTarget()); result.put("physicalCap", lifecycle.physicalCeiling());
+		result.put("materializedManaged", worldCounts.get("materializedManaged").intValue()); result.put("physicalTarget", configured.physicalTarget()); result.put("physicalCap", lifecycle.physicalCeiling());
 		result.put("occupiedPhysicalSlots", lifecycle.occupiedSlots()); result.put("retainedPhysicalSlots", Math.max(0, lifecycle.occupiedSlots() - managedWorld.size()));
+		result.put("physicalTargetDeficit", Math.max(0, configured.physicalTarget() - managedWorld.size()));
+		result.put("physicalTargetReason", managedWorld.size() >= configured.physicalTarget() ? "TARGET_MET"
+			: lifecycle.occupiedSlots() >= lifecycle.physicalCeiling() ? "WAIT_PHYSICAL_CAPACITY"
+			: configured._populationManager.snapshot().managed() < configured.physicalTarget() ? "INSUFFICIENT_DURABLE_MANAGED"
+			: admitted.eligibleActive() < configured.physicalTarget() ? "WAIT_CALENDAR_OR_READINESS"
+			: admitted.admittedActive() < configured.physicalTarget() ? "WAIT_PRESENCE_QUOTA" : "WAIT_RECONCILE");
 		result.put("materializationPending", pending.size()); result.put("materializationDeniedByReason", Map.copyOf(denied));
-		result.put("nativeOfflineMerchants", offlineWorld); result.put("humanOnline", humans.size()); result.put("worldTotal", world.size());
-		result.put("worldOther", world.size() - managedWorld.size() - offlineWorld - humans.size());
+		result.put("nativeOfflineMerchants", worldCounts.get("nativeOfflineMerchants")); result.put("humanOnline", worldCounts.get("humanOnline").intValue()); result.put("worldTotal", worldCounts.get("worldTotal").intValue());
+		result.put("worldOther", worldCounts.get("worldOther"));
 		result.put("nativePartyCount", managedWorld.stream().map(Player::getParty).filter(Objects::nonNull).distinct().count());
 		result.put("backgroundGroupCount", groups.stream().filter(row -> row.group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND).count());
 		return Map.copyOf(result);
@@ -3330,9 +3351,9 @@ public final class PhantomSystem
 				&& source != null && source.worldPresent() && source.materializedAtNanos() == wake.sourceEpoch()) { return wake; }
 			_logicalWakeDemands.remove(profileId, wake);
 		}
-		if (_materializationService.occupiedPhysicalSlots() >= physicalTarget() && !_materializationService.find(profileId).map(entry -> entry.worldPresent()).orElse(false)) { return null; }
-		return physicalTarget() <= 0 ? null : new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(
-			org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.AMBIENT_TARGET, profileId, 0, "population.ambient", now, now + 10_000);
+		final int occupied = _materializationService.occupiedPhysicalSlots(), target = physicalTarget();
+		return org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.ambientTarget(profileId,occupied,target,
+			occupied >= target && _materializationService.find(profileId).map(entry -> entry.worldPresent()).orElse(false),now);
 	}
 	private void requestLogicalWake(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long sourceProfileId)
 	{
@@ -3425,6 +3446,14 @@ public final class PhantomSystem
 
 	private boolean partyRetainsNativeLifetime(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal root)
 	{
+		final var logical = _logicalParties == null ? null : _logicalParties.knownGroupFor(profileId).map(row -> row.group()).orElse(null);
+		if (root != null && logical != null && PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)
+			&& logical.assemblyPending(profileId, root.goalId(), root.revision(), System.currentTimeMillis()))
+		{
+			final var entry = _materializationService == null ? null : _materializationService.find(profileId).orElse(null);
+			if (entry != null && entry.worldPresent() && entry.materializedAtNanos() > 0 && entry.actionAdmissionOpen()) { return true; }
+		}
+		// Only the physical Party owner below can grant committed native decision permission.
 		return partyNativeLifetimePermission(profileId, root, false);
 	}
 

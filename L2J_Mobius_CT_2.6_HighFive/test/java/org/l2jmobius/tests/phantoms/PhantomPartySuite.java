@@ -204,19 +204,21 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		registry.add("06-six-member-native-projection-can-request-next-farm-pull", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
+			final var newPull = new java.util.concurrent.atomic.AtomicBoolean(true); final var cancelledRequests = new java.util.concurrent.atomic.AtomicInteger();
 			final var clock = new AtomicLong(1_000_000_000L); final var lease = new PartyActionLease();
 			lease.target = new TargetSnapshot(900, 20001, 0, 1000, 1000, false, false, true, true, false, true, true, 50, false, true);
 			final var combat = new PhantomCombatService(id -> id == 1 ? lease : null, new PhantomCombatCapabilityResolver(_ -> List.of()),
 				PhantomCombatPolicy.productionDefaults(8), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
 			{
 				private boolean cancelled;
-				@Override public boolean cancelIfNotStarted() { if (cancelled) { return false; } cancelled = true; return true; }
+				@Override public boolean cancelIfNotStarted() { if (cancelled) { return false; } cancelled = true; cancelledRequests.incrementAndGet(); return true; }
 				@Override public PhantomCombatService.DispatchState state() { return cancelled ? PhantomCombatService.DispatchState.CANCELLED : PhantomCombatService.DispatchState.SCHEDULED; }
 			}));
 			combat.start();
 			final var ids = java.util.stream.LongStream.rangeClosed(1, 6).boxed().toList();
 			for (long id : ids) { final var actor = backend.add(id, 100 + (int) id); goals.put(id, goal(130000 + id, "farm.background", null, 0)); backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 100, 0)))); backend._capabilities.put(actor, List.of(cap("combat.melee_damage", "weapon", 100, 0))); }
 			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+			coordinator.installLogicalFarmAdmission(_ -> newPull.get());
 			new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get); backend.connect(coordinator); coordinator.start();
 			try
 			{
@@ -225,6 +227,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(6, backend.observe(backend.currentMember(1).orElseThrow()).orElseThrow().members().size(), "Six-member invitation preparation failed.");
 				backend._farmTarget = java.util.OptionalInt.of(900);
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(1), "A six-member Party was prevented from pulling by the obsolete cap.");
+				final long generation = combat.find(1).orElseThrow().generation();
+				newPull.set(false);
+				PhantomAssertions.assertFalse(coordinator.drainAutonomousFarm(1), "DRAIN released an accepted native episode.");
+				PhantomAssertions.assertEquals(0, cancelledRequests.get(), "DRAIN cancelled accepted native work.");
+				PhantomAssertions.assertEquals(generation, combat.find(1).orElseThrow().generation(), "DRAIN replaced the accepted episode.");
+				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(1), "DRAIN admitted another pull.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Six-member owner did not stop."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Six-member combat did not stop."); }
 		});

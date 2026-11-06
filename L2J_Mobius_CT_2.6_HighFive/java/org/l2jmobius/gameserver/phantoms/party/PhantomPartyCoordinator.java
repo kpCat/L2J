@@ -1696,7 +1696,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final PartyState authority = stored.state();
 			final PartyOperation operation = authority.operation();
 			final PartySnapshot party = _backend.observe(authority.leader()).orElse(null);
-			if (operation == null || !currentFarmReady(authority, party)
+			if (operation == null || !_logicalFarmAdmission.test(leaderProfileId) || !currentFarmReady(authority, party)
 				|| party == null || !party.leader().equals(authority.leader()) || party.members().size() < 2 || party.members().size() > 9 || !sameRoster(roster(authority), party.members()) || !authority.realMembers().isEmpty()) { return false; }
 			final Set<MemberRef> supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
 			// The current native episode owns its completion and loot. A next-pull search
@@ -1705,11 +1705,6 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final var target = _backend.autonomousFarmTarget(party, supportMembers);
 			if (target.isEmpty())
 			{
-				for (MemberRef member : party.members())
-				{
-					final TacticalCombatClaim active = _tacticalCombat.get(member.profileId());
-					if (active != null) { cancelTacticalCombat(active); }
-				}
 				return false;
 			}
 			final var actor = _backend.memberSnapshot(authority.leader()).orElse(null);
@@ -1839,6 +1834,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	/** Quiet farm members return through the existing native membership/CAS owner. */
 	public boolean releaseAutonomousFarm(long leaderProfileId)
 	{
+		return releaseAutonomousFarm(leaderProfileId, false);
+	}
+
+	/** Stop new pulls while accepted combat, loot and support retain their native owners. */
+	public boolean drainAutonomousFarm(long leaderProfileId)
+	{
+		return releaseAutonomousFarm(leaderProfileId, true);
+	}
+
+	private boolean releaseAutonomousFarm(long leaderProfileId, boolean graceful)
+	{
 		final var control = beginOperation();
 		if (control == null) { return false; }
 		try (control)
@@ -1849,7 +1855,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			for (var member : members)
 			{
 				final var active = _tacticalCombat.get(member.profileId());
-				if (active != null) { cancelTacticalCombat(active); }
+				if (active != null)
+				{
+					if (graceful) { if (!releaseTacticalCombat(active)) { return false; } }
+					else { cancelTacticalCombat(active); }
+				}
+				if (graceful && _tacticalActions.containsKey(member.profileId())) { return false; }
 			}
 			for (var member : members)
 			{
@@ -2736,14 +2747,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var current = snapshots(party.members());
 		if (current.size() != party.members().size() || _roles.match(authority.objectiveMode(), authority.requirements(), new ArrayList<>(current.values())).vacancies().stream()
 			.anyMatch(vacancy -> vacancy.required() && vacancy.assignment() == null)) { return false; }
-		return _logicalFarmAdmission.test(authority.leader().profileId()) && _backend.autonomousFarmReady(party);
+		return _backend.autonomousFarmReady(party);
 	}
 
 	private int dispatchTactics(PartySnapshot party, int remainingBudget)
 	{
 		final var farmClaim = _claims.get(party.leader().profileId());
 		final boolean farm = farmClaim != null && PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(farmClaim.state().objectiveRef().namespace());
-		if (farm && !_logicalFarmAdmission.test(party.leader().profileId())) { return 0; }
+		final boolean draining = farm && !_logicalFarmAdmission.test(party.leader().profileId());
+		if (draining && party.members().stream().noneMatch(member -> _tacticalCombat.containsKey(member.profileId()))) { return 0; }
 		boolean farmReady = true;
 		if (farm)
 		{
@@ -2761,6 +2773,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		int examined = 0;
 		for (TacticalDirective directive : directives)
 		{
+			if (draining && Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()))
+			{
+				final var accepted = _tacticalCombat.get(directive.actor().profileId());
+				if (accepted == null || accepted.targetObjectId() != directive.targetObjectId()) { continue; }
+			}
 			if (farm && !farmReady && Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())) { continue; }
 			if (examined >= remainingBudget)
 			{

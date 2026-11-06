@@ -89,7 +89,13 @@ public final class PhantomFarm074Checks
 		final var healer = new PhantomBackgroundState(before.state(), new PhantomBackgroundState.Identity(74, 740074, 0, 16, 0), before.progress(), before.vitals(), before.position(), before.combat(), before.loadout(), before.inventory(), before.autoGetSkills(), before.clock(), before.receipt(), before.hashes());
 		PhantomAssertions.assertFalse(planner(true, true, false).rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of()).stream().findAny().isPresent(), "A Solo damage source bypassed combat feasibility.");
 		PhantomAssertions.assertTrue(planner(true, true, false).rendezvousSources(74, healer, previous, 740074, 1, Set.of(), Set.of()).contains(new PhantomDomainRef("background.farm", "103@farm.alternative")), "Healer travel preview incorrectly required Solo DD feasibility.");
-		System.out.println("ROUTE130_PLANNER_PREVIEW_PASS; bounded64; composite ingress proposal; source/route exclusions; no earned-state writes or native arrival");
+		final var common = planner.replanLogicalRendezvous(74, before, previous, 740074, 1, new PhantomDomainRef("background.farm", "103@farm.alternative"));
+		PhantomAssertions.assertTrue(common.ready() && common.spec().anchorId().equals("farm.alternative"), "Logical Background silently preferred a different Solo source.");
+		final var shared = new PhantomDomainRef("background.farm", "103@farm.alternative");
+		PhantomAssertions.assertFalse(planner.replanLogicalRendezvous(74,before,previous,740074,1,shared,Set.of(shared.key()),Set.of(),false).ready(), "Logical recovery ignored an excluded shared target.");
+		PhantomAssertions.assertFalse(planner.replanLogicalRendezvous(74,before,previous,740074,1,shared,Set.of(),Set.of("farm.alternative.link"),false).ready(), "Logical recovery immediately reselected its proven bad leg.");
+		PhantomAssertions.assertFalse(ingress.replanLogicalRendezvous(74, before, previous, 740074, 1, far).ready(), "Native WALK ingress was invented as an offscreen edge.");
+		System.out.println("ROUTE130_PLANNER_PREVIEW_PASS; bounded64; composite ingress proposal; common logical source; no offscreen native ingress; no earned-state writes");
 	}
 
 	/** Source graph proof only. Factual loader leaves are modeled; native/Geo admission is not exercised. */

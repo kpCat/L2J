@@ -53,6 +53,26 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("13-background-native-request-reaches-bounded-ecology-handoff", context -> nativeRequestPresence(context.moduleRoot()));
 		registry.add("14-current-party-native-owner-requires-typed-restart-context", context -> nativePartyRestartContext(context.moduleRoot()));
 		registry.add("15-party-and-ambient-demand-retain-ordinary-admission-fences", context -> coordinatedDemand(context.moduleRoot()));
+		registry.add("16-group-cursor-observes-only-committed-historical-receipts", _ -> groupReceiptCursor());
+	}
+	private static void groupReceiptCursor()
+	{
+		final var base = offscreenReceiptState(PhantomBackgroundState.Receipt.empty(), 0);
+		final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@current");
+		final var goal = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(1001, "farm.background", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+			new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "1"), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(source),
+			new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, "current"), "farm.background", 500, 0, 0, 0, java.util.Map.of(), "background.plan", 0);
+		final var catchup = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "b".repeat(64), 1, 100, 101, 101, 0, 1, 1, 1, 1, goal.goalId(), goal.revision(), "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, base.hashes(), "");
+		final var history = new PhantomBackgroundOperationKey.HistoricalIdentity(catchup.requestId(), 1, 0, 100, 101, catchup.planIdentity());
+		final var key = new PhantomBackgroundOperationKey(1, base.identity().characterObjectId(), goal.goalId(), goal.revision(), 0, 0, PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM, 20101, "current", PhantomBackgroundState.MODEL_VERSION, base.hashes(), null, history);
+		final var receipt = new PhantomBackgroundState.Receipt(key.digest(), 0, 0, PhantomBackgroundTransaction.expectedAfterHash(base));
+		final var settled = base.after(base.progress(), base.vitals(), base.position(), base.inventory(), base.autoGetSkills(), base.clock(), receipt);
+		PhantomAssertions.assertEquals(101L, PhantomBackgroundTransaction.committedHistoricalFarmMinute(source, settled, goal, catchup).orElseThrow(), "A verified per-profile receipt did not expose its committed minute.");
+		for (var state : List.of(settled.withState(PhantomBackgroundState.State.MATERIALIZED), settled.withState(PhantomBackgroundState.State.VERIFY_PENDING),
+			base.after(base.progress(), base.vitals(), base.position(), base.inventory(), base.autoGetSkills(), base.clock(), new PhantomBackgroundState.Receipt(key.digest(), 0, 0, "a".repeat(64))), base))
+		{ PhantomAssertions.assertTrue(PhantomBackgroundTransaction.committedHistoricalFarmMinute(source, state, goal, catchup).isEmpty(), "Native/pending/corrupt/missing receipt advanced group time."); }
+		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.committedHistoricalFarmMinute(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20102@current"), settled, goal, catchup).isEmpty(), "Another objective's receipt advanced group time.");
+		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.committedHistoricalFarmMinute(source, settled, goal, catchup.withPlan(1002, 0, 1, "e".repeat(64), 1, 1)).isEmpty(), "A stale root's receipt advanced group time.");
 	}
 	private static void coordinatedDemand(Path module) throws Exception
 	{

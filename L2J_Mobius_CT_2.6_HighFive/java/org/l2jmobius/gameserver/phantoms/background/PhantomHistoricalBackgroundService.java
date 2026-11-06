@@ -109,6 +109,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		_partyNativeLifetime = Objects.requireNonNull(retained);
 		_partyCommittedDecision = Objects.requireNonNull(committedDecision);
 	}
+	private java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> _logicalGroups = _ -> Optional.empty();
+	public void bindLogicalGroups(java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> groups)
+	{ _logicalGroups = Objects.requireNonNull(groups); }
+	private org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty logicalGroup(long profileId, PhantomGoal root)
+	{
+		if (root == null || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)) { return null; }
+		return _logicalGroups.apply(profileId).filter(group -> group.active() && group.members().stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == root.goalId() && root.revision() >= member.goalRevision())).orElse(null);
+	}
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
 	{
@@ -638,7 +646,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (backgroundState.state() == PhantomBackgroundState.State.READY)
 			{
 				final PhantomGoal previousGoal = storedGoal.goal();
-				final var replanned = reconsiderHistorical(_planner, profileId, backgroundState, previousGoal, current.state(), () -> _acceptedIntent.test(profileId, previousGoal));
+				final var logical = logicalGroup(profileId, previousGoal);
+				final var replanned = logical == null ? reconsiderHistorical(_planner, profileId, backgroundState, previousGoal, current.state(), () -> _acceptedIntent.test(profileId, previousGoal))
+					: _acceptedIntent.test(profileId, previousGoal) ? PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey")
+					: previousGoal.validSources().contains(logical.objective()) && _planner.remainsSuitable(backgroundState, previousGoal)
+						? new PhantomHistoricalBackgroundPlanner.Result(previousGoal, PhantomBackgroundGoalSpec.parseLifecycle(previousGoal), current.state().planIdentity(), _planner.generation(), List.of(), "planner.logical_hold")
+						: _planner.replanLogicalRendezvous(profileId, backgroundState, previousGoal, current.state().deterministicSeed(), Math.addExact(current.state().planOrdinal(), 1), logical.objective());
 				if (!replanned.ready())
 				{
 					if (historicalPlanningFailureStatus(replanned.reasonKey()) == ResultStatusCode.RETRY) { return Result.rejected(ResultStatusCode.RETRY, replanned.reasonKey(), current); }
@@ -1003,6 +1016,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel)
 	{
 		if (_acceptedIntent.test(profileId, previous)) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
+		final var logical = logicalGroup(profileId, previous);
+		if (logical != null) { return _planner.replanLogicalRendezvous(profileId, state, previous, seed, ordinal, logical.objective(), excludedTargets, excludedSteps, affordableTravel); }
 		var plan = affordableTravel ? _planner.replaceAffordableFromState(profileId, state, previous, seed, ordinal)
 			: excludedTargets.isEmpty() && excludedSteps.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, excludedSteps);
 		if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleFromState(profileId, state, previous, seed, ordinal); }

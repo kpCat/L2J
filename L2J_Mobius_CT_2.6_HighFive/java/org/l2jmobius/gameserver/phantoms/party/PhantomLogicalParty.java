@@ -44,10 +44,20 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	}
 	public boolean contains(long profileId) { return members.stream().anyMatch(member -> member.profileId() == profileId); }
 	public boolean active() { return phase != Phase.DISBANDED; }
+	/** A finite retention fact, never native Party membership or action permission. */
+	public boolean assemblyPending(long profileId, long goalId, long goalRevision, long now)
+	{
+		return now < expiresAtMillis && (phase == Phase.AGREED || phase == Phase.WAKE_REQUESTED || phase == Phase.ASSEMBLING || phase == Phase.BACKGROUND && nextDueMillis <= now)
+			&& members.stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == goalId && goalRevision >= member.goalRevision());
+	}
 	public PhantomLogicalParty transition(Phase next, long cursor, long nextDue, String reason)
 	{
 		if (cursor < backgroundCursor || !permits(phase, next)) { throw new IllegalArgumentException("Invalid logical group transition."); }
-		return new PhantomLogicalParty(groupId, generation, leaderProfileId, members, objective, anchorId, next, cursor, nextDue, reason, expiresAtMillis);
+		final long expiry = phase == Phase.DRAINING && next == Phase.BACKGROUND && !"EXPIRED_ASSEMBLY".equals(waitReason)
+			? Math.max(expiresAtMillis, Math.addExact(nextDue, IDLE_LIFETIME_MILLIS)) : expiresAtMillis;
+		// STORE may postpone release, but cannot erase the terminal cause and restart its lifetime.
+		final String nextReason = phase == Phase.DRAINING && next == Phase.DRAINING && "EXPIRED_ASSEMBLY".equals(waitReason) ? waitReason : reason;
+		return new PhantomLogicalParty(groupId, generation, leaderProfileId, members, objective, anchorId, next, cursor, nextDue, nextReason, expiry);
 	}
 	private static boolean permits(Phase from, Phase to)
 	{
@@ -56,8 +66,8 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 		if (to == Phase.DISBANDED) { return from == Phase.AGREED || from == Phase.BACKGROUND; }
 		return switch (from)
 		{
-			case AGREED, BACKGROUND -> to == Phase.BACKGROUND || to == Phase.WAKE_REQUESTED;
-			case WAKE_REQUESTED -> to == Phase.ASSEMBLING || to == Phase.BACKGROUND;
+			case AGREED, BACKGROUND -> to == Phase.BACKGROUND || to == Phase.WAKE_REQUESTED || to == Phase.DRAINING;
+			case WAKE_REQUESTED -> to == Phase.ASSEMBLING || to == Phase.BACKGROUND || to == Phase.DRAINING;
 			case ASSEMBLING -> to == Phase.NATIVE_ACTIVE || to == Phase.DRAINING || to == Phase.BACKGROUND;
 			case NATIVE_ACTIVE -> to == Phase.DRAINING;
 			case DRAINING -> to == Phase.BACKGROUND || to == Phase.NATIVE_ACTIVE;
