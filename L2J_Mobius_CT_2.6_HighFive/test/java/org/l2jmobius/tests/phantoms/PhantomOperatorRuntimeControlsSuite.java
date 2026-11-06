@@ -24,6 +24,10 @@ import java.nio.file.Files;
 
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlCode;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorMode;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationSnapshot;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
@@ -46,6 +50,7 @@ public final class PhantomOperatorRuntimeControlsSuite implements PhantomTestSui
 		registry.add("04-disable-and-explicit-enable-gate", _ -> testDisableGate());
 		registry.add("05-failed-shutdown-retains-owner-and-intent", _ -> testFailedShutdownRetention());
 		registry.add("06-admin-and-canonical-source-contract", this::testSourceContract);
+		registry.add("07-retained-warm-reuses-visible-preparation-without-cold-load", this::testRetainedWarmPreparation);
 	}
 
 	private static void testConfigGuard()
@@ -174,6 +179,34 @@ public final class PhantomOperatorRuntimeControlsSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(handler.contains("//phantom status | //phantom trace <profileId> | //phantom trace clear"), "Existing status/trace usage contract drifted.");
 		PhantomAssertions.assertEquals(1, occurrences(access, "command=\"phantom\""), "Admin family/access entry changed cardinality.");
 		PhantomAssertions.assertTrue(gameServer.contains("PhantomSystem.startConfigured()"), "GameServer no longer uses canonical configured startup.");
+	}
+
+	private void testRetainedWarmPreparation(PhantomTestContext context)
+	{
+		PhantomAssertions.assertTrue(PhantomSystem.requiresVisiblePreparation(PhantomActivityState.ACTIVE, null), "ACTIVE must retain its existing preparation gate.");
+		PhantomAssertions.assertTrue(PhantomSystem.requiresVisiblePreparation(PhantomActivityState.NEARBY_PERCEPTIBLE, null), "NEARBY must retain its existing preparation gate.");
+		final var retained = retained(State.ACTIVE, true, true, CleanupPhase.NONE);
+		PhantomAssertions.assertTrue(PhantomSystem.requiresVisiblePreparation(PhantomActivityState.WARM, retained), "An already active retained WARM actor must prepare its current visible intent.");
+		PhantomAssertions.assertFalse(PhantomSystem.requiresVisiblePreparation(PhantomActivityState.WARM, null), "Cold WARM must not enter visible preparation.");
+		for (var unavailable : java.util.List.of(
+			retained(State.STORED, false, false, CleanupPhase.NONE),
+			retained(State.MATERIALIZING, true, true, CleanupPhase.NONE),
+			retained(State.ACTIVE, false, true, CleanupPhase.NONE),
+			retained(State.ACTIVE, true, false, CleanupPhase.NONE),
+			retained(State.ACTIVE, true, true, CleanupPhase.PRE_STORE)))
+		{
+			PhantomAssertions.assertFalse(PhantomSystem.requiresVisiblePreparation(PhantomActivityState.WARM, unavailable), "Cold, unadmitted, absent or closing WARM lifecycle cannot enter visible preparation.");
+		}
+		for (var offscreen : java.util.List.of(PhantomActivityState.BACKGROUND, PhantomActivityState.SLEEPING))
+		{
+			PhantomAssertions.assertFalse(PhantomSystem.requiresVisiblePreparation(offscreen, retained), "Offscreen activity must not inherit the WARM preparation exception.");
+		}
+		context.record("task129.retainedWarmVisiblePreparation", "POLICY_CONTRACT;active_nearby_retained_warm;no_cold_or_closing_warm;NATIVE=NOT_RUN");
+	}
+	private static MaterializationSnapshot retained(State state, boolean worldPresent, boolean actionAdmissionOpen, CleanupPhase cleanupPhase)
+	{
+		return new MaterializationSnapshot(129, 268480129, state, true, true, true, actionAdmissionOpen, 0, worldPresent, 129, 0,
+			cleanupPhase, CleanupPhase.NONE, "", "", 0, 0, "", null, null);
 	}
 
 	private static void reset()

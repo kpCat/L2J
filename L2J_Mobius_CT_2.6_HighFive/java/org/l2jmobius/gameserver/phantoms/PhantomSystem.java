@@ -969,7 +969,9 @@ public final class PhantomSystem
 				}
 				productionWorkSink.install(item ->
 				{
-					if (item.effectiveState().requiresMaterialization() && !_historicalBackgroundService.prepareVisibleDecision(item.profileId(), _decisionEngine)) { return; }
+					final var warm = (item.effectiveState() == PhantomActivityState.WARM) ? _materializationService.find(item.profileId()).orElse(null) : null;
+					if (requiresVisiblePreparation(item.effectiveState(), warm)
+						&& !_historicalBackgroundService.prepareVisibleDecision(item.profileId(), _decisionEngine)) { return; }
 					if ((item.effectiveState() == PhantomActivityState.BACKGROUND) && (_populationEcology != null) && _populationManager.presence().permitsOrdinaryFarm(item.profileId()))
 					{
 						if (!_populationEcology.requestBackgroundReadiness(item.profileId()).complete())
@@ -1156,6 +1158,14 @@ public final class PhantomSystem
 		_metrics.recordLifecycleStart();
 		_state = State.RUNNING;
 		return true;
+	}
+
+	static boolean requiresVisiblePreparation(PhantomActivityState state, PhantomMaterializationService.MaterializationSnapshot retained)
+	{
+		return state.requiresMaterialization() || ((state == PhantomActivityState.WARM) && (retained != null)
+			&& (retained.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE)
+			&& retained.worldPresent() && retained.actionAdmissionOpen()
+			&& (retained.cleanupPhase() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE));
 	}
 
 	public boolean shutdown()
