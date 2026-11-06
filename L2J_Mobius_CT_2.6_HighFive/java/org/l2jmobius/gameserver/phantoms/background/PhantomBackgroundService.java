@@ -2794,6 +2794,26 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return failure;
 	}
 
+	/** Re-prove only the unchanged failed next step; this scalar query cannot commit travel. */
+	String historicalFailedTravelStep(PhantomBackgroundState state, PhantomGoal goal, long cursorMinute)
+	{
+		if (_state != ServiceState.RUNNING || state == null || state.state() != State.READY || goal == null
+			|| goal.status() != PhantomGoalStatus.ACTIVE || !state.hashes().equals(_authority.hashes())) { return ""; }
+		try
+		{
+			return historicalFailedTravelStep(state.position(), state.clock(),
+				_authority.advanceTravel(state, PhantomBackgroundGoalSpec.parse(goal), FARM_TRAVEL_BUDGET_MILLIS, cursorMinute));
+		}
+		catch (RuntimeException unavailable) { return ""; }
+	}
+
+	static String historicalFailedTravelStep(PhantomBackgroundState.Position before, PhantomBackgroundState.Clock clock, TravelAdvance advance)
+	{
+		return advance != null && advance.status() == TravelAdvance.Status.ANCHOR_MISMATCH
+			&& before.equals(advance.position()) && clock.equals(advance.clock()) && advance.feeAdena() == 0 && !advance.edgeId().isBlank()
+			? advance.edgeId() : "";
+	}
+
 	static boolean travelRequiresNative(TravelAdvance advance, PhantomBackgroundSimulationPolicy policy)
 	{
 		return (advance.mutated() && advance.feeAdena() > 0)

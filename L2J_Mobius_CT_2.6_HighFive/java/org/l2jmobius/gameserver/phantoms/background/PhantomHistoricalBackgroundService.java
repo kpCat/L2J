@@ -941,11 +941,25 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var spec = PhantomBackgroundGoalSpec.parse(goal.goal());
 			exclusions = Set.of(spec.npcId() + "@" + spec.anchorId());
 		}
+		Set<String> excludedSteps = Set.of();
+		if ("catchup.travel.anchor_mismatch".equals(reason))
+		{
+			if (!currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null))
+				|| _materialization.find(profileId).isPresent() || _acceptedIntent.test(profileId, goal.goal()))
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.failed_step_owner_changed", current); }
+			final String failedStep = _background.historicalFailedTravelStep(state, goal.goal(), current.state().cursorEpochMinute());
+			if (failedStep.isBlank()) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.failed_step_unproved", current); }
+			excludedSteps = Set.of(failedStep);
+		}
 		final long ordinal = Math.addExact(current.state().planOrdinal(), 1);
-		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions, "catchup.travel.insufficient_adena".equals(reason));
+		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions, excludedSteps, "catchup.travel.insufficient_adena".equals(reason));
 		if (!plan.ready()) { return fail(profileId, current, plan.reasonKey()); }
 		try
 		{
+			if (!excludedSteps.isEmpty() && (!currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null))
+				|| !Objects.equals(state, _background.acquisitionSnapshot(profileId).orElse(null)) || _materialization.find(profileId).isPresent()
+				|| _acceptedIntent.test(profileId, goal.goal()) || !_planner.generation().equals(plan.generation())))
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.failed_step_prerequisite_changed", current); }
 			final var renewed = current.state().withPlan(plan.goal().goalId(), plan.goal().revision(), ordinal, plan.planIdentity(), plan.generation().knowledgeGeneration(), plan.generation().topologyGeneration(), plan.generation().authorityHashes());
 			final Snapshot persisted = _store.replacePlan(profileId, current, renewed, goal, plan.goal()).catchup();
 			if (farmProjectionChanged(goal.goal(), plan.goal()) || ("catchup.authority.resource_stale".equals(reason) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(plan.goal().goalType()))) { return refreshCanonicalBaseline(profileId, persisted); }
@@ -966,9 +980,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, Set<String> excludedTargets, boolean affordableTravel)
 	{
+		return planOrIdle(profileId, state, previous, seed, ordinal, excludedTargets, Set.of(), affordableTravel);
+	}
+
+	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
+		Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel)
+	{
 		if (_acceptedIntent.test(profileId, previous)) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
 		var plan = affordableTravel ? _planner.replaceAffordableFromState(profileId, state, previous, seed, ordinal)
-			: excludedTargets.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, Set.of());
+			: excludedTargets.isEmpty() && excludedSteps.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, excludedSteps);
 		if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleFromState(profileId, state, previous, seed, ordinal); }
 		return plan;
 	}

@@ -22,6 +22,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("06-interrupted-native-route-may-propose-connected-ingress", _ -> interruptedIngress());
 		registry.add("07-preparation-drains-existing-arrival-before-yield", _ -> preparationArrival());
 		registry.add("08-native-route-landing-retains-physical-floor", _ -> authorityLanding());
+		registry.add("09-historical-route-exclusion-requires-unchanged-failed-step", _ -> historicalFailedStep());
 	}
 	public static void main(String[] args)
 	{
@@ -38,7 +39,32 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		interruptedIngress();
 		preparationArrival();
 		authorityLanding();
+		historicalFailedStep();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void historicalFailedStep()
+	{
+		final var before = new PhantomBackgroundState.Position(0, 148924, -83377, -5568, 0, "current");
+		final var clock = new PhantomBackgroundState.Clock(129, 0, 7);
+		final String failed = "m1.walk.745db94a7197bb6c23214e99";
+		final var mismatch = new PhantomBackgroundAuthority.TravelAdvance(PhantomBackgroundAuthority.TravelAdvance.Status.ANCHOR_MISMATCH, before, clock, failed);
+		PhantomAssertions.assertEquals(failed, PhantomBackgroundService.historicalFailedTravelStep(before, clock, mismatch), "The exact unchanged failed next step must reach the existing recovery planner exclusions.");
+		for (var status : PhantomBackgroundAuthority.TravelAdvance.Status.values())
+		{
+			if (status == PhantomBackgroundAuthority.TravelAdvance.Status.ANCHOR_MISMATCH) { continue; }
+			PhantomAssertions.assertEquals("", PhantomBackgroundService.historicalFailedTravelStep(before, clock,
+				new PhantomBackgroundAuthority.TravelAdvance(status, before, clock, failed)), "Another travel result cannot supply an anchor-mismatch exclusion.");
+		}
+		for (var invalid : List.of(
+			new PhantomBackgroundAuthority.TravelAdvance(mismatch.status(), new PhantomBackgroundState.Position(0, before.x() + 1, before.y(), before.z(), 0, "current"), clock, failed),
+			new PhantomBackgroundAuthority.TravelAdvance(mismatch.status(), before, new PhantomBackgroundState.Clock(clock.rngState(), 1, clock.residualEncounterMillis()), failed),
+			new PhantomBackgroundAuthority.TravelAdvance(mismatch.status(), before, clock, failed, 1),
+			new PhantomBackgroundAuthority.TravelAdvance(mismatch.status(), before, clock, " ")))
+		{
+			PhantomAssertions.assertEquals("", PhantomBackgroundService.historicalFailedTravelStep(before, clock, invalid), "Changed state, time, money or an absent edge cannot be laundered into a recovery exclusion.");
+		}
+		PhantomAssertions.assertEquals("", PhantomBackgroundService.historicalFailedTravelStep(before, clock, null), "An absent authority result must retain the failed owner for retry.");
+		System.out.println("OWN129_HISTORICAL_FAILED_STEP_PASS; unchanged failure only; DB_CONNECTIONS=0; ACTORS=0");
 	}
 	private static void authorityLanding()
 	{

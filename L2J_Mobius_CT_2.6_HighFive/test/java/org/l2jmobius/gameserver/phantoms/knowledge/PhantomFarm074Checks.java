@@ -24,6 +24,7 @@ public final class PhantomFarm074Checks
 	public static void main(String[] args) throws Exception
 	{
 		rendezvous();
+		historicalFailedRoute();
 		final java.lang.reflect.Method admittedReplan;
 		try { admittedReplan = PhantomHistoricalBackgroundPlanner.class.getMethod("replanVisibleLocal", long.class, PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, Set.class, Set.class, java.util.function.Predicate.class); }
 		catch (NoSuchMethodException missing) { throw new AssertionError("RED: rejected preferred distant route must not starve an admissible alternative.", missing); }
@@ -62,6 +63,26 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(rejected.ready(), "No admitted remote source must remain unavailable.");
 		PhantomAssertions.assertTrue(inspections.get() <= 3, "Remote admission exceeded the existing bounded retry budget.");
 		System.out.println("FARM074_ADMISSION_PASS; rejected preferred source skipped; affordable alternative selected; max3; DB_WRITES=0");
+	}
+
+	private static void historicalFailedRoute()
+	{
+		final var planner = planner(true, true); final var before = state(); final var previous = goal();
+		final var exhaustedLocal = Set.of("101@farm.local");
+		final var original = planner.replan(74, before, previous, 740074, 1, Set.of("101@farm.local", "103@farm.alternative"), Set.of());
+		PhantomAssertions.assertTrue(original.ready() && original.routeEdgeIds().contains("farm.link"), "The control fixture must expose the failed historical itinerary.");
+		final var alternative = planner.replan(74, before, previous, 740074, 1, exhaustedLocal, Set.of("farm.link"));
+		PhantomAssertions.assertTrue(alternative.ready() && alternative.spec().anchorId().equals("farm.alternative"), "A failed shared route step must not be selected again while an admissible alternative exists.");
+		PhantomAssertions.assertEquals(previous.goalId(), alternative.goal().goalId(), "Route recovery preserves the own root.");
+		PhantomAssertions.assertEquals(previous.revision() + 1, alternative.goal().revision(), "Route recovery proposes one revision.");
+		final var denied = planner.replan(74, before, previous, 740074, 1, exhaustedLocal, Set.of("farm.link", "farm.alternative.link"));
+		PhantomAssertions.assertFalse(denied.ready(), "All denied itineraries must not invent a route or arrival.");
+		PhantomAssertions.assertEquals("planner.target_or_route.absent", denied.reasonKey(), "No-route recovery must retain its existing canonical idle fallback reason.");
+		final var idle = planner.idleFromState(74, before, previous, 740074, 1);
+		PhantomAssertions.assertTrue(idle.ready() && PhantomBackgroundGoalSpec.canonicalHistoricalIdle(74, idle.goal()), "Exhausted historical routes may use the existing canonical idle plan.");
+		PhantomAssertions.assertEquals(before.position().committedAnchorId(), idle.goal().selectedAnchor().key(), "Idle retains the proven current anchor, not the failed arrival.");
+		PhantomAssertions.assertEquals(before, state(), "Read-only recovery planning cannot mutate earned facts, position or clock.");
+		System.out.println("OWN129_HISTORICAL_ROUTE_EXCLUSION_PASS; alternate or canonical idle; DB_WRITES=0; OWNER_RECOVERY=NOT_RUN");
 	}
 
 	private static void rendezvous() throws Exception
