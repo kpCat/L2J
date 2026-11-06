@@ -17,6 +17,8 @@ public final class PhantomLivingWorld114Checks
 	}
 	public static void main(String[] args)
 	{
+		ordinaryGoalReconciliation();
+		if ((args.length == 1) && args[0].equals("--ordinary-goal129")) { return; }
 		final var ordinary = policy(0);
 		final var changed = context(ordinary.withPoints(1, 2));
 		check(!changed.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, "a".repeat(64)), "Unattested level change permitted rewards");
@@ -103,5 +105,22 @@ public final class PhantomLivingWorld114Checks
 		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 9, false, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Older lifetime bypassed recovery ownership");
 		check(PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, true, false).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT && PhantomBackgroundService.recoveryOwnerChangeResult(2, 10, 2, 11, false, true).status() == PhantomBackgroundService.OperationStatus.INCONSISTENT, "Pending STORE or baseline escaped recovery ownership");
 		System.out.println("PASS only a superseded same-identity non-STORE worker retires as REPLAN; no new-lifetime action, receipt or failure-latch clearing");
+	}
+
+	private static void ordinaryGoalReconciliation()
+	{
+		final var changed = PhantomBackgroundService.OperationResult.replan("recovery.control_goal_changed");
+		check(PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, true, true, true, 100, 200), "RED129: lawful goal change poisoned accepted native corpse reconciliation and STOP");
+		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, true, false, true, 100, 200), "A stale original epoch rebound to another native owner");
+		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, false, true, true, 100, 200), "Rebinding manufactured a native town return");
+		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, true, true, false, 100, 200), "Unchanged goal retried a terminal control");
+		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(changed, true, true, true, 200, 200), "A goal change renewed the accepted deadline");
+		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(PhantomBackgroundService.OperationResult.inconsistent("recovery.control_goal_changed"), true, true, true, 100, 200), "An inconsistent recovery was suppressed");
+		check(!PhantomOrdinaryDeathRecovery.permitsGoalReconciliation(PhantomBackgroundService.OperationResult.replan("recovery.goal"), true, true, true, 100, 200), "An invalid recovery goal was silently accepted");
+		check(PhantomBackgroundService.recoveryControlDeadline(100, 200) == 200, "Rebound background control outlived its accepted corpse reconciliation");
+		check(PhantomBackgroundService.recoveryControlDeadline(100, 0) == 10_000_000_100L, "Existing unbounded-caller recovery horizon changed");
+		check(PhantomBackgroundService.recoveryControlDeadline(100, 20_000_000_000L) == 10_000_000_100L, "Accepted caller extended the normal recovery horizon");
+		check(PhantomBackgroundService.recoveryControlDeadline(100, 99) == 99, "Expired accepted deadline was renewed");
+		System.out.println("PASS129 ordinary goal change retries only exact returned owner/current goal within original deadline; invalid/foreign/stale/fatal negatives remain fenced; DB0 World0 nativeSTOP_PENDING");
 	}
 }

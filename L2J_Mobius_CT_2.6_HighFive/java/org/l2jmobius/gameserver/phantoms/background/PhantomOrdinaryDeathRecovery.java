@@ -228,13 +228,26 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			if (death.goal().get() == null) { _goals.load(profileId).ifPresent(value -> death.goal().compareAndSet(null, value.goal())); }
 			final var goal = death.goal().get();
 			final var result = goal == null ? null : _closing
-				? _background.recoverAcceptedForStop(profileId, goal, death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch)
-				: _background.requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false);
-			if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.SUCCESS))
+				? _background.recoverAcceptedForStop(profileId, goal, death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch, death.deadline().get())
+				: _background.requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, death.deadline().get(), death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch);
+			boolean rebound = false;
+			if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.REPLAN) && "recovery.control_goal_changed".equals(result.reason()))
+			{
+				final var current = _materialization.find(profileId).orElse(null);
+				final var replacement = _goals.load(profileId).orElse(null);
+				final boolean sameOwner = (death.observation() != null) && (current != null)
+					&& (current.characterObjectId() == death.characterObjectId()) && (current.materializedAtNanos() == death.observation().epoch);
+				if (permitsGoalReconciliation(result, death.nativeRecovery().get(), sameOwner, (replacement != null) && !replacement.goal().equals(goal), System.nanoTime(), death.deadline().get()))
+				{
+					rebound = death.goal().compareAndSet(goal, replacement.goal());
+				}
+			}
+			if ((result != null) && ((result.status() == PhantomBackgroundService.OperationStatus.SUCCESS)
+				|| ((result.status() == PhantomBackgroundService.OperationStatus.REPLAN) && "recovery.control_superseded".equals(result.reason()))))
 			{
 				forget(profileId, death);
 			}
-			else if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.RETRY) && (System.nanoTime() < death.deadline().get()))
+			else if ((result != null) && (rebound || (result.status() == PhantomBackgroundService.OperationStatus.RETRY)) && (System.nanoTime() < death.deadline().get()))
 			{
 				final var future = ThreadPool.schedule(() ->
 				{
@@ -256,6 +269,12 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			if (!pending && death.reconciliation().compareAndSet(true, false)) { _acceptedReconciliations.decrementAndGet(); }
 		}
 	}
+	static boolean permitsGoalReconciliation(PhantomBackgroundService.OperationResult result, boolean nativeReturned, boolean sameOwner, boolean changedGoal, long now, long deadline)
+	{
+		return (result != null) && (result.status() == PhantomBackgroundService.OperationStatus.REPLAN)
+			&& "recovery.control_goal_changed".equals(result.reason()) && nativeReturned && sameOwner && changedGoal && (now < deadline);
+	}
+
 	private void failReconciliation(Death death, String reason)
 	{
 		_firstFailure.compareAndSet("", reason);

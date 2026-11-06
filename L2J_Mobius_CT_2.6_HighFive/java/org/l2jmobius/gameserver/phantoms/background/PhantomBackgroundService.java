@@ -176,15 +176,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final java.util.concurrent.atomic.AtomicReference<String> _firstRecoveryFailure = new java.util.concurrent.atomic.AtomicReference<>("");
 	private static final class RecoveryControl
 	{
-		final long profileId, deadline = System.nanoTime() + 10_000_000_000L;
+		final long profileId, deadline;
 		final PhantomGoal goal; final PhantomActivityState activity; final BooleanSupplier cancelled;
 		final AtomicBoolean queued = new AtomicBoolean(), finished = new AtomicBoolean();
 		volatile OperationResult result;
 		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection, baselinePending;
 		PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff;
-		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry)
+		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry, long acceptedDeadline)
 		{
 			this.profileId = profileId; this.goal = goal; this.activity = activity; this.cancelled = cancelled;
+			deadline = recoveryControlDeadline(System.nanoTime(), acceptedDeadline);
 			objectId = entry == null ? 0 : entry.characterObjectId(); epoch = entry == null ? 0 : entry.materializedAtNanos();
 		}
 	}
@@ -1795,7 +1796,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return requestRecovery(profileId, goal, activityState, cancelled, false);
 	}
 
+	/** Continue only the original returned corpse, within its accepted reconciliation horizon. */
+	public OperationResult requestRecovery(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, long acceptedDeadline, int expectedObject, long expectedEpoch)
+	{
+		return requestRecovery(profileId, goal, activityState, cancelled, false, acceptedDeadline, expectedObject, expectedEpoch);
+	}
+
 	private OperationResult requestRecovery(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean acceptedForStop)
+	{
+		return requestRecovery(profileId, goal, activityState, cancelled, acceptedForStop, 0, 0, 0);
+	}
+
+	private OperationResult requestRecovery(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean acceptedForStop, long acceptedDeadline, int expectedObject, long expectedEpoch)
 	{
 		RecoveryControl control;
 		synchronized (this)
@@ -1807,13 +1819,23 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				_recoveryControls.remove(profileId, control);
 				if (control.goal.equals(goal)) { return control.result; }
 			}
-			if (((_state != ServiceState.RUNNING) && !(acceptedForStop && (_state == ServiceState.STOPPING))) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null)) { return retry("recovery.busy_or_stopping"); }
 			final var materialization = _materialization.get();
-			control = new RecoveryControl(profileId, goal, activityState, cancelled, materialization == null ? null : materialization.find(profileId).orElse(null));
+			final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
+			if ((acceptedDeadline != 0) && ((System.nanoTime() >= acceptedDeadline) || (expectedEpoch <= 0) || (entry == null)
+				|| (entry.characterObjectId() != expectedObject) || (entry.materializedAtNanos() != expectedEpoch)
+				|| !Objects.equals(_nativeTownReturns.get(profileId), expectedObject))) { return retry("recovery.accepted_owner_or_deadline"); }
+			if (((_state != ServiceState.RUNNING) && !(acceptedForStop && (_state == ServiceState.STOPPING))) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null)) { return retry("recovery.busy_or_stopping"); }
+			control = new RecoveryControl(profileId, goal, activityState, cancelled, entry, acceptedDeadline);
 			_recoveryControls.put(profileId, control); increment(_currentOperations, _peakOperations);
 		}
 		queueRecovery(control);
 		return retry("recovery.control_pending");
+	}
+
+	static long recoveryControlDeadline(long now, long acceptedDeadline)
+	{
+		final long ownDeadline = now + 10_000_000_000L;
+		return acceptedDeadline == 0 ? ownDeadline : Math.min(ownDeadline, acceptedDeadline);
 	}
 
 	private void queueRecovery(RecoveryControl control)
@@ -1889,16 +1911,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	/** The already returned exact corpse may finish persistence after producer closure. */
 	public OperationResult recoverAcceptedForStop(long profileId, PhantomGoal goal, int objectId, long epoch)
 	{
+		return recoverAcceptedForStop(profileId, goal, objectId, epoch, 0);
+	}
+
+	public OperationResult recoverAcceptedForStop(long profileId, PhantomGoal goal, int objectId, long epoch, long acceptedDeadline)
+	{
 		final var control = _recoveryControls.get(profileId);
 		if ((control != null) && (control.objectId == objectId) && (control.epoch == epoch) && control.goal.equals(goal))
 		{
-			return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true);
+			return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true, acceptedDeadline, objectId, epoch);
 		}
 		final var materialization = _materialization.get();
 		final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
 		if ((entry == null) || (entry.characterObjectId() != objectId) || (entry.materializedAtNanos() != epoch)
 			|| !Objects.equals(_nativeTownReturns.get(profileId), objectId)) { return retry("recovery.stop_owner_changed"); }
-		return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true);
+		return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true, acceptedDeadline, objectId, epoch);
 	}
 
 	private OperationResult recoverClaimed(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean stopping)
