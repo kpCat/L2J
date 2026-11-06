@@ -82,6 +82,39 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(coordinator.discover(List.of(peer), (_, _) -> true, 2000).isEmpty(), "A stale cached root was committed because its runtime slot was absent.");
 			PhantomAssertions.assertTrue(store.claims.isEmpty() && store.groups.isEmpty(), "Durable revalidation happened after claims were written.");
 		});
+		registry.add("09-disband-release-recreate-fences-stale-generation", _ ->
+		{
+			final var store = new MemoryStore(); final var owner = new PhantomLogicalPartyCoordinator(store);
+			final var original = owner.agree(group(1, 3)).orElseThrow();
+			final var ended = owner.disband(original, 2000, "DISBANDED");
+			store.groups.put(1L, original); // A recovery page captured before the terminal CAS may arrive late.
+			owner.recoverAfter(0, 16);
+			PhantomAssertions.assertTrue(owner.knownGroupFor(1).isEmpty(), "Late recovery resurrected a released cached generation.");
+			store.groups.put(1L, ended);
+			for (var member : original.group().members())
+			{ PhantomAssertions.assertTrue(owner.groupFor(member.profileId()).isEmpty() && !store.claims.get(member.profileId()).active(), "Disband retained an active claim."); }
+			final var replacement = new PhantomLogicalParty("B".repeat(64), 2, 1, original.group().members(), original.group().objective(), original.group().anchorId(), PhantomLogicalParty.Phase.AGREED, 0, 3000, "");
+			final var recreated = new PhantomLogicalPartyCoordinator(store).agree(replacement).orElseThrow();
+			PhantomAssertions.assertTrue(recreated.rowVersion() > ended.rowVersion(), "Recreation reset the aggregate CAS version.");
+			PhantomAssertions.assertThrows(ConcurrentModificationException.class, () -> owner.disband(original, 4000, "STALE"), "An old generation released new claims.");
+			PhantomAssertions.assertEquals(recreated, owner.groupFor(2).orElseThrow(), "Stale release stole the recreated membership.");
+		});
+		registry.add("10-leave-replace-expire-restart-releases-only-exact-claims", _ ->
+		{
+			final var store = new MemoryStore(); final var owner = new PhantomLogicalPartyCoordinator(store);
+			final var original = owner.agree(group(1, 3)).orElseThrow();
+			final var left = owner.leave(original, 3, 2000);
+			PhantomAssertions.assertTrue(left.group().members().size() == 2 && owner.groupFor(3).isEmpty(), "Leave did not release the departing identity.");
+			final var changed = owner.replace(left, List.of(member(1), member(4)), 3000);
+			PhantomAssertions.assertTrue(owner.groupFor(2).isEmpty() && owner.groupFor(4).orElseThrow().group().generation() == changed.group().generation(), "Replacement did not atomically exchange claims.");
+			final var restarted = new PhantomLogicalPartyCoordinator(store);
+			PhantomAssertions.assertTrue(restarted.expire(changed, changed.group().expiresAtMillis() - 1).isEmpty(), "Agreement expired before its durable deadline.");
+			restarted.expire(changed, changed.group().expiresAtMillis()).orElseThrow();
+			PhantomAssertions.assertTrue(restarted.groupFor(1).isEmpty() && restarted.groupFor(4).isEmpty(), "Restart/expiration stranded claims.");
+			final var nativeRow = owner.agree(new PhantomLogicalParty("C".repeat(64), 1, 5, List.of(member(5), member(6)), original.group().objective(), original.group().anchorId(), PhantomLogicalParty.Phase.AGREED, 0, 4000, "")).orElseThrow();
+			final var waking = owner.transition(nativeRow, PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 5000, "");
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> owner.disband(waking, 6000, "UNSAFE"), "Membership changed before the physical owner drained.");
+		});
 		registry.add("08-five-thousand-durable-discovery-stays-paged", context ->
 		{
 			final var store = new MemoryStore(); final var coordinator = new PhantomLogicalPartyCoordinator(store);
@@ -131,13 +164,29 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			{
 				final var claim = claims.get(member.profileId());
 				if ((claim == null ? -1 : claim.rowVersion()) != versions.get(member.profileId())) { throw new ConcurrentModificationException(); }
-				if (claim != null && !claim.groupId().equals(group.groupId())) { throw new ConcurrentModificationException(); }
+				if (claim != null && claim.active()) { throw new ConcurrentModificationException(); }
 				if (++examined == failAtMember) { throw new IllegalStateException("TEST130_ATOMIC_FAILURE"); }
 			}
 			final var saved = new StoredLogicalGroup(expected + 1, PhantomLogicalParty.decode(group.encode()));
 			groups.put(group.leaderProfileId(), saved);
 			for (var member : group.members()) { claims.put(member.profileId(), new StoredLogicalClaim(member.profileId(), group.leaderProfileId(), group.groupId(), group.generation(), versions.get(member.profileId()) + 1)); }
 			return saved;
+		}
+		@Override public synchronized StoredLogicalGroup reviseLogicalGroup(StoredLogicalGroup expected, PhantomLogicalParty replacement)
+		{
+			if (!expected.equals(groups.get(expected.group().leaderProfileId()))) { throw new ConcurrentModificationException(); }
+			final var pending = new HashMap<>(claims); final var ids = new java.util.TreeSet<Long>();
+			expected.group().members().forEach(member -> ids.add(member.profileId())); replacement.members().forEach(member -> ids.add(member.profileId()));
+			for (long id : ids)
+			{
+				final var before = claims.get(id);
+				if (expected.group().contains(id) ? before == null || !before.active() || !before.groupId().equals(expected.group().groupId()) || before.generation() != expected.group().generation() : before != null && before.active()) { throw new ConcurrentModificationException(); }
+				final boolean active = replacement.active() && replacement.contains(id);
+				final var identity = active ? replacement : expected.group();
+				pending.put(id, new StoredLogicalClaim(id, identity.leaderProfileId(), identity.groupId(), identity.generation(), before == null ? 0 : before.rowVersion() + 1, active));
+			}
+			final var saved = new StoredLogicalGroup(expected.rowVersion() + 1, PhantomLogicalParty.decode(replacement.encode()));
+			claims.clear(); claims.putAll(pending); groups.put(replacement.leaderProfileId(), saved); return saved;
 		}
 		@Override public synchronized StoredLogicalGroup updateLogicalGroup(PhantomLogicalParty group, long expected)
 		{

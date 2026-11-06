@@ -1095,6 +1095,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				coordinator.formForGoal(1, 126001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,3,2"), List.of(new RoleRequirement("dd.1", "damage.melee", true, 1), new RoleRequirement("dd.2", "damage.melee", true, 1), new RoleRequirement("healer", "support.healer", true, 1)));
 				for (long id : List.of(2L, 3L)) { coordinator.invite(1, backend.currentMember(id).orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); } }
 				final var leader = backend.currentMember(1).orElseThrow();
+				final var support = backend.currentMember(3).orElseThrow();
+				final var supportCapabilities = backend._capabilities.get(support);
+				backend.snapshot(support, member(3, 103, 100, 100, false, 0, List.of(cap("combat.melee_damage", "native.weapon", 300, 0))));
+				backend._farmTarget = java.util.OptionalInt.of(900);
+				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(1), "Required healer capability disappeared, but DD-only backend readiness still permitted a pull.");
+				backend.snapshot(support, member(3, 103, 100, 100, false, 0, supportCapabilities));
+				backend._farmTarget = java.util.OptionalInt.empty();
 				backend.snapshot(leader, member(1, 101, 100, 100, false, 900, backend._capabilities.get(leader)));
 				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
 				PhantomAssertions.assertTrue(combat.hasClaim(1) && combat.hasClaim(2), "Damage members did not retain cooperative combat.");
@@ -2899,6 +2906,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override public List<StoredLogicalGroup> loadLogicalGroupsAfter(long cursor, int limit) { return _logical.loadLogicalGroupsAfter(cursor, limit); }
 		@Override public StoredLogicalGroup commitLogicalGroup(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long expected, Map<Long, Long> versions) { return _logical.commitLogicalGroup(group, expected, versions); }
 		@Override public StoredLogicalGroup updateLogicalGroup(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long expected) { return _logical.updateLogicalGroup(group, expected); }
+		@Override public StoredLogicalGroup reviseLogicalGroup(StoredLogicalGroup expected, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty replacement) { return _logical.reviseLogicalGroup(expected, replacement); }
 		private boolean _rejectRendezvousReads;
 		private final Map<Long, StoredRendezvous> _rendezvous = new LinkedHashMap<>();
 		@Override public Optional<StoredRendezvous> loadRendezvous(long profileId) { if (_rejectRendezvousReads) { throw new AssertionError("Memory-only support permission read persistence."); } return Optional.ofNullable(_rendezvous.get(profileId)); }

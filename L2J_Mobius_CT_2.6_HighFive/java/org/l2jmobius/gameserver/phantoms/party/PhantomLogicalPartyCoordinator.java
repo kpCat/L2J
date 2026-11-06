@@ -15,12 +15,17 @@ public final class PhantomLogicalPartyCoordinator
 	private final Map<Long, Discovered> _discovered = new LinkedHashMap<>();
 	private long _leaderCursor;
 	private final java.util.concurrent.ConcurrentMap<Long, StoredLogicalGroup> _knownMembers = new java.util.concurrent.ConcurrentHashMap<>();
+	private final java.util.concurrent.ConcurrentMap<Long, StoredLogicalGroup> _knownLeaders = new java.util.concurrent.ConcurrentHashMap<>();
 	private volatile boolean _inventoryComplete;
 	public boolean inventoryComplete() { return _inventoryComplete; }
-	public List<StoredLogicalGroup> knownGroups() { return _knownMembers.values().stream().distinct().filter(row -> row.group().active()).toList(); }
-	private StoredLogicalGroup remember(StoredLogicalGroup row)
+	public List<StoredLogicalGroup> knownGroups() { return _knownLeaders.values().stream().filter(row -> row.group().active()).toList(); }
+	private synchronized StoredLogicalGroup remember(StoredLogicalGroup row)
 	{
-		for (var member : row.group().members()) { _knownMembers.put(member.profileId(), row); }
+		final var known = _knownLeaders.get(row.group().leaderProfileId());
+		if (known != null && known.rowVersion() > row.rowVersion()) { return row; }
+		_knownLeaders.put(row.group().leaderProfileId(), row);
+		_knownMembers.entrySet().removeIf(entry -> entry.getValue().group().leaderProfileId() == row.group().leaderProfileId() && entry.getValue().rowVersion() <= row.rowVersion());
+		if (row.group().active()) { for (var member : row.group().members()) { _knownMembers.put(member.profileId(), row); } }
 		return row;
 	}
 	/** Scheduler-local durable recovery cache, never a grant of native/goal ownership. */
@@ -49,7 +54,7 @@ public final class PhantomLogicalPartyCoordinator
 		{
 			final long id = candidate.member().profileId();
 			_discovered.remove(id);
-			if (!seeking.test(id, candidate.level()) || !candidate.current().getAsBoolean() || _store.loadLogicalClaim(id).isPresent()) { continue; }
+			if (!seeking.test(id, candidate.level()) || !candidate.current().getAsBoolean() || _store.loadLogicalClaim(id).filter(PhantomPartyPersistencePort.StoredLogicalClaim::active).isPresent()) { continue; }
 			if (_discovered.size() >= 256) { _discovered.remove(_discovered.keySet().iterator().next()); }
 			_discovered.put(id, new Discovered(candidate, Math.addExact(now, 600_000)));
 		}
@@ -77,7 +82,8 @@ public final class PhantomLogicalPartyCoordinator
 				}
 				if (!currentRoster) { continue; }
 				final String id = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(roster + ":" + source + ":" + now);
-				final var group = new PhantomLogicalParty(id, 1, leader.member().profileId(), roster, source, source.key().substring(source.key().indexOf('@') + 1),
+				final long generation = _store.loadLogicalGroup(leader.member().profileId()).map(row -> Math.addExact(row.group().generation(), 1)).orElse(1L);
+				final var group = new PhantomLogicalParty(id, generation, leader.member().profileId(), roster, source, source.key().substring(source.key().indexOf('@') + 1),
 					PhantomLogicalParty.Phase.AGREED, 0, now, "");
 				final var result = agree(group);
 				for (var member : roster) { _discovered.remove(member.profileId()); }
@@ -93,17 +99,16 @@ public final class PhantomLogicalPartyCoordinator
 		if (prior.isPresent())
 		{
 			if (prior.get().group().equals(group)) { return groupFor(group.leaderProfileId()); }
-			// Replacing/reusing a leader requires an explicit disband/release contract.
-			return Optional.empty();
+			if (prior.get().group().active() || group.generation() != Math.addExact(prior.get().group().generation(), 1)) { return Optional.empty(); }
 		}
 		final Map<Long, Long> versions = new LinkedHashMap<>();
 		for (var member : group.members().stream().sorted(java.util.Comparator.comparingLong(PhantomLogicalParty.Member::profileId)).toList())
 		{
 			final var claim = _store.loadLogicalClaim(member.profileId());
-			if (claim.isPresent()) { return Optional.empty(); }
-			versions.put(member.profileId(), -1L);
+			if (claim.filter(PhantomPartyPersistencePort.StoredLogicalClaim::active).isPresent()) { return Optional.empty(); }
+			versions.put(member.profileId(), claim.map(PhantomPartyPersistencePort.StoredLogicalClaim::rowVersion).orElse(-1L));
 		}
-		return Optional.of(remember(_store.commitLogicalGroup(group, -1, Map.copyOf(versions))));
+		return Optional.of(remember(_store.commitLogicalGroup(group, prior.map(StoredLogicalGroup::rowVersion).orElse(-1L), Map.copyOf(versions))));
 	}
 	public List<StoredLogicalGroup> recoverAfter(long leaderCursor, int limit)
 	{
@@ -115,12 +120,51 @@ public final class PhantomLogicalPartyCoordinator
 	public Optional<StoredLogicalGroup> groupFor(long profileId)
 	{
 		final var claim = _store.loadLogicalClaim(profileId).orElse(null);
-		if (claim == null) { return Optional.empty(); }
+		if (claim == null || !claim.active()) { _knownMembers.remove(profileId); return Optional.empty(); }
 		return _store.loadLogicalGroup(claim.leaderProfileId()).filter(row -> row.group().active() && row.group().contains(profileId)
 			&& row.group().groupId().equals(claim.groupId()) && row.group().generation() == claim.generation()).map(this::remember);
 	}
 	public StoredLogicalGroup transition(StoredLogicalGroup expected, PhantomLogicalParty.Phase phase, long cursor, long nextDue, String reason)
 	{
+		if (phase == PhantomLogicalParty.Phase.DISBANDED)
+		{
+			if (cursor != expected.group().backgroundCursor()) { throw new IllegalArgumentException("Disband cannot advance Background time."); }
+			return disband(expected, nextDue, reason);
+		}
 		return remember(_store.updateLogicalGroup(expected.group().transition(phase, cursor, nextDue, reason), expected.rowVersion()));
+	}
+	private void requireIdle(StoredLogicalGroup expected)
+	{
+		if (_store.loadLogicalGroup(expected.group().leaderProfileId()).filter(expected::equals).isEmpty()) { throw new java.util.ConcurrentModificationException("Stale logical agreement."); }
+		if (expected.group().phase() != PhantomLogicalParty.Phase.AGREED && expected.group().phase() != PhantomLogicalParty.Phase.BACKGROUND)
+		{ throw new IllegalStateException("Logical membership waits for physical drain/STORE."); }
+	}
+	public StoredLogicalGroup disband(StoredLogicalGroup expected, long now, String reason)
+	{
+		if (!expected.group().active() && _store.loadLogicalGroup(expected.group().leaderProfileId()).filter(expected::equals).isPresent()) { return remember(expected); }
+		requireIdle(expected);
+		return remember(_store.reviseLogicalGroup(expected, expected.group().transition(PhantomLogicalParty.Phase.DISBANDED, expected.group().backgroundCursor(), now, reason)));
+	}
+	public StoredLogicalGroup replace(StoredLogicalGroup expected, List<PhantomLogicalParty.Member> members, long now)
+	{
+		requireIdle(expected); final var old = expected.group();
+		if (old.members().equals(members)) { return remember(expected); }
+		final var next = new PhantomLogicalParty(old.groupId(), Math.addExact(old.generation(), 1), old.leaderProfileId(), members,
+			old.objective(), old.anchorId(), PhantomLogicalParty.Phase.BACKGROUND, old.backgroundCursor(), now, "ROSTER_CHANGED");
+		return remember(_store.reviseLogicalGroup(expected, next));
+	}
+	public StoredLogicalGroup leave(StoredLogicalGroup expected, long profileId, long now)
+	{
+		requireIdle(expected); final var old = expected.group();
+		if (!old.contains(profileId)) { return remember(expected); }
+		// Logical leadership is never silently transferred into native or human leadership rights.
+		if (profileId == old.leaderProfileId() || old.members().size() == 2) { return disband(expected, now, "MEMBER_LEFT"); }
+		return replace(expected, old.members().stream().filter(member -> member.profileId() != profileId).toList(), now);
+	}
+	public Optional<StoredLogicalGroup> expire(StoredLogicalGroup expected, long now)
+	{
+		if (now < expected.group().expiresAtMillis() || !expected.group().active()
+			|| expected.group().phase() != PhantomLogicalParty.Phase.AGREED && expected.group().phase() != PhantomLogicalParty.Phase.BACKGROUND) { return Optional.empty(); }
+		return Optional.of(disband(expected, now, "EXPIRED"));
 	}
 }

@@ -93,3 +93,15 @@ Final static/safety checks: exact38-path allowlist; scoped whitespace check with
 - escaped Cyrillic в изменённых файлах проверены: все шесть Unicode/XML patterns, совпадений нет.
 
 Git was used under the explicit TASK130 Git/report authorization: read-only primary/baseline/scope inspection; sparse independent clone/fetch/checkout; exact-path staging and scoped commit; ordinary push only to the new WIP branch. The evidence JSON records inspection command arguments and authorized delivery commands; actual commit/push outcome and final HEAD are returned with the delivery. No primary Git mutation, production update, force operation or history rewrite is authorized by this checkpoint.
+
+### Continuing the same TASK130 after review
+
+TASK130 remains ACTIVE; the preceding PARTIAL section records the eae6f4afa7 checkpoint, not a completed acceptance.
+
+Logical membership now has atomic disband/leave/replace/expiry/recreation. Released claims are versioned tombstones, not deleted/reinserted rows; aggregate and claim versions cannot undergo ABA. Roster revisions increment generation; native phases require drain before membership revision. Persisted idle expiry survives restart, and late recovery pages cannot resurrect a terminal cached generation. Group schema2 reads schema1; no database migration is introduced.
+
+Readiness regression reproduced RED: removing the required healer's learned capability while retaining DD capability still permitted a pull. GREEN uses the existing RoleMatcher against current native snapshots and the particular objective's required roles. A legitimate DD-only roster stays supported; no universal healer rule was added.
+
+New evidence: world-coordination130 10/10; tactics10/10; real TEST130 lifecycle and prefix rollback; two barrier-started SQL races (overlapping formations, disband versus replacement), each exactly one winner/one conflict; stale generation cannot release recreated claims. Separate-JVM resume PASS with zero writes. Latest SQL transaction pass1700ms; targeted compile/model/SQL loop5612ms. Guarded component dependencies share the Background profile-before-component SQL lock order and reject changed dependencies before writes. Trusted G0 re-attested MariaDB PID8692/start time/binary; no GameServer or CUT yet.
+
+Background receipt watermark, bounded assembly handoff, F7 persisted negatives and F8 native ordinary-human/Phantom evidence remain required in this same task. No next task, second clone or additional Stage has been created.

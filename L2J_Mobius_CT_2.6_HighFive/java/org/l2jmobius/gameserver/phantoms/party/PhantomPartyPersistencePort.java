@@ -24,12 +24,17 @@ public interface PhantomPartyPersistencePort
 	{ throw new UnsupportedOperationException("Atomic logical group persistence is unavailable."); }
 	default StoredLogicalGroup updateLogicalGroup(PhantomLogicalParty group, long expectedGroupVersion)
 	{ throw new UnsupportedOperationException("Logical group CAS is unavailable."); }
+	/** Terminal release or idle roster revision, including all departed and incoming identity claims. */
+	default StoredLogicalGroup reviseLogicalGroup(StoredLogicalGroup expected, PhantomLogicalParty replacement)
+	{ throw new UnsupportedOperationException("Atomic logical membership revision is unavailable."); }
 	record StoredLogicalGroup(long rowVersion, PhantomLogicalParty group)
 	{
 		public StoredLogicalGroup { if (rowVersion < 0 || group == null) { throw new IllegalArgumentException("Invalid stored logical group."); } }
 	}
-	record StoredLogicalClaim(long profileId, long leaderProfileId, String groupId, long generation, long rowVersion)
+	record StoredLogicalClaim(long profileId, long leaderProfileId, String groupId, long generation, long rowVersion, boolean active)
 	{
+		public StoredLogicalClaim(long profileId, long leaderProfileId, String groupId, long generation, long rowVersion)
+		{ this(profileId, leaderProfileId, groupId, generation, rowVersion, true); }
 		public StoredLogicalClaim
 		{
 			org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.requireHash(groupId, "Logical claim");

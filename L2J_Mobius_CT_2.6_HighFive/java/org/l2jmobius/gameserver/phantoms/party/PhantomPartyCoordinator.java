@@ -2733,6 +2733,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	{
 		final var planned = PhantomAutonomousFarmParty.plannedProfiles(authority.objectiveRef());
 		if (party == null || !party.leader().equals(authority.leader()) || party.members().size() != planned.size() || !sameRoster(roster(authority), party.members()) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId())) || !currentFarmIntent(authority)) { return false; }
+		final var current = snapshots(party.members());
+		if (current.size() != party.members().size() || _roles.match(authority.objectiveMode(), authority.requirements(), new ArrayList<>(current.values())).vacancies().stream()
+			.anyMatch(vacancy -> vacancy.required() && vacancy.assignment() == null)) { return false; }
 		return _logicalFarmAdmission.test(authority.leader().profileId()) && _backend.autonomousFarmReady(party);
 	}
 

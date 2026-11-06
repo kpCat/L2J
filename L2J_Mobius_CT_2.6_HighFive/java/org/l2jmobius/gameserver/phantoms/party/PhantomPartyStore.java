@@ -72,7 +72,7 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 	{ return _profiles.listManagedAfter(PhantomLogicalParty.COMPONENT_TYPE, cursor, limit).stream().map(row -> decodeLogicalGroup(row.component())).toList(); }
 	private StoredLogicalGroup decodeLogicalGroup(PhantomProfileComponent component)
 	{
-		if (component.componentSchemaVersion() != PhantomLogicalParty.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown logical group schema."); }
+		if (component.componentSchemaVersion() != 1 && component.componentSchemaVersion() != PhantomLogicalParty.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown logical group schema."); }
 		final var group = PhantomLogicalParty.decode(component.payload());
 		if (group.leaderProfileId() != component.profileId()) { throw new IllegalArgumentException("Foreign logical group aggregate."); }
 		return new StoredLogicalGroup(component.rowVersion(), group);
@@ -81,44 +81,79 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 	{
 		return _profiles.findComponent(id, PhantomLogicalParty.CLAIM_COMPONENT_TYPE).map(component ->
 		{
-			if (component.componentSchemaVersion() != PhantomLogicalParty.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown logical claim schema."); }
+			if (component.componentSchemaVersion() != 1 && component.componentSchemaVersion() != PhantomLogicalParty.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown logical claim schema."); }
 			try (var in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(component.payload())))
 			{
-				final var claim = new StoredLogicalClaim(id, in.readLong(), in.readUTF(), in.readLong(), component.rowVersion());
+				final long leader = in.readLong(); final String group = in.readUTF(); final long generation = in.readLong();
+				final var claim = new StoredLogicalClaim(id, leader, group, generation, component.rowVersion(), component.componentSchemaVersion() == 1 || in.readBoolean());
 				if (in.available() != 0) { throw new IllegalArgumentException("Trailing logical claim payload."); }
 				return claim;
 			}
 			catch (java.io.IOException failure) { throw new IllegalArgumentException("Invalid logical claim payload.", failure); }
 		});
 	}
-	private byte[] logicalClaim(PhantomLogicalParty group)
+	private byte[] logicalClaim(PhantomLogicalParty group, boolean active)
 	{
 		try
 		{
 			final var bytes = new java.io.ByteArrayOutputStream();
-			try (var out = new java.io.DataOutputStream(bytes)) { out.writeLong(group.leaderProfileId()); out.writeUTF(group.groupId()); out.writeLong(group.generation()); }
+			try (var out = new java.io.DataOutputStream(bytes)) { out.writeLong(group.leaderProfileId()); out.writeUTF(group.groupId()); out.writeLong(group.generation()); out.writeBoolean(active); }
 			return bytes.toByteArray();
 		}
 		catch (java.io.IOException failure) { throw new IllegalArgumentException("Cannot encode logical claim.", failure); }
 	}
 	@Override public StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expected, java.util.Map<Long, Long> versions)
 	{
-		if (expected != -1 || group.phase() != PhantomLogicalParty.Phase.AGREED || versions.size() != group.members().size()
-			|| group.members().stream().anyMatch(member -> !Long.valueOf(-1).equals(versions.get(member.profileId()))))
-		{ throw new IllegalArgumentException("Formation requires exclusively unclaimed identities."); }
+		final var prior = loadLogicalGroup(group.leaderProfileId()).orElse(null);
+		if ((prior == null ? -1 : prior.rowVersion()) != expected) { throw new java.util.ConcurrentModificationException("Stale formation aggregate."); }
+		if (group.phase() != PhantomLogicalParty.Phase.AGREED || versions.size() != group.members().size()
+			|| prior != null && (prior.group().active() || group.generation() != Math.addExact(prior.group().generation(), 1)))
+		{ throw new IllegalArgumentException("Formation requires a fresh agreement or the next released generation."); }
 		final var mutations = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
 		mutations.add(new PhantomProfileRepository.ProfileComponentMutation(group.leaderProfileId(),
-			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, -1, PhantomLogicalParty.SCHEMA_VERSION, group.encode())));
-		final byte[] claim = logicalClaim(group);
+			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, expected, PhantomLogicalParty.SCHEMA_VERSION, group.encode())));
+		final byte[] claim = logicalClaim(group, true);
 		for (var member : group.members())
 		{
+			final var before = loadLogicalClaim(member.profileId()).orElse(null);
+			final long version = before == null ? -1 : before.rowVersion();
+			if (before != null && before.active() || !Long.valueOf(version).equals(versions.get(member.profileId())))
+			{ throw new java.util.ConcurrentModificationException("Logical identity is claimed or its version changed."); }
 			mutations.add(new PhantomProfileRepository.ProfileComponentMutation(member.profileId(),
-				new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.CLAIM_COMPONENT_TYPE, -1, PhantomLogicalParty.SCHEMA_VERSION, claim)));
+				new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.CLAIM_COMPONENT_TYPE, version, PhantomLogicalParty.SCHEMA_VERSION, claim)));
+		}
+		return _profiles.mutateProfileComponentsAtomically(mutations).stream().filter(row -> row.componentType().equals(PhantomLogicalParty.COMPONENT_TYPE)).map(this::decodeLogicalGroup).findFirst().orElseThrow();
+	}
+	@Override public StoredLogicalGroup reviseLogicalGroup(StoredLogicalGroup expected, PhantomLogicalParty replacement)
+	{
+		final var old = expected.group();
+		if (!loadLogicalGroup(old.leaderProfileId()).filter(expected::equals).isPresent()) { throw new java.util.ConcurrentModificationException("Stale logical membership revision."); }
+		if (old.phase() != PhantomLogicalParty.Phase.AGREED && old.phase() != PhantomLogicalParty.Phase.BACKGROUND)
+		{ throw new IllegalStateException("Physical projection must drain before logical membership changes."); }
+		final boolean terminal = replacement.phase() == PhantomLogicalParty.Phase.DISBANDED;
+		if (replacement.leaderProfileId() != old.leaderProfileId() || !replacement.groupId().equals(old.groupId())
+			|| replacement.backgroundCursor() != old.backgroundCursor() || !replacement.objective().equals(old.objective()) || !replacement.anchorId().equals(old.anchorId())
+			|| terminal && (!replacement.members().equals(old.members()) || replacement.generation() != old.generation())
+			|| !terminal && (replacement.generation() != Math.addExact(old.generation(), 1) || replacement.phase() != PhantomLogicalParty.Phase.BACKGROUND))
+		{ throw new IllegalArgumentException("Invalid logical membership revision."); }
+		final var ids = new java.util.TreeSet<Long>(); old.members().forEach(member -> ids.add(member.profileId())); replacement.members().forEach(member -> ids.add(member.profileId()));
+		final var mutations = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
+		mutations.add(new PhantomProfileRepository.ProfileComponentMutation(old.leaderProfileId(),
+			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, expected.rowVersion(), PhantomLogicalParty.SCHEMA_VERSION, replacement.encode())));
+		for (long id : ids)
+		{
+			final var claim = loadLogicalClaim(id).orElse(null);
+			if (old.contains(id) ? claim == null || !claim.active() || claim.leaderProfileId() != old.leaderProfileId() || !claim.groupId().equals(old.groupId()) || claim.generation() != old.generation()
+				: claim != null && claim.active()) { throw new java.util.ConcurrentModificationException("Foreign or stale logical member claim."); }
+			final boolean active = !terminal && replacement.contains(id);
+			mutations.add(new PhantomProfileRepository.ProfileComponentMutation(id, new PhantomProfileRepository.ComponentMutation(
+				PhantomLogicalParty.CLAIM_COMPONENT_TYPE, claim == null ? -1 : claim.rowVersion(), PhantomLogicalParty.SCHEMA_VERSION, logicalClaim(active ? replacement : old, active))));
 		}
 		return _profiles.mutateProfileComponentsAtomically(mutations).stream().filter(row -> row.componentType().equals(PhantomLogicalParty.COMPONENT_TYPE)).map(this::decodeLogicalGroup).findFirst().orElseThrow();
 	}
 	@Override public StoredLogicalGroup updateLogicalGroup(PhantomLogicalParty group, long expected)
 	{
+		if (group.phase() == PhantomLogicalParty.Phase.DISBANDED) { throw new IllegalArgumentException("Disband must release claims atomically."); }
 		final var before = loadLogicalGroup(group.leaderProfileId()).orElseThrow();
 		final var old = before.group();
 		if (before.rowVersion() != expected) { throw new java.util.ConcurrentModificationException("Stale logical group version."); }

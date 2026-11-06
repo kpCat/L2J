@@ -510,9 +510,14 @@ public final class PhantomProfileRepository
 
 	/** Bounded multi-identity CAS. Stable lock order and one transaction leave no partial group reservations. */
 	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations)
+	{ return mutateProfileComponentsAtomically(mutations, List.of()); }
+
+	/** Read dependencies share the transaction and the same profile-before-component lock order as Background. */
+	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations, List<PhantomProfileComponent> guards)
 	{
-		if (mutations == null || mutations.isEmpty() || mutations.size() > 10)
-		{ throw new IllegalArgumentException("Cross-profile mutation count must be between one and ten."); }
+		if (guards == null || guards.size() > 36) { throw new IllegalArgumentException("Group read guard count exceeds the nine-member bound."); }
+		if (mutations == null || mutations.isEmpty() || mutations.size() > 19)
+		{ throw new IllegalArgumentException("Cross-profile mutation count must be between one and nineteen (aggregate plus old/new rosters)."); }
 		final var ordered = mutations.stream().sorted(Comparator.comparingLong(ProfileComponentMutation::profileId)
 			.thenComparing(entry -> entry.mutation().componentType())).toList();
 		for (int i = 1; i < ordered.size(); i++)
@@ -522,6 +527,21 @@ public final class PhantomProfileRepository
 		}
 		return write("mutate bounded Phantom group components atomically", connection ->
 		{
+			final var profileIds = new java.util.TreeSet<Long>(); ordered.forEach(entry -> profileIds.add(entry.profileId())); guards.forEach(row -> profileIds.add(row.profileId()));
+			for (long id : profileIds)
+			{
+				try (var statement = connection.prepareStatement("SELECT profile_id FROM phantom_profiles WHERE profile_id = ? FOR UPDATE"))
+				{ statement.setLong(1, id); try (var rows = statement.executeQuery()) { if (!rows.next()) { throw new java.util.ConcurrentModificationException("Guarded profile disappeared."); } } }
+			}
+			for (var guard : guards.stream().sorted(Comparator.comparingLong(PhantomProfileComponent::profileId).thenComparing(PhantomProfileComponent::componentType)).toList())
+			{
+				try (var statement = connection.prepareStatement(FIND_COMPONENT + " FOR UPDATE"))
+				{
+					statement.setLong(1, guard.profileId()); statement.setString(2, guard.componentType());
+					try (var rows = statement.executeQuery())
+					{ if (!rows.next() || !readComponent(rows).equals(guard)) { throw new java.util.ConcurrentModificationException("Logical group read dependency changed."); } }
+				}
+			}
 			final var result = new ArrayList<PhantomProfileComponent>(ordered.size());
 			for (var entry : ordered)
 			{

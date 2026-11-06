@@ -109,6 +109,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{
 			if (identities.stream().anyMatch(actor -> !_backend.withUnmaterializedNativeAbsence(actor, () -> true)))
 			{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); return; }
+			if (_logical.expire(row, now).isPresent()) { return; }
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
 			else if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND)
