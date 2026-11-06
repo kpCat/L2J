@@ -24,6 +24,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("08-native-route-landing-retains-physical-floor", _ -> authorityLanding());
 		registry.add("09-historical-route-exclusion-requires-unchanged-failed-step", _ -> historicalFailedStep());
 		registry.add("10-offscreen-hash-fence-is-owned-only-by-typed-receipt", _ -> offscreenReceiptHash());
+		registry.add("11-completed-offscreen-arrival-requires-native-capture-before-history", _ -> completedOffscreenNativeHandoff());
 	}
 	public static void main(String[] args)
 	{
@@ -42,6 +43,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		authorityLanding();
 		historicalFailedStep();
 		offscreenReceiptHash();
+		completedOffscreenNativeHandoff();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
 	}
 	private static void offscreenReceiptHash()
@@ -66,6 +68,42 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		}
 		PhantomAssertions.assertEquals(staleHash, generic.receipt().expectedAfterHash(), "Hash admission cannot clear or overwrite the old receipt.");
 		System.out.println("OWN129_OFFSCREEN_RECEIPT_HASH_PASS; generic receipt distinct from typed pending/completed fence; DB_CONNECTIONS=0; OWNER_RECOVERY=NOT_RUN");
+	}
+	private static void completedOffscreenNativeHandoff()
+	{
+		final var receipt = new PhantomBackgroundState.Receipt("c".repeat(64), 0, PhantomOffscreenOutdoorTravel.RECEIPT_TICK, "a".repeat(64));
+		final var arrived = offscreenReceiptState(receipt, 0);
+		final var context = permittedHistoricalContext(arrived);
+		PhantomAssertions.assertTrue(context.binds(arrived.identity(), 270, new PhantomBackgroundStateCodec().encode(arrived))
+			&& context.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()),
+			"The actual handoff counterexample must have a current bound native context which already permits FARM.");
+		final var pending = offscreenReceiptState(receipt, 60_000);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.historicalNativeContextRequired(pending, permittedHistoricalContext(pending)),
+			"Pending typed virtual debt continues through its existing travel owner, not a completed-arrival handoff.");
+		final var generic = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, "a".repeat(64)), 0);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.historicalNativeContextRequired(generic, permittedHistoricalContext(generic)),
+			"An unrelated generic receipt must retain the existing policy-only admission.");
+		final var invalid = arrived.withState(PhantomBackgroundState.State.INCONSISTENT);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.historicalNativeContextRequired(invalid, permittedHistoricalContext(invalid)),
+			"A non-READY inconsistent state cannot obtain a completed-arrival handoff.");
+		final var beforeSpawn = arrived.withState(PhantomBackgroundState.State.MATERIALIZED);
+		PhantomAssertions.assertEquals(receipt, PhantomOffscreenOutdoorTravel.nativeReceipt(beforeSpawn, false),
+			"Pre-spawn materialization and aborted-load cleanup must retain the typed observer fence.");
+		final var retired = PhantomOffscreenOutdoorTravel.nativeReceipt(beforeSpawn, true);
+		PhantomAssertions.assertEquals(PhantomBackgroundState.Receipt.empty(), retired,
+			"Only capture of the exact World Player may retire the MATERIALIZED typed receipt.");
+		final var recaptured = arrived.after(arrived.progress(), arrived.vitals(), arrived.position(), arrived.inventory(), arrived.autoGetSkills(), arrived.clock(), retired);
+		PhantomAssertions.assertFalse(PhantomBackgroundService.historicalNativeContextRequired(recaptured, permittedHistoricalContext(recaptured)),
+			"A normally captured and stored READY body returns to existing native-policy admission.");
+		PhantomAssertions.assertTrue(PhantomBackgroundService.historicalNativeContextRequired(arrived, context),
+			"A completed typed offscreen receipt requires the existing canonical native handoff even when its context permits FARM.");
+	}
+	private static PhantomNativeContext permittedHistoricalContext(PhantomBackgroundState state)
+	{
+		final var policy = new PhantomBackgroundSimulationPolicy(2, 76, 1, 1, true, true, true, true, false, 1,
+			1, 0.6, 1.5, 2, 2.5, 3, 0, 0, 3.5, 3.5, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint(), 126.5, 60_000, 0);
+		return PhantomNativeContext.completed(state.identity(), new PhantomNativeContext.Capture(1, PhantomNativeContext.Eligibility.SUPPORTED, policy),
+			270, new PhantomBackgroundStateCodec().encode(state));
 	}
 	private static PhantomBackgroundState offscreenReceiptState(PhantomBackgroundState.Receipt receipt, long debt)
 	{

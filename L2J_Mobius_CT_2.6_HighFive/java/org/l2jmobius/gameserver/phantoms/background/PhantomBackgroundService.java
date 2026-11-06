@@ -890,10 +890,20 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if ((_state != ServiceState.RUNNING) || (proof.context() == null)) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
 		if ((expected.state() != State.VERIFY_PENDING) && (proof.context().phase() != PhantomNativeContext.Phase.PENDING))
 		{
-			updateNativeContextSignal(profileId, proof, !proof.context().permits(proof.context().afterPolicy() != null && !proof.context().afterPolicy().farmPosition()
-                ? PhantomBackgroundSimulationPolicy.Operation.TRAVEL : PhantomBackgroundSimulationPolicy.Operation.FARM, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()));
+			updateNativeContextSignal(profileId, proof, historicalNativeContextRequired(expected, proof.context()));
 		}
 		return _state == ServiceState.RUNNING ? proof : PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE);
+	}
+
+	/** Shared historical handoff admission; callers retain their exact state/context/claim guards. */
+	static boolean historicalNativeContextRequired(PhantomBackgroundState state, PhantomNativeContext context)
+	{
+		final var operation = context.afterPolicy() != null && !context.afterPolicy().farmPosition()
+			? PhantomBackgroundSimulationPolicy.Operation.TRAVEL : PhantomBackgroundSimulationPolicy.Operation.FARM;
+		// Completed arrival retains its typed fence until canonical capture of the exact World Player.
+		final boolean completedOffscreen = state != null && state.state() == State.READY
+			&& PhantomOffscreenOutdoorTravel.taggedReceipt(state) && !PhantomOffscreenOutdoorTravel.pendingDebt(state);
+		return completedOffscreen || !context.permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
 	}
 
 	/** Uses the ordinary historical identity lease and transaction receipt to finish a pending commit. */

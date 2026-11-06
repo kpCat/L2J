@@ -727,9 +727,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context.unattested", current);
 			}
-			final var operation = proof.context().afterPolicy() != null && !proof.context().afterPolicy().farmPosition()
-                ? PhantomBackgroundSimulationPolicy.Operation.TRAVEL : PhantomBackgroundSimulationPolicy.Operation.FARM;
-            if (!proof.context().permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()))
+			if (PhantomBackgroundService.historicalNativeContextRequired(proof.state(), proof.context()))
 			{
 				final var delivery = _background.nativeContextSignalDelivery(profileId).orElse(null);
 				return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "native_context.required:" + (delivery == null ? "not_delivered" : delivery.name().toLowerCase(java.util.Locale.ROOT)), current);
