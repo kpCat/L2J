@@ -2662,7 +2662,7 @@ public final class PhantomBackgroundTransaction
 			final var proof = mutation.offscreen();
 			if (proof == null || mutation.travel() != null || mutation.operation() != PhantomBackgroundSimulationPolicy.Operation.TRAVEL
 				|| proof.authority().topologyGeneration() != proof.topologyGeneration() || !state.hashes().equals(proof.authority().hashes())
-				|| !state.receipt().expectedAfterHash().isEmpty() && !state.receipt().expectedAfterHash().equals(expectedAfterHash(state)))
+				|| !offscreenReceiptHashCurrent(state, expectedAfterHash(state)))
 			{ throw new StateConflict(Status.OFFSCREEN_WAIT); }
 			if (kind == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_OFFSCREEN_CANCEL)
 			{
@@ -2739,6 +2739,12 @@ public final class PhantomBackgroundTransaction
 			this(admission, authority, topologyGeneration, elapsedBudgetMillis, destination, authority.offscreenAdmissionGeneration());
 		}
 		public OffscreenProof { Objects.requireNonNull(admission); Objects.requireNonNull(authority); Objects.requireNonNull(destination); }
+	}
+
+	static boolean offscreenReceiptHashCurrent(PhantomBackgroundState state, String currentHash)
+	{
+		// A generic receipt can predate the current native checkpoint; typed offscreen replay owns this fence.
+		return !PhantomOffscreenOutdoorTravel.taggedReceipt(state) || state.receipt().expectedAfterHash().equals(currentHash);
 	}
 
 	public static boolean offscreenProofCurrent(OffscreenProof proof)

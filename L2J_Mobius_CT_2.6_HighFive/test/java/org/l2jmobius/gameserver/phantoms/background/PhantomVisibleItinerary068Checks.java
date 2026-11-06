@@ -23,6 +23,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("07-preparation-drains-existing-arrival-before-yield", _ -> preparationArrival());
 		registry.add("08-native-route-landing-retains-physical-floor", _ -> authorityLanding());
 		registry.add("09-historical-route-exclusion-requires-unchanged-failed-step", _ -> historicalFailedStep());
+		registry.add("10-offscreen-hash-fence-is-owned-only-by-typed-receipt", _ -> offscreenReceiptHash());
 	}
 	public static void main(String[] args)
 	{
@@ -40,7 +41,40 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		preparationArrival();
 		authorityLanding();
 		historicalFailedStep();
+		offscreenReceiptHash();
 		System.out.println("OWN068_VISIBLE_ITINERARY_PASS; DB_CONNECTIONS=0; ACTORS=0");
+	}
+	private static void offscreenReceiptHash()
+	{
+		final String currentHash = "a".repeat(64), staleHash = "b".repeat(64);
+		final var generic = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, staleHash), 0);
+		final var payload = new PhantomBackgroundStateCodec().encode(generic);
+		final var policy = new PhantomBackgroundSimulationPolicy(2, 76, 1, 1, true, true, true, true, false, 1,
+			1, 0.6, 1.5, 2, 2.5, 3, 0, 0, 3.5, 3.5, "d".repeat(64), 126.5, 60_000, 0);
+		final var context = PhantomNativeContext.completed(generic.identity(), new PhantomNativeContext.Capture(1, PhantomNativeContext.Eligibility.SUPPORTED, policy), 270, payload);
+		PhantomAssertions.assertTrue(context.binds(generic.identity(), 270, payload) && context.permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, policy.rulesFingerprint()), "The fixture must have a current COMPLETED native policy bound to the exact post-checkpoint state bytes.");
+		PhantomAssertions.assertFalse(context.binds(generic.identity(), 269, payload), "The independent native-context owner still rejects a stale component version.");
+		PhantomAssertions.assertFalse(PhantomOffscreenOutdoorTravel.taggedReceipt(generic), "A generic historical receipt is not typed offscreen travel debt.");
+		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(generic, currentHash), "An unrelated old generic receipt must not veto a fresh native-bound offscreen proof.");
+		for (long debt : List.of(0L, 60_000L))
+		{
+			final var matching = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, PhantomOffscreenOutdoorTravel.RECEIPT_TICK, currentHash), debt);
+			final var mismatching = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, PhantomOffscreenOutdoorTravel.RECEIPT_TICK, staleHash), debt);
+			PhantomAssertions.assertTrue(PhantomOffscreenOutdoorTravel.taggedReceipt(matching), "Both pending and completed offscreen receipts retain the typed fence.");
+			PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(matching, currentHash), "The exact typed receipt may continue only with its matching hash.");
+			PhantomAssertions.assertFalse(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(mismatching, currentHash), "Typed offscreen replay must remain fenced on hash mismatch, including zero residual debt.");
+		}
+		PhantomAssertions.assertEquals(staleHash, generic.receipt().expectedAfterHash(), "Hash admission cannot clear or overwrite the old receipt.");
+		System.out.println("OWN129_OFFSCREEN_RECEIPT_HASH_PASS; generic receipt distinct from typed pending/completed fence; DB_CONNECTIONS=0; OWNER_RECOVERY=NOT_RUN");
+	}
+	private static PhantomBackgroundState offscreenReceiptState(PhantomBackgroundState.Receipt receipt, long debt)
+	{
+		return new PhantomBackgroundState(PhantomBackgroundState.State.READY, new PhantomBackgroundState.Identity(1, 268480990, 0, 88, 0),
+			new PhantomBackgroundState.Progress(76, 0, 0, 0), new PhantomBackgroundState.Vitals(100, 100, 100, 100, 100, 100),
+			new PhantomBackgroundState.Position(0, 148924, -83377, -5568, 0, "current"),
+			new PhantomBackgroundState.CombatFacts(PhantomBackgroundState.ModelKind.MELEE, 100, 100, 100, 100, 500, 500, 1, 1, 1, 1, 0, 1, 1, 1, 1),
+			PhantomBackgroundState.Loadout.none(), new PhantomBackgroundState.InventoryFacts(List.of(), List.of(), "fixture129", 0, 1000, 0, 100), List.of(),
+			new PhantomBackgroundState.Clock(129, debt, 0), receipt, new PhantomBackgroundState.Hashes("knowledge129", "topology129", "progression129", "commerce129"));
 	}
 	private static void historicalFailedStep()
 	{
