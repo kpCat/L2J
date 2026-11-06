@@ -24,6 +24,13 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	private volatile LongPredicate _currentRequestDemand;
 	private volatile LongFunction<SoftReclaimSelection> _softCandidate;
 	private volatile LongPredicate _populationRequestAdmission = _ -> true;
+	private volatile LongFunction<PhantomPhysicalDemand> _physicalDemand = _ -> null;
+	public void installPhysicalDemand(LongFunction<PhantomPhysicalDemand> demand) { _physicalDemand = Objects.requireNonNull(demand); }
+	private boolean coordinatedDemand(long profileId, boolean online, boolean admitted)
+	{
+		final var demand = _physicalDemand.apply(profileId);
+		return demand != null && demand.ordinaryAdmission(online, admitted, System.currentTimeMillis());
+	}
 
 	public PhantomReconcileFirstActivityPort(PhantomActivityMaterializationPort delegate)
 	{
@@ -77,7 +84,8 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			// Calendar/locality still control new demand; the delegate still owns all capacity checks.
 			final boolean ordinaryLocal = continuation || online && locality.isLocal(profileId);
 			final boolean background = online && backgroundNativeRequest.test(profileId);
-			final boolean local = ordinaryLocal || background;
+			final boolean coordinated = coordinatedDemand(profileId, online, admitted.test(profileId));
+			final boolean local = ordinaryLocal || background || coordinated;
 			if (!local)
 			{
 				recorder.record(profileId, online ? "READY_NOT_LOCAL" : "READY_PRESENCE_OFFLINE", online ? "ONLINE" : "OFFLINE", "DEFERRED", "presence.no_current_local_demand", 0, 0, 0);
@@ -94,7 +102,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				request = due.request();
 			}
 			// A Background request carries only its exact historical prerequisite, never NORMAL admission.
-			if (!ordinaryLocal && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
+			if (!ordinaryLocal && !coordinated && request.kind() != MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF)
 			{
 				return TransitionOutcome.deferred("presence.background_native_handoff_required");
 			}
@@ -105,6 +113,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				return TransitionOutcome.deferred("population.not_admitted");
 			}
 			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId)
+				|| coordinatedDemand(profileId, presence.isOnline(profileId), admitted.test(profileId))
 				|| request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF && presence.isOnline(profileId) && backgroundNativeRequest.test(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");

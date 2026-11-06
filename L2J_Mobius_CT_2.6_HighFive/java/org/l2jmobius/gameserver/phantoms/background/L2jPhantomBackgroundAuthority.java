@@ -867,6 +867,12 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	}
 
 	@Override
+	public boolean nativeIngressPositionKnown(PhantomTopologyAnchor anchor, int heading)
+	{
+		return canonicalCommittedAnchorPosition(anchor, heading).isPresent();
+	}
+
+	@Override
 	public Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading)
 	{
 		if (instanceId != 0)

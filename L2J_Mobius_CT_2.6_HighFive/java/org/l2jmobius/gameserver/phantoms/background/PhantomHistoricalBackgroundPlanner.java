@@ -186,53 +186,131 @@ public final class PhantomHistoricalBackgroundPlanner
 			|| live == null || live.instanceId() != 0 || state.position().instanceId() != live.instanceId()) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		final var candidate = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
+		var candidate = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
 			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
 			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
 			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
 			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), false,
 			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()));
+		if (!candidate.ready()) { candidate = rendezvousIngressPlan(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, sharedFarmSource, excludedSteps, supportTravelOnly); }
 		return !candidate.ready() || admitted.test(candidate.goal()) ? candidate : Result.blocked("planner.rendezvous.travel_unavailable");
+	}
+	private Result rendezvousIngressPlan(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
+		PhantomTopologyPoint live, PhantomDomainRef source, Set<String> excludedSteps, boolean supportTravelOnly)
+	{
+		final var spec = rendezvousSource(source); final var destination = _topology.findAnchor(spec.anchorId()).orElse(null);
+		if (destination == null || destination.role() != PhantomTopologyAnchorRole.FARMING || destination.point().instanceId() != live.instanceId()) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
+		final var ingress = rendezvousIngress(state, destination, live, excludedSteps);
+		if (ingress == null) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
+		TargetFact selected = null; String cursor = null;
+		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES && selected == null; pageIndex++)
+		{
+			final var page = targets(Math.max(1, state.progress().level() - LOWER_LEVEL_TIERS.getLast()), state.progress().level() + LEVEL_RADIUS, state.progress().level(),
+				cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
+			selected = page.values().stream().filter(target -> target.npc().npcId() == spec.npcId() && target.representativeAreas().stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && destination.nodeId().equals(area.topologyNodeId()))).findFirst().orElse(null);
+			cursor = page.nextCursor(); if (cursor == null) { break; }
+		}
+		if (selected == null || !supportTravelOnly && !_authority.viableTarget(PlanningCombat.from(state), selected.npc().npcId())) { return Result.blocked("planner.rendezvous.target_unavailable"); }
+		final var route = ingress.id().equals(destination.id()) ? List.<PhantomNormalGatekeeperTravel.Step>of() : _authority.travelQuery(_topology).route(ingress.id(), destination.id()).orElseThrow();
+		final var constraints = new LinkedHashMap<String, Long>(); final var loadout = state.loadout();
+		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, loadout.shotItemId(), PhantomBackgroundGoalSpec.SHOT_COUNT, loadout.shotsPerEncounter());
+		if (loadout.summonNpcId() > 0) { constraints.put(PhantomBackgroundGoalSpec.SUMMON_NPC, (long) loadout.summonNpcId()); }
+		putPositivePair(constraints, PhantomBackgroundGoalSpec.SUMMON_RESOURCE_ITEM, loadout.summonResourceItemId(), PhantomBackgroundGoalSpec.SUMMON_RESOURCE_COUNT, loadout.summonResourcesPerEncounter());
+		final var generation = generation(); final var edges = route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList();
+		final var goal = new PhantomGoal(previous.goalId(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, previous.subject(),
+			new PhantomDomainRef(PhantomBackgroundGoalSpec.NPC_NAMESPACE, Integer.toString(spec.npcId())), 1, 0, "background.farm", List.of(source),
+			new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, spec.anchorId()), "farm.background", 500, 0, 0, 0, constraints, "background.rendezvous.native_ingress", Math.addExact(previous.revision(), 1));
+		return new Result(goal, PhantomBackgroundGoalSpec.parse(goal), digest("RENDEZVOUS_NATIVE_INGRESS_V1", profileId, seed, ordinal, previous.goalId(), goal.revision(), generation, live, ingress.id(), source, edges), generation, edges, "planner.rendezvous.native_ingress");
+	}
+	private PhantomTopologyAnchor rendezvousIngress(PhantomBackgroundState state, PhantomTopologyAnchor destination, PhantomTopologyPoint live, Set<String> excludedSteps)
+	{
+		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		if (destination.point().distance3D(live) <= policy.maximumLocalStraightDistance() && _authority.nativeIngressPositionKnown(destination, state.position().heading())) { return destination; }
+		final var travel = _authority.travelQuery(_topology);
+		return PhantomVisibleFarmTravel.idleIngress(_topology.snapshot().anchors(), live, destination.id(), policy.maximumRouteDistance(), anchor ->
+		{
+			if (!_authority.nativeIngressPositionKnown(anchor, state.position().heading())) { return false; }
+			final var route = travel.route(anchor.id(), destination.id()).orElse(null);
+			return route != null && !route.isEmpty() && route.size() <= 64 && route.stream().noneMatch(step -> excludedSteps.contains(step.id()))
+				&& PhantomVisibleFarmTravel.itineraryAffordable(route, state.identity().classIndex(), state.progress().level(), java.time.Instant.now().toEpochMilli() / 60000, state.inventory().itemCount(57));
+		});
 	}
 
 	/** Exact shared source is an intent, never native arrival or an arbitrary XYZ. */
 	public List<PhantomDomainRef> rendezvousSources(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
-		final var previous = visiblePredecessor(profileId, previousGoal);
+		visiblePredecessor(profileId, previousGoal);
 		if (state == null || state.identity().profileId() != profileId || state.position().instanceId() != 0) { return List.of(); }
-		final var loadout = state.loadout(); final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
-		final var excluded = new java.util.HashSet<>(excludedTargets); final var viability = new java.util.HashMap<Integer, Boolean>();
-		final var result = new ArrayList<PhantomDomainRef>();
-		for (int attempt = 0; attempt < 4; attempt++)
+		final boolean support = logicalRole(state).equals("support");
+		final var result = new java.util.LinkedHashSet<PhantomDomainRef>();
+		String cursor = null;
+		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 		{
-			final var candidate = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
-				idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
-				idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
-				idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
-				previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excluded, excludedSteps, null, PlanningCombat.from(state), false, _ -> true, viability);
-			if (!candidate.ready()) { break; }
-			final var source = new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, candidate.spec().npcId() + "@" + candidate.spec().anchorId());
-			result.add(source); excluded.add(source.key());
+			final var page = targets(Math.max(1, state.progress().level() - LOWER_LEVEL_TIERS.getLast()), state.progress().level() + LEVEL_RADIUS, state.progress().level(),
+				cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
+			for (var target : page.values())
+			{
+				if (!support && !_authority.viableTarget(PlanningCombat.from(state), target.npc().npcId())) { continue; }
+				for (var area : target.representativeAreas())
+				{
+					if (area.instanceId() != 0 || area.totalConfiguredAmount() <= 0 || area.topologyNodeId() == null) { continue; }
+					for (var anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
+					{
+						if (anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != 0 || anchor.npcId() != null && anchor.npcId() != target.npc().npcId()) { continue; }
+						final var source = new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, target.npc().npcId() + "@" + anchor.id());
+						if (!excludedTargets.contains(source.key()) && rendezvousRouteAvailable(state, source, excludedSteps)) { result.add(source); }
+						if (result.size() >= 64) { return List.copyOf(result); }
+					}
+				}
+			}
+			cursor = page.nextCursor(); if (cursor == null) { break; }
 		}
 		return List.copyOf(result);
+	}
+	/** Planned affinity only; actual learned native capabilities remain the Party backend's responsibility. */
+	public static String logicalRole(PhantomBackgroundState state)
+	{
+		final var type = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(state.identity().activeClassId());
+		return type != null && java.util.stream.Stream.of(org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.BISHOP,
+			org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.PROPHET, org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.ELDER,
+			org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.SHILLIEN_ELDER).anyMatch(type::equalsOrChildOf) ? "support" : "damage";
+	}
+	public enum RendezvousRoute { REACHABLE, REACHABLE_VIA_INGRESS, TEMPORARILY_BLOCKED, DEFINITIVELY_UNREACHABLE, UNKNOWN }
+	public RendezvousRoute rendezvousRoutePreview(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
+	{
+		final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
+		if (state == null || anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING) { return RendezvousRoute.UNKNOWN; }
+		if (anchor.point().instanceId() != 0 || state.position().instanceId() != 0) { return RendezvousRoute.DEFINITIVELY_UNREACHABLE; }
+		final var travel = _authority.travelQuery(_topology);
+		final var route = travel.route(state.position().committedAnchorId(), anchor.id()).orElse(null);
+		if (route != null)
+		{
+			return route.size() <= 64 && route.stream().noneMatch(step -> excludedSteps.contains(step.id())) ? RendezvousRoute.REACHABLE : RendezvousRoute.TEMPORARILY_BLOCKED;
+		}
+		final var position = state.position();
+		final var ingress = rendezvousIngress(state, anchor, new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId()), excludedSteps);
+		if (ingress != null)
+		{
+			if (ingress.id().equals(anchor.id())) { return RendezvousRoute.REACHABLE_VIA_INGRESS; }
+			final var onward = travel.route(ingress.id(), anchor.id()).orElse(null);
+			if (onward != null && onward.stream().noneMatch(step -> excludedSteps.contains(step.id()))) { return RendezvousRoute.REACHABLE_VIA_INGRESS; }
+		}
+		// A missing graph-only route proves neither a missing native WALK ingress nor impossible Geo.
+		return RendezvousRoute.UNKNOWN;
 	}
 
 	/** Pure structural preflight over the same certified route catalog; no native usability or arrival claim. */
 	public boolean rendezvousRouteAvailable(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
 	{
-		final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
-		if (state == null || anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != 0 || state.position().instanceId() != 0) { return false; }
-		return _authority.travelQuery(_topology).route(state.position().committedAnchorId(), anchor.id())
-			.filter(route -> route.size() <= 64 && route.stream().noneMatch(step -> excludedSteps.contains(step.id()))).isPresent();
+		final var result = rendezvousRoutePreview(state, source, excludedSteps);
+		return result == RendezvousRoute.REACHABLE || result == RendezvousRoute.REACHABLE_VIA_INGRESS;
 	}
 	/** Positive known-graph absence only. Unknown/invalid input is not terminal evidence. */
 	public boolean rendezvousRouteAbsent(PhantomBackgroundState state, PhantomDomainRef source)
 	{
 		try
 		{
-			final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
-			return state != null && state.position().instanceId() == 0 && anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0
-				&& _topology.findAnchor(state.position().committedAnchorId()).isPresent() && _authority.travelQuery(_topology).route(state.position().committedAnchorId(), anchor.id()).isEmpty();
+			return rendezvousRoutePreview(state, source, Set.of()) == RendezvousRoute.DEFINITIVELY_UNREACHABLE;
 		}
 		catch (IllegalArgumentException invalid) { return false; }
 	}

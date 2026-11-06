@@ -1,0 +1,276 @@
+{
+  "status": "PARTIAL_WIP_ONLY",
+  "baseline": "5cb04fe8a669ebf68e5f9ae0fa927055f81a4efe",
+  "remoteFeature": "faec72161f9e4f6231764e17d6f2637a4db080af",
+  "primaryExternalHead": "a7cb9a7c2bd4ced33ed693c4d6f3d22f809981a5",
+  "sourceFiles": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "sha256": "abf7083a334e0af683455e3858eecd56dd939dba758d7f65bfd3165d50f799b8"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java",
+      "sha256": "9ceff67ed4ee011c6e3f7bcdacffceb8e89819768e6128aa704aafacfacdf580"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+      "sha256": "21319614a78f79e59cb8ea553e779cdcbd32aaccda7fbeb690c65223f1f98cc5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java",
+      "sha256": "849e0903e66297d3b74b884a7ffd3b13a8ec582f97052e15e6ca6274d6e59de1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomPhysicalDemand.java",
+      "sha256": "c95d4865789fd8678edf0120a9201c60f74371667030c1f9f8c4efbfb4a1d9e1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java",
+      "sha256": "21ccb78527f792b2819062608cc48b9022326ec99c3f9034ea23e36d16e3e1e8"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java",
+      "sha256": "97bec0f16a28b21650116b9cee7fe054e49938470ef3067216d5feeb46eb3ef9"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+      "sha256": "c233d2e7d648db962be0b3125224e93a8c099fdf4670f79839f36f3b224a03f0"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+      "sha256": "3ac4a7782f0d53d85989fe9d0fbc4a031754703467701a6df0a55f314b9e909a"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+      "sha256": "1af3340db67525a58148d2e864f65d9d51b25b9ee7aed2ca4b852b992801eef8"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+      "sha256": "01f74a688e61c371853e80c37bbbe51acf6b8fd684525ec44e836186837d3d15"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomAutonomousFarmParty.java",
+      "sha256": "33e95951b0601ce8364bc19bb0576de9d7f0558c4ac53e05b73752b784a1c902"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
+      "sha256": "fb97d5792fe7da310e017e186c6f3491a5e4d6956a9c5bebaa736b61a68b3a4d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyPersistencePort.java",
+      "sha256": "c6fe97d25f94b8afc08fb56ce66bd804d347c0dbe411c8038a5acd75e20777c1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyStore.java",
+      "sha256": "5491a751562ca7a1a56b1db7e2c56f8e9a006deb3a1e541567fdde584f3bea38"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalParty.java",
+      "sha256": "e8964a88d6f753ce0c0cc26d8e4baa0bc6cac1b555208bc41ed03bb6ba8bebf4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalPartyCoordinator.java",
+      "sha256": "9615da7cac719ec422ca1e724fb870db51ad0701908337463e8ed22b39f0ddfd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
+      "sha256": "018b136aadae2e1d3b924bd72350eb12c880b4a68ff4465d89b1e062c359b91c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java",
+      "sha256": "72032be9b35ea6cab46777babb3866b166a086f57532fa6508e47865febdb15b"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleItinerary068Checks.java",
+      "sha256": "a4f91b8961105a1de371d2ef71a45bbd042dfc7e1e75740ef3e998b65923ebd7"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomFarm074Checks.java",
+      "sha256": "848397677c6317d8c40a7799777e584c82f478c3ae6797b73e97511ca60569cb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeEvidenceContinuation022Suite.java",
+      "sha256": "8e1302bda478ec9f4eda52a2702a4ab1f0ed5dd573cc0a5f772be354e441af56"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+      "sha256": "d68ca03a15bebabe07ea30d785d5ad294306a3f2037fe48f27de0a3be2acb7c5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java",
+      "sha256": "72488af17fa47310dcf92a4639230cf6a69cde6571b8bd6ff4ef0cba10fe80ab"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Integration.java",
+      "sha256": "b01c7c4a88806e19ec671a126f7fac53da27ac03da73a44eaf1789bb84b7f63c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomWorldCoordination130Suite.java",
+      "sha256": "14bee9540f9ef4d21b239ea8638da6f686c13cfd2ac8b38c318b0614b39097dd"
+    }
+  ],
+  "unchangedTaskFiles": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/ACCEPTANCE.md",
+      "sha256": "780fceaab3d6120587dd1823222aa833ad5afa4b2bb1844cc1d06a5864627c18"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/GOAL.txt",
+      "sha256": "baf81908f9f4c2bc8c0661ea9c1d2985af9837c1f2a945cc7e997bb223477dfd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/MANIFEST.json",
+      "sha256": "fe767c30bd3309a7f04cb72549dab80e4ae1e8c3b9757c63a0fc562c47316eed"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SAFETY.md",
+      "sha256": "7c67c57a26fbacdfa668259a3147c10b30ef9abb5894c5910feae049f6ca4e0d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SOURCE_MAP.md",
+      "sha256": "9ba99f4fc7d5189d3151702a9b2c569585639661210338aa38a743e5aac9bc2b"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/TASK.md",
+      "sha256": "851096c7adfd9ac57b7b4b428b096a90c6088c5056e4b2744c54083d7ffadd75"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/WORKFLOW.md",
+      "sha256": "3bb88dd2f9a64fee253f3556edf0430432743d16049598d669263a3a40ae8a67"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ADR-LOGICAL-PARTY-001.md",
+      "sha256": "77bad4604e8c9ece4e78d8e85355f1359f0403c7832b827656a6088d2de6f612"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ARCHITECTURE-CONTRACT-002.md",
+      "sha256": "ff79b090aac231548c7fba3662632d0628f61a3e8f55fb05ad7eccaac21e660a"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/TASK129-INDEPENDENT-REVIEW.md",
+      "sha256": "921257f9f4d4b2c83a4dd6086419e431c92823863e04bb7fd7bace6c5bf2a5c6"
+    }
+  ],
+  "exactCommitAllowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/build.xml",
+    "L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomPhysicalDemand.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomAutonomousFarmParty.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyPersistencePort.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyStore.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalParty.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalPartyCoordinator.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleItinerary068Checks.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomFarm074Checks.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeEvidenceContinuation022Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Integration.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomWorldCoordination130Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/ACCEPTANCE.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/GOAL.txt",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/MANIFEST.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SAFETY.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SOURCE_MAP.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/TASK.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/WORKFLOW.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ADR-LOGICAL-PARTY-001.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ARCHITECTURE-CONTRACT-002.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/TASK129-INDEPENDENT-REVIEW.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.evidence.json"
+  ],
+  "jar": {
+    "sha256": "c4962f4c66797ab004675098aeee190ea2974478b45845788e3360bc6caa0d76",
+    "classes": 4691,
+    "mismatches": []
+  },
+  "tests": {
+    "registeredPassing": 179,
+    "standalonePlannerGroups": 8,
+    "expectedNegativeControlFailures": 2,
+    "failedProductCases": 0,
+    "finalBuildMilliseconds": 220536,
+    "finalFocusedMilliseconds": 2216,
+    "earlierSqlTransactionMilliseconds": 933,
+    "gameServerBoots": 0,
+    "usefulNativeActions": 0,
+    "native": "NOT_RUN",
+    "gameServerRestart": "NOT_RUN",
+    "developmentTimeSplit": "NOT_INSTRUMENTED"
+  },
+  "sql": {
+    "schema": "l2jmobiush5_phantom_test_130",
+    "groupMembers": 3,
+    "backgroundCursor": 123,
+    "genericProfilesOnly": true,
+    "lawfulAdultFixture": "NOT_PREPARED",
+    "concurrentWriters": "NOT_RUN",
+    "persistedReceiptReplay": "NOT_RUN",
+    "poolClosed": true
+  },
+  "protectedSeal": {
+    "files": 207,
+    "mismatches": 0,
+    "sha256": "9777ab48bc8d14bdee77d4aca8e7e650cb099f03ca33fea108d5cdb941c59dcd",
+    "startOfTaskWholeCheckoutParity": "NOT_CLAIMED"
+  },
+  "gitAuthorization": "GOAL.txt, WORKFLOW.md Git/report, ACCEPTANCE.md G: inspect baseline/scope; scoped commits and ordinary WIP push when partial",
+  "gitCommandsCapturedBeforeDelivery": [
+    "git rev-parse --show-toplevel",
+    "git symbolic-ref --short HEAD",
+    "git status --short --untracked-files=no",
+    "git ls-remote https://github.com/kpCat/L2J.git refs/heads/feature/phantom-world refs/heads/wip/task129-preserved-20261106",
+    "git clone --filter=blob:none --no-checkout --single-branch --branch wip/task129-preserved-20261106 https://github.com/kpCat/L2J.git 'C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\06\\01a1b21c-bfae-7bf0-a688-c1b682eddc2d\\task130\\source'",
+    "git -c core.longpaths=true sparse-checkout set L2J_Mobius_CT_2.6_HighFive",
+    "git -c core.longpaths=true checkout wip/task129-preserved-20261106",
+    "git fetch origin feature/phantom-world:refs/remotes/origin/feature/phantom-world",
+    "git merge-base --is-ancestor origin/feature/phantom-world HEAD",
+    "git rev-parse HEAD origin/feature/phantom-world",
+    "git switch -c wip/coordination-130-preserved",
+    "git diff origin/feature/phantom-world HEAD -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java",
+    "git diff origin/feature/phantom-world HEAD --stat -- L2J_Mobius_CT_2.6_HighFive",
+    "git diff origin/feature/phantom-world HEAD -- L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+    "git status --short",
+    "git diff --stat -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test L2J_Mobius_CT_2.6_HighFive/build.xml L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java",
+    "git diff --check",
+    "git diff --numstat -- L2J_Mobius_CT_2.6_HighFive/build.xml L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+    "git -c core.whitespace=cr-at-eol diff --check -- L2J_Mobius_CT_2.6_HighFive/build.xml L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java",
+    "git rev-parse --show-toplevel HEAD",
+    "git rev-parse --git-dir",
+    "git diff --exit-code origin/feature/phantom-world -- L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java",
+    "git remote get-url origin",
+    "git ls-remote --heads origin feature/phantom-world wip/task129-preserved-20261106 wip/coordination-130-preserved",
+    "git rev-parse HEAD",
+    "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- 'L2J_Mobius_CT_2.6_HighFive/build.xml' 'L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/skill/effects/Heal.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomPhysicalDemand.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomAutonomousFarmParty.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyCoordinator.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyPersistencePort.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyStore.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalParty.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalPartyCoordinator.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java' 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleItinerary068Checks.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomFarm074Checks.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeEvidenceContinuation022Suite.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Integration.java' 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomWorldCoordination130Suite.java' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/ACCEPTANCE.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/GOAL.txt' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/MANIFEST.json' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SAFETY.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SOURCE_MAP.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/TASK.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/WORKFLOW.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ADR-LOGICAL-PARTY-001.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ARCHITECTURE-CONTRACT-002.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/TASK129-INDEPENDENT-REVIEW.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.md' 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.evidence.json'"
+  ],
+  "deliveryCommands": [
+    "git add --pathspec-from-file=../evidence/stage-paths.txt",
+    "git diff --cached --name-only",
+    "git commit -m \"Preserve partial TASK130 logical coordination contracts\"",
+    "git push origin HEAD:refs/heads/wip/coordination-130-preserved",
+    "git rev-parse HEAD",
+    "git status --short",
+    "git ls-remote --heads origin feature/phantom-world wip/task129-preserved-20261106 wip/coordination-130-preserved"
+  ],
+  "finalStaticChecks": {
+    "mojibakeMarkers": "PASS_NO_MATCHES",
+    "escapedCyrillic": "PASS_NO_MATCHES",
+    "allowlistPaths": 38,
+    "unchangedTaskFiles": 10,
+    "ownGameServerJvm": 0,
+    "candidatePortListeners": 0,
+    "nativeAcceptance": "NOT_RUN"
+  }
+}

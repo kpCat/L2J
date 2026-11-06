@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "task_id": "PHANTOM-WORLD-COORDINATION-130",
+  "created_utc": "2026-11-06T18:14:59+00:00",
+  "repository": "https://github.com/kpCat/L2J",
+  "branch_main": "feature/phantom-world",
+  "main_verified_head": "faec72161f9e4f6231764e17d6f2637a4db080af",
+  "branch_preserved": "wip/task129-preserved-20261106",
+  "preserved_verified_head": "5cb04fe8a669ebf68e5f9ae0fa927055f81a4efe",
+  "install_root": "D:\\Codex\\repos\\L2J-phantom-world",
+  "goal": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/GOAL.txt",
+  "files": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/GOAL.txt",
+      "bytes": 5370,
+      "sha256": "baf81908f9f4c2bc8c0661ea9c1d2985af9837c1f2a945cc7e997bb223477dfd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/TASK.md",
+      "bytes": 14735,
+      "sha256": "851096c7adfd9ac57b7b4b428b096a90c6088c5056e4b2744c54083d7ffadd75"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/ACCEPTANCE.md",
+      "bytes": 9531,
+      "sha256": "780fceaab3d6120587dd1823222aa833ad5afa4b2bb1844cc1d06a5864627c18"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SOURCE_MAP.md",
+      "bytes": 6148,
+      "sha256": "9ba99f4fc7d5189d3151702a9b2c569585639661210338aa38a743e5aac9bc2b"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/WORKFLOW.md",
+      "bytes": 7987,
+      "sha256": "3bb88dd2f9a64fee253f3556edf0430432743d16049598d669263a3a40ae8a67"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/SAFETY.md",
+      "bytes": 3216,
+      "sha256": "7c67c57a26fbacdfa668259a3147c10b30ef9abb5894c5910feae049f6ca4e0d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ARCHITECTURE-CONTRACT-002.md",
+      "bytes": 27554,
+      "sha256": "ff79b090aac231548c7fba3662632d0628f61a3e8f55fb05ad7eccaac21e660a"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/TASK129-INDEPENDENT-REVIEW.md",
+      "bytes": 13457,
+      "sha256": "921257f9f4d4b2c83a4dd6086419e431c92823863e04bb7fd7bace6c5bf2a5c6"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/reference/ADR-LOGICAL-PARTY-001.md",
+      "bytes": 25701,
+      "sha256": "77bad4604e8c9ece4e78d8e85355f1359f0403c7832b827656a6088d2de6f612"
+    }
+  ]
+}

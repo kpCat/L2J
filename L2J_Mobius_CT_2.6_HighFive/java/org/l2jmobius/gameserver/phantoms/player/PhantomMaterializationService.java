@@ -1010,6 +1010,9 @@ public final class PhantomMaterializationService
 		return _activeByProfile.keySet().stream().sorted().toList();
 	}
 
+	/** Capacity fact safe inside an individual actor callback: never acquires other Player monitors. */
+	public int occupiedPhysicalSlots() { return _physicalCeiling - _permits.availablePermits(); }
+
 	public ServiceSnapshot snapshot()
 	{
 		final var materializations = list();

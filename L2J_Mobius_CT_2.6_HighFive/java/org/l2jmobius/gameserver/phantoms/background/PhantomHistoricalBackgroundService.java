@@ -1351,6 +1351,28 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	/** Capture one bounded control-plane preview. It never adopts a root, advances history or issues a native action. */
+	/** Durable social discovery reads bounded background/profile facts and requires no World Player or native lease. */
+	public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate previewLogicalRendezvous(long id,
+		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible)
+	{
+		if (_foregroundDecisionsRevoked || !eligible.getAsBoolean()) { return null; }
+		final var stored = _goals.load(id).orElse(null); final var state = _background.acquisitionSnapshot(id).orElse(null); final var history = _store.load(id).orElse(null);
+		if (stored == null || state == null || history == null || stored.goal().status() != PhantomGoalStatus.ACTIVE || state.identity().profileId() != id
+			|| state.progress().level() < 40 || state.position().instanceId() != 0 || state.state() != PhantomBackgroundState.State.READY && state.state() != PhantomBackgroundState.State.MATERIALIZED)
+		{ return null; }
+		final var root = stored.goal(); final var generation = _planner.generation();
+		if (!state.hashes().equals(generation.authorityHashes()) || !(PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || PhantomBackgroundGoalSpec.canonicalHistoricalIdle(id, root))) { return null; }
+		final var sources = _planner.rendezvousSources(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of());
+		final java.util.function.BooleanSupplier current = () -> !_foregroundDecisionsRevoked && eligible.getAsBoolean() && _planner.generation().equals(generation)
+			&& decision.currentGoal(id).map(root::equals).orElse(true);
+		return new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate(
+			new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, PhantomHistoricalBackgroundPlanner.logicalRole(state), root.goalId(), root.revision()), state.progress().level(), sources,
+			source -> _planner.rendezvousRouteAvailable(state, source, Set.of()),
+			current,
+			// Only selected roster members perform durable reads, once immediately before formation.
+			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent());
+	}
+
 	public org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.SourcePreview previewVisibleRendezvous(
 		org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef actor, long epoch, PhantomGoal expectedGoal, PhantomDecisionEngine decision)
 	{

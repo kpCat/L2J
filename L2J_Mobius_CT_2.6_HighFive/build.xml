@@ -1864,6 +1864,14 @@
 		</java>
 	</target>
 
+	<target name="phantom-world-coordination130-test" depends="compile-tests" description="Run TASK130 zero-native logical group and ownership contracts.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="world-coordination130" /><arg value="130" />
+		</java>
+	</target>
+
 	<target name="phantom-party-state-recovery-test" depends="compile-tests" description="Run Goal 017 durable party saga and restart tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

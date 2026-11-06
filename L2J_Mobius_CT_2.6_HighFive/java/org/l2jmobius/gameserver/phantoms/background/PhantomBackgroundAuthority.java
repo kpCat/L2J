@@ -205,6 +205,9 @@ public interface PhantomBackgroundAuthority
 		return advanceTravel(state, goal, elapsedBudgetMillis);
 	}
 
+	/** Read-only floor evidence for a native ingress proposal; never movement or arrival authority. */
+	default boolean nativeIngressPositionKnown(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor anchor, int heading) { return false; }
+
 	default PhantomNormalGatekeeperTravel travelQuery(PhantomTopologyQuery topology)
 	{
 		return PhantomNormalGatekeeperTravel.empty(topology);

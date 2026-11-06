@@ -66,6 +66,69 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		return new StoredPartyState(component.profileId(), component.rowVersion(), state);
 	}
 
+	@Override public Optional<StoredLogicalGroup> loadLogicalGroup(long leader)
+	{ return _profiles.findComponent(leader, PhantomLogicalParty.COMPONENT_TYPE).map(this::decodeLogicalGroup); }
+	@Override public List<StoredLogicalGroup> loadLogicalGroupsAfter(long cursor, int limit)
+	{ return _profiles.listManagedAfter(PhantomLogicalParty.COMPONENT_TYPE, cursor, limit).stream().map(row -> decodeLogicalGroup(row.component())).toList(); }
+	private StoredLogicalGroup decodeLogicalGroup(PhantomProfileComponent component)
+	{
+		if (component.componentSchemaVersion() != PhantomLogicalParty.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown logical group schema."); }
+		final var group = PhantomLogicalParty.decode(component.payload());
+		if (group.leaderProfileId() != component.profileId()) { throw new IllegalArgumentException("Foreign logical group aggregate."); }
+		return new StoredLogicalGroup(component.rowVersion(), group);
+	}
+	@Override public Optional<StoredLogicalClaim> loadLogicalClaim(long id)
+	{
+		return _profiles.findComponent(id, PhantomLogicalParty.CLAIM_COMPONENT_TYPE).map(component ->
+		{
+			if (component.componentSchemaVersion() != PhantomLogicalParty.SCHEMA_VERSION) { throw new IllegalArgumentException("Unknown logical claim schema."); }
+			try (var in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(component.payload())))
+			{
+				final var claim = new StoredLogicalClaim(id, in.readLong(), in.readUTF(), in.readLong(), component.rowVersion());
+				if (in.available() != 0) { throw new IllegalArgumentException("Trailing logical claim payload."); }
+				return claim;
+			}
+			catch (java.io.IOException failure) { throw new IllegalArgumentException("Invalid logical claim payload.", failure); }
+		});
+	}
+	private byte[] logicalClaim(PhantomLogicalParty group)
+	{
+		try
+		{
+			final var bytes = new java.io.ByteArrayOutputStream();
+			try (var out = new java.io.DataOutputStream(bytes)) { out.writeLong(group.leaderProfileId()); out.writeUTF(group.groupId()); out.writeLong(group.generation()); }
+			return bytes.toByteArray();
+		}
+		catch (java.io.IOException failure) { throw new IllegalArgumentException("Cannot encode logical claim.", failure); }
+	}
+	@Override public StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expected, java.util.Map<Long, Long> versions)
+	{
+		if (expected != -1 || group.phase() != PhantomLogicalParty.Phase.AGREED || versions.size() != group.members().size()
+			|| group.members().stream().anyMatch(member -> !Long.valueOf(-1).equals(versions.get(member.profileId()))))
+		{ throw new IllegalArgumentException("Formation requires exclusively unclaimed identities."); }
+		final var mutations = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
+		mutations.add(new PhantomProfileRepository.ProfileComponentMutation(group.leaderProfileId(),
+			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, -1, PhantomLogicalParty.SCHEMA_VERSION, group.encode())));
+		final byte[] claim = logicalClaim(group);
+		for (var member : group.members())
+		{
+			mutations.add(new PhantomProfileRepository.ProfileComponentMutation(member.profileId(),
+				new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.CLAIM_COMPONENT_TYPE, -1, PhantomLogicalParty.SCHEMA_VERSION, claim)));
+		}
+		return _profiles.mutateProfileComponentsAtomically(mutations).stream().filter(row -> row.componentType().equals(PhantomLogicalParty.COMPONENT_TYPE)).map(this::decodeLogicalGroup).findFirst().orElseThrow();
+	}
+	@Override public StoredLogicalGroup updateLogicalGroup(PhantomLogicalParty group, long expected)
+	{
+		final var before = loadLogicalGroup(group.leaderProfileId()).orElseThrow();
+		final var old = before.group();
+		if (before.rowVersion() != expected) { throw new java.util.ConcurrentModificationException("Stale logical group version."); }
+		if (!old.groupId().equals(group.groupId()) || old.generation() != group.generation() || !old.members().equals(group.members())
+			|| !old.objective().equals(group.objective()) || !old.anchorId().equals(group.anchorId())
+			|| !old.transition(group.phase(), group.backgroundCursor(), group.nextDueMillis(), group.waitReason()).equals(group))
+		{ throw new IllegalArgumentException("A phase update cannot replace logical membership or objective."); }
+		return decodeLogicalGroup(_profiles.updateComponent(group.leaderProfileId(), PhantomLogicalParty.COMPONENT_TYPE, expected, PhantomLogicalParty.SCHEMA_VERSION, group.encode()));
+	}
+
 	@Override
 	public Optional<StoredRegroupClock> loadRegroupClock(long profileId)
 	{

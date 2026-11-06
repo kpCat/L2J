@@ -16,6 +16,27 @@ public interface PhantomPartyPersistencePort
 
 	List<StoredPartyState> loadManagedAfter(long exclusiveProfileId, int pageSize);
 
+	default Optional<StoredLogicalGroup> loadLogicalGroup(long leaderProfileId) { return Optional.empty(); }
+	default Optional<StoredLogicalClaim> loadLogicalClaim(long profileId) { return Optional.empty(); }
+	default List<StoredLogicalGroup> loadLogicalGroupsAfter(long afterLeaderId, int limit) { return List.of(); }
+	/** Claims and the single aggregate are committed together or rolled back together. */
+	default StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expectedGroupVersion, java.util.Map<Long, Long> expectedClaimVersions)
+	{ throw new UnsupportedOperationException("Atomic logical group persistence is unavailable."); }
+	default StoredLogicalGroup updateLogicalGroup(PhantomLogicalParty group, long expectedGroupVersion)
+	{ throw new UnsupportedOperationException("Logical group CAS is unavailable."); }
+	record StoredLogicalGroup(long rowVersion, PhantomLogicalParty group)
+	{
+		public StoredLogicalGroup { if (rowVersion < 0 || group == null) { throw new IllegalArgumentException("Invalid stored logical group."); } }
+	}
+	record StoredLogicalClaim(long profileId, long leaderProfileId, String groupId, long generation, long rowVersion)
+	{
+		public StoredLogicalClaim
+		{
+			org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.requireHash(groupId, "Logical claim");
+			if (profileId <= 0 || leaderProfileId <= 0 || generation <= 0 || rowVersion < 0) { throw new IllegalArgumentException("Invalid logical member claim."); }
+		}
+	}
+
 	default Optional<StoredRendezvous> loadRendezvous(long profileId) { return Optional.empty(); }
 	default StoredRendezvous saveRendezvous(long profileId, long expectedRowVersion, PhantomPartyRendezvousState state)
 	{ throw new UnsupportedOperationException("Durable rendezvous CAS is unavailable."); }

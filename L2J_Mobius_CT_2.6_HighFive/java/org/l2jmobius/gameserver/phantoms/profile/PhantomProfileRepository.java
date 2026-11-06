@@ -503,6 +503,53 @@ public final class PhantomProfileRepository
 		});
 	}
 
+	public record ProfileComponentMutation(long profileId, ComponentMutation mutation)
+	{
+		public ProfileComponentMutation { requireProfileId(profileId); java.util.Objects.requireNonNull(mutation); }
+	}
+
+	/** Bounded multi-identity CAS. Stable lock order and one transaction leave no partial group reservations. */
+	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations)
+	{
+		if (mutations == null || mutations.isEmpty() || mutations.size() > 10)
+		{ throw new IllegalArgumentException("Cross-profile mutation count must be between one and ten."); }
+		final var ordered = mutations.stream().sorted(Comparator.comparingLong(ProfileComponentMutation::profileId)
+			.thenComparing(entry -> entry.mutation().componentType())).toList();
+		for (int i = 1; i < ordered.size(); i++)
+		{
+			if (ordered.get(i - 1).profileId() == ordered.get(i).profileId() && ordered.get(i - 1).mutation().componentType().equals(ordered.get(i).mutation().componentType()))
+			{ throw new IllegalArgumentException("Duplicate cross-profile component mutation."); }
+		}
+		return write("mutate bounded Phantom group components atomically", connection ->
+		{
+			final var result = new ArrayList<PhantomProfileComponent>(ordered.size());
+			for (var entry : ordered)
+			{
+				final var mutation = entry.mutation(); final long id = entry.profileId();
+				final var before = witnessBefore(connection, id, mutation.componentType());
+				if (mutation.expectedRowVersion() < 0)
+				{
+					try (var statement = connection.prepareStatement(INSERT_COMPONENT))
+					{
+						statement.setLong(1, id); statement.setString(2, mutation.componentType()); statement.setInt(3, mutation.componentSchemaVersion()); statement.setBytes(4, mutation.payload());
+						if (statement.executeUpdate() != 1) { throw new SQLException("Group component insert did not affect one row."); }
+					}
+				}
+				else
+				{
+					try (var statement = connection.prepareStatement(UPDATE_COMPONENT))
+					{
+						statement.setInt(1, mutation.componentSchemaVersion()); statement.setBytes(2, mutation.payload()); statement.setLong(3, id); statement.setString(4, mutation.componentType()); statement.setLong(5, mutation.expectedRowVersion());
+						requireOptimisticWinner(statement.executeUpdate(), "Logical group component update");
+					}
+				}
+				final var after = requireComponent(connection, id, mutation.componentType()); result.add(after);
+				witnessGoal(connection, id, mutation.componentType(), before, after);
+			}
+			return List.copyOf(result);
+		});
+	}
+
 	public void deleteComponent(long profileId, String componentType, long expectedRowVersion)
 	{
 		requireProfileId(profileId);

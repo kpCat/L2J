@@ -2743,8 +2743,8 @@ public final class PhantomBackgroundTransaction
 
 	static boolean offscreenReceiptHashCurrent(PhantomBackgroundState state, String currentHash)
 	{
-		// A generic receipt can predate the current native checkpoint; typed offscreen replay owns this fence.
-		return !PhantomOffscreenOutdoorTravel.taggedReceipt(state) || state.receipt().expectedAfterHash().equals(currentHash);
+		// No unversioned migration may weaken the receipt's explicit expected-state fence.
+		return state.receipt().expectedAfterHash().isEmpty() || state.receipt().expectedAfterHash().equals(currentHash);
 	}
 
 	public static boolean offscreenProofCurrent(OffscreenProof proof)

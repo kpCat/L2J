@@ -15,6 +15,12 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("130-stock-heal-writer-has-no-conditional-test-mechanics", context ->
+		{
+			final String heal = java.nio.file.Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/skill/effects/Heal.java"));
+			PhantomAssertions.assertFalse(heal.contains("PlayerNativeEvidence") || heal.contains("synchronized (effected.getStatus())"), "F8: stock Heal must not change its writer/locking according to a test observer.");
+			PhantomAssertions.assertTrue(heal.contains("effected.setCurrentHp(amount + effected.getCurrentHp());"), "The stock human and Phantom HP writer must be retained.");
+		});
 		registry.add("129-causal-heal-observation-is-exact-and-cannot-change-native-outcome", _ ->
 		{
 			final var method = PlayerNativeEvidence.class.getMethod("healed", int.class, long.class, int.class, long.class, int.class, int.class, double.class, double.class, double.class, long.class);

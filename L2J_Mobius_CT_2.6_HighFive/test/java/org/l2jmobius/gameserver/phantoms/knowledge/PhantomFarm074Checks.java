@@ -72,15 +72,24 @@ public final class PhantomFarm074Checks
 	{
 		final var planner = planner(true, true); final var before = state(); final var previous = goal();
 		final var sources = planner.rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of());
-		PhantomAssertions.assertTrue(sources.size() <= 4 && sources.stream().distinct().count() == sources.size(), "Source preview exceeded its finite distinct-source bound.");
+		PhantomAssertions.assertTrue(sources.size() <= 64 && sources.stream().distinct().count() == sources.size(), "Source preview exceeded its finite distinct-source bound.");
 		PhantomAssertions.assertTrue(sources.contains(new PhantomDomainRef("background.farm", "103@farm.alternative")), "Existing ranking/exclusion loop starved the connected alternative.");
 		PhantomAssertions.assertTrue(sources.stream().allMatch(source -> planner.rendezvousRouteAvailable(before, source, Set.of())), "Preview produced a source outside the existing certified graph.");
 		PhantomAssertions.assertFalse(planner(false).rendezvousRouteAvailable(before, new PhantomDomainRef("background.farm", "102@farm.far"), Set.of()), "Disconnected source acquired an invented itinerary.");
-		PhantomAssertions.assertTrue(planner(false).rendezvousRouteAbsent(before, new PhantomDomainRef("background.farm", "102@farm.far")), "Known structural absence lost its exact source proof.");
+		PhantomAssertions.assertFalse(planner(false).rendezvousRouteAbsent(before, new PhantomDomainRef("background.farm", "102@farm.far")), "Graph-only absence cannot prove a native WALK impossible.");
+		final var ingress = planner(false, true, true, true);
+		final var far = new PhantomDomainRef("background.farm", "103@farm.alternative");
+		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundPlanner.RendezvousRoute.REACHABLE_VIA_INGRESS, ingress.rendezvousRoutePreview(before, far, Set.of()), "Composite preview lost the lawful WALK ingress.");
+		final var proposal = ingress.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, far, Set.of(), _ -> true);
+		PhantomAssertions.assertTrue(proposal.ready(), "Ingress preview and native goal adoption disagree.");
+		PhantomAssertions.assertEquals(List.of("farm.alternative.link"), proposal.routeEdgeIds(), "WALK ingress invented an offscreen edge or lost the canonical onward route.");
 		PhantomAssertions.assertFalse(planner.rendezvousRouteAbsent(before, new PhantomDomainRef("background.farm", "102@missing")), "Unknown source became a terminal route refusal.");
 		PhantomAssertions.assertFalse(planner.rendezvousRouteAvailable(before, new PhantomDomainRef("background.farm", "103@farm.alternative"), Set.of("farm.alternative.link")), "Preview waived a current native route exclusion.");
 		PhantomAssertions.assertEquals(before, state(), "Preview mutated earned state or native position.");
-		System.out.println("ROUTE129_PLANNER_PREVIEW_PASS; bounded4; certified_only; source/route exclusions; no earned-state writes or native arrival");
+		final var healer = new PhantomBackgroundState(before.state(), new PhantomBackgroundState.Identity(74, 740074, 0, 16, 0), before.progress(), before.vitals(), before.position(), before.combat(), before.loadout(), before.inventory(), before.autoGetSkills(), before.clock(), before.receipt(), before.hashes());
+		PhantomAssertions.assertFalse(planner(true, true, false).rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of()).stream().findAny().isPresent(), "A Solo damage source bypassed combat feasibility.");
+		PhantomAssertions.assertTrue(planner(true, true, false).rendezvousSources(74, healer, previous, 740074, 1, Set.of(), Set.of()).contains(new PhantomDomainRef("background.farm", "103@farm.alternative")), "Healer travel preview incorrectly required Solo DD feasibility.");
+		System.out.println("ROUTE130_PLANNER_PREVIEW_PASS; bounded64; composite ingress proposal; source/route exclusions; no earned-state writes or native arrival");
 	}
 
 	/** Source graph proof only. Factual loader leaves are modeled; native/Geo admission is not exercised. */
@@ -275,6 +284,10 @@ public final class PhantomFarm074Checks
 	}
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable)
 	{
+		return planner(linked, alternative, soloViable, false);
+	}
+	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress)
+	{
 		final var backend = new PhantomTopologyValidationBackend()
 		{
 			@Override public int mapRegionLocId(int x, int y) { return 1; }
@@ -290,7 +303,7 @@ public final class PhantomFarm074Checks
 		if (alternative)
 		{
 			nodes.add(node("area.alternative", FAR_ALTERNATIVE)); anchors.add(anchor("farm.alternative", "area.alternative", FAR_ALTERNATIVE, 103));
-			edges.add(new PhantomTopologyEdge("farm.alternative.link", "area.local", "area.alternative", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 110000, true, Set.of(), null, "farm.local", "farm.alternative", List.of()));
+			edges.add(new PhantomTopologyEdge("farm.alternative.link", ingress ? "area.far" : "area.local", "area.alternative", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 110000, true, Set.of(), null, ingress ? "farm.far" : "farm.local", "farm.alternative", List.of()));
 		}
 		final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.create(1, "farm074", 1, 1, nodes, anchors, edges, backend, PhantomTopologyPolicy.productionDefaults()), backend, new PhantomTopologyMetrics());
 		final var npcs = new java.util.ArrayList<>(List.of(new NpcFact(101, 20, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT), new NpcFact(102, 22, NpcKind.MONSTER, true, true, false, 200, 20, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
@@ -306,6 +319,7 @@ public final class PhantomFarm074Checks
 		{
 			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
 			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { return soloViable; }
+			@Override public boolean nativeIngressPositionKnown(PhantomTopologyAnchor anchor, int heading) { return ingress && anchor.id().equals("farm.far"); }
 			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }
 			@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return false; }
 			@Override public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { throw new UnsupportedOperationException(); }

@@ -70,6 +70,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		_scheduledFarmDiscovery = java.util.Objects.requireNonNull(discovery);
 		_farmAdmission = java.util.Objects.requireNonNull(admitted);
 	}
+	private java.util.function.LongPredicate _scheduledMaterialize = this::materialize;
+	public void installScheduledMaterialization(java.util.function.LongPredicate materialize) { _scheduledMaterialize = java.util.Objects.requireNonNull(materialize); }
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
@@ -297,7 +299,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			_scheduledFarmCursor = scheduled.isEmpty() ? 0 : scheduled.getLast();
 			for (long id : scheduled)
 			{
-				if (_farmAdmission.test(id) && _materialization.find(id).isEmpty()) { materialize(id); break; }
+				if (_farmAdmission.test(id) && _materialization.find(id).isEmpty()) { _scheduledMaterialize.test(id); break; }
 			}
 		}
 		final List<MemberSnapshot> result = new ArrayList<>();
@@ -318,8 +320,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public boolean autonomousFarmReady(PartySnapshot party)
 	{
-		if (party.members().size() < 2 || party.members().size() > 5 || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM)) { return false; }
-		boolean support = false;
+		if (party.members().size() < 2 || party.members().size() > 9 || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM)) { return false; }
+		boolean damage = false;
 		for (MemberRef member : party.members())
 		{
 			try (var acquired = acquire(member))
@@ -327,10 +329,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				if (acquired == null || !farmAvailable(acquired.player()) || acquired.player().getParty() == null || acquired.player().getParty().getLeader().getObjectId() != party.leader().characterObjectId()) { return false; }
 				final var observed = snapshot(member, acquired.player());
 				if (observed.hpPercent() < 25) { return false; }
-				support |= PhantomAutonomousFarmParty.supportPresent(observed);
+				damage |= PhantomAutonomousFarmParty.damageDealer(observed);
 			}
 		}
-		return support;
+		return damage;
 	}
 
 	private static boolean farmAvailable(Player player)

@@ -47,11 +47,38 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("07-preparation-drains-existing-arrival-before-yield", _ -> preparationArrival());
 		registry.add("08-native-route-landing-retains-physical-floor", _ -> authorityLanding());
 		registry.add("09-historical-route-exclusion-requires-unchanged-failed-step", _ -> historicalFailedStep());
-		registry.add("10-offscreen-hash-fence-is-owned-only-by-typed-receipt", _ -> offscreenReceiptHash());
+		registry.add("10-offscreen-hash-fence-rejects-every-nonempty-mismatch", _ -> offscreenReceiptHash());
 		registry.add("11-completed-offscreen-arrival-requires-native-capture-before-history", _ -> completedOffscreenNativeHandoff());
 		registry.add("12-background-native-request-cache-is-current-finite-and-bounded", _ -> nativeContextRequestCache());
 		registry.add("13-background-native-request-reaches-bounded-ecology-handoff", context -> nativeRequestPresence(context.moduleRoot()));
 		registry.add("14-current-party-native-owner-requires-typed-restart-context", context -> nativePartyRestartContext(context.moduleRoot()));
+		registry.add("15-party-and-ambient-demand-retain-ordinary-admission-fences", context -> coordinatedDemand(context.moduleRoot()));
+	}
+	private static void coordinatedDemand(Path module) throws Exception
+	{
+		try (var fixture = new NativeRequestPresenceFixture(module))
+		{
+			fixture.completeHistory();
+			final var port = fixture.port(_ -> false, true, _ -> false, fixture.ecology);
+			final long now = System.currentTimeMillis();
+			final var demand = new AtomicReference<>(new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(
+				org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.LOGICAL_PARTY_WAKE, 2, 20, "group.fixture", now, now + 30_000));
+			port.installPhysicalDemand(_ -> demand.get());
+			final var admitted = port.materialize(1);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, admitted.outcome(), "Current group demand was incorrectly forced through human locality.");
+			PhantomAssertions.assertEquals(MaterializationRequest.normal(), fixture.loaded.get(), "Party wake borrowed a native-context/travel owner claim.");
+			fixture.manager.presence().schedule(1, PhantomActivityState.SLEEPING);
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Party wake bypassed sleeping calendar.");
+			fixture.manager.presence().schedule(1, PhantomActivityState.ACTIVE);
+			final var denied = fixture.port(_ -> false, false, _ -> false, fixture.ecology); denied.installPhysicalDemand(_ -> demand.get());
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, denied.materialize(1).outcome(), "Party wake bypassed population admission.");
+			demand.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.LOGICAL_PARTY_WAKE, 2, 20, "group.fixture", now - 2000, now - 1000));
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Expired Party demand remained current.");
+			demand.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.ACCEPTED_TRAVEL, 1, 0, "wrong.owner", now, now + 30_000));
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED, port.materialize(1).outcome(), "Typed Party path inherited accepted-travel privileges.");
+			demand.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.AMBIENT_TARGET, 1, 0, "population.ambient", now, now + 30_000));
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, port.materialize(1).outcome(), "Ambient physical target still required a human observer.");
+		}
 	}
 	public static void main(String[] args)
 	{
@@ -87,7 +114,9 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		PhantomAssertions.assertTrue(context.binds(generic.identity(), 270, payload) && context.permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, policy.rulesFingerprint()), "The fixture must have a current COMPLETED native policy bound to the exact post-checkpoint state bytes.");
 		PhantomAssertions.assertFalse(context.binds(generic.identity(), 269, payload), "The independent native-context owner still rejects a stale component version.");
 		PhantomAssertions.assertFalse(PhantomOffscreenOutdoorTravel.taggedReceipt(generic), "A generic historical receipt is not typed offscreen travel debt.");
-		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(generic, currentHash), "An unrelated old generic receipt must not veto a fresh native-bound offscreen proof.");
+		PhantomAssertions.assertFalse(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(generic, currentHash), "F7: an untagged nonempty stale receipt must fail closed, even with a current native context.");
+		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, currentHash), 0), currentHash), "An exact untagged hash remains admissible.");
+		PhantomAssertions.assertTrue(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, 0, ""), 0), currentHash), "A receipt without an expected hash retains the legacy empty-hash contract.");
 		for (long debt : List.of(0L, 60_000L))
 		{
 			final var matching = offscreenReceiptState(new PhantomBackgroundState.Receipt("c".repeat(64), 0, PhantomOffscreenOutdoorTravel.RECEIPT_TICK, currentHash), debt);
@@ -97,7 +126,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomBackgroundTransaction.offscreenReceiptHashCurrent(mismatching, currentHash), "Typed offscreen replay must remain fenced on hash mismatch, including zero residual debt.");
 		}
 		PhantomAssertions.assertEquals(staleHash, generic.receipt().expectedAfterHash(), "Hash admission cannot clear or overwrite the old receipt.");
-		System.out.println("OWN129_OFFSCREEN_RECEIPT_HASH_PASS; generic receipt distinct from typed pending/completed fence; DB_CONNECTIONS=0; OWNER_RECOVERY=NOT_RUN");
+		System.out.println("TASK130_STRICT_RECEIPT_HASH_PASS; tagged and untagged mismatch rejected; DB_CONNECTIONS=0; SQL_REPLAY=NOT_RUN");
 	}
 	private static void completedOffscreenNativeHandoff()
 	{

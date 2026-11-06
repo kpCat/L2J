@@ -402,6 +402,7 @@ public final class PhantomTestLauncher
 			case "population-performance" -> new PhantomPopulationPerformanceSuite();
 			case "party-canonical-invitation" -> new PhantomPartySuite(PhantomPartySuite.Mode.CANONICAL_INVITATION);
 			case "party-state-recovery" -> new PhantomPartySuite(PhantomPartySuite.Mode.STATE_RECOVERY);
+			case "world-coordination130" -> new PhantomWorldCoordination130Suite();
 			case "party-role-vacancy" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROLE_VACANCY);
 			case "party-semantic-acts" -> new PhantomPartySuite(PhantomPartySuite.Mode.SEMANTIC_ACTS);
 			case "party-route" -> new PhantomPartySuite(PhantomPartySuite.Mode.ROUTE);

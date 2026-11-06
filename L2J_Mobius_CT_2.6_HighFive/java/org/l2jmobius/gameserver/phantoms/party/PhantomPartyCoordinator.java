@@ -368,6 +368,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Map<String, GroupRuntime> _groups = new ConcurrentHashMap<>();
 	private final Map<Long, ExternalActionLease> _tacticalActions = new ConcurrentHashMap<>();
 	private final Map<Long, TacticalCombatClaim> _tacticalCombat = new ConcurrentHashMap<>();
+	private volatile java.util.function.LongPredicate _logicalFarmAdmission = _ -> true;
+	public void installLogicalFarmAdmission(java.util.function.LongPredicate admitted) { _logicalFarmAdmission = Objects.requireNonNull(admitted); }
 	private final Object _indexLock = new Object();
 	private final Object _lifecycleLock = new Object();
 	private final Map<String, NavigableMap<Long, StoredPartyState>> _claimsByGroup = new HashMap<>();
@@ -859,7 +861,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				final var state = existing.state();
 				final boolean retryFarm = live != null && live.kind() == OperationKind.JOIN && live.phase() == OperationPhase.ABORTED
 					&& state.status() == StateStatus.LEADER && PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(state.objectiveRef().namespace())
-					&& state.realMembers().isEmpty() && state.phantomMembers().size() >= 2 && state.phantomMembers().size() <= 5
+					&& state.realMembers().isEmpty() && state.phantomMembers().size() >= 2 && state.phantomMembers().size() <= 9
 					&& !routeActivity(state).nonTerminal() && state.phantomMembers().stream().allMatch(member -> _backend.autonomousFarmAvailable(member)
 						&& (_tactics.combatOwner() == null || !_tactics.combatOwner().hasClaim(member.profileId())))
 					&& _backend.observe(state.leader()).filter(party -> party.leader().equals(state.leader()) && sameRoster(roster(state), party.members())).isPresent();
@@ -927,7 +929,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final var planned = PhantomAutonomousFarmParty.plannedProfiles(stored.state().objectiveRef());
 			final var nativeParty = _backend.observe(stored.state().leader()).orElse(null);
 			if (target.kind() != MemberKind.PHANTOM || !planned.contains(target.profileId()) || !stored.state().realMembers().isEmpty()
-				|| nativeParty != null && (nativeParty.members().size() >= 5 || nativeParty.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId())))) { return CommandOutcome.ROSTER_FULL; }
+				|| nativeParty != null && (nativeParty.members().size() >= 9 || nativeParty.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId())))) { return CommandOutcome.ROSTER_FULL; }
 		}
 		if (target.kind() == MemberKind.PHANTOM)
 		{
@@ -1695,7 +1697,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final PartyOperation operation = authority.operation();
 			final PartySnapshot party = _backend.observe(authority.leader()).orElse(null);
 			if (operation == null || !currentFarmReady(authority, party)
-				|| party == null || !party.leader().equals(authority.leader()) || party.members().size() < 2 || party.members().size() > 5 || !sameRoster(roster(authority), party.members()) || !authority.realMembers().isEmpty()) { return false; }
+				|| party == null || !party.leader().equals(authority.leader()) || party.members().size() < 2 || party.members().size() > 9 || !sameRoster(roster(authority), party.members()) || !authority.realMembers().isEmpty()) { return false; }
 			final Set<MemberRef> supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
 			// The current native episode owns its completion and loot. A next-pull search
 			// must not cancel it merely because the killed target is no longer selectable.
@@ -2682,7 +2684,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 	}
 
-	/** Shared control-plane read, at most five versioned roots once per second/group. Never a combat callback. */
+	/** Shared control-plane read, at most nine versioned roots once per second/group. Never a combat callback. */
 	private void refreshFarmIntent(GroupRuntime runtime, PartyState authority)
 	{
 		if (currentFarmIntentView(authority) != null) { return; }
@@ -2731,13 +2733,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	{
 		final var planned = PhantomAutonomousFarmParty.plannedProfiles(authority.objectiveRef());
 		if (party == null || !party.leader().equals(authority.leader()) || party.members().size() != planned.size() || !sameRoster(roster(authority), party.members()) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId())) || !currentFarmIntent(authority)) { return false; }
-		return authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).anyMatch(member -> _backend.memberSnapshot(member).filter(PhantomAutonomousFarmParty::supportPresent).isPresent()) && _backend.autonomousFarmReady(party);
+		return _logicalFarmAdmission.test(authority.leader().profileId()) && _backend.autonomousFarmReady(party);
 	}
 
 	private int dispatchTactics(PartySnapshot party, int remainingBudget)
 	{
 		final var farmClaim = _claims.get(party.leader().profileId());
 		final boolean farm = farmClaim != null && PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(farmClaim.state().objectiveRef().namespace());
+		if (farm && !_logicalFarmAdmission.test(party.leader().profileId())) { return 0; }
 		boolean farmReady = true;
 		if (farm)
 		{
