@@ -23,6 +23,8 @@ public final class PhantomFarm074Checks
 
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 1 && "--route-matrix129".equals(args[0])) { routeMatrix129(); return; }
+		sourcePreflight129();
 		rendezvous();
 		supportRendezvous();
 		historicalFailedRoute();
@@ -65,6 +67,110 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertTrue(inspections.get() <= 3, "Remote admission exceeded the existing bounded retry budget.");
 		System.out.println("FARM074_ADMISSION_PASS; rejected preferred source skipped; affordable alternative selected; max3; DB_WRITES=0");
 	}
+
+	private static void sourcePreflight129()
+	{
+		final var planner = planner(true, true); final var before = state(); final var previous = goal();
+		final var sources = planner.rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of());
+		PhantomAssertions.assertTrue(sources.size() <= 4 && sources.stream().distinct().count() == sources.size(), "Source preview exceeded its finite distinct-source bound.");
+		PhantomAssertions.assertTrue(sources.contains(new PhantomDomainRef("background.farm", "103@farm.alternative")), "Existing ranking/exclusion loop starved the connected alternative.");
+		PhantomAssertions.assertTrue(sources.stream().allMatch(source -> planner.rendezvousRouteAvailable(before, source, Set.of())), "Preview produced a source outside the existing certified graph.");
+		PhantomAssertions.assertFalse(planner(false).rendezvousRouteAvailable(before, new PhantomDomainRef("background.farm", "102@farm.far"), Set.of()), "Disconnected source acquired an invented itinerary.");
+		PhantomAssertions.assertTrue(planner(false).rendezvousRouteAbsent(before, new PhantomDomainRef("background.farm", "102@farm.far")), "Known structural absence lost its exact source proof.");
+		PhantomAssertions.assertFalse(planner.rendezvousRouteAbsent(before, new PhantomDomainRef("background.farm", "102@missing")), "Unknown source became a terminal route refusal.");
+		PhantomAssertions.assertFalse(planner.rendezvousRouteAvailable(before, new PhantomDomainRef("background.farm", "103@farm.alternative"), Set.of("farm.alternative.link")), "Preview waived a current native route exclusion.");
+		PhantomAssertions.assertEquals(before, state(), "Preview mutated earned state or native position.");
+		System.out.println("ROUTE129_PLANNER_PREVIEW_PASS; bounded4; certified_only; source/route exclusions; no earned-state writes or native arrival");
+	}
+
+	/** Source graph proof only. Factual loader leaves are modeled; native/Geo admission is not exercised. */
+	private static void routeMatrix129() throws Exception { sourceRoutes129(true); }
+	/** Actual source graph/catalog with explicitly modeled factual-validation leaves, not native usability proof. */
+	public static PhantomNormalGatekeeperTravel sourceRoutes129() throws Exception { return sourceRoutes129(false); }
+	private static PhantomNormalGatekeeperTravel sourceRoutes129(boolean report) throws Exception
+	{
+		final var directory = java.nio.file.Path.of("data/phantoms/topology");
+		final var nodes = new java.util.HashMap<String, org.w3c.dom.Element>();
+		final var anchors = new java.util.HashMap<String, org.w3c.dom.Element>();
+		final var edges = new java.util.ArrayList<org.w3c.dom.Element>();
+		final var digest = java.security.MessageDigest.getInstance("SHA-256");
+		final var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+		factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+		factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+		final List<java.nio.file.Path> files;
+		try (var paths = java.nio.file.Files.list(directory)) { files = paths.filter(p -> p.getFileName().toString().endsWith(".xml")).sorted().toList(); }
+		for (var file : files)
+		{
+			final var bytes = java.nio.file.Files.readAllBytes(file);
+			digest.update(file.getFileName().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)); digest.update((byte) 0); digest.update(bytes);
+			final var root = factory.newDocumentBuilder().parse(new java.io.ByteArrayInputStream(bytes)).getDocumentElement();
+			for (var child = root.getFirstChild(); child != null; child = child.getNextSibling())
+			{
+				if (!(child instanceof org.w3c.dom.Element element)) { continue; }
+				switch (element.getTagName())
+				{
+					case "node" -> nodes.put(element.getAttribute("id"), element);
+					case "anchor" -> anchors.put(element.getAttribute("id"), element);
+					case "edge" -> edges.add(element);
+				}
+			}
+		}
+		final var regions = new java.util.HashMap<String, Integer>();
+		final var spawns = new java.util.HashMap<Integer, List<PhantomTopologyValidationBackend.SpawnFact>>();
+		final var doors = new java.util.HashMap<Integer, PhantomTopologyValidationBackend.DoorFact>();
+		for (var anchor : anchors.values())
+		{
+			if (anchor.hasAttribute("mapRegionLocId")) { regions.put(anchor.getAttribute("x") + "," + anchor.getAttribute("y"), xmlInt129(anchor, "mapRegionLocId")); }
+			if (anchor.hasAttribute("npcId"))
+			{
+				final int npc = xmlInt129(anchor, "npcId");
+				final var source = anchor.getAttribute("tags").contains("normalized-point-farm") ? nodes.get(anchor.getAttribute("nodeId")) : anchor;
+				spawns.computeIfAbsent(npc, _ -> new java.util.ArrayList<>()).add(new PhantomTopologyValidationBackend.SpawnFact(npc, xmlPoint129(source)));
+			}
+		}
+		for (var edge : edges)
+		{
+			if (!edge.hasAttribute("doorId")) { continue; }
+			final var a = xmlPoint129(anchors.get(edge.getAttribute("fromAnchorId"))); final var b = xmlPoint129(anchors.get(edge.getAttribute("toAnchorId")));
+			final int x = Math.min(a.x(), b.x()) - 1, y = Math.min(a.y(), b.y()) - 1, xx = Math.max(a.x(), b.x()) + 1, yy = Math.max(a.y(), b.y()) + 1;
+			final int id = xmlInt129(edge, "doorId");
+			doors.put(id, new PhantomTopologyValidationBackend.DoorFact(id, a.instanceId(), Math.min(a.z(), b.z()), Math.max(a.z(), b.z()), List.of(new PhantomTopologyPoint(x, y, a.z(), a.instanceId()), new PhantomTopologyPoint(xx, y, a.z(), a.instanceId()), new PhantomTopologyPoint(xx, yy, a.z(), a.instanceId()), new PhantomTopologyPoint(x, yy, a.z(), a.instanceId()))));
+		}
+		final var modeled = new PhantomTopologyValidationBackend()
+		{
+			@Override public int mapRegionLocId(int x, int y) { return regions.getOrDefault(x + "," + y, 0); }
+			@Override public Optional<NpcFact> npc(int id) { return spawns.containsKey(id) ? Optional.of(new NpcFact(id, "Monster", true)) : Optional.empty(); }
+			@Override public List<SpawnFact> spawns(int id, int maximum) { final var rows = spawns.getOrDefault(id, List.of()); return rows.subList(0, Math.min(maximum, rows.size())); }
+			@Override public Optional<DoorFact> door(int id) { return Optional.ofNullable(doors.get(id)); }
+			@Override public DoorState doorState(int id) { return DoorState.OPEN; }
+			@Override public boolean sourceExists(String path) { return java.nio.file.Files.isRegularFile(java.nio.file.Path.of(path)); }
+		};
+		final var topology = new PhantomTopologyQuery(new PhantomTopologyLoader(directory, modeled, PhantomTopologyPolicy.productionDefaults()).load(1), modeled, new PhantomTopologyMetrics());
+		final var catalog = java.nio.file.Path.of("data/phantoms/travel/high-five-normal-gk.xml");
+		final var travel = PhantomNormalGatekeeperTravel.load(catalog, topology);
+		if (!report)
+		{
+			if (org.l2jmobius.commons.database.DatabaseFactory.isInitialized()) { throw new AssertionError("Route fixture initialized JDBC"); }
+			return travel;
+		}
+		final var from = List.of("generated.farm.4c99bd428d6bae74750f6eec.anchor", "generated.farm.c34d4845871d5a78bc5d3cd1.anchor", "generated.farm.72007cc387f17e963e4fcf2c.anchor", "hunters.recovery.anchor");
+		final var to = List.of("generated.farm.72007cc387f17e963e4fcf2c.anchor", "generated.farm.4c99bd428d6bae74750f6eec.anchor", "generated.farm.c34d4845871d5a78bc5d3cd1.anchor", "generated.farm.004bf9b0681c8a71c852b231.anchor", "generated.farm.007f9057c1ee101b364fff57.anchor", "generated.farm.167d59b550bc5333b845ad5a.anchor");
+		System.out.println("ROUTE129_SCOPE=STRUCTURAL_SOURCE_GRAPH_ONLY; factualValidation=MODELED; GeoNativeAdmission=NOT_RUN; topologyFiles=" + files.size() + "; topologyFilesSha=" + java.util.HexFormat.of().formatHex(digest.digest()) + "; topologyCanonicalSha=" + topology.snapshot().canonicalHash() + "; catalogSha=" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(java.nio.file.Files.readAllBytes(catalog))));
+		for (var origin : from)
+		{
+			for (var target : to)
+			{
+				final var route = travel.route(origin, target).orElse(null);
+				System.out.println("ROUTE129 from=" + origin + "; to=" + target + "; result=" + (route == null ? "ABSENT" : "PRESENT") + "; steps=" + (route == null ? -1 : route.size()) + "; millis=" + (route == null ? -1 : route.stream().mapToLong(PhantomNormalGatekeeperTravel.Step::travelMillis).sum()) + "; ids=" + (route == null ? List.of() : route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList()));
+			}
+		}
+		if (org.l2jmobius.commons.database.DatabaseFactory.isInitialized()) { throw new AssertionError("Route-only proof initialized JDBC"); }
+		System.out.println("ROUTE129_JDBC_INITIALIZED=false; WorldIdManagerConfigLoader=NOT_CALLED; sourceWrites=0; nativeActions=0");
+		return travel;
+	}
+	private static int xmlInt129(org.w3c.dom.Element value, String key) { return Integer.parseInt(value.getAttribute(key)); }
+	private static PhantomTopologyPoint xmlPoint129(org.w3c.dom.Element value) { return new PhantomTopologyPoint(xmlInt129(value, "x"), xmlInt129(value, "y"), xmlInt129(value, "z"), xmlInt129(value, "instanceId")); }
 
 	private static void supportRendezvous() throws Exception
 	{

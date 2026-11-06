@@ -61,8 +61,35 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	public interface RendezvousPreparation
 	{
 		boolean prepare(long profileId, PhantomGoal expectedGoal, PhantomDomainRef sharedSource, long expiresMillis, java.util.function.BooleanSupplier currentReservation);
+		/** One pulse-local input; the predicates must not read persistence or perform native actions per source. */
+		default SourcePreview preview(MemberRef actor, long epoch, PhantomGoal root)
+		{
+			final var source = farmSource(root);
+			return new SourcePreview(() -> source == null ? List.of() : List.of(source), _ -> true, () -> true, _ -> false);
+		}
 		/** Cached negative proof only; this check must not advance travel or acquire persistence ownership. */
 		default boolean unusable(MemberRef actor, long epoch, PhantomGoal currentGoal) { return false; }
+	}
+	/** Immutable captured input under the existing preparation owner, never consent, arrival or action authority. */
+	public record SourcePreview(java.util.function.Supplier<List<PhantomDomainRef>> candidates, java.util.function.Predicate<PhantomDomainRef> reachable,
+		java.util.function.BooleanSupplier current, java.util.function.Predicate<PhantomDomainRef> structurallyUnavailable)
+	{
+		public SourcePreview { java.util.Objects.requireNonNull(candidates); java.util.Objects.requireNonNull(reachable); java.util.Objects.requireNonNull(current); java.util.Objects.requireNonNull(structurallyUnavailable); }
+		public List<PhantomDomainRef> sources() { return candidates.get().stream().distinct().limit(4).toList(); }
+		public static SourcePreview unavailable() { return new SourcePreview(List::of, _ -> false, () -> false, _ -> false); }
+	}
+	private static boolean sourceAdmitted(SourcePreview preview, PhantomDomainRef source) { return preview.current().getAsBoolean() && preview.reachable().test(source); }
+	private static List<PhantomDomainRef> sourceOptions(SourcePreview preview, PhantomDomainRef current) { return preview.current().getAsBoolean() ? preview.sources() : List.of(); }
+	private static boolean terminalSourceLoss(SourcePreview preview, PhantomDomainRef source) { return preview.current().getAsBoolean() && preview.structurallyUnavailable().test(source); }
+	private SourcePreview sourcePreview(MemberRef actor, Map<Long, SourcePreview> previews)
+	{
+		final var existing = previews.get(actor.profileId());
+		if (existing != null) { return existing; }
+		if (previews.size() >= MAXIMUM_CANDIDATES) { return SourcePreview.unavailable(); }
+		final var root = _goals.load(actor.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		final var captured = root == null ? SourcePreview.unavailable() : _rendezvousPreparation.preview(actor, _backend.materializationEpoch(actor), root);
+		final var preview = captured == null ? SourcePreview.unavailable() : captured;
+		previews.put(actor.profileId(), preview); return preview;
 	}
 
 	public PhantomAutonomousFarmParty(PhantomPartyCoordinator coordinator, PhantomPartyBackend backend, PhantomGoalStore goals, PhantomPartyRoleCatalog roles, LongSupplier clock,
@@ -301,18 +328,23 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (!_seeking.enabled()) { return false; }
 			final var candidates = _discovered.values().stream().filter(Discovery::available).filter(entry -> _seeking.seeks(entry.member().ref().profileId(), entry.level())).map(Discovery::member)
 				.sorted(Comparator.comparingLong(member -> member.ref().profileId())).toList();
+			final var previews = new LinkedHashMap<Long, SourcePreview>();
 			for (var leader : candidates.stream().sorted(Comparator.comparing((MemberSnapshot member) -> member.ref().profileId() <= _leaderCursor).thenComparingLong(member -> member.ref().profileId())).limit(4).toList())
 			{
 				_leaderCursor = leader.ref().profileId();
 				if (!damageDealer(leader) || !unreserved(leader.ref(), now) || _backend.observe(leader.ref()).isPresent()
 					|| _coordinator.claim(leader.ref().profileId()).map(claim -> claim.state().status() != StateStatus.SOLO).orElse(false)) { continue; }
 				final var root = _goals.load(leader.ref().profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
-				final var source = farmSource(root);
-				if (source == null || !ordinaryIntent(leader.ref().profileId(), root) || _preparationRequired.test(leader.ref().profileId(), root)) { continue; }
+				final var currentSource = farmSource(root);
+				if (currentSource == null || !ordinaryIntent(leader.ref().profileId(), root) || _preparationRequired.test(leader.ref().profileId(), root)) { continue; }
+				final var leaderPreview = sourcePreview(leader.ref(), previews);
+				for (var source : sourceOptions(leaderPreview, currentSource))
+				{
+				if (!sourceAdmitted(leaderPreview, source)) { continue; }
 				final int level = _discovered.get(leader.ref().profileId()).level();
 				final var nearby = candidates.stream().filter(member -> Math.abs(_discovered.get(member.ref().profileId()).level() - level) <= 8)
 					.sorted(Comparator.comparing((MemberSnapshot member) -> !support(member)).thenComparingLong(member -> member.ref().profileId())).limit(MAXIMUM_CANDIDATES - 1).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-				nearby.removeIf(member -> member.ref().equals(leader.ref())); nearby.addFirst(leader);
+				nearby.removeIf(member -> member.ref().equals(leader.ref()) || !sourceAdmitted(sourcePreview(member.ref(), previews), source)); nearby.addFirst(leader);
 				final var team = selectRendezvousTeam(_roles, leader, nearby);
 				if (team.size() < 3) { continue; }
 				final var roster = new ArrayList<PhantomPartyRendezvousState.Participant>();
@@ -327,6 +359,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 					roster.add(new PhantomPartyRendezvousState.Participant(actor, _backend.materializationEpoch(actor), goal.goalId(), goal.revision()));
 				}
 				if (roster.size() != team.size()) { continue; }
+				// Recheck the whole selected roster before the first durable proposal; no root/adoption has happened.
+				if (team.stream().anyMatch(actor -> !sourceAdmitted(sourcePreview(actor, previews), source))) { continue; }
 				final String identity = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(roster + ":" + source + ":" + now);
 				PhantomPartyRendezvousState offer = null;
 				for (var participant : roster)
@@ -345,6 +379,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 				}
 				else if (offer != null) { cancelOffer(offer); }
 				return true;
+				}
 			}
 		}
 		catch (RuntimeException exception) { return false; } // Unavailable persistence is never consent or permission to move.
@@ -449,6 +484,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			var goal = _goals.load(participant.actor().profileId()).orElseThrow().goal();
 			if (current.state().phase() == PhantomPartyRendezvousState.Phase.ACCEPTED)
 			{
+				final var preview = _rendezvousPreparation.preview(participant.actor(), participant.epoch(), goal);
+				if (preview != null && terminalSourceLoss(preview, offer.source()))
+				{ cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); return true; }
 				// A known unusable current source cannot be held ACCEPTED while preparation keeps refusing it.
 				if (offer.source().equals(farmSource(goal)) && _rendezvousPreparation.unusable(participant.actor(), participant.epoch(), goal))
 				{ cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); return true; }

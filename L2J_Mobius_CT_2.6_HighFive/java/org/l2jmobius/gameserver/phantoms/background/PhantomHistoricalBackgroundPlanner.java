@@ -196,6 +196,47 @@ public final class PhantomHistoricalBackgroundPlanner
 	}
 
 	/** Exact shared source is an intent, never native arrival or an arbitrary XYZ. */
+	public List<PhantomDomainRef> rendezvousSources(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps)
+	{
+		final var previous = visiblePredecessor(profileId, previousGoal);
+		if (state == null || state.identity().profileId() != profileId || state.position().instanceId() != 0) { return List.of(); }
+		final var loadout = state.loadout(); final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
+		final var excluded = new java.util.HashSet<>(excludedTargets); final var viability = new java.util.HashMap<Integer, Boolean>();
+		final var result = new ArrayList<PhantomDomainRef>();
+		for (int attempt = 0; attempt < 4; attempt++)
+		{
+			final var candidate = plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
+				idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
+				idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
+				idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
+				previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excluded, excludedSteps, null, PlanningCombat.from(state), false, _ -> true, viability);
+			if (!candidate.ready()) { break; }
+			final var source = new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, candidate.spec().npcId() + "@" + candidate.spec().anchorId());
+			result.add(source); excluded.add(source.key());
+		}
+		return List.copyOf(result);
+	}
+
+	/** Pure structural preflight over the same certified route catalog; no native usability or arrival claim. */
+	public boolean rendezvousRouteAvailable(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
+	{
+		final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
+		if (state == null || anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != 0 || state.position().instanceId() != 0) { return false; }
+		return _authority.travelQuery(_topology).route(state.position().committedAnchorId(), anchor.id())
+			.filter(route -> route.size() <= 64 && route.stream().noneMatch(step -> excludedSteps.contains(step.id()))).isPresent();
+	}
+	/** Positive known-graph absence only. Unknown/invalid input is not terminal evidence. */
+	public boolean rendezvousRouteAbsent(PhantomBackgroundState state, PhantomDomainRef source)
+	{
+		try
+		{
+			final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
+			return state != null && state.position().instanceId() == 0 && anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0
+				&& _topology.findAnchor(state.position().committedAnchorId()).isPresent() && _authority.travelQuery(_topology).route(state.position().committedAnchorId(), anchor.id()).isEmpty();
+		}
+		catch (IllegalArgumentException invalid) { return false; }
+	}
+
 	static PhantomBackgroundGoalSpec rendezvousSource(PhantomDomainRef source)
 	{
 		if (source == null || !PhantomBackgroundGoalSpec.SOURCE_NAMESPACE.equals(source.namespace()) || !source.key().matches("[1-9][0-9]{0,9}@[^@]+"))
@@ -319,6 +360,10 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, new java.util.HashMap<>());
+	}
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -332,7 +377,6 @@ public final class PhantomHistoricalBackgroundPlanner
 		final List<Candidate> candidates = new ArrayList<>();
 		final List<String> rejections = new ArrayList<>();
 		final Set<String> seenCandidates = new java.util.HashSet<>();
-		final Map<Integer, Boolean> viability = new java.util.HashMap<>();
 		final int[] offscreenAttempts = { 0 };
 		for (int radius : LOWER_LEVEL_TIERS)
 		{

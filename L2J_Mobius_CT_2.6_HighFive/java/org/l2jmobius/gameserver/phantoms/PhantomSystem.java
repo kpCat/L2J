@@ -926,6 +926,9 @@ public final class PhantomSystem
 						_settings.partySeeking(), new PhantomAutonomousFarmParty.RendezvousPreparation()
 						{
 							@Override
+							public PhantomAutonomousFarmParty.SourcePreview preview(MemberRef actor, long epoch, PhantomGoal root)
+							{ return _historicalBackgroundService.previewVisibleRendezvous(actor, epoch, root, _decisionEngine); }
+							@Override
 							public boolean prepare(long id, PhantomGoal root, PhantomDomainRef source, long expiry, java.util.function.BooleanSupplier current)
 							{ return _historicalBackgroundService.prepareVisibleRendezvous(id, _decisionEngine, root, source, expiry, current); }
 							@Override

@@ -1193,6 +1193,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	private static void lifecycle(PhantomTestRegistry registry)
 	{
 		registry.add("129-typed-handoff-consent-lifetime-and-native-party-restart", PhantomPartySuite::nativeHandoffPartyChain);
+		registry.add("129-shared-source-preflight-before-consent-and-reachable-alternative", PhantomPartySuite::sharedSourcePreflight129);
 		registry.add("129-support-travel-permission-is-exact-and-finite", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
@@ -2380,6 +2381,90 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	private static PhantomGoal supportTravelRoot(long profileId, long revision, String anchor)
 	{
 		return new PhantomGoal(129000 + profileId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "20101@" + anchor)), new PhantomDomainRef("topology.anchor", anchor), "farm.background", 500, 0, 0, 0, Map.of(), "background.catchup.plan", revision);
+	}
+
+	private static void sharedSourcePreflight129(PhantomTestContext context) throws Exception
+	{
+		final var travel = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.sourceRoutes129();
+		final String local = "generated.farm.4c99bd428d6bae74750f6eec.anchor", closed = "generated.farm.72007cc387f17e963e4fcf2c.anchor", reachable = "generated.farm.c34d4845871d5a78bc5d3cd1.anchor";
+		final var rejectedSource = new PhantomDomainRef("background.farm", "21798@" + closed);
+		final var sharedSource = new PhantomDomainRef("background.farm", "21315@" + reachable);
+		PhantomAssertions.assertTrue(travel.route(local, closed).isEmpty() && travel.route(reachable, closed).isEmpty(), "Generated Imperial source unexpectedly acquired an admitted edge.");
+		PhantomAssertions.assertTrue(travel.route(local, reachable).isPresent(), "Actual source graph has no connected alternative for the two DD origins.");
+		final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true; backend._farmLevel = 78;
+		final var clock = new AtomicLong(1_000_000_000L); final var busy = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var structuralLoss = new java.util.concurrent.atomic.AtomicBoolean(false);
+		final var previewCounts = new java.util.HashMap<Long, Integer>(); final var arrivals = new HashSet<Long>();
+		final var origins = Map.of(1L, local, 7L, local, 4L, reachable, 5L, closed, 23L, reachable, 24L, local);
+		final var seeking = org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults();
+		PhantomAssertions.assertTrue(List.of(1L, 7L, 4L, 5L, 23L).stream().allMatch(id -> seeking.seeks(id, 78)) && !seeking.seeks(24, 78), "The default SEEK/SOLO controls changed.");
+		for (long id : List.of(1L, 7L, 4L, 5L, 23L, 24L))
+		{
+			final var actor = backend.add(id, 129000 + (int) id);
+			final boolean support = id == 4 || id == 23;
+			final var caps = List.of(support ? cap("combat.heal", "learned.heal", 450, 1011) : cap("combat.melee_damage", "weapon", 300, 0));
+			// Model-only current positions deliberately put the inaccessible DD nearer than the reachable DD.
+			final int x = id == 1 ? 0 : id == 5 ? 100 : id == 7 ? 30000 : 60000;
+			backend.snapshot(actor, new MemberSnapshot(actor, support ? 17 : id == 1 ? 88 : 2, 0, x, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), caps, ZERO));
+			goals.put(id, sourceRoot129(id, 0, id == 1 || id == 5 ? rejectedSource : sharedSource));
+		}
+		final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+		try
+		{
+			final var preparation = new PhantomAutonomousFarmParty.RendezvousPreparation()
+			{
+				@Override public PhantomAutonomousFarmParty.SourcePreview preview(MemberRef actor, long epoch, PhantomGoal root)
+				{
+					previewCounts.merge(actor.profileId(), 1, Integer::sum);
+					final java.util.function.Predicate<PhantomDomainRef> route = source -> travel.route(origins.get(actor.profileId()), source.key().substring(source.key().indexOf('@') + 1)).isPresent();
+					return new PhantomAutonomousFarmParty.SourcePreview(() -> List.of(rejectedSource, sharedSource), route,
+						() -> backend._nativeEpoch == epoch && goals.load(actor.profileId()).map(stored -> stored.goal().equals(root)).orElse(false),
+						source -> !route.test(source) || structuralLoss.get() && actor.profileId() == 7 && source.equals(sharedSource));
+				}
+				@Override public boolean prepare(long id, PhantomGoal root, PhantomDomainRef source, long expires, java.util.function.BooleanSupplier current)
+				{
+					PhantomAssertions.assertTrue(current.getAsBoolean(), "Source preview acquired adoption rights before bilateral consent.");
+					if (busy.get()) { return false; }
+					PhantomAssertions.assertEquals(sharedSource, source, "An inaccessible source reached the modeled native preparation leaf.");
+					if (!root.validSources().contains(source)) { goals.put(id, sourceRoot129(id, root.revision() + 1, source)); }
+					return true;
+				}
+			};
+			final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> id == 23,
+				(id, root) ->
+				{
+					if (!arrivals.contains(id)) { PhantomAssertions.assertEquals(0, backend.invitationCount(), "An invitation preceded final bilateral modeled arrival."); }
+					arrivals.add(id); final var actor = backend._members.get(id); final var before = backend._snapshots.get(actor);
+					backend.snapshot(actor, new MemberSnapshot(actor, before.classId(), 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), before.capabilities(), ZERO));
+					return new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED, root.goalId(), root.revision(), actor.characterObjectId(), backend._nativeEpoch, 0, "modeled.arrived");
+				}, seeking, preparation, () -> 1000 + clock.get() / 1_000_000);
+			clock.addAndGet(6_000_000_000L); adapter.onPulse();
+			PhantomAssertions.assertFalse(states._rendezvous.values().stream().anyMatch(row -> row.state().source().equals(rejectedSource)), "RED129: an unreachable generated72007 source was durably offered before whole-roster route admission.");
+			PhantomAssertions.assertEquals(Set.of(1L, 7L, 4L), states._rendezvous.keySet(), "An unreachable nearest DD, supply actor or nonseeker displaced the reachable core.");
+			PhantomAssertions.assertTrue(previewCounts.values().stream().allMatch(count -> count == 1), "Source/member pairs reread the preview rather than reusing one pulse-local input.");
+			for (int pulse = 0; pulse < 6; pulse++) { clock.addAndGet(6_000_000_000L); adapter.onPulse(); }
+			PhantomAssertions.assertTrue(states._rendezvous.values().stream().noneMatch(row -> row.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED), "Transient native busy state became structural route loss.");
+			PhantomAssertions.assertEquals(0, backend.invitationCount(), "Dry preview or transient preparation granted native membership.");
+			// Model a newly observed exact structural refusal while this actor still owns a different predecessor source.
+			structuralLoss.set(true);
+			for (int pulse = 0; pulse < 3; pulse++) { clock.addAndGet(6_000_000_000L); adapter.onPulse(); }
+			PhantomAssertions.assertTrue(states._rendezvous.values().stream().allMatch(row -> row.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED), "Known exact source loss was held ACCEPTED merely because the predecessor source differed.");
+			PhantomAssertions.assertEquals(0L, goals.load(1).orElseThrow().goal().revision(), "Structural refusal adopted or rewrote a predecessor.");
+			PhantomAssertions.assertEquals(0, backend.invitationCount(), "Structural refusal granted a native invitation.");
+			structuralLoss.set(false);
+			clock.addAndGet((org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.MAXIMUM_LIFETIME_MILLIS + 1) * 1_000_000L);
+			busy.set(false);
+			for (int pulse = 0; pulse < 35; pulse++) { clock.addAndGet(6_000_000_000L); adapter.onPulse(); for (int step = 0; step < 8; step++) { coordinator.onPulse(); } }
+			PhantomAssertions.assertEquals(Set.of(1L, 7L, 4L), arrivals, "A member bypassed ordinary accepted preparation/arrival ownership.");
+			PhantomAssertions.assertEquals(2, backend.invitationCount(), "Reachable alternative failed canonical native invitation dispatch.");
+			PhantomAssertions.assertTrue(backend.observe(backend._members.get(5L)).isEmpty() && backend.observe(backend._members.get(23L)).isEmpty() && backend.observe(backend._members.get(24L)).isEmpty(), "Unavailable/supply/nonseek controls joined the group.");
+		}
+		finally { coordinator.beginStop(); coordinator.finishStop(); }
+	}
+	private static PhantomGoal sourceRoot129(long id, long revision, PhantomDomainRef source)
+	{
+		final int split = source.key().indexOf('@');
+		return new PhantomGoal(129000 + id, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", source.key().substring(0, split)), 1, 0, "background.farm", List.of(source), new PhantomDomainRef("topology.anchor", source.key().substring(split + 1)), "farm.background", 500, 0, 0, 0, Map.of(), "background.catchup.plan", revision);
 	}
 
 	private static void nativeHandoffPartyChain(PhantomTestContext context) throws Exception
