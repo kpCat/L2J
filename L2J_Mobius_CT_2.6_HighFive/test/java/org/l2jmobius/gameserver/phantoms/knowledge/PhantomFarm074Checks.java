@@ -24,6 +24,7 @@ public final class PhantomFarm074Checks
 	public static void main(String[] args) throws Exception
 	{
 		rendezvous();
+		supportRendezvous();
 		historicalFailedRoute();
 		final java.lang.reflect.Method admittedReplan;
 		try { admittedReplan = PhantomHistoricalBackgroundPlanner.class.getMethod("replanVisibleLocal", long.class, PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, Set.class, Set.class, java.util.function.Predicate.class); }
@@ -63,6 +64,42 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(rejected.ready(), "No admitted remote source must remain unavailable.");
 		PhantomAssertions.assertTrue(inspections.get() <= 3, "Remote admission exceeded the existing bounded retry budget.");
 		System.out.println("FARM074_ADMISSION_PASS; rejected preferred source skipped; affordable alternative selected; max3; DB_WRITES=0");
+	}
+
+	private static void supportRendezvous() throws Exception
+	{
+		final var planner = planner(true, true, false); final var before = state(); final var previous = goal();
+		final var source = new PhantomDomainRef("background.farm", "103@farm.alternative");
+		final java.util.function.Predicate<PhantomGoal> allow = _ -> true;
+		PhantomAssertions.assertFalse(planner.replanVisibleLocal(74, before, previous, 740074, 1, LOCAL, Set.of(), Set.of()).ready(), "A non-solo support cannot gain ordinary Solo farm admission.");
+		PhantomAssertions.assertFalse(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of(), allow).ready(), "The original rendezvous API retains its Solo viability contract.");
+		final java.lang.reflect.Method support;
+		try { support = PhantomHistoricalBackgroundPlanner.class.getMethod("replanVisibleRendezvous", long.class, PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, PhantomDomainRef.class, Set.class, boolean.class, java.util.function.Predicate.class); }
+		catch (NoSuchMethodException oldProduction)
+		{
+			PhantomAssertions.assertTrue(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of(), allow).ready(), "RED129: accepted support travel is wrongly coupled to individual Solo viability."); return;
+		}
+		final var shared = (PhantomHistoricalBackgroundPlanner.Result) support.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, source, Set.of(), true, allow);
+		PhantomAssertions.assertTrue(shared.ready() && shared.spec().anchorId().equals("farm.alternative"), "An authorized support may propose only the exact shared native travel source.");
+		PhantomAssertions.assertEquals(List.of("farm.alternative.link"), shared.routeEdgeIds(), "Support adoption still needs its certified existing itinerary.");
+		PhantomAssertions.assertFalse(PhantomOffscreenOutdoorTravel.pending(shared.goal()), "Support travel cannot create an offscreen group-farm plan.");
+		PhantomAssertions.assertEquals(previous.goalId(), shared.goal().goalId(), "Support travel preserves the own root.");
+		PhantomAssertions.assertEquals(previous.revision() + 1, shared.goal().revision(), "Support travel advances the own revision once.");
+		PhantomAssertions.assertFalse(planner.remainsSuitable(before, shared.goal()), "The shared travel exception must not make the non-solo support historically suitable.");
+		for (var denied : List.of(
+			(PhantomHistoricalBackgroundPlanner.Result) support.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, source, Set.of("farm.alternative.link"), true, allow),
+			(PhantomHistoricalBackgroundPlanner.Result) support.invoke(planner, 74L, before, previous, 740074L, 1L, LOCAL, source, Set.of(), true, (java.util.function.Predicate<PhantomGoal>) _ -> false),
+			(PhantomHistoricalBackgroundPlanner.Result) support.invoke(planner, 74L, before, previous, 740074L, 1L, new PhantomTopologyPoint(100, 100, 0, 1), source, Set.of(), true, allow)))
+		{ PhantomAssertions.assertFalse(denied.ready(), "Support cannot waive route exclusions, native admission or instance identity."); }
+		final var generation = planner.generation();
+		final var catchup = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.RUNNING, "a".repeat(64), 740074, 100, 104, 100, 1, 0, 1,
+			generation.knowledgeGeneration(), generation.topologyGeneration(), shared.goal().goalId(), shared.goal().revision(), shared.planIdentity(), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
+		final var reconsider = PhantomHistoricalBackgroundService.class.getDeclaredMethod("reconsiderHistorical", PhantomHistoricalBackgroundPlanner.class, long.class, PhantomBackgroundState.class, PhantomGoal.class, PhantomBackgroundCatchupState.class, java.util.function.BooleanSupplier.class);
+		reconsider.setAccessible(true);
+		final var cold = (PhantomHistoricalBackgroundPlanner.Result) reconsider.invoke(null, planner, 74L, before.withState(PhantomBackgroundState.State.READY), shared.goal(), catchup, (java.util.function.BooleanSupplier) () -> false);
+		PhantomAssertions.assertTrue(cold.ready() && PhantomBackgroundGoalSpec.canonicalHistoricalIdle(74, cold.goal()), "The unchanged production historical reconsider guard must replace a non-solo shared root before an offline model interval.");
+		PhantomAssertions.assertEquals(before.position().committedAnchorId(), cold.goal().selectedAnchor().key(), "Cold fallback cannot award the shared arrival.");
+		System.out.println("OWN129_SUPPORT_TRAVEL_PASS; exact shared route only; Solo unchanged; historical reconsider blocks group simulation; DB_WRITES=0");
 	}
 
 	private static void historicalFailedRoute()
@@ -125,6 +162,10 @@ public final class PhantomFarm074Checks
 	}
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative)
 	{
+		return planner(linked, alternative, true);
+	}
+	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable)
+	{
 		final var backend = new PhantomTopologyValidationBackend()
 		{
 			@Override public int mapRegionLocId(int x, int y) { return 1; }
@@ -155,6 +196,7 @@ public final class PhantomFarm074Checks
 		final var authority = new PhantomBackgroundAuthority()
 		{
 			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
+			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { return soloViable; }
 			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }
 			@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return false; }
 			@Override public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { throw new UnsupportedOperationException(); }

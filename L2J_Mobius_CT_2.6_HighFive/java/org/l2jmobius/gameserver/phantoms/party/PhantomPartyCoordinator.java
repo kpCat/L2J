@@ -387,9 +387,55 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	{
 		final var reservation = _rendezvousClaims.get(profileId);
 		if (_state != State.RUNNING || reservation == null || !reservation.active(System.currentTimeMillis())
-			|| reservation.phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && reservation.phase() != PhantomPartyRendezvousState.Phase.ARRIVED
+			|| reservation.phase() != PhantomPartyRendezvousState.Phase.ACCEPTED && reservation.phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && reservation.phase() != PhantomPartyRendezvousState.Phase.ARRIVED
 			|| reservation.participant().epoch() != _backend.materializationEpoch(reservation.participant().actor())) { return 0; }
 		return reservation.expiresMillis();
+	}
+
+	/** Memory-only role permission; the preparation owner still rechecks the complete consent saga before CAS. */
+	public boolean supportRendezvousPreparation(long profileId, PhantomGoal root)
+	{
+		return supportRendezvousCurrent(profileId, root, true);
+	}
+
+	/** Preserve only an already adopted shared travel root, never the support's unchanged old Solo root. */
+	public boolean supportRendezvousTravel(long profileId, PhantomGoal root)
+	{
+		return supportRendezvousCurrent(profileId, root, false);
+	}
+
+	private boolean supportRendezvousCurrent(long profileId, PhantomGoal root, boolean preparation)
+	{
+		try
+		{
+			final var reservation = _rendezvousClaims.get(profileId);
+			if (_state != State.RUNNING || reservation == null || !reservation.active(System.currentTimeMillis()) || reservation.roster().size() < 3
+				|| !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root) || !new PhantomDomainRef("profile", Long.toString(profileId)).equals(root.subject())) { return false; }
+			final var own = reservation.participant();
+			if (!own.actor().equals(reservation.roster().get(1).actor()) || root.goalId() != own.goalId()) { return false; }
+			if (preparation)
+			{
+				if (reservation.phase() != PhantomPartyRendezvousState.Phase.ACCEPTED || root.revision() != own.goalRevision()) { return false; }
+			}
+			else
+			{
+				org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(root);
+				if (!root.validSources().contains(reservation.source()) || (reservation.phase() == PhantomPartyRendezvousState.Phase.ACCEPTED
+					? root.revision() - own.goalRevision() != 1
+					: (reservation.phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && reservation.phase() != PhantomPartyRendezvousState.Phase.ARRIVED) || root.revision() != reservation.adoptedRevision())) { return false; }
+			}
+			final var support = _backend.memberSnapshot(own.actor()).orElse(null);
+			if (support == null || !support.ref().equals(own.actor()) || support.instanceId() != 0 || !PhantomAutonomousFarmParty.supportPresent(support)) { return false; }
+			for (var participant : reservation.roster())
+			{
+				final var peer = _rendezvousClaims.get(participant.actor().profileId());
+				if (peer == null || !reservation.sameOffer(peer) || !peer.active(System.currentTimeMillis())
+					|| peer.phase() != PhantomPartyRendezvousState.Phase.ACCEPTED && peer.phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && peer.phase() != PhantomPartyRendezvousState.Phase.ARRIVED
+					|| _backend.materializationEpoch(participant.actor()) != participant.epoch()) { return false; }
+			}
+			return _state == State.RUNNING && reservation == _rendezvousClaims.get(profileId) && reservation.active(System.currentTimeMillis());
+		}
+		catch (RuntimeException unavailable) { return false; }
 	}
 
 	/** Optional bounded operator evidence; no SQL reads and no effect on admission. */

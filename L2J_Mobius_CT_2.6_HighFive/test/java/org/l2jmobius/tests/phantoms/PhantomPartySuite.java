@@ -1192,6 +1192,53 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static void lifecycle(PhantomTestRegistry registry)
 	{
+		registry.add("129-support-travel-permission-is-exact-and-finite", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			for (long id : List.of(1L, 2L, 3L))
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(id == 3 ? cap("combat.heal", "learned.heal", 450, 1011) : cap("combat.melee_damage", "weapon", 300, 0))));
+				goals.put(id, supportTravelRoot(id, 0, "farm.fixture"));
+			}
+			final var coordinator = coordinator(context, states, goals, backend, 64); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				final long now = System.currentTimeMillis(); final var source = new PhantomDomainRef("background.farm", "20101@farm.fixture");
+				final var roster = List.of(1L, 3L, 2L).stream().map(id -> new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Participant(backend.currentMember(id).orElseThrow(), 1, 129000 + id, 0)).toList();
+				for (long id : List.of(1L, 2L, 3L))
+				{ coordinator.saveRendezvous(-1, new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState(id, "A".repeat(64), 1, roster, source, now - 1, now + 120_000, org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.ACCEPTED, 0)).orElseThrow(); }
+				states._rejectRendezvousReads = true;
+				final var original = goals.load(3).orElseThrow().goal();
+				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "supportRendezvousPreparation", 3, original), "RED129: a current accepted learned support needs its own travel-only preparation permission.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, original), "An unchanged old root cannot borrow the adopted travel exception.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousPreparation", 1, goals.load(1).orElseThrow().goal()), "A damage slot cannot borrow support-only admission.");
+				PhantomAssertions.assertTrue(coordinator.assemblyDeadline(3) > now, "ACCEPTED must hold new Solo starts through the root-CAS to ASSEMBLING receipt gap.");
+				final var adopted = supportTravelRoot(3, 1, "farm.fixture"); goals.put(3, adopted);
+				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "The exact ACCEPTED+1 publication gap must preserve only the adopted shared root.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, supportTravelRoot(3, 1, "farm.foreign")), "A different source cannot reuse the reservation.");
+				final var saved = states._rendezvous.get(3L);
+				final var assembling = coordinator.saveRendezvous(saved.rowVersion(), saved.state().withPhase(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.ASSEMBLING, 1)).orElseThrow();
+				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "ASSEMBLING retains the exact adopted support root.");
+				backend._nativeEpoch = 2; PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "A new native lifetime cannot inherit travel permission."); backend._nativeEpoch = 1;
+				final var actor = backend.currentMember(3).orElseThrow(); final var learned = backend.memberSnapshot(actor).orElseThrow();
+				backend.snapshot(actor, member(3, 103, 100, 100, false, 0, List.of()));
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "Missing learned non-self support cannot retain the exception."); backend.snapshot(actor, learned);
+				// Replace only the fixture's persisted snapshot, as restart reads do; no runtime permission writes are issued.
+				final var prior = assembling.state();
+				states._rendezvous.put(3L, new PhantomPartyPersistencePort.StoredRendezvous(3, assembling.rowVersion() + 1, new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState(3, prior.offerId(), 1, roster, source, now - 120_000, now - 1, prior.phase(), 1)));
+				states._rejectRendezvousReads = false; coordinator.rendezvous(3); states._rejectRendezvousReads = true;
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "Expired consent cannot retain a travel exception.");
+				states._rendezvous.put(3L, assembling); states._rejectRendezvousReads = false; coordinator.rendezvous(3); states._rejectRendezvousReads = true;
+				final var peer = states._rendezvous.get(2L); coordinator.saveRendezvous(peer.rowVersion(), peer.state().withPhase(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, 0)).orElseThrow();
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "A cancelled roster participant revokes shared support travel.");
+				coordinator.beginStop();
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousPreparation", 3, original), "STOPPING cannot admit preparation.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "STOPPING cannot preserve travel even though durable reservations remain.");
+				PhantomAssertions.assertEquals(3, states._rendezvous.size(), "Stopping must not be represented as clearing durable consent.");
+			}
+			finally { states._rejectRendezvousReads = false; coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Support permission fixture did not drain."); }
+		});
 		registry.add("129-bilateral-arrivals-precede-canonical-invitations", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
@@ -2321,6 +2368,19 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		return goal(goalId, type, target, revision, PhantomGoalStatus.ACTIVE);
 	}
 
+	private static boolean supportPermission(PhantomPartyCoordinator coordinator, MemoryPartyBackend backend, String method, long profileId, PhantomGoal root) throws Exception
+	{
+		backend._rejectCurrentMemberReads = true;
+		try { return (boolean) PhantomPartyCoordinator.class.getMethod(method, long.class, PhantomGoal.class).invoke(coordinator, profileId, root); }
+		catch (NoSuchMethodException oldProduction) { return false; }
+		catch (java.lang.reflect.InvocationTargetException failure) { if (failure.getCause() instanceof Error error) { throw error; } throw failure; }
+		finally { backend._rejectCurrentMemberReads = false; }
+	}
+	private static PhantomGoal supportTravelRoot(long profileId, long revision, String anchor)
+	{
+		return new PhantomGoal(129000 + profileId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profileId)), new PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "20101@" + anchor)), new PhantomDomainRef("topology.anchor", anchor), "farm.background", 500, 0, 0, 0, Map.of(), "background.catchup.plan", revision);
+	}
+
 	private static PhantomGoal historicalIdle(long profileId, long goalId, long revision)
 	{
 		final var owner = new PhantomDomainRef("profile", Long.toString(profileId));
@@ -2518,8 +2578,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	}
 
 	private static final class MemoryPartyStore implements PhantomPartyPersistencePort	{
+		private boolean _rejectRendezvousReads;
 		private final Map<Long, StoredRendezvous> _rendezvous = new LinkedHashMap<>();
-		@Override public Optional<StoredRendezvous> loadRendezvous(long profileId) { return Optional.ofNullable(_rendezvous.get(profileId)); }
+		@Override public Optional<StoredRendezvous> loadRendezvous(long profileId) { if (_rejectRendezvousReads) { throw new AssertionError("Memory-only support permission read persistence."); } return Optional.ofNullable(_rendezvous.get(profileId)); }
 		@Override public StoredRendezvous saveRendezvous(long profileId, long expectedRowVersion, org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState state)
 		{
 			final var prior = _rendezvous.get(profileId);
@@ -2814,6 +2875,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				return lease != null && reconcile.getAsBoolean();
 			}
 		}
+		private boolean _rejectCurrentMemberReads;
 		private boolean _farmEnabled;
 		private java.util.OptionalInt _farmTarget = java.util.OptionalInt.empty();
 		private java.util.function.Consumer<MemberRef> _afterSnapshot;
@@ -2889,6 +2951,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		@Override
 		public Optional<MemberRef> currentMember(long profileId)
 		{
+			if (_rejectCurrentMemberReads) { throw new AssertionError("Support predicate called JDBC-backed currentMember."); }
 			return Optional.ofNullable(_members.get(profileId));
 		}
 

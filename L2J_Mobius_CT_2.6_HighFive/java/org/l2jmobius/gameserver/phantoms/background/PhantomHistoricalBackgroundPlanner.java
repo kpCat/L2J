@@ -172,6 +172,13 @@ public final class PhantomHistoricalBackgroundPlanner
 	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, java.util.function.Predicate<PhantomGoal> admitted)
 	{
+		return replanVisibleRendezvous(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, sharedFarmSource, excludedSteps, false, admitted);
+	}
+
+	/** A role-authorized accepted support proposes travel only; ordinary and historical Solo admission are unchanged. */
+	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
+		PhantomTopologyPoint live, PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, boolean supportTravelOnly, java.util.function.Predicate<PhantomGoal> admitted)
+	{
 		final var source = rendezvousSource(sharedFarmSource);
 		final var previous = visiblePredecessor(profileId, previousGoal);
 		Objects.requireNonNull(admitted, "admitted");
@@ -183,7 +190,7 @@ public final class PhantomHistoricalBackgroundPlanner
 			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
 			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
 			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
-			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), excludedSteps, null, PlanningCombat.from(state), false,
+			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), Set.of(), excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), false,
 			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()));
 		return !candidate.ready() || admitted.test(candidate.goal()) ? candidate : Result.blocked("planner.rendezvous.travel_unavailable");
 	}

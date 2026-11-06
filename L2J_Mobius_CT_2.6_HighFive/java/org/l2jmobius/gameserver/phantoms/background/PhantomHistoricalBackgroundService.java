@@ -79,6 +79,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _visibleIntent = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedIntent = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousPreparation = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousTravel = (_, _) -> false;
+
+	/** Party owns current role/consent; these predicates permit visible shared travel only. */
+	public void bindSupportRendezvous(java.util.function.BiPredicate<Long, PhantomGoal> preparation, java.util.function.BiPredicate<Long, PhantomGoal> travel)
+	{
+		_supportRendezvousPreparation = Objects.requireNonNull(preparation);
+		_supportRendezvousTravel = Objects.requireNonNull(travel);
+	}
 
 	/** A child intent retains the exact farm root while its existing native owners travel. */
 	public void bindVisibleIntent(java.util.function.BiPredicate<Long, PhantomGoal> intent)
@@ -1399,7 +1408,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = sharedFarmSource == null; return prepared; }
 			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
-			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal())) { prepared = sharedFarmSource == null; return prepared; }
+			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal()))
+			{
+				prepared = sharedFarmSource == null || stored.goal().validSources().contains(sharedFarmSource) && _supportRendezvousTravel.test(profileId, stored.goal());
+				return prepared;
+			}
 			stage = "lifetime";
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime == null) { return false; }
@@ -1524,9 +1537,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
 			final java.util.function.Predicate<PhantomGoal> permitsTravel = candidate -> _planner.isVisibleLocal(candidate, live)
 				|| (_visibleTravel != null && _visibleTravel.permitsReplannedFarmTravel(stored.goal(), candidate, live, player));
+			final boolean supportTravelOnly = sharedFarmSource != null && _supportRendezvousPreparation.test(profileId, stored.goal());
 			final var replacement = sharedFarmSource == null
 				? _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps(), permitsTravel)
-				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(),
+				: _planner.replanVisibleRendezvous(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, sharedFarmSource, exclusions.steps(), supportTravelOnly,
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
 			if (!replacement.ready())
 			{
@@ -1547,6 +1561,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal());
 			if (_visiblePublications.putIfAbsent(profileId, publication) != null) { return false; }
 			if (sharedFarmSource != null && (!rendezvousCurrent(profileId, expectedGoal, reservationCurrent)
+				|| supportTravelOnly && !_supportRendezvousPreparation.test(profileId, stored.goal())
 				|| !visibleActorQuiet(profileId, player, lifetime.materializedAtNanos()) || player.isInCombat()))
 			{ _visiblePublications.remove(profileId, publication); return false; }
 			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
