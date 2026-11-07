@@ -1430,6 +1430,89 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		public boolean expired(long now) { return now < episodeSince || now >= deadline || now - episodeSince >= episodeNanos; }
 		public java.util.Set<PhantomNavigationPoint> visited() { return java.util.Set.copyOf(visited); }
 
+		/** Relative active-time budget, never a persisted System.nanoTime origin or a fresh route allowance. */
+		public Snapshot suspend(long now)
+		{
+			if (now < startedNanos || now < episodeSince) { throw new IllegalArgumentException("WALK checkpoint clock moved backwards."); }
+			return new Snapshot(Math.min(java.util.concurrent.TimeUnit.MINUTES.toNanos(30), now - startedNanos), Math.max(0, deadline - now),
+				Math.min(episodeNanos, now - episodeSince), episodeNanos, speed, maximumDistance, maximumWaypoints, chargedDistance, routes, List.copyOf(visited), releasedDestination);
+		}
+		public static NativeWalkBudget resume(Snapshot saved, long now, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy policy)
+		{
+			if (now < 0 || saved.maximumDistance() > policy.maximumRouteDistance() || saved.maximumWaypoints() > policy.maximumWaypoints()
+				|| saved.episodeNanos() > Math.min(policy.maximumAttemptDurationNanos(), PlayerNativeEvidence.MAX_PHASE_NANOS))
+			{ throw new IllegalArgumentException("WALK checkpoint exceeds current navigation policy."); }
+			return new NativeWalkBudget(saved, now);
+		}
+		private NativeWalkBudget(Snapshot saved, long now)
+		{
+			startedNanos = Math.subtractExact(now, saved.elapsedNanos()); deadline = Math.addExact(now, saved.remainingNanos());
+			episodeSince = Math.subtractExact(now, saved.episodeElapsedNanos()); episodeNanos = saved.episodeNanos(); speed = saved.speed();
+			maximumDistance = saved.maximumDistance(); maximumWaypoints = saved.maximumWaypoints(); chargedDistance = saved.chargedDistance();
+			routes = saved.routes(); visited.addAll(saved.visited()); releasedDestination = saved.releasedDestination();
+		}
+		public record Snapshot(long elapsedNanos, long remainingNanos, long episodeElapsedNanos, long episodeNanos, double speed,
+			double maximumDistance, int maximumWaypoints, double chargedDistance, int routes, List<PhantomNavigationPoint> visited, PhantomNavigationPoint releasedDestination)
+		{
+			public Snapshot
+			{
+				final var sortedPoints = visited.stream().sorted(java.util.Comparator.comparingInt(PhantomNavigationPoint::x).thenComparingInt(PhantomNavigationPoint::y)
+					.thenComparingInt(PhantomNavigationPoint::z).thenComparingInt(PhantomNavigationPoint::instanceId)).toList();
+				visited = sortedPoints;
+				if (elapsedNanos < 0 || remainingNanos < 0 || elapsedNanos > java.util.concurrent.TimeUnit.MINUTES.toNanos(30) || remainingNanos > java.util.concurrent.TimeUnit.MINUTES.toNanos(30) - elapsedNanos
+					|| episodeNanos <= 0 || episodeNanos > PlayerNativeEvidence.MAX_PHASE_NANOS || episodeElapsedNanos < 0 || episodeElapsedNanos > episodeNanos
+					|| !Double.isFinite(speed) || speed <= 0 || !Double.isFinite(maximumDistance) || maximumDistance <= 0 || maximumDistance > 100_000
+					|| maximumWaypoints < 1 || maximumWaypoints > 64 || !Double.isFinite(chargedDistance) || chargedDistance < 0 || chargedDistance > maximumDistance
+					|| routes < 0 || routes > 64 || visited.isEmpty() || visited.size() > 64 || java.util.Set.copyOf(visited).size() != visited.size()
+					|| visited.stream().anyMatch(p -> p.instanceId() != sortedPoints.getFirst().instanceId())
+					|| releasedDestination != null && (releasedDestination.instanceId() != visited.getFirst().instanceId() || visited.contains(releasedDestination)))
+				{ throw new IllegalArgumentException("Invalid bounded WALK checkpoint."); }
+			}
+			public byte[] encode()
+			{
+				try
+				{
+					final var bytes = new java.io.ByteArrayOutputStream();
+					try (var out = new java.io.DataOutputStream(bytes))
+					{
+						out.writeInt(1); out.writeLong(elapsedNanos); out.writeLong(remainingNanos); out.writeLong(episodeElapsedNanos); out.writeLong(episodeNanos);
+						out.writeDouble(speed); out.writeDouble(maximumDistance); out.writeInt(maximumWaypoints); out.writeDouble(chargedDistance); out.writeInt(routes);
+						out.writeInt(visited.size()); for (var point : visited) { writePoint(out, point); }
+						out.writeBoolean(releasedDestination != null); if (releasedDestination != null) { writePoint(out, releasedDestination); }
+					}
+					return bytes.toByteArray();
+				}
+				catch (java.io.IOException failure) { throw new IllegalStateException(failure); }
+			}
+			public Snapshot elapse(long nanos)
+			{
+				if (nanos < 0) { throw new IllegalArgumentException("WALK checkpoint active time cannot move backwards."); }
+				final long delta = Math.min(nanos, java.util.concurrent.TimeUnit.MINUTES.toNanos(30));
+				return new Snapshot(Math.min(java.util.concurrent.TimeUnit.MINUTES.toNanos(30), elapsedNanos + delta), Math.max(0, remainingNanos - delta),
+					Math.min(episodeNanos, episodeElapsedNanos + delta), episodeNanos, speed, maximumDistance, maximumWaypoints, chargedDistance, routes, visited, releasedDestination);
+			}
+			public static Snapshot decode(byte[] bytes)
+			{
+				if (bytes == null || bytes.length > 2048) { throw new IllegalArgumentException("Invalid WALK checkpoint payload bound."); }
+				try (var in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(bytes)))
+				{
+					if (in.readInt() != 1) { throw new IllegalArgumentException("Unknown WALK checkpoint schema."); }
+					final long elapsed = in.readLong(), remaining = in.readLong(), episodeElapsed = in.readLong(), episode = in.readLong();
+					final double speed = in.readDouble(), distance = in.readDouble(); final int waypoints = in.readInt(); final double charged = in.readDouble(); final int routes = in.readInt(), count = in.readInt();
+					if (count < 1 || count > 64) { throw new IllegalArgumentException("Invalid WALK checkpoint point count."); }
+					final var points = new java.util.ArrayList<PhantomNavigationPoint>(); for (int i = 0; i < count; i++) { points.add(readPoint(in)); }
+					final var released = in.readBoolean() ? readPoint(in) : null;
+					if (in.available() != 0) { throw new IllegalArgumentException("Trailing WALK checkpoint data."); }
+					return new Snapshot(elapsed, remaining, episodeElapsed, episode, speed, distance, waypoints, charged, routes, points, released);
+				}
+				catch (java.io.IOException failure) { throw new IllegalArgumentException("Invalid WALK checkpoint payload.", failure); }
+			}
+			private static void writePoint(java.io.DataOutputStream out, PhantomNavigationPoint point) throws java.io.IOException
+			{ out.writeInt(point.x()); out.writeInt(point.y()); out.writeInt(point.z()); out.writeInt(point.instanceId()); }
+			private static PhantomNavigationPoint readPoint(java.io.DataInputStream in) throws java.io.IOException
+			{ return new PhantomNavigationPoint(in.readInt(), in.readInt(), in.readInt(), in.readInt()); }
+		}
+
 		public boolean admit(PhantomNavigationRoute route, long now)
 		{
 			if (expired(now) || routes >= 64 || route.waypoints().isEmpty() || route.waypoints().size() > maximumWaypoints || visited.contains(route.destination())) { return false; }

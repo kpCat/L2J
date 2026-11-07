@@ -340,7 +340,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Permit tryAcquireExecution(boolean completion)
 	{
 		final var inherited = _nativeWork == null ? null : _nativeWork.currentExecutionStamp();
-		return completion ? _execution.tryAcquireCompletionScoped(_executionProfileId, inherited) : _execution.tryAcquireScoped(_executionProfileId, inherited);
+		return completion ? _execution.tryAcquireCompletionScoped(_executionProfileId, inherited) : _nativeWork != null && _nativeWork.currentAction()
+			? _execution.tryAcquireContinuationScoped(_executionProfileId, inherited) : _execution.tryAcquireScoped(_executionProfileId, inherited);
 	}
 	private ActionLease tryAcquireAction(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured, boolean completion, boolean observation)
 	{
@@ -348,7 +349,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		if (captured != null && inherited != null && !captured.equals(inherited)) { return null; }
 		final var anchor = inherited != null ? inherited : captured;
 		// Domain resolution occurs before the native monitor; only scalar permit checks occur inside it.
-		final var permit = _execution == null || observation ? null : completion ? _execution.tryAcquireCompletionScoped(_executionProfileId, anchor) : _execution.tryAcquireScoped(_executionProfileId, anchor);
+		final var permit = _execution == null || observation ? null : completion ? _execution.tryAcquireCompletionScoped(_executionProfileId, anchor) : _nativeWork != null && _nativeWork.currentAction()
+			? _execution.tryAcquireContinuationScoped(_executionProfileId, anchor) : _execution.tryAcquireScoped(_executionProfileId, anchor);
 		if (_execution != null && !observation && permit == null) { return null; }
 		boolean retained = false;
 		try

@@ -239,6 +239,10 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 		CRYSTALLIZE
 	}
 
+	/** Completion of an already paid/removed effect is distinct from admission of a fresh interaction. */
+	public boolean acceptedSecondOwned(long actorProfileId, ConservationFacts current)
+	{ return actorProfileId == profileId && state == State.COMMITTING && reconcile(current) == Reconciliation.FIRST_EFFECT_ONLY; }
+
 	public enum State
 	{
 		PREPARED,

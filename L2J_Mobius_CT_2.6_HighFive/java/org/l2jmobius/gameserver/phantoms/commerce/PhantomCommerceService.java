@@ -44,6 +44,20 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
 public final class PhantomCommerceService
 {
 	private static final int LOCK_STRIPES = 64;
+	private final java.util.concurrent.ConcurrentHashMap<Long, VersionedReceipt> _observedReceipts = new java.util.concurrent.ConcurrentHashMap<>();
+	private java.util.function.Consumer<VersionedReceipt> _receiptObserver = _ -> { };
+	public synchronized void useReceiptObserver(java.util.function.Consumer<VersionedReceipt> observer)
+	{
+		if (_state != StateSnapshot.NEW) { throw new IllegalStateException("Receipt admission observer must bind before start."); }
+		_receiptObserver = Objects.requireNonNull(observer);
+	}
+	public java.util.Set<Long> pendingProfiles()
+	{ return _observedReceipts.entrySet().stream().filter(entry -> !entry.getValue().receipt().state().terminal() || entry.getValue().receipt().state() == State.INCONSISTENT).map(java.util.Map.Entry::getKey).collect(java.util.stream.Collectors.toUnmodifiableSet()); }
+	private void observeReceipt(VersionedReceipt receipt)
+	{
+		final var current = _observedReceipts.compute(receipt.receipt().profileId(), (_, old) -> old != null && old.rowVersion() > receipt.rowVersion() ? old : receipt);
+		_receiptObserver.accept(current);
+	}
 
 	private final PhantomCommerceCatalogLoader.LoadResult _catalogResult;
 	private final ReceiptPersistence _receiptStore;
@@ -95,22 +109,32 @@ public final class PhantomCommerceService
 		return true;
 	}
 
-	public synchronized boolean finishStop()
+	public boolean finishStop()
 	{
-		if (_state == StateSnapshot.STOPPED)
+		synchronized (this)
 		{
+			if (_state == StateSnapshot.STOPPED) { return true; }
+			if ((_state != StateSnapshot.STOPPING) && (_state != StateSnapshot.NEW)) { return false; }
+			if ((_currentOperations != 0) || (_currentActorLeases != 0) || (_currentPersistenceClaims != 0)) { return false; }
+		}
+		// Controllers may already be stopped. Their exact accepted receipts still belong to this effect owner.
+		for (long profileId : _backend.liveProfiles())
+		{
+			var pending = findReceipt(profileId).orElse(null);
+			if (pending != null && !pending.receipt().state().terminal())
+			{
+				settleAccepted(profileId, pending.receipt().operationKey());
+				pending = findReceipt(profileId).orElse(null);
+				if (pending != null && !pending.receipt().state().terminal()) { abortAcceptedUnapplied(profileId, pending.receipt().operationKey()); pending = findReceipt(profileId).orElse(null); }
+			}
+			if (pending != null && (!pending.receipt().state().terminal() || pending.receipt().state() == State.INCONSISTENT)) { return false; }
+		}
+		synchronized (this)
+		{
+			if (_currentOperations != 0 || _currentActorLeases != 0 || _currentPersistenceClaims != 0) { return false; }
+			_state = StateSnapshot.STOPPED;
 			return true;
 		}
-		if ((_state != StateSnapshot.STOPPING) && (_state != StateSnapshot.NEW))
-		{
-			return false;
-		}
-		if ((_currentOperations != 0) || (_currentActorLeases != 0) || (_currentPersistenceClaims != 0))
-		{
-			return false;
-		}
-		_state = StateSnapshot.STOPPED;
-		return true;
 	}
 
 	public PhantomCommerceCatalog catalog()
@@ -133,7 +157,7 @@ public final class PhantomCommerceService
 	public OperationResult abortAcceptedUnapplied(long profileId, String expectedOperationKey)
 	{
 		Objects.requireNonNull(expectedOperationKey);
-		if (!beginOperation()) { return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING)); }
+		if (!beginOperation(true)) { return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING)); }
 		try { return _backend.withQuiescentBoundary(profileId, () -> abortUnappliedBound(profileId, expectedOperationKey)); }
 		catch (ConcurrentModificationException e) { return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
 		catch (RuntimeException e) { return record(OperationResult.retry(Reason.BACKEND_FAILURE)); }
@@ -168,7 +192,7 @@ public final class PhantomCommerceService
 	public OperationResult settleAccepted(long profileId, String expectedOperationKey)
 	{
 		Objects.requireNonNull(expectedOperationKey);
-		if (!beginOperation()) { return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING)); }
+		if (!beginOperation(true)) { return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING)); }
 		try
 		{
 			final VersionedReceipt accepted;
@@ -197,7 +221,7 @@ public final class PhantomCommerceService
 	{
 		Objects.requireNonNull(intent);
 		Objects.requireNonNull(cancelled);
-		if (!beginOperation())
+		if (!beginOperation(acceptedKey != null))
 		{
 			return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING));
 		}
@@ -392,7 +416,7 @@ public final class PhantomCommerceService
 	private OperationResult applyMissingSecond(ActorLease actor, VersionedReceipt versioned)
 	{
 		final PhantomCommerceReceipt receipt = versioned.receipt();
-		if (!actor.applySecond(receipt.request()))
+		if (!actor.applyAcceptedSecond(receipt))
 		{
 			return OperationResult.retry(Reason.SECOND_EFFECT_NOT_CONFIRMED);
 		}
@@ -452,12 +476,12 @@ public final class PhantomCommerceService
 
 	private Optional<VersionedReceipt> findReceipt(long profileId)
 	{
-		return persistenceClaim(() -> _receiptStore.find(profileId));
+		final var value = persistenceClaim(() -> _receiptStore.find(profileId)); value.ifPresent(this::observeReceipt); return value;
 	}
 
 	private VersionedReceipt saveReceipt(long expectedRowVersion, PhantomCommerceReceipt receipt)
 	{
-		return persistenceClaim(() -> _receiptStore.save(expectedRowVersion, receipt));
+		final var value = persistenceClaim(() -> _receiptStore.save(expectedRowVersion, receipt)); observeReceipt(value); return value;
 	}
 
 	private <T> T persistenceClaim(Supplier<T> operation)
@@ -490,8 +514,10 @@ public final class PhantomCommerceService
 	}
 
 	private synchronized boolean beginOperation()
+	{ return beginOperation(false); }
+	private synchronized boolean beginOperation(boolean completion)
 	{
-		if (_state != StateSnapshot.RUNNING)
+		if (_state != StateSnapshot.RUNNING && (!completion || _state != StateSnapshot.STOPPING))
 		{
 			return false;
 		}
@@ -563,6 +589,7 @@ public final class PhantomCommerceService
 	public interface Backend
 	{
 		Optional<ActorLease> tryAcquire(long profileId);
+		default java.util.Set<Long> liveProfiles() { return java.util.Set.of(); }
 
 		default OperationResult withNativeBoundary(long profileId, OperationIntent intent, Supplier<OperationResult> operation) { return operation.get(); }
 		default OperationResult withAcceptedBoundary(long profileId, OperationIntent intent, Supplier<OperationResult> operation) { return withNativeBoundary(profileId, intent, operation); }
@@ -589,6 +616,7 @@ public final class PhantomCommerceService
 		boolean applyFirst(OperationRequest request);
 
 		boolean applySecond(OperationRequest request);
+		default boolean applyAcceptedSecond(PhantomCommerceReceipt receipt) { return applySecond(receipt.request()); }
 
 		@Override
 		void close();

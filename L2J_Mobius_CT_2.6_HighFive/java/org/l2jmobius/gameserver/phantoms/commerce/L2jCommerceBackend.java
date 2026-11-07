@@ -102,13 +102,15 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 	@Override
 	public PhantomCommerceService.OperationResult withNativeBoundary(long profileId, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
 	{
-		return _materializationService.withExecutionGuard(profileId, false, () -> intent.kind() == OperationKind.TELEPORT ? operation.get() : nativeBoundary(profileId, operation, intent.kind() == OperationKind.BUY),
+		return _materializationService.withExecutionGuard(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId), false, () -> intent.kind() == OperationKind.TELEPORT ? operation.get() : nativeBoundary(profileId, operation, intent.kind() == OperationKind.BUY),
 			PhantomCommerceService.OperationResult.retry(Reason.EXECUTION_NOT_OWNED));
 	}
 	private final ThreadLocal<Long> _completionProfile = new ThreadLocal<>();
+	@Override public java.util.Set<Long> liveProfiles()
+	{ return _materializationService.list().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).collect(java.util.stream.Collectors.toUnmodifiableSet()); }
 	@Override public PhantomCommerceService.OperationResult withAcceptedBoundary(long profileId, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
 	{
-		return _materializationService.withExecutionGuard(profileId, true, () ->
+		return _materializationService.withExecutionGuard(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId), true, () ->
 		{
 			final var previous = _completionProfile.get(); _completionProfile.set(profileId);
 			try { return intent.kind() == OperationKind.TELEPORT ? operation.get() : nativeBoundary(profileId, operation, false); }
@@ -117,7 +119,7 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 	}
 
 	@Override public PhantomCommerceService.OperationResult withQuiescentBoundary(long profileId, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
-	{ return _materializationService.withExecutionGuard(profileId, true, () -> nativeBoundary(profileId, operation, false), PhantomCommerceService.OperationResult.retry(Reason.EXECUTION_NOT_OWNED)); }
+	{ return _materializationService.withExecutionGuard(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId), true, () -> nativeBoundary(profileId, operation, false), PhantomCommerceService.OperationResult.retry(Reason.EXECUTION_NOT_OWNED)); }
 
 	private PhantomCommerceService.OperationResult nativeBoundary(long profileId, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation, boolean allowHeldBuy)
 	{
@@ -258,7 +260,8 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			{
 				return Quote.rejected(Reason.WEIGHT_LIMIT);
 			}
-			if ((_player.getInventory().getItemByItemId(product.getItemId()) == null) && !_player.getInventory().validateCapacity(1))
+			final long slots = product.getItem().isStackable() ? _player.getInventory().getItemByItemId(product.getItemId()) == null ? 1 : 0 : intent.count();
+			if (!_player.getInventory().validateCapacity(slots))
 			{
 				return Quote.rejected(Reason.CAPACITY_LIMIT);
 			}
@@ -491,6 +494,32 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			return applied;
 		}
 
+		@Override public boolean applyAcceptedSecond(PhantomCommerceReceipt receipt)
+		{
+			if (receipt.profileId() != _profileId || receipt.state() != PhantomCommerceReceipt.State.COMMITTING) { return false; }
+			// A normal fresh interaction keeps its target and current policy checks. Debt recovery requires the exclusive owner.
+			if (!scoped()) { return applySecond(receipt.request()); }
+			final var current = snapshot(receipt.request());
+			if (!receipt.acceptedSecondOwned(_profileId, current))
+			{ return receipt.reconcile(current) == PhantomCommerceReceipt.Reconciliation.EXACT_BEFORE && applySecond(receipt.request()); }
+			final var request = receipt.request();
+			if (!claimEconomyWriter(request)) { return false; }
+			final boolean applied = switch (request.kind())
+			{
+				case BUY ->
+				{
+					final var product = buyProduct(request);
+					if (product == null || product.hasLimitedStock() || !buyOutputFits(request, product)) { yield false; }
+					yield _player.getInventory().addItem(ItemProcessType.BUY, request.itemId(), request.count(), _player, _player) != null;
+				}
+				case SELL -> applySellRefund(request, true);
+				case WAREHOUSE_DEPOSIT -> applyWarehouseTransfer(request, true);
+				default -> applySecond(request);
+			};
+			if (applied) { flushAndVerify(request); }
+			return applied;
+		}
+
 		private boolean applyBuyPayment(OperationRequest request)
 		{
 			final Merchant merchant = merchant(request);
@@ -510,12 +539,17 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			{
 				return false;
 			}
-			final long weight = Math.multiplyExact((long) product.getItem().getWeight(), request.count());
-			if (!_player.getInventory().validateWeight(weight) || ((_player.getInventory().getItemByItemId(request.itemId()) == null) && !_player.getInventory().validateCapacity(1)))
+			if (!buyOutputFits(request, product))
 			{
 				return false;
 			}
 			return _player.getInventory().addItem(ItemProcessType.BUY, request.itemId(), request.count(), _player, merchant) != null;
+		}
+		private boolean buyOutputFits(OperationRequest request, Product product)
+		{
+			if (!product.getItem().isStackable() && request.count() != 1) { return false; }
+			final long slots = product.getItem().isStackable() ? _player.getInventory().getItemByItemId(request.itemId()) == null ? 1 : 0 : request.count();
+			return _player.getInventory().validateCapacity(slots) && _player.getInventory().validateWeight(Math.multiplyExact((long) product.getItem().getWeight(), request.count()));
 		}
 
 		private boolean applySellRemoval(OperationRequest request)
@@ -550,14 +584,16 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		}
 
 		private boolean applyWarehouseTransfer(OperationRequest request)
+		{ return applyWarehouseTransfer(request, false); }
+		private boolean applyWarehouseTransfer(OperationRequest request, boolean accepted)
 		{
 			final var manager = npc(request); final boolean deposit = request.kind() == OperationKind.WAREHOUSE_DEPOSIT;
-			if (manager == null || !manager.isWarehouse() || validateActor(manager, false) != Reason.ACCEPTED || warehouseBusy()) { return false; }
+			if (!accepted && (manager == null || !manager.isWarehouse() || validateActor(manager, false) != Reason.ACCEPTED || warehouseBusy())) { return false; }
 			final var source = deposit ? _player.getInventory() : _player.getWarehouse(); final var target = deposit ? _player.getWarehouse() : _player.getInventory();
 			final var item = source.getItemByObjectId(request.itemObjectId());
 			if (item == null || item.getId() != request.itemId() || item.getCount() < request.count() || item.isEquipped() || !warehouseFits(item, request.count(), deposit)
 				|| deposit && (!item.isDepositable(true) || !item.isAvailable(_player, true, true))) { return false; }
-			return source.transferItem(ItemProcessType.TRANSFER, item.getObjectId(), request.count(), target, _player, manager) != null;
+			return source.transferItem(ItemProcessType.TRANSFER, item.getObjectId(), request.count(), target, _player, accepted ? _player : manager) != null;
 		}
 
 		private boolean applyCrystal(OperationRequest request)
@@ -603,18 +639,20 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		}
 
 		private boolean applySellRefund(OperationRequest request)
+		{ return applySellRefund(request, false); }
+		private boolean applySellRefund(OperationRequest request, boolean accepted)
 		{
 			final Merchant merchant = merchant(request);
-			if ((merchant == null) || (request.amount() <= 0) || (_player.getAdena() > (Inventory.MAX_ADENA - request.amount())))
+			if ((!accepted && merchant == null) || (request.amount() <= 0) || (_player.getAdena() > (Inventory.MAX_ADENA - request.amount())))
 			{
 				return false;
 			}
 			final BuyListHolder list = BuyListData.getInstance().getBuyList(request.listId());
-			if ((list == null) || !list.isNpcAllowed(merchant.getId()))
+			if ((list == null) || !list.isNpcAllowed(accepted ? request.npcTemplateId() : merchant.getId()))
 			{
 				return false;
 			}
-			_player.addAdena(ItemProcessType.SELL, request.amount(), merchant, false);
+			_player.addAdena(ItemProcessType.SELL, request.amount(), accepted ? _player : merchant, false);
 			return true;
 		}
 
@@ -665,8 +703,12 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 			{
 				return null;
 			}
+			return buyProduct(request);
+		}
+		private Product buyProduct(OperationRequest request)
+		{
 			final BuyListHolder list = BuyListData.getInstance().getBuyList(request.listId());
-			if ((list == null) || !list.isNpcAllowed(merchant.getId()))
+			if ((list == null) || !list.isNpcAllowed(request.npcTemplateId()))
 			{
 				return null;
 			}

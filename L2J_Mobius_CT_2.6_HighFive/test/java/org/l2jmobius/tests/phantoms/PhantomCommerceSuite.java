@@ -555,6 +555,58 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> accepted.withState(State.ABORTED), "General state mutation bypassed exact-before abort proof.");
 			service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Unproved abort leaked ownership.");
 		});
+		registry.add("11-stop-settles-live-accepted-receipt-without-new-quote", _ ->
+		{
+			for (var kind : List.of(OperationKind.BUY, OperationKind.SELL, OperationKind.TELEPORT))
+			{
+				final var store = new FakeStore(); final var accepted = receipt(kind, before(kind), after(kind)).withState(State.COMMITTING); store.save(-1, accepted);
+				final var actor = new FakeActor(kind, partial(kind)); actor.liveForStop = true; final var service = service(store, actor); service.start(); service.beginStop();
+				PhantomAssertions.assertEquals(OperationStatus.REPLAN, service.execute(1, 7, 0, intent(kind), () -> false).status(), "STOPPING admitted a new interaction.");
+				PhantomAssertions.assertTrue(service.finishStop(), "STOP could not settle the receipt after its controller stopped.");
+				PhantomAssertions.assertEquals(State.COMMITTED, store.value.receipt().state(), "STOP lost the accepted result.");
+				PhantomAssertions.assertEquals(accepted.operationKey(), store.value.receipt().operationKey(), "STOP changed the accepted operation key.");
+				PhantomAssertions.assertEquals(0, actor.quoteCalls.get() + actor.firstCalls.get(), "STOP repeated a quote or an earned first effect.");
+				PhantomAssertions.assertEquals(1, actor.secondCalls.get(), "STOP failed to perform its sole missing effect.");
+				PhantomAssertions.assertTrue(service.finishStop(), "Repeated STOP lost idempotency.");
+			}
+		});
+		registry.add("12-paid-effect-survives-provider-instance-loss", _ ->
+		{
+			for (var kind : List.of(OperationKind.BUY, OperationKind.SELL))
+			{
+				final var store = new FakeStore(); final var accepted = receipt(kind, before(kind), after(kind)).withState(State.COMMITTING); store.save(-1, accepted);
+				final var actor = new FakeActor(kind, partial(kind)); actor.providerAvailable = false;
+				PhantomAssertions.assertTrue(accepted.acceptedSecondOwned(1, actor.current), "A paid obligation lost its completion proof.");
+				PhantomAssertions.assertFalse(accepted.acceptedSecondOwned(2, actor.current), "Another profile acquired a paid obligation.");
+				PhantomAssertions.assertFalse(accepted.acceptedSecondOwned(1, before(kind)), "Unpaid state acquired paid-output rights.");
+				final var service = service(store, actor); service.start();
+				PhantomAssertions.assertEquals(OperationStatus.SUCCESS, service.settleAccepted(1, accepted.operationKey()).status(), "Ephemeral provider identity blocked an already earned output.");
+				PhantomAssertions.assertEquals(OperationStatus.IDEMPOTENT, service.settleAccepted(1, accepted.operationKey()).status(), "Provider recovery replayed its output.");
+				PhantomAssertions.assertEquals(0, actor.quoteCalls.get() + actor.firstCalls.get(), "Provider recovery created a new purchase or removal.");
+				PhantomAssertions.assertEquals(1, actor.secondCalls.get(), "Provider recovery duplicated its output.");
+				service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Provider recovery leaked operation ownership.");
+			}
+		});
+		registry.add("13-receipt-observer-fences-new-actions-before-exposing-partial-result", _ ->
+		{
+			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1);
+			final var solo = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(1); gate.publish(1, 0, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(solo));
+			final var actor = new FakeActor(OperationKind.BUY, before(OperationKind.BUY)); final var store = new FakeStore(); final var service = service(store, actor);
+			try (var issued = gate.tryAcquire(1, solo))
+			{
+				service.useReceiptObserver(row ->
+				{
+					final boolean blocked = !row.receipt().state().terminal() || row.receipt().state() == State.INCONSISTENT;
+					gate.blocker(1, PhantomCommerceReceipt.COMPONENT_TYPE, row.rowVersion(), blocked);
+					if (blocked) { PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "Receipt became visible before its conflicting action fence."); }
+					PhantomAssertions.assertTrue(issued.valid(), "A receipt observer interrupted its own accepted operation.");
+				});
+				service.start(); PhantomAssertions.assertEquals(OperationStatus.SUCCESS, service.execute(1, 7, 0, intent(OperationKind.BUY), () -> false).status(), "Admission facts blocked completion of the accepted operation.");
+				PhantomAssertions.assertTrue(service.pendingProfiles().isEmpty(), "A committed receipt retained a stale pending owner.");
+				try (var fresh = gate.tryAcquire(1, solo)) { PhantomAssertions.assertTrue(fresh != null, "Settlement did not reopen fresh actions."); }
+			}
+			service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Observed completion leaked STOP ownership.");
+		});
 	}
 
 	private void registerDecision(PhantomTestRegistry registry)
@@ -1490,9 +1542,12 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		final LoadResult load = new LoadResult(catalog, new CommerceFixtures(null, 0, null, List.of(), List.of(), List.of(), List.of()));
 		return new PhantomCommerceService(load, store, goalStore, new PhantomCommerceService.Backend()
 		{
-			@Override public Optional<ActorLease> tryAcquire(long id) { return id == profileId ? Optional.of(actor) : Optional.empty(); }
+			@Override public Optional<ActorLease> tryAcquire(long id) { actor.acceptedProfileId = id; return id == profileId ? Optional.of(actor) : Optional.empty(); }
+			@Override public java.util.Set<Long> liveProfiles() { return actor.liveForStop ? java.util.Set.of(profileId) : java.util.Set.of(); }
 			@Override public PhantomCommerceService.OperationResult withNativeBoundary(long id, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
 			{ synchronized (actor) { return operation.get(); } }
+			@Override public PhantomCommerceService.OperationResult withAcceptedBoundary(long id, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
+			{ synchronized (actor) { actor.exclusive = intent.kind() != OperationKind.TELEPORT; try { return operation.get(); } finally { actor.exclusive = false; } } }
 			@Override public PhantomCommerceService.OperationResult withQuiescentBoundary(long id, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
 			{
 				synchronized (actor) { actor.exclusive = true; try { return operation.get(); } finally { actor.exclusive = false; } }
@@ -1867,6 +1922,9 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 	{
 		private boolean exclusive;
 		private boolean proofEnabled = true;
+		private boolean liveForStop;
+		private boolean providerAvailable = true;
+		private long acceptedProfileId = 1;
 		@Override public boolean exclusiveCheckpoint() { return exclusive && proofEnabled; }
 		private final AtomicInteger quoteCalls = new AtomicInteger();
 		private boolean freeTravel;
@@ -1932,6 +1990,16 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 		@Override
 		public boolean applySecond(OperationRequest request)
+		{
+			if (!providerAvailable) { return false; }
+			return deliverSecond(request);
+		}
+		@Override public boolean applyAcceptedSecond(PhantomCommerceReceipt receipt)
+		{
+			if (providerAvailable) { return applySecond(receipt.request()); }
+			return exclusiveCheckpoint() && receipt.acceptedSecondOwned(acceptedProfileId, current) && deliverSecond(receipt.request());
+		}
+		private boolean deliverSecond(OperationRequest request)
 		{
 			secondCalls.incrementAndGet();
 			current = switch (kind)

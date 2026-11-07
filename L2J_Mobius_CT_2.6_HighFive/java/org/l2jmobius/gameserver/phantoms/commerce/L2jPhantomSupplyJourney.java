@@ -92,6 +92,12 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private List<SpawnFact> _warehouses = List.of();
 	private Map<Integer, Integer> _sellLists = Map.of();
 	private LongPredicate _maintenanceAllowed = _ -> false;
+	private LongPredicate _executionOwned = _ -> true;
+	public void useExecutionOwnership(LongPredicate owned)
+	{
+		if (_state != State.NEW) { throw new IllegalStateException("Supply execution ownership must bind before start."); }
+		_executionOwned = java.util.Objects.requireNonNull(owned);
+	}
 
 	public void useInventoryMaintenance(LongPredicate allowed)
 	{
@@ -167,7 +173,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	@Override public synchronized boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
 	{
 		final var cached = _cache.get(profileId); final var goal = cached == null ? null : cached.goal;
-		return _state == State.RUNNING && _demands.containsKey(profileId) && _allowed.test(profileId) && alive(goal, System.currentTimeMillis())
+		return _state == State.RUNNING && _demands.containsKey(profileId) && _executionOwned.test(profileId) && _allowed.test(profileId) && alive(goal, System.currentTimeMillis())
 			&& (rootId == 0 || goal.goalId() == rootId && Binding.parse(goal).rootRevision() == rootRevision);
 	}
 	private synchronized void accepted(long id, PhantomGoal goal)
@@ -193,6 +199,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		{
 			final long id = row.profile().profileId();
 			if (row.component().componentSchemaVersion() != 1 || row.profile().characterObjectId() == null || !_allowed.test(id)) { continue; }
+			if (!_executionOwned.test(id)) { releaseDemand(id); continue; }
 			try
 			{
 				final var intent = cached(id).goal; final var root = _roots.load(id).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
@@ -203,7 +210,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 					if (lease != null)
 					{
 					if (!matches(intent, lease.player())) { releaseDemand(id); continue; }
-						if (lease.player().isAlikeDead()) { pause(id, root, lease.player()); }
+						if (lease.player().isAlikeDead()) { pause(id, root, lease.player(), false); }
 						accepted(id, cached(id).goal); continue;
 					}
 				}
@@ -216,12 +223,20 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		}
 	}
 
-	private void pause(long id, PhantomGoal root, Player player)
+	private void pause(long id, PhantomGoal root, Player player, boolean handler)
 	{
-		final var cached = cached(id); final var goal = cached.goal;
-		if (!PhantomSupplyIntentStore.bound(goal, root) || !matches(goal, player)) { return; }
-		final var paused = PhantomOfflineSupply.pause(goal, System.currentTimeMillis());
-		if (!paused.equals(goal)) { save(id, root, cached, paused); }
+		synchronized (this) { if (!handler && !_active.add(id)) { return; } }
+		try
+		{
+			final var cached = cached(id); final var goal = cached.goal;
+			if (!PhantomSupplyIntentStore.bound(goal, root) || !matches(goal, player)) { return; }
+			if (org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.paused(goal)) { return; }
+			cleanup(id);
+			final var paused = PhantomOfflineSupply.pause(goal, System.currentTimeMillis());
+			if (!paused.equals(goal)) { save(id, root, cached, paused); }
+			_store.freezePausedRoute(id, paused, player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope ? scope.currentExecutionStamp() : null);
+		}
+		finally { if (!handler) { synchronized (this) { _active.remove(id); } } }
 	}
 
 	public void useOfflineSupply(org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService service)
@@ -303,6 +318,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	/** Admission observes the existing child/receipt; it never settles or cancels their owners. */
 	public boolean blocksAutonomousParty(long profileId, PhantomGoal root)
 	{
+		if (!_executionOwned.test(profileId)) { return false; }
 		final var child = cached(profileId).goal;
 		if (requiresSoloPreparation(root, child, null)) { return true; }
 		if (requiresSoloPreparation(root, child, _receipts.find(profileId).map(value -> value.receipt().state()).orElse(null))) { return true; }
@@ -319,7 +335,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root)
 	{
-		if (_state != State.RUNNING || !_policy.enabled()) { return false; }
+		if (_state != State.RUNNING || !_policy.enabled() || !_executionOwned.test(profileId)) { return false; }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			final var goal = cached(profileId).goal;
@@ -328,9 +344,55 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		}
 	}
 
+	/** Existing effect owners settle accepted work; the protocol never runs a new discretionary proposal here. */
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareExecutionYield(long profileId, long now)
+	{
+		synchronized (this)
+		{
+			if (_active.contains(profileId)) { return executionWait("supplies.execution.wait_handler", now); }
+		}
+		var receipt = _receipts.find(profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+		if (receipt != null && !receipt.state().terminal())
+		{
+			_commerce.abortAcceptedUnapplied(profileId, receipt.operationKey());
+			receipt = _receipts.find(profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+			if (receipt != null && !receipt.state().terminal()) { _commerce.settleAccepted(profileId, receipt.operationKey()); }
+			receipt = _receipts.find(profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
+		}
+		if (receipt != null && (!receipt.state().terminal() || receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT))
+		{ return executionWait("supplies.execution.wait_accepted_receipt", now); }
+		final var child = _store.intent(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		if (PhantomSupplyIntentStore.upgrade(child) && (_upgrades == null || !_upgrades.settleAutomatic(profileId, child, now)))
+		{ return executionWait("supplies.execution.wait_upgrade_settlement", now); }
+		final Player player;
+		try (var observation = _materialization.tryAcquireObservation(profileId).orElse(null))
+		{
+			player = observation == null ? null : observation.player();
+			if (player != null && player.hasPendingOwnedStore()) { return executionWait("supplies.execution.wait_owned_store", now); }
+		}
+		if (player != null) { beforeStore(profileId, player); }
+		else
+		{
+			synchronized (this) { if (_trips.containsKey(profileId) || _retreats.containsKey(profileId)) { return executionWait("supplies.execution.wait_native_cleanup", now); } _cache.remove(profileId); }
+			releaseDemand(profileId);
+		}
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(true, "supplies.execution.checkpoint_ready", now);
+	}
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness executionWait(String reason, long now)
+	{ return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, reason, Math.addExact(now, 1000)); }
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long profileId, boolean recovery, long now)
+	{
+		final var root = _roots.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElseThrow();
+		final var entry = _materialization.find(profileId).orElse(null);
+		final var player = entry == null || !entry.worldPresent() ? null : World.getInstance().getPlayer(entry.characterObjectId());
+		return _store.executionCheckpoint(profileId, root, now, recovery, Math.addExact(now, TimeUnit.SECONDS.toMillis(4L * _policy.retrySeconds())),
+			recovery && player != null && !player.isAlikeDead());
+	}
+	public synchronized void executionCheckpointCommitted(long profileId) { _cache.remove(profileId); }
+
 	private Optional<PhantomGoal> proposal(long profileId, PhantomGoal root)
 	{
-		if (_state != State.RUNNING || !_policy.enabled() || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return Optional.empty(); }
+		if (_state != State.RUNNING || !_policy.enabled() || !_executionOwned.test(profileId) || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return Optional.empty(); }
 		final var entry = _materialization.find(profileId).orElse(null);
 		final var nativePlayer = entry == null || !entry.actionAdmissionOpen() ? null : World.getInstance().getPlayer(entry.characterObjectId());
 		// Quiescence is acquired before an action lease, as in the Commerce native boundary.
@@ -1066,7 +1128,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				if (lease != null && matches(intent, lease.player()))
 				{
-					if (lease.player().isAlikeDead()) { pause(profileId, context.goal(), lease.player()); accepted(profileId, cached.goal); return retry("supplies.native.recovery_pending"); }
+					if (lease.player().isAlikeDead()) { pause(profileId, context.goal(), lease.player(), true); accepted(profileId, cached.goal); return retry("supplies.native.recovery_pending"); }
+					_store.freezePausedRoute(profileId, intent, lease.executionStamp());
 					final var resumed = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.resume(intent, System.currentTimeMillis());
 					if (!resumed.equals(intent)) { save(profileId, context.goal(), cached, resumed); intent = resumed; }
 				}
@@ -1390,7 +1453,17 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final long remaining = PhantomOfflineSupply.remaining(intent, System.currentTimeMillis());
 			final long started = context.logicalNowNanos();
 			trip = new Trip(player, intent.revision(), returning, destinations, started, started + TimeUnit.MILLISECONDS.toNanos(remaining), intent.deadlineEpochMillis());
+			final var saved = _store.routeProgress(profileId, intent).filter(value -> value.returning() == returning && Set.copyOf(value.destinations()).equals(Set.copyOf(destinations)))
+				.map(value -> value.at(System.currentTimeMillis(), false)).orElse(null);
+			if (saved != null)
+			{
+				trip = new Trip(player, intent.revision(), returning, saved.destinations(), started - saved.elapsedNanos(),
+					started + Math.min(TimeUnit.MILLISECONDS.toNanos(remaining), saved.remainingNanos()), intent.deadlineEpochMillis());
+				trip.destinationIndex = saved.destinationIndex(); trip.segmentReplans = saved.segmentReplans(); trip.localAttempt = saved.localAttempt();
+				if (saved.walk() != null) { trip.walkBudget = NativeWalkBudget.resume(saved.walk(), started, _navigation.policy()); }
+			}
 			synchronized (this) { if (_state != State.RUNNING || _trips.size() >= _policy.maximumProfiles()) { return retry("supplies.trip.capacity"); } _trips.put(profileId, trip); }
+			persistTrip(profileId, trip, started, false);
 		}
 		if (trip.plan != null && trip.stage >= trip.plan.stages().size() && !trip.plan.stages().getLast().to().equals(trip.destination()))
 		{
@@ -1677,6 +1750,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				stopOwnedMove(trip);
 				if (trip.walkBudget != null && !trip.walkBudget.checkpoint(current, now)) { return "supplies.navigation.checkpoint_rejected"; }
+				persistTrip(profileId, trip, now, false);
 				trip.stage++; trip.waypoint = 0;
 			}
 			else { trip.waypoint++; }
@@ -1689,6 +1763,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			{
 				cached(profileId).navigationRefusal = "from=" + current + ";to=" + waypoint + ";stage=" + trip.stage + ";waypoint=" + trip.waypoint + ";replan=" + trip.segmentReplans;
 				if (++trip.segmentReplans > 3) { return "supplies.native.segment_changed"; }
+				persistTrip(profileId, trip, now, false);
 				clearRoute(profileId, trip); trip.retryAt = now + _navigation.policy().pathfindingCooldownMillis() * 1_000_000L; trip.reason = "supplies.native.segment_replan"; return null;
 			}
 			if (cancelled(context, binding, player, trip.intentDeadline)) { return "supplies.navigation.cancelled"; }
@@ -1734,7 +1809,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		}
 		final var endpoint = trip.walkBudget == null ? trip.requestDestination : result.route().destination();
 		if (plan == null || !plan.stages().getFirst().from().equals(trip.origin) || !plan.stages().getLast().to().equals(endpoint)) { return "supplies.navigation.plan_identity"; }
-		trip.plan = plan; trip.stage = 0; trip.waypoint = 0; trip.reason = "supplies.navigation.ready"; return null;
+		trip.plan = plan; trip.stage = 0; trip.waypoint = 0; trip.reason = "supplies.navigation.ready";
+		persistTrip(profileId, trip, now, false); return null;
 	}
 
 	public static PhantomTravelStrategy.Candidate nativeWalkPlan(PhantomNavigationRoute route, PhantomNavigationPoint origin, PhantomNavigationPoint destination,
@@ -1827,8 +1903,28 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private void cleanup(long profileId)
 	{
 		cancelRetreat(profileId);
-		final Trip trip; synchronized (this) { trip = _trips.remove(profileId); }
-		if (trip != null) { clearRoute(profileId, trip); }
+		final Trip trip; synchronized (this) { trip = _trips.get(profileId); }
+		if (trip != null)
+		{
+			final var child = _store.intent(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+			persistTrip(profileId, trip, System.nanoTime(), child != null && org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.paused(child));
+			clearRoute(profileId, trip); synchronized (this) { _trips.remove(profileId, trip); }
+		}
+	}
+	private void persistTrip(long profileId, Trip trip, long now, boolean paused)
+	{
+		final var child = _store.intent(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		if (child == null || child.revision() != trip.revision) { return; }
+		final var binding = Binding.parse(child);
+		if (binding.actorObjectId() != trip.player.getObjectId() || binding.classId() != trip.player.getActiveClass() || binding.classIndex() != trip.player.getClassIndex()) { return; }
+		_store.saveRouteProgress(profileId, child, routeProgress(child, trip, now, System.currentTimeMillis(), paused), trip.executionStamp);
+	}
+	private static PhantomSupplyIntentStore.RouteProgress routeProgress(PhantomGoal child, Trip trip, long now, long wall, boolean paused)
+	{
+		final var binding = Binding.parse(child);
+		return new PhantomSupplyIntentStore.RouteProgress(child.goalId(), child.revision(), child.constraints().getOrDefault("journey.started", 0L), binding.actorObjectId(), binding.classId(), binding.classIndex(), trip.returning,
+			trip.destinations, trip.destinationIndex, trip.segmentReplans, trip.localAttempt, Math.min(TimeUnit.DAYS.toNanos(1), Math.max(0, now - trip.startedNanos)),
+			Math.max(0, trip.deadline - now), wall, paused, trip.walkBudget == null ? null : trip.walkBudget.suspend(now));
 	}
 	private void cancelRetreat(long profileId)
 	{
@@ -1855,13 +1951,16 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		final List<Map.Entry<Long, Trip>> trips;
 		final List<Long> profiles;
-		synchronized (this) { if (_state == State.STOPPED) { return; } _state = State.STOPPING; trips = new ArrayList<>(_trips.entrySet()); _trips.clear(); profiles = new ArrayList<>(_retreats.keySet()); }
+		synchronized (this) { if (_state == State.STOPPED) { return; } _state = State.STOPPING; trips = new ArrayList<>(_trips.entrySet()); profiles = new ArrayList<>(_retreats.keySet()); }
 		for (long id : profiles) { cancelRetreat(id); }
-		synchronized (this) { _cache.clear(); }
-		for (var entry : trips) { clearRoute(entry.getKey(), entry.getValue()); }
+		for (var entry : trips)
+		{
+			synchronized (this) { if (_active.contains(entry.getKey())) { continue; } }
+			cleanup(entry.getKey());
+		}
 		for (long id : acceptedProfiles()) { releaseDemand(id); }
 	}
-	public boolean finishStop() { beginStop(); synchronized (this) { if (!_active.isEmpty() || !_retreats.isEmpty()) { return false; } _state = State.STOPPED; return true; } }
+	public boolean finishStop() { beginStop(); synchronized (this) { if (!_active.isEmpty() || !_retreats.isEmpty() || !_trips.isEmpty()) { return false; } _cache.clear(); _state = State.STOPPED; return true; } }
 	@Override public void beforeMaterialize(long profileId, int characterObjectId) { cleanup(profileId); synchronized (this) { _cache.remove(profileId); } }
 	@Override public void afterPlayerLoad(long profileId, Player player) { }
 	@Override public void materializeSucceeded(long profileId, int characterObjectId)
@@ -1876,11 +1975,17 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	@Override public void materializeAborted(long profileId, int characterObjectId) { beforeMaterialize(profileId, characterObjectId); }
 	@Override public void beforeStore(long profileId, Player player)
 	{
+		synchronized (this) { if (_active.contains(profileId)) { throw new IllegalStateException("Supply handler remains active before STORE."); } }
+		if (!_store.sourceMayComplete(profileId))
+		{
+			synchronized (this) { if (_trips.containsKey(profileId) || _retreats.containsKey(profileId)) { throw new IllegalStateException("Foreign execution owner still has uncheckpointed Source controllers."); } _cache.remove(profileId); }
+			releaseDemand(profileId); return;
+		}
 		final var root = _roots.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
 		final var child = cached(profileId).goal;
 		if (PhantomSupplyIntentStore.upgrade(child) && (_upgrades == null || !_upgrades.settleAutomatic(profileId, child, System.currentTimeMillis()))) { throw new IllegalStateException("Native gear upgrade remains uncertain before STORE."); }
-		if (root != null) { pause(profileId, root, player); }
 		cleanup(profileId);
+		if (root != null) { _store.checkpointBeforeStore(profileId, root, System.currentTimeMillis()); }
 		synchronized (this) { if (_retreats.containsKey(profileId)) { throw new IllegalStateException("Supply survival cleanup is still pending before STORE."); } }
 		releaseDemand(profileId); synchronized (this) { _cache.remove(profileId); }
 	}
@@ -1907,6 +2012,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		private final Player player;
 		private final PlayerNativeWork.Owner owner;
+		private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp executionStamp;
 		private final long revision, startedNanos, deadline, intentDeadline;
 		private final boolean returning;
 		private final List<PhantomNavigationPoint> destinations;
@@ -1919,6 +2025,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		private Trip(Player actor, long childRevision, boolean returnTrip, List<PhantomNavigationPoint> points, long started, long legDeadline, long durableDeadline)
 		{
 			player = actor; owner = actor.getNativeWorkOwner(); revision = childRevision; returning = returnTrip; destinations = points; startedNanos = started; deadline = legDeadline; intentDeadline = durableDeadline;
+			executionStamp = owner instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope ? scope.currentExecutionStamp() : null;
 		}
 		private PhantomNavigationPoint destination() { return destinations.get(destinationIndex); }
 	}

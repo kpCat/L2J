@@ -798,18 +798,22 @@ public final class PhantomMaterializationService
 	{ return tryAcquireAction(profileId, captured, false, false); }
 	public Optional<ActionLease> tryAcquireCompletionAction(long profileId)
 	{ return tryAcquireAction(profileId, null, true, false); }
+	public Optional<ActionLease> tryAcquireCompletionAction(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured)
+	{ return tryAcquireAction(profileId, captured, true, false); }
 	/** Observation reserves native lifetime but cannot issue transitive gameplay work. */
 	public Optional<ActionLease> tryAcquireObservation(long profileId)
 	{ return tryAcquireAction(profileId, null, false, true); }
 	/** Holds execution, not ACTION, while the existing native checkpoint drains earned work. */
 	public <T> T withExecutionGuard(long profileId, boolean completion, java.util.function.Supplier<T> action, T rejected)
+	{ return withExecutionGuard(profileId, null, completion, action, rejected); }
+	public <T> T withExecutionGuard(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef expectedOwner, boolean completion, java.util.function.Supplier<T> action, T rejected)
 	{
 		if (_execution == null) { return action.get(); }
 		final var entry = _activeByProfile.get(profileId);
-		if (entry == null || _state != ServiceState.RUNNING) { return rejected; }
-		try (var permit = entry._materializedPlayer.tryAcquireExecution(completion))
+		if (entry == null || _state != ServiceState.RUNNING && (!completion || _state != ServiceState.STOPPING)) { return rejected; }
+		try (var permit = completion && expectedOwner != null ? _execution.tryAcquireOwnedCompletion(profileId, expectedOwner) : entry._materializedPlayer.tryAcquireExecution(completion))
 		{
-			if (permit == null) { return rejected; }
+			if (permit == null || expectedOwner != null && !permit.stamp().owner().equals(expectedOwner)) { return rejected; }
 			try (var context = permit.enterScope()) { return action.get(); }
 		}
 	}

@@ -147,6 +147,14 @@ public final class PhantomLivingCycle111Test
 		check(L2jPhantomSupplyJourney.nativeWalkPlan(second, first, destination, 120, 1000000, budget, 5) != null, "117_NEXT_EPISODE_LOST_SAME_BUDGET");
 		check(!budget.checkpoint(new PhantomNavigationPoint(next.x(), next.y(), 16, 0), 6), "117_OTHER_FLOOR_RENEWED_EPISODE");
 		check(budget.checkpoint(next, 6), "117_SECOND_PHYSICAL_CHECKPOINT_REJECTED");
+		final var checkpoint = budget.suspend(7);
+		final var decoded = NativeWalkBudget.Snapshot.decode(checkpoint.encode());
+		check(checkpoint.equals(decoded), "130_WALK_CHECKPOINT_CODEC_CHANGED_PROGRESS");
+		final var resumed = NativeWalkBudget.resume(decoded, 10_000_000_000L, policy);
+		check(resumed.visited().equals(budget.visited()), "130_WALK_CHECKPOINT_LOST_VISITED");
+		check(resumed.suspend(10_000_000_000L).equals(checkpoint), "130_WALK_RESTART_REPLENISHED_SPENT_BUDGET");
+		final var expired = budget.suspend(6 + policy.maximumAttemptDurationNanos());
+		check(NativeWalkBudget.resume(expired, 20_000_000_000L, policy).expired(20_000_000_000L), "130_WALK_RESTART_REVIVED_EXPIRED_EPISODE");
 		check(L2jPhantomSupplyJourney.nativeWalkPlan(route, origin, destination, 120, 1000000, budget, 6 + policy.maximumAttemptDurationNanos()) == null, "117_EXPIRED_EPISODE_RELEASED_ROUTE");
 		System.out.println("PASS living117.supply-walk-episodes actual candidate/checkpoint/budget guards; STRUCTURAL_FIXTURE native=NOT_RUN");
 	}
@@ -196,7 +204,8 @@ public final class PhantomLivingCycle111Test
 		final var walking = new PhantomTravelStrategy.Candidate("slow_walk", List.of(new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.WALK, from, to, List.of(to), null, 10000, 0, 0)));
 		check(PhantomTravelStrategy.select(List.of(paid, walking), options.adena(), 0, options.remainingMillis()).candidate() == paid, "117_NATIVE_TIME_FIRST_SELECTION_NOT_EXERCISED");
 		final var income = L2jPhantomSupplyJourney.incomeTravelOptions(options);
-		check(income.adena() == 0 && income.legs().equals(List.of(free)), "117_INCOME_PAID_GK_ESCAPED_FEE_GUARD");
+		check(income.adena() == 0 && income.legs().equals(options.legs()) && income.legs().stream().allMatch(leg -> PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, 1, 80) == 0), "130_INCOME_MANAGED_GK_TARIFF_OR_ZERO_WALLET_CHANGED");
+		check(PhantomNormalGatekeeperTravel.maximumFee(first, 1, 80) + PhantomNormalGatekeeperTravel.maximumFee(second, 1, 80) == 300, "130_STOCK_HUMAN_PAID_TARIFF_CHANGED");
 		check(PhantomTravelStrategy.select(List.of(paid, walking), income.adena(), 0, income.remainingMillis()).candidate() == walking, "117_FAST_PAID_GK_SPENT_INCOME_PREMIUM");
 		check(options.adena() == 10000 && options.legs().size() == 3 && income.gatekeeperAllowed(), "117_LEGACY_WALLET_OR_FREE_GK_CHANGED");
 		final var steps = List.of(new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER, "first", "a", "b", 1000, first),
@@ -204,7 +213,7 @@ public final class PhantomLivingCycle111Test
 			new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER, "second", "c", "d", 1000, second));
 		final java.util.function.Function<String, PhantomNavigationPoint> anchor = id -> "c".equals(id) ? new PhantomNavigationPoint(100100, 0, 0, 0) : null;
 		final var estimate = L2jPhantomSupplyJourney.itineraryEstimate(from, to, steps, 100, 1000, 5000, 1, 80, _ -> true, anchor).orElse(null);
-		check(estimate != null && estimate.fees() == 300 && estimate.minimumMillis() == 5000, "117_TWO_GK_FEE_ESTIMATE_MISSING");
+		check(estimate != null && estimate.fees() == 0 && estimate.minimumMillis() == 5000, "130_TWO_MANAGED_GK_FEE_ESTIMATE_CHANGED");
 		check(L2jPhantomSupplyJourney.itineraryEstimate(from, to, steps, 100, 299, 5000, 1, 80, _ -> true, anchor).isEmpty(), "117_WALK_DISTANCE_BOUND_IGNORED");
 		check(L2jPhantomSupplyJourney.itineraryEstimate(from, to, steps, 100, 1000, 4999, 1, 80, _ -> true, anchor).isEmpty(), "117_TRAVEL_TIME_BOUND_IGNORED");
 		check(L2jPhantomSupplyJourney.itineraryEstimate(from, to, steps, 100, 1000, 5000, 1, 80, leg -> leg != second, anchor).isEmpty(), "117_UNAVAILABLE_GK_QUOTED");

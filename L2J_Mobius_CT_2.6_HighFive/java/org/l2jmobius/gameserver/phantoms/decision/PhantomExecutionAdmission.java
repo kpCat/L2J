@@ -13,6 +13,15 @@ public final class PhantomExecutionAdmission
 	public enum Purpose { NORMAL, COMPLETION }
 	/** Accepted-operation services validate their receipt before using this completion-only entry. */
 	public Permit tryAcquireCompletionScoped(long id, Stamp inherited) { return acquireScoped(id, inherited, Purpose.COMPLETION); }
+	/** Only the native ACTION holder uses this continuation entry; a timer/queued controller remains fresh work. */
+	public Permit tryAcquireContinuationScoped(long id, Stamp inherited) { return acquireScoped(id, inherited, Purpose.NORMAL, true); }
+	/** Canonical effect owner validates its exact durable operation key before reacquiring completion rights. */
+	public synchronized Permit tryAcquireOwnedCompletion(long id, PhantomDomainRef owner) { return tryAcquire(id, owner, Purpose.COMPLETION); }
+	public synchronized Permit tryAcquirePreparation(long id, long rowVersion, PhantomDomainRef owner)
+	{
+		final var slot = _slots.get(id);
+		return slot != null && slot.version == rowVersion ? tryAcquire(id, owner, Purpose.COMPLETION) : null;
+	}
 	public Scope enterCompletionOwner(LongFunction<PhantomDomainRef> owner) { return new Scope(Objects.requireNonNull(owner), null, Purpose.COMPLETION); }
 	private final Map<Long, Slot> _slots = new HashMap<>();
 	private final int _limit;
@@ -52,16 +61,20 @@ public final class PhantomExecutionAdmission
 	public synchronized boolean permits(long id, PhantomDomainRef owner)
 	{ return permits(id, owner, Purpose.NORMAL); }
 	private boolean permits(long id, PhantomDomainRef owner, Purpose purpose)
+	{ return permits(id, owner, purpose, false); }
+	private boolean permits(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation)
 	{
 		final var slot = _slots.get(id);
 		return slot != null && !slot.uncertain && !slot.boundary && slot.state.owner().equals(owner)
-			&& (purpose == Purpose.NORMAL ? slot.state.phase() == PhantomExecutionHandoff.Phase.ACTIVE : slot.state.ownerMayComplete(owner));
+			&& (purpose == Purpose.NORMAL ? slot.state.phase() == PhantomExecutionHandoff.Phase.ACTIVE && (continuation || slot.blocked == 0) : slot.state.ownerMayComplete(owner));
 	}
 	public synchronized Permit tryAcquire(long id, PhantomDomainRef owner)
 	{ return tryAcquire(id, owner, Purpose.NORMAL); }
 	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose)
+	{ return tryAcquire(id, owner, purpose, false); }
+	private Permit tryAcquire(long id, PhantomDomainRef owner, Purpose purpose, boolean continuation)
 	{
-		if (!permits(id, owner, purpose)) { return null; }
+		if (!permits(id, owner, purpose, continuation)) { return null; }
 		final var slot = _slots.get(id); slot.running++;
 		return new Permit(id, slot, slot.state.generation(), owner, slot.activatedAt, purpose);
 	}
@@ -69,8 +82,10 @@ public final class PhantomExecutionAdmission
 	public Permit tryAcquireScoped(long id, Stamp inherited)
 	{ return acquireScoped(id, inherited, Purpose.NORMAL); }
 	private Permit acquireScoped(long id, Stamp inherited, Purpose purpose)
+	{ return acquireScoped(id, inherited, purpose, false); }
+	private Permit acquireScoped(long id, Stamp inherited, Purpose purpose, boolean continuation)
 	{
-		if (inherited != null) { return acquireCaptured(id, inherited, purpose); }
+		if (inherited != null) { return acquireCaptured(id, inherited, purpose, continuation); }
 		var scope = _context.get();
 		while (scope != null && scope.stamp != null && scope.stamp.profileId() != id) { scope = scope.previous; }
 		if (scope == null || scope.closed) { return null; }
@@ -83,14 +98,30 @@ public final class PhantomExecutionAdmission
 		{
 			final var slot = _slots.get(id);
 			if (slot == null || scope.startedAt < slot.activatedAt) { return null; }
-			return scope.stamp != null ? acquireCaptured(id, scope.stamp, purpose) : tryAcquire(id, expected, purpose);
+			return scope.stamp != null ? acquireCaptured(id, scope.stamp, purpose, continuation) : tryAcquire(id, expected, purpose, continuation);
 		}
 	}
 	private synchronized Permit acquireCaptured(long id, Stamp stamp, Purpose purpose)
+	{ return acquireCaptured(id, stamp, purpose, false); }
+	private synchronized Permit acquireCaptured(long id, Stamp stamp, Purpose purpose, boolean continuation)
 	{
 		final var slot = _slots.get(id);
-		return sameGrant(id, slot, stamp) && (purpose != Purpose.NORMAL || stamp.purpose() == Purpose.NORMAL) ? tryAcquire(id, stamp.owner(), purpose) : null;
+		return sameGrant(id, slot, stamp) && (purpose != Purpose.NORMAL || stamp.purpose() == Purpose.NORMAL) ? tryAcquire(id, stamp.owner(), purpose, continuation) : null;
 	}
+	/** Acknowledged durable obligation facts close fresh conflicting actions, preserving already issued completion rights. */
+	public synchronized void blocker(long id, String component, long rowVersion, boolean blocked)
+	{
+		if (component == null || !component.matches("[a-z][a-z0-9_.-]{0,63}")) { throw new IllegalArgumentException("Invalid obligation component type."); }
+		if (rowVersion < 0) { throw new IllegalArgumentException("Blocker requires an acknowledged row version."); }
+		final var slot = _slots.get(id); if (slot == null) { return; }
+		final var old = slot.blockers.get(component);
+		if (old != null && old.version() > rowVersion) { return; }
+		if (old != null && old.version() == rowVersion && old.blocked() != blocked) { throw new java.util.ConcurrentModificationException("Conflicting obligation fact for one durable row."); }
+		if (old == null && slot.blockers.size() >= PhantomExecutionHandoff.MAX_DEPENDENCIES) { throw new IllegalStateException("Too many execution obligation facts."); }
+		slot.blocked += (blocked ? 1 : 0) - (old != null && old.blocked() ? 1 : 0);
+		slot.blockers.put(component, new Blocker(rowVersion, blocked));
+	}
+	private record Blocker(long version, boolean blocked) { }
 	private static boolean sameGrant(long id, Slot slot, Stamp stamp)
 	{ return id == stamp.profileId() && slot != null && slot.state.generation() == stamp.generation() && slot.activatedAt == stamp.admissionEpoch() && slot.state.owner().equals(stamp.owner()); }
 	/** Native earned descendants/cancellation retain source rights until YIELD; no new admission is granted here. */
@@ -169,6 +200,11 @@ public final class PhantomExecutionAdmission
 		return slot != null && slot.version == expectedRowVersion && slot.running == 0 && !slot.boundary && !slot.uncertain
 			&& slot.state.phase() != PhantomExecutionHandoff.Phase.ACTIVE;
 	}
+	public synchronized boolean current(long id, long rowVersion, PhantomExecutionHandoff state)
+	{
+		final var slot = _slots.get(id);
+		return slot != null && slot.version == rowVersion && slot.state.equals(state) && !slot.boundary && !slot.uncertain;
+	}
 
 	private <T> T boundary(long id, long expectedRowVersion, Supplier<T> action, boolean quiescent)
 	{
@@ -211,6 +247,20 @@ public final class PhantomExecutionAdmission
 		_slots.get(id).activatedAt = nextPublication();
 		_slots.get(id).uncertain = false;
 	}
+	/** Fence before a restart/unknown-ACK write, including when the durable state still says ACTIVE. */
+	public <T> T recovering(long id, long rowVersion, PhantomExecutionHandoff actual, Supplier<T> recovery)
+	{
+		final Slot slot;
+		synchronized (this)
+		{
+			if (!_slots.containsKey(id)) { publish(id, rowVersion, actual); }
+			slot = _slots.get(id);
+			if (slot.version > rowVersion || slot.running != 0 || slot.boundary) { throw new IllegalStateException("Execution recovery still has work or a newer owner."); }
+			slot.boundary = true; slot.uncertain = true;
+		}
+		try { return recovery.get(); }
+		finally { synchronized (this) { slot.boundary = false; } }
+	}
 	public final class Permit implements PhantomDecisionEngine.AdmissionLease
 	{
 		private final Slot _slot;
@@ -237,7 +287,7 @@ public final class PhantomExecutionAdmission
 			synchronized (PhantomExecutionAdmission.this)
 			{
 				if (_closed) { throw new IllegalStateException("Execution lease is closed."); }
-				final var retained = acquireCaptured(_profileId, stamp(), _purpose);
+				final var retained = acquireCaptured(_profileId, stamp(), _purpose, true);
 				if (retained == null) { throw new IllegalStateException("Execution command admission was revoked."); }
 				return new Scope(null, retained.stamp(), _purpose, retained);
 			}
@@ -246,7 +296,7 @@ public final class PhantomExecutionAdmission
 		{
 			synchronized (PhantomExecutionAdmission.this)
 			{
-				return !_closed && sameGrant(_profileId, _slot, stamp()) && permits(_profileId, _owner, _purpose);
+				return !_closed && sameGrant(_profileId, _slot, stamp()) && permits(_profileId, _owner, _purpose, true);
 			}
 		}
 		@Override public long executionGeneration() { return _generation; }
@@ -268,6 +318,8 @@ public final class PhantomExecutionAdmission
 	{
 		private long version; private PhantomExecutionHandoff state; private int running; private boolean boundary; private boolean uncertain;
 		private long activatedAt;
+		private final Map<String, Blocker> blockers = new HashMap<>();
+		private int blocked;
 		private Slot(long version, PhantomExecutionHandoff state, long activatedAt) { this.version = version; this.state = state; this.activatedAt = activatedAt; }
 	}
 }

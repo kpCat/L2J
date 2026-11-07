@@ -18,6 +18,8 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 public final class PhantomSupplyIntentStore implements PhantomGoalStore
 {
 	public static final String COMPONENT = "supply.intent";
+	public static final String ROUTE_COMPONENT = "supply.route";
+	public static final int ROUTE_SCHEMA = 2;
 	public static final String ATTEMPT_REVISION = "gear.attempt_revision";
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStore _roots;
@@ -43,6 +45,203 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	public Optional<StoredGoal> intent(long profileId)
 	{
 		return _profiles.findComponent(profileId, COMPONENT).map(this::decode);
+	}
+	public boolean sourceMayComplete(long profileId)
+	{ return sourceMayComplete(profileId, _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE).orElse(null)); }
+	public Optional<RouteProgress> routeProgress(long profileId, PhantomGoal child)
+	{
+		return _profiles.findComponent(profileId, ROUTE_COMPONENT).map(raw ->
+		{
+			if (raw.componentSchemaVersion() != 1 && raw.componentSchemaVersion() != ROUTE_SCHEMA) { throw new IllegalArgumentException("Unknown supply route checkpoint schema."); }
+			return RouteProgress.decode(raw.payload());
+		}).filter(saved -> saved.matches(child));
+	}
+	/** Charge/checkpoint the existing route before its native effect or cancellation; old grants cannot overwrite a returned owner. */
+	public void saveRouteProgress(long profileId, PhantomGoal child, RouteProgress saved, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp stamp)
+	{
+		if (!saved.matches(child)) { throw new IllegalArgumentException("Supply route checkpoint belongs to another child."); }
+		final var rawChild = _profiles.findComponent(profileId, COMPONENT).orElseThrow();
+		if (!decode(rawChild).goal().equals(child)) { throw new java.util.ConcurrentModificationException("Supply child changed before route checkpoint."); }
+		final var execution = _execution.guardCompletion(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId));
+		if (!execution.present().isEmpty())
+		{
+			final var current = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored(execution.present().getFirst()).state();
+			if (stamp == null || stamp.profileId() != profileId || stamp.generation() != current.generation() || !stamp.owner().equals(current.owner()))
+			{ throw new java.util.ConcurrentModificationException("Supply route checkpoint has a stale execution generation."); }
+		}
+		final var old = _profiles.findComponent(profileId, ROUTE_COMPONENT).orElse(null);
+		if (old != null && (old.componentSchemaVersion() != 1 && old.componentSchemaVersion() != ROUTE_SCHEMA || !saved.succeeds(RouteProgress.decode(old.payload()))))
+		{ throw new java.util.ConcurrentModificationException("Supply route checkpoint would replenish or rewind accepted work."); }
+		final var guards = new java.util.ArrayList<>(execution.present()); guards.add(rawChild);
+		_profiles.mutateProfileComponentsAtomically(java.util.List.of(new PhantomProfileRepository.ProfileComponentMutation(profileId,
+			new PhantomProfileRepository.ComponentMutation(ROUTE_COMPONENT, old == null ? -1 : old.rowVersion(), ROUTE_SCHEMA, saved.encode()))), guards, execution.absent());
+	}
+	/** Repairs the child-pause/route-publication gap before any resume; no native effect or budget refund is produced. */
+	public void freezePausedRoute(long profileId, PhantomGoal child, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp stamp)
+	{
+		final long pausedAt = child.constraints().getOrDefault("journey.paused", 0L);
+		if (pausedAt == 0) { return; }
+		final var route = routeProgress(profileId, child).orElse(null);
+		if (route != null && !route.paused()) { saveRouteProgress(profileId, child, route.at(Math.max(route.capturedMillis(), pausedAt), true), stamp); }
+	}
+	public record RouteProgress(long goalId, long childRevision, long journeyStarted, int actorObjectId, int classId, int classIndex, boolean returning,
+		java.util.List<PhantomNavigationPoint> destinations, int destinationIndex, int segmentReplans, int localAttempt,
+		long elapsedNanos, long remainingNanos, long capturedMillis, boolean paused,
+		org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget.Snapshot walk)
+	{
+		public RouteProgress(long goalId, long childRevision, int actorObjectId, int classId, int classIndex, boolean returning,
+			java.util.List<PhantomNavigationPoint> destinations, int destinationIndex, int segmentReplans, int localAttempt, long elapsedNanos, long remainingNanos, long capturedMillis, boolean paused,
+			org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget.Snapshot walk)
+		{ this(goalId, childRevision, 0, actorObjectId, classId, classIndex, returning, destinations, destinationIndex, segmentReplans, localAttempt, elapsedNanos, remainingNanos, capturedMillis, paused, walk); }
+		public RouteProgress
+		{
+			destinations = java.util.List.copyOf(destinations);
+			if (goalId <= 0 || childRevision < 0 || journeyStarted < 0 || actorObjectId <= 0 || classId < 0 || classId > 255 || classIndex < 0 || classIndex > 255
+				|| destinations.isEmpty() || destinations.size() > 17 || destinations.stream().anyMatch(p -> p.instanceId() != 0)
+				|| destinationIndex < 0 || destinationIndex >= destinations.size() || segmentReplans < 0 || segmentReplans > 4 || localAttempt < -1 || localAttempt > 1024
+				|| elapsedNanos < 0 || remainingNanos < 0 || elapsedNanos > java.util.concurrent.TimeUnit.DAYS.toNanos(1)
+				|| remainingNanos > java.util.concurrent.TimeUnit.DAYS.toNanos(1) - elapsedNanos || capturedMillis < 0)
+			{ throw new IllegalArgumentException("Invalid bounded supply route checkpoint."); }
+		}
+		public boolean matches(PhantomGoal child)
+		{
+			if (child == null || child.goalId() != goalId || (journeyStarted == 0 ? child.revision() != childRevision : child.constraints().getOrDefault("journey.started", 0L) != journeyStarted)) { return false; }
+			final var binding = Binding.parse(child);
+			return binding.actorObjectId() == actorObjectId && binding.classId() == classId && binding.classIndex() == classIndex;
+		}
+		public RouteProgress at(long nowMillis, boolean pause)
+		{
+			if (nowMillis < capturedMillis) { throw new IllegalArgumentException("Supply route checkpoint clock moved backwards."); }
+			final long delta = paused ? 0 : java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(Math.min(nowMillis - capturedMillis, java.util.concurrent.TimeUnit.DAYS.toMillis(1)));
+			return new RouteProgress(goalId, childRevision, journeyStarted, actorObjectId, classId, classIndex, returning, destinations, destinationIndex, segmentReplans, localAttempt,
+				Math.min(java.util.concurrent.TimeUnit.DAYS.toNanos(1), elapsedNanos + delta), Math.max(0, remainingNanos - delta), nowMillis, pause, walk == null ? null : walk.elapse(delta));
+		}
+		public boolean succeeds(RouteProgress old)
+		{
+			if (old.goalId != goalId || (journeyStarted == 0 || old.journeyStarted == 0 ? old.childRevision != childRevision : old.journeyStarted != journeyStarted)
+				|| old.returning != returning || !java.util.Set.copyOf(old.destinations).equals(java.util.Set.copyOf(destinations))) { return true; }
+			if (old.actorObjectId != actorObjectId || old.classId != classId || old.classIndex != classIndex || !old.destinations.equals(destinations)
+				|| capturedMillis < old.capturedMillis || elapsedNanos < old.elapsedNanos || remainingNanos > old.remainingNanos
+				|| destinationIndex < old.destinationIndex || segmentReplans < old.segmentReplans) { return false; }
+			return old.walk == null || walk != null && walk.routes() >= old.walk.routes() && walk.chargedDistance() >= old.walk.chargedDistance()
+				&& walk.elapsedNanos() >= old.walk.elapsedNanos() && walk.visited().containsAll(old.walk.visited());
+		}
+		public byte[] encode()
+		{
+			try
+			{
+				final var bytes = new java.io.ByteArrayOutputStream();
+				try (var out = new java.io.DataOutputStream(bytes))
+				{
+					out.writeInt(ROUTE_SCHEMA); out.writeLong(goalId); out.writeLong(childRevision); out.writeLong(journeyStarted); out.writeInt(actorObjectId); out.writeInt(classId); out.writeInt(classIndex); out.writeBoolean(returning);
+					out.writeInt(destinations.size()); for (var p : destinations) { out.writeInt(p.x()); out.writeInt(p.y()); out.writeInt(p.z()); }
+					out.writeInt(destinationIndex); out.writeInt(segmentReplans); out.writeInt(localAttempt); out.writeLong(elapsedNanos); out.writeLong(remainingNanos); out.writeLong(capturedMillis); out.writeBoolean(paused);
+					final byte[] work = walk == null ? new byte[0] : walk.encode(); out.writeInt(work.length); out.write(work);
+				}
+				return bytes.toByteArray();
+			}
+			catch (java.io.IOException failure) { throw new IllegalStateException(failure); }
+		}
+		public static RouteProgress decode(byte[] bytes)
+		{
+			if (bytes == null || bytes.length > 4096) { throw new IllegalArgumentException("Invalid supply route payload bound."); }
+			try (var in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(bytes)))
+			{
+				final int schema = in.readInt(); if (schema != 1 && schema != ROUTE_SCHEMA) { throw new IllegalArgumentException("Unknown supply route payload schema."); }
+				final long goal = in.readLong(), revision = in.readLong(), journey = schema == 1 ? 0 : in.readLong(); final int actor = in.readInt(), type = in.readInt(), index = in.readInt(); final boolean returning = in.readBoolean();
+				final int count = in.readInt(); if (count < 1 || count > 17) { throw new IllegalArgumentException("Invalid supply route destination count."); }
+				final var points = new java.util.ArrayList<PhantomNavigationPoint>(); for (int i = 0; i < count; i++) { points.add(new PhantomNavigationPoint(in.readInt(), in.readInt(), in.readInt(), 0)); }
+				final int destination = in.readInt(), replans = in.readInt(), attempt = in.readInt(); final long elapsed = in.readLong(), remaining = in.readLong(), captured = in.readLong(); final boolean paused = in.readBoolean();
+				final int length = in.readInt(); if (length < 0 || length > 2048 || length != in.available()) { throw new IllegalArgumentException("Invalid supply WALK payload length."); }
+				final var walk = length == 0 ? null : org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget.Snapshot.decode(in.readNBytes(length));
+				return new RouteProgress(goal, revision, journey, actor, type, index, returning, points, destination, replans, attempt, elapsed, remaining, captured, paused, walk);
+			}
+			catch (java.io.IOException failure) { throw new IllegalArgumentException("Invalid supply route payload.", failure); }
+		}
+	}
+
+	/** Projection used by the actual Source owner and SQL integration; the Handoff store commits all changes atomically. */
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long profileId, PhantomGoal root, long now, boolean recovery, long retryAfter)
+	{ return executionCheckpoint(profileId, root, now, recovery, retryAfter, recovery); }
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long profileId, PhantomGoal root, long now, boolean recovery, long retryAfter, boolean resumeJourney)
+	{
+		final var execution = _execution.load(profileId).orElse(null);
+		if (execution != null && !execution.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId)))
+		{ throw new java.util.ConcurrentModificationException("Source checkpoint belongs to another execution owner."); }
+		final var rawRoot = _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+		if (!_codec.decode(rawRoot.payload()).equals(root)) { throw new java.util.ConcurrentModificationException("Source root changed before execution checkpoint."); }
+		final var authority = new java.util.ArrayList<PhantomProfileComponent>(); authority.add(rawRoot);
+		final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
+		final var rawChild = _profiles.findComponent(profileId, COMPONENT).orElse(null);
+		final var rawRoute = _profiles.findComponent(profileId, ROUTE_COMPONENT).orElse(null);
+		final var rawReceipt = _profiles.findComponent(profileId, PhantomCommerceReceipt.COMPONENT_TYPE).orElse(null);
+		if (rawChild != null) { authority.add(rawChild); } if (rawRoute != null) { authority.add(rawRoute); } if (rawReceipt != null) { authority.add(rawReceipt); }
+		final var receipt = rawReceipt == null ? null : PhantomCommerceReceipt.decode(rawReceipt.payload());
+		if (receipt != null && (!receipt.state().terminal() || receipt.state() == PhantomCommerceReceipt.State.INCONSISTENT))
+		{ throw new IllegalStateException("Source Commerce receipt has not reached a safe terminal checkpoint."); }
+		if (rawChild != null)
+		{
+			final var child = decode(rawChild).goal();
+			PhantomGoal next = child;
+			if (recovery && (child.status() == PhantomGoalStatus.ACTIVE || PhantomOfflineSupply.returning(child)))
+			{
+				final boolean continuingParent = child.goalId() == root.goalId() && Objects.equals(child.subject(), root.subject());
+				if (!continuingParent || !(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(child, now) || PhantomOfflineSupply.returning(child) && child.deadlineEpochMillis() > now))
+				{
+					if (retryAfter <= now) { throw new IllegalArgumentException("Retired child requires its owner's finite retry policy."); }
+					final var old = Binding.parse(child);
+					final var binding = new Binding(old.rootRevision(), old.actorObjectId(), old.classId(), old.classIndex(), old.weaponObjectId(), old.field(), retryAfter, old.prospectiveWeaponTemplateId(), old.equipmentReserve());
+					next = executionProjection(child, continuingParent ? PhantomGoalStatus.FAILED : PhantomGoalStatus.ABANDONED, Math.incrementExact(child.revision()), binding,
+						continuingParent ? "supplies.execution.expired" : "supplies.execution.parent_replaced");
+				}
+				else if (root.status() == PhantomGoalStatus.ACTIVE && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
+				{
+					if (social(child))
+					{
+						final var old = Binding.parse(child);
+						final var binding = new Binding(root.revision(), old.actorObjectId(), old.classId(), old.classIndex(), old.weaponObjectId(), old.field(), old.retryAfterEpochMillis(), old.prospectiveWeaponTemplateId(), old.equipmentReserve());
+						next = executionProjection(child, child.status(), child.revision(), binding, child.reasonKey());
+					}
+					else
+					{
+						next = rebindSuspended(PhantomOfflineSupply.pause(child, now), root);
+						if (resumeJourney) { next = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.resume(next, now); }
+					}
+					if (receipt != null && receipt.state() == PhantomCommerceReceipt.State.ABORTED && receipt.goalId() == child.goalId() && receipt.goalRevision() == child.revision())
+					{ next = executionProjection(next, next.status(), Math.incrementExact(next.revision()), Binding.parse(next), "supplies.execution.resume_aborted"); }
+				}
+				else { next = PhantomOfflineSupply.pause(child, now); }
+			}
+			else if (!recovery) { next = PhantomOfflineSupply.pause(child, now); }
+			if (!next.equals(child)) { changes.add(new PhantomProfileRepository.ComponentMutation(COMPONENT, rawChild.rowVersion(), 1, _codec.encode(next))); }
+			if (rawRoute != null)
+			{
+				if (rawRoute.componentSchemaVersion() != 1 && rawRoute.componentSchemaVersion() != ROUTE_SCHEMA) { throw new IllegalArgumentException("Unknown supply route checkpoint schema."); }
+				var route = RouteProgress.decode(rawRoute.payload());
+				if (route.matches(child) && next.status() == PhantomGoalStatus.ACTIVE)
+				{
+					final long childPaused = child.constraints().getOrDefault("journey.paused", 0L);
+					if (!route.paused() && childPaused > 0) { route = route.at(Math.max(route.capturedMillis(), Math.min(now, childPaused)), true); }
+					final var aged = route.at(now, !recovery || org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.paused(next));
+					final var updated = new RouteProgress(aged.goalId(), next.revision(), aged.journeyStarted(), aged.actorObjectId(), aged.classId(), aged.classIndex(), aged.returning(), aged.destinations(), aged.destinationIndex(), aged.segmentReplans(), aged.localAttempt(), aged.elapsedNanos(), aged.remainingNanos(), aged.capturedMillis(), aged.paused(), aged.walk());
+					changes.add(new PhantomProfileRepository.ComponentMutation(ROUTE_COMPONENT, rawRoute.rowVersion(), ROUTE_SCHEMA, updated.encode()));
+				}
+			}
+		}
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes,
+			java.util.List.of(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE, COMPONENT, ROUTE_COMPONENT, PhantomCommerceReceipt.COMPONENT_TYPE), authority);
+	}
+	public void checkpointBeforeStore(long profileId, PhantomGoal root, long now)
+	{
+		final var proof = executionCheckpoint(profileId, root, now, false, now);
+		if (proof.changes().isEmpty()) { return; }
+		final var execution = _execution.guardCompletion(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId));
+		final var guards = new java.util.ArrayList<>(proof.authority()); guards.addAll(execution.present());
+		_profiles.mutateProfileComponentsAtomically(proof.changes().stream().map(change -> new PhantomProfileRepository.ProfileComponentMutation(profileId, change)).toList(), guards, execution.absent());
+	}
+	private static PhantomGoal executionProjection(PhantomGoal child, PhantomGoalStatus status, long revision, Binding binding, String reason)
+	{
+		return new PhantomGoal(child.goalId(), child.goalType(), status, child.subject(), child.target(), child.requiredAmount(), child.currentAmount(), child.acquisitionMethod(), child.validSources(), child.selectedAnchor(), child.purposeKey(), child.priority(), child.riskBudget(), child.expenseBudget(), child.deadlineEpochMillis(), child.constraints(), reason, revision, binding.encode());
 	}
 
 	public StoredGoal saveIntent(long profileId, PhantomGoal root, long expectedRowVersion, PhantomGoal child)

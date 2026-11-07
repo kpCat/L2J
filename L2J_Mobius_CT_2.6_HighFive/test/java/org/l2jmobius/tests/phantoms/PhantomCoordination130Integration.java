@@ -697,10 +697,11 @@ public final class PhantomCoordination130Integration
 		final var nativeBoundaryAvailable = new java.util.concurrent.atomic.AtomicBoolean(true);
 		final var lostAcknowledgement = new java.util.concurrent.atomic.AtomicBoolean();
 		final var paused = new java.util.concurrent.atomic.AtomicBoolean();
+		final var preparationCalls = new java.util.concurrent.atomic.AtomicInteger();
 		final var port = new PhantomDecisionEngine.ExecutionOwner()
 		{
 			@Override public PhantomDecisionEngine.ExecutionReadiness prepareYield(PhantomExecutionHandoffStore.Stored row, long now)
-			{ return new PhantomDecisionEngine.ExecutionReadiness(true, "sql130.existing_owner_quiet", now); }
+			{ preparationCalls.incrementAndGet(); return new PhantomDecisionEngine.ExecutionReadiness(true, "sql130.existing_owner_quiet", now); }
 			@Override public PhantomDecisionEngine.ExecutionReadiness prepareRecovery(PhantomExecutionHandoffStore.Stored row, long now)
 			{ return prepareYield(row, now); }
 			@Override public boolean checkpointBoundary(PhantomExecutionHandoffStore.Stored row, Runnable callback)
@@ -714,17 +715,12 @@ public final class PhantomCoordination130Integration
 			@Override public PhantomDecisionEngine.ExecutionCheckpoint checkpoint(PhantomExecutionHandoffStore.Stored row, boolean recovery, long now)
 			{
 				final var raw = profiles.findComponent(id, "supply.intent").orElseThrow();
-				final var current = codec.decode(raw.payload()); final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
 				if (row.state().owner().equals(solo))
 				{
-					final var rootNow = goals.load(id).orElseThrow().goal();
-					final var rebound = recovery ? org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.rebindSuspended(current, rootNow) : current;
-					PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(rebound, rootNow), "A changed root silently discarded an accepted child.");
-					final var next = recovery ? PhantomJourneyLifetime.resume(rebound, wall + now - 1000) : PhantomJourneyLifetime.pause(current, wall + now - 1000);
-					if (!next.equals(current)) { changes.add(new PhantomProfileRepository.ComponentMutation("supply.intent", raw.rowVersion(), 1, codec.encode(next))); }
 					paused.set(!recovery);
+					return intents.executionCheckpoint(id, goals.load(id).orElseThrow().goal(), wall + now - 1000, recovery, wall + now + 10_000);
 				}
-				return new PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of("goal.runtime", "supply.intent", org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE),
+				return new PhantomDecisionEngine.ExecutionCheckpoint(List.of(), List.of("goal.runtime", "supply.intent", org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.ROUTE_COMPONENT, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE),
 					List.of(raw, profiles.findComponent(id, "goal.runtime").orElseThrow()));
 			}
 			@Override public PhantomDecisionEngine.ExecutionAuthority authority(PhantomExecutionHandoffStore.Stored row, long now)
@@ -737,7 +733,20 @@ public final class PhantomCoordination130Integration
 		};
 		final var engine = executionDriverEngine(store, gate, port);
 		final var initial = store.initialize(id, solo); gate.publish(id, initial.component().rowVersion(), initial.state());
+		final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp oldRouteStamp;
+		try (var original = gate.tryAcquire(id, solo)) { oldRouteStamp = original.stamp(); }
+		final var routeBinding = org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding.parse(child);
+		final var routePoint = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(200, 200, 0, 0);
+		final var work = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.NativeWalkBudget(routeBinding.field(), routePoint, 1, 120,
+			org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults()).suspend(2);
+		final var routeStart = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.RouteProgress(child.goalId(), child.revision(), child.constraints().get("journey.started"), routeBinding.actorObjectId(), routeBinding.classId(), routeBinding.classIndex(), false,
+			List.of(routePoint), 0, 2, 1, 1, 60_000_000_000L, wall, false, work);
+		intents.saveRouteProgress(id, child, routeStart, oldRouteStamp);
+		final var routeAdvance = routeStart.at(wall + 1, false); intents.saveRouteProgress(id, child, routeAdvance, oldRouteStamp);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> intents.saveRouteProgress(id, child, routeStart, oldRouteStamp), "A delayed route writer replenished its spent active time.");
 		final var earned = gate.tryAcquire(id, solo);
+		PhantomAssertions.assertThrows(IllegalStateException.class, () -> engine.recoverExecutionAcknowledgement(initial), "Restart recovery changed generation while an execution lease was still active.");
+		PhantomAssertions.assertEquals(initial, store.load(id).orElseThrow(), "Refused recovery wrote a durable generation before closing admission.");
 		var row = engine.requestExecution(initial, party, "driver-party", 1000, 5000);
 		PhantomAssertions.assertFalse(engine.advanceExecution(row, 1001, false).progressed(), "Driver ignored an earned lease."); earned.close();
 		nativeBoundaryAvailable.set(false);
@@ -745,6 +754,8 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertEquals(row, store.load(id).orElseThrow(), "Refused native boundary wrote a partial phase.");
 		nativeBoundaryAvailable.set(true); row = engine.advanceExecution(row, 1002, false).stored();
 		PhantomAssertions.assertTrue(paused.get() && PhantomJourneyLifetime.paused(intents.intent(id).orElseThrow().goal()), "Driver transferred without persisting the optional child pause.");
+		final var pausedRoute = intents.routeProgress(id, child).orElseThrow();
+		PhantomAssertions.assertTrue(pausedRoute.paused(), "Durable child pause did not include its route budget.");
 		PhantomAssertions.assertEquals(PhantomExecutionHandoff.Phase.CHECKPOINTED, row.state().phase(), "Driver skipped durable checkpoint.");
 		lostAcknowledgement.set(true); final var checkpointed = row;
 		PhantomAssertions.assertThrows(IllegalStateException.class, () -> engine.advanceExecution(checkpointed, 1003, false), "Injected transfer acknowledgement loss was swallowed.");
@@ -754,7 +765,11 @@ public final class PhantomCoordination130Integration
 		final var recipientRecovery = row;
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> store.recovered(recipientRecovery, List.of(), List.of("goal.runtime"), List.of()), "Recovery discarded child/Commerce checkpoint dependencies.");
 		row = engine.advanceExecution(row, 1004, false).stored();
+		final int beforeStalePrepare = preparationCalls.get();
+		PhantomAssertions.assertFalse(engine.advanceExecution(checkpointed, 1005, false).progressed(), "Stale owner advanced after transfer.");
+		PhantomAssertions.assertEquals(beforeStalePrepare, preparationCalls.get(), "A stale owner reached effectful native preparation before its CAS guard.");
 		PhantomAssertions.assertEquals(party, row.state().owner(), "Recipient recovery restored the wrong owner.");
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> intents.executionCheckpoint(id, goals.load(id).orElseThrow().goal(), wall + 5, true, wall + 10_000), "A foreign Source projection resumed a child under the Party grant.");
 		try (var current = gate.tryAcquire(id, party)) { PhantomAssertions.assertTrue(current != null && current.valid(), "Recovered Party could not execute."); }
 		final var partyRoot = new PhantomGoal(root.goalId(), root.goalType(), root.status(), root.subject(), root.target(), root.requiredAmount(), root.currentAmount(), root.acquisitionMethod(), root.validSources(), root.selectedAnchor(), root.purposeKey(), root.priority(), root.riskBudget(), root.expenseBudget(), root.deadlineEpochMillis(), root.constraints(), "sql130.party.root_preparation", root.revision() + 1, root.payloadText());
 		goals.replace(id, goals.load(id).orElseThrow().rowVersion(), partyRoot);
@@ -767,7 +782,11 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertEquals(child.revision(), resumed.revision(), "Driver changed economic operation identity.");
 		PhantomAssertions.assertEquals(child.currentAmount(), resumed.currentAmount(), "Driver changed child progress.");
 		PhantomAssertions.assertEquals(child.expenseBudget(), resumed.expenseBudget(), "Driver changed child resources.");
+		final var resumedRoute = intents.routeProgress(id, resumed).orElseThrow();
+		PhantomAssertions.assertEquals(pausedRoute.remainingNanos(), resumedRoute.remainingNanos(), "Party time consumed or replenished the suspended Source route budget.");
+		PhantomAssertions.assertEquals(pausedRoute.walk(), resumedRoute.walk(), "Recovery reset WALK work/visited/deadline state.");
 		PhantomAssertions.assertEquals(partyRoot.revision(), org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding.parse(resumed).rootRevision(), "Recovery did not adopt the current parent revision.");
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> intents.saveRouteProgress(id, resumed, routeAdvance.at(wall + 104, false), oldRouteStamp), "A returned Solo owner accepted its pre-transfer route writer.");
 		row = engine.requestExecution(row, party, "driver-timeout", 1200, 1300);
 		row = engine.advanceExecution(row, 1300, false).stored();
 		PhantomAssertions.assertEquals(PhantomExecutionHandoff.Phase.RECOVERING, row.state().phase(), "Timeout reopened a potentially paused source.");
@@ -777,6 +796,27 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertEquals(null, restartedGate.tryAcquire(id, solo), "Restart granted normal work from a persisted ACTIVE row.");
 		row = restarted.advanceExecution(row, 1400, false).stored();
 		try (var current = restartedGate.tryAcquire(id, solo)) { PhantomAssertions.assertTrue(current != null && current.valid(), "Restart recovery did not resume its child."); }
+		final var beforeStoreChild = intents.intent(id).orElseThrow().goal();
+		intents.checkpointBeforeStore(id, goals.load(id).orElseThrow().goal(), wall + 401);
+		PhantomAssertions.assertTrue(PhantomJourneyLifetime.paused(intents.intent(id).orElseThrow().goal()) && intents.routeProgress(id, beforeStoreChild).orElseThrow().paused(), "STORE failed to pause both child and native work budget.");
+		final var aborted = org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.prepared(id, beforeStoreChild.goalId(), beforeStoreChild.revision(),
+			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationRequest(org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind.BUY, 1, 2, 3, 4, 0, 5, 10, 0, 0, 0, "", 0, 0, 0),
+			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(100, 20, 20, 0, 0, 0, 0),
+			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(90, 25, 25, 0, 0, 0, 0)).withState(org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.ABORTED);
+		final var receipts = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles); receipts.save(-1, aborted);
+		row = restarted.requestExecution(row, solo, "source-store-resume", 1500, 5000);
+		row = restarted.advanceExecution(row, 1501, false).stored(); row = restarted.advanceExecution(row, 1502, false).stored(); row = restarted.advanceExecution(row, 1503, false).stored();
+		final var afterAbortChild = intents.intent(id).orElseThrow().goal();
+		PhantomAssertions.assertEquals(beforeStoreChild.revision() + 1, afterAbortChild.revision(), "A settled aborted attempt permanently prevented the same journey from continuing.");
+		PhantomAssertions.assertEquals(aborted, receipts.find(id).orElseThrow().receipt(), "Resuming a journey rewrote its previous accepted receipt.");
+		PhantomAssertions.assertEquals(beforeStoreChild.currentAmount(), afterAbortChild.currentAmount(), "Aborted-attempt recovery discarded child progress.");
+		final var afterAbortRoute = intents.routeProgress(id, afterAbortChild).orElseThrow();
+		PhantomAssertions.assertEquals(resumedRoute.walk().routes(), afterAbortRoute.walk().routes(), "A new economic attempt replenished the ongoing journey's route allowance.");
+		final var currentRoot = goals.load(id).orElseThrow(); final var farm = currentRoot.goal();
+		final var idle = new PhantomGoal(farm.goalId(), PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE, farm.status(), farm.subject(), farm.target(), farm.requiredAmount(), farm.currentAmount(), farm.acquisitionMethod(), farm.validSources(), farm.selectedAnchor(), farm.purposeKey(), farm.priority(), farm.riskBudget(), farm.expenseBudget(), farm.deadlineEpochMillis(), farm.constraints(), "sql130.parent.temporarily_idle", farm.revision() + 1, farm.payloadText());
+		goals.replace(id, currentRoot.rowVersion(), idle); row = restarted.recoverExecutionAcknowledgement(row); row = restarted.advanceExecution(row, 1600, false).stored();
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, intents.intent(id).orElseThrow().goal().status(), "A temporary historical-idle parent abandoned its accepted child.");
+		PhantomAssertions.assertTrue(PhantomJourneyLifetime.paused(intents.intent(id).orElseThrow().goal()), "An unavailable parent executed a child without rebinding authority.");
 		System.out.println("SQL130_EXECUTION_DRIVER_PASS;EARNED_AND_NATIVE_BOUNDARY_WAIT=true;PAUSE_TRANSFER_RECOVER_RETURN=true;ACK_LOSS_TIMEOUT_RESTART=true;ECONOMIC_IDENTITY_PROGRESS_BUDGET_PRESERVED=true;NATIVE_LEAF=UNLINKED_PROFILE_ABSENCE");
 	}
 	private static PhantomDecisionEngine executionDriverEngine(PhantomExecutionHandoffStore store, PhantomExecutionAdmission gate, PhantomDecisionEngine.ExecutionOwner port)
@@ -788,7 +828,7 @@ public final class PhantomCoordination130Integration
 	}
 	private static PhantomGoal executionFixtureGoal(PhantomGoal value, long id)
 	{
-		return new PhantomGoal(13_000_000 + id, value.goalType(), value.status(), new PhantomDomainRef("profile", Long.toString(id)), value.target(), value.requiredAmount(), value.currentAmount(), value.acquisitionMethod(), value.validSources(), value.selectedAnchor(), value.purposeKey(), value.priority(), value.riskBudget(), value.expenseBudget(), value.deadlineEpochMillis(), value.constraints(), value.reasonKey(), value.revision(), value.payloadText());
+		return new PhantomGoal(13_000_000 + id, value.goalType(), value.status(), new PhantomDomainRef("profile", Long.toString(id)), value.target(), value.requiredAmount(), "supplies.autonomous".equals(value.purposeKey()) ? Math.min(2, value.requiredAmount()) : value.currentAmount(), value.acquisitionMethod(), value.validSources(), value.selectedAnchor(), value.purposeKey(), value.priority(), value.riskBudget(), value.expenseBudget(), value.deadlineEpochMillis(), value.constraints(), value.reasonKey(), value.revision(), value.payloadText());
 	}
 
 	private static void race(Runnable left, Runnable right) throws Exception

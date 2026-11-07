@@ -196,5 +196,21 @@ public final class PhantomExecutionHandoff130Tests
 			}
 			gate.quiescent(1, 1, () -> true);
 		});
+		registry.add("24-durable-obligation-closes-fresh-work-without-revoking-issued-completion", _ ->
+		{
+			final var solo = PhantomExecutionHandoff.solo(1); final var initial = PhantomExecutionHandoff.initial(solo);
+			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1); gate.publish(1, 0, initial);
+			try (var issued = gate.tryAcquire(1, solo))
+			{
+				gate.blocker(1, "commerce.receipt", 4, true);
+				PhantomAssertions.assertTrue(issued.valid(), "Persisting an obligation revoked its own already admitted native operation.");
+				PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "A fresh conflicting action ran while an effect was unsettled.");
+				PhantomAssertions.assertEquals(null, gate.tryAcquireScoped(1, issued.stamp()), "A queued timer borrowed issued ACTION continuation rights.");
+				try (var continuation = gate.tryAcquireContinuationScoped(1, issued.stamp()); var completion = gate.tryAcquireOwnedCompletion(1, solo))
+				{ PhantomAssertions.assertTrue(continuation != null && completion != null, "The canonical obligation could not finish under its current owner."); }
+				gate.blocker(1, "commerce.receipt", 5, false); gate.blocker(1, "commerce.receipt", 4, true);
+				try (var fresh = gate.tryAcquire(1, solo)) { PhantomAssertions.assertTrue(fresh != null && fresh.valid(), "A stale obligation observation closed a settled owner."); }
+			}
+		});
 	}
 }

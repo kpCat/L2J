@@ -222,28 +222,42 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	/** A selected life need finishes the captured target, then blocks new native pulls. */
 	public boolean yieldAfterCurrentTarget(long profileId, long deadlineEpochMillis)
+	{ return yieldAfterCurrentTarget(profileId, deadlineEpochMillis, false); }
+
+	/** REQUEST finishes its captured target while time permits, then yields at a native attack/cast boundary. */
+	public boolean prepareExecutionYield(long profileId, long deadlineEpochMillis)
+	{ return yieldAfterCurrentTarget(profileId, deadlineEpochMillis, true); }
+
+	private boolean yieldAfterCurrentTarget(long profileId, long deadlineEpochMillis, boolean executionYield)
 	{
-		if (deadlineEpochMillis <= System.currentTimeMillis()) { return false; }
+		if (!executionYield && deadlineEpochMillis <= System.currentTimeMillis()) { return false; }
 		final Session session = _sessions.get(profileId);
 		if (session == null || !session._current.get()) { return true; }
 		if (!session._commandGate.compareAndSet(false, true)) { return false; }
-		try (var lease = ((Policy) session._policy).acquireOwned(session.player()))
+		try
 		{
-			if (lease == null) { return false; }
 			final Player player = session.player();
 			if (!session._yieldRequested || session._yieldDeadlineEpochMillis != deadlineEpochMillis)
 			{
-				final var target = player.getTarget();
-				session._yieldTarget = target instanceof Creature creature && selectableTarget(player, creature, ((Policy) session._policy)._npcId) ? creature : null;
-				session._yieldDeadlineEpochMillis = deadlineEpochMillis;
-				session._yieldRequested = true;
+				try (var observation = _materialization.tryAcquireObservation(profileId).orElse(null))
+				{
+					if (observation == null || observation.player() != player) { return false; }
+					final var target = player.getTarget();
+					session._yieldTarget = target instanceof Creature creature && selectableTarget(player, creature, ((Policy) session._policy)._npcId) ? creature : null;
+					session._yieldDeadlineEpochMillis = deadlineEpochMillis;
+					session._yieldRequested = true;
+				}
 			}
-			if (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player) != null) { return false; }
-			if (session._yieldTarget != null && !session._yieldTarget.isAlikeDead()) { return false; }
-			if (player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()) { return false; }
-			if (session._loot.tick(player, _clock.getAsLong())) { return false; }
-			stop(profileId, session);
-			return true;
+			try (var lease = ((Policy) session._policy).acquireOwned(player, true))
+			{
+				if (lease == null) { return false; }
+				if (System.currentTimeMillis() < deadlineEpochMillis && (org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl.threat(player) != null
+					|| session._yieldTarget != null && !session._yieldTarget.isAlikeDead())) { return false; }
+				if (player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()) { return false; }
+				if (session._loot.tick(player, _clock.getAsLong())) { return false; }
+				stop(profileId, session);
+				return true;
+			}
 		}
 		finally { session._commandGate.set(false); }
 	}
@@ -274,7 +288,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		if (session._engagement != null) { session._engagement.revoke(); }
 		if ((session._engagement != null || session._resourceRetreatDestination != null) && session._commandGate.compareAndSet(false, true))
 		{
-			try (var action = _materialization.tryAcquireAction(session._profileId).orElse(null))
+			try (var action = _materialization.tryAcquireCompletionAction(session._profileId).orElse(null))
 			{
 				if (action != null && action.player() == session.player())
 				{
@@ -796,15 +810,20 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 		private TickLease acquireOwned(Player player)
 		{
+			final var session = _sessions.get(_profileId);
+			return acquireOwned(player, session != null && session._policy == this && session._yieldRequested && System.currentTimeMillis() < session._yieldDeadlineEpochMillis);
+		}
+		private TickLease acquireOwned(Player player, boolean completion)
+		{
 			final Session session = _sessions.get(_profileId);
 			if (player != _player || session == null || session._policy != this || !session._current.get()) { return null; }
 			final PhantomDecisionEngine engine = _decision.get();
 			final var runtime = engine == null ? null : engine.find(_profileId).orElse(null);
-			if ((runtime == null) || (runtime.goalId() != _goalId) || (runtime.goalRevision() != _revision) || (runtime.goalStatus() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(runtime.goalType()) || !_permitsOrdinary.test(_profileId))
+			if ((runtime == null) || (runtime.goalId() != _goalId) || (runtime.goalRevision() != _revision) || (runtime.goalStatus() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(runtime.goalType()) || !completion && !_permitsOrdinary.test(_profileId))
 			{
 				return null;
 			}
-			final ActionLease action = _materialization.tryAcquireAction(_profileId, _executionStamp).orElse(null);
+			final ActionLease action = (completion ? _materialization.tryAcquireCompletionAction(_profileId, _executionStamp) : _materialization.tryAcquireAction(_profileId, _executionStamp)).orElse(null);
 			if (action == null)
 			{
 				return null;

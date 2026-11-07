@@ -117,17 +117,24 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	public ExecutionProgress advanceExecution(PhantomExecutionHandoffStore.Stored expected, long now, boolean cancel)
 	{
 		final var state = expected.state(); final long id = expected.profileId();
+		if (!_executionAdmission.current(id, expected.component().rowVersion(), state))
+		{ return new ExecutionProgress(expected, false, "execution.stale_or_unacknowledged", Math.addExact(now, 100)); }
 		final var source = requireExecutionOwner(state.owner());
 		if (state.phase() == PhantomExecutionHandoff.Phase.ACTIVE)
 		{ return new ExecutionProgress(expected, false, "execution.active", now); }
+		if (!_executionAdmission.quiescentCurrent(id, expected.component().rowVersion()))
+		{ return new ExecutionProgress(expected, false, "execution.wait_earned_before_prepare", Math.addExact(now, 100)); }
 		final boolean recovering = state.phase() == PhantomExecutionHandoff.Phase.RECOVERING;
 		final ExecutionReadiness ready;
-		try (var scope = _executionAdmission.enterCompletionOwner(_ -> state.owner()))
+		if (recovering || state.phase() == PhantomExecutionHandoff.Phase.REQUESTED)
 		{
-			ready = recovering ? source.prepareRecovery(expected, now)
-				: state.phase() == PhantomExecutionHandoff.Phase.REQUESTED ? source.prepareYield(expected, now)
-				: new ExecutionReadiness(true, "execution.yielded", now);
+			try (var preparation = _executionAdmission.tryAcquirePreparation(id, expected.component().rowVersion(), state.owner()))
+			{
+				if (preparation == null) { return new ExecutionProgress(expected, false, "execution.wait_prepare_owner", Math.addExact(now, 100)); }
+				try (var scope = preparation.enterScope()) { ready = recovering ? source.prepareRecovery(expected, now) : source.prepareYield(expected, now); }
+			}
 		}
+		else { ready = new ExecutionReadiness(true, "execution.yielded", now); }
 		if (!ready.ready()) { return waitingExecution(expected, ready, now); }
 		if (!_executionAdmission.quiescentCurrent(id, expected.component().rowVersion()))
 		{ return new ExecutionProgress(expected, false, "execution.wait_earned_or_recovery", Math.addExact(now, 100)); }
@@ -172,13 +179,18 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	public PhantomExecutionHandoffStore.Stored recoverExecutionAcknowledgement(PhantomExecutionHandoffStore.Stored actual)
 	{
 		final var result = new java.util.concurrent.atomic.AtomicReference<PhantomExecutionHandoffStore.Stored>();
-		final boolean completed = requireExecutionOwner(actual.state().owner()).checkpointBoundary(actual, () ->
+		final var recovered = _executionAdmission.recovering(actual.profileId(), actual.component().rowVersion(), actual.state(), () ->
 		{
-			final var fenced = actual.state().phase() == PhantomExecutionHandoff.Phase.ACTIVE ? _executionStore.restartRecovery(actual) : actual;
-			_executionAdmission.acknowledgeRecovery(fenced.profileId(), fenced.component().rowVersion(), fenced.state()); result.set(fenced);
+			final boolean completed = requireExecutionOwner(actual.state().owner()).checkpointBoundary(actual, () ->
+			{
+				final var fenced = actual.state().phase() == PhantomExecutionHandoff.Phase.ACTIVE ? _executionStore.restartRecovery(actual) : actual;
+				publishExecution(fenced); result.set(fenced);
+			});
+			if (!completed || result.get() == null) { throw new IllegalStateException("Execution recovery could not prove its native/absence boundary."); }
+			return result.get();
 		});
-		if (!completed || result.get() == null) { throw new IllegalStateException("Execution recovery could not prove its native/absence boundary."); }
-		return result.get();
+		_executionAdmission.acknowledgeRecovery(recovered.profileId(), recovered.component().rowVersion(), recovered.state());
+		return recovered;
 	}
 	private static ExecutionProgress waitingExecution(PhantomExecutionHandoffStore.Stored expected, ExecutionReadiness ready, long now)
 	{

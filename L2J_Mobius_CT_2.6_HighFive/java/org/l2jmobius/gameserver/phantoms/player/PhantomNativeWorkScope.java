@@ -250,11 +250,14 @@ public final class PhantomNativeWorkScope implements Owner
 	{ return reserve(PlayerNativeWork.current(this), "ACTION", Semantics.CANCELLABLE, stamp, false); }
 	Ticket reserveObservation()
 	{ return reserve(PlayerNativeWork.current(this), "OBSERVATION", Semantics.CANCELLABLE, null, true); }
-	Stamp currentExecutionStamp()
+	/** Current thread's admitted ACTION metadata only; this does not acquire or renew execution rights. */
+	public Stamp currentExecutionStamp()
 	{
 		final var current = PlayerNativeWork.current(this);
 		return current instanceof WorkTicket ticket && !ticket._observation ? ticket._executionStamp : null;
 	}
+	boolean currentAction()
+	{ return PlayerNativeWork.current(this) instanceof WorkTicket ticket && !ticket._observation && "ACTION".equals(ticket._kind); }
 	private Ticket reserve(Ticket parent, String kind, Semantics semantics, Stamp requested, boolean observation)
 	{
 		synchronized (_monitor)
