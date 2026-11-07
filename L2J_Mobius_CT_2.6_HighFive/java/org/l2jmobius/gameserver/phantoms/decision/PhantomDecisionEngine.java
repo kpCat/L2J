@@ -326,7 +326,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		final WorkClaim claim;
 		synchronized (_monitor)
 		{
-			claim = claimWorkLocked(workItem);
+			claim = claimWorkLocked(workItem, execution);
 		}
 		if (claim == null)
 		{
@@ -337,7 +337,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		Selection selection = null;
 		if (plan == null)
 		{
-			selection = _selector.select(_candidateRegistry.snapshot(), claim._planningContext);
+			selection = _selector.select(_candidateRegistry.snapshot().stream().filter(candidate -> candidateAdmitted(workItem.profileId(), candidate.key())).toList(), claim._planningContext);
 			_metrics.recordDecisionCandidates(selection.evaluated(), selection.blocked(), selection.failed());
 			if (selection.candidate() != null)
 			{
@@ -535,7 +535,13 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		}
 	}
 
-	private WorkClaim claimWorkLocked(PhantomActivityWorkItem workItem)
+	private boolean candidateAdmitted(long id, String key)
+	{
+		try { return _admission.permitsCandidate(id, key); }
+		catch (RuntimeException unavailable) { return false; }
+	}
+
+	private WorkClaim claimWorkLocked(PhantomActivityWorkItem workItem, AdmissionLease execution)
 	{
 		if (_state != State.RUNNING)
 		{
@@ -550,16 +556,28 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		{
 			return null;
 		}
+		final long executionGeneration;
 		try
 		{
 			if (!_admission.permits(workItem.profileId()))
 			{
 				return null;
 			}
+			executionGeneration = execution.executionGeneration();
+			if (executionGeneration < 0) { return null; }
 		}
 		catch (RuntimeException exception)
 		{
 			return null;
+		}
+		if (slot._executionGeneration != executionGeneration)
+		{
+			slot._executionGeneration = executionGeneration;
+			slot._generation++;
+			cancelPlanLocked(slot, "execution.generation_changed");
+			resetDecisionEvidenceLocked(slot);
+			if ((slot._goal != null) && (slot._goal.status() == PhantomGoalStatus.ACTIVE) && !requiresExplicitReload(slot._runtimeState))
+			{ slot._runtimeState = RuntimeState.NEEDS_REPLAN; }
 		}
 		if (workItem.activityGeneration() < slot._activityGeneration)
 		{
@@ -1207,6 +1225,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	public interface DecisionAdmission
 	{
 		boolean permits(long profileId);
+		default boolean permitsCandidate(long profileId, String candidateKey) { return true; }
 
 		/** The lease spans planning, the handler and persistence; a transfer must wait for its close. */
 		default AdmissionLease tryAcquire(long profileId)
@@ -1228,6 +1247,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	public interface AdmissionLease extends AutoCloseable
 	{
 		boolean valid();
+		default long executionGeneration() { return 0; }
 		@Override void close();
 	}
 
@@ -1355,6 +1375,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		private long _componentRowVersion = -1;
 		private RuntimeState _runtimeState = RuntimeState.NO_GOAL;
 		private long _generation;
+		private long _executionGeneration;
 		private long _activityGeneration;
 		private long _decisionSequence;
 		private PhantomPlan _plan;

@@ -560,6 +560,15 @@ public final class PhantomCoordination130Integration
 	}
 	private static void executionHandoff(PhantomProfileRepository profiles, Path module) throws Exception
 	{
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement(
+			"SELECT COUNT(*) FROM phantom_profile_components e JOIN phantom_profile_components p ON p.profile_id=e.profile_id AND p.component_type=? WHERE e.component_type=? AND e.component_schema_version<>?"))
+		{
+			query.setString(1, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE);
+			query.setString(2, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE);
+			query.setInt(3, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.SCHEMA_VERSION);
+			try (var rows = query.executeQuery()) { if (!rows.next() || rows.getLong(1) != 0) { throw new IllegalStateException("Managed execution rows require an explicit migration; implicit grants are forbidden."); } }
+		}
+		System.out.println("SQL130_EXECUTION_OLD_MANAGED_ROWS=0;IMPLICIT_MIGRATION=DENIED");
 		final long id = profiles.create(null).profileId(); // Dedicated SQL-only fixture: never a managed/native subject.
 		final long wall = System.currentTimeMillis();
 		final var solo = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("execution.solo", Long.toString(id));
@@ -580,8 +589,15 @@ public final class PhantomCoordination130Integration
 			List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("supply.npc", "0:1:2:3:4:5")), root.selectedAnchor(), "supplies.autonomous", 700, 0, 30,
 			wall + 100_000, Map.of("source.index", 0L, "equipment.weapon", 123L, "equipment.reserve", 20L), "supplies.equipment.prepare", 11, binding.encode()), wall);
 		final var savedChild = intents.saveIntent(id, root, -1, child);
+		final var operation = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationRequest(
+			org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind.BUY, 1, 2, 3, 4, 0, 5, 10, 0, 0, 0, "", 0, 0, 0);
+		final var receipt = org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.prepared(id, child.goalId(), child.revision(), operation,
+			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(100, 20, 5, 0, 0, 0, 0),
+			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(90, 25, 5, 0, 0, 0, 0));
 		race(() -> store.request(initial, party, "left", 1000, 5000), () -> store.request(initial, party, "right", 1000, 5000));
 		final var requested = store.load(id).orElseThrow();
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class,
+			() -> new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).save(-1, receipt), "REQUEST admitted a new economic operation instead of only earned completion.");
 		final var yielded = store.yielded(requested, 1001);
 		final var paused = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(root, wall + 2);
 		final var pausedChild = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(child, wall + 2);
@@ -604,8 +620,14 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class,
 			() -> intents.saveIntent(id, paused, intents.intent(id).orElseThrow().rowVersion(), resumeAttempt), "A pulse/stale source resumed its child under the recipient's grant.");
 		PhantomAssertions.assertThrows(RuntimeException.class, () -> store.recoverSource(requested), "Stale source reclaimed the winning recipient.");
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.RECOVERING, transferred.state().phase(), "CAS transfer bypassed recipient recovery.");
+		// A changed post-CAS obligation cannot be silently acknowledged by recovery, even after a no-op root resave.
+		final var rootBeforeRecovery = goals.load(id).orElseThrow(); goals.replace(id, rootBeforeRecovery.rowVersion(), rootBeforeRecovery.goal());
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> store.recovered(transferred, List.of(), List.of()), "Recovery ignored an unacknowledged changed checkpoint.");
+		PhantomAssertions.assertEquals(transferred, store.load(id).orElseThrow(), "Rejected recovery prematurely opened execution.");
+		final var activeParty = store.recovered(transferred, List.of(), List.of(profiles.findComponent(id, "goal.runtime").orElseThrow()));
 		// Return/cancellation use the same state machine, with a fresh generation and preserved operation identity.
-		final var returning = store.request(transferred, solo, "return", 1100, 6000);
+		final var returning = store.request(activeParty, solo, "return", 1100, 6000);
 		final var cancelled = store.recoverSource(returning);
 		PhantomAssertions.assertEquals(party, cancelled.state().owner(), "Cancelling return transferred before checkpoint.");
 		PhantomAssertions.assertEquals(3L, cancelled.state().generation(), "Cancellation reused stale execution grants.");
@@ -613,13 +635,18 @@ public final class PhantomCoordination130Integration
 		final var completedReturnCheckpoint = store.checkpoint(returnYield, List.of(), List.of("goal.runtime", "supply.intent", receiptType), 1202);
 		final var returned = store.transfer(completedReturnCheckpoint, List.of(), 1203);
 		PhantomAssertions.assertEquals(solo, returned.state().owner(), "Completed return did not restore the lawful source.");
-		final var resumedChild = intents.saveIntent(id, paused, intents.intent(id).orElseThrow().rowVersion(), resumeAttempt);
+		final long pausedChildVersion = intents.intent(id).orElseThrow().rowVersion();
+		final var resumeMutation = List.of(new PhantomProfileRepository.ComponentMutation("supply.intent", pausedChildVersion, 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(resumeAttempt)));
+		race(() -> store.recovered(returned, resumeMutation, List.of()), () -> fresh.recovered(returned, resumeMutation, List.of()));
+		final var returnedActive = store.load(id).orElseThrow();
+		final var resumedChild = intents.intent(id).orElseThrow();
+		PhantomAssertions.assertEquals(pausedChildVersion + 1, resumedChild.rowVersion(), "Two recovery contenders resumed the child twice.");
 		PhantomAssertions.assertEquals(child.revision(), resumedChild.goal().revision(), "Resuming the child changed its Commerce operation identity.");
 		PhantomAssertions.assertEquals(child.payloadText(), resumedChild.goal().payloadText(), "Resuming the child lost its native/class/weapon/root binding.");
 		PhantomAssertions.assertEquals(child.expenseBudget(), resumedChild.goal().expenseBudget(), "Handoff spent or discarded the child's budget.");
 		PhantomAssertions.assertEquals(child.currentAmount(), resumedChild.goal().currentAmount(), "Handoff fabricated child progress.");
 		PhantomAssertions.assertTrue(intents.load(id).isPresent(), "The returned child remained permanently suspended.");
-		final var secondYield = store.yielded(store.request(returned, party, "party-again", 1300, 6000), 1301);
+		final var secondYield = store.yielded(store.request(returnedActive, party, "party-again", 1300, 6000), 1301);
 		final var secondCheckpoint = store.checkpoint(secondYield,
 			List.of(new PhantomProfileRepository.ComponentMutation("supply.intent", resumedChild.rowVersion(), 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(
 				org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(resumedChild.goal(), wall + 301)))), List.of("goal.runtime", "supply.intent", receiptType), 1302);
@@ -627,18 +654,13 @@ public final class PhantomCoordination130Integration
 		final var failureYield = store.yielded(store.request(secondParty, solo, "return-failure", 1400, 6000), 1401);
 		final var returnCheckpoint = store.checkpoint(failureYield, List.of(), List.of("goal.runtime", "supply.intent", receiptType), 1402);
 		// An absent receipt is not a waiver: appearance after checkpoint must reject transfer atomically.
-		final var operation = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationRequest(
-			org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind.BUY, 1, 2, 3, 4, 0, 5, 10, 0, 0, 0, "", 0, 0, 0);
-		final var receipt = org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.prepared(id, root.goalId(), root.revision(), operation,
-			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(100, 20, 5, 0, 0, 0, 0),
-			new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(90, 25, 5, 0, 0, 0, 0));
 		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class,
 			() -> new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).save(-1, receipt), "The previous economic owner wrote a new receipt after execution transferred.");
 		// Model a foreign/stale unguarded writer to exercise the transaction's negative dependency itself.
 		profiles.insertComponent(id, receiptType, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.SCHEMA_VERSION, receipt.encode());
 		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> profiles.mutateProfileComponentsAtomically(
 			List.of(new PhantomProfileRepository.ProfileComponentMutation(id, new PhantomProfileRepository.ComponentMutation(
-				org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE, returnCheckpoint.component().rowVersion(), 1, returnCheckpoint.component().payload()))),
+				org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE, returnCheckpoint.component().rowVersion(), returnCheckpoint.component().componentSchemaVersion(), returnCheckpoint.component().payload()))),
 			List.of(returnCheckpoint.component()), List.of(new PhantomProfileRepository.ComponentAbsence(id, receiptType))), "SQL absent dependency was checked only outside its transaction.");
 		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> store.transfer(returnCheckpoint, List.of(), 1403), "A new Commerce obligation was ignored by transfer.");
 		PhantomAssertions.assertEquals(returnCheckpoint, store.load(id).orElseThrow(), "Rejected transfer partially published an owner.");

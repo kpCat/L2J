@@ -110,6 +110,41 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		registry.add("36-admission-fence-blocks-work", _ -> testAdmissionFence());
 		registry.add("37-revoked-admission-cancels-already-running-handler", _ -> testRevokedAdmission());
 		registry.add("38-execution-transfer-waits-for-real-decision-lease", _ -> testExecutionTransferLease());
+		registry.add("39-transfer-invalidates-old-plan-before-candidate-producers", _ -> testTransferInvalidatesPlan());
+	}
+
+	private void testTransferInvalidatesPlan()
+	{
+		final var generation = new java.util.concurrent.atomic.AtomicLong(1);
+		final var sourceCandidateAllowed = new AtomicBoolean(true);
+		final var calls = new AtomicInteger();
+		final var admission = new PhantomDecisionEngine.DecisionAdmission()
+		{
+			@Override public boolean permits(long id) { return true; }
+			@Override public boolean permitsCandidate(long id, String key) { return sourceCandidateAllowed.get(); }
+			@Override public PhantomDecisionEngine.AdmissionLease tryAcquire(long id)
+			{
+				final long captured = generation.get();
+				return new PhantomDecisionEngine.AdmissionLease()
+				{
+					@Override public boolean valid() { return generation.get() == captured; }
+					@Override public long executionGeneration() { return captured; }
+					@Override public void close() { }
+				};
+			}
+		};
+		final var fixture = fixture(_ -> { calls.incrementAndGet(); return PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success"); }, 2, 1000, 1000, admission);
+		try
+		{
+			fixture.engine.attach(1); fixture.engine.insertGoal(1, goal(0));
+			fixture.engine.accept(work(1, 1, 1, 0));
+			PhantomAssertions.assertEquals(1, calls.get(), "Initial source plan did not start.");
+			generation.incrementAndGet(); sourceCandidateAllowed.set(false); // Acknowledged transfer; root/operation revision stays unchanged.
+			fixture.engine.accept(work(1, 1, 2, 1));
+			PhantomAssertions.assertEquals(1, calls.get(), "Recipient reused the old source plan or evaluated its forbidden candidate.");
+			PhantomAssertions.assertEquals(goal(0), fixture.store.load(1).orElseThrow().goal(), "Execution transfer changed the accepted Goal revision.");
+		}
+		finally { fixture.stop(); }
 	}
 
 	private void testExecutionTransferLease() throws InterruptedException
@@ -129,7 +164,8 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.quiescent(1, 1, () -> true), "A real running Decision handler did not hold the transfer barrier.");
 			handler.release(); join(worker);
 			PhantomAssertions.assertTrue(handler.cancelled.get(), "The real Decision handler retained its source grant.");
-			final var transferred = requested.yield(1001).checkpoint(List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Dependency("goal.runtime", 1, 0, "a".repeat(64))), 1002).transfer(1003);
+			final var proof = List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Dependency("goal.runtime", 1, 0, "a".repeat(64)));
+			final var transferred = requested.yield(1001).checkpoint(proof, 1002).transfer(1003).recovered(proof);
 			gate.quiescent(1, 1, () -> { gate.publish(1, 4, transferred); return true; });
 			PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "Old source acquired work after the real handler quiesced and CAS transferred.");
 			try (var recipient = gate.tryAcquire(1, party)) { PhantomAssertions.assertTrue(recipient != null && recipient.valid(), "Recipient did not obtain exclusive admission."); }

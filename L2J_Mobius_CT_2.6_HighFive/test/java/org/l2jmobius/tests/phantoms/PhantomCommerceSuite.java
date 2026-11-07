@@ -512,6 +512,19 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 				service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Yield leaked Commerce leases/persistence claims.");
 			}
 		});
+		registry.add("09-execution-yield-never-requotes-changed-unapplied-price", _ ->
+		{
+			final var store = new FakeStore();
+			final var accepted = receipt(OperationKind.TELEPORT, before(OperationKind.TELEPORT), after(OperationKind.TELEPORT)).withState(State.COMMITTING);
+			store.save(-1, accepted);
+			final var actor = new FakeActor(OperationKind.TELEPORT, before(OperationKind.TELEPORT)); actor.freeTravel = true;
+			final var service = service(store, actor, new FakeGoalStore(1, teleportGoal())); service.start();
+			PhantomAssertions.assertEquals(OperationStatus.REPLAN, service.settleAccepted(1, accepted.operationKey()).status(), "Changed accepted terms did not return to the source for normal execution.");
+			PhantomAssertions.assertEquals(0, actor.quoteCalls.get(), "Yield created a new quote instead of retaining its accepted operation.");
+			PhantomAssertions.assertEquals(0, actor.firstCalls.get() + actor.secondCalls.get(), "Yield executed changed/unaccepted terms.");
+			PhantomAssertions.assertEquals(accepted, store.value.receipt(), "Yield silently replaced its accepted receipt.");
+			service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Changed-term yield leaked ownership.");
+		});
 	}
 
 	private void registerDecision(PhantomTestRegistry registry)

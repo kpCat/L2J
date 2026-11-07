@@ -53,6 +53,13 @@ public final class PhantomCommerceReceiptStore implements PhantomCommerceService
 	{
 		Objects.requireNonNull(receipt);
 		final var guard = _execution.guardCompletion(receipt.profileId(), org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(receipt.profileId()));
+		if (!guard.present().isEmpty() && new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored(guard.present().getFirst()).state().phase()
+			!= org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE)
+		{
+			final var accepted = find(receipt.profileId()).orElse(null);
+			if (accepted == null || !accepted.receipt().operationKey().equals(receipt.operationKey()))
+			{ throw new java.util.ConcurrentModificationException("Only the already accepted Commerce receipt can finish during execution handoff/recovery."); }
+		}
 		final var component = _repository.mutateProfileComponentsAtomically(java.util.List.of(new PhantomProfileRepository.ProfileComponentMutation(receipt.profileId(),
 			new PhantomProfileRepository.ComponentMutation(PhantomCommerceReceipt.COMPONENT_TYPE, expectedRowVersion, PhantomCommerceReceipt.SCHEMA_VERSION, receipt.encode()))), guard.present(), guard.absent()).getFirst();
 		return decode(component);

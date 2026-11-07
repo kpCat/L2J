@@ -201,7 +201,7 @@ public final class PhantomCommerceService
 								{
 									return OperationResult.cancelled();
 								}
-								return record(reconcile(actor, versioned, cancelled));
+								return record(reconcile(actor, versioned, cancelled, acceptedKey == null));
 							}
 							if (!receipt.state().terminal())
 							{
@@ -264,7 +264,7 @@ public final class PhantomCommerceService
 		}
 	}
 
-	private OperationResult reconcile(ActorLease actor, VersionedReceipt versioned, BooleanSupplier cancelled)
+	private OperationResult reconcile(ActorLease actor, VersionedReceipt versioned, BooleanSupplier cancelled, boolean allowRequote)
 	{
 		PhantomCommerceReceipt receipt = versioned.receipt();
 		final ConservationFacts current = actor.snapshot(receipt.request());
@@ -299,6 +299,7 @@ public final class PhantomCommerceService
 		}
 		if (reconciliation == Reconciliation.EXACT_BEFORE && receipt.request().kind() == OperationKind.TELEPORT && receipt.request().feeCount() > 0 && actor.freeTravel())
 		{
+			if (!allowRequote) { return OperationResult.replan(Reason.PRICE_CHANGED); }
 			// This exact unpaid quote keeps its accepted goal revision; generic new operations retain their previous-receipt fence.
 			final var authority = goalAuthority(receipt.profileId(), receipt.goalId(), receipt.goalRevision(), null);
 			if (authority != Reason.ACCEPTED) { return OperationResult.replan(authority); }

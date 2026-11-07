@@ -25,7 +25,7 @@ public final class PhantomExecutionHandoffStore
 	{
 		public Stored
 		{
-			if (!COMPONENT_TYPE.equals(component.componentType()) || component.componentSchemaVersion() != 1)
+			if (!COMPONENT_TYPE.equals(component.componentType()) || component.componentSchemaVersion() != PhantomExecutionHandoff.SCHEMA_VERSION)
 			{ throw new IllegalArgumentException("Unknown execution component."); }
 			PhantomExecutionHandoff.decode(component.payload());
 		}
@@ -46,7 +46,7 @@ public final class PhantomExecutionHandoffStore
 		return new CompletionGuard(List.of(stored.component()), List.of());
 	}
 	public Stored initialize(long id, PhantomDomainRef owner)
-	{ return new Stored(_profiles.insertComponent(id, COMPONENT_TYPE, 1, PhantomExecutionHandoff.initial(owner).encode())); }
+	{ return new Stored(_profiles.insertComponent(id, COMPONENT_TYPE, PhantomExecutionHandoff.SCHEMA_VERSION, PhantomExecutionHandoff.initial(owner).encode())); }
 	public Stored request(Stored expected, PhantomDomainRef target, String requestId, long now, long deadline)
 	{ return write(expected, expected.state().request(target, requestId, now, deadline), List.of(), List.of(), List.of()); }
 	public Stored yielded(Stored expected, long now)
@@ -56,10 +56,21 @@ public final class PhantomExecutionHandoffStore
 
 	/** Persist the owner's resumable changes and their exact post-write proof in the same transaction. */
 	public Stored checkpoint(Stored expected, List<ComponentMutation> changes, List<String> dependencyTypes, long now)
+	{ return checkpoint(expected, changes, dependencyTypes, now, false, List.of()); }
+
+	/** RECOVER acknowledgement and owner changes share one guarded transaction before NORMAL admission opens. */
+	public Stored recovered(Stored expected, List<ComponentMutation> changes, List<PhantomProfileComponent> authority)
 	{
-		if (dependencyTypes == null || dependencyTypes.isEmpty() || dependencyTypes.size() > 8
+		final var types = new java.util.LinkedHashSet<String>();
+		expected.state().dependencies().forEach(d -> types.add(d.componentType())); changes.forEach(c -> types.add(c.componentType()));
+		return checkpoint(expected, changes, List.copyOf(types), 0, true, authority);
+	}
+
+	private Stored checkpoint(Stored expected, List<ComponentMutation> changes, List<String> dependencyTypes, long now, boolean recovery, List<PhantomProfileComponent> authority)
+	{
+		if (dependencyTypes == null || dependencyTypes.isEmpty() || dependencyTypes.size() > PhantomExecutionHandoff.MAX_DEPENDENCIES
 			|| dependencyTypes.stream().distinct().count() != dependencyTypes.size() || dependencyTypes.contains(COMPONENT_TYPE)
-			|| changes == null || changes.size() > 8 || changes.stream().map(ComponentMutation::componentType).distinct().count() != changes.size()
+			|| changes == null || changes.size() > PhantomExecutionHandoff.MAX_DEPENDENCIES || changes.stream().map(ComponentMutation::componentType).distinct().count() != changes.size()
 			|| changes.stream().anyMatch(c -> !dependencyTypes.contains(c.componentType())))
 		{ throw new IllegalArgumentException("Invalid bounded execution checkpoint components."); }
 		final var guards = new ArrayList<PhantomProfileComponent>(); final var absent = new ArrayList<ComponentAbsence>();
@@ -69,6 +80,12 @@ public final class PhantomExecutionHandoffStore
 			final var raw = _profiles.findComponent(expected.profileId(), type).orElse(null);
 			if (raw == null) { absent.add(new ComponentAbsence(expected.profileId(), type)); } else { guards.add(raw); }
 			final var change = changes.stream().filter(c -> c.componentType().equals(type)).findFirst().orElse(null);
+			if (recovery)
+			{
+				final var prior = expected.state().dependencies().stream().filter(d -> d.componentType().equals(type)).findFirst().orElse(null);
+				if (prior != null && !fingerprint(type, raw).equals(prior) && (raw == null || !authority.contains(raw)))
+				{ throw new ConcurrentModificationException("Recipient recovery did not acknowledge a changed checkpoint obligation."); }
+			}
 			if (change == null) { dependencies.add(fingerprint(type, raw)); }
 			else
 			{
@@ -76,7 +93,8 @@ public final class PhantomExecutionHandoffStore
 				dependencies.add(new PhantomExecutionHandoff.Dependency(type, change.componentSchemaVersion(), change.expectedRowVersion() + 1, sha256(change.payload())));
 			}
 		}
-		return write(expected, expected.state().checkpoint(dependencies, now), changes, guards, absent);
+		guards.addAll(authority);
+		return write(expected, recovery ? expected.state().recovered(dependencies) : expected.state().checkpoint(dependencies, now), changes, guards, absent);
 	}
 
 	/** Recipient authority (for example exact logical group generation) shares the transfer transaction. */
@@ -94,7 +112,7 @@ public final class PhantomExecutionHandoffStore
 	private Stored write(Stored expected, PhantomExecutionHandoff next, List<ComponentMutation> changes, List<PhantomProfileComponent> guards, List<ComponentAbsence> absent)
 	{
 		final var mutations = new ArrayList<ProfileComponentMutation>();
-		mutations.add(new ProfileComponentMutation(expected.profileId(), new ComponentMutation(COMPONENT_TYPE, expected.component().rowVersion(), 1, next.encode())));
+		mutations.add(new ProfileComponentMutation(expected.profileId(), new ComponentMutation(COMPONENT_TYPE, expected.component().rowVersion(), PhantomExecutionHandoff.SCHEMA_VERSION, next.encode())));
 		for (var change : changes) { mutations.add(new ProfileComponentMutation(expected.profileId(), change)); }
 		final var allGuards = new ArrayList<>(guards); allGuards.add(expected.component());
 		return _profiles.mutateProfileComponentsAtomically(mutations, allGuards, absent).stream()
