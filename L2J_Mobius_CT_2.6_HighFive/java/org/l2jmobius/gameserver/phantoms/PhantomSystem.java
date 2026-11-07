@@ -770,7 +770,9 @@ public final class PhantomSystem
 				_questInstanceService.enableAutomaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-automatic-professions-v1.xml").toPath()));
 				_learningJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_supplyJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
-				_supplyJourney.deferOptionalWhen((id, root) -> partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true));
+				_supplyJourney.deferOptionalWhen((id, root) -> _logicalParties != null && _logicalParties.knownGroupFor(id)
+					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false)
+					|| partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true));
 				_questInstanceService.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.ownsAutomaticIntent(profileId, root) || _learningJourney.ownsAutomaticIntent(profileId, root));
 				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()), _learningJourney::suspendCareerReturn);

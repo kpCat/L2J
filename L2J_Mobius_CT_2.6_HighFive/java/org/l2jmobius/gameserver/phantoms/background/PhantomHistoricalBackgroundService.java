@@ -2007,6 +2007,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public void beforeMaterialize(long profileId, int characterObjectId, MaterializationPurpose purpose, String ownerClaim)
 	{
 		Objects.requireNonNull(purpose, "purpose");
+		try { _refreshLogicalGroups.accept(profileId); }
+		catch (RuntimeException unavailable) { throw new AdmissionRejectedException("catchup.logical_group.persistence_retry"); }
 		final Snapshot catchup;
 		try
 		{

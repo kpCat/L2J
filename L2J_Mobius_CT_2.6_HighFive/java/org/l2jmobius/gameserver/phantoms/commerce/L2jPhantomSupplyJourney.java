@@ -137,6 +137,10 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{
 		return deferred ? Optional.empty() : proposal.get();
 	}
+	static boolean inventoryPressure(boolean latched, long slotsPercent, long weightPercent)
+	{
+		return latched ? slotsPercent > 65 || weightPercent > 65 : slotsPercent >= 80 || weightPercent >= 80;
+	}
 	public void requireField(java.util.function.BiPredicate<PhantomGoal, Player> predicate)
 	{
 		if (_state != State.NEW) { throw new IllegalStateException("Supply field must bind before start."); } _fieldReady = java.util.Objects.requireNonNull(predicate);
@@ -344,12 +348,15 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			}
 			if (_learningOwns.test(profileId, root)) { return Optional.empty(); }
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
-			final var maintenance = maintenanceProposal(profileId, root, player, cached, now);
-			if (maintenance.isPresent()) { return maintenance; }
 			final boolean deferOptional = _deferOptional.test(profileId, root);
+			final boolean missingWeapon = player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem();
+			final boolean urgentInventory = missingWeapon || inventoryPressure(cached.maintenancePressure,
+				player.getInventory().getSize() * 100L / Math.max(1, player.getInventoryLimit()), player.getCurrentLoad() * 100L / Math.max(1, player.getMaxLoad()));
+			final var maintenance = optionalPreparation(deferOptional && !urgentInventory, () -> maintenanceProposal(profileId, root, player, cached, now));
+			if (maintenance.isPresent()) { return maintenance; }
 			final var readySa = optionalPreparation(deferOptional, () -> readySaProposal(profileId, root, player, cached, now));
 			if (readySa.isPresent()) { return readySa; }
-			if (player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return equipmentProposal(profileId, root, player, cached, now); }
+			if (missingWeapon) { return equipmentProposal(profileId, root, player, cached, now); }
 			final var need = supplyNeed(player); if (need == null) { return optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
@@ -488,7 +495,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		cached.nextMaintenanceCheck = now + Math.max(30_000, TimeUnit.SECONDS.toMillis(_policy.retrySeconds()));
 		if (!_maintenanceAllowed.test(id) || _equipmentWeaponProtected.test(id, root)) { return Optional.empty(); }
 		final long slots = player.getInventory().getSize() * 100L / Math.max(1, player.getInventoryLimit()), weight = player.getCurrentLoad() * 100L / Math.max(1, player.getMaxLoad());
-		cached.maintenancePressure = cached.maintenancePressure ? slots > 65 || weight > 65 : slots >= 80 || weight >= 80;
+		cached.maintenancePressure = inventoryPressure(cached.maintenancePressure, slots, weight);
 		final var origin = PhantomNativeTravelActions.point(player); final var needs = maintenanceNeeds(player);
 		final var bank = nearestMaintenanceNpc(player, true); final var merchant = nearestMaintenanceNpc(player, false);
 		final var operations = new ArrayList<PhantomInventoryMaintenanceIntent.Operation>();

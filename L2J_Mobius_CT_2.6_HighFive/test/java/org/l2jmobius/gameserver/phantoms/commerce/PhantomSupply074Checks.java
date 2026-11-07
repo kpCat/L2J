@@ -16,6 +16,10 @@ public final class PhantomSupply074Checks
 		PhantomAssertions.assertEquals(0, calls.get(), "Deferred equipment still invoked its native proposal producer.");
 		PhantomAssertions.assertEquals(java.util.Optional.of("new.equipment"), L2jPhantomSupplyJourney.optionalPreparation(false, gear), "Stale or absent assembly suppressed ordinary equipment progression.");
 		PhantomAssertions.assertEquals(1, calls.get(), "Ordinary proposal producer was duplicated.");
+		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.inventoryPressure(false, 80, 0), "Critical slot pressure was deferred as optional.");
+		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.inventoryPressure(false, 0, 80), "Critical weight pressure was deferred as optional.");
+		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.inventoryPressure(true, 66, 0), "Accepted inventory pressure lost its existing hysteresis.");
+		PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.inventoryPressure(true, 65, 65), "Relieved inventory retained a mandatory maintenance fence.");
 		System.out.println("SUPPLY130_OPTIONAL_PREPARATION_PASS;EXACT_ASSEMBLY=DEFERRED;PRODUCER_CALLS=0;NO_ASSEMBLY=ORDINARY;GAMEPLAY_WRITES=0");
 		final var destination = new PhantomNavigationPoint(-61717, 75401, -3352, 0);
 		final var checkpoint = new PhantomNavigationPoint(-63000, 76500, -3280, 0);

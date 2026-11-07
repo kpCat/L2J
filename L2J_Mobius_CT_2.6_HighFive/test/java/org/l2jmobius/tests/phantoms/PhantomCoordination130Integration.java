@@ -393,15 +393,24 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertTrue(history.advance(id,1,1).successful(), "Completed history did not retain its ordinary idempotent result.");
 		PhantomAssertions.assertTrue(cold.knownGroupFor(id).isPresent(), "Background ran before durable logical claims were resolved into its cold cache.");
 		PhantomAssertions.assertEquals(1,reads.get(),"A bounded Background call rescanned logical membership per interval.");
+		final var coldNative = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
+		history.bindLogicalGroups(profile -> coldNative.knownGroupFor(profile).map(row -> row.group()), profile -> { reads.incrementAndGet(); coldNative.groupFor(profile); });
+		PhantomAssertions.assertTrue(coldNative.knownGroupFor(id).isEmpty(), "Native hydration fixture was already warm.");
 		history.beforeMaterialize(id,fixture.objectId());
+		PhantomAssertions.assertTrue(coldNative.knownGroupFor(id).isPresent(), "NORMAL materialization reached native planning before its durable logical group was hydrated.");
+		PhantomAssertions.assertEquals(2,reads.get(),"Native materialization did not use one bounded durable membership read.");
 		history.materializeAborted(id,fixture.objectId());
 		history.bindLogicalGroups(profile -> cold.knownGroupFor(profile).map(row -> row.group()), _ -> { throw new IllegalStateException("TEST130_LOGICAL_READ_UNAVAILABLE"); });
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY,history.advance(id,1,1).status(),"Unavailable logical authority fell through to Solo history.");
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY,history.begin(id,101,102,130).status(),"A new historical window ignored unavailable logical authority.");
+		PhantomAssertions.assertThrows(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.AdmissionRejectedException.class,
+			() -> history.beforeMaterialize(id,fixture.objectId()),"Unavailable logical authority admitted a new native lifetime.");
 		PhantomAssertions.assertEquals(beforeGoal,goals.load(id),"Logical hydration changed the root.");
 		PhantomAssertions.assertEquals(beforeHistory,new PhantomBackgroundCatchupStore(profiles,goals).load(id),"Logical hydration changed interval/time ownership.");
 		PhantomAssertions.assertEquals(beforeState,profiles.findComponent(id,PhantomBackgroundState.COMPONENT_TYPE),"Logical hydration changed rewards/economy.");
 		System.out.println("SQL130_BACKGROUND_LOGICAL_RESTORE_PASS;BEFORE_SCHEDULER=true;DURABLE_POINT_READ=true;UNAVAILABLE=RETRY;GAMEPLAY_TIME_WRITES=0;PLAYERS=0");
+		System.out.println("SQL130_NORMAL_LOGICAL_RESTORE_PASS;BEFORE_NATIVE_LOAD=true;COLD_POINT_READS=1;UNAVAILABLE=REJECTED;PLAYERS=0");
+		history.bindLogicalGroups(profile -> coldNative.knownGroupFor(profile).map(row -> row.group()), profile -> coldNative.groupFor(profile));
 		return history;
 	}
 	private static void f7Receipts(PhantomProfileRepository profiles, List<ReceiptFixture> fixtures) throws Exception
