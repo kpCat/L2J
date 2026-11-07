@@ -139,6 +139,9 @@ public final class PhantomCoordination130Integration
             if (args[0].equals("handoff")) { initialRootBinding(profiles, module); return; }
             if (args[0].equals("probe") || args[0].equals("probe-live"))
             {
+                try (var connection = DatabaseFactory.getConnection(); var statement = connection.createStatement();
+                    var rows = statement.executeQuery("SELECT component_type,COUNT(*) FROM phantom_profile_components WHERE component_type IN ('party.logical_group','party.logical_claim') GROUP BY component_type"))
+                { while (rows.next()) { System.out.println("SQL130_LOGICAL_ROW_COUNT type=" + rows.getString(1) + " rows=" + rows.getLong(2)); } }
                 final var saved = read(PhantomCoordination130Native.scene(module.getParent().getParent().resolve("runtime")).resolve("fixture130.properties"));
                 for (String text : saved.getProperty("profiles").split(","))
                 {

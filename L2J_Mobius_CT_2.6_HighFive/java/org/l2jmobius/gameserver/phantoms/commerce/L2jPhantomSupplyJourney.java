@@ -291,9 +291,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	/** Failed supply deliberately leaves the ordinary farm root available to earn its next budget. */
 	public static boolean requiresPartyPreparation(PhantomGoal root, PhantomGoal child, PhantomCommerceReceipt.State receiptState, boolean lowStock, long nowEpochMillis)
 	{
+		return requiresPartyPreparation(root, child, receiptState, lowStock, nowEpochMillis, true);
+	}
+	public static boolean requiresPartyPreparation(PhantomGoal root, PhantomGoal child, PhantomCommerceReceipt.State receiptState, boolean lowStock, long nowEpochMillis, boolean hasPurchaseBudget)
+	{
 		if (requiresSoloPreparation(root, child, receiptState)) { return true; }
 		if (PhantomSupplyIntentStore.bound(child, root) && child.status() != PhantomGoalStatus.ACTIVE && Binding.parse(child).retryAfterEpochMillis() > nowEpochMillis) { return false; }
-		return lowStock;
+		return lowStock && hasPurchaseBudget;
 	}
 
 	/** Admission observes the existing child/receipt; it never settles or cancels their owners. */
@@ -307,7 +311,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (_state != State.RUNNING || !_policy.enabled() || root == null || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return false; }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
-			return lease != null && !lease.player().isAlikeDead() && requiresPartyPreparation(root, PhantomSupplyIntentStore.bound(child, root) && matches(child, lease.player()) ? child : null, null, supplyNeed(lease.player()) != null, System.currentTimeMillis());
+			return lease != null && !lease.player().isAlikeDead() && requiresPartyPreparation(root, PhantomSupplyIntentStore.bound(child, root) && matches(child, lease.player()) ? child : null, null, supplyNeed(lease.player()) != null, System.currentTimeMillis(), lease.player().getAdena() > 0);
 		}
 	}
 
