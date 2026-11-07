@@ -66,6 +66,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final LongSupplier _clock;
 	private final java.util.concurrent.atomic.AtomicLong _signalSequence = new java.util.concurrent.atomic.AtomicLong();
 	private volatile java.util.function.LongFunction<java.util.Set<String>> _routeExclusions = _ -> java.util.Set.of();
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _groupTravelSafety = (_, _) -> false;
+
+	/** Restrictive geometry only; the current Journey still owns its root, epoch and finite budget. */
+	public void bindGroupTravelSafety(java.util.function.BiPredicate<Long, PhantomGoal> assembly)
+	{
+		_groupTravelSafety = Objects.requireNonNull(assembly);
+	}
 
 	public void bindRouteExclusions(java.util.function.LongFunction<java.util.Set<String>> exclusions)
 	{
@@ -645,8 +652,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 		final var current = new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
-		final boolean idle = PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, journey.goal);
-		if (idle && journey.moveIssued && player.isMoving())
+		journey.pveSafeWalk |= _groupTravelSafety.test(profileId, journey.goal);
+		final boolean pveSafeWalk = journey.pveSafeWalk || PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, journey.goal);
+		if (pveSafeWalk && journey.moveIssued && player.isMoving())
 		{
 			final var issued = new PhantomNavigationPoint(journey.moveX, journey.moveY, player.getZdestination(), player.getInstanceId());
 			if (!safeIdlePveSegment(player, issued)) { replanEdge(profileId, player, journey, current, issued, "travel.native_pve_threat"); return false; }
@@ -678,7 +686,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
 			final List<PhantomNavigationRequest.PveThreat> threats;
-			try { threats = idle ? pveThreats(current, player.getLevel(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class, 3500))) : List.of(); }
+			try { threats = pveSafeWalk ? pveThreats(current, player.getLevel(), List.copyOf(World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.instance.Monster.class, 3500))) : List.of(); }
 			catch (IllegalArgumentException overflow) { fail(profileId, journey, "travel.native_threat_snapshot_limit", Disposition.ROUTE_UNUSABLE); return false; }
 			var requestDestination = destination;
 			if (journey.currentAnchorReturn)
@@ -771,7 +779,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			final var waypoint = journey.waypoints.get(journey.index);
-			if (idle && !safeIdlePveSegment(player, waypoint)) { replanEdge(profileId, player, journey, current, waypoint, "travel.native_pve_threat"); return false; }
+			if (pveSafeWalk && !safeIdlePveSegment(player, waypoint)) { replanEdge(profileId, player, journey, current, waypoint, "travel.native_pve_threat"); return false; }
 			final boolean waterExit = player.isInsideZone(ZoneId.WATER) || (ZoneManager.getInstance().getZone(current.x(), current.y(), current.z(), WaterZone.class) != null);
 			final String unsafe = unsafeSegment(current, waypoint, waterExit, radius, witness -> journey.attempt.segmentWitness = witness);
 			if (unsafe != null)
@@ -1354,6 +1362,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private int stageIndex;
 		private PhantomNativeTravelActions.ReturnOperation returnOperation;
 		private boolean phaseClosed;
+		private boolean pveSafeWalk;
 		private boolean moveIssued;
 		private int moveX;
 		private int moveY;

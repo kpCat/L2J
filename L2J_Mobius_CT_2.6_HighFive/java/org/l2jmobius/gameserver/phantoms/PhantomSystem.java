@@ -978,6 +978,8 @@ public final class PhantomSystem
 					return new PhantomAutonomousFarmParty.LogicalPage(candidates, page.isEmpty() ? 0 : page.getLast().profile().profileId());
 				}, this::requestLogicalWake, group -> !logicalGroupMayDrain(group));
 				_historicalBackgroundService.bindLogicalGroups(id -> _logicalParties.knownGroupFor(id).map(row -> row.group()), id -> _logicalParties.groupFor(id));
+				_visibleFarmTravel.bindGroupTravelSafety((id, root) -> _logicalParties.knownGroupFor(id)
+					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false));
 				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney, autonomousFarm));
 				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
 				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
