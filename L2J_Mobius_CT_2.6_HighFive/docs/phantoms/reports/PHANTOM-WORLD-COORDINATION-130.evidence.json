@@ -1,5 +1,20 @@
 {
-  "status": "PARTIAL_WIP_ONLY",
+  "status": "PAUSED_FOR_OWNERSHIP_ARCHITECTURE_REVIEW",
+  "pausedCheckpoint": {
+    "requestedByUser": true,
+    "codeHead": "bc6ae9e2055ce81874c04445f373ba1d987b74b8",
+    "branch": "wip/coordination-130-preserved",
+    "jarSha256": "e2d86726725ad256a5c296ef2df4a0c3ff9aa67bd8fa8f44522de7eb9eb0640d",
+    "existingGatesBeforePause": { "modelPassed": 135, "modelTotal": 135, "modelSeconds": 8.6269312, "concurrentSqlMillis": 3454, "separateJvmResumeWrites": 0, "nativeRestartProved": false },
+    "nativeTotals": { "launchInvocations": 32, "fullBoots": 30, "observedPartyFormations": 1, "usefulGroupKills": 0, "phantomHealProved": false },
+    "lastNative": { "pid": 76040, "stdout": "native-20261107-120422.stdout.log", "result": "NATIVE130_IDLE_ASSEMBLY_DIAGNOSED", "observationMillis": 200638, "normalShutdownExitCode": 0, "finishedUtc": "2026-11-07T12:08:42.2434793Z" },
+    "postflight": { "ownJvm": 0, "ownListeners": 0, "ownSqlSessions": 0, "protected207Hashes": "EXACT", "sqlWrites": 0 },
+    "scopePaths": 51,
+    "full130": false,
+    "featurePushed": false,
+    "furtherBuildsTestsNativeAndReviews": "STOPPED_BY_USER"
+  },
+  "historicalEvidenceNote": "The remaining sourceFiles, gates and finalStaticChecks below preserve the initial eae6 checkpoint evidence; they are not the current source hash vector or current native acceptance. Current pause evidence is pausedCheckpoint above and the append-only report.",
   "baseline": "5cb04fe8a669ebf68e5f9ae0fa927055f81a4efe",
   "remoteFeature": "faec72161f9e4f6231764e17d6f2637a4db080af",
   "primaryExternalHead": "a7cb9a7c2bd4ced33ed693c4d6f3d22f809981a5",
