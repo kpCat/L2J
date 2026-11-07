@@ -414,7 +414,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (_backend.materializationEpoch(actor) != epoch) { return false; }
 		final var reservation = _rendezvousClaims.get(profileId);
 		final long now = System.currentTimeMillis();
-		if (reservation != null && reservation.active(now) && reservation.roster().size() >= 3
+		if (reservation != null && reservation.active(now) && reservation.roster().size() >= 2
 			&& Set.of(PhantomPartyRendezvousState.Phase.ACCEPTED, PhantomPartyRendezvousState.Phase.ASSEMBLING, PhantomPartyRendezvousState.Phase.ARRIVED).contains(reservation.phase()))
 		{
 			final var own = reservation.participant();
@@ -490,10 +490,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		try
 		{
 			final var reservation = _rendezvousClaims.get(profileId);
-			if (_state != State.RUNNING || reservation == null || !reservation.active(System.currentTimeMillis()) || reservation.roster().size() < 3
+			if (_state != State.RUNNING || reservation == null || !reservation.active(System.currentTimeMillis()) || reservation.roster().size() < 2
 				|| !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root) || !new PhantomDomainRef("profile", Long.toString(profileId)).equals(root.subject())) { return false; }
 			final var own = reservation.participant();
-			if (!own.actor().equals(reservation.roster().get(1).actor()) || root.goalId() != own.goalId()) { return false; }
+			if (root.goalId() != own.goalId()) { return false; }
 			if (preparation)
 			{
 				if (reservation.phase() != PhantomPartyRendezvousState.Phase.ACCEPTED || root.revision() != own.goalRevision()) { return false; }

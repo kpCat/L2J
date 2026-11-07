@@ -778,7 +778,8 @@ public final class PhantomSystem
 				if (!_supplyJourney.start()) { throw new IllegalStateException("Phantom supply journey could not enter the running state."); }
 				// A fresh native supply proposal must reach Decision before the accepted-owner contract can exist.
 				_historicalBackgroundService.bindSupportRendezvous(_partyCoordinator::supportRendezvousPreparation, _partyCoordinator::supportRendezvousTravel);
-				_historicalBackgroundService.bindPartyNativeLifetime(this::partyRetainsNativeLifetime, this::partyPermitsCommittedNativeDecision);
+				_historicalBackgroundService.bindPartyNativeLifetime(this::partyRetainsNativeLifetime, this::partyPermitsCommittedNativeDecision,
+					(id, root) -> partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true));
 				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.permitsAutonomousVisibleDecision(profileId, root) || _learningJourney.permitsAutomaticVisibleDecision(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.needsOrOwns(profileId, root) || _partyCoordinator.supportRendezvousTravel(profileId, root));
 				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
@@ -2597,6 +2598,7 @@ public final class PhantomSystem
 		{
 			result.put("historical.permitsDecision", Boolean.toString(configured._historicalBackgroundService.permitsDecision(profileId)));
 			result.put("historical.visibleRecovery", configured._historicalBackgroundService.visibleRecoveryReason(profileId));
+			result.put("historical.visiblePreparation", configured._historicalBackgroundService.visiblePreparationStage(profileId));
 		}
 		if (configured._learningJourney != null) { result.put("learning", configured._learningJourney.automaticIntent(profileId).toString()); }
 		if (configured._supplyJourney != null) { result.put("supply", configured._supplyJourney.automaticIntent(profileId).toString()); result.put("supply.reason", configured._supplyJourney.reason(profileId)); }

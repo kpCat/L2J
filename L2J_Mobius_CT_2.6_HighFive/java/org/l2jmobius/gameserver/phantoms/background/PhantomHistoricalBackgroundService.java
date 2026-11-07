@@ -81,6 +81,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedIntent = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyNativeLifetime = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyCommittedDecision = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedPartyRoot = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousPreparation = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousTravel = (_, _) -> false;
 
@@ -106,8 +107,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Party owns lifetime retention only; it grants no ordinary intent or action permission. */
 	public void bindPartyNativeLifetime(java.util.function.BiPredicate<Long, PhantomGoal> retained, java.util.function.BiPredicate<Long, PhantomGoal> committedDecision)
 	{
+		bindPartyNativeLifetime(retained, committedDecision, (_, _) -> false);
+	}
+
+	public void bindPartyNativeLifetime(java.util.function.BiPredicate<Long, PhantomGoal> retained, java.util.function.BiPredicate<Long, PhantomGoal> committedDecision,
+		java.util.function.BiPredicate<Long, PhantomGoal> acceptedRoot)
+	{
 		_partyNativeLifetime = Objects.requireNonNull(retained);
 		_partyCommittedDecision = Objects.requireNonNull(committedDecision);
+		_acceptedPartyRoot = Objects.requireNonNull(acceptedRoot);
 	}
 	private java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> _logicalGroups = _ -> Optional.empty();
 	public void bindLogicalGroups(java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> groups)
@@ -1571,6 +1579,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = sharedFarmSource == null; return prepared; }
 			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
+			if (holdsOrdinaryPartyRoot(sharedFarmSource != null, _acceptedPartyRoot.test(profileId, stored.goal()), _acceptedIntent.test(profileId, stored.goal())))
+			{ stage = "accepted_rendezvous_root"; return false; }
 			if (nativePartyDecisionPrepared(sharedFarmSource != null, _partyCommittedDecision.test(profileId, stored.goal()))) { prepared = true; return true; }
 			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal()))
 			{
@@ -1679,7 +1689,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 						&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)) { prepared = true; return true; }
 			}
 			stage = "accepted_intent";
-			if (_acceptedIntent.test(profileId, stored.goal())) { return false; }
+			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal())) { return false; }
 			stage = "stop_for_recovery";
 			if (sharedFarmSource != null && !rendezvousCurrent(profileId, expectedGoal, reservationCurrent)) { return false; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
@@ -1727,6 +1737,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (sharedFarmSource != null && (!rendezvousCurrent(profileId, expectedGoal, reservationCurrent)
 				|| supportTravelOnly && !_supportRendezvousPreparation.test(profileId, stored.goal())
 				|| !visibleActorQuiet(profileId, player, lifetime.materializedAtNanos()) || player.isInCombat()))
+			{ _visiblePublications.remove(profileId, publication); return false; }
+			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal()))
 			{ _visiblePublications.remove(profileId, publication); return false; }
 			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
 			catch (RuntimeException exception)
@@ -1853,6 +1865,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		final var episode = _visibleEpisodes.get(profileId);
 		return episode != null && !episode.reason.isEmpty() ? episode.reason : _visiblePreparationStages.getOrDefault(profileId, "");
+	}
+	public String visiblePreparationStage(long profileId)
+	{
+		synchronized (_visiblePreparationStages) { return _visiblePreparationStages.getOrDefault(profileId, ""); }
+	}
+	static boolean holdsOrdinaryPartyRoot(boolean sharedPreparation, boolean exactNativePartyRoot, boolean acceptedExternalOwner)
+	{
+		return !sharedPreparation && exactNativePartyRoot && !acceptedExternalOwner;
 	}
 
 	/** A successful exact foreground handoff owns decisions, never ordinary historical work. */

@@ -64,7 +64,15 @@ final class PhantomCoordination130Native
         final var saved = read(scene(runtime).resolve("fixture130.properties"));
         final var ids = Arrays.stream(saved.getProperty("profiles").split(",")).map(Long::parseLong).toList();
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
-        final var current = logical.groupFor(ids.getFirst()).orElse(null);
+        var current = logical.groupFor(ids.getFirst()).orElse(null);
+        if (current != null && !current.group().anchorId().equals(saved.getProperty("anchor")))
+        {
+            check(current.group().phase() == PhantomLogicalParty.Phase.AGREED && ids.stream().allMatch(id ->
+                World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null
+                    && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(profiles.find(id).orElseThrow().characterObjectId()) == null), "ORIGINAL_OBJECTIVE_ZERO_WORLD");
+            logical.disband(current, System.currentTimeMillis(), "REJECT_DIFFERENT_FIXTURE_OBJECTIVE"); current = null;
+            System.out.println("SQL130_DIFFERENT_OBJECTIVE_REJECTED_BEFORE_NATIVE;GAMEPLAY_WRITES=0");
+        }
         if (current != null && current.group().expiresAtMillis() <= System.currentTimeMillis())
         {
             expireAbsent(logical, current, System.currentTimeMillis(), () -> ids.stream().allMatch(id ->
@@ -95,16 +103,21 @@ final class PhantomCoordination130Native
             check(state.state() == PhantomPopulationState.State.READY && state.catalogHash().equals(catalog.hash())
                 && World.getInstance().findObject(background.identity().characterObjectId()) == null
                 && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(background.identity().characterObjectId()) == null
-                && background.state() == PhantomBackgroundState.State.READY
+                && (background.state() == PhantomBackgroundState.State.READY || background.state() == PhantomBackgroundState.State.DEAD)
                 && catalog.evaluate(state.scheduleTemplate(), Instant.now(), zone, state.schedulePhaseMinutes()).state().requiresMaterialization()
                 && PhantomAutonomousFarmParty.ordinaryIntent(member.profileId(), root), "RECREATION_DURABLE_ELIGIBILITY");
             if (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(member.profileId(), background.progress().level()))
             { System.out.println("SQL130_RECREATION_LEAVE profile=" + member.profileId() + " actualLevel=" + background.progress().level() + " consent=false gameplayWrites=0"); continue; }
+            System.out.println("SQL130_LOGICAL_MEMBER profile=" + member.profileId() + " life=" + background.state() + " nativeAdmission=UNCHANGED gameplayWrites=0");
             members.add(new PhantomLogicalParty.Member(member.profileId(), member.role(), root.goalId(), root.revision()));
         }
         check(members.size() >= 2 && members.stream().anyMatch(member -> member.profileId() == old.leaderProfileId()), "RECREATION_CONSENTED_ROSTER");
-        logical.agree(new PhantomLogicalParty(old.groupId(), old.generation() + 1, old.leaderProfileId(), members, old.objective(), old.anchorId(), PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "")).orElseThrow();
-        System.out.println("NATIVE130_ZERO_WORLD_RECREATION generation=" + (old.generation() + 1) + " sameGroupId=true actualEligibility=true roster=" + members.stream().map(PhantomLogicalParty.Member::profileId).toList());
+        final String anchor = saved.getProperty("anchor");
+        final var objective = old.anchorId().equals(anchor) ? old.objective()
+            : new PhantomPartyStore(profiles).loadRendezvous(old.leaderProfileId()).orElseThrow().state().source();
+        check(objective.key().endsWith("@" + anchor), "ORIGINAL_FIXTURE_OBJECTIVE_WITNESS");
+        logical.agree(new PhantomLogicalParty(old.groupId(), old.generation() + 1, old.leaderProfileId(), members, objective, anchor, PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "")).orElseThrow();
+        System.out.println("NATIVE130_ZERO_WORLD_RECREATION generation=" + (old.generation() + 1) + " sameGroupId=true actualDurableEligibility=true roster=" + members.stream().map(PhantomLogicalParty.Member::profileId).toList() + " objective=" + objective);
     }
     private static void check(boolean value, String key) { if (!value) { throw new IllegalStateException("NATIVE130_" + key); } }
     private static Properties read(Path path) throws Exception
@@ -533,7 +546,7 @@ final class PhantomCoordination130Native
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false;
         LocalPlaySyntheticHumanSession witness = null; boolean witnessWithdrawn = false;
-        int stableBlockSamples = 0;
+        int stableBlockSamples = 0, idleAssemblySamples = 0;
         long nextTrace = 0; final long start = System.currentTimeMillis(), deadline = start + 540_000;
         try
         {
@@ -608,6 +621,8 @@ final class PhantomCoordination130Native
             if (System.currentTimeMillis() >= nextTrace)
             {
                 boolean blocked = actors.isEmpty();
+                boolean idleAssembly = group.phase() == PhantomLogicalParty.Phase.ASSEMBLING && !partySeen && actors.size() == ids.size()
+                    && actors.stream().allMatch(actor -> !actor.isMoving() && !actor.isInCombat() && !actor.isAttackingNow() && !actor.isCastingNow() && actor.getCurrentHp() > 0);
                 final String facts = actors.stream().map(actor -> actor.getObjectId() + ":hp=" + actor.getCurrentHp() + ":mp=" + actor.getCurrentMp() + ":target=" + (actor.getTarget() == null ? 0 : actor.getTarget().getObjectId()) + ":cast=" + (actor.getLastSkillCast() == null ? 0 : actor.getLastSkillCast().getId()) + ":party=" + (actor.getParty() == null ? 0 : actor.getParty().getLeaderObjectId()) + ":evidence=" + (actor.getNativeWorkOwner() == null ? "NONE" : actor.getNativeWorkOwner().evidence().snapshot())).toList().toString();
                 Files.writeString(trace, (System.currentTimeMillis() - start) + "\t" + group.phase() + ":" + group.waitReason() + ":" + group.nextDueMillis() + "\t" + PhantomSystem.operatorCoordinationCensus() + "\t" + facts + "\n", StandardOpenOption.APPEND);
                 System.out.println("NATIVE130_OBSERVE millis=" + (System.currentTimeMillis() - start) + " phase=" + group.phase() + " actors=" + actors.size() + " party=" + partySeen + " kill=" + kill + " heal=" + heal + " mpDebit=" + healMpDebit);
@@ -619,13 +634,19 @@ final class PhantomCoordination130Native
 					blocked &= Set.of("catchup.baseline.initial_binding_changed", "catchup.goal.conflict", "catchup.baseline.conflict", "ecology.orphan_historical_conflict", "native_context.required:logical_party_preparation", "native_context.required:logical_party_support").contains(reason);
                     System.out.println("NATIVE130_WAIT profile=" + id + " admission=" + (admission == null ? null : admission.readiness())
                         + " stage=" + progress.get("currentStage") + " retry=" + progress.get("nextRetryMillis") + " visible=" + life.get("historical.visibleRecovery")
+                        + " preparation=" + life.get("historical.visiblePreparation") + " decision=" + life.get("decision")
                         + " policy=" + (admission == null ? null : admission.admission()) + " materializationFailure=" + (admission == null ? null : admission.lastMaterializationFailure())
                         + " busy=" + (admission == null ? "" : admission.busyReason()) + " pins=" + (admission == null ? "" : admission.retentionPins())
                         + " supply=" + life.get("supply") + " supplyReason=" + life.get("supply.reason") + " learning=" + life.get("learning")
                         + " rendezvous=" + life.get("party.rendezvous") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " owner=" + life.get("native.owner"));
+                    final var actor = actors.stream().filter(value -> value.getObjectId() == profiles.find(id).orElseThrow().characterObjectId()).findFirst().orElse(null);
+                    if (actor != null) { System.out.println("NATIVE130_POSITION profile=" + id + " xyz=" + actor.getLocation() + " moving=" + actor.isMoving()); }
+                    idleAssembly &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
                 }
                 stableBlockSamples = blocked ? stableBlockSamples + 1 : 0;
                 check(stableBlockSamples < 3, "STABLE_READINESS_BLOCK");
+                idleAssemblySamples = idleAssembly ? idleAssemblySamples + 1 : 0;
+                check(idleAssemblySamples < 7, "IDLE_ASSEMBLY_DIAGNOSED");
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
             if (kill && (restart || heal && healMpDebit) && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)

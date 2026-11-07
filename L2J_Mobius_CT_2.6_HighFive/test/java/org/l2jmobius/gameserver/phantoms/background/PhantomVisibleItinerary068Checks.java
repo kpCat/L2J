@@ -86,6 +86,13 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("15-party-and-ambient-demand-retain-ordinary-admission-fences", context -> coordinatedDemand(context.moduleRoot()));
 		registry.add("16-group-cursor-observes-only-committed-historical-receipts", _ -> groupReceiptCursor());
 		registry.add("17-logical-preparation-recovers-exact-failed-owner-without-lifetime-extension", _ -> failedLogicalPreparation());
+		registry.add("18-accepted-rendezvous-holds-ordinary-replan-without-taking-supply-or-own-preparation", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, true, false), "Accepted DD rendezvous root was available to ordinary Solo replan.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(true, true, false), "Rendezvous blocked its own shared-source preparation.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, true, true), "Assembly stole the accepted Supply/Combat/Store owner.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, false, false), "Stale/expired native consent held an ordinary root.");
+		});
 	}
 	private static void failedLogicalPreparation()
 	{

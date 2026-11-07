@@ -1301,6 +1301,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		registry.add("129-shared-source-preflight-before-consent-and-reachable-alternative", PhantomPartySuite::sharedSourcePreflight129);
 		registry.add("129-support-travel-permission-is-exact-and-finite", context ->
 		{
+			for (var rosterIds : List.of(List.of(1L, 3L), List.of(1L, 2L, 3L)))
+			{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
 			for (long id : List.of(1L, 2L, 3L))
 			{
@@ -1312,11 +1314,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			try
 			{
 				final long now = System.currentTimeMillis(); final var source = new PhantomDomainRef("background.farm", "20101@farm.fixture");
-				final var roster = List.of(1L, 3L, 2L).stream().map(id -> new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Participant(backend.currentMember(id).orElseThrow(), 1, 129000 + id, 0)).toList();
-				for (long id : List.of(1L, 2L, 3L))
+				final var roster = rosterIds.stream().map(id -> new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Participant(backend.currentMember(id).orElseThrow(), 1, 129000 + id, 0)).toList();
+				for (long id : rosterIds)
 				{ coordinator.saveRendezvous(-1, new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState(id, "A".repeat(64), 1, roster, source, now - 1, now + 120_000, org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.ACCEPTED, 0)).orElseThrow(); }
 				states._rejectRendezvousReads = true;
 				final var original = goals.load(3).orElseThrow().goal();
+				PhantomAssertions.assertTrue(coordinator.retainsNativeLifetime(1, goals.load(1).orElseThrow().goal(), 101, 1), "Accepted DD root lost its exact native lifetime in a pair.");
 				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "supportRendezvousPreparation", 3, original), "RED129: a current accepted learned support needs its own travel-only preparation permission.");
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, original), "An unchanged old root cannot borrow the adopted travel exception.");
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousPreparation", 1, goals.load(1).orElseThrow().goal()), "A damage slot cannot borrow support-only admission.");
@@ -1337,14 +1340,15 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				states._rejectRendezvousReads = false; coordinator.rendezvous(3); states._rejectRendezvousReads = true;
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "Expired consent cannot retain a travel exception.");
 				states._rendezvous.put(3L, assembling); states._rejectRendezvousReads = false; coordinator.rendezvous(3); states._rejectRendezvousReads = true;
-				final var peer = states._rendezvous.get(2L); coordinator.saveRendezvous(peer.rowVersion(), peer.state().withPhase(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, 0)).orElseThrow();
+				final var peer = states._rendezvous.get(1L); coordinator.saveRendezvous(peer.rowVersion(), peer.state().withPhase(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, 0)).orElseThrow();
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "A cancelled roster participant revokes shared support travel.");
 				coordinator.beginStop();
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousPreparation", 3, original), "STOPPING cannot admit preparation.");
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "STOPPING cannot preserve travel even though durable reservations remain.");
-				PhantomAssertions.assertEquals(3, states._rendezvous.size(), "Stopping must not be represented as clearing durable consent.");
+				PhantomAssertions.assertEquals(rosterIds.size(), states._rendezvous.size(), "Stopping must not be represented as clearing durable consent.");
 			}
 			finally { states._rejectRendezvousReads = false; coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Support permission fixture did not drain."); }
+			}
 		});
 		registry.add("129-bilateral-arrivals-precede-canonical-invitations", context ->
 		{
