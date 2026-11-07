@@ -49,6 +49,24 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				for (var member : group.members()) { PhantomAssertions.assertEquals(group.groupId(), restarted.groupFor(member.profileId()).orElseThrow().group().groupId(), "Claim is not backed by the authoritative aggregate."); }
 			}
 		});
+		registry.add("14-cold-expiry-drains-only-absent-identities-before-atomic-release", _ ->
+		{
+			for (var phase : List.of(PhantomLogicalParty.Phase.WAKE_REQUESTED, PhantomLogicalParty.Phase.ASSEMBLING, PhantomLogicalParty.Phase.NATIVE_ACTIVE, PhantomLogicalParty.Phase.DRAINING))
+			{
+				final var store = new MemoryStore(); final var owner = new PhantomLogicalPartyCoordinator(store); final var agreed = group(1, 3);
+				var row = owner.agree(agreed).orElseThrow();
+				row = owner.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 1000, "");
+				if (phase != PhantomLogicalParty.Phase.WAKE_REQUESTED) { row = owner.transition(row, PhantomLogicalParty.Phase.ASSEMBLING, 0, 1000, ""); }
+				if (phase == PhantomLogicalParty.Phase.NATIVE_ACTIVE) { row = owner.transition(row, phase, 0, 1000, ""); }
+				if (phase == PhantomLogicalParty.Phase.DRAINING) { row = owner.transition(row, phase, 0, 1000, "WAIT_STORE"); }
+				final var expected = row;
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.expireAbsent(owner, expected, agreed.expiresAtMillis(), () -> false), "Cold expiry ignored a live identity/lease.");
+				PhantomAssertions.assertEquals(expected, owner.groupFor(1).orElseThrow(), "Rejected cold expiry changed a generation.");
+				PhantomCoordination130Native.expireAbsent(owner, expected, agreed.expiresAtMillis(), () -> true);
+				for (var member : agreed.members()) { PhantomAssertions.assertTrue(owner.groupFor(member.profileId()).isEmpty(), "Expired cold phase retained its logical claim."); }
+				PhantomAssertions.assertEquals(agreed.expiresAtMillis(), store.groups.get(1L).group().expiresAtMillis(), "Cold recovery extended expired assembly lifetime.");
+			}
+		});
 		registry.add("02-conflicting-and-partially-failed-formation-never-steal-claims", _ ->
 		{
 			final var store = new MemoryStore(); final var coordinator = new PhantomLogicalPartyCoordinator(store);

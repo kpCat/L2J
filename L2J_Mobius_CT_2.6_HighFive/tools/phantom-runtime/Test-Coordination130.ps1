@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('package','fixture','native','restart','postflight')][string]$Action,
+    [ValidateSet('package','fixture','recover','native','restart','postflight')][string]$Action,
     [Parameter(Mandatory=$true)][string]$RuntimeRoot,
     [ValidateSet('original','morning')][string]$Fixture='original',
     [string]$GeoSource
