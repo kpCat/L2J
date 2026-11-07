@@ -1,5 +1,17 @@
 {
-  "status": "PAUSED_FOR_OWNERSHIP_ARCHITECTURE_REVIEW",
+  "status": "IN_PROGRESS_OWNERSHIP_PROTOCOL",
+  "ownershipProtocolCheckpoint": {
+    "resumedByUser": true,
+    "baselineHead": "f64d77c7ed1a21e7fb22327ec3ec47b708d440c9",
+    "codeHead": "97df2dd339914123b31ceeb8e6c061db9a58597a",
+    "modelPassed": 185, "modelTotal": 185, "modelMillis": 8795,
+    "realSqlExecutionCasAndOptionalChildRoundTrip": true,
+    "separateJvmPendingCheckpointFencedWrites": 0,
+    "existingConcurrentBackgroundSqlMillis": 3575,
+    "nativeAdaptersInstalled": false,
+    "newJarBuilds": 0, "newNativeLaunches": 0,
+    "full130": false, "featurePushed": false
+  },
   "pausedCheckpoint": {
     "requestedByUser": true,
     "codeHead": "bc6ae9e2055ce81874c04445f373ba1d987b74b8",
