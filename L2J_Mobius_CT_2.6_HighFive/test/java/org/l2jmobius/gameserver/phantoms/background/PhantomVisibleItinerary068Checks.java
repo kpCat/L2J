@@ -35,6 +35,37 @@ import org.l2jmobius.tests.phantoms.PhantomTestSuite;
 /** Pure ordinary itinerary proposals; native movement/checkpoint effects remain in their owners. */
 public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 {
+	/** Actual JDBC proof and the same request cache consumed by the ecology contract checks below. */
+	public static void logicalPreparationSignal(org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles,
+		org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal, PhantomBackgroundState state, PhantomBackgroundAuthority authority)
+	{
+		final var signals = new java.util.concurrent.atomic.AtomicInteger();
+		final var port = new PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { signals.incrementAndGet(); return SignalDelivery.ACCEPTED; }
+			@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+		};
+		final var service = new PhantomBackgroundService(profiles, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(profiles),
+			org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(), authority,
+			new PhantomBackgroundCompetitionRegistry(), port, () -> null);
+		service.start();
+		try
+		{
+			final long id = state.identity().profileId();
+			final var raw = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, service.historicalNativeContext(id, state).status(), "Exact SQL context proof failed.");
+			PhantomAssertions.assertFalse(service.currentNativeContextRequest(id), "A simulation-ready solo context invented demand.");
+			final var stale = state.after(state.progress(), state.vitals(), state.position(), state.inventory(), state.autoGetSkills(), new PhantomBackgroundState.Clock(state.clock().rngState() + 1, 0, 0), state.receipt());
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.STATE_CONFLICT, service.historicalNativeContext(id, stale, true).status(), "A stale baseline requested preparation.");
+			PhantomAssertions.assertEquals(0, signals.get(), "Rejected stale proof published a signal.");
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, service.historicalNativeContext(id, state, true).status(), "Preparation lost its exact SQL proof.");
+			PhantomAssertions.assertTrue(service.currentNativeContextRequest(id), "Logical preparation did not publish the current typed native request.");
+			PhantomAssertions.assertEquals(raw, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Request publication changed rewards/state/time.");
+			service.historicalNativeContext(id, state);
+			PhantomAssertions.assertFalse(service.currentNativeContextRequest(id), "Cleared preparation retained a current request.");
+		}
+		finally { service.beginStop(); service.finishStop(); }
+	}
 	@Override public String id() { return "visible-itinerary068"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
@@ -54,6 +85,29 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		registry.add("14-current-party-native-owner-requires-typed-restart-context", context -> nativePartyRestartContext(context.moduleRoot()));
 		registry.add("15-party-and-ambient-demand-retain-ordinary-admission-fences", context -> coordinatedDemand(context.moduleRoot()));
 		registry.add("16-group-cursor-observes-only-committed-historical-receipts", _ -> groupReceiptCursor());
+		registry.add("17-logical-preparation-recovers-exact-failed-owner-without-lifetime-extension", _ -> failedLogicalPreparation());
+	}
+	private static void failedLogicalPreparation()
+	{
+		final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@current");
+		final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(1001, "farm.background", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+			new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "1"), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(source),
+			new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, "current"), "farm.background", 500, 0, 0, 0, Map.of(), "background.plan", 0);
+		final var hashes = offscreenReceiptState(PhantomBackgroundState.Receipt.empty(), 0).hashes();
+		final var running = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.RUNNING, "b".repeat(64), 1, 100, 110, 105, 0, 5, 1, 1, 1, root.goalId(), root.revision(), "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, hashes, "");
+		final var group = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("C".repeat(64), 1, 1,
+			List.of(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(1,"damage",1001,0), new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(2,"support",1002,0)),
+			source, "current", org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+		for (String reason : List.of("native_context.required:logical_party_preparation", "native_context.required:logical_party_support"))
+		{
+			final var failed = running.blockedForGeneration(reason, 1, 1, hashes);
+			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, failed, group, 1000, () -> true), "An exact failed logical owner was hidden by the old root's suitability.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, failed, group, group.expiresAtMillis(), () -> true), "An expired assembly gained a native lifetime.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(2, root, failed, group, 1000, () -> true), "Another profile inherited the failed claim.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, failed.withPlan(1003,0,1,"e".repeat(64),1,1), group, 1000, () -> true), "A stale root requested preparation.");
+		}
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, running, group, 1000, () -> true), "Suitable running Solo work was forced native.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, running.blockedForGeneration("unclassified",1,1,hashes), group, 1000, () -> true), "An unrelated failure inherited logical preparation.");
 	}
 	private static void groupReceiptCursor()
 	{

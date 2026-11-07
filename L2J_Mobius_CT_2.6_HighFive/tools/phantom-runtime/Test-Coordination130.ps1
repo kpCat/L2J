@@ -2,6 +2,7 @@
 param(
     [ValidateSet('package','fixture','native','restart','postflight')][string]$Action,
     [Parameter(Mandatory=$true)][string]$RuntimeRoot,
+    [ValidateSet('original','morning')][string]$Fixture='original',
     [string]$GeoSource
 )
 $ErrorActionPreference='Stop'
@@ -89,7 +90,7 @@ if((Get-FileHash -LiteralPath $jar).Hash -cne $builtHash){throw 'TEST130_FINAL_J
 $java=(Get-Command java -ErrorAction Stop).Source
 $dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '*.jar' -File | Where-Object {$_.Name -notlike 'GameServer*' -and $_.Name -notmatch '-(sources|javadoc)\.jar$'} | ForEach-Object FullName)
 $classpath=$jar+';'+($dependencies -join ';')+';'+(Join-Path $source 'build\phantom-test\bin')+';'+(Join-Path $source 'build\phantom-test\resources')
-$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
+$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
 $attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')
 $process=Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $runtime -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err -PassThru

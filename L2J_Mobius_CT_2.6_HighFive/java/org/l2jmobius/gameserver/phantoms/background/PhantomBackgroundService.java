@@ -885,6 +885,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	/** Exact historical prerequisite; signal delivery follows the completed scalar read outside DB locks. */
 	PhantomBackgroundTransaction.NativeContextResult historicalNativeContext(long profileId, PhantomBackgroundState expected)
 	{
+		return historicalNativeContext(profileId, expected, false);
+	}
+
+	PhantomBackgroundTransaction.NativeContextResult historicalNativeContext(long profileId, PhantomBackgroundState expected, boolean logicalPreparation)
+	{
 		Objects.requireNonNull(expected, "expected");
 		if (_state != ServiceState.RUNNING) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
 		final var proof = transaction(() -> _transactions.nativeContext(profileId, expected.identity().characterObjectId()));
@@ -893,7 +898,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if ((_state != ServiceState.RUNNING) || (proof.context() == null)) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
 		if ((expected.state() != State.VERIFY_PENDING) && (proof.context().phase() != PhantomNativeContext.Phase.PENDING))
 		{
-			updateNativeContextSignal(profileId, proof, historicalNativeContextRequired(profileId, expected, proof.context()));
+			updateNativeContextSignal(profileId, proof, logicalPreparation || historicalNativeContextRequired(profileId, expected, proof.context()));
 		}
 		return _state == ServiceState.RUNNING ? proof : PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE);
 	}

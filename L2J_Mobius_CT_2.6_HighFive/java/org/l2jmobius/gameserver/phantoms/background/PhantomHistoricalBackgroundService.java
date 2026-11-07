@@ -738,7 +738,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority_hash_or_generation_stale", current);
 			}
-			var proof = _background.historicalNativeContext(profileId, baseline);
+			final var logical = logicalGroup(profileId, goal.goal());
+			final boolean logicalPreparation = logicalPreparationRequired(profileId, goal.goal(), current.state(), logical, System.currentTimeMillis(),
+				() -> goal.goal().validSources().contains(logical.objective()) && _planner.remainsSuitable(baseline, goal.goal())
+					|| _planner.replanLogicalRendezvous(profileId, baseline, goal.goal(), current.state().deterministicSeed(), Math.addExact(current.state().planOrdinal(), 1), logical.objective()).ready());
+			var proof = _background.historicalNativeContext(profileId, baseline, logicalPreparation);
 			if ((proof.status() != PhantomBackgroundTransaction.Status.SUCCESS) && (proof.status() != PhantomBackgroundTransaction.Status.NATIVE_CONTEXT_REQUIRED))
 			{
 				return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context." + proof.status().name().toLowerCase(java.util.Locale.ROOT), current);
@@ -752,7 +756,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if (!refreshed.successful()) { return refreshed; }
 				final var after = _background.acquisitionSnapshot(profileId).orElse(null);
 				if (!nativeContextFactsPreserved(baseline, after)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context.baseline_changed", current); }
-				proof = _background.historicalNativeContext(profileId, after);
+				proof = _background.historicalNativeContext(profileId, after, logicalPreparation);
 			}
 			if (!currentClaim(profileId, current) || !Objects.equals(goalComponent, _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null)) || !_planner.generation().equals(generation))
 			{
@@ -762,7 +766,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context.unattested", current);
 			}
-			if (_background.historicalNativeContextRequired(profileId, proof.state(), proof.context()))
+			if (logicalPreparation || _background.historicalNativeContextRequired(profileId, proof.state(), proof.context()))
 			{
 				final var delivery = _background.nativeContextSignalDelivery(profileId).orElse(null);
 				return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "native_context.required:" + (delivery == null ? "not_delivered" : delivery.name().toLowerCase(java.util.Locale.ROOT)), current);
@@ -775,6 +779,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			return Result.success(current, 0);
 		}
 		catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context.persistence_retry", current); }
+	}
+
+	static boolean logicalPreparationRequired(long profileId, PhantomGoal root, PhantomBackgroundCatchupState claim,
+		org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now, java.util.function.BooleanSupplier ordinaryReady)
+	{
+		return group != null && group.active() && org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)
+			&& root.goalId() == claim.goalId() && root.revision() == claim.goalRevision()
+			&& (claim.status() == Status.RUNNING || claim.status() == Status.FAILED_REPLAN_REQUIRED)
+			&& group.assemblyPending(profileId, root.goalId(), root.revision(), now)
+			&& (claim.status() == Status.FAILED_REPLAN_REQUIRED && Set.of("native_context.required:logical_party_preparation", "native_context.required:logical_party_support").contains(claim.failureReason())
+				|| !ordinaryReady.getAsBoolean());
 	}
 
 	private static boolean nativeContextFactsPreserved(PhantomBackgroundState before, PhantomBackgroundState after)

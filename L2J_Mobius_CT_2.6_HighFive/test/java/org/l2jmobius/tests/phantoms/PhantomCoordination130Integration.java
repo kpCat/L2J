@@ -138,13 +138,19 @@ public final class PhantomCoordination130Integration
             if (args[0].equals("handoff")) { initialRootBinding(profiles, module); return; }
             if (args[0].equals("probe") || args[0].equals("probe-live"))
             {
-                final var saved = read(module.getParent().getParent().resolve("runtime/fixture130.properties"));
+                final var saved = read(PhantomCoordination130Native.scene(module.getParent().getParent().resolve("runtime")).resolve("fixture130.properties"));
                 for (String text : saved.getProperty("profiles").split(","))
                 {
                     final long id = Long.parseLong(text);
                     final var group = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles)).groupFor(id);
                     final var raw = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE);
                     final var state = raw.map(value -> new PhantomBackgroundStateCodec().decode(value.payload()));
+                    System.out.println("SQL130_ROOT profile=" + id + " root=" + new PhantomGoalStateStore(profiles).load(id));
+                    final var population = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec().decode(profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
+                    final var zone = java.time.ZoneId.of(read(module.getParent().getParent().resolve("runtime/config/Custom/PhantomPlayers.ini")).getProperty("PhantomPopulationTimeZone", "UTC"));
+                    final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-population-v3.xml"), zone);
+                    System.out.println("SQL130_CALENDAR profile=" + id + " template=" + population.scheduleTemplate() + " phase=" + population.schedulePhaseMinutes() + " now=" + java.time.Instant.now()
+                        + " evaluation=" + catalog.evaluate(population.scheduleTemplate(), java.time.Instant.now(), zone, population.schedulePhaseMinutes()));
                     System.out.println("SQL130_NATIVE_PROBE profile=" + id + " group=" + group.map(value -> value.group().phase() + ":" + value.group().waitReason() + ":expires=" + value.group().expiresAtMillis())
                         + " background=" + state.map(value -> value.state() + ":XP=" + value.progress().experience() + ":SP=" + value.progress().skillPoints() + ":hashes=" + value.hashes())
                         + " catchup=" + new PhantomBackgroundCatchupStore(profiles, new PhantomGoalStateStore(profiles)).load(id).map(value -> value.state().toString()));
@@ -362,6 +368,11 @@ public final class PhantomCoordination130Integration
 				final var state = captured.state(); final var context = PhantomNativeContext.decode(profiles.findComponent(fixture.profileId(),PhantomNativeContext.COMPONENT_TYPE).orElseThrow().payload());
 				final var destination = new PhantomBackgroundState.Position(0,state.position().x()+1,state.position().y(),state.position().z(),state.position().heading(),state.position().committedAnchorId());
 				final var authority = new SqlTravelAuthority(state.hashes(),destination); final var calls = new java.util.concurrent.atomic.AtomicInteger();
+				if (mode == 0)
+				{
+					org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks.logicalPreparationSignal(profiles, goal, state, authority);
+					System.out.println("SQL130_LOGICAL_PREPARATION_SIGNAL_PASS;EXACT_BASELINE=true;STALE=REJECTED;CLEAR=WITHDRAWN;ECONOMY_TIME_WRITES=0");
+				}
 				final PhantomOffscreenOutdoorTravel.ObserverAdmission admission = (id,from,to) ->
 				{
 					calls.incrementAndGet(); return new org.l2jmobius.gameserver.phantoms.activity.PhantomOffscreenObserverAdmission.Verdict(org.l2jmobius.gameserver.phantoms.activity.PhantomOffscreenObserverAdmission.Code.ALLOW,id,

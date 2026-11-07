@@ -30,6 +30,12 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 /** Native modes of the existing SQL130 entrypoint: real GameServer and its configured owners. */
 final class PhantomCoordination130Native
 {
+    static Path scene(Path runtime)
+    {
+        final String label = System.getProperty("phantom.task130.fixture", "original");
+        check(List.of("original", "morning").contains(label), "FIXTURE_LABEL");
+        return label.equals("original") ? runtime : runtime.resolve("morning");
+    }
     private static void check(boolean value, String key) { if (!value) { throw new IllegalStateException("NATIVE130_" + key); } }
     private static Properties read(Path path) throws Exception
     {
@@ -47,7 +53,7 @@ final class PhantomCoordination130Native
         final Path runtime = Path.of(System.getProperty("phantom.task130.runtime")).toRealPath();
         check(runtime.equals(module.getParent().getParent().resolve("runtime")) && runtime.equals(Path.of(".").toRealPath()), "INFRASTRUCTURE_CWD");
         check(Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "INFRASTRUCTURE_OWNER");
-        check(!Files.exists(runtime.resolve("native130.cut")) && !Files.exists(runtime.resolve("restart130.cut")), "FIXTURE_BEFORE_CUT");
+        check(!Files.exists(scene(runtime).resolve("native130.cut")) && !Files.exists(scene(runtime).resolve("restart130.cut")), "FIXTURE_BEFORE_CUT");
         check(Path.of(System.getProperty("phantom.test.config")).toRealPath().equals(runtime.resolve("config/Database.ini"))
             && Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "INFRASTRUCTURE_EXACT_SQL");
         final var sql = read(runtime.resolve("config/Database.ini"));
@@ -98,12 +104,12 @@ final class PhantomCoordination130Native
         { check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "FINAL_JAR_CLASS_SOURCE"); }
         check(Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "EXACT_OWN_DATABASE");
         final String jarHash = hash(jar);
-        final Path fixture = runtime.resolve("fixture130.properties");
+        final Path evidence = scene(runtime), fixture = evidence.resolve("fixture130.properties");
         final Path config = runtime.resolve("config/Custom/PhantomPlayers.ini");
         final String disabled = Files.readString(config);
         check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DISABLED_BEFORE_BOOT");
-        if (restart) { check(Files.exists(runtime.resolve("native130.complete")) && read(runtime.resolve("native130.complete")).getProperty("jar").equals(jarHash), "RESTART_SAME_FINAL_JAR"); }
-        write(runtime.resolve((restart ? "restart130.started." : "native130.started.") + ProcessHandle.current().pid()), "pid=" + ProcessHandle.current().pid() + "\njar=" + jarHash + "\n");
+        if (restart) { check(Files.exists(evidence.resolve("native130.complete")) && read(evidence.resolve("native130.complete")).getProperty("jar").equals(jarHash), "RESTART_SAME_FINAL_JAR"); }
+        write(evidence.resolve((restart ? "restart130.started." : "native130.started.") + ProcessHandle.current().pid()), "pid=" + ProcessHandle.current().pid() + "\njar=" + jarHash + "\n");
         boolean booted = false;
         try
         {
@@ -150,9 +156,9 @@ final class PhantomCoordination130Native
             final var before = logical.groupFor(ids.getFirst()).orElseThrow();
             check(before.group().groupId().equals(saved.getProperty("group")) && before.group().members().size() == 3, "DURABLE_GROUP");
             for (long id : ids) { check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ZERO_WORLD_BEFORE_ENABLE"); }
-            if (restart) { check(Files.readString(runtime.resolve("native130.persisted")).equals(persisted(profiles, ids)), "SAME_DB_EXACT_TOTALS_AND_CLAIMS"); }
+            if (restart) { check(Files.readString(evidence.resolve("native130.persisted")).equals(persisted(profiles, ids)), "SAME_DB_EXACT_TOTALS_AND_CLAIMS"); }
             verifyExistingHumanHeal(runtime, jarHash);
-            final Path cut = runtime.resolve(restart ? "restart130.cut" : "native130.cut");
+            final Path cut = evidence.resolve(restart ? "restart130.cut" : "native130.cut");
             if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngroup=" + before.group().groupId() + "\ngameplayFixtureWritesAfterCut=0\n"); }
             else { check(read(cut).getProperty("group").equals(before.group().groupId()), "CONTINUATION_SAME_CUT_GROUP"); }
             check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DECLARATION");
@@ -166,8 +172,8 @@ final class PhantomCoordination130Native
             check(ids.stream().allMatch(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId()) == null), "ZERO_WORLD_AFTER_STORE");
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
             check(after.group().groupId().equals(before.group().groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
-            if (!restart) { write(runtime.resolve("native130.persisted"), persisted(profiles, ids)); }
-            write(runtime.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\npid=" + ProcessHandle.current().pid() + "\n");
+            if (!restart) { write(evidence.resolve("native130.persisted"), persisted(profiles, ids)); }
+            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\npid=" + ProcessHandle.current().pid() + "\n");
             Files.writeString(config, disabled);
             System.out.println("NATIVE130_PASS restart=" + restart + " sameGroup=true actualPartyKill=true STORE=true");
         }
@@ -175,7 +181,7 @@ final class PhantomCoordination130Native
         {
             System.out.println("NATIVE130_FAILURE type=" + failure.getClass().getName() + " key=" + (failure.getMessage() != null && failure.getMessage().startsWith("NATIVE130_") ? failure.getMessage() : "WITHHELD"));
             for (var frame : failure.getStackTrace()) { if (frame.getClassName().startsWith("org.l2jmobius.")) { System.out.println("NATIVE130_FRAME " + frame); } }
-            write(runtime.resolve((restart ? "restart130.failed." : "native130.failed.") + ProcessHandle.current().pid()), failure.getClass().getName() + "\n");
+            write(evidence.resolve((restart ? "restart130.failed." : "native130.failed.") + ProcessHandle.current().pid()), failure.getClass().getName() + "\n");
             if (!booted)
             {
                 // No configured Phantom owner exists before the master-disabled GameServer finishes booting.
@@ -204,6 +210,7 @@ final class PhantomCoordination130Native
         for (long seed = 130; seed < 1_000_130; seed++)
         {
             if (birth == 10 && catalog.chooseArchetype(seed, ordinal) != PhantomPopulationCatalog.CareerArchetype.HEALER) { continue; }
+            if (birth == 0 && catalog.chooseArchetype(seed, ordinal) != PhantomPopulationCatalog.CareerArchetype.DAMAGE) { continue; }
             if (catalog.chooseClass(mix(seed, profile), catalog.chooseArchetype(seed, ordinal)).classId() != birth) { continue; }
             final var schedule = PhantomPopulationStore.scheduleForShell(catalog, profile, seed, null);
             final var evaluation = catalog.evaluate(schedule.template().id(), now, zone, schedule.phaseMinutes());
@@ -216,19 +223,45 @@ final class PhantomCoordination130Native
         final var zone = PhantomPlayersConfig.settings().populationTimeZone();
         final var catalog = PhantomPopulationCatalog.load(ServerConfig.DATAPACK_ROOT.toPath().resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
         final var population = new PhantomPopulationStore(profiles, catalog, zone);
-        final var existing = population.loadManagedAfter(0, 4);
-        check(existing.size() <= 3 && !Files.exists(runtime.resolve("native130.cut")), "BOUNDED_FIXTURE_BEFORE_CUT");
+        final Path evidence = scene(runtime), preparing = evidence.resolve("profiles130.preparing");
+        final boolean morning = !evidence.equals(runtime);
+        check(!Files.exists(evidence.resolve("native130.cut")), "BOUNDED_FIXTURE_BEFORE_CUT");
+        final List<PhantomPopulationStore.ManagedSnapshot> existing;
+        if (morning)
+        {
+            check(Files.readString(evidence.resolve("approval.txt")).equals("User approved exactly three additional managed TEST130 profiles before their own CUT; preserve originals69,70,72.\n"), "EXPLICIT_THREE_PROFILE_APPROVAL");
+            final var declared = Files.exists(preparing) ? read(preparing).getProperty("profiles", "") : "";
+            existing = declared.isEmpty() ? List.of() : Arrays.stream(declared.split(",")).map(Long::parseLong).map(population::reload).toList();
+            final var allowed = new HashSet<Long>(List.of(69L,70L,72L)); existing.forEach(value -> allowed.add(value.profile().profileId()));
+            check(population.loadManagedAfter(0, 16).stream().allMatch(value -> allowed.contains(value.profile().profileId())) && existing.size() <= 3, "ONLY_THREE_NEW_MANAGED_PROFILES");
+        }
+        else { existing = population.loadManagedAfter(0, 4); check(existing.size() <= 3, "ORIGINAL_FIXTURE_BOUND"); }
+        final int ordinalBase = morning ? 3 : 0;
         final var mobs = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
             .filter(mob -> mob.isSpawned() && !mob.isRaid() && !mob.isDead() && !mob.isAggressive() && mob.getInstanceId() == 0 && mob.getLevel() >= 70 && mob.getLevel() <= 78 && mob.getMaxHp() >= 5000 && mob.getMaxHp() <= 60000).toList();
-        final var fields = source.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING)
+        final var fields = new ArrayList<>(source.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING)
             .map(anchor -> Map.entry(anchor, L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, 0))).filter(entry -> entry.getValue().isPresent())
             .filter(entry -> { final var point = entry.getValue().orElseThrow(); return GeoEngine.getInstance().hasGeo(point.x(), point.y()) && mobs.stream().anyMatch(mob -> Math.hypot((long) point.x() - mob.getX(), (long) point.y() - mob.getY()) < 500 && Math.abs((long) point.z() - mob.getZ()) < 150 && GeoEngine.getInstance().canMoveToTarget(point.x(), point.y(), point.z(), mob.getX(), mob.getY(), mob.getZ(), 0)); })
-            .sorted(Comparator.comparing(entry -> entry.getKey().id())).limit(32).toList();
+            .sorted(Comparator.comparing(entry -> entry.getKey().id())).limit(32).toList());
+        if (morning)
+        {
+            final var original = read(runtime.resolve("fixture130.properties"));
+            final long originalLeader = Long.parseLong(original.getProperty("profiles").split(",")[0]);
+            final var originalBaseline = new PhantomBackgroundStateCodec().decode(profiles.findComponent(originalLeader, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+            for (String id : List.of(originalBaseline.position().committedAnchorId(), original.getProperty("anchor")))
+            {
+                final var anchor = source.topology().findAnchor(id).orElseThrow();
+                final var position = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor,0);
+                if (position.isPresent() && GeoEngine.getInstance().hasGeo(position.get().x(),position.get().y()))
+                { fields.removeIf(entry -> entry.getKey().id().equals(id)); fields.addFirst(Map.entry(anchor,position)); }
+            }
+        }
         check(!fields.isEmpty(), "CERTIFIED_FIELD");
         var field = fields.getFirst();
         final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
         final var goals = new PhantomGoalStateStore(profiles);
         final var ids = new ArrayList<Long>(); final var members = new ArrayList<PhantomLogicalParty.Member>();
+        final var seeds = new HashMap<Long, Long>();
         PhantomDomainRef objective = null;
         for (int ordinal = 0; ordinal < 3; ordinal++)
         {
@@ -237,19 +270,24 @@ final class PhantomCoordination130Native
             if (ordinal < existing.size())
             {
                 managed = existing.get(ordinal); next = managed.profile().profileId(); selected = managed.state().deterministicSeed();
-                check(managed.state().creationOrdinal() == ordinal + 1 && managed.state().classId() == birth && managed.state().catalogHash().equals(catalog.hash()), "OWN_PARTIAL_FIXTURE_IDENTITY");
+                check(managed.state().creationOrdinal() == ordinalBase + ordinal + 1 && managed.state().classId() == birth && managed.state().catalogHash().equals(catalog.hash()), "OWN_PARTIAL_FIXTURE_IDENTITY");
             }
             else
             {
                 next = nextProfile();
-                while (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(next, 76)) { profiles.create(null); next = nextProfile(); }
-                selected = birthSeed(catalog, next, ordinal + 1, birth, zone, Instant.now());
-                managed = population.createShell(1, ordinal + 1, selected); check(managed.profile().profileId() == next, "EXCLUSIVE_CREATION_SEQUENCE");
+                int skipped = 0;
+                while (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(next, 76)
+                    || morning && ordinal == 1 && org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(next, 0, false, PhantomPopulationCatalog.CareerArchetype.DAMAGE).terminalClass() != 88)
+                { check(skipped++ < 64, "BOUNDED_NATIVE_CANDIDATE_SELECTION"); profiles.create(null); next = nextProfile(); }
+                selected = birthSeed(catalog, next, ordinalBase + ordinal + 1, birth, zone, Instant.now());
+                managed = population.createShell(1, ordinalBase + ordinal + 1, selected); check(managed.profile().profileId() == next, "EXCLUSIVE_CREATION_SEQUENCE");
+                if (morning) { final var retained = new ArrayList<>(ids); retained.add(next); Files.writeString(preparing, "profiles=" + String.join(",", retained.stream().map(String::valueOf).toList()) + "\n"); }
             }
             for (int step = 0; step < 12 && managed.state().state() != PhantomPopulationState.State.READY; step++) { managed = population.advanceCreation(managed).snapshot(); }
             System.out.println("NATIVE130_CREATION profile=" + next + " state=" + managed.state().state() + " failure=" + managed.state().lastFailure());
             check(managed.state().state() == PhantomPopulationState.State.READY, "PRODUCTION_CREATION_SAGA");
             final long id = next; ids.add(id);
+            seeds.put(id, selected);
             final Player actor;
             try (var suppression = org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.suppressPopulationLoad(managed.profile().characterObjectId())) { actor = Player.load(managed.profile().characterObjectId()); }
             check(actor != null && (actor.getActiveClass() == birth || actor.getPlayerClass().childOf(PlayerClass.getPlayerClass(birth))), "LAWFUL_BIRTH_CLASS");
@@ -270,34 +308,77 @@ final class PhantomCoordination130Native
                 equipBeforeCut(actor);
                 System.out.println("NATIVE130_ACTUAL_COMBAT profile=" + id + " facts=" + source.authority().planningCombat(actor) + " expertise=" + actor.getKnownSkill(239));
                 PhantomHistoricalBackgroundPlanner.Result plan = null;
-                for (var candidate : ordinal == 0 ? fields : List.of(field))
+                for (var candidate : objective == null && (!morning || ordinal > 0) ? fields : List.of(field))
                 {
                     final var position = candidate.getValue().orElseThrow(); actor.setXYZInvisible(position.x(), position.y(), position.z());
-                    plan = ordinal == 2 ? planner.idleInitial(id, actor, selected, 1) : planner.planInitial(id, actor, selected, 1);
+                    plan = ordinal == 2 || morning && ordinal == 0 ? planner.idleInitial(id, actor, selected, 1) : planner.planInitial(id, actor, selected, 1);
                     // Existing HistoricalBackgroundService/TEST094 fallback: a guardian/support
                     // may wait at a canonical anchor without claiming solo farm viability.
-                    if (ordinal > 0 && !plan.ready() && "planner.target_or_route.absent".equals(plan.reasonKey()))
+                    if (ordinal > 0 && objective != null && !plan.ready() && "planner.target_or_route.absent".equals(plan.reasonKey()))
                     { plan = planner.idleInitial(id, actor, selected, 1); }
                     System.out.println("NATIVE130_PLAN profile=" + id + " anchor=" + candidate.getKey().id() + " ready=" + plan.ready() + " reason=" + plan.reasonKey() + " rejected=" + plan.candidateRejections().stream().limit(3).toList());
-                    if (plan.ready()) { if (ordinal == 0) { field = candidate; } break; }
+                    if (plan.ready()) { if (!plan.goal().validSources().isEmpty()) { field = candidate; } break; }
                 }
                 check(plan.ready(), "ORDINARY_PREP_PLAN");
-                if (goals.load(id).isEmpty()) { goals.insert(id, plan.goal()); }
-                else { check(goals.load(id).orElseThrow().goal().equals(plan.goal()), "PARTIAL_FIXTURE_ROOT_EXACT"); }
-                if (ordinal == 0) { objective = plan.goal().validSources().getFirst(); }
+                if (!morning)
+                {
+                    if (goals.load(id).isEmpty()) { goals.insert(id, plan.goal()); }
+                    else { check(goals.load(id).orElseThrow().goal().equals(plan.goal()), "PARTIAL_FIXTURE_ROOT_EXACT"); }
+                }
+                if (objective == null && !plan.goal().validSources().isEmpty()) { objective = plan.goal().validSources().getFirst(); }
                 members.add(new PhantomLogicalParty.Member(id, ordinal == 2 ? "support" : plan.goal().goalType().equals(PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE) ? "guardian" : "damage", plan.goal().goalId(), plan.goal().revision()));
-                actor.setCurrentHp(actor.getMaxHp() * (ordinal == 2 ? 1 : 0.4));
+                actor.setCurrentHp(actor.getMaxHp() * (morning || ordinal == 2 ? 1 : 0.4));
                 actor.getInventory().updateDatabase(); actor.storeMe();
                 System.out.println("NATIVE130_PREFLIGHT profile=" + id + " actor=" + actor.getObjectId() + " class=" + actor.getActiveClass() + " level=" + actor.getLevel() + " hp=" + actor.getCurrentHp() + " mp=" + actor.getCurrentMp() + " heal=" + actor.getKnownSkill(1011) + " root=" + plan.goal() + " pos=" + actor.getLocation());
             }
             finally { actor.stopAllTasks(); actor.storeMe(); actor.setOnlineStatus(true, false); actor.deleteMe(); }
         }
         check(objective != null && objective.namespace().equals("background.farm"), "REAL_FARM_SOURCE");
+        if (morning)
+        {
+            final var common = source.topology().findAnchor(objective.key().substring(objective.key().indexOf('@') + 1)).orElseThrow();
+            final var point = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(common, 0).orElseThrow();
+            final int npc = Integer.parseInt(objective.key().substring(0, objective.key().indexOf('@')));
+            check(World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
+                .anyMatch(mob -> mob.getId() == npc && mob.isSpawned() && !mob.isDead() && !mob.isRaid() && mob.getInstanceId() == 0
+                    && Math.hypot((long) mob.getX() - point.x(), (long) mob.getY() - point.y()) <= 1200), "ACTUAL_SHARED_TARGET");
+            members.clear(); long leader = 0;
+            for (long id : ids)
+            {
+                final Player actor;
+                try (var suppression = org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.suppressPopulationLoad(profiles.find(id).orElseThrow().characterObjectId())) { actor = Player.load(profiles.find(id).orElseThrow().characterObjectId()); }
+                try
+                {
+                    actor.stopAllTasks(); actor.setXYZInvisible(point.x(),point.y(),point.z());
+                    final var idle = planner.idleInitial(id, actor, seeds.get(id), 1); check(idle.ready(), "COMMON_CANONICAL_IDLE");
+                    PhantomGoal root = idle.goal();
+                    if (actor.getActiveClass() == 88)
+                    {
+                        final var projection = source.authority().captureOwnedNative(id, actor, root, null).state();
+                        final var farm = planner.replanVisibleRendezvous(id, projection, root, seeds.get(id), 1,
+                            new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(point.x(),point.y(),point.z(),0), objective, Set.of(), _ -> true);
+                        check(farm.ready(), "COMMON_NATIVE_DD_READINESS"); root = farm.goal(); leader = id;
+                    }
+                    if (goals.load(id).isEmpty()) { goals.insert(id, root); } else { check(goals.load(id).orElseThrow().goal().equals(root), "FINAL_ROOT_EXACT"); }
+                    actor.storeMe();
+                    final var captured = source.authority().captureOwnedNative(id, actor, root, null);
+                    final var baseline = new PhantomBackgroundTransaction().captureBaseline(captured.state(), root, captured.context());
+                    check(baseline.status() == PhantomBackgroundTransaction.Status.SUCCESS, "CANONICAL_PRE_CUT_BASELINE");
+                    members.add(new PhantomLogicalParty.Member(id, PhantomHistoricalBackgroundPlanner.logicalRole(baseline.state()), root.goalId(), root.revision()));
+                    System.out.println("NATIVE130_PRE_CUT_BASELINE profile=" + id + " class=" + actor.getActiveClass() + " state=" + baseline.state().state() + " anchor=" + point + " actualSqlAndNativeFacts=true rewards=0");
+                }
+                finally { actor.stopAllTasks(); actor.storeMe(); actor.setOnlineStatus(true, false); actor.deleteMe(); }
+            }
+            check(leader > 0, "COMMON_NATIVE_LEADER");
+            final long selectedLeader = leader;
+            ids.remove(selectedLeader); ids.addFirst(selectedLeader);
+            members.sort(Comparator.comparingInt(member -> member.profileId() == selectedLeader ? 0 : 1));
+        }
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
         final var group = new PhantomLogicalParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("NATIVE130:" + ids), 1, ids.getFirst(), members, objective, objective.key().substring(objective.key().indexOf('@') + 1), PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "");
         check(logical.agree(group).isPresent(), "ZERO_PLAYER_AGREEMENT");
-        ordinaryHeal(runtime);
-        write(runtime.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\ngroup=" + group.groupId() + "\nanchor=" + group.anchorId() + "\n");
+        if (!Files.exists(runtime.resolve("human130-heal.tsv"))) { ordinaryHeal(runtime); }
+        write(evidence.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\ngroup=" + group.groupId() + "\nanchor=" + group.anchorId() + "\n");
         System.out.println("NATIVE130_ZERO_WORLD_AGREEMENT group=" + group.groupId() + " profiles=" + ids);
     }
     private static void equipBeforeCut(Player actor)
@@ -394,7 +475,7 @@ final class PhantomCoordination130Native
     }
     private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId, boolean restart) throws Exception
     {
-        final var trace = runtime.resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
+        final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
         final Map<org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target, TargetSeen> targets = new LinkedHashMap<>();
@@ -484,7 +565,7 @@ final class PhantomCoordination130Native
                     final var progress = PhantomSystem.operatorReadinessProgress(id); final var life = PhantomSystem.operatorLifeProgress(id);
                     final var admission = PhantomSystem.operatorAdmissionProfile(id).orElse(null);
                     final String reason = admission == null || admission.readiness() == null ? "" : admission.readiness().reason();
-                    blocked &= Set.of("catchup.baseline.initial_binding_changed", "catchup.goal.conflict", "catchup.baseline.conflict", "ecology.orphan_historical_conflict").contains(reason);
+					blocked &= Set.of("catchup.baseline.initial_binding_changed", "catchup.goal.conflict", "catchup.baseline.conflict", "ecology.orphan_historical_conflict", "native_context.required:logical_party_preparation", "native_context.required:logical_party_support").contains(reason);
                     System.out.println("NATIVE130_WAIT profile=" + id + " admission=" + (admission == null ? null : admission.readiness())
                         + " stage=" + progress.get("currentStage") + " retry=" + progress.get("nextRetryMillis") + " visible=" + life.get("historical.visibleRecovery")
                         + " rendezvous=" + life.get("party.rendezvous") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " owner=" + life.get("native.owner"));
