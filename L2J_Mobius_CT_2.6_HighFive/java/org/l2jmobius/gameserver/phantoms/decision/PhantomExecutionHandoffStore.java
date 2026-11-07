@@ -108,23 +108,36 @@ public final class PhantomExecutionHandoffStore
 
 	/** Recipient authority (for example exact logical group generation) shares the transfer transaction. */
 	public Stored transfer(Stored expected, List<PhantomProfileComponent> recipientGuards, long now)
+	{ return transfer(expected, recipientGuards, List.of(), List.of(), List.of(), now); }
+	public Stored transfer(Stored expected, List<PhantomProfileComponent> recipientGuards, List<ComponentMutation> changes, List<PhantomProfileComponent> removals, List<ComponentAbsence> recipientAbsences, long now)
 	{
-		final var guards = new ArrayList<>(recipientGuards); final var absent = new ArrayList<ComponentAbsence>();
+		final var guards = new ArrayList<>(recipientGuards); final var absent = new ArrayList<>(recipientAbsences);
 		for (var dependency : expected.state().dependencies())
 		{
 			final var raw = _profiles.findComponent(expected.profileId(), dependency.componentType()).orElse(null);
 			if (!fingerprint(dependency.componentType(), raw).equals(dependency)) { throw new ConcurrentModificationException("Execution checkpoint changed before transfer."); }
 			if (raw == null) { absent.add(new ComponentAbsence(expected.profileId(), dependency.componentType())); } else { guards.add(raw); }
 		}
-		return write(expected, expected.state().transfer(now), List.of(), guards, absent);
+		if (removals.stream().anyMatch(row -> row.profileId() != expected.profileId())) { throw new IllegalArgumentException("Execution transfer cannot remove another profile's component."); }
+		final var transferred = expected.state().transfer(now);
+		final var proof = transferred.dependencies().stream().map(dependency ->
+		{
+			if (removals.stream().anyMatch(row -> row.componentType().equals(dependency.componentType()))) { return fingerprint(dependency.componentType(), null); }
+			final var change = changes.stream().filter(row -> row.componentType().equals(dependency.componentType())).findFirst().orElse(null);
+			return change == null ? dependency : new PhantomExecutionHandoff.Dependency(change.componentType(), change.componentSchemaVersion(), change.expectedRowVersion() + 1, sha256(change.payload()));
+		}).toList();
+		return write(expected, new PhantomExecutionHandoff(transferred.generation(), transferred.owner(), transferred.phase(), transferred.recipient(), transferred.requestId(),
+			transferred.requestedAt(), transferred.deadline(), proof, transferred.sourceReady()), changes, guards, absent, removals);
 	}
 	private Stored write(Stored expected, PhantomExecutionHandoff next, List<ComponentMutation> changes, List<PhantomProfileComponent> guards, List<ComponentAbsence> absent)
+	{ return write(expected, next, changes, guards, absent, List.of()); }
+	private Stored write(Stored expected, PhantomExecutionHandoff next, List<ComponentMutation> changes, List<PhantomProfileComponent> guards, List<ComponentAbsence> absent, List<PhantomProfileComponent> removals)
 	{
 		final var mutations = new ArrayList<ProfileComponentMutation>();
 		mutations.add(new ProfileComponentMutation(expected.profileId(), new ComponentMutation(COMPONENT_TYPE, expected.component().rowVersion(), PhantomExecutionHandoff.SCHEMA_VERSION, next.encode())));
 		for (var change : changes) { mutations.add(new ProfileComponentMutation(expected.profileId(), change)); }
 		final var allGuards = new ArrayList<>(guards); allGuards.add(expected.component());
-		return _profiles.mutateProfileComponentsAtomically(mutations, allGuards, absent).stream()
+		return _profiles.mutateProfileComponentsAtomically(mutations, allGuards, absent, removals).stream()
 			.filter(c -> COMPONENT_TYPE.equals(c.componentType())).map(Stored::new).findFirst().orElseThrow();
 	}
 	private static PhantomExecutionHandoff.Dependency fingerprint(String type, PhantomProfileComponent raw)

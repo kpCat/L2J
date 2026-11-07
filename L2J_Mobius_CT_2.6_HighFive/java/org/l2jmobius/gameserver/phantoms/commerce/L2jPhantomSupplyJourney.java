@@ -382,7 +382,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	{ return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, reason, Math.addExact(now, 1000)); }
 	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long profileId, boolean recovery, long now)
 	{
-		final var root = _roots.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElseThrow();
+		final var root = _roots.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
 		final var entry = _materialization.find(profileId).orElse(null);
 		final var player = entry == null || !entry.worldPresent() ? null : World.getInstance().getPlayer(entry.characterObjectId());
 		return _store.executionCheckpoint(profileId, root, now, recovery, Math.addExact(now, TimeUnit.SECONDS.toMillis(4L * _policy.retrySeconds())),

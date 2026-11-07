@@ -13,6 +13,32 @@ public final class PhantomExecutionHandoff130Tests
 	private PhantomExecutionHandoff130Tests() { }
 	public static void register(PhantomTestRegistry registry)
 	{
+		registry.add("execution-root-planning-cannot-borrow-completion-after-request", _ ->
+		{
+			final var owner = PhantomExecutionHandoff.solo(1); final var initial = PhantomExecutionHandoff.initial(owner);
+			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1); gate.publish(1, 0, initial);
+			try (var earned = gate.tryAcquire(1, owner))
+			{
+				gate.publish(1, 1, initial.request(new PhantomDomainRef("execution.party", "group"), "party", 1000, 5000));
+				try (var fresh = gate.enterOwner(PhantomExecutionHandoff::solo))
+				{ PhantomAssertions.assertEquals(null, gate.tryAcquireGoalContinuation(1, owner), "Fresh scheduler planning borrowed preparation/completion during REQUEST."); }
+				try (var captured = earned.enterScope(); var completion = gate.tryAcquireGoalContinuation(1, owner))
+				{ PhantomAssertions.assertTrue(completion != null, "An earned command lost its lawful root completion during REQUEST."); }
+			}
+		});
+		registry.add("execution-goal-publication-codec-and-authority-bounds", _ ->
+		{
+			final var companion = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Companion(
+				org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.COMPONENT_TYPE, 7, 1, "b".repeat(64));
+			final var pending = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication(
+				org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.PENDING, 11, 1000, 31000, false, "a".repeat(64), List.of(companion), 0);
+			PhantomAssertions.assertEquals(pending, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.decode(pending.encode()), "Publication codec lost its exact root/companion authority.");
+			PhantomAssertions.assertEquals(pending.requestId(), pending.committed(4).requestId(), "Publication acknowledgement changed request identity.");
+			PhantomAssertions.assertTrue(pending.encode().length < org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent.MAX_PAYLOAD_BYTES, "Publication metadata exceeded the existing component payload limit.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Companion("commerce.receipt", 0, 1, "c".repeat(64)), "Goal publication gained an independent Commerce writer.");
+			final var malformed = java.util.Arrays.copyOf(pending.encode(), pending.encode().length + 1);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.decode(malformed), "Publication accepted trailing bytes.");
+		});
 		registry.add("execution-production-lifecycle-denies-an-uninstalled-delegate", _ ->
 		{
 			final var bridge = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge(true);

@@ -133,9 +133,8 @@ public final class PhantomConversationExecutionStore
 	public GoalMutationResult mutateGoal(long profileId, long expectedExecutionVersion, ExecutionState execution, PhantomGoalStateStore goals, long expectedGoalVersion, PhantomGoal goal)
 	{
 		validateAuthority(execution);
-		final List<PhantomProfileComponent> components = _profiles.mutateComponentsAtomically(profileId, List.of( //
-			new ComponentMutation(PhantomConversationExecutionModel.COMPONENT_TYPE, expectedExecutionVersion, PhantomConversationExecutionModel.SCHEMA_VERSION, _codec.encode(execution)), //
-			goals.componentMutation(expectedGoalVersion, goal)));
+		final List<PhantomProfileComponent> components = goals.mutateWithComponents(profileId, expectedGoalVersion, goal, List.of(
+			new ComponentMutation(PhantomConversationExecutionModel.COMPONENT_TYPE, expectedExecutionVersion, PhantomConversationExecutionModel.SCHEMA_VERSION, _codec.encode(execution))));
 		return new GoalMutationResult(decode(components.get(0)), goals.decodeComponent(components.get(1)));
 	}
 

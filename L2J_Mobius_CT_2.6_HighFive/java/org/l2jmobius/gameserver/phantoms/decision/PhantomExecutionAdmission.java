@@ -138,6 +138,21 @@ public final class PhantomExecutionAdmission
 		return null;
 	}
 	public Scope enterOwner(LongFunction<PhantomDomainRef> owner) { return new Scope(Objects.requireNonNull(owner), null, Purpose.NORMAL); }
+	/** Fresh scheduler planning needs NORMAL; only a captured command or explicit owner preparation may complete after REQUEST. */
+	public Permit tryAcquireGoalContinuation(long id, PhantomDomainRef fallbackOwner)
+	{
+		var scope = _context.get(); while (scope != null && scope.stamp != null && scope.stamp.profileId() != id) { scope = scope.previous; }
+		return scope == null ? tryAcquire(id, fallbackOwner) : acquireScoped(id, null, scope.stamp != null || scope.purpose == Purpose.COMPLETION ? Purpose.COMPLETION : Purpose.NORMAL);
+	}
+	/** Declarative intent may request a different owner; stale captured callbacks still cannot submit it. */
+	public synchronized boolean permitsIntentRequest(long id)
+	{
+		var scope = _context.get(); while (scope != null && scope.stamp != null && scope.stamp.profileId() != id) { scope = scope.previous; }
+		if (scope == null) { return true; }
+		final var slot = _slots.get(id);
+		return !scope.closed && slot != null && !slot.boundary && !slot.uncertain && scope.startedAt >= slot.activatedAt
+			&& (scope.stamp == null || sameGrant(id, slot, scope.stamp));
+	}
 	public Scope enterCaptured(Stamp stamp) { return new Scope(null, Objects.requireNonNull(stamp), stamp.purpose()); }
 	public final class Scope implements AutoCloseable
 	{

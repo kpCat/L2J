@@ -580,10 +580,10 @@ final class PhantomAutonomousCareer
 		final var execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(profiles).load(id).orElse(null);
 		if (execution != null && !execution.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id))) { throw new java.util.ConcurrentModificationException("Career checkpoint belongs to another execution owner."); }
 		final var codec = new PhantomGoalStateCodec();
-		final var rawRoot = profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
-		if (!codec.decode(rawRoot.payload()).equals(root)) { throw new java.util.ConcurrentModificationException("Career checkpoint parent changed."); }
+		final var rawRoot = profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
+		if (!Objects.equals(rawRoot == null ? null : codec.decode(rawRoot.payload()), root)) { throw new java.util.ConcurrentModificationException("Career checkpoint parent changed."); }
 		final var raw = profiles.findComponent(id, COMPONENT).orElse(null);
-		final var guards = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>(); guards.add(rawRoot);
+		final var guards = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>(); if (rawRoot != null) { guards.add(rawRoot); }
 		final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
 		if (raw != null)
 		{
@@ -591,7 +591,9 @@ final class PhantomAutonomousCareer
 			guards.add(raw); final var old = codec.decode(raw.payload());
 			if (!"career.autonomous".equals(old.purposeKey()) || !PhantomQuestInstanceService.CLASS_GOAL_TYPE.equals(old.goalType())) { throw new IllegalArgumentException("Unknown career child."); }
 			var next = PhantomJourneyLifetime.pause(old, now);
-			if (recovery && PhantomJourneyLifetime.paused(next) && next.goalId() == root.goalId() && Objects.equals(next.subject(), root.subject())
+			if (recovery && old.status() == PhantomGoalStatus.ACTIVE && (root == null || next.goalId() != root.goalId() || !Objects.equals(next.subject(), root.subject())))
+			{ next = next.withStatus(PhantomGoalStatus.ABANDONED); }
+			else if (recovery && root != null && PhantomJourneyLifetime.paused(next) && next.goalId() == root.goalId() && Objects.equals(next.subject(), root.subject())
 				&& root.status() == PhantomGoalStatus.ACTIVE && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
 			{
 				next = PhantomJourneyLifetime.rebindSuspended(next, root);
@@ -601,7 +603,7 @@ final class PhantomAutonomousCareer
 			}
 			if (!next.equals(old)) { changes.add(new PhantomProfileRepository.ComponentMutation(COMPONENT, raw.rowVersion(), 1, codec.encode(next))); }
 		}
-		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of(COMPONENT), guards);
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of(COMPONENT, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE), guards);
 	}
 	void executionCheckpointCommitted(long id) { synchronized (this) { _cache.remove(id); } }
 	org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareExecutionYield(long id, long now)

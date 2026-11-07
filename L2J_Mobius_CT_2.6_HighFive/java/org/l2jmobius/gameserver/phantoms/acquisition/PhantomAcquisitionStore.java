@@ -62,9 +62,8 @@ public final class PhantomAcquisitionStore
 
 	public StoredMutation insertWithGoal(long profileId, PhantomAcquisitionState state, long expectedGoalRowVersion, PhantomGoal goal)
 	{
-		final List<PhantomProfileComponent> changed = _profiles.mutateComponentsAtomically(profileId, List.of(
-			new ComponentMutation(PhantomAcquisitionState.COMPONENT_TYPE, -1, PhantomAcquisitionState.SCHEMA_VERSION, _codec.encode(state)),
-			_goals.componentMutation(expectedGoalRowVersion, goal)));
+		final List<PhantomProfileComponent> changed = _goals.mutateWithComponents(profileId, expectedGoalRowVersion, goal, List.of(
+			new ComponentMutation(PhantomAcquisitionState.COMPONENT_TYPE, -1, PhantomAcquisitionState.SCHEMA_VERSION, _codec.encode(state))));
 		return new StoredMutation(decode(changed.get(0)), _goals.decodeComponent(changed.get(1)));
 	}
 
@@ -75,9 +74,8 @@ public final class PhantomAcquisitionStore
 
 	public StoredMutation mutateWithGoal(long profileId, long expectedStateRowVersion, PhantomAcquisitionState state, long expectedGoalRowVersion, PhantomGoal goal)
 	{
-		final List<PhantomProfileComponent> changed = _profiles.mutateComponentsAtomically(profileId, List.of(
-			new ComponentMutation(PhantomAcquisitionState.COMPONENT_TYPE, expectedStateRowVersion, PhantomAcquisitionState.SCHEMA_VERSION, _codec.encode(state)),
-			_goals.componentMutation(expectedGoalRowVersion, goal)));
+		final List<PhantomProfileComponent> changed = _goals.mutateWithComponents(profileId, expectedGoalRowVersion, goal, List.of(
+			new ComponentMutation(PhantomAcquisitionState.COMPONENT_TYPE, expectedStateRowVersion, PhantomAcquisitionState.SCHEMA_VERSION, _codec.encode(state))));
 		return new StoredMutation(decode(changed.get(0)), _goals.decodeComponent(changed.get(1)));
 	}
 

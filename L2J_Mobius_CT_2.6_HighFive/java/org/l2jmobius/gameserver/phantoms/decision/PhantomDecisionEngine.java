@@ -92,8 +92,15 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		public ExecutionReadiness { if (reason == null || reason.isBlank() || nextDue < 0) { throw new IllegalArgumentException("Execution readiness requires a reason and finite due time."); } }
 	}
-	public record ExecutionAuthority(ExecutionReadiness readiness, java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> guards)
-	{ public ExecutionAuthority { Objects.requireNonNull(readiness); guards = java.util.List.copyOf(guards); } }
+	public record ExecutionAuthority(ExecutionReadiness readiness, java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> guards,
+		java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation> changes,
+		java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> removals,
+		java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentAbsence> absences)
+	{
+		public ExecutionAuthority(ExecutionReadiness readiness, java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> guards)
+		{ this(readiness, guards, java.util.List.of(), java.util.List.of(), java.util.List.of()); }
+		public ExecutionAuthority { Objects.requireNonNull(readiness); guards = java.util.List.copyOf(guards); changes = java.util.List.copyOf(changes); removals = java.util.List.copyOf(removals); absences = java.util.List.copyOf(absences); }
+	}
 	public record ExecutionCheckpoint(java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation> changes,
 		java.util.List<String> dependencyTypes, java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> authority)
 	{
@@ -168,7 +175,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 					publishExecution(yielded);
 					next = _executionStore.checkpoint(yielded, proof.changes(), proof.dependencyTypes(), proof.authority(), now);
 				}
-				else { next = _executionStore.transfer(expected, recipient.guards(), now); }
+				else { next = _executionStore.transfer(expected, recipient.guards(), recipient.changes(), recipient.removals(), recipient.absences(), now); }
 				publishExecution(next); source.checkpointCommitted(next); result.set(next);
 			});
 			if (nativeCompleted != (result.get() != null)) { throw new IllegalStateException("Owner checkpoint completion disagrees with its durable callback."); }

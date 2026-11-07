@@ -111,9 +111,8 @@ public final class PhantomBackgroundCatchupStore
 		{
 			throw new IllegalArgumentException("Sequential Background catch-up replacement plan is invalid.");
 		}
-		final List<PhantomProfileComponent> components = _profiles.mutateComponentsAtomically(profileId, List.of(
-			new ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(replacement)),
-			_goals.componentMutation(expectedGoal.rowVersion(), replacementGoal)));
+		final List<PhantomProfileComponent> components = _goals.mutateWithComponents(profileId, expectedGoal.rowVersion(), replacementGoal, List.of(
+			new ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(replacement))));
 		return decodePlanned(components);
 	}
 
@@ -172,9 +171,8 @@ public final class PhantomBackgroundCatchupStore
 		{
 			throw new IllegalArgumentException("Catch-up state and goal plan identities differ.");
 		}
-		final List<PhantomProfileComponent> components = _profiles.mutateComponentsAtomically(profileId, List.of(
-			new ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(planned)),
-			_goals.componentMutation(expectedGoalRowVersion, goal)));
+		final List<PhantomProfileComponent> components = _goals.mutateWithComponents(profileId, expectedGoalRowVersion, goal, List.of(
+			new ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(planned))));
 		return decodePlanned(components);
 	}
 

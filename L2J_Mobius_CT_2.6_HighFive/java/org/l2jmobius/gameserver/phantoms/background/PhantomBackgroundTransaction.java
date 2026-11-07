@@ -412,6 +412,12 @@ public final class PhantomBackgroundTransaction
 	}
 
 	public OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target, PhantomNativeContext.Capture nativeCapture)
+	{ return prepareOwnedStore(captured, goal, epoch, target, nativeCapture, null); }
+
+	/** Retained execution-checkpoint authority is valid only for canonical native persistence, never offscreen execution. */
+	public OwnedStorePreparation prepareRetainedNativeStore(PhantomBackgroundState captured, PhantomGoalStateStore.RetainedNativeGoal authority, long epoch, State target, PhantomNativeContext.Capture nativeCapture)
+	{ return prepareOwnedStore(captured, authority.goal(), epoch, target, nativeCapture, authority); }
+	private OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target, PhantomNativeContext.Capture nativeCapture, PhantomGoalStateStore.RetainedNativeGoal retained)
 	{
 		final long profileId = captured.identity().profileId();
 		final int objectId = captured.identity().characterObjectId();
@@ -424,8 +430,9 @@ public final class PhantomBackgroundTransaction
 			try
 			{
 				requireProfileLink(lockProfile(connection, profileId), objectId);
-				final LockedComponent goalComponent = lockAndValidateGoal(connection, profileId, goal, false);
+				final LockedComponent goalComponent = retained == null ? lockAndValidateGoal(connection, profileId, goal, false) : lockRetainedNativeGoal(connection, profileId, retained);
 				final LockedComponent component = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
+				if (retained != null && (component == null || nativeCapture == null)) { throw new StateConflict(Status.GOAL_STALE); }
 				if (lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE) != null) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final var previous = component == null ? null : decodeState(component);
 				final boolean classChange = previous != null && !previous.identity().equals(captured.identity());
@@ -1567,6 +1574,23 @@ public final class PhantomBackgroundTransaction
 		return goalComponent;
 	}
 
+	private LockedComponent lockRetainedNativeGoal(Connection connection, long profileId, PhantomGoalStateStore.RetainedNativeGoal authority) throws SQLException
+	{
+		if (authority.lineage().profileId() != profileId) { throw new StateConflict(Status.GOAL_STALE); }
+		final var lineage = lockComponent(connection, profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT);
+		final var execution = lockComponent(connection, profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE);
+		final var intent = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+		if (!sameComponent(lineage, authority.lineage()) || !sameComponent(execution, authority.execution()) || !sameComponent(intent, authority.intent()))
+		{ throw new StateConflict(Status.GOAL_STALE); }
+		// Re-run the typed dependency proof after locking the exact rows; no legacy/implicit migration.
+		new PhantomGoalStateStore.RetainedNativeGoal(authority.lineage(), authority.execution(), authority.intent());
+		return intent == null ? lineage : intent;
+	}
+	private static boolean sameComponent(LockedComponent actual, org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent expected)
+	{
+		return actual == null ? expected == null : expected != null && actual.schemaVersion() == expected.componentSchemaVersion()
+			&& actual.rowVersion() == expected.rowVersion() && Arrays.equals(actual.payload(), expected.payload());
+	}
 	private LockedGoal lockAcquisitionGoal(Connection connection, long profileId) throws SQLException
 	{
 		final LockedComponent component = lockComponent(connection, profileId, PhantomGoalStateStore.COMPONENT_TYPE);

@@ -315,10 +315,10 @@ final class PhantomAutonomousLearning
 		final var execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(profiles).load(id).orElse(null);
 		if (execution != null && !execution.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id))) { throw new java.util.ConcurrentModificationException("Learning checkpoint belongs to another execution owner."); }
 		final var codec = new PhantomGoalStateCodec();
-		final var rawRoot = profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
-		if (!codec.decode(rawRoot.payload()).equals(root)) { throw new java.util.ConcurrentModificationException("Learning checkpoint parent changed."); }
+		final var rawRoot = profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
+		if (!Objects.equals(rawRoot == null ? null : codec.decode(rawRoot.payload()), root)) { throw new java.util.ConcurrentModificationException("Learning checkpoint parent changed."); }
 		final var raw = profiles.findComponent(id, COMPONENT).orElse(null);
-		final var guards = new ArrayList<PhantomProfileComponent>(); guards.add(rawRoot);
+		final var guards = new ArrayList<PhantomProfileComponent>(); if (rawRoot != null) { guards.add(rawRoot); }
 		final var changes = new ArrayList<PhantomProfileRepository.ComponentMutation>();
 		if (raw != null)
 		{
@@ -326,7 +326,9 @@ final class PhantomAutonomousLearning
 			guards.add(raw); final var old = codec.decode(raw.payload());
 			if (!"learning.autonomous".equals(old.purposeKey()) || !L2jPhantomLearningJourney.GOAL_TYPE.equals(old.goalType())) { throw new IllegalArgumentException("Unknown learning child."); }
 			var next = PhantomJourneyLifetime.pause(old, now);
-			if (recovery && PhantomJourneyLifetime.paused(next) && next.goalId() == root.goalId() && Objects.equals(next.subject(), root.subject())
+			if (recovery && old.status() == PhantomGoalStatus.ACTIVE && (root == null || next.goalId() != root.goalId() || !Objects.equals(next.subject(), root.subject())))
+			{ next = next.withStatus(PhantomGoalStatus.ABANDONED); }
+			else if (recovery && root != null && PhantomJourneyLifetime.paused(next) && next.goalId() == root.goalId() && Objects.equals(next.subject(), root.subject())
 				&& root.status() == PhantomGoalStatus.ACTIVE && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
 			{
 				next = PhantomJourneyLifetime.rebindSuspended(next, root);
@@ -336,7 +338,7 @@ final class PhantomAutonomousLearning
 			}
 			if (!next.equals(old)) { changes.add(new PhantomProfileRepository.ComponentMutation(COMPONENT, raw.rowVersion(), 1, codec.encode(next))); }
 		}
-		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of(COMPONENT), guards);
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of(COMPONENT, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE), guards);
 	}
 	synchronized void executionCheckpointCommitted(long id) { _cache.remove(id); }
 	synchronized void clear() { _cache.clear(); }

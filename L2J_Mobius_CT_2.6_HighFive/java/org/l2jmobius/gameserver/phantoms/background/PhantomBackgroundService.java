@@ -1099,7 +1099,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.pendingStoreCheckpoint(player, this, () ->
 			{
 				if (!pendingStoreOwnerCurrent(profileId, player, goal)) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.checkpoint_owner_changed"); }
-				return new VisibleStoreResult(player.resumePendingOwnedStore(this, goal.goalId(), goal.revision()) ? VisibleStoreStatus.SUCCESS : VisibleStoreStatus.RETRY, "owned_store.live_resume");
+				return new VisibleStoreResult(player.resumePendingOwnedStore(this, goal == null ? 0 : goal.goalId(), goal == null ? 0 : goal.revision()) ? VisibleStoreStatus.SUCCESS : VisibleStoreStatus.RETRY, "owned_store.live_resume");
 			});
 		}
 		catch (RuntimeException failure)
@@ -1379,7 +1379,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			public Player.OwnedStoreSnapshot beforePendingStore(long goalId, long revision)
 			{
 				if (_intent == null) { return null; }
-				if ((_intentGoal == null) || (_intentGoal.goalId() != goalId) || (_intentGoal.revision() != revision) || !Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), _intentGoal)) { throw new IllegalStateException("OWNED_STORE_PENDING_GOAL_CHANGED"); }
+				if ((_intentGoal == null ? goalId != 0 || revision != 0 : _intentGoal.goalId() != goalId || _intentGoal.revision() != revision)
+					|| !Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), _intentGoal)) { throw new IllegalStateException("OWNED_STORE_PENDING_GOAL_CHANGED"); }
 				checkOwner();
 				return resumeIntent();
 			}
@@ -1432,9 +1433,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final var loaded = transaction(() -> _transactions.load(profileId));
 				final var previous = loaded.successful() ? loaded.state() : null;
 				if (!loaded.successful() && (loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT)) { throw new IllegalStateException("OWNED_STORE_BACKGROUND_READ:" + loaded.status()); }
-				final var goal = _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null);
-				if ((goal == null) && (previous == null)) { return nativeOnlyStore("GOAL_ABSENT"); }
-				if (goal == null) { throw new IllegalStateException("OWNED_STORE_GOAL_MISSING"); }
+				final var intentGoal = _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null);
+				if ((intentGoal == null) && (previous == null)) { return nativeOnlyStore("GOAL_ABSENT"); }
+				final var retained = previous != null && !PhantomGoalStateStore.nativeRootType(intentGoal) ? _goals.retainedNativeGoal(profileId, intentGoal) : null;
+				final var goal = retained == null ? intentGoal : retained.goal();
 				if (!PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()))
 				{
 					try { PhantomBackgroundGoalSpec.parseLifecycle(goal); }
@@ -1469,8 +1471,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final State target = cleanup || (previous == null) || (previous.state() != State.MATERIALIZED) ? (captured.vitals().currentHp() == 0 ? State.DEAD : State.READY) : State.MATERIALIZED;
 				final var witnessed = captureOwnedInventory(player, captured);
 				checkpointStage(player, "PREPARE_ATTEMPTED");
-				final var prepared = transaction(() -> _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target, nativeCapture));
-				_intentGoal = goal;
+				final var prepared = transaction(() -> retained == null ? _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target, nativeCapture)
+					: _transactions.prepareRetainedNativeStore(witnessed, retained, entry.materializedAtNanos(), target, nativeCapture));
+				_intentGoal = intentGoal;
 				_intent = prepared.intent();
 				_nativeCapture = _intent == null ? null : nativeCapture;
 				_kind = arrival != null ? "ARRIVAL_CAPTURE" : cleanup ? "CLEANUP_STORE" : "OTHER_OWNED_STORE";
@@ -2386,9 +2389,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var vitals = new PhantomBackgroundState.Vitals(state.vitals().currentHp(), player.getMaxHp(), state.state() == State.DEAD ? Math.min(state.vitals().currentMp(), player.getMaxMp()) : state.vitals().currentMp(), player.getMaxMp(), state.vitals().currentCp(), player.getMaxCp());
 		final var normalized = new PhantomBackgroundState(state.state(), state.identity(), progress, vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
 		if (!_authority.matchesRuntime(player, normalized)) { reason.append("OTHER_RUNTIME_FIELDS"); return null; }
-		final var goal = _goals.load(profileId).orElse(null);
-		if ((goal == null) || (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && !(historical && PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goal().goalType())) && !PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal.goal())) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { reason.append("GOAL:").append(goal == null ? "ABSENT" : goal.goal().goalType() + "/" + goal.goal().status()); return null; }
-		final var captured = _authority.captureOwnedNative(profileId, player, goal.goal(), normalized).state();
+		final var intentGoal = _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null);
+		final var goal = PhantomGoalStateStore.nativeRootType(intentGoal) ? intentGoal : _goals.retainedNativeGoal(profileId, intentGoal).goal();
+		if ((!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()) && !(historical && PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goalType())) && !PhantomBackgroundGoalSpec.canonicalHistoricalIdle(profileId, goal)) || goal.status() != PhantomGoalStatus.ACTIVE) { reason.append("GOAL:").append(goal.goalType()).append("/").append(goal.status()); return null; }
+		final var captured = _authority.captureOwnedNative(profileId, player, goal, normalized).state();
 		if (!captured.vitals().equals(vitals)) { reason.append("CAPTURE_VITALS"); return null; }
 		if (!captured.progress().equals(progress) || !captured.identity().equals(state.identity()) || !captured.position().equals(state.position()) || !captured.receipt().equals(state.receipt()) || !captured.clock().equals(state.clock()) || !captured.hashes().equals(hashes)) { reason.append("CAPTURE_DURABLE_FIELDS"); return null; }
 		if (!captured.inventory().objects().equals(state.inventory().objects()) || !captured.autoGetSkills().equals(state.autoGetSkills())) { reason.append("CAPTURE_INVENTORY_OR_AUTOGET"); return null; }

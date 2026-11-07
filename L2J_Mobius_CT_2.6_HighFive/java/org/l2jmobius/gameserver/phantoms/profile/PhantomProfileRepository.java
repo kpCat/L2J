@@ -527,10 +527,17 @@ public final class PhantomProfileRepository
 	}
 
 	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations, List<PhantomProfileComponent> guards, List<ComponentAbsence> absences)
+	{ return mutateProfileComponentsAtomically(mutations, guards, absences, List.of()); }
+
+	/** Exact guarded removals share the same profile locks and commit as the ownership transfer. */
+	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations, List<PhantomProfileComponent> guards, List<ComponentAbsence> absences, List<PhantomProfileComponent> removals)
 	{
 		if (guards == null || absences == null || guards.size() + absences.size() > 36) { throw new IllegalArgumentException("Group read guard count exceeds the nine-member bound."); }
-		if (mutations == null || mutations.isEmpty() || mutations.size() > 19)
+		if (mutations == null || removals == null || mutations.isEmpty() && removals.isEmpty() || mutations.size() + removals.size() > 19)
 		{ throw new IllegalArgumentException("Cross-profile mutation count must be between one and nineteen (aggregate plus old/new rosters)."); }
+		if (removals.stream().map(row -> row.profileId() + ":" + row.componentType()).distinct().count() != removals.size()
+			|| removals.stream().anyMatch(row -> mutations.stream().anyMatch(change -> change.profileId() == row.profileId() && change.mutation().componentType().equals(row.componentType()))))
+		{ throw new IllegalArgumentException("Conflicting guarded component removal."); }
 		final var ordered = mutations.stream().sorted(Comparator.comparingLong(ProfileComponentMutation::profileId)
 			.thenComparing(entry -> entry.mutation().componentType())).toList();
 		for (int i = 1; i < ordered.size(); i++)
@@ -541,13 +548,13 @@ public final class PhantomProfileRepository
 		return write("mutate bounded Phantom group components atomically", connection ->
 		{
 			final var profileIds = new java.util.TreeSet<Long>(); ordered.forEach(entry -> profileIds.add(entry.profileId())); guards.forEach(row -> profileIds.add(row.profileId()));
-			absences.forEach(row -> profileIds.add(row.profileId()));
+			absences.forEach(row -> profileIds.add(row.profileId())); removals.forEach(row -> profileIds.add(row.profileId()));
 			for (long id : profileIds)
 			{
 				try (var statement = connection.prepareStatement("SELECT profile_id FROM phantom_profiles WHERE profile_id = ? FOR UPDATE"))
 				{ statement.setLong(1, id); try (var rows = statement.executeQuery()) { if (!rows.next()) { throw new java.util.ConcurrentModificationException("Guarded profile disappeared."); } } }
 			}
-			for (var guard : guards.stream().sorted(Comparator.comparingLong(PhantomProfileComponent::profileId).thenComparing(PhantomProfileComponent::componentType)).toList())
+			for (var guard : java.util.stream.Stream.concat(guards.stream(), removals.stream()).distinct().sorted(Comparator.comparingLong(PhantomProfileComponent::profileId).thenComparing(PhantomProfileComponent::componentType)).toList())
 			{
 				try (var statement = connection.prepareStatement(FIND_COMPONENT + " FOR UPDATE"))
 				{
@@ -587,6 +594,15 @@ public final class PhantomProfileRepository
 				}
 				final var after = requireComponent(connection, id, mutation.componentType()); result.add(after);
 				witnessGoal(connection, id, mutation.componentType(), before, after);
+			}
+			for (var removal : removals.stream().sorted(Comparator.comparingLong(PhantomProfileComponent::profileId).thenComparing(PhantomProfileComponent::componentType)).toList())
+			{
+				try (var statement = connection.prepareStatement(DELETE_COMPONENT))
+				{
+					statement.setLong(1, removal.profileId()); statement.setString(2, removal.componentType()); statement.setLong(3, removal.rowVersion());
+					requireOptimisticWinner(statement.executeUpdate(), "Guarded component removal");
+				}
+				witnessGoal(connection, removal.profileId(), removal.componentType(), removal, null);
 			}
 			return List.copyOf(result);
 		});

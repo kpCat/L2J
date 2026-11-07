@@ -168,9 +168,9 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 		final var execution = _execution.load(profileId).orElse(null);
 		if (execution != null && !execution.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId)))
 		{ throw new java.util.ConcurrentModificationException("Source checkpoint belongs to another execution owner."); }
-		final var rawRoot = _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
-		if (!_codec.decode(rawRoot.payload()).equals(root)) { throw new java.util.ConcurrentModificationException("Source root changed before execution checkpoint."); }
-		final var authority = new java.util.ArrayList<PhantomProfileComponent>(); authority.add(rawRoot);
+		final var rawRoot = _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
+		if (!Objects.equals(rawRoot == null ? null : _codec.decode(rawRoot.payload()), root)) { throw new java.util.ConcurrentModificationException("Source root changed before execution checkpoint."); }
+		final var authority = new java.util.ArrayList<PhantomProfileComponent>(); if (rawRoot != null) { authority.add(rawRoot); }
 		final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
 		final var rawChild = _profiles.findComponent(profileId, COMPONENT).orElse(null);
 		final var rawRoute = _profiles.findComponent(profileId, ROUTE_COMPONENT).orElse(null);
@@ -185,7 +185,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 			PhantomGoal next = child;
 			if (recovery && (child.status() == PhantomGoalStatus.ACTIVE || PhantomOfflineSupply.returning(child)))
 			{
-				final boolean continuingParent = child.goalId() == root.goalId() && Objects.equals(child.subject(), root.subject());
+				final boolean continuingParent = root != null && child.goalId() == root.goalId() && Objects.equals(child.subject(), root.subject());
 				if (!continuingParent || !(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(child, now) || PhantomOfflineSupply.returning(child) && child.deadlineEpochMillis() > now))
 				{
 					if (retryAfter <= now) { throw new IllegalArgumentException("Retired child requires its owner's finite retry policy."); }

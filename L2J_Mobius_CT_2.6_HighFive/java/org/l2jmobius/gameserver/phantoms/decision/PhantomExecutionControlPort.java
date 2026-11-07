@@ -31,13 +31,26 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 	private final ConcurrentSkipListMap<Long, Slot> _profiles = new ConcurrentSkipListMap<>();
 	private final Set<Long> _working = ConcurrentHashMap.newKeySet();
 	private final Set<Long> _nativeNeeded = ConcurrentHashMap.newKeySet();
+	private final java.util.concurrent.ConcurrentLinkedQueue<Long> _urgent = new java.util.concurrent.ConcurrentLinkedQueue<>();
+	private final Set<Long> _queued = ConcurrentHashMap.newKeySet();
+	private PhantomGoalStateStore _publications;
 	private long _cursor;
+	public void installGoalPublications(PhantomGoalStateStore goals)
+	{
+		if (_publications != null) { throw new IllegalStateException("Goal publication control already installed."); }
+		_publications = Objects.requireNonNull(goals); goals.installExecutionPublication(_store, _gate, _clock, this::wake);
+	}
+	public void wake(long id)
+	{
+		watch(id); final var slot = _profiles.get(id); slot.urgent = true; slot.nextDue = 0;
+		if (_queued.add(id)) { _urgent.add(id); }
+	}
 	private final ThreadLocal<java.util.ArrayDeque<Materializing>> _materializing = ThreadLocal.withInitial(java.util.ArrayDeque::new);
 	public void request(long id, PhantomDomainRef recipient, long until)
 	{
 		watch(id); final var slot = _profiles.get(id);
 		if (until <= _clock.getAsLong()) { throw new IllegalArgumentException("Execution request has expired."); }
-		slot.requestedOwner = Objects.requireNonNull(recipient); slot.requestedUntil = until; slot.nextDue = 0;
+		slot.requestedOwner = Objects.requireNonNull(recipient); slot.requestedUntil = until; wake(id);
 	}
 	/** The role lease spans every existing lifecycle callback, including failure compensation. */
 	public org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort materializationLifecycle(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort delegate)
@@ -95,7 +108,7 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 	{
 		watch(id); final var slot = _profiles.get(id);
 		if (!_working.add(id)) { return null; }
-		try { acknowledge(id, slot); return slot.row; }
+		try { acknowledge(id, slot); wake(id); return slot.row; }
 		catch (RuntimeException failure) { failed(id, slot, failure, _clock.getAsLong()); return null; }
 		finally { _working.remove(id); }
 	}
@@ -146,37 +159,45 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 	@Override public void onPulse()
 	{
 		final long now = _clock.getAsLong();
-		var page = _profiles.tailMap(_cursor, false).entrySet().stream().limit(8).toList();
-		if (page.isEmpty()) { _cursor = 0; page = _profiles.entrySet().stream().limit(8).toList(); }
+		final var selected = new java.util.LinkedHashMap<Long, Slot>();
+		for (int i = 0; i < 4; i++) { final var id = _urgent.poll(); if (id == null) { break; } _queued.remove(id); selected.put(id, _profiles.get(id)); }
+		var fair = _profiles.tailMap(_cursor, false).entrySet().stream().limit(8 - selected.size()).toList();
+		if (fair.isEmpty()) { _cursor = 0; fair = _profiles.entrySet().stream().limit(8 - selected.size()).toList(); }
+		for (var entry : fair) { selected.putIfAbsent(entry.getKey(), entry.getValue()); _cursor = entry.getKey(); }
+		final var page = selected.entrySet();
 		for (var entry : page)
 		{
-			final long id = entry.getKey(); _cursor = id; final var slot = entry.getValue();
-			if (slot.nextDue > now || !_working.add(id)) { continue; }
+			final long id = entry.getKey(); final var slot = entry.getValue();
+			if (slot.nextDue > now || !_working.add(id)) { if (slot.urgent && _queued.add(id)) { _urgent.add(id); } continue; }
 			try
 			{
 				acknowledge(id, slot); final var row = slot.row;
+				final var publication = _publications == null ? null : _publications.pendingPublication(id, now).orElse(null);
 				final var debtOwner = _recoveryDemand.apply(id);
 				final var requested = now < slot.requestedUntil ? slot.requestedOwner : null;
-				final var wanted = Objects.requireNonNullElse(debtOwner != null ? debtOwner : requested != null ? requested : _desired.apply(id), PhantomExecutionHandoff.solo(id));
-				if ((row.state().phase() == Phase.ACTIVE && (!row.state().owner().equals(wanted) || debtOwner != null))
+				final var wanted = Objects.requireNonNullElse(publication != null ? PhantomExecutionHandoff.solo(id) : debtOwner != null ? debtOwner : requested != null ? requested : _desired.apply(id), PhantomExecutionHandoff.solo(id));
+				if ((row.state().phase() == Phase.ACTIVE && (!row.state().owner().equals(wanted) || debtOwner != null || publication != null))
 					|| row.state().phase() == Phase.RECOVERING && !row.state().owner().equals(PhantomExecutionHandoff.solo(id)) && !row.state().owner().equals(wanted))
 				{
-					slot.row = _engine.requestExecution(row, wanted, "execution." + row.state().generation() + "." + row.component().rowVersion(), now, Math.addExact(now, 30_000));
+					slot.row = _engine.requestExecution(row, wanted, publication == null ? "execution." + row.state().generation() + "." + row.component().rowVersion() : publication.state().requestId(), now, publication == null ? Math.addExact(now, 30_000) : publication.state().deadline());
 					slot.nextDue = now;
 				}
 				else if (row.state().phase() == Phase.ACTIVE) { slot.nextDue = Math.addExact(now, 1000); }
 				else
 				{
-					final boolean cancel = row.state().phase() != Phase.RECOVERING && (slot.cancelAfterConflict || !wanted.equals(row.state().recipient()));
+					final boolean cancel = row.state().phase() != Phase.RECOVERING && (slot.cancelAfterConflict || !wanted.equals(row.state().recipient())
+						|| row.state().requestId().startsWith("goal.") && (publication == null || !publication.state().requestId().equals(row.state().requestId())));
 					final var next = _engine.advanceExecution(row, now, cancel); slot.row = next.stored(); slot.nextDue = next.nextDue();
 					if (next.progressed()) { slot.cancelAfterConflict = false; }
 				}
+				if (slot.row.state().phase() == Phase.RECOVERING && slot.row.state().requestId().startsWith("goal.")) { _engine.reload(id); }
 				slot.root = _roots.apply(id);
-				if (debtOwner != null && slot.row.state().owner().equals(debtOwner) && slot.row.state().phase() != Phase.ACTIVE) { _nativeNeeded.add(id); }
+				slot.urgent = publication != null || slot.row.state().phase() != Phase.ACTIVE;
+				if ((debtOwner != null && slot.row.state().owner().equals(debtOwner) || publication != null && slot.row.state().owner().equals(PhantomExecutionHandoff.solo(id))) && slot.row.state().phase() != Phase.ACTIVE) { _nativeNeeded.add(id); }
 				else { _nativeNeeded.remove(id); }
 			}
 			catch (RuntimeException failure) { failed(id, slot, failure, now); }
-			finally { _working.remove(id); }
+			finally { _working.remove(id); if (slot.urgent && _queued.add(id)) { _urgent.add(id); } }
 		}
 	}
 	private void failed(long id, Slot slot, RuntimeException failure, long now)
@@ -200,6 +221,7 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 		private volatile Stored row; private volatile PhantomGoal root; private volatile boolean acknowledged;
 		private volatile PhantomDomainRef requestedOwner; private volatile long requestedUntil;
 		private volatile long nextDue; private boolean cancelAfterConflict; private String failure = ""; private long nextDiagnostic;
+		private volatile boolean urgent;
 	}
 	private static final class Materializing
 	{

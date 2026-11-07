@@ -962,6 +962,7 @@ public final class PhantomSystem
 					(id, key) -> soloExecution(id) || PhantomBackgroundGoalSpec.CANDIDATE_KEY.equals(key), System::currentTimeMillis,
 					(id, failure) -> System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.WARNING, "execution.handoff profile=" + id + " reason=" + failure.getClass().getSimpleName() + ":" + failure.getMessage()));
 				_executionDecisions = _executionControl.decisionAdmission();
+				_executionControl.installGoalPublications(productionGoals);
 				productionLifecycle.install(_executionControl.materializationLifecycle(completeProductionLife));
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
@@ -3459,7 +3460,11 @@ public final class PhantomSystem
 			}
 			@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority authority(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, long now)
 			{
-				if (!party) { return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority(executionReady("execution.solo", now), java.util.List.of()); }
+				if (!party)
+				{
+					return row.state().requestId().startsWith("goal.") ? _executionGoals.publicationAuthority(row, now)
+						: new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority(executionReady("execution.solo", now), java.util.List.of());
+				}
 				final var group = _logicalParties.groupFor(row.profileId()).orElse(null);
 				final var root = _executionGoals.load(row.profileId()).orElse(null);
 				if (group == null || root == null || !executionGroupBinding(group.group(), row.profileId(), root.goal())
@@ -3481,7 +3486,7 @@ public final class PhantomSystem
 		final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);
 		if (player != null && player.hasPendingOwnedStore())
 		{
-			if (root != null) { _backgroundService.resumeVisibleOwnedStore(id, player, root); }
+			_backgroundService.resumeVisibleOwnedStore(id, player, root);
 			if (player.hasPendingOwnedStore()) { return executionWait("execution.pending_native_store", now); }
 		}
 		try (var scope = _executionAdmission.enterCompletionOwner(_ -> row.state().owner()))
@@ -3493,12 +3498,6 @@ public final class PhantomSystem
 			{
 				return _partyCoordinator.prepareExecutionYield(id, !recovery, !recovery && now >= row.state().deadline() - 1000)
 					? executionReady("execution.party_prepared", now) : executionWait("execution.party_earned", now);
-			}
-			if (root == null)
-			{
-				if (_supplyJourney.automaticIntent(id).isPresent() || _learningJourney.automaticIntent(id).isPresent() || _questInstanceService.autonomousIntent(id).isPresent() || _commerceReceiptStore.find(id).isPresent())
-				{ return executionWait("execution.parent_missing_with_obligation", now); }
-				return executionReady("execution.empty_source", now);
 			}
 			final var supply = _supplyJourney.prepareExecutionYield(id, now); if (!supply.ready()) { return supply; }
 			final var learning = _learningJourney.prepareExecutionYield(id, now); if (!learning.ready()) { return learning; }
@@ -3529,7 +3528,7 @@ public final class PhantomSystem
 		if (player.hasPendingOwnedStore())
 		{
 			final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);
-			if (root != null) { _backgroundService.resumeVisibleOwnedStore(id, player, root); }
+			_backgroundService.resumeVisibleOwnedStore(id, player, root);
 			if (player.hasPendingOwnedStore()) { return false; }
 		}
 		if (!nativeOwner.open() || nativeOwner.outstanding() != 0) { return false; }
@@ -3551,13 +3550,13 @@ public final class PhantomSystem
 			org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.CLAIM_COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.COMPONENT_TYPE, PhantomStoreService.JOURNEY_COMPONENT));
 		final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
 		final var guards = new java.util.LinkedHashSet<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>();
-		if (!party && _executionGoals.load(row.profileId()).isPresent())
+		if (!party)
 		{
 			for (var plan : java.util.List.of(_supplyJourney.executionCheckpoint(row.profileId(), recovery, now), _learningJourney.executionCheckpoint(row.profileId(), recovery, now), _questInstanceService.executionCheckpoint(row.profileId(), recovery, now)))
 			{ changes.addAll(plan.changes()); types.addAll(plan.dependencyTypes()); guards.addAll(plan.authority()); }
 		}
 		for (String type : types) { _executionProfiles.findComponent(row.profileId(), type).ifPresent(guards::add); }
-		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, java.util.List.copyOf(types), java.util.List.copyOf(guards));
+		return _executionGoals.withPublicationCheckpoint(row.profileId(), new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, java.util.List.copyOf(types), java.util.List.copyOf(guards)));
 	}
 	private boolean logicalDraining(long profileId)
 	{

@@ -155,6 +155,18 @@ public final class PhantomCoordination130Integration
 				PhantomAssertions.assertEquals(null, gate.tryAcquire(id, row.state().recipient()), "Restart prematurely admitted the untransferred recipient.");
 				PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> store.transfer(row, List.of(), 1500), "Restart ignored changed pending obligations.");
 				PhantomAssertions.assertEquals(row, store.load(id).orElseThrow(), "Read-only pending recovery wrote ownership.");
+				final var publicationCheckpoint = read(local.resolve("root-publication-restart.properties"));
+				final long publicationId = Long.parseLong(publicationCheckpoint.getProperty("profileId"));
+				final var publicationStore = new PhantomGoalStateStore(profiles); final var pending = store.load(publicationId).orElseThrow();
+				PhantomAssertions.assertEquals(publicationCheckpoint.getProperty("payload"), java.util.Base64.getEncoder().encodeToString(pending.component().payload()), "Process restart changed a pending root transfer.");
+				final var publication = publicationStore.publication(publicationId).orElseThrow();
+				final var recoveredPlan = publicationStore.publicationAuthority(pending, publication.state().requestedAt() + 3);
+				PhantomAssertions.assertTrue(recoveredPlan.changes().stream().anyMatch(change -> change.componentType().equals(PhantomGoalStateStore.COMPONENT_TYPE)
+					&& org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(change.payload()).equals(publication.state().goalHash())), "Process restart lost the exact requested root payload.");
+				final var cold = new PhantomExecutionAdmission(1); cold.publish(publicationId, pending.component().rowVersion(), pending.state());
+				PhantomAssertions.assertEquals(null, cold.tryAcquire(publicationId, pending.state().owner()), "Restart granted the source while root publication was checkpointed.");
+				PhantomAssertions.assertEquals(null, cold.tryAcquire(publicationId, pending.state().recipient()), "Restart granted the recipient before root publication CAS.");
+				System.out.println("SQL130_GOAL_PUBLICATION_PROCESS_RESTART_PASS;PENDING_ROOT_AND_PAYLOAD_RESTORED=true;BOTH_EXECUTORS_FENCED=true;SQL_WRITES=0;NATIVE=false");
 				System.out.println("SQL130_EXECUTION_PROCESS_RESTART_PASS;PENDING_CHECKPOINT_FENCED=true;SOURCE_AND_RECIPIENT_DENIED=true;CHANGED_OBLIGATIONS_REJECTED=true;SQL_WRITES=0;NATIVE=false"); return;
 			}
             if (args[0].equals("recover")) { PhantomCoordination130Native.recoverAgreement(module, profiles); return; }
@@ -381,6 +393,53 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertThrows(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.AdmissionRejectedException.class,
 			() -> normalAdmission.beforeMaterialize(pending.profileId(),pending.objectId()),"A new running historical claim inherited old COMPLETE/NORMAL admission.");
 		System.out.println("SQL130_NORMAL_PREREQUISITE_LEDGER_GATE_PASS;OLD_COMPLETE=ADMISSIBLE;NEW_RUNNING=REJECTED;NATIVE_LOADS=0");
+		retainedNativeGoalStore(profiles, first);
+	}
+	private static void retainedNativeGoalStore(PhantomProfileRepository profiles, ReceiptFixture fixture) throws Exception
+	{
+		final long id = fixture.profileId(); final var goals = new PhantomGoalStateStore(profiles);
+		final var store = new PhantomExecutionHandoffStore(profiles); final var gate = new PhantomExecutionAdmission(1);
+		final var now = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis()); goals.installExecutionPublication(store, gate, now::get);
+		final var before = goals.load(id).orElseThrow(); final var solo = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id);
+		var execution = store.initialize(id, solo); gate.publish(id, execution.component().rowVersion(), execution.state());
+		final var requested = new PhantomGoal(before.goal().goalId() + 1, "party.form", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("party", "general"), new PhantomDomainRef("character.object", "51"), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0,
+			now.get() + 60_000, java.util.Map.of(), "conversation.party.invite", before.goal().revision() + 1);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.replace(id, before.rowVersion(), requested), "Native ledger intent was published before checkpoint.");
+		final var publication = goals.publication(id).orElseThrow();
+		execution = store.request(execution, solo, publication.state().requestId(), now.get(), publication.state().deadline());
+		execution = store.yielded(execution, now.incrementAndGet());
+		final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT, PhantomBackgroundState.COMPONENT_TYPE, PhantomNativeContext.COMPONENT_TYPE);
+		final var proof = types.stream().map(type -> profiles.findComponent(id, type).orElseThrow()).toList();
+		execution = store.checkpoint(execution, List.of(), types, proof, now.incrementAndGet());
+		final var authority = goals.publicationAuthority(execution, now.incrementAndGet());
+		execution = store.transfer(execution, authority.guards(), authority.changes(), authority.removals(), authority.absences(), now.get());
+		final var retained = goals.retainedNativeGoal(id, requested); final var transaction = fixture.transaction();
+		final var state = transaction.load(id).state(); final var nativeCapture = new PhantomNativeContext.Capture(1, PhantomNativeContext.Eligibility.SUPPORTED);
+		fixture.assertTotals();
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.GOAL_STALE,
+			transaction.prepareOwnedStore(state.withState(PhantomBackgroundState.State.MATERIALIZED), before.goal(), 130, PhantomBackgroundState.State.READY, nativeCapture).status(),
+			"The legacy STORE path gained a stale-root exception.");
+		final var prepared = transaction.prepareRetainedNativeStore(state.withState(PhantomBackgroundState.State.MATERIALIZED), retained, 130, PhantomBackgroundState.State.READY, nativeCapture);
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, prepared.status(), "Accepted native lineage could not checkpoint after a legal root publication.");
+		PhantomAssertions.assertTrue(prepared.intent() != null && profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent(), "Retained STORE skipped its normal durable intent.");
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, transaction.resumeOwnedStore(prepared.intent()).status(), "Retained STORE could not resolve the canonical before/after receipt.");
+		final var settled = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, transaction.resumeOwnedStore(prepared.intent()).status(), "Retained STORE replay did not reconcile idempotently.");
+		PhantomAssertions.assertEquals(settled, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Retained STORE replay changed the ledger twice.");
+		PhantomAssertions.assertFalse(transaction.execute(fixture.command()).successful(), "Retained native STORE authority leaked into offscreen reward execution.");
+		PhantomAssertions.assertEquals(settled, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Rejected offscreen replay changed retained native state.");
+		fixture.assertTotals();
+		final var oldLineage = retained.lineage();
+		profiles.updateComponent(id, oldLineage.componentType(), oldLineage.rowVersion(), oldLineage.componentSchemaVersion(), oldLineage.payload());
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.retainedNativeGoal(id, requested), "An unacknowledged lineage version inherited the old checkpoint proof.");
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.GOAL_STALE,
+			transaction.prepareRetainedNativeStore(state.withState(PhantomBackgroundState.State.MATERIALIZED), retained, 130, PhantomBackgroundState.State.READY, nativeCapture).status(),
+			"A stale retained authority reached native STORE after its exact row changed.");
+		PhantomAssertions.assertEquals(settled, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Rejected retained authority changed ledger state.");
+		PhantomAssertions.assertTrue(profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty(), "Rejected retained authority created an economic receipt.");
+		System.out.println("SQL130_RETAINED_NATIVE_GOAL_PASS;ROOT_PUBLICATION_CHECKPOINT=true;LEGACY_STALE_ROOT_REJECTED=true;NORMAL_STORE_INTENT_AND_REPLAY=true;STALE_LINEAGE_REJECTED=true;EXP_SP_UNCHANGED=true;NATIVE_ACTOR=MODEL_LEAF");
 	}
 	private static org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService backgroundLogicalRestore(PhantomProfileRepository profiles, ReceiptFixture fixture)
 	{
@@ -678,6 +737,21 @@ public final class PhantomCoordination130Integration
 		System.out.println("SQL130_EXECUTION_HANDOFF_PASS;REQUEST_AND_TRANSFER_ONE_WINNER=true;CHECKPOINT_STORE_RECREATION=true;OPTIONAL_CHILD_SUSPEND_AND_RESUME=true;STALE_SOURCE_ROOT_AND_NEW_RECEIPT_REJECTED=true;OPERATION_REVISIONS=7,11;NATIVE=false");
 		executionDriver(profiles, root, child);
 		executionChildOwners(profiles, root);
+		publicationRestartCheckpoint(profiles, module, root);
+	}
+	private static void publicationRestartCheckpoint(PhantomProfileRepository profiles, Path module, PhantomGoal template) throws Exception
+	{
+		final long id = profiles.create(null).profileId(); final var goals = new PhantomGoalStateStore(profiles); final var root = executionFixtureGoal(template, id); goals.insert(id, root);
+		final var store = new PhantomExecutionHandoffStore(profiles); final var solo = PhantomExecutionHandoff.solo(id); var row = store.initialize(id, solo);
+		goals.installExecutionPublication(store, new PhantomExecutionAdmission(1), () -> 1000);
+		final var next = new PhantomGoal(root.goalId() + 1, "party.form", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"),
+			new PhantomDomainRef("character.object", "51"), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, System.currentTimeMillis() + 60_000, java.util.Map.of(), "conversation.party.invite", root.revision() + 1);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.replace(id, 0, next), "Restart fixture skipped root publication.");
+		final var publication = goals.publication(id).orElseThrow(); row = store.request(row, solo, publication.state().requestId(), 1000, publication.state().deadline()); row = store.yielded(row, 1001);
+		final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT);
+		row = store.checkpoint(row, List.of(), types, types.stream().map(type -> profiles.findComponent(id, type).orElseThrow()).toList(), 1002);
+		Files.writeString(module.resolve(".phantom-local/task130/root-publication-restart.properties"), "profileId=" + id + "\npayload=" + java.util.Base64.getEncoder().encodeToString(row.component().payload()) + "\n");
 	}
 	private static void executionChildOwners(PhantomProfileRepository profiles, PhantomGoal template)
 	{
@@ -726,7 +800,26 @@ public final class PhantomCoordination130Integration
 				&& child.constraints().get("owner.revision") == nextRoot.revision() && child.constraints().get("journey.remaining") == 4998
 				&& PhantomJourneyLifetime.paused(child), "Actual Source child projection lost identity/progress/budget or resumed an absent native actor.");
 		}
-		System.out.println("SQL130_EXECUTION_CHILD_OWNERS_PASS;LEARNING_AND_CAREER=true;PAUSE_TRANSFER_PARENT_REBIND=true;PROGRESS_AND_RESOURCES_PRESERVED=true;ABSENT_ACTOR_REMAINS_PAUSED=true;NATIVE=false");
+		goals.installExecutionPublication(store, new PhantomExecutionAdmission(1), () -> wall + 8);
+		final var beforeDelete = goals.load(id).orElseThrow();
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.delete(id, beforeDelete.rowVersion()), "Learning/Career parent disappeared before its checkpoint.");
+		final var deletion = goals.publication(id).orElseThrow();
+		row = store.request(row, PhantomExecutionHandoff.solo(id), deletion.state().requestId(), wall + 8, deletion.state().deadline()); row = store.yielded(row, wall + 9);
+		final var deleteTypes = List.of(PhantomGoalStateStore.COMPONENT_TYPE, "learning.intent", "career.intent", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT);
+		row = store.checkpoint(row, List.of(), deleteTypes, deleteTypes.stream().map(type -> profiles.findComponent(id, type).orElseThrow()).toList(), wall + 9);
+		final var publication = goals.publicationAuthority(row, wall + 10);
+		row = store.transfer(row, publication.guards(), publication.changes(), publication.removals(), publication.absences(), wall + 10);
+		final var orphaned = List.of(org.l2jmobius.gameserver.phantoms.progression.PhantomLearningAlternativesChecks.sqlExecutionCheckpoint(profiles, materialization, id, null, true, wall + 11),
+			org.l2jmobius.gameserver.phantoms.questinstance.PhantomCareerChoiceAdmission068Checks.sqlExecutionCheckpoint(profiles, materialization, id, null, true, wall + 11));
+		row = store.recovered(row, orphaned.stream().flatMap(p -> p.changes().stream()).toList(), deleteTypes, orphaned.stream().flatMap(p -> p.authority().stream()).distinct().toList());
+		for (String type : List.of("learning.intent", "career.intent"))
+		{
+			final var child = codec.decode(profiles.findComponent(id, type).orElseThrow().payload());
+			PhantomAssertions.assertTrue(child.status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ABANDONED && child.currentAmount() == 2 && child.riskBudget() == 7 && child.expenseBudget() == 19,
+				"Deleted parent left a Source child active or discarded its resources/progress.");
+		}
+		System.out.println("SQL130_EXECUTION_CHILD_OWNERS_PASS;LEARNING_AND_CAREER=true;PAUSE_TRANSFER_PARENT_REBIND=true;PROGRESS_AND_RESOURCES_PRESERVED=true;ABSENT_ACTOR_REMAINS_PAUSED=true;PARENT_DELETE_RETIRES_CHILDREN=true;NATIVE=false");
 	}
 
 	/** Real Goal/child/CAS stores; native leaf is explicit absence of an unlinked SQL-only profile. */
@@ -772,14 +865,14 @@ public final class PhantomCoordination130Integration
 				if (row.state().owner().equals(solo))
 				{
 					paused.set(!recovery);
-					return intents.executionCheckpoint(id, goals.load(id).orElseThrow().goal(), wall + now - 1000, recovery, wall + now + 10_000);
+					return goals.withPublicationCheckpoint(id, intents.executionCheckpoint(id, goals.load(id).map(value -> value.goal()).orElse(null), wall + now - 1000, recovery, wall + now + 10_000));
 				}
-				return new PhantomDecisionEngine.ExecutionCheckpoint(List.of(), List.of("goal.runtime", "supply.intent", org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.ROUTE_COMPONENT, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE),
-					List.of(raw, profiles.findComponent(id, "goal.runtime").orElseThrow()));
+				return goals.withPublicationCheckpoint(id, new PhantomDecisionEngine.ExecutionCheckpoint(List.of(), List.of("goal.runtime", "supply.intent", org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.ROUTE_COMPONENT, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE),
+					List.of(raw, profiles.findComponent(id, "goal.runtime").orElseThrow())));
 			}
 			@Override public PhantomDecisionEngine.ExecutionAuthority authority(PhantomExecutionHandoffStore.Stored row, long now)
 			{
-				if (row.state().recipient().equals(solo)) { return new PhantomDecisionEngine.ExecutionAuthority(prepareYield(row, now), List.of(profiles.findComponent(id, "goal.runtime").orElseThrow())); }
+				if (row.state().recipient().equals(solo)) { return row.state().requestId().startsWith("goal.") ? goals.publicationAuthority(row, now) : new PhantomDecisionEngine.ExecutionAuthority(prepareYield(row, now), List.of(profiles.findComponent(id, "goal.runtime").orElseThrow())); }
 				final var current = parties.loadLogicalGroup(id).orElseThrow();
 				if (!current.equals(group)) { throw new java.util.ConcurrentModificationException("sql130.recipient_generation_changed"); }
 				return new PhantomDecisionEngine.ExecutionAuthority(prepareYield(row, now), List.of(profiles.findComponent(id, PhantomLogicalParty.COMPONENT_TYPE).orElseThrow()));
@@ -887,13 +980,22 @@ public final class PhantomCoordination130Integration
 		final var desired = new java.util.concurrent.atomic.AtomicReference<PhantomDomainRef>(solo);
 		final var failures = new java.util.ArrayList<RuntimeException>();
 		final var control = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(restarted, store, restartedGate, 4, _ -> desired.get(), _ -> null,
-			profile -> goals.load(profile).orElseThrow().goal(), (_, _) -> true, (_, key) -> key.equals(PhantomBackgroundGoalSpec.CANDIDATE_KEY), controlClock::get, (_, failure) -> failures.add(failure));
+			profile -> goals.load(profile).map(value -> value.goal()).orElse(null), (_, _) -> true, (_, key) -> key.equals(PhantomBackgroundGoalSpec.CANDIDATE_KEY), controlClock::get, (_, failure) -> failures.add(failure));
 		control.watch(id);
 		PhantomAssertions.assertFalse(control.permits(id), "A cold control cache granted execution from a persisted ACTIVE row.");
 		control.onPulse(); desired.set(party);
 		for (int step = 0; step < 5; step++) { controlClock.addAndGet(1001); control.onPulse(); }
 		PhantomAssertions.assertEquals(party, control.owner(id), "Production control port did not transfer Source to the reserved group.");
 		PhantomAssertions.assertTrue(control.permits(id), "Recovered group stayed fenced in the control adapter.");
+		control.installGoalPublications(goals);
+		final var beforePublication = goals.load(id).orElseThrow();
+		final var partyRequest = new PhantomGoal(root.goalId() + 1000, "party.form", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("party", "general"), new PhantomDomainRef("character.object", "51"), 1, 0, null, List.of(), null,
+			"conversation.action", 600, 0, 0, wall + 60_000, java.util.Map.of(), "conversation.party.invite", beforePublication.goal().revision() + 1);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.replace(id, beforePublication.rowVersion(), partyRequest),
+			"Root publication bypassed the accepted execution owner before REQUEST/YIELD/CHECKPOINT/CAS.");
+		PhantomAssertions.assertEquals(beforePublication, goals.load(id).orElseThrow(), "A requested intent destroyed the old ledger root before checkpoint.");
+		desired.set(solo);
 		final var lifecycle = control.materializationLifecycle(new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
 		{
 			@Override public void beforeMaterialize(long profile, int object) { }
@@ -914,8 +1016,68 @@ public final class PhantomCoordination130Integration
 		for (int step = 0; step < 4; step++) { controlClock.addAndGet(1001); control.onPulse(); }
 		PhantomAssertions.assertEquals(solo, control.owner(id), "Explicit Source request did not recover its legal executor.");
 		PhantomAssertions.assertTrue(control.permits(id) && failures.isEmpty(), "Production control adapter failed its cheap role/lifecycle round-trip: " + failures);
+		PhantomAssertions.assertEquals(partyRequest, goals.load(id).orElseThrow().goal(), "Transfer CAS did not publish the requested intent.");
+		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.COMMITTED, goals.publication(id).orElseThrow().state().status(), "Root and request acknowledgement did not commit together.");
+		PhantomAssertions.assertEquals(beforePublication.goal(), new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT).orElseThrow().payload()), "Publication lost the accepted native ledger root.");
+		final var beforeDelete = goals.load(id).orElseThrow();
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.delete(id, beforeDelete.rowVersion()), "Root deletion bypassed the checkpoint protocol.");
+		PhantomAssertions.assertEquals(beforeDelete, goals.load(id).orElseThrow(), "Root was deleted before its owner yielded.");
+		for (int step = 0; step < 5; step++) { controlClock.addAndGet(1001); control.onPulse(); }
+		PhantomAssertions.assertTrue(goals.load(id).isEmpty() && control.permits(id) && failures.isEmpty(), "Root deletion could not recover Source without an orphaned child: " + failures);
+		PhantomAssertions.assertEquals(beforePublication.goal(), goals.retainedNativeGoal(id, null).goal(), "Clearing intent erased an accepted native ledger obligation.");
+		goalPublicationFailures(profiles, goals, store, control, controlClock, id, partyRequest, lostAcknowledgement, failures);
+		System.out.println("SQL130_GOAL_PUBLICATION_PASS;ROOT_BEFORE_CHECKPOINT_PRESERVED=true;TRANSFER_AND_ROOT_ONE_CAS=true;ACCEPTED_NATIVE_ROOT_RETAINED=true;DELETE_AND_RECOVERY=true;NATIVE=false");
 		System.out.println("SQL130_EXECUTION_CONTROL_PASS;SCHEDULER_ADAPTER=true;COLD_ACTIVE_FENCED=true;SOURCE_GROUP_SOURCE=true;MATERIALIZATION_LEASE_SPANS_CALLBACKS=true;NATIVE=false");
 		System.out.println("SQL130_EXECUTION_DRIVER_PASS;EARNED_AND_NATIVE_BOUNDARY_WAIT=true;PAUSE_TRANSFER_RECOVER_RETURN=true;ACK_LOSS_TIMEOUT_RESTART=true;ECONOMIC_IDENTITY_PROGRESS_BUDGET_PRESERVED=true;NATIVE_LEAF=UNLINKED_PROFILE_ABSENCE");
+	}
+	private static void goalPublicationFailures(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomExecutionHandoffStore store,
+		org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort control, java.util.concurrent.atomic.AtomicLong clock, long id, PhantomGoal proposed,
+		java.util.concurrent.atomic.AtomicBoolean lostAcknowledgement, java.util.List<RuntimeException> failures) throws Exception
+	{
+		final var catalog = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml"));
+		final var codec = new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCodec(catalog);
+		final String type = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.COMPONENT_TYPE;
+		final int schema = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.SCHEMA_VERSION;
+		final byte[] first = codec.encode(org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState.empty(catalog.hash(), 1));
+		final byte[] second = codec.encode(org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionState.empty(catalog.hash(), 2));
+		final var initialCompanion = new PhantomProfileRepository.ComponentMutation(type, -1, schema, first);
+		final java.util.function.Consumer<PhantomGoal> contender = goal ->
+		{
+			try { goals.mutateWithComponents(id, -1, goal, List.of(initialCompanion)); }
+			catch (java.util.ConcurrentModificationException expected) { }
+			if (!goals.publication(id).orElseThrow().state().goalHash().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(goal))))
+			{ throw new java.util.ConcurrentModificationException("Another pending intent won publication."); }
+		};
+		race(() -> contender.accept(proposed), () -> contender.accept(proposed.withStatus(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED)));
+		PhantomAssertions.assertTrue(goals.load(id).isEmpty() && profiles.findComponent(id, type).isEmpty(), "Competing declarations changed root or companion before transfer.");
+		for (int step = 0; step < 2; step++) { clock.addAndGet(1001); control.onPulse(); }
+		final var checkpoint = store.load(id).orElseThrow();
+		PhantomAssertions.assertEquals(PhantomExecutionHandoff.Phase.CHECKPOINTED, checkpoint.state().phase(), "Publication race did not reach the checkpoint boundary.");
+		final var authority = goals.publicationAuthority(checkpoint, clock.get());
+		final var concurrent = profiles.insertComponent(id, type, schema, first);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class,
+			() -> store.transfer(checkpoint, authority.guards(), authority.changes(), authority.removals(), authority.absences(), clock.get()), "A changed companion did not roll back root and transfer atomically.");
+		PhantomAssertions.assertEquals(checkpoint, store.load(id).orElseThrow(), "Rejected companion CAS changed generation.");
+		PhantomAssertions.assertTrue(goals.load(id).isEmpty(), "Rejected companion CAS published a partial root.");
+		PhantomAssertions.assertEquals(concurrent, profiles.findComponent(id, type).orElseThrow(), "Rejected publication overwrote the concurrent companion owner.");
+		for (int step = 0; step < 3; step++) { clock.addAndGet(1001); control.onPulse(); }
+		PhantomAssertions.assertTrue(control.permits(id) && goals.load(id).isEmpty(), "Conflicted publication failed to recover its original executor.");
+		final var replacement = new PhantomProfileRepository.ComponentMutation(type, concurrent.rowVersion(), schema, second);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.mutateWithComponents(id, -1, proposed, List.of(replacement)), "Retry published before checkpoint.");
+		clock.addAndGet(30_001); control.onPulse();
+		PhantomAssertions.assertTrue(goals.load(id).isEmpty() && goals.pendingPublication(id, clock.get()).isEmpty(), "Expired intent published a root or remained permanently pending.");
+		PhantomAssertions.assertEquals(concurrent, profiles.findComponent(id, type).orElseThrow(), "Expired intent applied its companion mutation.");
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.mutateWithComponents(id, -1, proposed, List.of(replacement)), "A fresh retry skipped its checkpoint.");
+		for (int step = 0; step < 2; step++) { clock.addAndGet(1001); control.onPulse(); }
+		final int beforeLostReply = failures.size(); lostAcknowledgement.set(true); clock.addAndGet(1001); control.onPulse();
+		PhantomAssertions.assertFalse(control.permits(id), "Lost publication CAS reply opened normal execution.");
+		PhantomAssertions.assertTrue(failures.size() == beforeLostReply + 1 && "sql130.injected_ack_loss".equals(failures.getLast().getMessage()), "Publication fault injection produced an unrelated failure.");
+		clock.addAndGet(1001); control.onPulse();
+		PhantomAssertions.assertTrue(control.permits(id) && failures.size() == beforeLostReply + 1, "Committed publication did not recover its sole executor after an unknown acknowledgement.");
+		PhantomAssertions.assertEquals(proposed, goals.load(id).orElseThrow().goal(), "Recovered publication lost the intended root.");
+		final var committed = profiles.findComponent(id, type).orElseThrow();
+		PhantomAssertions.assertTrue(committed.rowVersion() == concurrent.rowVersion() + 1 && java.util.Arrays.equals(second, committed.payload()), "Root and companion did not publish once in the same transfer.");
+		System.out.println("SQL130_GOAL_PUBLICATION_RACE_PASS;ONE_DECLARATION_WINNER=true;CHANGED_COMPANION_ATOMIC_ROLLBACK=true;EXPIRATION_NO_EFFECTS=true;RETRY_ROOT_AND_COMPANION_ONE_CAS=true;LOST_CAS_REPLY_RECOVERED=true;NATIVE=false");
 	}
 	private static PhantomDecisionEngine executionDriverEngine(PhantomExecutionHandoffStore store, PhantomExecutionAdmission gate, PhantomDecisionEngine.ExecutionOwner port)
 	{
