@@ -33,6 +33,15 @@ public final class PhantomMaterializationLifecycleBridge implements PhantomMater
 {
 	private final PhantomMaterializationLifecyclePort _empty = PhantomMaterializationLifecyclePort.none();
 	private final AtomicReference<PhantomMaterializationLifecyclePort> _delegate = new AtomicReference<>(_empty);
+	private final boolean _requireInstalled;
+	public PhantomMaterializationLifecycleBridge() { this(false); }
+	public PhantomMaterializationLifecycleBridge(boolean requireInstalled) { _requireInstalled = requireInstalled; }
+	private PhantomMaterializationLifecyclePort materializationDelegate()
+	{
+		final var delegate = _delegate.get();
+		if (_requireInstalled && delegate == _empty) { throw new AdmissionRejectedException("materialization.lifecycle_not_installed"); }
+		return delegate;
+	}
 
 	public void install(PhantomMaterializationLifecyclePort delegate)
 	{
@@ -45,13 +54,13 @@ public final class PhantomMaterializationLifecycleBridge implements PhantomMater
 	@Override
 	public void beforeMaterialize(long profileId, int characterObjectId)
 	{
-		_delegate.get().beforeMaterialize(profileId, characterObjectId);
+		materializationDelegate().beforeMaterialize(profileId, characterObjectId);
 	}
 
 	@Override
 	public void beforeMaterialize(long profileId, int characterObjectId, PhantomMaterializationService.MaterializationPurpose purpose, String ownerClaim)
 	{
-		_delegate.get().beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
+		materializationDelegate().beforeMaterialize(profileId, characterObjectId, purpose, ownerClaim);
 	}
 
 	@Override

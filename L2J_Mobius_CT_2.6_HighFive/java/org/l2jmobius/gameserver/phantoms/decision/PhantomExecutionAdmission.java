@@ -239,6 +239,17 @@ public final class PhantomExecutionAdmission
 			}
 		}
 	}
+	/** A durable REQUEST with the same owner/generation restores completion only, even with earned work in flight. */
+	public synchronized boolean acknowledgeRequested(long id, long rowVersion, PhantomExecutionHandoff actual)
+	{
+		final var slot = _slots.get(id);
+		if (slot == null || slot.boundary || rowVersion < slot.version || actual.phase() != PhantomExecutionHandoff.Phase.REQUESTED
+			|| actual.generation() != slot.state.generation() || !actual.owner().equals(slot.state.owner()) || !slot.state.ownerMayComplete(actual.owner()))
+		{ return false; }
+		publish(id, rowVersion, actual);
+		slot.uncertain = false;
+		return true;
+	}
 	public synchronized void acknowledgeRecovery(long id, long rowVersion, PhantomExecutionHandoff state)
 	{
 		final var slot = _slots.get(id);

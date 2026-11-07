@@ -60,6 +60,13 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private java.util.function.BiFunction<Long, Integer, LogicalPage> _logicalDiscovery;
 	private java.util.function.BiConsumer<PhantomLogicalParty, Long> _logicalWake;
 	private java.util.function.Predicate<PhantomLogicalParty> _logicalRetain;
+	private java.util.function.BiPredicate<Long, PhantomLogicalParty> _executionOwnership = (_, _) -> true;
+	private boolean _executionOwnershipInstalled;
+	public void installExecutionOwnership(java.util.function.BiPredicate<Long, PhantomLogicalParty> ownership)
+	{
+		if (_executionOwnershipInstalled) { throw new IllegalStateException("Party execution ownership already installed."); }
+		_executionOwnership = java.util.Objects.requireNonNull(ownership); _executionOwnershipInstalled = true;
+	}
 	private long _logicalCursor, _groupCursor, _nextDiagnosticMillis;
 	private String _lastFailure = "";
 	public record LogicalPage(List<PhantomLogicalPartyCoordinator.Candidate> candidates, long examinedProfileId)
@@ -118,7 +125,13 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private void projectLogical(PhantomPartyPersistencePort.StoredLogicalGroup row, long now)
 	{
 		final var group = row.group();
-		final var identities = group.members().stream().map(member -> _backend.currentMember(member.profileId())).flatMap(java.util.Optional::stream).toList();
+		final var known = group.members().stream().map(member -> _backend.currentMember(member.profileId())).flatMap(java.util.Optional::stream).toList();
+		// A completed execution transfer may leave a lawful Solo Player in World. It no longer
+		// represents this group's physical session; a leftover stock Party still blocks release.
+		if (known.stream().filter(actor -> !_executionOwnership.test(actor.profileId(), group)).map(_backend::observe).flatMap(java.util.Optional::stream)
+			.anyMatch(party -> party.members().size() >= 2 && party.members().stream().allMatch(member -> member.kind() == MemberKind.PHANTOM && group.contains(member.profileId()))))
+		{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_NATIVE_OWNER"); return; }
+		final var identities = known.stream().filter(actor -> _executionOwnership.test(actor.profileId(), group)).toList();
 		final var materialized = identities.stream().filter(actor -> _backend.materializationEpoch(actor) > 0).toList();
 		if (materialized.isEmpty())
 		{

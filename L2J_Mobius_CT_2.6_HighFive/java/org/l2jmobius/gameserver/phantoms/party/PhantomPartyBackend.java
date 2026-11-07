@@ -88,6 +88,8 @@ public interface PhantomPartyBackend
 	default long materializationEpoch(MemberRef member) { return 0; }
 
 	default boolean autonomousFarmReady(PartySnapshot party) { return false; }
+	/** Existing owner validates its accepted claim before closing only its own work. */
+	default <T> T withExecutionCompletion(java.util.function.Supplier<T> action) { return action.get(); }
 	default boolean autonomousFarmAvailable(MemberRef member) { return false; }
 	/** Agreement may wait for an ongoing owned pull; actual native invitation still requires idle availability. */
 	default boolean autonomousFarmReservationAvailable(MemberRef member) { return autonomousFarmAvailable(member); }

@@ -45,6 +45,12 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 	private final AtomicReference<String> _firstFailure = new AtomicReference<>("");
 	private volatile AbstractEventListener _listener;
 	private ScheduledFuture<?> _pulse;
+	private java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope> _executionScope;
+	public synchronized void useExecutionScope(java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope> scope)
+	{
+		if (_listener != null || _executionScope != null) { throw new IllegalStateException("Death recovery execution scope must bind once before install."); }
+		_executionScope = Objects.requireNonNull(scope);
+	}
 
 	public PhantomOrdinaryDeathRecovery(PhantomMaterializationService materialization, PhantomGoalStateStore goals, PhantomBackgroundService background)
 	{
@@ -103,6 +109,11 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 	}
 
 	public synchronized void pulse()
+	{
+		if (_executionScope == null) { pulseOwned(); }
+		else { try (var execution = _executionScope.get()) { pulseOwned(); } }
+	}
+	private void pulseOwned()
 	{
 		if (_listener == null)
 		{

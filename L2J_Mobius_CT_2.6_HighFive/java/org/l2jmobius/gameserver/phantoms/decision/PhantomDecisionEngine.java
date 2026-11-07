@@ -178,9 +178,10 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		return new ExecutionProgress(result.get(), true, "execution." + result.get().state().phase().name().toLowerCase(java.util.Locale.ROOT), now);
 	}
 
-	/** Reconcile unknown acknowledgement/restart only under the actual owner's native/absence boundary. */
+	/** REQUEST can restore the retained owner's completion; every ownership/restart recovery needs its native boundary. */
 	public PhantomExecutionHandoffStore.Stored recoverExecutionAcknowledgement(PhantomExecutionHandoffStore.Stored actual)
 	{
+		if (_executionAdmission.acknowledgeRequested(actual.profileId(), actual.component().rowVersion(), actual.state())) { return actual; }
 		final var result = new java.util.concurrent.atomic.AtomicReference<PhantomExecutionHandoffStore.Stored>();
 		final var recovered = _executionAdmission.recovering(actual.profileId(), actual.component().rowVersion(), actual.state(), () ->
 		{

@@ -266,6 +266,13 @@ public final class PhantomSystem
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
 	private PhantomCommerceReceiptStore _commerceReceiptStore;
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _executionAdmission;
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore _executionHandoffs;
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort _executionControl;
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DecisionAdmission _executionDecisions;
+	private PhantomProfileRepository _executionProfiles;
+	private PhantomGoalStateStore _executionGoals;
+	private L2jPhantomPartyBackend _executionPartyBackend;
 	private PhantomEconomicAuditView _economicAuditView;
 	private PhantomEconomyReservationService _economyReservations;
 	private PhantomEconomyService _economyService;
@@ -371,6 +378,9 @@ public final class PhantomSystem
 			if (_productionMaterialization)
 			{
 				profileRepository = PhantomProfileRepository.open();
+				_executionProfiles = profileRepository;
+				_executionAdmission = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(_settings.maxScheduledPhantomProfiles());
+				_executionHandoffs = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(profileRepository);
 				final File socialCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/social/high-five-social-v1.xml");
 				socialCatalog = PhantomSocialCatalog.load(socialCatalogFile.toPath());
 				_socialService = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profileRepository, socialCatalog), SOCIAL_PERSONALITY_SEED, _settings.socialCacheProfiles(), () -> System.currentTimeMillis() / 60000L);
@@ -379,9 +389,11 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom social service could not enter the running state.");
 				}
 				goalStateStore = new PhantomGoalStateStore(profileRepository);
-				lifecycleBridge = new PhantomMaterializationLifecycleBridge();
+				_executionGoals = goalStateStore;
+				lifecycleBridge = new PhantomMaterializationLifecycleBridge(true);
 				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), _settings.materializationBurstSlots(), lifecycleBridge);
 				_materializationService.requireOffensiveShots();
+				_materializationService.installExecutionAdmission(_executionAdmission);
 				if (!_materializationService.start())
 				{
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
@@ -472,6 +484,8 @@ public final class PhantomSystem
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
 				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, commerceGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
+				_commerceService.useReceiptObserver(row -> _executionAdmission.blocker(row.receipt().profileId(), org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE,
+					row.rowVersion(), !row.receipt().state().terminal() || row.receipt().state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT));
 				_economicAuditView = new PhantomEconomicAuditView(_economyReservations, _commerceReceiptStore);
 				if (!_commerceService.start())
 				{
@@ -528,7 +542,7 @@ public final class PhantomSystem
 				final var productionComposition = PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)))));
 				final var ordinaryLifeComposition = PhantomMaterializationLifecyclePort.chain(supplyLifecycleBridge, productionComposition);
 				final var productionLifeComposition = _autonomousMarketProducer == null ? ordinaryLifeComposition : PhantomMaterializationLifecyclePort.chain(ordinaryLifeComposition, _autonomousMarketProducer);
-				productionLifecycle.install(_loadObserverForTesting == null ? productionLifeComposition : PhantomMaterializationLifecyclePort.chain(_loadObserverForTesting, productionLifeComposition));
+				final var completeProductionLife = _loadObserverForTesting == null ? productionLifeComposition : PhantomMaterializationLifecyclePort.chain(_loadObserverForTesting, productionLifeComposition);
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -546,6 +560,7 @@ public final class PhantomSystem
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
 				final PhantomBackgroundDecision backgroundDecision = PhantomBackgroundDecision.bindVisibleLife(_backgroundService, _visibleFarmTravel, _visibleAutoPlay, _historicalBackgroundService, () -> _decisionEngine);
 				_ordinaryDeathRecovery = new PhantomOrdinaryDeathRecovery(_materializationService, productionGoals, _backgroundService);
+				_ordinaryDeathRecovery.useExecutionScope(() -> _executionAdmission.enterOwner(id -> _executionControl == null ? null : _executionControl.owner(id)));
 				if (!_ordinaryDeathRecovery.install())
 				{
 					throw new IllegalStateException("Ordinary Phantom death recovery could not be installed.");
@@ -637,7 +652,8 @@ public final class PhantomSystem
 				}
 				partyParticipation.install(_partyCoordinator);
 				_logicalParties = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(new PhantomPartyStore(productionProfiles));
-				_partyCoordinator.installLogicalFarmAdmission(id -> _logicalParties.knownGroupFor(id).map(row -> row.group().phase() != org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING).orElse(true));
+				_partyCoordinator.installLogicalFarmAdmission(id -> executionPartyOwner(id) != null && _executionAdmission.permits(id, executionPartyOwner(id))
+					&& _logicalParties.knownGroupFor(id).map(row -> row.group().phase() != org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING).orElse(false));
 				partyBackend.installScheduledMaterialization(id -> _reconcileMaterializationActivity.materialize(id).outcome() == org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS);
 				_partyCoordinator.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY,
 					new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-real-party-invitation-v1.xml").toPath()), _socialService, () -> System.currentTimeMillis() / 60000L));
@@ -769,6 +785,9 @@ public final class PhantomSystem
 					org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-career-v1.xml").toPath()));
 				_questInstanceService.enableAutomaticProfessions(org.l2jmobius.gameserver.phantoms.progression.PhantomAutomaticProfessionPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-automatic-professions-v1.xml").toPath()));
 				_learningJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
+				_learningJourney.useExecutionOwnership(this::soloExecution);
+				_supplyJourney.useExecutionOwnership(this::soloExecution);
+				_questInstanceService.useExecutionOwnership(this::soloExecution);
 				_supplyJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_supplyJourney.deferOptionalWhen((id, root) -> _logicalParties != null && _logicalParties.knownGroupFor(id)
 					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false)
@@ -928,11 +947,29 @@ public final class PhantomSystem
 				_learningJourney.registerHandlers(handlerRegistry);
 				_supplyJourney.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
-				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, profileId -> !logicalDraining(profileId) && _historicalBackgroundService.permitsDecision(profileId) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
+				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DecisionAdmission()
+				{
+					@Override public boolean permits(long id) { return _executionDecisions != null && _executionDecisions.permits(id); }
+					@Override public boolean permitsCandidate(long id, String key) { return _executionDecisions != null && _executionDecisions.permitsCandidate(id, key); }
+					@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.AdmissionLease tryAcquire(long id) { return _executionDecisions == null ? null : _executionDecisions.tryAcquire(id); }
+				});
+				_executionPartyBackend = partyBackend;
+				_decisionEngine.installExecutionHandoff(_executionHandoffs, _executionAdmission, java.util.Map.of("execution.solo", executionOwner(false), "execution.party", executionOwner(true)));
+				_executionControl = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(_decisionEngine, _executionHandoffs, _executionAdmission, _settings.maxScheduledPhantomProfiles(),
+					this::desiredExecutionOwner, this::executionRecoveryDemand, id -> productionGoals.load(id).map(stored -> stored.goal()).orElse(null),
+					(id, owner) -> (owner.equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)) || !logicalDraining(id)) && _historicalBackgroundService.permitsDecision(id) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(id))
+						&& (owner.equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)) || owner.equals(executionPartyOwner(id))),
+					(id, key) -> soloExecution(id) || PhantomBackgroundGoalSpec.CANDIDATE_KEY.equals(key), System::currentTimeMillis,
+					(id, failure) -> System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.WARNING, "execution.handoff profile=" + id + " reason=" + failure.getClass().getSimpleName() + ":" + failure.getMessage()));
+				_executionDecisions = _executionControl.decisionAdmission();
+				productionLifecycle.install(_executionControl.materializationLifecycle(completeProductionLife));
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
-				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
+				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_executionControl,
+					executionControl(_populationManager, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo), executionControl(_partyCoordinator, this::partyExecutionScope),
+					executionControl(_conversationService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo), executionControl(_conversationExecutionService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo),
+					executionControl(_pvpService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)));
 				final var autonomousFarm = new PhantomAutonomousFarmParty(_partyCoordinator, partyBackend, productionGoals, partyRoleCatalog, System::nanoTime, _supplyJourney::blocksAutonomousParty, _visibleFarmTravel::observeArrival,
 						_settings.partySeeking(), new PhantomAutonomousFarmParty.RendezvousPreparation()
 						{
@@ -963,6 +1000,11 @@ public final class PhantomSystem
 									&& _visibleFarmTravel.stopForRecovery(actor.profileId(), root, actor.characterObjectId(), epoch) && current.getAsBoolean();
 							}
 						}, System::currentTimeMillis);
+				autonomousFarm.installExecutionOwnership((id, group) ->
+				{
+					final var owner = _executionControl.owner(id);
+					return owner == null || owner.equals(new PhantomDomainRef("execution.party", group.groupId() + "." + group.generation()));
+				});
 				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) ->
 				{
 					final var page = populationStore.loadManagedAfter(after, limit);
@@ -980,14 +1022,14 @@ public final class PhantomSystem
 				_historicalBackgroundService.bindLogicalGroups(id -> _logicalParties.knownGroupFor(id).map(row -> row.group()), id -> _logicalParties.groupFor(id));
 				_visibleFarmTravel.bindGroupTravelSafety((id, root) -> _logicalParties.knownGroupFor(id)
 					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false));
-				final var journeyControls = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney, autonomousFarm));
-				if (_humanizedV4Catalog != null) { journeyControls.add(humanizedConversation); }
-				controlPorts.add(new PhantomCompositeSchedulerControlPort(journeyControls));
+				controlPorts.add(executionControl(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney)), org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));
+				controlPorts.add(executionControl(autonomousFarm, this::executionPartyOwner));
+				if (_humanizedV4Catalog != null) { controlPorts.add(executionControl(humanizedConversation, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)); }
 				if (_autonomousMarketProducer != null)
 				{
-					controlPorts.add(_autonomousMarketProducer);
+					controlPorts.add(executionControl(_autonomousMarketProducer, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));
 				}
-				if (_offlineMerchantService != null) { controlPorts.add(_offlineMerchantService); }
+				if (_offlineMerchantService != null) { controlPorts.add(executionControl(_offlineMerchantService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)); }
 				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(controlPorts)))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
@@ -1021,17 +1063,22 @@ public final class PhantomSystem
 				}
 				productionWorkSink.install(item ->
 				{
-					final var warm = (item.effectiveState() == PhantomActivityState.WARM) ? _materializationService.find(item.profileId()).orElse(null) : null;
-					if (requiresVisiblePreparation(item.effectiveState(), warm)
-						&& !_historicalBackgroundService.prepareVisibleDecision(item.profileId(), _decisionEngine)) { return; }
-					if ((item.effectiveState() == PhantomActivityState.BACKGROUND) && (_populationEcology != null) && _populationManager.presence().permitsOrdinaryFarm(item.profileId()))
+					_executionControl.watch(item.profileId());
+					try (var execution = _executionControl.acquire(item.profileId()))
 					{
-						if (!_populationEcology.requestBackgroundReadiness(item.profileId()).complete())
+						if (execution == null) { return; }
+						try (var context = execution.enterScope())
 						{
-							return;
+							final var warm = (item.effectiveState() == PhantomActivityState.WARM) ? _materializationService.find(item.profileId()).orElse(null) : null;
+							if (requiresVisiblePreparation(item.effectiveState(), warm)
+								&& !_historicalBackgroundService.prepareVisibleDecision(item.profileId(), _decisionEngine)) { return; }
+							if ((item.effectiveState() == PhantomActivityState.BACKGROUND) && (_populationEcology != null) && _populationManager.presence().permitsOrdinaryFarm(item.profileId()))
+							{
+								if (!_populationEcology.requestBackgroundReadiness(item.profileId()).complete()) { return; }
+							}
+							_decisionEngine.accept(item);
 						}
 					}
-					_decisionEngine.accept(item);
 				});
 			}
 			if (_autonomousMarketProducer != null) { _autonomousMarketProducer.prepareRecoveryOwners(); }
@@ -3350,6 +3397,168 @@ public final class PhantomSystem
 			profile.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY && profile.calendarOnline()).orElse(false);
 	}
 
+	private boolean soloExecution(long id)
+	{ return _executionAdmission != null && _executionAdmission.permits(id, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)); }
+	private PhantomDomainRef executionPartyOwner(long id)
+	{
+		final var group = _logicalParties == null ? null : _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
+		return group == null ? null : new PhantomDomainRef("execution.party", group.groupId() + "." + group.generation());
+	}
+	private boolean autonomousInvitation(long id)
+	{
+		final var invitation = _partyCoordinator.pendingInvitation(id).orElse(null);
+		final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
+		return invitation != null && group != null && group.members().stream().anyMatch(member -> _partyCoordinator.autonomousExecution(member.profileId())
+			&& _materializationService.find(member.profileId()).map(actor -> actor.worldPresent() && actor.characterObjectId() == invitation.requesterObjectId()).orElse(false));
+	}
+	private PhantomDomainRef partyExecutionScope(long id)
+	{
+		if (_partyCoordinator.humanExecution(id) || _partyCoordinator.pendingInvitation(id).isPresent() && !autonomousInvitation(id))
+		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
+		return _partyCoordinator.autonomousExecution(id) || autonomousInvitation(id) ? executionPartyOwner(id) : org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id);
+	}
+	private PhantomDomainRef desiredExecutionOwner(long id)
+	{
+		final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);
+		if (root == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || _partyCoordinator.humanExecution(id)
+			|| _partyCoordinator.pendingInvitation(id).isPresent() && !autonomousInvitation(id))
+		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
+		final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
+		if (!executionGroupBinding(group, id, root)) { return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
+		return executionPartyOwner(id);
+	}
+	private static boolean executionGroupBinding(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long id, PhantomGoal root)
+	{
+		return group != null && group.active() && root != null && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+			&& group.members().stream().anyMatch(member -> member.profileId() == id && member.goalId() == root.goalId() && root.revision() >= member.goalRevision());
+	}
+	private PhantomDomainRef executionRecoveryDemand(long id)
+	{
+		final var stored = _commerceReceiptStore.find(id).orElse(null); final var receipt = stored == null ? null : stored.receipt();
+		if (stored != null) { _executionAdmission.blocker(id, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE, stored.rowVersion(), !receipt.state().terminal() || receipt.state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT); }
+		return receipt != null && (!receipt.state().terminal() || receipt.state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT)
+			? org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id) : null;
+	}
+	private org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort executionControl(org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort port, java.util.function.LongFunction<PhantomDomainRef> owner)
+	{ return () -> { try (var scope = _executionAdmission.enterOwner(owner)) { port.onPulse(); } }; }
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionOwner executionOwner(boolean party)
+	{
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionOwner()
+		{
+			@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareYield(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, long now)
+			{ return prepareExecutionOwner(row, party, false, now); }
+			@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareRecovery(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, long now)
+			{ return prepareExecutionOwner(row, party, true, now); }
+			@Override public boolean checkpointBoundary(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, Runnable callback)
+			{ return executionNativeBoundary(row, callback); }
+			@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint checkpoint(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, boolean recovery, long now)
+			{ return executionCheckpoint(row, party, recovery, now); }
+			@Override public void checkpointCommitted(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row)
+			{
+				if (!party) { _supplyJourney.executionCheckpointCommitted(row.profileId()); _learningJourney.executionCheckpointCommitted(row.profileId()); _questInstanceService.executionCheckpointCommitted(row.profileId()); }
+			}
+			@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority authority(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, long now)
+			{
+				if (!party) { return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority(executionReady("execution.solo", now), java.util.List.of()); }
+				final var group = _logicalParties.groupFor(row.profileId()).orElse(null);
+				final var root = _executionGoals.load(row.profileId()).orElse(null);
+				if (group == null || root == null || !executionGroupBinding(group.group(), row.profileId(), root.goal())
+					|| !new PhantomDomainRef("execution.party", group.group().groupId() + "." + group.group().generation()).equals(row.state().recipient())
+					|| !row.state().recipient().equals(desiredExecutionOwner(row.profileId())))
+				{ return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority(executionWait("execution.party_reservation_changed", now), java.util.List.of()); }
+				final var aggregate = _executionProfiles.findComponent(group.group().leaderProfileId(), org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.COMPONENT_TYPE).orElseThrow();
+				final var claim = _executionProfiles.findComponent(row.profileId(), org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.CLAIM_COMPONENT_TYPE).orElseThrow();
+				final var rootGuard = _executionProfiles.findComponent(row.profileId(), PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+				if (aggregate.rowVersion() != group.rowVersion() || rootGuard.rowVersion() != root.rowVersion()) { throw new java.util.ConcurrentModificationException("Logical execution authority changed."); }
+				return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionAuthority(executionReady("execution.party_reserved", now), java.util.List.of(aggregate, claim, rootGuard));
+			}
+		};
+	}
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareExecutionOwner(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, boolean party, boolean recovery, long now)
+	{
+		final long id = row.profileId(); final var entry = _materializationService.find(id).orElse(null);
+		final var player = entry == null || !entry.worldPresent() ? null : World.getInstance().getPlayer(entry.characterObjectId());
+		final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);
+		if (player != null && player.hasPendingOwnedStore())
+		{
+			if (root != null) { _backgroundService.resumeVisibleOwnedStore(id, player, root); }
+			if (player.hasPendingOwnedStore()) { return executionWait("execution.pending_native_store", now); }
+		}
+		try (var scope = _executionAdmission.enterCompletionOwner(_ -> row.state().owner()))
+		{
+			if (recovery) { _visibleAutoPlay.stop(id); }
+			else if (!_visibleAutoPlay.prepareExecutionYield(id, row.state().deadline())) { return executionWait("execution.owned_target", now); }
+			if (!_visibleFarmTravel.yieldForPreparation(id)) { return executionWait("execution.owned_travel", now); }
+			if (party)
+			{
+				return _partyCoordinator.prepareExecutionYield(id, !recovery, !recovery && now >= row.state().deadline() - 1000)
+					? executionReady("execution.party_prepared", now) : executionWait("execution.party_earned", now);
+			}
+			if (root == null)
+			{
+				if (_supplyJourney.automaticIntent(id).isPresent() || _learningJourney.automaticIntent(id).isPresent() || _questInstanceService.autonomousIntent(id).isPresent() || _commerceReceiptStore.find(id).isPresent())
+				{ return executionWait("execution.parent_missing_with_obligation", now); }
+				return executionReady("execution.empty_source", now);
+			}
+			final var supply = _supplyJourney.prepareExecutionYield(id, now); if (!supply.ready()) { return supply; }
+			final var learning = _learningJourney.prepareExecutionYield(id, now); if (!learning.ready()) { return learning; }
+			final var career = _questInstanceService.prepareExecutionYield(id, now); if (!career.ready()) { return career; }
+			if (_phantomStoreService.suspendForExecution(id) != PhantomStoreService.Result.CLOSED) { return executionWait("execution.native_listing", now); }
+			if (_economyReservations.findActive(id).isPresent()) { return executionWait("execution.accepted_economy_operation", now); }
+			return executionReady("execution.source_prepared", now);
+		}
+	}
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness executionReady(String reason, long now)
+	{ return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(true, reason, now); }
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness executionWait(String reason, long now)
+	{ return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, reason, Math.addExact(now, 1000)); }
+	private boolean executionNativeBoundary(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, Runnable callback)
+	{
+		final long id = row.profileId(); final var actor = _executionPartyBackend.currentMember(id).orElse(null);
+		if (actor == null)
+		{
+			if (_executionProfiles.find(id).orElseThrow().characterObjectId() != null) { return false; }
+			callback.run(); return true;
+		}
+		final var entry = _materializationService.find(id).orElse(null);
+		if (entry == null || !entry.worldPresent()) { return _executionPartyBackend.withUnmaterializedNativeAbsence(actor, () -> { callback.run(); return true; }); }
+		final var player = World.getInstance().getPlayer(actor.characterObjectId());
+		if (player == null || !player.hasHeadlessOutboundSession() || entry.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE
+			|| !(player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope nativeOwner)
+			|| !nativeOwner.isCurrent() || nativeOwner.epoch() != entry.materializedAtNanos() || !nativeOwner.nativeObservationHealthy()) { return false; }
+		if (player.hasPendingOwnedStore())
+		{
+			final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);
+			if (root != null) { _backgroundService.resumeVisibleOwnedStore(id, player, root); }
+			if (player.hasPendingOwnedStore()) { return false; }
+		}
+		if (!nativeOwner.open() || nativeOwner.outstanding() != 0) { return false; }
+		return nativeOwner.checkpoint(() ->
+		{
+			if (!nativeOwner.isCurrent() || _materializationService.find(id).filter(current -> current.worldPresent() && current.materializedAtNanos() == entry.materializedAtNanos()).isEmpty()) { return false; }
+			if (row.state().phase() != org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.CHECKPOINTED) { player.storeMe(); }
+			if (player.hasPendingOwnedStore()) { return false; }
+			callback.run(); return true;
+		});
+	}
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored row, boolean party, boolean recovery, long now)
+	{
+		final var types = new java.util.LinkedHashSet<String>(); row.state().dependencies().forEach(dependency -> types.add(dependency.componentType()));
+		types.addAll(java.util.List.of(PhantomGoalStateStore.COMPONENT_TYPE, PhantomSupplyIntentStore.COMPONENT, PhantomSupplyIntentStore.ROUTE_COMPONENT,
+			org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE, "learning.intent", "career.intent", org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.CLAIM_COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.economy.PhantomStorePlan.COMPONENT_TYPE, PhantomStoreService.JOURNEY_COMPONENT));
+		final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
+		final var guards = new java.util.LinkedHashSet<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>();
+		if (!party && _executionGoals.load(row.profileId()).isPresent())
+		{
+			for (var plan : java.util.List.of(_supplyJourney.executionCheckpoint(row.profileId(), recovery, now), _learningJourney.executionCheckpoint(row.profileId(), recovery, now), _questInstanceService.executionCheckpoint(row.profileId(), recovery, now)))
+			{ changes.addAll(plan.changes()); types.addAll(plan.dependencyTypes()); guards.addAll(plan.authority()); }
+		}
+		for (String type : types) { _executionProfiles.findComponent(row.profileId(), type).ifPresent(guards::add); }
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, java.util.List.copyOf(types), java.util.List.copyOf(guards));
+	}
 	private boolean logicalDraining(long profileId)
 	{
 		return _logicalParties != null && _logicalParties.knownGroupFor(profileId).map(row -> row.group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING).orElse(false);
@@ -3446,6 +3655,7 @@ public final class PhantomSystem
 		if (_questInstanceService != null) { owners.add(_questInstanceService); }
 		if (_supplyJourney != null) { owners.add(_supplyJourney); }
 		if (_autonomousMarketProducer != null) { owners.add(_autonomousMarketProducer); }
+		if (_executionControl != null) { owners.add(_executionControl); }
 		return owners;
 	}
 

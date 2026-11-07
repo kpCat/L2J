@@ -874,6 +874,13 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		return profile.isPresent() ? MemberRef.phantom(profile.get().profileId(), player.getObjectId()) : MemberRef.real(player.getObjectId());
 	}
 
+	private final ThreadLocal<Boolean> _executionCompletion = new ThreadLocal<>();
+	@Override public <T> T withExecutionCompletion(java.util.function.Supplier<T> action)
+	{
+		final var previous = _executionCompletion.get(); _executionCompletion.set(Boolean.TRUE);
+		try { return action.get(); }
+		finally { if (previous == null) { _executionCompletion.remove(); } else { _executionCompletion.set(previous); } }
+	}
 	private AcquiredPlayer acquire(MemberRef member)
 	{ return acquire(member, false); }
 	private AcquiredPlayer observeActor(MemberRef member)
@@ -885,7 +892,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final Player player = World.getInstance().getPlayer(member.characterObjectId());
 			return player == null ? null : new AcquiredPlayer(player, null);
 		}
-		final Optional<ActionLease> lease = observation ? _materialization.tryAcquireObservation(member.profileId()) : _materialization.tryAcquireAction(member.profileId());
+		final Optional<ActionLease> lease = observation ? _materialization.tryAcquireObservation(member.profileId()) : Boolean.TRUE.equals(_executionCompletion.get())
+			? _materialization.tryAcquireCompletionAction(member.profileId()) : _materialization.tryAcquireAction(member.profileId());
 		if (lease.isEmpty() || ((member.characterObjectId() > 0) && (lease.get().player().getObjectId() != member.characterObjectId())))
 		{
 			lease.ifPresent(ActionLease::close);

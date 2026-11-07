@@ -68,7 +68,7 @@ import org.l2jmobius.gameserver.util.Broadcast;
 /** Opens/restores/closes only visible materialized Phantom stores. */
 public final class PhantomStoreService
 {
-	private static final String JOURNEY_COMPONENT = "economy.store.journey";
+	public static final String JOURNEY_COMPONENT = "economy.store.journey";
 	private final PhantomGoalStateCodec _journeyCodec = new PhantomGoalStateCodec();
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
@@ -355,11 +355,16 @@ public final class PhantomStoreService
 	}
 
 	public Result suspendForRestart(long profileId)
+	{ return suspendForRestart(profileId, false); }
+	/** Only the current execution owner's preparation closes this exact retained native listing. */
+	public Result suspendForExecution(long profileId)
+	{ return suspendForRestart(profileId, true); }
+	private Result suspendForRestart(long profileId, boolean completion)
 	{
 		final var retained = retainedPlan(profileId).orElse(null);
 		if (retained == null) { closeOwnerObserver(profileId); return Result.CLOSED; }
 		if (_materialization.find(profileId).isEmpty()) { return dormant(profileId, retained.characterObjectId()) ? Result.CLOSED : Result.RETRY; }
-		try (ActionLease lease = acquireExclusive(profileId))
+		try (ActionLease lease = acquireExclusive(profileId, completion))
 		{
 			if (lease == null) { return Result.RETRY; }
 			final var player = lease.player();
@@ -482,13 +487,15 @@ public final class PhantomStoreService
 	}
 
 	private ActionLease acquireExclusive(long profileId)
+	{ return acquireExclusive(profileId, false); }
+	private ActionLease acquireExclusive(long profileId, boolean completion)
 	{
 		final var before = _materialization.find(profileId).orElse(null);
 		if ((before == null) || (before.admittedActionCount() != 0))
 		{
 			return null;
 		}
-		final ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null);
+		final ActionLease lease = (completion ? _materialization.tryAcquireCompletionAction(profileId) : _materialization.tryAcquireAction(profileId)).orElse(null);
 		final var after = _materialization.find(profileId).orElse(null);
 		if ((lease == null) || (after == null) || (after.admittedActionCount() != 1))
 		{

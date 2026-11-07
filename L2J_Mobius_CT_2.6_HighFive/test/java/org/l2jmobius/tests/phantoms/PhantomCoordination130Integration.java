@@ -801,7 +801,17 @@ public final class PhantomCoordination130Integration
 		final var earned = gate.tryAcquire(id, solo);
 		PhantomAssertions.assertThrows(IllegalStateException.class, () -> engine.recoverExecutionAcknowledgement(initial), "Restart recovery changed generation while an execution lease was still active.");
 		PhantomAssertions.assertEquals(initial, store.load(id).orElseThrow(), "Refused recovery wrote a durable generation before closing admission.");
-		var row = engine.requestExecution(initial, party, "driver-party", 1000, 5000);
+		PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.requesting(id, initial.component().rowVersion(), () ->
+		{
+			store.request(initial, party, "driver-party", 1000, 5000);
+			throw new IllegalStateException("sql130.injected_request_ack_loss");
+		}), "Injected REQUEST acknowledgement loss was swallowed.");
+		var row = store.load(id).orElseThrow();
+		PhantomAssertions.assertEquals(null, gate.tryAcquire(id, solo), "Unknown REQUEST acknowledgement opened fresh Source work.");
+		PhantomAssertions.assertEquals(row, engine.recoverExecutionAcknowledgement(row), "REQUEST reconciliation changed the retained owner's durable generation.");
+		PhantomAssertions.assertEquals(null, gate.tryAcquire(id, solo), "Acknowledged REQUEST opened fresh Source work before handoff.");
+		try (var completion = gate.tryAcquireOwnedCompletion(id, solo))
+		{ PhantomAssertions.assertTrue(completion != null, "REQUEST acknowledgement could not restore completion while the earned command was held."); }
 		PhantomAssertions.assertFalse(engine.advanceExecution(row, 1001, false).progressed(), "Driver ignored an earned lease.");
 		completeEarnedOnPrepare.set(earned);
 		nativeBoundaryAvailable.set(false);
@@ -873,6 +883,38 @@ public final class PhantomCoordination130Integration
 		goals.replace(id, currentRoot.rowVersion(), idle); row = restarted.recoverExecutionAcknowledgement(row); row = restarted.advanceExecution(row, 1600, false).stored();
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, intents.intent(id).orElseThrow().goal().status(), "A temporary historical-idle parent abandoned its accepted child.");
 		PhantomAssertions.assertTrue(PhantomJourneyLifetime.paused(intents.intent(id).orElseThrow().goal()), "An unavailable parent executed a child without rebinding authority.");
+		final var controlClock = new java.util.concurrent.atomic.AtomicLong(1700);
+		final var desired = new java.util.concurrent.atomic.AtomicReference<PhantomDomainRef>(solo);
+		final var failures = new java.util.ArrayList<RuntimeException>();
+		final var control = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(restarted, store, restartedGate, 4, _ -> desired.get(), _ -> null,
+			profile -> goals.load(profile).orElseThrow().goal(), (_, _) -> true, (_, key) -> key.equals(PhantomBackgroundGoalSpec.CANDIDATE_KEY), controlClock::get, (_, failure) -> failures.add(failure));
+		control.watch(id);
+		PhantomAssertions.assertFalse(control.permits(id), "A cold control cache granted execution from a persisted ACTIVE row.");
+		control.onPulse(); desired.set(party);
+		for (int step = 0; step < 5; step++) { controlClock.addAndGet(1001); control.onPulse(); }
+		PhantomAssertions.assertEquals(party, control.owner(id), "Production control port did not transfer Source to the reserved group.");
+		PhantomAssertions.assertTrue(control.permits(id), "Recovered group stayed fenced in the control adapter.");
+		final var lifecycle = control.materializationLifecycle(new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
+		{
+			@Override public void beforeMaterialize(long profile, int object) { }
+			@Override public void afterPlayerLoad(long profile, org.l2jmobius.gameserver.model.actor.Player player) { }
+			@Override public void beforeStore(long profile, org.l2jmobius.gameserver.model.actor.Player player) { }
+			@Override public void afterStore(long profile, org.l2jmobius.gameserver.model.actor.Player player) { }
+			@Override public void materializeAborted(long profile, int object) { }
+			@Override public void materializeSucceeded(long profile, int object)
+			{
+				final var current = store.load(profile).orElseThrow();
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> restartedGate.quiescent(profile, current.component().rowVersion(), () -> true), "Materialization released its role lease before its final callback.");
+			}
+		});
+		lifecycle.beforeMaterialize(id, 51); control.request(id, solo, controlClock.get() + 10000);
+		control.onPulse(); controlClock.incrementAndGet(); control.onPulse();
+		PhantomAssertions.assertEquals(PhantomExecutionHandoff.Phase.REQUESTED, store.load(id).orElseThrow().state().phase(), "Control transferred while materialization still owned its role lease.");
+		lifecycle.materializeSucceeded(id, 51);
+		for (int step = 0; step < 4; step++) { controlClock.addAndGet(1001); control.onPulse(); }
+		PhantomAssertions.assertEquals(solo, control.owner(id), "Explicit Source request did not recover its legal executor.");
+		PhantomAssertions.assertTrue(control.permits(id) && failures.isEmpty(), "Production control adapter failed its cheap role/lifecycle round-trip: " + failures);
+		System.out.println("SQL130_EXECUTION_CONTROL_PASS;SCHEDULER_ADAPTER=true;COLD_ACTIVE_FENCED=true;SOURCE_GROUP_SOURCE=true;MATERIALIZATION_LEASE_SPANS_CALLBACKS=true;NATIVE=false");
 		System.out.println("SQL130_EXECUTION_DRIVER_PASS;EARNED_AND_NATIVE_BOUNDARY_WAIT=true;PAUSE_TRANSFER_RECOVER_RETURN=true;ACK_LOSS_TIMEOUT_RESTART=true;ECONOMIC_IDENTITY_PROGRESS_BUDGET_PRESERVED=true;NATIVE_LEAF=UNLINKED_PROFILE_ABSENCE");
 	}
 	private static PhantomDecisionEngine executionDriverEngine(PhantomExecutionHandoffStore store, PhantomExecutionAdmission gate, PhantomDecisionEngine.ExecutionOwner port)

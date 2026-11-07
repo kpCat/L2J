@@ -175,6 +175,30 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Priority fixture did not stop."); }
 		});
+		registry.add("execution-released-source-actor-is-not-an-old-group-projection", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true; final var actor = backend.add(1, 101);
+			final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+			var row = logical.agree(PhantomWorldCoordination130Suite.group(1, 3)).orElseThrow();
+			for (var phase : List.of(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.WAKE_REQUESTED,
+				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.ASSEMBLING, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE,
+				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING))
+			{ row = logical.transition(row, phase, 0, 1000, ""); }
+			final var clock = new AtomicLong(1_000_000_000L); final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> true, null,
+					org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), (_, _, _, _, _) -> false, () -> 1000);
+				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+				adapter.installExecutionOwnership((_, _) -> false);
+				adapter.onPulse();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, logical.groupFor(1).orElseThrow().group().phase(), "A released Source actor permanently blocked old group draining.");
+				PhantomAssertions.assertTrue(backend.materializationEpoch(actor) > 0, "Releasing group custody retired the Source actor.");
+				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Old group borrowed Source execution after release.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Released custody fixture did not stop."); }
+		});
 		registry.add("05-zero-world-group-partial-projection-drain-and-recreation", context ->
 		{
 			for (boolean pendingArrival : List.of(false, true))
@@ -2195,7 +2219,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					}
 				}).reduce("", String::concat);
 			}
-			PhantomAssertions.assertFalse(all.contains("new Thread") || all.contains("ExecutorService") || all.contains("ScheduledFuture"), "Party subsystem owns a worker/future.");
+			PhantomAssertions.assertFalse(java.util.regex.Pattern.compile("\\bnew\\s+Thread\\s*\\(").matcher(all).find() || all.contains("ExecutorService") || all.contains("ScheduledFuture"), "Party subsystem owns a worker/future.");
 		});
 		registry.add("04-transfer-and-leave-commit-exact-canonical-postconditions", PhantomPartySuite::membershipLifecycle);
 		registry.add("05-coordinator-pulse-count-never-exceeds-budget", PhantomPartySuite::boundedPulse);

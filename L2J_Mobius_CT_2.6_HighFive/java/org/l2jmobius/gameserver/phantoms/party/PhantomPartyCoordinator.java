@@ -370,6 +370,37 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Map<Long, TacticalCombatClaim> _tacticalCombat = new ConcurrentHashMap<>();
 	private volatile java.util.function.LongPredicate _logicalFarmAdmission = _ -> true;
 	public void installLogicalFarmAdmission(java.util.function.LongPredicate admitted) { _logicalFarmAdmission = Objects.requireNonNull(admitted); }
+	public boolean autonomousExecution(long profileId)
+	{
+		final var row = _claims.get(profileId);
+		return row != null && row.state().objectiveRef() != null && PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(row.state().objectiveRef().namespace()) && row.state().realMembers().isEmpty();
+	}
+	public boolean humanExecution(long profileId)
+	{
+		final var row = _claims.get(profileId);
+		return committedClaim(row) && !row.state().realMembers().isEmpty();
+	}
+	/** No new pull, route, invitation or human membership change is admitted by preparation. */
+	public boolean prepareExecutionYield(long profileId, boolean leaveParty, boolean deadlineBoundary)
+	{
+		return _backend.withExecutionCompletion(() ->
+		{
+			final var combat = _tacticalCombat.get(profileId);
+			if (combat != null)
+			{
+				if (deadlineBoundary) { cancelTacticalCombat(combat); }
+				else if (!releaseTacticalCombat(combat)) { return false; }
+			}
+			if (_tacticalActions.containsKey(profileId) || _tacticalCombat.containsKey(profileId)) { return false; }
+			final var row = _claims.get(profileId);
+			if (leaveParty && autonomousExecution(profileId))
+			{
+				_routes.cancel(row.state().groupId(), row.state().groupGeneration());
+				if (committedClaim(row)) { return drainAutonomousFarm(row.state().leader().profileId()); }
+			}
+			return true;
+		});
+	}
 	private final Object _indexLock = new Object();
 	private final Object _lifecycleLock = new Object();
 	private final Map<String, NavigableMap<Long, StoredPartyState>> _claimsByGroup = new HashMap<>();

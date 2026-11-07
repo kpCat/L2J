@@ -13,6 +13,13 @@ public final class PhantomExecutionHandoff130Tests
 	private PhantomExecutionHandoff130Tests() { }
 	public static void register(PhantomTestRegistry registry)
 	{
+		registry.add("execution-production-lifecycle-denies-an-uninstalled-delegate", _ ->
+		{
+			final var bridge = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge(true);
+			PhantomAssertions.assertThrows(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.AdmissionRejectedException.class,
+				() -> bridge.beforeMaterialize(1, 51), "Early startup bypassed execution ownership before composition was installed.");
+			bridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.none()); bridge.beforeMaterialize(1, 51);
+		});
 		registry.add("execution-recovery-redirection-preserves-all-original-obligations", _ ->
 		{
 			final var solo = PhantomExecutionHandoff.solo(1); final var party = new PhantomDomainRef("execution.party", "group1");
