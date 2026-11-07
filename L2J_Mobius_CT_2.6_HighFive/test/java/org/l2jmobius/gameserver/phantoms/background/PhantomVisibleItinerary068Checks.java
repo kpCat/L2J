@@ -102,6 +102,13 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(false, true, false, true), "Logical wait blocked a necessary new Supply/Learning proposal.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(false, false, false, false), "Expired, draining or stale logical membership held Solo work.");
 		});
+		registry.add("21-accepted-physical-dd-can-propose-shared-travel-without-solo-victory", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.rendezvousTravelOnly(true, true, false), "Accepted physical DD still needed a Solo-victory proof to meet its support.");
+			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.rendezvousTravelOnly(true, false, true), "Exact learned-support travel lost its existing permission.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.rendezvousTravelOnly(false, true, true), "Ordinary Solo preparation inherited a physical rendezvous travel proposal.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.rendezvousTravelOnly(true, false, false), "Logical-only or stale physical consent supplied travel permission.");
+		});
 	}
 	private static void coordinationPreparation(Path module) throws Exception
 	{

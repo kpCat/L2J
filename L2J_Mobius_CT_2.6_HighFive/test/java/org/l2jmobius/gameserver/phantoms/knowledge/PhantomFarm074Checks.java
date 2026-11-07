@@ -95,6 +95,7 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(planner.replanLogicalRendezvous(74,before,previous,740074,1,shared,Set.of(shared.key()),Set.of(),false).ready(), "Logical recovery ignored an excluded shared target.");
 		PhantomAssertions.assertFalse(planner.replanLogicalRendezvous(74,before,previous,740074,1,shared,Set.of(),Set.of("farm.alternative.link"),false).ready(), "Logical recovery immediately reselected its proven bad leg.");
 		PhantomAssertions.assertFalse(ingress.replanLogicalRendezvous(74, before, previous, 740074, 1, far).ready(), "Native WALK ingress was invented as an offscreen edge.");
+		PhantomAssertions.assertFalse(ingress.replanLogicalRendezvous(74, before, previous, 740074, 1, far, Set.of(), Set.of(), true).ready(), "Affordable logical recovery enabled an unrelated offscreen travel proposal.");
 		System.out.println("ROUTE130_PLANNER_PREVIEW_PASS; bounded64; composite ingress proposal; common logical source; no offscreen native ingress; no earned-state writes");
 	}
 
@@ -280,7 +281,7 @@ public final class PhantomFarm074Checks
 		System.out.println("RENDEZVOUS129_FENCES_PASS; exact source; route/admission/instance negatives; DB_WRITES=0");
 	}
 
-	private static PhantomHistoricalBackgroundPlanner planner(boolean linked)
+	public static PhantomHistoricalBackgroundPlanner planner(boolean linked)
 	{
 		return planner(linked, false);
 	}
@@ -325,6 +326,7 @@ public final class PhantomFarm074Checks
 		{
 			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
 			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { return soloViable; }
+			@Override public boolean offscreenOutdoorCandidate(PhantomTopologyQuery proposed, String from, TargetFact target, String to) { return true; }
 			@Override public boolean nativeIngressPositionKnown(PhantomTopologyAnchor anchor, int heading) { return ingress && anchor.id().equals("farm.far"); }
 			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }
 			@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return false; }
@@ -338,11 +340,11 @@ public final class PhantomFarm074Checks
 
 	private static PhantomTopologyNode node(String id, PhantomTopologyPoint point)
 	{
-		return new PhantomTopologyNode(id, PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.cuboid(0, point.x() - 50, point.x() + 50, point.y() - 50, point.y() + 50, -100, 100), null, List.of(), List.of());
+		return new PhantomTopologyNode(id, PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.cuboid(0, point.x() - 50, point.x() + 50, point.y() - 50, point.y() + 50, -100, 100), null, List.of("outdoor-farming"), List.of("fixture074"));
 	}
 	private static PhantomTopologyAnchor anchor(String id, String node, PhantomTopologyPoint point, int npc)
 	{
-		return new PhantomTopologyAnchor(id, PhantomTopologyAnchorRole.FARMING, node, point, npc, null, 0, List.of(), List.of());
+		return new PhantomTopologyAnchor(id, PhantomTopologyAnchorRole.FARMING, node, point, npc, null, 0, List.of("outdoor-farming"), List.of("fixture074"));
 	}
 	private static PhantomGoal goal()
 	{

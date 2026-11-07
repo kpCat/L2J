@@ -175,7 +175,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		return replanVisibleRendezvous(profileId, state, previousGoal, deterministicSeed, planOrdinal, live, sharedFarmSource, excludedSteps, false, admitted);
 	}
 
-	/** A role-authorized accepted support proposes travel only; ordinary and historical Solo admission are unchanged. */
+	/** An exact accepted physical member proposes shared travel only; Solo and historical admission are unchanged. */
 	public Result replanVisibleRendezvous(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomTopologyPoint live, PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, boolean supportTravelOnly, java.util.function.Predicate<PhantomGoal> admitted)
 	{
@@ -210,8 +210,8 @@ public final class PhantomHistoricalBackgroundPlanner
 			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
 			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
 			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
-			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), affordableTravel,
-			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()));
+			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), false,
+			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()) && (!affordableTravel || affordableTravel(value, state)));
 	}
 	private Result rendezvousIngressPlan(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
 		PhantomTopologyPoint live, PhantomDomainRef source, Set<String> excludedSteps, boolean supportTravelOnly)
