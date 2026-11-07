@@ -22,16 +22,19 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStore _roots;
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
+	private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore _execution;
 
 	public PhantomSupplyIntentStore(PhantomProfileRepository profiles, PhantomGoalStore roots)
 	{
 		_profiles = Objects.requireNonNull(profiles); _roots = Objects.requireNonNull(roots);
+		_execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(profiles);
 	}
 
 	@Override public boolean profileExists(long profileId) { return _roots.profileExists(profileId); }
 
 	@Override public Optional<StoredGoal> load(long profileId)
 	{
+		if (!sourceMayComplete(profileId, _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE).orElse(null))) { return Optional.empty(); }
 		final var root = _roots.load(profileId);
 		if (root.isEmpty() || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.orElseThrow().goal().goalType())) { return root; }
 		return intent(profileId).filter(child -> bound(child.goal(), root.orElseThrow().goal()) && child.goal().status() == PhantomGoalStatus.ACTIVE && child.goal().deadlineEpochMillis() > System.currentTimeMillis());
@@ -47,7 +50,18 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 		if (expectedRowVersion < -1) { throw new IllegalArgumentException("Supply expected version must be -1 or nonnegative."); }
 		if (!bound(child, root) || !_roots.load(profileId).map(value -> value.goal().equals(root)).orElse(false)) { throw new IllegalArgumentException("Supply root authority changed."); }
 		final byte[] payload = _codec.encode(child);
-		return decode(expectedRowVersion < 0 ? _profiles.insertComponent(profileId, COMPONENT, 1, payload) : _profiles.updateComponent(profileId, COMPONENT, expectedRowVersion, 1, payload));
+		final var rawRoot = _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+		if (!_codec.decode(rawRoot.payload()).equals(root)) { throw new java.util.ConcurrentModificationException("Supply root changed before checkpoint."); }
+		final var execution = _execution.guardCompletion(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId));
+		final var guards = new java.util.ArrayList<>(execution.present()); guards.add(rawRoot);
+		return decode(_profiles.mutateProfileComponentsAtomically(java.util.List.of(new PhantomProfileRepository.ProfileComponentMutation(profileId,
+			new PhantomProfileRepository.ComponentMutation(COMPONENT, expectedRowVersion, 1, payload))), guards, execution.absent()).getFirst());
+	}
+
+	private static boolean sourceMayComplete(long id, PhantomProfileComponent execution)
+	{
+		return execution == null || new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.Stored(execution).state()
+			.ownerMayComplete(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id));
 	}
 
 	public static boolean bound(PhantomGoal child, PhantomGoal root)

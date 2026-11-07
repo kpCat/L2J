@@ -514,8 +514,21 @@ public final class PhantomProfileRepository
 
 	/** Read dependencies share the transaction and the same profile-before-component lock order as Background. */
 	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations, List<PhantomProfileComponent> guards)
+	{ return mutateProfileComponentsAtomically(mutations, guards, List.of()); }
+
+	/** An absent receipt is also a dependency: insertion before the transfer CAS must reject the transfer. */
+	public record ComponentAbsence(long profileId, String componentType)
 	{
-		if (guards == null || guards.size() > 36) { throw new IllegalArgumentException("Group read guard count exceeds the nine-member bound."); }
+		public ComponentAbsence
+		{
+			if (profileId <= 0) { throw new IllegalArgumentException("Profile ID must be positive."); }
+			PhantomProfileComponent.requireValidComponentType(componentType);
+		}
+	}
+
+	public List<PhantomProfileComponent> mutateProfileComponentsAtomically(List<ProfileComponentMutation> mutations, List<PhantomProfileComponent> guards, List<ComponentAbsence> absences)
+	{
+		if (guards == null || absences == null || guards.size() + absences.size() > 36) { throw new IllegalArgumentException("Group read guard count exceeds the nine-member bound."); }
 		if (mutations == null || mutations.isEmpty() || mutations.size() > 19)
 		{ throw new IllegalArgumentException("Cross-profile mutation count must be between one and nineteen (aggregate plus old/new rosters)."); }
 		final var ordered = mutations.stream().sorted(Comparator.comparingLong(ProfileComponentMutation::profileId)
@@ -528,6 +541,7 @@ public final class PhantomProfileRepository
 		return write("mutate bounded Phantom group components atomically", connection ->
 		{
 			final var profileIds = new java.util.TreeSet<Long>(); ordered.forEach(entry -> profileIds.add(entry.profileId())); guards.forEach(row -> profileIds.add(row.profileId()));
+			absences.forEach(row -> profileIds.add(row.profileId()));
 			for (long id : profileIds)
 			{
 				try (var statement = connection.prepareStatement("SELECT profile_id FROM phantom_profiles WHERE profile_id = ? FOR UPDATE"))
@@ -540,6 +554,14 @@ public final class PhantomProfileRepository
 					statement.setLong(1, guard.profileId()); statement.setString(2, guard.componentType());
 					try (var rows = statement.executeQuery())
 					{ if (!rows.next() || !readComponent(rows).equals(guard)) { throw new java.util.ConcurrentModificationException("Logical group read dependency changed."); } }
+				}
+			}
+			for (var absent : absences.stream().sorted(Comparator.comparingLong(ComponentAbsence::profileId).thenComparing(ComponentAbsence::componentType)).toList())
+			{
+				try (var statement = connection.prepareStatement(FIND_COMPONENT + " FOR UPDATE"))
+				{
+					statement.setLong(1, absent.profileId()); statement.setString(2, absent.componentType());
+					try (var rows = statement.executeQuery()) { if (rows.next()) { throw new java.util.ConcurrentModificationException("Absent execution dependency appeared."); } }
 				}
 			}
 			final var result = new ArrayList<PhantomProfileComponent>(ordered.size());

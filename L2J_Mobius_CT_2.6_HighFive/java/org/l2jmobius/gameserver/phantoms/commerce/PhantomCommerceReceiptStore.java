@@ -34,10 +34,12 @@ public final class PhantomCommerceReceiptStore implements PhantomCommerceService
 	public static final long ABSENT_ROW_VERSION = -1;
 
 	private final PhantomProfileRepository _repository;
+	private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore _execution;
 
 	public PhantomCommerceReceiptStore(PhantomProfileRepository repository)
 	{
 		_repository = Objects.requireNonNull(repository);
+		_execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(repository);
 	}
 
 	@Override
@@ -50,15 +52,9 @@ public final class PhantomCommerceReceiptStore implements PhantomCommerceService
 	public VersionedReceipt save(long expectedRowVersion, PhantomCommerceReceipt receipt)
 	{
 		Objects.requireNonNull(receipt);
-		final PhantomProfileComponent component;
-		if (expectedRowVersion == ABSENT_ROW_VERSION)
-		{
-			component = _repository.insertComponent(receipt.profileId(), PhantomCommerceReceipt.COMPONENT_TYPE, PhantomCommerceReceipt.SCHEMA_VERSION, receipt.encode());
-		}
-		else
-		{
-			component = _repository.updateComponent(receipt.profileId(), PhantomCommerceReceipt.COMPONENT_TYPE, expectedRowVersion, PhantomCommerceReceipt.SCHEMA_VERSION, receipt.encode());
-		}
+		final var guard = _execution.guardCompletion(receipt.profileId(), org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(receipt.profileId()));
+		final var component = _repository.mutateProfileComponentsAtomically(java.util.List.of(new PhantomProfileRepository.ProfileComponentMutation(receipt.profileId(),
+			new PhantomProfileRepository.ComponentMutation(PhantomCommerceReceipt.COMPONENT_TYPE, expectedRowVersion, PhantomCommerceReceipt.SCHEMA_VERSION, receipt.encode()))), guard.present(), guard.absent()).getFirst();
 		return decode(component);
 	}
 

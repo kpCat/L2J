@@ -491,6 +491,27 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		registry.add("05-after-final-effect", _ -> testAfterFinalEffect());
 		registry.add("06-concurrent-delta-inconsistent", _ -> testAmbiguousDelta());
 		registry.add("07-same-key-and-new-revision", _ -> testSameKeyAndRevision());
+		registry.add("08-execution-yield-reconciles-only-accepted-receipt", _ ->
+		{
+			for (var state : List.of(State.PREPARED, State.COMMITTING))
+			for (int stage = 0; stage < (state == State.PREPARED ? 1 : 3); stage++)
+			{
+				final var store = new FakeStore();
+				final var accepted = receipt(OperationKind.BUY, before(OperationKind.BUY), after(OperationKind.BUY)).withState(state);
+				store.save(-1, accepted);
+				final var actor = new FakeActor(OperationKind.BUY, stage == 0 ? before(OperationKind.BUY) : stage == 1 ? partial(OperationKind.BUY) : after(OperationKind.BUY));
+				final var service = service(store, actor); service.start();
+				final var result = service.settleAccepted(1, accepted.operationKey());
+				PhantomAssertions.assertTrue(result.status() == OperationStatus.SUCCESS || result.status() == OperationStatus.IDEMPOTENT, "Yield did not finish its accepted economic receipt.");
+				PhantomAssertions.assertEquals(State.COMMITTED, store.value.receipt().state(), "Yield released an unsettled receipt.");
+				PhantomAssertions.assertEquals(stage == 0 ? 1 : 0, actor.firstCalls.get(), "Yield duplicated the first economic effect.");
+				PhantomAssertions.assertEquals(stage < 2 ? 1 : 0, actor.secondCalls.get(), "Yield duplicated or lost the second economic effect.");
+				PhantomAssertions.assertEquals(OperationStatus.IDEMPOTENT, service.settleAccepted(1, accepted.operationKey()).status(), "Repeated yield replayed a committed operation.");
+				PhantomAssertions.assertEquals(OperationStatus.RETRY, service.settleAccepted(1, "b".repeat(64)).status(), "A stale yield key acquired a different/new economic operation.");
+				PhantomAssertions.assertEquals(0, actor.quoteCalls.get(), "Yield requoted or created a new operation.");
+				service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Yield leaked Commerce leases/persistence claims.");
+			}
+		});
 	}
 
 	private void registerDecision(PhantomTestRegistry registry)
@@ -1755,6 +1776,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 	private static final class FakeActor implements ActorLease
 	{
+		private final AtomicInteger quoteCalls = new AtomicInteger();
 		private boolean freeTravel;
 		private final OperationKind kind;
 		private final Runnable closeAction;
@@ -1782,6 +1804,7 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		@Override
 		public Quote quote(OperationIntent intent)
 		{
+			quoteCalls.incrementAndGet();
 			final OperationRequest captured = request(kind);
 			final OperationRequest request = freeTravel && kind == OperationKind.TELEPORT
 				? new OperationRequest(captured.kind(), captured.npcTemplateId(), captured.npcObjectId(), captured.listId(), captured.itemId(), captured.itemObjectId(), captured.count(), captured.amount(), captured.feeItemId(), 0, captured.ordinal(), captured.listName(), captured.destinationX(), captured.destinationY(), captured.destinationZ()) : captured;

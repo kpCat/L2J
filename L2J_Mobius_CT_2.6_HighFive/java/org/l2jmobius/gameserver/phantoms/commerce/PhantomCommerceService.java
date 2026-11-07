@@ -129,7 +129,36 @@ public final class PhantomCommerceService
 		return _backend.withNativeBoundary(profileId, intent, () -> executeBound(profileId, goalId, goalRevision, intent, cancelled));
 	}
 
+	/** Finish only the exact already accepted receipt before its owner yields execution. */
+	public OperationResult settleAccepted(long profileId, String expectedOperationKey)
+	{
+		Objects.requireNonNull(expectedOperationKey);
+		if (!beginOperation()) { return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING)); }
+		try
+		{
+			final VersionedReceipt accepted;
+			synchronized (_profileLocks[Math.floorMod(Long.hashCode(profileId), LOCK_STRIPES)])
+			{ accepted = findReceipt(profileId).orElse(null); }
+			if (accepted == null || !accepted.receipt().operationKey().equals(expectedOperationKey)) { return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
+			final var receipt = accepted.receipt();
+			if (receipt.state() == State.INCONSISTENT) { return record(OperationResult.inconsistent(Reason.PROFILE_FAIL_STOP)); }
+			if (receipt.state() == State.COMMITTED) { return record(OperationResult.idempotent()); }
+			if (receipt.state() == State.ABORTED) { return OperationResult.cancelled(); }
+			final var request = receipt.request();
+			final var intent = new OperationIntent(request.kind(), request.npcTemplateId(), request.npcObjectId(), request.listId(), request.itemId(), request.itemObjectId(), request.count(), request.ordinal(), request.listName(), 0);
+			// Never take the profile lock across native drain: ordinary execute takes native boundary before that lock.
+			return _backend.withNativeBoundary(profileId, intent,
+				() -> executeBound(profileId, receipt.goalId(), receipt.goalRevision(), intent, () -> false, expectedOperationKey));
+		}
+		catch (ConcurrentModificationException e) { return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
+		catch (RuntimeException e) { return record(OperationResult.retry(Reason.BACKEND_FAILURE)); }
+		finally { endOperation(); }
+	}
+
 	private OperationResult executeBound(long profileId, long goalId, long goalRevision, OperationIntent intent, BooleanSupplier cancelled)
+	{ return executeBound(profileId, goalId, goalRevision, intent, cancelled, null); }
+
+	private OperationResult executeBound(long profileId, long goalId, long goalRevision, OperationIntent intent, BooleanSupplier cancelled, String acceptedKey)
 	{
 		Objects.requireNonNull(intent);
 		Objects.requireNonNull(cancelled);
@@ -156,6 +185,8 @@ public final class PhantomCommerceService
 					try (ActorLease actor = acquired)
 					{
 						final Optional<VersionedReceipt> stored = findReceipt(profileId);
+						if (acceptedKey != null && (stored.isEmpty() || !stored.orElseThrow().receipt().operationKey().equals(acceptedKey)))
+						{ return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
 						if (stored.isPresent())
 						{
 							final VersionedReceipt versioned = stored.get();

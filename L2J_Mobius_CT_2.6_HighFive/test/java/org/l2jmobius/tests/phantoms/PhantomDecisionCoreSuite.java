@@ -108,6 +108,55 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		registry.add("34-activity-generation-resets-snapshot-evidence", _ -> testActivityGenerationResetsEvidence());
 		registry.add("35-stop-resets-snapshot-evidence", _ -> testStopResetsEvidence());
 		registry.add("36-admission-fence-blocks-work", _ -> testAdmissionFence());
+		registry.add("37-revoked-admission-cancels-already-running-handler", _ -> testRevokedAdmission());
+		registry.add("38-execution-transfer-waits-for-real-decision-lease", _ -> testExecutionTransferLease());
+	}
+
+	private void testExecutionTransferLease() throws InterruptedException
+	{
+		final var solo = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(1);
+		final var party = new PhantomDomainRef("execution.party", "group1.generation7");
+		final var active = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(solo);
+		final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1); gate.publish(1, 0, active);
+		final var handler = new BlockingHandler();
+		final var fixture = fixture(handler, 1, 1000, 1000, gate.decisionAdmission(solo));
+		fixture.engine.attach(1); fixture.engine.insertGoal(1, goal(0));
+		final var worker = new Thread(() -> fixture.engine.accept(work(1, 1, 1, 0))); worker.start();
+		try
+		{
+			handler.awaitEntered();
+			final var requested = active.request(party, "request1", 1000, 5000); gate.publish(1, 1, requested);
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.quiescent(1, 1, () -> true), "A real running Decision handler did not hold the transfer barrier.");
+			handler.release(); join(worker);
+			PhantomAssertions.assertTrue(handler.cancelled.get(), "The real Decision handler retained its source grant.");
+			final var transferred = requested.yield(1001).checkpoint(List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Dependency("goal.runtime", 1, 0, "a".repeat(64))), 1002).transfer(1003);
+			gate.quiescent(1, 1, () -> { gate.publish(1, 4, transferred); return true; });
+			PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "Old source acquired work after the real handler quiesced and CAS transferred.");
+			try (var recipient = gate.tryAcquire(1, party)) { PhantomAssertions.assertTrue(recipient != null && recipient.valid(), "Recipient did not obtain exclusive admission."); }
+			PhantomAssertions.assertEquals(goal(0), fixture.store.load(1).orElseThrow().goal(), "Transfer changed Goal identity or progress.");
+		}
+		finally { handler.release(); join(worker); fixture.stop(); }
+	}
+
+	private void testRevokedAdmission() throws InterruptedException
+	{
+		final var permitted = new AtomicBoolean(true);
+		final var handler = new BlockingHandler();
+		final var fixture = fixture(handler, 1, 1000, 1000, _ -> permitted.get());
+		fixture.engine.attach(1);
+		fixture.engine.insertGoal(1, goal(0));
+		final var worker = new Thread(() -> fixture.engine.accept(work(1, 1, 1, 0)));
+		worker.start();
+		try
+		{
+			handler.awaitEntered();
+			permitted.set(false);
+			handler.release();
+			join(worker);
+			PhantomAssertions.assertTrue(handler.cancelled.get(), "A handler admitted before REQUEST retained execution after admission was revoked.");
+			PhantomAssertions.assertEquals(goal(0), fixture.store.load(1).orElseThrow().goal(), "Revoking execution mutated the economic goal identity/progress.");
+		}
+		finally { handler.release(); join(worker); fixture.stop(); }
 	}
 
 	private void testDomainRef()

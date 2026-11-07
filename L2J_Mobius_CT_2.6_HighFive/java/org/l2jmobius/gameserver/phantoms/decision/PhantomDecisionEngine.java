@@ -312,6 +312,17 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	public void accept(PhantomActivityWorkItem workItem)
 	{
 		Objects.requireNonNull(workItem, "Work item must not be null.");
+		final AdmissionLease admitted;
+		try { admitted = _admission.tryAcquire(workItem.profileId()); }
+		catch (RuntimeException unavailable) { return; }
+		try (final var execution = admitted)
+		{
+			if (execution != null) { acceptAdmitted(workItem, execution); }
+		}
+	}
+
+	private void acceptAdmitted(PhantomActivityWorkItem workItem, AdmissionLease execution)
+	{
 		final WorkClaim claim;
 		synchronized (_monitor)
 		{
@@ -345,7 +356,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		final HandlerClaim handlerClaim;
 		synchronized (_monitor)
 		{
-			handlerClaim = prepareHandlerLocked(claim, workItem, plan, selection);
+			handlerClaim = prepareHandlerLocked(claim, workItem, plan, selection, execution);
 		}
 		if (handlerClaim == null)
 		{
@@ -356,7 +367,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		PhantomStepResult result;
 		try
 		{
-			result = handlerClaim._handler.execute(handlerClaim._context);
+			result = executionCurrent(execution) ? handlerClaim._handler.execute(handlerClaim._context)
+				: PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "execution.admission_revoked");
 			if (result == null)
 			{
 				result = PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "handler.null_result");
@@ -589,7 +601,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		return new WorkClaim(slot, slot._generation, slot._goal, slot._plan, planningContext);
 	}
 
-	private HandlerClaim prepareHandlerLocked(WorkClaim claim, PhantomActivityWorkItem workItem, PhantomPlan planned, Selection selection)
+	private HandlerClaim prepareHandlerLocked(WorkClaim claim, PhantomActivityWorkItem workItem, PhantomPlan planned, Selection selection, AdmissionLease execution)
 	{
 		final RuntimeSlot slot = claim._slot;
 		if (!isCurrentLocked(slot, claim._generation, claim._goal))
@@ -647,7 +659,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._attempt++;
 		_metrics.recordDecisionStepAttempted();
 		final long generation = slot._generation;
-		final PhantomCancellationToken token = () -> !isPlanCurrent(slot, generation, plan);
+		final PhantomCancellationToken token = () -> !executionCurrent(execution) || !isPlanCurrent(slot, generation, plan);
 		final PhantomStepContext context = new PhantomStepContext(slot._profileId, slot._goal, plan, step, workItem.effectiveState(), workItem.activityGeneration(), workItem.tickSequence(), workItem.logicalNowNanos(), slot._attempt, token);
 		return new HandlerClaim(slot, generation, slot._goal, plan, handler, context);
 	}
@@ -658,6 +670,13 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		if (!isCurrentLocked(slot, claim._generation, claim._goal) || (slot._plan != claim._plan))
 		{
 			finishStaleLocked(slot);
+			return null;
+		}
+		if (claim._context.cancellationToken().isCancelled())
+		{
+			replanLocked(slot, "execution.admission_revoked");
+			slot._inFlight = false;
+			finishDetachIfPendingLocked(slot);
 			return null;
 		}
 		slot._lastResult = result.type();
@@ -1189,10 +1208,33 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		boolean permits(long profileId);
 
+		/** The lease spans planning, the handler and persistence; a transfer must wait for its close. */
+		default AdmissionLease tryAcquire(long profileId)
+		{
+			if (!permits(profileId)) { return null; }
+			return new AdmissionLease()
+			{
+				@Override public boolean valid() { return permits(profileId); }
+				@Override public void close() { }
+			};
+		}
+
 		static DecisionAdmission allowAll()
 		{
 			return _ -> true;
 		}
+	}
+
+	public interface AdmissionLease extends AutoCloseable
+	{
+		boolean valid();
+		@Override void close();
+	}
+
+	private static boolean executionCurrent(AdmissionLease execution)
+	{
+		try { return execution.valid(); }
+		catch (RuntimeException unavailable) { return false; }
 	}
 
 	@FunctionalInterface

@@ -19,6 +19,7 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public String id() { return "world-coordination130"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		PhantomExecutionHandoff130Tests.register(registry);
 		PhantomPartySuite.registerCoordination130(registry);
 		org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite.registerCoordination130(registry);
         registry.add("13-native-fixture-selects-lawful-birth-and-active-calendar-without-server", context ->
