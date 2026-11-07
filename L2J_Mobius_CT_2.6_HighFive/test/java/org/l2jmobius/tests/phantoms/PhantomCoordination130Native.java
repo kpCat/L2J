@@ -547,7 +547,8 @@ final class PhantomCoordination130Native
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false;
         LocalPlaySyntheticHumanSession witness = null; boolean witnessWithdrawn = false;
-        int stableBlockSamples = 0, idleAssemblySamples = 0;
+        int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
+        String lastCoordinationWait = "";
         long nextTrace = 0; final long start = System.currentTimeMillis(), deadline = start + 540_000;
         try
         {
@@ -622,6 +623,8 @@ final class PhantomCoordination130Native
             if (System.currentTimeMillis() >= nextTrace)
             {
                 boolean blocked = actors.size() < ids.size();
+                boolean stableCoordination = group.phase() == PhantomLogicalParty.Phase.WAKE_REQUESTED && group.waitReason().startsWith("WAIT_") && actors.size() == ids.size()
+                    && actors.stream().allMatch(actor -> !actor.isMoving() && !actor.isInCombat() && !actor.isAttackingNow() && !actor.isCastingNow() && !actor.isDead());
                 boolean idleAssembly = group.phase() == PhantomLogicalParty.Phase.ASSEMBLING && !partySeen && actors.size() == ids.size()
                     && actors.stream().allMatch(actor -> !actor.isMoving() && !actor.isInCombat() && !actor.isAttackingNow() && !actor.isCastingNow() && actor.getCurrentHp() > 0);
                 final String facts = actors.stream().map(actor -> actor.getObjectId() + ":hp=" + actor.getCurrentHp() + ":mp=" + actor.getCurrentMp() + ":target=" + (actor.getTarget() == null ? 0 : actor.getTarget().getObjectId()) + ":cast=" + (actor.getLastSkillCast() == null ? 0 : actor.getLastSkillCast().getId()) + ":party=" + (actor.getParty() == null ? 0 : actor.getParty().getLeaderObjectId()) + ":evidence=" + (actor.getNativeWorkOwner() == null ? "NONE" : actor.getNativeWorkOwner().evidence().snapshot())).toList().toString();
@@ -647,11 +650,15 @@ final class PhantomCoordination130Native
                         + " rendezvous=" + life.get("party.rendezvous") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " owner=" + life.get("native.owner"));
                     if (actor != null) { System.out.println("NATIVE130_POSITION profile=" + id + " xyz=" + actor.getLocation() + " moving=" + actor.isMoving()); }
                     idleAssembly &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
+                    stableCoordination &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
                 }
                 stableBlockSamples = blocked ? stableBlockSamples + 1 : 0;
                 check(stableBlockSamples < 3, "STABLE_READINESS_BLOCK");
                 idleAssemblySamples = idleAssembly ? idleAssemblySamples + 1 : 0;
                 check(idleAssemblySamples < 7, "IDLE_ASSEMBLY_DIAGNOSED");
+                stableCoordinationSamples = stableCoordination ? (lastCoordinationWait.equals(group.waitReason()) ? stableCoordinationSamples + 1 : 1) : 0;
+                lastCoordinationWait = group.waitReason();
+                check(stableCoordinationSamples < 3, "STABLE_COORDINATION_BLOCK_" + group.waitReason());
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
             if (kill && (restart || heal && healMpDebit) && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)

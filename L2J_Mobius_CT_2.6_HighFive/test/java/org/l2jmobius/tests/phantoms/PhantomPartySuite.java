@@ -208,6 +208,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					preparing.set(true);
 					for (int slice = 0; slice < 4; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
 					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Encounter stole an accepted Supply/preparation owner.");
+					PhantomAssertions.assertTrue(logical.groupFor(physicalLeader).orElseThrow().group().waitReason().startsWith("WAIT_PREPARATION_"), "Logical wait did not identify its actual preparation owner.");
 					preparing.set(false);
 					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
 					PhantomAssertions.assertEquals(0, backend.invitationCount(), "ACCEPTED+1 pending publication was mistaken for finished shared preparation.");

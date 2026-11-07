@@ -149,17 +149,21 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		final var physicalLeader = materialized.stream().filter(actor -> _backend.memberSnapshot(actor).filter(PhantomAutonomousFarmParty::damageDealer).isPresent()).findFirst().orElse(null);
 		if (physicalLeader == null) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_DAMAGE_OWNER"); return; }
 		final var ordered = new ArrayList<>(materialized); ordered.remove(physicalLeader); ordered.addFirst(physicalLeader);
+		String waitReason = "WAIT_NATIVE_ROLE";
 		for (var actor : ordered)
 		{
 			final var root = _goals.load(actor.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
-			if (!ordinaryIntent(actor.profileId(), root) || _preparationRequired.test(actor.profileId(), root) || !unreserved(actor, now)
-				|| !_backend.autonomousFarmReservationAvailable(actor) || !sourceAdmitted(_rendezvousPreparation.preview(actor, _backend.materializationEpoch(actor), root), group.objective())) { continue; }
+			if (!ordinaryIntent(actor.profileId(), root)) { waitReason = "WAIT_INTENT_" + actor.profileId(); continue; }
+			if (_preparationRequired.test(actor.profileId(), root)) { waitReason = "WAIT_PREPARATION_" + actor.profileId(); continue; }
+			if (!unreserved(actor, now)) { waitReason = "WAIT_RESERVATION_" + actor.profileId(); continue; }
+			if (!_backend.autonomousFarmReservationAvailable(actor)) { waitReason = "WAIT_NATIVE_OWNER_" + actor.profileId(); continue; }
+			if (!sourceAdmitted(_rendezvousPreparation.preview(actor, _backend.materializationEpoch(actor), root), group.objective())) { waitReason = "WAIT_ROUTE_" + actor.profileId(); continue; }
 			final var snapshot = _backend.memberSnapshot(actor).orElse(null);
 			if (snapshot == null || roster.isEmpty() && !damageDealer(snapshot)) { continue; }
 			roster.add(new PhantomPartyRendezvousState.Participant(actor, _backend.materializationEpoch(actor), root.goalId(), root.revision()));
 		}
 		if (roster.size() < 2)
-		{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_ROUTE_OR_OWNER"); return; }
+		{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, waitReason); return; }
 		final String identity = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(group.groupId() + ":" + group.generation() + ":" + roster + ":" + now);
 		PhantomPartyRendezvousState offer = null;
 		for (var participant : roster)

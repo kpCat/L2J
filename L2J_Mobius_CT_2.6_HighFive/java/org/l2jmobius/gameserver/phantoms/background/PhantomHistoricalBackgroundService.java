@@ -1794,7 +1794,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				else if (_visiblePreparationStages.containsKey(profileId) || _visiblePreparationStages.size() < 1024)
 				{
 					final var previous = _visiblePreparationStages.get(profileId);
-					if (!"accepted_rendezvous_root".equals(stage) || previous == null || !previous.startsWith("rendezvous.prepare."))
+					if ((!"accepted_rendezvous_root".equals(stage) && !"logical_assembly".equals(stage)) || previous == null || !previous.startsWith("rendezvous."))
 					{ _visiblePreparationStages.put(profileId, sharedFarmSource == null ? "pre_visible." + stage : "rendezvous.prepare." + stage + ";goal=" + expectedGoal.goalId() + ":" + expectedGoal.revision()); }
 				}
 			}
