@@ -398,7 +398,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			&& Math.abs((long) member.z() - destination.z()) <= 200 && Math.hypot((long) member.x() - destination.x(), (long) member.y() - destination.y()) <= 300)) { return false; }
 		final var result = _coordinator.requestAutonomousFarmRoute(leaderId, root.selectedAnchor(), destination);
 		if (result.outcome() == PhantomPartyCoordinator.RouteOutcome.FAILED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.REJECTED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.UNAVAILABLE)
-		{ _coordinator.releaseAutonomousFarm(leaderId); }
+		{
+			java.util.logging.Logger.getLogger(PhantomAutonomousFarmParty.class.getName()).warning("Party native route declined;profile=" + leaderId + ";outcome=" + result.outcome() + ";code=" + result.reasonKey());
+			_coordinator.releaseAutonomousFarm(leaderId);
+		}
 		return true;
 	}
 

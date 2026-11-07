@@ -648,7 +648,7 @@ final class PhantomCoordination130Native
                         + " policy=" + (admission == null ? null : admission.admission()) + " materializationFailure=" + (admission == null ? null : admission.lastMaterializationFailure())
                         + " busy=" + (admission == null ? "" : admission.busyReason()) + " pins=" + (admission == null ? "" : admission.retentionPins())
                         + " supply=" + life.get("supply") + " supplyReason=" + life.get("supply.reason") + " learning=" + life.get("learning")
-                        + " rendezvous=" + life.get("party.rendezvous") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " owner=" + life.get("native.owner"));
+                        + " rendezvous=" + life.get("party.rendezvous") + " partyClaim=" + life.get("party.claim") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " economy=" + life.get("native.economy") + " owner=" + life.get("native.owner"));
                     if (actor != null) { System.out.println("NATIVE130_POSITION profile=" + id + " xyz=" + actor.getLocation() + " moving=" + actor.isMoving()); }
                     idleAssembly &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
                     stableCoordination &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
@@ -671,6 +671,7 @@ final class PhantomCoordination130Native
                 System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
                 return;
             }
+            check(!partySeen || kill || group.phase() != PhantomLogicalParty.Phase.BACKGROUND, "PARTY_DRAINED_WITHOUT_USEFUL_ACTION");
             Thread.sleep(50);
         }
         throw new IllegalStateException("NATIVE130_FINITE_EVIDENCE_DEADLINE");

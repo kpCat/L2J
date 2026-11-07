@@ -1230,11 +1230,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				return new RouteRequestResult(RouteOutcome.PENDING, routeActivity.routeId(), routeActivity.generation(), routeActivity.destination(), routeActivity.navigationStatus(), routeActivity.reasonKey());
 			}
-			if (autonomousFarm && !currentFarmReady(claim.state(), _backend.observe(claim.state().leader()).orElse(null)))
+			final String farmReadiness = autonomousFarm ? currentFarmReadiness(claim.state(), _backend.observe(claim.state().leader()).orElse(null)) : "";
+			if (!farmReadiness.isEmpty())
 			{
 				final var operation = claim.state().operation();
 				final boolean waiting = operation != null && operation.deadlineLogicalNanos() > _clock.getAsLong();
-				return new RouteRequestResult(waiting ? RouteOutcome.PENDING : RouteOutcome.UNAVAILABLE, ZERO_HASH, claim.state().groupGeneration(), destinationRef, null, "party.route.farm_readiness_wait");
+				return new RouteRequestResult(waiting ? RouteOutcome.PENDING : RouteOutcome.UNAVAILABLE, ZERO_HASH, claim.state().groupGeneration(), destinationRef, null, "party.route.farm_readiness_wait." + farmReadiness);
 			}
 			if (routeActivity.terminal())
 			{
@@ -2776,12 +2777,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private boolean currentFarmReady(PartyState authority, PartySnapshot party)
 	{
+		return currentFarmReadiness(authority, party).isEmpty();
+	}
+	private String currentFarmReadiness(PartyState authority, PartySnapshot party)
+	{
 		final var planned = PhantomAutonomousFarmParty.plannedProfiles(authority.objectiveRef());
-		if (party == null || !party.leader().equals(authority.leader()) || party.members().size() != planned.size() || !sameRoster(roster(authority), party.members()) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId())) || !currentFarmIntent(authority)) { return false; }
+		if (party == null || !party.leader().equals(authority.leader()) || party.members().size() != planned.size() || !sameRoster(roster(authority), party.members()) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM || !planned.contains(member.profileId()))) { return "roster"; }
+		if (!currentFarmIntent(authority)) { return "intent"; }
 		final var current = snapshots(party.members());
 		if (current.size() != party.members().size() || _roles.match(authority.objectiveMode(), authority.requirements(), new ArrayList<>(current.values())).vacancies().stream()
-			.anyMatch(vacancy -> vacancy.required() && vacancy.assignment() == null)) { return false; }
-		return _backend.autonomousFarmReady(party);
+			.anyMatch(vacancy -> vacancy.required() && vacancy.assignment() == null)) { return "roles"; }
+		return _backend.autonomousFarmReady(party) ? "" : "native_actor";
 	}
 
 	private int dispatchTactics(PartySnapshot party, int remainingBudget)
