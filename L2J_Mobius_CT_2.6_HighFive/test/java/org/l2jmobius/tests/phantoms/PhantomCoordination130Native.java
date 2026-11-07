@@ -548,13 +548,14 @@ final class PhantomCoordination130Native
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false;
         LocalPlaySyntheticHumanSession witness = null; boolean witnessWithdrawn = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
-        String lastCoordinationWait = "";
+        String lastCoordinationWait = ""; long lastCoordinationVersion = -1;
         long nextTrace = 0; final long start = System.currentTimeMillis(), deadline = start + 540_000;
         try
         {
         while (System.currentTimeMillis() < deadline)
         {
-            final var group = logical.groupFor(ids.getFirst()).orElseThrow().group();
+            final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow();
+            final var group = logicalRow.group();
             check(group.groupId().equals(groupId), "GROUP_ID_PRESERVED");
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId())).filter(Objects::nonNull).toList();
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull).filter(value -> value.getMemberCount() >= 2 && value.getMembers().stream().allMatch(actor -> ids.stream().anyMatch(id -> profiles.find(id).orElseThrow().characterObjectId() == actor.getObjectId()))).findFirst().orElse(null);
@@ -656,8 +657,12 @@ final class PhantomCoordination130Native
                 check(stableBlockSamples < 3, "STABLE_READINESS_BLOCK");
                 idleAssemblySamples = idleAssembly ? idleAssemblySamples + 1 : 0;
                 check(idleAssemblySamples < 7, "IDLE_ASSEMBLY_DIAGNOSED");
-                stableCoordinationSamples = stableCoordination ? (lastCoordinationWait.equals(group.waitReason()) ? stableCoordinationSamples + 1 : 1) : 0;
+                // An unchanged recovery snapshot is not another evaluation of its refusal predicate.
+                if (!stableCoordination) { stableCoordinationSamples = 0; }
+                else if (logicalRow.rowVersion() != lastCoordinationVersion)
+                { stableCoordinationSamples = lastCoordinationWait.equals(group.waitReason()) ? stableCoordinationSamples + 1 : 1; }
                 lastCoordinationWait = group.waitReason();
+                lastCoordinationVersion = logicalRow.rowVersion();
                 check(stableCoordinationSamples < 3, "STABLE_COORDINATION_BLOCK_" + group.waitReason());
                 nextTrace = System.currentTimeMillis() + 10_000;
             }

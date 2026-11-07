@@ -85,14 +85,29 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	}
 	public String lastCoordinationFailure() { return _lastFailure; }
 
-	private void logicalPulse()
+	private void logicalPulse(List<MemberSnapshot> materializedPage)
 	{
 		try
 		{
 			final long now = _epochMillis.getAsLong();
-			final var groups = _logical.recoverAfter(_groupCursor, 8);
-			_groupCursor = groups.isEmpty() ? 0 : groups.getLast().group().leaderProfileId();
-			for (var row : groups) { if (row.group().active() && row.group().nextDueMillis() <= now) { projectLogical(row, now); } }
+			final var recovered = _logical.recoverAfter(_groupCursor, 8);
+			_groupCursor = recovered.isEmpty() ? 0 : recovered.getLast().group().leaderProfileId();
+			// The current native page must not wait for an entire durable inventory turn.
+			// Refresh one claim per distinct known group; recovery keeps its independent fair cursor.
+			final Map<Long, Long> presentGroups = new LinkedHashMap<>();
+			for (var member : materializedPage.stream().limit(MAXIMUM_CANDIDATES).toList())
+			{
+				_logical.knownGroupFor(member.ref().profileId()).ifPresent(row ->
+				{
+					presentGroups.putIfAbsent(row.group().leaderProfileId(), member.ref().profileId());
+				});
+			}
+			final Map<Long, PhantomPartyPersistencePort.StoredLogicalGroup> groups = new LinkedHashMap<>();
+			for (long member : presentGroups.values())
+			{ _logical.groupFor(member).ifPresent(row -> groups.put(row.group().leaderProfileId(), row)); }
+			for (var row : recovered)
+			{ if (!presentGroups.containsKey(row.group().leaderProfileId())) { groups.putIfAbsent(row.group().leaderProfileId(), row); } }
+			for (var row : groups.values()) { if (row.group().active() && row.group().nextDueMillis() <= now) { projectLogical(row, now); } }
 			final var page = _logicalDiscovery.apply(_logicalCursor, 16);
 			_logicalCursor = page.examinedProfileId();
 			_logical.discover(page.candidates(), _seeking::seeks, now);
@@ -275,9 +290,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		}
 		if (now < _nextPulse || _coordinator.snapshot().state() != PhantomPartyCoordinator.State.RUNNING) { return; }
 		_nextPulse = now + 5_000_000_000L;
-		if (_logical != null && _seeking != null) { logicalPulse(); }
 		final var observed = _backend.materializedFarmMembers(_cursor, MAXIMUM_CANDIDATES);
 		final var page = observed.members();
+		if (_logical != null && _seeking != null) { logicalPulse(page); }
 		final long previousCursor = _cursor;
 		_cursor = observed.lastExaminedProfileId();
 		if (_seeking != null) { rendezvousPulse(page, now); }

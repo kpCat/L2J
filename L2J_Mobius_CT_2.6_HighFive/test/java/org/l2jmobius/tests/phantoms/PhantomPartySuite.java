@@ -145,6 +145,36 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	static void registerCoordination130(PhantomTestRegistry registry)
 	{
+		registry.add("15-live-page-priority-preserves-cold-recovery-fairness", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true; backend._farmLevel = 78;
+			final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+			for (long leader = 1; leader < 301; leader += 3) { logical.agree(PhantomWorldCoordination130Suite.group(leader, 3)).orElseThrow(); }
+			final var live = java.util.stream.LongStream.iterate(1000, id -> id + 3).limit(16).boxed().toList();
+			for (long id : live)
+			{
+				logical.agree(PhantomWorldCoordination130Suite.group(id, 3)).orElseThrow();
+				final var actor = backend.add(id, 10000 + (int) id); goals.put(id, supportTravelRoot(id, 0, "farm.fixture"));
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 300, 0))));
+			}
+			final var clock = new AtomicLong(1_000_000_000L); final var millis = new AtomicLong(1000);
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator);
+			PhantomAssertions.assertTrue(coordinator.start(), "Priority fixture did not start.");
+			try
+			{
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> true, null,
+					org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), (_, _, _, _, _) -> false, millis::get);
+				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+				for (int slice = 0; slice < 3; slice++) { adapter.onPulse(); clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); }
+				for (long id : live)
+				{ PhantomAssertions.assertEquals("WAIT_PREPARATION_" + id, logical.groupFor(id).orElseThrow().group().waitReason(), "A later live group waited for the cold inventory turn."); }
+				for (int slice = 0; slice < 16; slice++) { adapter.onPulse(); clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); }
+				PhantomAssertions.assertTrue(states._logical.groups.entrySet().stream().filter(entry -> entry.getKey() < 301).allMatch(entry -> entry.getValue().group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND), "Live groups starved cold recovery.");
+				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Priority bypassed mandatory preparation.");
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Priority fixture did not stop."); }
+		});
 		registry.add("05-zero-world-group-partial-projection-drain-and-recreation", context ->
 		{
 			for (boolean pendingArrival : List.of(false, true))
@@ -195,6 +225,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				adapter.onPulse();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, logical.groupFor(1).orElseThrow().group().phase(), "Zero-World group did not enter Background.");
 				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Zero-World agreement fabricated native membership.");
+				// A live group must not wait for a complete durable inventory turn before its next transition.
+				for (long leader = 1000; leader < 1300; leader += 3)
+				{
+					final var absent = PhantomWorldCoordination130Suite.group(leader, 3);
+					logical.agree(absent).orElseThrow();
+				}
 				logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
 				PhantomAssertions.assertEquals(group.groupId(), logical.groupFor(8).orElseThrow().group().groupId(), "Zero-World recovery lost the group.");
 				final long physicalLeader = absentLeader ? 8 : 1;
@@ -234,11 +270,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				for (int slice = 0; slice < 6; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
 				PhantomAssertions.assertTrue(backend._parties.isEmpty(), "Drain retained native Party membership.");
 				backend._restartAbsent.addAll(List.of(1L, 3L, 8L)); backend._snapshots.clear(); backend._nativeEpoch++;
-				for (int slice = 0; slice < 3; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); }
+				for (int slice = 0; slice < 16; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); }
 				final var restored = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states).groupFor(8).orElseThrow().group();
 				PhantomAssertions.assertEquals(group.groupId(), restored.groupId(), "Drain/recreation replaced logical identity.");
 				PhantomAssertions.assertEquals(3, restored.members().size(), "Partial native admission truncated the durable roster.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, restored.phase(), "Drained zero-World group failed to return to Background.");
+				PhantomAssertions.assertTrue(states._logical.groups.values().stream().allMatch(row -> row.group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND), "Live priority starved the independent durable recovery cursor.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Projection fixture did not stop."); }
 			}
