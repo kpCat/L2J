@@ -3421,16 +3421,16 @@ public final class PhantomSystem
 	private PhantomDomainRef desiredExecutionOwner(long id)
 	{
 		final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);
-		if (root == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || _partyCoordinator.humanExecution(id)
+		if (_partyCoordinator.humanExecution(id)
 			|| _partyCoordinator.pendingInvitation(id).isPresent() && !autonomousInvitation(id))
 		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
 		if (!executionGroupBinding(group, id, root)) { return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		return executionPartyOwner(id);
 	}
-	private static boolean executionGroupBinding(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long id, PhantomGoal root)
+	static boolean executionGroupBinding(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long id, PhantomGoal root)
 	{
-		return group != null && group.active() && root != null && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+		return group != null && group.active() && PhantomAutonomousFarmParty.ordinaryIntent(id, root)
 			&& group.members().stream().anyMatch(member -> member.profileId() == id && member.goalId() == root.goalId() && root.revision() >= member.goalRevision());
 	}
 	private PhantomDomainRef executionRecoveryDemand(long id)

@@ -61,6 +61,24 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 	}
 	public static void registerCoordination130(PhantomTestRegistry registry)
 	{
+		registry.add("execution-composition-reuses-canonical-ordinary-party-intent", _ ->
+		{
+			final var profile = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "2");
+			final var idle = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(2,
+				org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE,
+				org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, profile, profile, 1, 0, "background.idle", java.util.List.of(),
+				new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, "fixture"),
+				"background.history", 500, 0, 0, 0, java.util.Map.of(), "planner.target_or_route.absent", 7);
+			final var group = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("A".repeat(64), 1, 1, java.util.List.of(
+				new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(1, "damage", 1, 0),
+				new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(2, "support", 2, 6)),
+				new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "21298@fixture"), "fixture",
+				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(2, idle), "Canonical idle fixture is not an existing ordinary Party intent.");
+			PhantomAssertions.assertTrue(PhantomSystem.executionGroupBinding(group, 2, idle), "Execution kept a lawfully agreed idle/support member in Solo until the Group could prepare its farm root.");
+			PhantomAssertions.assertFalse(PhantomSystem.executionGroupBinding(group, 2, idle.withStatus(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED)), "A terminal intent inherited Group execution.");
+			PhantomAssertions.assertFalse(PhantomSystem.executionGroupBinding(group, 3, idle), "A foreign member inherited the group's execution reservation.");
+		});
 		registry.add("12-five-thousand-admission-ambient-target-and-offline-census", context ->
 		{
 			final long started = System.nanoTime(); final var catalog = PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"),ZoneOffset.UTC);
