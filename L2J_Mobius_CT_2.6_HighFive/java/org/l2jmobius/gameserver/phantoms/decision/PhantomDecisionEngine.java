@@ -124,8 +124,9 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		final var source = requireExecutionOwner(state.owner());
 		if (state.phase() == PhantomExecutionHandoff.Phase.ACTIVE)
 		{ return new ExecutionProgress(expected, false, "execution.active", now); }
-		if (!_executionAdmission.quiescentCurrent(id, expected.component().rowVersion()))
-		{ return new ExecutionProgress(expected, false, "execution.wait_earned_before_prepare", Math.addExact(now, 100)); }
+		// The existing owner may need preparation to finish/cancel a retained command. Its
+		// completion-only preparation grant cannot transfer authority; CAS still waits below
+		// for every earned lease, and each owner protects its own active handler boundary.
 		final boolean recovering = state.phase() == PhantomExecutionHandoff.Phase.RECOVERING;
 		final ExecutionReadiness ready;
 		if (recovering || state.phase() == PhantomExecutionHandoff.Phase.REQUESTED)

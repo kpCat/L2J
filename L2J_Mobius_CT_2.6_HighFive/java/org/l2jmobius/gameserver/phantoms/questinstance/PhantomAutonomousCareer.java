@@ -604,6 +604,22 @@ final class PhantomAutonomousCareer
 		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of(COMPONENT), guards);
 	}
 	void executionCheckpointCommitted(long id) { synchronized (this) { _cache.remove(id); } }
+	org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareExecutionYield(long id, long now)
+	{
+		final Player player;
+		try (var observation = _materialization.tryAcquireObservation(id).orElse(null))
+		{
+			player = observation == null ? null : observation.player();
+			if (player != null && player.hasPendingOwnedStore()) { return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, "career.execution.wait_owned_store", Math.addExact(now, 1000)); }
+		}
+		if (player != null) { _service.beforeStore(id, player); }
+		else
+		{
+			if (_service.hasOwnedWork(id)) { return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, "career.execution.wait_native_cleanup", Math.addExact(now, 1000)); }
+			_service.finishAutonomousJourney(id);
+		}
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(true, "career.execution.checkpoint_ready", now);
+	}
 	void clear() { synchronized (this) { _cache.clear(); } }
 	private static final class Cached
 	{

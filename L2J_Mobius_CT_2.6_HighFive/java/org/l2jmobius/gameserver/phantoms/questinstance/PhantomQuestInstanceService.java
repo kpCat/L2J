@@ -145,6 +145,15 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		return _automatic.executionCheckpoint(profileId, currentRoot(profileId), recovery, now);
 	}
 	public void executionCheckpointCommitted(long profileId) { if (_automatic != null) { _automatic.executionCheckpointCommitted(profileId); } }
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareExecutionYield(long profileId, long now)
+	{
+		synchronized (_monitor)
+		{
+			if (_active.contains(profileId)) { return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, "career.execution.wait_handler", Math.addExact(now, 1000)); }
+		}
+		if (_automatic == null) { throw new IllegalStateException("Career yield requires its installed autonomous owner."); }
+		return _automatic.prepareExecutionYield(profileId, now);
+	}
 	void finishAutonomousJourney(long profileId) { cleanup(profileId); }
 
 	@Override public void onPulse()

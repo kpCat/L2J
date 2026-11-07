@@ -175,6 +175,28 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		return _automatic.executionCheckpoint(profileId, root(profileId), recovery, now);
 	}
 	public void executionCheckpointCommitted(long profileId) { if (_automatic != null) { _automatic.executionCheckpointCommitted(profileId); } }
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness prepareExecutionYield(long profileId, long now)
+	{
+		synchronized (_monitor)
+		{
+			if (_active.contains(profileId)) { return executionWait("learning.execution.wait_handler", now); }
+		}
+		final Player player;
+		try (var observation = _materialization.tryAcquireObservation(profileId).orElse(null))
+		{
+			player = observation == null ? null : observation.player();
+			if (player != null && player.hasPendingOwnedStore()) { return executionWait("learning.execution.wait_owned_store", now); }
+		}
+		if (player != null) { beforeStore(profileId, player); }
+		else
+		{
+			synchronized (_monitor) { if (_travels.containsKey(profileId)) { return executionWait("learning.execution.wait_native_cleanup", now); } }
+			releaseDemand(profileId);
+		}
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(true, "learning.execution.checkpoint_ready", now);
+	}
+	private static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness executionWait(String reason, long now)
+	{ return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionReadiness(false, reason, Math.addExact(now, 1000)); }
 
 	public boolean start()
 	{

@@ -748,10 +748,14 @@ public final class PhantomCoordination130Integration
 		final var lostAcknowledgement = new java.util.concurrent.atomic.AtomicBoolean();
 		final var paused = new java.util.concurrent.atomic.AtomicBoolean();
 		final var preparationCalls = new java.util.concurrent.atomic.AtomicInteger();
+		final var completeEarnedOnPrepare = new java.util.concurrent.atomic.AtomicReference<PhantomExecutionAdmission.Permit>();
 		final var port = new PhantomDecisionEngine.ExecutionOwner()
 		{
 			@Override public PhantomDecisionEngine.ExecutionReadiness prepareYield(PhantomExecutionHandoffStore.Stored row, long now)
-			{ preparationCalls.incrementAndGet(); return new PhantomDecisionEngine.ExecutionReadiness(true, "sql130.existing_owner_quiet", now); }
+			{
+				preparationCalls.incrementAndGet(); final var earned = completeEarnedOnPrepare.getAndSet(null); if (earned != null) { earned.close(); }
+				return new PhantomDecisionEngine.ExecutionReadiness(true, "sql130.existing_owner_quiet", now);
+			}
 			@Override public PhantomDecisionEngine.ExecutionReadiness prepareRecovery(PhantomExecutionHandoffStore.Stored row, long now)
 			{ return prepareYield(row, now); }
 			@Override public boolean checkpointBoundary(PhantomExecutionHandoffStore.Stored row, Runnable callback)
@@ -798,9 +802,11 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertThrows(IllegalStateException.class, () -> engine.recoverExecutionAcknowledgement(initial), "Restart recovery changed generation while an execution lease was still active.");
 		PhantomAssertions.assertEquals(initial, store.load(id).orElseThrow(), "Refused recovery wrote a durable generation before closing admission.");
 		var row = engine.requestExecution(initial, party, "driver-party", 1000, 5000);
-		PhantomAssertions.assertFalse(engine.advanceExecution(row, 1001, false).progressed(), "Driver ignored an earned lease."); earned.close();
+		PhantomAssertions.assertFalse(engine.advanceExecution(row, 1001, false).progressed(), "Driver ignored an earned lease.");
+		completeEarnedOnPrepare.set(earned);
 		nativeBoundaryAvailable.set(false);
 		PhantomAssertions.assertFalse(engine.advanceExecution(row, 1001, false).progressed(), "Death/STORE boundary refusal transferred execution.");
+		PhantomAssertions.assertTrue(gate.quiescentCurrent(id, row.component().rowVersion()), "Owner preparation could not complete its retained command: quiescence was required before the owner could yield.");
 		PhantomAssertions.assertEquals(row, store.load(id).orElseThrow(), "Refused native boundary wrote a partial phase.");
 		nativeBoundaryAvailable.set(true); row = engine.advanceExecution(row, 1002, false).stored();
 		PhantomAssertions.assertTrue(paused.get() && PhantomJourneyLifetime.paused(intents.intent(id).orElseThrow().goal()), "Driver transferred without persisting the optional child pause.");
