@@ -189,6 +189,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		}
 		/** Cached negative proof only; this check must not advance travel or acquire persistence ownership. */
 		default boolean unusable(MemberRef actor, long epoch, PhantomGoal currentGoal) { return false; }
+		/** A canonical destination for the existing native Party route owner, never an arrival receipt. */
+		default java.util.Optional<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> nativePartyDestination(PhantomGoal root) { return java.util.Optional.empty(); }
+		/** Release only this exact shared travel owner before canonical Party takes movement. */
+		default boolean yieldForNativeParty(MemberRef actor, long epoch, PhantomGoal root, java.util.function.BooleanSupplier current) { return current.getAsBoolean(); }
 	}
 	/** Immutable captured input under the existing preparation owner, never consent, arrival or action authority. */
 	public record SourcePreview(java.util.function.Supplier<List<PhantomDomainRef>> candidates, java.util.function.Predicate<PhantomDomainRef> reachable,
@@ -361,10 +365,22 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			final var missing = selected.stream().filter(ref -> !ref.equals(leader.ref()) && (nativeParty == null || !nativeParty.members().contains(ref)))
 				.sorted(Comparator.comparingDouble(ref -> _backend.memberSnapshot(ref).map(member -> distance(leader, member)).orElse(Double.MAX_VALUE))).findFirst();
 			if (missing.isPresent()) { if (nativeParty == null || nativeParty.members().size() < 9) { _coordinator.invite(profileId, missing.orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); } }
-			else { _coordinator.requestAutonomousFarm(profileId); }
+			else if (!advanceNativePartyRoute(profileId, goal, roster)) { _coordinator.requestAutonomousFarm(profileId); }
 			// One form/invite/pull per shared pulse slice, including pending native consent.
 			return;
 		}
+	}
+
+	private boolean advanceNativePartyRoute(long leaderId, PhantomGoal root, List<MemberSnapshot> roster)
+	{
+		if (_rendezvousPreparation == null) { return false; }
+		final var destination = _rendezvousPreparation.nativePartyDestination(root).orElse(null);
+		if (destination == null || roster.stream().allMatch(member -> member.instanceId() == destination.instanceId()
+			&& Math.abs((long) member.z() - destination.z()) <= 200 && Math.hypot((long) member.x() - destination.x(), (long) member.y() - destination.y()) <= 300)) { return false; }
+		final var result = _coordinator.requestAutonomousFarmRoute(leaderId, root.selectedAnchor(), destination);
+		if (result.outcome() == PhantomPartyCoordinator.RouteOutcome.FAILED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.REJECTED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.UNAVAILABLE)
+		{ _coordinator.releaseAutonomousFarm(leaderId); }
+		return true;
 	}
 
 	public ManagedInvitationDecision evaluateInvitation(ManagedInvitationContext context)
@@ -378,7 +394,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 				&& context.leaderClaim().phantomMembers().stream().anyMatch(member -> member.profileId() == context.inviteeProfileId()
 					&& member.characterObjectId() == context.invitation().inviteeObjectId());
 			if ((nativeCore == null || nativeCore.members().size() < 2) && !retainedNativeMember && reservation != null && reservation.state().phase() != PhantomPartyRendezvousState.Phase.COMPLETE
-				&& (reservation.state().phase() != PhantomPartyRendezvousState.Phase.ARRIVED || !currentOffer(reservation.state(), true))) { return ManagedInvitationDecision.REFUSE; }
+				&& (reservation.state().phase() != PhantomPartyRendezvousState.Phase.ARRIVED || !currentOffer(reservation.state(), true))
+				&& !logicalEncounter(reservation.state())) { return ManagedInvitationDecision.REFUSE; }
 		}
 		final var leader = context.leaderClaim();
 		final var invitee = context.inviteeClaim();
@@ -597,6 +614,15 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			return true;
 		}
 		if (!currentOffer(offer, true)) { return false; }
+		if (logicalEncounter(offer, false))
+		{
+			for (var participant : offer.roster())
+			{
+				final var root = _goals.load(participant.actor().profileId()).orElseThrow().goal();
+				if (!_rendezvousPreparation.yieldForNativeParty(participant.actor(), participant.epoch(), root, () -> currentOffer(offer, true))) { return true; }
+			}
+			return logicalEncounter(offer) && formNativeOffer(offer);
+		}
 		final var assembly = new ArrayList<>(offer.roster());
 		java.util.Collections.rotate(assembly, -_assemblyCursors.getOrDefault(offer.leaderProfileId(), 0));
 		for (var participant : assembly)
@@ -627,6 +653,40 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			{ _coordinator.saveRendezvous(current.rowVersion(), current.state().withPhase(PhantomPartyRendezvousState.Phase.ARRIVED, goal.revision())); }
 			return true;
 		}
+		return formNativeOffer(offer);
+	}
+
+	/** Mutual logical consent and an actual quiet encounter are distinct from route/capture completion. */
+	private boolean logicalEncounter(PhantomPartyRendezvousState offer)
+	{
+		return logicalEncounter(offer, true);
+	}
+	private boolean logicalEncounter(PhantomPartyRendezvousState offer, boolean quiet)
+	{
+		if (_logical == null || !currentOffer(offer, true)) { return false; }
+		final var group = _logical.knownGroupFor(offer.leaderProfileId()).map(row -> row.group()).orElse(null);
+		if (group == null || _epochMillis.getAsLong() >= group.expiresAtMillis() || group.phase() == PhantomLogicalParty.Phase.DRAINING
+			|| !group.objective().equals(offer.source())) { return false; }
+		final var leader = _backend.memberSnapshot(offer.roster().getFirst().actor()).orElse(null);
+		if (leader == null) { return false; }
+		for (var participant : offer.roster())
+		{
+			final long id = participant.actor().profileId();
+			final var peerGroup = _logical.knownGroupFor(id).map(row -> row.group()).orElse(null);
+			final var root = _goals.load(id).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+			final var receipt = _coordinator.rendezvous(id).orElse(null);
+			final var member = _backend.memberSnapshot(participant.actor()).orElse(null);
+			if (peerGroup == null || !peerGroup.equals(group) || !group.contains(id) || !offer.source().equals(farmSource(root))
+				|| receipt == null || (receipt.state().phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && receipt.state().phase() != PhantomPartyRendezvousState.Phase.ARRIVED)
+				|| root.revision() != receipt.state().adoptedRevision()
+				|| member == null || member.dead() || quiet && member.moving() || member.casting() || member.attacking() || !compatible(leader, member)
+				|| Math.abs((long) member.z() - leader.z()) > 200 || Math.hypot((long) member.x() - leader.x(), (long) member.y() - leader.y()) > 1000) { return false; }
+		}
+		return true;
+	}
+
+	private boolean formNativeOffer(PhantomPartyRendezvousState offer)
+	{
 		final var leader = _backend.memberSnapshot(offer.roster().getFirst().actor()).orElse(null);
 		final var roster = offer.roster().stream().map(PhantomPartyRendezvousState.Participant::actor).toList();
 		final var snapshots = roster.stream().map(_backend::memberSnapshot).flatMap(java.util.Optional::stream).toList();

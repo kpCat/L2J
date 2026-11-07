@@ -947,6 +947,17 @@ public final class PhantomSystem
 									&& failure.goalId() == root.goalId() && failure.revision() == root.revision()
 									&& failure.objectId() == actor.characterObjectId() && failure.epoch() == epoch;
 								}
+							@Override
+							public java.util.Optional<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> nativePartyDestination(PhantomGoal root)
+							{
+								final var spec = PhantomBackgroundGoalSpec.parse(root);
+								return _topologyService.query().findAnchor(spec.anchorId()).map(anchor -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(anchor.point().x(), anchor.point().y(), anchor.point().z(), anchor.point().instanceId()));
+							}
+							@Override
+							public boolean yieldForNativeParty(MemberRef actor, long epoch, PhantomGoal root, java.util.function.BooleanSupplier current)
+							{
+								return current.getAsBoolean() && _visibleFarmTravel.stopForRecovery(actor.profileId(), root, actor.characterObjectId(), epoch) && current.getAsBoolean();
+							}
 						}, System::currentTimeMillis);
 				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) ->
 				{
@@ -3388,7 +3399,8 @@ public final class PhantomSystem
 			if (entry == null || !entry.worldPresent()) { continue; }
 			if (System.nanoTime() - entry.materializedAtNanos() < 60_000_000_000L
 				|| _materializationRetention.recentHumanObservation(id) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR
-				|| hasAcceptedNativeJourney(id) || !entry.actionAdmissionOpen()) { return false; }
+				|| hasAcceptedNativeJourney(id) || !entry.actionAdmissionOpen()
+				|| _partyCoordinator != null && _partyCoordinator.observeRouteActivity(id).nonTerminal()) { return false; }
 			final var object = World.getInstance().findObject(entry.characterObjectId());
 			if (!(object instanceof Player player) || player.isInStoreMode() || player.hasPendingOwnedStore()
 				|| player.getParty() != null && player.getParty().getMembers().stream().anyMatch(PhantomSystem::humanObserver)

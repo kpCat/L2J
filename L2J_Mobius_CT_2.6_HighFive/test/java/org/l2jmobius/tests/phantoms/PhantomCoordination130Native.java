@@ -542,6 +542,7 @@ final class PhantomCoordination130Native
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
+        final int objectiveNpc = Integer.parseInt(logical.groupFor(ids.getFirst()).orElseThrow().group().objective().key().split("@")[0]);
         final Map<org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target, TargetSeen> targets = new LinkedHashMap<>();
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false;
@@ -559,7 +560,7 @@ final class PhantomCoordination130Native
             if (party != null)
             {
                 partySeen = true;
-                if (witness == null && !witnessWithdrawn)
+                if (witness == null && !witnessWithdrawn && World.getInstance().getVisibleObjectsInRange(party.getLeader(), Monster.class, 1200).stream().anyMatch(mob -> mob.getId() == objectiveNpc && !mob.isDead()))
                 {
                     final var leader = party.getLeader(); org.l2jmobius.gameserver.model.Location site = null;
                     for (int[] offset : new int[][] {{600,0},{-600,0},{0,600},{0,-600},{600,600},{-600,-600}})
@@ -577,7 +578,7 @@ final class PhantomCoordination130Native
                 check(party.getLeader() != null && party.getMembers().stream().allMatch(actor -> actor.getParty() == party), "OFFICIAL_PARTY");
                 for (var actor : party.getMembers())
                 {
-                    if (actor.getTarget() instanceof Monster mob && !mob.isDead() && targets.size() < 32)
+                    if (actor.getTarget() instanceof Monster mob && mob.getId() == objectiveNpc && !mob.isDead() && targets.size() < 32)
                     {
                         targets.computeIfAbsent(mob.getNativeEvidenceTarget(), _ ->
                         {

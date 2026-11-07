@@ -147,6 +147,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	{
 		registry.add("05-zero-world-group-partial-projection-drain-and-recreation", context ->
 		{
+			for (boolean pendingArrival : List.of(false, true))
+			{
 			for (boolean absentLeader : List.of(false, true))
 			{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
@@ -164,12 +166,30 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator);
 			PhantomAssertions.assertTrue(coordinator.start(), "Native projection fixture did not start.");
 			final var keep = new java.util.concurrent.atomic.AtomicBoolean(true); final var wake = new java.util.concurrent.atomic.AtomicInteger();
+			final var preparing = new java.util.concurrent.atomic.AtomicBoolean(false); final var nativeRouteCalls = new java.util.concurrent.atomic.AtomicInteger();
+			final var publicationPending = new java.util.concurrent.atomic.AtomicBoolean(pendingArrival);
+			final var handoffAllowed = new java.util.concurrent.atomic.AtomicBoolean(true);
 			try
 			{
-				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false,
-					(id, root) -> new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED,
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> preparing.get(),
+					(id, root) -> new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(pendingArrival ? org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.PENDING : org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED,
 						root.goalId(), root.revision(), backend._members.get(id).characterObjectId(), backend._nativeEpoch, 0, "fixture.model_arrived"), seeking,
-					(_, _, _, _, consent) -> consent.getAsBoolean(), millis::get);
+					new PhantomAutonomousFarmParty.RendezvousPreparation()
+					{
+						@Override public boolean prepare(long id, PhantomGoal root, PhantomDomainRef sourceRef, long expiry, java.util.function.BooleanSupplier consent)
+						{
+							if (publicationPending.get()) { if (root.revision() == 0) { goals.put(id, supportTravelRoot(id, 1, "farm.fixture")); } return false; }
+							return consent.getAsBoolean();
+						}
+						@Override public java.util.Optional<PhantomNavigationPoint> nativePartyDestination(PhantomGoal root) { nativeRouteCalls.incrementAndGet(); return java.util.Optional.empty(); }
+						@Override public boolean yieldForNativeParty(MemberRef actor, long epoch, PhantomGoal root, java.util.function.BooleanSupplier current)
+						{
+							if (!handoffAllowed.get() || !current.getAsBoolean()) { return false; }
+							final var before = backend.memberSnapshot(actor).orElseThrow();
+							backend.snapshot(actor, new MemberSnapshot(actor, before.classId(), before.instanceId(), before.x(), before.y(), before.z(), before.hpPercent(), before.mpPercent(), before.cpPercent(), before.dead(), before.casting(), before.attacking(), false, before.targetObjectId(), before.attackerObjectIds(), before.capabilities(), before.progressionHash()));
+							return true; // Modeled native movement leaf; canonical handoff orchestration is real.
+						}
+					}, millis::get);
 				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> wake.incrementAndGet(), _ -> keep.get());
 				coordinator.installLogicalFarmAdmission(id -> states.loadLogicalClaim(id).isEmpty() || states.loadLogicalGroup(states.loadLogicalClaim(id).orElseThrow().leaderProfileId()).orElseThrow().group().phase() != org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING);
 				adapter.onPulse();
@@ -183,10 +203,31 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					backend._restartAbsent.remove(id); final var actor = backend.currentMember(id).orElseThrow();
 					backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(absentLeader && id == 3 ? cap("combat.heal", "learned.heal", 450, 1011) : cap("combat.melee_damage", "weapon", 300, 0))));
 				}
+				if (pendingArrival)
+				{
+					preparing.set(true);
+					for (int slice = 0; slice < 4; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Encounter stole an accepted Supply/preparation owner.");
+					preparing.set(false);
+					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "ACCEPTED+1 pending publication was mistaken for finished shared preparation.");
+					publicationPending.set(false);
+					final var near = backend.memberSnapshot(backend.currentMember(3).orElseThrow()).orElseThrow();
+					backend.snapshot(near.ref(), new MemberSnapshot(near.ref(), near.classId(), 0, 5000, 0, 0, 100, 100, 100, false, false, false, false, 0, near.attackerObjectIds(), near.capabilities(), near.progressionHash()));
+					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Logical consent fabricated a distant physical encounter.");
+					backend.snapshot(near.ref(), new MemberSnapshot(near.ref(), near.classId(), near.instanceId(), near.x(), near.y(), near.z(), 100, 100, 100, false, false, false, true, 0, near.attackerObjectIds(), near.capabilities(), near.progressionHash()));
+					handoffAllowed.set(false);
+					for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Encounter ignored an unreleased native travel owner.");
+					handoffAllowed.set(true);
+				}
 				for (int slice = 0; slice < 32; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 				PhantomAssertions.assertTrue(wake.get() > 0, "A materialized member did not issue bounded wake demand.");
+				PhantomAssertions.assertTrue(backend.observe(backend._members.get(physicalLeader)).isPresent(), "A physically met logical group could not form before its route checkpoint became quiet; pendingArrival=" + pendingArrival);
 				PhantomAssertions.assertEquals(2, backend.observe(backend._members.get(physicalLeader)).orElseThrow().members().size(), "Partial admission could not form a legal pair; absent logical leader=" + absentLeader);
 				PhantomAssertions.assertEquals(1, backend.invitationCount(), "Projection repeated the native invitation.");
+				PhantomAssertions.assertTrue(nativeRouteCalls.get() > 0, "Committed native Party never reached its own route handoff.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE, logical.groupFor(1).orElseThrow().group().phase(), "Observed Party did not advance the logical group.");
 				keep.set(false);
 				for (int slice = 0; slice < 6; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
@@ -199,6 +240,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, restored.phase(), "Drained zero-World group failed to return to Background.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Projection fixture did not stop."); }
+			}
 			}
 		});
 		registry.add("06-six-member-native-projection-can-request-next-farm-pull", context ->
@@ -215,16 +257,40 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				@Override public PhantomCombatService.DispatchState state() { return cancelled ? PhantomCombatService.DispatchState.CANCELLED : PhantomCombatService.DispatchState.SCHEDULED; }
 			}));
 			combat.start();
+			final var routeSubmissions = new java.util.concurrent.atomic.AtomicInteger();
+			final var navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), new PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(PhantomNavigationPoint from, PhantomNavigationPoint to) { routeSubmissions.incrementAndGet(); return new CapabilitySnapshot(PhantomNavigationCapability.GEODATA_DIRECT_ONLY, 1); }
+				@Override public boolean canMoveDirect(PhantomNavigationPoint from, PhantomNavigationPoint to) { return true; }
+				@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken token) { return List.of(request.origin(), request.destination()); }
+			}, worker -> { worker.run(); return true; }, clock::get, new PhantomMetrics());
+			navigation.start();
 			final var ids = java.util.stream.LongStream.rangeClosed(1, 6).boxed().toList();
-			for (long id : ids) { final var actor = backend.add(id, 100 + (int) id); goals.put(id, goal(130000 + id, "farm.background", null, 0)); backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 100, 0)))); backend._capabilities.put(actor, List.of(cap("combat.melee_damage", "weapon", 100, 0))); }
-			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+			for (long id : ids) { final var actor = backend.add(id, 100 + (int) id); goals.put(id, supportTravelRoot(id, 0, "farm.fixture")); backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 100, 0)))); backend._capabilities.put(actor, List.of(cap("combat.melee_damage", "weapon", 100, 0))); }
+			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(navigation, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
 			coordinator.installLogicalFarmAdmission(_ -> newPull.get());
 			new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get); backend.connect(coordinator); coordinator.start();
 			try
 			{
-				coordinator.formForGoal(1, 130001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,2,3,4,5,6"), ids.stream().map(id -> new RoleRequirement("dd." + id, "damage.melee", true, 1)).toList());
+				coordinator.formForGoal(1, 129001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,2,3,4,5,6"), ids.stream().map(id -> new RoleRequirement("dd." + id, "damage.melee", true, 1)).toList());
 				for (long id : ids.subList(1, ids.size())) { coordinator.invite(1, backend.currentMember(id).orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); } }
 				PhantomAssertions.assertEquals(6, backend.observe(backend.currentMember(1).orElseThrow()).orElseThrow().members().size(), "Six-member invitation preparation failed.");
+				backend._farmEnabled = false;
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, coordinator.requestAutonomousFarmRoute(1, new PhantomDomainRef("topology.anchor", "farm.fixture"), new PhantomNavigationPoint(1000, 0, 0, 0)).outcome(), "A new Party was retired before its readiness/source view could publish.");
+				PhantomAssertions.assertEquals(0, routeSubmissions.get(), "Unready new native Party issued a movement action.");
+				backend._farmEnabled = true;
+				final var route = coordinator.requestAutonomousFarmRoute(1, new PhantomDomainRef("topology.anchor", "farm.fixture"), new PhantomNavigationPoint(1000, 0, 0, 0));
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.READY, route.outcome(), "Native farm did not acquire the existing Party route owner.");
+				PhantomAssertions.assertEquals(new PhantomDomainRef("farm.party", "1,2,3,4,5,6"), coordinator.claim(1).orElseThrow().state().objectiveRef(), "Route persistence replaced the farm objective/roster with its destination.");
+				clock.addAndGet(java.util.concurrent.TimeUnit.SECONDS.toNanos(31)); coordinator.onPulse();
+				backend._farmEnabled = false;
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, coordinator.requestAutonomousFarmRoute(1, new PhantomDomainRef("topology.anchor", "farm.fixture"), new PhantomNavigationPoint(1000, 0, 0, 0)).outcome(), "A transient readiness change stole an accepted native Party route.");
+				backend._farmEnabled = true;
+				PhantomAssertions.assertTrue(coordinator.claim(1).orElseThrow().state().route().status() != org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteStatus.FAILED, "Autonomous journey inherited the ordinary30-second route deadline.");
+				for (long id : ids) { final var before = backend.memberSnapshot(backend.currentMember(id).orElseThrow()).orElseThrow(); backend.snapshot(before.ref(), new MemberSnapshot(before.ref(), before.classId(), 0, 1000, 0, 0, before.hpPercent(), before.mpPercent(), before.cpPercent(), false, false, false, false, 0, before.attackerObjectIds(), before.capabilities(), before.progressionHash())); }
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteStatus.ARRIVED, coordinator.claim(1).orElseThrow().state().route().status(), "Modeled native route did not finish under the Party owner.");
+				PhantomAssertions.assertEquals(1, routeSubmissions.get(), "A live group route was resubmitted per pulse.");
 				backend._farmTarget = java.util.OptionalInt.of(900);
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(1), "A six-member Party was prevented from pulling by the obsolete cap.");
 				final long generation = combat.find(1).orElseThrow().generation();
@@ -234,7 +300,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(generation, combat.find(1).orElseThrow().generation(), "DRAIN replaced the accepted episode.");
 				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(1), "DRAIN admitted another pull.");
 			}
-			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Six-member owner did not stop."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Six-member combat did not stop."); }
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Six-member owner did not stop."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Six-member combat did not stop."); navigation.beginStop(); PhantomAssertions.assertTrue(navigation.finishStop(), "Native farm navigation did not stop."); }
 		});
 	}
 
