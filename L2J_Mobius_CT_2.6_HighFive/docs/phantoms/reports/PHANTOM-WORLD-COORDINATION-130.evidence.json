@@ -1,5 +1,23 @@
 {
-  "status": "IN_PROGRESS_CANONICAL_INTENT_FIXED_WAIT_CORRECTIVE_BUILD_AND_CALENDAR",
+  "status": "IN_PROGRESS_FINAL_JAR_VERIFIED_WAIT_LEGAL_NATIVE_WINDOW",
+  "correctedFinalJarCheckpoint": {
+    "utc": "2026-11-07T22:45:47Z",
+    "buildHead": "bfd3deb9c316984833af8ad18c95189abfdedac2",
+    "codeHead": "408a3c032fde7b61c2c6ac60d96a77686d25f018",
+    "jarSha256": "D6AE8B1B71946354F34808938645406B20CC28F86B116B4D753213820B37B5A4",
+    "sourceJarParity": true,
+    "buildSeconds": 21, "compiledProductionSources": 2390,
+    "authorizedBuildsCompleted": 2, "furtherBuildAuthorized": false,
+    "pinnedJarModelPassed": 338, "pinnedJarModelTotal": 338,
+    "pinnedJarLivingSectionsPassed": 8,
+    "pinnedJarSql": "All four phases PASS; ownership/publication/faults/retained STORE/F7/separate JVM recovery",
+    "sqlLifecycleAndBackgroundMillis": 3023,
+    "nativeSqlLeaf": "MODEL_LEAF; no native Player",
+    "nativeRestartAuthorized": true, "newNativeLaunches": 0,
+    "nextLegalNativePreflightUtc": "2026-11-08T04:18:00Z",
+    "remainingGate": "Existing consenting morning85/86 calendar/capability preflight; then actual native Party/reward/Heal/F8/STORE and sameDB/sameJAR restart",
+    "full130": false, "featurePushed": false
+  },
   "canonicalIntentCheckpoint": {
     "utc": "2026-11-07T22:39:32Z",
     "codeHead": "408a3c032fde7b61c2c6ac60d96a77686d25f018",
