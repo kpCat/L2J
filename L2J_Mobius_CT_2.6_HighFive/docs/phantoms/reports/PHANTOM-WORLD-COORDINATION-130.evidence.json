@@ -1,5 +1,26 @@
 {
-  "status": "IN_PROGRESS_CHEAP_PROTOCOL_PASS_WAIT_BUILD_AUTHORIZATION_AND_CALENDAR",
+  "status": "IN_PROGRESS_CANONICAL_INTENT_FIXED_WAIT_CORRECTIVE_BUILD_AND_CALENDAR",
+  "canonicalIntentCheckpoint": {
+    "utc": "2026-11-07T22:39:32Z",
+    "codeHead": "408a3c032fde7b61c2c6ac60d96a77686d25f018",
+    "scopedCodePaths": 2,
+    "sourceModelPassed": 338, "sourceModelTotal": 338,
+    "systemBindingRegression": "RED_THEN_GREEN: canonical historical idle ordinary intent receives Group execution; terminal and foreign members rejected",
+    "reusedPolicy": "PhantomAutonomousFarmParty.ordinaryIntent; no special role, Supply or Navigation bypass",
+    "authorizedBuildsCompleted": 1,
+    "authorizedBuildHead": "a5f2d5e8343855aaddb7a8f4e35999e911999bb8",
+    "compiledProductionSources": 2390, "buildSeconds": 25,
+    "ownerConfigChanges": 0,
+    "pinnedJarSha256": "6F2C5E4F49A86FC41B8FAD8075F58CAE66048820908F3F5519DC4EDE8E1DF6ED",
+    "pinnedJarModelPassed": 337, "pinnedJarLivingSectionsPassed": 8,
+    "pinnedJarSql": "All four phases PASS; lifecycle/F7 3217ms; native capture MODEL_LEAF",
+    "sourceJarParity": false,
+    "remainingBuildAuthorization": "The one permitted build is consumed; one corrective rebuild needs explicit user approval and has not been attempted",
+    "nativeRestartAuthorized": true, "newNativeLaunches": 0,
+    "nativeCalendar": "Both consenting morning85/86 ACTIVE from2026-11-08T04:18:00Z; original leader69 currently consent=false",
+    "mojibakeMarkers": "PASS_NO_MATCHES", "escapedCyrillic": "PASS_NO_MATCHES",
+    "full130": false, "featurePushed": false
+  },
   "ownershipPublicationCheckpoint": {
     "utc": "2026-11-07T22:12:49Z",
     "publicationCodeHead": "103c0dfe5a98a727b692ab83efe3e726dc4acea2",
