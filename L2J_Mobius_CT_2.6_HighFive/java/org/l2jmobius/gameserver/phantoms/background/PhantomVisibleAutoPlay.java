@@ -171,7 +171,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				stopResourceRetreat(previous, player);
 			}
 			configure(player);
-			final PhantomPolicy policy = new Policy(player, profileId, goal.goalId(), goal.revision(), spec.npcId());
+			final PhantomPolicy policy = new Policy(player, profileId, goal.goalId(), goal.revision(), spec.npcId(), action.executionStamp());
 			final Session session = new Session(player, goal.goalId(), goal.revision(), policy, snapshot.materializedAtNanos(), _clock.getAsLong(), previous, commandGate, _navigation, () -> current(profileId, goal) && _permitsNewRoots.test(profileId));
 			final Session replaced;
 			synchronized (owner(profileId))
@@ -307,7 +307,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	{
 		final Session session = _sessions.get(profileId);
 		if (session == null) { return false; }
-		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+		try (var action = _materialization.tryAcquireObservation(profileId).orElse(null))
 		{
 			return (action != null) && healthy(profileId, goal, session, action.player()) && (_sessions.get(profileId) == session) && session._current.get();
 		}
@@ -679,6 +679,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	private final class Policy implements PhantomPolicy
 	{
+		private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp _executionStamp;
 		private final Player _player;
 		private final long _profileId;
 		private final long _goalId;
@@ -689,8 +690,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private volatile TickObservation _autoUseTick;
 		private final java.util.concurrent.atomic.AtomicReference<StopObservation> _firstStop = new java.util.concurrent.atomic.AtomicReference<>();
 
-		private Policy(Player player, long profileId, long goalId, long revision, int npcId)
+		private Policy(Player player, long profileId, long goalId, long revision, int npcId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp execution)
 		{
+			_executionStamp = execution;
 			_player = player;
 			_profileId = profileId;
 			_goalId = goalId;
@@ -802,7 +804,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				return null;
 			}
-			final ActionLease action = _materialization.tryAcquireAction(_profileId).orElse(null);
+			final ActionLease action = _materialization.tryAcquireAction(_profileId, _executionStamp).orElse(null);
 			if (action == null)
 			{
 				return null;

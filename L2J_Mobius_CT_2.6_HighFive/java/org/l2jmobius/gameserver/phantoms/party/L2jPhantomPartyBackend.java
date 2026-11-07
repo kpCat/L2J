@@ -248,7 +248,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public Optional<PartySnapshot> observe(MemberRef member)
 	{
-		try (AcquiredPlayer acquired = acquire(member))
+		try (AcquiredPlayer acquired = observeActor(member))
 		{
 			if (acquired == null)
 			{
@@ -267,7 +267,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
 	{
-		try (AcquiredPlayer acquired = acquire(member))
+		try (AcquiredPlayer acquired = observeActor(member))
 		{
 			if (acquired == null)
 			{
@@ -309,7 +309,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			examined = entry.profileId();
 			final var member = currentMember(entry.profileId()).orElse(null);
 			if (member == null) { continue; }
-			try (var acquired = acquire(member))
+			try (var acquired = observeActor(member))
 			{
 				if (acquired != null && farmAvailable(acquired.player())) { result.add(snapshot(member, acquired.player())); }
 			}
@@ -324,7 +324,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		boolean damage = false;
 		for (MemberRef member : party.members())
 		{
-			try (var acquired = acquire(member))
+			try (var acquired = observeActor(member))
 			{
 				if (acquired == null || !farmAvailable(acquired.player()) || acquired.player().getParty() == null || acquired.player().getParty().getLeader().getObjectId() != party.leader().characterObjectId()) { return false; }
 				final var observed = snapshot(member, acquired.player());
@@ -354,7 +354,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	public boolean autonomousFarmAvailable(MemberRef member)
 	{
 		if (member == null || member.kind() != MemberKind.PHANTOM) { return false; }
-		try (var acquired = acquire(member))
+		try (var acquired = observeActor(member))
 		{
 			if (acquired == null) { return false; }
 			final var player = acquired.player();
@@ -366,7 +366,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	public boolean autonomousFarmReservationAvailable(MemberRef member)
 	{
 		if (member == null || member.kind() != MemberKind.PHANTOM) { return false; }
-		try (var acquired = acquire(member))
+		try (var acquired = observeActor(member))
 		{
 			return acquired != null && farmAvailable(acquired.player()) && !acquired.player().isInParty();
 		}
@@ -377,7 +377,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	{
 		if (requester == null || invitee == null || identity == null || requester.kind() != MemberKind.PHANTOM || invitee.kind() != MemberKind.PHANTOM || requester.equals(invitee)
 			|| identity.requesterObjectId() != requester.characterObjectId() || identity.inviteeObjectId() != invitee.characterObjectId()) { return false; }
-		try (var from = acquire(requester); var to = acquire(invitee))
+		try (var from = observeActor(requester); var to = observeActor(invitee))
 		{
 			if (from == null || to == null) { return false; }
 			final var leader = from.player(); final var member = to.player();
@@ -409,7 +409,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final List<MemberSnapshot> members = new ArrayList<>();
 			for (var member : party.members())
 			{
-				final var acquired = acquire(member);
+				final var acquired = observeActor(member);
 				if (acquired == null) { if (witness != null) { witness.accept("actor.unavailable=" + member.profileId()); } return OptionalInt.empty(); }
 				leases.add(acquired);
 				final Player player = acquired.player();
@@ -514,7 +514,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public OptionalInt currentLevel(MemberRef member)
 	{
-		try (AcquiredPlayer acquired = acquire(member))
+		try (AcquiredPlayer acquired = observeActor(member))
 		{
 			return acquired == null ? OptionalInt.empty() : OptionalInt.of(acquired.player().getLevel());
 		}
@@ -527,7 +527,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		{
 			return CurrentForceObservation.unavailable("party.current_force.actor_missing");
 		}
-		try (AcquiredPlayer acquired = acquire(actor))
+		try (AcquiredPlayer acquired = observeActor(actor))
 		{
 			if ((acquired == null) || !reference(acquired.player()).equals(actor))
 			{
@@ -875,13 +875,17 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	private AcquiredPlayer acquire(MemberRef member)
+	{ return acquire(member, false); }
+	private AcquiredPlayer observeActor(MemberRef member)
+	{ return acquire(member, true); }
+	private AcquiredPlayer acquire(MemberRef member, boolean observation)
 	{
 		if (member.kind() == MemberKind.REAL)
 		{
 			final Player player = World.getInstance().getPlayer(member.characterObjectId());
 			return player == null ? null : new AcquiredPlayer(player, null);
 		}
-		final Optional<ActionLease> lease = _materialization.tryAcquireAction(member.profileId());
+		final Optional<ActionLease> lease = observation ? _materialization.tryAcquireObservation(member.profileId()) : _materialization.tryAcquireAction(member.profileId());
 		if (lease.isEmpty() || ((member.characterObjectId() > 0) && (lease.get().player().getObjectId() != member.characterObjectId())))
 		{
 			lease.ifPresent(ActionLease::close);

@@ -35,6 +35,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 
 public interface PhantomCombatActorLease extends AutoCloseable
 {
+	default boolean executionValid() { return true; }
+	default org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope enterExecutionScope() { return null; }
 	int MAX_ACQUISITION_INVENTORY_ITEM_IDS = 128;
 	ActorSnapshot actorSnapshot();
 	default boolean regroupReady() { return false; }

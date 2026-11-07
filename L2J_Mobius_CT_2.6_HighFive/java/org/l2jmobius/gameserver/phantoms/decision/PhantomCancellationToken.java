@@ -24,4 +24,6 @@ package org.l2jmobius.gameserver.phantoms.decision;
 public interface PhantomCancellationToken
 {
 	boolean isCancelled();
+	/** New execution is revoked, but resumable state still belongs to the current owner until its checkpoint. */
+	default boolean yieldRequested() { return false; }
 }

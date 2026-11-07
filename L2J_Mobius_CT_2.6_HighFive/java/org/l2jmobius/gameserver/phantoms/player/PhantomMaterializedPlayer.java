@@ -154,6 +154,13 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	private boolean _identityAttached;
 	private boolean _actionAdmissionOpen;
 	private PhantomNativeWorkScope _nativeWork;
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _execution;
+	private long _executionProfileId;
+	void installExecutionAdmission(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission execution)
+	{
+		if (_player != null || _materializedAtNanos != 0 || _execution != null || profileId <= 0) { throw new IllegalStateException("Execution admission must bind before native load."); }
+		_executionProfileId = profileId; _execution = java.util.Objects.requireNonNull(execution);
+	}
 	private long _actionGeneration;
 	private long _materializedAtNanos;
 	private long _dematerializedAtNanos;
@@ -228,7 +235,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				// Retain this exact instance even if constructor/restore aborts later.
 				_player = loaded;
 				_materializedAtNanos = System.nanoTime();
-				_nativeWork = new PhantomNativeWorkScope(_actionMonitor, loaded, _identityLease, _materializedAtNanos);
+				_nativeWork = new PhantomNativeWorkScope(_actionMonitor, loaded, _identityLease, _materializedAtNanos, _execution, _executionProfileId);
 				loaded.attachNativeWorkOwner(_nativeWork);
 			});
 			if (_player == null)
@@ -325,17 +332,44 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	}
 
 	public ActionLease tryAcquireAction()
+	{ return tryAcquireAction(null, false, false); }
+	ActionLease tryAcquireAction(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured, boolean completion)
+	{ return tryAcquireAction(captured, completion, false); }
+	ActionLease tryAcquireObservation()
+	{ return tryAcquireAction(null, false, true); }
+	org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Permit tryAcquireExecution(boolean completion)
 	{
+		final var inherited = _nativeWork == null ? null : _nativeWork.currentExecutionStamp();
+		return completion ? _execution.tryAcquireCompletionScoped(_executionProfileId, inherited) : _execution.tryAcquireScoped(_executionProfileId, inherited);
+	}
+	private ActionLease tryAcquireAction(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured, boolean completion, boolean observation)
+	{
+		final var inherited = _nativeWork == null ? null : _nativeWork.currentExecutionStamp();
+		if (captured != null && inherited != null && !captured.equals(inherited)) { return null; }
+		final var anchor = inherited != null ? inherited : captured;
+		// Domain resolution occurs before the native monitor; only scalar permit checks occur inside it.
+		final var permit = _execution == null || observation ? null : completion ? _execution.tryAcquireCompletionScoped(_executionProfileId, anchor) : _execution.tryAcquireScoped(_executionProfileId, anchor);
+		if (_execution != null && !observation && permit == null) { return null; }
+		boolean retained = false;
+		try
+		{
 		synchronized (_actionMonitor)
 		{
 			if ((_state != State.ACTIVE) || !_actionAdmissionOpen || (_player == null))
 			{
 				return null;
 			}
-			final var ticket = _nativeWork.reserve(PlayerNativeWork.current(_nativeWork), "ACTION", PlayerNativeWork.Semantics.CANCELLABLE);
+			if (permit != null && !permit.valid()) { return null; }
+			final var ticket = observation ? _nativeWork.reserveObservation() : _nativeWork.reserveAction(permit == null ? null : permit.stamp());
 			if ((ticket == null) || !ticket.tryStart()) { return null; }
-			return new ActionLease(this, _player, _actionGeneration, ticket);
+			try
+			{
+				final var action = new ActionLease(this, _player, _actionGeneration, ticket, permit, observation); retained = true; return action;
+			}
+			catch (RuntimeException | Error failure) { ticket.complete(failure); throw failure; }
 		}
+		}
+		finally { if (!retained && permit != null) { permit.close(); } }
 	}
 
 	private int outstandingWork() { return _nativeWork == null ? 0 : _nativeWork.outstanding(); }
@@ -699,16 +733,27 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		private final AtomicBoolean _closed = new AtomicBoolean();
 		private final PlayerNativeWork.Ticket _ticket;
 		private final PlayerNativeWork.Context _context;
+		private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Permit _executionPermit;
+		private final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope _executionScope;
+		private final boolean _observation;
 		private final AtomicBoolean _contextAttached = new AtomicBoolean(true);
 
-		private ActionLease(PhantomMaterializedPlayer owner, Player player, long generation, PlayerNativeWork.Ticket ticket)
+		private ActionLease(PhantomMaterializedPlayer owner, Player player, long generation, PlayerNativeWork.Ticket ticket, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Permit execution, boolean observation)
 		{
 			_owner = owner;
 			_player = player;
 			_generation = generation;
 			_ticket = ticket;
-			_context = PlayerNativeWork.enter(ticket);
+			_observation = observation;
+			_executionPermit = execution;
+			_executionScope = execution == null ? null : execution.enterScope();
+			try { _context = PlayerNativeWork.enter(ticket); }
+			catch (RuntimeException | Error failure) { if (_executionScope != null) { _executionScope.close(); } throw failure; }
 		}
+		public boolean executionValid() { return !_closed.get() && (_executionPermit == null || _executionPermit.valid()); }
+		public org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp executionStamp() { return _executionPermit == null ? null : _executionPermit.stamp(); }
+		public org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope enterExecutionScope()
+		{ return _executionPermit == null ? null : _executionPermit.retainScope(); }
 
 		public Player player()
 		{
@@ -723,9 +768,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		/** Leave the acquiring thread before transferring this lease; its native ticket remains owned. */
 		public void detachContext()
 		{
+			if (_observation && !_closed.get()) { throw new IllegalStateException("Native observation cannot be transferred to an asynchronous executor."); }
 			if (_contextAttached.compareAndSet(true, false))
 			{
-				try { _context.close(); }
+				try { _context.close(); if (_executionScope != null) { _executionScope.close(); } }
 				catch (RuntimeException | Error failure)
 				{
 					_contextAttached.set(true);
@@ -740,7 +786,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			if (_closed.compareAndSet(false, true))
 			{
 				try { detachContext(); }
-				finally { _ticket.complete(null); }
+				finally { try { _ticket.complete(null); } finally { if (_executionPermit != null) { _executionPermit.close(); } } }
 			}
 		}
 	}

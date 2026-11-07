@@ -525,6 +525,36 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(accepted, store.value.receipt(), "Yield silently replaced its accepted receipt.");
 			service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Changed-term yield leaked ownership.");
 		});
+		registry.add("10-unapplied-yield-abort-requires-exclusive-before-proof", _ ->
+		{
+			for (var kind : List.of(OperationKind.BUY, OperationKind.SELL, OperationKind.TELEPORT))
+			for (var state : List.of(State.PREPARED, State.COMMITTING))
+			{
+				final var store = new FakeStore(); final var accepted = receipt(kind, before(kind), after(kind)).withState(state); store.save(-1, accepted);
+				final var actor = new FakeActor(kind, before(kind)); final var service = service(store, actor); service.start();
+				PhantomAssertions.assertEquals(OperationStatus.CANCELLED, service.abortAcceptedUnapplied(1, accepted.operationKey()).status(), "An exact unpaid operation could not yield without applying it.");
+				PhantomAssertions.assertEquals(State.ABORTED, store.value.receipt().state(), "Unapplied cancellation was not durable.");
+				PhantomAssertions.assertEquals(accepted.operationKey(), store.value.receipt().operationKey(), "Cancellation lost accepted operation identity.");
+				PhantomAssertions.assertEquals(OperationStatus.CANCELLED, service.abortAcceptedUnapplied(1, accepted.operationKey()).status(), "Repeated cancellation was not idempotent.");
+				PhantomAssertions.assertEquals(0, actor.quoteCalls.get() + actor.firstCalls.get() + actor.secondCalls.get(), "Unapplied cancellation caused a quote or game effect.");
+				service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Cancellation leaked accepted-operation ownership.");
+			}
+			for (var facts : List.of(partial(OperationKind.BUY), after(OperationKind.BUY), new ConservationFacts(99, 20, 20, 0, 0, 0, 0)))
+			{
+				final var store = new FakeStore(); final var accepted = receipt(OperationKind.BUY, before(OperationKind.BUY), after(OperationKind.BUY)).withState(State.COMMITTING); store.save(-1, accepted);
+				final var actor = new FakeActor(OperationKind.BUY, facts); final var service = service(store, actor); service.start();
+				PhantomAssertions.assertEquals(OperationStatus.RETRY, service.abortAcceptedUnapplied(1, accepted.operationKey()).status(), "Partial/final/unknown effects were abandoned as unpaid.");
+				PhantomAssertions.assertEquals(accepted, store.value.receipt(), "Failed abort changed an earned/ambiguous obligation.");
+				service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Rejected cancellation leaked ownership.");
+			}
+			final var store = new FakeStore(); final var accepted = receipt(OperationKind.BUY, before(OperationKind.BUY), after(OperationKind.BUY)).withState(State.COMMITTING); store.save(-1, accepted);
+			final var actor = new FakeActor(OperationKind.BUY, before(OperationKind.BUY)); actor.proofEnabled = false;
+			final var service = service(store, actor); service.start();
+			PhantomAssertions.assertEquals(OperationStatus.RETRY, service.abortAcceptedUnapplied(1, accepted.operationKey()).status(), "An unproved native boundary could cancel COMMITTING.");
+			PhantomAssertions.assertEquals(accepted, store.value.receipt(), "Missing exclusivity changed the accepted receipt.");
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> accepted.withState(State.ABORTED), "General state mutation bypassed exact-before abort proof.");
+			service.beginStop(); PhantomAssertions.assertTrue(service.finishStop(), "Unproved abort leaked ownership.");
+		});
 	}
 
 	private void registerDecision(PhantomTestRegistry registry)
@@ -1452,10 +1482,56 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 	}
 
 	private static PhantomCommerceService service(FakeStore store, FakeActor actor, PhantomGoalStore goalStore)
+	{ return service(store, actor, goalStore, 1); }
+
+	private static PhantomCommerceService service(ReceiptPersistence store, FakeActor actor, PhantomGoalStore goalStore, long profileId)
 	{
 		final PhantomCommerceCatalog catalog = new PhantomCommerceCatalog(List.of(), List.of(), List.of(), List.of());
 		final LoadResult load = new LoadResult(catalog, new CommerceFixtures(null, 0, null, List.of(), List.of(), List.of(), List.of()));
-		return new PhantomCommerceService(load, store, goalStore, profileId -> profileId == 1 ? Optional.of(actor) : Optional.empty());
+		return new PhantomCommerceService(load, store, goalStore, new PhantomCommerceService.Backend()
+		{
+			@Override public Optional<ActorLease> tryAcquire(long id) { return id == profileId ? Optional.of(actor) : Optional.empty(); }
+			@Override public PhantomCommerceService.OperationResult withNativeBoundary(long id, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
+			{ synchronized (actor) { return operation.get(); } }
+			@Override public PhantomCommerceService.OperationResult withQuiescentBoundary(long id, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
+			{
+				synchronized (actor) { actor.exclusive = true; try { return operation.get(); } finally { actor.exclusive = false; } }
+			}
+		});
+	}
+
+	/** Existing MODEL actor is the leaf; receipt CAS/guards below use the real isolated SQL repository. */
+	public static void verifyUnappliedAbortSql(PhantomProfileRepository profiles) throws Exception
+	{
+		final long id = profiles.create(null).profileId();
+		final var goals = new PhantomGoalStateStore(profiles); goals.insert(id, acquireGoal());
+		final var receipts = new PhantomCommerceReceiptStore(profiles);
+		final var accepted = receipt(id, OperationKind.BUY, before(OperationKind.BUY), after(OperationKind.BUY)).withState(State.COMMITTING);
+		receipts.save(-1, accepted);
+		final var handoffs = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(profiles);
+		final var initial = handoffs.initialize(id, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id));
+		handoffs.request(initial, new PhantomDomainRef("execution.party", "sql-abort130"), "yield", 1000, 5000);
+		final var actor = new FakeActor(OperationKind.BUY, before(OperationKind.BUY));
+		final var aborting = service(receipts, actor, goals, id); final var completing = service(receipts, actor, goals, id); aborting.start(); completing.start();
+		try
+		{
+			final var start = new CountDownLatch(1);
+			final var abort = java.util.concurrent.CompletableFuture.supplyAsync(() -> { try { start.await(); } catch (InterruptedException e) { throw new IllegalStateException(e); } return aborting.abortAcceptedUnapplied(id, accepted.operationKey()); });
+			final var finish = java.util.concurrent.CompletableFuture.supplyAsync(() -> { try { start.await(); } catch (InterruptedException e) { throw new IllegalStateException(e); } return completing.settleAccepted(id, accepted.operationKey()); });
+			start.countDown(); abort.get(3, TimeUnit.SECONDS); finish.get(3, TimeUnit.SECONDS);
+			final var saved = receipts.find(id).orElseThrow();
+			PhantomAssertions.assertTrue(saved.receipt().state() == State.ABORTED || saved.receipt().state() == State.COMMITTED, "Abort/complete SQL race left an unresolved obligation.");
+			final int effects = saved.receipt().state() == State.COMMITTED ? 1 : 0;
+			PhantomAssertions.assertEquals(effects, actor.firstCalls.get(), "Abort/complete race duplicated or lost the first effect.");
+			PhantomAssertions.assertEquals(effects, actor.secondCalls.get(), "Abort/complete race duplicated or lost the second effect.");
+			PhantomAssertions.assertEquals(0, actor.quoteCalls.get(), "Yield race created a new economic quote.");
+			final var restarted = new PhantomCommerceReceiptStore(PhantomProfileRepository.open());
+			PhantomAssertions.assertEquals(saved, restarted.find(id).orElseThrow(), "Receipt outcome changed across store recreation.");
+			completing.settleAccepted(id, accepted.operationKey());
+			PhantomAssertions.assertEquals(effects, actor.firstCalls.get(), "Repeated accepted completion replayed payment.");
+			System.out.println("SQL130_COMMERCE_YIELD_RACE_PASS;OUTCOME=" + saved.receipt().state() + ";FIRST_EFFECTS=" + effects + ";SECOND_EFFECTS=" + effects + ";QUOTES=0;NATIVE_ACTOR=MODEL_LEAF");
+		}
+		finally { aborting.beginStop(); completing.beginStop(); PhantomAssertions.assertTrue(aborting.finishStop() && completing.finishStop(), "SQL yield race leaked Commerce operations/leases."); }
 	}
 
 	private static PhantomCommerceReceipt receipt(OperationKind kind, ConservationFacts before, ConservationFacts after)
@@ -1789,6 +1865,9 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 
 	private static final class FakeActor implements ActorLease
 	{
+		private boolean exclusive;
+		private boolean proofEnabled = true;
+		@Override public boolean exclusiveCheckpoint() { return exclusive && proofEnabled; }
 		private final AtomicInteger quoteCalls = new AtomicInteger();
 		private boolean freeTravel;
 		private final OperationKind kind;

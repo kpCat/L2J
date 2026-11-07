@@ -1045,6 +1045,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		synchronized (this) { if (_state != State.RUNNING || _active.size() >= _policy.maximumProfiles() || !_active.add(profileId)) { return retry("supplies.busy"); } }
 		try
 		{
+			if (context.cancellationToken().yieldRequested()) { return retry("supplies.execution.yield_requested"); }
 			if (context.cancellationToken().isCancelled() || !_allowed.test(profileId) || !_roots.load(profileId).map(value -> value.goal().equals(context.goal())).orElse(false)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "supplies.owner.changed"); }
 			final Cached cached = cached(profileId);
 			PhantomGoal intent = cached.goal;
@@ -1377,6 +1378,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	private PhantomStepResult travel(long profileId, PhantomStepContext context, Cached cached, PhantomGoal intent, Binding binding, Player player, WorldObject merchant, boolean returning)
 	{
+		if (context.cancellationToken().yieldRequested()) { return retry("supplies.execution.yield_requested"); }
 		Trip trip;
 		synchronized (this) { trip = _trips.get(profileId); }
 		if (trip != null && (trip.player != player || trip.owner != player.getNativeWorkOwner() || trip.revision != intent.revision() || trip.returning != returning)) { cleanup(profileId); trip = null; }
@@ -1402,8 +1404,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			clearRoute(profileId, trip); trip.destinationIndex++; trip.localAttempt = -1; return retry("supplies.counter.next_approach");
 		}
 		if (context.logicalNowNanos() >= trip.deadline) { return alternative(profileId, context.goal(), cached, "supplies.trip.deadline", returning); }
-		if (cancelled(context, binding, player, trip.intentDeadline)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "supplies.cancelled"); }
+		if (cancelled(context, binding, player, trip.intentDeadline))
+		{
+			if (context.cancellationToken().yieldRequested()) { return retry("supplies.execution.yield_requested"); }
+			cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "supplies.cancelled");
+		}
 		final String failure = navigate(profileId, player, trip, context, binding);
+		if (context.cancellationToken().yieldRequested()) { return retry("supplies.execution.yield_requested"); }
 		if (failure == null) { return retry(trip.reason); }
 		if (!returning && trip.destinationIndex + 1 < trip.destinations.size())
 		{

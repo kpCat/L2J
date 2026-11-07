@@ -35,7 +35,15 @@ public final class PhantomExecutionHandoff130Tests
 			{
 				final var recovered = state.recoverSource();
 				PhantomAssertions.assertEquals(solo, recovered.owner(), "Cancellation/timeout stole source rights.");
-				PhantomAssertions.assertEquals(Phase.ACTIVE, recovered.phase(), "Source recovery remained indefinitely pending.");
+				PhantomAssertions.assertEquals(Phase.RECOVERING, recovered.phase(), "Cancellation bypassed recovery of a potentially paused child.");
+				{
+					final var restarted = PhantomExecutionHandoff.decode(recovered.encode());
+					final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1);
+					gate.publish(1, 0, restarted);
+					PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "Restart opened source execution before checkpoint recovery.");
+					gate.publish(1, 1, restarted.recovered(dependencies));
+					try (var resumed = gate.tryAcquire(1, solo)) { PhantomAssertions.assertTrue(resumed != null && resumed.valid(), "Recovered child could not resume."); }
+				}
 				PhantomAssertions.assertEquals(2L, recovered.generation(), "Source recovery reused a stale grant.");
 			}
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> checkpointed.transfer(5000), "An expired request executed instead of recovering its source.");
@@ -59,7 +67,7 @@ public final class PhantomExecutionHandoff130Tests
 			PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "Stale source callback reacquired execution after CAS.");
 			try (var current = gate.tryAcquire(1, party)) { PhantomAssertions.assertTrue(current != null && current.valid(), "Recipient did not receive exclusive execution."); }
 			final var returnRequest = checkpoint.transfer(1003).recovered(checkpoint.dependencies()).request(solo, "return", 1100, 6000); gate.publish(1, 4, returnRequest);
-			final var recovered = returnRequest.recoverSource();
+			final var recovered = returnRequest.recoverSource().recovered(checkpoint.dependencies());
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.quiescent(1, 4, () -> { gate.publish(1, 5, recovered); throw new IllegalStateException("lost SQL acknowledgement"); }), "Injected unknown transfer was swallowed.");
 			PhantomAssertions.assertEquals(null, gate.tryAcquire(1, party), "Unknown write acknowledgement reopened execution.");
 			gate.acknowledgeRecovery(1, 5, recovered);
@@ -127,7 +135,7 @@ public final class PhantomExecutionHandoff130Tests
 				}), "Injected unknown REQUEST acknowledgement was swallowed.");
 				PhantomAssertions.assertTrue(fencedBeforeSql.get(), "REQUEST started SQL before closing conflicting admission.");
 				earned.close();
-				final var actual = requested.recoverSource(); gate.publish(1, 2, actual);
+				final var actual = requested.recoverSource().recovered(List.of(new Dependency("goal.runtime", 1, 9, "a".repeat(64)))); gate.publish(1, 2, actual);
 				PhantomAssertions.assertEquals(null, gate.tryAcquire(1, solo), "Unknown REQUEST acknowledgement reopened its source.");
 				try (var duringRecovery = gate.enterOwner(_ -> solo))
 				{
@@ -137,6 +145,56 @@ public final class PhantomExecutionHandoff130Tests
 			}
 			try (var freshPulse = gate.enterOwner(_ -> solo); var current = gate.tryAcquireScoped(1, null))
 			{ PhantomAssertions.assertTrue(current != null && current.valid(), "Explicit recovery failed to restore the sole durable owner."); }
+		});
+		registry.add("21-earned-completion-survives-request-but-not-yield-or-transfer", _ ->
+		{
+			final var solo = PhantomExecutionHandoff.solo(1); final var party = new PhantomDomainRef("execution.party", "group1.generation7");
+			final var initial = PhantomExecutionHandoff.initial(solo); final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1); gate.publish(1, 0, initial);
+			final org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured;
+			try (var owner = gate.enterOwner(_ -> solo); var original = gate.tryAcquireScoped(1, null)) { captured = original.stamp(); }
+			final var requested = initial.request(party, "party", 1000, 5000); gate.publish(1, 1, requested);
+			PhantomAssertions.assertEquals(null, gate.tryAcquireScoped(1, captured), "REQUEST admitted a new normal action.");
+			try (var completion = gate.tryAcquireCompletionScoped(1, captured))
+			{
+				PhantomAssertions.assertTrue(completion != null && completion.valid(), "REQUEST prevented completion of an already accepted operation.");
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.quiescent(1, 1, () -> true), "Transfer ignored the completion lease.");
+			}
+			final var yielded = requested.yield(1001); gate.publish(1, 2, yielded);
+			PhantomAssertions.assertEquals(null, gate.tryAcquireCompletionScoped(1, captured), "YIELD left old completion admission open.");
+			final var proof = List.of(new Dependency("goal.runtime", 1, 9, "a".repeat(64)));
+			final var received = yielded.checkpoint(proof, 1002).transfer(1003); gate.publish(1, 4, received);
+			PhantomAssertions.assertEquals(null, gate.tryAcquireCompletionScoped(1, captured), "Transferred source retained completion rights.");
+			try (var recover = gate.enterCompletionOwner(_ -> party); var completion = gate.tryAcquireCompletionScoped(1, null))
+			{
+				PhantomAssertions.assertTrue(completion != null && completion.valid(), "Recipient could not recover its accepted operation.");
+				PhantomAssertions.assertEquals(null, gate.tryAcquireScoped(1, null), "Recovery scope acquired normal execution before ACK.");
+			}
+		});
+		registry.add("22-multi-profile-owner-scope-retains-exact-captured-fences", _ ->
+		{
+			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(2);
+			gate.publish(1, 0, PhantomExecutionHandoff.initial(PhantomExecutionHandoff.solo(1)));
+			gate.publish(2, 0, PhantomExecutionHandoff.initial(PhantomExecutionHandoff.solo(2)));
+			try (var owner = gate.enterOwner(PhantomExecutionHandoff::solo); var first = gate.tryAcquireScoped(1, null); var captured = gate.enterCaptured(first.stamp()))
+			{
+				try (var second = gate.tryAcquireScoped(2, null)) { PhantomAssertions.assertTrue(second != null && second.valid(), "An unrelated captured actor hid the lawful multi-profile owner scope."); }
+				final var requested = PhantomExecutionHandoff.initial(PhantomExecutionHandoff.solo(1)).request(new PhantomDomainRef("execution.party", "group1"), "party", 1000, 5000);
+				gate.publish(1, 1, requested);
+				PhantomAssertions.assertEquals(null, gate.tryAcquireScoped(1, null), "Matching stale actor fell back to a broader fresh owner scope.");
+			}
+		});
+		registry.add("23-command-retains-admission-after-actor-lease-close", _ ->
+		{
+			final var solo = PhantomExecutionHandoff.solo(1); final var initial = PhantomExecutionHandoff.initial(solo);
+			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1); gate.publish(1, 0, initial);
+			final var actor = gate.tryAcquire(1, solo);
+			try (var command = actor.retainScope())
+			{
+				actor.close();
+				gate.publish(1, 1, initial.request(new PhantomDomainRef("execution.party", "group1"), "party", 1000, 5000));
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.quiescent(1, 1, () -> true), "Closing the actor released an executing command before its native work was admitted/drained.");
+			}
+			gate.quiescent(1, 1, () -> true);
 		});
 	}
 }

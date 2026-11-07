@@ -82,6 +82,14 @@ public record PhantomCommerceReceipt(String operationKey, long profileId, long g
 		return new PhantomCommerceReceipt(operationKey, profileId, goalId, goalRevision, request, state, 1, before, expectedAfter);
 	}
 
+	/** Called only under the canonical owner's exclusive native checkpoint, never a general COMMITTING transition. */
+	public PhantomCommerceReceipt abortUnapplied(ConservationFacts current)
+	{
+		if ((state != State.PREPARED && state != State.COMMITTING) || reconcile(current) != Reconciliation.EXACT_BEFORE)
+		{ throw new IllegalStateException("Unapplied receipt cancellation is not proven."); }
+		return new PhantomCommerceReceipt(operationKey, profileId, goalId, goalRevision, request, State.ABORTED, resumeCount, before, expectedAfter);
+	}
+
 	/** Replace only a proven unpaid quote; native identity/destination and all non-fee facts are unchanged. */
 	public PhantomCommerceReceipt repriceUnappliedTeleport(OperationRequest replacement, ConservationFacts observed, ConservationFacts after)
 	{

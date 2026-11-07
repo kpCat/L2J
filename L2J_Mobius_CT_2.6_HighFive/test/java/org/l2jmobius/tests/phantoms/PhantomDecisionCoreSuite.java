@@ -164,6 +164,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> gate.quiescent(1, 1, () -> true), "A real running Decision handler did not hold the transfer barrier.");
 			handler.release(); join(worker);
 			PhantomAssertions.assertTrue(handler.cancelled.get(), "The real Decision handler retained its source grant.");
+			PhantomAssertions.assertTrue(handler.yieldRequested.get(), "REQUEST looked like terminal cancellation and could destroy resumable owner state.");
 			final var proof = List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Dependency("goal.runtime", 1, 0, "a".repeat(64)));
 			final var transferred = requested.yield(1001).checkpoint(proof, 1002).transfer(1003).recovered(proof);
 			gate.quiescent(1, 1, () -> { gate.publish(1, 4, transferred); return true; });
@@ -190,6 +191,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 			handler.release();
 			join(worker);
 			PhantomAssertions.assertTrue(handler.cancelled.get(), "A handler admitted before REQUEST retained execution after admission was revoked.");
+			PhantomAssertions.assertFalse(handler.yieldRequested.get(), "Ordinary revocation acquired handoff checkpoint rights.");
 			PhantomAssertions.assertEquals(goal(0), fixture.store.load(1).orElseThrow().goal(), "Revoking execution mutated the economic goal identity/progress.");
 		}
 		finally { handler.release(); join(worker); fixture.stop(); }
@@ -756,6 +758,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 		private final CountDownLatch entered = new CountDownLatch(1);
 		private final CountDownLatch release = new CountDownLatch(1);
 		private final AtomicBoolean cancelled = new AtomicBoolean();
+		private final AtomicBoolean yieldRequested = new AtomicBoolean();
 
 		@Override
 		public PhantomStepResult execute(org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext context)
@@ -775,6 +778,7 @@ public final class PhantomDecisionCoreSuite implements PhantomTestSuite
 			}
 			final PhantomCancellationToken token = context.cancellationToken();
 			cancelled.set(token.isCancelled());
+			yieldRequested.set(token.yieldRequested());
 			return PhantomStepResult.of(PhantomStepResult.Type.SUCCESS, "step.success");
 		}
 

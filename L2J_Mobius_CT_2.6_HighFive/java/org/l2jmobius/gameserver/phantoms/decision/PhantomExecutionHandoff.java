@@ -46,7 +46,7 @@ public record PhantomExecutionHandoff(long generation, PhantomDomainRef owner, P
 		else if (recipient == null || !requestId.matches("[A-Za-z0-9_.:-]{1,96}")
 			|| requestedAt < 0 || deadline <= requestedAt || deadline - requestedAt > 600_000)
 		{ throw new IllegalArgumentException("Invalid finite execution request."); }
-		if ((phase == Phase.CHECKPOINTED || phase == Phase.RECOVERING) && dependencies.isEmpty()) { throw new IllegalArgumentException("Checkpoint proof is required."); }
+		if (phase == Phase.CHECKPOINTED && dependencies.isEmpty()) { throw new IllegalArgumentException("Checkpoint proof is required."); }
 	}
 	public static PhantomExecutionHandoff initial(PhantomDomainRef owner)
 	{ return new PhantomExecutionHandoff(1, owner, Phase.ACTIVE, null, "", 0, 0, List.of(), true); }
@@ -82,7 +82,13 @@ public record PhantomExecutionHandoff(long generation, PhantomDomainRef owner, P
 	public PhantomExecutionHandoff recoverSource()
 	{
 		if (phase == Phase.ACTIVE || phase == Phase.RECOVERING) { throw new IllegalStateException("No pending execution transfer to recover."); }
-		return new PhantomExecutionHandoff(Math.incrementExact(generation), owner, sourceReady ? Phase.ACTIVE : Phase.RECOVERING, null, requestId, requestedAt, deadline, dependencies, sourceReady);
+		return new PhantomExecutionHandoff(Math.incrementExact(generation), owner, Phase.RECOVERING, null, requestId, requestedAt, deadline, dependencies, false);
+	}
+	/** A persisted ACTIVE record is a claim, not proof that a new process recovered its native/economic obligations. */
+	public PhantomExecutionHandoff restartRecovery()
+	{
+		if (phase != Phase.ACTIVE) { throw new IllegalStateException("Pending execution already requires recovery/cooperation."); }
+		return new PhantomExecutionHandoff(Math.incrementExact(generation), owner, Phase.RECOVERING, null, requestId, requestedAt, deadline, dependencies, false);
 	}
 	private void require(Phase expected, long now)
 	{

@@ -104,6 +104,15 @@ public final class PhantomMaterializationService
 	private final int _maximumMaterialized;
 	private final int _physicalCeiling;
 	private volatile java.util.function.LongPredicate _softCleanupAdmission = _ -> true;
+	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _execution;
+	public void installExecutionAdmission(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission execution)
+	{
+		synchronized (_stateMonitor)
+		{
+			if (_state != ServiceState.NEW || _execution != null) { throw new IllegalStateException("Execution admission must bind before materialization starts."); }
+			_execution = Objects.requireNonNull(execution);
+		}
+	}
 	private final Semaphore _permits;
 	private final ConcurrentHashMap<Long, Entry> _activeByProfile = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Entry> _activeByCharacter = new ConcurrentHashMap<>();
@@ -320,6 +329,7 @@ public final class PhantomMaterializationService
 			lifecycleSupport,
 			_actionDrainTimeoutMillis));
 		ownedEntry = entry;
+		if (_execution != null) { entry._materializedPlayer.installExecutionAdmission(profileId, _execution); }
 
 		synchronized (_stateMonitor)
 		{
@@ -783,16 +793,44 @@ public final class PhantomMaterializationService
 	}
 
 	public Optional<ActionLease> tryAcquireAction(long profileId)
+	{ return tryAcquireAction(profileId, null, false, false); }
+	public Optional<ActionLease> tryAcquireAction(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured)
+	{ return tryAcquireAction(profileId, captured, false, false); }
+	public Optional<ActionLease> tryAcquireCompletionAction(long profileId)
+	{ return tryAcquireAction(profileId, null, true, false); }
+	/** Observation reserves native lifetime but cannot issue transitive gameplay work. */
+	public Optional<ActionLease> tryAcquireObservation(long profileId)
+	{ return tryAcquireAction(profileId, null, false, true); }
+	/** Holds execution, not ACTION, while the existing native checkpoint drains earned work. */
+	public <T> T withExecutionGuard(long profileId, boolean completion, java.util.function.Supplier<T> action, T rejected)
 	{
+		if (_execution == null) { return action.get(); }
+		final var entry = _activeByProfile.get(profileId);
+		if (entry == null || _state != ServiceState.RUNNING) { return rejected; }
+		try (var permit = entry._materializedPlayer.tryAcquireExecution(completion))
+		{
+			if (permit == null) { return rejected; }
+			try (var context = permit.enterScope()) { return action.get(); }
+		}
+	}
+	private Optional<ActionLease> tryAcquireAction(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp captured, boolean completion, boolean observation)
+	{
+		final Entry entry;
 		synchronized (_stateMonitor)
 		{
 			if (_state != ServiceState.RUNNING)
 			{
 				return Optional.empty();
 			}
-			final Entry entry = _activeByProfile.get(profileId);
-			return entry == null ? Optional.empty() : Optional.ofNullable(entry._materializedPlayer.tryAcquireAction());
+			entry = _activeByProfile.get(profileId);
 		}
+		if (entry == null) { return Optional.empty(); }
+		final var lease = observation ? entry._materializedPlayer.tryAcquireObservation() : entry._materializedPlayer.tryAcquireAction(captured, completion);
+		if (lease == null) { return Optional.empty(); }
+		final boolean current;
+		synchronized (_stateMonitor) { current = _state == ServiceState.RUNNING && _activeByProfile.get(profileId) == entry; }
+		if (!current) { lease.close(); return Optional.empty(); }
+		return Optional.of(lease);
 	}
 
 	public Optional<MaterializationSnapshot> find(long profileId)

@@ -129,6 +129,41 @@ public final class PhantomCommerceService
 		return _backend.withNativeBoundary(profileId, intent, () -> executeBound(profileId, goalId, goalRevision, intent, cancelled));
 	}
 
+	/** Cancel only a proven zero-effect accepted operation at an exclusive native boundary. */
+	public OperationResult abortAcceptedUnapplied(long profileId, String expectedOperationKey)
+	{
+		Objects.requireNonNull(expectedOperationKey);
+		if (!beginOperation()) { return record(OperationResult.replan(Reason.SERVICE_NOT_RUNNING)); }
+		try { return _backend.withQuiescentBoundary(profileId, () -> abortUnappliedBound(profileId, expectedOperationKey)); }
+		catch (ConcurrentModificationException e) { return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
+		catch (RuntimeException e) { return record(OperationResult.retry(Reason.BACKEND_FAILURE)); }
+		finally { endOperation(); }
+	}
+
+	private OperationResult abortUnappliedBound(long profileId, String expectedOperationKey)
+	{
+		synchronized (_profileLocks[Math.floorMod(Long.hashCode(profileId), LOCK_STRIPES)])
+		{
+			final var accepted = findReceipt(profileId).orElse(null);
+			if (accepted == null || !accepted.receipt().operationKey().equals(expectedOperationKey)) { return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
+			if (accepted.receipt().state() == State.ABORTED) { return OperationResult.cancelled(); }
+			if (accepted.receipt().state().terminal()) { return record(OperationResult.retry(Reason.UNAPPLIED_ABORT_NOT_PROVEN)); }
+			final var acquired = _backend.tryAcquire(profileId).orElse(null);
+			if (acquired == null) { return record(OperationResult.retry(Reason.ACTOR_NOT_MATERIALIZED)); }
+			beginActorLease();
+			try (ActorLease actor = acquired)
+			{
+				if (!actor.exclusiveCheckpoint()) { return record(OperationResult.retry(Reason.UNAPPLIED_ABORT_NOT_PROVEN)); }
+				final var current = actor.snapshot(accepted.receipt().request());
+				if (accepted.receipt().reconcile(current) != Reconciliation.EXACT_BEFORE || !actor.exclusiveCheckpoint()
+					|| !actor.snapshot(accepted.receipt().request()).equals(current)) { return record(OperationResult.retry(Reason.UNAPPLIED_ABORT_NOT_PROVEN)); }
+				saveReceipt(accepted.rowVersion(), accepted.receipt().abortUnapplied(current));
+				return OperationResult.cancelled();
+			}
+			finally { endActorLease(); }
+		}
+	}
+
 	/** Finish only the exact already accepted receipt before its owner yields execution. */
 	public OperationResult settleAccepted(long profileId, String expectedOperationKey)
 	{
@@ -147,7 +182,7 @@ public final class PhantomCommerceService
 			final var request = receipt.request();
 			final var intent = new OperationIntent(request.kind(), request.npcTemplateId(), request.npcObjectId(), request.listId(), request.itemId(), request.itemObjectId(), request.count(), request.ordinal(), request.listName(), 0);
 			// Never take the profile lock across native drain: ordinary execute takes native boundary before that lock.
-			return _backend.withNativeBoundary(profileId, intent,
+			return _backend.withAcceptedBoundary(profileId, intent,
 				() -> executeBound(profileId, receipt.goalId(), receipt.goalRevision(), intent, () -> false, expectedOperationKey));
 		}
 		catch (ConcurrentModificationException e) { return record(OperationResult.retry(Reason.RECEIPT_RACE)); }
@@ -530,6 +565,8 @@ public final class PhantomCommerceService
 		Optional<ActorLease> tryAcquire(long profileId);
 
 		default OperationResult withNativeBoundary(long profileId, OperationIntent intent, Supplier<OperationResult> operation) { return operation.get(); }
+		default OperationResult withAcceptedBoundary(long profileId, OperationIntent intent, Supplier<OperationResult> operation) { return withNativeBoundary(profileId, intent, operation); }
+		default OperationResult withQuiescentBoundary(long profileId, Supplier<OperationResult> operation) { return OperationResult.retry(Reason.OPERATION_BUSY); }
 		default void failClosed(long profileId, Reason reason) { }
 	}
 
@@ -542,6 +579,7 @@ public final class PhantomCommerceService
 
 	public interface ActorLease extends AutoCloseable
 	{
+		default boolean exclusiveCheckpoint() { return false; }
 		default boolean freeTravel() { return false; }
 
 		Quote quote(OperationIntent intent);
@@ -617,6 +655,8 @@ public final class PhantomCommerceService
 		AMBIGUOUS_DELTA,
 		RESUME_EXHAUSTED,
 		FIRST_EFFECT_NOT_CONFIRMED,
+		UNAPPLIED_ABORT_NOT_PROVEN,
+		EXECUTION_NOT_OWNED,
 		SECOND_EFFECT_NOT_CONFIRMED,
 		TELEPORT_PENDING,
 		INVALID_REQUEST,

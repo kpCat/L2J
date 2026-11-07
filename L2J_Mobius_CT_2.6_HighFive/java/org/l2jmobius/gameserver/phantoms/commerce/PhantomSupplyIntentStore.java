@@ -70,6 +70,21 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 			&& child.goalId() == root.goalId() && Objects.equals(child.subject(), root.subject()) && Binding.parse(child).rootRevision() == root.revision();
 	}
 
+	/** Recovery projection only: parent planning revision may advance while the economic child is suspended.
+	 * The caller must settle its receipt, validate identity, and commit this projection through the execution recovery CAS. */
+	public static PhantomGoal rebindSuspended(PhantomGoal child, PhantomGoal root)
+	{
+		if (bound(child, root)) { return child; }
+		if (!supported(child) || root == null || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+			|| child.goalId() != root.goalId() || !Objects.equals(child.subject(), root.subject())
+			|| !org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.paused(child))
+		{ throw new IllegalArgumentException("Only an exact suspended child may adopt its continuing farm parent."); }
+		final var old = Binding.parse(child);
+		if (root.revision() < old.rootRevision()) { throw new IllegalArgumentException("Suspended parent revision cannot move backwards."); }
+		final var binding = new Binding(root.revision(), old.actorObjectId(), old.classId(), old.classIndex(), old.weaponObjectId(), old.field(), old.retryAfterEpochMillis(), old.prospectiveWeaponTemplateId(), old.equipmentReserve());
+		return new PhantomGoal(child.goalId(), child.goalType(), child.status(), child.subject(), child.target(), child.requiredAmount(), child.currentAmount(), child.acquisitionMethod(), child.validSources(), child.selectedAnchor(), child.purposeKey(), child.priority(), child.riskBudget(), child.expenseBudget(), child.deadlineEpochMillis(), child.constraints(), child.reasonKey(), child.revision(), binding.encode());
+	}
+
 	private StoredGoal decode(PhantomProfileComponent component)
 	{
 		if (component.componentSchemaVersion() != 1) { throw new IllegalArgumentException("Unknown supply.intent component version."); }

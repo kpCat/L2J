@@ -219,6 +219,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
 		private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 		private final AtomicBoolean _closed = new AtomicBoolean();
+		@Override public boolean executionValid() { return !_closed.get() && _materializationLease.executionValid(); }
+		@Override public org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Scope enterExecutionScope() { return _materializationLease.enterExecutionScope(); }
 		private final PhantomNativeShotControl _shots;
 		private final java.util.LinkedHashMap<Integer, Long> _lootBaselines = new java.util.LinkedHashMap<>();
 		private long _nextResummonAttemptNanos;
@@ -666,7 +668,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public Optional<SelectedSkill> npcRaidDefenseSkill(PhantomRaidCombatRequest request)
 		{
-			if (request == null || request.profileId() != _profileId || request.planOwnershipToken().isCancelled() || _closed.get() || _materializationLease.isClosed() || World.getInstance().getPlayer(_player.getObjectId()) != _player) { return Optional.empty(); }
+			if (request == null || request.profileId() != _profileId || request.planOwnershipToken().isCancelled() || !executionValid() || World.getInstance().getPlayer(_player.getObjectId()) != _player) { return Optional.empty(); }
 			final ActorSnapshot actor = actorSnapshot();
 			final WorldObject object = World.getInstance().findObject(request.targetObjectId());
 			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.moving() || actor.currentHp() > actor.maximumHp() * 0.75 || !(object instanceof Monster target) || !validRaidAggroRecipient(target, actor, request) || target.getMostHated() != _player || !org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player)) { return Optional.empty(); }
@@ -682,7 +684,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			if (selected == null || _player.isCastingNow() || _player.isAttackingNow() || npcRaidDefenseSkill(request).filter(selected::equals).isEmpty()) { return ActionOutcome.REJECTED; }
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			if (skill == null || skill.getLevel() != selected.skillLevel() || !_player.checkDoCastConditions(skill) || !skill.checkCondition(_player, _player, false)) { return ActionOutcome.UNAVAILABLE; }
-			if (request.planOwnershipToken().isCancelled() || _closed.get() || _materializationLease.isClosed()) { return ActionOutcome.REJECTED; }
+			if (request.planOwnershipToken().isCancelled() || !executionValid()) { return ActionOutcome.REJECTED; }
 			_ownedRaidSelfDefense = selected;
 			_ownedRaidDefenseTargetObjectId = request.targetObjectId();
 			_player.setTarget(_player);
@@ -2102,7 +2104,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
-		public boolean regroupReady() { return !_closed.get() && !_materializationLease.isClosed() && regroupIdle(_player); }
+		public boolean regroupReady() { return executionValid() && regroupIdle(_player); }
 
 		@Override
 		public boolean partyWalkSafe(int x, int y, int z, int instanceId)
@@ -2118,7 +2120,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ActionOutcome regroupParty(MemberRef actor, MemberRef leader, List<MemberRef> roster, List<MemberRef> majority, java.util.function.BooleanSupplier authority)
 		{
-			if (actor.kind() != MemberKind.PHANTOM || actor.profileId() != _profileId || actor.characterObjectId() != _player.getObjectId() || _closed.get() || _materializationLease.isClosed()
+			if (actor.kind() != MemberKind.PHANTOM || actor.profileId() != _profileId || actor.characterObjectId() != _player.getObjectId() || !executionValid()
 				|| roster.size() < 3 || roster.size() > 9 || majority.size() <= roster.size() / 2 || !roster.contains(actor) || !roster.containsAll(majority) || majority.contains(actor) || !authority.getAsBoolean()) { return ActionOutcome.REJECTED; }
 			final Player nativeLeader = World.getInstance().getPlayer(leader.characterObjectId());
 			final var party = nativeLeader == null ? null : nativeLeader.getParty();

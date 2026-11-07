@@ -1356,6 +1356,9 @@ public final class PhantomCombatService
 			{
 				return;
 			}
+			if (session._actorLease == null || !session._actorLease.executionValid()) { finish(session, PhantomCombatResult.CANCELLED); return; }
+			try (var execution = session._actorLease.enterExecutionScope())
+			{
 			final long now = now();
 			if (session._request.planOwnershipToken().isCancelled())
 			{
@@ -1470,6 +1473,7 @@ public final class PhantomCombatService
 			session._phase = PhantomCombatPhase.FIGHTING;
 			issueAction(session, actor);
 			requeue(session);
+			}
 		}
 		catch (Throwable throwable)
 		{

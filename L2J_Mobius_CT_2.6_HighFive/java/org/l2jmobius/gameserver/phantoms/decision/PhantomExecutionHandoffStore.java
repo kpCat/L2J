@@ -53,10 +53,14 @@ public final class PhantomExecutionHandoffStore
 	{ return write(expected, expected.state().yield(now), List.of(), List.of(), List.of()); }
 	public Stored recoverSource(Stored expected)
 	{ return write(expected, expected.state().recoverSource(), List.of(), List.of(), List.of()); }
+	public Stored restartRecovery(Stored expected)
+	{ return write(expected, expected.state().restartRecovery(), List.of(), List.of(), List.of()); }
 
 	/** Persist the owner's resumable changes and their exact post-write proof in the same transaction. */
 	public Stored checkpoint(Stored expected, List<ComponentMutation> changes, List<String> dependencyTypes, long now)
 	{ return checkpoint(expected, changes, dependencyTypes, now, false, List.of()); }
+	public Stored checkpoint(Stored expected, List<ComponentMutation> changes, List<String> dependencyTypes, List<PhantomProfileComponent> authority, long now)
+	{ return checkpoint(expected, changes, dependencyTypes, now, false, authority); }
 
 	/** RECOVER acknowledgement and owner changes share one guarded transaction before NORMAL admission opens. */
 	public Stored recovered(Stored expected, List<ComponentMutation> changes, List<PhantomProfileComponent> authority)
@@ -66,12 +70,17 @@ public final class PhantomExecutionHandoffStore
 		return checkpoint(expected, changes, List.copyOf(types), 0, true, authority);
 	}
 
+	/** A crash after YIELD may precede its first proof. The owner must supply a full recovery read set. */
+	public Stored recovered(Stored expected, List<ComponentMutation> changes, List<String> dependencyTypes, List<PhantomProfileComponent> authority)
+	{ return checkpoint(expected, changes, dependencyTypes, 0, true, authority); }
+
 	private Stored checkpoint(Stored expected, List<ComponentMutation> changes, List<String> dependencyTypes, long now, boolean recovery, List<PhantomProfileComponent> authority)
 	{
 		if (dependencyTypes == null || dependencyTypes.isEmpty() || dependencyTypes.size() > PhantomExecutionHandoff.MAX_DEPENDENCIES
 			|| dependencyTypes.stream().distinct().count() != dependencyTypes.size() || dependencyTypes.contains(COMPONENT_TYPE)
 			|| changes == null || changes.size() > PhantomExecutionHandoff.MAX_DEPENDENCIES || changes.stream().map(ComponentMutation::componentType).distinct().count() != changes.size()
-			|| changes.stream().anyMatch(c -> !dependencyTypes.contains(c.componentType())))
+			|| changes.stream().anyMatch(c -> !dependencyTypes.contains(c.componentType()))
+			|| recovery && expected.state().dependencies().stream().anyMatch(d -> !dependencyTypes.contains(d.componentType())))
 		{ throw new IllegalArgumentException("Invalid bounded execution checkpoint components."); }
 		final var guards = new ArrayList<PhantomProfileComponent>(); final var absent = new ArrayList<ComponentAbsence>();
 		final var dependencies = new ArrayList<PhantomExecutionHandoff.Dependency>();

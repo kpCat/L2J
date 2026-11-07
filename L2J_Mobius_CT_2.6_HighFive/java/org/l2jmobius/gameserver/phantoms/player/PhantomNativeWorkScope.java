@@ -15,6 +15,8 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Owner;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Ticket;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.TimerRegistration;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission.Stamp;
 
 /** One monitor linearizes roots, transitive children, completion and checkpoint sealing. */
 public final class PhantomNativeWorkScope implements Owner
@@ -26,6 +28,8 @@ public final class PhantomNativeWorkScope implements Owner
 	private final Player _player;
 	private final PhantomIdentityLeaseRegistry.Lease _identity;
 	private final long _epoch;
+	private final PhantomExecutionAdmission _execution;
+	private final long _profileId;
 	private final PlayerNativeEvidence _evidence;
 	private final Map<Long, WorkTicket> _outstanding = new LinkedHashMap<>();
 	private final Map<Long, PendingTimer> _pendingTimers = new LinkedHashMap<>();
@@ -184,8 +188,12 @@ public final class PhantomNativeWorkScope implements Owner
 	}
 
 	PhantomNativeWorkScope(Object monitor, Player player, PhantomIdentityLeaseRegistry.Lease identity, long epoch)
+	{ this(monitor, player, identity, epoch, null, 0); }
+
+	PhantomNativeWorkScope(Object monitor, Player player, PhantomIdentityLeaseRegistry.Lease identity, long epoch, PhantomExecutionAdmission execution, long profileId)
 	{
 		_monitor = monitor; _player = player; _identity = identity; _epoch = epoch;
+		_execution = execution; _profileId = profileId;
 		_evidence = new PlayerNativeEvidence(player.getObjectId(), epoch);
 	}
 
@@ -236,18 +244,35 @@ public final class PhantomNativeWorkScope implements Owner
 	}
 
 	@Override public Ticket reserve(Ticket parent, String kind, Semantics semantics)
+	{ return reserve(parent, kind, semantics, null, false); }
+
+	Ticket reserveAction(Stamp stamp)
+	{ return reserve(PlayerNativeWork.current(this), "ACTION", Semantics.CANCELLABLE, stamp, false); }
+	Ticket reserveObservation()
+	{ return reserve(PlayerNativeWork.current(this), "OBSERVATION", Semantics.CANCELLABLE, null, true); }
+	Stamp currentExecutionStamp()
+	{
+		final var current = PlayerNativeWork.current(this);
+		return current instanceof WorkTicket ticket && !ticket._observation ? ticket._executionStamp : null;
+	}
+	private Ticket reserve(Ticket parent, String kind, Semantics semantics, Stamp requested, boolean observation)
 	{
 		synchronized (_monitor)
 		{
 			final boolean child = (parent instanceof WorkTicket ticket) && (ticket.owner() == this) && (ticket._state == WorkState.RUNNING);
 			if (!isCurrent() || (_permanentSeal && (_state == State.OPEN)) || ((_state != State.OPEN) && !((_state == State.DRAINING) && child))) { return null; }
 			if ((parent != null) && !child) { throw new IllegalStateException("NATIVE_WORK_PARENT_EXPIRED"); }
+			if (child && ((WorkTicket) parent)._observation && !observation) { return null; }
+			final var inherited = child ? ((WorkTicket) parent)._executionStamp : null;
+			if (requested != null && inherited != null && (requested.profileId() != inherited.profileId() || requested.generation() != inherited.generation()
+				|| requested.admissionEpoch() != inherited.admissionEpoch() || !requested.owner().equals(inherited.owner()))) { return null; }
+			final var execution = observation ? null : requested != null ? requested : inherited != null ? inherited : _execution == null ? null : _execution.currentCapturedStamp(_profileId);
 			if (_outstanding.size() >= MAX_OUTSTANDING)
 			{
 				if (child && (semantics == Semantics.EARNED)) { _failure = "UNREGISTERED_EARNED_WORK_CAP"; }
 				throw new IllegalStateException("NATIVE_WORK_ACCOUNTING_CAP");
 			}
-			final var ticket = new WorkTicket(++_sequence, kind, semantics, child ? ((WorkTicket) parent)._depth + 1 : 0, child ? ((WorkTicket) parent)._id : 0);
+			final var ticket = new WorkTicket(++_sequence, kind, semantics, child ? ((WorkTicket) parent)._depth + 1 : 0, child ? ((WorkTicket) parent)._id : 0, execution, observation);
 			_outstanding.put(ticket._id, ticket);
 			_peak = Math.max(_peak, _outstanding.size());
 			publishWork();
@@ -276,6 +301,7 @@ public final class PhantomNativeWorkScope implements Owner
 		synchronized (_monitor)
 		{
 			final boolean child = (parent instanceof WorkTicket ticket) && (ticket.owner() == this) && (ticket._state == WorkState.RUNNING);
+			if (child && ((WorkTicket) parent)._observation) { return null; }
 			final boolean earned = child && !repeating && (parent.semantics() == Semantics.EARNED);
 			if (!isCurrent() || ((_state != State.OPEN) && !((_state == State.DRAINING) && earned))) { return null; }
 			if ((parent != null) && !child) { throw new IllegalStateException("NATIVE_WORK_PARENT_EXPIRED"); }
@@ -286,7 +312,8 @@ public final class PhantomNativeWorkScope implements Owner
 				throw failure;
 			}
 			final Ticket obligation = earned ? reserve(parent, kind, Semantics.EARNED) : null;
-			final var registration = new PendingTimer(++_sequence, kind, repeating, obligation, stop);
+			final var execution = child ? ((WorkTicket) parent)._executionStamp : _execution == null ? null : _execution.currentCapturedStamp(_profileId);
+			final var registration = new PendingTimer(++_sequence, kind, repeating, obligation, stop, execution);
 			_pendingTimers.put(registration._id, registration);
 			publishWork();
 			return registration;
@@ -573,6 +600,8 @@ public final class PhantomNativeWorkScope implements Owner
 		private final Semantics _semantics;
 		private final int _depth;
 		private final long _parentId;
+		private final Stamp _executionStamp;
+		private final boolean _observation;
 		private final long _created = System.nanoTime();
 		private final PlayerNativeEvidence.CombatEpisode _combatEpisode;
 		private WorkState _state = WorkState.RESERVED;
@@ -582,8 +611,11 @@ public final class PhantomNativeWorkScope implements Owner
 		private volatile String _dispatchStatus = "RESERVED";
 		private volatile java.util.concurrent.ScheduledFuture<?> _dispatchFuture;
 		private WorkTicket(long id, String kind, Semantics semantics, int depth, long parentId)
+		{ this(id, kind, semantics, depth, parentId, null, false); }
+		private WorkTicket(long id, String kind, Semantics semantics, int depth, long parentId, Stamp execution, boolean observation)
 		{
 			_id = id; _kind = PhantomCleanupIncident.bounded(kind, 80); _semantics = semantics; _depth = depth; _parentId = parentId;
+			_executionStamp = execution; _observation = observation;
 			_combatEpisode = PlayerNativeWork.captureCombatEpisode(PhantomNativeWorkScope.this);
 			_traceDispatch = (kind.startsWith("EVENT:") || isCastContinuationKind(kind)) && org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().diagnosticsEnabled();
 		}
@@ -689,11 +721,13 @@ public final class PhantomNativeWorkScope implements Owner
 		private final boolean _repeating;
 		private final Ticket _obligation;
 		private final Runnable _stop;
+		private final Stamp _executionStamp;
 		private boolean _stopped;
 		private boolean _started;
-		private PendingTimer(long id, String kind, boolean repeating, Ticket obligation, Runnable stop)
+		private PendingTimer(long id, String kind, boolean repeating, Ticket obligation, Runnable stop, Stamp execution)
 		{
 			_id = id; _kind = PhantomCleanupIncident.bounded(kind, 80); _repeating = repeating; _obligation = obligation; _stop = stop;
+			_executionStamp = execution;
 		}
 		@Override public Ticket start()
 		{
@@ -711,7 +745,7 @@ public final class PhantomNativeWorkScope implements Owner
 				}
 				if (_stopped || !isCurrent() || (!_repeating && _started)) { return null; }
 				if ((_obligation == null) && (_state != State.OPEN)) { stopLocked(); return null; }
-				final Ticket ticket = _obligation == null ? reserve(null, _kind, Semantics.CANCELLABLE) : _obligation;
+				final Ticket ticket = _obligation == null ? reserve(null, _kind, Semantics.CANCELLABLE, _executionStamp, false) : _obligation;
 				if ((ticket == null) || !ticket.tryStart()) { return null; }
 				_started = true;
 				return ticket;

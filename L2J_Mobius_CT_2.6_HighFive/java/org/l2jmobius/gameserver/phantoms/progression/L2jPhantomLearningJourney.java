@@ -230,7 +230,11 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		synchronized (_monitor) { if (_state != State.RUNNING || _active.size() >= LIMIT || !_active.add(profileId)) { return retry("learning.busy"); } }
 		try
 		{
-			if (token.isCancelled()) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
+			if (token.isCancelled())
+			{
+				if (token.yieldRequested()) { return retry("learning.execution.yield_requested"); }
+				cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled");
+			}
 			if (request == null || !current(profileId, goal)) { cleanup(profileId); return fail("learning.goal.stale"); }
 			if (!_actionAllowed.test(profileId)) { return retry("learning.owner.busy"); }
 			if (!_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { cleanup(profileId); return fail("learning.knowledge.changed"); }
@@ -325,7 +329,11 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 					}
 					put(profileId, travel.next()); return retry("learning.navigation.waypoint");
 				}
-				if (cancelled(intent, request, player, token) || !current(profileId, goal) || !_actionAllowed.test(profileId)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
+				if (cancelled(intent, request, player, token) || !current(profileId, goal) || !_actionAllowed.test(profileId))
+				{
+					if (token.yieldRequested() && current(profileId, goal)) { return retry("learning.execution.yield_requested"); }
+					cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled");
+				}
 				if (!player.isMoving() && !player.isMovementDisabled())
 				{
 					synchronized (_monitor)

@@ -96,18 +96,36 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 		{
 			return Optional.of(new L2jActorLease(profileId, boundary.player(), boundary.owner(), _catalog, _clock));
 		}
-		return _materializationService.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease, _catalog, _clock));
+		return (java.util.Objects.equals(_completionProfile.get(), profileId) ? _materializationService.tryAcquireCompletionAction(profileId) : _materializationService.tryAcquireAction(profileId)).map(lease -> new L2jActorLease(profileId, lease, _catalog, _clock));
 	}
 
 	@Override
 	public PhantomCommerceService.OperationResult withNativeBoundary(long profileId, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
 	{
-		if (intent.kind() == OperationKind.TELEPORT) { return operation.get(); }
+		return _materializationService.withExecutionGuard(profileId, false, () -> intent.kind() == OperationKind.TELEPORT ? operation.get() : nativeBoundary(profileId, operation, intent.kind() == OperationKind.BUY),
+			PhantomCommerceService.OperationResult.retry(Reason.EXECUTION_NOT_OWNED));
+	}
+	private final ThreadLocal<Long> _completionProfile = new ThreadLocal<>();
+	@Override public PhantomCommerceService.OperationResult withAcceptedBoundary(long profileId, OperationIntent intent, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
+	{
+		return _materializationService.withExecutionGuard(profileId, true, () ->
+		{
+			final var previous = _completionProfile.get(); _completionProfile.set(profileId);
+			try { return intent.kind() == OperationKind.TELEPORT ? operation.get() : nativeBoundary(profileId, operation, false); }
+			finally { if (previous == null) { _completionProfile.remove(); } else { _completionProfile.set(previous); } }
+		}, PhantomCommerceService.OperationResult.retry(Reason.EXECUTION_NOT_OWNED));
+	}
+
+	@Override public PhantomCommerceService.OperationResult withQuiescentBoundary(long profileId, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation)
+	{ return _materializationService.withExecutionGuard(profileId, true, () -> nativeBoundary(profileId, operation, false), PhantomCommerceService.OperationResult.retry(Reason.EXECUTION_NOT_OWNED)); }
+
+	private PhantomCommerceService.OperationResult nativeBoundary(long profileId, java.util.function.Supplier<PhantomCommerceService.OperationResult> operation, boolean allowHeldBuy)
+	{
 		final var entry = _materializationService.find(profileId).orElse(null);
 		final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
 		if (player == null || !entry.actionAdmissionOpen() || !(player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner)
 			|| !owner.isCurrent() || !owner.open() || !owner.nativeObservationHealthy()) { return PhantomCommerceService.OperationResult.retry(Reason.ACTOR_NOT_MATERIALIZED); }
-		if (org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(owner) != null) { return intent.kind() == OperationKind.BUY ? operation.get() : PhantomCommerceService.OperationResult.retry(Reason.OPERATION_BUSY); }
+		if (org.l2jmobius.gameserver.model.actor.PlayerNativeWork.current(owner) != null) { return allowHeldBuy ? operation.get() : PhantomCommerceService.OperationResult.retry(Reason.OPERATION_BUSY); }
 		return owner.checkpoint(() ->
 		{
 			final var previous = _boundary.get();
@@ -153,6 +171,11 @@ public final class L2jCommerceBackend implements PhantomCommerceService.Backend
 
 		@Override
 		public boolean freeTravel() { return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.freeTravel(_player); }
+		@Override public boolean exclusiveCheckpoint()
+		{
+			return _checkpointOwner != null && _checkpointOwner.isCurrent() && _checkpointOwner.temporaryCheckpoint() && _checkpointOwner.nativeObservationHealthy()
+				&& _player.getNativeWorkOwner() == _checkpointOwner && !_player.hasPendingOwnedStore() && !_player.isProcessingTransaction();
+		}
 
 		@Override
 		public Quote quote(OperationIntent intent)

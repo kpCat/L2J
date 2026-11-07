@@ -59,6 +59,140 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	private final Set<Long> _pendingAttaches = new HashSet<>();
 	private long _persistenceOperationSequence;
 	private volatile State _state = State.NEW;
+	private PhantomExecutionHandoffStore _executionStore;
+	private PhantomExecutionAdmission _executionAdmission;
+	private java.util.Map<String, ExecutionOwner> _executionOwners = java.util.Map.of();
+
+	/** Existing Scheduler calls one bounded transition. This installs no thread, timer or second executor. */
+	public void installExecutionHandoff(PhantomExecutionHandoffStore store, PhantomExecutionAdmission admission, java.util.Map<String, ExecutionOwner> owners)
+	{
+		synchronized (_monitor)
+		{
+			if (_state != State.NEW || _executionStore != null || owners == null || owners.isEmpty() || owners.size() > 16)
+			{ throw new IllegalStateException("Execution owners must bind once before Decision start."); }
+			_executionStore = Objects.requireNonNull(store); _executionAdmission = Objects.requireNonNull(admission);
+			_executionOwners = java.util.Map.copyOf(owners);
+		}
+	}
+
+	/** All effectful cooperation stays with the original owner; no default implementation grants a yield. */
+	public interface ExecutionOwner
+	{
+		ExecutionReadiness prepareYield(PhantomExecutionHandoffStore.Stored expected, long now);
+		ExecutionReadiness prepareRecovery(PhantomExecutionHandoffStore.Stored expected, long now);
+		/** Enclose callback in the exact native checkpoint, or prove the exact identity absent. */
+		boolean checkpointBoundary(PhantomExecutionHandoffStore.Stored expected, Runnable callback);
+		ExecutionCheckpoint checkpoint(PhantomExecutionHandoffStore.Stored expected, boolean recovery, long now);
+		/** Recipient reservation/priority/TTL proof is checked again in the transfer transaction. */
+		ExecutionAuthority authority(PhantomExecutionHandoffStore.Stored expected, long now);
+	}
+	public record ExecutionReadiness(boolean ready, String reason, long nextDue)
+	{
+		public ExecutionReadiness { if (reason == null || reason.isBlank() || nextDue < 0) { throw new IllegalArgumentException("Execution readiness requires a reason and finite due time."); } }
+	}
+	public record ExecutionAuthority(ExecutionReadiness readiness, java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> guards)
+	{ public ExecutionAuthority { Objects.requireNonNull(readiness); guards = java.util.List.copyOf(guards); } }
+	public record ExecutionCheckpoint(java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation> changes,
+		java.util.List<String> dependencyTypes, java.util.List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> authority)
+	{
+		public ExecutionCheckpoint
+		{
+			changes = java.util.List.copyOf(changes); dependencyTypes = java.util.List.copyOf(dependencyTypes); authority = java.util.List.copyOf(authority);
+			if (dependencyTypes.isEmpty()) { throw new IllegalArgumentException("Owner recovery/checkpoint requires its complete read set."); }
+		}
+	}
+	public record ExecutionProgress(PhantomExecutionHandoffStore.Stored stored, boolean progressed, String reason, long nextDue) { }
+
+	public PhantomExecutionHandoffStore.Stored requestExecution(PhantomExecutionHandoffStore.Stored expected, PhantomDomainRef recipient, String requestId, long now, long deadline)
+	{
+		requireExecutionOwner(expected.state().owner()); requireExecutionOwner(recipient);
+		return _executionAdmission.requesting(expected.profileId(), expected.component().rowVersion(), () ->
+		{
+			final var requested = _executionStore.request(expected, recipient, requestId, now, deadline);
+			publishExecution(requested); return requested;
+		});
+	}
+
+	/** Cancellation has the same safe recovery path as timeout, never a new recipient grant. */
+	public ExecutionProgress advanceExecution(PhantomExecutionHandoffStore.Stored expected, long now, boolean cancel)
+	{
+		final var state = expected.state(); final long id = expected.profileId();
+		final var source = requireExecutionOwner(state.owner());
+		if (state.phase() == PhantomExecutionHandoff.Phase.ACTIVE)
+		{ return new ExecutionProgress(expected, false, "execution.active", now); }
+		final boolean recovering = state.phase() == PhantomExecutionHandoff.Phase.RECOVERING;
+		final ExecutionReadiness ready;
+		try (var scope = _executionAdmission.enterCompletionOwner(_ -> state.owner()))
+		{
+			ready = recovering ? source.prepareRecovery(expected, now)
+				: state.phase() == PhantomExecutionHandoff.Phase.REQUESTED ? source.prepareYield(expected, now)
+				: new ExecutionReadiness(true, "execution.yielded", now);
+		}
+		if (!ready.ready()) { return waitingExecution(expected, ready, now); }
+		if (!_executionAdmission.quiescentCurrent(id, expected.component().rowVersion()))
+		{ return new ExecutionProgress(expected, false, "execution.wait_earned_or_recovery", Math.addExact(now, 100)); }
+		final boolean expired = !recovering && now >= state.deadline();
+		final ExecutionAuthority recipient;
+		if (!recovering && !cancel && !expired && state.phase() == PhantomExecutionHandoff.Phase.CHECKPOINTED)
+		{
+			recipient = requireExecutionOwner(state.recipient()).authority(expected, now);
+			if (!recipient.readiness().ready()) { return waitingExecution(expected, recipient.readiness(), now); }
+		}
+		else { recipient = null; }
+		final var result = new java.util.concurrent.atomic.AtomicReference<PhantomExecutionHandoffStore.Stored>();
+		final boolean completed = _executionAdmission.quiescent(id, expected.component().rowVersion(), () ->
+		{
+			final boolean nativeCompleted = source.checkpointBoundary(expected, () ->
+			{
+				PhantomExecutionHandoffStore.Stored next;
+				if (recovering)
+				{
+					final var proof = source.checkpoint(expected, true, now);
+					next = _executionStore.recovered(expected, proof.changes(), proof.dependencyTypes(), proof.authority());
+				}
+				else if (cancel || expired) { next = _executionStore.recoverSource(expected); }
+				else if (state.phase() == PhantomExecutionHandoff.Phase.REQUESTED || state.phase() == PhantomExecutionHandoff.Phase.YIELDED)
+				{
+					final var proof = source.checkpoint(expected, false, now);
+					final var yielded = state.phase() == PhantomExecutionHandoff.Phase.YIELDED ? expected : _executionStore.yielded(expected, now);
+					publishExecution(yielded);
+					next = _executionStore.checkpoint(yielded, proof.changes(), proof.dependencyTypes(), proof.authority(), now);
+				}
+				else { next = _executionStore.transfer(expected, recipient.guards(), now); }
+				publishExecution(next); result.set(next);
+			});
+			if (nativeCompleted != (result.get() != null)) { throw new IllegalStateException("Owner checkpoint completion disagrees with its durable callback."); }
+			return nativeCompleted;
+		});
+		if (!completed) { return new ExecutionProgress(expected, false, "execution.wait_native_boundary", Math.addExact(now, 100)); }
+		return new ExecutionProgress(result.get(), true, "execution." + result.get().state().phase().name().toLowerCase(java.util.Locale.ROOT), now);
+	}
+
+	/** Reconcile unknown acknowledgement/restart only under the actual owner's native/absence boundary. */
+	public PhantomExecutionHandoffStore.Stored recoverExecutionAcknowledgement(PhantomExecutionHandoffStore.Stored actual)
+	{
+		final var result = new java.util.concurrent.atomic.AtomicReference<PhantomExecutionHandoffStore.Stored>();
+		final boolean completed = requireExecutionOwner(actual.state().owner()).checkpointBoundary(actual, () ->
+		{
+			final var fenced = actual.state().phase() == PhantomExecutionHandoff.Phase.ACTIVE ? _executionStore.restartRecovery(actual) : actual;
+			_executionAdmission.acknowledgeRecovery(fenced.profileId(), fenced.component().rowVersion(), fenced.state()); result.set(fenced);
+		});
+		if (!completed || result.get() == null) { throw new IllegalStateException("Execution recovery could not prove its native/absence boundary."); }
+		return result.get();
+	}
+	private static ExecutionProgress waitingExecution(PhantomExecutionHandoffStore.Stored expected, ExecutionReadiness ready, long now)
+	{
+		if (ready.nextDue() <= now) { throw new IllegalStateException("A waiting execution owner must provide its next finite retry boundary."); }
+		return new ExecutionProgress(expected, false, ready.reason(), ready.nextDue());
+	}
+	private ExecutionOwner requireExecutionOwner(PhantomDomainRef owner)
+	{
+		final var port = _executionOwners.get(owner.namespace());
+		if (port == null) { throw new IllegalStateException("Missing execution owner: " + owner.namespace()); }
+		return port;
+	}
+	private void publishExecution(PhantomExecutionHandoffStore.Stored stored)
+	{ _executionAdmission.publish(stored.profileId(), stored.component().rowVersion(), stored.state()); }
 
 	public PhantomDecisionEngine(PhantomGoalStore store, PhantomCandidateRegistry candidateRegistry, PhantomStepHandlerRegistry handlerRegistry, PhantomMetrics metrics, int maximumAttachedProfiles)
 	{
@@ -677,7 +811,11 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		slot._attempt++;
 		_metrics.recordDecisionStepAttempted();
 		final long generation = slot._generation;
-		final PhantomCancellationToken token = () -> !executionCurrent(execution) || !isPlanCurrent(slot, generation, plan);
+		final PhantomCancellationToken token = new PhantomCancellationToken()
+		{
+			@Override public boolean isCancelled() { return !executionCurrent(execution) || !isPlanCurrent(slot, generation, plan); }
+			@Override public boolean yieldRequested() { return execution.yieldRequested() && isPlanCurrent(slot, generation, plan); }
+		};
 		final PhantomStepContext context = new PhantomStepContext(slot._profileId, slot._goal, plan, step, workItem.effectiveState(), workItem.activityGeneration(), workItem.tickSequence(), workItem.logicalNowNanos(), slot._attempt, token);
 		return new HandlerClaim(slot, generation, slot._goal, plan, handler, context);
 	}
@@ -1248,6 +1386,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 	{
 		boolean valid();
 		default long executionGeneration() { return 0; }
+		default boolean yieldRequested() { return false; }
 		@Override void close();
 	}
 
