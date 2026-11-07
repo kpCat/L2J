@@ -557,6 +557,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private boolean unreserved(PhantomPartyPersistencePort.StoredRendezvous prior, MemberRef actor, long now)
 	{
 		if (prior == null || !prior.state().participant().actor().equals(actor) || prior.state().participant().epoch() != _backend.materializationEpoch(actor)) { return true; }
+		// A changed peer lifetime needs fresh consent, not the obsolete offer's decline cooldown.
+		if (prior.state().phase() == PhantomPartyRendezvousState.Phase.CANCELLED && prior.state().roster().stream()
+			.anyMatch(peer -> _backend.materializationEpoch(peer.actor()) != peer.epoch())) { return true; }
 		// Cancellation releases Solo immediately, but does not spam the same declined/failed offer again.
 		return !prior.state().active(now) && (prior.state().phase() != PhantomPartyRendezvousState.Phase.CANCELLED || now >= prior.state().expiresMillis());
 	}

@@ -257,6 +257,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					handoffAllowed.set(false);
 					for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
 					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Encounter ignored an unreleased native travel owner.");
+					final String obsoleteOffer = coordinator.rendezvous(3).orElseThrow().state().offerId();
+					backend._nativeEpochs.put(physicalLeader, backend._nativeEpoch + 1);
+					for (int slice = 0; slice < 6; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					PhantomAssertions.assertFalse(obsoleteOffer.equals(coordinator.rendezvous(3).orElseThrow().state().offerId()), "A peer's obsolete epoch imposed its cancelled-offer cooldown on the unchanged actor.");
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Fresh agreement bypassed the unreleased movement owner.");
 					handoffAllowed.set(true);
 				}
 				for (int slice = 0; slice < 32; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
@@ -1545,6 +1550,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(coordinator.saveRendezvous(saved.rowVersion() - 1, saved.state()).isEmpty(), "A competing stale reservation replaced its current owner.");
 				terminal.set(true); clock.addAndGet(6_000_000_000L); adapter.onPulse();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, states.loadRendezvous(1).orElseThrow().state().phase(), "A terminal route kept consent active instead of returning to Solo.");
+				for (int pulse = 0; pulse < 3; pulse++) { clock.addAndGet(6_000_000_000L); adapter.onPulse(); coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(saved.state().offerId(), states.loadRendezvous(1).orElseThrow().state().offerId(), "Unchanged epochs repeated the cancelled offer before its cooldown.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Rendezvous fixture did not drain."); }
 		});
@@ -3318,6 +3325,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	private static final class MemoryPartyBackend implements PhantomPartyBackend
 	{
 		private long _nativeEpoch = 1;
+		private final Map<Long, Long> _nativeEpochs = new LinkedHashMap<>();
 		private final Set<Long> _restartAbsent = new HashSet<>();
 		@Override
 		public boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)
@@ -3531,7 +3539,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		}
 
 		@Override public java.util.OptionalInt currentLevel(MemberRef member) { return _farmEnabled ? java.util.OptionalInt.of(_farmLevel) : java.util.OptionalInt.empty(); }
-		@Override public long materializationEpoch(MemberRef member) { return _members.containsValue(member) && !_restartAbsent.contains(member.profileId()) && (!_requiresTypedAdmission || _typedAdmitted.contains(member.profileId())) ? _nativeEpoch : 0; }
+		@Override public long materializationEpoch(MemberRef member) { return _members.containsValue(member) && !_restartAbsent.contains(member.profileId()) && (!_requiresTypedAdmission || _typedAdmitted.contains(member.profileId())) ? _nativeEpochs.getOrDefault(member.profileId(), _nativeEpoch) : 0; }
 		@Override public CurrentForceObservation currentForce(MemberRef member)
 		{
 			final boolean absent = _observeFarmAbsence && _members.containsValue(member) && !_unavailable.contains(member.profileId()) && !_parties.containsKey(member);
