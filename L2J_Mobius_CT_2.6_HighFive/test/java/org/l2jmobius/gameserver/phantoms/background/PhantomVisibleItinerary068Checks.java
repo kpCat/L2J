@@ -94,6 +94,14 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, false, false), "Stale/expired native consent held an ordinary root.");
 		});
 		registry.add("19-coordination-candidates-reach-bounded-ecology-and-exact-native-handoff", context -> coordinationPreparation(context.moduleRoot()));
+		registry.add("20-logical-assembly-holds-solo-without-taking-shared-or-necessary-child-work", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(false, true, false, false), "Solo work escaped the finite logical assembly before a physical offer existed.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(true, true, false, false), "Logical wait blocked its own explicit shared-source preparation.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(false, true, true, false), "Logical wait took an accepted child/combat/store owner.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(false, true, false, true), "Logical wait blocked a necessary new Supply/Learning proposal.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsLogicalAssemblyRoot(false, false, false, false), "Expired, draining or stale logical membership held Solo work.");
+		});
 	}
 	private static void coordinationPreparation(Path module) throws Exception
 	{

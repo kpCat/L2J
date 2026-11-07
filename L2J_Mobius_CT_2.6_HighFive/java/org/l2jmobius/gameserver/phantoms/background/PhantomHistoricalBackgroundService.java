@@ -1677,6 +1677,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
 			final boolean routeRecovery = !historicalIdle && (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
 				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
+			stage = "logical_assembly";
+			if (logicalAssemblyHoldsRoot(profileId, stored.goal(), sharedFarmSource != null)) { return false; }
 			stage = "suitability_travel";
 			if (!historicalIdle && !authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal()))
 				&& (sharedFarmSource == null || stored.goal().validSources().contains(sharedFarmSource)))
@@ -1689,7 +1691,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 						&& _visibleTravel.permitsPlannedFarmTravel(stored.goal(), live, player)) { prepared = true; return true; }
 			}
 			stage = "accepted_intent";
-			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal())) { return false; }
+			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal())
+				|| logicalAssemblyHoldsRoot(profileId, stored.goal(), sharedFarmSource != null)) { return false; }
 			stage = "stop_for_recovery";
 			if (sharedFarmSource != null && !rendezvousCurrent(profileId, expectedGoal, reservationCurrent)) { return false; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
@@ -1718,6 +1721,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					candidate -> !excluded.contains(targetKey(candidate)) && permitsTravel.test(candidate));
 			if (!replacement.ready())
 			{
+				stage += ":" + replacement.reasonKey();
 				final var recorder = org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance();
 				if (recorder.isRecording())
 				{
@@ -1738,7 +1742,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				|| supportTravelOnly && !_supportRendezvousPreparation.test(profileId, stored.goal())
 				|| !visibleActorQuiet(profileId, player, lifetime.materializedAtNanos()) || player.isInCombat()))
 			{ _visiblePublications.remove(profileId, publication); return false; }
-			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal()))
+			if (_acceptedIntent.test(profileId, stored.goal()) || sharedFarmSource == null && _acceptedPartyRoot.test(profileId, stored.goal())
+				|| logicalAssemblyHoldsRoot(profileId, stored.goal(), sharedFarmSource != null))
 			{ _visiblePublications.remove(profileId, publication); return false; }
 			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
 			catch (RuntimeException exception)
@@ -1760,7 +1765,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			synchronized (_visiblePreparationStages)
 			{
 				if (prepared) { _visiblePreparationStages.remove(profileId); }
-				else if (_visiblePreparationStages.containsKey(profileId) || _visiblePreparationStages.size() < 1024) { _visiblePreparationStages.put(profileId, "pre_visible." + stage); }
+				else if (_visiblePreparationStages.containsKey(profileId) || _visiblePreparationStages.size() < 1024)
+				{
+					final var previous = _visiblePreparationStages.get(profileId);
+					if (!"accepted_rendezvous_root".equals(stage) || previous == null || !previous.startsWith("rendezvous.prepare."))
+					{ _visiblePreparationStages.put(profileId, sharedFarmSource == null ? "pre_visible." + stage : "rendezvous.prepare." + stage + ";goal=" + expectedGoal.goalId() + ":" + expectedGoal.revision()); }
+				}
 			}
 		}
 	}
@@ -1873,6 +1883,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	static boolean holdsOrdinaryPartyRoot(boolean sharedPreparation, boolean exactNativePartyRoot, boolean acceptedExternalOwner)
 	{
 		return !sharedPreparation && exactNativePartyRoot && !acceptedExternalOwner;
+	}
+	static boolean holdsLogicalAssemblyRoot(boolean sharedPreparation, boolean finiteLogicalAssembly, boolean acceptedExternalOwner, boolean necessaryVisibleIntent)
+	{
+		return !sharedPreparation && finiteLogicalAssembly && !acceptedExternalOwner && !necessaryVisibleIntent;
+	}
+	private boolean logicalAssemblyHoldsRoot(long profileId, PhantomGoal root, boolean sharedPreparation)
+	{
+		if (sharedPreparation) { return false; }
+		final var group = logicalGroup(profileId, root);
+		return holdsLogicalAssemblyRoot(false, group != null && group.assemblyPending(profileId, root.goalId(), root.revision(), System.currentTimeMillis()),
+			_acceptedIntent.test(profileId, root), _visibleIntent.test(profileId, root));
 	}
 
 	/** A successful exact foreground handoff owns decisions, never ordinary historical work. */
