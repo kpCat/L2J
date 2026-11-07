@@ -258,6 +258,45 @@ public final class PhantomPopulationEcologyService
 	public record DemandFact(long profileId, long positionRevision, boolean couldKnow, long distanceSquared, long firstDemandNanos) {}
 	private static final Comparator<DemandFact> DEMAND_ORDER = Comparator.comparingInt((DemandFact fact) -> fact.couldKnow() ? 0 : 1).thenComparingLong(DemandFact::distanceSquared).thenComparingLong(DemandFact::firstDemandNanos).thenComparingLong(DemandFact::profileId);
 
+	/** Merge bounded discovery with still-current preparation, preserving age across discovery pages. */
+	public static List<DemandFact> mergePreparationDemands(List<DemandFact> local, Map<Long, DemandFact> retained, Iterable<Long> candidates, LongPredicate current, long nowNanos)
+	{
+		return mergePreparationDemands(local, retained, candidates, current, _ -> false, nowNanos);
+	}
+	public static List<DemandFact> mergePreparationDemands(List<DemandFact> local, Map<Long, DemandFact> retained, Iterable<Long> candidates, LongPredicate current, LongPredicate protectedOwner, long nowNanos)
+	{
+		retained.entrySet().removeIf(entry -> !current.test(entry.getKey()));
+		final var selected = new HashSet<Long>();
+		int examined = 0;
+		for (long id : candidates)
+		{
+			if (++examined > 1024) { break; }
+			if (retained.containsKey(id) || !current.test(id)) { continue; }
+			if (retained.size() >= 256)
+			{
+				final var replace = retained.values().stream().filter(fact -> !selected.contains(fact.profileId()) && !protectedOwner.test(fact.profileId()))
+					.min(Comparator.comparingLong(DemandFact::firstDemandNanos).thenComparingLong(DemandFact::profileId)).orElse(null);
+				if (replace == null) { continue; }
+				retained.remove(replace.profileId());
+			}
+			retained.put(id, new DemandFact(id, 0, false, Long.MAX_VALUE, nowNanos));
+			selected.add(id);
+		}
+		final var merged = new java.util.LinkedHashMap<Long, DemandFact>();
+		local.forEach(fact -> merged.put(fact.profileId(), fact));
+		retained.forEach(merged::putIfAbsent);
+		return List.copyOf(merged.values());
+	}
+	/** Cache turnover cannot withdraw a granted or executing preparation/native owner. */
+	public boolean ownsPreparation(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final var entry = _entries.get(profileId);
+			return _admittedPreparation.contains(profileId) || entry != null && (entry._claimed || entry._liveOwner);
+		}
+	}
+
 	/** Physical facts do not imply an expensive preparation lease. */
 	public void updateMaterializationDemand(List<DemandFact> facts, int availablePreparationSlots)
 	{

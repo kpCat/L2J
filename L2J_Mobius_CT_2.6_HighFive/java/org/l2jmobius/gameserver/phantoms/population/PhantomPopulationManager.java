@@ -1754,6 +1754,12 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 	}
 
+	/** A bounded in-memory discovery page; callers retain the cursor and revalidate calendar/admission. */
+	public List<Long> readyProfileIdsAfter(long after, int limit)
+	{
+		synchronized (_monitor) { return _readyIds.tailSet(Math.max(0, after), false).stream().limit(Math.max(0, Math.min(16, limit))).toList(); }
+	}
+
 	public PhantomPresenceRegistry presence()
 	{
 		return _presence;

@@ -93,6 +93,58 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, true, true), "Assembly stole the accepted Supply/Combat/Store owner.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, false, false), "Stale/expired native consent held an ordinary root.");
 		});
+		registry.add("19-coordination-candidates-reach-bounded-ecology-and-exact-native-handoff", context -> coordinationPreparation(context.moduleRoot()));
+	}
+	private static void coordinationPreparation(Path module) throws Exception
+	{
+		try (var fixture = new NativeRequestPresenceFixture(module))
+		{
+			final long now = System.currentTimeMillis();
+			final var demand = new AtomicReference<>(new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(
+				org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.LOGICAL_PARTY_WAKE, 2, 20, "group.fixture", now, now + 30_000));
+			fixture.ecology.installMaterializationDemand(id -> demand.get() != null && demand.get().current(System.currentTimeMillis()));
+			fixture.ecology.updateMaterializationDemand(List.of(), 1);
+			PhantomAssertions.assertFalse(fixture.hasTypedDue(), "A missing preparation candidate was silently admitted.");
+			final var retained = new java.util.LinkedHashMap<Long, PhantomPopulationEcologyService.DemandFact>();
+			final var facts = PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, fixture.manager.readyProfileIdsAfter(0, 16),
+				id -> id == fixture.profileId && demand.get() != null && demand.get().current(System.currentTimeMillis()), fixture.nowNanos.get());
+			fixture.ecology.updateMaterializationDemand(facts, 1);
+			for (int pulse = 0; pulse < 32; pulse++) { fixture.manager.onPulse(); }
+			PhantomAssertions.assertTrue(fixture.hasTypedDue(), "Current coordination demand never entered preparation without human locality.");
+			final var port = fixture.port(fixture::backgroundDemand, false, _ -> false, fixture.ecology);
+			port.installPhysicalDemand(_ -> demand.get());
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, port.materialize(fixture.profileId).outcome(), "Preparation did not reach the exact historical handoff.");
+			PhantomAssertions.assertEquals(MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF, fixture.loaded.get().kind(), "Coordination fabricated NORMAL admission.");
+			PhantomAssertions.assertFalse(facts.getFirst().couldKnow(), "Coordination fabricated human observation.");
+			PhantomAssertions.assertEquals(List.of(), fixture.manager.readyProfileIdsAfter(fixture.profileId, 16), "READY paging restarted without advancing its cursor.");
+			PhantomAssertions.assertEquals(facts, PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, List.of(), _ -> true, fixture.nowNanos.incrementAndGet()), "An empty discovery page withdrew valid pending preparation.");
+			demand.set(null);
+			PhantomAssertions.assertEquals(List.of(), PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, List.of(), _ -> false, fixture.nowNanos.get()), "Withdrawn demand retained a preparation lease.");
+			final var many = java.util.stream.LongStream.rangeClosed(1, 5000).boxed().toList();
+			PhantomAssertions.assertEquals(256, PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, many.subList(0, 256), _ -> true, fixture.nowNanos.get()).size(), "Preparation retained an unbounded population scan.");
+			final var rotated = PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, List.of(257L), _ -> true, id -> id <= 8, fixture.nowNanos.incrementAndGet());
+			PhantomAssertions.assertTrue(rotated.stream().anyMatch(fact -> fact.profileId() == 257), "A full current ambient cache permanently hid a later coordination candidate.");
+			for (long id = 1; id <= 8; id++) { PhantomAssertions.assertTrue(retained.containsKey(id), "Cache rotation revoked an admitted/running preparation owner."); }
+			retained.clear();
+			final var probes = new java.util.concurrent.atomic.AtomicInteger();
+			PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, many, _ -> { probes.incrementAndGet(); return false; }, fixture.nowNanos.get());
+			PhantomAssertions.assertEquals(1024, probes.get(), "Rejected candidates caused an unbounded discovery probe.");
+			final var seen = new java.util.HashSet<Long>();
+			for (int batch = 0; batch < 3; batch++)
+			{
+				PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, many.subList(0, 512), _ -> true, fixture.nowNanos.incrementAndGet())
+					.forEach(fact -> seen.add(fact.profileId()));
+			}
+			PhantomAssertions.assertEquals(512, seen.size(), "Candidates were inserted and evicted before their batch reached Ecology.");
+			retained.clear(); seen.clear();
+			for (int after = 0; after < many.size(); after += 16)
+			{
+				PhantomPopulationEcologyService.mergePreparationDemands(List.of(), retained, many.subList(after, Math.min(after + 16, many.size())), _ -> true, id -> id <= 8, fixture.nowNanos.incrementAndGet())
+					.forEach(fact -> seen.add(fact.profileId()));
+			}
+			PhantomAssertions.assertEquals(5000, seen.size(), "Bounded READY discovery pages permanently hid later profiles.");
+			for (long id = 1; id <= 8; id++) { PhantomAssertions.assertTrue(retained.containsKey(id), "Paged discovery revoked an executing owner."); }
+		}
 	}
 	private static void failedLogicalPreparation()
 	{
@@ -306,8 +358,8 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		while (scan.hasNext())
 		{
 			final int before = examined.get();
-			found.addAll(PhantomBackgroundService.nativeContextRequestPage(running, scan, values, issued, 256));
-			PhantomAssertions.assertTrue(examined.get() - before <= 256, "A request-cache page inspected more than256 entries.");
+			found.addAll(PhantomBackgroundService.nativeContextRequestPage(running, scan, values, issued, 16));
+			PhantomAssertions.assertTrue(examined.get() - before <= 16, "A request-cache page inspected more than16 entries.");
 		}
 		PhantomAssertions.assertEquals(List.of(5000L), found, "Bounded pages lost the current request behind5000 retained signal records.");
 		PhantomAssertions.assertEquals(5000, examined.get(), "Bounded pages rescanned or skipped cache entries.");

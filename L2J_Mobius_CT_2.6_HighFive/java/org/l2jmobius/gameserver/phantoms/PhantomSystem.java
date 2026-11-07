@@ -254,6 +254,8 @@ public final class PhantomSystem
 	private PhantomMaterializationRetentionPolicy _materializationRetention;
 	private org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator _logicalParties;
 	private final java.util.concurrent.ConcurrentMap<Long, org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand> _logicalWakeDemands = new java.util.concurrent.ConcurrentHashMap<>();
+	private long _physicalPreparationCursor;
+	private long _logicalPreparationCursor;
 	private PhantomOffscreenObserverAdmission _offscreenObservers;
 	private long _nextRetentionRefreshNanos;
 	private PhantomGameKnowledgeService _gameKnowledgeService;
@@ -3480,30 +3482,32 @@ public final class PhantomSystem
 
 	private java.util.List<PhantomPopulationEcologyService.DemandFact> withCurrentMaterializationDemands(java.util.List<PhantomPopulationEcologyService.DemandFact> local)
 	{
-		final var facts = new java.util.LinkedHashMap<Long, PhantomPopulationEcologyService.DemandFact>();
-		withAcceptedNativeJourneys(local).forEach(fact -> facts.put(fact.profileId(), fact));
+		final var wakePage = _logicalWakeDemands.keySet().stream().filter(id -> id > _logicalPreparationCursor).sorted().limit(16).toList();
+		_logicalPreparationCursor = wakePage.isEmpty() ? 0 : wakePage.getLast();
+		final var candidates = new java.util.LinkedHashSet<Long>(wakePage);
+		if (_backgroundService != null)
+		{
+			candidates.addAll(_backgroundService.currentNativeContextRequestProfiles(16));
+		}
+		if (_populationManager != null)
+		{
+			final var page = _populationManager.readyProfileIdsAfter(_physicalPreparationCursor, 16);
+			_physicalPreparationCursor = page.isEmpty() ? 0 : page.getLast();
+			candidates.addAll(page);
+		}
 		synchronized (_backgroundMaterializationDemands)
 		{
-			_backgroundMaterializationDemands.entrySet().removeIf(entry -> !currentBackgroundMaterializationDemand(entry.getKey()));
-			if (_backgroundService != null)
-			{
-				for (long id : _backgroundService.currentNativeContextRequestProfiles(256))
-				{
-					if (_backgroundMaterializationDemands.size() >= 256) { break; }
-					if (currentBackgroundMaterializationDemand(id))
-					{
-						_backgroundMaterializationDemands.putIfAbsent(id, new PhantomPopulationEcologyService.DemandFact(id, 0, false, Long.MAX_VALUE, System.nanoTime()));
-					}
-				}
-			}
-			_backgroundMaterializationDemands.forEach(facts::putIfAbsent);
+			return PhantomPopulationEcologyService.mergePreparationDemands(withAcceptedNativeJourneys(local), _backgroundMaterializationDemands, candidates,
+				id -> currentBackgroundMaterializationDemand(id) || currentPhysicalDemand(id) != null, _populationEcology::ownsPreparation, System.nanoTime());
 		}
-		return java.util.List.copyOf(facts.values());
 	}
 
 	private void clearBackgroundNativeContextDemands()
 	{
-		synchronized (_backgroundMaterializationDemands) { _backgroundMaterializationDemands.clear(); }
+		synchronized (_backgroundMaterializationDemands)
+		{
+			_backgroundMaterializationDemands.clear(); _physicalPreparationCursor = 0; _logicalPreparationCursor = 0;
+		}
 	}
 
 	private java.util.List<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact> withAcceptedNativeJourneys(java.util.List<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact> local)
