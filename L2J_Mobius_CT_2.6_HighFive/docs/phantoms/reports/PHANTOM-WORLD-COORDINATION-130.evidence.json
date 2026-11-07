@@ -1,5 +1,22 @@
 {
   "status": "IN_PROGRESS_OWNERSHIP_PROTOCOL",
+  "ownershipRecoveryCheckpoint": {
+    "baseHead": "a94a0b448986047aa568f448b6c7570cc204582e",
+    "codeHead": "e4b6ffa17729897eebc3e17c7d3b1236e423ed6a",
+    "executionSchemaVersion": 2,
+    "recipientRecoveryRequired": true,
+    "modelPassed": 190, "modelTotal": 190, "modelMillis": 8182,
+    "realSqlRecoveryCasAndChildResumeOnce": true,
+    "unacknowledgedChangedCheckpointRejected": true,
+    "oldExecutionSchemasOnManagedProfiles": 0,
+    "separateJvmPendingCheckpointFencedWrites": 0,
+    "existingConcurrentBackgroundSqlMillis": 3579,
+    "decisionPerformance1000ProfilesPassed": 2,
+    "postflightOwnJvm": 0, "postflightOwnListeners": 0, "protected207Hashes": "EXACT",
+    "nativeAdaptersInstalled": false,
+    "newJarBuilds": 0, "newNativeLaunches": 0,
+    "full130": false, "featurePushed": false
+  },
   "ownershipProtocolCheckpoint": {
     "resumedByUser": true,
     "baselineHead": "f64d77c7ed1a21e7fb22327ec3ec47b708d440c9",
