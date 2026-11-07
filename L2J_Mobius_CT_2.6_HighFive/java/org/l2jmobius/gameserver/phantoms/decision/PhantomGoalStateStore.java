@@ -189,7 +189,7 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 			if (!stored.state().deletion())
 			{
 				final var replacement = decode(requireStaged(id, PhantomGoalPublication.GOAL_COMPONENT, COMPONENT_SCHEMA_VERSION, stored.state().goalHash())).goal();
-				current &= replacement.status() != PhantomGoalStatus.ACTIVE || replacement.deadlineEpochMillis() > now;
+				current &= replacement.status() != PhantomGoalStatus.ACTIVE || replacement.deadlineEpochMillis() == 0 || replacement.deadlineEpochMillis() > now;
 			}
 			for (int i = 0; i < stored.state().companions().size(); i++)
 			{

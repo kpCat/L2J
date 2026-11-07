@@ -745,7 +745,7 @@ public final class PhantomCoordination130Integration
 		final var store = new PhantomExecutionHandoffStore(profiles); final var solo = PhantomExecutionHandoff.solo(id); var row = store.initialize(id, solo);
 		goals.installExecutionPublication(store, new PhantomExecutionAdmission(1), () -> 1000);
 		final var next = new PhantomGoal(root.goalId() + 1, "party.form", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, new PhantomDomainRef("party", "general"),
-			new PhantomDomainRef("character.object", "51"), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, System.currentTimeMillis() + 60_000, java.util.Map.of(), "conversation.party.invite", root.revision() + 1);
+			new PhantomDomainRef("character.object", "51"), 1, 0, null, List.of(), null, "conversation.action", 600, 0, 0, 0, java.util.Map.of(), "conversation.party.invite", root.revision() + 1);
 		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> goals.replace(id, 0, next), "Restart fixture skipped root publication.");
 		final var publication = goals.publication(id).orElseThrow(); row = store.request(row, solo, publication.state().requestId(), 1000, publication.state().deadline()); row = store.yielded(row, 1001);
 		final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.COMPONENT_TYPE,
