@@ -357,6 +357,24 @@ public final class PhantomCoordination130Integration
 		final var metrics = new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
 		final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics,
 			new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false,64,16,metrics),1);
+		final var nativeBackend = new org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend(profiles,materialization,null);
+		for (int size : List.of(2,6,9))
+		{
+			final var roster = java.util.stream.LongStream.rangeClosed(1,size).mapToObj(profile -> org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(profile,700_000_000 + (int) profile)).toList();
+			final var party = new org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot(roster.getFirst(),roster,org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS);
+			final var witness = new java.util.ArrayList<String>();
+			PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(party,java.util.Set.of(roster.getLast()),witness::add).isEmpty(),"Absent native actors received a target.");
+			PhantomAssertions.assertEquals(List.of("actor.unavailable=1"),witness,"A legal six/nine-member roster never reached the production native actor gate.");
+			witness.clear();
+			PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(party,java.util.Set.of(),witness::add).isEmpty(),"Absent DD-only native actors received a target.");
+			PhantomAssertions.assertEquals(List.of("actor.unavailable=1"),witness,"A flexible DD-only objective acquired a universal backend healer requirement.");
+		}
+		final var phantom = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(id,fixture.objectId());
+		final var human = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.real(799_999_999);
+		final var mixed = new org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot(phantom,List.of(phantom,human),org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS);
+		final var mixedWitness = new java.util.ArrayList<String>();
+		PhantomAssertions.assertTrue(nativeBackend.autonomousFarmTarget(mixed,java.util.Set.of(phantom),mixedWitness::add).isEmpty() && mixedWitness.isEmpty(),"Autonomous target selection touched a mixed human Party.");
+		System.out.println("SQL130_NATIVE_ROSTER_ADMISSION_PASS;LEGAL_2_6_9=ACTOR_GATE;MIXED=REJECTED;NATIVE_PLAYERS=0;ACTIONS=0");
 		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
 		{
 			@Override public SignalDelivery submit(long profile, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }

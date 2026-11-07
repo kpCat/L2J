@@ -1199,6 +1199,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		return status == Status.COMPLETE || status == Status.RUNNING && exactHandoff.getAsBoolean();
 	}
+	static boolean visibleIdleClaimAccepted(Status status, String failureReason, boolean acceptedSharedPreparation, java.util.function.BooleanSupplier exactHandoff)
+	{
+		if (status != Status.FAILED_REPLAN_REQUIRED) { return visibleIdleClaimAccepted(status, exactHandoff); }
+		return acceptedSharedPreparation && Set.of("native_context.required:logical_party_preparation", "native_context.required:logical_party_support").contains(failureReason)
+			&& exactHandoff.getAsBoolean();
+	}
 
 	static boolean nativeRecoveryGoalAccepted(long profileId, PhantomGoal expected, PhantomGoal actual)
 	{
@@ -1625,7 +1631,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (historicalIdle)
 			{
 				stage = "historical_idle_claim";
-				if (catchup == null || !visibleIdleClaimAccepted(catchup.state().status(), () ->
+				if (catchup == null || !visibleIdleClaimAccepted(catchup.state().status(), catchup.state().failureReason(), rendezvousTravelPreparation(profileId, stored.goal(), sharedFarmSource != null), () ->
 					{
 						final var idleHandoff = _foregroundHandoffs.get(profileId);
 						return idleHandoff != null && exactForegroundHandoff(profileId, idleHandoff);
@@ -1740,7 +1746,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 			if (authorityRenewal || historicalIdle ? !replacement.generation().equals(generation) || !generation.equals(_planner.generation()) || !currentClaim(profileId, catchup) : (replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
 			final var state = catchup.state();
-			final var updated = historicalIdle
+			final var updated = historicalIdle && !travelOnly
 				? state.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.generation().authorityHashes())
 				: new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), nextOrdinal, state.intervalOrdinal(), state.generation(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.goal().goalId(), replacement.goal().revision(), replacement.planIdentity(), state.modelVersion(), replacement.generation().authorityHashes(), state.failureReason());
 			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal());

@@ -401,7 +401,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	/** Bounded passive admission witness; it does not grant actions or change the guards. */
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, java.util.function.Consumer<String> witness)
 	{
-		if (party.members().size() < 2 || party.members().size() > 5 || supportMembers.isEmpty() || !party.members().containsAll(supportMembers) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM)) { return OptionalInt.empty(); }
+		if (party.members().size() < 2 || party.members().size() > 9 || !party.members().containsAll(supportMembers) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM)) { return OptionalInt.empty(); }
 		final List<AcquiredPlayer> leases = new ArrayList<>();
 		try
 		{
@@ -418,7 +418,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			}
 			final Player leader = actors.stream().filter(player -> player.getObjectId() == party.leader().characterObjectId()).findFirst().orElseThrow();
 			final var leaderState = members.stream().filter(member -> member.ref().equals(party.leader())).findFirst().orElseThrow();
-			if (members.stream().anyMatch(member -> !PhantomAutonomousFarmParty.compatible(leaderState, member)) || actors.stream().anyMatch(player -> Math.abs(player.getLevel() - leader.getLevel()) > 8) || members.stream().noneMatch(PhantomAutonomousFarmParty::support)) { if (witness != null) { witness.accept("roster.compatibility_or_support=" + members.stream().map(member -> member.ref().profileId() + ":compatible=" + PhantomAutonomousFarmParty.compatible(leaderState, member) + ":support=" + PhantomAutonomousFarmParty.support(member) + ":MP=" + member.mpPercent()).toList()); } return OptionalInt.empty(); }
+			if (members.stream().anyMatch(member -> !PhantomAutonomousFarmParty.compatible(leaderState, member)) || actors.stream().anyMatch(player -> Math.abs(player.getLevel() - leader.getLevel()) > 8)) { if (witness != null) { witness.accept("roster.compatibility=" + members.stream().map(member -> member.ref().profileId() + ":compatible=" + PhantomAutonomousFarmParty.compatible(leaderState, member) + ":support=" + PhantomAutonomousFarmParty.support(member) + ":MP=" + member.mpPercent()).toList()); } return OptionalInt.empty(); }
 			final List<Creature> candidates = new ArrayList<>();
 			if (leader.getTarget() instanceof Monster current && !current.isAlikeDead()) { candidates.add(current); }
 			World.getInstance().getVisibleObjectsInRange(leader, Monster.class, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE).stream().filter(target -> !candidates.contains(target)).sorted(java.util.Comparator.comparingDouble((Monster monster) -> leader.calculateDistance2D(monster)).thenComparingInt(Creature::getObjectId)).limit(8).forEach(candidates::add);

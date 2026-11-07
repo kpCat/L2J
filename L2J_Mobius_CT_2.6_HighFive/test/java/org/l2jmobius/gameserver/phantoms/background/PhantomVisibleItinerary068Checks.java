@@ -109,6 +109,18 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.rendezvousTravelOnly(false, true, true), "Ordinary Solo preparation inherited a physical rendezvous travel proposal.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.rendezvousTravelOnly(true, false, false), "Logical-only or stale physical consent supplied travel permission.");
 		});
+		registry.add("22-failed-logical-idle-can-adopt-only-current-native-shared-preparation", _ ->
+		{
+			final var failed = PhantomBackgroundCatchupState.Status.FAILED_REPLAN_REQUIRED;
+			for (String reason : List.of("native_context.required:logical_party_preparation", "native_context.required:logical_party_support"))
+			{
+				PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, reason, true, () -> true), "An exact admitted logical native prerequisite could not leave canonical idle for its current shared preparation.");
+				PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, reason, false, () -> true), "Ordinary Solo idle inherited failed shared-preparation permission.");
+				PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, reason, true, () -> false), "Stale native handoff supplied failed-idle permission.");
+			}
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, "catchup.baseline.conflict", true, () -> true), "Unrelated failure was laundered through shared idle preparation.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, () -> true), "Default ordinary failed-idle policy changed.");
+		});
 	}
 	private static void coordinationPreparation(Path module) throws Exception
 	{
