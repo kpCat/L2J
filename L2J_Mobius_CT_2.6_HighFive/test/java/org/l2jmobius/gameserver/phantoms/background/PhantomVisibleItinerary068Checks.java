@@ -92,6 +92,9 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(true, true, false), "Rendezvous blocked its own shared-source preparation.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, true, true), "Assembly stole the accepted Supply/Combat/Store owner.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, false, false), "Stale/expired native consent held an ordinary root.");
+			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(false, false, true), "Holding an adopted rendezvous root also stopped ordinary Decision/Travel.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(false, false, false), "Unchanged, expired or stale accepted root bypassed preparation.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(true, false, true), "Travel continuation bypassed shared-source preparation.");
 		});
 		registry.add("19-coordination-candidates-reach-bounded-ecology-and-exact-native-handoff", context -> coordinationPreparation(context.moduleRoot()));
 		registry.add("20-logical-assembly-holds-solo-without-taking-shared-or-necessary-child-work", _ ->

@@ -1323,6 +1323,11 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "supportRendezvousPreparation", 3, original), "RED129: a current accepted learned support needs its own travel-only preparation permission.");
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, original), "An unchanged old root cannot borrow the adopted travel exception.");
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousPreparation", 1, goals.load(1).orElseThrow().goal()), "A damage slot cannot borrow support-only admission.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, goals.load(1).orElseThrow().goal()), "An unchanged DD root acquired adopted travel permission.");
+				final var adoptedDamage = supportTravelRoot(1, 1, "farm.fixture"); goals.put(1, adoptedDamage);
+				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, adoptedDamage), "The exact adopted DD root is held but cannot reach Decision/Travel.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, supportTravelRoot(1, 1, "farm.foreign")), "Adopted DD travel ignored shared source identity.");
+				backend._nativeEpoch = 2; PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, adoptedDamage), "A new native epoch inherited adopted DD travel."); backend._nativeEpoch = 1;
 				PhantomAssertions.assertTrue(coordinator.assemblyDeadline(3) > now, "ACCEPTED must hold new Solo starts through the root-CAS to ASSEMBLING receipt gap.");
 				final var adopted = supportTravelRoot(3, 1, "farm.fixture"); goals.put(3, adopted);
 				PhantomAssertions.assertTrue(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "The exact ACCEPTED+1 publication gap must preserve only the adopted shared root.");
@@ -1339,12 +1344,15 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				states._rendezvous.put(3L, new PhantomPartyPersistencePort.StoredRendezvous(3, assembling.rowVersion() + 1, new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState(3, prior.offerId(), 1, roster, source, now - 120_000, now - 1, prior.phase(), 1)));
 				states._rejectRendezvousReads = false; coordinator.rendezvous(3); states._rejectRendezvousReads = true;
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "Expired consent cannot retain a travel exception.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, adoptedDamage), "Expired peer consent retained adopted DD Decision/Travel.");
 				states._rendezvous.put(3L, assembling); states._rejectRendezvousReads = false; coordinator.rendezvous(3); states._rejectRendezvousReads = true;
 				final var peer = states._rendezvous.get(1L); coordinator.saveRendezvous(peer.rowVersion(), peer.state().withPhase(org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED, 0)).orElseThrow();
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "A cancelled roster participant revokes shared support travel.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, adoptedDamage), "Cancelled consent retained adopted DD Decision/Travel.");
 				coordinator.beginStop();
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousPreparation", 3, original), "STOPPING cannot admit preparation.");
 				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "supportRendezvousTravel", 3, adopted), "STOPPING cannot preserve travel even though durable reservations remain.");
+				PhantomAssertions.assertFalse(supportPermission(coordinator, backend, "rendezvousTravelDecision", 1, adoptedDamage), "STOPPING retained adopted DD Decision/Travel.");
 				PhantomAssertions.assertEquals(rosterIds.size(), states._rendezvous.size(), "Stopping must not be represented as clearing durable consent.");
 			}
 			finally { states._rejectRendezvousReads = false; coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Support permission fixture did not drain."); }

@@ -82,6 +82,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyNativeLifetime = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _partyCommittedDecision = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedPartyRoot = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _rendezvousTravelDecision = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousPreparation = (_, _) -> false;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _supportRendezvousTravel = (_, _) -> false;
 
@@ -113,9 +114,16 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public void bindPartyNativeLifetime(java.util.function.BiPredicate<Long, PhantomGoal> retained, java.util.function.BiPredicate<Long, PhantomGoal> committedDecision,
 		java.util.function.BiPredicate<Long, PhantomGoal> acceptedRoot)
 	{
+		bindPartyNativeLifetime(retained, committedDecision, acceptedRoot, (_, _) -> false);
+	}
+
+	public void bindPartyNativeLifetime(java.util.function.BiPredicate<Long, PhantomGoal> retained, java.util.function.BiPredicate<Long, PhantomGoal> committedDecision,
+		java.util.function.BiPredicate<Long, PhantomGoal> acceptedRoot, java.util.function.BiPredicate<Long, PhantomGoal> adoptedTravelDecision)
+	{
 		_partyNativeLifetime = Objects.requireNonNull(retained);
 		_partyCommittedDecision = Objects.requireNonNull(committedDecision);
 		_acceptedPartyRoot = Objects.requireNonNull(acceptedRoot);
+		_rendezvousTravelDecision = Objects.requireNonNull(adoptedTravelDecision);
 	}
 	private java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> _logicalGroups = _ -> Optional.empty();
 	private java.util.function.LongConsumer _refreshLogicalGroups = _ -> { };
@@ -1593,7 +1601,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
 			if (holdsOrdinaryPartyRoot(sharedFarmSource != null, _acceptedPartyRoot.test(profileId, stored.goal()), _acceptedIntent.test(profileId, stored.goal())))
-			{ stage = "accepted_rendezvous_root"; return false; }
+			{
+				stage = "accepted_rendezvous_root";
+				prepared = nativePartyDecisionPrepared(false, false, _rendezvousTravelDecision.test(profileId, stored.goal()));
+				return prepared; // Keep the accepted root, while its exact adopted travel reaches the ordinary Decision owner.
+			}
 			if (nativePartyDecisionPrepared(sharedFarmSource != null, _partyCommittedDecision.test(profileId, stored.goal()))) { prepared = true; return true; }
 			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal()))
 			{
@@ -1865,7 +1877,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	static boolean nativePartyDecisionPrepared(boolean sharedRendezvousPreparation, boolean committedNativeParty)
 	{
-		return !sharedRendezvousPreparation && committedNativeParty;
+		return nativePartyDecisionPrepared(sharedRendezvousPreparation, committedNativeParty, false);
+	}
+	static boolean nativePartyDecisionPrepared(boolean sharedRendezvousPreparation, boolean committedNativeParty, boolean adoptedRendezvousTravel)
+	{
+		return !sharedRendezvousPreparation && (committedNativeParty || adoptedRendezvousTravel);
 	}
 
 	private boolean visibleActorQuiet(long profileId, Player player, long epoch)

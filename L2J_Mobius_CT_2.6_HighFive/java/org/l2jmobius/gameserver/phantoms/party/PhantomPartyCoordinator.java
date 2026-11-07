@@ -485,7 +485,18 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return supportRendezvousCurrent(profileId, root, false);
 	}
 
+	/** Adopted shared travel may reach Decision for every roster role; native Party still owns combat. */
+	public boolean rendezvousTravelDecision(long profileId, PhantomGoal root)
+	{
+		return supportRendezvousCurrent(profileId, root, false, false);
+	}
+
 	private boolean supportRendezvousCurrent(long profileId, PhantomGoal root, boolean preparation)
+	{
+		return supportRendezvousCurrent(profileId, root, preparation, true);
+	}
+
+	private boolean supportRendezvousCurrent(long profileId, PhantomGoal root, boolean preparation, boolean requireSupport)
 	{
 		try
 		{
@@ -506,7 +517,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 					: (reservation.phase() != PhantomPartyRendezvousState.Phase.ASSEMBLING && reservation.phase() != PhantomPartyRendezvousState.Phase.ARRIVED) || root.revision() != reservation.adoptedRevision())) { return false; }
 			}
 			final var support = _backend.memberSnapshot(own.actor()).orElse(null);
-			if (support == null || !support.ref().equals(own.actor()) || support.instanceId() != 0 || !PhantomAutonomousFarmParty.supportPresent(support)) { return false; }
+			if (support == null || !support.ref().equals(own.actor()) || support.instanceId() != 0 || requireSupport && !PhantomAutonomousFarmParty.supportPresent(support)) { return false; }
 			for (var participant : reservation.roster())
 			{
 				final var peer = _rendezvousClaims.get(participant.actor().profileId());

@@ -781,7 +781,7 @@ public final class PhantomSystem
 				// A fresh native supply proposal must reach Decision before the accepted-owner contract can exist.
 				_historicalBackgroundService.bindSupportRendezvous(_partyCoordinator::supportRendezvousPreparation, _partyCoordinator::supportRendezvousTravel);
 				_historicalBackgroundService.bindPartyNativeLifetime(this::partyRetainsNativeLifetime, this::partyPermitsCommittedNativeDecision,
-					(id, root) -> partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true));
+					(id, root) -> partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true), _partyCoordinator::rendezvousTravelDecision);
 				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.permitsAutonomousVisibleDecision(profileId, root) || _learningJourney.permitsAutomaticVisibleDecision(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.needsOrOwns(profileId, root) || _partyCoordinator.supportRendezvousTravel(profileId, root));
 				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
