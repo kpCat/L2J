@@ -677,6 +677,56 @@ public final class PhantomCoordination130Integration
 		Files.writeString(module.resolve(".phantom-local/task130/ownership-restart.properties"), "profileId=" + id + "\nrowVersion=" + returnCheckpoint.component().rowVersion() + "\npayload=" + java.util.Base64.getEncoder().encodeToString(returnCheckpoint.component().payload()) + "\n");
 		System.out.println("SQL130_EXECUTION_HANDOFF_PASS;REQUEST_AND_TRANSFER_ONE_WINNER=true;CHECKPOINT_STORE_RECREATION=true;OPTIONAL_CHILD_SUSPEND_AND_RESUME=true;STALE_SOURCE_ROOT_AND_NEW_RECEIPT_REJECTED=true;OPERATION_REVISIONS=7,11;NATIVE=false");
 		executionDriver(profiles, root, child);
+		executionChildOwners(profiles, root);
+	}
+	private static void executionChildOwners(PhantomProfileRepository profiles, PhantomGoal template)
+	{
+		final long id = profiles.create(null).profileId(), wall = System.currentTimeMillis();
+		final var root = executionFixtureGoal(template, id); final var goals = new PhantomGoalStateStore(profiles); goals.insert(id, root);
+		final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
+		for (String type : List.of("learning.intent", "career.intent"))
+		{
+			final boolean learning = type.equals("learning.intent");
+			final var child = new PhantomGoal(root.goalId(), learning ? "skill.learn" : "class.transfer", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+				root.subject(), new PhantomDomainRef(learning ? "skill" : "content", learning ? "3:1" : "class.warrior-q401"), 3, 2, null, List.of(), root.selectedAnchor(),
+				learning ? "learning.autonomous" : "career.autonomous", 600, 7, 19, wall + 5000,
+				java.util.Map.of("owner.revision", root.revision(), "owner.object", 51L, "journey.started", wall - 1000, "journey.paused", 0L, "journey.remaining", 5000L), "execution.child", 11);
+			profiles.insertComponent(id, type, 1, codec.encode(child));
+		}
+		final var metrics = new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
+		final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics,
+			new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false, 64, 16, metrics), 1);
+		final var store = new PhantomExecutionHandoffStore(profiles); var row = store.initialize(id, PhantomExecutionHandoff.solo(id));
+		row = store.request(row, new PhantomDomainRef("execution.party", "sql-child-owners"), "children", wall, wall + 10000); row = store.yielded(row, wall + 1);
+		final var learning = org.l2jmobius.gameserver.phantoms.progression.PhantomLearningAlternativesChecks.sqlExecutionCheckpoint(profiles, materialization, id, root, false, wall + 2);
+		final var career = org.l2jmobius.gameserver.phantoms.questinstance.PhantomCareerChoiceAdmission068Checks.sqlExecutionCheckpoint(profiles, materialization, id, root, false, wall + 2);
+		final var plans = List.of(learning, career);
+		final var changes = plans.stream().flatMap(p -> p.changes().stream()).toList();
+		final var guards = plans.stream().flatMap(p -> p.authority().stream()).distinct().toList();
+		final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, "learning.intent", "career.intent");
+		row = store.checkpoint(row, changes, types, guards, wall + 2); row = store.transfer(row, List.of(), wall + 3);
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> org.l2jmobius.gameserver.phantoms.progression.PhantomLearningAlternativesChecks.sqlExecutionCheckpoint(profiles, materialization, id, root, true, wall + 4), "Foreign Group invoked Source learning recovery.");
+		PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> org.l2jmobius.gameserver.phantoms.questinstance.PhantomCareerChoiceAdmission068Checks.sqlExecutionCheckpoint(profiles, materialization, id, root, true, wall + 4), "Foreign Group invoked Source career recovery.");
+		final var committedGuards = types.stream().map(type -> profiles.findComponent(id, type).orElseThrow()).toList();
+		row = store.recovered(row, List.of(), types, committedGuards);
+		row = store.request(row, PhantomExecutionHandoff.solo(id), "return-children", wall + 4, wall + 10000); row = store.yielded(row, wall + 5);
+		final var redirect = row;
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> store.checkpoint(redirect, List.of(), List.of(PhantomGoalStateStore.COMPONENT_TYPE), List.of(), wall + 5), "SQL redirection forgot retained Source children.");
+		PhantomAssertions.assertEquals(redirect, store.load(id).orElseThrow(), "Rejected partial proof changed execution ownership.");
+		row = store.checkpoint(row, List.of(), types, committedGuards, wall + 5); row = store.transfer(row, List.of(), wall + 6);
+		final var nextRoot = new PhantomGoal(root.goalId(), root.goalType(), root.status(), root.subject(), root.target(), root.requiredAmount(), root.currentAmount(), root.acquisitionMethod(), root.validSources(), root.selectedAnchor(), root.purposeKey(), root.priority(), root.riskBudget(), root.expenseBudget(), root.deadlineEpochMillis(), root.constraints(), root.reasonKey(), root.revision() + 1, root.payloadText());
+		goals.replace(id, goals.load(id).orElseThrow().rowVersion(), nextRoot);
+		final var resumed = List.of(org.l2jmobius.gameserver.phantoms.progression.PhantomLearningAlternativesChecks.sqlExecutionCheckpoint(profiles, materialization, id, nextRoot, true, wall + 7),
+			org.l2jmobius.gameserver.phantoms.questinstance.PhantomCareerChoiceAdmission068Checks.sqlExecutionCheckpoint(profiles, materialization, id, nextRoot, true, wall + 7));
+		row = store.recovered(row, resumed.stream().flatMap(p -> p.changes().stream()).toList(), types, resumed.stream().flatMap(p -> p.authority().stream()).distinct().toList());
+		for (String type : List.of("learning.intent", "career.intent"))
+		{
+			final var child = codec.decode(profiles.findComponent(id, type).orElseThrow().payload());
+			PhantomAssertions.assertTrue(child.revision() == 11 && child.currentAmount() == 2 && child.riskBudget() == 7 && child.expenseBudget() == 19
+				&& child.constraints().get("owner.revision") == nextRoot.revision() && child.constraints().get("journey.remaining") == 4998
+				&& PhantomJourneyLifetime.paused(child), "Actual Source child projection lost identity/progress/budget or resumed an absent native actor.");
+		}
+		System.out.println("SQL130_EXECUTION_CHILD_OWNERS_PASS;LEARNING_AND_CAREER=true;PAUSE_TRANSFER_PARENT_REBIND=true;PROGRESS_AND_RESOURCES_PRESERVED=true;ABSENT_ACTOR_REMAINS_PAUSED=true;NATIVE=false");
 	}
 
 	/** Real Goal/child/CAS stores; native leaf is explicit absence of an unlinked SQL-only profile. */

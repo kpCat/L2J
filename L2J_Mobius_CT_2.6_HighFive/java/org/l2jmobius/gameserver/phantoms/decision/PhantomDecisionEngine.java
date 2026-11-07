@@ -83,6 +83,8 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 		/** Enclose callback in the exact native checkpoint, or prove the exact identity absent. */
 		boolean checkpointBoundary(PhantomExecutionHandoffStore.Stored expected, Runnable callback);
 		ExecutionCheckpoint checkpoint(PhantomExecutionHandoffStore.Stored expected, boolean recovery, long now);
+		/** Cache invalidation only, after acknowledged commit; no new effects or SQL. */
+		default void checkpointCommitted(PhantomExecutionHandoffStore.Stored stored) { }
 		/** Recipient reservation/priority/TTL proof is checked again in the transfer transaction. */
 		ExecutionAuthority authority(PhantomExecutionHandoffStore.Stored expected, long now);
 	}
@@ -166,7 +168,7 @@ public final class PhantomDecisionEngine implements PhantomActivityWorkSink
 					next = _executionStore.checkpoint(yielded, proof.changes(), proof.dependencyTypes(), proof.authority(), now);
 				}
 				else { next = _executionStore.transfer(expected, recipient.guards(), now); }
-				publishExecution(next); result.set(next);
+				publishExecution(next); source.checkpointCommitted(next); result.set(next);
 			});
 			if (nativeCompleted != (result.get() != null)) { throw new IllegalStateException("Owner checkpoint completion disagrees with its durable callback."); }
 			return nativeCompleted;

@@ -80,7 +80,7 @@ public final class PhantomExecutionHandoffStore
 			|| dependencyTypes.stream().distinct().count() != dependencyTypes.size() || dependencyTypes.contains(COMPONENT_TYPE)
 			|| changes == null || changes.size() > PhantomExecutionHandoff.MAX_DEPENDENCIES || changes.stream().map(ComponentMutation::componentType).distinct().count() != changes.size()
 			|| changes.stream().anyMatch(c -> !dependencyTypes.contains(c.componentType()))
-			|| recovery && expected.state().dependencies().stream().anyMatch(d -> !dependencyTypes.contains(d.componentType())))
+			|| expected.state().dependencies().stream().anyMatch(d -> !dependencyTypes.contains(d.componentType())))
 		{ throw new IllegalArgumentException("Invalid bounded execution checkpoint components."); }
 		final var guards = new ArrayList<PhantomProfileComponent>(); final var absent = new ArrayList<ComponentAbsence>();
 		final var dependencies = new ArrayList<PhantomExecutionHandoff.Dependency>();

@@ -552,7 +552,10 @@ final class PhantomAutonomousCareer
 	{
 		try
 		{
-			final var saved = cached.row < 0 ? _profiles.insertComponent(profileId, COMPONENT, 1, _codec.encode(intent)) : _profiles.updateComponent(profileId, COMPONENT, cached.row, 1, _codec.encode(intent));
+			final var execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(_profiles)
+				.guardCompletion(profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(profileId));
+			final var saved = _profiles.mutateProfileComponentsAtomically(List.of(new PhantomProfileRepository.ProfileComponentMutation(profileId,
+				new PhantomProfileRepository.ComponentMutation(COMPONENT, cached.row, 1, _codec.encode(intent)))), execution.present(), execution.absent()).getFirst();
 			cached.goal = intent; cached.row = saved.rowVersion();
 		}
 		catch (RuntimeException exception) { synchronized (this) { _cache.remove(profileId); } throw exception; }
@@ -568,6 +571,39 @@ final class PhantomAutonomousCareer
 		final var cached = _cache.get(profileId);
 		return cached == null ? "career.actor_or_owner_pending" : cached.proposalReason;
 	}
+	org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long id, PhantomGoal root, boolean recovery, long now)
+	{
+		return executionCheckpoint(_profiles, _materialization, id, root, recovery, now);
+	}
+	static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(PhantomProfileRepository profiles, PhantomMaterializationService materialization, long id, PhantomGoal root, boolean recovery, long now)
+	{
+		final var execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore(profiles).load(id).orElse(null);
+		if (execution != null && !execution.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id))) { throw new java.util.ConcurrentModificationException("Career checkpoint belongs to another execution owner."); }
+		final var codec = new PhantomGoalStateCodec();
+		final var rawRoot = profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+		if (!codec.decode(rawRoot.payload()).equals(root)) { throw new java.util.ConcurrentModificationException("Career checkpoint parent changed."); }
+		final var raw = profiles.findComponent(id, COMPONENT).orElse(null);
+		final var guards = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>(); guards.add(rawRoot);
+		final var changes = new java.util.ArrayList<PhantomProfileRepository.ComponentMutation>();
+		if (raw != null)
+		{
+			if (raw.componentSchemaVersion() != 1) { throw new IllegalArgumentException("Unknown career.intent component version."); }
+			guards.add(raw); final var old = codec.decode(raw.payload());
+			if (!"career.autonomous".equals(old.purposeKey()) || !PhantomQuestInstanceService.CLASS_GOAL_TYPE.equals(old.goalType())) { throw new IllegalArgumentException("Unknown career child."); }
+			var next = PhantomJourneyLifetime.pause(old, now);
+			if (recovery && PhantomJourneyLifetime.paused(next) && next.goalId() == root.goalId() && Objects.equals(next.subject(), root.subject())
+				&& root.status() == PhantomGoalStatus.ACTIVE && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()))
+			{
+				next = PhantomJourneyLifetime.rebindSuspended(next, root);
+				final var entry = materialization.find(id).orElse(null);
+				final var player = entry == null || !entry.worldPresent() ? null : org.l2jmobius.gameserver.model.World.getInstance().getPlayer(entry.characterObjectId());
+				if (player != null && !player.isAlikeDead() && bound(next, root, player)) { next = PhantomJourneyLifetime.resume(next, now); }
+			}
+			if (!next.equals(old)) { changes.add(new PhantomProfileRepository.ComponentMutation(COMPONENT, raw.rowVersion(), 1, codec.encode(next))); }
+		}
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint(changes, List.of(COMPONENT), guards);
+	}
+	void executionCheckpointCommitted(long id) { synchronized (this) { _cache.remove(id); } }
 	void clear() { synchronized (this) { _cache.clear(); } }
 	private static final class Cached
 	{

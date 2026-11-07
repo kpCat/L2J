@@ -13,6 +13,10 @@ import org.l2jmobius.tests.phantoms.PhantomTestSuite;
 /** Proposal admission only: immutable choices and strict ensure remain owned by progression. */
 public final class PhantomCareerChoiceAdmission068Checks implements PhantomTestSuite
 {
+	public static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint sqlExecutionCheckpoint(
+		org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService materialization,
+		long id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal root, boolean recovery, long now)
+	{ return PhantomAutonomousCareer.executionCheckpoint(profiles, materialization, id, root, recovery, now); }
 	@Override public String id() { return "career-choice-admission068"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{

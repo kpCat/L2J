@@ -67,6 +67,18 @@ public final class PhantomJourneyLifetime
 		return copy(goal, Math.min(calendarEnd, Math.addExact(now, values.get("journey.remaining"))), values);
 	}
 
+	/** Rebinding a suspended native child changes its parent plan, never its economic/work identity. */
+	public static PhantomGoal rebindSuspended(PhantomGoal child, PhantomGoal root)
+	{
+		if (child == null || root == null || !continuing(child) || !paused(child) || !valid(child)
+			|| root.status() != PhantomGoalStatus.ACTIVE || !org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+			|| child.goalId() != root.goalId() || !java.util.Objects.equals(child.subject(), root.subject())
+			|| !child.constraints().containsKey("owner.revision") || root.revision() < child.constraints().get("owner.revision"))
+		{ throw new IllegalArgumentException("Only an exact suspended native child may adopt its continuing farm parent."); }
+		final var values = new LinkedHashMap<>(child.constraints()); values.put("owner.revision", root.revision());
+		return copy(child, child.deadlineEpochMillis(), values);
+	}
+
 	private static PhantomGoal copy(PhantomGoal goal, long deadline, java.util.Map<String, Long> values)
 	{
 		return new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), deadline, values, goal.reasonKey(), goal.revision(), goal.payloadText());

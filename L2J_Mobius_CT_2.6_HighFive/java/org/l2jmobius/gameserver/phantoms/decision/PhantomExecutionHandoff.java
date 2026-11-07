@@ -20,6 +20,7 @@ public record PhantomExecutionHandoff(long generation, PhantomDomainRef owner, P
 	public PhantomExecutionHandoff recovered(List<Dependency> proof)
 	{
 		if (phase != Phase.RECOVERING || proof.isEmpty()) { throw new IllegalStateException("Recipient recovery acknowledgement requires its durable proof."); }
+		requireObligations(proof);
 		return new PhantomExecutionHandoff(generation, owner, Phase.ACTIVE, null, requestId, requestedAt, deadline, proof, true);
 	}
 	public record Dependency(String componentType, int schema, long rowVersion, String sha256)
@@ -63,6 +64,11 @@ public record PhantomExecutionHandoff(long generation, PhantomDomainRef owner, P
 		if (phase != Phase.ACTIVE && phase != Phase.RECOVERING) { throw new IllegalStateException("Execution transfer already pending."); }
 		return new PhantomExecutionHandoff(generation, owner, Phase.REQUESTED, target, id, now, until, dependencies, phase == Phase.ACTIVE);
 	}
+	private void requireObligations(List<Dependency> proof)
+	{
+		if (dependencies.stream().anyMatch(prior -> proof.stream().noneMatch(next -> prior.componentType().equals(next.componentType()))))
+		{ throw new IllegalArgumentException("Execution checkpoint cannot discard a prior obligation."); }
+	}
 	public PhantomExecutionHandoff yield(long now)
 	{
 		require(Phase.REQUESTED, now);
@@ -71,6 +77,7 @@ public record PhantomExecutionHandoff(long generation, PhantomDomainRef owner, P
 	public PhantomExecutionHandoff checkpoint(List<Dependency> proof, long now)
 	{
 		require(Phase.YIELDED, now);
+		requireObligations(proof);
 		return new PhantomExecutionHandoff(generation, owner, Phase.CHECKPOINTED, recipient, requestId, requestedAt, deadline, proof, sourceReady);
 	}
 	public PhantomExecutionHandoff transfer(long now)

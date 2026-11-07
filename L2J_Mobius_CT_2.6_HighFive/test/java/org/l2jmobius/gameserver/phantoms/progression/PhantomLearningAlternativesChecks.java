@@ -15,6 +15,10 @@ import org.l2jmobius.tests.phantoms.PhantomTestContext;
 public final class PhantomLearningAlternativesChecks
 {
 	private PhantomLearningAlternativesChecks() { }
+	public static org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint sqlExecutionCheckpoint(
+		org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService materialization,
+		long id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal root, boolean recovery, long now)
+	{ return PhantomAutonomousLearning.executionCheckpoint(profiles, materialization, id, root, recovery, now); }
 
 	public static void assertContract(PhantomTestContext context)
 	{

@@ -13,6 +13,34 @@ public final class PhantomExecutionHandoff130Tests
 	private PhantomExecutionHandoff130Tests() { }
 	public static void register(PhantomTestRegistry registry)
 	{
+		registry.add("execution-recovery-redirection-preserves-all-original-obligations", _ ->
+		{
+			final var solo = PhantomExecutionHandoff.solo(1); final var party = new PhantomDomainRef("execution.party", "group1");
+			final var root = new Dependency("goal.runtime", 1, 3, "a".repeat(64));
+			final var proof = List.of(root, new Dependency("learning.intent", 1, 11, "b".repeat(64)), new Dependency("commerce.receipt", 0, -1, ""));
+			final var transferred = PhantomExecutionHandoff.initial(solo).request(party, "party", 1000, 5000).yield(1001).checkpoint(proof, 1002).transfer(1003);
+			final var redirect = transferred.request(solo, "recipient-unavailable", 1004, 5000).yield(1005);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> redirect.checkpoint(List.of(root), 1006), "Recovery redirection discarded the original child/receipt proof.");
+			final var returned = redirect.checkpoint(proof, 1006).transfer(1007);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> returned.recovered(List.of(root)), "RECOVER acknowledgement discarded unresolved obligations.");
+			PhantomAssertions.assertEquals(proof, returned.recovered(proof).dependencies(), "A lawful redirect lost the original obligations.");
+		});
+		registry.add("execution-suspended-child-adopts-parent-without-new-progress", _ ->
+		{
+			final var subject = new PhantomDomainRef("profile", "1");
+			final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(9, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+				subject, null, 1, 0, null, List.of(), null, "farm", 1, 0, 0, 9999, java.util.Map.of(), "farm", 4);
+			final var child = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(9, "skill.learn", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+				subject, new PhantomDomainRef("skill", "3:1"), 3, 2, null, List.of(), null, "learning.autonomous", 1, 7, 19, 5000,
+				java.util.Map.of("owner.revision", 2L, "owner.object", 51L, "journey.started", 1000L, "journey.paused", 1500L, "journey.remaining", 3500L), "learning", 11);
+			final var next = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.rebindSuspended(child, root);
+			PhantomAssertions.assertEquals(4L, next.constraints().get("owner.revision"), "Suspended child kept an obsolete planning binding.");
+			PhantomAssertions.assertTrue(next.revision() == 11 && next.currentAmount() == 2 && next.expenseBudget() == 19 && next.riskBudget() == 7
+				&& next.deadlineEpochMillis() == 5000 && next.constraints().get("journey.remaining") == 3500 && next.constraints().get("journey.paused") == 1500,
+				"Parent adoption restarted child work or lost its progress/resources.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.rebindSuspended(
+				org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.resume(child, 1600), root), "An executing child silently changed parent binding.");
+		});
 		registry.add("16-execution-request-yield-checkpoint-transfer-recovery", _ ->
 		{
 			final var solo = new PhantomDomainRef("execution.solo", "profile1");

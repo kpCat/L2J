@@ -73,6 +73,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	private final PhantomNavigationService _navigation;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledge;
 	private final LongPredicate _actionAllowed;
+	private LongPredicate _executionOwned = _ -> true;
 	private final Set<Long> _active = new HashSet<>();
 	private final Map<Long, Travel> _travels = new HashMap<>();
 	private List<SpawnFact> _trainers = List.of();
@@ -101,18 +102,22 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		synchronized (_monitor)
 		{
 			if (_state != State.NEW || _automatic != null) { throw new IllegalStateException("Autonomous learning must be installed once before start."); }
-			_automatic = new PhantomAutonomousLearning(profiles, _materialization, _progression, this, pauseFarm, _actionAllowed, policy);
+			_automatic = new PhantomAutonomousLearning(profiles, _materialization, _progression, this, pauseFarm, id -> _executionOwned.test(id) && _actionAllowed.test(id), policy);
 		}
 	}
 
-	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public void useExecutionOwnership(LongPredicate owned)
+	{
+		synchronized (_monitor) { if (_state != State.NEW) { throw new IllegalStateException("Learning execution ownership must bind before start."); } _executionOwned = java.util.Objects.requireNonNull(owned); }
+	}
+	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _automatic.owns(profileId, root); }
 	public void useCraftRecipeRewards(PhantomOrdinaryCraftRecipes rewards)
 	{
 		if (_state != State.NEW) { throw new IllegalStateException("Recipe rewards must be installed before learning starts."); }
 		_craftRecipes = rewards;
 	}
-	public boolean protectsAutomaticRoot(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.protectsRoot(profileId, root); }
-	public boolean needsOrOwnsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
+	public boolean protectsAutomaticRoot(long profileId, PhantomGoal root) { return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _automatic.protectsRoot(profileId, root); }
+	public boolean needsOrOwnsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _automatic.needsOrOwns(profileId, root); }
 	public void requireField(java.util.function.BiPredicate<PhantomGoal, Player> predicate)
 	{
 		if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Learning field must bind before start."); } _automatic.requireField(predicate);
@@ -120,7 +125,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	/** A fresh affordable proposal must reach Decision before its accepted child can exist. */
 	public boolean permitsAutomaticVisibleDecision(long profileId, PhantomGoal root)
 	{
-		return _state == State.RUNNING && _automatic != null && _goals.load(profileId).map(stored -> stored.goal().equals(root)).orElse(false)
+		return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _goals.load(profileId).map(stored -> stored.goal().equals(root)).orElse(false)
 			&& (_automatic.owns(profileId, root) || _automatic.permitsSettlement(profileId, root) || _automatic.needsOrOwns(profileId, root));
 	}
 	public void useRelevanceSignals(org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort signals)
@@ -132,7 +137,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	void accepted(long profileId, PhantomGoal root, PhantomGoal intent)
 	{
 		final long now = System.currentTimeMillis();
-		if (_state != State.RUNNING || !PhantomJourneyLifetime.alive(intent, now) || !_actionAllowed.test(profileId)) { return; }
+		if (_state != State.RUNNING || !_executionOwned.test(profileId) || !PhantomJourneyLifetime.alive(intent, now) || !_actionAllowed.test(profileId)) { return; }
 		synchronized (_monitor)
 		{
 			final var previous = _demands.get(profileId);
@@ -149,7 +154,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		synchronized (_monitor)
 		{
 			final var demand = _demands.get(profileId); final long now = System.currentTimeMillis();
-			return _state == State.RUNNING && demand != null && demand.until > now && _actionAllowed.test(profileId) && PhantomJourneyLifetime.alive(demand.intent, now)
+			return _state == State.RUNNING && _executionOwned.test(profileId) && demand != null && demand.until > now && _actionAllowed.test(profileId) && PhantomJourneyLifetime.alive(demand.intent, now)
 				&& (rootId == 0 || demand.rootId == rootId && demand.rootRevision == rootRevision);
 		}
 	}
@@ -164,6 +169,12 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Life priority must be bound before start."); } _automatic.deferWhen(predicate); }
 	}
 	public Optional<PhantomGoal> automaticIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long profileId, boolean recovery, long now)
+	{
+		if (_automatic == null) { throw new IllegalStateException("Learning checkpoint requires its installed autonomous owner."); }
+		return _automatic.executionCheckpoint(profileId, root(profileId), recovery, now);
+	}
+	public void executionCheckpointCommitted(long profileId) { if (_automatic != null) { _automatic.executionCheckpointCommitted(profileId); } }
 
 	public boolean start()
 	{

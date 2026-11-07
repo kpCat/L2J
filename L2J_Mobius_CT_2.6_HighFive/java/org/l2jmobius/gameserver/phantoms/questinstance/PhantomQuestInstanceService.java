@@ -75,6 +75,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	private final Map<Long, Long> _signalSequences = new HashMap<>();
 	private volatile State _state = State.NEW;
 	private PhantomAutonomousCareer _automatic;
+	private java.util.function.LongPredicate _executionOwned = _ -> true;
 	private java.util.function.BiConsumer<Long, PhantomGoal> _suspendReturn = (_, _) -> { };
 
 	public void enableAutonomous(org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles,
@@ -84,7 +85,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		synchronized (_monitor)
 		{
 			if (_state != State.NEW || _automatic != null) { throw new IllegalStateException("Autonomous career must be installed once before start."); }
-			_automatic = new PhantomAutonomousCareer(profiles, materialization, this, _catalog, _progression, pauseFarm, allowed, preference, policy);
+			_automatic = new PhantomAutonomousCareer(profiles, materialization, this, _catalog, _progression, pauseFarm, id -> _executionOwned.test(id) && allowed.test(id), preference, policy);
 			_backend.avoidCombatArea(_automatic::avoidedCell);
 		}
 	}
@@ -95,14 +96,18 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	}
 	void registerAutonomousCandidates(org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry registry) { if (_automatic != null) { _automatic.registerCandidates(registry); } }
 	void registerAutonomousHandlers(org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry registry) { if (_automatic != null) { _automatic.registerHandlers(registry); } }
-	public boolean ownsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public void useExecutionOwnership(java.util.function.LongPredicate owned)
+	{
+		synchronized (_monitor) { if (_state != State.NEW) { throw new IllegalStateException("Career execution ownership must bind before start."); } _executionOwned = Objects.requireNonNull(owned); }
+	}
+	public boolean ownsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _automatic.owns(profileId, root); }
 	/** Admission for the visible career Decision before a farm route can be resumed. */
 	public boolean permitsAutonomousVisibleDecision(long profileId, PhantomGoal root)
 	{
-		return _state == State.RUNNING && _automatic != null && _goals.load(profileId).map(stored -> stored.goal().equals(root)).orElse(false)
+		return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _goals.load(profileId).map(stored -> stored.goal().equals(root)).orElse(false)
 			&& (_automatic.owns(profileId, root) || _automatic.needsOrOwns(profileId, root));
 	}
-	public boolean needsOrOwnsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
+	public boolean needsOrOwnsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _automatic.needsOrOwns(profileId, root); }
 	public String autonomousTravelEvidence(long profileId)
 	{
 		final CombatOperation owned; synchronized (_monitor) { owned = _combats.get(profileId); }
@@ -134,6 +139,12 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 
 	boolean hasOwnedWork(long profileId) { synchronized (_monitor) { return _travels.containsKey(profileId) || _combats.containsKey(profileId); } }
 	PhantomGoal currentRoot(long profileId) { return _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null); }
+	public org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionCheckpoint executionCheckpoint(long profileId, boolean recovery, long now)
+	{
+		if (_automatic == null) { throw new IllegalStateException("Career checkpoint requires its installed autonomous owner."); }
+		return _automatic.executionCheckpoint(profileId, currentRoot(profileId), recovery, now);
+	}
+	public void executionCheckpointCommitted(long profileId) { if (_automatic != null) { _automatic.executionCheckpointCommitted(profileId); } }
 	void finishAutonomousJourney(long profileId) { cleanup(profileId); }
 
 	@Override public void onPulse()
@@ -154,7 +165,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	@Override public Set<Long> acceptedProfiles() { synchronized (_monitor) { return Set.copyOf(_signalSequences.keySet()); } }
 	@Override public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
 	{
-		return _state == State.RUNNING && _automatic != null && _automatic.requiresNativeContext(profileId, rootId, rootRevision);
+		return _state == State.RUNNING && _executionOwned.test(profileId) && _automatic != null && _automatic.requiresNativeContext(profileId, rootId, rootRevision);
 	}
 	@Override public void beforeMaterialize(long profileId, int objectId) { }
 	@Override public void afterPlayerLoad(long profileId, org.l2jmobius.gameserver.model.actor.Player player) { }
