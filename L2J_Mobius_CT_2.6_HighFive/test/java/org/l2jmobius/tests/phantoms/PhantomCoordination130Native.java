@@ -620,7 +620,7 @@ final class PhantomCoordination130Native
             }
             if (System.currentTimeMillis() >= nextTrace)
             {
-                boolean blocked = actors.isEmpty();
+                boolean blocked = actors.size() < ids.size();
                 boolean idleAssembly = group.phase() == PhantomLogicalParty.Phase.ASSEMBLING && !partySeen && actors.size() == ids.size()
                     && actors.stream().allMatch(actor -> !actor.isMoving() && !actor.isInCombat() && !actor.isAttackingNow() && !actor.isCastingNow() && actor.getCurrentHp() > 0);
                 final String facts = actors.stream().map(actor -> actor.getObjectId() + ":hp=" + actor.getCurrentHp() + ":mp=" + actor.getCurrentMp() + ":target=" + (actor.getTarget() == null ? 0 : actor.getTarget().getObjectId()) + ":cast=" + (actor.getLastSkillCast() == null ? 0 : actor.getLastSkillCast().getId()) + ":party=" + (actor.getParty() == null ? 0 : actor.getParty().getLeaderObjectId()) + ":evidence=" + (actor.getNativeWorkOwner() == null ? "NONE" : actor.getNativeWorkOwner().evidence().snapshot())).toList().toString();
@@ -631,7 +631,12 @@ final class PhantomCoordination130Native
                     final var progress = PhantomSystem.operatorReadinessProgress(id); final var life = PhantomSystem.operatorLifeProgress(id);
                     final var admission = PhantomSystem.operatorAdmissionProfile(id).orElse(null);
                     final String reason = admission == null || admission.readiness() == null ? "" : admission.readiness().reason();
-					blocked &= Set.of("catchup.baseline.initial_binding_changed", "catchup.goal.conflict", "catchup.baseline.conflict", "ecology.orphan_historical_conflict", "native_context.required:logical_party_preparation", "native_context.required:logical_party_support").contains(reason);
+                    final var actor = actors.stream().filter(value -> value.getObjectId() == profiles.find(id).orElseThrow().characterObjectId()).findFirst().orElse(null);
+                    if (actor == null)
+                    {
+                        blocked &= admission != null && admission.readiness() != null && !admission.readiness().queued() && !admission.readiness().running()
+                            && Set.of("catchup.baseline.initial_binding_changed", "catchup.goal.conflict", "catchup.baseline.conflict", "ecology.orphan_historical_conflict", "native_context.required:logical_party_preparation", "native_context.required:logical_party_support").contains(reason);
+                    }
                     System.out.println("NATIVE130_WAIT profile=" + id + " admission=" + (admission == null ? null : admission.readiness())
                         + " stage=" + progress.get("currentStage") + " retry=" + progress.get("nextRetryMillis") + " visible=" + life.get("historical.visibleRecovery")
                         + " preparation=" + life.get("historical.visiblePreparation") + " decision=" + life.get("decision")
@@ -639,7 +644,6 @@ final class PhantomCoordination130Native
                         + " busy=" + (admission == null ? "" : admission.busyReason()) + " pins=" + (admission == null ? "" : admission.retentionPins())
                         + " supply=" + life.get("supply") + " supplyReason=" + life.get("supply.reason") + " learning=" + life.get("learning")
                         + " rendezvous=" + life.get("party.rendezvous") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " owner=" + life.get("native.owner"));
-                    final var actor = actors.stream().filter(value -> value.getObjectId() == profiles.find(id).orElseThrow().characterObjectId()).findFirst().orElse(null);
                     if (actor != null) { System.out.println("NATIVE130_POSITION profile=" + id + " xyz=" + actor.getLocation() + " moving=" + actor.isMoving()); }
                     idleAssembly &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
                 }

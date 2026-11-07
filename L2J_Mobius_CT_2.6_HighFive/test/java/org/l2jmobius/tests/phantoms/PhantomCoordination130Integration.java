@@ -343,10 +343,14 @@ public final class PhantomCoordination130Integration
 		for (var fixture : fixtures)
 		{ PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Status.IDEMPOTENT,fixture.transaction().execute(fixture.command()).status(),"Duplicate interval was not idempotent."); fixture.assertTotals(); }
 		System.out.println("SQL130_RECEIPT_WATERMARK_PASS;MEMBERS=3;CURSOR=101;CONCURRENT_INTERVAL_EXACTLY_ONCE=true;REPLAY_EXP_SP=UNCHANGED;NATIVE_KILLS=0");
-		backgroundLogicalRestore(profiles, first);
+		final var normalAdmission = backgroundLogicalRestore(profiles, first);
 		f7Receipts(profiles, fixtures);
+		final var pending = fixtures.get(1);
+		PhantomAssertions.assertThrows(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.AdmissionRejectedException.class,
+			() -> normalAdmission.beforeMaterialize(pending.profileId(),pending.objectId()),"A new running historical claim inherited old COMPLETE/NORMAL admission.");
+		System.out.println("SQL130_NORMAL_PREREQUISITE_LEDGER_GATE_PASS;OLD_COMPLETE=ADMISSIBLE;NEW_RUNNING=REJECTED;NATIVE_LOADS=0");
 	}
-	private static void backgroundLogicalRestore(PhantomProfileRepository profiles, ReceiptFixture fixture)
+	private static org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService backgroundLogicalRestore(PhantomProfileRepository profiles, ReceiptFixture fixture)
 	{
 		final long id = fixture.profileId(); final var goals = new PhantomGoalStateStore(profiles);
 		final var beforeGoal = goals.load(id); final var beforeHistory = new PhantomBackgroundCatchupStore(profiles, goals).load(id);
@@ -389,6 +393,8 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertTrue(history.advance(id,1,1).successful(), "Completed history did not retain its ordinary idempotent result.");
 		PhantomAssertions.assertTrue(cold.knownGroupFor(id).isPresent(), "Background ran before durable logical claims were resolved into its cold cache.");
 		PhantomAssertions.assertEquals(1,reads.get(),"A bounded Background call rescanned logical membership per interval.");
+		history.beforeMaterialize(id,fixture.objectId());
+		history.materializeAborted(id,fixture.objectId());
 		history.bindLogicalGroups(profile -> cold.knownGroupFor(profile).map(row -> row.group()), _ -> { throw new IllegalStateException("TEST130_LOGICAL_READ_UNAVAILABLE"); });
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY,history.advance(id,1,1).status(),"Unavailable logical authority fell through to Solo history.");
 		PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY,history.begin(id,101,102,130).status(),"A new historical window ignored unavailable logical authority.");
@@ -396,6 +402,7 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertEquals(beforeHistory,new PhantomBackgroundCatchupStore(profiles,goals).load(id),"Logical hydration changed interval/time ownership.");
 		PhantomAssertions.assertEquals(beforeState,profiles.findComponent(id,PhantomBackgroundState.COMPONENT_TYPE),"Logical hydration changed rewards/economy.");
 		System.out.println("SQL130_BACKGROUND_LOGICAL_RESTORE_PASS;BEFORE_SCHEDULER=true;DURABLE_POINT_READ=true;UNAVAILABLE=RETRY;GAMEPLAY_TIME_WRITES=0;PLAYERS=0");
+		return history;
 	}
 	private static void f7Receipts(PhantomProfileRepository profiles, List<ReceiptFixture> fixtures) throws Exception
 	{

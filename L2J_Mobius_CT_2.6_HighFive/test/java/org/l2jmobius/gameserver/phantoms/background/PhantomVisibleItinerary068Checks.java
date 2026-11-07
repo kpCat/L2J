@@ -121,6 +121,39 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, "catchup.baseline.conflict", true, () -> true), "Unrelated failure was laundered through shared idle preparation.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.visibleIdleClaimAccepted(failed, () -> true), "Default ordinary failed-idle policy changed.");
 		});
+		registry.add("23-unclaimed-native-prerequisite-reaches-real-population-admission", context -> unclaimedNativePrerequisite(context.moduleRoot()));
+	}
+	private static void unclaimedNativePrerequisite(Path module) throws Exception
+	{
+		try (var fixture = new NativeRequestPresenceFixture(module))
+		{
+			fixture.completeHistory(); fixture.bindNativeRequirement(() -> false);
+			final var completed = fixture.history.get(); fixture.unclaimedNativeRequired = true;
+			fixture.clock.set(fixture.clock.instant().plusSeconds(60));
+			final long now = System.currentTimeMillis();
+			final var physical = new AtomicReference<>(new org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand(
+				org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand.Kind.LOGICAL_PARTY_WAKE, 2,20,"group.fixture",now,now+30_000));
+			fixture.ecology.installMaterializationDemand(_ -> physical.get() != null && physical.get().current(System.currentTimeMillis()));
+			fixture.prepare(1);
+			final var due = fixture.ecology.requestMaterializationDue(fixture.profileId);
+			PhantomAssertions.assertTrue(due.complete() && due.request().kind() == MaterializationRequest.Kind.NORMAL, "An unclaimed native prerequisite must use the existing bounded NORMAL/no-concurrent-claim branch.");
+			final var port = new PhantomReconcileFirstActivityPort(fixture.delegate);
+			port.installPopulationReadiness(fixture.manager.presence(),fixture.locality,fixture.ecology,_ -> false,
+				id -> fixture.manager.admissionProfile(id).map(profile -> profile.admitted()).orElse(false),fixture::backgroundDemand);
+			port.installPhysicalDemand(_ -> physical.get());
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS,port.materialize(fixture.profileId).outcome(),"The native prerequisite and real Population admission waited for one another forever.");
+			PhantomAssertions.assertFalse(fixture.backgroundDemand(fixture.profileId),"The fixture fabricated an accepted Background request.");
+			PhantomAssertions.assertFalse(fixture.ecology.dueSnapshot(fixture.profileId).complete(),"Physical preparation was reported as completed historical time.");
+			PhantomAssertions.assertEquals(completed,fixture.history.get(),"Native preparation advanced the completed history/cursor/receipt.");
+			PhantomAssertions.assertFalse(fixture.ecology.schedulingSnapshotCurrent(fixture.beforeUnclaimedRejection.get()),"Failure publication retained an old false scheduling snapshot.");
+			final var granted = fixture.ecology.schedulingSnapshot(List.of(fixture.profileId),fixture.clock.instant());
+			fixture.prepare(0);
+			PhantomAssertions.assertFalse(fixture.ecology.schedulingSnapshotCurrent(granted),"Preparation capacity withdrawal retained stale admission.");
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED,port.materialize(fixture.profileId).outcome(),"No preparation slot still admitted native context.");
+			physical.set(null); fixture.ecology.updateMaterializationDemand(List.of(),1);
+			for(int pulse=0;pulse<32;pulse++) { fixture.manager.onPulse(); }
+			PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.DEFERRED,port.materialize(fixture.profileId).outcome(),"Withdrawn physical demand retained native preparation authority.");
+		}
 	}
 	private static void coordinationPreparation(Path module) throws Exception
 	{
@@ -485,6 +518,9 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		final AtomicReference<MaterializationRequest> loaded = new AtomicReference<>();
 		final AtomicReference<PhantomBackgroundCatchupStore.Snapshot> history = new AtomicReference<>();
 		private java.util.function.BooleanSupplier nativeRequirement = () -> true;
+		private boolean unclaimedNativeRequired;
+		final PhantomPopulationTestDoubles.MutableClock clock;
+		final AtomicReference<PhantomPopulationEcologyService.SchedulingSnapshot> beforeUnclaimedRejection = new AtomicReference<>();
 		final PhantomPopulationManager manager;
 		final PhantomPopulationEcologyService ecology;
 		final PhantomHumanLocalityControl locality;
@@ -520,7 +556,12 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			final PhantomPopulationEcologyService.HistoricalPort historical = new PhantomPopulationEcologyService.HistoricalPort()
 			{
 				@Override public Optional<PhantomBackgroundCatchupStore.Snapshot> status(long id) { return Optional.of(history.get()); }
-				@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long end, long seed) { throw new AssertionError("The pending native request was restarted."); }
+				@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long end, long seed)
+				{
+					if (!unclaimedNativeRequired) { throw new AssertionError("The pending native request was restarted."); }
+					beforeUnclaimedRejection.compareAndSet(null,ecology.schedulingSnapshot(List.of(profileId),clock.instant()));
+					return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED,"native_context.required:logical_party_support",history.get());
+				}
 				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes)
 				{
 					return nativeRequirement.getAsBoolean()
@@ -528,7 +569,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 						: PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, "fixture.native_context_not_required", history.get());
 				}
 			};
-			final var clock = new PhantomPopulationTestDoubles.MutableClock(instant);
+			clock = new PhantomPopulationTestDoubles.MutableClock(instant);
 			ecology = new PhantomPopulationEcologyService(catalog, population, states, historical, _ -> false, _ -> "", clock, ZoneOffset.UTC, PhantomPopulationEcologyState.Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
 			ecology.enablePeriodicDueMode();
 			manager = new PhantomPopulationManager(store, population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 1, 1, 2, 1, 1, 64);
