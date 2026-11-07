@@ -311,7 +311,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (_state != State.RUNNING || !_policy.enabled() || root == null || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !_knowledgeHash.equals(_knowledge.get().snapshot().combinedHash())) { return false; }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
-			return lease != null && !lease.player().isAlikeDead() && requiresPartyPreparation(root, PhantomSupplyIntentStore.bound(child, root) && matches(child, lease.player()) ? child : null, null, supplyNeed(lease.player()) != null, System.currentTimeMillis(), lease.player().getAdena() > 0);
+			// A new solo prerequisite cannot block the group route that first makes it executable.
+			return lease != null && !lease.player().isAlikeDead() && requiresPartyPreparation(root, PhantomSupplyIntentStore.bound(child, root) && matches(child, lease.player()) ? child : null, null,
+				_fieldReady.test(root, lease.player()) && supplyNeed(lease.player()) != null, System.currentTimeMillis(), lease.player().getAdena() > 0);
 		}
 	}
 
