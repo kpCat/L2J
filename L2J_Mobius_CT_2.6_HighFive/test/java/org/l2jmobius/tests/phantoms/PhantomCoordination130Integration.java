@@ -45,7 +45,7 @@ public final class PhantomCoordination130Integration
 	}
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length < 2 || args.length > 3 || !List.of("check", "prepare", "inspect", "test", "resume").contains(args[0])) { throw new IllegalArgumentException("check|prepare|inspect|test|resume module [read-only admin config]"); }
+        if (args.length < 2 || args.length > 3 || !List.of("check", "prepare", "inspect", "probe", "probe-live", "handoff", "test", "resume", "seal", "fixture", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("check|prepare|inspect|probe|probe-live|handoff|test|resume|seal|fixture|native|restart module [read-only admin config]"); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
@@ -122,15 +122,50 @@ public final class PhantomCoordination130Integration
 					if (!scope.equals("`" + SCHEMA + "`.*")) { throw new IllegalStateException("TEST130 has a foreign/global grant scope: " + scope); }
 				}
 			}
-			try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB='" + SCHEMA + "' AND ID<>CONNECTION_ID()"))
+            // The explicit read-only live probe may coexist only with the unique attested TEST130 principal.
+            final String foreign = args[0].equals("probe-live") ? " AND USER<>'" + settings.getProperty("Login") + "'" : "";
+            try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB='" + SCHEMA + "' AND ID<>CONNECTION_ID()" + foreign))
 			{ if (!rows.next() || rows.getInt(1) != 0) { throw new IllegalStateException("TEST130 has foreign sessions."); } }
 		}
 		if (args[0].equals("inspect")) { System.out.println("SQL130_INSPECT_ONLY;SQL_WRITES=0"); return; }
+        if (args[0].equals("fixture")) { PhantomCoordination130Native.prepareOnly(module); return; }
+		if (args[0].equals("native") || args[0].equals("restart")) { PhantomCoordination130Native.run(module, args[0].equals("restart")); return; }
 		final long start = System.nanoTime();
 		DatabaseFactory.initFromConfig(config.toString());
 		try
 		{
 			final var profiles = PhantomProfileRepository.open();
+            if (args[0].equals("handoff")) { initialRootBinding(profiles, module); return; }
+            if (args[0].equals("probe") || args[0].equals("probe-live"))
+            {
+                final var saved = read(module.getParent().getParent().resolve("runtime/fixture130.properties"));
+                for (String text : saved.getProperty("profiles").split(","))
+                {
+                    final long id = Long.parseLong(text);
+                    final var group = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles)).groupFor(id);
+                    final var raw = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE);
+                    final var state = raw.map(value -> new PhantomBackgroundStateCodec().decode(value.payload()));
+                    System.out.println("SQL130_NATIVE_PROBE profile=" + id + " group=" + group.map(value -> value.group().phase() + ":" + value.group().waitReason() + ":expires=" + value.group().expiresAtMillis())
+                        + " background=" + state.map(value -> value.state() + ":XP=" + value.progress().experience() + ":SP=" + value.progress().skillPoints() + ":hashes=" + value.hashes())
+                        + " catchup=" + new PhantomBackgroundCatchupStore(profiles, new PhantomGoalStateStore(profiles)).load(id).map(value -> value.state().toString()));
+                }
+                return;
+            }
+			if (args[0].equals("seal"))
+			{
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT COUNT(*) FROM phantom_profile_components WHERE component_type=?"))
+				{
+					query.setString(1, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE);
+					try (var rows = query.executeQuery()) { if (!rows.next() || rows.getLong(1) != 0) { throw new IllegalStateException("SQL fixtures can be sealed only before managed native fixture creation."); } }
+				}
+				final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles)); long after = 0; int sealed = 0;
+				while (true)
+				{
+					final var page = logical.recoverAfter(after, 16); if (page.isEmpty()) { break; }
+					for (var row : page) { after = row.group().leaderProfileId(); if (row.group().active()) { logical.disband(row, System.currentTimeMillis(), "SQL_FIXTURE_COMPLETE"); sealed++; } }
+				}
+				System.out.println("SQL130_FIXTURES_SEALED=" + sealed + ";ATOMIC_RELEASE=true;GAMEPLAY_WRITES=0"); return;
+			}
 			if (args[0].equals("resume"))
 			{
 				final var checkpoint = read(local.resolve("restart.properties"));
@@ -194,6 +229,44 @@ public final class PhantomCoordination130Integration
 			List.of(new PhantomLogicalParty.Member(leader, "damage", leader + 1000, 0), new PhantomLogicalParty.Member(peer, "support", peer + 1000, 0)),
 			new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@farm.fixture"), "farm.fixture", PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "");
 	}
+    /** Metadata-only CAS reproduction of the observed initial-root deadlock; no native profile mutation. */
+    private static void initialRootBinding(PhantomProfileRepository profiles, Path module) throws Exception
+    {
+        final var fixture = read(module.getParent().getParent().resolve("runtime/fixture130.properties"));
+        final long reference = Long.parseLong(fixture.getProperty("profiles").split(",")[0]);
+        final var prior = new PhantomBackgroundStateCodec().decode(profiles.findComponent(reference, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+        final var profile = profiles.create(null); final long id = profile.profileId(); final int object = Math.toIntExact(700_000_000L + id);
+        profiles.updateCharacterLink(id, profile.rowVersion(), object);
+        final var state = new PhantomBackgroundState(PhantomBackgroundState.State.READY,
+            new PhantomBackgroundState.Identity(id, object, prior.identity().classIndex(), prior.identity().activeClassId(), prior.identity().raceOrdinal()),
+            prior.progress(), prior.vitals(), prior.position(), prior.combat(), prior.loadout(), prior.inventory(), prior.autoGetSkills(), prior.clock(), PhantomBackgroundState.Receipt.empty(), prior.hashes());
+        final var original = new PhantomGoalStateStore(profiles).load(reference).orElseThrow().goal();
+        final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(13_000_000 + id, original.goalType(), original.status(),
+            new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", Long.toString(id)), original.target(), original.requiredAmount(), original.currentAmount(),
+            original.acquisitionMethod(), original.validSources(), original.selectedAnchor(), original.purposeKey(), original.priority(), original.riskBudget(), original.expenseBudget(), original.deadlineEpochMillis(), original.constraints(), original.reasonKey(), 0);
+        final var goals = new PhantomGoalStateStore(profiles); final var storedGoal = goals.insert(id, root);
+        final var rawState = profiles.insertComponent(id, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundState.SCHEMA_VERSION, new PhantomBackgroundStateCodec().encode(state));
+        final var history = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.PENDING,
+            org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("handoff130:" + id).toLowerCase(java.util.Locale.ROOT),
+            130, 100, 101, 100, 0, 0, 1, 1, 1, 0, 0, "", PhantomBackgroundState.MODEL_VERSION,
+            new PhantomBackgroundState.Hashes("old-knowledge130", state.hashes().topology(), state.hashes().progression(), state.hashes().commerce()), "");
+        final var store = new PhantomBackgroundCatchupStore(profiles, goals); final var pending = store.claim(id, history);
+        final var planned = history.withPlan(root.goalId(), root.revision(), 0, "a".repeat(64), 1, 1, state.hashes());
+        final var fabricated = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal(storedGoal.goal(), storedGoal.rowVersion() + 1);
+        PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> store.bindExistingInitialPlan(id, pending, planned, fabricated, state), "A stale root linked a new catch-up.");
+        final var changedWindow = new PhantomBackgroundCatchupState(planned.status(), planned.requestId(), planned.deterministicSeed(), planned.fromEpochMinute(), planned.targetEpochMinute() + 1,
+            planned.cursorEpochMinute(), planned.planOrdinal(), planned.intervalOrdinal(), planned.generation(), planned.knowledgeGeneration(), planned.topologyGeneration(), planned.goalId(), planned.goalRevision(),
+            planned.planIdentity(), planned.modelVersion(), planned.authorityHashes(), planned.failureReason());
+        PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> store.bindExistingInitialPlan(id, pending, changedWindow, storedGoal, state), "Initial binding changed its owned time window.");
+        race(() -> store.bindExistingInitialPlan(id, pending, planned, storedGoal, state), () -> store.bindExistingInitialPlan(id, pending, planned, storedGoal, state));
+        final var bound = store.load(id).orElseThrow();
+        PhantomAssertions.assertEquals(planned, bound.state(), "Initial binding changed time/interval/plan.");
+        PhantomAssertions.assertEquals(pending.rowVersion() + 1, bound.rowVersion(), "Concurrent binding applied twice.");
+        PhantomAssertions.assertEquals(storedGoal, goals.load(id).orElseThrow(), "Binding rewrote the existing ordinary Goal.");
+        PhantomAssertions.assertEquals(rawState, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Binding changed the Background/economic baseline.");
+        PhantomAssertions.assertThrows(RuntimeException.class, () -> store.bindExistingInitialPlan(id, pending, planned, storedGoal, state), "Stale pending claim rebound a newer owner.");
+        System.out.println("SQL130_INITIAL_ROOT_BIND_PASS;ONE_CAS_WINNER=true;STALE_ROOT_AND_CLAIM=REJECTED;CURSOR_EXP_SP_GOAL_BASELINE=UNCHANGED;NATIVE_ADMISSION=NOT_GRANTED");
+    }
 	/** Real JDBC settlement through the existing Background transaction; these are SQL fixtures, never native kill evidence. */
 	private static void backgroundReceipts(PhantomProfileRepository profiles, Path module) throws Exception
 	{

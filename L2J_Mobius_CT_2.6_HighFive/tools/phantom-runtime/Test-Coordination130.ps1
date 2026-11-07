@@ -1,0 +1,107 @@
+[CmdletBinding()]
+param(
+    [ValidateSet('package','fixture','native','restart','postflight')][string]$Action,
+    [Parameter(Mandatory=$true)][string]$RuntimeRoot,
+    [string]$GeoSource
+)
+$ErrorActionPreference='Stop'
+$module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+$source=[IO.Directory]::GetParent($module).FullName
+$runtime=[IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
+$parent=[IO.Directory]::GetParent($source).FullName
+if($runtime -ine (Join-Path $parent 'runtime')){throw 'TEST130_EXACT_SIBLING_RUNTIME_REQUIRED'}
+foreach($path in @($source,$parent,$runtime)){
+    if((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'TEST130_REPARSE_ROOT'}
+}
+$marker=Join-Path $runtime 'owner130.txt'
+function Assert-PortsFree {
+    if(@(Get-NetTCPConnection -State Listen | Where-Object {$_.LocalPort -in @(7960,9260,2260)}).Count){throw 'TEST130_PORT_BUSY'}
+}
+function Assert-Protected {
+    foreach($seal in (Get-Content -LiteralPath (Join-Path $parent 'evidence\protected-pre-native.json') -Raw | ConvertFrom-Json)){
+        if((Get-FileHash -LiteralPath $seal.path -Algorithm SHA256).Hash -cne $seal.sha256){throw 'TEST130_PROTECTED_HASH_CHANGED'}
+    }
+}
+Assert-Protected
+Assert-PortsFree
+if($Action -eq 'package'){
+    if(Test-Path -LiteralPath $runtime){throw 'TEST130_PACKAGE_ALREADY_EXISTS_NO_OVERWRITE'}
+    $geo=[IO.Path]::GetFullPath($GeoSource).TrimEnd('\')
+    $files=@(Get-ChildItem -LiteralPath $geo -Filter '*.l2j' -File)
+    if($files.Count -ne 203 -or ($files | Measure-Object -Property Length -Sum).Sum -ne 1063452308){throw 'TEST130_GEO203_REQUIRED'}
+    $null=New-Item -ItemType Directory -Path $runtime
+    Copy-Item -LiteralPath (Join-Path $module 'dist\game\config') -Destination $runtime -Recurse
+    Copy-Item -LiteralPath (Join-Path $module 'dist\game\log.cfg') -Destination $runtime
+    # Stock IXmlReader and script sourcepath require physical cwd/data, regardless of DatapackRoot.
+    Copy-Item -LiteralPath (Join-Path $module 'dist\game\data') -Destination $runtime -Recurse
+    $null=New-Item -ItemType Directory -Path (Join-Path $runtime 'geodata'),(Join-Path $runtime 'logs'),(Join-Path $runtime 'libs')
+    Copy-Item -Path (Join-Path $module 'dist\libs\*.jar') -Destination (Join-Path $runtime 'libs')
+    Copy-Item -LiteralPath (Join-Path $module '.phantom-local\task130\Database.ini') -Destination (Join-Path $runtime 'config\Database.ini')
+    $encoding=[Text.UTF8Encoding]::new($false)
+    $datapack=$runtime
+    $relativeGeo=([Uri]::new($datapack+'\')).MakeRelativeUri([Uri]::new((Join-Path $runtime 'geodata')+'\')).ToString()
+    $overrides=@{
+        'Interface.ini'=@{EnableGUI='False'}
+        'Server.ini'=@{LoginHost='127.0.0.1';LoginPort='9260';GameserverHostname='127.0.0.1';GameserverPort='7960';DatapackRoot=$datapack.Replace('\','/')}
+        'GeoEngine.ini'=@{GeoDataPath=$relativeGeo}
+        'Custom\PhantomPlayers.ini'=@{EnablePhantomSystem='False';PhantomPopulationTarget='3';PhantomPopulationActiveTarget='3';EnablePhantomEcology='True'}
+        'Custom\PhantomMerchants.ini'=@{EnableOfflinePhantomMerchants='False'}
+        'Custom\OfflineTrade.ini'=@{RestoreOffliners='False'}
+    }
+    foreach($file in $overrides.Keys){
+        $path=Join-Path $runtime ('config\'+$file)
+        $body=[IO.File]::ReadAllText($path)
+        foreach($key in $overrides[$file].Keys){
+            $pattern='(?m)^'+[regex]::Escape($key)+'\s*=.*$'
+            if([regex]::Matches($body,$pattern).Count -ne 1){throw ('TEST130_CONFIG_KEY_'+$key)}
+            $body=[regex]::Replace($body,$pattern,($key+' = '+$overrides[$file][$key]))
+        }
+        [IO.File]::WriteAllText($path,$body,$encoding)
+    }
+    $geoManifest=@()
+    foreach($file in $files){
+        $target=Join-Path $runtime ('geodata\'+$file.Name)
+        Copy-Item -LiteralPath $file.FullName -Destination $target
+        $hash=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+        if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -cne $hash){throw 'TEST130_GEO_COPY_HASH'}
+        $geoManifest+=@{name=$file.Name;sha256=$hash;bytes=$file.Length}
+    }
+    $geoManifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime 'geo203.json') -Encoding UTF8
+    [IO.File]::WriteAllText($marker,'TASK130:'+([guid]::NewGuid().ToString('N')),$encoding)
+    Write-Output 'TEST130_MINIMAL_PACKAGE_PASS;GEO203=PHYSICAL_HASHED_COPY;DATA=ONE_119MB_STOCK_COPY;SERVERS=0'
+    return
+}
+if(!(Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw) -cnotmatch '^TASK130:[0-9a-f]{32}$'){throw 'TEST130_OWNER_MARKER'}
+$own=@(Get-CimInstance Win32_Process | Where-Object {$_.Name -eq 'java.exe' -and $_.CommandLine -and $_.CommandLine.Contains($runtime)})
+if($own.Count){throw 'TEST130_OWN_JVM_ALREADY_PRESENT'}
+if($Action -eq 'postflight'){
+    Write-Output 'TEST130_POSTFLIGHT_OS_PASS;OWN_JVM=0;OWN_LISTENERS=0;PROTECTED=EXACT'
+    return
+}
+$request=Join-Path $parent ('g0-native130-'+[guid]::NewGuid().ToString('N'))
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-G0IdentityAttestation.ps1') -RequestDirectory $request
+if($LASTEXITCODE -ne 0){throw 'TEST130_G0_IDENTITY_FAILED'}
+$built=Join-Path $module 'dist\libs\GameServer.jar'
+$builtHash=(Get-FileHash -LiteralPath $built).Hash
+$jar=Join-Path $runtime ('libs\GameServer.'+$builtHash+'.jar')
+if(!(Test-Path -LiteralPath $jar)){Copy-Item -LiteralPath $built -Destination $jar}
+if((Get-FileHash -LiteralPath $jar).Hash -cne $builtHash){throw 'TEST130_FINAL_JAR_DIFFERS'}
+$java=(Get-Command java -ErrorAction Stop).Source
+$dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '*.jar' -File | Where-Object {$_.Name -notlike 'GameServer*' -and $_.Name -notmatch '-(sources|javadoc)\.jar$'} | ForEach-Object FullName)
+$classpath=$jar+';'+($dependencies -join ';')+';'+(Join-Path $source 'build\phantom-test\bin')+';'+(Join-Path $source 'build\phantom-test\resources')
+$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
+$attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
+$out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')
+$process=Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $runtime -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
+$processHandle=$process.Handle
+$fact=Get-CimInstance Win32_Process -Filter ('ProcessId='+$process.Id)
+$owner=Invoke-CimMethod -InputObject $fact -MethodName GetOwner
+$identity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+if(!$fact -or $fact.ExecutablePath -ine $java -or !$fact.CommandLine.Contains($runtime) -or ($owner.Domain+'\'+$owner.User) -ine $identity){throw 'TEST130_STARTED_IDENTITY_MISMATCH'}
+@{pid=$process.Id;created=$fact.CreationDate.ToUniversalTime().ToString('o');java=$java;owner=$identity;jar=(Get-FileHash -LiteralPath $jar).Hash;phase=$Action;stdout=$out;stderr=$err} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime ($attempt+'.process.json')) -Encoding UTF8
+Write-Output ('TEST130_STARTED_OWNED_PID='+$process.Id+';PHASE='+$Action+';NORMAL_SHUTDOWN_ONLY=true')
+$process.WaitForExit()
+$process.Refresh()
+@{pid=$process.Id;exitCode=$process.ExitCode;phase=$Action;finished=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime ($attempt+'.exit.json')) -Encoding UTF8
+Write-Output ('TEST130_OWN_EXIT='+$process.ExitCode+';PHASE='+$Action)
+exit $process.ExitCode

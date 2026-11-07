@@ -9042,6 +9042,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 		static ProductionAuthorityFixture start(Path topologyDirectory)
 		{
+			return start(topologyDirectory, Path.of("."));
+		}
+		static ProductionAuthorityFixture start(Path topologyDirectory, Path datapack)
+		{
 			MapRegionData.getInstance();
 			SpawnData.getInstance();
 			DoorData.getInstance();
@@ -9050,7 +9054,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final PhantomTopologyQuery topology = new PhantomTopologyQuery(topologySnapshot, topologyBackend, new PhantomTopologyMetrics());
 			final PhantomGameKnowledgePolicy knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults();
 			final L2jGameKnowledgeBackend knowledgeBackend = new L2jGameKnowledgeBackend();
-			final PhantomGameKnowledgeService knowledgeService = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(knowledgeBackend, new PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), knowledgeBackend, knowledgePolicy), topology, knowledgePolicy));
+			final PhantomGameKnowledgeService knowledgeService = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(knowledgeBackend, new PhantomStaticManorParser(datapack.resolve("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(datapack.resolve("data/phantoms/knowledge"), knowledgeBackend, knowledgePolicy), topology, knowledgePolicy));
 			if (!knowledgeService.start())
 			{
 				throw new IllegalStateException("Production Game Knowledge fixture did not start.");
@@ -9059,9 +9063,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				final PhantomGameKnowledgeQuery knowledge = knowledgeService.query();
 				final PhantomProgressionPolicy progressionPolicy = PhantomProgressionPolicy.productionDefaults();
-				final L2jProgressionBackend progressionBackend = new L2jProgressionBackend(null, Path.of("."), () -> knowledge);
+				final L2jProgressionBackend progressionBackend = new L2jProgressionBackend(null, datapack, () -> knowledge);
 				final PhantomProgressionCatalog progression = new PhantomProgressionCatalogBuilder().build(progressionBackend.load(progressionPolicy), progressionPolicy);
-				final PhantomCommerceCatalog commerce = new PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+				final PhantomCommerceCatalog commerce = new PhantomCommerceCatalogLoader(datapack).load().catalog();
 				final L2jPhantomBackgroundAuthority authority = new L2jPhantomBackgroundAuthority(() -> knowledge, () -> topology, () -> progression, () -> commerce);
 				return new ProductionAuthorityFixture(knowledgeService, knowledge, topology, topologyBackend, progression, commerce, authority);
 			}

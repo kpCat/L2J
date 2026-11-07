@@ -415,6 +415,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		Snapshot current = lifecycle.snapshot();
 		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
 		final Optional<PhantomBackgroundState> existingBackground = _background.acquisitionSnapshot(profileId);
+        if (current.state().status() == Status.PENDING && current.state().goalId() == 0 && current.state().planOrdinal() == 0 && current.state().intervalOrdinal() == 0
+            && storedGoal != null && existingBackground.filter(state -> state.state() == PhantomBackgroundState.State.READY).isPresent()
+            && org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, storedGoal.goal())
+            && _materialization.find(profileId).isEmpty())
+        {
+            final var goal = storedGoal.goal(); final var baseline = existingBackground.get();
+            final var planned = current.state().withPlan(goal.goalId(), goal.revision(), 0,
+                digest("BACKGROUND_CATCHUP_EXISTING_ROOT_V1", profileId, goal, baseline.hashes()), current.state().knowledgeGeneration(), current.state().topologyGeneration(), baseline.hashes());
+            // Binding grants no interval/admission. The existing branch below refreshes stale
+            // authority through canonical native STORE and verifies native context before RUNNING.
+            try { current = _store.bindExistingInitialPlan(profileId, current, planned, storedGoal, existingBackground.get()); }
+            catch (RuntimeException changed) { return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.initial_binding_changed", _store.load(profileId).orElse(current)); }
+        }
 		if (existingBackground.isPresent() && (existingBackground.get().state() == PhantomBackgroundState.State.VERIFY_PENDING) && (current.state().status() == Status.PENDING) && (current.state().goalId() > 0) && (storedGoal != null) && (storedGoal.goal().goalId() == current.state().goalId()) && (storedGoal.goal().revision() == current.state().goalRevision()) && _materialization.find(profileId).filter(owner -> owner.playerRetained() && owner.identityLeaseRetained() && !owner.actionAdmissionOpen()).isPresent())
 		{
 			// The retained Player resolves its exact owned-store receipt before a historical baseline can resume.

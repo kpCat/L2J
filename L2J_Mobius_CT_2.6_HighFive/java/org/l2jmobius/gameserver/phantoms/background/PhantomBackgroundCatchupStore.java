@@ -131,6 +131,31 @@ public final class PhantomBackgroundCatchupStore
 		return mutatePlan(profileId, expected, planned, goal, -1);
 	}
 
+    /** Bind only an untouched initial claim to an already durable ordinary root; no new reward or time. */
+    public Snapshot bindExistingInitialPlan(long profileId, Snapshot expected, PhantomBackgroundCatchupState planned, StoredGoal goal, PhantomBackgroundState baseline)
+    {
+        requireSameRequest(expected.state(), planned);
+        final var before = expected.state();
+        if (before.status() != PhantomBackgroundCatchupState.Status.PENDING || before.goalId() != 0 || before.planOrdinal() != 0 || before.intervalOrdinal() != 0
+            || before.cursorEpochMinute() != before.fromEpochMinute() || planned.status() != before.status() || planned.cursorEpochMinute() != before.cursorEpochMinute()
+            || planned.fromEpochMinute() != before.fromEpochMinute() || planned.targetEpochMinute() != before.targetEpochMinute()
+            || planned.deterministicSeed() != before.deterministicSeed() || planned.modelVersion() != before.modelVersion() || !planned.failureReason().equals(before.failureReason())
+            || planned.intervalOrdinal() != 0 || planned.planOrdinal() != 0 || planned.goalId() != goal.goal().goalId() || planned.goalRevision() != goal.goal().revision()
+            || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, goal.goal())
+            || baseline.state() != PhantomBackgroundState.State.READY || baseline.identity().profileId() != profileId
+            || !planned.authorityHashes().equals(baseline.hashes()) || planned.knowledgeGeneration() != before.knowledgeGeneration() || planned.topologyGeneration() != before.topologyGeneration())
+        { throw new IllegalArgumentException("Only an untouched initial catch-up may bind an exact READY ordinary root."); }
+        final var root = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+        final var state = _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+        if (!_goals.decodeComponent(root).equals(goal) || !new PhantomBackgroundStateCodec().decode(state.payload()).equals(baseline))
+        { throw new ConcurrentModificationException("Initial root/baseline changed."); }
+        final var linked = _profiles.find(profileId).orElseThrow().characterObjectId();
+        if (linked == null || linked != baseline.identity().characterObjectId()) { throw new IllegalArgumentException("Initial native identity differs."); }
+        final var result = _profiles.mutateProfileComponentsAtomically(List.of(new PhantomProfileRepository.ProfileComponentMutation(profileId,
+            componentMutation(expected, planned))), List.of(root, state));
+        return decode(result.getFirst());
+    }
+
 	public PlannedSnapshot replacePlan(long profileId, Snapshot expected, PhantomBackgroundCatchupState planned, StoredGoal expectedGoal, PhantomGoal replacementGoal)
 	{
 		if ((expectedGoal.goal().goalId() != replacementGoal.goalId()) || (replacementGoal.revision() != Math.addExact(expectedGoal.goal().revision(), 1)))

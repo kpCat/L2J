@@ -21,6 +21,19 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	{
 		PhantomPartySuite.registerCoordination130(registry);
 		org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite.registerCoordination130(registry);
+        registry.add("13-native-fixture-selects-lawful-birth-and-active-calendar-without-server", context ->
+        {
+            final var zone = java.time.ZoneId.of("UTC"); final var now = java.time.Instant.parse("2026-11-06T22:00:00Z");
+            final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v3.xml"), zone);
+            for (int ordinal = 1; ordinal <= 3; ordinal++)
+            {
+                final long seed = PhantomCoordination130Native.birthSeed(catalog, 1000 + ordinal, ordinal, ordinal == 3 ? 10 : 0, zone, now);
+                final var schedule = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.scheduleForShell(catalog, 1000 + ordinal, seed, null);
+                final var evaluated = catalog.evaluate(schedule.template().id(), now, zone, schedule.phaseMinutes());
+                PhantomAssertions.assertTrue(evaluated.state().requiresMaterialization() && evaluated.nextBoundary().isAfter(now.plusSeconds(1800)), "Fixture bypasses the real calendar.");
+            }
+            PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomCoordination130Native.birthSeed(catalog, 1000, 0, 0, zone, now), "Invalid creation ordinal reached native bootstrap.");
+        });
 		registry.add("01-logical-two-three-nine-survive-zero-native-recreation", _ ->
 		{
 			for (int size : List.of(2, 3, 9))
