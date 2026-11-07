@@ -15,7 +15,7 @@
     "sqlLifecycleAndBackgroundMillis": 5575,
     "separateJvmPendingCheckpointWrites": 0, "separateJvmAggregateResumeWrites": 0,
     "staticMatcherCorrection": "ThreadLocal no longer matches the Thread-constructor prohibition; ExecutorService and ScheduledFuture remain forbidden",
-    "nativeGate": "CLOSED: Conversation commits party.invite root before handoff; existing Background lineage requires a supported current root for Player.storeMe and throws OWNED_STORE_UNSUPPORTED_GOAL",
+    "nativeGate": "CLOSED: Conversation proposal party.invite publishes goalType party.form before handoff; existing Background lineage requires a supported current root for Player.storeMe and throws OWNED_STORE_UNSUPPORTED_GOAL",
     "requiredContractChange": "Retain requested intent before publication; checkpoint old native and ledger authority; CAS transfer and root publication; retain old accepted lineage until explicit settlement/migration with retry/restart semantics",
     "contradictionEvidence": "SOURCE_CONTROL_FLOW; not a live native reproduction; no assertion that the incompatible owner contract change is implemented",
     "postflightOwnJvm": 0, "postflightOwnListeners": 0, "protected207Hashes": "EXACT",
