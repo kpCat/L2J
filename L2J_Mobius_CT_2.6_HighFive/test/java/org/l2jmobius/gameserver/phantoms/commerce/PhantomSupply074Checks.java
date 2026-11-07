@@ -10,6 +10,13 @@ public final class PhantomSupply074Checks
 {
 	public static void main(String[] args)
 	{
+		final var calls = new java.util.concurrent.atomic.AtomicInteger();
+		final java.util.function.Supplier<java.util.Optional<String>> gear = () -> { calls.incrementAndGet(); return java.util.Optional.of("new.equipment"); };
+		PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.optionalPreparation(true, gear).isEmpty(), "An accepted physical rendezvous started another optional equipment journey.");
+		PhantomAssertions.assertEquals(0, calls.get(), "Deferred equipment still invoked its native proposal producer.");
+		PhantomAssertions.assertEquals(java.util.Optional.of("new.equipment"), L2jPhantomSupplyJourney.optionalPreparation(false, gear), "Stale or absent assembly suppressed ordinary equipment progression.");
+		PhantomAssertions.assertEquals(1, calls.get(), "Ordinary proposal producer was duplicated.");
+		System.out.println("SUPPLY130_OPTIONAL_PREPARATION_PASS;EXACT_ASSEMBLY=DEFERRED;PRODUCER_CALLS=0;NO_ASSEMBLY=ORDINARY;GAMEPLAY_WRITES=0");
 		final var destination = new PhantomNavigationPoint(-61717, 75401, -3352, 0);
 		final var checkpoint = new PhantomNavigationPoint(-63000, 76500, -3280, 0);
 		final var points = List.of(destination, checkpoint);

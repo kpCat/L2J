@@ -1600,14 +1600,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType()) && !historicalIdle) { prepared = sharedFarmSource == null; return prepared; }
 			if (historicalIdle) { PhantomHistoricalBackgroundPlanner.visiblePredecessor(profileId, stored.goal()); }
 			stage = "visible_intent";
-			if (holdsOrdinaryPartyRoot(sharedFarmSource != null, _acceptedPartyRoot.test(profileId, stored.goal()), _acceptedIntent.test(profileId, stored.goal())))
+			final boolean visibleIntent = _visibleIntent.test(profileId, stored.goal());
+			if (holdsOrdinaryPartyRoot(sharedFarmSource != null, _acceptedPartyRoot.test(profileId, stored.goal()), _acceptedIntent.test(profileId, stored.goal()), visibleIntent))
 			{
 				stage = "accepted_rendezvous_root";
 				prepared = nativePartyDecisionPrepared(false, false, _rendezvousTravelDecision.test(profileId, stored.goal()));
 				return prepared; // Keep the accepted root, while its exact adopted travel reaches the ordinary Decision owner.
 			}
 			if (nativePartyDecisionPrepared(sharedFarmSource != null, _partyCommittedDecision.test(profileId, stored.goal()))) { prepared = true; return true; }
-			if (!historicalIdle && _visibleIntent.test(profileId, stored.goal()))
+			if (!historicalIdle && visibleIntent)
 			{
 				prepared = sharedFarmSource == null || stored.goal().validSources().contains(sharedFarmSource) && _supportRendezvousTravel.test(profileId, stored.goal());
 				return prepared;
@@ -1911,7 +1912,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 	static boolean holdsOrdinaryPartyRoot(boolean sharedPreparation, boolean exactNativePartyRoot, boolean acceptedExternalOwner)
 	{
-		return !sharedPreparation && exactNativePartyRoot && !acceptedExternalOwner;
+		return holdsOrdinaryPartyRoot(sharedPreparation, exactNativePartyRoot, acceptedExternalOwner, false);
+	}
+	static boolean holdsOrdinaryPartyRoot(boolean sharedPreparation, boolean exactNativePartyRoot, boolean acceptedExternalOwner, boolean necessaryVisibleIntent)
+	{
+		return !sharedPreparation && exactNativePartyRoot && !acceptedExternalOwner && !necessaryVisibleIntent;
 	}
 	static boolean holdsLogicalAssemblyRoot(boolean sharedPreparation, boolean finiteLogicalAssembly, boolean acceptedExternalOwner, boolean necessaryVisibleIntent)
 	{

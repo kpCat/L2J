@@ -92,6 +92,7 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(true, true, false), "Rendezvous blocked its own shared-source preparation.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, true, true), "Assembly stole the accepted Supply/Combat/Store owner.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, false, false), "Stale/expired native consent held an ordinary root.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.holdsOrdinaryPartyRoot(false, true, false, true), "The original accepted root fenced a new mandatory Supply/Learning prerequisite before Decision could own it.");
 			PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(false, false, true), "Holding an adopted rendezvous root also stopped ordinary Decision/Travel.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(false, false, false), "Unchanged, expired or stale accepted root bypassed preparation.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.nativePartyDecisionPrepared(true, false, true), "Travel continuation bypassed shared-source preparation.");

@@ -126,6 +126,17 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		_progression = java.util.Objects.requireNonNull(progression); _equipmentWeaponProtected = java.util.Objects.requireNonNull(weaponProtected);
 	}
 	private java.util.function.BiPredicate<PhantomGoal, Player> _fieldReady = (_, _) -> true;
+	private BiPredicate<Long, PhantomGoal> _deferOptional = (_, _) -> false;
+	public void deferOptionalWhen(BiPredicate<Long, PhantomGoal> predicate)
+	{
+		if (_state != State.NEW) { throw new IllegalStateException("Supply optional priority must bind before start."); }
+		_deferOptional = java.util.Objects.requireNonNull(predicate);
+	}
+	/** Defer before invoking a proposal producer; an accepted child is handled earlier by its owner. */
+	static <T> Optional<T> optionalPreparation(boolean deferred, Supplier<Optional<T>> proposal)
+	{
+		return deferred ? Optional.empty() : proposal.get();
+	}
 	public void requireField(java.util.function.BiPredicate<PhantomGoal, Player> predicate)
 	{
 		if (_state != State.NEW) { throw new IllegalStateException("Supply field must bind before start."); } _fieldReady = java.util.Objects.requireNonNull(predicate);
@@ -335,13 +346,14 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final var maintenance = maintenanceProposal(profileId, root, player, cached, now);
 			if (maintenance.isPresent()) { return maintenance; }
-			final var readySa = readySaProposal(profileId, root, player, cached, now);
+			final boolean deferOptional = _deferOptional.test(profileId, root);
+			final var readySa = optionalPreparation(deferOptional, () -> readySaProposal(profileId, root, player, cached, now));
 			if (readySa.isPresent()) { return readySa; }
 			if (player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return equipmentProposal(profileId, root, player, cached, now); }
-			final var need = supplyNeed(player); if (need == null) { return equipmentProposal(profileId, root, player, cached, now); }
+			final var need = supplyNeed(player); if (need == null) { return optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)); }
 			final int perHit = need.perHit(); var items = need.preferred(); long stock = need.stock();
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
-			if (facts.equals(cached.facts) && cached.nextCheck > now) { return cached.offer == null ? equipmentProposal(profileId, root, player, cached, now) : Optional.of(cached.offer); }
+			if (facts.equals(cached.facts) && cached.nextCheck > now) { return cached.offer == null ? optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now)) : Optional.of(cached.offer); }
 			cached.facts = facts; cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.offer = null;
 			final long targetStock = need.targetStock();
 			final int maximumPurchases = _maintenanceAllowed.test(profileId) ? PhantomInventoryMaintenanceIntent.MAXIMUM_OPERATIONS : 1;
@@ -391,7 +403,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			}
 			if (choices.isEmpty())
 			{
-				final var equipment = equipmentProposal(profileId, root, player, cached, now);
+				final var equipment = optionalPreparation(deferOptional, () -> equipmentProposal(profileId, root, player, cached, now));
 				if (equipment.isPresent() && !"income.farm".equals(equipment.orElseThrow().acquisitionMethod())) { return equipment; }
 				return shortageOffer(root, player, cached, new PhantomDomainRef("item", Integer.toString(items.getFirst().getId())), shortageReason(player, items), now);
 			}
