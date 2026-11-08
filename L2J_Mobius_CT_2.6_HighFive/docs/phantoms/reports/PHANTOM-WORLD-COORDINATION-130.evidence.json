@@ -1,5 +1,255 @@
 {
-  "status": "ROUTE_AND_TERMINAL_GROUP_DIAGNOSIS_PLAN_ONLY",
+  "status": "CHEAP_TERMINAL_ACTIVITY_CHAIN_GREEN_NATIVE_REQUIRED",
+  "terminalActivityRevision": {
+    "baseHead": "5e2e5742247e1a7c6875714720b7dc9243650643",
+    "codeCommit": "8d490ee86d17e156b93f24081004c3a45c86887c",
+    "branch": "wip/coordination-130-preserved",
+    "gate": "CHEAP_TERMINAL_ACTIVITY_CHAIN_GREEN_NATIVE_REQUIRED",
+    "full130": false,
+    "newJarBuilds": 0,
+    "newGameServerLaunches": 0,
+    "jarSha256": "C3673739BDEEAE3DED645F385E2DBA701B222563EA43D632CF53C971C3AA61D0",
+    "nativeClaims": false,
+    "featureHead": "faec72161f9e4f6231764e17d6f2637a4db080af",
+    "readGuardLimit": 36,
+    "mutationLimit": 19,
+    "cursor": 101,
+    "memberCounts": [
+      2,
+      9
+    ],
+    "actualSqlExpPerFixture": 1,
+    "actualSqlSpPerFixture": 1,
+    "separateJvmRecovery": "ACTIVITY_PENDING after one root committed",
+    "casRaces": {
+      "beginWinners": 1,
+      "finalWinners": 1
+    },
+    "model": {
+      "total": 395,
+      "passed": 395,
+      "failed": 0,
+      "modes": [
+        [
+          "decision-core",
+          130130
+        ],
+        [
+          "world-coordination130",
+          130130
+        ],
+        [
+          "supply071",
+          130130
+        ],
+        [
+          "party-state-recovery",
+          130130
+        ],
+        [
+          "party-canonical-invitation",
+          130130
+        ],
+        [
+          "party-role-vacancy",
+          130130
+        ],
+        [
+          "party-tactics",
+          130130
+        ],
+        [
+          "party-lifecycle",
+          130130
+        ],
+        [
+          "party-route",
+          130130
+        ],
+        [
+          "visible-itinerary068",
+          130130
+        ],
+        [
+          "commerce-receipt",
+          140014
+        ],
+        [
+          "commerce-quote",
+          140014
+        ],
+        [
+          "combat-core",
+          130130
+        ],
+        [
+          "combat-ownership",
+          130130
+        ],
+        [
+          "combat-action-ownership",
+          130130
+        ],
+        [
+          "decision-performance",
+          130130
+        ],
+        [
+          "navigation-core",
+          130130
+        ]
+      ],
+      "logs": [
+        "terminal130-final-model-decision-core.log",
+        "terminal130-final-model-world-coordination130.log",
+        "terminal130-final-model-supply071.log",
+        "terminal130-final-model-party-state-recovery.log",
+        "terminal130-final-model-party-canonical-invitation.log",
+        "terminal130-final-model-party-role-vacancy.log",
+        "terminal130-final-model-party-tactics.log",
+        "terminal130-final-model-party-lifecycle.log",
+        "terminal130-final-model-party-route.log",
+        "terminal130-final-model-visible-itinerary068.log",
+        "terminal130-final-model-commerce-receipt.log",
+        "terminal130-final-model-commerce-quote.log",
+        "terminal130-final-model-combat-core.log",
+        "terminal130-final-model-combat-ownership.log",
+        "terminal130-final-model-combat-action-ownership.log",
+        "terminal130-final-model-decision-performance.log",
+        "terminal130-final-model-navigation-core.log"
+      ],
+      "living114": "terminal130-living114.log"
+    },
+    "sql": {
+      "schema": "l2jmobiush5_phantom_test_130",
+      "endpoint": "127.0.0.1:3308",
+      "phases": [
+        "ownership",
+        "ownership-resume",
+        "test",
+        "resume"
+      ],
+      "allExitCodes": 0,
+      "logs": [
+        "terminal130-final-sql-ownership.log",
+        "terminal130-final-sql-ownership-resume.log",
+        "terminal130-final-sql-test.log",
+        "terminal130-final-sql-resume.log"
+      ],
+      "fixtures": "unmanaged SQL130_, existing receipt fixture and modeled native actor leaves",
+      "managedPostCutGameplayWrites": 0,
+      "guardedRootProof": "exact RECOVER ACK dependency version/schema/SHA plus durable ACTIVE continuation fence"
+    },
+    "geo": {
+      "tool": "PhantomTravelGeoProbe",
+      "regions": 203,
+      "input": "route130-coordinate-pairs.tsv",
+      "output": "terminal130-final-geo-episode.tsv",
+      "log": "terminal130-final-geo-episode.log",
+      "database": false,
+      "actors": false,
+      "physicalWholeRoute85": "UNKNOWN",
+      "historicalRequest85": "UNKNOWN",
+      "historicalRequest86": "UNKNOWN",
+      "pathChainRun": false
+    },
+    "protection": {
+      "pins": 207,
+      "changed": 0,
+      "ownJvmAfterSql": 0,
+      "mariaDbPid": 8692,
+      "mariaDbCreatedUtc": "2026-10-28T15:34:43.9827017Z",
+      "mariaDbBinary": "103FDDD6CB26F4692B2438742D498EC66AA9518A23CBF02DD6F2E3DC7F242DE3"
+    },
+    "encoding": {
+      "mojibake": "PASS",
+      "escapedCyrillic": "PASS"
+    },
+    "scope": [
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalParty.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyPersistencePort.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyStore.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalPartyCoordinator.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomAutonomousFarmParty.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/decision/PhantomGoalStateStore.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationResult.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNativeRouteContract.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomWorldCoordination130Suite.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Integration.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Native.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCommerceSuite.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomFarm074Checks.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomLivingWorld114Checks.java"
+    ],
+    "git": {
+      "authorization": "User explicitly requested scoped commits and ordinary preservation push in current WIP; feature remains closed",
+      "commands": [
+        "git status --short",
+        "git status --porcelain",
+        "git rev-parse HEAD",
+        "git symbolic-ref --short HEAD",
+        "git diff --stat -- $taskCodePaths",
+        "git diff --check -- $taskCodePaths",
+        "git -c core.whitespace=cr-at-eol diff --check -- $taskCodePaths",
+        "git diff -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/decision/PhantomGoalStateStore.java",
+        "git diff --numstat -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java",
+        "git ls-remote --heads origin wip/coordination-130-preserved feature/phantom-world",
+        "git add -- $taskCodePaths",
+        "git diff --cached --name-only -- $taskCodePaths",
+        "git -c core.whitespace=cr-at-eol diff --cached --check -- $taskCodePaths",
+        "git commit -m 'TASK130: hand off terminal routes into guarded activity revision'",
+        "git add -- $taskReportPaths",
+        "git diff --cached --name-only -- $taskReportPaths",
+        "git -c core.whitespace=cr-at-eol diff --cached --check -- $taskReportPaths",
+        "git commit -m 'TASK130: record green terminal activity MODEL and SQL gates'",
+        "git push origin HEAD:refs/heads/wip/coordination-130-preserved"
+      ],
+      "variables": {
+        "taskCodePaths": [
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalParty.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyPersistencePort.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyStore.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomLogicalPartyCoordinator.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/PhantomAutonomousFarmParty.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/decision/PhantomGoalStateStore.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationResult.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNativeRouteContract.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomWorldCoordination130Suite.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPartySuite.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Integration.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCommerceSuite.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomFarm074Checks.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/background/PhantomLivingWorld114Checks.java"
+        ],
+        "taskReportPaths": [
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.evidence.json"
+        ]
+      }
+    },
+    "open": [
+      "final authorized JAR build",
+      "lawful current-objective native Group PvE reward and Heal",
+      "normal STOP/STORE and sameDB/sameJAR restart useful action",
+      "native F7/F8 and remaining full acceptance evidence"
+    ]
+  },
   "routeAndTerminalGroupDiagnosis": {
     "baseHead": "f9373d14ba6dbaff6e0c8ec1b516331c6cad3217",
     "productionChanges": 0, "newJarBuilds": 0, "newGameServerLaunches": 0,
