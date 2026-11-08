@@ -169,10 +169,11 @@ public final class PhantomOperatorRuntimeControlsSuite implements PhantomTestSui
 		final String access = Files.readString(context.moduleRoot().resolve("dist/game/config/AdminCommands.xml"));
 		final String gameServer = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/GameServer.java"));
 		PhantomAssertions.assertEquals(1, occurrences(system, "new PhantomSystem(PhantomPlayersConfig.settings(), true)"), "Configured construction sequence was duplicated.");
-		PhantomAssertions.assertEquals(3, occurrences(system, "startConfiguredInternal()"), "Startup and operator enable do not share exactly one canonical helper.");
-		final int shutdownHelper = system.indexOf("private static boolean shutdownConfiguredInstance()");
+		PhantomAssertions.assertTrue(system.contains("return startConfiguredInternal(_ -> { });") && system.contains("startConfiguredInternal(inspection)"), "Startup and inspected operator enable do not share the canonical helper.");
+		PhantomAssertions.assertTrue(system.indexOf("_planningInspection.accept(") < system.indexOf("if (!_scheduler.start())") && system.contains("productionProfiles, productionGoals, backgroundPlanner,"), "Read-only inspection did not retain the same planner before execution starts.");
+		final int shutdownHelper = system.indexOf("private static boolean shutdownConfiguredInstance(PhantomSystem configured)");
 		final int shutdownCall = system.indexOf("configured.shutdown()", shutdownHelper);
-		final int stoppedCheck = system.indexOf("configured.snapshot().state() == State.STOPPED", shutdownHelper);
+		final int stoppedCheck = system.indexOf("configured._state == State.STOPPED", shutdownHelper);
 		final int clearOwner = system.indexOf("_configuredInstance = null", stoppedCheck);
 		PhantomAssertions.assertTrue((shutdownHelper >= 0) && (shutdownCall > shutdownHelper) && (stoppedCheck > shutdownCall) && (clearOwner > stoppedCheck), "Configured controls do not reuse canonical shutdown or clear only after actual STOPPED.");
 		PhantomAssertions.assertTrue(handler.contains("arguments.equals(\"enable\")") && handler.contains("arguments.equals(\"drain\")") && handler.contains("arguments.equals(\"disable\")"), "AdminPhantom did not expose all three runtime controls.");

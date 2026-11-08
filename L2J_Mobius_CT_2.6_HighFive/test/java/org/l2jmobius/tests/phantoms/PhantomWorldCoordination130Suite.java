@@ -20,6 +20,15 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("loaded-preflight-keeps-ordinary-choice-and-requires-consent-spawn-geo-proof", _ ->
+		{
+			final var source = new PhantomDomainRef("background.farm", "20002@current.production.source");
+			final var candidates = group(1, 2).members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76, List.of(source), _ -> true, () -> true)).toList();
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightAgreement(candidates, (_, _) -> true, _ -> false, 1000).isEmpty(), "Preflight ignored missing stock spawn/Geo proof.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightAgreement(candidates, (_, _) -> false, _ -> true, 1000).isEmpty(), "Preflight ignored actual consent.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightAgreement(List.of(), (_, _) -> true, _ -> true, 1000).isEmpty(), "Empty production preview manufactured a source.");
+			PhantomAssertions.assertEquals(source, PhantomCoordination130Native.preflightAgreement(candidates, (_, _) -> true, _ -> true, 1000).orElseThrow().group().objective(), "Preflight replaced the ordinary production objective.");
+		});
 		registry.add("cold-expired-assembly-waits-for-solo-recovery-before-release-and-fresh-discovery", _ ->
 		{
 			for (int size : List.of(2, 9))

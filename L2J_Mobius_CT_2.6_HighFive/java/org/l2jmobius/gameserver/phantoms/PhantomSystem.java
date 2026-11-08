@@ -236,6 +236,9 @@ public final class PhantomSystem
 	private static PhantomPopulationResetService _populationResetService;
 
 	private final PhantomPlayersConfig.Settings _settings;
+	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
+	/** Observer gate over the same planner retained by ordinary execution; called before any scheduler pulse. */
+	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology, PhantomPlayersConfig.Settings settings) { }
 	private final PhantomMetrics _metrics;
 	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
@@ -508,6 +511,8 @@ public final class PhantomSystem
 				final PhantomPartyParticipationPort.Bridge partyParticipation = PhantomPartyParticipationPort.bridge();
 				final PhantomNormalGatekeeperTravel travel = PhantomNormalGatekeeperTravel.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/travel/high-five-normal-gk.xml").toPath(), _topologyService.query());
 				final L2jPhantomBackgroundAuthority backgroundAuthority = new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog, travel);
+				final var backgroundPlanner = new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority);
+				_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings));
 				_backgroundService = new PhantomBackgroundService(
 					productionProfiles,
 					productionGoals,
@@ -534,7 +539,7 @@ public final class PhantomSystem
 				final PhantomTopologyPositionPublisher positionPublisher = new PhantomTopologyPositionPublisher(_topologyService, _backgroundService::acquisitionSnapshot);
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> localityPreparationCandidate(_populationManager, profileId), this::liveMaterializedPoints);
-				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
+				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, backgroundPlanner, _backgroundService, _materializationService);
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime);
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
@@ -2110,13 +2115,17 @@ public final class PhantomSystem
 	}
 
 	private static boolean startConfiguredInternal()
+	{ return startConfiguredInternal(_ -> { }); }
+	private static boolean startConfiguredInternal(java.util.function.Consumer<PlanningInspection> inspection)
 	{
 		if (!PhantomPlayersConfig.isEnabled() || (_configuredInstance != null))
 		{
 			return false;
 		}
 
-		return startConfiguredCandidate(new PhantomSystem(PhantomPlayersConfig.settings(), true));
+		final var candidate = new PhantomSystem(PhantomPlayersConfig.settings(), true);
+		candidate._planningInspection = Objects.requireNonNull(inspection);
+		return startConfiguredCandidate(candidate);
 	}
 
 	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings)
@@ -2159,6 +2168,8 @@ public final class PhantomSystem
 	}
 
 	public static synchronized OperatorControlResult operatorEnable()
+	{ return operatorEnable(_ -> { }); }
+	public static synchronized OperatorControlResult operatorEnable(java.util.function.Consumer<PlanningInspection> inspection)
 	{
 		if (_configuredInstance != null)
 		{
@@ -2185,7 +2196,7 @@ public final class PhantomSystem
 		}
 		try
 		{
-			return operatorControlResult(startConfiguredInternal() ? OperatorControlCode.STARTED : OperatorControlCode.OWNER_BUSY);
+			return operatorControlResult(startConfiguredInternal(inspection) ? OperatorControlCode.STARTED : OperatorControlCode.OWNER_BUSY);
 		}
 		catch (RuntimeException e)
 		{
