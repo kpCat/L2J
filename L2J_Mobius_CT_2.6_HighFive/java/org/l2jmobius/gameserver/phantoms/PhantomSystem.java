@@ -1031,7 +1031,7 @@ public final class PhantomSystem
 					controlPorts.add(executionControl(_autonomousMarketProducer, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));
 				}
 				if (_offlineMerchantService != null) { controlPorts.add(executionControl(_offlineMerchantService, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo)); }
-				if (!_scheduler.installControlPort(new PhantomCompositeSchedulerControlPort(controlPorts)))
+				if (!_scheduler.installControlPort(executionControlChain(controlPorts)))
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
 				}
@@ -2160,6 +2160,7 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.ERROR, "Phantom World operator startup failed.", e);
 			return operatorControlResult(OperatorControlCode.START_FAILED);
 		}
 	}
@@ -3440,6 +3441,15 @@ public final class PhantomSystem
 		return receipt != null && (!receipt.state().terminal() || receipt.state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT)
 			? org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id) : null;
 	}
+	static org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort executionControlChain(java.util.List<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort> ports)
+	{
+		if (ports.size() <= 8) { return new PhantomCompositeSchedulerControlPort(ports); }
+		// Preserve the existing leaf order and eight-stage bound, including optional owners.
+		return new PhantomCompositeSchedulerControlPort(java.util.List.of(
+			new PhantomCompositeSchedulerControlPort(ports.subList(0, 8)),
+			new PhantomCompositeSchedulerControlPort(ports.subList(8, ports.size()))));
+	}
+
 	private org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort executionControl(org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort port, java.util.function.LongFunction<PhantomDomainRef> owner)
 	{ return () -> { try (var scope = _executionAdmission.enterOwner(owner)) { port.onPulse(); } }; }
 	private org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.ExecutionOwner executionOwner(boolean party)

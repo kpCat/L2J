@@ -61,6 +61,30 @@ public final class PhantomPopulationPerformanceSuite implements PhantomTestSuite
 	}
 	public static void registerCoordination130(PhantomTestRegistry registry)
 	{
+		registry.add("execution-control-composition-preserves-all-optional-owners", _ ->
+		{
+			for (int optional = 0; optional < 8; optional++)
+			{
+				final var calls = new java.util.ArrayList<Integer>();
+				final var ports = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>();
+				for (int index = 0; index < 8; index++)
+				{
+					final int stage = index;
+					ports.add(() -> { calls.add(stage); if (stage == 2) { throw new IllegalStateException("expected owner failure"); } });
+				}
+				for (int index = 0; index < 3; index++)
+				{
+					if ((optional & (1 << index)) != 0) { final int stage = 8 + index; ports.add(() -> calls.add(stage)); }
+				}
+				final var expected = new java.util.ArrayList<Integer>(java.util.List.of(0, 1, 2, 3, 4, 5, 6, 7));
+				for (int index = 0; index < 3; index++) { if ((optional & (1 << index)) != 0) { expected.add(8 + index); } }
+				final var chain = PhantomSystem.executionControlChain(ports);
+				chain.onPulse();
+				PhantomAssertions.assertEquals(expected, calls, "An optional owner could not start, ran out of order or blocked later owners.");
+				calls.clear(); chain.onPulse();
+				PhantomAssertions.assertEquals(expected, calls, "A failed owner changed the next pulse's order or duplicated execution.");
+			}
+		});
 		registry.add("execution-composition-reuses-canonical-ordinary-party-intent", _ ->
 		{
 			final var profile = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "2");

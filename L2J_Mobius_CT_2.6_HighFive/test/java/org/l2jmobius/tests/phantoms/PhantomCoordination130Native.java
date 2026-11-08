@@ -228,7 +228,9 @@ final class PhantomCoordination130Native
             check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DECLARATION");
             Files.writeString(config, disabled.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"));
             PhantomPlayersConfig.load();
-            System.out.println("NATIVE130_ENABLE=" + PhantomSystem.operatorEnable());
+            final var enabled = PhantomSystem.operatorEnable();
+            System.out.println("NATIVE130_ENABLE=" + enabled);
+            check(enabled.runtimeConfigured() && enabled.runtimeState() == PhantomSystem.State.RUNNING, "SYSTEM_START_" + enabled.code());
             observe(runtime, profiles, before.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList(), before.group().groupId(), restart);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
