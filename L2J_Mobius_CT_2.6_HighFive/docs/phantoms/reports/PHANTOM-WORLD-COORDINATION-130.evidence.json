@@ -1,5 +1,38 @@
 {
   "status": "AUTHORITY_RECOVERY_SOURCE_SQL_VERIFIED_NATIVE_NOT_READY_UNBUILT",
+  "preflightWitnessCorrection130": {
+    "inputHead": "e475ef0da223eeb32dbfc068657f0e5b98d5bf12",
+    "codeCommit": "f7fca59b2d6f50fbdae4e265e3d92b5a7f4d911a",
+    "scope": "FOUR_EXISTING_CODE_TEST_FILES_TWO_EXISTING_REPORTS",
+    "red": ["EXIT_1_PREFLIGHT_READ_ONLY_WITNESS_AFTER_NATIVE_STORE", "EXIT_1_ACTIVE_SUPPLY_INTENT_INCORRECTLY_CATCHUP_READY"],
+    "recoveryWitness": "PER_MEMBER_AND_FULL_ROSTER_CONSERVATION;ONLY_BACKGROUND_CONTEXT_EXECUTION_COMPONENTS_MAY_CHANGE",
+    "sceneWitness": "AFTER_RECOVERY_FULL_CHARACTER_ITEM_SKILL_COLUMNS_ALL_PROFILE_COMPONENTS",
+    "budgetsSeconds": { "preparation": 60, "scene": 30 },
+    "budgetSemantics": "MONOTONIC_CHECKS_AT_SYNCHRONOUS_CALL_BOUNDARIES_NO_NEW_WAIT_LOOP_NO_HARD_NATIVE_STORE_CANCELLATION",
+    "successEvidence": "RECOVERY_WRITES=CANONICAL_ONLY SCENE_SQL_WRITES=0",
+    "intentAdmission": "ACTIVE_ALL_THREE_FAILED_LEARNING_RETURN_COMPLETED_SOCIAL_SUPPLY_RETURN_REFUSED_ZERO_STORE",
+    "tests": {
+      "javacExit": 0,
+      "model": "44/44_PASS",
+      "sqlAuthorityExit": 0,
+      "statuses": ["COMPLETE", "RUNNING", "PENDING"],
+      "nativeStoreCounts": [4, 2, 2],
+      "negativeWitnesses": "CHARACTER_ONLY_WITH_COMPONENTS_EXACT;GOAL_CATCHUP_SUPPLY_LEARNING_CAREER_CAS_REJECTED",
+      "restartSeparateJvmExit": 0,
+      "restartNativeStoreCounts": [0, 0, 0],
+      "f7Sql": "PASS_UNCHANGED",
+      "independentReadOnlyReview": "NO_REMAINING_P1_P2"
+    },
+    "postflight": "MANAGED6_COMPONENTS83_EXACT_PROTECTED207_EXACT_MASTER_CUT_JAR_EXACT_JVM0_LISTENERS0",
+    "evidencePrefix": "evidence/preflightfix130-",
+    "encoding": { "mojibake": "PASS_NO_MATCHES_ALL_6_FILES", "escapedCyrillic": "PASS_NO_MATCHES_ALL_6_FILES" },
+    "jarBuilds": 0,
+    "gameServerBoots": 0,
+    "fullLoadedNativePreflight": "NOT_RUN",
+    "sourceJarParity": false,
+    "full130": false,
+    "publicationTarget": "wip/coordination-130-preserved_ONLY"
+  },
   "authorityRecovery130": {
     "date": "2026-11-08",
     "inputHead": "7c368460c13455e32d271cd5d86abe06686ebc14",

@@ -2,6 +2,26 @@
 
 Status: AUTHORITY_RECOVERY_SOURCE_AND_ISOLATED_SQL_VERIFIED; MANAGED_RECOVERY_NOT_RUN; NATIVE_NOT_READY_UNBUILT. FULL130=false. No further JAR build or GameServer boot is authorized.
 
+## 2026-11-08 — preflight witness correction after independent audit
+
+Input `e475ef0da223eeb32dbfc068657f0e5b98d5bf12`; code `f7fca59b2d6f50fbdae4e265e3d92b5a7f4d911a`. Four existing code/test files changed; this is the same TASK130. The old witness was contradictory: actual recovery STORE changed Background before the read-only equality check. SQL reproduced `NATIVE130_PREFLIGHT_READ_ONLY_WITNESS` (exit 1). A second RED proved that an unchanged active Supply intent incorrectly received `catchup.ready`.
+
+Canonical recovery now has a conservation witness per member and across the entire authorized roster. Only Background, native context and execution handoff components may change. All other component payloads, schemas, rowVersions and timestamps, including Goal/Catchup/intents, remain exact. Character fields remain exact except the explicit native normalization/lifecycle fields (vitals, position/heading, online/time and vitality); item ownership/count/location/enchant facts remain exact. Existing native owners still validate capture, STORE and completed-context readback; this witness does not grant mutations.
+
+After recovery, scene validation takes a new full witness: every character/item/skill column and every profile component. Later changes are rejected. The successful evidence now says `RECOVERY_WRITES=CANONICAL_ONLY SCENE_SQL_WRITES=0`. Independent monotonic phase budgets are 60 seconds for preparation and 30 seconds for scene checks; calendar eligibility is rechecked after recovery. Checks run at existing synchronous-call boundaries; there is no new retry/wait loop or hard cancellation of an in-progress native STORE.
+
+Historical refresh now refuses active Supply/Learning/Career obligations, FAILED Learning compensation and COMPLETED social Supply return, using the existing Goal codec, `PhantomJourneyLifetime.continuing` and `PhantomOfflineSupply.returning`. It never infers absence from unchanged bytes or deadline expiry. The historical lifecycle rechecks this admission. Fresh-authority ordinary accepted-owner resumption remains available; recovery does not retire or rewrite child intents.
+
+Evidence: final targeted MODEL **44/44**, javac exit 0. Existing isolated SQL authority route passed COMPLETE/RUNNING/PENDING with actual owned STORE counts 4/2/2 and no reward/cursor replay. Its shared preflight helper accepted stale-knowledge recovery. The negative then isolated real SQL character changes while holding component witness bytes exact; Goal/Catchup/Supply/Learning/Career same-payload CAS changes were rejected by both conservation and read-only witnesses. Active/return intent refusals issued zero STORE. Separate JVM restart passed all three cases with zero additional STORE. Existing SQL F7 passed unchanged. Read-only review found no remaining P1/P2 in the bounded seam.
+
+Raw evidence: external `task130/evidence/preflightfix130-{witness-red,intents-red,sql-final,restart-final}.{out,err}`, `preflightfix130-model-final.log`, `preflightfix130-authority-f7.out`, `preflightfix130-code.diff`, `preflightfix130-full.diff`, `preflightfix130-postflight-comparison.json` and `preflightfix130-git-commands.txt`. Disposable SQL fixtures and negative CAS writes are unmanaged; no managed character/resource/hash/CUT/reseed changes were made. Postflight: six managed profiles plus 83 component rows exact (41+48 witnesses), protected 207 exact, master/prior CUT/JAR byte-exact, own JVM/listeners 0. Main checkout and feature unchanged. Authorized Git inspection, scoped commits and ordinary WIP push are recorded in the audit.
+
+Current-change builds/boots: **0/0**. JAR remains `3D09C215B66E3579876A645335DB751E1F1AFB2FCF0ED0A17717FD3ECE889177`; source/JAR parity false. Full `inspectLoadedPlanner` with production Geo/spawns and actual Party/PvE/Phantom Heal/useful GameServer restart remain unverified. FULL130=false.
+
+mojibake-маркеры в изменённых файлах проверены: 0.
+
+escaped Cyrillic в изменённых файлах проверены: 0.
+
 ## 2026-11-08 — bounded current-authority recovery, no GameServer
 
 Input WIP `7c368460c13455e32d271cd5d86abe06686ebc14`; verified code commit `4fa72128b61c5b4c455d0fc2322e9c5c126c9939`. This continues TASK130. Only the existing independent clone was edited; the main checkout was not changed. The historical sections below describe earlier runs and are not the current readiness decision.
