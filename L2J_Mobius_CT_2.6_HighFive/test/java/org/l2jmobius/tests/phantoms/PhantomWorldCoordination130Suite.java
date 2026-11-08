@@ -85,6 +85,16 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				}
 			}
 		});
+		registry.add("native-acceptance-requires-heal-only-for-a-healer-roster", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.usefulGroupEvidence(true, true, false, false, false, false), "A lawful group without a healer required an invented Heal.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(true, true, true, true, false, false), "Observed HP without native MP debit completed healer acceptance.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(true, true, true, false, true, false), "MP spend without an actual Heal HP effect completed acceptance.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.usefulGroupEvidence(true, true, true, true, true, false), "Actual healer evidence did not complete the first useful vertical.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(false, true, false, false, false, false), "A non-Party kill passed native group acceptance.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(true, false, true, true, true, true), "An empty restart replaced a new useful action.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.usefulGroupEvidence(true, true, true, false, false, true), "A useful restart repeated the already proved first-vertical Heal gate.");
+		});
 		registry.add("preflight-recovery-and-read-only-scene-have-independent-finite-budgets", _ ->
 		{
 			PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(40), true);

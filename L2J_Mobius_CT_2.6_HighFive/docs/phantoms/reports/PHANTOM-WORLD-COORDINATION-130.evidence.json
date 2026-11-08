@@ -1503,6 +1503,18 @@
     "full130Through136BeforeAfter": "0/7->0/7",
     "details": "../tasks/PHANTOM-WORLD-COORDINATION-130/continuations/PARTY-PVE-GROUP-CONTRACT-20261108/RESULT.md"
   },
+  "nativeObserverPolicyFollowup20261108": {
+    "productionCommitUnchanged": "f9edb77a4d09316bf10e42cae5cb8811e26642ac",
+    "change": "OPTIONAL_HEALER_NATIVE_ACCEPTANCE_PREDICATE",
+    "testJavaFiles": 2,
+    "model130": "53/53_PASS",
+    "latestDbFreeSuitesTotal": "299/299",
+    "newNativeSqlHeadlessLaunches": 0,
+    "jarGameServerRestart": "0/0/0",
+    "nativeActualHealProof": "NOT_PROVEN",
+    "nativeDEGate": "REQUIRED_OWNER_DECISION",
+    "full130": false
+  },
   "finalStaticChecks": {
     "mojibakeMarkers": "PASS_NO_MATCHES",
     "escapedCyrillic": "PASS_NO_MATCHES",

@@ -784,6 +784,9 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_F8_FINAL_HUMAN_PASS jar=" + jarHash + " hpGain=" + (player.getCurrentHp() - hp) + " mpDebit=" + (mp - minimum));
         }
     }
+    static boolean usefulGroupEvidence(boolean party, boolean kill, boolean healerRequired, boolean healHp, boolean healMp, boolean restart)
+    { return party && kill && (!healerRequired || restart || healHp && healMp); }
+
     private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId, boolean restart, long deadline) throws Exception
     {
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
@@ -791,7 +794,7 @@ final class PhantomCoordination130Native
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
         final Map<org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target, TargetSeen> targets = new LinkedHashMap<>();
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
-        boolean partySeen = false, kill = false, heal = false, healMpDebit = false;
+        boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         LocalPlaySyntheticHumanSession witness = null; boolean witnessWithdrawn = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
         String lastCoordinationWait = ""; long lastCoordinationVersion = -1;
@@ -802,6 +805,7 @@ final class PhantomCoordination130Native
         {
             final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow();
             final var group = logicalRow.group();
+            healerRequired |= group.members().stream().anyMatch(member -> member.role().equals("support.healer"));
             final int objectiveNpc = Integer.parseInt(group.objective().key().split("@")[0]);
             check(group.groupId().equals(groupId), "GROUP_ID_PRESERVED");
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId())).filter(Objects::nonNull).toList();
@@ -863,7 +867,7 @@ final class PhantomCoordination130Native
                 }
             }
             for (var actor : actors) { priorHp.put(actor.getObjectId(), actor.getCurrentHp()); priorMp.put(actor.getObjectId(), actor.getCurrentMp()); }
-            if (witness != null && kill && (restart || heal && healMpDebit))
+            if (witness != null && usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart))
             {
                 witness.close(); witness = null; witnessWithdrawn = true;
                 System.out.println("NATIVE130_ORDINARY_WITNESS_WITHDRAWN normalLogout=true phantomWrites=0");
@@ -913,9 +917,9 @@ final class PhantomCoordination130Native
                 check(stableCoordinationSamples < 3, "STABLE_COORDINATION_BLOCK_" + group.waitReason());
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
-            if (kill && (restart || heal && healMpDebit) && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
+            if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
             {
-                System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
+                System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " healerRequired=" + healerRequired + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
                 return;
             }
             check(!partySeen || kill || group.phase() != PhantomLogicalParty.Phase.BACKGROUND, "PARTY_DRAINED_WITHOUT_USEFUL_ACTION");
