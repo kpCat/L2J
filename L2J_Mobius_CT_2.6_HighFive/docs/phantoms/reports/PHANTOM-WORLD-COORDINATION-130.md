@@ -724,3 +724,12 @@ Fast reproducible tests in the existing runner (proposed, not falsely reported P
 3. Existing ownership/test SQL phases:failed activityA and common admissible activityB (NPC different from21298) produce exactly one guarded group-activity revision under a race; changed root/receipt rolls back; no duplicate EXP/SP or cursor rewind. Repeat application after repository/JVM recreation is idempotent. Native observer's pure acceptance predicate accepts the valid current objective and rejects stale/foreign evidence.
 
 Run targeted world-coordination130/party-lifecycle plus these existing SQL phases after source implementation, with one incremental compile; keep the feedback loop in seconds/minutes. No new JAR or GameServer is authorized by this plan. Implementation remains at the requested diagnosis/plan gate. Postflight:own JVM0/listeners0/protected207 EXACT. FULL130 remains false; feature is unchanged.
+
+
+## 2026-11-08 — Party PvE group contract, source/SQL checkpoint
+
+Source `f9edb77a4d09316bf10e42cae5cb8811e26642ac` реализует весь согласованный Party seam: Group-only ±4/intersection, роли и2–9, независимый administrator/puller, отдельный healer owner, aggregate native readiness с observed aggro/6с reserve/finite waits, ammo/MP/reuse и Combat cancellation. Solo/stock Heal не менялись. Независимый review и fix pass выполнены; final18 DB-free suites298/298 + полный Solo/Party planner regression PASS. SQL2/3/9 separate-JVM recovery/own claim close и F7 PASS; это не native gameplay.
+
+FULL130=false, TASK130 PARTIAL, TASK130–136 FULL0/7→0/7. Новые Party/damage/reward/Heal/STORE/restart не доказаны. JAR0, GameServer.main0, restart0. Три ошибочно выбранных headless catalog checks действительно инициализировали stock SpawnData; они не SQL-only, не native acceptance и больше не повторяются. Публикуемый helper удалён. Witness всех шести прежних профилей exact; headless/current native knowledge mismatch не обходился. Protected207 и OS postflight PASS. D03–D05/F8/native/restart остаются gate: безопасный actual composition preflight до GameServer пока не доказан.
+
+Полная таблица caller-purpose-test, отрицательных guards, evidence, ошибка инструмента и конкретный процессный вариант для согласования владельцем — [RESULT продолжения](../tasks/PHANTOM-WORLD-COORDINATION-130/continuations/PARTY-PVE-GROUP-CONTRACT-20261108/RESULT.md). Raw evidence — только в собственном `task130/evidence`, без секретов в Git. Публикация этого checkpoint только обычным WIP push; feature и TASK131–136 не продвигаются.

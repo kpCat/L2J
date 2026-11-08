@@ -1,0 +1,51 @@
+PHANTOM WORLD / TASK130 / ПРОДОЛЖЕНИЕ — ГРУППОВОЙ ФАРМ, РОЛИ, ОДНА NATIVE-ВЕРТИКАЛЬ
+====================================================================================
+Статус: ПАКЕТ НА РЕАЛИЗАЦИЮ; НЕ отчёт о готовом продукте.
+Это та же PHANTOM-WORLD-COORDINATION-130, не TASK131 и не новая номерная TASK.
+
+РАСПАКОВКА У ПОЛЬЗОВАТЕЛЯ (уже выполнена перед запуском Codex):
+D:\Codex\repos\L2J-phantom-world\L2J_Mobius_CT_2.6_HighFive\docs\
+
+После распаковки этот START-HERE расположен по адресу:
+D:\Codex\repos\L2J-phantom-world\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-WORLD-COORDINATION-130\continuations\PARTY-PVE-GROUP-CONTRACT-20261108\START-HERE.txt
+
+НЕ прикрепляй ZIP к Codex. Codex читает существующие файлы по пути выше.
+Основной пользовательский checkout — read-only, кроме уже распакованных пользователем новых docs.
+Codex реализует в ОТДЕЛЬНОМ собственном clone; переносит в него ТОЛЬКО этот пакет с сохранением байтов.
+Не переключать ветку и не выполнять git checkout/reset/clean/stash в основном checkout.
+
+Удалённый репозиторий: https://github.com/kpCat/L2J
+WIP: wip/coordination-130-preserved
+Точный проверенный baseline HEAD: 8140167705e6a6e76f370e3aa772b50f909b4d37
+Основная feature/phantom-world: faec72161f9e4f6231764e17d6f2637a4db080af (НЕ трогать).
+Рабочий clone прошлого Codex: C:\Users\ZBook\.codex\visualizations\2026\11\06\01a1b21c-bfae-7bf0-a688-c1b682eddc2d\task130\source
+ЭТО ИСТОРИЧЕСКИЙ ПУТЬ: проверить фактический git-root, прежде чем использовать. Не догадываться.
+
+Прочитать в таком порядке:
+1. GOAL.txt / ROADMAP.md / reference/BASELINE-VERIFIED.md
+2. ARCHITECTURE.md / SOURCE_MAP.md / reference/IMPLEMENTATION-BLUEPRINT.md
+3. ACCEPTANCE.md / TEST_PLAN.md / RISKS.md
+4. WORKFLOW.md / SAFETY.md
+5. Исходные TASK130 GOAL/ACCEPTANCE/ARCHITECTURE-CONTRACT-002 и фактический код на WIP HEAD.
+
+УТВЕРЖДЕНО ПОЛЬЗОВАТЕЛЕМ:
+- Только для Party FARM: NPC level каждого участника ±4, для всей группы пересечение.
+- TANK принимает агрессию; SUPPORT лечит; DD атакует; SPOILER спойлит и свипает при наличии законных навыков/условий.
+- Ни одна из ролей, включая DD, НЕ должна побеждать моба в одиночку как условие Party admission.
+- Нужна суммарная пригодность всей Party, реальные навыки и ресурсы, честное поведение без бесплатных эффектов.
+- Party 2–9, необязательные healer/tank/spoiler, административный лидер не обязан быть основным DD.
+- Solo-фарм, native права, F7/F8, экономика и Geo не ослаблять.
+
+СЛЕДУЮЩИЙ РЕЗУЛЬТАТ — НЕ ПРОСТО MODEL. Нужны:
+(1) единая working party-role/source/party-combat цепочка,
+(2) красно-зелёные дешёвые проверки без подмены Player,
+(3) один подтверждённый lawful native Party + полезный PvE с earned reward при подходящей сцене,
+(4) sameDB/sameJAR restart только после законного первого native успеха.
+Если реальной пригодной сцены нет, не имитировать PASS — указать доказанные причины и nextDue.
+
+ТЕХНИЧЕСКИЙ ПОРЯДОК: code-review → явный дизайн и проверки → ограниченная реализация → MODEL/SQL → 1 JAR → 1 GameServer → условный 1 restart.
+Лимит не разрешает перезапускать GameServer при каждой гипотезе. См. WORKFLOW.md.
+Git: только scoped commits + обычный non-force push в wip/coordination-130-preserved; feature нельзя менять без отдельного согласования.
+
+Уровень мышления Codex: Very High (если недоступен — High).
+Пакет и manifest имеют контрольные суммы; проверить до внесения изменений.

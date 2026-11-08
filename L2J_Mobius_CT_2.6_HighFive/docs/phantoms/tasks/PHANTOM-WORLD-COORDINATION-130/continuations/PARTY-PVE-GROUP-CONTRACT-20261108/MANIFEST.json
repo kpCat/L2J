@@ -1,0 +1,100 @@
+{
+  "package_id": "PHANTOM-WORLD-COORDINATION-130-GROUP-PVE-20261108",
+  "type": "same_task_continuation_not_new_numbered_task",
+  "created": "2026-11-08",
+  "language": "ru",
+  "zip_extract_root": "D:\\Codex\\repos\\L2J-phantom-world\\L2J_Mobius_CT_2.6_HighFive\\docs",
+  "relative_package_root": "phantoms/tasks/PHANTOM-WORLD-COORDINATION-130/continuations/PARTY-PVE-GROUP-CONTRACT-20261108",
+  "github": "https://github.com/kpCat/L2J",
+  "required_wip_branch": "wip/coordination-130-preserved",
+  "github_wip_sha_at_authoring": "8140167705e6a6e76f370e3aa772b50f909b4d37",
+  "protected_feature_sha": "faec72161f9e4f6231764e17d6f2637a4db080af",
+  "full_task130_at_pack_creation": false,
+  "full_roadmap_at_pack_creation": "0/7",
+  "manual_boot_budget": {
+    "jar_builds_max": 1,
+    "native_initial_boots_max": 1,
+    "conditional_restarts_max": 1
+  },
+  "reading_order": [
+    "START-HERE.txt",
+    "GOAL.txt",
+    "ROADMAP.md",
+    "reference/BASELINE-VERIFIED.md",
+    "ARCHITECTURE.md",
+    "SOURCE_MAP.md",
+    "reference/IMPLEMENTATION-BLUEPRINT.md",
+    "ACCEPTANCE.md",
+    "TEST_PLAN.md",
+    "RISKS.md",
+    "WORKFLOW.md",
+    "SAFETY.md"
+  ],
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "bytes": 4244,
+      "sha256": "8cbc6e6d5db7e052ba853d2ab1a8beb399482ff9b817573d40e884f0dcb8a6f7"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "bytes": 14967,
+      "sha256": "fce72a9907d8cd98fca9fcbabce80e3403658c25d3a9edd70d8a640722fe1605"
+    },
+    {
+      "path": "GOAL.txt",
+      "bytes": 3662,
+      "sha256": "2314b71d409eadaea530457a0c8b80579b53c01416623b2c3062abdeb23b4e0a"
+    },
+    {
+      "path": "RISKS.md",
+      "bytes": 4203,
+      "sha256": "8938997aec3b6265f21cae8ab85a8ba0de82ef05aa1bb2a8f265bb42846d9398"
+    },
+    {
+      "path": "ROADMAP.md",
+      "bytes": 3343,
+      "sha256": "babe39e57b492bfd3ca0182cf059b75ea307b669278e60502b7f66449e71e432"
+    },
+    {
+      "path": "SAFETY.md",
+      "bytes": 2943,
+      "sha256": "82ce44af0b7eb94ba9461efcbad21275b35c2af30983173056b196b3ff8be2fd"
+    },
+    {
+      "path": "SOURCE_MAP.md",
+      "bytes": 10430,
+      "sha256": "09049995a5989269e480daa0bcdc3575b9e2097cf7ce8312358604f68b73ccf8"
+    },
+    {
+      "path": "START-HERE.txt",
+      "bytes": 4858,
+      "sha256": "6a20ded770142ad2bd01a549861e4950062f9b0b9f41de7d7a5abb3a0e87a88f"
+    },
+    {
+      "path": "TEST_PLAN.md",
+      "bytes": 8105,
+      "sha256": "0d473b2ce143c96b28f97e5c21cf3542b67ab3347e159771b388cf984a072d96"
+    },
+    {
+      "path": "WORKFLOW.md",
+      "bytes": 5009,
+      "sha256": "a3af9e8d0efdeaf685fc13a79c5e2b36684fcbeb208cb0d07130e3fc5f9d0505"
+    },
+    {
+      "path": "reference/BASELINE-VERIFIED.md",
+      "bytes": 2742,
+      "sha256": "40b90fb0e4b95918598672d12e1b464e8d0fac24bd6e932f50e80ab9b4a063b7"
+    },
+    {
+      "path": "reference/IMPLEMENTATION-BLUEPRINT.md",
+      "bytes": 9443,
+      "sha256": "25c1dd745aff01070e154063fb76f9d9385f847bc5ea74edd2bd6fd6eace5a96"
+    },
+    {
+      "path": "reference/MATRIX.csv",
+      "bytes": 2121,
+      "sha256": "56d7b8c8f704ffed2d0624b6bf933eb530a80badfa7653d4a3857e7beb83b212"
+    }
+  ]
+}
