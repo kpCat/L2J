@@ -65,6 +65,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final PhantomHistoricalBackgroundPlanner _planner;
 	private final PhantomBackgroundService _background;
 	private final PhantomMaterializationService _materialization;
+	private volatile java.util.function.BiFunction<Long, java.util.function.Supplier<Result>, Result> _authorityRefreshBoundary = (_, work) -> work.get();
 	private final ConcurrentHashMap<Long, Admission> _admissions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ActiveForegroundHandoff> _foregroundHandoffs = new ConcurrentHashMap<>();
 	private volatile boolean _foregroundDecisionsRevoked;
@@ -630,6 +631,76 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return ensureBaseline(profileId, _store.load(profileId).orElse(current));
 	}
 
+	public void bindAuthorityRefreshBoundary(java.util.function.BiFunction<Long, java.util.function.Supplier<Result>, Result> boundary)
+	{ _authorityRefreshBoundary = Objects.requireNonNull(boundary); }
+
+	/** Completed history retains its original authority; only the current Background must be fresh. */
+	public static boolean authorityRefreshRequired(PhantomBackgroundState.Hashes background, PhantomBackgroundCatchupState history, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
+	{
+		return !Objects.equals(background, generation.authorityHashes()) || history != null && history.status() != Status.COMPLETE
+			&& (!history.authorityHashes().equals(generation.authorityHashes()) || history.knowledgeGeneration() != generation.knowledgeGeneration() || history.topologyGeneration() != generation.topologyGeneration());
+	}
+
+	/** Preparation only: no historical interval is executed or manufactured by this route. */
+	public Result prepareCurrentAuthority(long profileId)
+	{ return prepareCurrentAuthority(profileId, false); }
+	private Result prepareCurrentAuthority(long profileId, boolean owned)
+	{
+		try
+		{
+			final Snapshot current = _store.load(profileId).orElse(null);
+			final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (_recoveryClaims.containsKey(profileId)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.refresh_busy", current); }
+			if (current == null && state == null)
+			{ return _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).isEmpty() ? Result.success(null, 0) : Result.rejected(ResultStatusCode.RETRY, "catchup.authority.background_unavailable", null); }
+			final var generation = _planner.generation();
+			final boolean stale = authorityRefreshRequired(state == null ? null : state.hashes(), current == null ? null : current.state(), generation);
+			if (state != null && (state.state() == PhantomBackgroundState.State.INCONSISTENT || state.state() == PhantomBackgroundState.State.VERIFY_PENDING))
+			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority.background_state_invalid", current); }
+			if (current == null && stale) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority.claim_absent", null); }
+			final Result logical = refreshLogicalBeforeBackground(profileId, current);
+			if (logical != null) { return logical; }
+			if (_profiles.findComponent(profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent()) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.store_pending", current); }
+			final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(_profiles).find(profileId);
+			if (commerce.filter(row -> !row.receipt().state().terminal() || row.receipt().state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT).isPresent())
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.commerce_pending", current); }
+			if (_profiles.findComponent(profileId, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() == PhantomNativeContext.Phase.PENDING).orElse(false))
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.context_pending", current); }
+			// An untagged historical receipt survives ordinary native STORE successors. It cannot prove
+			// their current vitals, but exact bound context may admit native reattestation, never offscreen replay.
+			if (stale && state != null && !PhantomBackgroundTransaction.offscreenReceiptHashCurrent(state, PhantomBackgroundTransaction.expectedAfterHash(state)))
+			{
+				if (PhantomOffscreenOutdoorTravel.taggedReceipt(state)) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority.receipt_mismatch", current); }
+				final var proof = _background.historicalNativeContext(profileId, state);
+				if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS || !state.equals(proof.state()) || proof.context() == null || proof.context().phase() != PhantomNativeContext.Phase.COMPLETED)
+				{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority.receipt_mismatch", current); }
+			}
+			if (!stale && (current == null || current.state().status() != Status.PENDING && current.state().status() != Status.FAILED_REPLAN_REQUIRED)) { return Result.success(current, 0); }
+			if (current.state().status() == Status.FAILED_REPLAN_REQUIRED && !isRecoverableFailure(current.state().failureReason()) && !"catchup.authority_hash_or_generation_stale".equals(current.state().failureReason()))
+			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current); }
+			if (_materialization.find(profileId).isPresent()) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.native_owner_busy", current); }
+			if (!owned) { return _authorityRefreshBoundary.apply(profileId, () -> prepareCurrentAuthority(profileId, true)); }
+			if (current.state().status() == Status.PENDING) { return ensureBaseline(profileId, current); }
+			if (current.state().status() != Status.COMPLETE) { return recoverStale(profileId, current, generation); }
+			final var goal = _goals.load(profileId).orElse(null);
+			final String invalid = recoveryPrerequisite(profileId, current, state, goal);
+			if (!invalid.isEmpty() || state.state() != PhantomBackgroundState.State.READY)
+			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, invalid.isEmpty() ? "catchup.authority.ready_required" : invalid, current); }
+			final Result refreshed = refreshCanonicalBaseline(profileId, current);
+			if (!refreshed.successful()) { return refreshed; }
+			final var after = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (after == null || after.state() != PhantomBackgroundState.State.READY || !after.hashes().equals(generation.authorityHashes()) || !_planner.generation().equals(generation)
+				|| !currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null)) || _materialization.find(profileId).isPresent()
+				|| !state.identity().equals(after.identity()) || !state.progress().equals(after.progress()) || !state.receipt().equals(after.receipt()) || !state.clock().equals(after.clock()))
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.refresh_unverified", current); }
+			final var proof = _background.historicalNativeContext(profileId, after);
+			if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS || !after.equals(proof.state()) || proof.context() == null || proof.context().phase() != PhantomNativeContext.Phase.COMPLETED)
+			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.store_readback_unverified", current); }
+			return Result.success(current, 0);
+		}
+		catch (RuntimeException unavailable) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.persistence_retry", null); }
+	}
+
 	public Result advance(long profileId, int maximumIntervals, int maximumSimulatedMinutes)
 	{
 		if ((maximumIntervals < 1) || (maximumIntervals > MAXIMUM_INTERVALS_PER_CALL) || (maximumSimulatedMinutes < 1) || (maximumSimulatedMinutes > MAXIMUM_SIMULATED_MINUTES_PER_CALL))
@@ -657,7 +728,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		if (current.state().status() == Status.COMPLETE)
 		{
-			return Result.success(current, 0);
+			return prepareCurrentAuthority(profileId);
 		}
 		final var generation = _planner.generation();
 		final boolean stale = !current.state().authorityHashes().equals(generation.authorityHashes()) || (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration());
@@ -1336,14 +1407,18 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (!currentClaim(profileId, current)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.claim_changed", current); }
 		final var claimComponent = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
 		final var goalComponent = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
-		final var recovery = new RecoveryClaim(current, claimComponent, goalComponent);
+		final var guards = new java.util.LinkedHashMap<String, Optional<PhantomProfileComponent>>();
+		for (String type : List.of(PhantomOwnedStoreIntent.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoffStore.COMPONENT_TYPE, "learning.intent", "career.intent", "supply.intent"))
+		{ guards.put(type, _profiles.findComponent(profileId, type)); }
+		final var recovery = new RecoveryClaim(current, claimComponent, goalComponent, Map.copyOf(guards));
 		if (_materialization.find(profileId).isPresent() || (_recoveryClaims.putIfAbsent(profileId, recovery) != null))
 		{
 			return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.materialization_busy", current);
 		}
 		try
 		{
-			if (!currentClaim(profileId, current)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.claim_changed", current); }
+			if (!currentRecoveryClaim(profileId, recovery)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.claim_changed", current); }
 			final var materialized = _materialization.materialize(profileId, MaterializationPurpose.HISTORICAL_BASELINE, current.state().requestId());
 			if (materialized.status() != ResultStatus.SUCCESS)
 			{
@@ -1352,6 +1427,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final var dematerialized = _materialization.dematerialize(profileId);
 			if (dematerialized.status() != ResultStatus.SUCCESS) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.store_retry", current); }
 			if (_materialization.find(profileId).isPresent() || !currentClaim(profileId, current)
+				|| !currentRecoveryClaim(profileId, recovery)
 				|| !Objects.equals(claimComponent, _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null))
 				|| !Objects.equals(goalComponent, _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null)))
 			{
@@ -1370,6 +1446,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final var component = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
 		return (component != null) && (component.profileId() == profileId) && (component.componentSchemaVersion() == PhantomBackgroundCatchupState.SCHEMA_VERSION)
 			&& (component.rowVersion() == expected.rowVersion()) && MessageDigest.isEqual(component.payload(), new PhantomBackgroundCatchupStateCodec().encode(expected.state()));
+	}
+
+	private boolean currentRecoveryClaim(long id, RecoveryClaim recovery)
+	{
+		return currentClaim(id, recovery.snapshot()) && Objects.equals(recovery.goal(), _profiles.findComponent(id, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null))
+			&& recovery.guards().entrySet().stream().allMatch(entry -> entry.getValue().equals(_profiles.findComponent(id, entry.getKey())));
 	}
 
 	public Optional<Snapshot> status(long profileId)
@@ -1994,7 +2076,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (activityPending(profileId)) { return false; }
 			if (_visiblePublications.containsKey(profileId)) { return false; }
 			final Snapshot current = _store.load(profileId).orElse(null);
-			if ((current == null) || !current.state().blocksNormalOperation()) { return true; }
+			if (_recoveryClaims.containsKey(profileId)) { return false; }
+			if ((current == null) || !current.state().blocksNormalOperation())
+			{
+				final var baseline = _background.acquisitionSnapshot(profileId);
+				if (baseline.isEmpty()) { return current == null && _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).isEmpty(); }
+				final var state = baseline.get();
+				return state.state() != PhantomBackgroundState.State.INCONSISTENT && state.state() != PhantomBackgroundState.State.VERIFY_PENDING
+					&& state.hashes().equals(_planner.generation().authorityHashes());
+			}
 			final var handoff = _foregroundHandoffs.get(profileId);
 			return (handoff != null) && exactForegroundHandoff(profileId, handoff) && (_foregroundHandoffs.get(profileId) == handoff);
 		}
@@ -2032,7 +2122,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		try
 		{
-			return _store.load(profileId).map(snapshot -> !snapshot.state().blocksNormalOperation()).orElse(true);
+			return permitsDecision(profileId) && _store.load(profileId).map(snapshot -> !snapshot.state().blocksNormalOperation()).orElse(true);
 		}
 		catch (RuntimeException exception)
 		{
@@ -2063,7 +2153,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		if (purpose == MaterializationPurpose.NORMAL)
 		{
-			if ((catchup != null) && catchup.state().blocksNormalOperation())
+			if ((catchup != null) && catchup.state().blocksNormalOperation() || !permitsNormalOperation(profileId))
 			{
 				throw new AdmissionRejectedException("catchup.normal_fenced");
 			}
@@ -2086,6 +2176,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			throw new AdmissionRejectedException("catchup.historical_claim_changed");
 		}
 		if ((recovery != null) && (!Objects.equals(recovery.claim(), claimComponent) || !Objects.equals(recovery.goal(), goalComponent))) { throw new AdmissionRejectedException("catchup.historical_claim_or_goal_changed"); }
+		if (recovery != null && !currentRecoveryClaim(profileId, recovery)) { throw new AdmissionRejectedException("catchup.authority.dependencies_changed"); }
 		final Admission admission = new Admission(characterObjectId, purpose, ownerClaim, recovery, claimComponent, goalComponent, catchup);
 		if (_admissions.putIfAbsent(profileId, admission) != null)
 		{
@@ -2148,6 +2239,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		_visibleEpisodes.remove(profileId);
 		_foregroundHandoffs.remove(profileId);
 		final RecoveryClaim recovery = _recoveryClaims.get(profileId);
+		if (recovery != null && !currentRecoveryClaim(profileId, recovery)) { throw new AdmissionRejectedException("catchup.authority.dependencies_changed"); }
 		if ((recovery != null) && (!currentClaim(profileId, recovery.snapshot())
 			|| !Objects.equals(recovery.claim(), _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null))
 			|| !Objects.equals(recovery.goal(), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null)))) { throw new AdmissionRejectedException("catchup.historical_store_claim_or_goal_changed"); }
@@ -2209,7 +2301,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return value == 0 ? 1 : value;
 	}
 
-	private record RecoveryClaim(Snapshot snapshot, PhantomProfileComponent claim, PhantomProfileComponent goal) { }
+	private record RecoveryClaim(Snapshot snapshot, PhantomProfileComponent claim, PhantomProfileComponent goal, Map<String, Optional<PhantomProfileComponent>> guards)
+	{
+		RecoveryClaim(Snapshot snapshot, PhantomProfileComponent claim, PhantomProfileComponent goal) { this(snapshot, claim, goal, Map.of()); }
+	}
 	private static final class NativeRecoveryRefresh
 	{
 		final RecoveryClaim recovery;

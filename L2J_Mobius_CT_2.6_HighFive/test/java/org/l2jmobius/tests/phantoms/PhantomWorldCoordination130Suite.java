@@ -20,6 +20,44 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("authority-preparation-excludes-foreign-completion-and-requires-idle-execution", _ ->
+		{
+			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1);
+			final var owner = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(1);
+			gate.publish(1, 0, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.initial(owner));
+			try (var active = gate.tryAcquireOwnedCompletion(1, owner))
+			{ PhantomAssertions.assertEquals(null, gate.prepareAuthority(1, () -> true), "Active accepted work was ignored by authority preparation."); }
+			PhantomAssertions.assertTrue(gate.prepareAuthority(1, () ->
+			{
+				PhantomAssertions.assertEquals(null, gate.tryAcquire(1, owner), "Preparation admitted normal work.");
+				final var failure = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+				final var thread = new Thread(() ->
+				{
+					try (var foreign = gate.tryAcquireOwnedCompletion(1, owner)) { PhantomAssertions.assertEquals(null, foreign, "Foreign completion entered native authority refresh."); }
+					catch (Throwable problem) { failure.set(problem); }
+				});
+				thread.start(); try { thread.join(2000); } catch (InterruptedException interrupted) { throw new IllegalStateException(interrupted); }
+				PhantomAssertions.assertFalse(thread.isAlive(), "Admission monitor was held across preparation.");
+				PhantomAssertions.assertEquals(null, failure.get(), "Foreign completion exclusion failed.");
+				try (var own = gate.tryAcquireOwnedCompletion(1, owner)) { return own != null && own.valid(); }
+			}), "The canonical nested lifecycle lost its completion permit.");
+			try (var ordinary = gate.tryAcquire(1, owner)) { PhantomAssertions.assertTrue(ordinary != null, "Preparation did not release admission."); }
+		});
+		registry.add("authority-readiness-preserves-complete-history-and-fences-unfinished-generations", _ ->
+		{
+			final var state = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.state();
+			final var current = new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner.PlanningGeneration(2, 3, state.hashes());
+			for (var status : org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status.values())
+			{
+				if (status == org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status.FAILED_REPLAN_REQUIRED) { continue; }
+				final var old = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes("old", state.hashes().topology(), state.hashes().progression(), state.hashes().commerce());
+				final boolean complete = status == org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status.COMPLETE;
+				final var history = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState(status, "a".repeat(64), 130, 100, 101,
+					complete ? 101 : 100, 1, complete ? 1 : 0, 1, 1, 1, 130, 0, "b".repeat(64), state.MODEL_VERSION, old, "");
+				PhantomAssertions.assertEquals(!complete, org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.authorityRefreshRequired(state.hashes(), history, current), "Historical authority was confused with current Background authority for " + status);
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.authorityRefreshRequired(old, history, current), "Stale current Background was admitted for " + status);
+			}
+		});
 		registry.add("authority-preflight-emits-every-component-before-strict-refusal", _ ->
 		{
 			final var saved = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes("knowledge-saved", "topology-saved", "progression-saved", "commerce-saved");

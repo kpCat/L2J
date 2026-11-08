@@ -238,7 +238,7 @@ public final class PhantomSystem
 	private final PhantomPlayersConfig.Settings _settings;
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
 	/** Observer gate over the same planner retained by ordinary execution; called before any scheduler pulse. */
-	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology, PhantomPlayersConfig.Settings settings) { }
+	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology, PhantomPlayersConfig.Settings settings, PhantomHistoricalBackgroundService authorityRecovery) { }
 	private final PhantomMetrics _metrics;
 	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
@@ -512,7 +512,6 @@ public final class PhantomSystem
 				final PhantomNormalGatekeeperTravel travel = PhantomNormalGatekeeperTravel.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/travel/high-five-normal-gk.xml").toPath(), _topologyService.query());
 				final L2jPhantomBackgroundAuthority backgroundAuthority = new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog, travel);
 				final var backgroundPlanner = new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority);
-				_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings));
 				_backgroundService = new PhantomBackgroundService(
 					productionProfiles,
 					productionGoals,
@@ -968,7 +967,17 @@ public final class PhantomSystem
 					(id, failure) -> System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.WARNING, "execution.handoff profile=" + id + " reason=" + failure.getClass().getSimpleName() + ":" + failure.getMessage()));
 				_executionDecisions = _executionControl.decisionAdmission();
 				_executionControl.installGoalPublications(productionGoals);
-				productionLifecycle.install(_executionControl.materializationLifecycle(completeProductionLife));
+				_historicalBackgroundService.bindAuthorityRefreshBoundary((id, work) ->
+				{
+					final var owner = _executionControl.ensure(id);
+					final var prepared = owner == null ? null : _executionAdmission.prepareAuthority(id, work);
+					return prepared == null ? PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, "catchup.authority.execution_busy", _historicalBackgroundService.status(id).orElse(null)) : prepared;
+				});
+				productionLifecycle.install(_executionControl.materializationLifecycle(completeProductionLife, id ->
+				{
+					final var prepared = _historicalBackgroundService.prepareCurrentAuthority(id);
+					return prepared.successful() ? "" : prepared.reason();
+				}));
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
@@ -1099,6 +1108,7 @@ public final class PhantomSystem
 				productionWorkSink.install(item ->
 				{
 					_executionControl.watch(item.profileId());
+					if (!_historicalBackgroundService.prepareCurrentAuthority(item.profileId()).successful()) { return; }
 					try (var execution = _executionControl.acquire(item.profileId()))
 					{
 						if (execution == null) { return; }
@@ -1115,6 +1125,7 @@ public final class PhantomSystem
 						}
 					}
 				});
+				_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService));
 			}
 			if (_autonomousMarketProducer != null) { _autonomousMarketProducer.prepareRecoveryOwners(); }
 			if (!_scheduler.start())

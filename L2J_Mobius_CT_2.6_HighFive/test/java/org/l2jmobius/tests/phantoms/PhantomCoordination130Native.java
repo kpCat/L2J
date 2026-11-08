@@ -32,6 +32,22 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 /** Native modes of the existing SQL130 entrypoint: real GameServer and its configured owners. */
 final class PhantomCoordination130Native
 {
+    private static final ThreadLocal<Boolean> AUTHORITY_SQL_INITIALIZATION = ThreadLocal.withInitial(() -> false);
+    static void initializeAuthoritySql(Path module) throws Exception
+    {
+        final Path runtime = module.getParent().getParent().resolve("runtime").toRealPath();
+        System.setProperty("phantom.task130.infrastructure", "true");
+        System.setProperty("phantom.task130.runtime", runtime.toString());
+        System.setProperty("phantom.test.config", runtime.resolve("config/Database.ini").toString());
+        AUTHORITY_SQL_INITIALIZATION.set(true);
+        try { PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(130, module, module.getParent().getParent().resolve("evidence"))); }
+        catch (Exception | Error failure)
+        {
+            if (DatabaseFactory.isInitialized()) { org.l2jmobius.commons.threads.ThreadPool.shutdown(); DatabaseFactory.close(); }
+            throw failure;
+        }
+        finally { AUTHORITY_SQL_INITIALIZATION.remove(); }
+    }
     static Path scene(Path runtime)
     {
         final String label = System.getProperty("phantom.task130.fixture", "original");
@@ -166,13 +182,18 @@ final class PhantomCoordination130Native
                 check(heal, "PREFLIGHT_LEARNED_HEAL_" + id);
                 System.out.println("NATIVE130_PREFLIGHT_SUPPORT id=" + id + " learnedNativeHeal=true");
             }
-            inspectAuthority(id, state.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
+            final var prepared = inspection.authorityRecovery().prepareCurrentAuthority(id);
+            check(prepared.successful(), "PREFLIGHT_AUTHORITY_REFRESH_" + id + "_" + prepared.reason());
+            check(inspection.authorityRecovery().permitsNormalOperation(id), "PREFLIGHT_HISTORY_NOT_COMPLETE_" + id);
+            check(root.equals(goals.load(id).orElseThrow().goal()), "PREFLIGHT_ROOT_CHANGED_" + id);
+            final var restored = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+            inspectAuthority(id, restored.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
             final var history = new PhantomBackgroundCatchupStore(profiles, goals).load(id).orElseThrow().state();
-            final var sources = inspection.planner().rendezvousSources(id, state, root, history.deterministicSeed(), history.planOrdinal(), Set.of(), Set.of());
+            final var sources = inspection.planner().rendezvousSources(id, restored, root, history.deterministicSeed(), history.planOrdinal(), Set.of(), Set.of());
             System.out.println("NATIVE130_PREFLIGHT_SOURCES id=" + id + " count=" + sources.size() + " first4=" + sources.stream().limit(4).toList());
-            states.put(id, state);
-            candidates.add(new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, PhantomHistoricalBackgroundPlanner.logicalRole(state), root.goalId(), root.revision()), state.progress().level(), sources,
-                source -> inspection.planner().rendezvousRouteAvailable(state, source, Set.of()), () -> true));
+            states.put(id, restored);
+            candidates.add(new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, PhantomHistoricalBackgroundPlanner.logicalRole(restored), root.goalId(), root.revision()), restored.progress().level(), sources,
+                source -> inspection.planner().rendezvousRouteAvailable(restored, source, Set.of()), () -> true));
         }
         final java.util.function.Predicate<PhantomLogicalParty> physical = group ->
         {
@@ -254,7 +275,8 @@ final class PhantomCoordination130Native
         final Path runtime = Path.of(System.getProperty("phantom.task130.runtime")).toRealPath();
         check(runtime.equals(module.getParent().getParent().resolve("runtime")) && runtime.equals(Path.of(".").toRealPath()), "INFRASTRUCTURE_CWD");
         check(Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "INFRASTRUCTURE_OWNER");
-        check(!Files.exists(scene(runtime).resolve("native130.cut")) && !Files.exists(scene(runtime).resolve("restart130.cut")), "FIXTURE_BEFORE_CUT");
+        if (!AUTHORITY_SQL_INITIALIZATION.get())
+        { check(!Files.exists(scene(runtime).resolve("native130.cut")) && !Files.exists(scene(runtime).resolve("restart130.cut")), "FIXTURE_BEFORE_CUT"); }
         check(Path.of(System.getProperty("phantom.test.config")).toRealPath().equals(runtime.resolve("config/Database.ini"))
             && Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "INFRASTRUCTURE_EXACT_SQL");
         final var sql = read(runtime.resolve("config/Database.ini"));
@@ -350,7 +372,7 @@ final class PhantomCoordination130Native
                     proved.set(inspectLoadedPlanner(runtime,profiles,inspectionIds,inspection,restart,saved));
                     check(!Boolean.getBoolean("phantom.task130.authorityOnly"), "AUTHORITY_DIAGNOSTIC_COMPLETE");
                     if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
-                    write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + proved.get().objective() + "\nSQL_WRITES=0\n");
+                    write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + proved.get().objective() + "\nAUTHORITY_PREPARATION=CANONICAL_NATIVE_STORE_READBACK\nGAMEPLAY_FIXTURE_WRITES=0\n");
                 }
                 catch (Exception failure) { throw new IllegalStateException(failure.getMessage(),failure); }
             });

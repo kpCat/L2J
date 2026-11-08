@@ -17,6 +17,19 @@ public final class PhantomExecutionAdmission
 	public Permit tryAcquireContinuationScoped(long id, Stamp inherited) { return acquireScoped(id, inherited, Purpose.NORMAL, true); }
 	/** Canonical effect owner validates its exact durable operation key before reacquiring completion rights. */
 	public synchronized Permit tryAcquireOwnedCompletion(long id, PhantomDomainRef owner) { return tryAcquire(id, owner, Purpose.COMPLETION); }
+	/** Reserve idle native preparation without holding this monitor across Player/SQL work. */
+	public <T> T prepareAuthority(long id, Supplier<T> preparation)
+	{
+		final Slot slot;
+		synchronized (this)
+		{
+			slot = _slots.get(id);
+			if (slot == null || slot.running != 0 || slot.boundary || slot.uncertain || slot.refreshThread != null || !slot.state.ownerMayComplete(slot.state.owner())) { return null; }
+			slot.refreshThread = Thread.currentThread();
+		}
+		try { return preparation.get(); }
+		finally { synchronized (this) { slot.refreshThread = null; } }
+	}
 	public synchronized Permit tryAcquirePreparation(long id, long rowVersion, PhantomDomainRef owner)
 	{
 		final var slot = _slots.get(id);
@@ -51,6 +64,7 @@ public final class PhantomExecutionAdmission
 		if (rowVersion < slot.version || rowVersion == slot.version && !slot.state.equals(state) || state.generation() < slot.state.generation())
 		{ throw new java.util.ConcurrentModificationException("Stale execution admission publication."); }
 		if (rowVersion == slot.version) { return; }
+		if (slot.refreshThread != null) { throw new IllegalStateException("Execution authority refresh still owns preparation."); }
 		if (state.generation() != slot.state.generation() && slot.running != 0)
 		{ slot.uncertain = true; throw new IllegalStateException("Execution transfer attempted before quiescence."); }
 		if (state.generation() != slot.state.generation() || state.phase() == PhantomExecutionHandoff.Phase.ACTIVE && slot.state.phase() != PhantomExecutionHandoff.Phase.ACTIVE)
@@ -66,6 +80,7 @@ public final class PhantomExecutionAdmission
 	{
 		final var slot = _slots.get(id);
 		return slot != null && !slot.uncertain && !slot.boundary && slot.state.owner().equals(owner)
+			&& (slot.refreshThread == null || purpose == Purpose.COMPLETION && slot.refreshThread == Thread.currentThread())
 			&& (purpose == Purpose.NORMAL ? slot.state.phase() == PhantomExecutionHandoff.Phase.ACTIVE && (continuation || slot.blocked == 0) : slot.state.ownerMayComplete(owner));
 	}
 	public synchronized Permit tryAcquire(long id, PhantomDomainRef owner)
@@ -227,7 +242,7 @@ public final class PhantomExecutionAdmission
 		synchronized (this)
 		{
 			slot = _slots.get(id);
-			if (slot == null || slot.version != expectedRowVersion || quiescent && slot.running != 0 || slot.boundary || slot.uncertain
+			if (slot == null || slot.version != expectedRowVersion || quiescent && slot.running != 0 || slot.boundary || slot.uncertain || slot.refreshThread != null
 				|| (quiescent ? slot.state.phase() == PhantomExecutionHandoff.Phase.ACTIVE
 					: slot.state.phase() != PhantomExecutionHandoff.Phase.ACTIVE && slot.state.phase() != PhantomExecutionHandoff.Phase.RECOVERING))
 			{ throw new IllegalStateException("Execution boundary is not quiescent/current."); }
@@ -268,7 +283,7 @@ public final class PhantomExecutionAdmission
 	public synchronized void acknowledgeRecovery(long id, long rowVersion, PhantomExecutionHandoff state)
 	{
 		final var slot = _slots.get(id);
-		if (slot != null && (slot.running != 0 || slot.boundary)) { throw new IllegalStateException("Execution recovery still has active work."); }
+		if (slot != null && (slot.running != 0 || slot.boundary || slot.refreshThread != null)) { throw new IllegalStateException("Execution recovery still has active work."); }
 		publish(id, rowVersion, state);
 		_slots.get(id).activatedAt = nextPublication();
 		_slots.get(id).uncertain = false;
@@ -281,7 +296,7 @@ public final class PhantomExecutionAdmission
 		{
 			if (!_slots.containsKey(id)) { publish(id, rowVersion, actual); }
 			slot = _slots.get(id);
-			if (slot.version > rowVersion || slot.running != 0 || slot.boundary) { throw new IllegalStateException("Execution recovery still has work or a newer owner."); }
+			if (slot.version > rowVersion || slot.running != 0 || slot.boundary || slot.refreshThread != null) { throw new IllegalStateException("Execution recovery still has work or a newer owner."); }
 			slot.boundary = true; slot.uncertain = true;
 		}
 		try { return recovery.get(); }
@@ -342,7 +357,7 @@ public final class PhantomExecutionAdmission
 	}
 	private static final class Slot
 	{
-		private long version; private PhantomExecutionHandoff state; private int running; private boolean boundary; private boolean uncertain;
+		private long version; private PhantomExecutionHandoff state; private int running; private boolean boundary; private boolean uncertain; private Thread refreshThread;
 		private long activatedAt;
 		private final Map<String, Blocker> blockers = new HashMap<>();
 		private int blocked;

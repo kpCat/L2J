@@ -51,7 +51,7 @@ public final class PhantomCoordination130Integration
 	}
 	public static void main(String[] args) throws Exception
 	{
-        if (args.length < 2 || args.length > 3 || !List.of("check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("check|prepare|inspect|probe|probe-live|cold|handoff|ownership|ownership-resume|test|resume|seal|fixture|recover|native|restart module [read-only admin config]"); }
+        if (args.length < 2 || args.length > 3 || !List.of("authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("authority-f7|authority|authority-resume|check|prepare|inspect|probe|probe-live|cold|handoff|ownership|ownership-resume|test|resume|seal|fixture|recover|native|restart module [read-only admin config]"); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
@@ -137,10 +137,17 @@ public final class PhantomCoordination130Integration
         if (args[0].equals("fixture")) { PhantomCoordination130Native.prepareOnly(module); return; }
 		if (args[0].equals("native") || args[0].equals("restart")) { PhantomCoordination130Native.run(module, args[0].equals("restart")); return; }
 		final long start = System.nanoTime();
-		DatabaseFactory.initFromConfig(config.toString());
+		if (args[0].equals("authority"))
+		{
+			PhantomCoordination130Native.initializeAuthoritySql(module);
+		}
+		else { DatabaseFactory.initFromConfig(config.toString()); }
 		try
 		{
 			final var profiles = PhantomProfileRepository.open();
+			if (args[0].equals("authority-f7"))
+			{ final var fixtures = receiptFixtures(profiles, module, 3); for (var fixture : fixtures) { fixture.commitOnce(); fixture.verify(); } f7Receipts(profiles, fixtures); return; }
+			if (args[0].equals("authority") || args[0].equals("authority-resume")) { authorityRefresh130(profiles, module, args[0].equals("authority-resume")); return; }
 			if (args[0].equals("cold")) { coldExpiry130(profiles, module); return; }
 			if (args[0].equals("ownership")) { executionHandoff(profiles, module); PhantomCommerceSuite.verifyUnappliedAbortSql(profiles); activityRevision130(profiles, module, false); return; }
 			if (args[0].equals("ownership-resume"))
@@ -288,8 +295,244 @@ public final class PhantomCoordination130Integration
 			Files.writeString(local.resolve("restart.properties"), "rowVersion=" + recreated.rowVersion() + "\naggregate=" + java.util.Base64.getEncoder().encodeToString(recreated.group().encode()) + "\n");
 			System.out.println("SQL130_PASS;ZERO_NATIVE=true;MEMBERS=3;CURSOR=0;LIFECYCLE=true;CONCURRENT_RACES=2;ATOMIC_ROLLBACK=true;MILLIS=" + (System.nanoTime() - start) / 1_000_000);
 		}
-		finally { DatabaseFactory.close(); }
+		finally { if (args[0].equals("authority")) { org.l2jmobius.commons.threads.ThreadPool.shutdown(); } DatabaseFactory.close(); }
 	}
+	/** New disposable SQL identity only. Its first Background row must be created by actual native STORE. */
+	private static ReceiptFixture authoritySqlFixture(PhantomProfileRepository profiles) throws Exception
+	{
+		final var profile = profiles.create(null); final long id = profile.profileId(); final int objectId = Math.toIntExact(700_000_000L + id);
+		try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("INSERT INTO characters (charId,char_name,account_name,level,exp,sp,expBeforeDeath,curHp,maxHp,curMp,maxMp,curCp,maxCp,x,y,z,heading,classid,base_class,race,vitality_points,online) VALUES (?,?,?,1,0,0,0,100,100,100,100,100,100,0,0,0,0,0,0,0,1,0)"))
+		{ query.setInt(1, objectId); query.setString(2, "SQL130_" + id); query.setString(3, "task130_sql"); query.executeUpdate(); }
+		profiles.updateCharacterLink(id, profile.rowVersion(), objectId);
+		final var source = new PhantomDomainRef("background.farm", "20101@farm.receipt130");
+		final var goal = new PhantomGoal(130000 + id, PhantomBackgroundGoalSpec.GOAL_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(source),
+			new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, "farm.receipt130"), "farm.background", 500, 0, 0, 0, Map.of(), "background.plan", 0);
+		final var goals = new PhantomGoalStateStore(profiles); goals.insert(id, goal);
+		new PhantomBackgroundCatchupStore(profiles, goals).claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.PENDING,
+			org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("authority130:" + id).toLowerCase(java.util.Locale.ROOT), 130, 100, 101, 100, 0, 0, 1, 1, 1,
+			goal.goalId(), 0, "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, new PhantomBackgroundState.Hashes("knowledge130", "topology130", "progression130", "commerce130"), ""));
+		PhantomAssertions.assertTrue(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).isEmpty(), "Native fixture must not synthesize a READY baseline.");
+		return new ReceiptFixture(id, objectId, goal, new PhantomBackgroundTransaction(), null);
+	}
+	private static void authorityRefresh130(PhantomProfileRepository profiles, Path module, boolean resume) throws Exception
+	{
+		final Path checkpoint = module.resolve(".phantom-local/task130/authority-restart.properties");
+		final var saved = new Properties();
+		if (resume) { saved.putAll(read(checkpoint)); }
+		for (String scenario : List.of("COMPLETE", "RUNNING", "PENDING"))
+		{
+			final ReceiptFixture fixture = resume ? null : authoritySqlFixture(profiles);
+			final long id = resume ? Long.parseLong(saved.getProperty(scenario + ".id")) : fixture.profileId();
+			final var goals = new PhantomGoalStateStore(profiles); final var histories = new PhantomBackgroundCatchupStore(profiles, goals);
+			final var seed = resume ? new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload())
+				: org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.state();
+			final var current = new java.util.concurrent.atomic.AtomicReference<>(resume ? new PhantomBackgroundState.Hashes(saved.getProperty(scenario + ".knowledge"), "topology130", "progression130", "commerce130") : histories.load(id).orElseThrow().state().authorityHashes());
+			final var authority = new SqlRefreshAuthority(current, seed);
+			final var bridge = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge();
+			final var metrics = new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
+			final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics,
+				new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false, 64, 16, metrics), 1, bridge);
+			final var stores = new java.util.concurrent.atomic.AtomicInteger();
+			final var unavailable = new java.util.concurrent.atomic.AtomicBoolean();
+			final var unavailableRead = new java.util.concurrent.atomic.AtomicInteger(-1);
+			final var transaction = new PhantomBackgroundTransaction(() -> { if (unavailable.get() || unavailableRead.getAndDecrement() == 0) { throw new java.sql.SQLException("SQL130_AUTHORITY_EXPECTED_READ_FAILURE"); } return DatabaseFactory.getConnection(); }, PhantomBackgroundTransaction.ObjectIdAllocator.production(), point ->
+			{ if (point == PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_NATIVE_STORE) { stores.incrementAndGet(); } });
+			final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+			{
+				@Override public SignalDelivery submit(long profile, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+				@Override public SignalDelivery withdraw(long profile, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+			};
+			final var background = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority,
+				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(), signals, () -> materialization);
+			final var history = new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService(profiles, goals,
+				org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.receiptPlanner130(true, authority), background, materialization);
+			final var executionStore = new PhantomExecutionHandoffStore(profiles); final var gate = new PhantomExecutionAdmission(4);
+			materialization.installExecutionAdmission(gate);
+			final var backend = new org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend(profiles, materialization, null);
+			final var port = new PhantomDecisionEngine.ExecutionOwner()
+			{
+				@Override public PhantomDecisionEngine.ExecutionReadiness prepareYield(PhantomExecutionHandoffStore.Stored row, long now) { return new PhantomDecisionEngine.ExecutionReadiness(true, "sql130.authority", now); }
+				@Override public PhantomDecisionEngine.ExecutionReadiness prepareRecovery(PhantomExecutionHandoffStore.Stored row, long now) { return prepareYield(row, now); }
+				@Override public PhantomDecisionEngine.ExecutionAuthority authority(PhantomExecutionHandoffStore.Stored row, long now)
+				{ return new PhantomDecisionEngine.ExecutionAuthority(prepareYield(row, now), List.of(profiles.findComponent(id, PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow())); }
+				@Override public boolean checkpointBoundary(PhantomExecutionHandoffStore.Stored row, Runnable work)
+				{ return backend.withUnmaterializedNativeAbsence(backend.currentMember(row.profileId()).orElseThrow(), () -> { work.run(); return true; }); }
+				@Override public PhantomDecisionEngine.ExecutionCheckpoint checkpoint(PhantomExecutionHandoffStore.Stored row, boolean recovery, long now)
+				{
+					final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundCatchupState.COMPONENT_TYPE);
+					return new PhantomDecisionEngine.ExecutionCheckpoint(List.of(), types, types.stream().map(type -> profiles.findComponent(id, type)).flatMap(Optional::stream).toList());
+				}
+			};
+			final var engine = executionDriverEngine(executionStore, gate, port);
+			final var control = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(engine, executionStore, gate, 4,
+				PhantomExecutionHandoff::solo, _ -> null, profile -> goals.load(profile).map(row -> row.goal()).orElse(null), (_, _) -> history.permitsNormalOperation(id), (_, _) -> true,
+				System::currentTimeMillis, (_, failure) -> { throw failure; });
+			history.bindAuthorityRefreshBoundary((profile, work) ->
+			{
+				final var acknowledged = control.ensure(profile);
+				final var prepared = acknowledged == null ? null : gate.prepareAuthority(profile, work);
+				return prepared == null ? org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result.rejected(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, "catchup.authority.execution_busy", history.status(profile).orElse(null)) : prepared;
+			});
+			final var change = new java.util.concurrent.atomic.AtomicReference<Runnable>();
+			final var observer = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
+			{
+				@Override public void beforeMaterialize(long profile, int object) { final var action = change.getAndSet(null); if (action != null) { action.run(); } }
+				@Override public void afterPlayerLoad(long profile, Player actor) { }
+				@Override public void materializeSucceeded(long profile, int object) { }
+				@Override public void materializeAborted(long profile, int object) { }
+				@Override public void beforeStore(long profile, Player actor) { }
+				@Override public void afterStore(long profile, Player actor) { }
+			};
+			bridge.install(control.materializationLifecycle(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(observer,
+				org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(history, background)), profile ->
+				{ final var prepared = history.prepareCurrentAuthority(profile); return prepared.successful() ? "" : prepared.reason(); }));
+			background.start(); materialization.start();
+			try
+			{
+				if (!resume)
+				{
+					final var prior = histories.load(id).orElseThrow().state();
+					final var pending = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.PENDING, prior.requestId(), prior.deterministicSeed(), 100,
+						scenario.equals("RUNNING") ? 102 : 101, 100, 0, 0, prior.generation(), 1, 1, prior.goalId(), prior.goalRevision(), prior.planIdentity(), prior.modelVersion(), prior.authorityHashes(), "");
+					histories.replace(id, histories.load(id).orElseThrow(), pending);
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS,
+						materialization.materialize(id, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose.HISTORICAL_BASELINE, pending.requestId()).status(), "Native SQL baseline load failed.");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Native SQL baseline STORE failed.");
+					if (!scenario.equals("PENDING"))
+					{
+						final var claim = histories.replace(id, histories.load(id).orElseThrow(), pending.running());
+						final var before = transaction.load(id).state();
+						final var key = new PhantomBackgroundOperationKey(id, fixture.objectId(), fixture.goal().goalId(), 0, 0, 0, PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM, 20101, "farm.receipt130", PhantomBackgroundState.MODEL_VERSION, before.hashes(), null,
+							new PhantomBackgroundOperationKey.HistoricalIdentity(claim.state().requestId(), claim.state().generation(), 0, 100, 101, claim.state().planIdentity()));
+						final var command = new PhantomBackgroundTransaction.Command(before, goals.load(id).orElseThrow().goal(), key,
+							new PhantomBackgroundState.Progress(1, 1, 1, 0), before.vitals(), before.position(), before.clock(), Map.of(), before.autoGetSkills(), List.of(), null,
+							new PhantomBackgroundTransaction.CatchupMutation(claim.state(), claim.rowVersion(), claim.state().advanceTo(101)));
+						PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, transaction.execute(command).status(), "Native-normalized SQL earned interval did not commit.");
+						PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, transaction.reconcileVerifyPending(id, fixture.objectId()).status(), "SQL earned interval readback failed.");
+					}
+					current.set(new PhantomBackgroundState.Hashes("current130", current.get().topology(), current.get().progression(), current.get().commerce()));
+					control.onPulse();
+					final var active = executionStore.load(id).orElseThrow();
+					PhantomAssertions.assertEquals(PhantomExecutionHandoff.Phase.ACTIVE, active.state().phase(), "SQL source did not reach a recoverable ACTIVE grant.");
+					try (var busy = gate.tryAcquireOwnedCompletion(id, active.state().owner()))
+					{
+						PhantomAssertions.assertTrue(busy != null, "SQL active-work completion permit absent.");
+						PhantomAssertions.assertEquals("catchup.authority.execution_busy", history.prepareCurrentAuthority(id).reason(), "Active execution was not fenced.");
+					}
+					gate.recovering(id, active.component().rowVersion(), active.state(), () -> true);
+					if (scenario.equals("COMPLETE"))
+					{
+						final var p = transaction.load(id).state().position();
+						final var facts = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(0, 0, 0, p.instanceId(), p.x(), p.y(), p.z());
+						final var expected = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.ConservationFacts(1, 0, 0, p.instanceId(), p.x(), p.y(), p.z());
+						final var request = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationRequest(org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.OperationKind.BUY, 1, 1, 1, 57, 0, 1, 1, 0, 0, 0, "", 0, 0, 0);
+						final var receipts = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles);
+						final var prepared = receipts.save(-1, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.prepared(id, fixture.goal().goalId(), 0, request, facts, expected));
+						PhantomAssertions.assertEquals("catchup.authority.commerce_pending", history.prepareCurrentAuthority(id).reason(), "Pending Commerce admitted refresh.");
+						receipts.save(prepared.rowVersion(), prepared.receipt().abortUnapplied(facts));
+						unavailable.set(true);
+						try { PhantomAssertions.assertFalse(history.permitsNormalOperation(id) || history.prepareCurrentAuthority(id).successful(), "Unavailable Background was treated as confirmed absence."); }
+						finally { unavailable.set(false); }
+					}
+					for (String type : List.of(PhantomBackgroundCatchupState.COMPONENT_TYPE, PhantomGoalStateStore.COMPONENT_TYPE))
+					{
+						final var row = profiles.findComponent(id, type).orElseThrow(); final var unchanged = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+						change.set(() -> profiles.updateComponent(id, type, row.rowVersion(), row.componentSchemaVersion(), row.payload()));
+						PhantomAssertions.assertFalse(history.prepareCurrentAuthority(id).successful(), "Changed claim/root CAS admitted refresh.");
+						PhantomAssertions.assertEquals(unchanged, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Rejected CAS changed Background state.");
+					}
+					try (var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(fixture.objectId(), PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND))
+					{
+						PhantomAssertions.assertTrue(lease != null, "SQL fixture foreign lease absent.");
+						PhantomAssertions.assertFalse(history.prepareCurrentAuthority(id).successful(), "Foreign identity lease admitted refresh.");
+					}
+				}
+				final var oldHistory = histories.load(id).orElseThrow(); final var oldRoot = goals.load(id).orElseThrow(); final var beforeState = transaction.load(id).state();
+				final var result = history.prepareCurrentAuthority(id);
+				PhantomAssertions.assertTrue(result.successful(), scenario + " refresh failed: " + result.reason());
+				PhantomAssertions.assertEquals(0, result.advancedIntervals(), "Authority refresh executed historical reward time.");
+				final var after = transaction.load(id).state(); final var newHistory = histories.load(id).orElseThrow();
+				PhantomAssertions.assertEquals(current.get(), after.hashes(), "Canonical STORE did not capture current authority.");
+				PhantomAssertions.assertEquals(beforeState.progress(), after.progress(), "Authority refresh replayed EXP/SP.");
+				PhantomAssertions.assertEquals(beforeState.receipt(), after.receipt(), "Authority refresh replaced the earned receipt.");
+				PhantomAssertions.assertEquals(oldHistory.state().cursorEpochMinute(), newHistory.state().cursorEpochMinute(), "Authority refresh rewound confirmed time.");
+				PhantomAssertions.assertEquals(oldHistory.state().intervalOrdinal(), newHistory.state().intervalOrdinal(), "Authority refresh duplicated an interval.");
+				if (scenario.equals("COMPLETE"))
+				{
+					PhantomAssertions.assertEquals(oldHistory, newHistory, "Completed historical authority or row version was rewritten.");
+					PhantomAssertions.assertEquals(oldRoot, goals.load(id).orElseThrow(), "Completed authority refresh rewrote the root.");
+					PhantomAssertions.assertTrue(history.permitsNormalOperation(id), "Fresh Background with historical COMPLETE hashes remained fenced.");
+				}
+				final int count = stores.get();
+				PhantomAssertions.assertTrue(history.prepareCurrentAuthority(id).successful(), "Duplicate preparation failed.");
+				PhantomAssertions.assertEquals(count, stores.get(), "Duplicate refresh issued another native STORE.");
+				if (!resume && scenario.equals("COMPLETE"))
+				{
+					control.onPulse();
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Fresh COMPLETE could not resume NORMAL native lifetime.");
+					Thread.sleep(6500); // Let the stock regeneration task produce a real native successor; no HP/MP fixture writes.
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Ordinary native successor STORE failed.");
+					final var successor = transaction.load(id).state();
+					PhantomAssertions.assertFalse(beforeState.vitals().equals(successor.vitals()), "Stock native regeneration did not produce the required factual successor.");
+					PhantomAssertions.assertEquals(beforeState.receipt(), successor.receipt(), "Ordinary native STORE discarded historical receipt.");
+					PhantomAssertions.assertTrue(history.permitsNormalOperation(id) && history.prepareCurrentAuthority(id).successful(), "Historical F7 receipt was misapplied to a verified current native successor.");
+					current.set(new PhantomBackgroundState.Hashes("next130", current.get().topology(), current.get().progression(), current.get().commerce()));
+					unavailableRead.set(1); // Read Background, then fail the exact bound-context proof; no persistent fixture mutation.
+					final int beforeRejected = stores.get();
+					try { PhantomAssertions.assertEquals("catchup.authority.receipt_mismatch", history.prepareCurrentAuthority(id).reason(), "Missing context proof admitted an untagged mismatch."); }
+					finally { unavailableRead.set(-1); }
+					PhantomAssertions.assertEquals(beforeRejected, stores.get(), "Unproven receipt rejection issued native STORE.");
+					final var next = history.prepareCurrentAuthority(id);
+					PhantomAssertions.assertTrue(next.successful(), "Verified native successor could not refresh a later authority: " + next.reason());
+					PhantomAssertions.assertEquals(0, next.advancedIntervals(), "Native successor refresh replayed historical time.");
+					PhantomAssertions.assertEquals(successor.progress(), transaction.load(id).state().progress(), "Native successor refresh replayed rewards.");
+					PhantomAssertions.assertEquals(successor.receipt(), transaction.load(id).state().receipt(), "Native successor refresh replaced historical receipt.");
+					PhantomAssertions.assertEquals(current.get(), transaction.load(id).state().hashes(), "Native successor did not STORE the next authority.");
+					PhantomAssertions.assertEquals(oldHistory, histories.load(id).orElseThrow(), "Native successor rewrote completed history.");
+				}
+				if (resume)
+				{
+					PhantomAssertions.assertEquals(saved.getProperty(scenario + ".history"), java.util.Base64.getEncoder().encodeToString(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec().encode(newHistory.state())), "JVM restart changed historical claim.");
+					PhantomAssertions.assertEquals(saved.getProperty(scenario + ".background"), org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload()), "JVM restart changed current baseline.");
+					PhantomAssertions.assertEquals(0, stores.get(), "Fresh restart invoked native STORE.");
+				}
+				else
+				{
+					PhantomAssertions.assertTrue(stores.get() > 0, "SQL proof did not execute actual owned Player STORE.");
+					saved.setProperty(scenario + ".id", Long.toString(id));
+					saved.setProperty(scenario + ".knowledge", current.get().knowledge());
+					saved.setProperty(scenario + ".history", java.util.Base64.getEncoder().encodeToString(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec().encode(newHistory.state())));
+					saved.setProperty(scenario + ".background", org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload()));
+				}
+				System.out.println("SQL130_AUTHORITY scenario=" + scenario + ";resume=" + resume + ";nativeStores=" + stores.get() + ";cursor=" + newHistory.state().cursorEpochMinute() + ";EXP_SP_UNCHANGED=true;GAMESERVER=0");
+			}
+			finally { materialization.shutdown(); background.beginStop(); background.finishStop(); engine.beginStop(); engine.finishStop(); }
+		}
+		if (!resume) { try (var writer = Files.newBufferedWriter(checkpoint, StandardCharsets.UTF_8)) { saved.store(writer, "TASK130 unmanaged authority SQL fixtures; native STORE, no GameServer"); } }
+	}
+
+	private record SqlRefreshAuthority(java.util.concurrent.atomic.AtomicReference<PhantomBackgroundState.Hashes> current, PhantomBackgroundState seed) implements PhantomBackgroundAuthority
+	{
+		@Override public PhantomBackgroundState.Hashes hashes() { return current.get(); }
+		@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+		{
+			final var state = previous == null ? seed : previous;
+			final var identity = new PhantomBackgroundState.Identity(id, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
+			return new PhantomBackgroundState(PhantomBackgroundState.State.MATERIALIZED, identity, new PhantomBackgroundState.Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath()),
+				new PhantomBackgroundState.Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp()),
+				new PhantomBackgroundState.Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), goal.selectedAnchor().key()), state.combat(), state.loadout(), state.inventory(), autoGetSkills(identity, player.getLevel()), state.clock(), state.receipt(), hashes());
+		}
+		@Override public NativeCapture captureOwnedNative(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { return new NativeCapture(capture(id, player, goal, previous), captureNativeContext(player)); }
+		@Override public PhantomNativeContext.Capture captureNativeContext(Player player) { return new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.SUPPORTED); }
+		@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> null, () -> null, () -> null, () -> null).matchesRuntime(player, state); }
+		@Override public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { throw new UnsupportedOperationException("SQL refresh never simulates combat."); }
+		@Override public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long budget) { throw new UnsupportedOperationException("SQL refresh never travels."); }
+		@Override public Optional<PhantomBackgroundState.Position> canonicalRecoveryPosition(int x, int y, int z, int instance, int heading) { return Optional.empty(); }
+		@Override public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level)
+		{ return new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> null, () -> null, () -> null, () -> null).autoGetSkills(identity, level); }
+	}
+
 	private static PhantomLogicalParty agreement(long leader, long peer, long generation)
 	{
 		return new PhantomLogicalParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("SQL130-RACE:" + leader + ":" + generation), generation, leader,

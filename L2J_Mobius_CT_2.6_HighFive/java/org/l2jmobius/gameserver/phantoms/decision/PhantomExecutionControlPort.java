@@ -54,14 +54,22 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 	}
 	/** The role lease spans every existing lifecycle callback, including failure compensation. */
 	public org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort materializationLifecycle(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort delegate)
+	{ return materializationLifecycle(delegate, _ -> ""); }
+	public org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort materializationLifecycle(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort delegate, java.util.function.LongFunction<String> prepareNormal)
 	{
 		Objects.requireNonNull(delegate);
+		Objects.requireNonNull(prepareNormal);
 		return new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
 		{
 			@Override public void beforeMaterialize(long id, int objectId) { beforeMaterialize(id, objectId, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose.NORMAL, ""); }
 			@Override public void beforeMaterialize(long id, int objectId, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose purpose, String claim)
 			{
 				final var attempt = new Materializing(id, objectId); _materializing.get().push(attempt);
+				if (purpose == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose.NORMAL)
+				{
+					final String reason = prepareNormal.apply(id);
+					if (!reason.isEmpty()) { throw new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.AdmissionRejectedException(reason); }
+				}
 				final var row = ensure(id);
 				if (row != null) { attempt.permit = _gate.tryAcquireOwnedCompletion(id, row.state().owner()); }
 				if (attempt.permit == null) { throw new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.AdmissionRejectedException("execution.materialization_wait_owner"); }

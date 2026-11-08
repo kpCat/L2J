@@ -297,7 +297,10 @@ public final class PhantomFarm074Checks
 	{ return planner(linked, alternative, soloViable, ingress, false); }
 	/** Same immutable planner fixture, aligned with the existing SQL130 receipt fixture; never native world facts. */
 	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked) { return planner(linked, false, true, false, true); }
+	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked, PhantomBackgroundAuthority authority) { return planner(linked, false, true, false, true, authority); }
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress, boolean receipts)
+	{ return planner(linked, alternative, soloViable, ingress, receipts, null); }
+	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress, boolean receipts, PhantomBackgroundAuthority override)
 	{
 		final int localNpc = receipts ? 20101 : 101, farNpc = receipts ? 20102 : 102, level = receipts ? 1 : 20;
 		final String localAnchor = receipts ? "farm.receipt130" : "farm.local", farAnchor = receipts ? "farm.receipt130.b" : "farm.far";
@@ -341,7 +344,7 @@ public final class PhantomFarm074Checks
 			@Override public Optional<PhantomBackgroundState.Position> canonicalRecoveryPosition(int x, int y, int z, int instance, int heading) { return Optional.empty(); }
 			@Override public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level) { return List.of(); }
 		};
-		return new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority);
+		return new PhantomHistoricalBackgroundPlanner(knowledge, topology, override == null ? authority : override);
 	}
 
 	private static PhantomTopologyNode node(String id, PhantomTopologyPoint point)
