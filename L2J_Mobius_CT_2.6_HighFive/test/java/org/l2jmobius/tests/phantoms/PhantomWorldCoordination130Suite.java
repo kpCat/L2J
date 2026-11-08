@@ -20,6 +20,28 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("preflight-recovery-and-read-only-scene-have-independent-finite-budgets", _ ->
+		{
+			PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(40), true);
+			PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(29), false);
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(60), true), "Recovery exceeded its finite budget.");
+			PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(30), false), "Scene exceeded its own budget.");
+		});
+		registry.add("authority-refresh-rejects-active-and-returning-native-intents", _ ->
+		{
+			final var state = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.state();
+			final var root = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.goal();
+			for (String type : List.of("supply.intent", "learning.intent", "career.intent"))
+			{
+				final var child = PhantomCoordination130Integration.authorityChild130(type, root, state);
+				for (var status : org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.values())
+				{
+					final var row = new org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent(74, type, 1, 0, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(child.withStatus(status)), java.time.Instant.EPOCH, java.time.Instant.EPOCH);
+					final boolean pending = status == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE || type.equals("learning.intent") && status == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED || type.equals("supply.intent") && status == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.COMPLETED;
+					PhantomAssertions.assertEquals(pending, org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.nativeIntentPending(row), "Native return ownership lost for " + type + ":" + status);
+				}
+			}
+		});
 		registry.add("authority-preparation-excludes-foreign-completion-and-requires-idle-execution", _ ->
 		{
 			final var gate = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission(1);

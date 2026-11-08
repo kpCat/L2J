@@ -634,6 +634,25 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public void bindAuthorityRefreshBoundary(java.util.function.BiFunction<Long, java.util.function.Supplier<Result>, Result> boundary)
 	{ _authorityRefreshBoundary = Objects.requireNonNull(boundary); }
 
+	/** Unchanged child bytes are still an obligation, including compensation and paid return. */
+	public boolean nativeIntentPending(long profileId)
+	{
+		for (String type : List.of("supply.intent", "learning.intent", "career.intent"))
+		{
+			final var row = _profiles.findComponent(profileId, type);
+			if (row.isPresent() && nativeIntentPending(row.get())) { return true; }
+		}
+		return false;
+	}
+	public static boolean nativeIntentPending(PhantomProfileComponent row)
+	{
+		if (row.componentSchemaVersion() != 1 || !Set.of("supply.intent", "learning.intent", "career.intent").contains(row.componentType()))
+		{ throw new IllegalArgumentException("Unsupported native intent component."); }
+		final var child = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(row.payload());
+		return org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.continuing(child)
+			|| "supply.intent".equals(row.componentType()) && org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply.returning(child);
+	}
+
 	/** Completed history retains its original authority; only the current Background must be fresh. */
 	public static boolean authorityRefreshRequired(PhantomBackgroundState.Hashes background, PhantomBackgroundCatchupState history, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
 	{
@@ -676,6 +695,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.authority.receipt_mismatch", current); }
 			}
 			if (!stale && (current == null || current.state().status() != Status.PENDING && current.state().status() != Status.FAILED_REPLAN_REQUIRED)) { return Result.success(current, 0); }
+			if (nativeIntentPending(profileId)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.intent_pending", current); }
 			if (current.state().status() == Status.FAILED_REPLAN_REQUIRED && !isRecoverableFailure(current.state().failureReason()) && !"catchup.authority_hash_or_generation_stale".equals(current.state().failureReason()))
 			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current); }
 			if (_materialization.find(profileId).isPresent()) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.native_owner_busy", current); }
@@ -1404,6 +1424,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private Result refreshCanonicalBaseline(long profileId, Snapshot current)
 	{
+		if (nativeIntentPending(profileId)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.intent_pending", current); }
 		if (!currentClaim(profileId, current)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.claim_changed", current); }
 		final var claimComponent = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
 		final var goalComponent = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
@@ -2159,6 +2180,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 		}
 		final RecoveryClaim recovery = purpose == MaterializationPurpose.HISTORICAL_BASELINE ? _recoveryClaims.get(profileId) : null;
+		if (purpose == MaterializationPurpose.HISTORICAL_BASELINE && nativeIntentPending(profileId)) { throw new AdmissionRejectedException("catchup.authority.intent_pending"); }
 		if ((purpose == MaterializationPurpose.NATIVE_CONTEXT_HANDOFF) && ((ownerClaim == null) || ownerClaim.isBlank() || (catchup == null) || !catchup.state().owns(ownerClaim)
 			|| (catchup.state().status() == Status.COMPLETE) || !currentClaim(profileId, catchup)))
 		{

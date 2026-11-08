@@ -149,12 +149,15 @@ final class PhantomCoordination130Native
         PhantomSystem.PlanningInspection inspection, boolean restart, Properties saved) throws Exception
     {
         check(!PhantomSystem.hasConfiguredInstance(), "PREFLIGHT_BEFORE_EXECUTION");
-        final long now = System.currentTimeMillis(); final String before = persisted(profiles, ids);
+        final long recoveryStarted = System.nanoTime();
+        final var recoveryBefore = preflightWitness(profiles, ids, true);
         final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), inspection.settings().populationTimeZone());
         final var goals = new PhantomGoalStateStore(profiles); final var parties = new PhantomPartyStore(profiles);
-        final var states = new LinkedHashMap<Long, PhantomBackgroundState>(); final var candidates = new ArrayList<PhantomLogicalPartyCoordinator.Candidate>();
+        final var eligibleIds = new ArrayList<Long>();
         for (long id : ids)
         {
+            checkPreflightBudget(System.nanoTime() - recoveryStarted, true);
+            final long now = System.currentTimeMillis();
             final var state = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
             final var root = goals.load(id).orElseThrow().goal();
             final var population = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
@@ -162,7 +165,8 @@ final class PhantomCoordination130Native
             final var claim = parties.loadLogicalClaim(id).filter(PhantomPartyPersistencePort.StoredLogicalClaim::active);
             final var receipt = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).find(id);
             final boolean blocked = profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent() || receipt.filter(row -> !row.receipt().state().terminal()).isPresent()
-                || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false);
+                || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false)
+                || inspection.authorityRecovery().nativeIntentPending(id);
             final boolean consent = inspection.settings().partySeeking().seeks(id, state.progress().level());
             final boolean eligible = population.state() == PhantomPopulationState.State.READY && population.catalogHash().equals(catalog.hash()) && calendar.state().requiresMaterialization()
                 && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && (claim.isEmpty() || restart && claim.get().groupId().equals(saved.getProperty("group")))
@@ -182,10 +186,22 @@ final class PhantomCoordination130Native
                 check(heal, "PREFLIGHT_LEARNED_HEAL_" + id);
                 System.out.println("NATIVE130_PREFLIGHT_SUPPORT id=" + id + " learnedNativeHeal=true");
             }
-            final var prepared = inspection.authorityRecovery().prepareCurrentAuthority(id);
-            check(prepared.successful(), "PREFLIGHT_AUTHORITY_REFRESH_" + id + "_" + prepared.reason());
+            preparePreflightAuthority(profiles, id, () -> inspection.authorityRecovery().prepareCurrentAuthority(id));
             check(inspection.authorityRecovery().permitsNormalOperation(id), "PREFLIGHT_HISTORY_NOT_COMPLETE_" + id);
             check(root.equals(goals.load(id).orElseThrow().goal()), "PREFLIGHT_ROOT_CHANGED_" + id);
+            eligibleIds.add(id);
+        }
+        check(recoveryBefore.equals(preflightWitness(profiles, ids, true)), "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS");
+        checkPreflightBudget(System.nanoTime() - recoveryStarted, true);
+        final long sceneStarted = System.nanoTime(); final long now = System.currentTimeMillis();
+        final var before = preflightWitness(profiles, ids, false);
+        final var states = new LinkedHashMap<Long, PhantomBackgroundState>(); final var candidates = new ArrayList<PhantomLogicalPartyCoordinator.Candidate>();
+        for (long id : eligibleIds)
+        {
+            checkPreflightBudget(System.nanoTime() - sceneStarted, false);
+            final var root = goals.load(id).orElseThrow().goal();
+            final var population = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
+            check(catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), inspection.settings().populationTimeZone(), population.schedulePhaseMinutes()).state().requiresMaterialization(), "PREFLIGHT_CALENDAR_CHANGED_" + id);
             final var restored = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
             inspectAuthority(id, restored.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
             final var history = new PhantomBackgroundCatchupStore(profiles, goals).load(id).orElseThrow().state();
@@ -221,10 +237,73 @@ final class PhantomCoordination130Native
             result = row.group();
         }
         else { result = preflightAgreement(candidates, inspection.settings().partySeeking()::seeks, physical, now).orElseThrow(() -> new IllegalStateException("NATIVE130_NO_LAWFUL_FEASIBLE_SCENE" )).group(); }
-        check(before.equals(persisted(profiles, ids)), "PREFLIGHT_READ_ONLY_WITNESS");
-        check(System.currentTimeMillis() - now < 30_000, "PREFLIGHT_BOUNDED_DEADLINE");
-        System.out.println("NATIVE130_PREFLIGHT_PASS objective=" + result.objective() + " members=" + result.members() + " SQL_WRITES=0 SAME_PRODUCTION_PLANNER=true");
+        verifySceneWitness(before, preflightWitness(profiles, ids, false));
+        checkPreflightBudget(System.nanoTime() - sceneStarted, false);
+        System.out.println("NATIVE130_PREFLIGHT_PASS objective=" + result.objective() + " members=" + result.members() + " RECOVERY_WRITES=CANONICAL_ONLY SCENE_SQL_WRITES=0 SAME_PRODUCTION_PLANNER=true recoveryMillis=" + TimeUnit.NANOSECONDS.toMillis(sceneStarted - recoveryStarted) + " sceneMillis=" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - sceneStarted));
         return result;
+    }
+    static org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result preparePreflightAuthority(
+        PhantomProfileRepository profiles, long id, java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result> preparation) throws Exception
+    {
+        final var before = preflightWitness(profiles, List.of(id), true);
+        final var history = new PhantomBackgroundCatchupStore(profiles, new PhantomGoalStateStore(profiles)).load(id).orElseThrow();
+        check(history.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE, "PREFLIGHT_HISTORY_NOT_COMPLETE_" + id);
+        final var prepared = preparation.get();
+        check(prepared.successful(), "PREFLIGHT_AUTHORITY_REFRESH_" + id + "_" + prepared.reason());
+        check(prepared.advancedIntervals() == 0 && before.equals(preflightWitness(profiles, List.of(id), true)), "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS");
+        return prepared;
+    }
+    record PreflightWitness(String canonical, String components) { }
+    static void verifySceneWitness(PreflightWitness before, PreflightWitness after) { check(before.equals(after), "PREFLIGHT_READ_ONLY_WITNESS"); }
+    static void checkPreflightBudget(long elapsedNanos, boolean recovery)
+    {
+        check(elapsedNanos >= 0 && elapsedNanos < TimeUnit.SECONDS.toNanos(recovery ? 60 : 30), recovery ? "PREFLIGHT_RECOVERY_DEADLINE" : "PREFLIGHT_SCENE_DEADLINE");
+    }
+    static PreflightWitness preflightWitness(PhantomProfileRepository profiles, List<Long> ids, boolean recovery) throws Exception
+    {
+        final var output = new StringBuilder();
+        final var components = new StringBuilder();
+        final var allowed = Set.of(PhantomBackgroundState.COMPONENT_TYPE, PhantomNativeContext.COMPONENT_TYPE, PhantomExecutionHandoffStore.COMPONENT_TYPE);
+        final var nativeColumns = Set.of("maxhp", "curhp", "maxcp", "curcp", "maxmp", "curmp", "heading", "x", "y", "z", "online", "onlinetime", "lastaccess", "vitality_points");
+        for (long id : ids)
+        {
+            output.append("profile=").append(id).append('\n');
+            try (var connection = DatabaseFactory.getConnection())
+            {
+                connection.setReadOnly(true);
+                final var queries = new ArrayList<>(List.of("SELECT * FROM characters WHERE charId=?",
+                    recovery ? "SELECT object_id,item_id,count,loc,loc_data,enchant_level FROM items WHERE owner_id=? ORDER BY object_id" : "SELECT * FROM items WHERE owner_id=? ORDER BY object_id"));
+                if (!recovery) { queries.add("SELECT * FROM character_skills WHERE charId=? ORDER BY class_index,skill_id"); }
+                for (String sql : queries)
+                {
+                    output.append(sql).append('\n');
+                    try (var query = connection.prepareStatement(sql))
+                    {
+                        query.setInt(1, profiles.find(id).orElseThrow().characterObjectId());
+                        try (var rows = query.executeQuery())
+                        {
+                            while (rows.next())
+                            {
+                                for (int column = 1; column <= rows.getMetaData().getColumnCount(); column++)
+                                {
+                                    final String label = rows.getMetaData().getColumnLabel(column);
+                                    if (recovery && sql.contains("FROM characters") && nativeColumns.contains(label.toLowerCase(Locale.ROOT))) { continue; }
+                                    final String value = rows.getString(column); output.append(label).append('=').append(value == null ? -1 : value.length()).append(':').append(value).append(';');
+                                }
+                                output.append('\n');
+                            }
+                        }
+                    }
+                }
+            }
+            components.append("profile=").append(id).append('\n');
+            for (var row : profiles.listComponents(id).stream().sorted(Comparator.comparing(org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent::componentType)).toList())
+            {
+                if (recovery && allowed.contains(row.componentType())) { continue; }
+                components.append(row.componentType()).append(':').append(row.rowVersion()).append(':').append(row.componentSchemaVersion()).append(':').append(row.createdAt()).append(':').append(row.updatedAt()).append(':').append(Base64.getEncoder().encodeToString(row.payload())).append('\n');
+            }
+        }
+        return new PreflightWitness(output.toString(), components.toString());
     }
     private static boolean loadedRoute(String label, PhantomGeoValidationRules.Point from, PhantomGeoValidationRules.Point to)
     {
