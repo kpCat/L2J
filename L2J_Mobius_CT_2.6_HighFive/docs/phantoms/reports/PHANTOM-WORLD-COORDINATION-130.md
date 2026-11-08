@@ -1,6 +1,38 @@
 # TASK130 — implementation ledger
 
-Status: STOPPED_BEFORE_CUT_AUTHORITY_HASH_MISMATCH. The authorized one-build/first-boot campaign stopped normally at production-planner input freshness. FULL130 is not achieved; restart was not eligible.
+Status: DIAGNOSED_KNOWLEDGE_AUTHORITY_STALE; RECOVERY_NOT_APPLIED. The single separately authorized diagnostic bootstrap is stopped. FULL130 is not achieved; no further build/boot is authorized.
+
+## 2026-11-08 — one authorized diagnostic bootstrap: only knowledge differs, managed facts unchanged
+
+The owner authorized exactly one diagnostic GameServer bootstrap on existing JAR `3D09C215B66E3579876A645335DB751E1F1AFB2FCF0ED0A17717FD3ECE889177`, no rebuild, CUT, reseed, materialization or gameplay, followed by stock STOP/postflight and ordinary WIP push. That authorization is consumed. Tested diagnostic source commit: `79cd9e5df22597dd319275a83d48319853612b43`. Production Java/JAR and all gameplay authority data were not edited.
+
+Before launch: javac exit 0 and existing focused MODEL 40/40. `javap -sysinfo -p -c` using the exact wrapper classpath selected the updated test-bin class, SHA256 `fb221c55eac79787181998674c12940f07a40a533147adcef022c8dd13ee8bd8`; none of its six preceding JARs contains a diagnostic-class shadow. The real class-load log and the helper's pre-GameServer origin guard confirmed that same test-bin location at runtime. GameServer/PhantomSystem loaded from the exact pinned JAR. G0 SQL identity, Geo 203 and protected 207 verified before launch.
+
+Owned PID 67880, owner `DESKTOP-TNN1J1H\ZBook`, created `2026-11-08T15:41:00.8203090Z`; full stock bootstrap 23s. The actual production planner supplied these values:
+
+| Component, profile70 | SAVED Background and Catchup | CURRENT production | Result |
+|---|---|---|---|
+|knowledge|`87fafd93f1c18921e1f4c5d94f29f275e15b4ed6d392f8474eefa92101060be4`|`4b96bf77235b76640d71c5d6020aaefcafd1dc19fe83d714ce66a6a25b7e5f1a`|MISMATCH|
+|topology|`38290d7bb9dbb65a856672d7502e29e334b6986baf18d81d571785438f35ee49`|`38290d7bb9dbb65a856672d7502e29e334b6986baf18d81d571785438f35ee49`|MATCH|
+|progression|`EE97B29DBF1EB8EF55E4052A87A041257B9225822DECD277A2BBF6A327548DDF`|`EE97B29DBF1EB8EF55E4052A87A041257B9225822DECD277A2BBF6A327548DDF`|MATCH|
+|commerce|`1b019bb1415efd06d2102cfd7915ae911b3d8a3352958e0ad66d845c2db50703`|`1b019bb1415efd06d2102cfd7915ae911b3d8a3352958e0ad66d845c2db50703`|MATCH|
+
+All 48 pairs for both Background and Catchup of 69/70/72/85/79/86 were captured; exactly 12 mismatches, all knowledge. Background knowledge is 87fafd93... for every member. Catchup 79 instead carries `d36246adcfbd48e4e76da1dba4c40ac4322bd12e32a09e8c16c0169e762b5e9a`; it is stale against both its Background and current authority. Profile 70 Catchup is COMPLETE, row 22970, cursor=target=29901716; saved/current knowledge and topology generation counters all equal 1. Equal process-local generation numbers therefore do not prove content freshness.
+
+GK runtime bytes/public loader hash: `f12ac5c5ea47367bc932e732b202541d76d73c6920aa1b2e4f6a5d2ed1da8f2c`,54 legs. Actual production canonical topology is `f1a4c822fb58fc3a85320b3f6d30b47ee58c899cf9d9619fc944b621f287869f`. Their exact ASCII/NUL-delimited BACKGROUND_TRAVEL_V1/tariff composition equals the actual planner topology `38290d7b...35ee49`. The pinned production travel object is private; no reflection or replacement was used: a public-loader reread of the unchanged runtime file and equality with the real planner's composite prove consistency. The suggested missing-GK explanation is ruled out for these saved states.
+
+**Established refusal cause:** the saved composite knowledge authority is stale, and the helper demands equality before Background/Historical recovery owners exist. Knowledge is `digest(BACKGROUND_KNOWLEDGE_V1, GameKnowledge.combinedHash, lootPolicyFingerprint)`; the exact changed constituent inside the old composite (catalog facts versus loot policy) is **UNKNOWN**, because the previous constituent snapshot is not retained. Do not attribute it to random/dynamic spawns or a particular config setting on this evidence. No second planner/catalog reconstruction, hash-algorithm change or hash override was used to establish the mismatch.
+
+**Minimal lawful correction, proposed and not applied:** make the canonical recovery owners available before the strict readiness decision. For an exact stale claim, reuse `recoverStale` → `refreshCanonicalBaseline` → HISTORICAL_BASELINE materialize/dematerialize and normal STORE/CAS; verify all four new Background/Catchup components before admitting normal execution. Handle COMPLETE through that same recovery path: ordinary `advance` currently returns early for COMPLETE; fabricating another historical interval solely to bypass this is not a repair. Retain the earned cursor, identity and ledger; no reward replay or direct hash/Goal/receipt writes. Busy/changed claim, pending obligations or F7 mismatch remain typed refusal. Implement/test this only under a subsequent recovery scope; this diagnostic run did not invoke it. Fixing only fixture travel cannot resolve the observed knowledge mismatch.
+
+The diagnostic branch emitted all evidence and then intentionally threw `NATIVE130_AUTHORITY_DIAGNOSTIC_COMPLETE` before CUT/Background construction. Outer operator START_FAILED is expected diagnostic cleanup, not a new gameplay defect. Stock STOP 5s, process exit 0 at `2026-11-08T15:41:41.6227807Z`. Own JVM/listeners 0, protected 207 EXACT, SQL scope/no foreign sessions verified. Both fixture witnesses compare exactly: 41 original and 48 morning lines = six character/inventory/skill/ledger digests plus 83 exact component row/schema/payload hashes. Goals, Background/Catchup, receipts, execution and character facts unchanged; config and all prior CUT files byte-exact, new CUT 0. JAR builds 0, boots 1, materializations/gameplay/restart 0. Native acceptance **NOT_READY**, FULL130=false.
+
+Raw byte copies and SHA256 comparison manifest are retained outside checkout in existing task130/evidence: `authority130-raw-native-20261108-154100.{stdout.log,stderr.log,process.json,exit.json}`, `authority130-raw-authority130-class-load.log`, `authority130-raw-{java0,error0}.log`, pre/post SQL stdout/stderr, G0/OS postflight, `authority130-final-beforeboot-{provenance.json,javap.txt}`, `authority130-postflight-comparison.json` and final raw manifest. Error0 contains only the intended diagnostic startup exception. No second boot or new JAR followed.
+
+Git scope: the three existing helper/test files above plus this report and its companion evidence JSON. Invocation-local safe.directory only; no global config change. Exact bounded inspection/add/cached-check/scoped-commit/ordinary-WIP-push commands are retained in `evidence/authority130-git-commands.txt`; feature remote remained `faec72161f9e4f6231764e17d6f2637a4db080af` before delivery. Publication targets only `HEAD:refs/heads/wip/coordination-130-preserved`, with remote SHA verification after push. Main checkout is untouched.
+
+- mojibake-маркеры в изменённых файлах проверены — PASS, 0 matches во всех пяти файлах.
+- escaped Cyrillic в изменённых файлах проверены — PASS, 0 matches во всех пяти файлах.
 
 ## 2026-11-08 — continuation: travel hypothesis disproved for saved profile70; exact current components required
 
