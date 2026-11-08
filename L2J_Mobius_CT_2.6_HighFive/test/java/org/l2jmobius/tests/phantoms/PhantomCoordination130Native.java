@@ -78,6 +78,18 @@ final class PhantomCoordination130Native
     static Optional<PhantomPartyPersistencePort.StoredLogicalGroup> preflightAgreement(List<PhantomLogicalPartyCoordinator.Candidate> candidates,
         java.util.function.BiPredicate<Long, Integer> seeking, java.util.function.Predicate<PhantomLogicalParty> physical, long now)
     { return new PhantomLogicalPartyCoordinator(new PhantomWorldCoordination130Suite.MemoryStore()).discover(candidates, seeking, now).filter(row -> physical.test(row.group())); }
+    static void inspectAuthority(long id, PhantomBackgroundState.Hashes saved, PhantomBackgroundState.Hashes current, java.util.function.Consumer<String> evidence)
+    {
+        final var components = List.of("knowledge", "topology", "progression", "commerce");
+        final var before = List.of(saved.knowledge(), saved.topology(), saved.progression(), saved.commerce());
+        final var after = List.of(current.knowledge(), current.topology(), current.progression(), current.commerce());
+        for (int index = 0; index < components.size(); index++)
+        {
+            evidence.accept("NATIVE130_AUTHORITY profile=" + id + " component=" + components.get(index)
+                + " saved=" + before.get(index) + " current=" + after.get(index) + " equal=" + before.get(index).equals(after.get(index)));
+        }
+        check(saved.equals(current), "PREFLIGHT_AUTHORITY_HASH_" + id);
+    }
     private static PhantomLogicalParty inspectLoadedPlanner(Path runtime, PhantomProfileRepository profiles, List<Long> ids,
         PhantomSystem.PlanningInspection inspection, boolean restart, Properties saved) throws Exception
     {
@@ -115,7 +127,7 @@ final class PhantomCoordination130Native
                 check(heal, "PREFLIGHT_LEARNED_HEAL_" + id);
                 System.out.println("NATIVE130_PREFLIGHT_SUPPORT id=" + id + " learnedNativeHeal=true");
             }
-            check(state.hashes().equals(inspection.planner().generation().authorityHashes()), "PREFLIGHT_AUTHORITY_HASH_" + id);
+            inspectAuthority(id, state.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
             final var history = new PhantomBackgroundCatchupStore(profiles, goals).load(id).orElseThrow().state();
             final var sources = inspection.planner().rendezvousSources(id, state, root, history.deterministicSeed(), history.planOrdinal(), Set.of(), Set.of());
             System.out.println("NATIVE130_PREFLIGHT_SOURCES id=" + id + " count=" + sources.size() + " first4=" + sources.stream().limit(4).toList());
@@ -286,6 +298,7 @@ final class PhantomCoordination130Native
                 try
                 {
                     proved.set(inspectLoadedPlanner(runtime,profiles,inspectionIds,inspection,restart,saved));
+                    check(!Boolean.getBoolean("phantom.task130.authorityOnly"), "AUTHORITY_DIAGNOSTIC_COMPLETE");
                     if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
                     write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + proved.get().objective() + "\nSQL_WRITES=0\n");
                 }

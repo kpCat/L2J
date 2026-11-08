@@ -2,6 +2,55 @@
 
 Status: STOPPED_BEFORE_CUT_AUTHORITY_HASH_MISMATCH. The authorized one-build/first-boot campaign stopped normally at production-planner input freshness. FULL130 is not achieved; restart was not eligible.
 
+## 2026-11-08 — continuation: travel hypothesis disproved for saved profile70; exact current components required
+
+This is a diagnostic checkpoint, **not an authority-recovery fix or native acceptance**. Independent physical clone, separate `.git`, clean starting WIP `wip/coordination-130-preserved`, starting HEAD `fcf685cc9fa88d49db1af3b177e49e4b306419fa` were verified. Main checkout was not modified. No new task, harness, stage, profiles, JAR or GameServer was created/launched.
+
+Fresh existing G0 identity attestation returned exit0, MariaDB PID8692, creation `2026-10-28T15:34:43.9827017Z`, exact registered binary/command; protected207 hashes EXACT, TEST130 listener3308 only, no owned TASK130 JVM/game listeners. Existing read-only Integration `probe` returned exit0 with exact principal `phantom130_d930bd6491f5@127.0.0.1`, catalog `l2jmobiush5_phantom_test_130`, expected grants and no foreign sessions. Profiles69/70/72 still carry:
+
+| Component | Actual saved SQL value | Current production value |
+|---|---|---|
+|knowledge|`87fafd93f1c18921e1f4c5d94f29f275e15b4ed6d392f8474eefa92101060be4`|UNKNOWN; terminated process did not log it|
+|topology|`38290d7bb9dbb65a856672d7502e29e334b6986baf18d81d571785438f35ee49`|XML-derived travel-aware reconstruction equals saved; actual planner capture NOT_RUN|
+|progression|`EE97B29DBF1EB8EF55E4052A87A041257B9225822DECD277A2BBF6A327548DDF`|UNKNOWN; terminated process did not log it|
+|commerce|`1b019bb1415efd06d2102cfd7915ae911b3d8a3352958e0ad66d845c2db50703`|UNKNOWN; terminated process did not log it|
+
+Read-only reconstruction of `PhantomTopologySnapshot.computeCanonicalHash` used its exact entity ordering, UTF-8 length-prefixed fields, area bounds, sorted tags/source refs and channels. Both source datapack and runtime XML contain1817 nodes/1818 anchors/2759 edges and reconstruct canonical hash `f1a4c822fb58fc3a85320b3f6d30b47ee58c899cf9d9619fc944b621f287869f`. Both GK XML files contain54 legs, byte SHA256 `f12ac5c5ea47367bc932e732b202541d76d73c6920aa1b2e4f6a5d2ed1da8f2c`. Applying the exact authority ASCII/NUL-delimited SHA256 to `BACKGROUND_TRAVEL_V1`, `PHANTOM_FREE_TRAVEL_V1`, canonical topology and GK byte hash produces **the saved** `38290d7b...35ee49`. Therefore the current saved topology is already travel-aware; fixture omission is a real source-path inconsistency but does **not** explain this saved profile's refusal. This static reconstruction is not a production-loader or native attestation.
+
+Other components must not be assumed equal. `L2jGameKnowledgeBackend.copySpawns` reads live `SpawnTable`; the knowledge hash also includes the configured loot-policy fingerprint. Progression fixture/production use the same catalog builder and load algorithm (the materialization reference is not read by `load`); commerce uses the same loader. These source comparisons do not recover the unlogged values of the terminated planner. No knowledge-hash algorithm, fixture, profile hashes or recovery policy was changed on a guess.
+
+Confirmed startup ordering: the inspection at `PhantomSystem.start` runs before BackgroundService and HistoricalBackgroundService construction. `recoverStale`/`refreshCanonicalBaseline` are consequently unavailable at the refusal. `advance` also returns early for COMPLETE before stale-generation handling. A future recovery correction must reuse the existing exact-claim/HISTORICAL_BASELINE materialize→dematerialize path, current native owner and CAS, verify the resulting current hashes, and retain cursor/receipts/EXP/SP. No direct hash write, receipt substitution, F7 relaxation or native-Player MODEL replacement is authorized by this diagnosis.
+
+Changed only two existing test/helper files and this report. Existing `inspectLoadedPlanner` now calls an extracted strict guard that emits all four saved/current/equality rows **before** the unchanged `PREFLIGHT_AUTHORITY_HASH_<id>` exception. Optional `-Dphantom.task130.authorityOnly=true` also refuses before CUT if the whole preflight unexpectedly succeeds; this is not permission to run it. A single existing-runner regression verifies exact output and refusal for each changed component. Extraction alone reproduced RED39/40 (missing evidence), then the diagnostic change passed GREEN40/40; both compilations used `javac --release 25`, exit0. This RED→GREEN proves diagnostic completeness and preserved rejection, not repaired gameplay/recovery. Reproduce with the existing Ant target `ant -f L2J_Mobius_CT_2.6_HighFive/build.xml phantom-world-coordination130-test` (no JAR target); measured run here used incremental javac plus `PhantomTestLauncher world-coordination130 130`, report directories `evidence/hash130-{red,green}-reports` outside checkout.
+
+SQL_INTEGRATION: read-only provenance/probe PASS, SQL writes0. Hash-transition SQL/JVM restart **NOT_RUN_PENDING_ROOT_CAUSE**; running unrelated SQL modes would not establish this transition. NATIVE/GameServer/JAR builds0, useful native actions0, FULL130=false. Limited gameplay acceptance is **NOT_READY**. The next necessary collection is one separately authorized diagnostic bootstrap with the unchanged pinned production JAR `3D09C215B66E3579876A645335DB751E1F1AFB2FCF0ED0A17717FD3ECE889177` and the compiled existing helper: capture four current values, retain strict refusal, stock STOP and exact postflight; no new JAR, CUT, fixture/reseed or gameplay. No previous boot/build permission was reused.
+
+Git inspection used an invocation-local `-c safe.directory=<exact independent clone>` because the sandbox account differs from the repository owner; no global Git config changed. Authorized commands: `rev-parse --show-toplevel --git-dir --git-common-dir HEAD`, `symbolic-ref --short HEAD`, `status --short`; exact three-path `diff`, `diff --check`, `add`, `diff --cached --name-only`, `diff --cached --check`; scoped `commit`, then `rev-parse HEAD` and `status --short`. All apply only to this independent WIP. No push or feature/main/history mutation.
+
+Final changed-helper compile exit0; targeted MODEL40/40, exit0, 1933ms. ZIP SHA256 manifest verified for all five listed entries. Git command scope (the first three inventory commands were also attempted without the safe-directory override and refused without mutation):
+
+```powershell
+$p='C:/Users/ZBook/.codex/visualizations/2026/11/06/01a1b21c-bfae-7bf0-a688-c1b682eddc2d/task130/source'
+$paths=@(
+  'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCoordination130Native.java',
+  'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomWorldCoordination130Suite.java',
+  'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.md')
+git -c safe.directory=$p -C $p rev-parse --show-toplevel --git-dir --git-common-dir HEAD
+git -c safe.directory=$p -C $p symbolic-ref --short HEAD
+git -c safe.directory=$p -C $p status --short
+git -c safe.directory=$p -C $p diff -- $paths
+git -c safe.directory=$p -C $p diff --check -- $paths
+git -c safe.directory=$p -C $p add -- $paths
+git -c safe.directory=$p -C $p diff --cached --name-only
+git -c safe.directory=$p -C $p diff --cached --check -- $paths
+git -c safe.directory=$p -C $p commit -m "TASK130 expose exact authority components before native preflight refusal"
+git -c safe.directory=$p -C $p rev-parse HEAD
+git -c safe.directory=$p -C $p status --short
+```
+
+- mojibake-маркеры в изменённых файлах проверены — PASS, 0 matches.
+- escaped Cyrillic в изменённых файлах проверены — PASS, 0 matches.
+
 ## 2026-11-08 — one real bootstrap, production preflight refused before CUT
 
 Source `faa018b1a4a5aed81bce53971e1b0236b62b525f`, based on preserved `f9355f09e72c9a03422df7e7596fea61f8d0a966`. Reused the existing native wrapper/runtime/TEST130. Four source/test files changed: PhantomSystem, Coordination130Native, WorldCoordination130Suite and OperatorRuntimeControlsSuite; no CastleManager, SpawnData, DoorData, Navigation or fixture creation changes.

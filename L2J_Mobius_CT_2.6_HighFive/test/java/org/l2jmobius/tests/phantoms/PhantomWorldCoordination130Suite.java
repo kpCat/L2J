@@ -20,6 +20,30 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("authority-preflight-emits-every-component-before-strict-refusal", _ ->
+		{
+			final var saved = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes("knowledge-saved", "topology-saved", "progression-saved", "commerce-saved");
+			final var evidence = new java.util.ArrayList<String>();
+			PhantomCoordination130Native.inspectAuthority(70, saved, saved, evidence::add);
+			PhantomAssertions.assertEquals(4, evidence.size(), "Matching authority did not emit all four current components.");
+			for (int changed = 0; changed < 4; changed++)
+			{
+				evidence.clear();
+				final var current = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes(
+					changed == 0 ? "knowledge-current" : saved.knowledge(), changed == 1 ? "topology-current" : saved.topology(),
+					changed == 2 ? "progression-current" : saved.progression(), changed == 3 ? "commerce-current" : saved.commerce());
+				PhantomAssertions.assertThrows(IllegalStateException.class,
+					() -> PhantomCoordination130Native.inspectAuthority(70, saved, current, evidence::add), "A stale component bypassed the authority fence.");
+				PhantomAssertions.assertEquals(4, evidence.size(), "Authority refusal lost the component evidence.");
+				final var components = List.of("knowledge", "topology", "progression", "commerce");
+				for (int index = 0; index < components.size(); index++)
+				{
+					final String component = components.get(index);
+					PhantomAssertions.assertEquals("NATIVE130_AUTHORITY profile=70 component=" + component + " saved=" + component + "-saved current="
+						+ component + (index == changed ? "-current equal=false" : "-saved equal=true"), evidence.get(index), "Authority component evidence was ambiguous.");
+				}
+			}
+		});
 		registry.add("loaded-preflight-keeps-ordinary-choice-and-requires-consent-spawn-geo-proof", _ ->
 		{
 			final var source = new PhantomDomainRef("background.farm", "20002@current.production.source");
