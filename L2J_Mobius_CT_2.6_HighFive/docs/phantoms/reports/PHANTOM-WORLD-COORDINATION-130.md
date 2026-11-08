@@ -1,6 +1,37 @@
 # TASK130 — implementation ledger
 
-Status: FINAL_NATIVE_PREFLIGHT_BLOCKED_ROUTE_UNPROVEN. MODEL/SQL remain green; the conditional build/boot gate was not opened. FULL130 is not achieved.
+Status: NO_LAWFUL_FEASIBLE_SCENE — current common production-planner source is UNKNOWN. Cold expiry/ownership MODEL and SQL are green. FULL130 is not achieved; no new JAR or GameServer is authorized.
+
+## 2026-11-08 — cold expiry correction and current scene inspection
+
+Source checkpoint: `a883f9fba9bb932f9643ea2bc74fda3319479f43`, based on preserved WIP `991ff63043d6aa41c1cec1129c7eb4e55b839795`. The earlier whole-task preflight conclusion below is superseded: generation23 was expired and its old objective was not a mandatory route for TASK130. Its historical Geo observations remain bounded search evidence, not proof of physical impossibility.
+
+Read-first: root AGENTS/README, current status/workflow, TASK130 GOAL/TASK/ACCEPTANCE/SOURCE_MAP/WORKFLOW/SAFETY and ARCHITECTURE-CONTRACT-002; current Group/Goal/Execution/Background/native-absence owners and existing MODEL/SQL fixture patterns. Bounded scope: five existing production files, three existing test/helper files and these two existing reports. Reused atomic claim revision, execution REQUEST/YIELD/CHECKPOINT/CAS/RECOVER, existing Party control and native-absence lease scopes; no new scheduler, navigation, economic engine, fixture profiles, harness or Stage.
+
+Expired absent assembly now goes through DRAINING, matching offer cancellation and normal Solo recovery. Fresh in-process execution ACKs for every member and native absence held across the release boundary are required before atomic claim release; the SQL CAS also guards the exact Solo execution rows. A cold DRAINING/WAIT_STORE cannot extend expiry when it finally becomes absent. Stale generation callbacks are rejected. Active native Party/STORE/Commerce rights are retained by their existing owners. Helper `expireAbsent`/`recreateEligible` were removed; read-only `recover` cannot release claims or republish old roots/objectives. Native observation awaits an actual unexpired ordinary agreement, preserves the historical CUT, records the actual roster/objective, and binds the second run to that first successful group. Those changed native paths are compiled/MODEL-checked, **not native-validated**.
+
+Verification: **396/396 MODEL** across the established17 modes. One focused cold-lifecycle test was added; the existing cold-phase test was moved from helper mutation to the production coordinator. Existing TEST130 SQL profiles888/889 and890..898 were reused, no new profiles/characters/accounts. Separate JVM cut/resume proves saved ASSEMBLING `execution.party` grants, restart fencing, held-lease WAIT, all-member Solo RECOVER, one concurrent CAS winner, atomic claim release and fresh ordinary discovery. Root/Background/history/Commerce/NativeContext hashes stay unchanged; confirmed cursor101 and actual character EXP1/SP1 remain once. SQL consent is explicitly the existing MODEL leaf; it does not establish native eligibility.
+
+Current read-only scene facts at13:46:54 UTC:
+
+| Profiles | Current facts | Missing proof |
+|---|---|---|
+|70 /72|Phoenix Knight90 /Cardinal97, level76, damage/support; ACTIVE until Nov09 01:56/02:17 UTC; seeking=true with the unchanged configured0/20/35/50/80 policy; READY, no conflicting STORE/Commerce/native context, no active logical claims; both at(170156,-36726,-3376), instance0, `generated.farm.38520d85788548d726048a27.anchor`|No current ordinary common-source result or fresh persisted agreement|
+|85 /86|Level75, damage/support; ACTIVE until18:18/18:06 UTC, seeking=true, no unfinished receipts; still claimed by expired generation23 with saved Group grants|Normal cold owner recovery has not been applied to these post-CUT managed rows; no helper mutation was used|
+|69 /79|ACTIVE, but seeking=false at actual level75|Current consent|
+
+One new shared-position Geo203 connector was checked for70/72: NO_MOVEMENT, length0, required buffer64/max500, no static door/fence intersection; runtime compatibility DIRECT_VALIDATED. Existing exact-point probe confirms hasGeo=true and stable height -3376 twice. This proves only their present shared anchor, **not a walk or PvE action**. Its stock WallOfArgos territory has ordinary Monster21300/21301/21302, levels72/72/73, configured amounts2/3/1 and positive EXP/SP. Their admission by the current planner, combat viability and live native availability remain UNKNOWN. No old80-episode Geo sequence was repeated.
+
+Concrete blocker: a common production-planner source for the actual eligible pair has not been established. The existing ProductionAuthorityFixture is coupled to SpawnData/native bootstrap; one offline attempt with SQL disconnected entered repeated siege Artefact construction without a castle owner and was interrupted after approximately76 seconds. It produced no planner result. No bootstrap expansion or retry was made; the experimental initialization was removed from the helper. The retained failed raw log is external evidence only, not staged or archived. Claiming that no common source exists, or treating the expired21298 route as the blocker, would both exceed the evidence. `NO_LAWFUL_FEASIBLE_SCENE` here means **no scene proved under the current constraints**, not global physical impossibility. The required change is a valid read-only result from the existing ordinary planner/catalog owners; no manual root, NPC, coordinates or post-CUT state substitution.
+
+Postflight PASS: own JVM0/listeners0, protected207 files EXACT; both managed witness sets match the prior preserved preflight exactly (24 fact lines each, original and morning). New JAR0, GameServer boots0, useful native actions0. Final-JAR native Party/PvE/Heal, safe Background return and sameDB/sameJAR useful restart remain NOT_RUN; FULL130/F7/F8 final acceptance and feature publication remain closed.
+
+Raw evidence remains in the existing external evidence directory: cold130-model-*.log; cold130-final-{cut,resume}.log; cold130-scene-inspect-final.log; cold130-current-candidate-{route,geo}.tsv and sidecars; cold130-current-point.log; cold130-static-pve-facts.json; cold130-scene.log (failed/interrupted); cold130-postflight*.log. The companion JSON records exact commands/hashes. The17 MODEL modes took9.668s including their existing launcher orchestration; the final SQL cut/resume command took8.503s including the incremental test compile. Broader inspection/production work was not separately timed and is not reconstructed.
+
+- mojibake-маркеры в изменённых файлах проверены — PASS, 0 matches.
+- escaped Cyrillic в изменённых файлах проверены — PASS, 0 matches.
+
+Git commands are explicitly authorized by the user's WIP-preservation instruction: `git rev-parse HEAD`; `git symbolic-ref --short HEAD`; `git status --short`; `git diff --stat -- <exact8 source paths>`; `git diff -- <exact source/report paths>`; `git -c core.whitespace=cr-at-eol diff --check -- <exact paths>`; `git ls-remote --heads origin wip/coordination-130-preserved feature/phantom-world`; exact-path `git add -- <paths>` and `git diff --cached --name-only/check -- <paths>`; scoped `git commit -m <message>`; ordinary `git push origin HEAD:refs/heads/wip/coordination-130-preserved`. Expanded allowlists and commands are retained in the external Git audit. Feature remains `faec72161f9e4f6231764e17d6f2637a4db080af`.
 
 ## 2026-11-08 — final native campaign stopped before build
 
