@@ -1,6 +1,34 @@
 # TASK130 — implementation ledger
 
-Status: AUTHORITY_RECOVERY_SOURCE_AND_ISOLATED_SQL_VERIFIED; MANAGED_RECOVERY_NOT_RUN; NATIVE_NOT_READY_UNBUILT. FULL130=false. No further JAR build or GameServer boot is authorized.
+Status: CURRENT_AUTHORITY_NATIVE_RECOVERY_VERIFIED; NATIVE_BLOCKED_PRECUT_NO_LAWFUL_SCENE. FULL130=false. The authorized single build/bootstrap are consumed; conditional GameServer restart is not eligible.
+
+## 2026-11-08 — authorized final JAR and one native attempt
+
+Clean local/remote WIP input `4915da66edb7af10cee84c06a56a93d712988055`. One standard `ant -f L2J_Mobius_CT_2.6_HighFive/build.xml jar` passed in 26 seconds, compiling all 2390 sources from a deleted/recreated build/bin. Final JAR SHA256 `16699C6CDA5DDC84309B34D1801791CFF09F75A32B66F4D79AFC00085059C1C3`; all 4736 included classes match clean compilation, zero mismatches. Source/JAR parity is true. Test-bin helpers were compiled against this JAR; native class origin was checked. No production or test source was changed in this attempt; only these two reports are edited.
+
+| Gate | Result on this exact JAR, with build/bin excluded |
+|---|---|
+| MODEL | 44/44; operator controls 7/7 PASS |
+| SQL | COMPLETE/RUNNING/PENDING actual owned STORE 4/2/2; preflight witness negatives, separate JVM readback with 0 additional STORE, F7 PASS |
+| NATIVE recovery | Real profiles 70/72 successfully loaded/stored through HISTORICAL_BASELINE; current Background authority read back, context COMPLETED, no prepared STORE left |
+| NATIVE scene | FAIL before current CUT: `NATIVE130_NO_LAWFUL_FEASIBLE_SCENE`; operator result START_FAILED, outer marker `NATIVE130_SYSTEM_START_START_FAILED` |
+| GameServer RESTART | NOT_RUN: first vertical failed; conditional authorization was not eligible |
+
+Fresh G0 attested the same isolated TEST130 SQL identity. Immediately before launch, 70/72 were ACTIVE, consent=true, COMPLETE, with no logical claim, Commerce/STORE or Supply/Learning/Career obligation. Their windows end 2026-11-09T01:56Z/02:17Z. Both were at canonical 170156,-36726,-3376; damage 70 is class90/level76 and support 72 class97/level76, with learned native Heal confirmed. This established data eligibility; only the loaded production planner could establish a common feasible scene.
+
+Owned PID77032 ran 2026-11-08T18:11:36.988331Z–18:12:23.254735Z. Stock GameServer reported Started at approximately 18:12:01Z. Recovery changed knowledge on both profiles from `87fafd93f1c18921e1f4c5d94f29f275e15b4ed6d392f8474eefa92101060be4` to the actual loaded production value `41edd0ded7c34e30db4c844c4e5efdafd7ed3be5678a801fb8ffd32f9b05c999`. All four Background/current authority pairs matched afterward; topology/progression/commerce stayed unchanged. Historical COMPLETE Catchup hashes and full rows remained untouched. Thus the previous authority/preflight contradiction no longer blocks native recovery.
+
+The next gate refused: `rendezvousSources(70)` returned 0, while support72 returned 58. No common lawful scene was selected, so physical Geo/spawn validation and ordinary group execution were not reached. The exact underlying rejection among damage target viability/route/anchor filters is UNKNOWN from retained evidence; no new hypothesis run or fix was attempted. `preflight130.cut.77032` and `native130.complete` are absent; historical CUT files remain byte-exact.
+
+Useful native gameplay events: ordinary materialization 0, official Party 0, group PvE/reward 0, Phantom Heal 0, new LogicalParty 0. Technical recovery events: two canonical native Player load/STORE/readback cycles. Ordinary-human Heal on this final JAR was not reached. No manual HP/MP/EXP/SP/item/position/Goal edits, reseed or gameplay fixture changes occurred. Stock STOP completed in 5 seconds, process exit0; exit0 proves shutdown, not native acceptance. Build/bootstrap/restart counts for this authorization: **1/1/0**; no second boot or rebuild.
+
+Postflight: only six permitted rows changed (Background, native context, execution handoff for 70/72); the other 77 component rows, all Goal/Catchup rows and physical/class/wallet probe facts for all six managed profiles are exact. Contexts are COMPLETED with no prepared STORE. Own JVM/listeners/foreign SQL sessions0; protected207 exact, Geo203 exact before boot, master config and prior CUT/JAR byte-exact. Main checkout, MAIN/PLAY/TEST129, stash and feature were not changed.
+
+Evidence is in external `task130/evidence/candidate130-*`: authorized-jar.log, source-jar-parity.json, jar-world-coordination130.log, jar-operator-runtime-controls.log, jar-sql-*.out/.err, beforeboot-provenance.json, immediate/after probes, raw-native stdout/stderr/process/exit, raw-java0.log/raw-error0.log and postflight-comparison.json. Exact Git operations and SHA manifest accompany delivery. Only ordinary WIP push is used. Further native work requires a separately authorized attempt after a cheap explanation of profile70's empty source set; FULL130=false.
+
+mojibake-маркеры в изменённых файлах проверены: 0.
+
+escaped Cyrillic в изменённых файлах проверены: 0.
 
 ## 2026-11-08 — preflight witness correction after independent audit
 
