@@ -1,6 +1,35 @@
 # TASK130 — implementation ledger
 
-Status: CHEAP_TERMINAL_ACTIVITY_CHAIN_GREEN, preserving verified source on `wip/coordination-130-preserved`. FULL130 is not achieved; native acceptance and production publication remain closed.
+Status: FINAL_NATIVE_PREFLIGHT_BLOCKED_ROUTE_UNPROVEN. MODEL/SQL remain green; the conditional build/boot gate was not opened. FULL130 is not achieved.
+
+## 2026-11-08 — final native campaign stopped before build
+
+Requested exact HEAD: `2776b1e97d0b1ebfa7003bc9be1d8c804a91427b`, clean WIP. No source edits or compilation were made during this preflight. Existing compiled artifacts were reused; exact-path diff from their source commit8d490ee86d to the requested HEAD is empty (only reports changed). Fresh **395/395 MODEL** and all four existing TEST130 SQL modes passed. SQL writes belonged only to the existing disposable unmanaged SQL fixtures; the six managed post-CUT profiles were read-only.
+
+At 12:42:35 UTC, profiles85/86 were ACTIVE until18:18/18:06 UTC, level75, seeking=true (percentiles44/27). Both remain bound to group F25FF276566299CD9CB0CE410FCF5A2E56B6A3375779AF3838167898A4F3C839 generation23, ASSEMBLING/WAIT_RESERVATION_86; its persisted expiry is08:39:45.280 UTC. Both Background states are READY; no prepared owned STORE, NativeContext COMPLETED, Commerce COMMITTED. The persisted execution.party grant is ACTIVE generation3/row7 and would require the existing cold recovery path; a saved ACTIVE row is not a new-process RECOVER ACK. No recovery, claim or gameplay mutation was forced by this preflight.
+
+Current roots46/24 name **21298@generated.farm.970e92014da39de0cc1bc9b9.anchor**, at(168449,-40204,-3488), instance0. This ID came from the actual roots, not an acceptance requirement. The stock target template is level71 Monster Eye of Restrainer, positive base EXP16856/SP1692 and an ordinary configured WallOfArgos spawn in the target territory. Native target availability, combat outcome and Heal are not claimed. Other saved profiles were also inspected:69/79 do not currently seek Party;70/72 seek but have idle roots and no committed group. No alternate common objective was manually published.
+
+Existing hermetic TravelGeoProbe, actual unchanged Geo203/static XML, no DB/actors:
+
+| Current connector | From | Whole connector proof | Sequential episode result |
+|---|---|---|---|
+|85→current objective|(165773,-41141,-3448)|NO_PATH_WITHIN_BUFFER, required400/max500|50 diagnostic episodes, no arrival; episode49 SEARCH_LIMIT at(165911,-38193,-3256), nodes128/128, edges512/512, queries32/32, labels177/4096|
+|86→current objective|(168264,-42751,-3400)|VALID_PATH, length2666, 9segments, required382/max500|FOUND target, nodes2/edges1/queries1/labels2|
+|85→86's current position|(165773,-41141,-3448)|NO_PATH_WITHIN_BUFFER, required376/max500|30 diagnostic episodes, no meeting; episode29 SEARCH_LIMIT at(165498,-40428,-3272), nodes120/128, edges512/512, queries32/32, labels141/4096|
+
+These are hypothetical Geo proofs, **not native movement or consumed gameplay intervals**. SEARCH_LIMIT and NO_PATH_WITHIN_BUFFER establish bounded search exhaustion, not physical impossibility. Historical live threats/visited/water filters remain UNKNOWN; the hermetic probe explicitly omits the native water filter and dynamic threats. The usable group scene is therefore **not confirmed** under the existing routing policy. Another source is permitted by acceptance, but no alternate committed/planner-approved scene was established here; assuming one or rewriting post-CUT roots/coordinates would not satisfy preflight.
+
+Ruling: stop at the user's failed-preflight gate. **0 new JAR builds, 0 full GameServer boots**, no retry, limit increase or hypothesis fix. The first-boot/restart allowance was not consumed. Existing pinned JAR C3673739BDEEAE3DED645F385E2DBA701B222563EA43D632CF53C971C3AA61D0 is unchanged and does not contain the latest source; final native source/JAR parity was intentionally NOT_RUN because building was conditional on successful preflight. No STOP was needed.
+
+Postflight: reusable OS wrapper PASS (own JVM0/listeners0, protected207 EXACT); fresh MariaDB identity matches PID8692/creation/binary; SQL inspect confirms scoped principal/schema and no foreign TEST130 session. Morning and original managed SQL witnesses (24 lines each: roots, physical facts, execution, STORE, receipts, wallet and history) are exactly unchanged. No OwnerConfig, Geo203, WIP109, MAIN/PLAY, TEST129 or feature mutation.
+
+Raw evidence in the existing external evidence directory: final-native130-model-<mode>.log; final-native130-sql-{ownership,ownership-resume,test,resume}.log; final-native130-probe-{morning,original}.log; final-native130-current-routes.tsv; final-native130-current-route-journeys.tsv; final-native130-raw-routes.tsv and its runtime/waypoint sidecars; final-native130-geo-{journeys,raw}.log; final-native130-postflight-*.log. Exact commands and SHA-256 are in the companion JSON/external Git audit. Only the two existing reports are changed for this checkpoint.
+
+Measured evidence timestamp spans: MODEL15.371s and the four SQL phases25.400s (file-open to final log write, excluding shell startup); production edits0, GameServer boots0, new useful native actions0. Total document/inspection/packaging effort was not separately timed and is not reconstructed. Git is used under the user's explicit WIP-checkpoint authorization: status/symbolic-ref/rev-parse; exact-path diff/name-only/check; ls-remote for the three pinned branches; exact-path add and staged allowlist/check; one report-only commit; ordinary push exclusively to wip/coordination-130-preserved.
+
+- mojibake-маркеры в изменённых файлах проверены — PASS, 0 matches.
+- escaped Cyrillic в изменённых файлах проверены — PASS, 0 matches.
 
 ## 2026-11-08 — accepted terminal-route/activity repair
 

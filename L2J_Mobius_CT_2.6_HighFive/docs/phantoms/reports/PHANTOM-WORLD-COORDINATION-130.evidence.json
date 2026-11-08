@@ -1,5 +1,324 @@
 {
-  "status": "CHEAP_TERMINAL_ACTIVITY_CHAIN_GREEN_NATIVE_REQUIRED",
+  "status": "FINAL_NATIVE_PREFLIGHT_BLOCKED_ROUTE_UNPROVEN",
+  "finalNativeCampaignPreflight": {
+    "inputHead": "2776b1e97d0b1ebfa7003bc9be1d8c804a91427b",
+    "status": "BLOCKED_ROUTE_EXECUTABILITY_UNPROVEN",
+    "full130": false,
+    "productionCodeChanges": 0,
+    "sourceCompilations": 0,
+    "encoding": { "mojibake": "PASS", "escapedCyrillic": "PASS" },
+    "newJarBuilds": 0,
+    "gameServerBoots": 0,
+    "nativeUsefulActions": 0,
+    "activeNativeObservationSeconds": 0,
+    "authorizedMaximums": {
+      "jarBuilds": 1,
+      "fullBoots": 2,
+      "observationSecondsAfterStart": 300,
+      "secondBootRequiresFirstVerticalSuccess": true
+    },
+    "buildGateOpened": false,
+    "restartGateOpened": false,
+    "finalJarSourceParity": "NOT_RUN_BECAUSE_PREFLIGHT_FAILED",
+    "oldJarUnchanged": "C3673739BDEEAE3DED645F385E2DBA701B222563EA43D632CF53C971C3AA61D0",
+    "model": {
+      "passed": 395,
+      "total": 395,
+      "modes": [
+        [
+          "decision-core",
+          130130
+        ],
+        [
+          "world-coordination130",
+          130130
+        ],
+        [
+          "supply071",
+          130130
+        ],
+        [
+          "party-state-recovery",
+          130130
+        ],
+        [
+          "party-canonical-invitation",
+          130130
+        ],
+        [
+          "party-role-vacancy",
+          130130
+        ],
+        [
+          "party-tactics",
+          130130
+        ],
+        [
+          "party-lifecycle",
+          130130
+        ],
+        [
+          "party-route",
+          130130
+        ],
+        [
+          "visible-itinerary068",
+          130130
+        ],
+        [
+          "commerce-receipt",
+          140014
+        ],
+        [
+          "commerce-quote",
+          140014
+        ],
+        [
+          "combat-core",
+          130130
+        ],
+        [
+          "combat-ownership",
+          130130
+        ],
+        [
+          "combat-action-ownership",
+          130130
+        ],
+        [
+          "decision-performance",
+          130130
+        ],
+        [
+          "navigation-core",
+          130130
+        ]
+      ],
+      "evidenceTimestampSpanSeconds": 15.3708204
+    },
+    "sql": {
+      "modes": [
+        "ownership",
+        "ownership-resume",
+        "test",
+        "resume"
+      ],
+      "exitCodes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "evidenceTimestampSpanSeconds": 25.3998984,
+      "managedGameplayWrites": 0,
+      "disposableFixtures": "existing unmanaged SQL130_ fixtures only"
+    },
+    "scene": {
+      "observedUtc": "2026-11-08T12:42:35Z",
+      "groupId": "F25FF276566299CD9CB0CE410FCF5A2E56B6A3375779AF3838167898A4F3C839",
+      "logicalGeneration": 23,
+      "phase": "ASSEMBLING",
+      "wait": "WAIT_RESERVATION_86",
+      "expiresUtc": "2026-11-08T08:39:45.280Z",
+      "profiles": [
+        {
+          "id": 85,
+          "level": 75,
+          "calendar": "ACTIVE",
+          "nextBoundaryUtc": "2026-11-08T18:18:00Z",
+          "seeking": true,
+          "percentile": 44,
+          "position": [
+            165773,
+            -41141,
+            -3448
+          ],
+          "rootRevision": 46,
+          "background": "READY",
+          "preparedStore": false,
+          "nativeContext": "COMPLETED",
+          "commerce": "COMMITTED",
+          "adena": 35076
+        },
+        {
+          "id": 86,
+          "level": 75,
+          "calendar": "ACTIVE",
+          "nextBoundaryUtc": "2026-11-08T18:06:00Z",
+          "seeking": true,
+          "percentile": 27,
+          "position": [
+            168264,
+            -42751,
+            -3400
+          ],
+          "rootRevision": 24,
+          "background": "READY",
+          "preparedStore": false,
+          "nativeContext": "COMPLETED",
+          "commerce": "COMMITTED",
+          "adena": 572
+        }
+      ],
+      "savedExecution": {
+        "owner": "execution.party:F25FF276566299CD9CB0CE410FCF5A2E56B6A3375779AF3838167898A4F3C839.23",
+        "generation": 3,
+        "rowVersion": 7,
+        "phase": "ACTIVE",
+        "freshProcessRecoveryAck": false
+      },
+      "objective": {
+        "source": "actual current roots, not a fixed acceptance NPC",
+        "npcId": 21298,
+        "anchor": "generated.farm.970e92014da39de0cc1bc9b9.anchor",
+        "point": [
+          168449,
+          -40204,
+          -3488
+        ],
+        "npcType": "Monster",
+        "npcLevel": 71,
+        "baseTemplateExp": 16856,
+        "baseTemplateSp": 1692,
+        "configuredSpawn": true,
+        "nativeCombatAndHeal": "NOT_RUN"
+      },
+      "alternateScene": "69/79 currently decline seeking; 70/72 have idle roots and no current group; no alternate common objective was manually published or proven"
+    },
+    "geo": {
+      "tool": "existing PhantomTravelGeoProbe",
+      "regions": 203,
+      "database": false,
+      "actors": false,
+      "collision": "staticXML",
+      "dynamicThreats": "not applied",
+      "waterFilter": "not applied",
+      "nativeGameplayClaim": false,
+      "routes": [
+        {
+          "connector": "85-current-to-objective",
+          "raw": "NO_PATH_WITHIN_BUFFER",
+          "requiredBuffer": 400,
+          "maxBuffer": 500,
+          "episodes": 50,
+          "terminal": "SEARCH_LIMIT",
+          "failedFrom": [
+            165911,
+            -38193,
+            -3256
+          ],
+          "nodes": 128,
+          "nodeLimit": 128,
+          "edges": 512,
+          "edgeLimit": 512,
+          "queries": 32,
+          "queryLimit": 32,
+          "labels": 177,
+          "labelLimit": 4096,
+          "arrived": false,
+          "wholePhysicalReachability": "UNKNOWN"
+        },
+        {
+          "connector": "86-current-to-objective",
+          "raw": "VALID_PATH",
+          "length": 2666,
+          "segments": 9,
+          "requiredBuffer": 382,
+          "maxBuffer": 500,
+          "episodes": 1,
+          "terminal": "FOUND",
+          "nodes": 2,
+          "edges": 1,
+          "queries": 1,
+          "labels": 2,
+          "arrived": true
+        },
+        {
+          "connector": "85-current-to-86",
+          "raw": "NO_PATH_WITHIN_BUFFER",
+          "requiredBuffer": 376,
+          "maxBuffer": 500,
+          "episodes": 30,
+          "terminal": "SEARCH_LIMIT",
+          "failedFrom": [
+            165498,
+            -40428,
+            -3272
+          ],
+          "nodes": 120,
+          "nodeLimit": 128,
+          "edges": 512,
+          "edgeLimit": 512,
+          "queries": 32,
+          "queryLimit": 32,
+          "labels": 141,
+          "labelLimit": 4096,
+          "arrived": false,
+          "wholePhysicalReachability": "UNKNOWN"
+        }
+      ]
+    },
+    "postflight": {
+      "os": "PASS",
+      "ownJvm": 0,
+      "ownListeners": 0,
+      "protectedPins": 207,
+      "protectedChanged": 0,
+      "managedWitnessLinesExact": {
+        "morning": 24,
+        "original": 24
+      },
+      "sqlPrincipalAndSessions": "INSPECT_PASS",
+      "stop": "NOT_NEEDED_NO_GAMESERVER_STARTED"
+    },
+    "scope": [
+      "docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.md",
+      "docs/phantoms/reports/PHANTOM-WORLD-COORDINATION-130.evidence.json"
+    ],
+    "artifactSha256": {
+      "final-native130-model-decision-core.log": "DA89EA204C4C06A26C9444E337ECE1FD32BA9322196E2B4502E44AC651772009",
+      "final-native130-model-world-coordination130.log": "F0988B5898079401B69910F0FDB31A97D736CC1A6E6687778AAD6BA7382BDFFC",
+      "final-native130-model-supply071.log": "E1AF534CD6191EA850176B85F2E4EC7260E08D1924497508C98841BE82F46B3C",
+      "final-native130-model-party-state-recovery.log": "4A766D274B51B92C16B67030179F98D9C8714AA2B4138CD21FB3EB435E9BDE09",
+      "final-native130-model-party-canonical-invitation.log": "C3E875B2E5D19AB656DEB512C091ED50778109D829D864675DF44DE4246924C8",
+      "final-native130-model-party-role-vacancy.log": "1B864E0D810E9BB0238B82BCDA5DE3B01051EEA94B07CA0C8718D74FA4C5AA63",
+      "final-native130-model-party-tactics.log": "EC42FE0BD309663A1401FA8EC0B3BB7124628A7F23400A233E0B361F9F227F0F",
+      "final-native130-model-party-lifecycle.log": "75F50FE0A2B000900A7E57763880ABB95EC2CD648A5C202B5083D31D7174B0D7",
+      "final-native130-model-party-route.log": "038905D9577335C2A5C29AF2D8181928E9FA3157C5A411AA042138705F9AD278",
+      "final-native130-model-visible-itinerary068.log": "DF2E091F8837C1D925756A1412A3E1ECC8E2E3D7571C5115FEFA3F6897C4F7E5",
+      "final-native130-model-commerce-receipt.log": "8945764DB8C0625B9919038661D5653404BC911804559F1759962FD7AEA8E09C",
+      "final-native130-model-commerce-quote.log": "AB5A70DD6B93CEF1FD592D437E2A4A7547693F3AD5BB6B3DE85EC9602157D455",
+      "final-native130-model-combat-core.log": "80A4AA86F6C6C1DAC1C017987854B77CFA73CEE9581F67E9C54DAF4A7D7F9EA4",
+      "final-native130-model-combat-ownership.log": "C55F715B71AE4FE7440A4B0E91FAD9439902699C6CD532BB3E524E6051D0FF9F",
+      "final-native130-model-combat-action-ownership.log": "0230AB1FBB946EE77C5194AFD30AB7A7359E38A0219FFAB98C59A0AE7630FB69",
+      "final-native130-model-decision-performance.log": "84C820422973BA8A7DB619D3919DCDEC33AA142932141B3873E1AD79A3CD4DA5",
+      "final-native130-model-navigation-core.log": "D1BF37E560F755E42A8FA9E1E363F8312F13212D0C411284B318B7C0D65EA656",
+      "final-native130-sql-ownership.log": "96F527047BB4702A73676FFEA048D8F2D70E48CEAE67FB7297137EFEA888FCE2",
+      "final-native130-sql-ownership-resume.log": "DFE83488176DFBB1C645BE46954D9FF38581AA4B1AD7D092BD78FB91E4D99F9E",
+      "final-native130-sql-test.log": "73A2C892B91843926BBB0A2E1CF8AC3617FDFEFCA7143CE05761186BC239E5BB",
+      "final-native130-sql-resume.log": "74B61817DC69D41DD6713C84ACD62A0119A79C58C6A51BF2B51FC8E000342552",
+      "final-native130-probe-morning.log": "D3DB00E9E60C61BC32C32AAE18D4EFCCD1FA6C861CD6395E57FAE25462C67ABF",
+      "final-native130-probe-original.log": "FAFCA3D69A5CFF26922E1AD9EBD8BB2B866240B7DE495A9FC2BEBBE781BF8AD6",
+      "final-native130-current-routes.tsv": "F6F6DA0EF3F75B60C618F8D4BBAC5CE3BE84E88CEEB83B036369EFDACBB1D670",
+      "final-native130-current-route-journeys.tsv": "AFD5A044262D0CA0D722A7AF68CF64E40D231BAB970F562A1DF4458A3D970B8A",
+      "final-native130-raw-routes.tsv": "12E3F97D19118ACEA2ACC4EDE926354BD12538BEFC64DE2DD60702E068BBE035",
+      "final-native130-geo-journeys.log": "4A6F2399428985F3185E293EAA7C8B266E002085BE8562B7ACEA9E3F91B316E3",
+      "final-native130-geo-raw.log": "95A07673CB672D3B0B30C85398D4AFE1691728AB4DB48208910FD27C6965AFE2",
+      "final-native130-g0.log": "9AC1A705C002E718ABC823F32B48B8812530007CC704953A0725AFE94EB6614E",
+      "final-native130-postflight-os.log": "9578983159A45823474F529F788C0A8143F6E6733A14FC16E48B87825D73A32F",
+      "final-native130-postflight-g0.log": "9AC1A705C002E718ABC823F32B48B8812530007CC704953A0725AFE94EB6614E",
+      "final-native130-postflight-probe-morning.log": "1F12D215B8188E8BFC0583D2AC9D009411ABB065C3B2CF656AF9A8AD5B060A22",
+      "final-native130-postflight-probe-original.log": "A9F63F4A775BDB11DBF5E49E328ACB1C3F9B7196345302E65F89CFAD8028502A",
+      "final-native130-postflight-sql-inspect.log": "3443B5774B02BC14BD636DE0A532D4A45EC648EA6F69990433E978F827AA8F11"
+    },
+    "commands": {
+      "model": "PhantomTestLauncher <mode> <seed> with the exact17 saved mode/seed pairs; existing compiled classes, no javac/Ant",
+      "sql": "PhantomCoordination130Integration ownership|ownership-resume|test|resume|probe|inspect <module>; probe for both morning/original",
+      "geo": "PhantomTravelGeoProbe final-native130-current-routes.tsv <new-output.tsv> --episode-journey and --waypoints",
+      "postflight": "Test-Coordination130.ps1 -Action postflight -RuntimeRoot <same-runtime> -Fixture morning"
+    },
+    "ruling": "Stop at failed conditional preflight. No build, GameServer, native retry, Geo budget change, gameplay mutation or hypothesis fix."
+  },
   "terminalActivityRevision": {
     "baseHead": "5e2e5742247e1a7c6875714720b7dc9243650643",
     "codeCommit": "8d490ee86d17e156b93f24081004c3a45c86887c",
