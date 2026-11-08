@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 import java.sql.DriverManager;
 import java.util.Properties;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.l2jmobius.commons.database.DatabaseFactory;
@@ -51,7 +52,7 @@ public final class PhantomCoordination130Integration
 	}
 	public static void main(String[] args) throws Exception
 	{
-        if (args.length < 2 || args.length > 3 || !List.of("authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("authority-f7|authority|authority-resume|check|prepare|inspect|probe|probe-live|cold|handoff|ownership|ownership-resume|test|resume|seal|fixture|recover|native|restart module [read-only admin config]"); }
+        if (args.length < 2 || args.length > 3 || !List.of("group-pve", "group-pve-resume", "group-pve-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
@@ -145,6 +146,7 @@ public final class PhantomCoordination130Integration
 		try
 		{
 			final var profiles = PhantomProfileRepository.open();
+			if (args[0].startsWith("group-pve")) { groupPve130(profiles, module, args[0]); return; }
 			if (args[0].equals("authority-f7"))
 			{ final var fixtures = receiptFixtures(profiles, module, 3); for (var fixture : fixtures) { fixture.commitOnce(); fixture.verify(); } f7Receipts(profiles, fixtures); return; }
 			if (args[0].equals("authority") || args[0].equals("authority-resume")) { authorityRefresh130(profiles, module, args[0].equals("authority-resume")); return; }
@@ -296,6 +298,67 @@ public final class PhantomCoordination130Integration
 			System.out.println("SQL130_PASS;ZERO_NATIVE=true;MEMBERS=3;CURSOR=0;LIFECYCLE=true;CONCURRENT_RACES=2;ATOMIC_ROLLBACK=true;MILLIS=" + (System.nanoTime() - start) / 1_000_000);
 		}
 		finally { if (args[0].equals("authority")) { org.l2jmobius.commons.threads.ThreadPool.shutdown(); } DatabaseFactory.close(); }
+	}
+	/** Own disposable SQL-only profiles: production discovery/CAS/storage, no native capability claim or awards. */
+	private static void groupPve130(PhantomProfileRepository profiles, Path module, String mode) throws Exception
+	{
+		final Path checkpoint = module.resolve(".phantom-local/task130/group-pve-restart.properties");
+		final var saved = mode.equals("group-pve") ? new Properties() : read(checkpoint);
+		final var protectedIds = java.util.Arrays.stream(read(module.resolve(".phantom-local/task130/native-fixture.properties")).getProperty("profiles").split(",")).map(Long::parseLong).toList();
+		if (protectedIds.isEmpty() || protectedIds.size() > 16) { throw new IllegalStateException("Bounded existing native fixture identity required."); }
+		final var nativeBefore = PhantomCoordination130Native.preflightWitness(profiles, protectedIds, false);
+		final String nativeHash = org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(nativeBefore.toString().getBytes(StandardCharsets.UTF_8));
+		if (!mode.equals("group-pve")) { PhantomAssertions.assertEquals(saved.getProperty("protected.sha256"), nativeHash, "Existing native fixture changed across SQL JVMs."); }
+		else { saved.setProperty("protected.sha256", nativeHash); }
+		final var coordinator = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
+		try
+		{
+		if (mode.equals("group-pve"))
+		{
+			if (Files.exists(checkpoint)) { throw new IllegalStateException("Owned group fixture already exists; use resume, never reseed."); }
+			for (int size : List.of(2, 3, 9))
+			{
+				final var candidates = new ArrayList<PhantomLogicalPartyCoordinator.Candidate>();
+				final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@farm.fixture");
+				for (int index = 0; index < size; index++)
+				{
+					final var profile = profiles.create(null); final long id = profile.profileId();
+					final String role = switch (index) { case 0 -> size == 2 ? "support.healer" : "frontline.guardian"; case 1 -> size == 2 ? "frontline.guardian" : "support.healer"; case 3 -> "utility.spoiler"; default -> "damage.melee"; };
+					final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(13_000_000 + id, PhantomBackgroundGoalSpec.GOAL_TYPE,
+						org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", Long.toString(id)),
+						new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(source),
+						new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("topology.anchor", "farm.fixture"), "farm.background", 500, 0, 0, 0, Map.of(), "model.sql.party130", 0);
+					final var goals = new PhantomGoalStateStore(profiles); final var goal = goals.insert(id, root);
+					candidates.add(new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, role, root.goalId(), 0), 76, List.of(source), source::equals,
+						() -> true, () -> profiles.find(id).filter(row -> row.characterObjectId() == null && row.rowVersion() == profile.rowVersion()).isPresent() && goals.load(id).filter(goal::equals).isPresent()));
+				}
+				final var row = coordinator.discover(candidates, (_, _) -> true, System.currentTimeMillis()).orElseThrow();
+				PhantomAssertions.assertEquals(size, row.group().members().size(), "SQL native-independent discovery changed its roster.");
+				PhantomAssertions.assertTrue(coordinator.agree(new PhantomLogicalParty("C".repeat(64), 1, row.group().leaderProfileId(), row.group().members(), source, "farm.fixture", PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "")).isEmpty(), "SQL duplicate group stole a claim.");
+				saved.setProperty("leader." + size, Long.toString(row.group().leaderProfileId())); saved.setProperty("version." + size, Long.toString(row.rowVersion()));
+				saved.setProperty("aggregate." + size, java.util.Base64.getEncoder().encodeToString(row.group().encode()));
+			}
+			final var text = new java.io.StringWriter(); saved.store(text, "TASK130 own SQL-only group fixtures");
+			Files.writeString(checkpoint, text.toString(), StandardOpenOption.CREATE_NEW);
+			System.out.println("SQL130_GROUP_PVE_PASS;SIZES=2,3,9;CANONICAL_ROLES=true;GUARDIAN_SUPPORT_LEADERS=true;NATIVE_PLAYERS=0;AWARDS=0");
+			return;
+		}
+		for (int size : List.of(2, 3, 9))
+		{
+			final var expected = PhantomLogicalParty.decode(java.util.Base64.getDecoder().decode(saved.getProperty("aggregate." + size)));
+			final var row = coordinator.groupFor(expected.leaderProfileId()).orElseThrow();
+			PhantomAssertions.assertEquals(expected, row.group(), "Separate JVM changed role/source/group/cursor.");
+			PhantomAssertions.assertEquals(Long.parseLong(saved.getProperty("version." + size)), row.rowVersion(), "Separate JVM changed group CAS version.");
+			for (var member : expected.members()) { PhantomAssertions.assertEquals(row, coordinator.groupFor(member.profileId()).orElseThrow(), "Separate JVM changed a membership claim."); }
+			if (mode.equals("group-pve-close")) { coordinator.disband(row, System.currentTimeMillis(), "SQL_FIXTURE_COMPLETE"); }
+		}
+		System.out.println("SQL130_GROUP_PVE_" + (mode.equals("group-pve-close") ? "OWN_CLAIMS_CLOSED" : "SEPARATE_JVM_PASS") + ";SIZES=2,3,9;NATIVE_PLAYERS=0;AWARDS=0;GAMEPLAY_WRITES=0");
+		}
+		finally
+		{
+			PhantomAssertions.assertEquals(nativeBefore, PhantomCoordination130Native.preflightWitness(profiles, protectedIds, false), "SQL group fixtures changed existing native data.");
+			System.out.println("SQL130_PROTECTED_NATIVE_EXACT;profiles=" + protectedIds + ";sha256=" + nativeHash);
+		}
 	}
 	/** New disposable SQL identity only. Its first Background row must be created by actual native STORE. */
 	private static ReceiptFixture authoritySqlFixture(PhantomProfileRepository profiles) throws Exception

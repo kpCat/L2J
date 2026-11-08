@@ -146,20 +146,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final var goals = new java.util.LinkedHashMap<Long, StoredGoal>();
 		final var histories = new java.util.LinkedHashMap<Long, Snapshot>();
 		final var generation = _planner.generation();
-		List<PhantomDomainRef> common = null;
 		for (var member : group.members())
 		{
 			final long id = member.profileId(); final var state = _background.acquisitionSnapshot(id).orElse(null);
 			final var goal = _goals.load(id).orElse(null); final var history = _store.load(id).orElse(null);
 			if (state == null || goal == null || history == null || state.state() != PhantomBackgroundState.State.READY || !state.hashes().equals(generation.authorityHashes())
-				|| !member.role().equals(PhantomHistoricalBackgroundPlanner.logicalRole(state)) || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
+				|| !org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole(member.role(), potentialPartyRole(id, state)) || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
 			{ return List.of(); }
-			final var sources = _planner.rendezvousSources(id, state, goal.goal(), history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of()).stream()
-				.filter(source -> !source.equals(group.objective()) && _planner.rendezvousRouteAvailable(state, source, Set.of())).toList();
-			if (common == null) { common = new java.util.ArrayList<>(sources); } else { common.retainAll(sources); }
 			states.put(id, state); goals.put(id, goal); histories.put(id, history);
 		}
-		for (var source : common == null ? List.<PhantomDomainRef>of() : common)
+		if (org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(states.values().stream().map(state -> state.progress().level()).toList()).isEmpty()) { return List.of(); }
+		final long leader = group.leaderProfileId(); final var leaderHistory = histories.get(leader).state();
+		final var common = _planner.rendezvousSources(leader, states.get(leader), goals.get(leader).goal(), leaderHistory.deterministicSeed(), leaderHistory.planOrdinal(), Set.of(), Set.of(),
+			source -> !source.equals(group.objective()) && states.values().stream().allMatch(state -> _planner.partySourceAvailable(state, source, Set.of())));
+		for (var source : common)
 		{
 			final var proposals = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot>();
 			for (var member : group.members())
@@ -1564,6 +1564,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	/** Capture one bounded control-plane preview. It never adopts a root, advances history or issues a native action. */
+	/** Same durable evidence for production discovery, CAS revalidation and native preflight. */
+	public String potentialPartyRole(long id, PhantomBackgroundState state)
+	{
+		if (state == null || state.identity().profileId() != id) { return "pending.native_role"; }
+		final var ids = _planner.partyRoleSkillIds(state); final var learned = new java.util.HashMap<Integer, Integer>();
+		for (int offset = 0; offset < ids.size(); offset += 8)
+		{
+			final var evidence = _background.acquisitionEligibility(id, state, ids.subList(offset, Math.min(offset + 8, ids.size())), state.hashes().progression()).orElse(null);
+			if (evidence == null) { return "pending.native_role"; }
+			learned.putAll(evidence.skillLevels());
+		}
+		return _planner.potentialPartyRole(state, learned);
+	}
 	/** Durable social discovery reads bounded background/profile facts and requires no World Player or native lease. */
 	public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate previewLogicalRendezvous(long id,
 		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible)
@@ -1575,15 +1588,18 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{ return null; }
 		final var root = stored.goal(); final var generation = _planner.generation();
 		if (!state.hashes().equals(generation.authorityHashes()) || !(PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || PhantomBackgroundGoalSpec.canonicalHistoricalIdle(id, root))) { return null; }
-		final var sources = _planner.rendezvousSources(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of());
+		final String role = potentialPartyRole(id, state);
+		if (role.equals("pending.native_role")) { previewStage(id, "PENDING_NATIVE_ROLE"); return null; }
+		final var sources = _planner.rendezvousSourcesForRole(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of(), role, _ -> true);
 		final java.util.function.BooleanSupplier current = () -> !_foregroundDecisionsRevoked && eligible.getAsBoolean() && _planner.generation().equals(generation)
 			&& decision.currentGoal(id).map(root::equals).orElse(true);
 		return new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate(
-			new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, PhantomHistoricalBackgroundPlanner.logicalRole(state), root.goalId(), root.revision()), state.progress().level(), sources,
-			source -> _planner.rendezvousRouteAvailable(state, source, Set.of()),
+			new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, role, root.goalId(), root.revision()), state.progress().level(), sources,
+			source -> _planner.partySourceAvailable(state, source, Set.of()),
 			current,
 			// Only selected roster members perform durable reads, once immediately before formation.
-			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent());
+			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent() && role.equals(potentialPartyRole(id, state)),
+			admitted -> _planner.rendezvousSourcesForRole(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of(), role, admitted));
 	}
 
 	public org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.SourcePreview previewVisibleRendezvous(
@@ -1649,7 +1665,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				source ->
 				{
 					if (!current.getAsBoolean()) { return false; }
-					final boolean available = _planner.rendezvousRouteAvailable(projected, source, excluded.steps());
+					final boolean available = _planner.partySourceAvailable(projected, source, excluded.steps());
 					if (!available) { previewStage(id, "source_route_unavailable;" + context + ";source=" + source); }
 					return available;
 				}, current,
@@ -1659,7 +1675,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					final boolean absent = _planner.rendezvousRouteAbsent(projected, source);
 					if (absent) { previewStage(id, "source_route_absent;" + context + ";source=" + source); }
 					return absent;
-				});
+				}, admitted -> current.getAsBoolean() ? _planner.rendezvousSources(id, projected, expectedGoal, catchup.state().deterministicSeed(), Math.addExact(catchup.state().planOrdinal(), 1), excluded.targets(), excluded.steps(), admitted) : List.of());
 		}
 		catch (RuntimeException unavailable) { return previewUnavailable(id, "exception." + stage + "." + unavailable.getClass().getSimpleName()); }
 	}

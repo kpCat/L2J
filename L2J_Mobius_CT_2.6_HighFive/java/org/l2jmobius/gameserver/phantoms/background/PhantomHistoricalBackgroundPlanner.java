@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.PlanningSnapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.PlanningCombat;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -64,6 +65,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
+	private enum PlanningPurpose { SOLO, PARTY_RENDEZVOUS }
 
 	public PhantomHistoricalBackgroundPlanner(PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomBackgroundAuthority authority)
 	{
@@ -76,6 +78,8 @@ public final class PhantomHistoricalBackgroundPlanner
 	{
 		return new PlanningGeneration(_knowledge.snapshot().generation(), _topology.snapshot().generation(), _authority.hashes());
 	}
+	public List<Integer> partyRoleSkillIds(PhantomBackgroundState state) { return _authority.partyRoleSkillIds(state); }
+	public String potentialPartyRole(PhantomBackgroundState state, Map<Integer, Integer> learned) { return _authority.potentialPartyRole(state, learned); }
 
 	public Result planInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)
 	{
@@ -193,18 +197,17 @@ public final class PhantomHistoricalBackgroundPlanner
 		Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel)
 	{
 		if (state == null || previousGoal == null || state.identity().profileId() != profileId) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
-		if ("support".equals(logicalRole(state))) { return Result.blocked("native_context.required:logical_party_support"); }
 		final var result = rendezvousGraphPlan(profileId, state, previousGoal, seed, ordinal, source, excludedTargets, excludedSteps, affordableTravel, false);
 		return result.ready() ? result : Result.blocked("native_context.required:logical_party_preparation");
 	}
 	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, boolean supportTravelOnly)
 	{ return rendezvousGraphPlan(profileId,state,previousGoal,deterministicSeed,planOrdinal,sharedFarmSource,Set.of(),excludedSteps,false,supportTravelOnly); }
-	/** Metadata proposal for the existing group; support travel remains a native-only obligation. */
+	/** Metadata/travel proposal only; this grants no Background combat or reward permission. */
 	public Result proposeLogicalActivity(long id, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, PhantomDomainRef source)
 	{
 		if (state == null || previous == null || state.identity().profileId() != id) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
-		return rendezvousGraphPlan(id, state, previous, seed, ordinal, source, Set.of(), Set.of(), true, "support".equals(logicalRole(state)));
+		return rendezvousGraphPlan(id, state, previous, seed, ordinal, source, Set.of(), Set.of(), true, false);
 	}
 	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomDomainRef sharedFarmSource, Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel, boolean supportTravelOnly)
@@ -216,8 +219,8 @@ public final class PhantomHistoricalBackgroundPlanner
 			idle ? loadout.shotItemId() : previous.shotItemId(), idle ? loadout.shotsPerEncounter() : previous.shotsPerEncounter(),
 			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
 			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
-			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, supportTravelOnly ? null : PlanningCombat.from(state), false,
-			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()) && (!affordableTravel || affordableTravel(value, state)));
+			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, null, false,
+			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()) && (!affordableTravel || affordableTravel(value, state)), new java.util.HashMap<>(), PlanningPurpose.PARTY_RENDEZVOUS);
 	}
 	private Result rendezvousIngressPlan(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
 		PhantomTopologyPoint live, PhantomDomainRef source, Set<String> excludedSteps, boolean supportTravelOnly)
@@ -229,12 +232,13 @@ public final class PhantomHistoricalBackgroundPlanner
 		TargetFact selected = null; String cursor = null;
 		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES && selected == null; pageIndex++)
 		{
-			final var page = targets(Math.max(1, state.progress().level() - LOWER_LEVEL_TIERS.getLast()), state.progress().level() + LEVEL_RADIUS, state.progress().level(),
+			final var band = PhantomPartyFarmEligibility.forMember(state.progress().level());
+			final var page = targets(band.minimum(), band.maximum(), state.progress().level(),
 				cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
 			selected = page.values().stream().filter(target -> target.npc().npcId() == spec.npcId() && target.representativeAreas().stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && destination.nodeId().equals(area.topologyNodeId()))).findFirst().orElse(null);
 			cursor = page.nextCursor(); if (cursor == null) { break; }
 		}
-		if (selected == null || !supportTravelOnly && !_authority.viableTarget(PlanningCombat.from(state), selected.npc().npcId())) { return Result.blocked("planner.rendezvous.target_unavailable"); }
+		if (selected == null) { return Result.blocked("planner.rendezvous.target_unavailable"); }
 		final var route = ingress.id().equals(destination.id()) ? List.<PhantomNormalGatekeeperTravel.Step>of() : _authority.travelQuery(_topology).route(ingress.id(), destination.id()).orElseThrow();
 		final var constraints = new LinkedHashMap<String, Long>(); final var loadout = state.loadout();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, loadout.shotItemId(), PhantomBackgroundGoalSpec.SHOT_COUNT, loadout.shotsPerEncounter());
@@ -263,18 +267,23 @@ public final class PhantomHistoricalBackgroundPlanner
 	/** Exact shared source is an intent, never native arrival or an arbitrary XYZ. */
 	public List<PhantomDomainRef> rendezvousSources(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
+		return rendezvousSources(profileId, state, previousGoal, deterministicSeed, planOrdinal, excludedTargets, excludedSteps, _ -> true);
+	}
+
+	/** Admission precedes the result cap: peers can find a common source after 64 noncommon ones. */
+	public List<PhantomDomainRef> rendezvousSources(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomDomainRef> admitted)
+	{
 		visiblePredecessor(profileId, previousGoal);
 		if (state == null || state.identity().profileId() != profileId || state.position().instanceId() != 0) { return List.of(); }
-		final boolean support = logicalRole(state).equals("support");
+		final var band = PhantomPartyFarmEligibility.forMember(state.progress().level());
 		final var result = new java.util.LinkedHashSet<PhantomDomainRef>();
 		String cursor = null;
 		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 		{
-			final var page = targets(Math.max(1, state.progress().level() - LOWER_LEVEL_TIERS.getLast()), state.progress().level() + LEVEL_RADIUS, state.progress().level(),
+			final var page = targets(band.minimum(), band.maximum(), state.progress().level(),
 				cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
 			for (var target : page.values())
 			{
-				if (!support && !_authority.viableTarget(PlanningCombat.from(state), target.npc().npcId())) { continue; }
 				for (var area : target.representativeAreas())
 				{
 					if (area.instanceId() != 0 || area.totalConfiguredAmount() <= 0 || area.topologyNodeId() == null) { continue; }
@@ -282,7 +291,7 @@ public final class PhantomHistoricalBackgroundPlanner
 					{
 						if (anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != 0 || anchor.npcId() != null && anchor.npcId() != target.npc().npcId()) { continue; }
 						final var source = new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, target.npc().npcId() + "@" + anchor.id());
-						if (!excludedTargets.contains(source.key()) && rendezvousRouteAvailable(state, source, excludedSteps)) { result.add(source); }
+						if (!excludedTargets.contains(source.key()) && admitted.test(source) && rendezvousRouteAvailable(state, source, excludedSteps)) { result.add(source); }
 						if (result.size() >= 64) { return List.copyOf(result); }
 					}
 				}
@@ -291,7 +300,46 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		return List.copyOf(result);
 	}
-	/** Planned affinity only; actual learned native capabilities remain the Party backend's responsibility. */
+	/** Exact indexed peer proof, independent of the peer's first discovery page. No SQL or Player. */
+	public boolean partySpoilSource(PhantomDomainRef source)
+	{
+		final var spec = rendezvousSource(source);
+		return _knowledge.snapshot().spoilFactsByNpc().getOrDefault(spec.npcId(), List.of()).stream()
+			.anyMatch(fact -> fact.rawGroupChance() > 0 && fact.rawItemChance() > 0 && fact.maximumCount() > 0);
+	}
+	public List<PhantomDomainRef> rendezvousSourcesForRole(long id, PhantomBackgroundState state, PhantomGoal root, long seed, long ordinal,
+		Set<String> excludedTargets, Set<String> excludedSteps, String potentialRole, java.util.function.Predicate<PhantomDomainRef> admitted)
+	{
+		if ("utility.spoiler".equals(potentialRole))
+		{
+			final var preferred = rendezvousSources(id, state, root, seed, ordinal, excludedTargets, excludedSteps, source -> partySpoilSource(source) && admitted.test(source));
+			if (!preferred.isEmpty()) { return preferred; }
+		}
+		return rendezvousSources(id, state, root, seed, ordinal, excludedTargets, excludedSteps, admitted);
+	}
+	public boolean partySourceAvailable(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
+	{
+		if (state == null || state.position().instanceId() != 0) { return false; }
+		final var spec = rendezvousSource(source); final var npc = _knowledge.findNpc(spec.npcId()).orElse(null);
+		final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
+		return npc != null && npc.kind() == NpcKind.MONSTER && npc.attackable() && npc.targetable() && PhantomPartyFarmEligibility.forMember(state.progress().level()).contains(npc.level())
+			&& anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0 && (anchor.npcId() == null || anchor.npcId() == npc.npcId())
+			&& _knowledge.snapshot().spawnAreasByNpc().getOrDefault(npc.npcId(), List.of()).stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId()))
+			&& rendezvousRouteAvailable(state, source, excludedSteps);
+	}
+	/** A World target must still belong to the agreed factual NPC/anchor, independently of actor level-up. */
+	public boolean partyNativeTarget(PhantomDomainRef source, int npcId, PhantomTopologyPoint point)
+	{
+		if (source == null || point == null || point.instanceId() != 0) { return false; }
+		final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
+		final var npc = _knowledge.findNpc(npcId).orElse(null);
+		return spec.npcId() == npcId && npc != null && npc.kind() == NpcKind.MONSTER && npc.attackable() && npc.targetable()
+			&& anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0
+			&& (anchor.npcId() == null || anchor.npcId() == npcId) && Math.abs((long) anchor.point().z() - point.z()) <= 200
+			&& anchor.point().distance3D(point) <= org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE
+			&& _knowledge.snapshot().spawnAreasByNpc().getOrDefault(npcId, List.of()).stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId()));
+	}
+	/** Legacy affinity for old diagnostic consumers only. Production uses durable learned evidence. */
 	public static String logicalRole(PhantomBackgroundState state)
 	{
 		final var type = org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(state.identity().activeClassId());
@@ -466,6 +514,10 @@ public final class PhantomHistoricalBackgroundPlanner
 	}
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, viability, PlanningPurpose.SOLO);
+	}
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, PlanningPurpose purpose)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -475,12 +527,12 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return Result.blocked("planner.ingress.absent");
 		}
-		final int maximum = level + LEVEL_RADIUS;
+		final int maximum = purpose == PlanningPurpose.PARTY_RENDEZVOUS ? PhantomPartyFarmEligibility.forMember(level).maximum() : level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
 		final List<String> rejections = new ArrayList<>();
 		final Set<String> seenCandidates = new java.util.HashSet<>();
 		final int[] offscreenAttempts = { 0 };
-		for (int radius : LOWER_LEVEL_TIERS)
+		for (int radius : purpose == PlanningPurpose.PARTY_RENDEZVOUS ? List.of(4) : LOWER_LEVEL_TIERS)
 		{
 			String cursor = null;
 			for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)

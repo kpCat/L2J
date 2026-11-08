@@ -140,6 +140,7 @@ public final class PhantomPartyRoleMatcher
 
 	private static Candidate bestCapability(ObjectiveMode objective, RoleDefinition role, MemberSnapshot member)
 	{
+		if ("utility.spoiler".equals(role.roleKey()) && !PhantomAutonomousFarmParty.spoiler(member)) { return null; }
 		Candidate best = null;
 		for (MemberCapability capability : member.capabilities())
 		{

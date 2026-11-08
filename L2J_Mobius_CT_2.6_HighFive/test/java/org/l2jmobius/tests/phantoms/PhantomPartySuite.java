@@ -325,16 +325,29 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Fresh agreement bypassed the unreleased movement owner.");
 					handoffAllowed.set(true);
 				}
-				for (int slice = 0; slice < 32; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				for (int slice = 0; slice < 32; slice++)
+				{
+					clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					if (backend.observe(backend._members.get(physicalLeader)).isPresent() && nativeRouteCalls.get() > 0
+						&& logical.groupFor(1).orElseThrow().group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE) { break; }
+				}
 				PhantomAssertions.assertTrue(wake.get() > 0, "A materialized member did not issue bounded wake demand.");
 				PhantomAssertions.assertTrue(backend.observe(backend._members.get(physicalLeader)).isPresent(), "A physically met logical group could not form before its route checkpoint became quiet; pendingArrival=" + pendingArrival);
 				PhantomAssertions.assertEquals(2, backend.observe(backend._members.get(physicalLeader)).orElseThrow().members().size(), "Partial admission could not form a legal pair; absent logical leader=" + absentLeader);
 				PhantomAssertions.assertEquals(1, backend.invitationCount(), "Projection repeated the native invitation.");
 				PhantomAssertions.assertTrue(nativeRouteCalls.get() > 0, "Committed native Party never reached its own route handoff.");
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE, logical.groupFor(1).orElseThrow().group().phase(), "Observed Party did not advance the logical group.");
+				if (!pendingArrival && !absentLeader)
+				{
+					// This fixture has no lawful combat target: waiting must yield to the existing drain/replan owner.
+					for (int slice = 0; slice < 12; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					final var waiting = logical.groupFor(1).orElseThrow().group();
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING, waiting.phase(), "No-target wait never reached its finite safe replan.");
+					PhantomAssertions.assertEquals("REPLAN_GROUP_TARGET", waiting.waitReason(), "No-target wait lost its concrete reason.");
+				}
 				keep.set(false);
-				for (int slice = 0; slice < 6; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
-				PhantomAssertions.assertTrue(backend._parties.isEmpty(), "Drain retained native Party membership.");
+				for (int slice = 0; slice < 16; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); if (backend._parties.isEmpty()) { break; } }
+				PhantomAssertions.assertTrue(backend._parties.isEmpty(), "Drain retained native Party membership; pendingArrival=" + pendingArrival + ";absentLeader=" + absentLeader + ";group=" + logical.groupFor(1).orElseThrow().group().phase() + ";reason=" + logical.groupFor(1).orElseThrow().group().waitReason());
 				backend._restartAbsent.addAll(List.of(1L, 3L, 8L)); backend._snapshots.clear(); backend._nativeEpoch++;
 				for (int slice = 0; slice < 16; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); }
 				final var restored = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states).groupFor(8).orElseThrow().group();
@@ -795,6 +808,34 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomAutonomousFarmParty.compatible(leader, damage), "Preparty negotiation loosened native locality.");
 			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, support)).isEmpty(), "Legacy selection silently bypassed rendezvous.");
 		});
+		registry.add("130-native-two-member-team-keeps-guardian-or-healer-administrative-leader", context ->
+		{
+			final var matcher = new PhantomPartyRoleMatcher(currentCatalog(context));
+			final var dd = member(2, 102, 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 100, 0)));
+			for (var role : List.of(cap("combat.tank", "native.aggro", 800, 28), cap("combat.heal", "native.heal", 450, 1011)))
+			{
+				final var leader = member(1, 101, 100, 100, false, 0, List.of(role, cap("combat.melee_damage", "weapon", 300, 0)));
+				PhantomAssertions.assertEquals(List.of(leader.ref(), dd.ref()), PhantomAutonomousFarmParty.selectRendezvousTeam(matcher, leader, List.of(dd)), "Administrative leader was forced into a DD slot.");
+				PhantomAssertions.assertEquals(List.of(leader.ref(), dd.ref()), PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(dd)), "Local two-person Party required support or a third DD.");
+			}
+		});
+		registry.add("130-spoiler-needs-two-learned-skills-and-hybrids-contribute-once", context ->
+		{
+			final var matcher = new PhantomPartyRoleMatcher(currentCatalog(context));
+			final var weapon = cap("combat.melee_damage", "weapon", 300, 0);
+			final var spoiler = member(1, 101, 100, 100, false, 0, List.of(cap("profession.spoil", "spoil", 500, 254), cap("profession.sweep", "sweep", 500, 42), weapon));
+			final var requirement = List.of(new RoleRequirement("spoiler", "utility.spoiler", true, 1));
+			PhantomAssertions.assertEquals(VacancyStatus.FILLED, matcher.match(ObjectiveMode.GENERAL_PVE, requirement, List.of(spoiler)).vacancies().getFirst().status(), "Learned Spoil/Sweep role is missing.");
+			final var incomplete = member(1, 101, 100, 100, false, 0, List.of(cap("profession.spoil", "spoil", 500, 254), weapon));
+			PhantomAssertions.assertEquals(VacancyStatus.MISSING, matcher.match(ObjectiveMode.GENERAL_PVE, requirement, List.of(incomplete)).vacancies().getFirst().status(), "Missing Sweep was invented.");
+			final var twoSlots = matcher.match(ObjectiveMode.GENERAL_PVE, List.of(requirement.getFirst(), new RoleRequirement("damage", "damage.melee", true, 1)), List.of(spoiler));
+			PhantomAssertions.assertEquals(1, twoSlots.assignments().size(), "One hybrid filled two required slots.");
+			final var guardian = member(2, 102, 100, 100, false, 0, List.of(cap("combat.tank", "native.aggro", 800, 28), cap("combat.heal", "native.sacrifice", 450, 69), weapon));
+			final var healer = member(3, 103, 100, 100, false, 0, List.of(cap("combat.heal", "heal", 450, 1011), weapon));
+			final var dd = member(4, 104, 100, 100, false, 0, List.of(weapon));
+			PhantomAssertions.assertEquals(3L, List.of(spoiler, guardian, healer, dd).stream().filter(PhantomAutonomousFarmParty::farmContributor).count(), "Guardian/spoiler damage was lost, doubled, or healer lost its separate support owner.");
+			PhantomAssertions.assertEquals(guardian.ref(), PhantomAutonomousFarmParty.farmPuller(List.of(healer, dd, guardian, spoiler)).orElseThrow(), "Puller follows administrative order instead of real guardian capability.");
+		});
 		registry.add("094-natural-team-requires-ready-learned-support", context ->
 		{
 			final var matcher = new PhantomPartyRoleMatcher(currentCatalog(context));
@@ -802,13 +843,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final var damage = member(2, 102, 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 100, 0)));
 			final var support = member(3, 103, 100, 100, false, 0, List.of(cap("combat.buff", "learned.might", 100, 1068)));
 			PhantomAssertions.assertEquals(Set.of(leader.ref(), damage.ref(), support.ref()), Set.copyOf(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, support))), "Ordinary team did not retain two damage dealers and actual support.");
-			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, support)).isEmpty(), "An intake pulse between DD loads must wait for the second damage dealer.");
+			PhantomAssertions.assertEquals(List.of(leader.ref(), support.ref()), PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, support)), "Approved two-member composition required a third DD.");
 			final var empty = member(3, 103, 100, 0, false, 0, support.capabilities());
-			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, empty)).isEmpty(), "MP-empty support was counted as prepared.");
+			PhantomAssertions.assertEquals(List.of(leader.ref(), damage.ref()), PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, empty)), "MP-empty support was counted as prepared.");
 			final var missing = member(3, 103, 100, 100, false, 0, List.of(new MemberCapability("combat.buff", "class.description", 100, 1068, 1, "PARTY", true, false, false, "skill.missing", 0, "fixture.class.only")));
-			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, missing)).isEmpty(), "Class description substituted for learned support.");
+			PhantomAssertions.assertEquals(List.of(leader.ref(), damage.ref()), PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, missing)), "Class description substituted for learned support.");
 			final var human = new MemberSnapshot(MemberRef.real(201), 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), support.capabilities(), ZERO);
-			PhantomAssertions.assertTrue(PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, human)).isEmpty(), "A real player was selected for automatic consent.");
+			PhantomAssertions.assertEquals(List.of(leader.ref(), damage.ref()), PhantomAutonomousFarmParty.selectTeam(matcher, leader, List.of(leader, damage, human)), "A real player was selected for automatic consent.");
 		});
 		registry.add("094-guardian-requires-learned-aggro-not-melee-description", context ->
 		{
@@ -1250,6 +1291,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	private static void tactics(PhantomTestRegistry registry)	{
 		registry.add("126-farm-healer-keeps-support-owner-while-damage-members-fight", context ->
 		{
+			for (long administrator : List.of(1L, 3L))
+			{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
 			final var clock = new AtomicLong(1_000_000_000L); final Map<Long, PartyActionLease> leases = new LinkedHashMap<>();
 			final var combat = new PhantomCombatService(leases::get, new PhantomCombatCapabilityResolver(_ -> List.of()), PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
@@ -1270,15 +1313,16 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get); backend.connect(coordinator); coordinator.start();
 			try
 			{
-				coordinator.formForGoal(1, 126001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,3,2"), List.of(new RoleRequirement("dd.1", "damage.melee", true, 1), new RoleRequirement("dd.2", "damage.melee", true, 1), new RoleRequirement("healer", "support.healer", true, 1)));
-				for (long id : List.of(2L, 3L)) { coordinator.invite(1, backend.currentMember(id).orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); } }
+				coordinator.formForGoal(administrator, 126000 + administrator, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", administrator == 1 ? "1,3,2" : "3,1,2"), List.of(new RoleRequirement("dd.1", "damage.melee", true, 1), new RoleRequirement("dd.2", "damage.melee", true, 1), new RoleRequirement("healer", "support.healer", true, 1)));
+				for (long id : List.of(1L, 2L, 3L)) { if (id == administrator) { continue; } coordinator.invite(administrator, backend.currentMember(id).orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); } }
 				final var leader = backend.currentMember(1).orElseThrow();
 				final var support = backend.currentMember(3).orElseThrow();
 				final var supportCapabilities = backend._capabilities.get(support);
 				backend.snapshot(support, member(3, 103, 100, 100, false, 0, List.of(cap("combat.melee_damage", "native.weapon", 300, 0))));
 				backend._farmTarget = java.util.OptionalInt.of(900);
-				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(1), "Required healer capability disappeared, but DD-only backend readiness still permitted a pull.");
+				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(administrator), "Required healer capability disappeared, but DD-only backend readiness still permitted a pull.");
 				backend.snapshot(support, member(3, 103, 100, 100, false, 0, supportCapabilities));
+				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(administrator), "Healer administrative leader could not start the independent DD puller.");
 				backend._farmTarget = java.util.OptionalInt.empty();
 				backend.snapshot(leader, member(1, 101, 100, 100, false, 900, backend._capabilities.get(leader)));
 				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
@@ -1293,6 +1337,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(generation, combat.find(1).orElseThrow().generation(), "Heal cancelled the damage member's combat generation.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Party support fixture did not drain."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Combat fixture did not drain."); }
+			}
 		});
 		registry.add("094-low-mp-castable-support-retains-role-without-maintenance", context ->
 		{
@@ -1946,8 +1991,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			{
 				final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> blocked.contains(id), null);
 				autonomous.onPulse();
-				PhantomAssertions.assertEquals(0, backend.invitationCount(), "An unsettled supply child was captured by native JOIN.");
+				PhantomAssertions.assertFalse(coordinator.blocksBackground(3), "An unsettled supply child was captured by native JOIN.");
+				PhantomAssertions.assertEquals(102, backend.lastInvitation().inviteeObjectId(), "The lawful damage pair was not admitted independently of its preparing peer.");
 				blocked.clear();
+				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				PhantomAssertions.assertEquals(2, backend.observe(backend.currentMember(1).orElseThrow()).orElseThrow().members().size(), "A later page expanded the sealed lawful pair.");
+				PhantomAssertions.assertTrue(coordinator.releaseAutonomousFarm(1), "The quiet lawful pair could not finish before new recruitment.");
 				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 				PhantomAssertions.assertEquals(3, backend.observe(backend.currentMember(1).orElseThrow()).map(party -> party.members().size()).orElse(0), "A settled supply obligation permanently disabled ordinary Party3.");
 				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, 0), goals.load(id).orElseThrow().goal(), "Preparation admission rewrote its durable root."); }
@@ -1971,9 +2020,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 				final var leader = backend.currentMember(1).orElseThrow();
 				PhantomAssertions.assertEquals(3, backend.observe(leader).orElseThrow().members().size(), "Preparation handoff fixture did not form Party3.");
+				final var formerObjective = coordinator.claim(1).orElseThrow().state().objectiveRef();
 				blocked.add(3L); clock.addAndGet(6_000_000_000L); autonomous.onPulse();
 				PhantomAssertions.assertTrue(backend.observe(leader).isEmpty(), "Formed farm retained native membership and permanently blocked solo supply.");
-				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertFalse(coordinator.blocksBackground(id), "Preparation retained a Party owner: " + id); PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, 0), goals.load(id).orElseThrow().goal(), "Preparation replaced an ordinary root."); }
+				PhantomAssertions.assertFalse(coordinator.blocksBackground(3), "Preparation retained the preparing member's Party owner.");
+				for (long id : List.of(1L, 2L, 3L)) { PhantomAssertions.assertFalse(coordinator.claim(id).filter(row -> row.state().status() != StateStatus.SOLO && row.state().objectiveRef().equals(formerObjective)).isPresent(), "Preparation retained the former roster: " + id + "; claim=" + coordinator.claim(id)); PhantomAssertions.assertEquals(goal(94000 + id, "farm.background", null, 0), goals.load(id).orElseThrow().goal(), "Preparation replaced an ordinary root."); }
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertTrue(coordinator.releaseAutonomousFarm(1), "Remaining lawful pair did not release before new recruitment.");
 				blocked.clear();
 				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 				PhantomAssertions.assertEquals(3, backend.observe(leader).orElseThrow().members().size(), "Settled preparation could not reform the original Party3.");
@@ -1997,7 +2050,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				{
 					final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (id, _) -> blocked.contains(id), null);
 					autonomous.onPulse(); PhantomAssertions.assertEquals(1, backend.invitationCount(), "Late-conflict fixture never issued its native invitation.");
-					if (changed == 2)
+					if (changed == 3)
 					{
 						blocked.add(changed);
 						for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
@@ -2005,12 +2058,15 @@ public final class PhantomPartySuite implements PhantomTestSuite
 						PhantomAssertions.assertEquals(2, backend.invitationCount(), "The retained-core fixture did not invite its third member.");
 					}
 					blocked.add(changed);
+					final var refused = backend.lastInvitation();
 					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
 					PhantomAssertions.assertEquals(PartyInvitationService.Response.REFUSE, backend.lastResponse(), "Late supply was accepted or left JOIN pending: " + changed);
 					for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); }
-					final long invitee = backend.lastInvitation().inviteeObjectId() - 100L;
-					PhantomAssertions.assertFalse(coordinator.blocksBackground(invitee), "Refused consent still retained the invitee's supply ownership fence; changed=" + changed + "; invitation=" + backend.lastInvitation() + "; claim=" + coordinator.claim(invitee));
+					final long invitee = refused.inviteeObjectId() - 100L;
+					PhantomAssertions.assertFalse(coordinator.claim(invitee).filter(row -> row.state().status() != StateStatus.SOLO && row.state().operation() != null && row.state().operation().invitationSequence() == refused.identity().sequence()).isPresent(), "Refused consent retained its exact invitation owner; changed=" + changed);
 					PhantomAssertions.assertFalse(coordinator.blocksBackground(changed), "A refused first invitation retained the changed actor's supply fence: " + changed + "; claim=" + coordinator.claim(changed));
+					for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+					for (long id : List.of(1L, 2L, 3L)) { if (coordinator.claim(id).filter(row -> row.state().status() != StateStatus.SOLO && row.state().leader().profileId() == id).isPresent()) { PhantomAssertions.assertTrue(coordinator.releaseAutonomousFarm(id), "Quiet lawful remainder could not release: " + id); } }
 					blocked.clear();
 					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); autonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
 					PhantomAssertions.assertEquals(3, backend.observe(backend.currentMember(1).orElseThrow()).map(party -> party.members().size()).orElse(0), "A settled late preparation could not form a fresh native Party; changed=" + changed + "; invites=" + backend.invitationCount() + "; responses=" + backend.responseCount() + "; leader=" + coordinator.claim(1) + "; support=" + coordinator.claim(3));
@@ -2094,6 +2150,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			try
 			{
 				final var autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get);
+				backend._busy.add(2L); // Isolate the invalid/busy actor; another lawful pair may otherwise form.
 				goals.put(3, goal(94003, "idle.background.history", null, 0)); autonomous.onPulse();
 				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Arbitrary idle label bypassed canonical background motivation.");
 				goals.put(3, historicalIdle(3, 94003, 0)); clock.addAndGet(6_000_000_000L);
@@ -2103,7 +2160,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Initial selection invited an already busy support.");
 				backend._busy.clear(); clock.addAndGet(6_000_000_000L);
 				autonomous.onPulse();
-				backend._unavailable.add(3L);
+				backend._unavailable.add(2L);
 				for (int pulse = 0; pulse < 4; pulse++) { coordinator.onPulse(); }
 				PhantomAssertions.assertEquals(0, backend.responseCount(), "Consent accepted a participant that became busy after selection.");
 				backend._unavailable.clear();
@@ -2151,10 +2208,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(3, backend.observe(leader).map(party -> party.members().size()).orElse(0), "Quiet SOLO farm claims could not reform from the same ordinary root.");
 				backend.leave(support); final var offlineSupport = backend._snapshots.remove(support);
 				for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); resumedAutonomous.onPulse(); }
-				PhantomAssertions.assertTrue(backend.observe(leader).isEmpty(), "Native-absent support prevented quiet remaining members from releasing.");
+				PhantomAssertions.assertFalse(coordinator.claim(1).filter(row -> row.state().status() != StateStatus.SOLO && row.state().objectiveRef().key().equals("1,2,3")).isPresent(), "Native-absent support retained the former roster: " + coordinator.claim(1));
 				PhantomAssertions.assertEquals(StateStatus.SOLO, coordinator.claim(3).orElseThrow().state().status(), "Absent native membership retained a committed claim.");
 				backend.snapshot(support, offlineSupport);
 				for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); resumedAutonomous.onPulse(); for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); } }
+				final int resumedSize = backend.observe(leader).map(party -> party.members().size()).orElse(0);
+				PhantomAssertions.assertTrue(resumedSize >= 2 && resumedSize <= 3, "A lawful remainder could not resume after its absent peer returned.");
 				final var leaderSupply = goal(94011, "life.supply", null, 1); goals.put(1, leaderSupply);
 				clock.addAndGet(1_100_000_000L);
 				coordinator.onPulse();

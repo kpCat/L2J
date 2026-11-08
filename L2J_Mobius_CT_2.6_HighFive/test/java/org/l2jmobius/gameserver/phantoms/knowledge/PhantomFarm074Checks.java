@@ -87,7 +87,8 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(planner.rendezvousRouteAvailable(before, new PhantomDomainRef("background.farm", "103@farm.alternative"), Set.of("farm.alternative.link")), "Preview waived a current native route exclusion.");
 		PhantomAssertions.assertEquals(before, state(), "Preview mutated earned state or native position.");
 		final var healer = new PhantomBackgroundState(before.state(), new PhantomBackgroundState.Identity(74, 740074, 0, 16, 0), before.progress(), before.vitals(), before.position(), before.combat(), before.loadout(), before.inventory(), before.autoGetSkills(), before.clock(), before.receipt(), before.hashes());
-		PhantomAssertions.assertFalse(planner(true, true, false).rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of()).stream().findAny().isPresent(), "A Solo damage source bypassed combat feasibility.");
+		PhantomAssertions.assertTrue(planner(true, true, false).rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of()).stream().findAny().isPresent(), "An explicit Party source still required an individual Solo victory.");
+		PhantomAssertions.assertFalse(planner(true, true, false).replan(74, before, previous, 740074, 1).ready(), "Ordinary Solo admission bypassed individual combat feasibility.");
 		PhantomAssertions.assertTrue(planner(true, true, false).rendezvousSources(74, healer, previous, 740074, 1, Set.of(), Set.of()).contains(new PhantomDomainRef("background.farm", "103@farm.alternative")), "Healer travel preview incorrectly required Solo DD feasibility.");
 		final var common = planner.replanLogicalRendezvous(74, before, previous, 740074, 1, new PhantomDomainRef("background.farm", "103@farm.alternative"));
 		PhantomAssertions.assertTrue(common.ready() && common.spec().anchorId().equals("farm.alternative"), "Logical Background silently preferred a different Solo source.");
@@ -197,7 +198,7 @@ public final class PhantomFarm074Checks
 		final var source = new PhantomDomainRef("background.farm", "103@farm.alternative");
 		final java.util.function.Predicate<PhantomGoal> allow = _ -> true;
 		PhantomAssertions.assertFalse(planner.replanVisibleLocal(74, before, previous, 740074, 1, LOCAL, Set.of(), Set.of()).ready(), "A non-solo support cannot gain ordinary Solo farm admission.");
-		PhantomAssertions.assertFalse(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of(), allow).ready(), "The original rendezvous API retains its Solo viability contract.");
+		PhantomAssertions.assertTrue(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of(), allow).ready(), "Every explicit Party rendezvous API uses group-purpose admission.");
 		final java.lang.reflect.Method support;
 		try { support = PhantomHistoricalBackgroundPlanner.class.getMethod("replanVisibleRendezvous", long.class, PhantomBackgroundState.class, PhantomGoal.class, long.class, long.class, PhantomTopologyPoint.class, PhantomDomainRef.class, Set.class, boolean.class, java.util.function.Predicate.class); }
 		catch (NoSuchMethodException oldProduction)
@@ -225,6 +226,73 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertTrue(cold.ready() && PhantomBackgroundGoalSpec.canonicalHistoricalIdle(74, cold.goal()), "The unchanged production historical reconsider guard must replace a non-solo shared root before an offline model interval.");
 		PhantomAssertions.assertEquals(before.position().committedAnchorId(), cold.goal().selectedAnchor().key(), "Cold fallback cannot award the shared arrival.");
 		System.out.println("OWN129_SUPPORT_TRAVEL_PASS; exact shared route only; Solo unchanged; historical reconsider blocks group simulation; DB_WRITES=0");
+	}
+
+	/** Group discovery/travel must never ask whether one member can win alone. */
+	public static void widePartySources130()
+	{
+		final var base = state();
+		final var before = new PhantomBackgroundState(base.state(), base.identity(), new PhantomBackgroundState.Progress(76, 0, 0, 0), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
+		final var backend = new PhantomTopologyValidationBackend()
+		{
+			@Override public int mapRegionLocId(int x, int y) { return 1; }
+			@Override public Optional<PhantomTopologyValidationBackend.NpcFact> npc(int id) { return Optional.of(new PhantomTopologyValidationBackend.NpcFact(id, "Monster", true)); }
+			@Override public List<SpawnFact> spawns(int id, int maximum) { return List.of(new SpawnFact(id, id == 101 ? LOCAL : FAR)); }
+			@Override public Optional<DoorFact> door(int id) { return Optional.empty(); }
+			@Override public DoorState doorState(int id) { return DoorState.MISSING; }
+			@Override public boolean sourceExists(String source) { return true; }
+		};
+		final var nodes = new java.util.ArrayList<PhantomTopologyNode>(); final var anchors = new java.util.ArrayList<PhantomTopologyAnchor>();
+		final var edges = new java.util.ArrayList<PhantomTopologyEdge>(); final var npcs = new java.util.ArrayList<NpcFact>(); final var areas = new java.util.ArrayList<SpawnAreaFact>();
+		nodes.add(node("area.local", LOCAL)); anchors.add(anchor("farm.local", "area.local", LOCAL, 101));
+		for (int index = 0; index < 67; index++)
+		{
+			final int npc = 20000 + index; final String node = "area.page." + index, anchor = "farm.page." + index;
+			nodes.add(node(node, FAR)); anchors.add(anchor(anchor, node, FAR, npc));
+			edges.add(new PhantomTopologyEdge("edge.page." + index, "area.local", node, PhantomTopologyEdgeMode.BACKGROUND, true, 1, 100000, true, Set.of(), null, "farm.local", anchor, List.of()));
+			npcs.add(new NpcFact(npc, index == 65 ? 71 : index == 66 ? 81 : 76, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+			areas.add(new SpawnAreaFact(npc, 0, node, 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT));
+		}
+		final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.create(1, "party130", 1, 1, nodes, anchors, edges, backend, PhantomTopologyPolicy.productionDefaults()), backend, new PhantomTopologyMetrics());
+		final var knowledge = new PhantomGameKnowledgeQuery(new PhantomGameKnowledgeSnapshot("party130", 1, topology.snapshot().canonicalHash(), PhantomGameKnowledgePolicy.productionDefaults(), List.of(), npcs, List.of(), List.of(), areas, List.of(), List.of(), List.of(), List.of(), List.of()), new PhantomGameKnowledgeMetrics());
+		final var authority = new PhantomBackgroundAuthority()
+		{
+			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
+			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { throw new AssertionError("PARTY called Solo viableTarget."); }
+			@Override public PhantomBackgroundState capture(long id, Player player, PhantomGoal goal, PhantomBackgroundState previous) { throw new UnsupportedOperationException(); }
+			@Override public boolean matchesRuntime(Player player, PhantomBackgroundState state) { return false; }
+			@Override public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal) { throw new UnsupportedOperationException(); }
+			@Override public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long budget) { throw new UnsupportedOperationException(); }
+			@Override public Optional<PhantomBackgroundState.Position> canonicalRecoveryPosition(int x, int y, int z, int instance, int heading) { return Optional.empty(); }
+			@Override public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level) { return List.of(); }
+		};
+		final var planner = new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority);
+		final var common = new PhantomDomainRef("background.farm", "20064@farm.page.64");
+		PhantomAssertions.assertFalse(planner.rendezvousSources(74, before, goal(), 130, 1, Set.of(), Set.of()).contains(common), "Fixture did not put the common source beyond the first page.");
+		PhantomAssertions.assertEquals(List.of(common), planner.rendezvousSources(74, before, goal(), 130, 1, Set.of(), Set.of(), common::equals), "The 65th common source was lost before intersection.");
+		PhantomAssertions.assertTrue(planner.partySourceAvailable(before, common, Set.of()), "Exact peer proof depends on its first source page.");
+		PhantomAssertions.assertFalse(planner.partySourceAvailable(before, common, Set.of("edge.page.64")), "Excluded route was accepted.");
+		PhantomAssertions.assertFalse(planner.partySourceAvailable(before, new PhantomDomainRef("background.farm", "20065@farm.page.65"), Set.of()), "NPC below member-4 accepted.");
+		PhantomAssertions.assertFalse(planner.partySourceAvailable(before, new PhantomDomainRef("background.farm", "20066@farm.page.66"), Set.of()), "NPC above member+4 accepted.");
+		PhantomAssertions.assertFalse(planner.partySourceAvailable(before, new PhantomDomainRef("background.farm", "20064@farm.page.63"), Set.of()), "NPC/anchor identity was invented.");
+		PhantomAssertions.assertFalse(planner.partySourceAvailable(before, new PhantomDomainRef("background.farm", "99999@farm.page.64"), Set.of()), "Unknown NPC was invented.");
+	}
+
+	public static void partyContract130()
+	{
+		final var planner = planner(true, true, false);
+		final var before = state(); final var previous = goal();
+		final var source = new PhantomDomainRef("background.farm", "103@farm.alternative");
+		PhantomAssertions.assertFalse(planner.replan(74, before, previous, 740074, 1).ready(), "Solo must retain individual viability.");
+		PhantomAssertions.assertTrue(planner.rendezvousSources(74, before, previous, 740074, 1, Set.of(), Set.of()).contains(source),
+			"Party source discovery incorrectly requires an individual Solo kill.");
+		PhantomAssertions.assertTrue(planner.replanLogicalRendezvous(74, before, previous, 740074, 1, source).ready(), "Logical travel repeated Solo admission.");
+		PhantomAssertions.assertTrue(planner.proposeLogicalActivity(74, before, previous, 740074, 1, source).ready(), "Activity revision repeated Solo admission.");
+		PhantomAssertions.assertTrue(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of(), _ -> true).ready(), "Visible Party travel repeated Solo admission.");
+		PhantomAssertions.assertFalse(planner.remainsSuitable(before, previous), "Party planning weakened the ordinary Solo reward fence.");
+		PhantomAssertions.assertFalse(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of("farm.alternative.link"), _ -> true).ready(), "Party bypassed an excluded route.");
+		PhantomAssertions.assertFalse(planner.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, source, Set.of(), _ -> false).ready(), "Party bypassed native travel admission.");
+		PhantomAssertions.assertEquals(before, state(), "Planning changed earned state or resources.");
 	}
 
 	private static void historicalFailedRoute()

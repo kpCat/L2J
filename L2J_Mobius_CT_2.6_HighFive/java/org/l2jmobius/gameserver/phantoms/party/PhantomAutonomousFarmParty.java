@@ -55,6 +55,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private final Map<Long, Discovery> _discovered = new LinkedHashMap<>();
 	private final Map<Long, PhantomPartyRendezvousState> _offers = new LinkedHashMap<>();
 	private final Map<Long, Integer> _assemblyCursors = new LinkedHashMap<>();
+	private record FarmWait(long sinceNanos, String reason) { }
+	private final Map<Long, FarmWait> _farmWaits = new LinkedHashMap<>();
 	private long _leaderCursor;
 	private PhantomLogicalPartyCoordinator _logical;
 	private java.util.function.BiFunction<Long, Integer, LogicalPage> _logicalDiscovery;
@@ -194,8 +196,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{ _logical.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, group.backgroundCursor(), now + 5000, "WAIT_ADMISSION"); return; }
 		if (_offers.values().stream().anyMatch(offer -> offer.roster().stream().anyMatch(member -> group.contains(member.actor().profileId())))) { return; }
 		final var roster = new ArrayList<PhantomPartyRendezvousState.Participant>();
-		final var physicalLeader = materialized.stream().filter(actor -> _backend.memberSnapshot(actor).filter(PhantomAutonomousFarmParty::damageDealer).isPresent()).findFirst().orElse(null);
-		if (physicalLeader == null) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_DAMAGE_OWNER"); return; }
+		final var physicalLeader = materialized.stream().filter(actor -> _backend.memberSnapshot(actor).filter(PhantomAutonomousFarmParty::nativeParticipant).isPresent())
+			.sorted(Comparator.comparing((MemberRef actor) -> actor.profileId() != group.leaderProfileId()).thenComparingLong(MemberRef::profileId)).findFirst().orElse(null);
+		if (physicalLeader == null) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_NATIVE_ROLE"); return; }
 		final var ordered = new ArrayList<>(materialized); ordered.remove(physicalLeader); ordered.addFirst(physicalLeader);
 		String waitReason = "WAIT_NATIVE_ROLE";
 		for (var actor : ordered)
@@ -207,7 +210,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (!_backend.autonomousFarmReservationAvailable(actor)) { waitReason = "WAIT_NATIVE_OWNER_" + actor.profileId(); continue; }
 			if (!sourceAdmitted(_rendezvousPreparation.preview(actor, _backend.materializationEpoch(actor), root), group.objective())) { waitReason = "WAIT_ROUTE_" + actor.profileId(); continue; }
 			final var snapshot = _backend.memberSnapshot(actor).orElse(null);
-			if (snapshot == null || roster.isEmpty() && !damageDealer(snapshot)) { continue; }
+			if (snapshot == null || !nativeParticipant(snapshot)) { continue; }
 			roster.add(new PhantomPartyRendezvousState.Participant(actor, _backend.materializationEpoch(actor), root.goalId(), root.revision()));
 		}
 		if (roster.size() < 2)
@@ -248,9 +251,13 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	}
 	/** Immutable captured input under the existing preparation owner, never consent, arrival or action authority. */
 	public record SourcePreview(java.util.function.Supplier<List<PhantomDomainRef>> candidates, java.util.function.Predicate<PhantomDomainRef> reachable,
-		java.util.function.BooleanSupplier current, java.util.function.Predicate<PhantomDomainRef> structurallyUnavailable)
+		java.util.function.BooleanSupplier current, java.util.function.Predicate<PhantomDomainRef> structurallyUnavailable,
+		java.util.function.Function<java.util.function.Predicate<PhantomDomainRef>, List<PhantomDomainRef>> sourcesMatching)
 	{
-		public SourcePreview { java.util.Objects.requireNonNull(candidates); java.util.Objects.requireNonNull(reachable); java.util.Objects.requireNonNull(current); java.util.Objects.requireNonNull(structurallyUnavailable); }
+		public SourcePreview(java.util.function.Supplier<List<PhantomDomainRef>> candidates, java.util.function.Predicate<PhantomDomainRef> reachable,
+			java.util.function.BooleanSupplier current, java.util.function.Predicate<PhantomDomainRef> structurallyUnavailable)
+		{ this(candidates, reachable, current, structurallyUnavailable, admitted -> candidates.get().stream().filter(admitted).limit(64).toList()); }
+		public SourcePreview { java.util.Objects.requireNonNull(candidates); java.util.Objects.requireNonNull(reachable); java.util.Objects.requireNonNull(current); java.util.Objects.requireNonNull(structurallyUnavailable); java.util.Objects.requireNonNull(sourcesMatching); }
 		public List<PhantomDomainRef> sources() { return candidates.get().stream().distinct().limit(64).toList(); }
 		public static SourcePreview unavailable() { return new SourcePreview(List::of, _ -> false, () -> false, _ -> false); }
 	}
@@ -366,7 +373,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			final long profileId = leader.ref().profileId();
 			if (_logical != null && _logical.knownGroupFor(profileId).map(row -> row.group().phase() == PhantomLogicalParty.Phase.DRAINING).orElse(false)) { continue; }
 			final PhantomGoal goal = roots.get(profileId);
-			if (goal == null || !damage(leader) || prefersSupport(leader) || leader.dead()) { continue; }
+			if (goal == null || !nativeParticipant(leader) || leader.dead()) { continue; }
 			final var claim = _coordinator.claim(profileId).orElse(null);
 			// Production new formations require the persisted pre-party agreement below.
 			// Existing native groups keep their independent lifecycle even when seeking is disabled.
@@ -391,7 +398,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (selected.isEmpty()) { if (_coordinator.committed(profileId)) { _coordinator.releaseAutonomousFarm(profileId); } continue; }
 			if (selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> _preparationRequired.test(ref.profileId(), root)).isPresent())) { continue; }
 			final var roster = selected.stream().map(_backend::memberSnapshot).flatMap(java.util.Optional::stream).toList();
-			if (roster.size() != selected.size() || roster.size() < 2 || roster.stream().anyMatch(member -> !damage(member) && !supportPresent(member) && !guardian(member))
+			if (roster.size() != selected.size() || roster.size() < 2 || roster.stream().anyMatch(member -> !nativeParticipant(member))
 				|| selected.stream().anyMatch(ref -> _goals.load(ref.profileId()).map(PhantomGoalStore.StoredGoal::goal).filter(root -> ordinaryIntent(ref.profileId(), root)).isEmpty())) { _coordinator.releaseAutonomousFarm(profileId); continue; }
 			if (leader.casting() || leader.attacking()) { continue; }
 			if (_arrival != null)
@@ -419,9 +426,31 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			final var missing = selected.stream().filter(ref -> !ref.equals(leader.ref()) && (nativeParty == null || !nativeParty.members().contains(ref)))
 				.sorted(Comparator.comparingDouble(ref -> _backend.memberSnapshot(ref).map(member -> distance(leader, member)).orElse(Double.MAX_VALUE))).findFirst();
 			if (missing.isPresent()) { if (nativeParty == null || nativeParty.members().size() < 9) { _coordinator.invite(profileId, missing.orElseThrow(), PartyDistributionType.FINDERS_KEEPERS); } }
-			else if (!advanceNativePartyRoute(profileId, goal, roster)) { _coordinator.requestAutonomousFarm(profileId); }
+			else if (!advanceNativePartyRoute(profileId, goal, roster))
+			{
+				if (_coordinator.requestAutonomousFarm(profileId)) { _farmWaits.remove(profileId); }
+				else { waitForFarm(profileId, leader.ref(), goal, now); }
+			}
 			// One form/invite/pull per shared pulse slice, including pending native consent.
 			return;
+		}
+	}
+
+	private void waitForFarm(long id, MemberRef leader, PhantomGoal root, long nowNanos)
+	{
+		final String detail = _backend.autonomousFarmWaitReason(leader);
+		final String code = detail.split(":", 2)[0].matches("WAIT_[A-Z0-9_]{1,70}") ? detail.split(":", 2)[0] : "WAIT_GROUP_READINESS";
+		final var before = _farmWaits.get(id);
+		if (before == null && _farmWaits.size() >= 1024) { _farmWaits.remove(_farmWaits.keySet().iterator().next()); }
+		final var wait = new FarmWait(before == null ? nowNanos : before.sinceNanos(), code); _farmWaits.put(id, wait);
+		if (before == null || !before.reason().equals(code))
+		{ org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(id, "PARTY_FARM_WAIT", code, "", detail + ";nextDueMillis=" + (_epochMillis.getAsLong() + 5000) + ";requiredChange=source_resources_or_observed_threat", _backend.materializationEpoch(leader), root.goalId(), root.revision()); }
+		if (_logical != null && nowNanos - wait.sinceNanos() >= 60_000_000_000L)
+		{
+			final var row = _logical.knownGroupFor(id).orElse(null);
+			if (row != null && row.group().phase() != PhantomLogicalParty.Phase.DRAINING)
+			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, row.group().backgroundCursor(), _epochMillis.getAsLong(), "REPLAN_" + code.substring(5)); }
+			_farmWaits.remove(id);
 		}
 	}
 
@@ -468,7 +497,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (!ordinaryIntent(context.requesterProfileId(), root) || root.goalId() != leader.operation().leaderGoalId() || root.revision() != leader.operation().leaderGoalRevision()
 			|| currentLeader == null || !context.inviteeSnapshot().ref().equals(currentInvitee) || !compatible(currentLeader, context.inviteeSnapshot())
 			|| Math.abs(_backend.currentLevel(leader.leader()).orElse(0) - _backend.currentLevel(currentInvitee).orElse(1000)) > 8
-			|| _backend.observe(currentInvitee).isPresent() || (!damage(context.inviteeSnapshot()) && !support(context.inviteeSnapshot()) && !guardian(context.inviteeSnapshot()))) { return ManagedInvitationDecision.REFUSE; }
+			|| _backend.observe(currentInvitee).isPresent() || !nativeParticipant(context.inviteeSnapshot())) { return ManagedInvitationDecision.REFUSE; }
 		if (!_backend.autonomousFarmConsentAvailable(leader.leader(), currentInvitee, context.invitation().identity())) { return ManagedInvitationDecision.DEFER; }
 		return ManagedInvitationDecision.ACCEPT;
 	}
@@ -480,7 +509,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		return profiles.stream().distinct().count() == profiles.size() ? profiles : List.of();
 	}
 
-	private static PhantomDomainRef farmSource(PhantomGoal goal)
+	public static PhantomDomainRef farmSource(PhantomGoal goal)
 	{
 		if (goal == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType())) { return null; }
 		try
@@ -529,21 +558,23 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			for (var leader : candidates.stream().sorted(Comparator.comparing((MemberSnapshot member) -> member.ref().profileId() <= _leaderCursor).thenComparingLong(member -> member.ref().profileId())).limit(4).toList())
 			{
 				_leaderCursor = leader.ref().profileId();
-				if (!damageDealer(leader) || !unreserved(leader.ref(), now) || _backend.observe(leader.ref()).isPresent()
+				if (!nativeParticipant(leader) || !unreserved(leader.ref(), now) || _backend.observe(leader.ref()).isPresent()
 					|| _coordinator.claim(leader.ref().profileId()).map(claim -> claim.state().status() != StateStatus.SOLO).orElse(false)) { continue; }
 				final var root = _goals.load(leader.ref().profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
 				final var currentSource = farmSource(root);
 				if (currentSource == null || !ordinaryIntent(leader.ref().profileId(), root) || _preparationRequired.test(leader.ref().profileId(), root)) { continue; }
 				final var leaderPreview = sourcePreview(leader.ref(), previews);
-				for (var source : sourceOptions(leaderPreview, currentSource))
+				for (var source : leaderPreview.current().getAsBoolean() ? leaderPreview.sourcesMatching().apply(source -> candidates.stream()
+					.filter(member -> !member.ref().equals(leader.ref()) && nativeParticipant(member)).anyMatch(member -> sourceAdmitted(sourcePreview(member.ref(), previews), source))) : List.<PhantomDomainRef>of())
 				{
 				if (!sourceAdmitted(leaderPreview, source)) { continue; }
 				final int level = _discovered.get(leader.ref().profileId()).level();
 				final var nearby = candidates.stream().filter(member -> Math.abs(_discovered.get(member.ref().profileId()).level() - level) <= 8)
+					.filter(member -> !member.ref().equals(leader.ref()) && nativeParticipant(member) && sourceAdmitted(sourcePreview(member.ref(), previews), source))
 					.sorted(Comparator.comparing((MemberSnapshot member) -> !support(member)).thenComparingLong(member -> member.ref().profileId())).limit(MAXIMUM_CANDIDATES - 1).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-				nearby.removeIf(member -> member.ref().equals(leader.ref()) || !sourceAdmitted(sourcePreview(member.ref(), previews), source)); nearby.addFirst(leader);
+				nearby.addFirst(leader);
 				final var team = selectRendezvousTeam(_roles, leader, nearby);
-				if (team.size() < 3) { continue; }
+				if (team.size() < 2 || PhantomPartyFarmEligibility.forRoster(team.stream().map(actor -> _backend.currentLevel(actor).orElse(0)).toList()).isEmpty()) { continue; }
 				final var roster = new ArrayList<PhantomPartyRendezvousState.Participant>();
 				for (var actor : team)
 				{
@@ -779,6 +810,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		final var roster = offer.roster().stream().map(PhantomPartyRendezvousState.Participant::actor).toList();
 		final var snapshots = roster.stream().map(_backend::memberSnapshot).flatMap(java.util.Optional::stream).toList();
 		if (leader == null || snapshots.size() != roster.size()
+			|| PhantomPartyFarmEligibility.forRoster(roster.stream().map(actor -> _backend.currentLevel(actor).orElse(0)).toList()).isEmpty()
 			|| snapshots.stream().anyMatch(member -> !compatible(leader, member) || !_backend.autonomousFarmAvailable(member.ref()))
 			|| _roles.match(ObjectiveMode.GENERAL_PVE, requirements(snapshots), snapshots).vacancies().stream().anyMatch(vacancy -> vacancy.status() != VacancyStatus.FILLED)) { return false; }
 		final var party = _backend.observe(leader.ref()).orElse(null);
@@ -817,25 +849,25 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	/** Distant preference is negotiation only; compatible() still gates native invitation and combat. */
 	public static List<MemberRef> selectRendezvousTeam(PhantomPartyRoleMatcher roles, MemberSnapshot leader, List<MemberSnapshot> candidates)
 	{
-		if (leader == null || candidates == null || !compatible(leader, leader) || !damageDealer(leader)) { return List.of(); }
+		if (leader == null || candidates == null || candidates.size() > 256 || !compatible(leader, leader) || !nativeParticipant(leader)) { return List.of(); }
 		final var team = new ArrayList<MemberSnapshot>(); team.add(leader);
 		candidates.stream().filter(member -> !member.ref().equals(leader.ref()) && recruitmentCompatible(leader, member)
-			&& (damage(member) || supportPresent(member) || guardian(member))).distinct().limit(8).forEach(team::add);
-		return team.size() < 2 || roles.match(ObjectiveMode.GENERAL_PVE, requirements(team), team).vacancies().stream().anyMatch(vacancy -> vacancy.status() != VacancyStatus.FILLED)
+			&& nativeParticipant(member)).distinct().limit(8).forEach(team::add);
+		return team.size() < 2 || team.stream().noneMatch(PhantomAutonomousFarmParty::farmContributor) || roles.match(ObjectiveMode.GENERAL_PVE, requirements(team), team).vacancies().stream().anyMatch(vacancy -> vacancy.status() != VacancyStatus.FILLED)
 			? List.of() : team.stream().map(MemberSnapshot::ref).toList();
 	}
 
 	private static List<MemberRef> selectTeam(PhantomPartyRoleMatcher roles, MemberSnapshot leader, List<MemberSnapshot> nearby, boolean rendezvous)
 	{
-		if (leader == null || nearby == null || nearby.size() > MAXIMUM_CANDIDATES || !compatible(leader, leader) || !damage(leader)) { return List.of(); }
+		if (leader == null || nearby == null || nearby.size() > MAXIMUM_CANDIDATES || !compatible(leader, leader) || !nativeParticipant(leader)) { return List.of(); }
 		final var candidates = nearby.stream().filter(member -> !member.ref().equals(leader.ref()) && recruitmentCompatible(leader, member)).sorted(Comparator.comparingDouble((MemberSnapshot member) -> distance(leader, member)).thenComparingLong(member -> member.ref().profileId())).toList();
-		final var support = candidates.stream().filter(PhantomAutonomousFarmParty::support).sorted(Comparator.comparing((MemberSnapshot member) -> !compatible(leader, member)).thenComparing(Comparator.comparingInt((MemberSnapshot member) -> score(member, SUPPORT) - score(member, DAMAGE)).reversed()).thenComparingDouble(member -> distance(leader, member)).thenComparingLong(member -> member.ref().profileId())).findFirst().orElse(null);
-		if (support == null) { return List.of(); }
 		final var team = new ArrayList<MemberSnapshot>();
-		team.add(leader); team.add(support);
-		candidates.stream().filter(member -> (rendezvous || compatible(leader, member)) && !member.ref().equals(support.ref()) && damage(member) && !prefersSupport(member) && !guardian(member)).findFirst().ifPresent(team::add);
-		if (team.size() < 3) { return List.of(); }
-		candidates.stream().filter(member -> (rendezvous || compatible(leader, member)) && !team.contains(member) && guardian(member)).findFirst().ifPresent(team::add);
+		team.add(leader);
+		candidates.stream().filter(member -> compatible(leader, member) && nativeParticipant(member)).limit(8).forEach(team::add);
+		// The existing remote JOIN path still needs a local majority; support is an option, not a mandatory slot.
+		if (team.size() >= 2 && team.size() < 9 && team.stream().noneMatch(PhantomAutonomousFarmParty::supportPresent))
+		{ candidates.stream().filter(member -> !compatible(leader, member) && support(member)).findFirst().ifPresent(team::add); }
+		if (team.size() < 2 || team.stream().noneMatch(PhantomAutonomousFarmParty::farmContributor)) { return List.of(); }
 		final var requirements = requirements(team);
 		if (roles.match(ObjectiveMode.GENERAL_PVE, requirements, team).vacancies().stream().anyMatch(vacancy -> vacancy.status() != VacancyStatus.FILLED)) { return List.of(); }
 		return team.stream().map(MemberSnapshot::ref).toList();
@@ -847,7 +879,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		for (int index = 0; index < team.size(); index++)
 		{
 			final var member = team.get(index);
-			final String role = index > 0 && supportPresent(member) ? supportRole(member) : index > 0 && guardian(member) ? "frontline.guardian" : damageRole(member);
+			final String role = guardianPresent(member) ? "frontline.guardian" : supportPresent(member) ? supportRole(member) : spoiler(member) ? "utility.spoiler" : damageRole(member);
 			requirements.add(new RoleRequirement("farm.slot." + index, role, true, 1));
 		}
 		return List.copyOf(requirements);
@@ -903,6 +935,24 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	}
 
 	public static boolean damageDealer(MemberSnapshot member) { return damage(member) && !prefersSupport(member); }
+	public static boolean guardianPresent(MemberSnapshot member)
+	{ return !member.dead() && member.capabilities().stream().anyMatch(capability -> "combat.tank".equals(capability.capabilityKey()) && capability.intrinsic() && capability.learned() && capability.actionSkillId() > 0 && capability.actionSkillLevel() > 0); }
+	public static boolean spoiler(MemberSnapshot member)
+	{
+		return !member.dead() && Set.of("profession.spoil", "profession.sweep").stream().allMatch(key -> member.capabilities().stream()
+			.anyMatch(capability -> key.equals(capability.capabilityKey()) && capability.intrinsic() && capability.learned() && capability.actionSkillId() > 0 && capability.actionSkillLevel() > 0));
+	}
+	public static boolean nativeParticipant(MemberSnapshot member)
+	{ return member != null && !member.dead() && (damage(member) || supportPresent(member) || guardianPresent(member) || spoiler(member)); }
+	/** A learned healer retains its separate native support owner; no forecasted Heal or double-counted DPS. */
+	public static boolean healingSupport(MemberSnapshot member)
+	{ return !guardianPresent(member) && member.capabilities().stream().anyMatch(capability -> "combat.heal".equals(capability.capabilityKey()) && capability.intrinsic() && capability.learned() && capability.actionSkillId() > 0 && !"SELF".equals(capability.targetScope())); }
+	public static boolean farmContributor(MemberSnapshot member) { return !member.dead() && !healingSupport(member) && damage(member); }
+	public static java.util.Optional<MemberRef> farmPuller(List<MemberSnapshot> members)
+	{
+		return members.stream().filter(PhantomAutonomousFarmParty::farmContributor)
+			.sorted(Comparator.comparing((MemberSnapshot member) -> !guardian(member)).thenComparingLong(member -> member.ref().profileId())).map(MemberSnapshot::ref).findFirst();
+	}
 
 	public static boolean guardian(MemberSnapshot member)
 	{
@@ -931,8 +981,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	private static String supportRole(MemberSnapshot member)
 	{
-		if (member.capabilities().stream().anyMatch(capability -> "combat.heal".equals(capability.capabilityKey()) && capability.learned() && capability.readyNow())) { return "support.healer"; }
-		if (member.capabilities().stream().anyMatch(capability -> "combat.recharge".equals(capability.capabilityKey()) && capability.learned() && capability.readyNow())) { return "support.recharge"; }
+		if (member.capabilities().stream().anyMatch(capability -> "combat.heal".equals(capability.capabilityKey()) && capability.intrinsic() && capability.learned())) { return "support.healer"; }
+		if (member.capabilities().stream().anyMatch(capability -> "combat.recharge".equals(capability.capabilityKey()) && capability.intrinsic() && capability.learned())) { return "support.recharge"; }
 		return "support.enhancement";
 	}
 }

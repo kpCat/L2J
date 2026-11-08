@@ -20,6 +20,71 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("party-source-and-every-rendezvous-replan-ignore-solo-kill-only", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.partyContract130());
+		registry.add("party-common-source-is-tested-before-the-sixty-four-result-limit", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.widePartySources130());
+		registry.add("party-level-intersection-and-potential-roles-never-imply-native-readiness", _ ->
+		{
+			final var cases = List.of(List.of(76, 76, 72, 80), List.of(74, 78, 74, 78), List.of(72, 80, 76, 76), List.of(76, 81, 77, 80), List.of(85, 85, 81, 89));
+			for (var row : cases)
+			{
+				final var band = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(row.subList(0, 2)).orElseThrow();
+				PhantomAssertions.assertTrue(band.contains(row.get(2)) && band.contains(row.get(3)) && !band.contains(row.get(2) - 1) && !band.contains(row.get(3) + 1), "Party band endpoints differ for " + row);
+			}
+			for (var invalid : List.of(List.<Integer>of(), List.of(76), List.of(0, 76), List.of(86, 76), List.of(70, 79), java.util.Collections.nCopies(10, 76)))
+			{ PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(invalid).isEmpty(), "Invalid roster acquired a FARM band: " + invalid); }
+			for (int size : List.of(2, 3, 9)) { PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(java.util.Collections.nCopies(size, 76)).isPresent(), "Legal roster size rejected."); }
+			PhantomAssertions.assertEquals("frontline.guardian", org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.potentialRole(java.util.Set.of("combat.tank"), true, false), "Learned Aggression+weapon lost potential guardian.");
+			PhantomAssertions.assertEquals("pending.native_role", org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.potentialRole(java.util.Set.of("combat.tank"), false, false), "Unarmed class label invented native readiness.");
+			PhantomAssertions.assertEquals("utility.spoiler", org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.potentialRole(java.util.Set.of("profession.spoil", "profession.sweep"), true, false), "Spoiler was reduced to DD.");
+			PhantomAssertions.assertFalse("utility.spoiler".equals(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.potentialRole(java.util.Set.of("profession.spoil"), true, false)), "Missing Sweep was invented.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole("damage", "frontline.guardian"), "Legacy guardian group cannot recover.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole("support", "support.healer"), "Legacy support group cannot recover.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole("support", "damage.melee"), "Changed role silently kept its old obligation.");
+		});
+		registry.add("party-threat-reserve-is-six-seconds-without-projected-heal-hp", _ ->
+		{
+			PhantomAssertions.assertEquals(30000d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(30000, true), "Observed victim lost its main threat horizon.");
+			PhantomAssertions.assertEquals(6000d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(30000, false), "A nonvictim received the entire encounter threat or free immunity.");
+			PhantomAssertions.assertEquals(2000d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(2000, false), "Reserve extended a shorter actual encounter.");
+			PhantomAssertions.assertTrue(Double.isNaN(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(Double.POSITIVE_INFINITY, false)), "Unknown encounter acquired free protection.");
+		});
+		registry.add("party-native-target-budget-filters-wrong-sources-before-eight", _ ->
+		{
+			final var selected = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.farmTargets(java.util.stream.IntStream.rangeClosed(1, 17).boxed(), id -> id >= 9);
+			PhantomAssertions.assertEquals(List.of(9, 10, 11, 12, 13, 14, 15, 16), selected, "Eight closer wrong sources hid the legal ninth World target or the bound was removed.");
+		});
+		registry.add("party-threat-union-reaches-a-distant-peer-and-keeps-overflow", _ ->
+		{
+			final var remote = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.farmThreats(List.of(0, 1000),
+				actor -> java.util.stream.Stream.of(1500).filter(mob -> Math.abs(mob - actor) <= 1200), _ -> true);
+			PhantomAssertions.assertEquals(List.of(1500), remote, "A mob attacking the distant healer was outside the leader's view.");
+			final var overflow = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.farmThreats(List.of(1, 2),
+				actor -> actor == 1 ? java.util.stream.Stream.of(0, 1, 2, 3, 4) : java.util.stream.Stream.of(1, 2, 3, 4, 5, 6), mob -> mob > 0);
+			PhantomAssertions.assertEquals(List.of(1, 2, 3, 4, 5), overflow, "Duplicate neighborhoods hid the fifth threat or exceeded the bounded witness.");
+		});
+		registry.add("party-whole-native-resource-budget-has-no-fractional-or-unknown-credit", _ ->
+		{
+			PhantomAssertions.assertEquals(2d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.requiredActions(6000, 3000), "An exact two-shot encounter consumed an extra shot.");
+			PhantomAssertions.assertEquals(3d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.requiredActions(6001, 3000), "Fractional shots/casts bypassed the native resource budget.");
+			PhantomAssertions.assertEquals(Double.POSITIVE_INFINITY, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.requiredActions(6000, 0), "Unknown native reuse acquired free ammunition/MP.");
+		});
+		registry.add("party-administrative-leader-is-not-a-damage-slot", _ ->
+		{
+			for (String role : List.of("frontline.guardian", "support.healer", "utility.spoiler", "damage.melee"))
+			{
+				for (int size : List.of(2, 3, 9))
+				{
+					final var coordinator = new PhantomLogicalPartyCoordinator(new MemoryStore());
+					final var source = new PhantomDomainRef("background.farm", "20002@farm.a");
+					final var candidates = LongStream.rangeClosed(1, size).mapToObj(id -> new PhantomLogicalPartyCoordinator.Candidate(
+						new PhantomLogicalParty.Member(id, id == 1 ? role : "damage.melee", 1000 + id, 0), 76, List.of(source), _ -> true, () -> true)).toList();
+					final var group = coordinator.discover(candidates, (_, _) -> true, 1000).orElseThrow().group();
+					PhantomAssertions.assertEquals(1L, group.leaderProfileId(), "Administrative leader was selected by damage role.");
+					PhantomAssertions.assertEquals(size, group.members().size(), "Flexible Party roster was truncated.");
+					PhantomAssertions.assertEquals(role, group.members().getFirst().role(), "Role was silently rewritten.");
+				}
+			}
+		});
 		registry.add("preflight-recovery-and-read-only-scene-have-independent-finite-budgets", _ ->
 		{
 			PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(40), true);
@@ -308,7 +373,7 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			for (int pulse = 0; pulse < 5 && agreement.isEmpty(); pulse++) { agreement = coordinator.discover(List.of(), (_, _) -> true, 3000 + pulse); }
 			final var formed = agreement.orElseThrow().group();
 			PhantomAssertions.assertEquals(sources.get(4), formed.objective(), "The fifth usable source was truncated.");
-			PhantomAssertions.assertEquals(List.of(1L, 17L), formed.members().stream().map(PhantomLogicalParty.Member::profileId).toList(), "The sixteenth peer was truncated or a healer required Solo damage.");
+			PhantomAssertions.assertEquals(java.util.Set.of(1L, 17L), formed.members().stream().map(PhantomLogicalParty.Member::profileId).collect(java.util.stream.Collectors.toSet()), "The sixteenth peer was truncated or a healer required Solo damage.");
 		});
 		registry.add("07-absent-runtime-candidate-revalidates-durable-root-before-commit", _ ->
 		{

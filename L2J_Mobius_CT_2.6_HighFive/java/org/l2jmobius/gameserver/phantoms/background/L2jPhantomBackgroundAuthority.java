@@ -329,6 +329,55 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return planningTarget(npcId).map(bound::viable).orElse(false);
 	}
 
+	@Override
+	public List<Integer> partyRoleSkillIds(PhantomBackgroundState state)
+	{
+		final var catalog = _progression.get();
+		final var ids = new TreeSet<Integer>();
+		if (state.loadout().selectedSkillId() > 0) { ids.add(state.loadout().selectedSkillId()); }
+		for (var rule : catalog.capabilities(state.identity().activeClassId()))
+		{
+			if (Set.of("combat.heal", "combat.recharge", "combat.buff", "combat.song", "combat.dance", "combat.tank", "combat.melee_damage", "combat.ranged_magic_damage", "combat.ranged_physical_damage", "profession.spoil", "profession.sweep").contains(rule.capabilityKey()))
+			{ rule.evidenceSkills().forEach(skill -> ids.add(skill.skillId())); }
+		}
+		// Complete class trees already include lineage. Inspect each skill identity once, not every rank.
+		final var skills = new java.util.TreeMap<Integer, Integer>();
+		catalog.classSkillLearns(state.identity().activeClassId()).stream().filter(learn -> learn.minimumCharacterLevel() <= state.progress().level())
+			.forEach(learn -> skills.merge(learn.skillId(), learn.skillLevel(), Math::max));
+		for (var entry : skills.entrySet())
+		{
+			final Skill skill = org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(entry.getKey(), entry.getValue());
+			if (skill != null && (org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsNpcAggro(skill, false)
+				|| org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.nativeCapability(skill) != null)) { ids.add(skill.getId()); }
+		}
+		if (ids.size() > 64) { return List.of(); } // Unknown potential, not a silently truncated class.
+		return List.copyOf(ids);
+	}
+
+	@Override
+	public String potentialPartyRole(PhantomBackgroundState state, Map<Integer, Integer> learnedSkills)
+	{
+		final var catalog = _progression.get(); final var keys = new java.util.HashSet<String>();
+		for (var rule : catalog.capabilities(state.identity().activeClassId()))
+		{
+			if (!rule.capabilityKey().equals("combat.tank") && (!rule.capabilityKey().startsWith("combat.") || !rule.targetScope().name().equals("SELF"))
+				&& rule.evidenceSkills().stream().allMatch(skill -> learnedSkills.getOrDefault(skill.skillId(), 0) >= skill.skillLevel())) { keys.add(rule.capabilityKey()); }
+		}
+		for (var entry : learnedSkills.entrySet())
+		{
+			if (entry.getValue() <= 0) { continue; }
+			final Skill skill = org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(entry.getKey(), entry.getValue());
+			if (skill == null) { continue; }
+			if (org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsNpcAggro(skill, false)) { keys.add("combat.tank"); }
+			final String support = org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.nativeCapability(skill);
+			if (support != null && !"SELF".equals(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.nativeScope(skill))) { keys.add(support); }
+		}
+		final var weapons = state.inventory().objects().stream().filter(item -> item.location() == ItemLocation.PAPERDOLL)
+			.map(item -> catalog.equipment(item.itemId())).filter(Objects::nonNull).filter(item -> !item.weaponType().isEmpty()).toList();
+		return org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.potentialRole(keys, !weapons.isEmpty(),
+			state.combat().modelKind() == ModelKind.RANGED || state.combat().modelKind() == ModelKind.MAGIC);
+	}
+
 	private org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics storedMechanics(int skillId, int skillLevel, double mp, ModelKind kind, int classId)
 	{
 		if (skillId == 0 || kind == ModelKind.SUMMON_PRIMARY) { return null; }

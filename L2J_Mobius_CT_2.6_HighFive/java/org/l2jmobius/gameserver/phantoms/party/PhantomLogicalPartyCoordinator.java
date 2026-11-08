@@ -31,14 +31,18 @@ public final class PhantomLogicalPartyCoordinator
 	/** Scheduler-local durable recovery cache, never a grant of native/goal ownership. */
 	public Optional<StoredLogicalGroup> knownGroupFor(long profileId) { return Optional.ofNullable(_knownMembers.get(profileId)).filter(row -> row.group().active()); }
 	public record Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
-		java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent)
+		java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
+		java.util.function.Function<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>> sourcesMatching)
 	{
+		public Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
+			java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent)
+		{ this(member, level, sources, reachable, current, durableCurrent, admitted -> sources.stream().filter(admitted).toList()); }
 		public Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
 			java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current)
 		{ this(member, level, sources, reachable, current, current); }
 		public Candidate
 		{
-			Objects.requireNonNull(member); Objects.requireNonNull(reachable); Objects.requireNonNull(current); Objects.requireNonNull(durableCurrent); sources = List.copyOf(sources);
+			Objects.requireNonNull(member); Objects.requireNonNull(reachable); Objects.requireNonNull(current); Objects.requireNonNull(durableCurrent); Objects.requireNonNull(sourcesMatching); sources = List.copyOf(sources);
 			if (level < 1 || level > 85 || sources.size() > 64) { throw new IllegalArgumentException("Invalid bounded logical candidate."); }
 		}
 	}
@@ -63,24 +67,35 @@ public final class PhantomLogicalPartyCoordinator
 			.thenComparingLong(c -> c.member().profileId())).limit(4).toList())
 		{
 			_leaderCursor = leader.member().profileId();
-			if (!leader.current().getAsBoolean() || !leader.member().role().equals("damage")) { continue; }
-			for (var source : leader.sources().stream().distinct().toList())
+			if (!leader.current().getAsBoolean() || leader.member().role().equals("pending.native_role")) { continue; }
+			final var peers = candidates.stream().filter(peer -> peer.member().profileId() != leader.member().profileId()
+				&& !peer.member().role().equals("pending.native_role") && Math.abs(peer.level() - leader.level()) <= 8
+				&& peer.current().getAsBoolean() && seeking.test(peer.member().profileId(), peer.level())).sorted(java.util.Comparator.comparingLong(peer -> peer.member().profileId())).toList();
+			final var sources = leader.sourcesMatching().apply(source -> peers.stream().anyMatch(peer -> peer.reachable().test(source)));
+			if (sources.size() > 64) { throw new IllegalArgumentException("Unbounded Party source search."); }
+			for (var source : sources.stream().distinct().toList())
 			{
 				if (!leader.reachable().test(source)) { continue; }
 				final var roster = new java.util.ArrayList<PhantomLogicalParty.Member>(); roster.add(leader.member());
+				final var levels = new java.util.ArrayList<Integer>(); levels.add(leader.level());
 				// Eligibility and full route admission precede the final roster cap.
-				candidates.stream().filter(peer -> peer.member().profileId() != leader.member().profileId() && Math.abs(peer.level() - leader.level()) <= 8
-					&& peer.current().getAsBoolean() && seeking.test(peer.member().profileId(), peer.level()) && peer.reachable().test(source))
-					.sorted(java.util.Comparator.comparingLong(peer -> peer.member().profileId())).limit(8).map(Candidate::member).forEach(roster::add);
+				for (var peer : peers)
+				{
+					if (!peer.reachable().test(source)) { continue; }
+					final var proposed = new java.util.ArrayList<>(levels); proposed.add(peer.level());
+					if (PhantomPartyFarmEligibility.forRoster(proposed).isEmpty()) { continue; }
+					roster.add(peer.member()); levels.add(peer.level());
+					if (roster.size() == 9) { break; }
+				}
 				if (roster.size() < 2) { continue; }
 				boolean currentRoster = true;
 				for (var member : roster)
 				{
 					final var candidate = _discovered.get(member.profileId());
-					if (candidate == null || !candidate.candidate().durableCurrent().getAsBoolean())
+					if (candidate == null || !candidate.candidate().durableCurrent().getAsBoolean() || !candidate.candidate().reachable().test(source))
 					{ _discovered.remove(member.profileId()); currentRoster = false; }
 				}
-				if (!currentRoster) { continue; }
+				if (!currentRoster || PhantomPartyFarmEligibility.forRoster(levels).isEmpty()) { continue; }
 				final String id = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(roster + ":" + source + ":" + now);
 				final long generation = _store.loadLogicalGroup(leader.member().profileId()).map(row -> Math.addExact(row.group().generation(), 1)).orElse(1L);
 				final var group = new PhantomLogicalParty(id, generation, leader.member().profileId(), roster, source, source.key().substring(source.key().indexOf('@') + 1),

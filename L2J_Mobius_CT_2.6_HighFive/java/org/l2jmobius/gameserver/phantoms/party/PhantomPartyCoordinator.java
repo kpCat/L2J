@@ -1766,18 +1766,22 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final Set<MemberRef> supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
 			// The current native episode owns its completion and loot. A next-pull search
 			// must not cancel it merely because the killed target is no longer selectable.
-			if (_tacticalCombat.containsKey(leaderProfileId) || _tacticalActions.containsKey(leaderProfileId)) { return true; }
-			final var target = _backend.autonomousFarmTarget(party, supportMembers);
+			if (party.members().stream().anyMatch(member -> _tacticalCombat.containsKey(member.profileId()) || _tacticalActions.containsKey(member.profileId()))) { return true; }
+			final var target = _backend.autonomousFarmTarget(party, supportMembers, currentFarmSource(authority));
 			if (target.isEmpty())
 			{
 				return false;
 			}
-			final var actor = _backend.memberSnapshot(authority.leader()).orElse(null);
+			final var puller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots(party.members()).values())).orElse(null);
+			final var actor = puller == null ? null : _backend.memberSnapshot(puller).orElse(null);
 			if (actor == null || actor.dead() || actor.casting() || actor.attacking()) { return false; }
-			final TacticalDirective directive = new TacticalDirective(DirectiveKind.ASSIST_TARGET, authority.leader(), authority.leader(), target.getAsInt(), "", "", "", 0, 0, "farm.group.native_target", 6000);
+			final var runtime = _groups.get(authority.groupId());
+			if (runtime == null) { return false; }
+			runtime.farmPuller = puller;
+			final TacticalDirective directive = new TacticalDirective(DirectiveKind.ASSIST_TARGET, puller, puller, target.getAsInt(), "", "", "", 0, 0, "farm.group.native_target", 6000);
 			if (_tactics.combatMode(directive).isEmpty()) { return false; }
-			dispatchTacticalCombat(directive, tacticalScope(authority) + "assist_target." + leaderProfileId, authority);
-			return _tacticalCombat.containsKey(leaderProfileId);
+			dispatchTacticalCombat(directive, tacticalScope(authority) + "assist_target." + puller.profileId(), authority);
+			return _tacticalCombat.containsKey(puller.profileId());
 		}
 	}
 
@@ -2805,6 +2809,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var source = currentFarmIntentView(authority);
 		return source != null && source.valid();
 	}
+	private PhantomDomainRef currentFarmSource(PartyState authority)
+	{
+		final var view = currentFarmIntentView(authority);
+		if (view == null || !view.valid()) { return null; }
+		PhantomDomainRef common = null;
+		for (var root : view.roots().values())
+		{
+			final var source = PhantomAutonomousFarmParty.farmSource(root.goal());
+			if (source == null || common != null && !common.equals(source)) { return null; }
+			common = source;
+		}
+		return common;
+	}
 
 	private boolean currentFarmReady(PartyState authority, PartySnapshot party)
 	{
@@ -2838,7 +2855,13 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		// Farm projections already reserve assigned support members for native support.
 		// Do not give their weapon an autoattack owner that can starve an urgent heal.
 		final Set<MemberRef> supportMembers = farm ? farmClaim.state().assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet()) : Set.of();
-		final List<TacticalDirective> directives = _tactics.plan(party.leader(), party.members(), snapshots, directive -> !supportMembers.contains(directive.actor()) || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()));
+		final var runtime = farm ? _groups.get(farmClaim.state().groupId()) : null;
+		if (farm && runtime != null && runtime.farmPuller == null)
+		{ runtime.farmPuller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots.values())).orElse(null); }
+		final var assist = farm && runtime != null && runtime.farmPuller != null && snapshots.containsKey(runtime.farmPuller) ? runtime.farmPuller : party.leader();
+		final List<TacticalDirective> directives = _tactics.plan(assist, party.members(), snapshots, directive ->
+			!farm || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())
+				|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor())));
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
 		final Set<Long> decided = new HashSet<>();
 		int examined = 0;
@@ -2947,15 +2970,18 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		final long profileId = directive.actor().profileId();
+		final boolean farm = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace());
+		final var supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
 		final PhantomCancellationToken token = () ->
 		{
 			final StoredPartyState current = _claims.get(profileId);
 			final var observed = _backend.observe(directive.actor()).orElse(null);
 			return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId)
-				|| PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()) && !currentFarmReady(authority, observed)
+				|| farm && (!currentFarmReady(authority, observed) || !_backend.autonomousFarmEncounterReady(observed, supportMembers, currentFarmSource(authority), directive.targetObjectId()))
 				|| observed == null || !observed.leader().equals(authority.leader()) || !observed.members().contains(directive.actor());
 		};
-		final boolean loot = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace()) && authority.leader().equals(directive.actor());
+		final var runtime = farm ? _groups.get(authority.groupId()) : null;
+		final boolean loot = farm && runtime != null && directive.actor().equals(runtime.farmPuller);
 		final var started = combat.startContentSession(new PhantomCombatRequest(profileId, directive.targetObjectId(), mode.orElseThrow(), true, loot, 60000, token), key);
 		if (started.accepted() && (started.session() != null))
 		{
@@ -3982,6 +4008,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private final String _groupId;
 		private volatile FarmSourceView farmSource;
 		private volatile NativePartyView nativeLifetime;
+		private volatile MemberRef farmPuller;
 		private final Map<Long, Long> regroupDue = new HashMap<>();
 		private GroupRuntime(String groupId) { _groupId = groupId; }
 		private String groupId() { return _groupId; }

@@ -39,4 +39,9 @@
 		<capability key="combat.debuff" weight="12"/>
 		<objective mode="AREA_PVE" weight="200"/>
 	</role>
+	<role key="utility.spoiler" support="false">
+		<capability key="profession.spoil" weight="18"/>
+		<capability key="profession.sweep" weight="18"/>
+		<objective mode="GENERAL_PVE" weight="140"/>
+	</role>
 </partyRoles>

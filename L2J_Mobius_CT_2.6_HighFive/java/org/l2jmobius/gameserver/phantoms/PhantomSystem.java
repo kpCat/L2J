@@ -617,6 +617,8 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom semantic understanding service could not enter the running state.");
 				}
 				final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(productionProfiles, _materializationService, _progressionService);
+				partyBackend.installFarmSourcePolicy((source, target) -> backgroundPlanner.partyNativeTarget(source, target.getId(),
+					new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())));
 				if (_settings.partySeeking().enabled())
 				{
 					partyBackend.installScheduledFarmDiscovery((after, limit) -> populationStore.loadManagedAfter(after, limit).stream().map(entry -> entry.profile().profileId()).toList(),

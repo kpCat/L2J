@@ -3,6 +3,8 @@
  */
 package org.l2jmobius.gameserver.phantoms.party;
 
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -102,6 +104,11 @@ public interface PhantomPartyBackend
 	{
 		return OptionalInt.empty();
 	}
+	default OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source)
+	{ return autonomousFarmTarget(party, supportMembers); }
+	/** Called by the existing Combat cancellation token; never selects another target. */
+	default boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int targetObjectId) { return true; }
+	default String autonomousFarmWaitReason(MemberRef leader) { return "WAIT_GROUP_TARGET"; }
 
 	default OptionalInt currentLevel(MemberRef member)
 	{

@@ -61,6 +61,9 @@ public interface PhantomBackgroundAuthority
 
 	default Optional<Target> planningTarget(int npcId) { return Optional.empty(); }
 	default boolean viableTarget(PlanningCombat combat, int npcId) { return true; }
+	/** Bounded durable role evidence; absence never attests native readiness. */
+	default List<Integer> partyRoleSkillIds(PhantomBackgroundState state) { return List.of(); }
+	default String potentialPartyRole(PhantomBackgroundState state, Map<Integer, Integer> learnedSkills) { return "pending.native_role"; }
 
 	record PlanningCombat(PhantomBackgroundState.CombatFacts combat, PhantomBackgroundState.Vitals vitals, double requiredMp, int skillId, int skillLevel, org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics mechanics, int classId, int actorLevel)
 	{

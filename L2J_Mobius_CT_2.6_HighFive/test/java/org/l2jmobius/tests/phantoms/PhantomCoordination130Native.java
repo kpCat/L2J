@@ -172,10 +172,10 @@ final class PhantomCoordination130Native
                 && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && (claim.isEmpty() || restart && claim.get().groupId().equals(saved.getProperty("group")))
                 && PhantomAutonomousFarmParty.ordinaryIntent(id, root);
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
-                + " role=" + PhantomHistoricalBackgroundPlanner.logicalRole(state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " position=" + state.position());
+                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " position=" + state.position());
             if (!eligible) { continue; }
             System.out.println("NATIVE130_PREFLIGHT_INPUT id=" + id + " vitals=" + state.vitals() + " combat=" + state.combat() + " loadout=" + state.loadout() + " root=" + root.goalType() + ":" + root.goalId() + ":" + root.revision());
-            if (PhantomHistoricalBackgroundPlanner.logicalRole(state).equals("support"))
+            if (inspection.authorityRecovery().potentialPartyRole(id, state).equals("support.healer"))
             {
                 boolean heal = false;
                 try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT skill_id,skill_level FROM character_skills WHERE charId=? AND class_index=?"))
@@ -208,8 +208,11 @@ final class PhantomCoordination130Native
             final var sources = inspection.planner().rendezvousSources(id, restored, root, history.deterministicSeed(), history.planOrdinal(), Set.of(), Set.of());
             System.out.println("NATIVE130_PREFLIGHT_SOURCES id=" + id + " count=" + sources.size() + " first4=" + sources.stream().limit(4).toList());
             states.put(id, restored);
-            candidates.add(new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, PhantomHistoricalBackgroundPlanner.logicalRole(restored), root.goalId(), root.revision()), restored.progress().level(), sources,
-                source -> inspection.planner().rendezvousRouteAvailable(restored, source, Set.of()), () -> true));
+            final String role = inspection.authorityRecovery().potentialPartyRole(id, restored);
+            check(!role.equals("pending.native_role"), "PREFLIGHT_DURABLE_ROLE_" + id);
+            candidates.add(new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, role, root.goalId(), root.revision()), restored.progress().level(), sources,
+                source -> inspection.planner().partySourceAvailable(restored, source, Set.of()), () -> true, () -> role.equals(inspection.authorityRecovery().potentialPartyRole(id, restored)),
+                admitted -> inspection.planner().rendezvousSources(id, restored, root, history.deterministicSeed(), history.planOrdinal(), Set.of(), Set.of(), admitted)));
         }
         final java.util.function.Predicate<PhantomLogicalParty> physical = group ->
         {
@@ -221,9 +224,11 @@ final class PhantomCoordination130Native
                     new PhantomGeoValidationRules.Point(point.x(),point.y(),point.z(),point.instanceId()))) { return false; }
             }
             final int npc = Integer.parseInt(group.objective().key().split("@")[0]);
+            final var band = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(group.members().stream().map(member -> states.get(member.profileId()).progress().level()).toList()).orElse(null);
+            if (band == null) { return false; }
             final var spawns = org.l2jmobius.gameserver.data.SpawnTable.getInstance().getSpawns(npc);
             final var mobs = spawns.stream().flatMap(spawn -> spawn.getSpawnedNpcs().stream()).filter(actor -> actor instanceof Monster && !actor.isDead() && !actor.isRaid()
-                && actor.isTargetable() && actor.getInstanceId() == point.instanceId() && World.getInstance().findObject(actor.getObjectId()) == actor
+                && actor.isTargetable() && band.contains(actor.getLevel()) && actor.getInstanceId() == point.instanceId() && World.getInstance().findObject(actor.getObjectId()) == actor
                 && Math.hypot((long) actor.getX() - point.x(), (long) actor.getY() - point.y()) <= 1200).sorted(Comparator.comparingDouble(actor -> Math.hypot((long) actor.getX() - point.x(), (long) actor.getY() - point.y()))).limit(4).toList();
             System.out.println("NATIVE130_PREFLIGHT_STOCK_SPAWN npc=" + npc + " configured=" + spawns.size() + " nearbyLive=" + mobs.size());
             return mobs.stream().anyMatch(mob -> loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), new PhantomGeoValidationRules.Point(point.x(),point.y(),point.z(),point.instanceId()),
@@ -233,7 +238,8 @@ final class PhantomCoordination130Native
         if (restart)
         {
             final var row = currentAgreement(new PhantomLogicalPartyCoordinator(parties), ids, now).orElseThrow(() -> new IllegalStateException("NATIVE130_RESTART_GROUP_NOT_CURRENT"));
-            check(row.group().groupId().equals(saved.getProperty("group")) && row.group().members().stream().allMatch(member -> candidates.stream().anyMatch(candidate -> candidate.member().profileId() == member.profileId() && candidate.sources().contains(row.group().objective()))) && physical.test(row.group()), "RESTART_CURRENT_SOURCE_PROOF");
+            check(row.group().groupId().equals(saved.getProperty("group")) && row.group().members().stream().allMatch(member -> candidates.stream().anyMatch(candidate -> candidate.member().profileId() == member.profileId() && candidate.reachable().test(row.group().objective())
+                && org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole(member.role(), candidate.member().role()))) && physical.test(row.group()), "RESTART_CURRENT_SOURCE_PROOF");
             result = row.group();
         }
         else { result = preflightAgreement(candidates, inspection.settings().partySeeking()::seeks, physical, now).orElseThrow(() -> new IllegalStateException("NATIVE130_NO_LAWFUL_FEASIBLE_SCENE" )).group(); }
