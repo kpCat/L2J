@@ -186,6 +186,11 @@ public final class PhantomCoordination130Integration
                     System.out.println("SQL130_PHYSICAL_BASELINE profile=" + id + " position=" + state.orElseThrow().position() + " vitals=" + state.orElseThrow().vitals());
                     System.out.println("SQL130_ROOT profile=" + id + " root=" + new PhantomGoalStateStore(profiles).load(id));
                     System.out.println("SQL130_PARTY_CLAIM profile=" + id + " claim=" + new PhantomPartyStore(profiles).load(id));
+                    System.out.println("SQL130_EXECUTION_GRANT profile=" + id + " grant=" + new PhantomExecutionHandoffStore(profiles).load(id).map(row ->
+                        "row=" + row.component().rowVersion() + ";generation=" + row.state().generation() + ";owner=" + row.state().owner() + ";phase=" + row.state().phase()
+                            + ";recipient=" + row.state().recipient() + ";dependencies=" + row.state().dependencies().size()));
+                    System.out.println("SQL130_NATIVE_STORE profile=" + id + " prepared=" + profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent()
+                        + " context=" + profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(component -> PhantomNativeContext.decode(component.payload()).phase()));
                     System.out.println("SQL130_SUPPLY_RECEIPT profile=" + id + " receipt=" + new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).find(id));
                     try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57 AND loc='INVENTORY'"))
                     {
