@@ -141,7 +141,7 @@ public final class PhantomCoordination130Integration
 		try
 		{
 			final var profiles = PhantomProfileRepository.open();
-			if (args[0].equals("ownership")) { executionHandoff(profiles, module); PhantomCommerceSuite.verifyUnappliedAbortSql(profiles); return; }
+			if (args[0].equals("ownership")) { executionHandoff(profiles, module); PhantomCommerceSuite.verifyUnappliedAbortSql(profiles); activityRevision130(profiles, module, false); return; }
 			if (args[0].equals("ownership-resume"))
 			{
 				final var checkpoint = read(local.resolve("ownership-restart.properties"));
@@ -167,7 +167,8 @@ public final class PhantomCoordination130Integration
 				PhantomAssertions.assertEquals(null, cold.tryAcquire(publicationId, pending.state().owner()), "Restart granted the source while root publication was checkpointed.");
 				PhantomAssertions.assertEquals(null, cold.tryAcquire(publicationId, pending.state().recipient()), "Restart granted the recipient before root publication CAS.");
 				System.out.println("SQL130_GOAL_PUBLICATION_PROCESS_RESTART_PASS;PENDING_ROOT_AND_PAYLOAD_RESTORED=true;BOTH_EXECUTORS_FENCED=true;SQL_WRITES=0;NATIVE=false");
-				System.out.println("SQL130_EXECUTION_PROCESS_RESTART_PASS;PENDING_CHECKPOINT_FENCED=true;SOURCE_AND_RECIPIENT_DENIED=true;CHANGED_OBLIGATIONS_REJECTED=true;SQL_WRITES=0;NATIVE=false"); return;
+				System.out.println("SQL130_EXECUTION_PROCESS_RESTART_PASS;PENDING_CHECKPOINT_FENCED=true;SOURCE_AND_RECIPIENT_DENIED=true;CHANGED_OBLIGATIONS_REJECTED=true;SQL_WRITES=0;NATIVE=false");
+				activityRevision130(profiles, module, true); return;
 			}
             if (args[0].equals("recover")) { PhantomCoordination130Native.recoverAgreement(module, profiles); return; }
             if (args[0].equals("handoff")) { initialRootBinding(profiles, module); return; }
@@ -327,7 +328,7 @@ public final class PhantomCoordination130Integration
         System.out.println("SQL130_INITIAL_ROOT_BIND_PASS;ONE_CAS_WINNER=true;STALE_ROOT_AND_CLAIM=REJECTED;CURSOR_EXP_SP_GOAL_BASELINE=UNCHANGED;NATIVE_ADMISSION=NOT_GRANTED");
     }
 	/** Real JDBC settlement through the existing Background transaction; these are SQL fixtures, never native kill evidence. */
-	private static void backgroundReceipts(PhantomProfileRepository profiles, Path module) throws Exception
+	private static List<ReceiptFixture> receiptFixtures(PhantomProfileRepository profiles, Path module, int size) throws Exception
 	{
 		org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT = module.resolve("dist/game").toFile();
 		org.l2jmobius.gameserver.config.PlayerConfig.load();
@@ -338,7 +339,7 @@ public final class PhantomCoordination130Integration
 		final var skills = levels.entrySet().stream().map(entry -> new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoGetSkill(entry.getKey(), entry.getValue())).toList();
 		final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@farm.receipt130");
 		final var fixtures = new java.util.ArrayList<ReceiptFixture>();
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < size; i++)
 		{
 			final var profile = profiles.create(null); final int objectId = Math.toIntExact(700_000_000L + profile.profileId());
 			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("INSERT INTO characters (charId,char_name,account_name,level,exp,sp,expBeforeDeath,curHp,maxHp,curMp,maxMp,curCp,maxCp,x,y,z,heading,classid,base_class,race,vitality_points,online) VALUES (?,?,?,1,0,0,0,100,100,100,100,100,100,0,0,0,0,0,0,0,1,0)"))
@@ -372,6 +373,12 @@ public final class PhantomCoordination130Integration
 				new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.CatchupMutation(history,stored.rowVersion(),history.advanceTo(101)));
 			fixtures.add(new ReceiptFixture(profile.profileId(),objectId,goal,transaction,command));
 		}
+		return fixtures;
+	}
+	private static void backgroundReceipts(PhantomProfileRepository profiles, Path module) throws Exception
+	{
+		final var fixtures = receiptFixtures(profiles, module, 3);
+		final var source = fixtures.getFirst().goal().validSources().getFirst();
 		final var group = new PhantomLogicalParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("receipt-group130:" + fixtures.getFirst().profileId()),1,fixtures.getFirst().profileId(),
 			fixtures.stream().map(f -> new PhantomLogicalParty.Member(f.profileId(),"damage",f.goal().goalId(),0)).toList(),source,"farm.receipt130",PhantomLogicalParty.Phase.AGREED,0,System.currentTimeMillis(),"");
 		final var coordinator = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
@@ -1084,11 +1091,186 @@ public final class PhantomCoordination130Integration
 		PhantomAssertions.assertTrue(committed.rowVersion() == concurrent.rowVersion() + 1 && java.util.Arrays.equals(second, committed.payload()), "Root and companion did not publish once in the same transfer.");
 		System.out.println("SQL130_GOAL_PUBLICATION_RACE_PASS;ONE_DECLARATION_WINNER=true;CHANGED_COMPANION_ATOMIC_ROLLBACK=true;EXPIRATION_NO_EFFECTS=true;RETRY_ROOT_AND_COMPANION_ONE_CAS=true;LOST_CAS_REPLY_RECOVERED=true;NATIVE=false");
 	}
+	private static void activityRevision130(PhantomProfileRepository profiles, Path module, boolean resume) throws Exception
+	{
+		final Path file = module.resolve(".phantom-local/task130/activity-restart.properties");
+		final var saved = resume ? read(file) : new Properties(); final var leaders = new java.util.ArrayList<Long>();
+		for (int size : List.of(2, 9))
+		{
+			final var parties = new PhantomPartyStore(profiles); final var logical = new PhantomLogicalPartyCoordinator(parties);
+			ReceiptFixture replay = null;
+			org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup row;
+			if (!resume)
+			{
+				final var fixtures = receiptFixtures(profiles, module, size);
+				replay = fixtures.getFirst();
+				for (var fixture : fixtures) { fixture.commitOnce(); fixture.verify(); fixture.assertTotals(); }
+				final var group = new PhantomLogicalParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("activity130:" + fixtures.getFirst().profileId()), 1, fixtures.getFirst().profileId(),
+					fixtures.stream().map(f -> new PhantomLogicalParty.Member(f.profileId(), "damage", f.goal().goalId(), f.goal().revision())).toList(),
+					fixtures.getFirst().goal().validSources().getFirst(), "farm.receipt130", PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "");
+				row = logical.agree(group).orElseThrow(); row = logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, 0, System.currentTimeMillis(), "");
+				row = logical.refreshBackground(row, System.currentTimeMillis()); PhantomAssertions.assertEquals(101L, row.group().backgroundCursor(), "Activity fixture lacks a real confirmed watermark.");
+				row = logical.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, 101, System.currentTimeMillis(), "");
+				row = logical.transition(row, PhantomLogicalParty.Phase.ASSEMBLING, 101, System.currentTimeMillis(), "");
+				row = logical.transition(row, PhantomLogicalParty.Phase.DRAINING, 101, System.currentTimeMillis(), "REPLAN_ROUTE");
+				final var owner = new PhantomDomainRef("execution.party", group.groupId() + ".1"); final var executions = new PhantomExecutionHandoffStore(profiles);
+				for (var member : group.members()) { executions.initialize(member.profileId(), owner); }
+				row = logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, 101, System.currentTimeMillis(), "REPLAN_ROUTE");
+				leaders.add(group.leaderProfileId()); saved.setProperty("leader." + size, Long.toString(group.leaderProfileId()));
+			}
+			else { row = logical.groupFor(Long.parseLong(saved.getProperty("leader." + size))).orElseThrow(); }
+			final var driver = activityDriver(profiles, logical, row.group());
+			if (!resume)
+			{
+				final var prematurePlans = driver.history().planLogicalActivity(row.group(), driver.clock().get());
+				PhantomAssertions.assertEquals(size, prematurePlans.size(), "All-member ordinary planner did not select a common B.");
+				final var beforeRelease = row;
+				PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> parties.beginActivityRevision(beforeRelease, prematurePlans, driver.clock().get()), "Activity changed before execution.party released its members.");
+				PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> logical.disband(beforeRelease, driver.clock().get(), "EXPIRED"), "Terminal claims released before old Group custody recovered as Solo.");
+				final int heldObject = profiles.find(row.group().members().getLast().profileId()).orElseThrow().characterObjectId();
+				try (var held = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(heldObject, PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+				{
+					driver.control().onPulse();
+					PhantomAssertions.assertFalse(driver.control().permits(row.group().members().getLast().profileId()), "A native lease was ignored during release.");
+				}
+				pulseActivity(driver);
+				for (var member : row.group().members()) { PhantomAssertions.assertEquals(PhantomExecutionHandoff.solo(member.profileId()), driver.executions().load(member.profileId()).orElseThrow().state().owner(), "Group release failed."); }
+				final var plans = driver.history().planLogicalActivity(row.group(), driver.clock().get());
+				final var expected = row; final var winners = new java.util.concurrent.atomic.AtomicInteger();
+				race(() -> { parties.beginActivityRevision(expected, plans, driver.clock().get()); winners.incrementAndGet(); }, () -> { parties.beginActivityRevision(expected, plans, driver.clock().get()); winners.incrementAndGet(); });
+				PhantomAssertions.assertEquals(1, winners.get(), "Concurrent activity requests both committed.");
+				row = logical.groupFor(row.group().leaderProfileId()).orElseThrow();
+				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.STATE_CONFLICT, replay.transaction().execute(replay.command()).status(), "Pending activity replayed a historical interval.");
+				final var fenced = row;
+				final var fencedRoot = driver.goals().load(row.group().leaderProfileId()).orElseThrow();
+				try (var completion = driver.gate().enterCompletionOwner(PhantomExecutionHandoff::solo))
+				{ PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> driver.goals().replace(fenced.group().leaderProfileId(), fencedRoot.rowVersion(), fencedRoot.goal()), "ACTIVE root continuation bypassed the durable activity fence through completion admission."); }
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> logical.disband(fenced, driver.clock().get(), "MEMBER_LEFT"), "Disband orphaned pending activity journals.");
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> parties.updateLogicalGroup(fenced.group().transition(PhantomLogicalParty.Phase.BACKGROUND, 101, driver.clock().get(), "WAIT_DEMAND"), fenced.rowVersion()), "An ordinary phase update removed the publication fence.");
+				for (var member : row.group().members())
+				{
+					final var raw = profiles.findComponent(member.profileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+					saved.setProperty("background." + member.profileId(), org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(raw.payload()));
+					PhantomAssertions.assertFalse(driver.control().permits(member.profileId()), "Pending group revision allowed a fresh executor.");
+					PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.STATE_CONFLICT, new PhantomBackgroundTransaction().markMaterialized(member.profileId(), profiles.find(member.profileId()).orElseThrow().characterObjectId()).status(), "SQL activity fence allowed materialization.");
+				}
+				final var first = parties.activityRoots(row).getFirst();
+				driver.goals().requestPublication(first.profileId(), first.beforeGoalVersion(), first.goal(), List.of(first.history())); pulseActivity(driver);
+				PhantomAssertions.assertEquals(first.goal(), driver.goals().load(first.profileId()).orElseThrow().goal(), "First staged root could not use the normal Goal transfer.");
+				PhantomAssertions.assertTrue(parties.finishActivityRevision(row, driver.clock().get(), false).isEmpty(), "Partially published roots granted a new group generation.");
+				System.out.println("SQL130_ACTIVITY_RESTART_CUT;MEMBERS=" + size + ";PHASE=ACTIVITY_PENDING;ONE_ROOT_COMMITTED=true;GROUP_EXECUTION_RELEASED=true;CURSOR=101;NATIVE=false");
+			}
+			else
+			{
+				PhantomAssertions.assertTrue(row.group().activityPending() && row.group().backgroundCursor() == 101, "Restart lost the pending aggregate/cursor.");
+				pulseActivity(driver);
+				final var receiptPending = row; final var proposals = parties.activityRoots(row);
+				PhantomCommerceSuite.verifyActivityReceipt130(profiles, driver.goals(), row.group().members().getLast().profileId(), () ->
+				{
+					for (var plan : proposals)
+					{ if (!driver.goals().load(plan.profileId()).orElseThrow().goal().equals(plan.goal())) { driver.goals().requestPublication(plan.profileId(), plan.beforeGoalVersion(), plan.goal(), List.of(plan.history())); } }
+					pulseActivity(driver);
+					PhantomAssertions.assertTrue(parties.finishActivityRevision(receiptPending, driver.clock().get(), false).isEmpty(), "Activity ignored active Commerce.");
+				});
+				pulseActivity(driver);
+				final var pending = row; final var winners = new java.util.concurrent.atomic.AtomicInteger();
+				race(() -> { parties.finishActivityRevision(pending, driver.clock().get(), false).orElseThrow(); winners.incrementAndGet(); }, () -> { parties.finishActivityRevision(pending, driver.clock().get(), false).orElseThrow(); winners.incrementAndGet(); });
+				PhantomAssertions.assertEquals(1, winners.get(), "Concurrent final activity CAS both committed.");
+				row = logical.groupFor(row.group().leaderProfileId()).orElseThrow(); final var next = row.group();
+				PhantomAssertions.assertTrue(next.generation() == 2 && next.backgroundCursor() == 101 && !next.objective().equals(pending.group().objective()), "Activity revision lost identity, generation or earned time.");
+				for (var member : next.members())
+				{
+					final var state = profiles.findComponent(member.profileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+					PhantomAssertions.assertEquals(saved.getProperty("background." + member.profileId()), org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(state.payload()), "Activity metadata changed earned Background facts.");
+					PhantomAssertions.assertTrue(driver.goals().load(member.profileId()).orElseThrow().goal().validSources().contains(next.objective()), "Claims and current root disagree after revision.");
+					PhantomAssertions.assertEquals(101L, new PhantomBackgroundCatchupStore(profiles, driver.goals()).load(member.profileId()).orElseThrow().state().cursorEpochMinute(), "Per-profile cursor was replayed.");
+					try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT exp,sp FROM characters WHERE charId=?"))
+					{ statement.setInt(1, profiles.find(member.profileId()).orElseThrow().characterObjectId()); try (var rows = statement.executeQuery()) { PhantomAssertions.assertTrue(rows.next() && rows.getLong(1) == 1 && rows.getLong(2) == 1, "Activity/restart duplicated actual EXP/SP."); } }
+				}
+				PhantomAssertions.assertTrue(driver.failures().isEmpty(), "Existing execution driver failed activity recovery: " + driver.failures());
+				row = logical.transition(row, PhantomLogicalParty.Phase.DRAINING, 101, driver.clock().get(), "REPLAN_ROUTE");
+				row = logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, 101, driver.clock().get(), "REPLAN_ROUTE");
+				final var timeoutPlans = driver.history().planLogicalActivity(row.group(), driver.clock().get());
+				final var timeout = parties.beginActivityRevision(row, timeoutPlans, driver.clock().get()); logical.groupFor(row.group().leaderProfileId());
+				final var delayed = timeoutPlans.getFirst();
+				driver.goals().requestPublication(delayed.profileId(), delayed.beforeGoalVersion(), delayed.goal(), List.of(delayed.history())); driver.control().onPulse();
+				driver.clock().addAndGet(61001);
+				PhantomAssertions.assertTrue(parties.finishActivityRevision(timeout, driver.clock().get(), true).isEmpty(), "Timeout discarded a pending Goal handoff.");
+				pulseActivity(driver);
+				final var waiting = parties.finishActivityRevision(timeout, driver.clock().get(), true).orElseThrow();
+				PhantomAssertions.assertTrue(waiting.group().generation() == 2 && waiting.group().backgroundCursor() == 101 && waiting.group().activityReplanRequired()
+					&& waiting.group().nextDueMillis() > driver.clock().get() && !waiting.group().activityPending(), "Timeout failed to settle into a finite nonexecuting WAIT.");
+				PhantomAssertions.assertEquals(next.objective(), waiting.group().objective(), "Timeout silently selected another activity.");
+				System.out.println("SQL130_ACTIVITY_REVISION_PASS;MEMBERS=" + size + ";A_DRAIN_SOURCE_B=true;TWO_CAS_RACES=ONE_WINNER;JVM_RESTART=PARTIAL_ROOT_PUBLICATION;CURSOR=101;EXP_SP=ONCE;NATIVE=false");
+			}
+		}
+		if (!resume) { try (var writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) { saved.store(writer, "Existing TEST130 activity restart checkpoint; unmanaged SQL fixtures only"); } }
+	}
+	private record ActivityDriver(PhantomGoalStateStore goals, PhantomExecutionHandoffStore executions, PhantomExecutionAdmission gate,
+		org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort control, java.util.concurrent.atomic.AtomicLong clock,
+		org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService history, java.util.List<RuntimeException> failures) { }
+	private static ActivityDriver activityDriver(PhantomProfileRepository profiles, PhantomLogicalPartyCoordinator logical, PhantomLogicalParty group)
+	{
+		final var goals = new PhantomGoalStateStore(profiles); final var executions = new PhantomExecutionHandoffStore(profiles); final var gate = new PhantomExecutionAdmission(16);
+		final var clock = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis()); final var failures = new java.util.ArrayList<RuntimeException>();
+		final var metrics = new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
+		final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics,
+			new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false, 64, 16, metrics), 16);
+		final var backend = new org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend(profiles, materialization, null);
+		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+			@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+		};
+		final var first = new PhantomBackgroundStateCodec().decode(profiles.findComponent(group.leaderProfileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+		final var background = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), new PhantomBackgroundTransaction(),
+			new SqlTravelAuthority(first.hashes(), first.position()), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(), signals, () -> materialization);
+		final var history = new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService(profiles, goals,
+			org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.receiptPlanner130(true), background, materialization);
+		history.bindLogicalGroups(id -> logical.knownGroupFor(id).map(row -> row.group()), id -> logical.groupFor(id));
+		final var port = new PhantomDecisionEngine.ExecutionOwner()
+		{
+			@Override public PhantomDecisionEngine.ExecutionReadiness prepareYield(PhantomExecutionHandoffStore.Stored row, long now)
+			{
+				final var receipt = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).find(row.profileId()).orElse(null);
+				final boolean ready = receipt == null || receipt.receipt().state().terminal();
+				return new PhantomDecisionEngine.ExecutionReadiness(ready, "sql130.receipt_boundary", ready ? now : now + 1000);
+			}
+			@Override public PhantomDecisionEngine.ExecutionReadiness prepareRecovery(PhantomExecutionHandoffStore.Stored row, long now) { return prepareYield(row, now); }
+			@Override public boolean checkpointBoundary(PhantomExecutionHandoffStore.Stored row, Runnable callback)
+			{
+				final var actor = backend.currentMember(row.profileId()).orElseThrow();
+				return backend.withUnmaterializedNativeAbsence(actor, () -> { callback.run(); return true; });
+			}
+			@Override public PhantomDecisionEngine.ExecutionCheckpoint checkpoint(PhantomExecutionHandoffStore.Stored row, boolean recovery, long now)
+			{
+				final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundCatchupState.COMPONENT_TYPE,
+					org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE, PhantomLogicalParty.ACTIVITY_COMPONENT_TYPE);
+				return goals.withPublicationCheckpoint(row.profileId(), new PhantomDecisionEngine.ExecutionCheckpoint(List.of(), types,
+					types.stream().map(type -> profiles.findComponent(row.profileId(), type)).flatMap(Optional::stream).toList()));
+			}
+			@Override public PhantomDecisionEngine.ExecutionAuthority authority(PhantomExecutionHandoffStore.Stored row, long now)
+			{
+				if (row.state().requestId().startsWith("goal.")) { return goals.publicationAuthority(row, now); }
+				return new PhantomDecisionEngine.ExecutionAuthority(prepareYield(row, now), List.of(profiles.findComponent(row.profileId(), PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow()));
+			}
+		};
+		final var engine = executionDriverEngine(executions, gate, port, 16);
+		final var control = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(engine, executions, gate, 16,
+			PhantomExecutionHandoff::solo, _ -> null, id -> goals.load(id).map(root -> root.goal()).orElse(null),
+			(id, _) -> !history.activityPending(id), (_, _) -> true, clock::get, (_, failure) -> failures.add(failure));
+		control.installGoalPublications(goals); group.members().forEach(member -> control.watch(member.profileId()));
+		return new ActivityDriver(goals, executions, gate, control, clock, history, failures);
+	}
+	private static void pulseActivity(ActivityDriver driver)
+	{ for (int tick = 0; tick < 8; tick++) { driver.clock().addAndGet(1001); driver.control().onPulse(); } }
 	private static PhantomDecisionEngine executionDriverEngine(PhantomExecutionHandoffStore store, PhantomExecutionAdmission gate, PhantomDecisionEngine.ExecutionOwner port)
+	{ return executionDriverEngine(store, gate, port, 4); }
+	private static PhantomDecisionEngine executionDriverEngine(PhantomExecutionHandoffStore store, PhantomExecutionAdmission gate, PhantomDecisionEngine.ExecutionOwner port, int capacity)
 	{
 		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry(); candidates.seal();
 		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry(); handlers.seal();
-		final var engine = new PhantomDecisionEngine(new PhantomGoalStateStore(PhantomProfileRepository.open()), candidates, handlers, new org.l2jmobius.gameserver.phantoms.PhantomMetrics(), 4);
+		final var engine = new PhantomDecisionEngine(new PhantomGoalStateStore(PhantomProfileRepository.open()), candidates, handlers, new org.l2jmobius.gameserver.phantoms.PhantomMetrics(), capacity);
 		engine.installExecutionHandoff(store, gate, Map.of("execution.solo", port, "execution.party", port)); engine.start(); return engine;
 	}
 	private static PhantomGoal executionFixtureGoal(PhantomGoal value, long id)

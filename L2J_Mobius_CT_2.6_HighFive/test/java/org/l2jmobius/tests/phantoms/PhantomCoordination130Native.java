@@ -65,14 +65,6 @@ final class PhantomCoordination130Native
         final var ids = Arrays.stream(saved.getProperty("profiles").split(",")).map(Long::parseLong).toList();
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
         var current = logical.groupFor(ids.getFirst()).orElse(null);
-        if (current != null && !current.group().anchorId().equals(saved.getProperty("anchor")))
-        {
-            check(current.group().phase() == PhantomLogicalParty.Phase.AGREED && ids.stream().allMatch(id ->
-                World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null
-                    && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(profiles.find(id).orElseThrow().characterObjectId()) == null), "ORIGINAL_OBJECTIVE_ZERO_WORLD");
-            logical.disband(current, System.currentTimeMillis(), "REJECT_DIFFERENT_FIXTURE_OBJECTIVE"); current = null;
-            System.out.println("SQL130_DIFFERENT_OBJECTIVE_REJECTED_BEFORE_NATIVE;GAMEPLAY_WRITES=0");
-        }
         if (current != null && current.group().expiresAtMillis() <= System.currentTimeMillis())
         {
             expireAbsent(logical, current, System.currentTimeMillis(), () -> ids.stream().allMatch(id ->
@@ -112,10 +104,10 @@ final class PhantomCoordination130Native
             members.add(new PhantomLogicalParty.Member(member.profileId(), member.role(), root.goalId(), root.revision()));
         }
         check(members.size() >= 2 && members.stream().anyMatch(member -> member.profileId() == old.leaderProfileId()), "RECREATION_CONSENTED_ROSTER");
-        final String anchor = saved.getProperty("anchor");
-        final var objective = old.anchorId().equals(anchor) ? old.objective()
-            : new PhantomPartyStore(profiles).loadRendezvous(old.leaderProfileId()).orElseThrow().state().source();
-        check(objective.key().endsWith("@" + anchor), "ORIGINAL_FIXTURE_OBJECTIVE_WITNESS");
+        final String anchor = old.anchorId();
+        final var objective = old.objective();
+        if (members.stream().anyMatch(member -> !new PhantomGoalStateStore(profiles).load(member.profileId()).orElseThrow().goal().validSources().contains(objective)))
+        { System.out.println("NATIVE130_RECREATION_WAIT requiredChange=ordinary-common-objective;GAMEPLAY_WRITES=0"); return; }
         logical.agree(new PhantomLogicalParty(old.groupId(), old.generation() + 1, old.leaderProfileId(), members, objective, anchor, PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "")).orElseThrow();
         System.out.println("NATIVE130_ZERO_WORLD_RECREATION generation=" + (old.generation() + 1) + " sameGroupId=true actualDurableEligibility=true roster=" + members.stream().map(PhantomLogicalParty.Member::profileId).toList() + " objective=" + objective);
     }
@@ -544,7 +536,6 @@ final class PhantomCoordination130Native
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
-        final int objectiveNpc = Integer.parseInt(logical.groupFor(ids.getFirst()).orElseThrow().group().objective().key().split("@")[0]);
         final Map<org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target, TargetSeen> targets = new LinkedHashMap<>();
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false;
@@ -558,6 +549,7 @@ final class PhantomCoordination130Native
         {
             final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow();
             final var group = logicalRow.group();
+            final int objectiveNpc = Integer.parseInt(group.objective().key().split("@")[0]);
             check(group.groupId().equals(groupId), "GROUP_ID_PRESERVED");
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId())).filter(Objects::nonNull).toList();
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull).filter(value -> value.getMemberCount() >= 2 && value.getMembers().stream().allMatch(actor -> ids.stream().anyMatch(id -> profiles.find(id).orElseThrow().characterObjectId() == actor.getObjectId()))).findFirst().orElse(null);
@@ -650,7 +642,7 @@ final class PhantomCoordination130Native
                         + " policy=" + (admission == null ? null : admission.admission()) + " materializationFailure=" + (admission == null ? null : admission.lastMaterializationFailure())
                         + " busy=" + (admission == null ? "" : admission.busyReason()) + " pins=" + (admission == null ? "" : admission.retentionPins())
                         + " supply=" + life.get("supply") + " supplyReason=" + life.get("supply.reason") + " learning=" + life.get("learning")
-                        + " rendezvous=" + life.get("party.rendezvous") + " partyClaim=" + life.get("party.claim") + " travel=" + life.get("farm.travel.reason") + " vitals=" + life.get("native.vitals") + " economy=" + life.get("native.economy") + " owner=" + life.get("native.owner"));
+                        + " rendezvous=" + life.get("party.rendezvous") + " partyClaim=" + life.get("party.claim") + " travel=" + life.get("farm.travel.reason") + " routeProof=" + life.get("farm.travel.proof") + " objective=" + group.objective() + " generation=" + group.generation() + " vitals=" + life.get("native.vitals") + " economy=" + life.get("native.economy") + " owner=" + life.get("native.owner"));
                     if (actor != null) { System.out.println("NATIVE130_POSITION profile=" + id + " xyz=" + actor.getLocation() + " moving=" + actor.isMoving()); }
                     idleAssembly &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");
                     stableCoordination &= !String.valueOf(life.get("supply")).contains("status=ACTIVE") && !String.valueOf(life.get("learning")).contains("status=ACTIVE");

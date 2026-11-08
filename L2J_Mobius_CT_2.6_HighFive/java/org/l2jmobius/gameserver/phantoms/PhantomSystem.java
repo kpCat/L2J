@@ -984,7 +984,7 @@ public final class PhantomSystem
 							public boolean unusable(MemberRef actor, long epoch, PhantomGoal root)
 							{
 								final var failure = _visibleFarmTravel.lastFailure(actor.profileId());
-								return failure != null && failure.disposition() == PhantomVisibleFarmTravel.Disposition.ROUTE_UNUSABLE
+								return failure != null && (failure.disposition() == PhantomVisibleFarmTravel.Disposition.ROUTE_UNUSABLE || failure.disposition() == PhantomVisibleFarmTravel.Disposition.INDETERMINATE_ROUTE)
 									&& failure.goalId() == root.goalId() && failure.revision() == root.revision()
 									&& failure.objectId() == actor.characterObjectId() && failure.epoch() == epoch;
 								}
@@ -1005,6 +1005,28 @@ public final class PhantomSystem
 				{
 					final var owner = _executionControl.owner(id);
 					return owner == null || owner.equals(new PhantomDomainRef("execution.party", group.groupId() + "." + group.generation()));
+				});
+				autonomousFarm.installTerminalHandoff(_executionControl::wake);
+				autonomousFarm.installActivityRevision(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityRevision()
+				{
+					@Override public java.util.List<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot> plan(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now)
+					{
+						for (var member : group.members())
+						{
+							final var execution = _executionHandoffs.load(member.profileId()).orElseThrow().state();
+							if (!execution.owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(member.profileId()))
+								|| execution.phase() != org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE || execution.dependencies().isEmpty())
+							{ _executionControl.wake(member.profileId()); throw new java.util.ConcurrentModificationException("Activity waits for old owner release."); }
+						}
+						return _historicalBackgroundService.planLogicalActivity(group, now);
+					}
+					@Override public void publish(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot plan)
+					{
+						final var current = productionGoals.load(plan.profileId()).orElse(null);
+						if (current != null && current.goal().equals(plan.goal())) { return; }
+						try { productionGoals.requestPublication(plan.profileId(), plan.beforeGoalVersion(), plan.goal(), java.util.List.of(plan.history())); }
+						catch (java.util.ConcurrentModificationException recoveryPending) { _executionControl.wake(plan.profileId()); }
+					}
 				});
 				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) ->
 				{
@@ -2630,7 +2652,12 @@ public final class PhantomSystem
 			result.put("party.rendezvous", configured._partyCoordinator.rendezvousProgress(profileId));
 			result.put("party.claim", configured._partyCoordinator.claim(profileId).toString());
 		}
-		if (configured._visibleFarmTravel != null) { result.put("farm.travel.reason", configured._visibleFarmTravel.reason(profileId)); }
+		if (configured._visibleFarmTravel != null)
+		{
+			result.put("farm.travel.reason", configured._visibleFarmTravel.reason(profileId));
+			final var failure = configured._visibleFarmTravel.lastFailure(profileId);
+			if (failure != null) { result.put("farm.travel.proof", failure.proof().diagnostic()); }
+		}
 		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
 		if (configured._visibleAutoPlay != null) { result.put("native.autoplay", configured._visibleAutoPlay.snapshotContinuation(profileId).scalarMap().toString()); }
 		final var commerce = configured._commerceReceiptStore == null ? null : configured._commerceReceiptStore.find(profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
@@ -3400,7 +3427,7 @@ public final class PhantomSystem
 	}
 
 	private boolean soloExecution(long id)
-	{ return _executionAdmission != null && _executionAdmission.permits(id, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)); }
+	{ return _executionAdmission != null && (_historicalBackgroundService == null || !_historicalBackgroundService.activityPending(id)) && _executionAdmission.permits(id, org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)); }
 	private PhantomDomainRef executionPartyOwner(long id)
 	{
 		final var group = _logicalParties == null ? null : _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
@@ -3426,7 +3453,8 @@ public final class PhantomSystem
 			|| _partyCoordinator.pendingInvitation(id).isPresent() && !autonomousInvitation(id))
 		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
-		if (!executionGroupBinding(group, id, root)) { return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
+		if (!executionGroupBinding(group, id, root) || group.phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING || group.activityReplanRequired())
+		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		return executionPartyOwner(id);
 	}
 	static boolean executionGroupBinding(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long id, PhantomGoal root)
@@ -3579,7 +3607,7 @@ public final class PhantomSystem
 			&& fact.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).orElse(false)) { return null; }
 		final long now = System.currentTimeMillis();
 		final var group = _logicalParties == null ? null : _logicalParties.knownGroupFor(profileId).map(row -> row.group()).orElse(null);
-		if (group != null && (group.phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING
+		if (group != null && (group.activityReplanRequired() || group.phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING
 			|| group.phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE
 			|| group.phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND && group.nextDueMillis() > now)) { return null; }
 		final var wake = _logicalWakeDemands.get(profileId);

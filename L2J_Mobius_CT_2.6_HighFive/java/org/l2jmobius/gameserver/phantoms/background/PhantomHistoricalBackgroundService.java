@@ -134,7 +134,45 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty logicalGroup(long profileId, PhantomGoal root)
 	{
 		if (root == null || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)) { return null; }
-		return _logicalGroups.apply(profileId).filter(group -> group.active() && group.members().stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == root.goalId() && root.revision() >= member.goalRevision())).orElse(null);
+		return _logicalGroups.apply(profileId).filter(group -> group.active() && !group.activityReplanRequired() && group.members().stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == root.goalId() && root.revision() >= member.goalRevision())).orElse(null);
+	}
+	public boolean activityPending(long id) { return _logicalGroups.apply(id).map(group -> group.activityPending()).orElse(false); }
+	/** All-member ordinary planning only; this neither publishes a root nor advances a receipt. */
+	public List<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot> planLogicalActivity(
+		org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now)
+	{
+		final var states = new java.util.LinkedHashMap<Long, PhantomBackgroundState>();
+		final var goals = new java.util.LinkedHashMap<Long, StoredGoal>();
+		final var histories = new java.util.LinkedHashMap<Long, Snapshot>();
+		final var generation = _planner.generation();
+		List<PhantomDomainRef> common = null;
+		for (var member : group.members())
+		{
+			final long id = member.profileId(); final var state = _background.acquisitionSnapshot(id).orElse(null);
+			final var goal = _goals.load(id).orElse(null); final var history = _store.load(id).orElse(null);
+			if (state == null || goal == null || history == null || state.state() != PhantomBackgroundState.State.READY || !state.hashes().equals(generation.authorityHashes())
+				|| !member.role().equals(PhantomHistoricalBackgroundPlanner.logicalRole(state)) || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
+			{ return List.of(); }
+			final var sources = _planner.rendezvousSources(id, state, goal.goal(), history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of()).stream()
+				.filter(source -> !source.equals(group.objective()) && _planner.rendezvousRouteAvailable(state, source, Set.of())).toList();
+			if (common == null) { common = new java.util.ArrayList<>(sources); } else { common.retainAll(sources); }
+			states.put(id, state); goals.put(id, goal); histories.put(id, history);
+		}
+		for (var source : common == null ? List.<PhantomDomainRef>of() : common)
+		{
+			final var proposals = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot>();
+			for (var member : group.members())
+			{
+				final long id = member.profileId(); final var before = histories.get(id);
+				final var planned = _planner.proposeLogicalActivity(id, states.get(id), goals.get(id).goal(), before.state().deterministicSeed(), Math.addExact(before.state().planOrdinal(), 1), source);
+				if (!planned.ready()) { break; }
+				final var history = before.state().withPlan(planned.goal().goalId(), planned.goal().revision(), Math.addExact(before.state().planOrdinal(), 1), planned.planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
+				proposals.add(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot(group.groupId(), group.generation(), id, goals.get(id).rowVersion(), now + 60_000, planned.goal(),
+					new PhantomProfileRepository.ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, before.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, new PhantomBackgroundCatchupStateCodec().encode(history))));
+			}
+			if (proposals.size() == group.members().size() && _planner.generation().equals(generation)) { return proposals; }
+		}
+		return List.of();
 	}
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
@@ -234,9 +272,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if ((action == null) || (action.player() != failure.player()) || !Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), failure.goal())) { return false; }
 			return switch (failure.disposition())
 			{
-				case ROUTE_UNUSABLE, NATIVE_ACTION_REJECTED ->
+				case ROUTE_UNUSABLE, NATIVE_ACTION_REJECTED, INDETERMINATE_ROUTE ->
 				{
-					if (failure.stepId().startsWith("live.approach." + PhantomBackgroundGoalSpec.parse(failure.goal()).anchorId() + "@"))
+					if (failure.disposition() == PhantomVisibleFarmTravel.Disposition.INDETERMINATE_ROUTE || failure.stepId().startsWith("live.approach." + PhantomBackgroundGoalSpec.parse(failure.goal()).anchorId() + "@"))
 					{
 						final long now = _visibleClock.getAsLong();
 						synchronized (_visibleFailures)
@@ -1933,7 +1971,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** A bounded worker call resolves durable claims before any historical planning or interval work. */
 	private Result refreshLogicalBeforeBackground(long profileId, Snapshot current)
 	{
-		try { _refreshLogicalGroups.accept(profileId); return null; }
+		try
+		{
+			_refreshLogicalGroups.accept(profileId);
+			return activityPending(profileId) ? Result.rejected(ResultStatusCode.RETRY, "catchup.logical_activity.pending", current) : null;
+		}
 		catch (RuntimeException unavailable) { return Result.rejected(ResultStatusCode.RETRY, "catchup.logical_group.persistence_retry", current); }
 	}
 	private boolean logicalAssemblyHoldsRoot(long profileId, PhantomGoal root, boolean sharedPreparation)
@@ -1949,6 +1991,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		try
 		{
+			if (activityPending(profileId)) { return false; }
 			if (_visiblePublications.containsKey(profileId)) { return false; }
 			final Snapshot current = _store.load(profileId).orElse(null);
 			if ((current == null) || !current.state().blocksNormalOperation()) { return true; }

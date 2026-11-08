@@ -135,8 +135,36 @@ public final class PhantomLogicalPartyCoordinator
 		return remember(_store.updateLogicalGroup(expected.group().transition(phase, cursor, nextDue, reason), expected.rowVersion()));
 	}
 	public StoredLogicalGroup refreshBackground(StoredLogicalGroup expected, long now) { return remember(_store.refreshLogicalBackground(expected, now)); }
+	public interface ActivityRevision
+	{
+		/** Called after projection absence; reject until every old Group grant has recovered as Solo. */
+		List<PhantomLogicalParty.ActivityRoot> plan(PhantomLogicalParty group, long now);
+		void publish(PhantomLogicalParty.ActivityRoot plan);
+	}
+	/** One bounded step on the existing Party control port. All incomplete phases remain fenced in SQL. */
+	public StoredLogicalGroup recoverActivity(StoredLogicalGroup expected, long now, ActivityRevision revision)
+	{
+		final var group = expected.group();
+		if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND || !group.activityReplanRequired() || now < group.nextDueMillis()) { return expected; }
+		if (!group.activityPending())
+		{
+			try
+			{
+				final var plans = revision.plan(group, now);
+				if (now >= group.expiresAtMillis()) { return expire(expected, now).orElse(expected); }
+				if (plans.isEmpty()) { return transition(expected, group.phase(), group.backgroundCursor(), now + 300_000, "REPLAN_NO_COMMON_SOURCE"); }
+				return remember(_store.beginActivityRevision(expected, plans, now));
+			}
+			catch (java.util.ConcurrentModificationException releasePending) { return transition(expected, group.phase(), group.backgroundCursor(), now + 5000, "REPLAN_WAIT_RELEASE"); }
+		}
+		final var plans = _store.activityRoots(expected);
+		final boolean expired = plans.stream().anyMatch(plan -> now >= plan.deadline());
+		if (!expired) for (var plan : plans) { revision.publish(plan); }
+		return _store.finishActivityRevision(expected, now, expired).map(this::remember).orElse(expected);
+	}
 	private void requireIdle(StoredLogicalGroup expected)
 	{
+		if (expected.group().activityPending()) { throw new IllegalStateException("Activity publication must settle before membership changes."); }
 		if (_store.loadLogicalGroup(expected.group().leaderProfileId()).filter(expected::equals).isEmpty()) { throw new java.util.ConcurrentModificationException("Stale logical agreement."); }
 		if (expected.group().phase() != PhantomLogicalParty.Phase.AGREED && expected.group().phase() != PhantomLogicalParty.Phase.BACKGROUND)
 		{ throw new IllegalStateException("Logical membership waits for physical drain/STORE."); }

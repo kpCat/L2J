@@ -200,6 +200,12 @@ public final class PhantomHistoricalBackgroundPlanner
 	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomDomainRef sharedFarmSource, Set<String> excludedSteps, boolean supportTravelOnly)
 	{ return rendezvousGraphPlan(profileId,state,previousGoal,deterministicSeed,planOrdinal,sharedFarmSource,Set.of(),excludedSteps,false,supportTravelOnly); }
+	/** Metadata proposal for the existing group; support travel remains a native-only obligation. */
+	public Result proposeLogicalActivity(long id, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, PhantomDomainRef source)
+	{
+		if (state == null || previous == null || state.identity().profileId() != id) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
+		return rendezvousGraphPlan(id, state, previous, seed, ordinal, source, Set.of(), Set.of(), true, "support".equals(logicalRole(state)));
+	}
 	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomDomainRef sharedFarmSource, Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel, boolean supportTravelOnly)
 	{

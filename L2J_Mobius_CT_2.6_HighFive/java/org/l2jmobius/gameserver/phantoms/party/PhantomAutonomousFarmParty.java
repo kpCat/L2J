@@ -62,6 +62,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private java.util.function.Predicate<PhantomLogicalParty> _logicalRetain;
 	private java.util.function.BiPredicate<Long, PhantomLogicalParty> _executionOwnership = (_, _) -> true;
 	private boolean _executionOwnershipInstalled;
+	private java.util.function.LongConsumer _terminalHandoff = _ -> { };
+	public void installTerminalHandoff(java.util.function.LongConsumer wake) { _terminalHandoff = java.util.Objects.requireNonNull(wake); }
+	private PhantomLogicalPartyCoordinator.ActivityRevision _activityRevision;
+	public void installActivityRevision(PhantomLogicalPartyCoordinator.ActivityRevision revision) { _activityRevision = java.util.Objects.requireNonNull(revision); }
 	public void installExecutionOwnership(java.util.function.BiPredicate<Long, PhantomLogicalParty> ownership)
 	{
 		if (_executionOwnershipInstalled) { throw new IllegalStateException("Party execution ownership already installed."); }
@@ -137,11 +141,13 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{
 			if (identities.stream().anyMatch(actor -> !_backend.withUnmaterializedNativeAbsence(actor, () -> true)))
 			{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); return; }
+			if (group.phase() == PhantomLogicalParty.Phase.BACKGROUND && group.activityReplanRequired() && _activityRevision != null)
+			{ _logical.recoverActivity(row, now, _activityRevision); return; }
 			if (_logical.expire(row, now).isPresent()) { return; }
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
 			else if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND)
-			{ _logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), group.phase() == PhantomLogicalParty.Phase.DRAINING && !"EXPIRED_ASSEMBLY".equals(group.waitReason()) ? now + 300_000 : now, "WAIT_DEMAND"); }
+			{ _logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), group.phase() == PhantomLogicalParty.Phase.DRAINING && !"EXPIRED_ASSEMBLY".equals(group.waitReason()) ? now + 300_000 : now, group.activityReplanRequired() ? group.waitReason() : "WAIT_DEMAND"); }
 			else { _logical.refreshBackground(row, now); }
 			return;
 		}
@@ -151,9 +157,12 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "EXPIRED_ASSEMBLY"); return; }
 		if (group.phase() == PhantomLogicalParty.Phase.DRAINING)
 		{
+			for (var offer : new ArrayList<>(_offers.values())) { if (belongsTo(offer, group)) { cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); } }
+			group.members().forEach(member -> _terminalHandoff.accept(member.profileId()));
 			if (nativeParty != null) { _coordinator.drainAutonomousFarm(nativeParty.leader().profileId()); }
 			return;
 		}
+		if (group.activityReplanRequired()) { return; }
 		if (nativeParty != null)
 		{
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
@@ -290,6 +299,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			for (var entry : new ArrayList<>(_travelContinuations.entrySet()))
 			{
 				if (examined++ >= 2) { break; }
+				if (_logical != null && _logical.knownGroupFor(entry.getKey()).map(row -> row.group().phase() == PhantomLogicalParty.Phase.DRAINING || row.group().activityReplanRequired()).orElse(false))
+				{ _travelContinuations.remove(entry.getKey()); continue; }
 				final var member = _backend.currentMember(entry.getKey()).orElse(null);
 				// Native Party takeover removes only this scheduler bookmark, never the travel owner's receipt.
 				if (member != null && _backend.observe(member).isPresent()) { _travelContinuations.remove(entry.getKey()); continue; }
@@ -593,6 +604,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 
 	private boolean invalidOffer(PhantomPartyRendezvousState offer)
 	{
+		if (_logical != null && _logical.knownGroupFor(offer.leaderProfileId()).map(row -> belongsTo(offer, row.group())
+			&& (row.group().phase() == PhantomLogicalParty.Phase.DRAINING || row.group().activityReplanRequired())).orElse(false)) { return true; }
 		if (offer.roster().size() < 2) { return true; }
 		final int leaderLevel = _backend.currentLevel(offer.roster().getFirst().actor()).orElse(0);
 		for (int index = 0; index < offer.roster().size(); index++)
@@ -638,6 +651,24 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			{ _coordinator.saveRendezvous(current.rowVersion(), current.state().withPhase(PhantomPartyRendezvousState.Phase.CANCELLED, current.state().adoptedRevision())); }
 		}
 	}
+	private static boolean belongsTo(PhantomPartyRendezvousState offer, PhantomLogicalParty group)
+	{
+		return group.objective().equals(offer.source()) && offer.roster().stream().allMatch(participant -> group.contains(participant.actor().profileId()))
+			&& offer.offerId().equals(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(group.groupId() + ":" + group.generation() + ":" + offer.roster() + ":" + offer.createdMillis()));
+	}
+	private void terminalOffer(PhantomPartyRendezvousState offer)
+	{
+		if (_logical != null)
+		{
+			final var row = _logical.groupFor(offer.leaderProfileId()).orElse(null);
+			if (row != null && belongsTo(offer, row.group()) && (row.group().phase() == PhantomLogicalParty.Phase.ASSEMBLING || row.group().phase() == PhantomLogicalParty.Phase.WAKE_REQUESTED))
+			{
+				_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, row.group().backgroundCursor(), _epochMillis.getAsLong(), "REPLAN_ROUTE");
+				row.group().members().forEach(member -> _terminalHandoff.accept(member.profileId()));
+			}
+		}
+		cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId());
+	}
 
 	private boolean advanceOffer(PhantomPartyRendezvousState offer)
 	{
@@ -673,10 +704,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			{
 				final var preview = _rendezvousPreparation.preview(participant.actor(), participant.epoch(), goal);
 				if (preview != null && terminalSourceLoss(preview, offer.source()))
-				{ cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); return true; }
+				{ terminalOffer(offer); return true; }
 				// A known unusable current source cannot be held ACCEPTED while preparation keeps refusing it.
 				if (offer.source().equals(farmSource(goal)) && _rendezvousPreparation.unusable(participant.actor(), participant.epoch(), goal))
-				{ cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); return true; }
+				{ terminalOffer(offer); return true; }
 				if (!_rendezvousPreparation.prepare(participant.actor().profileId(), goal, offer.source(), offer.expiresMillis(), () -> currentOffer(offer, true))) { return true; }
 				goal = _goals.load(participant.actor().profileId()).orElseThrow().goal();
 				if (!offer.source().equals(farmSource(goal)) || goal.goalId() != participant.goalId() || goal.revision() < participant.goalRevision() || goal.revision() - participant.goalRevision() > 1) { cancelOffer(offer); return true; }
@@ -686,7 +717,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (_arrival == null) { return false; }
 			final var arrival = _arrival.apply(participant.actor().profileId(), goal);
 			if (arrival.kind() == PhantomVisibleFarmTravel.ArrivalKind.TERMINAL || arrival.kind() == PhantomVisibleFarmTravel.ArrivalKind.STALE_GOAL)
-			{ cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); return true; }
+			{ terminalOffer(offer); return true; }
 			if (arrival.kind() == PhantomVisibleFarmTravel.ArrivalKind.ARRIVED && currentOffer(offer, true))
 			{ _coordinator.saveRendezvous(current.rowVersion(), current.state().withPhase(PhantomPartyRendezvousState.Phase.ARRIVED, goal.revision())); }
 			return true;

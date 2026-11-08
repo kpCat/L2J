@@ -294,27 +294,33 @@ public final class PhantomFarm074Checks
 		return planner(linked, alternative, soloViable, false);
 	}
 	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress)
+	{ return planner(linked, alternative, soloViable, ingress, false); }
+	/** Same immutable planner fixture, aligned with the existing SQL130 receipt fixture; never native world facts. */
+	public static PhantomHistoricalBackgroundPlanner receiptPlanner130(boolean linked) { return planner(linked, false, true, false, true); }
+	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative, boolean soloViable, boolean ingress, boolean receipts)
 	{
+		final int localNpc = receipts ? 20101 : 101, farNpc = receipts ? 20102 : 102, level = receipts ? 1 : 20;
+		final String localAnchor = receipts ? "farm.receipt130" : "farm.local", farAnchor = receipts ? "farm.receipt130.b" : "farm.far";
 		final var backend = new PhantomTopologyValidationBackend()
 		{
 			@Override public int mapRegionLocId(int x, int y) { return 1; }
 			@Override public Optional<PhantomTopologyValidationBackend.NpcFact> npc(int id) { return Optional.of(new PhantomTopologyValidationBackend.NpcFact(id, "Monster", true)); }
-			@Override public List<PhantomTopologyValidationBackend.SpawnFact> spawns(int id, int bound) { return List.of(new PhantomTopologyValidationBackend.SpawnFact(id, id == 101 ? LOCAL : id == 102 ? FAR : FAR_ALTERNATIVE)); }
+			@Override public List<PhantomTopologyValidationBackend.SpawnFact> spawns(int id, int bound) { return List.of(new PhantomTopologyValidationBackend.SpawnFact(id, id == localNpc ? LOCAL : id == farNpc ? FAR : FAR_ALTERNATIVE)); }
 			@Override public Optional<DoorFact> door(int id) { return Optional.empty(); }
 			@Override public DoorState doorState(int id) { return DoorState.MISSING; }
 			@Override public boolean sourceExists(String source) { return true; }
 		};
 		final var nodes = new java.util.ArrayList<>(List.of(node("area.local", LOCAL), node("area.far", FAR)));
-		final var anchors = new java.util.ArrayList<>(List.of(anchor("farm.local", "area.local", LOCAL, 101), anchor("farm.far", "area.far", FAR, 102)));
-		final var edges = new java.util.ArrayList<>(linked ? List.of(new PhantomTopologyEdge("farm.link", "area.local", "area.far", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 100000, true, Set.of(), null, "farm.local", "farm.far", List.of())) : List.<PhantomTopologyEdge>of());
+		final var anchors = new java.util.ArrayList<>(List.of(anchor(localAnchor, "area.local", LOCAL, localNpc), anchor(farAnchor, "area.far", FAR, farNpc)));
+		final var edges = new java.util.ArrayList<>(linked ? List.of(new PhantomTopologyEdge("farm.link", "area.local", "area.far", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 100000, true, Set.of(), null, localAnchor, farAnchor, List.of())) : List.<PhantomTopologyEdge>of());
 		if (alternative)
 		{
 			nodes.add(node("area.alternative", FAR_ALTERNATIVE)); anchors.add(anchor("farm.alternative", "area.alternative", FAR_ALTERNATIVE, 103));
 			edges.add(new PhantomTopologyEdge("farm.alternative.link", ingress ? "area.far" : "area.local", "area.alternative", PhantomTopologyEdgeMode.BACKGROUND, true, 1, 110000, true, Set.of(), null, ingress ? "farm.far" : "farm.local", "farm.alternative", List.of()));
 		}
 		final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.create(1, "farm074", 1, 1, nodes, anchors, edges, backend, PhantomTopologyPolicy.productionDefaults()), backend, new PhantomTopologyMetrics());
-		final var npcs = new java.util.ArrayList<>(List.of(new NpcFact(101, 20, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT), new NpcFact(102, 22, NpcKind.MONSTER, true, true, false, 200, 20, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
-		final var areas = new java.util.ArrayList<>(List.of(new SpawnAreaFact(101, 0, "area.local", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT), new SpawnAreaFact(102, 0, "area.far", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT)));
+		final var npcs = new java.util.ArrayList<>(List.of(new NpcFact(localNpc, level, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT), new NpcFact(farNpc, level + 2, NpcKind.MONSTER, true, true, false, 200, 20, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)));
+		final var areas = new java.util.ArrayList<>(List.of(new SpawnAreaFact(localNpc, 0, "area.local", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT), new SpawnAreaFact(farNpc, 0, "area.far", 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT)));
 		if (alternative)
 		{
 			npcs.add(new NpcFact(103, 21, NpcKind.MONSTER, true, true, false, 150, 15, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
@@ -324,7 +330,7 @@ public final class PhantomFarm074Checks
 		final var knowledge = new PhantomGameKnowledgeQuery(snapshot, new PhantomGameKnowledgeMetrics());
 		final var authority = new PhantomBackgroundAuthority()
 		{
-			@Override public PhantomBackgroundState.Hashes hashes() { return HASHES; }
+			@Override public PhantomBackgroundState.Hashes hashes() { return receipts ? new PhantomBackgroundState.Hashes("knowledge130", "topology130", "progression130", "commerce130") : HASHES; }
 			@Override public boolean viableTarget(PlanningCombat combat, int npcId) { return soloViable; }
 			@Override public boolean offscreenOutdoorCandidate(PhantomTopologyQuery proposed, String from, TargetFact target, String to) { return true; }
 			@Override public boolean nativeIngressPositionKnown(PhantomTopologyAnchor anchor, int heading) { return ingress && anchor.id().equals("farm.far"); }
@@ -346,11 +352,11 @@ public final class PhantomFarm074Checks
 	{
 		return new PhantomTopologyAnchor(id, PhantomTopologyAnchorRole.FARMING, node, point, npc, null, 0, List.of("outdoor-farming"), List.of("fixture074"));
 	}
-	private static PhantomGoal goal()
+	public static PhantomGoal goal()
 	{
 		return new PhantomGoal(740074, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "74"), new PhantomDomainRef("npc", "101"), 1, 0, "background.farm", List.of(new PhantomDomainRef("background.farm", "101@farm.local")), new PhantomDomainRef("topology.anchor", "farm.local"), "farm.background", 500, 0, 0, 0, Map.of(), "fixture074", 1);
 	}
-	private static PhantomBackgroundState state()
+	public static PhantomBackgroundState state()
 	{
 		return new PhantomBackgroundState(PhantomBackgroundState.State.MATERIALIZED, new PhantomBackgroundState.Identity(74, 740074, 0, 1, 0), new PhantomBackgroundState.Progress(20, 0, 0, 0), new PhantomBackgroundState.Vitals(100, 100, 100, 100, 100, 100), new PhantomBackgroundState.Position(0, 100, 100, 0, 0, "farm.local"), new PhantomBackgroundState.CombatFacts(PhantomBackgroundState.ModelKind.MELEE, 100, 100, 100, 100, 500, 500, 1, 1, 1, 1, 0, 1, 1, 1, 1), PhantomBackgroundState.Loadout.none(), new PhantomBackgroundState.InventoryFacts(List.of(), List.of(), "fixture074", 0, 1000, 0, 100), List.of(), new PhantomBackgroundState.Clock(740074, 0, 0), PhantomBackgroundState.Receipt.empty(), HASHES);
 	}

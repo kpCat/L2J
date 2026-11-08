@@ -52,7 +52,7 @@ public final class PhantomLivingWorld114Checks
 		evidence.nativeRegeneration(1, 1, false, false);
 		check(evidence.snapshot().phaseSinceNanos() == since, "Passive pause/retry renewed the rest horizon");
 		System.out.println("PASS native activity ends passive REGEN attribution without farm credit; passive pause cannot renew deadline");
-		check(PhantomVisibleFarmTravel.navigationFailureDisposition(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED) == PhantomVisibleFarmTravel.Disposition.ROUTE_UNUSABLE, "Completed bounded search remained an indefinitely exhausted transient attempt");
+		check(PhantomVisibleFarmTravel.navigationFailureDisposition(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED) == PhantomVisibleFarmTravel.Disposition.INDETERMINATE_ROUTE, "Search exhaustion became physical impossibility or an indefinitely exhausted transient attempt");
 		check(PhantomVisibleFarmTravel.navigationFailureDisposition(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.QUEUE_BACKPRESSURE) == PhantomVisibleFarmTravel.Disposition.TRANSIENT_SERVICE, "Service pressure was misclassified as route geometry");
 		System.out.println("PASS completed search budget retires only the exact route attempt; queue pressure remains transient");
 		final var target = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor("nearby", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING, "farm",

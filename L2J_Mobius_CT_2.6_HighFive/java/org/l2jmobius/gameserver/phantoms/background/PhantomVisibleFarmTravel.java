@@ -884,6 +884,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			fail(profileId, journey, journey.reason, Disposition.PROTOCOL_VIOLATION);
 			return false;
 		}
+		journey.attempt.proof = result.proof();
 		if ((result.route() == null) || (result.route().mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA))
 		{
 			journey.reason = result.status() == PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED ? "travel.search_limit" : result.status() == PhantomNavigationResult.Status.NO_PATH ? "travel.no_route_within_budget" : "travel.navigation_" + result.status().name().toLowerCase(java.util.Locale.ROOT);
@@ -943,6 +944,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		return switch (status)
 		{
 			case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING, CANCELLED, DEADLINE_EXPIRED -> Disposition.TRANSIENT_SERVICE;
+			case ROUTE_BUDGET_EXCEEDED, NO_PATH -> Disposition.INDETERMINATE_ROUTE;
 			default -> Disposition.ROUTE_UNUSABLE;
 		};
 	}
@@ -1039,7 +1041,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			clearRoutePhase(attempt);
 			rememberFailure(profileId, reason, disposition, attempt);
 		}
-		_failure.accept(profileId, new Failure(profileId, attempt.player, attempt.epoch, attempt.goal, stepId, reason, disposition, attempt.startedNanos, attempt.failures));
+		if (reason.startsWith("travel.navigation_") || reason.equals("travel.search_limit") || reason.equals("travel.no_route_within_budget"))
+		{
+			java.util.logging.Logger.getLogger(PhantomVisibleFarmTravel.class.getName()).info("Terminal farm route profile=" + profileId + ";goal=" + attempt.goal.goalId() + "." + attempt.goal.revision()
+				+ ";object=" + attempt.player.getObjectId() + ";epoch=" + attempt.epoch + ";step=" + stepId + ";reason=" + reason + ";disposition=" + disposition + ";proof=" + attempt.proof.diagnostic());
+		}
+		_failure.accept(profileId, new Failure(profileId, attempt.player, attempt.epoch, attempt.goal, stepId, reason, disposition, attempt.startedNanos, attempt.failures, attempt.proof));
 	}
 
 	private synchronized void rememberFailure(long profileId, String reason)
@@ -1054,12 +1061,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			final var iterator = _terminalReasons.keySet().iterator();
 			if (iterator.hasNext()) { _terminalReasons.remove(iterator.next()); }
 		}
-		_terminalReasons.put(profileId, new TerminalFailure(reason, _failureSequence.incrementAndGet(), disposition, attempt == null ? 0 : attempt.goal.goalId(), attempt == null ? 0 : attempt.goal.revision(), attempt == null ? 0 : attempt.player.getObjectId(), attempt == null ? 0 : attempt.epoch, attempt == null ? "" : attempt.segmentWitness));
+		_terminalReasons.put(profileId, new TerminalFailure(reason, _failureSequence.incrementAndGet(), disposition, attempt == null ? 0 : attempt.goal.goalId(), attempt == null ? 0 : attempt.goal.revision(), attempt == null ? 0 : attempt.player.getObjectId(), attempt == null ? 0 : attempt.epoch, attempt == null ? "" : attempt.segmentWitness, attempt == null ? PhantomNavigationResult.BudgetProof.unknown() : attempt.proof));
 	}
 
-	public enum Disposition { ROUTE_UNUSABLE, TRANSIENT_SERVICE, NATIVE_ACTION_REJECTED, STORE_PENDING, PROTOCOL_VIOLATION }
-	public record TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch, String segmentWitness)
+	public enum Disposition { ROUTE_UNUSABLE, TRANSIENT_SERVICE, NATIVE_ACTION_REJECTED, STORE_PENDING, PROTOCOL_VIOLATION, INDETERMINATE_ROUTE }
+	public record TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch, String segmentWitness, PhantomNavigationResult.BudgetProof proof)
 	{
+		public TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch, String segmentWitness) { this(reason, sequence, disposition, goalId, revision, objectId, epoch, segmentWitness, PhantomNavigationResult.BudgetProof.unknown()); }
 		public TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch) { this(reason, sequence, disposition, goalId, revision, objectId, epoch, ""); }
 	}
 
@@ -1075,7 +1083,10 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	}
 
 	public enum ArrivalKind { ARRIVED, PENDING, STALE_GOAL, TERMINAL }
-	public record ArrivalResult(ArrivalKind kind, long goalId, long revision, int objectId, long epoch, long failureSequence, String reason) { }
+	public record ArrivalResult(ArrivalKind kind, long goalId, long revision, int objectId, long epoch, long failureSequence, String reason, PhantomNavigationResult.BudgetProof proof)
+	{
+		public ArrivalResult(ArrivalKind kind, long goalId, long revision, int objectId, long epoch, long failureSequence, String reason) { this(kind, goalId, revision, objectId, epoch, failureSequence, reason, PhantomNavigationResult.BudgetProof.unknown()); }
+	}
 
 	/** Observe the existing Attempt without resetting its terminal receipt. */
 	public ArrivalResult observeArrival(long profileId, PhantomGoal goal)
@@ -1097,7 +1108,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		final var failure = lastFailure(profileId);
 		final var attempt = _attempts.get(profileId);
 		final boolean terminal = (attempt != null) && attempt.terminal && (failure != null) && (failure.goalId() == goal.goalId()) && (failure.revision() == goal.revision()) && (failure.objectId() == objectId) && (failure.epoch() == epoch);
-		return new ArrivalResult(arrived ? ArrivalKind.ARRIVED : terminal ? ArrivalKind.TERMINAL : ArrivalKind.PENDING, goal.goalId(), goal.revision(), objectId, epoch, terminal ? failure.sequence() : 0, terminal ? failure.reason() : reason(profileId));
+		return new ArrivalResult(arrived ? ArrivalKind.ARRIVED : terminal ? ArrivalKind.TERMINAL : ArrivalKind.PENDING, goal.goalId(), goal.revision(), objectId, epoch, terminal ? failure.sequence() : 0, terminal ? failure.reason() : reason(profileId), terminal ? failure.proof() : PhantomNavigationResult.BudgetProof.unknown());
 	}
 
 	private boolean currentGoal(long profileId, PhantomGoal goal)
@@ -1169,8 +1180,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			&& !journey.goal.equals(current) && _background.isCurrentRecoveryGoal(profileId, current)) { remove(profileId, journey); }
 	}
 
-	public record Failure(long profileId, Player player, long epoch, PhantomGoal goal, String stepId, String reason, Disposition disposition, long startedNanos, int attempts)
+	public record Failure(long profileId, Player player, long epoch, PhantomGoal goal, String stepId, String reason, Disposition disposition, long startedNanos, int attempts, PhantomNavigationResult.BudgetProof proof)
 	{
+		public Failure(long profileId, Player player, long epoch, PhantomGoal goal, String stepId, String reason, Disposition disposition, long startedNanos, int attempts) { this(profileId, player, epoch, goal, stepId, reason, disposition, startedNanos, attempts, PhantomNavigationResult.BudgetProof.unknown()); }
 		public Failure(PhantomGoal goal, String stepId, String reason)
 		{
 			this(0, null, 0, goal, stepId, reason, legacyDisposition(reason), 0, 0);
@@ -1551,6 +1563,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private volatile boolean transientExhausted;
 		private volatile boolean terminal;
 		private volatile String segmentWitness = "";
+		private volatile PhantomNavigationResult.BudgetProof proof = PhantomNavigationResult.BudgetProof.unknown();
 		private final java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges = new java.util.HashSet<>();
 
 		private Attempt(PhantomGoal goal, Player player, long epoch, long startedNanos, PlayerNativeWork.Owner nativeOwner, PlayerNativeEvidence evidence)

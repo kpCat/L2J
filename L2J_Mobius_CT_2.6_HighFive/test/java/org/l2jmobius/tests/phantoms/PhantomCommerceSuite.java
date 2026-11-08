@@ -1589,6 +1589,23 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		finally { aborting.beginStop(); completing.beginStop(); PhantomAssertions.assertTrue(aborting.finishStop() && completing.finishStop(), "SQL yield race leaked Commerce operations/leases."); }
 	}
 
+	/** Existing accepted-operation owner, with a real SQL receipt and the same model native leaf. */
+	public static void verifyActivityReceipt130(PhantomProfileRepository profiles, PhantomGoalStore goals, long id, Runnable whileAccepted)
+	{
+		final var root = goals.load(id).orElseThrow().goal(); final var store = new PhantomCommerceReceiptStore(profiles);
+		final var accepted = PhantomCommerceReceipt.prepared(id, root.goalId(), root.revision(), request(OperationKind.BUY), before(OperationKind.BUY), after(OperationKind.BUY)).withState(State.COMMITTING);
+		final var original = store.save(-1, accepted); final var actor = new FakeActor(OperationKind.BUY, before(OperationKind.BUY));
+		final var owner = service(store, actor, goals, id); owner.start();
+		try
+		{
+			whileAccepted.run();
+			PhantomAssertions.assertEquals(original, store.find(id).orElseThrow(), "Activity silently lost an accepted Commerce obligation.");
+			owner.abortAcceptedUnapplied(id, accepted.operationKey());
+			PhantomAssertions.assertEquals(State.ABORTED, store.find(id).orElseThrow().receipt().state(), "Existing Commerce owner could not settle the unapplied receipt.");
+			PhantomAssertions.assertTrue(actor.firstCalls.get() == 0 && actor.secondCalls.get() == 0 && actor.quoteCalls.get() == 0, "Activity recovery requoted or duplicated Commerce effects.");
+		}
+		finally { owner.beginStop(); PhantomAssertions.assertTrue(owner.finishStop(), "Activity receipt recovery leaked an operation lease."); }
+	}
 	private static PhantomCommerceReceipt receipt(OperationKind kind, ConservationFacts before, ConservationFacts after)
 	{
 		return receipt(1, kind, before, after);

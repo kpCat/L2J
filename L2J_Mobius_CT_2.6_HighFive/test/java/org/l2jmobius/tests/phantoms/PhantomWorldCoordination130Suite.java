@@ -20,6 +20,84 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("activity-without-common-source-waits-without-retrying-failed-route", _ ->
+		{
+			for (int size : List.of(2, 9))
+			{
+				final var memory = new MemoryStore(); final var coordinator = new PhantomLogicalPartyCoordinator(memory);
+				var row = coordinator.agree(group(1, size)).orElseThrow();
+				row = coordinator.transition(row, PhantomLogicalParty.Phase.BACKGROUND, 0, 1000, "REPLAN_ROUTE");
+				final var calls = new java.util.concurrent.atomic.AtomicInteger();
+				final var unavailable = new PhantomLogicalPartyCoordinator.ActivityRevision()
+				{
+					@Override public List<PhantomLogicalParty.ActivityRoot> plan(PhantomLogicalParty group, long now) { calls.incrementAndGet(); return List.of(); }
+					@Override public void publish(PhantomLogicalParty.ActivityRoot plan) { throw new AssertionError("WAIT published a root."); }
+				};
+				final var waiting = coordinator.recoverActivity(row, 1000, unavailable);
+				PhantomAssertions.assertTrue(waiting.group().waitReason().equals("REPLAN_NO_COMMON_SOURCE") && waiting.group().nextDueMillis() == 301000, "No-source activity lacks its finite nextDue/required change.");
+				PhantomAssertions.assertEquals(waiting, coordinator.recoverActivity(waiting, 1001, unavailable), "WAIT immediately repeated the same planning failure.");
+				PhantomAssertions.assertEquals(1, calls.get(), "No-source WAIT spun on its old source.");
+				PhantomAssertions.assertFalse(waiting.group().assemblyPending(1, waiting.group().members().getFirst().goalId(), 0, 301000), "Failed objective regained assembly rights.");
+				PhantomAssertions.assertFalse(coordinator.recoverActivity(waiting, waiting.group().expiresAtMillis(), unavailable).group().active(), "No-source WAIT retained identity claims forever after released-owner expiry.");
+			}
+		});
+		registry.add("activity-revision-preserves-two-and-nine-member-cursor-and-fences-stale-roots", _ ->
+		{
+			for (int size : List.of(2, 9))
+			{
+				final var initial = group(1, size);
+				final var pending = new PhantomLogicalParty(initial.groupId(), initial.generation(), initial.leaderProfileId(), initial.members(), initial.objective(), initial.anchorId(), PhantomLogicalParty.Phase.BACKGROUND, 123, 1000, "ACTIVITY_PENDING");
+				final var roots = initial.members().stream().map(member -> new PhantomLogicalParty.Member(member.profileId(), member.role(), member.goalId(), member.goalRevision() + 1)).toList();
+				final var next = pending.activityReplacement(roots, new PhantomDomainRef("background.farm", "20002@farm.b"), 2000);
+				PhantomAssertions.assertEquals(pending.generation() + 1, next.generation(), "Activity revision did not advance the logical generation.");
+				PhantomAssertions.assertEquals(123L, next.backgroundCursor(), "Activity revision replayed confirmed Background time.");
+				PhantomAssertions.assertEquals(pending.groupId(), next.groupId(), "Activity revision replaced group identity.");
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> pending.activityReplacement(initial.members(), next.objective(), 2000), "Stale roots authorized a new activity.");
+				PhantomAssertions.assertThrows(IllegalStateException.class, () -> initial.activityReplacement(roots, next.objective(), 2000), "Activity bypassed the durable pending fence.");
+				final var held = pending.transition(PhantomLogicalParty.Phase.DRAINING, 123, 2000, "REPLAN_ROUTE").transition(PhantomLogicalParty.Phase.DRAINING, 123, 3000, "WAIT_STORE");
+				PhantomAssertions.assertTrue(held.activityReplanRequired(), "STORE wait erased the terminal activity failure.");
+			}
+		});
+		registry.add("activity-proposal-uses-ordinary-planner-and-preserves-unknown-physical-route", _ ->
+		{
+			final var planner = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.planner(true);
+			final var state = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.state();
+			final var root = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.goal();
+			final var source = new PhantomDomainRef("background.farm", "102@farm.far");
+			final var proposal = planner.proposeLogicalActivity(74, state, root, 130, 1, source);
+			PhantomAssertions.assertTrue(proposal.ready() && proposal.goal().validSources().contains(source), "Ordinary planner could not propose its connected alternative.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.planner(false).proposeLogicalActivity(74, state, root, 130, 1, source).ready(), "Activity revision invented a disconnected itinerary.");
+		});
+		registry.add("route-budget-proof-distinguishes-geometry-from-search-and-unknown", _ ->
+		{
+			final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+			final var origin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 0, 0, 0);
+			final var destination = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(100, 0, 0, 0);
+			final var points = java.util.stream.IntStream.rangeClosed(1, 66).mapToObj(i -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(i, 0, 0, 0)).toList();
+			final var rejected = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.normalize(origin, destination, points, policy, 100000, (_, _) -> true,
+				() -> org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.PATH_FOUND);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.LimitKind.RAW_WAYPOINTS, rejected.proof().kind(), "Normalizer lost the actual waypoint limit behind a generic status.");
+			PhantomAssertions.assertEquals(66, rejected.proof().waypointsUsed(), "Measured raw waypoint count was lost.");
+			final var blocked = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.normalize(origin, destination, List.of(destination), policy, 100000, (_, _) -> false,
+				() -> org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.PATH_FOUND);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.LimitKind.SEGMENT_BLOCKED, blocked.proof().kind(), "A proven segment rejection was confused with search exhaustion.");
+			PhantomAssertions.assertEquals(destination, blocked.proof().failedPoint(), "The exact rejected segment endpoint was lost.");
+			final var distant = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(10000, 0, 0, 0);
+			final var request = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(1, origin, distant, 0, 1000, 100000);
+			final var oracle = new org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Oracle()
+			{
+				@Override public org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint project(int x, int y, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint surface)
+				{ return new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, surface.z(), surface.instanceId()); }
+				@Override public boolean direct(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
+				{ return !to.equals(distant) && from.distanceTo(to) <= 1500; }
+				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> path(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return List.of(); }
+			};
+			final var limited = new org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner(oracle, () -> 1).plan(request, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), policy);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT, limited.status(), "Fixture did not exercise the real bounded search.");
+			final var search = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.BudgetProof.context(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.LimitKind.SEARCH_LIMIT, "CORRIDOR", request, policy).search(limited);
+			PhantomAssertions.assertTrue(search.nodes() == limited.nodes() && search.queries() == limited.queries() && search.queries() > 0 && search.nodes() <= search.nodeLimit() && search.edges() <= search.edgeLimit(), "Real search counters/limits were reconstructed or dropped.");
+			PhantomAssertions.assertEquals(-1, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.BudgetProof.unknown().queries(), "Historical unavailable queries were fabricated as zero.");
+		});
 		PhantomPartySuite.registerCoordination130(registry);
 		org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite.registerCoordination130(registry);
         registry.add("13-native-fixture-selects-lawful-birth-and-active-calendar-without-server", context ->

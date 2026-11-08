@@ -22,8 +22,36 @@ package org.l2jmobius.gameserver.phantoms.navigation;
 
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend.CapabilitySnapshot;
 
-public record PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos)
+public record PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos, BudgetProof proof)
 {
+	public PhantomNavigationResult(Status status, long profileId, long requestId, CapabilitySnapshot capability, PhantomNavigationRoute route, boolean fromCache, long completedLogicalNanos)
+	{ this(status, profileId, requestId, capability, route, fromCache, completedLogicalNanos, BudgetProof.unknown()); }
+	public enum LimitKind { NONE, UNKNOWN, CHORD_DISTANCE, PATH_DISTANCE, RAW_WAYPOINTS, WAYPOINTS, SEARCH_LIMIT, SEGMENT_BLOCKED, NO_PATH_WITHIN_SEARCH }
+	/** -1 means unavailable, never a reconstructed historical measurement. */
+	public record BudgetProof(LimitKind kind, String requestKind, PhantomNavigationPoint origin, PhantomNavigationPoint destination,
+		double distanceLimit, double distanceUsed, int waypointLimit, int waypointsUsed, int nodes, int edges, int queries, int labels, int failedSegment, PhantomNavigationPoint failedPoint, PhantomNavigationPoint submittedDestination)
+	{
+		public BudgetProof
+		{
+			if (kind == null || requestKind == null || !requestKind.matches("[A-Z_]{1,32}") || (origin == null) != (destination == null)
+				|| !Double.isFinite(distanceLimit) || !Double.isFinite(distanceUsed) || distanceLimit < -1 || distanceUsed < -1
+				|| waypointLimit < -1 || waypointsUsed < -1 || nodes < -1 || edges < -1 || queries < -1 || labels < -1 || failedSegment < -1)
+			{ throw new IllegalArgumentException("Invalid navigation budget proof."); }
+		}
+		public static BudgetProof unknown() { return new BudgetProof(LimitKind.UNKNOWN, "UNKNOWN", null, null, -1, -1, -1, -1, -1, -1, -1, -1, -1, null, null); }
+		public static BudgetProof context(LimitKind kind, String mode, PhantomNavigationRequest request, PhantomNavigationPolicy policy)
+		{ return new BudgetProof(kind, mode, request.origin(), request.destination(), Math.min(request.maximumRouteDistance(), policy.maximumRouteDistance()), -1, policy.maximumWaypoints(), -1, -1, -1, -1, -1, -1, null, request.destination()); }
+		public BudgetProof submission(PhantomNavigationRequest request, String mode) { return new BudgetProof(kind, mode, origin, destination, distanceLimit, distanceUsed, waypointLimit, waypointsUsed, nodes, edges, queries, labels, failedSegment, failedPoint, request.destination()); }
+		public BudgetProof search(PhantomWalkCorridorPlanner.Result result)
+		{ return new BudgetProof(kind, requestKind, origin, destination, distanceLimit, distanceUsed, waypointLimit, waypointsUsed, result.nodes(), result.edges(), result.queries(), result.labels(), failedSegment, failedPoint, submittedDestination); }
+		public BudgetProof search(BudgetProof other)
+		{ return new BudgetProof(kind, requestKind, origin, destination, distanceLimit, distanceUsed, waypointLimit, waypointsUsed, other.nodes, other.edges, other.queries, other.labels, failedSegment, failedPoint, submittedDestination); }
+		public int nodeLimit() { return PhantomWalkCorridorPlanner.MAX_NODES; }
+		public int edgeLimit() { return PhantomWalkCorridorPlanner.MAX_EDGES; }
+		public int queryLimit() { return PhantomWalkCorridorPlanner.MAX_QUERIES; }
+		public int labelLimit() { return PhantomWalkCorridorPlanner.MAX_LABELS; }
+		public String diagnostic() { return toString() + ";searchLimits=" + (queries < 0 ? "UNKNOWN" : nodeLimit() + "/" + edgeLimit() + "/" + queryLimit() + "/" + labelLimit()); }
+	}
 	public enum Status
 	{
 		DIRECT_VALIDATED,
@@ -45,6 +73,7 @@ public record PhantomNavigationResult(Status status, long profileId, long reques
 
 	public PhantomNavigationResult
 	{
+		java.util.Objects.requireNonNull(proof, "proof");
 		if (status == null)
 		{
 			throw new IllegalArgumentException("status must not be null.");

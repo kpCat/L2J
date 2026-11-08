@@ -16,6 +16,7 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 {
 	public static final String COMPONENT_TYPE = "party.logical_group";
 	public static final String CLAIM_COMPONENT_TYPE = "party.logical_claim";
+	public static final String ACTIVITY_COMPONENT_TYPE = "party.logical_activity";
 	public static final int SCHEMA_VERSION = 2;
 	public static final long IDLE_LIFETIME_MILLIS = 600_000;
 	private static final int MAGIC = 0x504c4702;
@@ -44,19 +45,89 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	}
 	public boolean contains(long profileId) { return members.stream().anyMatch(member -> member.profileId() == profileId); }
 	public boolean active() { return phase != Phase.DISBANDED; }
+	/** A failed activity keeps membership, but cannot reacquire its old execution grant. */
+	public boolean activityReplanRequired() { return waitReason.startsWith("REPLAN_") || waitReason.equals("ACTIVITY_PENDING"); }
+	public boolean activityPending() { return waitReason.equals("ACTIVITY_PENDING"); }
+	/** Distinct from roster replacement: activity metadata never resets earned time. */
+	public PhantomLogicalParty activityReplacement(List<Member> roots, PhantomDomainRef source, long now)
+	{
+		if (phase != Phase.BACKGROUND || !activityPending()) { throw new IllegalStateException("Activity revision requires its durable idle fence."); }
+		if (source.equals(objective) || roots.size() != members.size()) { throw new IllegalArgumentException("Activity revision requires another common source."); }
+		for (int i = 0; i < members.size(); i++)
+		{
+			final var old = members.get(i); final var next = roots.get(i);
+			if (next.profileId() != old.profileId() || !next.role().equals(old.role()) || next.goalId() != old.goalId() || next.goalRevision() <= old.goalRevision())
+			{ throw new IllegalArgumentException("Activity revision cannot replace membership or reuse stale roots."); }
+		}
+		return new PhantomLogicalParty(groupId, Math.addExact(generation, 1), leaderProfileId, roots, source, source.key().substring(source.key().indexOf('@') + 1),
+			Phase.BACKGROUND, backgroundCursor, now, "", Math.addExact(now, IDLE_LIFETIME_MILLIS));
+	}
+	/** Per-member proposal, not an executable root. The aggregate fence and all proposals commit together. */
+	public record ActivityRoot(String groupId, long generation, long profileId, long beforeGoalVersion, long deadline,
+		org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal,
+		org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation history, boolean pending)
+	{
+		public ActivityRoot(String groupId, long generation, long profileId, long beforeGoalVersion, long deadline, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal,
+			org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation history) { this(groupId, generation, profileId, beforeGoalVersion, deadline, goal, history, true); }
+		public ActivityRoot settled() { return new ActivityRoot(groupId, generation, profileId, beforeGoalVersion, deadline, goal, history, false); }
+		public ActivityRoot
+		{
+			PhantomPartyModel.requireHash(groupId, "Activity group");
+			if (generation < 1 || profileId < 1 || beforeGoalVersion < 0 || deadline <= 0 || goal == null || history == null
+				|| !history.componentType().equals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE)
+				|| history.componentSchemaVersion() != org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.SCHEMA_VERSION
+				|| goal.status() != org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE || !goal.subject().equals(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", Long.toString(profileId)))
+				|| !org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()))
+			{ throw new IllegalArgumentException("Invalid activity proposal."); }
+		}
+		public byte[] encode()
+		{
+			try
+			{
+				final var bytes = new ByteArrayOutputStream();
+				try (var out = new DataOutputStream(bytes))
+				{
+					out.writeInt(1); out.writeUTF(groupId); out.writeLong(generation); out.writeLong(profileId); out.writeLong(beforeGoalVersion); out.writeLong(deadline); out.writeBoolean(pending);
+					final byte[] root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(goal);
+					out.writeInt(root.length); out.write(root); out.writeLong(history.expectedRowVersion()); out.writeInt(history.componentSchemaVersion());
+					out.writeInt(history.payload().length); out.write(history.payload());
+				}
+				if (bytes.size() > 4096) { throw new IllegalArgumentException("Activity proposal exceeds component budget."); }
+				return bytes.toByteArray();
+			}
+			catch (IOException failure) { throw new IllegalArgumentException("Cannot encode activity proposal.", failure); }
+		}
+		public static ActivityRoot decode(byte[] payload)
+		{
+			if (payload == null || payload.length > 4096) { throw new IllegalArgumentException("Invalid activity proposal size."); }
+			try (var in = new DataInputStream(new ByteArrayInputStream(payload)))
+			{
+				if (in.readInt() != 1) { throw new IllegalArgumentException("Unknown activity proposal schema."); }
+				final String group = in.readUTF(); final long generation = in.readLong(), id = in.readLong(), version = in.readLong(), deadline = in.readLong(); final boolean pending = in.readBoolean();
+				final int rootSize = in.readInt(); if (rootSize < 1 || rootSize > in.available()) { throw new IllegalArgumentException("Invalid activity root size."); }
+				final var goal = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(in.readNBytes(rootSize));
+				final long historyVersion = in.readLong(); final int schema = in.readInt(), historySize = in.readInt();
+				if (historySize < 1 || historySize != in.available()) { throw new IllegalArgumentException("Invalid activity history size."); }
+				return new ActivityRoot(group, generation, id, version, deadline, goal, new org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.ComponentMutation(
+					org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.COMPONENT_TYPE, historyVersion, schema, in.readNBytes(historySize)), pending);
+			}
+			catch (IOException failure) { throw new IllegalArgumentException("Invalid activity proposal.", failure); }
+		}
+	}
 	/** A finite retention fact, never native Party membership or action permission. */
 	public boolean assemblyPending(long profileId, long goalId, long goalRevision, long now)
 	{
-		return now < expiresAtMillis && (phase == Phase.AGREED || phase == Phase.WAKE_REQUESTED || phase == Phase.ASSEMBLING || phase == Phase.BACKGROUND && nextDueMillis <= now)
+		return !activityReplanRequired() && now < expiresAtMillis && (phase == Phase.AGREED || phase == Phase.WAKE_REQUESTED || phase == Phase.ASSEMBLING || phase == Phase.BACKGROUND && nextDueMillis <= now)
 			&& members.stream().anyMatch(member -> member.profileId() == profileId && member.goalId() == goalId && goalRevision >= member.goalRevision());
 	}
 	public PhantomLogicalParty transition(Phase next, long cursor, long nextDue, String reason)
 	{
-		if (cursor < backgroundCursor || !permits(phase, next)) { throw new IllegalArgumentException("Invalid logical group transition."); }
+		if (cursor < backgroundCursor || !permits(phase, next) || activityReplanRequired() && phase == Phase.DRAINING && next == Phase.NATIVE_ACTIVE) { throw new IllegalArgumentException("Invalid logical group transition."); }
 		final long expiry = phase == Phase.DRAINING && next == Phase.BACKGROUND && !"EXPIRED_ASSEMBLY".equals(waitReason)
 			? Math.max(expiresAtMillis, Math.addExact(nextDue, IDLE_LIFETIME_MILLIS)) : expiresAtMillis;
 		// STORE may postpone release, but cannot erase the terminal cause and restart its lifetime.
-		final String nextReason = phase == Phase.DRAINING && next == Phase.DRAINING && "EXPIRED_ASSEMBLY".equals(waitReason) ? waitReason : reason;
+		final String nextReason = activityReplanRequired() && !activityPending() && (next == Phase.DRAINING || next == Phase.BACKGROUND) && !reason.startsWith("REPLAN_") && !reason.equals("ACTIVITY_PENDING")
+			|| phase == Phase.DRAINING && next == Phase.DRAINING && "EXPIRED_ASSEMBLY".equals(waitReason) ? waitReason : reason;
 		return new PhantomLogicalParty(groupId, generation, leaderProfileId, members, objective, anchorId, next, cursor, nextDue, nextReason, expiry);
 	}
 	private static boolean permits(Phase from, Phase to)

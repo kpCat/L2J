@@ -829,6 +829,13 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	/** Checked under the profile lock shared with Party's all-member activity CAS. STORE completion is exempt. */
+	private void requireActivityReleased(Connection connection, long profileId) throws SQLException
+	{
+		final var proposal = lockComponent(connection, profileId, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ACTIVITY_COMPONENT_TYPE);
+		if (proposal != null && (proposal.schemaVersion() != 1 || org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot.decode(proposal.payload()).pending()))
+		{ throw new StateConflict(Status.STATE_CONFLICT); }
+	}
 	public Result markMaterialized(long profileId, int characterObjectId)
 	{
 		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("markMaterialized"))
@@ -837,6 +844,7 @@ public final class PhantomBackgroundTransaction
 			try
 			{
 				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
+				requireActivityReleased(connection, profileId);
 				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
 				final PhantomBackgroundState current = decodeState(component);
 				if ((current.state() != State.READY) && (current.state() != State.DEAD))
@@ -1219,6 +1227,7 @@ public final class PhantomBackgroundTransaction
 			{
 				final PhantomBackgroundState expected = command.expectedState();
 				requireProfileLink(lockProfile(connection, expected.identity().profileId()), expected.identity().characterObjectId());
+				requireActivityReleased(connection, expected.identity().profileId());
 				_faultInjector.inject(FaultPoint.AFTER_PROFILE_LOCK);
 				final LockedGoal lockedGoal = command.acquisition() == null ? new LockedGoal(lockAndValidateGoal(connection, expected.identity().profileId(), command.goal()), command.goal()) : lockAcquisitionGoal(connection, expected.identity().profileId());
 				_faultInjector.inject(FaultPoint.AFTER_GOAL_LOCK);

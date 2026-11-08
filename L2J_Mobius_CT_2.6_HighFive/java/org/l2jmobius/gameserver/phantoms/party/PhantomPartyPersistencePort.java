@@ -29,6 +29,12 @@ public interface PhantomPartyPersistencePort
 	{ throw new UnsupportedOperationException("Atomic logical membership revision is unavailable."); }
 	/** Observe settled member receipts without awarding or executing any interval. */
 	default StoredLogicalGroup refreshLogicalBackground(StoredLogicalGroup expected, long now) { return expected; }
+	default List<PhantomLogicalParty.ActivityRoot> activityRoots(StoredLogicalGroup expected) { return List.of(); }
+	default StoredLogicalGroup beginActivityRevision(StoredLogicalGroup expected, List<PhantomLogicalParty.ActivityRoot> roots, long now)
+	{ throw new UnsupportedOperationException("Guarded activity revision is unavailable."); }
+	/** Empty while an existing publication/owner still needs recovery; never grants partial execution. */
+	default Optional<StoredLogicalGroup> finishActivityRevision(StoredLogicalGroup expected, long now, boolean abort)
+	{ return Optional.empty(); }
 	record StoredLogicalGroup(long rowVersion, PhantomLogicalParty group)
 	{
 		public StoredLogicalGroup { if (rowVersion < 0 || group == null) { throw new IllegalArgumentException("Invalid stored logical group."); } }

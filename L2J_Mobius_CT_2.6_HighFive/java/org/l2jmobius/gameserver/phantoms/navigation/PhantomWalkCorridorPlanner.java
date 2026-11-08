@@ -20,7 +20,7 @@ public final class PhantomWalkCorridorPlanner
 		boolean direct(PhantomNavigationPoint from, PhantomNavigationPoint to);
 		List<PhantomNavigationPoint> path(PhantomNavigationPoint from, PhantomNavigationPoint to);
 	}
-	private static final int MAX_NODES = 128, MAX_EDGES = 512, MAX_QUERIES = 32, MAX_LABELS = 4096;
+	static final int MAX_NODES = 128, MAX_EDGES = 512, MAX_QUERIES = 32, MAX_LABELS = 4096;
 	private static final int STRIDE = 1024, LOCAL_SPAN = 3000;
 	private static final int MAX_EPISODE_PROBE_QUERIES = MAX_QUERIES / 2;
 	private static final int[][] DIRECTIONS = {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};

@@ -390,6 +390,7 @@ public final class PhantomNavigationService
 		final double directDistance = entry._request.origin().distanceTo(entry._request.destination());
 		if (!Double.isFinite(directDistance) || (entry._travelOptions == null && directDistance > routeDistanceBudget(entry._request)))
 		{
+			entry._proof = new PhantomNavigationResult.BudgetProof(PhantomNavigationResult.LimitKind.PATH_DISTANCE, requestKind(entry), entry._request.origin(), entry._request.destination(), routeDistanceBudget(entry._request), Double.isFinite(directDistance) ? directDistance : -1, _policy.maximumWaypoints(), -1, -1, -1, -1, -1, -1, entry._request.destination(), entry._request.destination());
 			_metrics.recordNavigationRouteBudgetRejected();
 			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
 		}
@@ -464,6 +465,7 @@ public final class PhantomNavigationService
 
 		if (entry._travelOptions == null && !entry._walkEpisode && entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance())
 		{
+			entry._proof = new PhantomNavigationResult.BudgetProof(PhantomNavigationResult.LimitKind.CHORD_DISTANCE, requestKind(entry), entry._request.origin(), entry._request.destination(), _policy.maximumLocalStraightDistance(), entry._request.origin().distanceTo(entry._request.destination()), _policy.maximumWaypoints(), -1, -1, -1, -1, -1, -1, entry._request.destination(), entry._request.destination());
 			_metrics.recordNavigationRouteBudgetRejected();
 			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
 		}
@@ -704,6 +706,9 @@ public final class PhantomNavigationService
 							? nativeBackend.findWalkEpisode(entry._request, entry._cancellation, _policy, _clock, _backend, entry._episodeVisited)
 							: nativeBackend.findWalkCorridor(entry._request, entry._cancellation, _policy, _clock, _backend);
 						backendPath = corridor.points();
+						entry._proof = PhantomNavigationResult.BudgetProof.context(corridor.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT ? PhantomNavigationResult.LimitKind.SEARCH_LIMIT
+							: corridor.status() == PhantomWalkCorridorPlanner.Status.NO_ROUTE_WITHIN_BUDGET ? PhantomNavigationResult.LimitKind.NO_PATH_WITHIN_SEARCH : PhantomNavigationResult.LimitKind.NONE,
+							requestKind(entry), entry._request, _policy).search(corridor);
 						if (entry._walkEpisode && corridor.status() == PhantomWalkCorridorPlanner.Status.FOUND && !backendPath.isEmpty()) { entry._episodeDestination = backendPath.getLast(); }
 						corridorStatus = switch (corridor.status())
 						{
@@ -726,6 +731,8 @@ public final class PhantomNavigationService
 					try
 					{
 						validated = corridorStatus != null && corridorStatus != Status.PATH_FOUND ? new ValidatedPath(corridorStatus, null) : validateBackendPath(entry, backendPath, cancellationGeneration);
+						if (validated._proof.kind() != PhantomNavigationResult.LimitKind.UNKNOWN)
+						{ entry._proof = validated._proof.submission(entry._request, requestKind(entry)).search(entry._proof); }
 					}
 					catch (Throwable throwable)
 					{
@@ -807,14 +814,14 @@ public final class PhantomNavigationService
 		if (validationStatus != Status.PATH_FOUND)
 		{
 			if (validationStatus == Status.ROUTE_OBSTRUCTED) { _metrics.recordNavigationComputedRouteObstructed(); }
-			return new ValidatedPath(validationStatus, null);
+			return new ValidatedPath(validationStatus, null, validation.proof());
 		}
 		final var waypoints = validation.waypoints();
 		try
 		{
 			return new ValidatedPath(
 				Status.PATH_FOUND,
-				new PhantomNavigationRoute(Mode.COMPUTED, entry._request.origin(), destination, waypoints, entry._capability, _clock.getAsLong(), !entry._walkCorridor, _policy.maximumWaypoints(), maximumDistance));
+				new PhantomNavigationRoute(Mode.COMPUTED, entry._request.origin(), destination, waypoints, entry._capability, _clock.getAsLong(), !entry._walkCorridor, _policy.maximumWaypoints(), maximumDistance), validation.proof());
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -979,7 +986,8 @@ public final class PhantomNavigationService
 
 	private PhantomNavigationResult result(RequestEntry entry, Status status, PhantomNavigationRoute route, boolean fromCache, long logicalNow)
 	{
-		return new PhantomNavigationResult(status, entry._request.profileId(), entry._requestId, entry._capability, route, fromCache, Math.max(0, logicalNow));
+		final var proof = entry._proof.origin() == null ? PhantomNavigationResult.BudgetProof.context(PhantomNavigationResult.LimitKind.UNKNOWN, requestKind(entry), entry._request, _policy) : entry._proof;
+		return new PhantomNavigationResult(status, entry._request.profileId(), entry._requestId, entry._capability, route, fromCache, Math.max(0, logicalNow), proof);
 	}
 
 	private Submission rejected(long profileId, Status status)
@@ -1061,8 +1069,10 @@ public final class PhantomNavigationService
 		return entry._request.permitsWalkSegment(from, to) && (entry._walkCorridor ? (_backend instanceof L2jNavigationBackend nativeBackend ? nativeBackend : new L2jNavigationBackend()).canWalkDirect(from, to) : _backend.canMoveDirect(from, to));
 	}
 
+	private static String requestKind(RequestEntry entry) { return entry._travelOptions != null ? "TRAVEL" : entry._walkEpisode ? "EPISODE" : entry._walkCorridor ? "CORRIDOR" : "PATH"; }
 	private static final class RequestEntry
 	{
+		private PhantomNavigationResult.BudgetProof _proof = PhantomNavigationResult.BudgetProof.unknown();
 		private final long _requestId;
 		private final PhantomNavigationRequest _request;
 		private final boolean _walkCorridor;
@@ -1111,7 +1121,8 @@ public final class PhantomNavigationService
 		private boolean _accepted;
 	}
 
-	private record ValidatedPath(Status _status, PhantomNavigationRoute _route)
+	private record ValidatedPath(Status _status, PhantomNavigationRoute _route, PhantomNavigationResult.BudgetProof _proof)
 	{
+		private ValidatedPath(Status status, PhantomNavigationRoute route) { this(status, route, PhantomNavigationResult.BudgetProof.unknown()); }
 	}
 }

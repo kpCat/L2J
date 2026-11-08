@@ -175,6 +175,43 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Priority fixture did not stop."); }
 		});
+		registry.add("terminal-assembly-route-drains-the-exact-two-or-nine-member-generation", context ->
+		{
+			for (int size : List.of(2, 9))
+			{
+				final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+				backend._farmEnabled = true;
+				final var members = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member>();
+				for (long id = 1; id <= size; id++)
+				{
+					goals.put(id, supportTravelRoot(id, 0, "farm.fixture")); final var actor = backend.add(id, 100 + (int) id);
+					final var before = member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 300, 0)));
+					backend.snapshot(actor, new MemberSnapshot(actor, before.classId(), 0, (int) id * 2000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(901), before.capabilities(), ZERO));
+					members.add(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, "damage", 129000 + id, 0));
+				}
+				final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+				final var group = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("A".repeat(64), 1, 1, members,
+					new PhantomDomainRef("background.farm", "20101@farm.fixture"), "farm.fixture", org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 123, 1000, "");
+				logical.agree(group).orElseThrow();
+				final var clock = new AtomicLong(1_000_000_000L); final var millis = new AtomicLong(1000);
+				final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+				try
+				{
+					final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false,
+						(id, root) -> new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.TERMINAL,
+							root.goalId(), root.revision(), backend._members.get(id).characterObjectId(), backend._nativeEpoch, 0, "travel.search_limit"),
+						new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true), (_, _, _, _, current) -> current.getAsBoolean(), millis::get);
+					adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+					for (int pulse = 0; pulse < 64 && states._rendezvous.values().stream().noneMatch(row -> row.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED); pulse++)
+					{ adapter.onPulse(); clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); }
+					final var failed = logical.groupFor(1).orElseThrow().group();
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING, failed.phase(), "Terminal route cancellation left its logical generation assembling until TTL.");
+					PhantomAssertions.assertEquals(123L, failed.backgroundCursor(), "Terminal route failure rewound confirmed group time.");
+					PhantomAssertions.assertEquals(group.generation(), failed.generation(), "Terminal physical failure silently replaced the logical generation.");
+				}
+				finally { coordinator.beginStop(); coordinator.finishStop(); }
+			}
+		});
 		registry.add("execution-released-source-actor-is-not-an-old-group-projection", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();

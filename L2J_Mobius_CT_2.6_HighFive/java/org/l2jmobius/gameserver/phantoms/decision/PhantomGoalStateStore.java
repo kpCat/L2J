@@ -123,14 +123,32 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 			try (var permit = _admission.tryAcquireGoalContinuation(id, execution.state().owner()))
 			{
 				if (permit == null || !_admission.current(id, execution.component().rowVersion(), execution.state())) { throw new ConcurrentModificationException("Goal continuation owner is not current."); }
+				final var activity = _repository.findComponent(id, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ACTIVITY_COMPONENT_TYPE).orElse(null);
+				if (activity != null && org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot.decode(activity.payload()).pending()
+					&& execution.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE)
+				{ throw new ConcurrentModificationException("Normal root continuation waits for activity publication; completion retains REQUEST/RECOVER authority."); }
 				final var changes = new java.util.ArrayList<>(companions); changes.add(componentMutation(expectedVersion, replacement));
-				return _repository.mutateProfileComponentsAtomically(changes.stream().map(c -> new PhantomProfileRepository.ProfileComponentMutation(id, c)).toList(), java.util.List.of(root, execution.component()));
+				final var guards = new java.util.ArrayList<>(java.util.List.of(root, execution.component()));
+				if (activity != null) { guards.add(activity); }
+				return _repository.mutateProfileComponentsAtomically(changes.stream().map(c -> new PhantomProfileRepository.ProfileComponentMutation(id, c)).toList(), guards,
+					activity == null ? java.util.List.of(new PhantomProfileRepository.ComponentAbsence(id, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ACTIVITY_COMPONENT_TYPE)) : java.util.List.of());
 			}
 		}
 		if (!_admission.permitsIntentRequest(id)) { throw new ConcurrentModificationException("Stale execution callback cannot request a new Goal."); }
 		stagePublication(id, root, replacement, companions, execution);
 		_publicationWake.accept(id);
 		throw new ConcurrentModificationException("Goal publication awaits REQUEST/YIELD/CHECKPOINT/TRANSFER.");
+	}
+	/** An activity change is an intent transfer even when it retains the ordinary root's ID/type. */
+	public void requestPublication(long id, long expectedVersion, PhantomGoal replacement, java.util.List<ComponentMutation> companions)
+	{
+		if (_execution == null || !_admission.permitsIntentRequest(id)) { throw new ConcurrentModificationException("Publication requires the installed execution protocol."); }
+		if (companions.size() > 2 || companions.stream().anyMatch(c -> c.componentType().startsWith("goal.") || c.componentType().equals(PhantomExecutionHandoffStore.COMPONENT_TYPE)))
+		{ throw new IllegalArgumentException("Invalid Goal publication companions."); }
+		final var root = _repository.findComponent(id, COMPONENT_TYPE).orElse(null);
+		if ((root == null ? -1 : root.rowVersion()) != expectedVersion) { throw new ConcurrentModificationException("Publication baseline changed."); }
+		stagePublication(id, root, Objects.requireNonNull(replacement), companions, _execution.load(id).orElseThrow());
+		_publicationWake.accept(id);
 	}
 	private void stagePublication(long id, PhantomProfileComponent root, PhantomGoal replacement, java.util.List<ComponentMutation> companions, PhantomExecutionHandoffStore.Stored execution)
 	{
