@@ -1,6 +1,48 @@
 # TASK130 — implementation ledger
 
-Status: DIAGNOSED_KNOWLEDGE_AUTHORITY_STALE; RECOVERY_NOT_APPLIED. The single separately authorized diagnostic bootstrap is stopped. FULL130 is not achieved; no further build/boot is authorized.
+Status: AUTHORITY_RECOVERY_SOURCE_AND_ISOLATED_SQL_VERIFIED; MANAGED_RECOVERY_NOT_RUN; NATIVE_NOT_READY_UNBUILT. FULL130=false. No further JAR build or GameServer boot is authorized.
+
+## 2026-11-08 — bounded current-authority recovery, no GameServer
+
+Input WIP `7c368460c13455e32d271cd5d86abe06686ebc14`; verified code commit `4fa72128b61c5b4c455d0fc2322e9c5c126c9939`. This continues TASK130. Only the existing independent clone was edited; the main checkout was not changed. The historical sections below describe earlier runs and are not the current readiness decision.
+
+The preceding diagnostic established an actual knowledge mismatch, not GK/topology drift. Two independent source defects prevented legal recovery: strict inspection ran before Background/Historical owner composition, and `advance(COMPLETE)` returned before checking current Background authority. Historical COMPLETE hashes legitimately describe past transactions; requiring them to equal today's catalogs would destroy that distinction. The exact changed knowledge constituent remains UNKNOWN because old constituent fingerprints were not retained.
+
+Read-first scope: root AGENTS/README, workflow/current status, TASK130 contracts, Historical/Background/Transaction owners, execution admission/control and materialization lifecycle, and the existing SQL130/native runners. No module AGENTS, code-map or pattern file was found in the bounded inventory. Reused local patterns: `recoverStale`/`ensureBaseline`, exact `RecoveryClaim`, `HISTORICAL_BASELINE` native load/dematerialize/owned STORE/readback, and the existing execution completion reservation. JDK25; no dependency/schema/build-system changes. Bounded exception: eight existing code/test files plus these two existing reports, all on one authority-recovery seam. No new engine, harness, TASK or gameplay route.
+
+The four production paths are `PhantomSystem.java`, `background/PhantomHistoricalBackgroundService.java`, `decision/PhantomExecutionAdmission.java` and `decision/PhantomExecutionControlPort.java`, relative to `java/org/l2jmobius/gameserver/phantoms/`. Preparation now runs before normal work/materialization; inspection uses the same retained planner after lifecycle composition and before scheduler start. Cold execution ACK completes before exact recovery guards are captured. A thread-owned idle reservation excludes running/foreign completion work without holding the admission monitor across native/SQL work.
+
+READY + COMPLETE refreshes only current Background through the existing canonical native owners. It preserves the exact Catchup row/payload, COMPLETE status, historical authority, request, cursor, target, intervalOrdinal, root, reward receipt, progress and clock. New authority is accepted only after actual owned Player STORE and bound completed-context readback. Unfinished PENDING/RUNNING uses the existing baseline/recoverStale/replanning rules, retaining confirmed intervals. Pending Commerce/STORE/context, active execution, foreign identity lease, changed claim/root/dependencies and unavailable persistence refuse with typed results.
+
+F7 transaction code is unchanged. Tagged receipt mismatch refuses native preparation. An untagged historical receipt may survive a lawful native successor whose vitals changed; it is not a global current-state hash. For such a mismatch, preparation requires exact bound SUCCESS/COMPLETED context and then the entire existing canonical/native reconciliation, load validation, owned STORE and readback. This is native reattestation, never permission for offscreen TRAVEL/CANCEL or receipt rewriting. Missing/unbound/UNKNOWN/PENDING proof cannot use this route. F8 is unchanged and native Phantom Heal remains unproven.
+
+Verification on the final code:
+
+| Gate | Concrete result |
+|---|---|
+| Targeted javac | Four production + four existing test files, exit 0; no JAR build |
+| Deterministic contracts | MODEL 42/42 and operator controls 7/7, exit 0 |
+| Actual isolated SQL/native owners | COMPLETE, RUNNING, PENDING all PASS; final actual owned STORE counts 4/2/2; no GameServer |
+| History/rewards | Cursor 101/101/100 and intervalOrdinal retained; EXP/SP and earned receipt unchanged; COMPLETE row/root byte-exact |
+| Duplicate/retry/conflicts | No additional STORE on duplicate; stale claim/root CAS, pending Commerce, real active completion permit, foreign identity lease and unavailable Background refuse |
+| Native successor | Stock regeneration, actual NORMAL STORE, preserved historical receipt; subsequent authority change legally reattested; missing context proof refuses with zero STORE |
+| RED → GREEN | Same successor test first failed `catchup.authority.receipt_mismatch` (exit 1), then passed through native reattestation (exit 0) |
+| F7 SQL | Matched/empty commit; untagged mismatch OFFSCREEN_WAIT; duplicate IDEMPOTENT; stale root rejected; no interval/reward replay |
+| Separate JVM restart | All three persisted cases restored exact history/current baseline; zero additional STORE; exit 0 |
+
+SQL catalog/provider and execution-checkpoint facts are explicit fixture models; Player identity/vitals, native lifecycle, canonical SQL persistence, STORE and separate-process readback are real. The disposable unmanaged fixtures are confined to the already owned TEST130 schema. The first READY baseline comes from actual native STORE, not synthetic capture. No reseed, CUT, managed character/resource/hash writes, deletion of Background/Catchup, teleport or gameplay occurred. Runtime infrastructure initialization is internally scoped to this SQL route; ordinary fixture-before-CUT and all endpoint/owner/schema guards remain enforced.
+
+Raw evidence is in the existing external `task130/evidence/`: `refresh130-delivery-authority.out/.err`, `refresh130-delivery-resume.out/.err`, `refresh130-delivery-world-coordination130.log`, `refresh130-delivery-operator-runtime-controls.log`, `refresh130-verified-authority-f7.out/.err`, `refresh130-successor-red.out/.err`, `refresh130-code.diff`, `refresh130-postflight-comparison.json` and `refresh130-git-commands.txt`. Earlier failed fixture/launch logs are retained: a mismatched synthetic baseline was refused; Commerce creation during recovery was refused; a wrong working directory was stopped by its guard. Automatic approval review rejected a proposed synthetic READY shortcut; it was not applied. The accepted replacement established the first baseline through native STORE.
+
+Postflight: own JVM 0, listeners 0, protected 207 exact; read-only SQL principal/schema/session check PASS. Managed profiles 69/70/72/85/79/86 and all 83 component rows are exact against pre-test witnesses (41 + 48 lines). Runtime master config, prior CUT files and JAR `3D09C215B66E3579876A645335DB751E1F1AFB2FCF0ED0A17717FD3ECE889177` are byte-exact. Current-change JAR builds 0, GameServer boots 0. Source/JAR parity is false: the unchanged JAR does not contain this fix.
+
+Decision: source and isolated SQL recovery fragment verified and ready for a separately authorized build/native gate. Limited native acceptance cannot start on the old JAR. Managed recovery against the actual loaded production catalogs, Party/PvE reward, Phantom Heal/F8 and useful GameServer restart remain NOT_RUN/UNPROVEN. FULL130=false; publication only to `wip/coordination-130-preserved`, feature unchanged. Read-only independent review found no remaining P1/P2 in the changed seam; it does not establish native acceptance.
+
+Git was explicitly authorized by the current request for bounded inspection, scoped commits and ordinary WIP push. Exact commands/paths and delivery receipts are retained in external `refresh130-git-commands.txt` and `refresh130-delivery.json`; no history rewrite, stash, protected branch update or broad staging.
+
+mojibake-маркеры в изменённых файлах проверены: 0.
+
+escaped Cyrillic в изменённых файлах проверены: 0.
 
 ## 2026-11-08 — one authorized diagnostic bootstrap: only knowledge differs, managed facts unchanged
 
