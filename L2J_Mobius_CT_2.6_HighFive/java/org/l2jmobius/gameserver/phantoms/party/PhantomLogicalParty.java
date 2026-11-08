@@ -48,6 +48,8 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	/** A failed activity keeps membership, but cannot reacquire its old execution grant. */
 	public boolean activityReplanRequired() { return waitReason.startsWith("REPLAN_") || waitReason.equals("ACTIVITY_PENDING"); }
 	public boolean activityPending() { return waitReason.equals("ACTIVITY_PENDING"); }
+	public boolean requiresSoloExecution(long now)
+	{ return !active() || phase == Phase.DRAINING || activityReplanRequired() || now >= expiresAtMillis && phase != Phase.NATIVE_ACTIVE; }
 	/** Distinct from roster replacement: activity metadata never resets earned time. */
 	public PhantomLogicalParty activityReplacement(List<Member> roots, PhantomDomainRef source, long now)
 	{
@@ -123,7 +125,7 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	public PhantomLogicalParty transition(Phase next, long cursor, long nextDue, String reason)
 	{
 		if (cursor < backgroundCursor || !permits(phase, next) || activityReplanRequired() && phase == Phase.DRAINING && next == Phase.NATIVE_ACTIVE) { throw new IllegalArgumentException("Invalid logical group transition."); }
-		final long expiry = phase == Phase.DRAINING && next == Phase.BACKGROUND && !"EXPIRED_ASSEMBLY".equals(waitReason)
+		final long expiry = phase == Phase.DRAINING && next == Phase.BACKGROUND && !"EXPIRED_ASSEMBLY".equals(waitReason) && !"EXPIRED_ASSEMBLY".equals(reason)
 			? Math.max(expiresAtMillis, Math.addExact(nextDue, IDLE_LIFETIME_MILLIS)) : expiresAtMillis;
 		// STORE may postpone release, but cannot erase the terminal cause and restart its lifetime.
 		final String nextReason = activityReplanRequired() && !activityPending() && (next == Phase.DRAINING || next == Phase.BACKGROUND) && !reason.startsWith("REPLAN_") && !reason.equals("ACTIVITY_PENDING")

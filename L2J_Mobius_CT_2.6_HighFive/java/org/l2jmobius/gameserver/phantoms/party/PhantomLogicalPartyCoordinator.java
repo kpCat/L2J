@@ -197,4 +197,19 @@ public final class PhantomLogicalPartyCoordinator
 			|| expected.group().phase() != PhantomLogicalParty.Phase.AGREED && expected.group().phase() != PhantomLogicalParty.Phase.BACKGROUND) { return Optional.empty(); }
 		return Optional.of(disband(expected, now, "EXPIRED"));
 	}
+	/** Cold physical expiry cooperates with the existing execution owner; never recreates an objective. */
+	public StoredLogicalGroup retireExpired(StoredLogicalGroup expected, long now, java.util.function.BooleanSupplier absent,
+		java.util.function.LongPredicate soloRecovered, java.util.function.LongConsumer requestSolo)
+	{
+		if (_store.loadLogicalGroup(expected.group().leaderProfileId()).filter(expected::equals).isEmpty()) { throw new java.util.ConcurrentModificationException("Stale cold expiry generation."); }
+		if (!expected.group().active() || now < expected.group().expiresAtMillis() || !absent.getAsBoolean()) { return expected; }
+		var current = expected;
+		if (current.group().phase() != PhantomLogicalParty.Phase.DRAINING)
+		{ current = transition(current, PhantomLogicalParty.Phase.DRAINING, current.group().backgroundCursor(), now, "EXPIRED_ASSEMBLY"); }
+		current.group().members().forEach(member -> requestSolo.accept(member.profileId()));
+		if (current.group().members().stream().anyMatch(member -> !soloRecovered.test(member.profileId())) || !absent.getAsBoolean())
+		{ return transition(current, PhantomLogicalParty.Phase.DRAINING, current.group().backgroundCursor(), now + 5000, "EXPIRED_ASSEMBLY"); }
+		current = transition(current, PhantomLogicalParty.Phase.BACKGROUND, current.group().backgroundCursor(), now, "EXPIRED_ASSEMBLY");
+		return expire(current, now).orElseThrow();
+	}
 }

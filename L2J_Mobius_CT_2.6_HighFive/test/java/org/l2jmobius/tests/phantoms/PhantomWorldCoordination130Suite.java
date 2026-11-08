@@ -20,6 +20,36 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("cold-expired-assembly-waits-for-solo-recovery-before-release-and-fresh-discovery", _ ->
+		{
+			for (int size : List.of(2, 9))
+			{
+				final var store = new MemoryStore(); var owner = new PhantomLogicalPartyCoordinator(store);
+				final var old = group(1, size); var row = owner.agree(old).orElseThrow();
+				row = owner.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 1000, "");
+				row = owner.transition(row, PhantomLogicalParty.Phase.ASSEMBLING, 0, 1000, "");
+				final long now = old.expiresAtMillis(); final var wakes = new java.util.HashSet<Long>();
+				final var ids = old.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
+				PhantomAssertions.assertTrue(PhantomCoordination130Native.currentAgreement(owner, ids, now).isEmpty(), "Native preflight treated expired assembly as its mandatory objective.");
+				row = owner.retireExpired(row, now, () -> true, _ -> false, wakes::add);
+				PhantomAssertions.assertEquals(PhantomLogicalParty.Phase.DRAINING, row.group().phase(), "Cold expiry bypassed REQUEST/YIELD/RECOVER.");
+				PhantomAssertions.assertEquals(size, wakes.size(), "Cold expiry did not request all old executors.");
+				final var pending = row; owner = new PhantomLogicalPartyCoordinator(store);
+				row = owner.retireExpired(owner.groupFor(1).orElseThrow(), now + 5000, () -> false, _ -> true, wakes::add);
+				PhantomAssertions.assertTrue(row.group().active(), "A retained identity/lease released claims after restart.");
+				row = owner.retireExpired(row, now + 10000, () -> true, _ -> true, wakes::add);
+				PhantomAssertions.assertFalse(row.group().active(), "Recovered absent group retained claims.");
+				for (var member : old.members()) { PhantomAssertions.assertTrue(owner.groupFor(member.profileId()).isEmpty(), "Expired member remained claimed."); }
+				final var freshSource = new PhantomDomainRef("background.farm", "20002@fresh.source");
+				final var candidates = old.members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 75, List.of(freshSource), _ -> true, () -> true)).toList();
+				final var fresh = owner.discover(candidates, (_, _) -> true, now + 11000).orElseThrow();
+				PhantomAssertions.assertEquals(freshSource, fresh.group().objective(), "Fresh discovery pinned the expired objective.");
+				PhantomAssertions.assertEquals(fresh, PhantomCoordination130Native.currentAgreement(owner, ids, now + 11001).orElseThrow(), "Observer did not select the actual fresh agreement.");
+				PhantomAssertions.assertTrue(!fresh.group().groupId().equals(old.groupId()) && fresh.group().generation() == old.generation() + 1, "Fresh agreement reused the expired generation.");
+				final var staleOwner = owner;
+				PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> staleOwner.retireExpired(pending, now + 12000, () -> true, _ -> true, wakes::add), "Stale cold expiry changed the fresh agreement.");
+			}
+		});
 		registry.add("activity-without-common-source-waits-without-retrying-failed-route", _ ->
 		{
 			for (int size : List.of(2, 9))
@@ -139,9 +169,9 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				if (phase == PhantomLogicalParty.Phase.NATIVE_ACTIVE) { row = owner.transition(row, phase, 0, 1000, ""); }
 				if (phase == PhantomLogicalParty.Phase.DRAINING) { row = owner.transition(row, phase, 0, 1000, "WAIT_STORE"); }
 				final var expected = row;
-				PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.expireAbsent(owner, expected, agreed.expiresAtMillis(), () -> false), "Cold expiry ignored a live identity/lease.");
+				owner.retireExpired(expected, agreed.expiresAtMillis(), () -> false, _ -> true, _ -> { });
 				PhantomAssertions.assertEquals(expected, owner.groupFor(1).orElseThrow(), "Rejected cold expiry changed a generation.");
-				PhantomCoordination130Native.expireAbsent(owner, expected, agreed.expiresAtMillis(), () -> true);
+				owner.retireExpired(expected, agreed.expiresAtMillis(), () -> true, _ -> true, _ -> { });
 				for (var member : agreed.members()) { PhantomAssertions.assertTrue(owner.groupFor(member.profileId()).isEmpty(), "Expired cold phase retained its logical claim."); }
 				PhantomAssertions.assertEquals(agreed.expiresAtMillis(), store.groups.get(1L).group().expiresAtMillis(), "Cold recovery extended expired assembly lifetime.");
 			}

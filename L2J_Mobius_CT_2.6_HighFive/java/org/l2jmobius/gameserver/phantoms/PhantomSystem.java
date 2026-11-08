@@ -1007,6 +1007,13 @@ public final class PhantomSystem
 					return owner == null || owner.equals(new PhantomDomainRef("execution.party", group.groupId() + "." + group.generation()));
 				});
 				autonomousFarm.installTerminalHandoff(_executionControl::wake);
+				autonomousFarm.installSoloRecovery(id ->
+				{
+					final var row = _executionHandoffs.load(id).orElse(null);
+					return row != null && row.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id))
+						&& row.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE && !row.state().dependencies().isEmpty()
+						&& _executionAdmission.current(id, row.component().rowVersion(), row.state());
+				});
 				autonomousFarm.installActivityRevision(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityRevision()
 				{
 					@Override public java.util.List<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot> plan(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now)
@@ -3453,7 +3460,7 @@ public final class PhantomSystem
 			|| _partyCoordinator.pendingInvitation(id).isPresent() && !autonomousInvitation(id))
 		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
-		if (!executionGroupBinding(group, id, root) || group.phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING || group.activityReplanRequired())
+		if (!executionGroupBinding(group, id, root) || group.requiresSoloExecution(System.currentTimeMillis()))
 		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		return executionPartyOwner(id);
 	}
@@ -3598,7 +3605,7 @@ public final class PhantomSystem
 	}
 	private boolean logicalDraining(long profileId)
 	{
-		return _logicalParties != null && _logicalParties.knownGroupFor(profileId).map(row -> row.group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING).orElse(false);
+		return _logicalParties != null && _logicalParties.knownGroupFor(profileId).map(row -> row.group().requiresSoloExecution(System.currentTimeMillis())).orElse(false);
 	}
 	private int physicalTarget() { return Math.min(_settings.populationActiveTarget(), _settings.maxMaterializedPhantoms()); }
 	private org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand currentPhysicalDemand(long profileId)

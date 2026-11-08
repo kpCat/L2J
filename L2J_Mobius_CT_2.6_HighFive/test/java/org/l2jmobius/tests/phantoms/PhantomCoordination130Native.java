@@ -37,79 +37,56 @@ final class PhantomCoordination130Native
         return label.equals("original") ? runtime : runtime.resolve("morning");
     }
 
-    static void expireAbsent(PhantomLogicalPartyCoordinator logical,
-        org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup expected, long now, java.util.function.BooleanSupplier absent)
-    {
-        check(now >= expected.group().expiresAtMillis() && absent.getAsBoolean(), "COLD_EXPIRY_ABSENCE_REQUIRED");
-        var current = expected;
-        if (current.group().phase() != PhantomLogicalParty.Phase.AGREED && current.group().phase() != PhantomLogicalParty.Phase.BACKGROUND)
-        {
-            current = logical.transition(current, PhantomLogicalParty.Phase.DRAINING, current.group().backgroundCursor(), now, "EXPIRED_ASSEMBLY");
-            check(absent.getAsBoolean(), "COLD_EXPIRY_ABSENCE_CHANGED");
-            current = logical.transition(current, PhantomLogicalParty.Phase.BACKGROUND, current.group().backgroundCursor(), now, "EXPIRED_ASSEMBLY");
-        }
-        check(absent.getAsBoolean(), "COLD_EXPIRY_ABSENCE_CHANGED");
-        logical.expire(current, now).orElseThrow();
-    }
-
     static void recoverAgreement(Path module, PhantomProfileRepository profiles) throws Exception
     {
         final Path runtime = module.getParent().getParent().resolve("runtime").toRealPath();
         check(runtime.equals(Path.of(".").toRealPath()) && Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "RECOVERY_OWN_RUNTIME");
         check(Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1
             && Files.readString(runtime.resolve("config/Custom/PhantomPlayers.ini")).contains("EnablePhantomSystem = False") && !PhantomSystem.hasConfiguredInstance(), "RECOVERY_DISABLED");
-        org.l2jmobius.gameserver.config.ServerConfig.DATAPACK_ROOT = runtime.toFile();
-        org.l2jmobius.gameserver.config.PlayerConfig.load();
-        org.l2jmobius.gameserver.config.custom.StartingTitleConfig.load();
-        final var saved = read(scene(runtime).resolve("fixture130.properties"));
-        final var ids = Arrays.stream(saved.getProperty("profiles").split(",")).map(Long::parseLong).toList();
+        final var ids = authorizedProfiles(runtime);
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
-        var current = logical.groupFor(ids.getFirst()).orElse(null);
-        if (current != null && current.group().expiresAtMillis() <= System.currentTimeMillis())
+        final long now = System.currentTimeMillis();
+        for (long id : ids) { System.out.println("SQL130_RECOVERY_INSPECT profile=" + id + " group=" + logical.groupFor(id).map(row -> row.group().phase() + ":expired=" + (now >= row.group().expiresAtMillis()))); }
+        System.out.println("SQL130_RECOVERY_INSPECT_ONLY;SQL_WRITES=0;OLD_OBJECTIVE_PINNED=false;REQUIRED_OWNER=PhantomScheduler/PhantomExecutionControlPort/PhantomAutonomousFarmParty");
+        final var zone = ZoneId.of(read(runtime.resolve("config/Custom/PhantomPlayers.ini")).getProperty("PhantomPopulationTimeZone", "UTC"));
+        final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
+        final var eligible = new LinkedHashSet<Long>();
+        final var goals = new PhantomGoalStateStore(profiles);
+        for (long id : ids)
         {
-            expireAbsent(logical, current, System.currentTimeMillis(), () -> ids.stream().allMatch(id ->
-                World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null
-                    && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(profiles.find(id).orElseThrow().characterObjectId()) == null));
-            check(ids.stream().allMatch(id -> logical.groupFor(id).isEmpty()), "COLD_EXPIRY_CLAIMS_RELEASED");
-            System.out.println("SQL130_COLD_EXPIRY_PASS;NO_PLAYER=true;LEASES=0;CLAIMS_RELEASED=true;GAMEPLAY_WRITES=0");
+            final var state = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+            final var root = goals.load(id).orElseThrow().goal();
+            final var population = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
+            final var schedule = catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), zone, population.schedulePhaseMinutes());
+            final boolean consent = PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(id, state.progress().level());
+            final var receipt = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).find(id);
+            final boolean obligations = profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent()
+                || receipt.filter(row -> !row.receipt().state().terminal()).isPresent()
+                || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false);
+            final boolean claimed = new PhantomPartyStore(profiles).loadLogicalClaim(id).filter(PhantomPartyPersistencePort.StoredLogicalClaim::active).isPresent();
+            final boolean ready = population.state() == PhantomPopulationState.State.READY && population.catalogHash().equals(catalog.hash())
+                && state.state() == PhantomBackgroundState.State.READY && schedule.state().requiresMaterialization() && consent
+                && PhantomAutonomousFarmParty.ordinaryIntent(id, root) && !obligations && !claimed;
+            System.out.println("SQL130_SCENE_MEMBER profile=" + id + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
+                + " role=" + PhantomHistoricalBackgroundPlanner.logicalRole(state) + " schedule=" + schedule + " consent=" + consent + " obligations=" + obligations
+                + " claimed=" + claimed + " eligibleNow=" + ready + " position=" + state.position());
+            if (ready) { eligible.add(id); }
         }
-        else { System.out.println("SQL130_COLD_EXPIRY_NO_CHANGE;GAMEPLAY_WRITES=0"); }
-        recreateEligible(runtime, profiles, saved, logical);
+        System.out.println("SQL130_SCENE_INSPECT_ONLY;eligible=" + eligible + ";COMMON_SOURCE=UNKNOWN;SQL_WRITES=0;CATALOG_NATIVE_BOOTSTRAP_NOT_RUN=true");
     }
 
-    private static void recreateEligible(Path runtime, PhantomProfileRepository profiles, Properties saved, PhantomLogicalPartyCoordinator logical) throws Exception
+    static Optional<PhantomPartyPersistencePort.StoredLogicalGroup> currentAgreement(PhantomLogicalPartyCoordinator logical, List<Long> eligible, long now)
     {
-        final long leader = Long.parseLong(saved.getProperty("profiles").split(",")[0]);
-        if (logical.groupFor(leader).isPresent()) { return; }
-        final var old = new PhantomPartyStore(profiles).loadLogicalGroup(leader).orElseThrow().group();
-        check(old.phase() == PhantomLogicalParty.Phase.DISBANDED && old.groupId().equals(saved.getProperty("group")), "EXACT_EXPIRED_GENERATION");
-        final var zone = java.time.ZoneId.of(read(runtime.resolve("config/Custom/PhantomPlayers.ini")).getProperty("PhantomPopulationTimeZone", "UTC"));
-        final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
-        final var population = new PhantomPopulationStore(profiles, catalog, zone);
-        final var members = new ArrayList<PhantomLogicalParty.Member>();
-        for (var member : old.members())
-        {
-            final var state = population.reload(member.profileId()).state();
-            final var root = new PhantomGoalStateStore(profiles).load(member.profileId()).orElseThrow().goal();
-            final var background = new PhantomBackgroundStateCodec().decode(profiles.findComponent(member.profileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
-            check(state.state() == PhantomPopulationState.State.READY && state.catalogHash().equals(catalog.hash())
-                && World.getInstance().findObject(background.identity().characterObjectId()) == null
-                && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(background.identity().characterObjectId()) == null
-                && (background.state() == PhantomBackgroundState.State.READY || background.state() == PhantomBackgroundState.State.DEAD)
-                && catalog.evaluate(state.scheduleTemplate(), Instant.now(), zone, state.schedulePhaseMinutes()).state().requiresMaterialization()
-                && PhantomAutonomousFarmParty.ordinaryIntent(member.profileId(), root), "RECREATION_DURABLE_ELIGIBILITY");
-            if (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(member.profileId(), background.progress().level()))
-            { System.out.println("SQL130_RECREATION_LEAVE profile=" + member.profileId() + " actualLevel=" + background.progress().level() + " consent=false gameplayWrites=0"); continue; }
-            System.out.println("SQL130_LOGICAL_MEMBER profile=" + member.profileId() + " life=" + background.state() + " nativeAdmission=UNCHANGED gameplayWrites=0");
-            members.add(new PhantomLogicalParty.Member(member.profileId(), member.role(), root.goalId(), root.revision()));
-        }
-        check(members.size() >= 2 && members.stream().anyMatch(member -> member.profileId() == old.leaderProfileId()), "RECREATION_CONSENTED_ROSTER");
-        final String anchor = old.anchorId();
-        final var objective = old.objective();
-        if (members.stream().anyMatch(member -> !new PhantomGoalStateStore(profiles).load(member.profileId()).orElseThrow().goal().validSources().contains(objective)))
-        { System.out.println("NATIVE130_RECREATION_WAIT requiredChange=ordinary-common-objective;GAMEPLAY_WRITES=0"); return; }
-        logical.agree(new PhantomLogicalParty(old.groupId(), old.generation() + 1, old.leaderProfileId(), members, objective, anchor, PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "")).orElseThrow();
-        System.out.println("NATIVE130_ZERO_WORLD_RECREATION generation=" + (old.generation() + 1) + " sameGroupId=true actualDurableEligibility=true roster=" + members.stream().map(PhantomLogicalParty.Member::profileId).toList() + " objective=" + objective);
+        return eligible.stream().map(logical::groupFor).flatMap(Optional::stream)
+            .filter(row -> row.group().active() && !row.group().requiresSoloExecution(now) && now < row.group().expiresAtMillis()
+                && row.group().members().stream().allMatch(member -> eligible.contains(member.profileId()))).findFirst();
+    }
+    static List<Long> authorizedProfiles(Path runtime) throws Exception
+    {
+        final var ids = new LinkedHashSet<Long>();
+        for (Path file : List.of(runtime.resolve("fixture130.properties"), runtime.resolve("morning/fixture130.properties")))
+        { if (Files.exists(file)) { Arrays.stream(read(file).getProperty("profiles").split(",")).map(Long::parseLong).forEach(ids::add); } }
+        return List.copyOf(ids);
     }
     private static void check(boolean value, String key) { if (!value) { throw new IllegalStateException("NATIVE130_" + key); } }
     private static Properties read(Path path) throws Exception
@@ -195,35 +172,30 @@ final class PhantomCoordination130Native
             {
                 check(Files.exists(fixture) && Files.exists(runtime.resolve("human130-heal.tsv")), "PASSING_FIXTURE_PREFLIGHT_REQUIRED");
             }
-            final var saved = read(fixture);
-            final var ids = Arrays.stream(saved.getProperty("profiles").split(",")).map(Long::parseLong).toList();
+            final var saved = read(restart ? evidence.resolve("native130.complete") : fixture);
+            var ids = restart ? Arrays.stream(saved.getProperty("profiles").split(",")).map(Long::parseLong).toList() : authorizedProfiles(runtime);
             final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
-            if (!restart)
-            {
-                final var current = logical.groupFor(ids.getFirst()).orElse(null);
-                if (current != null && current.group().expiresAtMillis() <= System.currentTimeMillis())
-                {
-                    check(ids.stream().allMatch(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId()) == null), "EXPIRY_ZERO_WORLD");
-                    expireAbsent(logical, current, System.currentTimeMillis(), () -> ids.stream().allMatch(id -> World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null
-                        && org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(profiles.find(id).orElseThrow().characterObjectId()) == null));
-                }
-            }
-            if (!restart) { recreateEligible(runtime, profiles, saved, logical); }
-            final var before = logical.groupFor(ids.getFirst()).orElseThrow();
-            check(before.group().groupId().equals(saved.getProperty("group")) && before.group().members().size() >= 2 && before.group().members().stream().allMatch(member -> ids.contains(member.profileId())), "DURABLE_GROUP");
             for (long id : ids) { check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ZERO_WORLD_BEFORE_ENABLE"); }
             if (restart) { check(Files.readString(evidence.resolve("native130.persisted")).equals(persisted(profiles, ids)), "SAME_DB_EXACT_TOTALS_AND_CLAIMS"); }
             verifyExistingHumanHeal(runtime, jarHash);
             final Path cut = evidence.resolve(restart ? "restart130.cut" : "native130.cut");
-            if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngroup=" + before.group().groupId() + "\ngameplayFixtureWritesAfterCut=0\n"); }
-            else { check(read(cut).getProperty("group").equals(before.group().groupId()), "CONTINUATION_SAME_CUT_GROUP"); }
+            if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
             check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DECLARATION");
             Files.writeString(config, disabled.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"));
             PhantomPlayersConfig.load();
             final var enabled = PhantomSystem.operatorEnable();
             System.out.println("NATIVE130_ENABLE=" + enabled);
             check(enabled.runtimeConfigured() && enabled.runtimeState() == PhantomSystem.State.RUNNING, "SYSTEM_START_" + enabled.code());
-            observe(runtime, profiles, before.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList(), before.group().groupId(), restart);
+            final long deadline = System.currentTimeMillis() + 300_000, agreementUntil = Math.min(deadline, System.currentTimeMillis() + 30_000);
+            var agreement = currentAgreement(logical, ids, System.currentTimeMillis());
+            while (agreement.isEmpty() && System.currentTimeMillis() < agreementUntil)
+            { Thread.sleep(200); agreement = currentAgreement(logical, ids, System.currentTimeMillis()); }
+            final var before = agreement.orElseThrow(() -> new IllegalStateException("NATIVE130_NO_ORDINARY_AGREEMENT"));
+            check(!restart || before.group().groupId().equals(saved.getProperty("group")), "RESTART_SAME_GROUP");
+            ids = before.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList();
+            for (long id : ids) { check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ORDINARY_AGREEMENT_ZERO_WORLD_PROOF"); }
+            write(evidence.resolve("agreement130." + ProcessHandle.current().pid()), "group=" + before.group().groupId() + "\nprofiles=" + ids + "\nobjective=" + before.group().objective() + "\nzeroWorld=true\n");
+            observe(runtime, profiles, ids, before.group().groupId(), restart, deadline);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
             while (PhantomSystem.hasConfiguredInstance() && PhantomSystem.configuredShutdownSnapshot().systemState() != PhantomSystem.State.STOPPED && System.nanoTime() < until) { Thread.sleep(200); }
@@ -231,7 +203,7 @@ final class PhantomCoordination130Native
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
             check(after.group().groupId().equals(before.group().groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
             if (!restart) { write(evidence.resolve("native130.persisted"), persisted(profiles, ids)); }
-            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\npid=" + ProcessHandle.current().pid() + "\n");
+            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\npid=" + ProcessHandle.current().pid() + "\n");
             Files.writeString(config, disabled);
             System.out.println("NATIVE130_PASS restart=" + restart + " sameGroup=true actualPartyKill=true STORE=true");
         }
@@ -531,7 +503,7 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_F8_FINAL_HUMAN_PASS jar=" + jarHash + " hpGain=" + (player.getCurrentHp() - hp) + " mpDebit=" + (mp - minimum));
         }
     }
-    private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId, boolean restart) throws Exception
+    private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId, boolean restart, long deadline) throws Exception
     {
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
@@ -542,7 +514,7 @@ final class PhantomCoordination130Native
         LocalPlaySyntheticHumanSession witness = null; boolean witnessWithdrawn = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
         String lastCoordinationWait = ""; long lastCoordinationVersion = -1;
-        long nextTrace = 0; final long start = System.currentTimeMillis(), deadline = start + 540_000;
+        long nextTrace = 0; final long start = System.currentTimeMillis();
         try
         {
         while (System.currentTimeMillis() < deadline)

@@ -142,7 +142,7 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		mutations.add(new PhantomProfileRepository.ProfileComponentMutation(old.leaderProfileId(),
 			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, expected.rowVersion(), PhantomLogicalParty.SCHEMA_VERSION, replacement.encode())));
 		final var releaseGuards = new java.util.ArrayList<PhantomProfileComponent>();
-		if (old.activityReplanRequired()) for (var member : old.members())
+		if (old.activityReplanRequired() || old.waitReason().equals("EXPIRED_ASSEMBLY")) for (var member : old.members())
 		{ if (!activitySolo(member.profileId(), releaseGuards)) { throw new java.util.ConcurrentModificationException("Terminal claims wait for old Group owner release."); } }
 		for (long id : ids)
 		{

@@ -51,7 +51,7 @@ public final class PhantomCoordination130Integration
 	}
 	public static void main(String[] args) throws Exception
 	{
-        if (args.length < 2 || args.length > 3 || !List.of("check", "prepare", "inspect", "probe", "probe-live", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("check|prepare|inspect|probe|probe-live|handoff|ownership|ownership-resume|test|resume|seal|fixture|recover|native|restart module [read-only admin config]"); }
+        if (args.length < 2 || args.length > 3 || !List.of("check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("check|prepare|inspect|probe|probe-live|cold|handoff|ownership|ownership-resume|test|resume|seal|fixture|recover|native|restart module [read-only admin config]"); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
@@ -141,6 +141,7 @@ public final class PhantomCoordination130Integration
 		try
 		{
 			final var profiles = PhantomProfileRepository.open();
+			if (args[0].equals("cold")) { coldExpiry130(profiles, module); return; }
 			if (args[0].equals("ownership")) { executionHandoff(profiles, module); PhantomCommerceSuite.verifyUnappliedAbortSql(profiles); activityRevision130(profiles, module, false); return; }
 			if (args[0].equals("ownership-resume"))
 			{
@@ -185,6 +186,7 @@ public final class PhantomCoordination130Integration
                     final var raw = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE);
                     final var state = raw.map(value -> new PhantomBackgroundStateCodec().decode(value.payload()));
                     System.out.println("SQL130_PHYSICAL_BASELINE profile=" + id + " position=" + state.orElseThrow().position() + " vitals=" + state.orElseThrow().vitals());
+                    System.out.println("SQL130_CLASS_FACTS profile=" + id + " identity=" + state.orElseThrow().identity() + " role=" + org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner.logicalRole(state.orElseThrow()) + " combat=" + state.orElseThrow().combat() + " loadout=" + state.orElseThrow().loadout());
                     System.out.println("SQL130_ROOT profile=" + id + " root=" + new PhantomGoalStateStore(profiles).load(id));
                     System.out.println("SQL130_PARTY_CLAIM profile=" + id + " claim=" + new PhantomPartyStore(profiles).load(id));
                     System.out.println("SQL130_EXECUTION_GRANT profile=" + id + " grant=" + new PhantomExecutionHandoffStore(profiles).load(id).map(row ->
@@ -1206,10 +1208,121 @@ public final class PhantomCoordination130Integration
 		}
 		if (!resume) { try (var writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) { saved.store(writer, "Existing TEST130 activity restart checkpoint; unmanaged SQL fixtures only"); } }
 	}
+	private static void coldExpiry130(PhantomProfileRepository profiles, Path module) throws Exception
+	{
+		final var checkpoint = module.resolve(".phantom-local/task130/activity-restart.properties"); final var saved = read(checkpoint);
+		final boolean cut = Boolean.getBoolean("phantom.task130.cold.restartCut"), resume = Boolean.getBoolean("phantom.task130.cold.restartResume");
+		if (cut && resume) { throw new IllegalArgumentException("Cold restart cut and resume are exclusive."); }
+		for (int size : List.of(2, 9))
+		{
+			final long leader = Long.parseLong(saved.getProperty("leader." + size));
+			final var parties = new PhantomPartyStore(profiles); final var logical = new PhantomLogicalPartyCoordinator(parties);
+			var row = logical.groupFor(leader).orElseGet(() -> parties.loadLogicalGroup(leader).orElseThrow());
+			if (row.group().members().size() != size || row.group().activityPending()) { throw new IllegalStateException("Existing SQL fixture is not reusable: " + row.group()); }
+			final var facts = new java.util.LinkedHashMap<String, String>();
+			for (var member : row.group().members())
+			{
+				final long id = member.profileId();
+				if (profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE).isPresent()) { throw new IllegalStateException("Cold SQL fixture must be unmanaged."); }
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT char_name FROM characters WHERE charId=?"))
+				{ query.setInt(1, profiles.find(id).orElseThrow().characterObjectId()); try (var rows = query.executeQuery()) { if (!rows.next() || !rows.getString(1).equals("SQL130_" + id)) { throw new IllegalStateException("Foreign cold SQL fixture."); } } }
+				for (String type : List.of(PhantomGoalStateStore.COMPONENT_TYPE, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundCatchupState.COMPONENT_TYPE, PhantomNativeContext.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE))
+				{ profiles.findComponent(id, type).ifPresent(component -> facts.put(id + ":" + type, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(component.payload()))); }
+			}
+			if (resume) { PhantomAssertions.assertEquals(saved.getProperty("cold.facts." + size), facts.toString(), "Cold process restart changed roots/receipts/cursor."); }
+			if (!row.group().active()) { row = logical.discover(coldCandidates(profiles, row.group().members()), (_, _) -> true, System.currentTimeMillis()).orElseThrow(); }
+			final java.util.function.BiFunction<Long, Long, PhantomDomainRef> desired = (id, now) -> logical.groupFor(id).map(group -> group.group()).filter(group -> !group.requiresSoloExecution(now))
+				.map(group -> new PhantomDomainRef("execution.party", group.groupId() + "." + group.generation())).orElse(PhantomExecutionHandoff.solo(id));
+			var driver = activityDriver(profiles, logical, row.group(), desired);
+			if (!resume && row.group().phase() != PhantomLogicalParty.Phase.DRAINING)
+			{
+				driver.clock().set(row.group().expiresAtMillis() - 100000);
+				row = logical.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, row.group().backgroundCursor(), driver.clock().get(), "");
+				row = logical.transition(row, PhantomLogicalParty.Phase.ASSEMBLING, row.group().backgroundCursor(), driver.clock().get(), "");
+				pulseActivity(driver);
+				for (var member : row.group().members()) { PhantomAssertions.assertEquals("execution.party", driver.executions().load(member.profileId()).orElseThrow().state().owner().namespace(), "Fixture did not preserve real Group grants."); }
+			}
+			if (cut)
+			{
+				saved.setProperty("cold.facts." + size, facts.toString());
+				for (var member : row.group().members()) { saved.setProperty("cold.grant." + member.profileId(), org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(driver.executions().load(member.profileId()).orElseThrow().component().payload())); }
+				System.out.println("SQL130_COLD_PROCESS_CUT;MEMBERS=" + size + ";PHASE=ASSEMBLING;SAVED_GROUP_GRANTS=true;NEW_PROFILES=0"); continue;
+			}
+			if (resume) for (var member : row.group().members()) { PhantomAssertions.assertEquals(saved.getProperty("cold.grant." + member.profileId()), org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(driver.executions().load(member.profileId()).orElseThrow().component().payload()), "Cold process restart changed saved Group grants."); }
+			final var cold = activityDriver(profiles, logical, row.group(), desired); cold.clock().set(row.group().expiresAtMillis() + 1);
+			final var members = row.group().members();
+			final java.util.function.BooleanSupplier absent = () -> members.stream().allMatch(member -> cold.backend().currentMember(member.profileId()).map(actor -> cold.backend().withUnmaterializedNativeAbsence(actor, () -> true)).orElse(false));
+			final java.util.function.LongPredicate recovered = id ->
+			{
+				final var execution = cold.executions().load(id).orElseThrow();
+				return execution.state().owner().equals(PhantomExecutionHandoff.solo(id)) && execution.state().phase() == PhantomExecutionHandoff.Phase.ACTIVE
+					&& !execution.state().dependencies().isEmpty() && cold.gate().current(id, execution.component().rowVersion(), execution.state());
+			};
+			row = logical.retireExpired(row, cold.clock().get(), absent, recovered, cold.control()::wake);
+			PhantomAssertions.assertEquals(PhantomLogicalParty.Phase.DRAINING, row.group().phase(), "Expired Group skipped its durable handoff.");
+			final int objectId = profiles.find(members.getLast().profileId()).orElseThrow().characterObjectId();
+			try (var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+			{ pulseActivity(cold); row = logical.retireExpired(row, cold.clock().get(), absent, recovered, cold.control()::wake); PhantomAssertions.assertTrue(row.group().active(), "Cold expiry ignored a retained native identity."); }
+			PhantomAssertions.assertTrue(cold.failures().stream().allMatch(failure -> "Execution recovery could not prove its native/absence boundary.".equals(failure.getMessage())), "Unexpected failure while the native lease deliberately fenced restart recovery: " + cold.failures());
+			cold.failures().clear();
+			for (int tick = 0; tick < 24 && members.stream().anyMatch(member -> !recovered.test(member.profileId())); tick++) { cold.clock().addAndGet(1001); cold.control().onPulse(); }
+			PhantomAssertions.assertTrue(members.stream().allMatch(member -> recovered.test(member.profileId())), "Cold source did not recover every grant: " + members.stream().map(member -> cold.executions().load(member.profileId()).orElseThrow().state().toString()).toList());
+			final var pending = row; final var wins = new java.util.concurrent.atomic.AtomicInteger();
+			PhantomAssertions.assertTrue(withFixtureAbsence(cold.backend(), members, 0, () ->
+			{
+				try
+				{
+					race(() -> { logical.retireExpired(pending, cold.clock().get(), () -> true, recovered, cold.control()::wake); wins.incrementAndGet(); },
+						() -> { new PhantomLogicalPartyCoordinator(parties).retireExpired(pending, cold.clock().get(), () -> true, recovered, cold.control()::wake); wins.incrementAndGet(); });
+					return true;
+				}
+				catch (Exception failure) { throw new IllegalStateException(failure); }
+			}), "Cold fixture could not hold the native absence proof across release CAS.");
+			PhantomAssertions.assertEquals(1, wins.get(), "Cold release had two CAS winners.");
+			for (var member : members)
+			{
+				PhantomAssertions.assertTrue(logical.groupFor(member.profileId()).isEmpty() && recovered.test(member.profileId()), "Cold expiry stranded claims or execution rights.");
+				final String prefix = member.profileId() + ":";
+				for (var fact : facts.entrySet()) if (fact.getKey().startsWith(prefix))
+				{ PhantomAssertions.assertEquals(fact.getValue(), org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(profiles.findComponent(member.profileId(), fact.getKey().substring(prefix.length())).orElseThrow().payload()), "Cold expiry changed an earned root/receipt/resource/cursor."); }
+				PhantomAssertions.assertEquals(101L, new PhantomBackgroundCatchupStore(profiles, cold.goals()).load(member.profileId()).orElseThrow().state().cursorEpochMinute(), "Cold expiry replayed an earned interval.");
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT exp,sp FROM characters WHERE charId=?"))
+				{ query.setInt(1, profiles.find(member.profileId()).orElseThrow().characterObjectId()); try (var rows = query.executeQuery()) { PhantomAssertions.assertTrue(rows.next() && rows.getLong(1) == 1 && rows.getLong(2) == 1, "Cold expiry/restart duplicated actual EXP/SP."); } }
+			}
+			PhantomAssertions.assertTrue(absent.getAsBoolean() && cold.failures().isEmpty(), "Cold recovery leaked a native lease or failed an existing owner: " + cold.failures());
+			final var candidates = coldCandidates(profiles, members);
+			// Consent is the existing model policy leaf; level1 SQL fixtures do not establish native eligibility.
+			final var fresh = logical.discover(candidates, (_, _) -> true, cold.clock().get() + 1).orElseThrow();
+			PhantomAssertions.assertTrue(!fresh.group().groupId().equals(row.group().groupId()) && candidates.getFirst().sources().contains(fresh.group().objective()), "Fresh ordinary discovery reused an expired agreement instead of current planner facts.");
+			System.out.println("SQL130_COLD_EXPIRY_PASS;MEMBERS=" + size + ";EXISTING_FIXTURES=true;NEW_PROFILES=0;GROUP_SOURCE_RECOVER=true;CLAIMS_RELEASED=true;RETAINED_LEASE=WAIT;CAS_WINNERS=1;ROOT_RECEIPTS_CURSOR_UNCHANGED=true;NATIVE_PLAYERS=0");
+			System.out.println("SQL130_FRESH_DISCOVERY_PASS;MEMBERS=" + size + ";OBJECTIVE=" + fresh.group().objective() + ";ROOT_WRITES=0;CONSENT=MODEL_LEAF;NATIVE_ELIGIBILITY_NOT_CLAIMED=true");
+		}
+		if (cut) { try (var writer = Files.newBufferedWriter(checkpoint, StandardCharsets.UTF_8)) { saved.store(writer, "Existing TEST130 activity/cold restart checkpoint; unmanaged SQL fixtures only"); } }
+	}
+	private static List<PhantomLogicalPartyCoordinator.Candidate> coldCandidates(PhantomProfileRepository profiles, List<PhantomLogicalParty.Member> members)
+	{
+		final var planner = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.receiptPlanner130(true);
+		final var goals = new PhantomGoalStateStore(profiles);
+		return members.stream().map(member ->
+		{
+			final var state = new PhantomBackgroundStateCodec().decode(profiles.findComponent(member.profileId(), PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+			final var root = goals.load(member.profileId()).orElseThrow().goal();
+			final var history = new PhantomBackgroundCatchupStore(profiles, goals).load(member.profileId()).orElseThrow().state();
+			return new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(member.profileId(), member.role(), root.goalId(), root.revision()), state.progress().level(),
+				planner.rendezvousSources(member.profileId(), state, root, history.deterministicSeed(), history.planOrdinal(), java.util.Set.of(), java.util.Set.of()),
+				source -> planner.rendezvousRouteAvailable(state, source, java.util.Set.of()), () -> true);
+		}).toList();
+	}
+	private static boolean withFixtureAbsence(org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend backend, List<PhantomLogicalParty.Member> members, int index, java.util.function.BooleanSupplier action)
+	{
+		return index == members.size() ? action.getAsBoolean() : backend.withUnmaterializedNativeAbsence(backend.currentMember(members.get(index).profileId()).orElseThrow(), () -> withFixtureAbsence(backend, members, index + 1, action));
+	}
 	private record ActivityDriver(PhantomGoalStateStore goals, PhantomExecutionHandoffStore executions, PhantomExecutionAdmission gate,
 		org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort control, java.util.concurrent.atomic.AtomicLong clock,
-		org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService history, java.util.List<RuntimeException> failures) { }
+		org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService history, java.util.List<RuntimeException> failures, org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend backend) { }
 	private static ActivityDriver activityDriver(PhantomProfileRepository profiles, PhantomLogicalPartyCoordinator logical, PhantomLogicalParty group)
+	{ return activityDriver(profiles, logical, group, (id, _) -> PhantomExecutionHandoff.solo(id)); }
+	private static ActivityDriver activityDriver(PhantomProfileRepository profiles, PhantomLogicalPartyCoordinator logical, PhantomLogicalParty group, java.util.function.BiFunction<Long, Long, PhantomDomainRef> desired)
 	{
 		final var goals = new PhantomGoalStateStore(profiles); final var executions = new PhantomExecutionHandoffStore(profiles); final var gate = new PhantomExecutionAdmission(16);
 		final var clock = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis()); final var failures = new java.util.ArrayList<RuntimeException>();
@@ -1233,7 +1346,8 @@ public final class PhantomCoordination130Integration
 			@Override public PhantomDecisionEngine.ExecutionReadiness prepareYield(PhantomExecutionHandoffStore.Stored row, long now)
 			{
 				final var receipt = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).find(row.profileId()).orElse(null);
-				final boolean ready = receipt == null || receipt.receipt().state().terminal();
+				final boolean ready = (receipt == null || receipt.receipt().state().terminal()) && backend.currentMember(row.profileId())
+					.map(actor -> backend.withUnmaterializedNativeAbsence(actor, () -> true)).orElse(false);
 				return new PhantomDecisionEngine.ExecutionReadiness(ready, "sql130.receipt_boundary", ready ? now : now + 1000);
 			}
 			@Override public PhantomDecisionEngine.ExecutionReadiness prepareRecovery(PhantomExecutionHandoffStore.Stored row, long now) { return prepareYield(row, now); }
@@ -1257,10 +1371,10 @@ public final class PhantomCoordination130Integration
 		};
 		final var engine = executionDriverEngine(executions, gate, port, 16);
 		final var control = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(engine, executions, gate, 16,
-			PhantomExecutionHandoff::solo, _ -> null, id -> goals.load(id).map(root -> root.goal()).orElse(null),
-			(id, _) -> !history.activityPending(id), (_, _) -> true, clock::get, (_, failure) -> failures.add(failure));
+			id -> desired.apply(id, clock.get()), _ -> null, id -> goals.load(id).map(root -> root.goal()).orElse(null),
+			(id, owner) -> !history.activityPending(id) && (owner.equals(PhantomExecutionHandoff.solo(id)) || logical.groupFor(id).map(row -> !row.group().requiresSoloExecution(clock.get())).orElse(false)), (_, _) -> true, clock::get, (_, failure) -> failures.add(failure));
 		control.installGoalPublications(goals); group.members().forEach(member -> control.watch(member.profileId()));
-		return new ActivityDriver(goals, executions, gate, control, clock, history, failures);
+		return new ActivityDriver(goals, executions, gate, control, clock, history, failures, backend);
 	}
 	private static void pulseActivity(ActivityDriver driver)
 	{ for (int tick = 0; tick < 8; tick++) { driver.clock().addAndGet(1001); driver.control().onPulse(); } }

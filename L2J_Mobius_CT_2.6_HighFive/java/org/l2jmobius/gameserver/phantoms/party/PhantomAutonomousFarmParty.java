@@ -64,6 +64,8 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private boolean _executionOwnershipInstalled;
 	private java.util.function.LongConsumer _terminalHandoff = _ -> { };
 	public void installTerminalHandoff(java.util.function.LongConsumer wake) { _terminalHandoff = java.util.Objects.requireNonNull(wake); }
+	private java.util.function.LongPredicate _soloRecovered = _ -> !_executionOwnershipInstalled;
+	public void installSoloRecovery(java.util.function.LongPredicate recovered) { _soloRecovered = java.util.Objects.requireNonNull(recovered); }
 	private PhantomLogicalPartyCoordinator.ActivityRevision _activityRevision;
 	public void installActivityRevision(PhantomLogicalPartyCoordinator.ActivityRevision revision) { _activityRevision = java.util.Objects.requireNonNull(revision); }
 	public void installExecutionOwnership(java.util.function.BiPredicate<Long, PhantomLogicalParty> ownership)
@@ -141,6 +143,15 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{
 			if (identities.stream().anyMatch(actor -> !_backend.withUnmaterializedNativeAbsence(actor, () -> true)))
 			{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); return; }
+			if (now >= group.expiresAtMillis() && !group.activityPending())
+			{
+				cancelLogicalOffers(group);
+				if (known.size() != group.members().size() || !withAbsentMembers(known, 0, () ->
+				{
+					_logical.retireExpired(row, now, () -> true, _soloRecovered, _terminalHandoff); return true;
+				})) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
+				return;
+			}
 			if (group.phase() == PhantomLogicalParty.Phase.BACKGROUND && group.activityReplanRequired() && _activityRevision != null)
 			{ _logical.recoverActivity(row, now, _activityRevision); return; }
 			if (_logical.expire(row, now).isPresent()) { return; }
@@ -157,7 +168,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "EXPIRED_ASSEMBLY"); return; }
 		if (group.phase() == PhantomLogicalParty.Phase.DRAINING)
 		{
-			for (var offer : new ArrayList<>(_offers.values())) { if (belongsTo(offer, group)) { cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); } }
+			cancelLogicalOffers(group);
 			group.members().forEach(member -> _terminalHandoff.accept(member.profileId()));
 			if (nativeParty != null) { _coordinator.drainAutonomousFarm(nativeParty.leader().profileId()); }
 			return;
@@ -642,6 +653,14 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		return true;
 	}
 
+	private boolean withAbsentMembers(List<MemberRef> members, int index, java.util.function.BooleanSupplier action)
+	{
+		return index == members.size() ? action.getAsBoolean() : _backend.withUnmaterializedNativeAbsence(members.get(index), () -> withAbsentMembers(members, index + 1, action));
+	}
+	private void cancelLogicalOffers(PhantomLogicalParty group)
+	{
+		for (var offer : new ArrayList<>(_offers.values())) { if (belongsTo(offer, group)) { cancelOffer(offer); _offers.remove(offer.leaderProfileId()); _assemblyCursors.remove(offer.leaderProfileId()); } }
+	}
 	private void cancelOffer(PhantomPartyRendezvousState offer)
 	{
 		for (var participant : offer.roster())
