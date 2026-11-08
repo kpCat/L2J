@@ -1,5 +1,43 @@
 {
-  "status": "INCOMPLETE_NATIVE_ROUTE_FAILURE_PRESERVED",
+  "status": "ROUTE_AND_TERMINAL_GROUP_DIAGNOSIS_PLAN_ONLY",
+  "routeAndTerminalGroupDiagnosis": {
+    "baseHead": "f9373d14ba6dbaff6e0c8ec1b516331c6cad3217",
+    "productionChanges": 0, "newJarBuilds": 0, "newGameServerLaunches": 0,
+    "jarSha256": "C3673739BDEEAE3DED645F385E2DBA701B222563EA43D632CF53C971C3AA61D0",
+    "geoRegions": 203, "allGeoHashesMatched": true,
+    "geoManifestSha256": "A8A4B73BC7B53BED28F545CD889F489492B585B369F8E84988F8DB8A91C973D5",
+    "canonicalObjective": "21298@generated.farm.970e92014da39de0cc1bc9b9.anchor; point168449,-40204,-3488",
+    "profile85": {
+      "initial": [165769,-47072,-3554], "lastObserved": [165773,-41141,-3448],
+      "firstObservedLocalCheckpointRetryMillis": 140652,
+      "initialStaticProof": "DIRECT_BLOCKED_PATHFINDER_OUT_OF_RANGE; requiredBuffer922/max500",
+      "lastStaticProof": "NO_PATH_WITHIN_BUFFER; requiredBuffer400/max500",
+      "episodeReplay": "FOUND local retreat point165773,-42165,-3456; nodes7/edges6/queries5/labels7; empty visited/no dynamic threats",
+      "pathChain": "Factual19points:no chain; refine291points/118settled:no chain; bounded miss only; PathChain has hermeticity caveat",
+      "wholeRoutePhysicalReachability": "UNKNOWN"
+    },
+    "profile86": {
+      "initial": [168703,-42778,-3432], "lastObserved": [168264,-42751,-3400],
+      "firstObservedLocalCheckpointRetryMillis": 60320, "lastObservedSearchLimitMillis": 150685,
+      "initialStaticProof": "VALID_PATH length2702/13segments/requiredBuffer386",
+      "lastStaticProof": "VALID_PATH length2666/9segments/requiredBuffer382",
+      "episodeReplay": "FOUND target; nodes2/edges1/queries1/labels2;9waypoints",
+      "wholeRoutePhysicalReachability": "PROVEN for canonical static Geo/XML endpoints; historical request/PvE/water eligibility UNKNOWN"
+    },
+    "limits": { "maximumRouteDistance":100000, "maximumLocalStraightDistance":12000, "maximumWaypoints":64, "requestDeadlineMillis":1000,
+      "corridorNodes":128, "corridorEdges":512, "pathQueries":32, "labels":4096, "maximumPathFindBuffer":500 },
+    "historicalUnknowns": ["exact submitted origin/destination/waypoint", "submission kind", "which budget branch failed", "spent nodes/edges/queries/labels", "raw and normalized waypoint count/route length", "native WALK charged distance/routes/visited/deadline", "dynamic PvE threats and water predicate"],
+    "statusConflation": "NavigationService maps SEARCH_LIMIT to ROUTE_BUDGET_EXCEEDED; NativeRouteContract uses same status for waypoint/chord/length limits. VisibleFarmTravel labels all as search_limit and normally ROUTE_UNUSABLE. Native raw status alone cannot identify exact exhausted budget or prove unreachable.",
+    "probeRuns": 5, "probeInputs": "external evidence/route130-coordinate-pairs.tsv and route130-factual-points.tsv",
+    "pathChainCaveat": "DoorData initialization invokes DatabaseIdManager; uninitialized pool rejects access before a connection. No SQL executed, but tool is not strictly hermetic. Independent TravelGeoProbe uses static XML oracle and has no such initialization.",
+    "plannerBlock": "HistoricalBackgroundService logical_hold/replanLogicalRendezvous pins existing objective; PartyStore rejects objective changes in both phase and membership revisions",
+    "terminalBlock": "advanceOffer cancels physical rendezvous only; logical ASSEMBLING remains WAIT_RESERVATION until cooldown/expiry or absence; active() includes BACKGROUND/DRAINING; desiredExecutionOwner does not automatically request Solo for terminal activity",
+    "expiryEvidence": "Group expired08:39:45.280Z and rendezvous08:40:39.552Z; native stopped08:33:25.912Z, so post-expiry native behavior was not observed",
+    "acceptanceCorrection": "NPC21298 is not required by ACCEPTANCE; native helper currently freezes initial objectiveNpc and saved fixture anchor, restricting lawful alternative evidence",
+    "proposedRepair": "Typed bounded route outcome -> logical DRAINING -> existing safe YIELD/STORE/checkpoint/CAS Solo/RECOVER -> BACKGROUND with retained membership -> shared lawful candidate and guarded activity-generation CAS -> new Group execution. No budget increase or manual gameplay edits.",
+    "plannedBoundedExceptionFiles":14, "newTestsImplemented":false, "implementationGate":"User requested confirmed diagnosis and addressed plan first; no behavior implementation or runtime campaign performed",
+    "full130":false, "featurePushed":false
+  },
   "compositionFinalJarNativeCheckpoint": {
     "utc": "2026-11-08T08:42:00Z",
     "buildHead": "a0685c15f88688d6dd05c003a90f9519943b61c2",
