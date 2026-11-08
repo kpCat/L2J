@@ -2,6 +2,8 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -80,15 +82,52 @@ final class PhantomCoordination130Native
     { return new PhantomLogicalPartyCoordinator(new PhantomWorldCoordination130Suite.MemoryStore()).discover(candidates, seeking, now).filter(row -> physical.test(row.group())); }
     static void inspectAuthority(long id, PhantomBackgroundState.Hashes saved, PhantomBackgroundState.Hashes current, java.util.function.Consumer<String> evidence)
     {
+        emitAuthority("NATIVE130_AUTHORITY", id, saved, current, evidence);
+        check(saved.equals(current), "PREFLIGHT_AUTHORITY_HASH_" + id);
+    }
+    static void emitAuthority(String prefix, long id, PhantomBackgroundState.Hashes saved, PhantomBackgroundState.Hashes current, java.util.function.Consumer<String> evidence)
+    {
         final var components = List.of("knowledge", "topology", "progression", "commerce");
         final var before = List.of(saved.knowledge(), saved.topology(), saved.progression(), saved.commerce());
         final var after = List.of(current.knowledge(), current.topology(), current.progression(), current.commerce());
         for (int index = 0; index < components.size(); index++)
         {
-            evidence.accept("NATIVE130_AUTHORITY profile=" + id + " component=" + components.get(index)
+            evidence.accept(prefix + " profile=" + id + " component=" + components.get(index)
                 + " saved=" + before.get(index) + " current=" + after.get(index) + " equal=" + before.get(index).equals(after.get(index)));
         }
-        check(saved.equals(current), "PREFLIGHT_AUTHORITY_HASH_" + id);
+    }
+    private static void inspectLoadedAuthority(Path runtime, PhantomProfileRepository profiles, List<Long> ids, PhantomSystem.PlanningInspection inspection) throws Exception
+    {
+        check(!PhantomSystem.hasConfiguredInstance(), "AUTHORITY_DIAGNOSTIC_BEFORE_EXECUTION");
+        final String before = persisted(profiles, ids);
+        final var generation = inspection.planner().generation();
+        final Path travelFile = runtime.resolve("data/phantoms/travel/high-five-normal-gk.xml");
+        final var travel = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(travelFile, inspection.topology());
+        final String canonical = inspection.topology().snapshot().canonicalHash();
+        final var digest = MessageDigest.getInstance("SHA-256");
+        for (String value : List.of("BACKGROUND_TRAVEL_V1", org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.PHANTOM_TRAVEL_TARIFF, canonical, travel.hash()))
+        { digest.update(value.getBytes(StandardCharsets.US_ASCII)); digest.update((byte) 0); }
+        final String composed = HexFormat.of().formatHex(digest.digest());
+        check(travel.hash().equalsIgnoreCase(hash(travelFile)), "AUTHORITY_DIAGNOSTIC_GK_BYTES");
+        System.out.println("NATIVE130_GK hash=" + travel.hash() + " legs=" + travel.legs().size() + " canonicalTopology=" + canonical
+            + " composedTopology=" + composed + " currentTopology=" + generation.authorityHashes().topology()
+            + " equalsCurrent=" + composed.equals(generation.authorityHashes().topology()) + " catalogRead=PUBLIC_LOADER_EXACT_RUNTIME_FILE");
+        final var histories = new PhantomBackgroundCatchupStore(profiles, new PhantomGoalStateStore(profiles));
+        for (long id : ids)
+        {
+            final var state = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+            final var history = histories.load(id).orElseThrow();
+            emitAuthority("NATIVE130_AUTHORITY", id, state.hashes(), generation.authorityHashes(), System.out::println);
+            emitAuthority("NATIVE130_CATCHUP_AUTHORITY", id, history.state().authorityHashes(), generation.authorityHashes(), System.out::println);
+            System.out.println("NATIVE130_AUTHORITY_STATE profile=" + id + " background=" + state.state() + " progress=" + state.progress() + " receipt=" + state.receipt()
+                + " catchup=" + history.state().status() + " catchupRow=" + history.rowVersion() + " cursor=" + history.state().cursorEpochMinute()
+                + " target=" + history.state().targetEpochMinute() + " savedKnowledgeGeneration=" + history.state().knowledgeGeneration()
+                + " currentKnowledgeGeneration=" + generation.knowledgeGeneration() + " savedTopologyGeneration=" + history.state().topologyGeneration()
+                + " currentTopologyGeneration=" + generation.topologyGeneration());
+        }
+        check(generation.equals(inspection.planner().generation()), "AUTHORITY_DIAGNOSTIC_GENERATION_CHANGED");
+        check(before.equals(persisted(profiles, ids)), "AUTHORITY_DIAGNOSTIC_READ_ONLY_WITNESS");
+        System.out.println("NATIVE130_AUTHORITY_DIAGNOSTIC_READ_ONLY profiles=" + ids + ";SQL_WRITES=0;CUT=false;MATERIALIZATION=false;GAMEPLAY=false");
     }
     private static PhantomLogicalParty inspectLoadedPlanner(Path runtime, PhantomProfileRepository profiles, List<Long> ids,
         PhantomSystem.PlanningInspection inspection, boolean restart, Properties saved) throws Exception
@@ -265,6 +304,12 @@ final class PhantomCoordination130Native
         for (var type : List.of(GameServer.class, PhantomSystem.class, PhantomLogicalParty.class))
         { check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "FINAL_JAR_CLASS_SOURCE"); }
         check(Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "EXACT_OWN_DATABASE");
+        if (Boolean.getBoolean("phantom.task130.authorityOnly"))
+        {
+            final Path origin = Path.of(PhantomCoordination130Native.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
+            check(origin.equals(module.getParent().resolve("build/phantom-test/bin").toRealPath()), "AUTHORITY_DIAGNOSTIC_TEST_BIN_ORIGIN");
+            System.out.println("NATIVE130_DIAGNOSTIC_CLASS source=" + origin + " class=" + PhantomCoordination130Native.class.getName());
+        }
         final String jarHash = hash(jar);
         final Path evidence = scene(runtime), fixture = evidence.resolve("fixture130.properties");
         final Path config = runtime.resolve("config/Custom/PhantomPlayers.ini");
@@ -297,6 +342,11 @@ final class PhantomCoordination130Native
             {
                 try
                 {
+                    if (Boolean.getBoolean("phantom.task130.authorityOnly"))
+                    {
+                        inspectLoadedAuthority(runtime, profiles, inspectionIds, inspection);
+                        throw new IllegalStateException("NATIVE130_AUTHORITY_DIAGNOSTIC_COMPLETE");
+                    }
                     proved.set(inspectLoadedPlanner(runtime,profiles,inspectionIds,inspection,restart,saved));
                     check(!Boolean.getBoolean("phantom.task130.authorityOnly"), "AUTHORITY_DIAGNOSTIC_COMPLETE");
                     if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
@@ -768,7 +818,7 @@ final class PhantomCoordination130Native
         }
         finally { if (witness != null) { witness.close(); } }
     }
-    private static String persisted(PhantomProfileRepository profiles, List<Long> ids) throws Exception
+    static String persisted(PhantomProfileRepository profiles, List<Long> ids) throws Exception
     {
         final var output = new StringBuilder();
         for (long id : ids)

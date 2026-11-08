@@ -210,6 +210,11 @@ public final class PhantomCoordination130Integration
                     System.out.println("SQL130_NATIVE_PROBE profile=" + id + " group=" + group.map(value -> value.group().phase() + ":" + value.group().waitReason() + ":expires=" + value.group().expiresAtMillis())
                         + " background=" + state.map(value -> value.state() + ":XP=" + value.progress().experience() + ":SP=" + value.progress().skillPoints() + ":hashes=" + value.hashes())
                         + " catchup=" + new PhantomBackgroundCatchupStore(profiles, new PhantomGoalStateStore(profiles)).load(id).map(value -> value.state().toString()));
+                    System.out.println("SQL130_EXACT_MANAGED profile=" + id + " nativeAndLedger=" + org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(
+                        PhantomCoordination130Native.persisted(profiles, List.of(id)).getBytes(StandardCharsets.UTF_8)));
+                    for (var component : profiles.listComponents(id))
+                    { System.out.println("SQL130_EXACT_COMPONENT profile=" + id + " type=" + component.componentType() + " row=" + component.rowVersion() + " schema=" + component.componentSchemaVersion()
+                        + " sha256=" + org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(component.payload())); }
                 }
                 return;
             }

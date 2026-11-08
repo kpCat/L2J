@@ -42,6 +42,11 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 					PhantomAssertions.assertEquals("NATIVE130_AUTHORITY profile=70 component=" + component + " saved=" + component + "-saved current="
 						+ component + (index == changed ? "-current equal=false" : "-saved equal=true"), evidence.get(index), "Authority component evidence was ambiguous.");
 				}
+				evidence.clear();
+				PhantomCoordination130Native.emitAuthority("NATIVE130_CATCHUP_AUTHORITY", 70, saved, current, evidence::add);
+				PhantomAssertions.assertEquals(4, evidence.size(), "Catchup diagnostics stopped before collecting every component.");
+				PhantomAssertions.assertTrue(evidence.get(changed).startsWith("NATIVE130_CATCHUP_AUTHORITY profile=70 component=" + components.get(changed))
+					&& evidence.get(changed).endsWith("equal=false"), "Catchup diagnostics lost the actual stale component.");
 			}
 		});
 		registry.add("loaded-preflight-keeps-ordinary-choice-and-requires-consent-spawn-geo-proof", _ ->
