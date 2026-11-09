@@ -415,7 +415,8 @@ public final class PhantomBackgroundModel
 		return incomingDamage(combat, target, encounterMillis) * random.variance();
 	}
 
-	private static double incomingDamage(CombatFacts combat, Target target, long encounterMillis)
+	/** The same incoming-damage estimate for an independently chosen exposure window. */
+	public static double incomingDamage(CombatFacts combat, Target target, double encounterMillis)
 	{
 		final boolean targetMagic = target.magicOffense() > target.physicalOffense();
 		final double offense = targetMagic ? target.magicOffense() : target.physicalOffense();

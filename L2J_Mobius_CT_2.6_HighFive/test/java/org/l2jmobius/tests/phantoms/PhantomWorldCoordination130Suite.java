@@ -78,6 +78,19 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(2000d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(2000, false), "Reserve extended a shorter actual encounter.");
 			PhantomAssertions.assertTrue(Double.isNaN(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(Double.POSITIVE_INFINITY, false)), "Unknown encounter acquired free protection.");
 		});
+		registry.add("party-extra-threat-uses-the-defence-against-that-attacker", _ ->
+		{
+			final var againstPrimary = new CombatFacts(ModelKind.MELEE, 100, 100, 400, 100, 500, 500, 0, 0, 1, 1, 0, 1, 1, 1, 1);
+			final var againstExtra = new CombatFacts(ModelKind.MELEE, 100, 100, 100, 100, 500, 500, 0, 0, 1, 1, 0, 1, 1, 1, 1);
+			final var primary = new PhantomBackgroundModel.Target(1, 76, true, 3000, 100, 300, 100, 100, 100, 500, 500, 100, 10, List.of(), 1);
+			final var extra = new PhantomBackgroundModel.Target(2, 76, true, 3000, 100, 600, 100, 100, 100, 500, 500, 100, 10, List.of(), 1);
+			final double fight = 30_000;
+			final double exposure = PhantomBackgroundModel.incomingDamage(againstPrimary, primary, fight)
+				+ PhantomBackgroundModel.incomingDamage(againstExtra, extra, PhantomPartyFarmEligibility.threatExposureMillis(fight, false));
+			PhantomAssertions.assertEquals(3600d, exposure, "Reusing the primary defense for the adjacent attacker hid lethal pressure.");
+			PhantomAssertions.assertEquals(9000d, PhantomBackgroundModel.incomingDamage(againstExtra, extra, PhantomPartyFarmEligibility.threatExposureMillis(fight, true)),
+				"An actual target swap still used only the six-second reserve.");
+		});
 		registry.add("party-native-target-budget-filters-wrong-sources-before-eight", _ ->
 		{
 			final var selected = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.farmTargets(java.util.stream.IntStream.rangeClosed(1, 17).boxed(), id -> id >= 9);

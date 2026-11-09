@@ -415,9 +415,15 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	/** Champion HP is damage mitigation in Creature.reduceCurrentHp; maxHP alone hides it. */
 	public static Target nativePlanningTarget(Creature target, boolean remainingHp)
 	{
+		return nativePlanningTarget(target, remainingHp, null);
+	}
+
+	/** Read attack stats in the context of the actual or at-risk recipient. */
+	public static Target nativePlanningTarget(Creature target, boolean remainingHp, Creature recipient)
+	{
 		final double championHp = target.isChampion() ? ChampionMonstersConfig.profile(target).hp() : 1;
 		final double hp = Math.max(1, remainingHp ? target.getCurrentHp() : target.getMaxHp()) * Math.max(1, championHp);
-		return new Target(target.asNpc().getId(), target.getLevel(), target.isMonster() && !target.isRaid(), hp, target.getMaxMp(), target.getPAtk(null), target.getMAtk(null, null), target.getPDef(null), target.getMDef(null, null), target.getPAtkSpd(), target.getMAtkSpd(), 0, 0, List.of(), 1, (float) target.getMaxHp(),
+		return new Target(target.asNpc().getId(), target.getLevel(), target.isMonster() && !target.isRaid(), hp, target.getMaxMp(), target.getPAtk(recipient), target.getMAtk(recipient, null), target.getPDef(null), target.getMDef(null, null), target.getPAtkSpd(), target.getMAtkSpd(), 0, 0, List.of(), 1, (float) target.getMaxHp(),
 			new PhantomBackgroundModel.CastDefense(java.util.stream.IntStream.range(0, 6).mapToObj(element -> target.getDefenseElementValue((byte) element)).toList(), target.calcStat(Stat.MAGIC_SUCCESS_RES, 1, null, null)));
 	}
 

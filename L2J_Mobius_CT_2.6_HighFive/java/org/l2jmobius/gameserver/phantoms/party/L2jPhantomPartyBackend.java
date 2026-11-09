@@ -594,14 +594,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final double actions = intervals[index] > 0 ? PhantomPartyFarmEligibility.requiredActions(millis, intervals[index]) : 0;
 			if (actions > ammunition[index]) { if (witness != null) { witness.accept("WAIT_GROUP_AMMO:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":shots=" + actions + ":ammo=" + ammunition[index]); } return false; }
 			if (actions * costs[index] > player.getCurrentMp() * 0.8) { if (witness != null) { witness.accept("WAIT_GROUP_MP:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":actionMPRequired=" + actions * costs[index] + ":MP=" + player.getCurrentMp()); } return false; }
-			final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, null);
-			final var estimate = PhantomBackgroundModel.estimateEncounter(combat.combat(), projected);
-			double incoming = estimate.incomingDamage() * PhantomPartyFarmEligibility.threatExposureMillis(millis, player.getObjectId() == mainVictim) / Math.max(1, estimate.durationMillis());
+			double incoming = farmIncomingDamage(player, target, millis, player.getObjectId() == mainVictim);
 			for (var entry : observedThreats.entrySet())
 			{
-				final Creature threat = entry.getKey();
-				final var extra = PhantomBackgroundModel.estimateEncounter(combat.combat(), L2jPhantomBackgroundAuthority.nativePlanningTarget(threat, true));
-				incoming += extra.incomingDamage() * PhantomPartyFarmEligibility.threatExposureMillis(millis, entry.getValue().objectId() == player.getObjectId()) / Math.max(1, extra.durationMillis());
+				incoming += farmIncomingDamage(player, entry.getKey(), millis, entry.getValue().objectId() == player.getObjectId());
 			}
 			exposures[index] = incoming;
 			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6) { if (witness != null) { witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis); } return false; }
@@ -618,11 +614,20 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 					.filter(cap -> cap.capabilityKey().startsWith("combat.") || cap.capabilityKey().startsWith("profession.")).limit(24)
 					.map(cap -> cap.capabilityKey() + ':' + cap.actionSkillId() + ':' + cap.actionSkillLevel() + ':' + cap.readyNow()).toList()).toList());
 			System.out.println("NATIVE130_D04 target=" + target.getObjectId() + " observedVictim=" + victim.objectId() + " plannedVictim=" + mainVictim
-				+ " idle=" + victim.idle() + " threatCount=" + threats.size() + " exposureMsReserve=6000 projectedDamage=" + java.util.Arrays.toString(exposures));
+				+ " idle=" + victim.idle() + " threatCount=" + threats.size() + " threatVictims="
+				+ observedThreats.entrySet().stream().map(entry -> entry.getKey().getObjectId() + "->" + entry.getValue().objectId()).toList()
+				+ " exposureMsReserve=6000 projectedDamage=" + java.util.Arrays.toString(exposures));
 			System.out.println("NATIVE130_D05 target=" + target.getObjectId() + " healerPresent=" + healerPresent + " caster=" + healerObjectId
 				+ " recipient=" + mainVictim + " readySkill=" + (readyHeal == null ? "none" : readyHeal.getId() + ":" + readyHeal.getLevel()) + " projectedHpCredit=0");
 		}
 		return true;
+	}
+
+	private static double farmIncomingDamage(Player player, Creature threat, double millis, boolean observedVictim)
+	{
+		final var defender = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, threat, null).combat();
+		final var attacker = L2jPhantomBackgroundAuthority.nativePlanningTarget(threat, true, player);
+		return PhantomBackgroundModel.incomingDamage(defender, attacker, PhantomPartyFarmEligibility.threatExposureMillis(millis, observedVictim));
 	}
 
 	private static Skill readyFarmHeal(Player healer, Player recipient, MemberSnapshot member)
