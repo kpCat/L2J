@@ -19,7 +19,7 @@ if($null -eq $exited.exitCode -or $exited.exitCode -ne 0){
 }
 $phaseMarker=$phase+'130'
 $failure=Select-String -LiteralPath ($prefix+'.stdout.log') -Pattern '^NATIVE130_FAILURE ' | Select-Object -Last 1
-if($failure -or (Test-Path -LiteralPath (Join-Path $scene ($phaseMarker+'.failed.'+$process.pid)))){
+if($failure -or (Test-Path -LiteralPath (Join-Path $scene ($phaseMarker+'.failed.'+$Attempt+'.'+$process.pid)))){
     throw "TEST130_VERTICAL_FAILED attempt=$Attempt pid=$($process.pid) $($failure.Line)"
 }
 $complete=Join-Path $scene ($phaseMarker+'.complete')
@@ -27,7 +27,7 @@ if(!(Test-Path -LiteralPath $complete -PathType Leaf) -or !(Test-Path -LiteralPa
     throw "TEST130_USEFUL_VERTICAL_OR_STORE_MISSING attempt=$Attempt"
 }
 $receipt=Get-Content -LiteralPath $complete
-if($receipt -cnotcontains ('pid='+$process.pid) -or $receipt -inotcontains ('jar='+$JarHash)){
+if($receipt -cnotcontains ('pid='+$process.pid) -or $receipt -inotcontains ('jar='+$JarHash) -or $receipt -cnotcontains ('attempt='+$Attempt)){
     throw "TEST130_COMPLETION_IDENTITY_MISMATCH attempt=$Attempt"
 }
 $restart=($phase -eq 'restart').ToString().ToLowerInvariant()

@@ -182,8 +182,8 @@ $jar=Join-Path $runtime ('libs\GameServer.'+$builtHash+'.jar')
 if(!(Test-Path -LiteralPath $jar)){Copy-Item -LiteralPath $built -Destination $jar}
 if((Get-FileHash -LiteralPath $jar).Hash -cne $builtHash){throw 'TEST130_FINAL_JAR_DIFFERS'}
 $classpath=$jar+';'+$classTail
-$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),('-Dphantom.task130.lane='+$Lane),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
 $attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
+$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),('-Dphantom.task130.lane='+$Lane),('-Dphantom.task130.attempt='+$attempt),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
 $out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')
 if($Action -eq 'restart'){
     $reservation=[IO.File]::Open($restartClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)

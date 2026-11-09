@@ -375,9 +375,9 @@ final class PhantomCoordination130Native
             check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ORDINARY_AGREEMENT_ZERO_WORLD_PROOF");
         }
         if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
-        write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + expected.objective()
+        write(evidence.resolve("preflight130.cut." + attemptKey()), "jar=" + jarHash + "\nobjective=" + expected.objective()
             + "\nAUTHORITY_PREPARATION=CANONICAL_NATIVE_STORE_READBACK\nGAMEPLAY_FIXTURE_WRITES=0\n");
-        write(agreementFile, "group=" + expected.groupId() + "\nprofiles=" + ids + "\nobjective=" + expected.objective() + "\nzeroWorld=true\n");
+        write(agreementFile, "group=" + expected.groupId() + "\ngeneration=" + expected.generation() + "\nprofiles=" + ids + "\nobjective=" + expected.objective() + "\nzeroWorld=true\n");
         System.out.println("NATIVE130_PREFLIGHT_PASS objective=" + expected.objective() + " roster=" + expected.members() + " group=" + expected.groupId() + " version=" + stored.rowVersion());
     }
     static org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result preparePreflightAuthority(
@@ -492,7 +492,7 @@ final class PhantomCoordination130Native
     {
         try (var files = Files.list(evidence))
         {
-            for (var file : files.filter(path -> path.getFileName().toString().matches("agreement130[.][0-9]+")).limit(23).toList())
+            for (var file : files.filter(path -> path.getFileName().toString().matches("agreement130[.]((native|restart)-[0-9]{8}-[0-9]{6}[.])?[0-9]+")).limit(23).toList())
             {
                 final var agreement = read(file);
                 if (group.groupId().equals(agreement.getProperty("group")) && group.objective().toString().equals(agreement.getProperty("objective"))
@@ -608,6 +608,16 @@ final class PhantomCoordination130Native
         System.exit(exit);
     }
 
+    static String attemptEvidenceKey(String attempt, long pid)
+    {
+        if (attempt == null || !attempt.matches("(native|restart)-[0-9]{8}-[0-9]{6}") || pid <= 0)
+        { throw new IllegalArgumentException("Invalid TASK130 launch identity"); }
+        return attempt + "." + pid;
+    }
+
+    private static String attemptKey()
+    { return attemptEvidenceKey(System.getProperty("phantom.task130.attempt"), ProcessHandle.current().pid()); }
+
     static void run(Path module, boolean restart) throws Exception
     {
         final Path runtime = Path.of(System.getProperty("phantom.task130.runtime")).toRealPath();
@@ -638,7 +648,10 @@ final class PhantomCoordination130Native
         final String disabled = Files.readString(config);
         check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DISABLED_BEFORE_BOOT");
         if (restart) { check(Files.exists(evidence.resolve("native130.complete")) && read(evidence.resolve("native130.complete")).getProperty("jar").equals(jarHash), "RESTART_SAME_FINAL_JAR"); }
-        write(evidence.resolve((restart ? "restart130.started." : "native130.started.") + ProcessHandle.current().pid()), "pid=" + ProcessHandle.current().pid() + "\njar=" + jarHash + "\n");
+        final String attempt = System.getProperty("phantom.task130.attempt", "");
+        final String launch = attemptKey();
+        check(attempt.startsWith(restart ? "restart-" : "native-"), "LAUNCH_PHASE");
+        write(evidence.resolve((restart ? "restart130.started." : "native130.started.") + launch), "pid=" + ProcessHandle.current().pid() + "\njar=" + jarHash + "\nattempt=" + attempt + "\n");
         boolean booted = false;
         try
         {
@@ -665,14 +678,14 @@ final class PhantomCoordination130Native
                         .anyMatch(name -> Files.isRegularFile(evidence.resolve("agreement130." + name.substring(name.lastIndexOf('.') + 1)))), "RECOVERY_PRIOR_AGREEMENT_REQUIRED");
                 }
                 final var witness = preflightWitness(profiles, ids, false);
-                write(evidence.resolve("startup130." + ProcessHandle.current().pid() + ".before.txt"), witness.canonical() + "\n" + witness.components());
+                write(evidence.resolve("startup130." + launch + ".before.txt"), witness.canonical() + "\n" + witness.components());
             }
             check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DECLARATION");
             Files.writeString(config, disabled.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"));
             PhantomPlayersConfig.load();
             final var inspectionIds = ids; final var proved = new java.util.concurrent.atomic.AtomicReference<PhantomLogicalParty>();
             final var planner = new java.util.concurrent.atomic.AtomicReference<PhantomHistoricalBackgroundPlanner>();
-            final Path agreementFile = evidence.resolve("agreement130." + ProcessHandle.current().pid());
+            final Path agreementFile = evidence.resolve("agreement130." + launch);
             final var enabled = PhantomSystem.operatorEnable(inspection ->
             {
                 try
@@ -682,7 +695,7 @@ final class PhantomCoordination130Native
                         inspectLoadedAuthority(runtime, profiles, inspectionIds, inspection);
                         throw new IllegalStateException("NATIVE130_AUTHORITY_DIAGNOSTIC_COMPLETE");
                     }
-                    final String witnessName = "preflight130." + ProcessHandle.current().pid();
+                    final String witnessName = "preflight130." + launch;
                     final Path beforeWitness = evidence.resolve(witnessName + ".before.txt");
                     final Path afterWitness = evidence.resolve(witnessName + ".after.txt");
                     savePreflightWitness(beforeWitness, profiles, inspectionIds, inspection);
@@ -717,7 +730,7 @@ final class PhantomCoordination130Native
                 finally
                 {
                     final var witness = preflightWitness(profiles, inspectionIds, false);
-                    write(evidence.resolve("startup130." + ProcessHandle.current().pid() + ".after.txt"), witness.canonical() + "\n" + witness.components());
+                    write(evidence.resolve("startup130." + launch + ".after.txt"), witness.canonical() + "\n" + witness.components());
                 }
             }
             final var before = proved.get();
@@ -735,7 +748,7 @@ final class PhantomCoordination130Native
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
             check(after.group().groupId().equals(before.groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
             if (!restart) { write(evidence.resolve("native130.persisted"), persisted(profiles, ids)); }
-            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\npid=" + ProcessHandle.current().pid() + "\n");
+            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\npid=" + ProcessHandle.current().pid() + "\nattempt=" + attempt + "\n");
             Files.writeString(config, disabled);
             System.out.println("NATIVE130_PASS restart=" + restart + " sameGroup=true actualPartyKill=true STORE=true");
         }
@@ -743,7 +756,7 @@ final class PhantomCoordination130Native
         {
             System.out.println("NATIVE130_FAILURE type=" + failure.getClass().getName() + " key=" + (failure.getMessage() != null && failure.getMessage().startsWith("NATIVE130_") ? failure.getMessage() : "WITHHELD"));
             for (var frame : failure.getStackTrace()) { if (frame.getClassName().startsWith("org.l2jmobius.")) { System.out.println("NATIVE130_FRAME " + frame); } }
-            write(evidence.resolve((restart ? "restart130.failed." : "native130.failed.") + ProcessHandle.current().pid()), failure.getClass().getName() + "\n");
+            write(evidence.resolve((restart ? "restart130.failed." : "native130.failed.") + launch), failure.getClass().getName() + "\n");
             if (!booted)
             {
                 // No configured Phantom owner exists before the master-disabled GameServer finishes booting.
@@ -1361,7 +1374,7 @@ final class PhantomCoordination130Native
     private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId,
         PhantomHistoricalBackgroundPlanner planner, boolean restart, long deadline) throws Exception
     {
-        final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
+        final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + attemptKey() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
         final var objects = ids.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(id -> id, id -> profiles.find(id).orElseThrow().characterObjectId()));

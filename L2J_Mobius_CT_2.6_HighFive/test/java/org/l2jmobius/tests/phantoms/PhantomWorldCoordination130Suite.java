@@ -224,6 +224,14 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				}
 			}
 		});
+		registry.add("native-evidence-separates-launches-with-a-recycled-pid", _ ->
+		{
+			final String first = PhantomCoordination130Native.attemptEvidenceKey("native-20261109-212228", 79004);
+			final String second = PhantomCoordination130Native.attemptEvidenceKey("native-20261109-220305", 79004);
+			PhantomAssertions.assertEquals("native-20261109-212228.79004", first, "Launch receipt lost process identity.");
+			PhantomAssertions.assertFalse(first.equals(second), "A recycled PID must not overwrite or block a later launch receipt.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomCoordination130Native.attemptEvidenceKey("../native", 79004), "Launch key admitted an untrusted path.");
+		});
 		registry.add("native-acceptance-requires-heal-only-for-a-healer-roster", _ ->
 		{
 			PhantomAssertions.assertTrue(PhantomCoordination130Native.usefulGroupEvidence(true, true, false, false, false, false), "A lawful group without a healer required an invented Heal.");
