@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('package','fixture','recover','native','restart','postflight')][string]$Action,
+    [ValidateSet('package','fixture','recover','artifact-check','native','restart','postflight')][string]$Action,
     [Parameter(Mandatory=$true)][string]$RuntimeRoot,
     [ValidateSet('original','morning')][string]$Fixture='original',
     [string]$GeoSource
@@ -79,17 +79,53 @@ if($Action -eq 'postflight'){
     Write-Output 'TEST130_POSTFLIGHT_OS_PASS;OWN_JVM=0;OWN_LISTENERS=0;PROTECTED=EXACT'
     return
 }
+$built=Join-Path $module 'dist\libs\GameServer.jar'
+$builtHash=(Get-FileHash -LiteralPath $built).Hash
+$java=(Get-Command java -CommandType Application -ErrorAction Stop).Source
+$dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '*.jar' -File | Where-Object {$_.Name -notlike 'GameServer*' -and $_.Name -notmatch '-(sources|javadoc)\.jar$'} | ForEach-Object FullName)
+$testBin=Join-Path $source 'build\phantom-test\bin'
+$classTail=($dependencies -join ';')+';'+$testBin+';'+(Join-Path $source 'build\phantom-test\resources')
+if($Action -in @('artifact-check','native','restart')){
+    $javap=Join-Path (Split-Path $java -Parent) 'javap.exe'
+    if(!(Test-Path -LiteralPath $javap -PathType Leaf)){throw 'TEST130_JAVAP_REQUIRED'}
+    $inspection='org.l2jmobius.gameserver.phantoms.PhantomSystem$PlanningInspection'
+    $api=(& $javap -s -classpath $built $inspection) -join [char]10
+    if($LASTEXITCODE -ne 0){throw 'TEST130_JAR_PLANNING_INSPECTION_CLASS_REQUIRED'}
+    $classpathForInspection=$built+';'+$classTail
+    $runnerClasses=@('PhantomCoordination130Native','PhantomCoordination130Integration')
+    $witnesses=@{}
+    foreach($name in $runnerClasses){
+        $type='org.l2jmobius.tests.phantoms.'+$name
+        $expected=(Join-Path $testBin ($type.Replace('.','\')+'.class')).Replace('\','/')
+        $body=@(& $javap -sysinfo -c -p -classpath $classpathForInspection $type)
+        if($LASTEXITCODE -ne 0){throw ('TEST130_RUNNER_BYTECODE_REQUIRED '+$name)}
+        if(!$body[0].StartsWith('Classfile ') -or $body[0].Substring(10).TrimStart('/') -ine $expected){
+            throw ('TEST130_RUNNER_ORIGIN_MISMATCH '+$name)
+        }
+        $witnesses[$name]=$body
+    }
+    $missing=@()
+    $accessors=[ordered]@{
+        decision='()Lorg/l2jmobius/gameserver/phantoms/decision/PhantomDecisionEngine;'
+        managedPartyPage='()Ljava/util/function/BiFunction;'
+    }
+    foreach($method in $accessors.Keys){
+        $descriptor=[regex]::Escape($accessors[$method])
+        $call=[regex]::Escape($inspection.Replace('.','/')+'.'+$method+':')
+        if($api -cnotmatch ('\s'+$method+'\(\);\s+descriptor: '+$descriptor)){$missing+=('jar.'+$method)}
+        if(!($witnesses['PhantomCoordination130Native'] -cmatch ('// Method '+$call+$descriptor))){$missing+=('runner.'+$method)}
+    }
+    if($missing.Count){throw ('TEST130_SHARED_ROUTE_LINKAGE_REFUSED missing='+($missing -join ',')+' jar='+$builtHash)}
+    Write-Output ('TEST130_SHARED_ROUTE_LINKAGE_PASS jar='+$builtHash+' runner='+$testBin)
+    if($Action -eq 'artifact-check'){return}
+}
 $request=Join-Path $parent ('g0-native130-'+[guid]::NewGuid().ToString('N'))
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-G0IdentityAttestation.ps1') -RequestDirectory $request
 if($LASTEXITCODE -ne 0){throw 'TEST130_G0_IDENTITY_FAILED'}
-$built=Join-Path $module 'dist\libs\GameServer.jar'
-$builtHash=(Get-FileHash -LiteralPath $built).Hash
 $jar=Join-Path $runtime ('libs\GameServer.'+$builtHash+'.jar')
 if(!(Test-Path -LiteralPath $jar)){Copy-Item -LiteralPath $built -Destination $jar}
 if((Get-FileHash -LiteralPath $jar).Hash -cne $builtHash){throw 'TEST130_FINAL_JAR_DIFFERS'}
-$java=(Get-Command java -ErrorAction Stop).Source
-$dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '*.jar' -File | Where-Object {$_.Name -notlike 'GameServer*' -and $_.Name -notmatch '-(sources|javadoc)\.jar$'} | ForEach-Object FullName)
-$classpath=$jar+';'+($dependencies -join ';')+';'+(Join-Path $source 'build\phantom-test\bin')+';'+(Join-Path $source 'build\phantom-test\resources')
+$classpath=$jar+';'+$classTail
 $javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
 $attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')

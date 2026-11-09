@@ -281,3 +281,17 @@ Git использовался в разрешённом независимом 
 Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
 
 Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.
+
+## Отказ несовместимого launcher до bootstrap
+
+`Test-Coordination130.ps1 -Action artifact-check -RuntimeRoot <owned runtime>` читает JAR и оба runner-класса из фактического classpath. `javap` подтверждает origin test-классов в `build/phantom-test/bin` и точные JVM-дескрипторы двух accessor-вызовов `PlanningInspection`. Этот же gate стоит в `native` и `restart` до создания G0 request, копирования JAR и `Start-Process`. Проверка linkage ограничена требуемыми символами. Полная сверка нового JAR с исходниками остаётся отдельным условием будущей native-попытки.
+
+RED вернул `ParameterArgumentValidationError`, потому что read-only режима в launcher не было. После правки сохранённые JAR и runner дали ожидаемый exit 1 с `TEST130_SHARED_ROUTE_LINKAGE_REFUSED` для `jar.decision`, `runner.decision`, `jar.managedPartyPage` и `runner.managedPartyPage`. Имена каталогов G0 и SHA-256 всех файлов process/exit совпали до и после. Отдельная проверка актуального javac overlay подтвердила оба объявления и вызова с точными дескрипторами. Логи `shared-party-route/launcher-artifact-red.log`, `launcher-artifact-green.log` и `launcher-artifact-guard-verdict.log` сохранены вне Git.
+
+При расхождении runtime eligibility текущий runner сравнивает реально выбранные Scheduler source и roster после CAS. Отказ в этой точке ещё не доказывает отсутствие новых claims. Штатное решение Scheduler для живой пары 70/72, D03–D05, фактические Party/PvE и STORE остаются непроверенными. В этом срезе изменений игрового кода, SQL-запусков, JAR-сборок, GameServer и restart не было. Общие счётчики 1/2/0 и FULL 0/7.
+
+Git ограничен независимым WIP. Команды с `-c safe.directory=<independent clone>` — `git rev-parse HEAD`, `git status --short`, `git diff -- <launcher и RESULT.md>`, `git -c core.whitespace=cr-at-eol diff --check -- <launcher и RESULT.md>`, `git add -- <launcher и RESULT.md>`, `git diff --cached --name-only`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <launcher и RESULT.md>`, `git commit -m "Reject stale TASK130 artifacts before native launch"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`, `git ls-remote --exit-code origin refs/heads/wip/coordination-130-preserved`.
+
+Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
+
+Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.
