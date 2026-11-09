@@ -60,7 +60,7 @@ public final class PhantomPartyFarmEligibility
 		if (!Double.isFinite(encounterMillis) || encounterMillis <= 0) { return Double.NaN; }
 		final int reserve = 6000;
 		if (!mainVictim) { return Math.min(encounterMillis, reserve); }
-		return supportCastMillis > 0 && supportCastMillis <= reserve ? Math.min(encounterMillis, supportCastMillis + reserve) : encounterMillis;
+		return supportCastMillis > 0 ? Math.min(encounterMillis, supportCastMillis + (double) reserve) : encounterMillis;
 	}
 
 	public record CastVictims(Set<Integer> recipients, boolean hostile, String refusal)

@@ -628,7 +628,16 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				incoming += farmIncomingDamage(player, entry.getKey(), PhantomPartyFarmEligibility.threatExposureMillis(millis, entry.getValue().objectIds().contains(player.getObjectId())));
 			}
 			exposures[index] = incoming;
-			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6) { if (witness != null) { witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis); } return false; }
+			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6)
+			{
+				if (witness != null)
+				{
+					witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId()
+						+ ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis + ":exposureMillis=" + exposure
+						+ ":supportCastMillis=" + supportCastMillis + ":otherThreats=" + observedThreats.size() + ":heal=" + (readyHeal == null ? 0 : readyHeal.getId()));
+				}
+				return false;
+			}
 		}
 		final var changedThreat = !victim.current().getAsBoolean() ? target : observedThreats.entrySet().stream()
 			.filter(entry -> !entry.getValue().current().getAsBoolean()).map(java.util.Map.Entry::getKey).findFirst().orElse(null);

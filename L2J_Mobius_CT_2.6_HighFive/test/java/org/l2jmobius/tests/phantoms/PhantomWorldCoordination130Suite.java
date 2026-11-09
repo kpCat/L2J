@@ -117,7 +117,8 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(Double.isNaN(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.threatExposureMillis(Double.POSITIVE_INFINITY, false)), "Unknown encounter acquired free protection.");
 			PhantomAssertions.assertEquals(8500d, PhantomPartyFarmEligibility.threatExposureMillis(44308, true, 2500), "An independently supported main victim still had to survive the entire fight without its Party.");
 			PhantomAssertions.assertEquals(44308d, PhantomPartyFarmEligibility.threatExposureMillis(44308, true, 0), "Missing support waived the primary threat horizon.");
-			PhantomAssertions.assertEquals(44308d, PhantomPartyFarmEligibility.threatExposureMillis(44308, true, 6001), "Unbounded support waived the primary threat horizon.");
+			PhantomAssertions.assertEquals(15100d, PhantomPartyFarmEligibility.threatExposureMillis(44308, true, 9100), "The six-second reaction reserve was applied as a cap on the native Heal cast.");
+			PhantomAssertions.assertEquals(44308d, PhantomPartyFarmEligibility.threatExposureMillis(44308, true, 45000), "A cast slower than the remaining fight waived the primary threat horizon.");
 			PhantomAssertions.assertEquals(6000d, PhantomPartyFarmEligibility.threatExposureMillis(44308, false, 2500), "The nonvictim lost the six-second reserve.");
 		});
 		registry.add("party-extra-threat-uses-the-defence-against-that-attacker", _ ->
