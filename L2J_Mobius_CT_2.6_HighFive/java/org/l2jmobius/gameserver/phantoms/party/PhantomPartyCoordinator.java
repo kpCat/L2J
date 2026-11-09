@@ -1458,11 +1458,20 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 					+ ";after=" + result.adenaAfter() + ";fee=" + result.fee() + ";landed=" + result.after();
 			}
 			journey.gkArrived.put(member, result.after());
+			java.util.logging.Logger.getLogger(PhantomPartyCoordinator.class.getName()).info("PARTY_GK_ARRIVED party=" + state.groupId()
+				+ " agreement=" + journey.binding + " profile=" + member.profileId() + " leg=" + leg.id()
+				+ " fee=" + result.fee() + " adenaBefore=" + result.adenaBefore() + " adenaAfter=" + result.adenaAfter()
+				+ " departure=" + result.before() + " landing=" + result.after());
 			org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(member.profileId(), "PARTY_GK", "gk.arrived", leg.id(),
 				"before=" + result.adenaBefore() + ";after=" + result.adenaAfter() + ";fee=" + result.fee() + ";landing=" + result.after(), _backend.materializationEpoch(member), state.operation().leaderGoalId(), state.operation().leaderGoalRevision());
 			return farmRouteResult(state, destination, RouteOutcome.PENDING, "gk_member_arrived");
 		}
 		final var outcome = result.status() == PhantomNativeTravelActions.Status.UNAVAILABLE ? RouteOutcome.PENDING : RouteOutcome.FAILED;
+		if (outcome == RouteOutcome.FAILED)
+		{
+			java.util.logging.Logger.getLogger(PhantomPartyCoordinator.class.getName()).warning("PARTY_GK_FAILED party=" + state.groupId()
+				+ " agreement=" + journey.binding + " profile=" + member.profileId() + " leg=" + leg.id() + " result=" + result);
+		}
 		return farmRouteResult(state, destination, outcome, "gk_" + result.status().name().toLowerCase(java.util.Locale.ROOT));
 	}
 

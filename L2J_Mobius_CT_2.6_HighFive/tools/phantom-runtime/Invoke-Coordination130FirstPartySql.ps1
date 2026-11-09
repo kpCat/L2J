@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet('start','attest','stop')][string]$Action,
+param([Parameter(Mandatory=$true)][ValidateSet('start','resume','attest','stop')][string]$Action,
     [ValidateSet('first-party','rendezvous')][string]$Lane='first-party')
 
 $ErrorActionPreference='Stop'
@@ -38,8 +38,21 @@ if($Action -eq 'start'){
     $initialize=Start-Process @initializeArgs
     if($initialize.ExitCode -ne 0 -or !(Test-Path -LiteralPath (Join-Path $data 'mysql') -PathType Container)){throw 'TEST130_SQL_INSTALL_FAILED'}
     [IO.File]::WriteAllLines($config,@('[mysqld]','bind-address=127.0.0.1',"port=$port",('datadir="'+$data.Replace('\','/')+'"'),'default-time-zone=+00:00'),$utf8)
+}
+if($Action -eq 'resume'){
+    if($Lane -ne 'rendezvous'){throw 'TEST130_SQL_RESUME_RENDEZVOUS_ONLY'}
+    foreach($file in @($daemon,$config,$receipt,(Join-Path $data 'ibdata1'))){Assert-G0PhysicalFile $file}
+    if((Get-Item -LiteralPath $daemon).VersionInfo.ProductVersion -ne '11.4.13.0'){throw 'TEST130_MARIADB_VERSION'}
+    $expected=@('[mysqld]','bind-address=127.0.0.1',"port=$port",('datadir="'+$data.Replace('\','/')+'"'),'default-time-zone=+00:00')
+    if(((Get-Content -LiteralPath $config) -join '|') -cne ($expected -join '|')){throw 'TEST130_SQL_RESUME_CONFIG'}
+    $prior=Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+    $priorProcess=[Win32SqlIdentity]::Process([uint32]$prior.pid,0x1000)
+    if(($priorProcess.Success -and $priorProcess.CreatedFileTime -eq $prior.created) -or @([Win32SqlIdentity]::Listeners($port)).Count){throw 'TEST130_SQL_ALREADY_RUNNING'}
+}
+if($Action -in @('start','resume')){
+    $label=if($Action -eq 'start'){'server'}else{'server-resume-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')}
     $serverArgs=@{FilePath=$daemon; ArgumentList=@(('"--defaults-file='+$config+'"'),'--console'); WorkingDirectory=$root;
-        WindowStyle='Hidden'; PassThru=$true; RedirectStandardOutput=(Join-Path $root 'server.stdout.log'); RedirectStandardError=(Join-Path $root 'server.stderr.log')}
+        WindowStyle='Hidden'; PassThru=$true; RedirectStandardOutput=(Join-Path $root ($label+'.stdout.log')); RedirectStandardError=(Join-Path $root ($label+'.stderr.log'))}
     $server=Start-Process @serverArgs
     $native=[Win32SqlIdentity]::Process([uint32]$server.Id,0x1000)
     if(!$native.Success -or $native.ImagePath -ine $daemon){throw 'TEST130_SQL_START_IDENTITY'}

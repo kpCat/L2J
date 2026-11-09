@@ -259,7 +259,15 @@ public final class PhantomLogicalPartyCoordinator
 			if (cursor != expected.group().backgroundCursor()) { throw new IllegalArgumentException("Disband cannot advance Background time."); }
 			return disband(expected, nextDue, reason);
 		}
-		return remember(_store.updateLogicalGroup(expected.group().transition(phase, cursor, nextDue, reason), expected.rowVersion()));
+		final var committed = remember(_store.updateLogicalGroup(expected.group().transition(phase, cursor, nextDue, reason), expected.rowVersion()));
+		if (phase == PhantomLogicalParty.Phase.DRAINING && expected.group().phase() != phase)
+		{
+			final var group = committed.group();
+			java.util.logging.Logger.getLogger(PhantomLogicalPartyCoordinator.class.getName()).info("PARTY_LOGICAL_DRAIN group=" + group.groupId()
+				+ " generation=" + group.generation() + " row=" + committed.rowVersion() + " from=" + expected.group().phase()
+				+ " reason=" + group.waitReason() + " expiresAt=" + group.expiresAtMillis() + " nextDue=" + group.nextDueMillis());
+		}
+		return committed;
 	}
 	public StoredLogicalGroup refreshBackground(StoredLogicalGroup expected, long now) { return remember(_store.refreshLogicalBackground(expected, now)); }
 	public interface ActivityRevision

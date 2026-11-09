@@ -227,7 +227,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{
-				if (!_logicalRetain.test(group)) { _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_DRAIN"); }
+				if (!_logicalRetain.test(group)) { _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_RETENTION_ENDED"); }
 			}
 			else if (group.phase() == PhantomLogicalParty.Phase.ASSEMBLING)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.NATIVE_ACTIVE, group.backgroundCursor(), now + 60_000, ""); }
@@ -237,7 +237,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			return;
 		}
 		if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
-		{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_DRAIN"); return; }
+		{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_PARTY_LOST"); return; }
 		_logicalWake.accept(group, materialized.getFirst().profileId());
 		if (group.phase() == PhantomLogicalParty.Phase.AGREED || group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
 		{ _logical.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, group.backgroundCursor(), now + 5000, "WAIT_ADMISSION"); return; }

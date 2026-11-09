@@ -469,7 +469,8 @@ final class PhantomCoordination130Native
                 final var leg = step.gatekeeper();
                 final boolean available = PhantomNativeTravelActions.available(leg);
                 System.out.println("NATIVE130_PREFLIGHT_GK profile=" + id + " leg=" + leg.id() + " available=" + available
-                    + " fee=" + PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, state.identity().classIndex(), state.progress().level()));
+                    + " fee=" + PhantomNormalGatekeeperTravel.fee(leg, state.identity().classIndex(), state.progress().level(), System.currentTimeMillis() / 60000)
+                    + " reserved=" + PhantomNormalGatekeeperTravel.maximumFee(leg, state.identity().classIndex(), state.progress().level()));
                 if (!available) { return false; }
                 final var endpoints = PhantomNativeTravelActions.gatekeeperEndpoints(leg);
                 if (!loadedRoute(step.id() + ".to_gk", id, from, endpoints.source(), deadline)
@@ -491,7 +492,7 @@ final class PhantomCoordination130Native
     {
         try (var files = Files.list(evidence))
         {
-            for (var file : files.filter(path -> path.getFileName().toString().matches("agreement130[.][0-9]+")).limit(6).toList())
+            for (var file : files.filter(path -> path.getFileName().toString().matches("agreement130[.][0-9]+")).limit(23).toList())
             {
                 final var agreement = read(file);
                 if (group.groupId().equals(agreement.getProperty("group")) && group.objective().toString().equals(agreement.getProperty("objective"))

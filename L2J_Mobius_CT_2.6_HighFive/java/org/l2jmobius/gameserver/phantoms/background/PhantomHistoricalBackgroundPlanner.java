@@ -363,7 +363,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		final var origin = state.position();
 		final var departure = _topology.findAnchor(itinerary.departureAnchorId()).orElseThrow().point();
 		double walking = departure.distance3D(new PhantomTopologyPoint(origin.x(), origin.y(), origin.z(), origin.instanceId()));
-		long millis = 0, fee = 0;
+		long millis = 0;
 		int gatekeepers = 0;
 		for (var step : itinerary.steps())
 		{
@@ -376,11 +376,10 @@ public final class PhantomHistoricalBackgroundPlanner
 				walking += from.distance3D(new PhantomTopologyPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0))
 					+ to.distance3D(new PhantomTopologyPoint(leg.destinationX(), leg.destinationY(), leg.destinationZ(), 0));
 				gatekeepers++;
-				fee += PhantomNormalGatekeeperTravel.phantomMaximumFee(leg, state.identity().classIndex(), state.progress().level());
 			}
 			else { walking += from.distance3D(to); }
 		}
-		return Optional.of(new RouteCost((long) Math.ceil(walking), millis, gatekeepers, fee));
+		return Optional.of(new RouteCost((long) Math.ceil(walking), millis, gatekeepers, partyFareReserve(state, itinerary.steps())));
 	}
 
 	private TargetFact partyTarget(int level, PhantomBackgroundGoalSpec spec, PhantomTopologyAnchor anchor)
@@ -476,8 +475,7 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private boolean partyItineraryAvailable(PhantomBackgroundState state, List<PhantomNormalGatekeeperTravel.Step> route, Set<String> excludedSteps)
 	{
-		if (route.size() > 64 || !PhantomVisibleFarmTravel.itineraryAffordable(route, state.identity().classIndex(),
-			state.progress().level(), java.time.Instant.now().toEpochMilli() / 60000, state.inventory().itemCount(57))) { return false; }
+		if (route.size() > 64 || partyFareReserve(state, route) > state.inventory().itemCount(57)) { return false; }
 		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
 		for (var step : route)
 		{
@@ -487,6 +485,13 @@ public final class PhantomHistoricalBackgroundPlanner
 			if (step.type() == PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND && from.point().distance3D(to.point()) > policy.maximumRouteDistance()) { return false; }
 		}
 		return true;
+	}
+
+	private static long partyFareReserve(PhantomBackgroundState state, List<PhantomNormalGatekeeperTravel.Step> route)
+	{
+		// A discount can end before this group reaches the teleporter.
+		return route.stream().map(PhantomNormalGatekeeperTravel.Step::gatekeeper).filter(Objects::nonNull)
+			.mapToLong(leg -> PhantomNormalGatekeeperTravel.maximumFee(leg, state.identity().classIndex(), state.progress().level())).sum();
 	}
 
 	public RendezvousRoute rendezvousRoutePreview(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)

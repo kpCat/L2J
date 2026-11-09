@@ -23,6 +23,7 @@ public final class PhantomNativeTravelActions
 {
 	public static final int LOCAL_WALK_DISTANCE = 3000;
 	private static final ThreadLocal<ReturnOperation> RETURN_GUARD = new ThreadLocal<>();
+	private static final ThreadLocal<Player> PAID_PARTY_GATEKEEPER = new ThreadLocal<>();
 	public enum Status { ARRIVED, UNAVAILABLE, INSUFFICIENT_RESOURCES, NATIVE_REJECTED, PAID_WITHOUT_ARRIVAL }
 	public record GatekeeperResult(Status status, long fee, long adenaBefore, long adenaAfter, PhantomNavigationPoint before, PhantomNavigationPoint after) { }
 	public record OwnedWalk(Player player, PlayerNativeWork.Owner owner, PhantomNavigationPoint destination) { }
@@ -30,7 +31,7 @@ public final class PhantomNativeTravelActions
 	/** Separate tariff authority; movement eligibility remains with the native route/action owners. */
 	public static boolean freeTravel(Player player)
 	{
-		if (player == null || player.getClient() != null || !player.hasHeadlessOutboundSession()
+		if (player == null || PAID_PARTY_GATEKEEPER.get() == player || player.getClient() != null || !player.hasHeadlessOutboundSession()
 			|| !(player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner)) { return false; }
 		final var identity = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId());
 		return owner.player() == player && owner.isCurrent() && PlayerNativeWork.current(owner) != null && World.getInstance().getPlayer(player.getObjectId()) == player
@@ -175,17 +176,31 @@ public final class PhantomNativeTravelActions
 		java.util.Set<Integer> roster, BooleanSupplier current)
 	{
 		final var party = player.getParty();
-		return gatekeeper(player, leg, () -> current.getAsBoolean() && ordinaryTravelActor(player) && !player.isMoving()
-			&& party != null && player.getParty() == party && party.getLeader().getObjectId() == leaderObjectId
-			&& roster.size() >= 2 && roster.size() <= 9 && roster.contains(player.getObjectId())
-			&& party.getMembers().size() == roster.size() && party.getMembers().stream().allMatch(member -> roster.contains(member.getObjectId())
-				&& member.getParty() == party && World.getInstance().getPlayer(member.getObjectId()) == member && member.hasHeadlessOutboundSession()));
+		final var previous = PAID_PARTY_GATEKEEPER.get();
+		PAID_PARTY_GATEKEEPER.set(player);
+		try
+		{
+			return gatekeeper(player, leg, () -> current.getAsBoolean() && ordinaryTravelActor(player) && !player.isMoving()
+				&& !player.isTeleporting() && !player.isProcessingTransaction()
+				&& party != null && player.getParty() == party && party.getLeader().getObjectId() == leaderObjectId
+				&& roster.size() >= 2 && roster.size() <= 9 && roster.contains(player.getObjectId())
+				&& party.getMembers().size() == roster.size() && party.getMembers().stream().allMatch(member -> roster.contains(member.getObjectId())
+					&& member.getParty() == party && World.getInstance().getPlayer(member.getObjectId()) == member && member.hasHeadlessOutboundSession()));
+		}
+		finally
+		{
+			if (previous == null) { PAID_PARTY_GATEKEEPER.remove(); }
+			else { PAID_PARTY_GATEKEEPER.set(previous); }
+		}
 	}
 
 	private static GatekeeperResult gatekeeper(Player player, PhantomNormalGatekeeperTravel.Leg leg, BooleanSupplier admitted)
 	{
 		final var before = point(player); final long adena = player.getAdena();
-		final long fee = PhantomNormalGatekeeperTravel.phantomFee(leg, player.getClassIndex(), player.getLevel(), Instant.now().toEpochMilli() / 60000);
+		final long minute = Instant.now().toEpochMilli() / 60000;
+		final long fee = PAID_PARTY_GATEKEEPER.get() == player
+			? PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), minute)
+			: PhantomNormalGatekeeperTravel.phantomFee(leg, player.getClassIndex(), player.getLevel(), minute);
 		final var npc = gatekeeperAt(leg);
 		if (!admitted.getAsBoolean() || !available(leg) || npc == null || !npc.canInteract(player)
 			|| !new L2jNavigationBackend().canWalkDirect(before,new PhantomNavigationPoint(npc.getX(),npc.getY(),GeoEngine.getInstance().getHeight(npc.getX(),npc.getY(),npc.getZ()),npc.getInstanceId()))) { return new GatekeeperResult(Status.UNAVAILABLE, fee, adena, adena, before, before); }

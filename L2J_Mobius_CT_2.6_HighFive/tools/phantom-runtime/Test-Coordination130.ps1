@@ -6,7 +6,7 @@ param(
     [ValidateSet('regression','first-party','rendezvous')][string]$Lane='regression',
     [string]$GeoSource,
     [ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedJarHash,
-    [ValidateRange(1,6)][int]$AttemptNumber=1
+    [ValidateRange(1,23)][int]$AttemptNumber=1
 )
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
