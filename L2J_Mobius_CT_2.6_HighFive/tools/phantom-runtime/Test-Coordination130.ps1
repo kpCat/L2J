@@ -23,6 +23,10 @@ function Assert-Protected {
         if((Get-FileHash -LiteralPath $seal.path -Algorithm SHA256).Hash -cne $seal.sha256){throw 'TEST130_PROTECTED_HASH_CHANGED'}
     }
 }
+function Assert-OwnJvmAbsent {
+    $own=@(Get-CimInstance Win32_Process | Where-Object {$_.Name -eq 'java.exe' -and $_.CommandLine -and $_.CommandLine.Contains($runtime)})
+    if($own.Count){throw 'TEST130_OWN_JVM_ALREADY_PRESENT'}
+}
 Assert-Protected
 Assert-PortsFree
 if($Action -eq 'package'){
@@ -73,14 +77,27 @@ if($Action -eq 'package'){
     return
 }
 if(!(Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw) -cnotmatch '^TASK130:[0-9a-f]{32}$'){throw 'TEST130_OWNER_MARKER'}
-$own=@(Get-CimInstance Win32_Process | Where-Object {$_.Name -eq 'java.exe' -and $_.CommandLine -and $_.CommandLine.Contains($runtime)})
-if($own.Count){throw 'TEST130_OWN_JVM_ALREADY_PRESENT'}
+Assert-OwnJvmAbsent
 if($Action -eq 'postflight'){
     Write-Output 'TEST130_POSTFLIGHT_OS_PASS;OWN_JVM=0;OWN_LISTENERS=0;PROTECTED=EXACT'
     return
 }
 $built=Join-Path $module 'dist\libs\GameServer.jar'
 $builtHash=(Get-FileHash -LiteralPath $built).Hash
+$outcomeCheck=Join-Path $PSScriptRoot 'Assert-Coordination130Outcome.ps1'
+if($Action -in @('native','restart') -and !(Test-Path -LiteralPath $outcomeCheck -PathType Leaf)){
+    throw 'TEST130_OUTCOME_CHECK_REQUIRED'
+}
+$restartClaim=Join-Path $runtime 'restart130.launch'
+if($Action -eq 'restart'){
+    if((Test-Path -LiteralPath $restartClaim) -or @(Get-ChildItem -LiteralPath $runtime -Filter 'restart-*.process.json' -File).Count){
+        throw 'TEST130_RESTART_ALREADY_ATTEMPTED'
+    }
+    $first=Get-ChildItem -LiteralPath $runtime -Filter 'native-*.process.json' -File | Sort-Object Name -Descending | Select-Object -First 1
+    if(!$first){throw 'TEST130_PRIOR_NATIVE_ATTEMPT_MISSING'}
+    $firstAttempt=$first.Name -creplace '\.process\.json$',''
+    & $outcomeCheck -RuntimeRoot $runtime -Attempt $firstAttempt -Fixture $Fixture -JarHash $builtHash
+}
 $java=(Get-Command java -CommandType Application -ErrorAction Stop).Source
 $dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '*.jar' -File | Where-Object {$_.Name -notlike 'GameServer*' -and $_.Name -notmatch '-(sources|javadoc)\.jar$'} | ForEach-Object FullName)
 $testBin=Join-Path $source 'build\phantom-test\bin'
@@ -132,6 +149,10 @@ $classpath=$jar+';'+$classTail
 $javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
 $attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')
+if($Action -eq 'restart'){
+    $reservation=[IO.File]::Open($restartClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    $reservation.Dispose()
+}
 $process=Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $runtime -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
 $processHandle=$process.Handle
 $fact=Get-CimInstance Win32_Process -Filter ('ProcessId='+$process.Id)
@@ -144,4 +165,13 @@ $process.WaitForExit()
 $process.Refresh()
 @{pid=$process.Id;exitCode=$process.ExitCode;phase=$Action;finished=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime ($attempt+'.exit.json')) -Encoding UTF8
 Write-Output ('TEST130_OWN_EXIT='+$process.ExitCode+';PHASE='+$Action)
+if($Action -in @('native','restart')){
+    Assert-OwnJvmAbsent
+    Assert-PortsFree
+    Assert-Protected
+    Write-Output 'TEST130_POSTFLIGHT_OS_PASS;OWN_JVM=0;OWN_LISTENERS=0;PROTECTED=EXACT'
+    if($process.ExitCode -eq 0){
+        & $outcomeCheck -RuntimeRoot $runtime -Attempt $attempt -Fixture $Fixture -JarHash $builtHash
+    }
+}
 exit $process.ExitCode

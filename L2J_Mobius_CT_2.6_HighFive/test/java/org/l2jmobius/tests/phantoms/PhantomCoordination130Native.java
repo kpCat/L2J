@@ -632,7 +632,8 @@ final class PhantomCoordination130Native
             verifyExistingHumanHeal(runtime, jarHash);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
-            while (PhantomSystem.hasConfiguredInstance() && PhantomSystem.configuredShutdownSnapshot().systemState() != PhantomSystem.State.STOPPED && System.nanoTime() < until) { Thread.sleep(200); }
+            while (PhantomSystem.hasConfiguredInstance() && System.nanoTime() < until) { Thread.sleep(200); }
+            check(!PhantomSystem.hasConfiguredInstance(), "PHANTOM_DRAIN_BEFORE_STORE_ACCEPTANCE");
             check(ids.stream().allMatch(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId()) == null), "ZERO_WORLD_AFTER_STORE");
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
             check(after.group().groupId().equals(before.groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
@@ -653,7 +654,14 @@ final class PhantomCoordination130Native
                 System.exit(1);
             }
         }
-        finally { if (booted) { Files.writeString(config, disabled); Shutdown.getInstance().startShutdown(null, 0, false); } }
+        finally
+        {
+            if (booted)
+            {
+                try { Files.writeString(config, disabled); }
+                finally { Shutdown.getInstance().startShutdown(null, 0, false); }
+            }
+        }
     }
 
     private static long mix(long seed, long value)
