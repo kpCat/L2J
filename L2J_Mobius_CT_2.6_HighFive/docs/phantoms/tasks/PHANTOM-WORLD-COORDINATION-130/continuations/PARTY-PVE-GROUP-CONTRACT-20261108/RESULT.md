@@ -221,3 +221,19 @@ Git выполнялся в независимом clone по явному ра�
 Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
 
 Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.
+
+## Geo-проверка контрольного источника после STOP
+
+На WIP `2d986705bc81914ff43237a8e7272402ba66c561` существующий `PhantomTravelGeoProbe` запущен в режимах `--heights` и `--waypoints` против того же JAR и Geo203. Оба процесса завершились с exit 0. В журналах инициализации есть GeoEngine и PathFinding. GameServer, DatabaseFactory, SpawnData, SpawnTable, DoorData и FenceData не инициализировались. Проверка читала Geo203 и статические XML столкновений, без SQL и изменений персонажей.
+
+Высота сохранённого якоря 70/72 `(170156,-36726,-3376)` совпала с Geo. Четыре контрольные точки подтверждены внутри штатного Wall of Argos spawn polygon `godard26_2516_28`. Для каждой получены `DIRECT_VALIDATED` и `STATIC_XML_CLEAR`, длины 191, 518, 565 и 287 единиц. XML задаёт NPC 21300 (уровень 72, 2), 21301 (72, 3) и 21302 (73, 1). Все входят в [72,80].
+
+Запрос к тому же Hot Springs якорю вернул `NO_PATH`. Отдельная диагностика `DIRECT_BLOCKED_PATHFINDER_OUT_OF_RANGE` показала размер буфера 9090 при настроенном максимуме 500 для единого прямого запроса. Это объясняет ограничение этой проверки. Допустимый itinerary из нескольких сегментов к Hot Springs не проверялся.
+
+Четыре коннектора дают положительный Geo-контроль для сценария «дальний кандидат отклонён, локальный продолжает проверку». Остаётся проверить admission локального источника в фактическом production planner, живой spawn, D03–D05 и игровую вертикаль. Runner и production не менялись. Причина изменения knowledge hash остаётся UNKNOWN. Счётчики JAR/bootstrap/restart по-прежнему 1/2/0. FULL130=false, TASK130–136 FULL 0/7.
+
+Внешний evidence seal `task130/evidence/argos-geo-readonly/manifest.json` имеет SHA-256 `6d8d597016ce67d14987512441f54cdf1e3051a437d6d4278d478d9212976e4b`. Он привязывает вывод probe к Geo203 manifest, production XML, probe inputs и class-init logs. В Git публикуется только результат. Команды аудита `git rev-parse HEAD`, `git status --short`, `git diff -- <два файла отчёта>`, `git -c core.whitespace=cr-at-eol diff --check -- <два файла отчёта>`, `git add -- <два файла отчёта>`, `git diff --cached --name-only`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <два файла отчёта>`, `git commit -m "Record TASK130 isolated Argos connector proof"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`, `git ls-remote --exit-code origin refs/heads/wip/coordination-130-preserved`. Все Git-команды разрешены для bounded audit и scoped WIP публикации.
+
+Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
+
+Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.

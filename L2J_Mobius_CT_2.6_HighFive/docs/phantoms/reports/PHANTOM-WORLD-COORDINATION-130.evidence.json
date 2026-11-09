@@ -1580,6 +1580,21 @@
     "full130": false,
     "fullRoadmap": "0/7"
   },
+  "isolatedArgosGeoProbe20261109": {
+    "sourceHead": "2d986705bc81914ff43237a8e7272402ba66c561",
+    "jarSha256": "a71ad97ce44cb9afcff51c8d5e6416d2426453c9b7a8cd0a04398fdf60879d27",
+    "savedAnchor": [170156, -36726, -3376, 0],
+    "spawnZone": "godard26_2516_28",
+    "configuredNpcLevels": {"21300": 72, "21301": 72, "21302": 73},
+    "directValidatedConnectors": 4,
+    "lengths": [191, 518, 565, 287],
+    "farSingleRequest": "NO_PATH_REQUIRED_BUFFER_9090_MAX_500",
+    "stockSpawnDataInitialized": false,
+    "newGameServerBootstraps": 0,
+    "sqlConnections": 0,
+    "nativeGameplay": "NOT_RUN",
+    "manifestSha256": "6d8d597016ce67d14987512441f54cdf1e3051a437d6d4278d478d9212976e4b"
+  },
   "finalStaticChecks": {
     "mojibakeMarkers": "PASS_NO_MATCHES",
     "escapedCyrillic": "PASS_NO_MATCHES",
