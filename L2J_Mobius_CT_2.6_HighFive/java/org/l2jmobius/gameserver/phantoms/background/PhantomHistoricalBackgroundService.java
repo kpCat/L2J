@@ -1615,6 +1615,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		return _planner.potentialPartyRole(state, learned);
 	}
+
+	/** Idle history has no writable Adena projection. Price its Party route from the canonical wallet. */
+	public Optional<Long> partyTravelAdena(long id, PhantomBackgroundState state)
+	{
+		if (state == null || state.identity().profileId() != id) { return Optional.empty(); }
+		if (state.inventory().mutableItemIds().contains(57)) { return Optional.of(state.inventory().itemCount(57)); }
+		return _background.acquisitionInventoryCounts(id, state, List.of(57)).map(counts -> counts.getOrDefault(57, 0L));
+	}
+
 	/** Durable social discovery reads bounded background/profile facts and requires no World Player or native lease. */
 	public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate previewLogicalRendezvous(long id,
 		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible, List<PhantomProfileComponent> populationGuards)
@@ -1628,18 +1637,21 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (!state.hashes().equals(generation.authorityHashes()) || !(PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || PhantomBackgroundGoalSpec.canonicalHistoricalIdle(id, root))) { return null; }
 		final String role = potentialPartyRole(id, state);
 		if (role.equals("pending.native_role")) { previewStage(id, "PENDING_NATIVE_ROLE"); return null; }
+		final var adena = partyTravelAdena(id, state);
+		if (adena.isEmpty()) { previewStage(id, "WAIT_PARTY_WALLET"); return null; }
+		final long travelFunds = adena.get();
 		final java.util.function.BooleanSupplier current = () -> !_foregroundDecisionsRevoked && eligible.getAsBoolean() && _planner.generation().equals(generation)
 			&& decision.currentGoal(id).map(root::equals).orElse(true);
 		return new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate(
 			new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, role, root.goalId(), root.revision()), state.progress().level(), List.of(),
-			source -> _planner.partySourceAvailable(state, source, Set.of()),
+			source -> _planner.partySourceAvailable(state, source, Set.of(), travelFunds),
 			current,
 			// Re-read durable role evidence only for selected members, at preview and again before CAS.
 			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent()
-				&& role.equals(potentialPartyRole(id, state)) && logicalOwnershipClear(id),
-			admitted -> _planner.rendezvousSourcesForRole(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of(), role, admitted),
+				&& role.equals(potentialPartyRole(id, state)) && adena.equals(partyTravelAdena(id, state)) && logicalOwnershipClear(id),
+			admitted -> _planner.rendezvousSourcesForRole(id, state, root, Set.of(), Set.of(), role, admitted, travelFunds),
 			() -> logicalFormationGuards(id, stored, state, history, populationGuards),
-			source -> _planner.partyRouteCost(state, source));
+			source -> _planner.partyRouteCost(state, source, travelFunds));
 	}
 
 	private boolean logicalOwnershipClear(long id)

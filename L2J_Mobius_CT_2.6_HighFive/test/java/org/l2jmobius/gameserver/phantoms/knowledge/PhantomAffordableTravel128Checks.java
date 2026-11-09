@@ -117,6 +117,11 @@ public final class PhantomAffordableTravel128Checks
 			check(planner.partyRouteCost(state, paidSource).orElseThrow().feeAdena() == wallet, "Party route did not reserve the full ordinary Gatekeeper fare");
 			check(planner.partyRouteCost(state, beyondWallet).isEmpty(), "Party route selected an unaffordable Gatekeeper");
 			check(planner.partyRouteCost(empty, paidSource).isEmpty(), "Empty Party wallet was treated as a paid route");
+			check(!planner.partySourceAvailable(empty, paidSource, java.util.Set.of(), wallet - 1), "Adena below the stock fare admitted the source");
+			check(planner.partySourceAvailable(empty, paidSource, java.util.Set.of(), wallet), "Canonical Party funds were lost when idle history did not track Adena");
+			check(planner.rendezvousItinerary(empty, paidSource, java.util.Set.of(), wallet).steps().stream()
+				.anyMatch(step -> step.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER), "Physical preflight lost the paid leg from the owner proposal");
+			check(!planner.partySourceAvailable(empty, beyondWallet, java.util.Set.of(), wallet), "Canonical funds waived the exact Party fare");
 			final var atGate = new PhantomBackgroundState.Position(0, leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0, origin.id());
 			final var storedAfterWalk = new PhantomBackgroundState(state.state(), state.identity(), state.progress(), state.vitals(), atGate,
 				state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());

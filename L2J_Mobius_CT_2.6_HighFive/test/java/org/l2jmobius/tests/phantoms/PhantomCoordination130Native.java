@@ -250,6 +250,7 @@ final class PhantomCoordination130Native
         final long sceneStarted = System.nanoTime(); final long now = System.currentTimeMillis();
         final var before = preflightWitness(profiles, sceneIds, false);
         final var states = new LinkedHashMap<Long, PhantomBackgroundState>();
+        final var travelFunds = new LinkedHashMap<Long, Long>();
         for (long id : eligibleIds)
         {
             checkPreflightBudget(System.nanoTime() - sceneStarted, false);
@@ -258,6 +259,8 @@ final class PhantomCoordination130Native
             final var restored = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
             inspectAuthority(id, restored.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
             states.put(id, restored);
+            travelFunds.put(id, inspection.authorityRecovery().partyTravelAdena(id, restored)
+                .orElseThrow(() -> new IllegalStateException("NATIVE130_PREFLIGHT_PARTY_WALLET_" + id)));
         }
         final long sceneDeadline = sceneStarted + TimeUnit.SECONDS.toNanos(30);
         final java.util.function.BiPredicate<PhantomLogicalParty, List<Integer>> physical = (group, levels) -> physicalProofWithin(
@@ -272,7 +275,7 @@ final class PhantomCoordination130Native
                 final var state = states.get(member.profileId());
                 if (state == null || state.progress().level() != levels.get(index)) { return physicalRefusal(group, "WAIT_AUTHORITY_" + member.profileId()); }
                 if (World.getInstance().findObject(state.identity().characterObjectId()) != null) { return physicalRefusal(group, "WAIT_NATIVE_OWNER_" + member.profileId()); }
-                if (!loadedItinerary(inspection, state, group.objective(), attemptDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
+                if (!loadedItinerary(inspection, state, group.objective(), travelFunds.get(member.profileId()), attemptDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
             }
             final int npc = Integer.parseInt(group.objective().key().split("@")[0]);
             final var band = PhantomPartyFarmEligibility.forRoster(levels).orElse(null);
@@ -303,7 +306,7 @@ final class PhantomCoordination130Native
                 check(existing.members().stream().allMatch(member ->
                 {
                     final var state = states.get(member.profileId());
-                    return state != null && inspection.planner().partySourceAvailable(state, existing.objective(), Set.of())
+                    return state != null && inspection.planner().partySourceAvailable(state, existing.objective(), Set.of(), travelFunds.get(member.profileId()))
                         && PhantomPartyFarmEligibility.compatibleRole(member.role(), inspection.authorityRecovery().potentialPartyRole(member.profileId(), state));
                 }), "EXISTING_GROUP_CURRENT_SOURCE_PROOF");
                 result = existing;
@@ -450,9 +453,9 @@ final class PhantomCoordination130Native
         }
         return new PreflightWitness(output.toString(), components.toString());
     }
-    private static boolean loadedItinerary(PhantomSystem.PlanningInspection inspection, PhantomBackgroundState state, PhantomDomainRef source, long deadline)
+    private static boolean loadedItinerary(PhantomSystem.PlanningInspection inspection, PhantomBackgroundState state, PhantomDomainRef source, long adena, long deadline)
     {
-        final var itinerary = inspection.planner().rendezvousItinerary(state, source, Set.of());
+        final var itinerary = inspection.planner().rendezvousItinerary(state, source, Set.of(), adena);
         final long id = state.identity().profileId();
         System.out.println("NATIVE130_ITINERARY profile=" + id + " source=" + source + " structural=" + itinerary.status()
             + " departure=" + itinerary.departureAnchorId() + " steps=" + itinerary.steps().stream().map(PhantomNormalGatekeeperTravel.Step::id).toList());
