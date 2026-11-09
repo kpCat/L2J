@@ -14,6 +14,7 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import java.util.Optional;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -25,6 +26,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundSimulationPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext;
 import org.l2jmobius.gameserver.phantoms.background.PhantomOffscreenOutdoorTravel;
@@ -53,7 +55,7 @@ public final class PhantomCoordination130Integration
 	public static void main(String[] args) throws Exception
 	{
         if (args.length < 2 || args.length > 3 || !List.of("group-pve", "group-pve-resume", "group-pve-close", "group-pve-route", "group-pve-route-resume", "group-pve-route-close",
-            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
+            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
@@ -194,6 +196,24 @@ public final class PhantomCoordination130Integration
 			}
             if (args[0].equals("recover")) { PhantomCoordination130Native.recoverAgreement(module, profiles); return; }
             if (args[0].equals("handoff")) { initialRootBinding(profiles, module); return; }
+            if (args[0].equals("publication-retry") || args[0].equals("publication-retry-resume"))
+            {
+                final var managed = PhantomCoordination130Native.authorizedProfiles(module.getParent().getParent().resolve("runtime"));
+                final var before = PhantomCoordination130Native.preflightWitness(profiles, managed, false);
+                final var checkpoint = local.resolve("publication-retry-v2.properties");
+                try
+                {
+                    if (args[0].equals("publication-retry")) { historicalPublicationRetry(profiles, checkpoint); }
+                    else { historicalPublicationResume(profiles, checkpoint); }
+                }
+                finally
+                {
+                    PhantomAssertions.assertEquals(before, PhantomCoordination130Native.preflightWitness(profiles, managed, false),
+                        "Publication recovery fixture changed the six managed profiles.");
+                    System.out.println("SQL130_PUBLICATION_MANAGED_EXACT profiles=" + managed.size());
+                }
+                return;
+            }
             if (args[0].equals("probe") || args[0].equals("probe-live"))
             {
                 try (var connection = DatabaseFactory.getConnection(); var statement = connection.createStatement();
@@ -788,6 +808,151 @@ public final class PhantomCoordination130Integration
 			List.of(new PhantomLogicalParty.Member(leader, "damage", leader + 1000, 0), new PhantomLogicalParty.Member(peer, "support", peer + 1000, 0)),
 			new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@farm.fixture"), "farm.fixture", PhantomLogicalParty.Phase.AGREED, 0, System.currentTimeMillis(), "");
 	}
+    /** A queued idle-to-farm publication is not a terminal ecology claim conflict. */
+    private static void historicalPublicationRetry(PhantomProfileRepository profiles, Path checkpoint) throws Exception
+    {
+        if (Files.exists(checkpoint)) { throw new IllegalStateException("Use the existing publication-retry resume fixture."); }
+        final var fixture = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.state();
+        final var planner = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.planner(true);
+        final var profile = profiles.create(null);
+        final long id = profile.profileId();
+        final int objectId = Math.toIntExact(700_000_000L + id);
+        profiles.updateCharacterLink(id, profile.rowVersion(), objectId);
+        final var state = new PhantomBackgroundState(PhantomBackgroundState.State.READY,
+            new PhantomBackgroundState.Identity(id, objectId, 0, 1, 0), fixture.progress(), fixture.vitals(), fixture.position(),
+            fixture.combat(), fixture.loadout(), fixture.inventory(), fixture.autoGetSkills(), fixture.clock(), fixture.receipt(), fixture.hashes());
+        final var source = new PhantomDomainRef("background.farm", "101@farm.local");
+        final var previous = new PhantomGoal(13_000_000 + id, PhantomBackgroundGoalSpec.GOAL_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE,
+            new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "101"), 1, 0, "background.farm", List.of(source),
+            new PhantomDomainRef("topology.anchor", "farm.local"), "farm.background", 500, 0, 0, 0, java.util.Map.of(), "sql.publication.fixture", 0);
+        final var idle = planner.idleFromState(id, state, previous, 130, 1).goal();
+        final var goals = new PhantomGoalStateStore(profiles);
+        final var root = goals.insert(id, idle);
+        final var raw = profiles.insertComponent(id, PhantomBackgroundState.COMPONENT_TYPE, PhantomBackgroundState.SCHEMA_VERSION, new PhantomBackgroundStateCodec().encode(state));
+        final var histories = new PhantomBackgroundCatchupStore(profiles, goals);
+        final var completed = histories.claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "c".repeat(64),
+            130, 100, 101, 101, 1, 1, 1, 1, 1, idle.goalId(), idle.revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION,
+            new PhantomBackgroundState.Hashes("older-knowledge", state.hashes().topology(), state.hashes().progression(), state.hashes().commerce()), ""));
+        final var executionStore = new PhantomExecutionHandoffStore(profiles);
+        final var admission = new PhantomExecutionAdmission(1);
+        final var time = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis());
+        goals.installExecutionPublication(executionStore, admission, time::get);
+        final var solo = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id);
+        var execution = executionStore.initialize(id, solo);
+        admission.publish(id, execution.component().rowVersion(), execution.state());
+        final var metrics = new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
+        final var materialization = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(),
+            metrics, new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false, 64, 16, metrics), 1);
+        final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+        {
+            @Override public SignalDelivery submit(long member, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+            @Override public SignalDelivery withdraw(long member, String key, long sequence) { return SignalDelivery.ACCEPTED; }
+        };
+        final var background = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(),
+            new PhantomBackgroundTransaction(), new SqlTravelAuthority(state.hashes(), state.position()),
+            new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry(), signals, () -> materialization);
+        final var historical = new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService(profiles, goals, planner, background, materialization);
+        final long peer = profiles.create(null).profileId();
+        final var group = new PhantomLogicalParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256("publication-retry:" + id), 1, id,
+            List.of(new PhantomLogicalParty.Member(id, "damage.melee", idle.goalId(), idle.revision()), new PhantomLogicalParty.Member(peer, "support.healer", idle.goalId() + 1, idle.revision())),
+            source, "farm.local", PhantomLogicalParty.Phase.AGREED, 0, time.get(), "");
+        final var coordinator = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
+        final var agreed = coordinator.agree(group).orElseThrow();
+        historical.bindLogicalGroups(member -> coordinator.knownGroupFor(member).map(row -> row.group()), member -> coordinator.groupFor(member));
+        try
+        {
+        final var overlap = historical.begin(id, 100, 104, 130);
+        PhantomAssertions.assertEquals("catchup.claim.conflict", overlap.reason(), "Overlapping committed history was treated as publication wait.");
+        PhantomAssertions.assertTrue(goals.publication(id).isEmpty(), "The rejected history staged a Goal publication.");
+        final var result = historical.begin(id, 101, 105, 130);
+        final var publication = goals.publication(id).orElseThrow();
+        PhantomAssertions.assertEquals(root, goals.load(id).orElseThrow(), "Queued publication changed the root before checkpoint.");
+        PhantomAssertions.assertEquals(completed, histories.load(id).orElseThrow(), "Queued publication changed the historical cursor before checkpoint.");
+        PhantomAssertions.assertEquals("catchup.claim.publication_pending", result.reason(), "Queued publication surfaced as " + result.status() + "/" + result.reason());
+        PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, result.status(),
+            "Ecology would terminally fence a valid queued publication.");
+        PhantomAssertions.assertEquals("catchup.claim.publication_pending", historical.begin(id, 101, 105, 130).reason(), "Exact queued request was not idempotent.");
+        PhantomAssertions.assertEquals("catchup.claim.conflict", historical.begin(id, 101, 106, 130).reason(), "A different unpublished request inherited publication wait.");
+        PhantomAssertions.assertEquals(publication, goals.publication(id).orElseThrow(), "Competing request replaced the staged publication.");
+        execution = executionStore.request(execution, solo, publication.state().requestId(), time.get(), publication.state().deadline());
+        execution = executionStore.yielded(execution, time.incrementAndGet());
+        final var types = List.of(PhantomGoalStateStore.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.COMPONENT_TYPE,
+            org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.NATIVE_ROOT_COMPONENT, PhantomBackgroundCatchupState.COMPONENT_TYPE);
+        final var proof = types.stream().map(type -> profiles.findComponent(id, type).orElseThrow()).toList();
+        execution = executionStore.checkpoint(execution, List.of(), types, proof, time.incrementAndGet());
+        final var publicationAuthority = goals.publicationAuthority(execution, time.incrementAndGet());
+        execution = executionStore.transfer(execution, publicationAuthority.guards(), publicationAuthority.changes(), publicationAuthority.removals(), publicationAuthority.absences(), time.get());
+        final var recovered = histories.load(id).orElseThrow().state();
+        PhantomAssertions.assertEquals(PhantomBackgroundCatchupState.Status.PENDING, recovered.status(), "Published window lost its recoverable PENDING state.");
+        PhantomAssertions.assertEquals(List.of(101L, 105L, 101L, 0L),
+            List.of(recovered.fromEpochMinute(), recovered.targetEpochMinute(), recovered.cursorEpochMinute(), recovered.intervalOrdinal()), "Publication awarded or rewound time.");
+        PhantomAssertions.assertEquals(recovered.goalRevision(), goals.load(id).orElseThrow().goal().revision(), "Published root and Catchup differ.");
+        final var foreign = historical.begin(id, 101, 106, 130);
+        PhantomAssertions.assertEquals("catchup.claim.stale", foreign.reason(), "A foreign request displaced the published pending window.");
+        PhantomAssertions.assertEquals(recovered, histories.load(id).orElseThrow().state(), "Conflicting history changed the pending request.");
+        PhantomAssertions.assertEquals(agreed, coordinator.groupFor(peer).orElseThrow(), "Publication changed the existing Party claim.");
+        PhantomAssertions.assertEquals(raw, profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow(), "Publication changed economic data.");
+        final var base64 = java.util.Base64.getEncoder();
+        Files.writeString(checkpoint, "id=" + id + "\npeer=" + peer + "\nrowVersion=" + agreed.rowVersion() + "\ngroup=" + base64.encodeToString(group.encode())
+            + "\nhistory=" + base64.encodeToString(new PhantomBackgroundCatchupStateCodec().encode(recovered)) + "\nexecution=" + execution.component().rowVersion()
+            + "\nbaseline=" + raw.rowVersion() + "\n", StandardOpenOption.CREATE_NEW);
+        System.out.println("SQL130_HISTORICAL_PUBLICATION_RETRY_PASS;QUEUED=RETRY;REAL_CONFLICTS=REJECTED;EXACT_PENDING_WINDOW=true;ACTIVE_CLAIMS=2;AWARDED_INTERVALS=0;PLAYERS=0");
+        }
+        finally { if (!Files.exists(checkpoint)) { coordinator.disband(agreed, time.get(), "SQL_RED_FIXTURE_COMPLETE"); } }
+    }
+
+    private static void historicalPublicationResume(PhantomProfileRepository profiles, Path checkpoint) throws Exception
+    {
+        final var saved = read(checkpoint);
+        final long id = Long.parseLong(saved.getProperty("id")), peer = Long.parseLong(saved.getProperty("peer"));
+        final var base64 = java.util.Base64.getDecoder();
+        final var group = PhantomLogicalParty.decode(base64.decode(saved.getProperty("group")));
+        final var history = new PhantomBackgroundCatchupStateCodec().decode(base64.decode(saved.getProperty("history")));
+        final var goals = new PhantomGoalStateStore(profiles);
+        final var histories = new PhantomBackgroundCatchupStore(profiles, goals);
+        final var executions = new PhantomExecutionHandoffStore(profiles);
+        final var coordinator = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
+        final var row = coordinator.groupFor(id).orElseThrow();
+        PhantomAssertions.assertEquals(group, row.group(), "Cold read changed Party identity, generation or cursor.");
+        PhantomAssertions.assertEquals(Long.parseLong(saved.getProperty("rowVersion")), row.rowVersion(), "Cold read changed the group version.");
+        PhantomAssertions.assertEquals(row, coordinator.groupFor(peer).orElseThrow(), "Cold read lost a Party claim.");
+        PhantomAssertions.assertEquals(row, PhantomCoordination130Native.currentAgreement(coordinator, List.of(id, peer), group.expiresAtMillis() - 1).orElseThrow(), "A still-valid group did not resume.");
+        final var stored = executions.load(id).orElseThrow();
+        PhantomAssertions.assertEquals(Long.parseLong(saved.getProperty("execution")), stored.component().rowVersion(), "Cold read changed execution recovery.");
+        PhantomAssertions.assertEquals(history, histories.load(id).orElseThrow().state(), "Cold read changed the pending Catchup request.");
+        final long expired = group.expiresAtMillis();
+        final var wrongVersion = new PhantomPartyPersistencePort.StoredLogicalGroup(row.rowVersion() + 1, group);
+        PhantomAssertions.assertThrows(java.util.ConcurrentModificationException.class, () -> coordinator.retireExpired(wrongVersion, expired, () -> true, _ -> true, _ -> { }),
+            "Expiry released a newer Party claim.");
+        final var drain = coordinator.retireExpired(row, expired, () -> true, _ -> false, _ -> { });
+        PhantomAssertions.assertEquals(PhantomLogicalParty.Phase.DRAINING, drain.group().phase(), "Expiry skipped the owner recovery fence.");
+        PhantomAssertions.assertEquals(drain, coordinator.groupFor(peer).orElseThrow(), "Expiry released a claim before owner recovery.");
+        final var authority = stored.state().dependencies().stream().map(dependency -> profiles.findComponent(id, dependency.componentType())).flatMap(Optional::stream).toList();
+        final var recovered = executions.recovered(stored, List.of(), authority);
+        final var peerOwner = org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(peer);
+        final var peerClaim = profiles.findComponent(peer, PhantomLogicalParty.CLAIM_COMPONENT_TYPE).orElseThrow();
+        var soloPeer = executions.initialize(peer, new PhantomDomainRef("execution.party", group.groupId() + "." + group.generation()));
+        soloPeer = executions.request(soloPeer, peerOwner, "sql.cold.party.peer", expired, expired + 30_000);
+        soloPeer = executions.yielded(soloPeer, expired + 1);
+        soloPeer = executions.checkpoint(soloPeer, List.of(), List.of(PhantomLogicalParty.CLAIM_COMPONENT_TYPE), List.of(peerClaim), expired + 2);
+        soloPeer = executions.transfer(soloPeer, List.of(peerClaim), expired + 3);
+        soloPeer = executions.recovered(soloPeer, List.of(), List.of(peerClaim));
+        final var gate = new PhantomExecutionAdmission(2);
+        gate.publish(id, recovered.component().rowVersion(), recovered.state());
+        gate.publish(peer, soloPeer.component().rowVersion(), soloPeer.state());
+        final var terminal = coordinator.retireExpired(drain, expired + 5000, () -> true, member -> executions.load(member)
+            .filter(owner -> owner.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE
+                && owner.state().owner().equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(member))
+                && gate.current(member, owner.component().rowVersion(), owner.state())).isPresent(), _ -> { });
+        PhantomAssertions.assertEquals(PhantomLogicalParty.Phase.DISBANDED, terminal.group().phase(), "Exact expired owner proof did not release claims.");
+        PhantomAssertions.assertTrue(coordinator.groupFor(id).isEmpty() && coordinator.groupFor(peer).isEmpty(), "Expired fixture retained claims.");
+        PhantomAssertions.assertEquals(terminal, coordinator.retireExpired(terminal, expired + 10_000, () -> true, _ -> true, _ -> { }), "Repeated recovery wrote a second release.");
+        PhantomAssertions.assertEquals(history, histories.load(id).orElseThrow().state(), "Party recovery changed the pending request, plan or cursor.");
+        PhantomAssertions.assertEquals(Long.parseLong(saved.getProperty("baseline")), profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().rowVersion(),
+            "Party recovery changed the economic baseline.");
+        System.out.println("SQL130_COLD_PARTY_RECOVERY_PASS;VALID_GROUP_REUSED;STALE_VERSION_REFUSED;CLAIMS_RELEASED_AFTER_OWNER_RECOVERY;REQUEST_AND_CURSOR_EXACT;AWARDS=0;PLAYERS=0");
+    }
+
     /** Metadata-only CAS reproduction of the observed initial-root deadlock; no native profile mutation. */
     private static void initialRootBinding(PhantomProfileRepository profiles, Path module) throws Exception
     {

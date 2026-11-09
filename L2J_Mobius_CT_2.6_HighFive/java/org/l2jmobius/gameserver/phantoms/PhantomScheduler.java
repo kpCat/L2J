@@ -168,6 +168,7 @@ public final class PhantomScheduler
 	private PhantomActivityOverloadLevel _overloadLevel = PhantomActivityOverloadLevel.NORMAL;
 	private PhantomActivityOverloadLevel _peakOverloadLevel = PhantomActivityOverloadLevel.NORMAL;
 	private PhantomSchedulerControlPort _controlPort = PhantomSchedulerControlPort.noop();
+	private volatile java.util.function.BooleanSupplier _startupRecovery;
 	private PhantomSchedulerControlPort _localControlPort;
 
 	public PhantomScheduler(int maximumProfiles, int pulseMillis, int profilesPerPulse, PhantomMetrics metrics, PhantomDiagnosticTrace trace, PhantomActivityMaterializationPort materializationPort, PhantomActivityWorkSink workSink)
@@ -257,6 +258,18 @@ public final class PhantomScheduler
 				return false;
 			}
 			_controlPort = controlPort;
+			return true;
+		}
+	}
+
+	/** The existing scheduler runs only the installed owner recovery until commissioning is proved. */
+	public boolean installStartupRecovery(java.util.function.BooleanSupplier recovery)
+	{
+		Objects.requireNonNull(recovery, "recovery");
+		synchronized (_monitor)
+		{
+			if (_state != SchedulerState.NEW || _startupRecovery != null) { return false; }
+			_startupRecovery = recovery;
 			return true;
 		}
 	}
@@ -642,7 +655,7 @@ public final class PhantomScheduler
 		}
 		synchronized (_monitor)
 		{
-			if ((_state != SchedulerState.RUNNING) || _localPulseInFlight)
+			if ((_state != SchedulerState.RUNNING) || _localPulseInFlight || _startupRecovery != null)
 			{
 				return;
 			}
@@ -775,6 +788,19 @@ public final class PhantomScheduler
 				pulseOverload = updateOverloadLocked();
 			}
 
+			final var recovery = _startupRecovery;
+			if (recovery != null)
+			{
+				try
+				{
+					if (recovery.getAsBoolean()) { _startupRecovery = null; }
+				}
+				catch (Throwable throwable)
+				{
+					_metrics.recordActivityWorkFailure();
+				}
+				return;
+			}
 			try
 			{
 				_controlPort.onPulse();

@@ -995,16 +995,27 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			PhantomAssertions.assertTrue(store.require(1).state().calendarCursorEpochMinute() >= fromMinute, "Crash moved durable ecology cursor backwards.");
 			final PhantomPopulationEcologyService restarted = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
 			restarted.enablePeriodicDueMode();
+			restarted.holdStartupHistory();
 			restarted.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
 			restarted.register(population);
+			clock.set(from.plusSeconds(20 * 60));
 			loadMetadata(restarted, 1);
-			final var recovered = drainDue(restarted, 1);
+			var recovered = restarted.requestBackgroundRecovery(1, fromMinute + 10);
+			for (int pulse = 0; pulse < 256 && !recovered.complete(); pulse++)
+			{
+				restarted.onPopulationPulse();
+				recovered = restarted.requestBackgroundRecovery(1, fromMinute + 10);
+			}
 			PhantomAssertions.assertTrue(recovered.complete(), "Restart did not reconcile the durable request after injected crash.");
 			PhantomAssertions.assertEquals(fromMinute + 10, store.require(1).state().calendarCursorEpochMinute(), "Recovery did not commit the whole ten-minute cursor.");
+			PhantomAssertions.assertEquals(fromMinute + 10, restarted.dueSnapshot(1).requestedHorizonMinute(), "Recovery admitted a new calendar horizon.");
 			PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Crash/retry double-awarded or lost model minutes.");
 			PhantomAssertions.assertEquals(1, historical.requestIds().size(), "Crash/retry created a second request identity.");
 			PhantomAssertions.assertEquals(1, historical.injectedCrashes(), "Recovery replayed the injected fault.");
-			PhantomAssertions.assertEquals(0, drainDue(restarted, 1).advancedIntervals(), "Scheduler ack retry advanced a completed request.");
+			PhantomAssertions.assertEquals(0, recovered.advancedIntervals(), "Recovery consumed the ordinary farm receipt.");
+			restarted.releaseStartupHistory();
+			PhantomAssertions.assertTrue(drainDue(restarted, 1).complete(), "Ordinary due did not resume after startup proof.");
+			PhantomAssertions.assertEquals(20L, historical.advancedMinutes(), "Normal work did not resume through the current minute.");
 		}
 		context.record("goal033.periodicCrashRecovery", "before_save,after_save");
 	}

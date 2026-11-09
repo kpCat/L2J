@@ -443,6 +443,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				claimed = _store.claim(profileId, initial);
 			}
 		}
+		catch (PhantomGoalStateStore.PublicationPending pending)
+		{
+			return Result.rejected(ResultStatusCode.RETRY, "catchup.claim.publication_pending", null);
+		}
 		catch (RuntimeException exception)
 		{
 			return Result.rejected(ResultStatusCode.CONFLICT, "catchup.claim.conflict", null);

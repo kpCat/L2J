@@ -167,17 +167,25 @@ final class PhantomCoordination130Native
         check(before.equals(persisted(profiles, ids)), "AUTHORITY_DIAGNOSTIC_READ_ONLY_WITNESS");
         System.out.println("NATIVE130_AUTHORITY_DIAGNOSTIC_READ_ONLY profiles=" + ids + ";SQL_WRITES=0;CUT=false;MATERIALIZATION=false;GAMEPLAY=false");
     }
-    private static PhantomLogicalParty inspectLoadedPlanner(Path runtime, PhantomProfileRepository profiles, List<Long> ids,
+    private record ProvedAgreement(PhantomLogicalParty group, boolean existing) {}
+
+    private static ProvedAgreement inspectLoadedPlanner(Path runtime, PhantomProfileRepository profiles, List<Long> ids,
         PhantomSystem.PlanningInspection inspection, boolean restart, Properties saved,
         java.util.function.Consumer<PhantomPartyPersistencePort.StoredLogicalGroup> committed) throws Exception
     {
-        check(!PhantomSystem.hasConfiguredInstance(), "PREFLIGHT_BEFORE_EXECUTION");
+        final boolean recovering = !inspection.recoveredProfiles().isEmpty();
+        check(!PhantomSystem.hasConfiguredInstance() || recovering, "PREFLIGHT_BEFORE_EXECUTION");
         final var managed = inspection.managedPartyPage().apply(0L, 16).stream().map(entry -> entry.profile().profileId()).toList();
         check(managed.size() < 16 && Set.copyOf(managed).equals(Set.copyOf(authorizedProfiles(runtime))), "PREFLIGHT_MANAGED_PARTY_PAGE_SCOPE");
         final long recoveryStarted = System.nanoTime();
-        final var recoveryBefore = preflightWitness(profiles, ids, true);
+        final var sceneIds = recovering ? ids.stream().filter(inspection.recoveredProfiles()::contains).toList() : ids;
+        final var recoveryBefore = preflightWitness(profiles, sceneIds, true);
         final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), inspection.settings().populationTimeZone());
         final var goals = new PhantomGoalStateStore(profiles); final var parties = new PhantomPartyStore(profiles);
+        final var coordinator = new PhantomLogicalPartyCoordinator(parties);
+        final var existingRow = restart || recovering ? currentAgreement(coordinator, sceneIds, System.currentTimeMillis()).orElse(null) : null;
+        final var existing = existingRow == null ? null : existingRow.group();
+        if (restart) { check(existing != null && existing.groupId().equals(saved.getProperty("group")), "RESTART_GROUP_NOT_CURRENT"); }
         final var eligibleIds = new ArrayList<Long>();
         for (long id : ids)
         {
@@ -194,7 +202,8 @@ final class PhantomCoordination130Native
                 || inspection.authorityRecovery().nativeIntentPending(id);
             final boolean consent = inspection.settings().partySeeking().seeks(id, state.progress().level());
             final boolean eligible = population.state() == PhantomPopulationState.State.READY && calendar.state() != org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.SLEEPING
-                && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && (claim.isEmpty() || restart && claim.get().groupId().equals(saved.getProperty("group")))
+                && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && sceneIds.contains(id)
+                && (claim.isEmpty() || existing != null && claim.get().groupId().equals(existing.groupId()) && claim.get().generation() == existing.generation())
                 && PhantomAutonomousFarmParty.ordinaryIntent(id, root);
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
                 + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " position=" + state.position());
@@ -221,10 +230,10 @@ final class PhantomCoordination130Native
             check(root.equals(goals.load(id).orElseThrow().goal()), "PREFLIGHT_ROOT_CHANGED_" + id);
             eligibleIds.add(id);
         }
-        check(recoveryBefore.equals(preflightWitness(profiles, ids, true)), "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS");
+        check(recoveryBefore.equals(preflightWitness(profiles, sceneIds, true)), "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS");
         checkPreflightBudget(System.nanoTime() - recoveryStarted, true);
         final long sceneStarted = System.nanoTime(); final long now = System.currentTimeMillis();
-        final var before = preflightWitness(profiles, ids, false);
+        final var before = preflightWitness(profiles, sceneIds, false);
         final var states = new LinkedHashMap<Long, PhantomBackgroundState>();
         for (long id : eligibleIds)
         {
@@ -268,18 +277,18 @@ final class PhantomCoordination130Native
         final PhantomLogicalParty result;
         try
         {
-            final var coordinator = new PhantomLogicalPartyCoordinator(parties);
-            if (restart)
+            if (existing != null)
             {
-                final var row = currentAgreement(coordinator, ids, now).orElseThrow(() -> new IllegalStateException("NATIVE130_RESTART_GROUP_NOT_CURRENT"));
-                check(row.group().groupId().equals(saved.getProperty("group")) && row.group().members().stream().allMatch(member ->
+                check(existing.members().stream().allMatch(member ->
                 {
                     final var state = states.get(member.profileId());
-                    return state != null && inspection.planner().partySourceAvailable(state, row.group().objective(), Set.of())
+                    return state != null && inspection.planner().partySourceAvailable(state, existing.objective(), Set.of())
                         && PhantomPartyFarmEligibility.compatibleRole(member.role(), inspection.authorityRecovery().potentialPartyRole(member.profileId(), state));
-                }), "RESTART_CURRENT_SOURCE_PROOF");
-                result = row.group();
+                }), "EXISTING_GROUP_CURRENT_SOURCE_PROOF");
+                result = existing;
                 check(physical.test(result, result.members().stream().map(member -> states.get(member.profileId()).progress().level()).toList()), "PREFLIGHT_SELECTED_SOURCE_PHYSICAL_" + result.objective().key());
+                check(currentAgreement(coordinator, sceneIds, System.currentTimeMillis()).filter(existingRow::equals).isPresent(), "EXISTING_GROUP_CHANGED_DURING_PROOF");
+                System.out.println("NATIVE130_EXISTING_GROUP_PROVED group=" + result.groupId() + " generation=" + result.generation() + " newFormation=false");
             }
             else
             {
@@ -300,10 +309,10 @@ final class PhantomCoordination130Native
             }
             System.out.println("NATIVE130_SELECTED_SOURCE objective=" + result.objective() + " roster=" + result.members());
         }
-        finally { verifySceneWitness(before, preflightWitness(profiles, ids, false)); }
+        finally { verifySceneWitness(before, preflightWitness(profiles, sceneIds, false)); }
         checkPreflightBudget(System.nanoTime() - sceneStarted, false);
         System.out.println("NATIVE130_PREFLIGHT_PHYSICAL_PROVED objective=" + result.objective() + " members=" + result.members() + " RECOVERY_WRITES=CANONICAL_ONLY SCENE_SQL_WRITES=0 SAME_PRODUCTION_PLANNER=true recoveryMillis=" + TimeUnit.NANOSECONDS.toMillis(sceneStarted - recoveryStarted) + " sceneMillis=" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - sceneStarted));
-        return result;
+        return new ProvedAgreement(result, existing != null);
     }
     private static boolean physicalRefusal(PhantomLogicalParty group, String reason)
     {
@@ -596,7 +605,6 @@ final class PhantomCoordination130Native
         try
         {
             GameServer.main(new String[0]); booted = true;
-            final long deadline = System.currentTimeMillis() + 300_000;
             check(!PhantomPlayersConfig.isEnabled() && !PhantomSystem.hasConfiguredInstance(), "DISABLED_DURING_PREP");
             final var profiles = PhantomProfileRepository.open();
             if (!restart)
@@ -609,6 +617,18 @@ final class PhantomCoordination130Native
             for (long id : ids) { check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ZERO_WORLD_BEFORE_ENABLE"); }
             if (restart) { check(Files.readString(evidence.resolve("native130.persisted")).equals(persisted(profiles, ids)), "SAME_DB_EXACT_TOTALS_AND_CLAIMS"); }
             final Path cut = evidence.resolve(restart ? "restart130.cut" : "native130.cut");
+            final boolean recover = !restart && Files.exists(cut) && !Files.exists(evidence.resolve("native130.complete"));
+            final var recovered = recover ? new java.util.concurrent.CompletableFuture<Void>() : null;
+            if (recover)
+            {
+                try (var attempts = Files.list(evidence))
+                {
+                    check(attempts.map(path -> path.getFileName().toString()).filter(name -> name.matches("native130[.]failed[.][0-9]+"))
+                        .anyMatch(name -> Files.isRegularFile(evidence.resolve("agreement130." + name.substring(name.lastIndexOf('.') + 1)))), "RECOVERY_PRIOR_AGREEMENT_REQUIRED");
+                }
+                final var witness = preflightWitness(profiles, ids, false);
+                write(evidence.resolve("startup130." + ProcessHandle.current().pid() + ".before.txt"), witness.canonical() + "\n" + witness.components());
+            }
             check(disabled.contains("EnablePhantomSystem = False"), "MASTER_DECLARATION");
             Files.writeString(config, disabled.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"));
             PhantomPlayersConfig.load();
@@ -630,12 +650,14 @@ final class PhantomCoordination130Native
                     savePreflightWitness(beforeWitness, profiles, inspectionIds, inspection);
                     try
                     {
-                        proved.set(inspectLoadedPlanner(runtime, profiles, inspectionIds, inspection, restart, saved, row ->
+                        final var proof = inspectLoadedPlanner(runtime, profiles, inspectionIds, inspection, restart, saved, row ->
                         {
                             check(row.group().equals(proved.get()), "AGREEMENT_DIFFERS_FROM_PHYSICAL_PROPOSAL");
                             try { publishPreflightAgreement(evidence, cut, agreementFile, jarHash, profiles, logical, row.group()); }
                             catch (Exception failure) { throw new IllegalStateException(failure.getMessage(), failure); }
-                        }));
+                        });
+                        proved.set(proof.group());
+                        if (proof.existing()) { publishPreflightAgreement(evidence, cut, agreementFile, jarHash, profiles, logical, proof.group()); }
                     }
                     catch (Exception | Error refusal)
                     {
@@ -646,17 +668,25 @@ final class PhantomCoordination130Native
                     savePreflightWitness(afterWitness, profiles, inspectionIds, inspection);
                     check(!Boolean.getBoolean("phantom.task130.authorityOnly"), "AUTHORITY_DIAGNOSTIC_COMPLETE");
                     planner.set(inspection.planner());
-                    if (restart) { publishPreflightAgreement(evidence, cut, agreementFile, jarHash, profiles, logical, proved.get()); }
                 }
                 catch (Exception failure) { throw new IllegalStateException(failure.getMessage(),failure); }
-            });
+            }, recover ? new PhantomSystem.StartupPartyRecovery(Set.copyOf(inspectionIds), recovered) : null);
             System.out.println("NATIVE130_ENABLE=" + enabled);
             check(enabled.runtimeConfigured() && enabled.runtimeState() == PhantomSystem.State.RUNNING, "SYSTEM_START_" + enabled.code());
+            if (recover)
+            {
+                try { awaitStartupRecovery(recovered, inspectionIds); }
+                finally
+                {
+                    final var witness = preflightWitness(profiles, inspectionIds, false);
+                    write(evidence.resolve("startup130." + ProcessHandle.current().pid() + ".after.txt"), witness.canonical() + "\n" + witness.components());
+                }
+            }
             final var before = proved.get();
             check(before != null && Files.isRegularFile(agreementFile), "PRODUCTION_PREFLIGHT_AGREEMENT_REQUIRED");
             check(!restart || before.groupId().equals(saved.getProperty("group")), "RESTART_SAME_GROUP");
             ids = before.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
-            observe(runtime, profiles, ids, before.groupId(), planner.get(), restart, deadline);
+            observe(runtime, profiles, ids, before.groupId(), planner.get(), restart, System.currentTimeMillis() + 300_000);
             verifyExistingHumanHeal(runtime, jarHash);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
@@ -690,6 +720,29 @@ final class PhantomCoordination130Native
                 finally { Shutdown.getInstance().startShutdown(null, 0, false); }
             }
         }
+    }
+
+    private static void awaitStartupRecovery(java.util.concurrent.CompletableFuture<Void> recovered, List<Long> ids) throws Exception
+    {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(240);
+        try
+        {
+            while (System.nanoTime() < deadline)
+            {
+                try { recovered.get(10, TimeUnit.SECONDS); return; }
+                catch (TimeoutException waiting)
+                {
+                    System.out.println("NATIVE130_STARTUP_RECOVERY_WAIT " + ids.stream().map(id -> id + "="
+                        + PhantomSystem.operatorAdmissionProfile(id).map(PhantomSystem.OperatorAdmissionProfile::readiness).orElse(null)).toList());
+                }
+                catch (ExecutionException failure)
+                {
+                    throw new IllegalStateException("NATIVE130_STARTUP_RECOVERY_" + failure.getCause().getMessage(), failure.getCause());
+                }
+            }
+            throw new IllegalStateException("NATIVE130_STARTUP_RECOVERY_DEADLINE");
+        }
+        finally { if (!recovered.isDone()) { recovered.cancel(false); } }
     }
 
     private static long mix(long seed, long value)

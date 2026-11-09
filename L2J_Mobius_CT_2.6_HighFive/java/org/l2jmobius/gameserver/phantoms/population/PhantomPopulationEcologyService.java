@@ -105,6 +105,7 @@ public final class PhantomPopulationEcologyService
 	private long _refreshedMinute = -1;
 	private int _pausedEntries;
 	private boolean _populationPlanApplied = true;
+	private boolean _startupHistoryOnly;
 	private final ArrayDeque<Long> _replacementQueue = new ArrayDeque<>();
 	private final Map<Pace, Integer> _paceHistogram = new EnumMap<>(Pace.class);
 	private final Map<Personality, Integer> _personalityHistogram = new EnumMap<>(Personality.class);
@@ -470,6 +471,20 @@ public final class PhantomPopulationEcologyService
 	/** The executing claim retains ownership until its finally; saved pending is pausable. */
 	public void holdStartupPopulationPlan() { synchronized (_monitor) { schedulingChangedLocked(); _populationPlanApplied = false; } }
 	public void startupPopulationPlanApplied() { synchronized (_monitor) { schedulingChangedLocked(); _populationPlanApplied = true; requestWakeLocked(); } }
+	public void holdStartupHistory()
+	{
+		synchronized (_monitor) { _startupHistoryOnly = true; }
+	}
+
+	public void releaseStartupHistory()
+	{
+		synchronized (_monitor)
+		{
+			_startupHistoryOnly = false;
+			_refreshedMinute = Long.MIN_VALUE;
+			requestWakeLocked();
+		}
+	}
 
 	public boolean pauseForRetirement(long profileId)
 	{
@@ -851,6 +866,7 @@ public final class PhantomPopulationEcologyService
 		if (!entry._participating || entry._terminal || entry._stored.state().disposition() != Disposition.MANAGED) { return false; }
 		if (entry._schedulingPublicationPending) { return true; }
 		final var state = entry._stored.state();
+		if (_startupHistoryOnly) { return state.requestPending() || state.calendarCursorEpochMinute() < entry._requestedMinute; }
 		final long horizon = _periodicDueMode ? entry._requestedMinute : Math.max(0, _clock.millis() / MINUTE_MILLIS);
 		// A live owner accounts only calendar time through the existing materialized branch;
 		// its pending historical claim must never run concurrently with native work.
@@ -922,7 +938,7 @@ public final class PhantomPopulationEcologyService
 			for (var pair : _entries.entrySet())
 			{
 				final Entry entry = pair.getValue();
-				if (entry._participating && _periodicDueMode) { if (now > entry._requestedMinute) { schedulingChangedLocked(); entry._requestedMinute = now; entry._readinessRevision++; } }
+				if (!_startupHistoryOnly && entry._participating && _periodicDueMode) { if (now > entry._requestedMinute) { schedulingChangedLocked(); entry._requestedMinute = now; entry._readinessRevision++; } }
 				// Batch demand refresh observes the actual owner and preserves its later release edge.
 				if (!_batchAdmission && entry._participating && (entry._stored != null)) { entry._liveOwner = false; }
 				queueLocked(pair.getKey());
@@ -959,6 +975,12 @@ public final class PhantomPopulationEcologyService
 		return requestDue(profileId, false, false);
 	}
 
+	/** Resume the persisted window without requesting calendar work up to the wall clock. */
+	public DueReconciliation requestBackgroundRecovery(long profileId, long ownedTargetMinute)
+	{
+		return requestDue(profileId, false, false, ownedTargetMinute);
+	}
+
 	public DueReconciliation requestMaterializationDue(long profileId)
 	{
 		return requestDue(profileId, true, false);
@@ -982,14 +1004,20 @@ public final class PhantomPopulationEcologyService
 
 	private DueReconciliation requestDue(long profileId, boolean materializationDue, boolean consumeReceipt)
 	{
-		final var due = registerDue(profileId, materializationDue, consumeReceipt);
+		return requestDue(profileId, materializationDue, consumeReceipt, Long.MAX_VALUE);
+	}
+
+	private DueReconciliation requestDue(long profileId, boolean materializationDue, boolean consumeReceipt, long maximumTargetMinute)
+	{
+		final var due = registerDue(profileId, materializationDue, consumeReceipt, maximumTargetMinute);
 		publishSchedulingPermissionEdge(profileId);
 		return due;
 	}
 
-	private DueReconciliation registerDue(long profileId, boolean materializationDue, boolean consumeReceipt)
+	private DueReconciliation registerDue(long profileId, boolean materializationDue, boolean consumeReceipt, long maximumTargetMinute)
 	{
-		final long targetMinute = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+		final long sampledMinute = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+		final long targetMinute = Math.min(sampledMinute, maximumTargetMinute);
 		final Entry entry;
 		final LongPredicate demand;
 		final Object revision;
@@ -1021,7 +1049,7 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor)
 		{
 			if ((_entries.get(profileId) != entry) || (_schedulingRevision != revision) || (_demandRevision != demandRevision) || (entry._readinessRevision != readinessRevision)
-				|| (demand != _currentDemand) || _stopping || !entry._participating || targetMinute != Math.max(0, _clock.millis() / MINUTE_MILLIS))
+				|| (demand != _currentDemand) || _stopping || !entry._participating || sampledMinute != Math.max(0, _clock.millis() / MINUTE_MILLIS))
 			{
 				return new DueReconciliation(false, 0, "ecology.readiness_stale");
 			}
@@ -1128,6 +1156,7 @@ public final class PhantomPopulationEcologyService
 			return advanceRequest(profileId, stored, intervalBudget);
 		}
 		if (recoverOrphanHistoricalOwnership(profileId, stored)) { return OWNERSHIP_RECOVERY_TURN; }
+		synchronized (_monitor) { if (_startupHistoryOnly) { return 0; } }
 		final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
 		if (_materialized.test(profileId))
 		{

@@ -100,6 +100,33 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		return _logical.commitDiscovery(discovery, _seeking::seeks);
 	}
 
+	/** Startup recovery uses the ordinary cold expiry and execution release, without discovery or native work. */
+	public void recoverColdLogicalParty(PhantomPartyPersistencePort.StoredLogicalGroup row, long now)
+	{
+		final var group = row.group();
+		if (!group.active() || now < group.nextDueMillis()) { return; }
+		final var known = group.members().stream().map(member -> _backend.currentMember(member.profileId())).flatMap(java.util.Optional::stream).toList();
+		if (known.size() != group.members().size()) { return; }
+		if (group.phase() == PhantomLogicalParty.Phase.BACKGROUND && group.activityReplanRequired() && _activityRevision != null)
+		{
+			withAbsentMembers(known, 0, () -> { _logical.recoverActivity(row, now, _activityRevision); return true; });
+		}
+		else if (now >= group.expiresAtMillis() && !group.activityPending())
+		{
+			retireColdParty(row, now, known);
+		}
+	}
+
+	private void retireColdParty(PhantomPartyPersistencePort.StoredLogicalGroup row, long now, List<MemberRef> known)
+	{
+		final var group = row.group();
+		cancelLogicalOffers(group);
+		if (known.size() != group.members().size() || !withAbsentMembers(known, 0, () ->
+		{
+			_logical.retireExpired(row, now, () -> true, _soloRecovered, _terminalHandoff); return true;
+		})) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
+	}
+
 	private void diagnostic(String phase, RuntimeException failure)
 	{
 		_lastFailure = phase + "." + failure.getClass().getSimpleName();
@@ -170,11 +197,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); return; }
 			if (now >= group.expiresAtMillis() && !group.activityPending())
 			{
-				cancelLogicalOffers(group);
-				if (known.size() != group.members().size() || !withAbsentMembers(known, 0, () ->
-				{
-					_logical.retireExpired(row, now, () -> true, _soloRecovered, _terminalHandoff); return true;
-				})) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
+				retireColdParty(row, now, known);
 				return;
 			}
 			if (group.phase() == PhantomLogicalParty.Phase.BACKGROUND && group.activityReplanRequired() && _activityRevision != null)

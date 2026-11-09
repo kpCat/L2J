@@ -238,13 +238,23 @@ public final class PhantomSystem
 
 	private final PhantomPlayersConfig.Settings _settings;
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
-	/** Observer gate over the same planner retained by ordinary execution; called before any scheduler pulse. */
+	private StartupPartyRecovery _startupPartyRecovery;
+	public record StartupPartyRecovery(java.util.Set<Long> profiles, java.util.concurrent.CompletableFuture<Void> completion)
+	{
+		public StartupPartyRecovery
+		{
+			profiles = java.util.Set.copyOf(profiles);
+			if (profiles.size() < 2 || profiles.size() > 16 || profiles.stream().anyMatch(id -> id <= 0)) { throw new IllegalArgumentException("Invalid bounded Party recovery scope."); }
+			Objects.requireNonNull(completion);
+		}
+	}
+	/** The same planner is retained for ordinary execution after the commissioning inspection. */
 	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology,
 		PhantomPlayersConfig.Settings settings, PhantomHistoricalBackgroundService authorityRecovery,
 		java.util.function.BiFunction<Long, Integer, java.util.List<PhantomPopulationStore.ManagedSnapshot>> managedPartyPage,
 		java.util.function.BiFunction<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery>,
 			java.util.function.Consumer<org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup>,
-			org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery> partyOffer) { }
+			org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery> partyOffer, java.util.Set<Long> recoveredProfiles) { }
 	private final PhantomMetrics _metrics;
 	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
@@ -690,6 +700,7 @@ public final class PhantomSystem
 						_settings.ecologyWorldAgeDays(),
 						_settings.ecologyArchiveLimit());
 					_populationEcology.enablePeriodicDueMode();
+					if (_startupPartyRecovery != null) { _populationEcology.holdStartupHistory(); }
 					_populationEcology.installMetadataBudget(Math.min(256, _settings.schedulerProfilesPerPulse()));
 					if (_metadataObserverForTesting != null) { _populationEcology.installMetadataObserver(_metadataObserverForTesting); }
 					_populationEcology.installDemandPump(_settings.schedulerPulseMillis(), () -> System.nanoTime() / 1_000_000L, (wake, delay) ->
@@ -1157,29 +1168,42 @@ public final class PhantomSystem
 						}
 					}
 				});
-				final var inspected = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery>();
-				final var onCommitted = new java.util.concurrent.atomic.AtomicReference<java.util.function.Consumer<org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup>>();
-				final Thread inspectionThread = Thread.currentThread();
-				final var inspectionOpen = new java.util.concurrent.atomic.AtomicBoolean(true);
-				try
+				final java.util.function.Consumer<java.util.Set<Long>> inspectParty = recovered ->
 				{
-					_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService, managedPartyPage, (proof, committed) ->
+					requireStartupInspectionOpen();
+					final var inspected = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery>();
+					final var onCommitted = new java.util.concurrent.atomic.AtomicReference<java.util.function.Consumer<org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup>>();
+					final Thread inspectionThread = Thread.currentThread();
+					final var inspectionOpen = new java.util.concurrent.atomic.AtomicBoolean(true);
+					try
 					{
-						if (Thread.currentThread() != inspectionThread || !inspectionOpen.get() || !onCommitted.compareAndSet(null, Objects.requireNonNull(committed)))
-						{ throw new IllegalStateException("Startup Party proof may be requested only once during inspection."); }
-						final var offer = autonomousFarm.previewLogicalParty(logicalPage.apply(managedPartyPage.apply(0L, 16), true), System.currentTimeMillis(), Objects.requireNonNull(proof));
-						inspected.set(offer);
-						return offer;
-					}));
-				}
-				finally { inspectionOpen.set(false); }
-				if (onCommitted.get() != null)
+						_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService, managedPartyPage, (proof, committed) ->
+						{
+							if (Thread.currentThread() != inspectionThread || !inspectionOpen.get() || !onCommitted.compareAndSet(null, Objects.requireNonNull(committed)))
+							{ throw new IllegalStateException("Startup Party proof may be requested only once during inspection."); }
+							requireStartupInspectionOpen();
+							final var page = managedPartyPage.apply(0L, 16);
+							final var eligible = recovered.isEmpty() ? page : page.stream().filter(entry -> recovered.contains(entry.profile().profileId())).toList();
+							final var offer = autonomousFarm.previewLogicalParty(logicalPage.apply(eligible, true), System.currentTimeMillis(), Objects.requireNonNull(proof));
+							inspected.set(offer);
+							return offer;
+						}, recovered));
+					}
+					finally { inspectionOpen.set(false); }
+					if (onCommitted.get() != null)
+					{
+						requireStartupInspectionOpen();
+						final var offer = Objects.requireNonNull(inspected.get());
+						if (offer.proposal().isEmpty()) { throw new IllegalStateException(offer.status() + " nextDue=" + offer.nextDueMillis()); }
+						final var agreed = autonomousFarm.commitLogicalParty(offer).orElseThrow(() ->
+							new IllegalStateException("REPLAN_DISCOVERY_CHANGED nextDue=" + (System.currentTimeMillis() + 1000)));
+						onCommitted.get().accept(agreed);
+					}
+				};
+				if (_startupPartyRecovery == null) { inspectParty.accept(java.util.Set.of()); }
+				else if (!_scheduler.installStartupRecovery(() -> recoverStartupParty(autonomousFarm, managedPartyPage.apply(0L, 16), populationCatalog, inspectParty)))
 				{
-					final var offer = Objects.requireNonNull(inspected.get());
-					if (offer.proposal().isEmpty()) { throw new IllegalStateException(offer.status() + " nextDue=" + offer.nextDueMillis()); }
-					final var agreed = autonomousFarm.commitLogicalParty(offer).orElseThrow(() ->
-						new IllegalStateException("REPLAN_DISCOVERY_CHANGED nextDue=" + (System.currentTimeMillis() + 1000)));
-					onCommitted.get().accept(agreed);
+					throw new IllegalStateException("Startup Party recovery could not be installed.");
 				}
 			}
 			if (_autonomousMarketProducer != null) { _autonomousMarketProducer.prepareRecoveryOwners(); }
@@ -2183,6 +2207,8 @@ public final class PhantomSystem
 	private static boolean startConfiguredInternal()
 	{ return startConfiguredInternal(_ -> { }); }
 	private static boolean startConfiguredInternal(java.util.function.Consumer<PlanningInspection> inspection)
+	{ return startConfiguredInternal(inspection, null); }
+	private static boolean startConfiguredInternal(java.util.function.Consumer<PlanningInspection> inspection, StartupPartyRecovery recovery)
 	{
 		if (!PhantomPlayersConfig.isEnabled() || (_configuredInstance != null))
 		{
@@ -2191,6 +2217,7 @@ public final class PhantomSystem
 
 		final var candidate = new PhantomSystem(PhantomPlayersConfig.settings(), true);
 		candidate._planningInspection = Objects.requireNonNull(inspection);
+		candidate._startupPartyRecovery = recovery;
 		return startConfiguredCandidate(candidate);
 	}
 
@@ -2236,6 +2263,8 @@ public final class PhantomSystem
 	public static synchronized OperatorControlResult operatorEnable()
 	{ return operatorEnable(_ -> { }); }
 	public static synchronized OperatorControlResult operatorEnable(java.util.function.Consumer<PlanningInspection> inspection)
+	{ return operatorEnable(inspection, null); }
+	public static synchronized OperatorControlResult operatorEnable(java.util.function.Consumer<PlanningInspection> inspection, StartupPartyRecovery recovery)
 	{
 		if (_configuredInstance != null)
 		{
@@ -2262,7 +2291,7 @@ public final class PhantomSystem
 		}
 		try
 		{
-			return operatorControlResult(startConfiguredInternal(inspection) ? OperatorControlCode.STARTED : OperatorControlCode.OWNER_BUSY);
+			return operatorControlResult(startConfiguredInternal(inspection, recovery) ? OperatorControlCode.STARTED : OperatorControlCode.OWNER_BUSY);
 		}
 		catch (RuntimeException e)
 		{
@@ -3546,6 +3575,70 @@ public final class PhantomSystem
 		return group != null && group.active() && PhantomAutonomousFarmParty.ordinaryIntent(id, root)
 			&& group.members().stream().anyMatch(member -> member.profileId() == id && member.goalId() == root.goalId() && root.revision() >= member.goalRevision());
 	}
+
+	private boolean recoverStartupParty(PhantomAutonomousFarmParty owner, java.util.List<PhantomPopulationStore.ManagedSnapshot> page,
+		PhantomPopulationCatalog catalog, java.util.function.Consumer<java.util.Set<Long>> inspect)
+	{
+		final var request = _startupPartyRecovery;
+		if (request.completion().isDone() || _populationManager.snapshot().state() != PhantomPopulationManager.LifecycleState.RUNNING) { return false; }
+		try
+		{
+			if (_populationEcology == null) { throw new IllegalStateException("Startup Party recovery requires its Ecology owner."); }
+			final var managed = page.stream().filter(entry -> request.profiles().contains(entry.profile().profileId())).toList();
+			if (managed.size() != request.profiles().size()) { throw new IllegalStateException("Startup recovery scope is outside the bounded managed page."); }
+			final long now = System.currentTimeMillis();
+			final var groups = request.profiles().stream().sorted().map(_logicalParties::groupFor).flatMap(java.util.Optional::stream).distinct().toList();
+			if (groups.stream().flatMap(row -> row.group().members().stream()).anyMatch(member -> !request.profiles().contains(member.profileId())))
+			{ throw new IllegalStateException("Startup recovery cannot partially operate on a durable Party."); }
+			request.profiles().stream().sorted().forEach(_executionControl::watch);
+			_executionControl.onPulse();
+			for (var row : groups) { owner.recoverColdLogicalParty(row, now); }
+			_populationEcology.onPopulationPulse();
+			final var ready = new java.util.LinkedHashSet<Long>();
+			for (var entry : managed)
+			{
+				final long id = entry.profile().profileId();
+				final var population = entry.state();
+				final var root = _executionGoals.load(id).map(row -> row.goal()).orElse(null);
+				final var background = _backgroundService.acquisitionSnapshot(id).orElse(null);
+				if (background == null || !PhantomAutonomousFarmParty.ordinaryIntent(id, root)
+					|| population.state() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY
+					|| !_settings.partySeeking().seeks(id, background.progress().level())
+					|| catalog.evaluate(population.scheduleTemplate(), java.time.Instant.ofEpochMilli(now), _settings.populationTimeZone(), population.schedulePhaseMinutes()).state() == PhantomActivityState.SLEEPING)
+				{ continue; }
+				final var history = _historicalBackgroundService.status(id).orElse(null);
+				if (history == null || !_populationEcology.requestBackgroundRecovery(id, history.state().targetEpochMinute()).complete()
+					|| !_historicalBackgroundService.permitsNormalOperation(id)
+					|| _executionGoals.publication(id).filter(row -> row.state().status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.PENDING).isPresent())
+				{ continue; }
+				final var grant = _executionHandoffs.load(id).orElse(null);
+				if (grant != null && grant.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE
+					&& grant.state().owner().equals(desiredExecutionOwner(id)) && _executionAdmission.current(id, grant.component().rowVersion(), grant.state()))
+				{ ready.add(id); }
+			}
+			// Read back exact claims after the owner's expiry turn. An existing viable group takes priority over formation.
+			final var current = request.profiles().stream().sorted().map(_logicalParties::groupFor).flatMap(java.util.Optional::stream).distinct().toList();
+			if (current.stream().anyMatch(row -> row.group().requiresSoloExecution(now))) { return false; }
+			if (current.isEmpty() ? ready.size() < 2 : current.stream().noneMatch(row -> row.group().members().stream().allMatch(member -> ready.contains(member.profileId()))))
+			{ return false; }
+			inspect.accept(java.util.Set.copyOf(ready));
+			if (!request.completion().complete(null)) { return false; }
+			_populationEcology.releaseStartupHistory();
+			return true;
+		}
+		catch (RuntimeException failure)
+		{
+			request.completion().completeExceptionally(failure);
+			return false;
+		}
+	}
+
+	private void requireStartupInspectionOpen()
+	{
+		if (_startupPartyRecovery != null && _startupPartyRecovery.completion().isDone())
+		{ throw new IllegalStateException("Startup Party recovery closed before agreement."); }
+	}
+
 	private PhantomDomainRef executionRecoveryDemand(long id)
 	{
 		final var stored = _commerceReceiptStore.find(id).orElse(null); final var receipt = stored == null ? null : stored.receipt();

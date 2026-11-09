@@ -111,6 +111,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			return;
 		}
 		registry.add("01-start-zero-and-registration-bounds", _ -> testRegistration());
+		registry.add("130-startup-recovery-fences-both-ordinary-and-local-dispatch", _ -> testStartupRecovery130());
 		registry.add("02-signal-validation-source-sequence-and-coalescing", _ -> testSignals());
 		registry.add("03-queue-backpressure-leaves-signal-unchanged", _ -> testBackpressureAtomicity());
 		registry.add("04-highest-detail-expiry-and-demotion-grace", _ -> testAggregationAndHysteresis());
@@ -440,6 +441,42 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		scheduler.pulse();
 		PhantomAssertions.assertTrue(scheduler.signalSources(1).isEmpty(), "Ordinary pulse must expire the source.");
 		stop(scheduler);
+	}
+
+	private void testStartupRecovery130()
+	{
+		final var clock = new ManualClock();
+		final var port = new FakeMaterializationPort();
+		final var metrics = new PhantomMetrics();
+		final var ordinary = new AtomicInteger();
+		final var recovery = new AtomicInteger();
+		final var scheduler = new PhantomScheduler(1, 100, 1, PhantomSchedulerPolicy.productionDefaults(100), clock, (_pulse, _period) -> null, false,
+			metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, _ -> ordinary.incrementAndGet());
+		PhantomAssertions.assertTrue(scheduler.installStartupRecovery(() ->
+		{
+			final int turn = recovery.incrementAndGet();
+			if (turn == 1) { throw new IllegalStateException("Transient recovery read failure."); }
+			return turn == 3;
+		}), "Recovery gate was refused before start.");
+		PhantomAssertions.assertTrue(scheduler.installControlPort(ordinary::incrementAndGet), "Ordinary control port was refused.");
+		PhantomAssertions.assertTrue(scheduler.start(), "Recovery scheduler did not start.");
+		try
+		{
+			scheduler.register(1);
+			scheduler.submitSignal(1, signal("party.recovery", 1, PhantomActivityState.ACTIVE, 10_000));
+			scheduler.pulse(); scheduler.localPulse();
+			PhantomAssertions.assertEquals(0, ordinary.get(), "Ordinary dispatch ran while recovery was pending.");
+			PhantomAssertions.assertEquals(0, port.materializeCalls, "Local dispatch crossed the recovery barrier.");
+			scheduler.pulse();
+			PhantomAssertions.assertEquals(0, ordinary.get(), "Ordinary dispatch ran while recovery was waiting.");
+			scheduler.pulse();
+			PhantomAssertions.assertEquals(0, ordinary.get(), "The proof pulse ran ordinary work before release.");
+			scheduler.localPulse(); scheduler.pulse();
+			PhantomAssertions.assertEquals(3, recovery.get(), "The recovery callback ran again after proof.");
+			PhantomAssertions.assertEquals(1, port.materializeCalls, "Normal materialization did not resume once.");
+			PhantomAssertions.assertTrue(ordinary.get() > 0, "Ordinary dispatch did not resume.");
+		}
+		finally { stop(scheduler); }
 	}
 
 	private void testLocalPromotionUnderBlockedPulse() throws InterruptedException

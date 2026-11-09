@@ -30,6 +30,16 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.Compon
 
 public final class PhantomGoalStateStore implements PhantomGoalStore
 {
+	public static final class PublicationPending extends ConcurrentModificationException
+	{
+		private static final long serialVersionUID = 1L;
+
+		private PublicationPending()
+		{
+			super("Goal publication awaits REQUEST/YIELD/CHECKPOINT/TRANSFER.");
+		}
+	}
+
 	public static final String COMPONENT_TYPE = "goal.runtime";
 	public static final int COMPONENT_SCHEMA_VERSION = 1;
 	private final PhantomProfileRepository _repository;
@@ -135,9 +145,10 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 			}
 		}
 		if (!_admission.permitsIntentRequest(id)) { throw new ConcurrentModificationException("Stale execution callback cannot request a new Goal."); }
-		stagePublication(id, root, replacement, companions, execution);
+		if (!stagePublication(id, root, replacement, companions, execution))
+		{ throw new ConcurrentModificationException("A different Goal publication is pending."); }
 		_publicationWake.accept(id);
-		throw new ConcurrentModificationException("Goal publication awaits REQUEST/YIELD/CHECKPOINT/TRANSFER.");
+		throw new PublicationPending();
 	}
 	/** An activity change is an intent transfer even when it retains the ordinary root's ID/type. */
 	public void requestPublication(long id, long expectedVersion, PhantomGoal replacement, java.util.List<ComponentMutation> companions)
@@ -150,14 +161,24 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 		stagePublication(id, root, Objects.requireNonNull(replacement), companions, _execution.load(id).orElseThrow());
 		_publicationWake.accept(id);
 	}
-	private void stagePublication(long id, PhantomProfileComponent root, PhantomGoal replacement, java.util.List<ComponentMutation> companions, PhantomExecutionHandoffStore.Stored execution)
+	private boolean stagePublication(long id, PhantomProfileComponent root, PhantomGoal replacement, java.util.List<ComponentMutation> companions, PhantomExecutionHandoffStore.Stored execution)
 	{
 		final long now = _clock.getAsLong(); final var current = publication(id).orElse(null);
-		if (current != null && current.state().status() == PhantomGoalPublication.Status.PENDING && now < current.state().deadline()) { return; }
 		final byte[] payload = replacement == null ? null : _codec.encode(replacement);
 		final var descriptors = companions.stream().map(c -> new PhantomGoalPublication.Companion(c.componentType(), c.expectedRowVersion(), c.componentSchemaVersion(), PhantomGoalPublication.digest(c.payload()))).toList();
-		final var request = new PhantomGoalPublication(PhantomGoalPublication.Status.PENDING, root == null ? -1 : root.rowVersion(), now, Math.addExact(now, 30_000), replacement == null,
-			payload == null ? "" : PhantomGoalPublication.digest(payload), descriptors, 0);
+		final long rootVersion = root == null ? -1 : root.rowVersion();
+		final String goalHash = payload == null ? "" : PhantomGoalPublication.digest(payload);
+		if (current != null)
+		{
+			final var pending = current.state();
+			if (pending.status() == PhantomGoalPublication.Status.PENDING && now < pending.deadline())
+			{
+				return pending.beforeGoalVersion() == rootVersion && pending.deletion() == (replacement == null)
+					&& pending.goalHash().equals(goalHash) && pending.companions().equals(descriptors);
+			}
+		}
+		final var request = new PhantomGoalPublication(PhantomGoalPublication.Status.PENDING, rootVersion, now, Math.addExact(now, 30_000),
+			replacement == null, goalHash, descriptors, 0);
 		final var changes = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
 		changes.add(new PhantomProfileRepository.ProfileComponentMutation(id, new ComponentMutation(PhantomGoalPublication.COMPONENT_TYPE, current == null ? -1 : current.component().rowVersion(), PhantomGoalPublication.SCHEMA_VERSION, request.encode())));
 		if (payload != null) { changes.add(staged(id, PhantomGoalPublication.GOAL_COMPONENT, COMPONENT_SCHEMA_VERSION, payload)); }
@@ -171,6 +192,7 @@ public final class PhantomGoalStateStore implements PhantomGoalStore
 		if (current != null) { guards.add(current.component()); }
 		if (execution == null) { absent.add(new PhantomProfileRepository.ComponentAbsence(id, PhantomExecutionHandoffStore.COMPONENT_TYPE)); } else { guards.add(execution.component()); }
 		_repository.mutateProfileComponentsAtomically(changes, guards, absent);
+		return true;
 	}
 	private PhantomProfileRepository.ProfileComponentMutation staged(long id, String type, int schema, byte[] payload)
 	{
