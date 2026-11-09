@@ -174,7 +174,11 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
                 + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " position=" + state.position());
             if (!eligible) { continue; }
-            inspectAuthority(id, state.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
+            final var savedAuthority = state.hashes();
+            final var currentAuthority = inspection.planner().generation().authorityHashes();
+            emitAuthority("NATIVE130_PREPARE_AUTHORITY", id, savedAuthority, currentAuthority, System.out::println);
+            check(savedAuthority.topology().equals(currentAuthority.topology()) && savedAuthority.progression().equals(currentAuthority.progression())
+                && savedAuthority.commerce().equals(currentAuthority.commerce()), "PREFLIGHT_NON_KNOWLEDGE_AUTHORITY_" + id);
             System.out.println("NATIVE130_PREFLIGHT_INPUT id=" + id + " vitals=" + state.vitals() + " combat=" + state.combat() + " loadout=" + state.loadout() + " root=" + root.goalType() + ":" + root.goalId() + ":" + root.revision());
             if (inspection.authorityRecovery().potentialPartyRole(id, state).equals("support.healer"))
             {
@@ -271,16 +275,15 @@ final class PhantomCoordination130Native
         final var output = new StringBuilder();
         final var components = new StringBuilder();
         final var allowed = Set.of(PhantomBackgroundState.COMPONENT_TYPE, PhantomNativeContext.COMPONENT_TYPE, PhantomExecutionHandoffStore.COMPONENT_TYPE);
-        final var nativeColumns = Set.of("maxhp", "curhp", "maxcp", "curcp", "maxmp", "curmp", "heading", "x", "y", "z", "online", "onlinetime", "lastaccess", "vitality_points");
+        final var lifecycleColumns = Set.of("online", "onlinetime", "lastaccess");
         for (long id : ids)
         {
             output.append("profile=").append(id).append('\n');
             try (var connection = DatabaseFactory.getConnection())
             {
                 connection.setReadOnly(true);
-                final var queries = new ArrayList<>(List.of("SELECT * FROM characters WHERE charId=?",
-                    recovery ? "SELECT object_id,item_id,count,loc,loc_data,enchant_level FROM items WHERE owner_id=? ORDER BY object_id" : "SELECT * FROM items WHERE owner_id=? ORDER BY object_id"));
-                if (!recovery) { queries.add("SELECT * FROM character_skills WHERE charId=? ORDER BY class_index,skill_id"); }
+                final var queries = List.of("SELECT * FROM characters WHERE charId=?", "SELECT * FROM items WHERE owner_id=? ORDER BY object_id",
+                    "SELECT * FROM character_skills WHERE charId=? ORDER BY class_index,skill_id");
                 for (String sql : queries)
                 {
                     output.append(sql).append('\n');
@@ -294,7 +297,7 @@ final class PhantomCoordination130Native
                                 for (int column = 1; column <= rows.getMetaData().getColumnCount(); column++)
                                 {
                                     final String label = rows.getMetaData().getColumnLabel(column);
-                                    if (recovery && sql.contains("FROM characters") && nativeColumns.contains(label.toLowerCase(Locale.ROOT))) { continue; }
+                                    if (recovery && sql.contains("FROM characters") && lifecycleColumns.contains(label.toLowerCase(Locale.ROOT))) { continue; }
                                     final String value = rows.getString(column); output.append(label).append('=').append(value == null ? -1 : value.length()).append(':').append(value).append(';');
                                 }
                                 output.append('\n');
