@@ -621,6 +621,17 @@ final class PhantomCoordination130Native
     private static String attemptKey()
     { return attemptEvidenceKey(System.getProperty("phantom.task130.attempt"), ProcessHandle.current().pid()); }
 
+    static boolean hasPriorFailedAgreement(Path evidence) throws java.io.IOException
+    {
+        final String failurePrefix = "native130.failed.";
+        try (var attempts = Files.list(evidence))
+        {
+            return attempts.filter(path -> Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                .map(path -> path.getFileName().toString()).filter(name -> name.matches("native130[.]failed[.](native-[0-9]{8}-[0-9]{6}[.])?[0-9]+"))
+                .anyMatch(name -> Files.isRegularFile(evidence.resolve("agreement130." + name.substring(failurePrefix.length())), java.nio.file.LinkOption.NOFOLLOW_LINKS));
+        }
+    }
+
     static void run(Path module, boolean restart) throws Exception
     {
         final Path runtime = Path.of(System.getProperty("phantom.task130.runtime")).toRealPath();
@@ -675,11 +686,7 @@ final class PhantomCoordination130Native
             final var recovered = recover ? new java.util.concurrent.CompletableFuture<Void>() : null;
             if (recover)
             {
-                try (var attempts = Files.list(evidence))
-                {
-                    check(attempts.map(path -> path.getFileName().toString()).filter(name -> name.matches("native130[.]failed[.][0-9]+"))
-                        .anyMatch(name -> Files.isRegularFile(evidence.resolve("agreement130." + name.substring(name.lastIndexOf('.') + 1)))), "RECOVERY_PRIOR_AGREEMENT_REQUIRED");
-                }
+                check(hasPriorFailedAgreement(evidence), "RECOVERY_PRIOR_AGREEMENT_REQUIRED");
                 final var witness = preflightWitness(profiles, ids, false);
                 write(evidence.resolve("startup130." + launch + ".before.txt"), witness.canonical() + "\n" + witness.components());
             }

@@ -249,6 +249,25 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals("native-20261109-212228.79004", first, "Launch receipt lost process identity.");
 			PhantomAssertions.assertFalse(first.equals(second), "A recycled PID must not overwrite or block a later launch receipt.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomCoordination130Native.attemptEvidenceKey("../native", 79004), "Launch key admitted an untrusted path.");
+			final var evidence = java.nio.file.Files.createTempDirectory("phantom-party-attempt130-");
+			final var failed = evidence.resolve("native130.failed." + first);
+			final var other = evidence.resolve("agreement130." + second);
+			final var exact = evidence.resolve("agreement130." + first);
+			try
+			{
+				java.nio.file.Files.createFile(failed);
+				java.nio.file.Files.createFile(other);
+				PhantomAssertions.assertFalse(PhantomCoordination130Native.hasPriorFailedAgreement(evidence), "Another attempt with the same PID authorized recovery.");
+				java.nio.file.Files.createFile(exact);
+				PhantomAssertions.assertTrue(PhantomCoordination130Native.hasPriorFailedAgreement(evidence), "The exact failed attempt and its agreement could not enter recovery.");
+			}
+			finally
+			{
+				java.nio.file.Files.deleteIfExists(exact);
+				java.nio.file.Files.deleteIfExists(other);
+				java.nio.file.Files.deleteIfExists(failed);
+				java.nio.file.Files.delete(evidence);
+			}
 		});
 		registry.add("native-acceptance-requires-heal-only-for-a-healer-roster", _ ->
 		{
