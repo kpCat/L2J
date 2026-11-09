@@ -1,6 +1,6 @@
 # TASK130 — исполнение группового контракта
 
-Статус: PARTIAL_SOURCE_SQL / NATIVE_GATE_REQUIRED. FULL130=false; TASK130–136 FULL до/после: 0/7 → 0/7, TASK130 PARTIAL. Исходный WIP HEAD: `8140167705e6a6e76f370e3aa772b50f909b4d37`. Production source commit: `f9edb77a4d09316bf10e42cae5cb8811e26642ac`. Первый опубликованный checkpoint: `a7cff727a86fe61c4a5049f7f5440fc05620e8be`; ниже отдельный test-observer follow-up. Публикация разрешена только в `wip/coordination-130-preserved`.
+Статус `PARTIAL_NATIVE_PRE_CUT / AUTHORITY_HASH_70`. FULL130=false. TASK130–136 FULL до и после 0/7 → 0/7. Исходный WIP `8140167705e6a6e76f370e3aa772b50f909b4d37`. Проверенный исходник JAR `ea0e202e26755c5ba79c096c42007e61cf3e1c5e`. Публикация только в `wip/coordination-130-preserved`.
 
 ## Read-first и сохранность
 
@@ -145,3 +145,24 @@ Native gate D/E остаётся прежним и ожидает ответа �
 Ограниченный native trace разделяет D03 (DPS, длительность, состав, ресурсы), D04 (фактическая цель, угрозы, резерв 6 секунд) и D05 (кастер, получатель, доступный навык, нулевой HP credit). Для Heal используется существующий stock HP-restored packet с положительной суммой. Headless outbound сохраняет только последний receipt текущего native owner получателя. Observer связывает его с замеченным cast, native target list и MP debit того же кастера. Поддержаны одиночные и групповые Heal. Принудительное размещение human witness удалено. F8 использует отдельный обычный cast на сохранённом месте существующего TEST130 human. Pre-CUT authority mismatch отклоняется до вызова восстановления baseline.
 
 На момент подготовки 70 и 72 проходят расписание `SLEEPING → BACKGROUND → ACTIVE`. По read-only SQL и production-календарю ближайшее ожидаемое общее ACTIVE начинается в 14:17 по Кишинёву. Перед bootstrap требуется свежая read-only сверка фактической готовности обоих участников. Ранее подготовленные SQL 2/3/9 и F7 PASS сохранены. Итоговый повторный targeted MODEL/Party/Combat batch 237/237, stock F8/evidence suite 14/14. JAR и native evidence записываются отдельно.
+
+## Итог согласованной native-попытки
+
+В 14:17 по Кишинёву read-only TEST130 подтвердил `eligible=[70, 72]`, `ACTIVE`, согласие, отсутствие блокирующих обязательств и active claims. Оба актёра уровня 76 на сохранённом якоре `generated.farm.38520d85788548d726048a27.anchor`. Общий интервал 72–80. MANIFEST 13/13, SHA256SUMS 14/14. Перед сборкой targeted MODEL/Party/Combat 237/237 и stock F8/evidence MODEL 14/14. Одна clean Ant JAR с `ea0e202e2` за 23 секунды. SHA-256 `a71ad97ce44cb9afcff51c8d5e6416d2426453c9b7a8cd0a04398fdf60879d27`, 11 335 480 байт. Побайтово проверены все 4742 class entries без пропусков, лишних файлов или расхождений.
+
+В 14:17:50 запущен единственный GameServer PID 69048. Сервер загрузился за 29 секунд с principal `phantom130_d930bd6491f5@127.0.0.1` и схемой `l2jmobiush5_phantom_test_130`. Pre-CUT инспекция профиля 70 остановилась на `NATIVE130_PREFLIGHT_AUTHORITY_HASH_70`. Сохранённый knowledge `41edd0ded7c34e30db4c844c4e5efdafd7ed3be5678a801fb8ffd32f9b05c999`, загруженный `42423479059829b87030574239bd692cb93e5e2ec8e5e974baaf95825ced5b93`. Topology, progression и commerce совпали. Роль в pre-CUT отчёте `pending.native_role`. Runtime `operatorEnable` вернул `START_FAILED` до создания Phantom owner. Проверку exact hash я поставил перед прежним canonical recovery, чтобы исключить recapture при несовпадении authority. Это решение остановило попытку до проверки штатного восстановления. Подкомпонент, изменивший knowledge hash, на этой попытке не измерен.
+
+| Игровая проверка | Фактический результат |
+|---|---|
+| До CUT | `PREFLIGHT_AUTHORITY_HASH_70`. Common sources, stock NPC и маршруты в этой попытке не дошли до проверки |
+| D03 | NOT_RUN. Нет materialized Player и фактического aggregate DPS/MP/ammo |
+| D04 | NOT_RUN. Нет pull, наблюдаемой цели моба, замера угроз или переключения агрессии |
+| D05 | NOT_RUN. Нет штатного Heal cast, HP-restored receipt и MP debit. Human F8 на этом JAR также NOT_RUN |
+| Native Party, бой, reward, STORE | 0 новых подтверждённых игровых результатов |
+| SameDB/sameJAR restart | 0. Условие полезной первой вертикали не выполнено |
+
+Stock STOP завершился в 14:18:38, Hikari закрыт, master config вернулся к `False`. Обёртка получила exit 0 от stock shutdown, результат теста зафиксирован `native130.failed.69048`. CUT и agreement receipts отсутствуют. Postflight подтвердил protected207 exact, Geo203 exact, собственные JVM/listeners 0. Повторный read-only SQL прошёл с тем же principal, а 14 наблюдаемых строк eligibility/claims/positions совпали с preflight. Это выборочная SQL сверка. Stock GameServer при shutdown записал штатное состояние своих менеджеров в TEST130. Фикстурные правки HP/MP/EXP/SP, предметов, позиций и Goal не выполнялись.
+
+Evidence seal `approved-native-attempt-manifest.json` содержит SHA-256 12 файлов. SHA-256 самого manifest `ddaff76e8ed7667d39dda8ad35be9317a0db9ab4ac413820c047855727620931`. В `task130/runtime` сохранены `native-20261109-121750.stdout.log`, `.stderr.log`, `.process.json`, `.exit.json` и markers started/failed. В `task130/evidence` сохранены JAR parity и OS/SQL postflight. Счётчики 1 clean JAR / 1 GameServer / 0 restart. Native budget израсходован. FULL130=false. TASK130 PARTIAL, TASK131–136 не запускались, FULL 0/7.
+
+Команды этапа: `git rev-parse HEAD`, `git symbolic-ref --short HEAD`, `git status --short`, `git ls-remote --heads origin wip/coordination-130-preserved feature/phantom-world wip/task129-preserved-20261106`, `git diff --stat -- <scope>`, `git -c core.whitespace=cr-at-eol diff --check -- <scope>`, `git add --pathspec-from-file=../evidence/approved-native-final-paths.txt`, `git diff --cached --name-only`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <scope>`, `git commit -m "Verify native TASK130 combat readiness and Heal evidence"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`. Docs seal публикуется отдельным scoped commit и таким же WIP push. Сборка `ant -f L2J_Mobius_CT_2.6_HighFive/build.xml jar`. Запуск `Test-Coordination130.ps1 -Action native -RuntimeRoot <owned runtime> -Fixture original`, postflight `Test-Coordination130.ps1 -Action postflight -RuntimeRoot <owned runtime>`.
