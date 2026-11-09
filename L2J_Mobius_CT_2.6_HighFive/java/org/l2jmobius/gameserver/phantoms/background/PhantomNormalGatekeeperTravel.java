@@ -29,12 +29,14 @@ import org.w3c.dom.Element;
 
 import org.l2jmobius.gameserver.data.xml.TeleporterData;
 import org.l2jmobius.gameserver.config.PlayerConfig;
+import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportType;
 import org.l2jmobius.gameserver.model.teleporter.TeleportHolder;
 import org.l2jmobius.gameserver.model.teleporter.TeleportLocation;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdgeMode;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 
 /** One immutable route query for topology BACKGROUND and D1-proven NORMAL GK legs. */
@@ -328,6 +330,21 @@ public final class PhantomNormalGatekeeperTravel
 	public List<Leg> legs()
 	{
 		return _legs;
+	}
+
+	/** A stored position at either end of a catalogued GK connector can propose an ingress. */
+	Set<String> connectorAnchors(PhantomTopologyPoint position)
+	{
+		if (position.instanceId() != 0) { return Set.of(); }
+		final Set<String> result = new HashSet<>();
+		for (var leg : _legs)
+		{
+			if (position.distance3D(new PhantomTopologyPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0)) <= Npc.INTERACTION_DISTANCE)
+			{ result.add(leg.fromAnchorId()); }
+			if (position.distance3D(new PhantomTopologyPoint(leg.destinationX(), leg.destinationY(), leg.destinationZ(), 0)) <= Npc.INTERACTION_DISTANCE)
+			{ result.add(leg.toAnchorId()); }
+		}
+		return Set.copyOf(result);
 	}
 
 	public PhantomTopologyQuery topology()

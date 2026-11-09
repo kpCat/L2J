@@ -262,6 +262,7 @@ public final class PhantomCoordination130Integration
                     final var raw = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE);
                     final var state = raw.map(value -> new PhantomBackgroundStateCodec().decode(value.payload()));
                     System.out.println("SQL130_PHYSICAL_BASELINE profile=" + id + " position=" + state.orElseThrow().position() + " vitals=" + state.orElseThrow().vitals());
+                    System.out.println("SQL130_BACKGROUND_WALLET profile=" + id + " adena=" + state.orElseThrow().inventory().itemCount(57));
                     System.out.println("SQL130_CLASS_FACTS profile=" + id + " identity=" + state.orElseThrow().identity() + " role=" + org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner.logicalRole(state.orElseThrow()) + " combat=" + state.orElseThrow().combat() + " loadout=" + state.orElseThrow().loadout());
                     System.out.println("SQL130_ROOT profile=" + id + " root=" + new PhantomGoalStateStore(profiles).load(id));
                     System.out.println("SQL130_PARTY_CLAIM profile=" + id + " claim=" + new PhantomPartyStore(profiles).load(id));

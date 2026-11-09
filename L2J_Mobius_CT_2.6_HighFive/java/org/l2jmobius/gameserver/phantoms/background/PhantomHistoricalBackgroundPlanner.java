@@ -442,8 +442,12 @@ public final class PhantomHistoricalBackgroundPlanner
 			final var point = _topology.findAnchor(departure).orElseThrow().point();
 			return new RendezvousItinerary(live.equals(point) ? RendezvousRoute.REACHABLE : RendezvousRoute.REACHABLE_VIA_INGRESS, departure, route);
 		}
-		final var localAnchors = _topology.locate(live).stream().flatMap(node -> _topology.snapshot().anchorsByNode().getOrDefault(node.id(), List.of()).stream())
-			.filter(candidate -> structuralIngress(candidate, live))
+		final var local = _topology.locate(live).stream().flatMap(node -> _topology.snapshot().anchorsByNode().getOrDefault(node.id(), List.of()).stream())
+			.filter(candidate -> structuralIngress(candidate, live));
+		// A stock route can STORE at a gatekeeper before its adjacent topology anchor is adopted.
+		// Both kinds of ingress still require native Geo and NPC proof before acting.
+		final var connectors = travel.connectorAnchors(live).stream().map(_topology::findAnchor).flatMap(Optional::stream);
+		final var localAnchors = java.util.stream.Stream.concat(local, connectors).distinct()
 			.sorted(Comparator.comparingDouble((PhantomTopologyAnchor candidate) -> candidate.point().distance3D(live)).thenComparing(PhantomTopologyAnchor::id))
 			.limit(16).toList();
 		for (var ingress : localAnchors)

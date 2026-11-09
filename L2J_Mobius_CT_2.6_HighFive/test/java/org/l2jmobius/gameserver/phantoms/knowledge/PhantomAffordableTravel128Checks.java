@@ -117,6 +117,12 @@ public final class PhantomAffordableTravel128Checks
 			check(planner.partyRouteCost(state, paidSource).orElseThrow().feeAdena() == wallet, "Party route did not reserve the full ordinary Gatekeeper fare");
 			check(planner.partyRouteCost(state, beyondWallet).isEmpty(), "Party route selected an unaffordable Gatekeeper");
 			check(planner.partyRouteCost(empty, paidSource).isEmpty(), "Empty Party wallet was treated as a paid route");
+			final var atGate = new PhantomBackgroundState.Position(0, leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0, origin.id());
+			final var storedAfterWalk = new PhantomBackgroundState(state.state(), state.identity(), state.progress(), state.vitals(), atGate,
+				state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
+			final var resumed = planner.rendezvousItinerary(storedAfterWalk, paidSource, java.util.Set.of());
+			check(resumed.available() && resumed.departureAnchorId().equals(origin.id()), "A saved Party at the native Gatekeeper lost its lawful connector on restart");
+			check(!planner.rendezvousItinerary(storedAfterWalk, beyondWallet, java.util.Set.of()).available(), "Gatekeeper ingress bypassed the Party wallet");
 			check(planner.replaceFromState(92, state, goal, 128, 1).goal().selectedAnchor().key().equals(distant.id()), "Positive control must prefer the unaffordable exact-level farm");
 			final var selected = planner.replaceAffordableFromState(92, state, goal, 128, 1);
 			check(selected.ready() && selected.goal().selectedAnchor().key().equals(distant.id()), "Free Phantom pricing still excluded the preferred native route");
