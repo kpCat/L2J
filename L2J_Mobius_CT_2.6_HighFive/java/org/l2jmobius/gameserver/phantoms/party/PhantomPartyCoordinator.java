@@ -2861,7 +2861,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var assist = farm && runtime != null && runtime.farmPuller != null && snapshots.containsKey(runtime.farmPuller) ? runtime.farmPuller : party.leader();
 		final List<TacticalDirective> directives = _tactics.plan(assist, party.members(), snapshots, directive ->
 			!farm || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())
-				|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor())));
+				|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor())), farm);
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
 		final Set<Long> decided = new HashSet<>();
 		int examined = 0;

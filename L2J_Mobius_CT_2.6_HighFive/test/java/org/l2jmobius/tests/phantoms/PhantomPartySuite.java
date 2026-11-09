@@ -1502,6 +1502,24 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(kinds.containsAll(List.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER, DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER)), "Tactical capability coverage is incomplete.");
 			PhantomAssertions.assertFalse(kinds.contains(DirectiveKind.PARTY_SUPPORT), "Planner fabricated a use-all support action without an exact target need.");
 		});
+		registry.add("130-farm-heal-ranks-only-exact-recipient-capabilities", _ ->
+		{
+			final var backend = new MemoryPartyBackend();
+			final var victim = member(1, 101, 40, 100, false, 0, List.of());
+			final var healer = member(2, 102, 100, 100, false, 0, List.of());
+			final var unavailable = cap("combat.heal", "preferred.short", 100, 1402);
+			final var available = cap("combat.heal", "reachable", 90, 1217);
+			backend._capabilities.put(healer.ref(), List.of(unavailable, available));
+			backend._farmHealCapabilities.put(healer.ref(), List.of(available));
+			final var roster = List.of(victim.ref(), healer.ref());
+			final var members = Map.of(victim.ref(), victim, healer.ref(), healer);
+			final var tactics = new PhantomPartyTactics(null, backend);
+			final var ordinary = tactics.plan(victim.ref(), roster, members).stream().filter(value -> value.kind() == DirectiveKind.HEAL_MEMBER).findFirst().orElseThrow();
+			final var farm = tactics.plan(victim.ref(), roster, members, _ -> true, true).stream().filter(value -> value.kind() == DirectiveKind.HEAL_MEMBER).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(unavailable.actionSkillId(), ordinary.actionSkillId(), "The existing non-farm support order changed.");
+			PhantomAssertions.assertEquals(available.actionSkillId(), farm.actionSkillId(), "An unavailable Heal blocked the exact farm recipient's legal fallback.");
+			PhantomAssertions.assertEquals(victim.ref(), farm.targetMember(), "Fallback changed the intended Heal recipient.");
+		});
 		registry.add("02-external-combat-ownership-is-mandatory", context ->
 		{
 			final String tactics = source(context, "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyTactics.java");
@@ -3472,6 +3490,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
 		private final Map<MemberRef, MemberSnapshot> _snapshots = new LinkedHashMap<>();
 		private final Map<MemberRef, List<MemberCapability>> _capabilities = new LinkedHashMap<>();
+		private final Map<MemberRef, List<MemberCapability>> _farmHealCapabilities = new LinkedHashMap<>();
 		private final Set<Integer> _protectiveSkills = new java.util.HashSet<>();
 		private final Set<String> _healthyMaintenance = new java.util.HashSet<>();
 		private PhantomPartyCoordinator _coordinator;
@@ -3644,6 +3663,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
 		{
 			return _capabilities.getOrDefault(actor, List.of());
+		}
+
+		@Override
+		public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId, boolean exactFarmHeal)
+		{
+			return exactFarmHeal && _farmHealCapabilities.containsKey(actor) ? _farmHealCapabilities.get(actor) : capabilities(actor, exactTargetObjectId);
 		}
 
 		@Override public boolean protectiveMaintenance(MemberRef actor, MemberCapability capability) { return _protectiveSkills.contains(capability.actionSkillId()); }

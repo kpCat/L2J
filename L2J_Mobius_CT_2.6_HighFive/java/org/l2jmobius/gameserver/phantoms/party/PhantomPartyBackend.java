@@ -122,6 +122,9 @@ public interface PhantomPartyBackend
 
 	List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId);
 
+	default List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId, boolean exactFarmHeal)
+	{ return capabilities(actor, exactTargetObjectId); }
+
 	default Status supportEffectStatus(MemberRef actor, int exactTargetObjectId, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability capability, int rebuffRemainingSeconds)
 	{
 		return Status.MISSING;

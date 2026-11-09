@@ -61,6 +61,11 @@ public final class PhantomPartyTactics
 
 	public List<TacticalDirective> plan(MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, java.util.function.Predicate<TacticalDirective> permitted)
 	{
+		return plan(leader, roster, snapshots, permitted, false);
+	}
+
+	public List<TacticalDirective> plan(MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, java.util.function.Predicate<TacticalDirective> permitted, boolean exactFarmHeal)
+	{
 		if ((roster == null) || (roster.size() > 9) || (snapshots == null) || (snapshots.size() > 9) || (permitted == null))
 		{
 			throw new IllegalArgumentException("Party tactics input is outside bounds.");
@@ -81,7 +86,7 @@ public final class PhantomPartyTactics
 				{
 					continue;
 				}
-				final List<MemberCapability> exactCapabilities = _backend == null ? actorSnapshot.capabilities() : _backend.capabilities(actor, target.characterObjectId());
+				final List<MemberCapability> exactCapabilities = _backend == null ? actorSnapshot.capabilities() : _backend.capabilities(actor, target.characterObjectId(), exactFarmHeal);
 				if (targetSnapshot.dead())
 				{
 					addSupport(candidates, DirectiveKind.RESURRECT_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.resurrection", "member.dead", 9500);

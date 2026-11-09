@@ -651,24 +651,29 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 
 	private static Skill readyFarmHeal(Player healer, Player recipient, MemberSnapshot member)
 	{
-		if (healer.isAlikeDead() || healer.isCastingNow() || healer.isCastingSimultaneouslyNow() || healer.isOutOfControl()
-			|| healer.isSitting() || healer.isStunned() || healer.isSleeping() || healer.isParalyzed()) { return null; }
 		for (var capability : member.capabilities())
 		{
-			if (!"combat.heal".equals(capability.capabilityKey()) || !capability.intrinsic() || !capability.learned()) { continue; }
-			final Skill skill = healer.getKnownSkill(capability.actionSkillId());
-			if (skill == null || skill.getLevel() != capability.actionSkillLevel() || !"combat.heal".equals(PhantomSupportEffectAuthority.nativeCapability(skill))) { continue; }
-			final String scope = PhantomSupportEffectAuthority.nativeScope(skill);
-			if (!targetCompatible(healer, recipient, scope) || healer.isSkillDisabled(skill) || !healer.checkDoCastConditions(skill) || !skill.checkCondition(healer, recipient, false)) { continue; }
-			final double mp = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), healer.getStat().getMpInitialConsume(skill) + healer.getStat().getMpConsume(skill));
-			if (healer.getCurrentMp() < mp) { continue; }
-			if (recipient.isAlikeDead() || recipient.isInvul() || !skill.getTargetList(healer, false, recipient).contains(recipient)) { continue; }
-			final boolean casterCentered = skill.getTargetList(healer, true, recipient).contains(healer);
-			final int range = casterCentered ? Math.max(200, skill.getCastRange() + 100) : Math.max(0, Math.min(skill.getCastRange(), healer.getMagicalAttackRange(skill)));
-			if (healer != recipient && (healer.calculateDistance3D(recipient) > range || !GeoEngine.getInstance().canSeeTarget(healer, recipient))) { continue; }
-			return skill;
+			final var skill = readyFarmHeal(healer, recipient, capability);
+			if (skill != null) { return skill; }
 		}
 		return null;
+	}
+
+	private static Skill readyFarmHeal(Player healer, Player recipient, MemberCapability capability)
+	{
+		if (!"combat.heal".equals(capability.capabilityKey()) || !capability.intrinsic() || !capability.learned()
+			|| healer.isAlikeDead() || healer.isCastingNow() || healer.isCastingSimultaneouslyNow() || healer.isOutOfControl()
+			|| healer.isSitting() || healer.isStunned() || healer.isSleeping() || healer.isParalyzed() || recipient.isAlikeDead() || recipient.isInvul()) { return null; }
+		final Skill skill = healer.getKnownSkill(capability.actionSkillId());
+		if (skill == null || skill.getLevel() != capability.actionSkillLevel() || !"combat.heal".equals(PhantomSupportEffectAuthority.nativeCapability(skill))) { return null; }
+		final String scope = PhantomSupportEffectAuthority.nativeScope(skill);
+		if (!targetCompatible(healer, recipient, scope) || healer.isSkillDisabled(skill) || !healer.checkDoCastConditions(skill)
+			|| healer.getCharges() < skill.getChargeConsumeCount() || !skill.checkCondition(healer, recipient, false)) { return null; }
+		final double mp = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), healer.getStat().getMpInitialConsume(skill) + healer.getStat().getMpConsume(skill));
+		if (healer.getCurrentMp() < mp || !skill.getTargetList(healer, false, recipient).contains(recipient)) { return null; }
+		final boolean casterCentered = skill.getTargetList(healer, true, recipient).contains(healer);
+		final int range = casterCentered ? Math.max(200, skill.getCastRange() + 100) : Math.max(0, Math.min(skill.getCastRange(), healer.getMagicalAttackRange(skill)));
+		return healer == recipient || healer.calculateDistance3D(recipient) <= range && GeoEngine.getInstance().canSeeTarget(healer, recipient) ? skill : null;
 	}
 
 	private record ThreatVictims(Set<Integer> objectIds, boolean idle, String reason, String refusal, boolean relevant,
@@ -910,6 +915,12 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	@Override
 	public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId)
 	{
+		return capabilities(actor, exactTargetObjectId, false);
+	}
+
+	@Override
+	public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId, boolean exactFarmHeal)
+	{
 		if (exactTargetObjectId <= 0)
 		{
 			return List.of();
@@ -918,7 +929,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		{
 			try (var acquired = acquire(actor))
 			{
-				return acquired == null ? List.of() : nativeCapabilities(acquired.player(), phantomCapabilities(actor.profileId(), exactTargetObjectId), exactTargetObjectId);
+				return acquired == null ? List.of() : nativeCapabilities(acquired.player(), phantomCapabilities(actor.profileId(), exactTargetObjectId), exactTargetObjectId, exactFarmHeal);
 			}
 		}
 		try (AcquiredPlayer acquired = acquire(actor))
@@ -996,7 +1007,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	{
 		final WorldObject target = player.getTarget();
 		final List<Integer> attackers = World.getInstance().getVisibleObjects(player, Monster.class, npc -> !npc.isDead() && (npc.getInstanceId() == player.getInstanceId()) && npc.hasAI() && (npc.getAI().getIntention() == Intention.ATTACK) && (npc.getAI().getAttackTarget() == player)).stream().map(Creature::getObjectId).distinct().sorted().limit(32).toList();
-		final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? nativeCapabilities(player, phantomCapabilities(member.profileId(), 0), 0) : realCapabilities(player, 0);
+		final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? nativeCapabilities(player, phantomCapabilities(member.profileId(), 0), 0, false) : realCapabilities(player, 0);
 		final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
 		return new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash);
 	}
@@ -1006,9 +1017,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		return _progression.capabilities(profileId, targetObjectId > 0 ? targetObjectId : null).stream().map(L2jPhantomPartyBackend::capability).toList();
 	}
 
-	private static List<MemberCapability> nativeCapabilities(Player player, List<MemberCapability> authored, int targetObjectId)
+	private static List<MemberCapability> nativeCapabilities(Player player, List<MemberCapability> authored, int targetObjectId, boolean exactFarmHeal)
 	{
 		final var result = new TreeMap<String, MemberCapability>();
+		final WorldObject target = targetObjectId > 0 ? World.getInstance().findObject(targetObjectId) : null;
 		for (var capability : authored)
 		{
 			final Skill learned = player.getKnownSkill(capability.actionSkillId());
@@ -1030,7 +1042,6 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		}
 		if (player.getAllSkills().size() <= PhantomNativeCombatCapability.MAXIMUM_SKILLS)
 		{
-			final WorldObject target = targetObjectId > 0 ? World.getInstance().findObject(targetObjectId) : null;
 			for (Skill skill : player.getAllSkills())
 			{
 				final double mp = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
@@ -1050,7 +1061,13 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				}
 			}
 		}
-		return result.values().stream().limit(256).toList();
+		final var bounded = result.values().stream().limit(256).toList();
+		if (!exactFarmHeal || !(target instanceof Player recipient)) { return bounded; }
+		final var immediateHeals = bounded.stream().filter(capability -> "combat.heal".equals(capability.capabilityKey()) && capability.readyNow()
+			&& readyFarmHeal(player, recipient, capability) != null).collect(java.util.stream.Collectors.toSet());
+		// Keep lawful stock approach/cast handling when there is no immediate Heal to prefer.
+		return immediateHeals.isEmpty() ? bounded : bounded.stream().filter(capability -> !"combat.heal".equals(capability.capabilityKey())
+			|| immediateHeals.contains(capability)).toList();
 	}
 
 	private List<MemberCapability> realCapabilities(Player player, int targetObjectId)
