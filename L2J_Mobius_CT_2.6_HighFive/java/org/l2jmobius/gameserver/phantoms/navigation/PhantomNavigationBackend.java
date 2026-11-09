@@ -27,6 +27,7 @@ public interface PhantomNavigationBackend
 	CapabilitySnapshot capability(PhantomNavigationPoint origin, PhantomNavigationPoint destination);
 
 	boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination);
+	default boolean canWalkDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination) { return false; }
 
 	List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellationToken);
 

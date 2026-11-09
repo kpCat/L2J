@@ -475,8 +475,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
 			final var newPull = new java.util.concurrent.atomic.AtomicBoolean(true); final var cancelledRequests = new java.util.concurrent.atomic.AtomicInteger();
 			final var clock = new AtomicLong(1_000_000_000L); final var lease = new PartyActionLease();
+			final var latePeer = new PartyActionLease(); latePeer.objectId = 102;
 			lease.target = new TargetSnapshot(900, 20001, 0, 1000, 1000, false, false, true, true, false, true, true, 50, false, true);
-			final var combat = new PhantomCombatService(id -> id == 1 ? lease : null, new PhantomCombatCapabilityResolver(_ -> List.of()),
+			final var combat = new PhantomCombatService(id -> id == 1 ? lease : id == 2 ? latePeer : null, new PhantomCombatCapabilityResolver(_ -> List.of()),
 				PhantomCombatPolicy.productionDefaults(8), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
 			{
 				private boolean cancelled;
@@ -489,6 +490,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			{
 				@Override public CapabilitySnapshot capability(PhantomNavigationPoint from, PhantomNavigationPoint to) { routeSubmissions.incrementAndGet(); return new CapabilitySnapshot(PhantomNavigationCapability.GEODATA_DIRECT_ONLY, 1); }
 				@Override public boolean canMoveDirect(PhantomNavigationPoint from, PhantomNavigationPoint to) { return true; }
+				@Override public boolean canWalkDirect(PhantomNavigationPoint from, PhantomNavigationPoint to) { return true; }
 				@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request, PhantomNavigationCancellationToken token) { return List.of(request.origin(), request.destination()); }
 			}, worker -> { worker.run(); return true; }, clock::get, new PhantomMetrics());
 			navigation.start();
@@ -518,6 +520,36 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RouteStatus.ARRIVED, coordinator.claim(1).orElseThrow().state().route().status(), "Modeled native route did not finish under the Party owner.");
 				PhantomAssertions.assertEquals(1, routeSubmissions.get(), "A live group route was resubmitted per pulse.");
+
+				final var destination = new PhantomNavigationPoint(1000, 0, 0, 0);
+				final var source = new PhantomDomainRef("topology.anchor", "farm.fixture");
+				final var topologyBackend = new L2jTopologyValidationBackend();
+				final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.empty(topologyBackend, PhantomTopologyPolicy.productionDefaults()),
+					topologyBackend, new PhantomTopologyMetrics());
+				coordinator.installAutonomousFarmTravel(PhantomNormalGatekeeperTravel.empty(topology), _ -> Optional.of(destination));
+				final var peer = backend.currentMember(2).orElseThrow();
+				final var arrived = backend.memberSnapshot(peer).orElseThrow();
+				backend.snapshot(peer, member(2, peer.characterObjectId(), 100, 100, false, 0, backend._capabilities.get(peer)));
+				latePeer.moving = false;
+				final int peerBefore = latePeer.moves;
+				final int leaderBefore = lease.moves;
+				PhantomAssertions.assertEquals("party.route.farm.route_cleared", coordinator.requestAutonomousFarmRoute(1, source, destination).reasonKey(),
+					"A terminal receipt from the previous route was reused for a different actor.");
+				PhantomAssertions.assertEquals("party.route.farm.walk_started", coordinator.requestAutonomousFarmRoute(1, source, destination).reasonKey(),
+					"The stock Party waited for co-location before starting the separated member's route.");
+				for (int pulse = 0; pulse < 8 && latePeer.moves == peerBefore; pulse++) { coordinator.onPulse(); }
+				backend.snapshot(peer, new MemberSnapshot(peer, arrived.classId(), 0, 0, 0, 0, 100, 100, 100, false, false, false, true, 0, List.of(), arrived.capabilities(), ZERO));
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertEquals(peerBefore + 1, latePeer.moves, "The existing WALK owner did not move the separated member exactly once.");
+				PhantomAssertions.assertEquals(leaderBefore, lease.moves, "The member's approach moved the leader off the agreed spot.");
+				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(1), "An absent peer was counted as present for PvE.");
+				backend.snapshot(peer, arrived);
+				latePeer.moving = false;
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				coordinator.requestAutonomousFarmRoute(1, source, destination);
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.READY, coordinator.requestAutonomousFarmRoute(1, source, destination).outcome(),
+					"The existing group did not accept the member's actual arrival.");
+				PhantomAssertions.assertEquals(5, backend.invitationCount(), "Regrouping replayed stock membership.");
 				backend._farmTarget = java.util.OptionalInt.of(900);
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(1), "A six-member Party was prevented from pulling by the obsolete cap.");
 				final long generation = combat.find(1).orElseThrow().generation();

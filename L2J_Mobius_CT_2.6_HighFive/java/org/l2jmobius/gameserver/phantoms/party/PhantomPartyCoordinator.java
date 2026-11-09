@@ -1390,18 +1390,23 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{ return farmRouteResult(state, destinationRef, RouteOutcome.FAILED, "journey_deadline"); }
 			if (journey == null)
 			{
-				if (state.route() != null && !clearFarmRoute(state)) { return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_route_clear"); }
+				if (state.route() != null)
+				{
+					return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, clearFarmRoute(state) ? "route_cleared" : "wait_route_clear");
+				}
 				final var origin = point(roster.get(party.leader()));
+				var movers = party.members();
 				if (roster.values().stream().anyMatch(member -> point(member).instanceId() != origin.instanceId() || point(member).distanceTo(origin) > 300))
 				{
-					return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_regroup");
+					// A distant stock member joins through its own checkpoints under this same route owner.
+					movers = party.members().stream().filter(member -> point(roster.get(member)).distanceTo(destination) > 300).limit(1).toList();
 				}
-				_routes.cancel(state.groupId()); // Release any approach follower before acquiring the shared WALK.
-				final var steps = farmItinerary(origin, destinationRef, destination);
-				if (steps.isEmpty()) { return farmRouteResult(state, destinationRef, RouteOutcome.UNAVAILABLE, "no_itinerary"); }
+				_routes.cancel(state.groupId()); // Release any approach follower before acquiring this WALK.
+				final var steps = movers.isEmpty() ? List.<FarmLeg>of() : farmItinerary(point(roster.get(movers.getFirst())), destinationRef, destination);
+				if (!movers.isEmpty() && steps.isEmpty()) { return farmRouteResult(state, destinationRef, RouteOutcome.UNAVAILABLE, "no_itinerary_" + movers.getFirst().profileId()); }
 				final var epochs = new java.util.LinkedHashMap<MemberRef, Long>();
 				for (var member : party.members()) { epochs.put(member, _backend.materializationEpoch(member)); }
-				journey = new FarmJourney(binding, intent.roots(), Map.copyOf(epochs), steps, runtime.farmTravelDeadline, destination);
+				journey = new FarmJourney(binding, intent.roots(), Map.copyOf(epochs), List.copyOf(movers), steps, runtime.farmTravelDeadline, destination);
 				runtime.farmJourney = journey;
 			}
 			if (journey.index == journey.steps.size())
@@ -1412,7 +1417,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 					return farmRouteResult(state, destinationRef, RouteOutcome.READY, "arrived");
 				}
 				runtime.farmJourney = null;
-				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "replan_displaced");
+				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING,
+					journey.movers.size() == 1 && point(roster.get(journey.movers.getFirst())).distanceTo(destination) <= 300 ? "regroup_next_member" : "replan_displaced");
 			}
 			final var step = journey.steps.get(journey.index);
 			if (step.gatekeeper() != null)
@@ -1428,12 +1434,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "walk_arrived");
 			}
 			if (activity.terminal()) { return farmRouteResult(state, destinationRef, RouteOutcome.FAILED, activity.reasonKey()); }
-			if (roster.values().stream().allMatch(member -> point(member).distanceTo(step.point()) <= 80))
+			if (journey.movers.stream().allMatch(member -> point(roster.get(member)).distanceTo(step.point()) <= 80))
 			{
 				journey.index++;
 				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "walk_at_checkpoint");
 			}
-			final var attempt = _routes.requestFarmWalk(state.groupId(), state.groupGeneration(), roster.get(party.leader()), destinationRef, step.point(), state.topologyHash(), now, journey.deadline);
+			final var attempt = _routes.requestFarmWalk(state.groupId(), state.groupGeneration(), roster.get(journey.movers.getFirst()), destinationRef, step.point(), state.topologyHash(), now, journey.deadline);
 			if (attempt.status() == PhantomPartyRouteCoordinator.AttemptStatus.READY) { persistRoute(state.groupId(), attempt.route()); }
 			return switch (attempt.status())
 			{
@@ -1448,7 +1454,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (journey.gkArrived.entrySet().stream().anyMatch(entry -> _backend.memberSnapshot(entry.getKey())
 			.filter(actor -> !actor.dead() && point(actor).distanceTo(entry.getValue()) <= 100).isEmpty()))
 		{ return farmRouteResult(state, destination, RouteOutcome.FAILED, "gk_landing_changed"); }
-		final var member = party.members().stream().filter(actor -> !journey.gkArrived.containsKey(actor)).findFirst().orElse(null);
+		final var member = journey.movers.stream().filter(actor -> !journey.gkArrived.containsKey(actor)).findFirst().orElse(null);
 		if (member == null)
 		{
 			journey.index++;
@@ -2713,14 +2719,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final var binding = logicalFarmBinding(claim.state());
 			final var runtime = _groups.get(groupId);
 			final boolean farmApproach = binding != null && _farmTravel != null && runtime != null;
-			if (farmApproach && runtime.farmJourney != null) { continue; }
+			if (farmApproach && runtime.farmTravelDeadline > 0) { continue; }
 			examined += _routes.follow(groupId, generation, snapshots.get(member), leader, _topologyHash.get(), Math.max(0, _clock.getAsLong()), remainingBudget - examined, () ->
 			{
 				final StoredPartyState current = _claims.get(member.profileId());
 				return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(groupId) || (current.state().groupGeneration() != generation) || !current.state().leader().equals(party.leader()) || !current.state().phantomMembers().contains(member)
 					// Cancellation is polled under Combat ownership: use the bounded native-reconcile cache, never JDBC.
 					|| !anchor.equals(_preferHumanFollow && current.state().realMembers().size() == 1 ? current.state().realMembers().getFirst() : current.state().leader())
-					|| farmApproach && (runtime.farmJourney != null || !binding.equals(logicalFarmBinding(current.state())) || !_logicalFarmAdmission.test(member.profileId()));
+					|| farmApproach && (runtime.farmTravelDeadline > 0 || !binding.equals(logicalFarmBinding(current.state())) || !_logicalFarmAdmission.test(member.profileId()));
 			}, farmApproach);
 		}
 		return examined;
@@ -2822,10 +2828,13 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (clearFarmRoute(claims.getFirst().state())) { runtime.farmJourney = null; }
 			return 1;
 		}
-		final boolean paused = party.members().stream().anyMatch(member -> (member.kind() == MemberKind.PHANTOM) && holdsMovement(member.profileId()));
 		final var journey = runtime == null ? null : runtime.farmJourney;
+		final var movers = journey == null ? party.members() : journey.movers;
+		if (movers.isEmpty()) { return 0; }
+		final var driver = journey == null ? party.leader() : movers.getFirst();
+		final boolean paused = movers.stream().anyMatch(member -> (member.kind() == MemberKind.PHANTOM) && holdsMovement(member.profileId()));
 		final var authority = claims.getFirst().state();
-		final PhantomPartyRouteCoordinator.AdvanceResult result = _routes.advance(groupId, route, party.leader(), party.members(), snapshots, Math.max(1, remainingBudget), Math.max(0, _clock.getAsLong()), _topologyHash.get(),
+		final PhantomPartyRouteCoordinator.AdvanceResult result = _routes.advance(groupId, route, driver, movers, snapshots, Math.max(1, remainingBudget), Math.max(0, _clock.getAsLong()), _topologyHash.get(),
 			() -> _state != State.RUNNING || journey != null && (!farmJourneyOwner(authority, party, journey.binding) || !journey.current(party.members(), _backend)), paused);
 		final RouteManifest advanced = result.route();
 		if (!advanced.equals(route))
@@ -4298,6 +4307,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private final FarmBinding binding;
 		private final Map<Long, StoredGoal> roots;
 		private final Map<MemberRef, Long> epochs;
+		private final List<MemberRef> movers;
 		private final List<FarmLeg> steps;
 		private final long deadline;
 		private final PhantomNavigationPoint destination;
@@ -4305,11 +4315,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile int index;
 		private volatile long arrivedAt;
 
-		private FarmJourney(FarmBinding binding, Map<Long, StoredGoal> roots, Map<MemberRef, Long> epochs, List<FarmLeg> steps, long deadline, PhantomNavigationPoint destination)
+		private FarmJourney(FarmBinding binding, Map<Long, StoredGoal> roots, Map<MemberRef, Long> epochs, List<MemberRef> movers, List<FarmLeg> steps, long deadline, PhantomNavigationPoint destination)
 		{
 			this.binding = binding;
 			this.roots = roots;
 			this.epochs = epochs;
+			this.movers = movers;
 			this.steps = steps;
 			this.deadline = deadline;
 			this.destination = destination;

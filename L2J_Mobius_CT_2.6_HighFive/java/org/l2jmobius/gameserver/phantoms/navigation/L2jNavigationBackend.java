@@ -83,6 +83,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	}
 
 	/** The existing visible-travel dry-cell/height contract, plus factual doors/NSWE. */
+	@Override
 	public boolean canWalkDirect(PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
 		final var geo = GeoEngine.getInstance();
