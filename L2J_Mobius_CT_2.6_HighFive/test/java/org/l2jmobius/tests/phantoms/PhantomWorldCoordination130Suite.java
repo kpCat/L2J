@@ -1,17 +1,20 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.tests.phantoms;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.HashMap;
 import java.util.ConcurrentModificationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
 /** Zero-Player contracts; real SQL and native acceptance are separate gates. */
 public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
@@ -208,6 +211,22 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(stale.proposal().isPresent(), "Stale-route control did not select a valid initial proposal.");
 			reachable.set(false);
 			PhantomAssertions.assertTrue(changed.commitDiscovery(stale).isEmpty() && changedStore.claims.isEmpty() && changedStore.groups.isEmpty(), "A changed route committed durable state.");
+		});
+		registry.add("changed-role-refuses-formation-even-with-current-sql-guards", _ ->
+		{
+			final var template = group(1, 2);
+			final var roleCurrent = new AtomicBoolean(true);
+			final var candidates = template.members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76, List.of(template.objective()),
+				template.objective()::equals, () -> true, roleCurrent::get, admitted -> List.of(template.objective()).stream().filter(admitted).toList(),
+				() -> List.of(new PhantomProfileComponent(member.profileId(), "goal.state", 1, 0, new byte[] { 1 }, Instant.EPOCH, Instant.EPOCH)))).toList();
+			final var store = new MemoryStore();
+			final var owner = new PhantomLogicalPartyCoordinator(store);
+			final var preview = owner.previewDiscovery(candidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertTrue(preview.proposal().isPresent() && preview.guards().size() == 2, "The guarded control did not select a roster.");
+			roleCurrent.set(false);
+			PhantomAssertions.assertTrue(owner.commitDiscovery(preview).isEmpty() && store.groups.isEmpty() && store.claims.isEmpty(), "Unchanged SQL component guards hid a changed role.");
+			roleCurrent.set(true);
+			PhantomAssertions.assertTrue(owner.discover(candidates, (_, _) -> true, 2000).isPresent() && store.claims.size() == 2, "The current role did not permit a guarded formation.");
 		});
 		registry.add("bounded-discovery-wait-advances-the-leader-cursor-without-reservations", _ ->
 		{
@@ -517,6 +536,11 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 		@Override public Optional<StoredLogicalGroup> loadLogicalGroup(long leader) { return Optional.ofNullable(groups.get(leader)); }
 		@Override public Optional<StoredLogicalClaim> loadLogicalClaim(long id) { claimReads++; return Optional.ofNullable(claims.get(id)); }
 		@Override public List<StoredLogicalGroup> loadLogicalGroupsAfter(long after, int limit) { return groups.entrySet().stream().filter(e -> e.getKey() > after).sorted(Map.Entry.comparingByKey()).limit(limit).map(Map.Entry::getValue).toList(); }
+		@Override public StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expected, Map<Long, Long> versions, List<PhantomProfileComponent> guards)
+		{
+			// The fixture keeps its SQL guards current. The coordinator still owns non-SQL revalidation.
+			return commitLogicalGroup(group, expected, versions);
+		}
 		@Override public synchronized StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expected, Map<Long, Long> versions)
 		{
 			final var old = groups.get(group.leaderProfileId());

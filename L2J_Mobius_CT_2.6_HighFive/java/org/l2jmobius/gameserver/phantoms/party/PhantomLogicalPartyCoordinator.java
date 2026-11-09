@@ -77,10 +77,9 @@ public final class PhantomLogicalPartyCoordinator
 				{
 					final var cached = _discovered.get(member.profileId());
 					final var candidate = cached == null ? null : cached.candidate();
+					// SQL component guards cannot witness the learned skills used to resolve the role.
 					if (candidate == null || !candidate.member().equals(member) || !candidate.current().getAsBoolean()
-						|| !candidate.reachable().test(group.objective())) { return Optional.empty(); }
-					if (discovery.guards().stream().noneMatch(guard -> guard.profileId() == member.profileId())
-						&& !candidate.durableCurrent().getAsBoolean()) { return Optional.empty(); }
+						|| !candidate.reachable().test(group.objective()) || !candidate.durableCurrent().getAsBoolean()) { return Optional.empty(); }
 				}
 				return agree(group, discovery.guards());
 			}

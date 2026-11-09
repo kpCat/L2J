@@ -292,6 +292,14 @@ RED вернул `ParameterArgumentValidationError`, потому что read-on
 
 Git ограничен независимым WIP. Команды с `-c safe.directory=<independent clone>` — `git rev-parse HEAD`, `git status --short`, `git diff -- <launcher и RESULT.md>`, `git -c core.whitespace=cr-at-eol diff --check -- <launcher и RESULT.md>`, `git add -- <launcher и RESULT.md>`, `git diff --cached --name-only`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <launcher и RESULT.md>`, `git commit -m "Reject stale TASK130 artifacts before native launch"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`, `git ls-remote --exit-code origin refs/heads/wip/coordination-130-preserved`.
 
+## Повторная проверка роли перед CAS
+
+`PhantomLogicalPartyCoordinator.commitDiscovery` повторно проверяет durable readiness всех выбранных участников. Транзакционные guards проверяют версии Goal, Background, Catchup и NativeContext, а потенциальная роль зависит также от актуальных изученных навыков. При изменении роли штатный coordinator отказывается от CAS и Scheduler назначает `WAIT_DISCOVERY_CHANGED` с повторной проверкой через 1000 мс. Повторное чтение роли выполняется только для уже выбранного состава из 2–9 участников.
+
+В целевом MODEL SQL-компоненты остались прежними, а проверка роли между preview и commit перестала проходить. RED воспроизвёл ошибочный commit, 56/57 и exit 1. GREEN отказал без группы и claims. После восстановления актуальной роли прошёл обычный guarded commit. MODEL130 57/57, Party lifecycle 34/34, Party tactics 10/10, все exit 0. Проверка использовала отдельные javac class files и существующий test launcher. SQL, JAR, GameServer и restart в этом срезе не запускались.
+
+Проверка startup выявила отдельное несовпадение входов. Runner фильтрует по `requiresMaterialization()`, а штатный Scheduler берёт календарно online READY-профили без BUSY. Штатный Presence считает `BACKGROUND` online. Совпадение общей функции выбора само по себе не гарантирует совпадение roster при этих условиях. Согласование проверки штатного предложения до CAS остаётся открытым. Native D03–D05 и E остаются NOT_RUN, счётчики 1/2/0.
+
 Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
 
 Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.

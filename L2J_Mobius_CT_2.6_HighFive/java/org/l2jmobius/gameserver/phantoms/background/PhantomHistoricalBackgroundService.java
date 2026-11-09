@@ -1596,7 +1596,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, role, root.goalId(), root.revision()), state.progress().level(), List.of(),
 			source -> _planner.partySourceAvailable(state, source, Set.of()),
 			current,
-			// Only selected roster members perform durable reads, once immediately before formation.
+			// Re-read durable role evidence only for selected members, at preview and again before CAS.
 			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent() && role.equals(potentialPartyRole(id, state)),
 			admitted -> _planner.rendezvousSourcesForRole(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of(), role, admitted),
 			() -> logicalFormationGuards(id, stored, state, history));
