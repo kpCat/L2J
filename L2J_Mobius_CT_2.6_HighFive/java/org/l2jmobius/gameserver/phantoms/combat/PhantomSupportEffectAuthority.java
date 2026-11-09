@@ -40,7 +40,7 @@ public final class PhantomSupportEffectAuthority
 		if (supportsCapability(skill, "combat.heal")) { return "combat.heal"; }
 		if (supportsCapability(skill, "combat.recharge")) { return "combat.recharge"; }
 		if (supportsCapability(skill, "combat.resurrection")) { return "combat.resurrection"; }
-		return skill.isContinuous() && !skill.getAbnormalType().isNone() ? "combat.buff" : null;
+		return skill.isContinuous() && !skill.getAbnormalType().isNone() && supportsCapability(skill, "combat.buff") ? "combat.buff" : null;
 	}
 
 	public static String nativeScope(Skill skill)
@@ -68,6 +68,8 @@ public final class PhantomSupportEffectAuthority
 			case "combat.heal" -> skill.hasEffectType(EffectType.HEAL) || skill.hasEffectType(EffectType.REBALANCE_HP);
 			case "combat.recharge" -> skill.hasEffectType(EffectType.MANAHEAL_BY_LEVEL) || skill.hasEffectType(EffectType.MANAHEAL_PERCENT);
 			case "combat.resurrection" -> skill.hasEffectType(EffectType.RESURRECTION) || skill.hasEffectType(EffectType.RESURRECTION_SPECIAL);
+			// A native self-effect may disable its caster even when Skill.hasNegativeEffect() is false.
+			case "combat.buff", "combat.song", "combat.dance" -> !skill.hasEffectType(EffectType.PARALYZE, EffectType.ROOT, EffectType.SLEEP, EffectType.STUN, EffectType.MUTE, EffectType.FEAR, EffectType.FAKE_DEATH);
 			default -> true;
 		};
 	}

@@ -215,13 +215,17 @@ final class PhantomCoordination130Native
                 || inspection.authorityRecovery().nativeIntentPending(id);
             final boolean consent = inspection.settings().partySeeking().seeks(id, state.progress().level());
             final var history = histories.load(id).map(row -> row.state().status()).orElse(null);
+            // A proved, recovered agreement may have a corpse to return through the stock owner.
+            // This verifies the saved group/source only. Native formation and Combat still require live actors.
+            final boolean awaitingStockRespawn = confirmedExistingSource && claim.isPresent() && existing.contains(id)
+                && state.state() == PhantomBackgroundState.State.DEAD;
             final boolean eligible = population.state() == PhantomPopulationState.State.READY && calendar.state().requiresMaterialization()
-                && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && sceneIds.contains(id)
+                && (state.state() == PhantomBackgroundState.State.READY || awaitingStockRespawn) && consent && !blocked && sceneIds.contains(id)
                 && history == PhantomBackgroundCatchupState.Status.COMPLETE
                 && (claim.isEmpty() || existing != null && claim.get().groupId().equals(existing.groupId()) && claim.get().generation() == existing.generation())
                 && PhantomAutonomousFarmParty.ordinaryIntent(id, root);
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
-                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " history=" + history + " position=" + state.position());
+                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " history=" + history + " awaitingStockRespawn=" + awaitingStockRespawn + " position=" + state.position());
             if (!eligible) { continue; }
             final var savedAuthority = state.hashes();
             final var currentAuthority = inspection.planner().generation().authorityHashes();

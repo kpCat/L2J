@@ -18,6 +18,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.l2jmobius.gameserver.model.StatSet;
+import org.l2jmobius.gameserver.model.effects.AbstractEffect;
+import org.l2jmobius.gameserver.model.effects.EffectType;
+import org.l2jmobius.gameserver.model.skill.EffectScope;
+import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActorSnapshot;
@@ -36,6 +41,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -1393,6 +1399,30 @@ public final class PhantomPartySuite implements PhantomTestSuite
 	}
 
 	private static void tactics(PhantomTestRegistry registry)	{
+		registry.add("130-maintenance-does-not-incapacitate-healer", context ->
+		{
+			final var values = new StatSet();
+			values.set("skill_id", 1430);
+			values.set("level", 5);
+			values.set("operateType", "A2");
+			values.set("targetType", "SELF");
+			values.set("abnormalType", "FORCE_MEDITATION");
+			values.set("abnormalTime", 30);
+			values.set("effectPoint", 1);
+			final var invocation = new Skill(values);
+			final var effect = new StatSet();
+			effect.set("name", "Paralyze");
+			invocation.addEffect(EffectScope.GENERAL, new AbstractEffect(null, null, effect, new StatSet())
+			{
+				@Override
+				public EffectType getEffectType() { return EffectType.PARALYZE; }
+			});
+			PhantomAssertions.assertEquals(null, PhantomSupportEffectAuthority.nativeCapability(invocation), "Self-paralysis was inferred as an ordinary maintenance buff.");
+			PhantomAssertions.assertFalse(PhantomSupportEffectAuthority.supportsCapability(invocation, "combat.buff"), "Explicit maintenance capability bypassed the incapacitation guard.");
+			values.set("skill_id", 297);
+			values.set("abnormalType", "DUELIST_SPIRIT");
+			PhantomAssertions.assertEquals("combat.buff", PhantomSupportEffectAuthority.nativeCapability(new Skill(values)), "An ordinary native self-buff disappeared.");
+		});
 		registry.add("126-farm-healer-keeps-support-owner-while-damage-members-fight", context ->
 		{
 			for (long administrator : List.of(1L, 3L))
