@@ -237,3 +237,23 @@ Escaped Cyrillic в изменённых файлах проверен. Совп
 Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
 
 Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.
+
+## Сверка одного источника между preflight, Scheduler и Combat
+
+Read-only XML сверка 15 topology shards нашла один FARMING_AREA для `godard26_2516_28`. Совпали путь `data/spawns/Goddard/WallOfArgos.xml`, инстанс 0, Z-границы и порядок всех пяти вершин. Единственный FARMING-якорь совпал с сохранённым `generated.farm.38520d85788548d726048a27.anchor`, без ограничения `npcId`. Квадрат максимальной дистанции до вершины — 2 605 000, то есть примерно 1614 единиц по XY. Это внутри 2000 для `PhantomGameKnowledgeBuilder.exactTerritoryNode`. Маршрут из сохранённого якоря к тому же якорю по `PhantomNormalGatekeeperTravel.route` — пустой itinerary. Evidence `argos-geo-readonly/topology-correlation.log`, SHA-256 `cd78f50758848a9d619b8985cab840e0bdf360239e4f398fb6adf7d3d1b5ea06`. В сохранённом native stdout только первые четыре из 53 sources, поэтому точное присутствие локального NPC@anchor в выдаче planner остаётся непроверенным. Заново production loader не запускался, поскольку `L2jTopologyValidationBackend.spawns` инициализирует SpawnData.
+
+Сверка call sites уточнила критерии пересмотренной приёмки.
+
+| Seam | Фактическое различие | Риск |
+|---|---|---|
+| Состав кандидатов | Runner вызывает `rendezvousSources`. Scheduler через `previewLogicalRendezvous` вызывает `rendezvousSourcesForRole`, где SPOILER может получить другой порядок. | Один и тот же набор roster facts может дать разные источники. Для 70/72 роль SPOILER в этой lane не проверялась. |
+| Выбор agreement | Runner отбрасывает результат `discover` внешним Geo-фильтром. Scheduler вызывает `discover` со штатными predicates. После CUT runner требует `CURRENT_ORDINARY_SOURCE_MATCHES_PREFLIGHT`. | Простой перебор второго источника в runner оставляет возможность, что Scheduler запишет первый. Контракт требует связать pre-CUT proof и фактический source. |
+| Проверка live target | В preflight и `ACTUAL_SHARED_TARGET` жёстко задан радиус 1200. Production `partyNativeTarget` использует Combat 2000, ограничение по Z и проверку связи spawn/anchor. | Живой моб в этом же polygon может находиться между 1200 и 1614 единицами от якоря. Источник может пройти production и ошибочно провалить runner. Одна лишь замена 1200 на 2000 не восстанавливает остальные условия production. |
+
+Следующая дешёвая проверка должна связать штатный порядок role-aware planner, itinerary и фактический NPC@anchor до CUT. Сначала можно сохранить решение Scheduler и проверить его первый источник по штатным сегментам. Общий bounded Geo-допуск до CAS в Scheduler затрагивает архитектуру logical discovery и требует решения владельца. Любой вариант должен различать NO_PATH отдельного коннектора и полный отказ itinerary, применять тот же production target predicate и сохранять `WAIT_REPLAN` для расхождения source, как требует ARCHITECTURE. Продуктовый код и runner не менялись. Новых SQL, JVM GameServer, JAR и restart нет.
+
+Точные Git-команды этого дополнения — `git rev-parse HEAD`, `git status --short`, `git diff -- <RESULT.md>`, `git -c core.whitespace=cr-at-eol diff --check -- <RESULT.md>`, `git add -- <RESULT.md>`, `git diff --cached --name-only`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <RESULT.md>`, `git commit -m "Audit TASK130 preflight and scheduler source parity"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`, `git ls-remote --exit-code origin refs/heads/wip/coordination-130-preserved`. Разрешение ограничено scoped WIP audit и публикацией.
+
+Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
+
+Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.
