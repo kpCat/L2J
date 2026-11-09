@@ -17,6 +17,7 @@ import java.util.TreeMap;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
@@ -579,6 +580,13 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		final Player recipient = actors.stream().filter(player -> mainVictims.contains(player.getObjectId()))
 			.min(java.util.Comparator.comparingDouble((Player player) -> player.getCurrentHp() / player.getMaxHp()).thenComparingInt(Player::getObjectId)).orElseThrow();
 		final int mainVictim = recipient.getObjectId();
+		final var openingAssists = victim.idle() && target instanceof Monster monster
+			? openingAssistThreats(monster, recipient, observedThreats.keySet()) : List.<Attackable>of();
+		if (observedThreats.size() + openingAssists.size() > 4 || openingAssists.stream().anyMatch(Creature::isRaid))
+		{
+			if (witness != null) { witness.accept("WAIT_THREAT:target=" + target.getObjectId() + ":reason=stock_opening_assist_overflow"); }
+			return false;
+		}
 		boolean healerPresent = false;
 		Skill readyHeal = null;
 		int healerObjectId = 0;
@@ -629,6 +637,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			{
 				incoming += farmIncomingDamage(player, entry.getKey(), PhantomPartyFarmEligibility.threatExposureMillis(millis, entry.getValue().objectIds().contains(player.getObjectId())));
 			}
+			for (var assist : openingAssists)
+			{
+				incoming += farmIncomingDamage(player, assist, exposure);
+			}
 			exposures[index] = incoming;
 			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6)
 			{
@@ -636,7 +648,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				{
 					witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId()
 						+ ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis + ":exposureMillis=" + exposure
-						+ ":supportCastMillis=" + supportCastMillis + ":otherThreats=" + observedThreats.size() + ":heal=" + (readyHeal == null ? 0 : readyHeal.getId()));
+						+ ":supportCastMillis=" + supportCastMillis + ":otherThreats=" + observedThreats.size()
+						+ ":openingAssists=" + openingAssists.stream().map(Creature::getObjectId).toList() + ":heal=" + (readyHeal == null ? 0 : readyHeal.getId()));
 				}
 				return false;
 			}
@@ -659,11 +672,46 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			System.out.println("NATIVE130_D04 target=" + target.getObjectId() + " observedVictims=" + victim.objectIds() + " plannedVictims=" + mainVictims
 				+ " idle=" + victim.idle() + " threatCount=" + threats.size() + " threatVictims="
 				+ observedThreats.entrySet().stream().map(entry -> entry.getKey().getObjectId() + "->" + entry.getValue().objectIds()).toList()
+				+ " openingAssists=" + openingAssists.stream().map(Creature::getObjectId).toList()
 				+ " exposureMsReserve=6000 supportCastMs=" + supportCastMillis + " projectedDamage=" + java.util.Arrays.toString(exposures));
 			System.out.println("NATIVE130_D05 target=" + target.getObjectId() + " healerPresent=" + healerPresent + " caster=" + healerObjectId
 				+ " recipient=" + mainVictim + " readySkill=" + (readyHeal == null ? "none" : readyHeal.getId() + ":" + readyHeal.getLevel()) + " projectedHpCredit=0");
 		}
 		return true;
+	}
+
+	/** The stock first hit may call nearby faction members and linked minions. These are forecasts, never observed hate. */
+	private static List<Attackable> openingAssistThreats(Monster target, Player puller, Set<Creature> observed)
+	{
+		final var nearby = new java.util.LinkedHashSet<Attackable>();
+		final var world = World.getInstance();
+		final java.util.function.Consumer<Attackable> add = actor ->
+		{
+			if (nearby.size() < 5 && actor != null && actor != target && !observed.contains(actor) && actor.isSpawned() && !actor.isAlikeDead()
+				&& actor.getInstanceId() == target.getInstanceId() && world.findObject(actor.getObjectId()) == actor) { nearby.add(actor); }
+		};
+		final var leader = target.getLeader();
+		final var master = leader == null ? target : leader;
+		if (leader != null) { add.accept(leader); }
+		if (master.hasMinions()) { master.getMinionList().getSpawnedMinions().forEach(add::accept); }
+		final var caller = target.getTemplate();
+		final var clans = caller.getClans();
+		if (clans != null && !clans.isEmpty())
+		{
+			world.forEachVisibleObjectInRange(target, Attackable.class, caller.getClanHelpRange() + caller.getCollisionRadius(), actor ->
+			{
+				if (nearby.size() >= 5 || actor == target || actor.isAlikeDead() || !actor.hasAI()) { return; }
+				final var ai = actor.getAI();
+				if (ai.getIntention() != Intention.IDLE && ai.getIntention() != Intention.ACTIVE) { return; }
+				final var template = actor.getTemplate();
+				if (!caller.isClan(template.getClans()) || template.hasIgnoreClanNpcIds() && template.getIgnoreClanNpcIds().contains(target.getId())) { return; }
+				final var geo = GeoEngine.getInstance();
+				// A WALK into melee can expose the puller to the same help radius as the target.
+				if (Math.abs((long) puller.getZ() - actor.getZ()) <= 600 && geo.canSeeTarget(actor, puller)
+					|| Math.abs((long) target.getZ() - actor.getZ()) <= 600 && geo.canSeeTarget(actor, target)) { add.accept(actor); }
+			});
+		}
+		return List.copyOf(nearby);
 	}
 
 	private static double farmIncomingDamage(Player player, Creature threat, double exposureMillis)

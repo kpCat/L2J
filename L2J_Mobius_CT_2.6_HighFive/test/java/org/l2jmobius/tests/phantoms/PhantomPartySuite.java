@@ -573,6 +573,10 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				backend._farmTarget = java.util.OptionalInt.of(900);
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(1), "A six-member Party was prevented from pulling by the obsolete cap.");
 				final long generation = combat.find(1).orElseThrow().generation();
+				backend.snapshot(peer, member(2, peer.characterObjectId(), 100, 100, false, 0, backend._capabilities.get(peer)));
+				PhantomAssertions.assertEquals("party.route.farm.wait_combat_owner", coordinator.requestAutonomousFarmRoute(1, source, destination).reasonKey(),
+					"Displacement during an owned pull started a competing group journey.");
+				backend.snapshot(peer, arrived);
 				newPull.set(false);
 				PhantomAssertions.assertFalse(coordinator.drainAutonomousFarm(1), "DRAIN released an accepted native episode.");
 				PhantomAssertions.assertEquals(0, cancelledRequests.get(), "DRAIN cancelled accepted native work.");
@@ -1510,10 +1514,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				backend.snapshot(support, member(3, 103, 100, 100, false, 0, supportCapabilities));
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(administrator), "Healer administrative leader could not start the independent DD puller.");
 				backend._farmTarget = java.util.OptionalInt.empty();
-				backend.snapshot(leader, member(1, 101, 100, 100, false, 900, backend._capabilities.get(leader)));
+				final var ready = new java.util.ArrayList<>(supportCapabilities);
+				ready.add(cap("combat.buff", "native.maintenance", 450, 1077));
+				backend._capabilities.put(support, ready);
+				backend.snapshot(leader, new MemberSnapshot(leader, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 900, List.of(900), backend._capabilities.get(leader), ZERO));
 				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
 				PhantomAssertions.assertTrue(combat.hasClaim(1) && combat.hasClaim(2), "Damage members did not retain cooperative combat.");
-				PhantomAssertions.assertFalse(combat.hasClaim(3), "Assigned healer acquired continuous melee assist instead of remaining available for support.");
+				PhantomAssertions.assertFalse(combat.hasClaim(3), "Assigned healer spent the support slot on offense or a buff during an owned pull.");
 				final long generation = combat.find(1).orElseThrow().generation();
 				backend.snapshot(leader, member(1, 101, 40, 100, false, 900, backend._capabilities.get(leader)));
 				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }

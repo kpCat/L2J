@@ -1368,6 +1368,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var party = _backend.observe(state.leader()).orElse(null);
 		if (runtime == null || party == null || !sameRoster(state.phantomMembers(), party.members()) || !party.leader().equals(state.leader()))
 		{ return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_roster"); }
+		if (party.members().stream().anyMatch(member -> hasOwnedFarmEncounter(member.profileId())))
+		{ return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_combat_owner"); }
 		final var roster = snapshots(party.members());
 		final long now = Math.max(1, _clock.getAsLong());
 		final var binding = logicalFarmBinding(state);
@@ -3154,9 +3156,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (!intent) { return 0; }
 		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
-		// Farm projections already reserve assigned support members for native support.
-		// Do not give their weapon an autoattack owner that can starve an urgent heal.
-		final Set<MemberRef> supportMembers = farm ? farmClaim.state().assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet()) : Set.of();
+		// Preserve the same healer readiness used by the opening guard throughout an owned fight.
+		final boolean farmUnderThreat = farm && (party.members().stream().anyMatch(member -> hasOwnedFarmEncounter(member.profileId()))
+			|| snapshots.values().stream().anyMatch(member -> !member.attackerObjectIds().isEmpty()));
+		final Set<MemberRef> healers = farmUnderThreat ? farmClaim.state().assignments().stream()
+			.filter(assignment -> assignment.roleKey().equals("support.healer")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toUnmodifiableSet()) : Set.of();
 		final var runtime = farm ? _groups.get(farmClaim.state().groupId()) : null;
 		// The shared itinerary and the next pull get the first opportunity. After a failed
 		// damage or opening-survival check, allow one preparation attempt before checking again.
@@ -3169,6 +3173,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var assist = farm && runtime != null && runtime.farmPuller != null && snapshots.containsKey(runtime.farmPuller) ? runtime.farmPuller : party.leader();
 		final List<TacticalDirective> directives = _tactics.plan(assist, party.members(), snapshots, directive ->
 			(!orderedFarm || !idleFarmMaintenance(directive) || idlePreparation)
+				&& (directive.kind() != DirectiveKind.PARTY_SUPPORT || !healers.contains(directive.actor()))
 				&& (!farm || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())
 					|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor()))), farm);
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
