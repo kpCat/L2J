@@ -52,9 +52,15 @@ public final class PhantomPartyFarmEligibility
 	}
 	/** Observed main victim plus the approved bounded aggro-shift reserve, in native time units. */
 	public static double threatExposureMillis(double encounterMillis, boolean mainVictim)
+	{ return threatExposureMillis(encounterMillis, mainVictim, 0); }
+
+	/** An independently supported victim must survive through the verified cast and a reaction reserve. */
+	public static double threatExposureMillis(double encounterMillis, boolean mainVictim, long supportCastMillis)
 	{
 		if (!Double.isFinite(encounterMillis) || encounterMillis <= 0) { return Double.NaN; }
-		return mainVictim ? encounterMillis : Math.min(encounterMillis, 6000);
+		final int reserve = 6000;
+		if (!mainVictim) { return Math.min(encounterMillis, reserve); }
+		return supportCastMillis > 0 && supportCastMillis <= reserve ? Math.min(encounterMillis, supportCastMillis + reserve) : encounterMillis;
 	}
 
 	public record CastVictims(Set<Integer> recipients, boolean hostile, String refusal)

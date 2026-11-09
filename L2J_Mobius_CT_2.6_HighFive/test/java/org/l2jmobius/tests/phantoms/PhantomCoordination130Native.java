@@ -737,7 +737,9 @@ final class PhantomCoordination130Native
             check(before != null && Files.isRegularFile(agreementFile), "PRODUCTION_PREFLIGHT_AGREEMENT_REQUIRED");
             check(!restart || before.groupId().equals(saved.getProperty("group")), "RESTART_SAME_GROUP");
             ids = before.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
-            observe(runtime, profiles, ids, before.groupId(), planner.get(), restart,
+            // A recovered CUT can already have lawful stock travel in its saved positions.
+            final boolean travelRequired = PhantomCoordination130Integration.rendezvousLane() && !restart && !recover;
+            observe(runtime, profiles, ids, before.groupId(), planner.get(), restart, travelRequired,
                 System.currentTimeMillis() + (PhantomCoordination130Integration.rendezvousLane() ? 480_000 : 300_000));
             verifyExistingHumanHeal(runtime, jarHash);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
@@ -1372,7 +1374,7 @@ final class PhantomCoordination130Native
     }
 
     private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId,
-        PhantomHistoricalBackgroundPlanner planner, boolean restart, long deadline) throws Exception
+        PhantomHistoricalBackgroundPlanner planner, boolean restart, boolean travelRequired, long deadline) throws Exception
     {
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + attemptKey() + ".tsv");
         write(trace, "millis\tgroup\tcensus\tactors\n");
@@ -1383,7 +1385,6 @@ final class PhantomCoordination130Native
         final Map<Integer, Long> priorHealReceipt = new HashMap<>();
         final Map<Integer, HealSample> healing = new HashMap<>();
         final Map<Integer, PhantomNavigationPoint> partyOrigins = new HashMap<>();
-        final boolean travelRequired = PhantomCoordination130Integration.rendezvousLane() && !restart;
         boolean groupTravel = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;

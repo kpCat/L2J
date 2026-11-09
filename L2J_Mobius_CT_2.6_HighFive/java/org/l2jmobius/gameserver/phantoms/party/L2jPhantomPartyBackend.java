@@ -580,6 +580,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		boolean healerPresent = false;
 		Skill readyHeal = null;
 		int healerObjectId = 0;
+		long supportCastMillis = 0;
+		final boolean singleThreat = mainVictims.size() == 1 && observedThreats.isEmpty();
 		for (int index = 0; index < actors.size(); index++)
 		{
 			if (!PhantomAutonomousFarmParty.healingSupport(members.get(index))) { continue; }
@@ -589,7 +591,17 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (readyHeal != null)
 			{
 				healerObjectId = healer.getObjectId();
+				if (singleThreat && healer != recipient) { supportCastMillis = farmHealCastMillis(healer, readyHeal); }
 				break;
+			}
+			if (continuing && !victim.idle() && singleThreat && healer != recipient && supportCastMillis == 0)
+			{
+				final var activeHeal = observedFarmHeal(healer, recipient);
+				if (activeHeal != null)
+				{
+					healerObjectId = healer.getObjectId();
+					supportCastMillis = farmHealCastMillis(healer, activeHeal);
+				}
 			}
 		}
 		if ((!continuing || victim.idle()) && healerPresent && readyHeal == null)
@@ -609,10 +621,11 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final double actions = intervals[index] > 0 ? PhantomPartyFarmEligibility.requiredActions(millis, intervals[index]) : 0;
 			if (actions > ammunition[index]) { if (witness != null) { witness.accept("WAIT_GROUP_AMMO:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":shots=" + actions + ":ammo=" + ammunition[index]); } return false; }
 			if (actions * costs[index] > player.getCurrentMp() * 0.8) { if (witness != null) { witness.accept("WAIT_GROUP_MP:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":actionMPRequired=" + actions * costs[index] + ":MP=" + player.getCurrentMp()); } return false; }
-			double incoming = farmIncomingDamage(player, target, millis, mainVictims.contains(player.getObjectId()));
+			final double exposure = PhantomPartyFarmEligibility.threatExposureMillis(millis, mainVictims.contains(player.getObjectId()), supportCastMillis);
+			double incoming = farmIncomingDamage(player, target, exposure);
 			for (var entry : observedThreats.entrySet())
 			{
-				incoming += farmIncomingDamage(player, entry.getKey(), millis, entry.getValue().objectIds().contains(player.getObjectId()));
+				incoming += farmIncomingDamage(player, entry.getKey(), PhantomPartyFarmEligibility.threatExposureMillis(millis, entry.getValue().objectIds().contains(player.getObjectId())));
 			}
 			exposures[index] = incoming;
 			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6) { if (witness != null) { witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis); } return false; }
@@ -635,18 +648,41 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			System.out.println("NATIVE130_D04 target=" + target.getObjectId() + " observedVictims=" + victim.objectIds() + " plannedVictims=" + mainVictims
 				+ " idle=" + victim.idle() + " threatCount=" + threats.size() + " threatVictims="
 				+ observedThreats.entrySet().stream().map(entry -> entry.getKey().getObjectId() + "->" + entry.getValue().objectIds()).toList()
-				+ " exposureMsReserve=6000 projectedDamage=" + java.util.Arrays.toString(exposures));
+				+ " exposureMsReserve=6000 supportCastMs=" + supportCastMillis + " projectedDamage=" + java.util.Arrays.toString(exposures));
 			System.out.println("NATIVE130_D05 target=" + target.getObjectId() + " healerPresent=" + healerPresent + " caster=" + healerObjectId
 				+ " recipient=" + mainVictim + " readySkill=" + (readyHeal == null ? "none" : readyHeal.getId() + ":" + readyHeal.getLevel()) + " projectedHpCredit=0");
 		}
 		return true;
 	}
 
-	private static double farmIncomingDamage(Player player, Creature threat, double millis, boolean observedVictim)
+	private static double farmIncomingDamage(Player player, Creature threat, double exposureMillis)
 	{
 		final var defender = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, threat, null).combat();
 		final var attacker = L2jPhantomBackgroundAuthority.nativePlanningTarget(threat, true, player);
-		return PhantomBackgroundModel.incomingDamage(defender, attacker, PhantomPartyFarmEligibility.threatExposureMillis(millis, observedVictim));
+		return PhantomBackgroundModel.incomingDamage(defender, attacker, exposureMillis);
+	}
+
+	private static long farmHealCastMillis(Player healer, Skill skill)
+	{
+		if (skill.isChanneling()) { return 0; }
+		final long base = (long) skill.getHitTime() + skill.getCoolTime();
+		// Use the uncharged cast as a conservative reaction window.
+		return Math.max(550, skill.isStatic() ? base : Formulas.calcAtkSpd(healer, skill, base));
+	}
+
+	private static Skill observedFarmHeal(Player healer, Player recipient)
+	{
+		if (healer.isAlikeDead() || healer.isOutOfControl()) { return null; }
+		final var observation = healer.observeNativeMagicUse(16);
+		for (var cast : new org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.TargetObservation[] {observation.primary(), observation.secondary()})
+		{
+			if (cast == null || !cast.nativeLifetimeOwned() || cast.status() != org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.TargetStatus.READY
+				|| cast.targets().stream().noneMatch(target -> target == recipient)) { continue; }
+			final var skill = cast.skill();
+			if (skill != null && healer.getKnownSkill(skill.getId()) == skill && "combat.heal".equals(PhantomSupportEffectAuthority.nativeCapability(skill))
+				&& observation.isCurrent()) { return skill; }
+		}
+		return null;
 	}
 
 	private static Skill readyFarmHeal(Player healer, Player recipient, MemberSnapshot member)

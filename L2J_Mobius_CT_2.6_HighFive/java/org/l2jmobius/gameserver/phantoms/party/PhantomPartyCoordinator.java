@@ -412,6 +412,16 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var row = _claims.get(profileId);
 		return row != null && row.state().objectiveRef() != null && PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(row.state().objectiveRef().namespace()) && row.state().realMembers().isEmpty();
 	}
+	public boolean hasOwnedFarmEncounter(long profileId)
+	{
+		final var claim = _tacticalCombat.get(profileId);
+		final var combat = _tactics.combatOwner();
+		final var row = _claims.get(profileId);
+		return claim != null && combat != null && committedClaim(row) && row.state().realMembers().isEmpty()
+			&& PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(row.state().objectiveRef().namespace())
+			&& claim.operationKey().startsWith(tacticalScope(row.state()))
+			&& combat.matchesOwnedSession(profileId, claim.generation(), claim.targetObjectId(), claim.token());
+	}
 	public boolean humanExecution(long profileId)
 	{
 		final var row = _claims.get(profileId);

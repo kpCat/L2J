@@ -100,9 +100,11 @@ public class MagicUseTask implements Runnable
 	public enum TargetStatus { READY, FINISHED, NO_RECIPIENTS, AMBIGUOUS, OVERFLOW, CHANGED, STALE }
 	public enum Disposition { HOSTILE, HARMLESS, UNKNOWN }
 
-	public record TargetObservation(TargetStatus status, Disposition disposition, List<WorldObject> targets, boolean nativeLifetimeOwned, BooleanSupplier current)
+	public record TargetObservation(TargetStatus status, Disposition disposition, List<WorldObject> targets, boolean nativeLifetimeOwned, BooleanSupplier current, Skill skill)
 	{
 		public TargetObservation { targets = List.copyOf(targets); }
+		public TargetObservation(TargetStatus status, Disposition disposition, List<WorldObject> targets, boolean nativeLifetimeOwned, BooleanSupplier current)
+		{ this(status, disposition, targets, nativeLifetimeOwned, current, null); }
 		public boolean isCurrent() { return current.getAsBoolean(); }
 	}
 
@@ -132,7 +134,7 @@ public class MagicUseTask implements Runnable
 		catch (ConcurrentModificationException | IndexOutOfBoundsException changed)
 		{ return new TargetObservation(TargetStatus.CHANGED, disposition, List.of(), _nativeLifetimeOwned, () -> false); }
 		final BooleanSupplier current = () -> sameTaskAndPhase.getAsBoolean() && sameTargets(published, captured) && sameTaskAndPhase.getAsBoolean();
-		return current.getAsBoolean() ? new TargetObservation(TargetStatus.READY, disposition, captured, _nativeLifetimeOwned, current)
+		return current.getAsBoolean() ? new TargetObservation(TargetStatus.READY, disposition, captured, _nativeLifetimeOwned, current, _skill)
 			: new TargetObservation(TargetStatus.CHANGED, disposition, List.of(), _nativeLifetimeOwned, () -> false);
 	}
 

@@ -3847,7 +3847,7 @@ public final class PhantomSystem
 				|| _materializationRetention.recentHumanObservation(id) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR
 				|| hasAcceptedNativeJourney(id) || !entry.actionAdmissionOpen()
 				|| _partyCoordinator != null && (_partyCoordinator.observeRouteActivity(id).nonTerminal()
-					|| _partyCoordinator.retainsAutonomousFarmTravel(id))) { return false; }
+					|| _partyCoordinator.retainsAutonomousFarmTravel(id) || _partyCoordinator.hasOwnedFarmEncounter(id))) { return false; }
 			final var object = World.getInstance().findObject(entry.characterObjectId());
 			if (!(object instanceof Player player) || player.isInStoreMode() || player.hasPendingOwnedStore()
 				|| player.getParty() != null && player.getParty().getMembers().stream().anyMatch(PhantomSystem::humanObserver)

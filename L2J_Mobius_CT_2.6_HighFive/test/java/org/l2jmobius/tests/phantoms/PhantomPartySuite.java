@@ -1485,6 +1485,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); }
 				backend._farmTarget = java.util.OptionalInt.of(900);
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(1), "The public farm coordinator did not own a combat session.");
+				PhantomAssertions.assertTrue(coordinator.hasOwnedFarmEncounter(1), "The logical retention check lost an accepted exact Party encounter.");
+				PhantomAssertions.assertFalse(coordinator.hasOwnedFarmEncounter(2), "A peer without a native encounter falsely retained the group.");
 				final long generation = combat.find(1).orElseThrow().generation();
 				backend._farmTarget = java.util.OptionalInt.empty();
 				PhantomAssertions.assertTrue(coordinator.requestAutonomousFarm(1), "Absence of a next pull cancelled the current native episode.");
