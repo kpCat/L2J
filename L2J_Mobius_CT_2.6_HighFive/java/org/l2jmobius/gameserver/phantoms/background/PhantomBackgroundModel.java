@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts;
@@ -450,13 +451,13 @@ public final class PhantomBackgroundModel
 
 	public record EncounterEstimate(long durationMillis, double incomingDamage) { }
 
-	/** Baseline native plain-hit formulas, without criticals, shots, buffs or a promise of retail equivalence. */
-	public static CastEncounter castEncounter(CombatFacts combat, Vitals vitals, double mpPerCast, Target target, Mechanics mechanics, List<Target> threats)
+	/** Shared plain-hit estimate for one cast and its repeat interval. */
+	public static Optional<CastCycle> estimateCastCycle(CombatFacts combat, Target target, Mechanics mechanics)
 	{
 		final boolean magic = mechanics.kind() == DamageKind.MAGIC;
 		// A deterministic reduction envelope must never be presented as guaranteed full-power drain.
-		if (threats.size() > 64 || magic && (mechanics.magicLevel() > 0 && target.level() > mechanics.magicLevel() || target.castDefense().magicSuccessResistance() > 1))
-		{ return new CastEncounter(false, "unsupported_magic_success_or_threat_envelope", 0, 0, 0, 0, 0, 0, vitals.currentHp()); }
+		if (magic && (mechanics.magicLevel() > 0 && target.level() > mechanics.magicLevel() || target.castDefense().magicSuccessResistance() > 1))
+		{ return Optional.empty(); }
 		final int elementDiff = mechanics.element() < 0 ? 0 : mechanics.elementPower() - target.castDefense().elements().get(mechanics.element());
 		final double attribute = elementDiff >= 0 ? 1 : Math.max(0.975 - Math.sqrt(Math.pow(-elementDiff, 3) / 2) * 0.0001, 0.75);
 		final double damage = Math.max(1, Math.floor((magic ? 91d * Math.sqrt(combat.magicOffense()) * mechanics.power() / Math.max(1, target.magicDefense())
@@ -466,7 +467,21 @@ public final class PhantomBackgroundModel
 		if (magic && mechanics.castMillis() > 550) { castMillis = Math.max(550, castMillis); }
 		if (!magic && mechanics.castMillis() >= 500) { castMillis = Math.max(500, castMillis); }
 		castMillis = Math.max(1, castMillis);
-		final long cycle = Math.max(castMillis, mechanics.reuseMillis());
+		return Optional.of(new CastCycle(damage, castMillis, Math.max(castMillis, mechanics.reuseMillis())));
+	}
+
+	public record CastCycle(double damagePerCast, long castMillis, long intervalMillis) { }
+
+	/** Baseline native plain-hit formulas, without criticals, shots, buffs or a promise of retail equivalence. */
+	public static CastEncounter castEncounter(CombatFacts combat, Vitals vitals, double mpPerCast, Target target, Mechanics mechanics, List<Target> threats)
+	{
+		final var estimate = threats.size() > 64 ? Optional.<CastCycle>empty() : estimateCastCycle(combat, target, mechanics);
+		if (estimate.isEmpty())
+		{ return new CastEncounter(false, "unsupported_magic_success_or_threat_envelope", 0, 0, 0, 0, 0, 0, vitals.currentHp()); }
+		final var action = estimate.get();
+		final double damage = action.damagePerCast();
+		final long castMillis = action.castMillis();
+		final long cycle = action.intervalMillis();
 		final double needed = Math.ceil(target.maximumHp() / damage);
 		if (!Double.isFinite(needed) || needed > 256 || needed < 1) { return new CastEncounter(false, "cast_limit", 0, 0, 0, damage, 0, 0, vitals.currentHp()); }
 		final int casts = (int) needed;

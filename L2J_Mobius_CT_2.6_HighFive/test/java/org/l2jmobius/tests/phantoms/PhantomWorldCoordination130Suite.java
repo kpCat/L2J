@@ -9,9 +9,17 @@ import java.util.HashMap;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ModelKind;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.DamageKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability.Mechanics;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
@@ -27,6 +35,19 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 		registry.add("party-common-source-is-tested-before-the-sixty-four-result-limit", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.widePartySources130());
 		registry.add("party-structural-walk-budget-skips-first-sixty-four-and-keeps-local-source", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.boundedStructuralSources130());
 		registry.add("party-argos-and-hot-springs-use-the-configured-java-itinerary", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.configuredPartyItinerary130());
+		registry.add("party-cast-contributes-beyond-the-solo-cast-limit", _ ->
+		{
+			final var combat = new CombatFacts(ModelKind.MAGIC, 100, 100, 100, 100, 333, 333, 0, 0, 1, 1, 0, 1, 1, 1, 1);
+			final var target = new PhantomBackgroundModel.Target(1, 76, true, 3000, 100, 10, 10, 100, 100, 100, 100, 100, 10, List.of(), 1);
+			final var skill = new Mechanics(DamageKind.MAGIC, 1, 600, 1000, true, 0);
+			final var solo = PhantomBackgroundModel.castEncounter(combat, new Vitals(5000, 5000, 100, 100, 0, 0), 1, target, skill, List.of());
+			PhantomAssertions.assertEquals("cast_limit", solo.reason(), "The fixture must reach the unchanged solo limit.");
+			final var cast = PhantomBackgroundModel.estimateCastCycle(combat, target, skill).orElseThrow();
+			final double dps = cast.damagePerCast() * 1000d / cast.intervalMillis();
+			final double groupMillis = PhantomAutonomousFarmParty.projectedFarmDuration(target.maximumHp(), 8 * dps, 0);
+			PhantomAssertions.assertTrue(groupMillis > 0 && groupMillis < 60_000, "The solo cast cap erased an affordable group contribution.");
+			PhantomAssertions.assertEquals(42d, PhantomPartyFarmEligibility.requiredActions(groupMillis, cast.intervalMillis()), "Each caster must budget 42 MP for the group kill.");
+		});
 		registry.add("party-level-intersection-and-potential-roles-never-imply-native-readiness", _ ->
 		{
 			final var cases = List.of(List.of(76, 76, 72, 80), List.of(74, 78, 74, 78), List.of(72, 80, 76, 76), List.of(76, 81, 77, 80), List.of(85, 85, 81, 89));

@@ -519,18 +519,19 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final boolean weapon = members.get(index).capabilities().stream().anyMatch(capability -> "native.weapon".equals(capability.variantKey()) && capability.learned() && capability.readyNow());
 			if (skill == null && !weapon || player.isDisabled() || player.isOutOfControl() || player.isSitting()) { continue; }
 			final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, skill);
-			long duration;
 			if (skill != null)
 			{
 				final var mechanics = combat.forTarget(projected);
 				if (mechanics == null) { continue; }
-				final var cast = PhantomBackgroundModel.castEncounter(combat.combat(), combat.vitals(), combat.requiredMp(), projected, mechanics, List.of());
-				if (cast.damagePerCast() <= 0 || cast.casts() <= 0 || cast.durationMillis() <= 0) { continue; }
-				duration = cast.durationMillis(); intervals[index] = Math.max(1, duration / (double) cast.casts()); costs[index] = combat.requiredMp();
+				final var cast = PhantomBackgroundModel.estimateCastCycle(combat.combat(), projected, mechanics).orElse(null);
+				if (cast == null) { continue; }
+				intervals[index] = cast.intervalMillis();
+				costs[index] = combat.requiredMp();
+				contributions[index] = cast.damagePerCast() * 1000d / cast.intervalMillis();
 			}
 			else
 			{
-				duration = PhantomBackgroundModel.estimateEncounter(combat.combat(), projected).durationMillis();
+				long duration = PhantomBackgroundModel.estimateEncounter(combat.combat(), projected).durationMillis();
 				final var equipped = player.getActiveWeaponItem();
 				if (weapon && equipped != null && equipped.isRange() && !player.isTransformed())
 				{
@@ -542,12 +543,9 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 					ammunition[index] = ammo.getCount();
 					duration = Math.max(1, Math.round(duration * intervals[index] / attackMillis));
 				}
-			}
-			if (duration > 0)
-			{
 				contributions[index] = projected.maximumHp() * 1000d / duration;
-				damagePerSecond += contributions[index];
 			}
+			damagePerSecond += contributions[index];
 		}
 		final double nativeHpDivisor = target.isChampion() ? Math.max(1, org.l2jmobius.gameserver.config.custom.ChampionMonstersConfig.profile(target).hp()) : 1;
 		damagePerSecond = nativeDamagePerSecond(damagePerSecond, nativeHpDivisor);
