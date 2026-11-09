@@ -231,6 +231,16 @@ public final class PhantomVisibleItinerary068Checks implements PhantomTestSuite
 		}
 		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, running, group, 1000, () -> true), "Suitable running Solo work was forced native.");
 		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalPreparationRequired(1, root, running.blockedForGeneration("unclassified",1,1,hashes), group, 1000, () -> true), "An unrelated failure inherited logical preparation.");
+		final var complete = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "b".repeat(64), 1, 100, 110, 110, 0, 10,
+			1, 1, 1, root.goalId(), root.revision(), "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, hashes, "");
+		PhantomAssertions.assertTrue(PhantomHistoricalBackgroundService.logicalNativeWindowDeferred(1, root, complete, group, 1000, true),
+			"A new historical window displaced an exact pending physical assembly.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalNativeWindowDeferred(1, root, running, group, 1000, true),
+			"A physical demand stole an already-owned historical window.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalNativeWindowDeferred(1, root, complete, group, 1000, false),
+			"A cold group lost historical progress without physical demand.");
+		PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.logicalNativeWindowDeferred(1, root, complete, group, group.expiresAtMillis(), true),
+			"An expired group deferred the next historical window.");
 	}
 	private static void groupReceiptCursor()
 	{

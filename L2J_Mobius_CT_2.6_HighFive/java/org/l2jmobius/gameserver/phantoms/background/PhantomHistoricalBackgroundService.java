@@ -128,10 +128,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 	private java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> _logicalGroups = _ -> Optional.empty();
 	private java.util.function.LongConsumer _refreshLogicalGroups = _ -> { };
+	private java.util.function.LongPredicate _logicalNativeDemand = _ -> false;
 	public void bindLogicalGroups(java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> groups)
 	{ _logicalGroups = Objects.requireNonNull(groups); }
 	public void bindLogicalGroups(java.util.function.Function<Long, Optional<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty>> groups, java.util.function.LongConsumer refresh)
 	{ _logicalGroups = Objects.requireNonNull(groups); _refreshLogicalGroups = Objects.requireNonNull(refresh); }
+	public void bindLogicalNativeDemand(java.util.function.LongPredicate demand) { _logicalNativeDemand = Objects.requireNonNull(demand); }
 	private org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty logicalGroup(long profileId, PhantomGoal root)
 	{
 		if (root == null || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)) { return null; }
@@ -326,6 +328,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (((existing == null) || (existing.state().status() == Status.COMPLETE)) && _materialization.find(profileId).isPresent())
 		{
 			return Result.rejected(ResultStatusCode.NORMAL_MATERIALIZED, "catchup.normal_materialized", null);
+		}
+		// No new window exists yet. The normal admission path rechecks the completed claim and owns the actual load.
+		if (existing != null && existing.state().status() == Status.COMPLETE && _logicalNativeDemand.test(profileId))
+		{
+			final var root = _goals.load(profileId).map(StoredGoal::goal).orElse(null);
+			if (logicalNativeWindowDeferred(profileId, root, existing.state(), logicalGroup(profileId, root), System.currentTimeMillis(), true))
+			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "native_context.required:logical_party_rendezvous", existing); }
 		}
 		final var generation = _planner.generation();
 		final String requestId = digest("BACKGROUND_CATCHUP_REQUEST_V1", profileId, fromEpochMinute, targetEpochMinute, deterministicSeed, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes());
@@ -951,6 +960,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			return Result.success(current, 0);
 		}
 		catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_context.persistence_retry", current); }
+	}
+
+	static boolean logicalNativeWindowDeferred(long profileId, PhantomGoal root, PhantomBackgroundCatchupState claim,
+		org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now, boolean physicalDemand)
+	{
+		return physicalDemand && claim.status() == Status.COMPLETE && group != null
+			&& org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(profileId, root)
+			&& root.goalId() == claim.goalId() && root.revision() == claim.goalRevision()
+			&& group.assemblyPending(profileId, root.goalId(), root.revision(), now);
 	}
 
 	static boolean logicalPreparationRequired(long profileId, PhantomGoal root, PhantomBackgroundCatchupState claim,

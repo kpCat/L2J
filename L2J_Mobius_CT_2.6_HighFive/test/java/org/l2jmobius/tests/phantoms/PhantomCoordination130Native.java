@@ -1377,7 +1377,7 @@ final class PhantomCoordination130Native
         long nextTrace = 0; final long start = System.currentTimeMillis();
         while (System.currentTimeMillis() < deadline)
         {
-            final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow();
+            final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow(() -> new IllegalStateException("NATIVE130_LOGICAL_AGREEMENT_RETIRED"));
             final var group = logicalRow.group();
             healerRequired |= group.members().stream().anyMatch(member -> member.role().equals("support.healer"));
             check(group.groupId().equals(groupId), "GROUP_ID_PRESERVED");

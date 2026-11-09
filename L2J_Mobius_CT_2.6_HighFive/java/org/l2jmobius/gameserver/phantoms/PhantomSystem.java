@@ -1120,6 +1120,7 @@ public final class PhantomSystem
 				};
 				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) -> logicalPage.apply(managedPartyPage.apply(after, limit), false), this::requestLogicalWake, group -> !logicalGroupMayDrain(group));
 				_historicalBackgroundService.bindLogicalGroups(id -> _logicalParties.knownGroupFor(id).map(row -> row.group()), id -> _logicalParties.groupFor(id));
+				_historicalBackgroundService.bindLogicalNativeDemand(id -> currentPhysicalDemand(id) != null);
 				_visibleFarmTravel.bindGroupTravelSafety((id, root) -> _logicalParties.knownGroupFor(id)
 					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false));
 				controlPorts.add(executionControl(new PhantomCompositeSchedulerControlPort(java.util.List.of(_questInstanceService, _learningJourney, _supplyJourney)), org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff::solo));

@@ -393,7 +393,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	{
 		final var claim = _claims.get(profileId);
 		final var runtime = claim == null ? null : _groups.get(claim.state().groupId());
-		return runtime == null ? "" : runtime.farmTravelReason;
+		return runtime == null ? "" : runtime.farmTravelReason + runtime.farmGatekeeperWitness;
 	}
 	public boolean retainsAutonomousFarmTravel(long profileId)
 	{
@@ -1450,6 +1450,13 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (result == null) { return farmRouteResult(state, destination, RouteOutcome.PENDING, "wait_gk_owner"); }
 		if (result.status() == PhantomNativeTravelActions.Status.ARRIVED)
 		{
+			final var runtime = _groups.get(state.groupId());
+			if (runtime != null)
+			{
+				if (journey.gkArrived.isEmpty()) { runtime.farmGatekeeperWitness = ""; }
+				runtime.farmGatekeeperWitness += ";gk=" + leg.id() + ";profile=" + member.profileId() + ";before=" + result.adenaBefore()
+					+ ";after=" + result.adenaAfter() + ";fee=" + result.fee() + ";landed=" + result.after();
+			}
 			journey.gkArrived.put(member, result.after());
 			org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(member.profileId(), "PARTY_GK", "gk.arrived", leg.id(),
 				"before=" + result.adenaBefore() + ";after=" + result.adenaAfter() + ";fee=" + result.fee() + ";landing=" + result.after(), _backend.materializationEpoch(member), state.operation().leaderGoalId(), state.operation().leaderGoalRevision());
@@ -2591,7 +2598,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		if (examined < remainingBudget)
 		{
 			final var leaderClaim = _claims.get(party.leader().profileId());
-			if (leaderClaim != null)
+			if (leaderClaim != null && (_farmTravel == null || logicalFarmBinding(leaderClaim.state()) == null))
 			{
 				for (var member : party.members())
 				{
@@ -4310,6 +4317,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile FarmJourney farmJourney;
 		private volatile long farmTravelDeadline;
 		private volatile String farmTravelReason = "";
+		private volatile String farmGatekeeperWitness = "";
 		private final Map<Long, Long> regroupDue = new HashMap<>();
 		private GroupRuntime(String groupId) { _groupId = groupId; }
 		private String groupId() { return _groupId; }
