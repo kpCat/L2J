@@ -1600,7 +1600,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent()
 				&& role.equals(potentialPartyRole(id, state)) && logicalOwnershipClear(id),
 			admitted -> _planner.rendezvousSourcesForRole(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of(), role, admitted),
-			() -> logicalFormationGuards(id, stored, state, history, populationGuards));
+			() -> logicalFormationGuards(id, stored, state, history, populationGuards),
+			source -> _planner.partyRouteCost(state, source));
 	}
 
 	private boolean logicalOwnershipClear(long id)

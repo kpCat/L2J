@@ -44,6 +44,21 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 		registry.add("party-source-and-every-rendezvous-replan-ignore-solo-kill-only", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.partyContract130());
 		registry.add("party-common-source-is-tested-before-the-sixty-four-result-limit", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.widePartySources130());
 		registry.add("party-structural-walk-budget-skips-first-sixty-four-and-keeps-local-source", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.boundedStructuralSources130());
+		registry.add("party-local-ninth-catalogue-source-fits-the-eight-physical-proofs", _ ->
+			org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.practicalPartySources130(new MemoryStore()));
+		registry.add("party-practical-ranking-includes-the-peers-gatekeeper-itinerary", _ ->
+		{
+			final var first = new PhantomDomainRef("background.farm", "20001@farm.leader");
+			final var shared = new PhantomDomainRef("background.farm", "20002@farm.shared");
+			final var catalogue = List.of(first, shared);
+			final var candidates = group(1, 2).members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76,
+				catalogue, catalogue::contains, () -> true, () -> true, admitted -> catalogue.stream().filter(admitted).toList(), List::of,
+				source -> Optional.of(source.equals(shared) ? new PhantomLogicalPartyCoordinator.RouteCost(100, 1000, 0, 0)
+					: member.profileId() == 1 ? new PhantomLogicalPartyCoordinator.RouteCost(1, 10, 0, 0)
+					: new PhantomLogicalPartyCoordinator.RouteCost(30, 15_000, 1, 9300)))).toList();
+			final var chosen = new PhantomLogicalPartyCoordinator(new MemoryStore()).previewDiscovery(candidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertEquals(shared, chosen.proposal().orElseThrow().objective(), "The leader's nearby source concealed the peer's GK trip.");
+		});
 		registry.add("party-argos-and-hot-springs-use-the-configured-java-itinerary", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.configuredPartyItinerary130());
 		registry.add("party-cast-contributes-beyond-the-solo-cast-limit", _ ->
 		{
@@ -238,6 +253,26 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(29), false);
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(60), true), "Recovery exceeded its finite budget.");
 			PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.checkPreflightBudget(java.util.concurrent.TimeUnit.SECONDS.toNanos(30), false), "Scene exceeded its own budget.");
+		});
+		registry.add("physical-proof-timeout-reserves-the-next-source-in-the-thirty-second-scene", _ ->
+		{
+			final var units = java.util.concurrent.TimeUnit.NANOSECONDS;
+			final long sceneDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+			final var interrupted = new java.util.concurrent.CountDownLatch(1);
+			final var stalled = new java.util.concurrent.CountDownLatch(1);
+			final var expired = PhantomCoordination130Native.physicalProofWithin(sceneDeadline, java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(300), deadline ->
+			{
+				try { stalled.await(); }
+				catch (InterruptedException expected) { interrupted.countDown(); }
+				return true;
+			});
+			PhantomAssertions.assertTrue(expired.isEmpty(), "A timed-out Geo probe published a late positive result.");
+			PhantomAssertions.assertTrue(interrupted.await(java.util.concurrent.TimeUnit.SECONDS.toNanos(2), units), "The timed-out probe was not interrupted.");
+			final var local = PhantomCoordination130Native.physicalProofWithin(sceneDeadline, java.util.concurrent.TimeUnit.SECONDS.toNanos(3),
+				deadline -> deadline < sceneDeadline);
+			PhantomAssertions.assertEquals(Optional.of(true), local, "The first stalled proof starved the next local source.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.physicalProofWithin(System.nanoTime() - 1, 1_000_000,
+				_ -> { throw new AssertionError("Expired scene started a physical proof."); }).isEmpty(), "Expired scene accepted a proof.");
 		});
 		registry.add("authority-refresh-rejects-active-and-returning-native-intents", _ ->
 		{

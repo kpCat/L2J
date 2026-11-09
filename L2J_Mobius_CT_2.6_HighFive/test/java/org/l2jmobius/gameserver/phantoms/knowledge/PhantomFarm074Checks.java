@@ -10,6 +10,9 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.background.*;
 import org.l2jmobius.gameserver.phantoms.decision.*;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.*;
+import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty;
+import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.topology.*;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
 
@@ -261,10 +264,24 @@ public final class PhantomFarm074Checks
 
 	private static void widePartySources130(boolean overlongFirstPage, boolean sharedNpc)
 	{
+		widePartySources130(overlongFirstPage, sharedNpc, null);
+	}
+
+	public static void practicalPartySources130(PhantomPartyPersistencePort store)
+	{
+		widePartySources130(false, false, store);
+	}
+
+	private static void widePartySources130(boolean overlongFirstPage, boolean sharedNpc, PhantomPartyPersistencePort practical)
+	{
 		final var base = state();
 		final var before = new PhantomBackgroundState(base.state(), base.identity(), new PhantomBackgroundState.Progress(76, 0, 0, 0), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
-		final java.util.function.IntFunction<PhantomTopologyPoint> pointFor = npc -> npc == 101 ? LOCAL : !overlongFirstPage ? FAR
-			: npc < 20064 ? new PhantomTopologyPoint(110100, 100, 0, 0) : new PhantomTopologyPoint(180, 100, 0, 0);
+		final java.util.function.IntFunction<PhantomTopologyPoint> pointFor = npc ->
+		{
+			if (npc == 101) { return LOCAL; }
+			if (practical != null) { return npc == 20008 ? new PhantomTopologyPoint(180, 100, 0, 0) : FAR_ALTERNATIVE; }
+			return !overlongFirstPage ? FAR : npc < 20064 ? new PhantomTopologyPoint(110100, 100, 0, 0) : new PhantomTopologyPoint(180, 100, 0, 0);
+		};
 		final var backend = new PhantomTopologyValidationBackend()
 		{
 			@Override public int mapRegionLocId(int x, int y) { return 1; }
@@ -306,6 +323,34 @@ public final class PhantomFarm074Checks
 			@Override public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level) { return List.of(); }
 		};
 		final var planner = new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority);
+		if (practical != null)
+		{
+			final var local = new PhantomDomainRef("background.farm", "20008@farm.page.8");
+			final var catalogueOrder = planner.rendezvousSources(74, before, goal(), 130, 1, Set.of(), Set.of());
+			PhantomAssertions.assertEquals(local, catalogueOrder.get(8), "Fixture lost its ninth-place local source.");
+			final var candidates = java.util.stream.LongStream.of(74, 75).mapToObj(id ->
+				new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, "damage.melee", 740000 + id, 1), 76,
+					List.of(), source -> planner.partySourceAvailable(before, source, Set.of()), () -> true, () -> true,
+					admitted -> planner.rendezvousSourcesForRole(74, before, goal(), 130, 1, Set.of(), Set.of(), "damage.melee", admitted),
+					List::of, source -> planner.partyRouteCost(before, source))).toList();
+			PhantomAssertions.assertEquals(80L, planner.partyRouteCost(before, local).orElseThrow().walkingUnits(), "The local authored WALK distance was lost.");
+			PhantomAssertions.assertEquals(20000L, planner.partyRouteCost(before, catalogueOrder.getFirst()).orElseThrow().walkingUnits(), "The distant authored WALK distance was lost.");
+			final var owner = new PhantomLogicalPartyCoordinator(practical);
+			final var attempted = new java.util.ArrayList<PhantomDomainRef>();
+			final var checked = owner.previewDiscovery(candidates, (_, _) -> true, 1000, offer ->
+			{
+				PhantomAssertions.assertTrue(practical.loadLogicalGroup(74).isEmpty() && practical.loadLogicalClaim(75).isEmpty(), "Physical proof wrote a group or claim.");
+				final var source = offer.proposal().orElseThrow().objective();
+				attempted.add(source);
+				return local.equals(source);
+			});
+			PhantomAssertions.assertTrue(checked.proposal().isPresent(), "Local ninth catalogue source missed the eight-proof budget: " + attempted);
+			PhantomAssertions.assertEquals(local, checked.proposal().orElseThrow().objective(), "The physical proof selected the wrong source.");
+			final var scheduler = new PhantomLogicalPartyCoordinator(practical).previewDiscovery(candidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertEquals(scheduler.proposal(), checked.proposal(), "Scheduler and Runner selected different lawful offers.");
+			PhantomAssertions.assertEquals(checked.proposal().orElseThrow(), owner.commitDiscovery(checked, (_, _) -> true).orElseThrow().group(), "CAS changed the proved offer.");
+			return;
+		}
 		final var common = new PhantomDomainRef("background.farm", (sharedNpc ? "20000" : "20064") + "@farm.page.64");
 		if (overlongFirstPage)
 		{

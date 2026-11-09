@@ -53,7 +53,7 @@ public final class PhantomCoordination130Integration
 	public static void main(String[] args) throws Exception
 	{
         if (args.length < 2 || args.length > 3 || !List.of("group-pve", "group-pve-resume", "group-pve-close", "group-pve-route", "group-pve-route-resume", "group-pve-route-close",
-            "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
+            "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
@@ -314,7 +314,8 @@ public final class PhantomCoordination130Integration
 	/** Own disposable SQL-only profiles: production discovery/CAS/storage, no native capability claim or awards. */
 	private static void groupPve130(PhantomProfileRepository profiles, Path module, String mode) throws Exception
 	{
-		final String fixture = mode.startsWith("group-pve-startup") ? "group-pve-startup" : mode.startsWith("group-pve-route") ? "group-pve-route" : "group-pve";
+		final boolean practical = mode.startsWith("group-pve-practical");
+		final String fixture = practical ? "group-pve-practical" : mode.startsWith("group-pve-startup") ? "group-pve-startup" : mode.startsWith("group-pve-route") ? "group-pve-route" : "group-pve";
 		final boolean routeProof = !fixture.equals("group-pve");
 		final Path checkpoint = module.resolve(".phantom-local/task130/" + fixture + "-restart.properties");
 		mode = mode.replace(fixture, "group-pve");
@@ -339,6 +340,8 @@ public final class PhantomCoordination130Integration
 				final String proofVersionType = "task130.proof_fixture";
 				final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20101@farm.fixture");
 				final var denied = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", "20102@farm.unconfirmed");
+				final var practicalOrder = java.util.stream.Stream.concat(java.util.stream.IntStream.range(0, 8)
+					.mapToObj(index -> new PhantomDomainRef("background.farm", (20102 + index) + "@farm.distant." + index)), java.util.stream.Stream.of(source)).toList();
 				for (int index = 0; index < size; index++)
 				{
 					final var profile = profiles.create(null); final long id = profile.profileId();
@@ -348,12 +351,13 @@ public final class PhantomCoordination130Integration
 						new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("npc", "20101"), 1, 0, "background.farm", List.of(source),
 						new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("topology.anchor", "farm.fixture"), "farm.background", 500, 0, 0, 0, Map.of(), "model.sql.party130", 0);
 					final var goals = new PhantomGoalStateStore(profiles); final var goal = goals.insert(id, root);
-					final var sources = routeProof ? List.of(denied, source) : List.of(source);
+					final var sources = practical ? practicalOrder : routeProof ? List.of(denied, source) : List.of(source);
 					final var guard = profiles.findComponent(id, PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
 					if (routeProof && index == 0) { profiles.insertComponent(id, proofVersionType, 1, new byte[] { 1 }); }
 					candidates.add(new PhantomLogicalPartyCoordinator.Candidate(new PhantomLogicalParty.Member(id, role, root.goalId(), 0), 76, sources, sources::contains,
 						() -> true, () -> profiles.find(id).filter(row -> row.characterObjectId() == null && row.rowVersion() == profile.rowVersion()).isPresent() && goals.load(id).filter(goal::equals).isPresent(),
-						admitted -> sources.stream().filter(admitted).toList(), () -> profiles.findComponent(id, proofVersionType).map(row -> List.of(guard, row)).orElseGet(() -> List.of(guard))));
+						admitted -> sources.stream().filter(admitted).toList(), () -> profiles.findComponent(id, proofVersionType).map(row -> List.of(guard, row)).orElseGet(() -> List.of(guard)),
+						ref -> sources.contains(ref) ? Optional.of(new PhantomLogicalPartyCoordinator.RouteCost(practical && !ref.equals(source) ? 75_000 : 0, 0, 0, 0)) : Optional.empty()));
 				}
 				final long now = System.currentTimeMillis();
 				final var checked = new ArrayList<PhantomLogicalPartyCoordinator.Discovery>();
@@ -372,7 +376,13 @@ public final class PhantomCoordination130Integration
 				org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent changedProof = null;
 				if (preview != null)
 				{
-					PhantomAssertions.assertEquals(List.of(denied, source), checked.stream().map(offer -> offer.proposal().orElseThrow().objective()).toList(), "SQL did not try the next structurally valid source after physical refusal.");
+					PhantomAssertions.assertEquals(practical ? List.of(source) : List.of(denied, source), checked.stream().map(offer -> offer.proposal().orElseThrow().objective()).toList(), "SQL did not retain the expected bounded proof order.");
+					if (practical)
+					{
+						final var logicalOffer = new PhantomLogicalPartyCoordinator(partyStore).previewDiscovery(candidates, (_, _) -> true, now);
+						PhantomAssertions.assertEquals(logicalOffer.proposal(), preview.proposal(), "Native preflight and logical selection differed for the practical source.");
+						System.out.println("SQL130_PRACTICAL_SOURCE_EXACT size=" + size + " catalogueRank=9 proofRank=1 source=" + source.key());
+					}
 					PhantomAssertions.assertTrue(preview == checked.getLast(), "SQL preview did not retain the exact physically checked proposal.");
 					final var blocked = candidates.stream().map(candidate -> new PhantomLogicalPartyCoordinator.Candidate(candidate.member(), candidate.level(),
 						List.of(denied), _ -> false, candidate.current(), candidate.durableCurrent())).toList();

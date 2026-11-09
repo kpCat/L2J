@@ -1,11 +1,15 @@
 /* Copyright (c) 2013 L2jMobius */
 package org.l2jmobius.gameserver.phantoms.party;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.Objects;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
@@ -31,11 +35,35 @@ public final class PhantomLogicalPartyCoordinator
 	}
 	/** Scheduler-local durable recovery cache, never a grant of native/goal ownership. */
 	public Optional<StoredLogicalGroup> knownGroupFor(long profileId) { return Optional.ofNullable(_knownMembers.get(profileId)).filter(row -> row.group().active()); }
-	public record Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
-		java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
-		java.util.function.Function<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>> sourcesMatching,
-		java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards)
+	/** Structural ranking only. Walking includes ingress and both sides of any NORMAL GK jump. */
+	public record RouteCost(long walkingUnits, long travelMillis, int gatekeepers, long feeAdena)
 	{
+		private static final RouteCost EMPTY = new RouteCost(0, 0, 0, 0);
+		private static final int LOCAL_WALK = PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance();
+		private static final Comparator<RouteCost> ORDER = Comparator.comparing(RouteCost::requiresExtendedTravel)
+			.thenComparingLong(RouteCost::walkingUnits).thenComparingLong(RouteCost::travelMillis)
+			.thenComparingInt(RouteCost::gatekeepers).thenComparingLong(RouteCost::feeAdena);
+
+		private boolean requiresExtendedTravel() { return gatekeepers > 0 || walkingUnits > LOCAL_WALK; }
+
+		private RouteCost include(RouteCost member)
+		{
+			return new RouteCost(Math.max(walkingUnits, member.walkingUnits), Math.max(travelMillis, member.travelMillis),
+				gatekeepers + member.gatekeepers, feeAdena + member.feeAdena);
+		}
+	}
+	private record FormationSource(PhantomDomainRef source, List<PhantomLogicalParty.Member> roster, List<Integer> levels, RouteCost cost) { }
+
+	public record Candidate(PhantomLogicalParty.Member member, int level, List<PhantomDomainRef> sources,
+		java.util.function.Predicate<PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
+		java.util.function.Function<java.util.function.Predicate<PhantomDomainRef>, List<PhantomDomainRef>> sourcesMatching,
+		java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards, java.util.function.Function<PhantomDomainRef, Optional<RouteCost>> routeCost)
+	{
+		public Candidate(PhantomLogicalParty.Member member, int level, List<PhantomDomainRef> sources,
+			java.util.function.Predicate<PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
+			java.util.function.Function<java.util.function.Predicate<PhantomDomainRef>, List<PhantomDomainRef>> sourcesMatching,
+			java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards)
+		{ this(member, level, sources, reachable, current, durableCurrent, sourcesMatching, commitGuards, source -> reachable.test(source) ? Optional.of(RouteCost.EMPTY) : Optional.empty()); }
 		public Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
 			java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
 			java.util.function.Function<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>> sourcesMatching)
@@ -49,7 +77,7 @@ public final class PhantomLogicalPartyCoordinator
 		public Candidate
 		{
 			Objects.requireNonNull(member); Objects.requireNonNull(reachable); Objects.requireNonNull(current); Objects.requireNonNull(durableCurrent);
-			Objects.requireNonNull(sourcesMatching); Objects.requireNonNull(commitGuards); sources = List.copyOf(sources);
+			Objects.requireNonNull(sourcesMatching); Objects.requireNonNull(commitGuards); Objects.requireNonNull(routeCost); sources = List.copyOf(sources);
 			if (level < 1 || level > 85 || sources.size() > 64) { throw new IllegalArgumentException("Invalid bounded logical candidate."); }
 		}
 	}
@@ -131,21 +159,11 @@ public final class PhantomLogicalPartyCoordinator
 			final var sources = leader.sourcesMatching().apply(source -> peers.stream().anyMatch(peer -> peer.reachable().test(source)));
 			if (sources.size() > 64) { throw new IllegalArgumentException("Unbounded Party source search."); }
 			budget |= sources.size() == 64;
-			for (var source : sources.stream().distinct().toList())
+			for (var formation : rankSources(leader, peers, sources))
 			{
-				if (!leader.reachable().test(source)) { continue; }
-				final var roster = new java.util.ArrayList<PhantomLogicalParty.Member>(); roster.add(leader.member());
-				final var levels = new java.util.ArrayList<Integer>(); levels.add(leader.level());
-				// Eligibility and full route admission precede the final roster cap.
-				for (var peer : peers)
-				{
-					if (!peer.reachable().test(source)) { continue; }
-					final var proposed = new java.util.ArrayList<>(levels); proposed.add(peer.level());
-					if (PhantomPartyFarmEligibility.forRoster(proposed).isEmpty()) { continue; }
-					roster.add(peer.member()); levels.add(peer.level());
-					if (roster.size() == 9) { break; }
-				}
-				if (roster.size() < 2) { continue; }
+				final var source = formation.source();
+				final var roster = formation.roster();
+				final var levels = formation.levels();
 				boolean currentRoster = true;
 				final var guards = new java.util.ArrayList<PhantomProfileComponent>();
 				for (var member : roster)
@@ -171,6 +189,32 @@ public final class PhantomLogicalPartyCoordinator
 		}
 		final var status = attemptedProofs > 0 ? DiscoveryStatus.WAIT_PHYSICAL_PROOF : budget ? DiscoveryStatus.WAIT_DISCOVERY_BUDGET : hasPeers ? DiscoveryStatus.WAIT_COMMON_ROUTE : DiscoveryStatus.WAIT_ROSTER;
 		return new Discovery(Optional.empty(), status, Math.addExact(now, 1000), List.of(), List.of());
+	}
+
+	private static List<FormationSource> rankSources(Candidate leader, List<Candidate> peers, List<PhantomDomainRef> sources)
+	{
+		final var ranked = new ArrayList<FormationSource>();
+		for (var source : sources.stream().distinct().toList())
+		{
+			var cost = leader.routeCost().apply(source).orElse(null);
+			if (cost == null) { continue; }
+			final var roster = new ArrayList<PhantomLogicalParty.Member>(); roster.add(leader.member());
+			final var levels = new ArrayList<Integer>(); levels.add(leader.level());
+			// Eligibility and full route admission precede the final roster cap.
+			for (var peer : peers)
+			{
+				final var proposed = new ArrayList<>(levels); proposed.add(peer.level());
+				if (PhantomPartyFarmEligibility.forRoster(proposed).isEmpty()) { continue; }
+				final var peerCost = peer.routeCost().apply(source).orElse(null);
+				if (peerCost == null) { continue; }
+				cost = cost.include(peerCost);
+				roster.add(peer.member()); levels.add(peer.level());
+				if (roster.size() == 9) { break; }
+			}
+			if (roster.size() >= 2) { ranked.add(new FormationSource(source, roster, levels, cost)); }
+		}
+		ranked.sort(Comparator.comparing(FormationSource::cost, RouteCost.ORDER));
+		return ranked;
 	}
 	public Optional<StoredLogicalGroup> agree(PhantomLogicalParty group)
 	{ return agree(group, List.of()); }

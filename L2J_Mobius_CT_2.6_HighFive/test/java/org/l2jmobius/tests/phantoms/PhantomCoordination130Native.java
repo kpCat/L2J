@@ -6,7 +6,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.GameServer;
 import org.l2jmobius.gameserver.Shutdown;
@@ -233,9 +236,9 @@ final class PhantomCoordination130Native
             states.put(id, restored);
         }
         final long sceneDeadline = sceneStarted + TimeUnit.SECONDS.toNanos(30);
-        final java.util.function.BiPredicate<PhantomLogicalParty, List<Integer>> physical = (group, levels) ->
+        final java.util.function.BiPredicate<PhantomLogicalParty, List<Integer>> physical = (group, levels) -> physicalProofWithin(
+            sceneDeadline, TimeUnit.SECONDS.toNanos(3), attemptDeadline ->
         {
-            if (System.nanoTime() >= sceneDeadline) { return physicalRefusal(group, "WAIT_ROUTE_TIME_BUDGET"); }
             final var anchor = inspection.topology().findAnchor(group.anchorId()).orElse(null);
             if (anchor == null) { return physicalRefusal(group, "WAIT_ROUTE_ANCHOR"); }
             final var point = anchor.point();
@@ -245,7 +248,7 @@ final class PhantomCoordination130Native
                 final var state = states.get(member.profileId());
                 if (state == null || state.progress().level() != levels.get(index)) { return physicalRefusal(group, "WAIT_AUTHORITY_" + member.profileId()); }
                 if (World.getInstance().findObject(state.identity().characterObjectId()) != null) { return physicalRefusal(group, "WAIT_NATIVE_OWNER_" + member.profileId()); }
-                if (!loadedItinerary(inspection, state, group.objective(), sceneDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
+                if (!loadedItinerary(inspection, state, group.objective(), attemptDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
             }
             final int npc = Integer.parseInt(group.objective().key().split("@")[0]);
             final var band = PhantomPartyFarmEligibility.forRoster(levels).orElse(null);
@@ -259,9 +262,9 @@ final class PhantomCoordination130Native
             final var approach = loadedAnchor(inspection, group.anchorId(), states.get(group.leaderProfileId()).position().heading());
             if (mobs.isEmpty()) { return physicalRefusal(group, "WAIT_LIVE_SPAWN"); }
             return approach != null && mobs.stream().anyMatch(mob -> loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(),
-                approach, new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()), sceneDeadline))
+                approach, new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()), attemptDeadline))
                 || physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS");
-        };
+        }).orElseGet(() -> physicalRefusal(group, "WAIT_ROUTE_TIME_BUDGET"));
         final PhantomLogicalParty result;
         try
         {
@@ -306,6 +309,30 @@ final class PhantomCoordination130Native
     {
         System.out.println("NATIVE130_PROPOSAL_REFUSED group=" + group.groupId() + " source=" + group.objective().key() + " roster=" + group.members() + " reason=" + reason);
         return false;
+    }
+
+    /** A slow read-only Geo call cannot hold the commissioning thread or spend the next offer's time. */
+    static Optional<Boolean> physicalProofWithin(long sceneDeadline, long maximumAttemptNanos, java.util.function.LongPredicate proof)
+    {
+        final long now = System.nanoTime();
+        final long slice = Math.min(maximumAttemptNanos, (sceneDeadline - now) / 2);
+        if (slice <= 0) { return Optional.empty(); }
+        final long deadline = now + slice;
+        final var work = new FutureTask<>(() -> proof.test(deadline));
+        Thread.startVirtualThread(work);
+        try
+        {
+            final boolean result = work.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+            return System.nanoTime() < deadline ? Optional.of(result) : Optional.empty();
+        }
+        catch (TimeoutException expired) { return Optional.empty(); }
+        catch (InterruptedException interrupted)
+        {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("NATIVE130_PHYSICAL_PROOF_INTERRUPTED", interrupted);
+        }
+        catch (ExecutionException failure) { throw new IllegalStateException("NATIVE130_PHYSICAL_PROOF_FAILED", failure.getCause()); }
+        finally { work.cancel(true); }
     }
     private static void publishPreflightAgreement(Path evidence, Path cut, Path agreementFile, String jarHash, PhantomProfileRepository profiles,
         PhantomLogicalPartyCoordinator logical, PhantomLogicalParty expected) throws Exception
@@ -436,6 +463,7 @@ final class PhantomCoordination130Native
     /** Probe one declared connector through the existing native bounded WALK episode planner. */
     private static boolean loadedRoute(String label, long id, PhantomNavigationPoint from, PhantomNavigationPoint to, long deadline)
     {
+        if (Thread.currentThread().isInterrupted() || System.nanoTime() >= deadline) { return false; }
         final var geo = GeoEngine.getInstance();
         if (!geo.hasGeo(from.x(), from.y()) || !geo.hasGeo(to.x(), to.y()))
         {
@@ -451,7 +479,7 @@ final class PhantomCoordination130Native
         {
             final long now = System.nanoTime();
             final int remaining = (int) Math.floor(policy.maximumRouteDistance() - distance);
-            if (now >= deadline || remaining <= 0 || !visited.add(current)) { break; }
+            if (Thread.currentThread().isInterrupted() || now >= deadline || remaining <= 0 || !visited.add(current)) { break; }
             final var request = new PhantomNavigationRequest(id, current, to, now, Math.min(deadline, now + policy.defaultRequestDeadlineNanos()), remaining);
             final var proof = navigation.findWalkEpisode(request, new PhantomNavigationCancellationToken(), policy, System::nanoTime, navigation, visited);
             System.out.println("NATIVE130_PREFLIGHT_GEO profile=" + id + " connector=" + label + " episode=" + episode + " status=" + proof.status()
@@ -459,7 +487,7 @@ final class PhantomCoordination130Native
             if (proof.status() != PhantomWalkCorridorPlanner.Status.FOUND || proof.points().isEmpty()) { return false; }
             for (var point : proof.points()) { distance += current.distanceTo(point); current = point; }
         }
-        final boolean arrived = current.equals(to) && distance <= policy.maximumRouteDistance();
+        final boolean arrived = !Thread.currentThread().isInterrupted() && System.nanoTime() < deadline && current.equals(to) && distance <= policy.maximumRouteDistance();
         if (!arrived) { System.out.println("NATIVE130_PREFLIGHT_GEO profile=" + id + " connector=" + label + " status=WAIT_ROUTE_BUDGET"); }
         return arrived;
     }
