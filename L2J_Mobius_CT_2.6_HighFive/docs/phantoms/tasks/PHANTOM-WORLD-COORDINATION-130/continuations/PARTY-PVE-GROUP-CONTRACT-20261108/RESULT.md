@@ -405,3 +405,26 @@ Recovery MODEL проверяет отказ по исключению callback,
 Startup разрешает Ecology завершить сохранённое окно и удерживает новые календарные окна до физического proof. Это важно для TEST130, где сохранённые окна отставали примерно на 33 часа. Существующий тест восстановления до и после durable commit теперь проверяет, что дополнительное календарное время обрабатывается только после открытия gate. Scope этого среза ограничен 11 файлами существующих owners, их целевых тестов, Runner и этого отчёта. Конфигурация, маршруты, боевые формулы и SQL schema не менялись.
 
 Read-only preflight TEST130 подтвердил G0 PID 8692, точный SQL principal и provenance, Geo203 и protected207, отсутствие своего JVM и слушателей. У обоих исходных участников level 76, расписание ACTIVE, consent true, незавершённых STORE или commerce нет. Сохранённая группа к этому моменту прошла свой срок assembly. Оба PENDING по-прежнему содержат прежние requestId и нулевой intervalOrdinal. SQL F7 прошёл из каталога собственного runtime. Снимки до и после F7 совпали по всем 98 строкам managed-профилей и их компонентов.
+
+## Второй bootstrap на 74b109f63
+
+Clean JAR SHA-256 `46e0437859939756df1f5f1a60159dd6d4d1f41d29cac220bc2e05642627cbc9` собран на `74b109f63e5d695f972e9661b927a06bc06c9fcb`, tree `5192c37cb69ddeba784a641870e877eece5e8ba1`. Совпали 4755 из 4755 классов и четыре зависимости. Отдельно скомпилированы 468 тестовых исходников. `javap` и GameServer подтвердили происхождение Runner из фиксированного test bin. MODEL на этом JAR прошёл 67/67, целевой Ecology 6/6. Перед сборкой на тех же исходниках Scheduler 37/37, local priority 3/3, Party lifecycle 34/34 и F8 static 14/14.
+
+PID 52352 начал recovery и прошёл прежний `catchup.claim.conflict`. Оба claim исходной группы того же groupId и generation 1 сменили `active=true` на `active=false`. Обе execution-строки стали `execution.solo ACTIVE`, generation 8, row 25. Сохранились прежние Catchup requestId и Goal ID. Для 69 и morning 85/79/86 изменились только версии execution-компонентов.
+
+| Профиль | Фактический итог штатного recovery |
+|---|---|
+| 70 | `FAILED_REPLAN_REQUIRED/model.resource_reserve`. Окно 29902196–29902200, cursor 29902196, intervalOrdinal 0. EXP 931275828, SP 0 и 50000 адены сохранились. |
+| 72 | `COMPLETE`. Окно 29902245–29902260 завершило 15 интервалов с тем же requestId. Сохранённый Background `DEAD`. EXP 931275828 → 925934810, SP 0 → 26920, адена 50000 → 106010. Эти изменения записал штатный Background owner в рамках принятого окна. |
+
+Второй запуск остановился по `NATIVE130_STARTUP_RECOVERY_DEADLINE` до нового предложения источника или CAS. A–C подтверждены MODEL, SQL и Geo. По D сохранились предыдущие сведения о ролях и learned Heal, полный D01–D02 и фактические D03–D05 остаются открыты. По E первая попытка доказала точную LogicalParty с 0 native Player. Материализация состава для игры, stock Party, damage, kill, групповой EXP/SP/loot, Heal, групповой STORE и RESTART не достигнуты.
+
+GameServer штатно отключил и сохранил игроков, закрыл Hikari и вернул 0. Launcher классифицировал вертикаль как `TEST130_VERTICAL_FAILED`, exit 1. Postflight подтвердил SQL provenance, восстановление master-флага в False, protected207 и Geo203. Осталось 0 своих JVM и слушателей. Сохранены полные `startup130.52352.before.txt` и `startup130.52352.after.txt`, raw stdout/stderr и read-only SQL обоих сцен. Текущий knowledge hash для 70/72 стал `602265cad18db18964affe26a182dd4f0e6238941848f17559db9cffe49fb770`. Причина отличия между запусками UNKNOWN.
+
+Системное препятствие находится на переходе от recovery к formation. Штатное истечение прежней группы возвращает execution в Solo. Historical Background затем обрабатывает индивидуальное окно. Он сохраняет `model.resource_reserve` как терминальный `FAILED_REPLAN_REQUIRED`, а Ecology перестаёт ставить это окно в очередь. Startup ждёт готовности двух участников перед proof. Таким образом, индивидуальный исход фонового окна сейчас закрывает допуск к групповой проверке. Точная внутренняя ветка resource reserve в raw evidence отсутствует.
+
+Для пересмотра приёмки требуется отдельно доказать безопасное владение точным сохранённым окном и готовность к первому боевому действию. Разрешённый штатный native-context handoff может быть применим после отдельной проверки причины, сохранности requestId, cursor, receipts и восстановления умершего через существующего owner. Новый CAS и Combat по-прежнему требуют своих proof и guards. Дешёвый сценарий должен воспроизвести просроченную группу, терминальный Solo reserve и DEAD, подтвердить отсутствие повторной выплаты и пройти до законной проверки состава.
+
+Первая версия изолированного SQL fixture оставила тестовые claims 1083/1084 после того, как штатная проверка отклонила освобождение без подтверждённого execution checkpoint второго участника. Эти профили не входят в managed census. Исправленный отдельный fixture v2 доказал обе передачи и закрыл свои claims штатно. Raw evidence первого отказа сохранён.
+
+Расход текущей итерации 2 clean JAR, 2 GameServer bootstrap, 0 restart. Сборки заняли 25 и 21 с, процессы GameServer жили 330 и 287 с. Всего для продолжения 3 clean JAR, 4 bootstrap, 0 restart. TASK130 остаётся PARTIAL. TASK131–136 остаются NOT_STARTED, FULL 0/7 → 0/7.
