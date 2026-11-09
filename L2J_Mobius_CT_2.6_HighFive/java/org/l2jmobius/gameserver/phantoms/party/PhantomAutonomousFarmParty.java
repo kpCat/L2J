@@ -88,6 +88,18 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		_logical = java.util.Objects.requireNonNull(logical); _logicalDiscovery = java.util.Objects.requireNonNull(discovery); _logicalWake = java.util.Objects.requireNonNull(wake);
 		_logicalRetain = java.util.Objects.requireNonNull(retain);
 	}
+
+	public PhantomLogicalPartyCoordinator.Discovery previewLogicalParty(LogicalPage page, long now,
+		java.util.function.Predicate<PhantomLogicalPartyCoordinator.Discovery> physicalProof)
+	{
+		return _logical.previewDiscovery(page.candidates(), _seeking::seeks, now, physicalProof);
+	}
+
+	public java.util.Optional<PhantomPartyPersistencePort.StoredLogicalGroup> commitLogicalParty(PhantomLogicalPartyCoordinator.Discovery discovery)
+	{
+		return _logical.commitDiscovery(discovery, _seeking::seeks);
+	}
+
 	private void diagnostic(String phase, RuntimeException failure)
 	{
 		_lastFailure = phase + "." + failure.getClass().getSimpleName();
@@ -127,11 +139,11 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			_lastFailure = "";
 			final var page = _logicalDiscovery.apply(_logicalCursor, 16);
 			_logicalCursor = page.examinedProfileId();
-			final var discovery = _logical.previewDiscovery(page.candidates(), _seeking::seeks, now);
+			final var discovery = previewLogicalParty(page, now, null);
 			_logicalNextDiscoveryMillis = discovery.nextDueMillis();
 			if (discovery.proposal().isPresent())
 			{
-				if (_logical.commitDiscovery(discovery).isEmpty())
+				if (commitLogicalParty(discovery).isEmpty())
 				{
 					_logicalNextDiscoveryMillis = now + 1000;
 					_lastFailure = "WAIT_DISCOVERY_CHANGED nextDue=" + _logicalNextDiscoveryMillis;

@@ -161,7 +161,8 @@ final class PhantomCoordination130Native
         System.out.println("NATIVE130_AUTHORITY_DIAGNOSTIC_READ_ONLY profiles=" + ids + ";SQL_WRITES=0;CUT=false;MATERIALIZATION=false;GAMEPLAY=false");
     }
     private static PhantomLogicalParty inspectLoadedPlanner(Path runtime, PhantomProfileRepository profiles, List<Long> ids,
-        PhantomSystem.PlanningInspection inspection, boolean restart, Properties saved) throws Exception
+        PhantomSystem.PlanningInspection inspection, boolean restart, Properties saved,
+        java.util.function.Consumer<PhantomPartyPersistencePort.StoredLogicalGroup> committed) throws Exception
     {
         check(!PhantomSystem.hasConfiguredInstance(), "PREFLIGHT_BEFORE_EXECUTION");
         final var managed = inspection.managedPartyPage().apply(0L, 16).stream().map(entry -> entry.profile().profileId()).toList();
@@ -185,7 +186,7 @@ final class PhantomCoordination130Native
                 || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false)
                 || inspection.authorityRecovery().nativeIntentPending(id);
             final boolean consent = inspection.settings().partySeeking().seeks(id, state.progress().level());
-            final boolean eligible = population.state() == PhantomPopulationState.State.READY && population.catalogHash().equals(catalog.hash()) && calendar.state().requiresMaterialization()
+            final boolean eligible = population.state() == PhantomPopulationState.State.READY && calendar.state() != org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.SLEEPING
                 && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && (claim.isEmpty() || restart && claim.get().groupId().equals(saved.getProperty("group")))
                 && PhantomAutonomousFarmParty.ordinaryIntent(id, root);
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
@@ -217,42 +218,45 @@ final class PhantomCoordination130Native
         checkPreflightBudget(System.nanoTime() - recoveryStarted, true);
         final long sceneStarted = System.nanoTime(); final long now = System.currentTimeMillis();
         final var before = preflightWitness(profiles, ids, false);
-        final var states = new LinkedHashMap<Long, PhantomBackgroundState>(); final var candidates = new ArrayList<PhantomLogicalPartyCoordinator.Candidate>();
+        final var states = new LinkedHashMap<Long, PhantomBackgroundState>();
         for (long id : eligibleIds)
         {
             checkPreflightBudget(System.nanoTime() - sceneStarted, false);
             final var population = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
-            check(catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), inspection.settings().populationTimeZone(), population.schedulePhaseMinutes()).state().requiresMaterialization(), "PREFLIGHT_CALENDAR_CHANGED_" + id);
+            check(catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), inspection.settings().populationTimeZone(), population.schedulePhaseMinutes()).state() != org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.SLEEPING, "PREFLIGHT_CALENDAR_CHANGED_" + id);
             final var restored = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
             inspectAuthority(id, restored.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
-            final var candidate = inspection.authorityRecovery().previewLogicalRendezvous(id, inspection.decision(),
-                () -> catalog.evaluate(population.scheduleTemplate(), Instant.now(), inspection.settings().populationTimeZone(), population.schedulePhaseMinutes()).state().requiresMaterialization());
-            check(candidate != null, "PREFLIGHT_DURABLE_CANDIDATE_" + id);
-            final var sources = candidate.sourcesMatching().apply(_ -> true);
-            System.out.println("NATIVE130_PREFLIGHT_SOURCES id=" + id + " count=" + sources.size() + " first4=" + sources.stream().limit(4).toList());
             states.put(id, restored);
-            candidates.add(candidate);
         }
         final long sceneDeadline = sceneStarted + TimeUnit.SECONDS.toNanos(30);
-        final java.util.function.Predicate<PhantomLogicalParty> physical = group ->
+        final java.util.function.BiPredicate<PhantomLogicalParty, List<Integer>> physical = (group, levels) ->
         {
-            final var point = inspection.topology().findAnchor(group.anchorId()).orElseThrow().point();
-            for (var member : group.members())
+            if (System.nanoTime() >= sceneDeadline) { return physicalRefusal(group, "WAIT_ROUTE_TIME_BUDGET"); }
+            final var anchor = inspection.topology().findAnchor(group.anchorId()).orElse(null);
+            if (anchor == null) { return physicalRefusal(group, "WAIT_ROUTE_ANCHOR"); }
+            final var point = anchor.point();
+            for (int index = 0; index < group.members().size(); index++)
             {
-                if (!loadedItinerary(inspection, states.get(member.profileId()), group.objective(), sceneDeadline)) { return false; }
+                final var member = group.members().get(index);
+                final var state = states.get(member.profileId());
+                if (state == null || state.progress().level() != levels.get(index)) { return physicalRefusal(group, "WAIT_AUTHORITY_" + member.profileId()); }
+                if (World.getInstance().findObject(state.identity().characterObjectId()) != null) { return physicalRefusal(group, "WAIT_NATIVE_OWNER_" + member.profileId()); }
+                if (!loadedItinerary(inspection, state, group.objective(), sceneDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
             }
             final int npc = Integer.parseInt(group.objective().key().split("@")[0]);
-            final var band = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(group.members().stream().map(member -> states.get(member.profileId()).progress().level()).toList()).orElse(null);
-            if (band == null) { return false; }
+            final var band = PhantomPartyFarmEligibility.forRoster(levels).orElse(null);
+            if (band == null) { return physicalRefusal(group, "WAIT_GROUP_LEVEL_BAND"); }
             final var spawns = org.l2jmobius.gameserver.data.SpawnTable.getInstance().getSpawns(npc);
-            final var mobs = spawns.stream().flatMap(spawn -> spawn.getSpawnedNpcs().stream()).filter(actor -> actor instanceof Monster && !actor.isDead() && !actor.isRaid()
-                && actor.isTargetable() && band.contains(actor.getLevel()) && World.getInstance().findObject(actor.getObjectId()) == actor
+            final var mobs = spawns.stream().flatMap(spawn -> spawn.getSpawnedNpcs().stream()).filter(actor -> actor instanceof Monster && !actor.isAlikeDead() && !actor.isRaid()
+                && !actor.isInvul() && actor.isTargetable() && actor.isSpawned() && band.contains(actor.getLevel()) && World.getInstance().findObject(actor.getObjectId()) == actor
                 && inspection.planner().partyNativeTarget(group.objective(), actor.getId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId())))
                 .sorted(Comparator.comparingDouble(actor -> Math.hypot((long) actor.getX() - point.x(), (long) actor.getY() - point.y()))).limit(4).toList();
             System.out.println("NATIVE130_PREFLIGHT_STOCK_SPAWN npc=" + npc + " configured=" + spawns.size() + " nearbyLive=" + mobs.size());
             final var approach = loadedAnchor(inspection, group.anchorId(), states.get(group.leaderProfileId()).position().heading());
-            return mobs.stream().anyMatch(mob -> loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(),
-                approach, new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()), sceneDeadline));
+            if (mobs.isEmpty()) { return physicalRefusal(group, "WAIT_LIVE_SPAWN"); }
+            return approach != null && mobs.stream().anyMatch(mob -> loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(),
+                approach, new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()), sceneDeadline))
+                || physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS");
         };
         final PhantomLogicalParty result;
         try
@@ -261,23 +265,59 @@ final class PhantomCoordination130Native
             if (restart)
             {
                 final var row = currentAgreement(coordinator, ids, now).orElseThrow(() -> new IllegalStateException("NATIVE130_RESTART_GROUP_NOT_CURRENT"));
-                check(row.group().groupId().equals(saved.getProperty("group")) && row.group().members().stream().allMatch(member -> candidates.stream().anyMatch(candidate -> candidate.member().profileId() == member.profileId() && candidate.reachable().test(row.group().objective())
-                    && PhantomPartyFarmEligibility.compatibleRole(member.role(), candidate.member().role()))), "RESTART_CURRENT_SOURCE_PROOF");
+                check(row.group().groupId().equals(saved.getProperty("group")) && row.group().members().stream().allMatch(member ->
+                {
+                    final var state = states.get(member.profileId());
+                    return state != null && inspection.planner().partySourceAvailable(state, row.group().objective(), Set.of())
+                        && PhantomPartyFarmEligibility.compatibleRole(member.role(), inspection.authorityRecovery().potentialPartyRole(member.profileId(), state));
+                }), "RESTART_CURRENT_SOURCE_PROOF");
                 result = row.group();
+                check(physical.test(result, result.members().stream().map(member -> states.get(member.profileId()).progress().level()).toList()), "PREFLIGHT_SELECTED_SOURCE_PHYSICAL_" + result.objective().key());
             }
             else
             {
-                final var discovery = coordinator.previewDiscovery(candidates, inspection.settings().partySeeking()::seeks, now);
+                final var discovery = inspection.partyOffer().apply(offer ->
+                {
+                    final var group = offer.proposal().orElseThrow();
+                    for (var member : group.members())
+                    {
+                        final var observed = states.get(member.profileId());
+                        if (observed == null || offer.guards().stream().filter(guard -> guard.profileId() == member.profileId() && guard.componentType().equals(PhantomBackgroundState.COMPONENT_TYPE))
+                            .noneMatch(guard -> new PhantomBackgroundStateCodec().decode(guard.payload()).equals(observed)))
+                        { return physicalRefusal(group, "WAIT_AUTHORITY_CHANGED_" + member.profileId()); }
+                    }
+                    return physical.test(group, offer.levels());
+                }, committed);
                 System.out.println("NATIVE130_DISCOVERY status=" + discovery.status() + " nextDue=" + discovery.nextDueMillis());
-                result = discovery.proposal().orElseThrow(() -> new IllegalStateException("NATIVE130_" + discovery.status()));
+                result = discovery.proposal().orElseThrow(() -> new IllegalStateException("NATIVE130_" + discovery.status() + " nextDue=" + discovery.nextDueMillis()));
             }
             System.out.println("NATIVE130_SELECTED_SOURCE objective=" + result.objective() + " roster=" + result.members());
-            check(physical.test(result), "PREFLIGHT_SELECTED_SOURCE_PHYSICAL_" + result.objective().key());
         }
         finally { verifySceneWitness(before, preflightWitness(profiles, ids, false)); }
         checkPreflightBudget(System.nanoTime() - sceneStarted, false);
         System.out.println("NATIVE130_PREFLIGHT_PHYSICAL_PROVED objective=" + result.objective() + " members=" + result.members() + " RECOVERY_WRITES=CANONICAL_ONLY SCENE_SQL_WRITES=0 SAME_PRODUCTION_PLANNER=true recoveryMillis=" + TimeUnit.NANOSECONDS.toMillis(sceneStarted - recoveryStarted) + " sceneMillis=" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - sceneStarted));
         return result;
+    }
+    private static boolean physicalRefusal(PhantomLogicalParty group, String reason)
+    {
+        System.out.println("NATIVE130_PROPOSAL_REFUSED group=" + group.groupId() + " source=" + group.objective().key() + " roster=" + group.members() + " reason=" + reason);
+        return false;
+    }
+    private static void publishPreflightAgreement(Path evidence, Path cut, Path agreementFile, String jarHash, PhantomProfileRepository profiles,
+        PhantomLogicalPartyCoordinator logical, PhantomLogicalParty expected) throws Exception
+    {
+        final var ids = expected.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
+        final var stored = currentAgreement(logical, ids, System.currentTimeMillis()).orElseThrow(() -> new IllegalStateException("NATIVE130_NO_ORDINARY_AGREEMENT"));
+        check(stored.group().equals(expected), "AGREEMENT_READBACK_DIFFERS_FROM_PHYSICAL_PROPOSAL");
+        for (long id : ids)
+        {
+            check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ORDINARY_AGREEMENT_ZERO_WORLD_PROOF");
+        }
+        if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
+        write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + expected.objective()
+            + "\nAUTHORITY_PREPARATION=CANONICAL_NATIVE_STORE_READBACK\nGAMEPLAY_FIXTURE_WRITES=0\n");
+        write(agreementFile, "group=" + expected.groupId() + "\nprofiles=" + ids + "\nobjective=" + expected.objective() + "\nzeroWorld=true\n");
+        System.out.println("NATIVE130_PREFLIGHT_PASS objective=" + expected.objective() + " roster=" + expected.members() + " group=" + expected.groupId() + " version=" + stored.rowVersion());
     }
     static org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result preparePreflightAuthority(
         PhantomProfileRepository profiles, long id, java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result> preparation) throws Exception
@@ -358,10 +398,11 @@ final class PhantomCoordination130Native
         if (!itinerary.available()) { return false; }
         final var position = state.position();
         var from = loadedAnchor(inspection, itinerary.departureAnchorId(), position.heading());
-        if (!loadedRoute("ingress", id, navigationPoint(position), from, deadline)) { return false; }
+        if (from == null || !loadedRoute("ingress", id, navigationPoint(position), from, deadline)) { return false; }
         for (var step : itinerary.steps())
         {
             final var to = loadedAnchor(inspection, step.toAnchorId(), position.heading());
+            if (to == null) { return false; }
             if (step.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER)
             {
                 final var leg = step.gatekeeper();
@@ -382,7 +423,7 @@ final class PhantomCoordination130Native
     private static PhantomNavigationPoint loadedAnchor(PhantomSystem.PlanningInspection inspection, String id, int heading)
     {
         return inspection.topology().findAnchor(id).flatMap(anchor -> L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading))
-            .map(PhantomCoordination130Native::navigationPoint).orElseThrow(() -> new IllegalStateException("NATIVE130_PREFLIGHT_ANCHOR_UNPROVEN_" + id));
+            .map(PhantomCoordination130Native::navigationPoint).orElse(null);
     }
 
     private static PhantomNavigationPoint navigationPoint(PhantomBackgroundState.Position position)
@@ -540,6 +581,7 @@ final class PhantomCoordination130Native
             Files.writeString(config, disabled.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"));
             PhantomPlayersConfig.load();
             final var inspectionIds = ids; final var proved = new java.util.concurrent.atomic.AtomicReference<PhantomLogicalParty>();
+            final Path agreementFile = evidence.resolve("agreement130." + ProcessHandle.current().pid());
             final var enabled = PhantomSystem.operatorEnable(inspection ->
             {
                 try
@@ -553,7 +595,15 @@ final class PhantomCoordination130Native
                     final Path beforeWitness = evidence.resolve(witnessName + ".before.txt");
                     final Path afterWitness = evidence.resolve(witnessName + ".after.txt");
                     savePreflightWitness(beforeWitness, profiles, inspectionIds, inspection);
-                    try { proved.set(inspectLoadedPlanner(runtime, profiles, inspectionIds, inspection, restart, saved)); }
+                    try
+                    {
+                        proved.set(inspectLoadedPlanner(runtime, profiles, inspectionIds, inspection, restart, saved, row ->
+                        {
+                            check(row.group().equals(proved.get()), "AGREEMENT_DIFFERS_FROM_PHYSICAL_PROPOSAL");
+                            try { publishPreflightAgreement(evidence, cut, agreementFile, jarHash, profiles, logical, row.group()); }
+                            catch (Exception failure) { throw new IllegalStateException(failure.getMessage(), failure); }
+                        }));
+                    }
                     catch (Exception | Error refusal)
                     {
                         try { savePreflightWitness(afterWitness, profiles, inspectionIds, inspection); }
@@ -562,35 +612,24 @@ final class PhantomCoordination130Native
                     }
                     savePreflightWitness(afterWitness, profiles, inspectionIds, inspection);
                     check(!Boolean.getBoolean("phantom.task130.authorityOnly"), "AUTHORITY_DIAGNOSTIC_COMPLETE");
-                    if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
-                    write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + proved.get().objective() + "\nAUTHORITY_PREPARATION=CANONICAL_NATIVE_STORE_READBACK\nGAMEPLAY_FIXTURE_WRITES=0\n");
+                    if (restart) { publishPreflightAgreement(evidence, cut, agreementFile, jarHash, profiles, logical, proved.get()); }
                 }
                 catch (Exception failure) { throw new IllegalStateException(failure.getMessage(),failure); }
             });
             System.out.println("NATIVE130_ENABLE=" + enabled);
             check(enabled.runtimeConfigured() && enabled.runtimeState() == PhantomSystem.State.RUNNING, "SYSTEM_START_" + enabled.code());
-            check(proved.get() != null, "PRODUCTION_PREFLIGHT_REQUIRED");
-            ids = proved.get().members().stream().map(PhantomLogicalParty.Member::profileId).toList();
-            final long agreementUntil = Math.min(deadline, System.currentTimeMillis() + 30_000);
-            var agreement = currentAgreement(logical, ids, System.currentTimeMillis());
-            while (agreement.isEmpty() && System.currentTimeMillis() < agreementUntil)
-            { Thread.sleep(200); agreement = currentAgreement(logical, ids, System.currentTimeMillis()); }
-            final var before = agreement.orElseThrow(() -> new IllegalStateException("NATIVE130_NO_ORDINARY_AGREEMENT"));
-            check(before.group().objective().equals(proved.get().objective()), "CURRENT_ORDINARY_SOURCE_MATCHES_PREFLIGHT");
-            check(before.group().leaderProfileId() == proved.get().leaderProfileId() && before.group().members().equals(proved.get().members()), "CURRENT_ORDINARY_ROSTER_MATCHES_PREFLIGHT");
-            System.out.println("NATIVE130_PREFLIGHT_PASS objective=" + before.group().objective() + " roster=" + before.group().members());
-            check(!restart || before.group().groupId().equals(saved.getProperty("group")), "RESTART_SAME_GROUP");
-            ids = before.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList();
-            for (long id : ids) { check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ORDINARY_AGREEMENT_ZERO_WORLD_PROOF"); }
-            write(evidence.resolve("agreement130." + ProcessHandle.current().pid()), "group=" + before.group().groupId() + "\nprofiles=" + ids + "\nobjective=" + before.group().objective() + "\nzeroWorld=true\n");
-            observe(runtime, profiles, ids, before.group().groupId(), restart, deadline);
+            final var before = proved.get();
+            check(before != null && Files.isRegularFile(agreementFile), "PRODUCTION_PREFLIGHT_AGREEMENT_REQUIRED");
+            check(!restart || before.groupId().equals(saved.getProperty("group")), "RESTART_SAME_GROUP");
+            ids = before.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
+            observe(runtime, profiles, ids, before.groupId(), restart, deadline);
             verifyExistingHumanHeal(runtime, jarHash);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
             while (PhantomSystem.hasConfiguredInstance() && PhantomSystem.configuredShutdownSnapshot().systemState() != PhantomSystem.State.STOPPED && System.nanoTime() < until) { Thread.sleep(200); }
             check(ids.stream().allMatch(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId()) == null), "ZERO_WORLD_AFTER_STORE");
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
-            check(after.group().groupId().equals(before.group().groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
+            check(after.group().groupId().equals(before.groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
             if (!restart) { write(evidence.resolve("native130.persisted"), persisted(profiles, ids)); }
             write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\npid=" + ProcessHandle.current().pid() + "\n");
             Files.writeString(config, disabled);

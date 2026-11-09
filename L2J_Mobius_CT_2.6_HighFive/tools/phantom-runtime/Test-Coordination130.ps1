@@ -106,8 +106,8 @@ if($Action -in @('artifact-check','native','restart')){
     }
     $missing=@()
     $accessors=[ordered]@{
-        decision='()Lorg/l2jmobius/gameserver/phantoms/decision/PhantomDecisionEngine;'
         managedPartyPage='()Ljava/util/function/BiFunction;'
+        partyOffer='()Ljava/util/function/BiFunction;'
     }
     foreach($method in $accessors.Keys){
         $descriptor=[regex]::Escape($accessors[$method])

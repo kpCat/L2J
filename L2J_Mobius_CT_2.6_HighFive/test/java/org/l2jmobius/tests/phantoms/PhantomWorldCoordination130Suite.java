@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.ModelKind;
@@ -22,6 +23,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
 /** Zero-Player contracts; real SQL and native acceptance are separate gates. */
@@ -231,7 +233,7 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			final var stale = changed.previewDiscovery(liveCandidates, (_, _) -> true, 1000);
 			PhantomAssertions.assertTrue(stale.proposal().isPresent(), "Stale-route control did not select a valid initial proposal.");
 			reachable.set(false);
-			PhantomAssertions.assertTrue(changed.commitDiscovery(stale).isEmpty() && changedStore.claims.isEmpty() && changedStore.groups.isEmpty(), "A changed route committed durable state.");
+			PhantomAssertions.assertTrue(changed.commitDiscovery(stale, (_, _) -> true).isEmpty() && changedStore.claims.isEmpty() && changedStore.groups.isEmpty(), "A changed route committed durable state.");
 		});
 		registry.add("changed-role-refuses-formation-even-with-current-sql-guards", _ ->
 		{
@@ -245,7 +247,7 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			final var preview = owner.previewDiscovery(candidates, (_, _) -> true, 1000);
 			PhantomAssertions.assertTrue(preview.proposal().isPresent() && preview.guards().size() == 2, "The guarded control did not select a roster.");
 			roleCurrent.set(false);
-			PhantomAssertions.assertTrue(owner.commitDiscovery(preview).isEmpty() && store.groups.isEmpty() && store.claims.isEmpty(), "Unchanged SQL component guards hid a changed role.");
+			PhantomAssertions.assertTrue(owner.commitDiscovery(preview, (_, _) -> true).isEmpty() && store.groups.isEmpty() && store.claims.isEmpty(), "Unchanged SQL component guards hid a changed role.");
 			roleCurrent.set(true);
 			PhantomAssertions.assertTrue(owner.discover(candidates, (_, _) -> true, 2000).isPresent() && store.claims.size() == 2, "The current role did not permit a guarded formation.");
 		});
@@ -258,9 +260,52 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			final var owner = new PhantomLogicalPartyCoordinator(store);
 			final var wait = owner.previewDiscovery(candidates, (_, _) -> true, 1000);
 			PhantomAssertions.assertEquals(PhantomLogicalPartyCoordinator.DiscoveryStatus.WAIT_DISCOVERY_BUDGET, wait.status(), "Exhaustion lost its typed wait.");
-			PhantomAssertions.assertTrue(wait.nextDueMillis() > 1000 && owner.commitDiscovery(wait).isEmpty() && store.claims.isEmpty() && store.groups.isEmpty(), "A bounded wait wrote or failed to schedule a future round.");
+			PhantomAssertions.assertTrue(wait.nextDueMillis() > 1000 && owner.commitDiscovery(wait, (_, _) -> true).isEmpty() && store.claims.isEmpty() && store.groups.isEmpty(), "A bounded wait wrote or failed to schedule a future round.");
 			final var later = owner.discover(List.of(), (_, _) -> true, wait.nextDueMillis()).orElseThrow();
 			PhantomAssertions.assertEquals(source, later.group().objective(), "A bounded wait starved the next leader window.");
+		});
+		registry.add("physical-proof-fallback-commits-only-the-exact-proposal-and-bounds-rejection", _ ->
+		{
+			final var sources = LongStream.rangeClosed(1, 12).mapToObj(index -> new PhantomDomainRef("background.farm", (20000 + index) + "@farm." + index)).toList();
+			final var candidates = group(1, 2).members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76, sources, sources::contains, () -> true)).toList();
+			final var store = new MemoryStore();
+			final var owner = new PhantomLogicalPartyCoordinator(store);
+			final var consent = new AtomicBoolean(true);
+			final var seen = new java.util.ArrayList<PhantomLogicalPartyCoordinator.Discovery>();
+			final var selected = owner.previewDiscovery(candidates, (_, _) -> consent.get(), 1000, proposal ->
+			{
+				PhantomAssertions.assertTrue(store.groups.isEmpty() && store.claims.isEmpty(), "The physical callback observed a durable reservation.");
+				seen.add(proposal);
+				return proposal.proposal().orElseThrow().objective().equals(sources.get(1));
+			});
+			PhantomAssertions.assertEquals(List.of(sources.getFirst(), sources.get(1)), seen.stream().map(proposal -> proposal.proposal().orElseThrow().objective()).toList(), "The owner did not try the next source in order.");
+			PhantomAssertions.assertTrue(selected == seen.getLast(), "The owner returned a different proposal from the one physically proved.");
+			PhantomAssertions.assertEquals(List.of(76, 76), selected.levels(), "The proof did not carry exact roster levels.");
+			consent.set(false);
+			PhantomAssertions.assertTrue(owner.commitDiscovery(selected, (_, _) -> consent.get()).isEmpty() && store.groups.isEmpty() && store.claims.isEmpty(), "Changed consent committed the physically proved proposal.");
+			consent.set(true);
+			final var accepted = owner.previewDiscovery(candidates, (_, _) -> true, 2000, proof -> proof.proposal().orElseThrow().objective().equals(sources.get(1)));
+			PhantomAssertions.assertEquals(accepted.proposal().orElseThrow(), owner.commitDiscovery(accepted, (_, _) -> true).orElseThrow().group(), "The CAS did not persist the same source, roster and group ID.");
+			final var emptyStore = new MemoryStore();
+			final var bounded = new PhantomLogicalPartyCoordinator(emptyStore);
+			final var checks = new java.util.concurrent.atomic.AtomicInteger();
+			final var exhausted = bounded.previewDiscovery(candidates, (_, _) -> true, 1000, _ -> { checks.incrementAndGet(); return false; });
+			PhantomAssertions.assertEquals(PhantomLogicalPartyCoordinator.DiscoveryStatus.WAIT_PHYSICAL_PROOF_BUDGET, exhausted.status(), "An exhausted physical proof budget lost its typed reason.");
+			PhantomAssertions.assertTrue(checks.get() == 8 && exhausted.nextDueMillis() > 1000 && bounded.commitDiscovery(exhausted, (_, _) -> true).isEmpty() && emptyStore.claims.isEmpty() && emptyStore.groups.isEmpty(), "Physical exhaustion leaked writes or ignored its finite budget.");
+		});
+		registry.add("pre-registration-proof-and-scheduled-background-share-busy-authority", _ ->
+		{
+			final var presence = new PhantomPresenceRegistry(2);
+			final var owned = new AtomicBoolean(true);
+			presence.installExternalBusySource("test.owner", _ -> owned.get());
+			PhantomAssertions.assertEquals("offline", presence.busyReason(1), "Ordinary Presence admitted an unregistered profile.");
+			PhantomAssertions.assertEquals("test.owner", presence.busyReasonBeforeRegistration(1), "Startup ignored an existing owner.");
+			presence.schedule(1, PhantomActivityState.BACKGROUND);
+			PhantomAssertions.assertEquals(presence.busyReason(1), presence.busyReasonBeforeRegistration(1), "BACKGROUND used a different ownership gate.");
+			owned.set(false);
+			PhantomAssertions.assertEquals("none", presence.busyReason(1), "A free scheduled BACKGROUND member was excluded.");
+			presence.schedule(1, PhantomActivityState.SLEEPING);
+			PhantomAssertions.assertEquals("offline", presence.busyReasonBeforeRegistration(1), "Startup bypassed an already registered sleeping profile.");
 		});
 		registry.add("cold-expired-assembly-waits-for-solo-recovery-before-release-and-fresh-discovery", _ ->
 		{

@@ -185,6 +185,7 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyServ
 import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
@@ -239,8 +240,11 @@ public final class PhantomSystem
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
 	/** Observer gate over the same planner retained by ordinary execution; called before any scheduler pulse. */
 	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology,
-		PhantomPlayersConfig.Settings settings, PhantomHistoricalBackgroundService authorityRecovery, PhantomDecisionEngine decision,
-		java.util.function.BiFunction<Long, Integer, java.util.List<PhantomPopulationStore.ManagedSnapshot>> managedPartyPage) { }
+		PhantomPlayersConfig.Settings settings, PhantomHistoricalBackgroundService authorityRecovery,
+		java.util.function.BiFunction<Long, Integer, java.util.List<PhantomPopulationStore.ManagedSnapshot>> managedPartyPage,
+		java.util.function.BiFunction<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery>,
+			java.util.function.Consumer<org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup>,
+			org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery> partyOffer) { }
 	private final PhantomMetrics _metrics;
 	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
@@ -668,6 +672,7 @@ public final class PhantomSystem
 				_populationManager.presence().installExternalBusySource("party", _partyCoordinator::blocksBackground);
 				_populationManager.presence().installExternalBusySource("store", _phantomStoreService::blocksDecision);
 				_populationManager.presence().installExternalBusySource("action", profileId -> _materializationService.find(profileId).map(materialization -> materialization.admittedActionCount() > 0).orElse(false));
+				final var ecologyStore = new PhantomPopulationEcologyStore(productionProfiles);
 				if (_settings.ecologyEnabled())
 				{
 					final File ecologyCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-ecology-v1.xml");
@@ -675,7 +680,7 @@ public final class PhantomSystem
 					_populationEcology = new PhantomPopulationEcologyService(
 						ecologyCatalog,
 						populationCatalog,
-						new PhantomPopulationEcologyStore(productionProfiles),
+						ecologyStore,
 						_historicalBackgroundService,
 						profileId -> _materializationService.find(profileId).isPresent(),
 						profileId -> ecologySafetyBlock(profileId, productionGoals),
@@ -1054,20 +1059,42 @@ public final class PhantomSystem
 					}
 				});
 				final java.util.function.BiFunction<Long, Integer, java.util.List<PhantomPopulationStore.ManagedSnapshot>> managedPartyPage = populationStore::loadManagedAfter;
-				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) ->
+				final java.util.function.BiFunction<java.util.List<PhantomPopulationStore.ManagedSnapshot>, Boolean, PhantomAutonomousFarmParty.LogicalPage> logicalPage = (page, beforeRegistration) ->
 				{
-					final var page = managedPartyPage.apply(after, limit);
 					final var candidates = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate>();
 					for (var entry : page)
 					{
 						final long id = entry.profile().profileId();
-						final java.util.function.BooleanSupplier eligible = () -> _populationManager.admissionProfile(id).map(fact -> fact.calendarOnline() && fact.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).orElse(false)
-							&& "none".equals(_populationManager.presence().busyReason(id));
-						final var candidate = _historicalBackgroundService.previewLogicalRendezvous(id, _decisionEngine, eligible);
+						final var population = entry.state();
+						if (population.state() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) { continue; }
+						final var guards = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>();
+						guards.add(entry.component());
+						if (beforeRegistration && _settings.ecologyEnabled())
+						{
+							final var ecology = ecologyStore.load(id).orElse(null);
+							if (ecology != null && ecology.state().disposition() != PhantomPopulationEcologyState.Disposition.MANAGED) { continue; }
+							if (ecology != null)
+							{
+								final var row = productionProfiles.findComponent(id, PhantomPopulationEcologyState.COMPONENT_TYPE).filter(value -> value.rowVersion() == ecology.rowVersion());
+								if (row.isEmpty()) { continue; }
+								guards.add(row.get());
+							}
+						}
+						final java.util.function.BooleanSupplier eligible = () ->
+						{
+							if (populationCatalog.evaluate(population.scheduleTemplate(), java.time.Instant.now(), _settings.populationTimeZone(), population.schedulePhaseMinutes()).state() == PhantomActivityState.SLEEPING)
+							{ return false; }
+							final var presence = _populationManager.presence();
+							return beforeRegistration ? _materializationService.find(id).isEmpty() && "none".equals(presence.busyReasonBeforeRegistration(id))
+								: _populationManager.admissionProfile(id).filter(fact -> fact.calendarOnline() && fact.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).isPresent()
+									&& "none".equals(presence.busyReason(id));
+						};
+						final var candidate = _historicalBackgroundService.previewLogicalRendezvous(id, _decisionEngine, eligible, guards);
 						if (candidate != null) { candidates.add(candidate); }
 					}
 					return new PhantomAutonomousFarmParty.LogicalPage(candidates, page.isEmpty() ? 0 : page.getLast().profile().profileId());
-				}, this::requestLogicalWake, group -> !logicalGroupMayDrain(group));
+				};
+				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) -> logicalPage.apply(managedPartyPage.apply(after, limit), false), this::requestLogicalWake, group -> !logicalGroupMayDrain(group));
 				_historicalBackgroundService.bindLogicalGroups(id -> _logicalParties.knownGroupFor(id).map(row -> row.group()), id -> _logicalParties.groupFor(id));
 				_visibleFarmTravel.bindGroupTravelSafety((id, root) -> _logicalParties.knownGroupFor(id)
 					.map(row -> row.group().assemblyPending(id, root.goalId(), root.revision(), System.currentTimeMillis())).orElse(false));
@@ -1130,7 +1157,30 @@ public final class PhantomSystem
 						}
 					}
 				});
-				_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService, _decisionEngine, managedPartyPage));
+				final var inspected = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Discovery>();
+				final var onCommitted = new java.util.concurrent.atomic.AtomicReference<java.util.function.Consumer<org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup>>();
+				final Thread inspectionThread = Thread.currentThread();
+				final var inspectionOpen = new java.util.concurrent.atomic.AtomicBoolean(true);
+				try
+				{
+					_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService, managedPartyPage, (proof, committed) ->
+					{
+						if (Thread.currentThread() != inspectionThread || !inspectionOpen.get() || !onCommitted.compareAndSet(null, Objects.requireNonNull(committed)))
+						{ throw new IllegalStateException("Startup Party proof may be requested only once during inspection."); }
+						final var offer = autonomousFarm.previewLogicalParty(logicalPage.apply(managedPartyPage.apply(0L, 16), true), System.currentTimeMillis(), Objects.requireNonNull(proof));
+						inspected.set(offer);
+						return offer;
+					}));
+				}
+				finally { inspectionOpen.set(false); }
+				if (onCommitted.get() != null)
+				{
+					final var offer = Objects.requireNonNull(inspected.get());
+					if (offer.proposal().isEmpty()) { throw new IllegalStateException(offer.status() + " nextDue=" + offer.nextDueMillis()); }
+					final var agreed = autonomousFarm.commitLogicalParty(offer).orElseThrow(() ->
+						new IllegalStateException("REPLAN_DISCOVERY_CHANGED nextDue=" + (System.currentTimeMillis() + 1000)));
+					onCommitted.get().accept(agreed);
+				}
 			}
 			if (_autonomousMarketProducer != null) { _autonomousMarketProducer.prepareRecoveryOwners(); }
 			if (!_scheduler.start())

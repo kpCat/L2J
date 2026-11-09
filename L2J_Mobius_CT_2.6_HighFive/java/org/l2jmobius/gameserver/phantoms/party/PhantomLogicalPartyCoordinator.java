@@ -56,29 +56,32 @@ public final class PhantomLogicalPartyCoordinator
 	private record Discovered(Candidate candidate, long expiresMillis) { }
 	public PhantomLogicalPartyCoordinator(PhantomPartyPersistencePort store) { _store = Objects.requireNonNull(store); }
 
-	public enum DiscoveryStatus { READY, WAIT_ROSTER, WAIT_COMMON_ROUTE, WAIT_DISCOVERY_BUDGET }
-	public record Discovery(Optional<PhantomLogicalParty> proposal, DiscoveryStatus status, long nextDueMillis, List<PhantomProfileComponent> guards)
+	private static final int MAXIMUM_PHYSICAL_PROOFS = 8;
+	public enum DiscoveryStatus { READY, WAIT_ROSTER, WAIT_COMMON_ROUTE, WAIT_DISCOVERY_BUDGET, WAIT_PHYSICAL_PROOF, WAIT_PHYSICAL_PROOF_BUDGET }
+	public record Discovery(Optional<PhantomLogicalParty> proposal, DiscoveryStatus status, long nextDueMillis, List<PhantomProfileComponent> guards, List<Integer> levels)
 	{
-		public Discovery { guards = List.copyOf(guards); }
+		public Discovery { guards = List.copyOf(guards); levels = List.copyOf(levels); }
 	}
 
 	public Optional<StoredLogicalGroup> discover(List<Candidate> page, java.util.function.BiPredicate<Long, Integer> seeking, long now)
 	{
-		return commitDiscovery(previewDiscovery(page, seeking, now));
+		return commitDiscovery(previewDiscovery(page, seeking, now), seeking);
 	}
 
-	public Optional<StoredLogicalGroup> commitDiscovery(Discovery discovery)
+	public Optional<StoredLogicalGroup> commitDiscovery(Discovery discovery, java.util.function.BiPredicate<Long, Integer> seeking)
 	{
 		return discovery.proposal().flatMap(group ->
 		{
 			try
 			{
-				for (var member : group.members())
+				for (int index = 0; index < group.members().size(); index++)
 				{
+					final var member = group.members().get(index);
 					final var cached = _discovered.get(member.profileId());
 					final var candidate = cached == null ? null : cached.candidate();
 					// SQL component guards cannot witness the learned skills used to resolve the role.
 					if (candidate == null || !candidate.member().equals(member) || !candidate.current().getAsBoolean()
+						|| candidate.level() != discovery.levels().get(index) || !seeking.test(member.profileId(), candidate.level())
 						|| !candidate.reachable().test(group.objective()) || !candidate.durableCurrent().getAsBoolean()) { return Optional.empty(); }
 				}
 				return agree(group, discovery.guards());
@@ -94,6 +97,13 @@ public final class PhantomLogicalPartyCoordinator
 	/** A page of durable facts, not materialized actors. Predicates are captured read-only facts, never SQL per source. */
 	public Discovery previewDiscovery(List<Candidate> page, java.util.function.BiPredicate<Long, Integer> seeking, long now)
 	{
+		return previewDiscovery(page, seeking, now, null);
+	}
+
+	/** Optional commissioning proof of the exact proposal. A refusal advances this same bounded enumeration. */
+	public Discovery previewDiscovery(List<Candidate> page, java.util.function.BiPredicate<Long, Integer> seeking, long now,
+		java.util.function.Predicate<Discovery> physicalProof)
+	{
 		if (page == null || page.size() > 16 || now <= 0) { throw new IllegalArgumentException("Invalid durable discovery page."); }
 		_discovered.entrySet().removeIf(entry -> entry.getValue().expiresMillis() <= now);
 		for (var candidate : page)
@@ -107,6 +117,7 @@ public final class PhantomLogicalPartyCoordinator
 		final var candidates = _discovered.values().stream().map(Discovered::candidate).toList();
 		boolean budget = candidates.size() > 4 || page.size() == 16;
 		boolean hasPeers = false;
+		int attemptedProofs = 0;
 		for (var leader : candidates.stream().sorted(java.util.Comparator.comparing((Candidate c) -> c.member().profileId() <= _leaderCursor)
 			.thenComparingLong(c -> c.member().profileId())).limit(4).toList())
 		{
@@ -150,11 +161,16 @@ public final class PhantomLogicalPartyCoordinator
 				final long generation = _store.loadLogicalGroup(leader.member().profileId()).map(row -> Math.addExact(row.group().generation(), 1)).orElse(1L);
 				final var group = new PhantomLogicalParty(id, generation, leader.member().profileId(), roster, source, source.key().substring(source.key().indexOf('@') + 1),
 					PhantomLogicalParty.Phase.AGREED, 0, now, "");
-				return new Discovery(Optional.of(group), DiscoveryStatus.READY, now, guards);
+				final var proposal = new Discovery(Optional.of(group), DiscoveryStatus.READY, now, guards, levels);
+				if (physicalProof == null) { return proposal; }
+				if (attemptedProofs == MAXIMUM_PHYSICAL_PROOFS)
+				{ return new Discovery(Optional.empty(), DiscoveryStatus.WAIT_PHYSICAL_PROOF_BUDGET, Math.addExact(now, 1000), List.of(), List.of()); }
+				attemptedProofs++;
+				if (physicalProof.test(proposal)) { return proposal; }
 			}
 		}
-		final var status = budget ? DiscoveryStatus.WAIT_DISCOVERY_BUDGET : hasPeers ? DiscoveryStatus.WAIT_COMMON_ROUTE : DiscoveryStatus.WAIT_ROSTER;
-		return new Discovery(Optional.empty(), status, Math.addExact(now, 1000), List.of());
+		final var status = attemptedProofs > 0 ? DiscoveryStatus.WAIT_PHYSICAL_PROOF : budget ? DiscoveryStatus.WAIT_DISCOVERY_BUDGET : hasPeers ? DiscoveryStatus.WAIT_COMMON_ROUTE : DiscoveryStatus.WAIT_ROSTER;
+		return new Discovery(Optional.empty(), status, Math.addExact(now, 1000), List.of(), List.of());
 	}
 	public Optional<StoredLogicalGroup> agree(PhantomLogicalParty group)
 	{ return agree(group, List.of()); }

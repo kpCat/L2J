@@ -1579,7 +1579,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 	/** Durable social discovery reads bounded background/profile facts and requires no World Player or native lease. */
 	public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate previewLogicalRendezvous(long id,
-		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible)
+		PhantomDecisionEngine decision, java.util.function.BooleanSupplier eligible, List<PhantomProfileComponent> populationGuards)
 	{
 		if (_foregroundDecisionsRevoked || !eligible.getAsBoolean()) { return null; }
 		final var stored = _goals.load(id).orElse(null); final var state = _background.acquisitionSnapshot(id).orElse(null); final var history = _store.load(id).orElse(null);
@@ -1597,12 +1597,21 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			source -> _planner.partySourceAvailable(state, source, Set.of()),
 			current,
 			// Re-read durable role evidence only for selected members, at preview and again before CAS.
-			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent() && role.equals(potentialPartyRole(id, state)),
+			() -> current.getAsBoolean() && _goals.load(id).filter(stored::equals).isPresent() && _background.acquisitionSnapshot(id).filter(state::equals).isPresent()
+				&& role.equals(potentialPartyRole(id, state)) && logicalOwnershipClear(id),
 			admitted -> _planner.rendezvousSourcesForRole(id, state, root, history.state().deterministicSeed(), history.state().planOrdinal(), Set.of(), Set.of(), role, admitted),
-			() -> logicalFormationGuards(id, stored, state, history));
+			() -> logicalFormationGuards(id, stored, state, history, populationGuards));
 	}
 
-	private List<PhantomProfileComponent> logicalFormationGuards(long id, StoredGoal goal, PhantomBackgroundState state, Snapshot history)
+	private boolean logicalOwnershipClear(long id)
+	{
+		return !nativeIntentPending(id) && _profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty()
+			&& new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(_profiles).find(id).filter(row ->
+				!row.receipt().state().terminal() || row.receipt().state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT).isEmpty();
+	}
+
+	private List<PhantomProfileComponent> logicalFormationGuards(long id, StoredGoal goal, PhantomBackgroundState state, Snapshot history,
+		List<PhantomProfileComponent> populationGuards)
 	{
 		final var goalRow = _profiles.findComponent(id, PhantomGoalStateStore.COMPONENT_TYPE).filter(row -> row.rowVersion() == goal.rowVersion());
 		final var backgroundRow = _profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE)
@@ -1610,6 +1619,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final var historyRow = _profiles.findComponent(id, PhantomBackgroundCatchupState.COMPONENT_TYPE).filter(row -> row.rowVersion() == history.rowVersion());
 		if (goalRow.isEmpty() || backgroundRow.isEmpty() || historyRow.isEmpty()) { throw new java.util.ConcurrentModificationException("Logical formation inputs changed."); }
 		final var guards = new java.util.ArrayList<>(List.of(goalRow.get(), backgroundRow.get(), historyRow.get()));
+		guards.addAll(populationGuards);
 		_profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).ifPresent(context ->
 		{
 			if (PhantomNativeContext.decode(context.payload()).phase() != PhantomNativeContext.Phase.COMPLETED)

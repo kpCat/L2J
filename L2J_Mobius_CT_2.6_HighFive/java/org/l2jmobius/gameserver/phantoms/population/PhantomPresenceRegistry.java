@@ -110,15 +110,26 @@ public final class PhantomPresenceRegistry
 
 	public String busyReason(long profileId)
 	{
+		return busyReason(profileId, false);
+	}
+
+	/** The caller has proved the saved calendar window while startup has no registered slots yet. */
+	public String busyReasonBeforeRegistration(long profileId)
+	{
+		return busyReason(profileId, true);
+	}
+
+	private String busyReason(long profileId, boolean calendarAlreadyChecked)
+	{
 		final String internalOwner;
 		synchronized (this)
 		{
 			final Slot slot = _slots.get(profileId);
-			if ((slot == null) || !slot._online)
+			if (slot == null ? !calendarAlreadyChecked : !slot._online)
 			{
 				return "offline";
 			}
-			internalOwner = slot._busyOwner;
+			internalOwner = slot == null ? null : slot._busyOwner;
 		}
 		if (internalOwner != null)
 		{
