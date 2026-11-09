@@ -452,17 +452,19 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final var candidates = PhantomPartyFarmEligibility.farmTargets(java.util.stream.Stream.concat(selected, nearby), target ->
 				target.isMonster() && !target.isRaid() && !target.isAlikeDead() && !target.isInvul() && target.isTargetable() && target.isSpawned()
 					&& band.contains(target.getLevel()) && _farmSourcePolicy.test(source, target));
+			String refusal = null;
 			for (Creature target : candidates)
 			{
-				if (!band.contains(target.getLevel()) || !_farmSourcePolicy.test(source, target)) { farmWait(party, "WAIT_GROUP_SOURCE_LEVEL"); continue; }
+				if (!band.contains(target.getLevel()) || !_farmSourcePolicy.test(source, target)) { continue; }
 				if (!target.isMonster() || target.isRaid() || target.isAlikeDead() || target.isInvul() || !target.isTargetable() || !target.isSpawned()) { continue; }
 				if (actors.stream().anyMatch(player -> player.getInstanceId() != target.getInstanceId() || !target.isAutoAttackable(player) || !PhantomEngagementPlanner.rewardingFarmTarget(player, target) || Math.abs((long) player.getZ() - target.getZ()) > 200 || !GeoEngine.getInstance().canSeeTarget(player, target) || !GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), target.getX(), target.getY(), target.getZ(), player.getInstanceId()))) { if (witness != null) { witness.accept("target=" + target.getObjectId() + ":native_geometry_or_reward"); } continue; }
 				if (!farmApproachSafe(actors, members, target)) { if (witness != null) { witness.accept("target=" + target.getObjectId() + ":party_approach_unproven"); } continue; }
 				final var reasons = new ArrayList<String>();
 				if (groupViable(actors, members, target, value -> { if (reasons.size() < 64) { reasons.add(value); } if (witness != null) { witness.accept(value); } }, false))
 				{ _farmWaitReasons.remove(party.leader().profileId()); return OptionalInt.of(target.getObjectId()); }
-				farmWait(party, reasons.stream().filter(value -> value.startsWith("WAIT_")).findFirst().orElse("WAIT_GROUP_READINESS"));
+				if (refusal == null) { refusal = reasons.stream().filter(value -> value.startsWith("WAIT_")).findFirst().orElse("WAIT_GROUP_READINESS"); }
 			}
+			farmWait(party, refusal == null ? "WAIT_GROUP_TARGET" : refusal);
 			return OptionalInt.empty();
 		}
 		finally { for (int index = leases.size() - 1; index >= 0; index--) { leases.get(index).close(); } }

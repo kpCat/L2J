@@ -434,8 +434,6 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				final var destination = new PhantomNavigationPoint(1000, 0, 0, 0);
 				final var wrong = coordinator.requestAutonomousFarmRoute(1, leaderRoot.selectedAnchor(), destination);
 				PhantomAssertions.assertEquals("party.route.farm_authority_unavailable", wrong.reasonKey(), "The personal Goal replaced the exact LogicalParty route.");
-				final var shared = coordinator.requestAutonomousFarmRoute(1, new PhantomDomainRef("topology.anchor", "farm.shared"), destination);
-				PhantomAssertions.assertEquals("party.route.unavailable", shared.reasonKey(), "The exact LogicalParty anchor did not reach the navigation owner.");
 				goals.put(1, supportTravelRoot(1, 1, "farm.solo.new"));
 				clock.addAndGet(6_000_000_000L);
 				for (int pulse = 0; pulse < 5; pulse++) { coordinator.onPulse(); }
@@ -457,10 +455,32 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				backend._capabilities.put(leader, List.of(buff, heal));
 				coordinator.onPulse();
 				PhantomAssertions.assertEquals(0, action.casts, "Maintenance can repeatedly block completion of the stock Party WALK/GK itinerary.");
-				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 0, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				final var sharedAnchor = new PhantomDomainRef("topology.anchor", "farm.shared");
+				backend.snapshot(leader, new MemberSnapshot(leader, 0, 0, 1000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 1000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				var arrived = coordinator.requestAutonomousFarmRoute(1, sharedAnchor, destination);
+				for (int step = 0; step < 4 && arrived.outcome() == PhantomPartyCoordinator.RouteOutcome.PENDING; step++)
+				{
+					arrived = coordinator.requestAutonomousFarmRoute(1, sharedAnchor, destination);
+				}
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.READY, arrived.outcome(), "The assembled roster did not settle at the shared checkpoint " + arrived.reasonKey());
 				coordinator.onPulse();
-				PhantomAssertions.assertEquals(1, action.casts, "Travel prevented a Party member from receiving urgent Heal.");
+				PhantomAssertions.assertEquals(0, action.casts, "Idle maintenance ran before the first safe pull could be evaluated.");
+				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 1000, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(1, action.casts, "Pull priority prevented a Party member from receiving urgent Heal.");
 				PhantomAssertions.assertEquals("combat.heal", action.support.capabilityKey(), "Maintenance took the urgent support owner.");
+				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 1000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				action.casting = false;
+				coordinator.onPulse();
+				backend._farmWait = "WAIT_TANK_AGGRO";
+				PhantomAssertions.assertFalse(coordinator.requestAutonomousFarm(1), "Rejected readiness reported a pull as owned.");
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(2, action.casts, "A failed opening-survival check could not prepare one buff.");
+				action.casting = false;
+				coordinator.onPulse();
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(2, action.casts, "One failed check authorized multiple idle buffs.");
 			}
 			finally
 			{
@@ -3649,6 +3669,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private boolean _farmEnabled;
 		private int _farmLevel = 50;
 		private java.util.OptionalInt _farmTarget = java.util.OptionalInt.empty();
+		private String _farmWait = "WAIT_GROUP_TARGET";
 		private java.util.function.Consumer<MemberRef> _afterSnapshot;
 		private boolean _observeFarmAbsence;
 		private Runnable _afterAbsence;
@@ -3868,6 +3889,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		}
 		@Override public boolean autonomousFarmReady(PartySnapshot party) { return _farmEnabled && party.members().stream().allMatch(_snapshots::containsKey) && party.members().stream().map(_snapshots::get).anyMatch(PhantomAutonomousFarmParty::damageDealer); }
 		@Override public java.util.OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers) { return _farmTarget; }
+		@Override public String autonomousFarmWaitReason(MemberRef leader) { return _farmWait; }
 		@Override public FarmPage materializedFarmMembers(long cursor, int limit)
 		{
 			if (!_farmEnabled) { return new FarmPage(List.of(), cursor); }

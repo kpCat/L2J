@@ -2008,9 +2008,16 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			// The current native episode owns its completion and loot. A next-pull search
 			// must not cancel it merely because the killed target is no longer selectable.
 			if (party.members().stream().anyMatch(member -> _tacticalCombat.containsKey(member.profileId()) || _tacticalActions.containsKey(member.profileId()))) { return true; }
+			final var journey = runtime.farmJourney;
+			if (journey != null) { journey.prepareBetweenPulls.set(false); }
 			final var target = _backend.autonomousFarmTarget(party, supportMembers, currentFarmSource(authority));
 			if (target.isEmpty())
 			{
+				final String wait = _backend.autonomousFarmWaitReason(party.leader()).split(":", 2)[0];
+				if (journey != null && (wait.equals("WAIT_GROUP_DAMAGE") || wait.equals("WAIT_TANK_AGGRO")))
+				{
+					journey.prepareBetweenPulls.set(true);
+				}
 				return false;
 			}
 			final var puller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots(party.members()).values())).orElse(null);
@@ -3151,15 +3158,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		// Do not give their weapon an autoattack owner that can starve an urgent heal.
 		final Set<MemberRef> supportMembers = farm ? farmClaim.state().assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet()) : Set.of();
 		final var runtime = farm ? _groups.get(farmClaim.state().groupId()) : null;
-		// Idle buffs can overlap indefinitely across members, preventing WALK settlement and GK admission.
-		// Let in-flight casts finish and keep combat support and urgent recovery available.
-		final boolean farmTransit = _farmTravel != null && runtime != null && logicalFarmBinding(farmClaim.state()) != null
-			&& !farmJourneyArrived(runtime, farmClaim.state(), party);
+		// The shared itinerary and the next pull get the first opportunity. After a failed
+		// damage or opening-survival check, allow one preparation attempt before checking again.
+		final boolean orderedFarm = _farmTravel != null && runtime != null && logicalFarmBinding(farmClaim.state()) != null;
+		final var journey = orderedFarm ? runtime.farmJourney : null;
+		final boolean idlePreparation = journey != null && !draining && farmJourneyArrived(runtime, farmClaim.state(), party)
+			&& journey.prepareBetweenPulls.get();
 		if (farm && runtime != null && runtime.farmPuller == null)
 		{ runtime.farmPuller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots.values())).orElse(null); }
 		final var assist = farm && runtime != null && runtime.farmPuller != null && snapshots.containsKey(runtime.farmPuller) ? runtime.farmPuller : party.leader();
 		final List<TacticalDirective> directives = _tactics.plan(assist, party.members(), snapshots, directive ->
-			(!farmTransit || directive.kind() != DirectiveKind.PARTY_SUPPORT || directive.reasonKey().endsWith(".combat"))
+			(!orderedFarm || !idleFarmMaintenance(directive) || idlePreparation)
 				&& (!farm || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())
 					|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor()))), farm);
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
@@ -3230,6 +3239,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
 			}
+			if (orderedFarm && idleFarmMaintenance(directive) && (runtime.farmJourney != journey || !journey.prepareBetweenPulls.compareAndSet(true, false))) { continue; }
 			_tactics.dispatch(directive, key, deadline(), supportToken(directive, claim.state()), holdsMovement(directive.actor().profileId())).ifPresent(lease ->
 			{
 				_tacticalActions.put(directive.actor().profileId(), lease);
@@ -3237,6 +3247,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			});
 		}
 		return examined;
+	}
+
+	private static boolean idleFarmMaintenance(TacticalDirective directive)
+	{
+		return directive.kind() == DirectiveKind.PARTY_SUPPORT && !directive.reasonKey().endsWith(".combat");
 	}
 
 	/** A pending native approach/cast belongs only to this current party authority. */
@@ -4312,6 +4327,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private final long deadline;
 		private final PhantomNavigationPoint destination;
 		private final Map<MemberRef, PhantomNavigationPoint> gkArrived = new HashMap<>();
+		private final AtomicBoolean prepareBetweenPulls = new AtomicBoolean();
 		private volatile int index;
 		private volatile long arrivedAt;
 
