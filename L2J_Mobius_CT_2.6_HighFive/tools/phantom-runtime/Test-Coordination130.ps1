@@ -115,6 +115,9 @@ if($Action -in @('artifact-check','native','restart')){
         if($api -cnotmatch ('\s'+$method+'\(\);\s+descriptor: '+$descriptor)){$missing+=('jar.'+$method)}
         if(!($witnesses['PhantomCoordination130Native'] -cmatch ('// Method '+$call+$descriptor))){$missing+=('runner.'+$method)}
     }
+    if(!($witnesses['PhantomCoordination130Native'] -cmatch 'invokestatic\s+#[0-9]+\s+// Method exactGroupRewards:\(Lorg/l2jmobius/gameserver/model/actor/PlayerNativeEvidence\$Target;Ljava/util/List;\)Ljava/util/List;')){
+        $missing+='runner.exactGroupRewards'
+    }
     if($missing.Count){throw ('TEST130_SHARED_ROUTE_LINKAGE_REFUSED missing='+($missing -join ',')+' jar='+$builtHash)}
     Write-Output ('TEST130_SHARED_ROUTE_LINKAGE_PASS jar='+$builtHash+' runner='+$testBin)
     if($Action -eq 'artifact-check'){return}

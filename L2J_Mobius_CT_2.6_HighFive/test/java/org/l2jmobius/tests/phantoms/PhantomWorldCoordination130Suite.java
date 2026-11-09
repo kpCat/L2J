@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts;
@@ -122,6 +124,36 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(false, true, false, false, false, false), "A non-Party kill passed native group acceptance.");
 			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(true, false, true, true, true, true), "An empty restart replaced a new useful action.");
 			PhantomAssertions.assertTrue(PhantomCoordination130Native.usefulGroupEvidence(true, true, true, false, false, true), "A useful restart repeated the already proved first-vertical Heal gate.");
+		});
+		registry.add("party-kill-witness-rejects-damage-from-another-spawn", _ ->
+		{
+			final var target = new Target(10, 0, 2);
+			final var oldSpawn = new Target(10, 0, 1);
+			final long epoch = System.nanoTime();
+			final var attacker = new PlayerNativeEvidence(1, epoch);
+			final var support = new PlayerNativeEvidence(2, epoch);
+			attacker.damage(oldSpawn, 30);
+			attacker.killedIfDamaged(oldSpawn);
+			final var beforeAttacker = attacker.snapshot();
+			final var beforeSupport = support.snapshot();
+			attacker.reward(target, 40, 4);
+			attacker.rewardSettled(target, false);
+			support.reward(target, 20, 2);
+			support.rewardSettled(target, false);
+			final java.util.function.Function<Boolean, List<PhantomCoordination130Native.EarnedReward>> witness = damage ->
+				PhantomCoordination130Native.exactGroupRewards(target, List.of(
+					new PhantomCoordination130Native.MemberFight(beforeAttacker, attacker.snapshot(), attacker.targetReceipts(), damage),
+					new PhantomCoordination130Native.MemberFight(beforeSupport, support.snapshot(), support.targetReceipts(), false)));
+			PhantomAssertions.assertTrue(witness.apply(true).isEmpty(), "A previous spawn supplied the current kill receipt.");
+			attacker.damage(target, 20);
+			attacker.killedIfDamaged(target);
+			PhantomAssertions.assertTrue(witness.apply(false).isEmpty(), "Unobserved Party damage passed the exact kill gate.");
+			PhantomAssertions.assertEquals(List.of(new PhantomCoordination130Native.EarnedReward(1, 40, 4, true),
+				new PhantomCoordination130Native.EarnedReward(2, 20, 2, false)), witness.apply(true), "The same spawn did not witness the attacker and its pure support recipient.");
+			attacker.reward(oldSpawn, 10, 1);
+			attacker.reward(target, 30, 3);
+			attacker.rewardSettled(target);
+			PhantomAssertions.assertTrue(witness.apply(true).isEmpty(), "Interleaved reward deltas were attributed to one NPC.");
 		});
 		registry.add("preflight-recovery-and-read-only-scene-have-independent-finite-budgets", _ ->
 		{
