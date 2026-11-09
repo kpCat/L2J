@@ -39,6 +39,8 @@ import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeCombatCapability;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceObservation;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot;
@@ -76,6 +78,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
+	private final PhantomCombatCapabilityResolver _combatLoadouts;
 	private final PartyInvitationService _invitations;
 	private final CommandChannelInvitationService _commandChannels;
 	private java.util.function.BiPredicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef, Creature> _farmSourcePolicy = (_, _) -> false;
@@ -103,6 +106,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		_profiles = profiles;
 		_materialization = materialization;
 		_progression = progression;
+		_combatLoadouts = PhantomCombatCapabilityResolver.fromProgression(() -> _progression.findCatalog().orElse(null));
 		_invitations = PartyInvitationService.getInstance();
 		_commandChannels = CommandChannelInvitationService.getInstance();
 	}
@@ -498,7 +502,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	/** Combine factual native damage estimates; never require every member to solo the mob. */
-	private static boolean groupViable(List<Player> actors, List<MemberSnapshot> members, Creature target, java.util.function.Consumer<String> witness, boolean continuing)
+	private boolean groupViable(List<Player> actors, List<MemberSnapshot> members, Creature target, java.util.function.Consumer<String> witness, boolean continuing)
 	{
 		final var projected = L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
 		final var observedThreats = new java.util.LinkedHashMap<Creature, ThreatVictims>();
@@ -528,25 +532,44 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		{
 			if (!PhantomAutonomousFarmParty.farmContributor(members.get(index))) { continue; }
 			final Player player = actors.get(index);
-			Skill skill = PhantomEngagementPlanner.offensiveSkill(player, target);
-			if (skill != null && ((!continuing && (player.isSkillDisabled(skill) || !player.checkDoCastConditions(skill))) || !skill.checkCondition(player, target, false)
-				|| player.getCurrentMp() < Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill))))
-			{ skill = null; }
-			final boolean weapon = members.get(index).capabilities().stream().anyMatch(capability -> "native.weapon".equals(capability.variantKey()) && capability.learned() && capability.readyNow());
-			if (skill == null && !weapon || player.isDisabled() || player.isOutOfControl() || player.isSitting()) { continue; }
-			final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, skill);
-			if (skill != null)
+			if (player.isDisabled() || player.isOutOfControl() || player.isSitting()) { continue; }
+			final var capabilities = members.get(index).capabilities();
+			final var mode = PhantomPartyTactics.combatMode(capabilities).orElse(null);
+			if (mode == null) { continue; }
+			final boolean weapon = capabilities.stream().anyMatch(capability -> mode.capabilityKey().equals(capability.capabilityKey())
+				&& "native.weapon".equals(capability.variantKey()) && capability.learned() && capability.readyNow());
+			final var loadout = _combatLoadouts.resolve(player.getActiveClass(), mode, player::getSkillLevel, selected ->
 			{
-				final var mechanics = combat.forTarget(projected);
-				if (mechanics == null) { continue; }
-				final var cast = PhantomBackgroundModel.estimateCastCycle(combat.combat(), projected, mechanics).orElse(null);
-				if (cast == null) { continue; }
-				intervals[index] = cast.intervalMillis();
-				costs[index] = combat.requiredMp();
-				contributions[index] = cast.damagePerCast() * 1000d / cast.intervalMillis();
+				final var learned = player.getKnownSkill(selected.skillId());
+				return (mode != PhantomCombatMode.RANGED_PHYSICAL || weapon) && learned != null && learned.getLevel() == selected.skillLevel()
+					&& PhantomCombatSkillSafety.supports(learned, mode, player.isTransformed());
+			}, weapon, 4).orElse(null);
+			if (loadout == null) { continue; }
+			final var skills = loadout.selectedSkills().stream().map(selected -> player.getKnownSkill(selected.skillId()))
+				.filter(learned -> learned != null && (continuing || !player.isSkillDisabled(learned) && player.checkDoCastConditions(learned))
+					&& learned.checkCondition(player, target, false)).toList();
+			if (skills.isEmpty() && !weapon) { continue; }
+			if (!skills.isEmpty())
+			{
+				double contribution = Double.POSITIVE_INFINITY;
+				double interval = Double.POSITIVE_INFINITY;
+				for (var skill : skills)
+				{
+					final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, skill);
+					final var mechanics = combat.forTarget(projected);
+					final var cast = mechanics == null ? null : PhantomBackgroundModel.estimateCastCycle(combat.combat(), projected, mechanics).orElse(null);
+					if (cast == null) { contribution = 0; break; }
+					contribution = Math.min(contribution, cast.damagePerCast() * 1000d / cast.intervalMillis());
+					interval = Math.min(interval, cast.intervalMillis());
+					costs[index] = Math.max(costs[index], combat.requiredMp());
+				}
+				if (contribution <= 0) { continue; }
+				contributions[index] = contribution;
+				intervals[index] = interval;
 			}
 			else
 			{
+				final var combat = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, null);
 				long duration = PhantomBackgroundModel.estimateEncounter(combat.combat(), projected).durationMillis();
 				final var equipped = player.getActiveWeaponItem();
 				if (weapon && equipped != null && equipped.isRange() && !player.isTransformed())

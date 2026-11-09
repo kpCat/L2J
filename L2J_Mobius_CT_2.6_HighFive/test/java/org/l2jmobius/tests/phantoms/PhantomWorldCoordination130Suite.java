@@ -90,6 +90,19 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(shared, chosen.proposal().orElseThrow().objective(), "The leader's nearby source concealed the peer's GK trip.");
 		});
 		registry.add("party-argos-and-hot-springs-use-the-configured-java-itinerary", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.configuredPartyItinerary130());
+		registry.add("party-admission-uses-the-content-combat-rotation", _ ->
+		{
+			final var melee = org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL;
+			final var magic = org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.RANGED_MAGIC;
+			final var learnedCast = new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(1230, 1);
+			final var casterRule = new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver.CapabilityEvidence(magic.capabilityKey(), 850, List.of(learnedCast));
+			final var resolver = new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver(_ -> List.of(casterRule));
+			final var weapon = resolver.resolve(88, melee, _ -> 8, _ -> true, true, 4).orElseThrow();
+			PhantomAssertions.assertTrue(weapon.selectedSkills().isEmpty() && weapon.normalAttackFallback(), "An unrelated learned AutoUse skill was budgeted as mandatory for the weapon session.");
+			final var cast = resolver.resolve(94, magic, _ -> 8, _ -> true, false, 4).orElseThrow();
+			PhantomAssertions.assertEquals(8, cast.selectedSkills().getFirst().skillLevel(), "The catalog cast did not use the actual learned rank.");
+			PhantomAssertions.assertFalse(resolver.resolve(94, magic, _ -> 8, _ -> false, false, 4).isPresent(), "An unsupported cast was admitted without a native fallback.");
+		});
 		registry.add("party-cast-contributes-beyond-the-solo-cast-limit", _ ->
 		{
 			final var combat = new CombatFacts(ModelKind.MAGIC, 100, 100, 100, 100, 333, 333, 0, 0, 1, 1, 0, 1, 1, 1, 1);

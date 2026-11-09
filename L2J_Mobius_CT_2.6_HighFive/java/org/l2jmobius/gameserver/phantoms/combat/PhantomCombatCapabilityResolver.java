@@ -89,16 +89,24 @@ public final class PhantomCombatCapabilityResolver
 		Objects.requireNonNull(actor, "actor");
 		Objects.requireNonNull(mode, "mode");
 		Objects.requireNonNull(lease, "lease");
+		return resolve(actor.classId(), mode, lease::knownSkillLevel, skill -> lease.supportsSkill(skill, mode),
+			lease.supportsNormalAttack(mode), maximumSkills);
+	}
+
+	/** The same catalog and learned-skill selection, usable by a read-only native planning owner. */
+	public Optional<PhantomCombatLoadout> resolve(int classId, PhantomCombatMode mode, java.util.function.IntUnaryOperator learnedLevel,
+		java.util.function.Predicate<SelectedSkill> nativeSkill, boolean normalFallback, int maximumSkills)
+	{
+		Objects.requireNonNull(mode, "mode");
 		if ((maximumSkills < 1) || (maximumSkills > 4))
 		{
 			throw new IllegalArgumentException("Invalid selected skill bound.");
 		}
 
-		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
+		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(classId));
 		capabilities.sort(CAPABILITY_ORDER);
-		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, learnedLevel)).sorted(SKILL_ORDER).distinct().filter(nativeSkill).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
-		final boolean normalFallback = lease.supportsNormalAttack(mode);
 		if (!normalFallback && selected.isEmpty())
 		{
 			return Optional.empty();
@@ -108,9 +116,9 @@ public final class PhantomCombatCapabilityResolver
 		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
 	}
 
-	private static SelectedSkill currentLearnedSkill(SelectedSkill evidence, PhantomCombatActorLease lease)
+	private static SelectedSkill currentLearnedSkill(SelectedSkill evidence, java.util.function.IntUnaryOperator learnedLevel)
 	{
-		final int currentLevel = lease.knownSkillLevel(evidence.skillId());
+		final int currentLevel = learnedLevel.applyAsInt(evidence.skillId());
 		// Catalog evidence is a minimum. Exact native supportsSkill still rejects missing/lower skills.
 		return currentLevel >= evidence.skillLevel() ? new SelectedSkill(evidence.skillId(), currentLevel) : evidence;
 	}
@@ -127,7 +135,7 @@ public final class PhantomCombatCapabilityResolver
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
 		capabilities.sort(CAPABILITY_ORDER);
 		final List<SelectedSkill> nativeSkills = lease.learnedPvpSkills(mode, 16);
-		final List<SelectedSkill> selected = java.util.stream.Stream.concat(nativeSkills.stream(), capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER)).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<SelectedSkill> selected = java.util.stream.Stream.concat(nativeSkills.stream(), capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease::knownSkillLevel)).sorted(SKILL_ORDER)).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
 		final boolean normalFallback = lease.supportsNormalAttack(mode);
 		if (!normalFallback && selected.isEmpty())

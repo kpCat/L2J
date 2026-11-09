@@ -1397,6 +1397,9 @@ final class PhantomCoordination130Native
         final Map<Integer, PhantomNavigationPoint> partyOrigins = new HashMap<>();
         boolean groupTravel = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
+        long partyGeneration = -1;
+        TargetSeen earnedTarget = null;
+        boolean loot = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
         String lastCoordinationWait = ""; long lastCoordinationVersion = -1;
         long nextTrace = 0; final long start = System.currentTimeMillis();
@@ -1415,6 +1418,7 @@ final class PhantomCoordination130Native
                 && stock.stream().allMatch(actor -> actors.contains(actor) && logicalObjects.contains(actor.getObjectId()) && actor.getParty() == party))
             {
                 final var leader = stock.getFirst();
+                partyGeneration = group.generation();
                 targets.entrySet().removeIf(entry -> !entry.getKey().equals(entry.getValue().mob().getNativeEvidenceTarget())
                     || entry.getValue().party() != party || !entry.getValue().roster().equals(stock) || entry.getValue().leader() != leader.getObjectId()
                     || entry.getValue().agreement().generation() != group.generation() || !entry.getValue().agreement().objective().equals(group.objective()));
@@ -1513,9 +1517,26 @@ final class PhantomCoordination130Native
                     if (!earned.isEmpty() && stock.equals(List.copyOf(party.getMembers())))
                     {
                         kill = true;
+                        earnedTarget = target;
                         System.out.println("NATIVE130_EXACT_GROUP_KILL target=" + entry.getKey() + " npc=" + target.mob().getId() + " level=" + target.mob().getLevel()
                             + " source=" + group.objective().key() + " leader=" + leader.getObjectId() + " roster=" + stock.stream().map(Player::getObjectId).toList()
                             + " hpBefore=" + target.initialHp() + " hpAfter=" + target.mob().getCurrentHp() + " earned=" + earned);
+                    }
+                }
+                if (earnedTarget != null && earnedTarget.party() == party && !loot)
+                {
+                    for (var actor : stock)
+                    {
+                        final var before = earnedTarget.before().get(actor.getObjectId());
+                        final var sensor = PlayerNativeWork.observationEvidence(actor);
+                        if (before == null || sensor == null) { continue; }
+                        final var after = sensor.snapshot();
+                        if (after.epoch() != before.epoch() || after.overflow() || after.lootSequence() <= before.lootSequence()
+                            || after.lootCount() <= before.lootCount()) { continue; }
+                        loot = true;
+                        System.out.println("NATIVE130_EARNED_LOOT actor=" + actor.getObjectId() + " group=" + group.groupId()
+                            + " nativeReceipts=" + (after.lootSequence() - before.lootSequence()) + " count=" + (after.lootCount() - before.lootCount()));
+                        break;
                     }
                 }
                 if (kill) { targets.clear(); }
@@ -1573,13 +1594,14 @@ final class PhantomCoordination130Native
                 check(stableCoordinationSamples < 3, "STABLE_COORDINATION_BLOCK_" + group.waitReason());
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
-            if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && (!travelRequired || groupTravel)
+            if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && (restart || loot) && (!travelRequired || groupTravel)
                 && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
             {
                 System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " healerRequired=" + healerRequired + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
                 return;
             }
-            check(!partySeen || kill || group.phase() != PhantomLogicalParty.Phase.BACKGROUND, "PARTY_DRAINED_WITHOUT_USEFUL_ACTION");
+            check(partyGeneration != group.generation() || kill || group.phase() != PhantomLogicalParty.Phase.BACKGROUND
+                || group.activityReplanRequired(), "PARTY_DRAINED_WITHOUT_USEFUL_ACTION");
             Thread.sleep(50);
         }
         throw new IllegalStateException("NATIVE130_FINITE_EVIDENCE_DEADLINE");

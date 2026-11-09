@@ -159,7 +159,11 @@ public final class PhantomPartyTactics
 		{
 			return Optional.empty();
 		}
-		final List<MemberCapability> capabilities = _backend.capabilities(directive.actor(), directive.targetObjectId());
+		return combatMode(_backend.capabilities(directive.actor(), directive.targetObjectId()));
+	}
+
+	static Optional<PhantomCombatMode> combatMode(List<MemberCapability> capabilities)
+	{
 		final Optional<PhantomCombatMode> offense = List.of(PhantomCombatMode.RANGED_MAGIC, PhantomCombatMode.RANGED_PHYSICAL, PhantomCombatMode.MELEE_PHYSICAL).stream().filter(mode -> capabilities.stream().anyMatch(capability -> capability.capabilityKey().equals(mode.capabilityKey()) && capability.intrinsic() && capability.learned() && (capability.rank() > 0))).findFirst();
 		if (offense.isPresent())
 		{

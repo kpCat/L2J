@@ -55,7 +55,11 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	private final Map<Long, Discovery> _discovered = new LinkedHashMap<>();
 	private final Map<Long, PhantomPartyRendezvousState> _offers = new LinkedHashMap<>();
 	private final Map<Long, Integer> _assemblyCursors = new LinkedHashMap<>();
-	private record FarmWait(long sinceNanos, String reason) { }
+	private record FarmWait(long sinceNanos, String reason, String groupId, long generation)
+	{
+		boolean matches(PhantomLogicalParty group) { return group != null && groupId.equals(group.groupId()) && generation == group.generation(); }
+		String replanReason() { return "REPLAN_" + reason.substring(5); }
+	}
 	private final Map<Long, FarmWait> _farmWaits = new LinkedHashMap<>();
 	private long _leaderCursor;
 	private PhantomLogicalPartyCoordinator _logical;
@@ -227,7 +231,12 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		{
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{
-				if (!_logicalRetain.test(group)) { _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_RETENTION_ENDED"); }
+				if (!_logicalRetain.test(group))
+				{
+					final var wait = _farmWaits.remove(nativeParty.leader().profileId());
+					_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now,
+						wait != null && wait.matches(group) ? wait.replanReason() : "WAIT_NATIVE_RETENTION_ENDED");
+				}
 			}
 			else if (group.phase() == PhantomLogicalParty.Phase.ASSEMBLING)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.NATIVE_ACTIVE, group.backgroundCursor(), now + 60_000, ""); }
@@ -490,16 +499,19 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	{
 		final String detail = _backend.autonomousFarmWaitReason(leader);
 		final String code = detail.split(":", 2)[0].matches("WAIT_[A-Z0-9_]{1,70}") ? detail.split(":", 2)[0] : "WAIT_GROUP_READINESS";
+		final var row = _logical == null ? null : _logical.knownGroupFor(id).orElse(null);
+		final var group = row == null ? null : row.group();
 		final var before = _farmWaits.get(id);
 		if (before == null && _farmWaits.size() >= 1024) { _farmWaits.remove(_farmWaits.keySet().iterator().next()); }
-		final var wait = new FarmWait(before == null ? nowNanos : before.sinceNanos(), code); _farmWaits.put(id, wait);
+		final boolean sameGroup = before != null && before.matches(group);
+		final var wait = new FarmWait(sameGroup ? before.sinceNanos() : nowNanos, code, group == null ? "" : group.groupId(), group == null ? 0 : group.generation());
+		_farmWaits.put(id, wait);
 		if (before == null || !before.reason().equals(code))
 		{ org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(id, "PARTY_FARM_WAIT", code, "", detail + ";nextDueMillis=" + (_epochMillis.getAsLong() + 5000) + ";requiredChange=source_resources_or_observed_threat", _backend.materializationEpoch(leader), root.goalId(), root.revision()); }
-		if (_logical != null && nowNanos - wait.sinceNanos() >= 60_000_000_000L)
+		if (row != null && nowNanos - wait.sinceNanos() >= 60_000_000_000L)
 		{
-			final var row = _logical.knownGroupFor(id).orElse(null);
-			if (row != null && row.group().phase() != PhantomLogicalParty.Phase.DRAINING)
-			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, row.group().backgroundCursor(), _epochMillis.getAsLong(), "REPLAN_" + code.substring(5)); }
+			if (group.phase() != PhantomLogicalParty.Phase.DRAINING)
+			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), _epochMillis.getAsLong(), wait.replanReason()); }
 			_farmWaits.remove(id);
 		}
 	}

@@ -361,7 +361,16 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				if (!pendingArrival && !absentLeader)
 				{
 					// This fixture has no lawful combat target: waiting must yield to the existing drain/replan owner.
-					for (int slice = 0; slice < 12; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
+					keep.set(false);
+					clock.addAndGet(6_000_000_000L);
+					millis.set(Math.max(millis.get() + 6000, logical.groupFor(1).orElseThrow().group().nextDueMillis()));
+					for (int slice = 0; slice < 4; slice++)
+					{
+						adapter.onPulse(); coordinator.onPulse();
+						if (logical.groupFor(1).orElseThrow().group().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING) { break; }
+						clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
+					}
 					final var waiting = logical.groupFor(1).orElseThrow().group();
 					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING, waiting.phase(), "No-target wait never reached its finite safe replan.");
 					PhantomAssertions.assertEquals("REPLAN_GROUP_TARGET", waiting.waitReason(), "No-target wait lost its concrete reason.");
