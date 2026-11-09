@@ -149,7 +149,18 @@ public final class PhantomCoordination130Integration
 			if (args[0].startsWith("group-pve")) { groupPve130(profiles, module, args[0]); return; }
 			if (args[0].equals("authority-f7"))
 			{ final var fixtures = receiptFixtures(profiles, module, 3); for (var fixture : fixtures) { fixture.commitOnce(); fixture.verify(); } f7Receipts(profiles, fixtures); return; }
-			if (args[0].equals("authority") || args[0].equals("authority-resume")) { authorityRefresh130(profiles, module, args[0].equals("authority-resume")); return; }
+			if (args[0].equals("authority") || args[0].equals("authority-resume"))
+			{
+				final var protectedIds = PhantomCoordination130Native.authorizedProfiles(module.getParent().getParent().resolve("runtime"));
+				final var before = PhantomCoordination130Native.preflightWitness(profiles, protectedIds, false);
+				try { authorityRefresh130(profiles, module, args[0].equals("authority-resume")); }
+				finally
+				{
+					PhantomAssertions.assertEquals(before, PhantomCoordination130Native.preflightWitness(profiles, protectedIds, false), "Authority fixtures changed protected managed profiles.");
+					System.out.println("SQL130_AUTHORITY_MANAGED_WITNESS_EXACT profiles=" + protectedIds);
+				}
+				return;
+			}
 			if (args[0].equals("cold")) { coldExpiry130(profiles, module); return; }
 			if (args[0].equals("ownership")) { executionHandoff(profiles, module); PhantomCommerceSuite.verifyUnappliedAbortSql(profiles); activityRevision130(profiles, module, false); return; }
 			if (args[0].equals("ownership-resume"))
@@ -550,6 +561,7 @@ public final class PhantomCoordination130Integration
 				PhantomAssertions.assertEquals(count, stores.get(), "Duplicate refresh issued another native STORE.");
 				if (!resume && scenario.equals("COMPLETE"))
 				{
+					strictRecoveryWitnessNegatives(profiles, fixture);
 					final var sceneWitness = PhantomCoordination130Native.preflightWitness(profiles, List.of(id), false);
 					PhantomCoordination130Native.verifySceneWitness(sceneWitness, PhantomCoordination130Native.preflightWitness(profiles, List.of(id), false));
 					control.onPulse();
@@ -609,6 +621,42 @@ public final class PhantomCoordination130Integration
 			finally { materialization.shutdown(); background.beginStop(); background.finishStop(); engine.beginStop(); engine.finishStop(); }
 		}
 		if (!resume) { try (var writer = Files.newBufferedWriter(checkpoint, StandardCharsets.UTF_8)) { saved.store(writer, "TASK130 unmanaged authority SQL fixtures; native STORE, no GameServer"); } }
+	}
+
+	private static void strictRecoveryWitnessNegatives(PhantomProfileRepository profiles, ReceiptFixture fixture) throws Exception
+	{
+		final long id = fixture.profileId();
+		final int object = fixture.objectId();
+		PhantomAssertions.assertEquals(Math.toIntExact(700_000_000L + id), object, "Expected an unmanaged SQL fixture.");
+		final var rows = List.of(
+			List.of("hp", "UPDATE characters SET curHp=curHp-1 WHERE charId=? AND account_name='task130_sql'", "UPDATE characters SET curHp=curHp+1 WHERE charId=? AND account_name='task130_sql'"),
+			List.of("mp", "UPDATE characters SET curMp=curMp-1 WHERE charId=? AND account_name='task130_sql'", "UPDATE characters SET curMp=curMp+1 WHERE charId=? AND account_name='task130_sql'"),
+			List.of("position", "UPDATE characters SET x=x+1 WHERE charId=? AND account_name='task130_sql'", "UPDATE characters SET x=x-1 WHERE charId=? AND account_name='task130_sql'"),
+			List.of("experience", "UPDATE characters SET exp=exp+1 WHERE charId=? AND account_name='task130_sql'", "UPDATE characters SET exp=exp-1 WHERE charId=? AND account_name='task130_sql'"),
+			List.of("skillPoints", "UPDATE characters SET sp=sp+1 WHERE charId=? AND account_name='task130_sql'", "UPDATE characters SET sp=sp-1 WHERE charId=? AND account_name='task130_sql'"),
+			List.of("item", "INSERT INTO items (owner_id,object_id,item_id,count,loc) SELECT charId,charId+10000000,57,1,'INVENTORY' FROM characters WHERE charId=? AND account_name='task130_sql'", "DELETE FROM items WHERE owner_id=? AND object_id=owner_id+10000000 AND item_id=57"),
+			List.of("learnedSkill", "INSERT INTO character_skills (charId,skill_id,skill_level,class_index) SELECT charId,9999,1,0 FROM characters WHERE charId=? AND account_name='task130_sql'", "DELETE FROM character_skills WHERE charId=? AND skill_id=9999 AND class_index=0"));
+		final var before = PhantomCoordination130Native.preflightWitness(profiles, List.of(id), true);
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			PhantomAssertions.assertTrue(connection.getAutoCommit(), "Witness negative requires committed fixture-only rows.");
+			for (var row : rows)
+			{
+				try (var change = connection.prepareStatement(row.get(1)); var undo = connection.prepareStatement(row.get(2)))
+				{
+					change.setInt(1, object);
+					PhantomAssertions.assertEquals(1, change.executeUpdate(), "Fixture mutation failed: " + row.getFirst());
+					try
+					{
+						final var after = PhantomCoordination130Native.preflightWitness(profiles, List.of(id), true);
+						PhantomAssertions.assertThrows(IllegalStateException.class, () -> PhantomCoordination130Native.verifyRecoveryWitness(before, after), "Recovery witness accepted changed " + row.getFirst());
+					}
+					finally { undo.setInt(1, object); PhantomAssertions.assertEquals(1, undo.executeUpdate(), "Fixture restoration failed: " + row.getFirst()); }
+					PhantomAssertions.assertEquals(before, PhantomCoordination130Native.preflightWitness(profiles, List.of(id), true), "Fixture did not restore exact " + row.getFirst());
+				}
+			}
+		}
+		System.out.println("SQL130_STRICT_RECOVERY_SQL_NEGATIVES_PASS fixture=" + id + " changes=" + rows.stream().map(List::getFirst).toList());
 	}
 
 	static PhantomGoal authorityChild130(String type, PhantomGoal root, PhantomBackgroundState state)

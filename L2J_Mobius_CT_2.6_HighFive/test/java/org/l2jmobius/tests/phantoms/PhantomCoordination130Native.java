@@ -66,7 +66,12 @@ final class PhantomCoordination130Native
         final long now = System.currentTimeMillis();
         for (long id : ids) { System.out.println("SQL130_RECOVERY_INSPECT profile=" + id + " group=" + logical.groupFor(id).map(row -> row.group().phase() + ":expired=" + (now >= row.group().expiresAtMillis()))); }
         System.out.println("SQL130_RECOVERY_INSPECT_ONLY;SQL_WRITES=0;OLD_OBJECTIVE_PINNED=false;REQUIRED_OWNER=PhantomScheduler/PhantomExecutionControlPort/PhantomAutonomousFarmParty");
-        final var zone = ZoneId.of(read(runtime.resolve("config/Custom/PhantomPlayers.ini")).getProperty("PhantomPopulationTimeZone", "UTC"));
+        final var config = read(runtime.resolve("config/Custom/PhantomPlayers.ini"));
+        final var zone = ZoneId.of(config.getProperty("PhantomPopulationTimeZone", "UTC"));
+        final var seeking = new PhantomPlayersConfig.PartySeekingSettings(Boolean.parseBoolean(config.getProperty("EnablePhantomAutonomousPartySeeking", "true")),
+            Integer.parseInt(config.getProperty("PhantomPartySeekChance1To39", "0")), Integer.parseInt(config.getProperty("PhantomPartySeekChance40To51", "20")),
+            Integer.parseInt(config.getProperty("PhantomPartySeekChance52To60", "35")), Integer.parseInt(config.getProperty("PhantomPartySeekChance61To75", "50")),
+            Integer.parseInt(config.getProperty("PhantomPartySeekChance76To85", "80")), Boolean.parseBoolean(config.getProperty("PhantomPartyPreferHumanFollow", "true")));
         final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
         final var eligible = new LinkedHashSet<Long>();
         final var goals = new PhantomGoalStateStore(profiles);
@@ -76,11 +81,13 @@ final class PhantomCoordination130Native
             final var root = goals.load(id).orElseThrow().goal();
             final var population = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
             final var schedule = catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), zone, population.schedulePhaseMinutes());
-            final boolean consent = PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(id, state.progress().level());
+            final boolean consent = seeking.seeks(id, state.progress().level());
             final var receipt = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(profiles).find(id);
             final boolean obligations = profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent()
-                || receipt.filter(row -> !row.receipt().state().terminal()).isPresent()
-                || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false);
+                || receipt.filter(row -> !row.receipt().state().terminal() || row.receipt().state() == org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.INCONSISTENT).isPresent()
+                || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(true)
+                || List.of("supply.intent", "learning.intent", "career.intent").stream().map(type -> profiles.findComponent(id, type)).flatMap(Optional::stream)
+                    .anyMatch(PhantomHistoricalBackgroundService::nativeIntentPending);
             final boolean claimed = new PhantomPartyStore(profiles).loadLogicalClaim(id).filter(PhantomPartyPersistencePort.StoredLogicalClaim::active).isPresent();
             final boolean ready = population.state() == PhantomPopulationState.State.READY && population.catalogHash().equals(catalog.hash())
                 && state.state() == PhantomBackgroundState.State.READY && schedule.state().requiresMaterialization() && consent
@@ -261,11 +268,19 @@ final class PhantomCoordination130Native
         check(history.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE, "PREFLIGHT_HISTORY_NOT_COMPLETE_" + id);
         final var prepared = preparation.get();
         check(prepared.successful(), "PREFLIGHT_AUTHORITY_REFRESH_" + id + "_" + prepared.reason());
-        check(prepared.advancedIntervals() == 0 && before.equals(preflightWitness(profiles, List.of(id), true)), "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS");
+        check(prepared.advancedIntervals() == 0, "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS");
+        verifyRecoveryWitness(before, preflightWitness(profiles, List.of(id), true));
         return prepared;
     }
     record PreflightWitness(String canonical, String components) { }
     static void verifySceneWitness(PreflightWitness before, PreflightWitness after) { check(before.equals(after), "PREFLIGHT_READ_ONLY_WITNESS"); }
+    static void verifyRecoveryWitness(PreflightWitness before, PreflightWitness after) { check(before.equals(after), "PREFLIGHT_RECOVERY_CONSERVATION_WITNESS"); }
+
+    private static void savePreflightWitness(Path file, PhantomProfileRepository profiles, List<Long> ids, PhantomSystem.PlanningInspection inspection) throws Exception
+    {
+        final var witness = preflightWitness(profiles, ids, false);
+        write(file, "loadedAuthority=" + inspection.planner().generation().authorityHashes() + "\n" + witness.canonical() + "\n" + witness.components());
+    }
     static void checkPreflightBudget(long elapsedNanos, boolean recovery)
     {
         check(elapsedNanos >= 0 && elapsedNanos < TimeUnit.SECONDS.toNanos(recovery ? 60 : 30), recovery ? "PREFLIGHT_RECOVERY_DEADLINE" : "PREFLIGHT_SCENE_DEADLINE");
@@ -414,6 +429,13 @@ final class PhantomCoordination130Native
             && jar.getFileName().toString().equalsIgnoreCase("GameServer." + hash(jar) + ".jar"), "PINNED_JAR_NAME_AND_HASH");
         for (var type : List.of(GameServer.class, PhantomSystem.class, PhantomLogicalParty.class))
         { check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "FINAL_JAR_CLASS_SOURCE"); }
+        final Path testBin = module.getParent().resolve("build/phantom-test/bin").toRealPath();
+        for (var type : List.of(PhantomCoordination130Native.class, PhantomCoordination130Integration.class))
+        {
+            final Path origin = Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
+            check(origin.equals(testBin), "FINAL_RUNNER_CLASS_SOURCE");
+            System.out.println("NATIVE130_RUNNER_ORIGIN class=" + type.getName() + " source=" + origin + " sha256=" + hash(origin.resolve(type.getName().replace('.', '/') + ".class")));
+        }
         check(Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "EXACT_OWN_DATABASE");
         if (Boolean.getBoolean("phantom.task130.authorityOnly"))
         {
@@ -458,7 +480,18 @@ final class PhantomCoordination130Native
                         inspectLoadedAuthority(runtime, profiles, inspectionIds, inspection);
                         throw new IllegalStateException("NATIVE130_AUTHORITY_DIAGNOSTIC_COMPLETE");
                     }
-                    proved.set(inspectLoadedPlanner(runtime,profiles,inspectionIds,inspection,restart,saved));
+                    final String witnessName = "preflight130." + ProcessHandle.current().pid();
+                    final Path beforeWitness = evidence.resolve(witnessName + ".before.txt");
+                    final Path afterWitness = evidence.resolve(witnessName + ".after.txt");
+                    savePreflightWitness(beforeWitness, profiles, inspectionIds, inspection);
+                    try { proved.set(inspectLoadedPlanner(runtime, profiles, inspectionIds, inspection, restart, saved)); }
+                    catch (Exception | Error refusal)
+                    {
+                        try { savePreflightWitness(afterWitness, profiles, inspectionIds, inspection); }
+                        catch (Exception failure) { refusal.addSuppressed(failure); }
+                        throw refusal;
+                    }
+                    savePreflightWitness(afterWitness, profiles, inspectionIds, inspection);
                     check(!Boolean.getBoolean("phantom.task130.authorityOnly"), "AUTHORITY_DIAGNOSTIC_COMPLETE");
                     if (!Files.exists(cut)) { write(cut, "zeroWorld=true\ngameplayFixtureWritesAfterCut=0\n"); }
                     write(evidence.resolve("preflight130.cut." + ProcessHandle.current().pid()), "jar=" + jarHash + "\nobjective=" + proved.get().objective() + "\nAUTHORITY_PREPARATION=CANONICAL_NATIVE_STORE_READBACK\nGAMEPLAY_FIXTURE_WRITES=0\n");
