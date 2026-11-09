@@ -2777,6 +2777,7 @@ public final class PhantomSystem
 		{
 			result.put("party.rendezvous", configured._partyCoordinator.rendezvousProgress(profileId));
 			result.put("party.claim", configured._partyCoordinator.claim(profileId).toString());
+			result.put("party.route.reason", configured._partyCoordinator.autonomousFarmRouteReason(profileId));
 		}
 		if (configured._visibleFarmTravel != null)
 		{

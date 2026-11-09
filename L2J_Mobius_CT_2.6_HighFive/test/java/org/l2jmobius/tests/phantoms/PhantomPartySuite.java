@@ -421,6 +421,12 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals("party.route.farm_authority_unavailable", wrong.reasonKey(), "The personal Goal replaced the exact LogicalParty route.");
 				final var shared = coordinator.requestAutonomousFarmRoute(1, new PhantomDomainRef("topology.anchor", "farm.shared"), destination);
 				PhantomAssertions.assertEquals("party.route.unavailable", shared.reasonKey(), "The exact LogicalParty anchor did not reach the navigation owner.");
+				goals.put(1, supportTravelRoot(1, 1, "farm.solo.new"));
+				clock.addAndGet(6_000_000_000L);
+				for (int pulse = 0; pulse < 5; pulse++) { coordinator.onPulse(); }
+				final var retained = backend.observe(backend._members.get(1L)).orElse(null);
+				PhantomAssertions.assertTrue(retained != null && retained.members().size() == 2, "A newer personal revision dissolved the same committed LogicalParty.");
+				PhantomAssertions.assertEquals(1, backend.invitationCount(), "A lawful personal revision replayed the stock invite.");
 			}
 			finally { coordinator.beginStop(); coordinator.finishStop(); }
 		});

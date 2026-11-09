@@ -466,9 +466,12 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 				if (!arrived) { return; }
 			}
 			final String plan = selected.stream().map(ref -> Long.toString(ref.profileId())).collect(java.util.stream.Collectors.joining(","));
-			final var formed = _coordinator.formForGoal(profileId, goal.goalId(), goal.revision(), goal.goalType(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef(OBJECTIVE_NAMESPACE, plan), requirements(roster));
-			if (formed != CommandOutcome.ACCEPTED && formed != CommandOutcome.IDEMPOTENT) { continue; }
 			final var nativeParty = _backend.observe(leader.ref()).orElse(null);
+			if (claim == null || nativeParty == null || !_coordinator.committed(profileId))
+			{
+				final var formed = _coordinator.formForGoal(profileId, goal.goalId(), goal.revision(), goal.goalType(), ObjectiveMode.GENERAL_PVE, new PhantomDomainRef(OBJECTIVE_NAMESPACE, plan), requirements(roster));
+				if (formed != CommandOutcome.ACCEPTED && formed != CommandOutcome.IDEMPOTENT) { continue; }
+			}
 			if (nativeParty != null && (nativeParty.members().size() > 9 || nativeParty.members().stream().anyMatch(member -> !selected.contains(member)))) { continue; }
 			final var missing = selected.stream().filter(ref -> !ref.equals(leader.ref()) && (nativeParty == null || !nativeParty.members().contains(ref)))
 				.sorted(Comparator.comparingDouble(ref -> _backend.memberSnapshot(ref).map(member -> distance(leader, member)).orElse(Double.MAX_VALUE))).findFirst();

@@ -315,6 +315,11 @@ public final class PhantomPartyRouteCoordinator
 	/** One follower owns its own path; neither the human nor another follower visits its old waypoints. */
 	public int follow(String groupId, long generation, MemberSnapshot actor, MemberSnapshot leader, String topologyHash, long logicalNow, int operationBudget, PhantomCancellationToken token)
 	{
+		return follow(groupId, generation, actor, leader, topologyHash, logicalNow, operationBudget, token, false);
+	}
+
+	int follow(String groupId, long generation, MemberSnapshot actor, MemberSnapshot leader, String topologyHash, long logicalNow, int operationBudget, PhantomCancellationToken token, boolean farmApproach)
+	{
 		if (!_followPolicy.enabled() || (_navigation == null) || (_combat == null) || (operationBudget < 3) || (actor == null) || (leader == null) || (actor.ref().kind() != MemberKind.PHANTOM) || actor.ref().equals(leader.ref()))
 		{
 			return 0;
@@ -365,7 +370,7 @@ public final class PhantomPartyRouteCoordinator
 			{
 				return 1;
 			}
-			final long timeout = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(_followPolicy.routeTimeoutMillis());
+			final long timeout = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(farmApproach ? Math.max(90_000, _followPolicy.routeTimeoutMillis()) : _followPolicy.routeTimeoutMillis());
 			final long deadline = logicalNow > Long.MAX_VALUE - timeout ? Long.MAX_VALUE : logicalNow + timeout;
 			synchronized (_stateLock)
 			{
@@ -409,7 +414,7 @@ public final class PhantomPartyRouteCoordinator
 					return 1;
 				}
 				follow = requested;
-				attempt = request(routeKey, generation, actor, new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("character.object", Integer.toString(leader.ref().characterObjectId())), destination, topologyHash, logicalNow, follow.deadline());
+				attempt = request(routeKey, generation, actor, new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("character.object", Integer.toString(leader.ref().characterObjectId())), destination, topologyHash, logicalNow, follow.deadline(), farmApproach);
 			}
 			else
 			{

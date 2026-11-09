@@ -2111,8 +2111,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, int leaderObjectId,
 			Set<Integer> roster, java.util.function.BooleanSupplier current)
 		{
-			return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.partyGatekeeper(_player, leg, leaderObjectId, roster,
-				() -> executionValid() && current.getAsBoolean());
+			final var result = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult>();
+			org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(_player, "PartyGatekeeper", () ->
+				result.set(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.partyGatekeeper(_player, leg, leaderObjectId, roster,
+					() -> executionValid() && current.getAsBoolean())));
+			return result.get();
 		}
 
 		@Override
