@@ -667,6 +667,10 @@ public final class PhantomSystem
 					() -> System.currentTimeMillis() / 60000L,
 					socialAffiliations);
 				_partyCoordinator.installHumanFollowPreference(_settings.partySeeking().preferHumanFollow());
+				final java.util.function.Function<String, java.util.Optional<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint>> farmRouteAnchor = id ->
+					_topologyService.query().findAnchor(id).flatMap(anchor -> L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, 0))
+						.map(point -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(point.x(), point.y(), point.z(), point.instanceId()));
+				_partyCoordinator.installAutonomousFarmTravel(travel, farmRouteAnchor);
 				_visibleAutoPlay.bindAssemblyWait(_partyCoordinator::assemblyDeadline);
 				if (!_partyCoordinator.start())
 				{
@@ -1025,13 +1029,22 @@ public final class PhantomSystem
 							@Override
 							public java.util.Optional<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> nativePartyDestination(PhantomGoal root)
 							{
-								final var spec = PhantomBackgroundGoalSpec.parse(root);
-								return _topologyService.query().findAnchor(spec.anchorId()).map(anchor -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(anchor.point().x(), anchor.point().y(), anchor.point().z(), anchor.point().instanceId()));
+								return nativePartyDestination(root.selectedAnchor());
+							}
+							@Override
+							public java.util.Optional<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> nativePartyDestination(PhantomDomainRef anchor)
+							{
+								return anchor == null ? java.util.Optional.empty() : farmRouteAnchor.apply(anchor.key());
 							}
 							@Override
 							public boolean yieldForNativeParty(MemberRef actor, long epoch, PhantomGoal root, java.util.function.BooleanSupplier current)
 							{
-								return current.getAsBoolean() && !_backgroundService.hasVisibleOwnedStorePending(actor.profileId(), root)
+								final long id = actor.profileId();
+								final var owner = executionPartyOwner(id);
+								return current.getAsBoolean() && owner != null && _executionAdmission.permits(id, owner)
+									&& productionGoals.publication(id).filter(publication -> publication.state().status()
+										== org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.PENDING).isEmpty()
+									&& !_backgroundService.hasVisibleOwnedStorePending(id, root)
 									&& _visibleFarmTravel.stopForRecovery(actor.profileId(), root, actor.characterObjectId(), epoch) && current.getAsBoolean();
 							}
 						}, System::currentTimeMillis);
@@ -3829,7 +3842,8 @@ public final class PhantomSystem
 			if (System.nanoTime() - entry.materializedAtNanos() < 60_000_000_000L
 				|| _materializationRetention.recentHumanObservation(id) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR
 				|| hasAcceptedNativeJourney(id) || !entry.actionAdmissionOpen()
-				|| _partyCoordinator != null && _partyCoordinator.observeRouteActivity(id).nonTerminal()) { return false; }
+				|| _partyCoordinator != null && (_partyCoordinator.observeRouteActivity(id).nonTerminal()
+					|| _partyCoordinator.retainsAutonomousFarmTravel(id))) { return false; }
 			final var object = World.getInstance().findObject(entry.characterObjectId());
 			if (!(object instanceof Player player) || player.isInStoreMode() || player.hasPendingOwnedStore()
 				|| player.getParty() != null && player.getParty().getMembers().stream().anyMatch(PhantomSystem::humanObserver)

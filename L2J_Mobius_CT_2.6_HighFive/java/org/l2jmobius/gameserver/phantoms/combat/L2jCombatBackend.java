@@ -2107,6 +2107,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		public boolean regroupReady() { return executionValid() && regroupIdle(_player); }
 
 		@Override
+		public org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult partyGatekeeper(
+			org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, int leaderObjectId,
+			Set<Integer> roster, java.util.function.BooleanSupplier current)
+		{
+			return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.partyGatekeeper(_player, leg, leaderObjectId, roster,
+				() -> executionValid() && current.getAsBoolean());
+		}
+
+		@Override
 		public boolean partyWalkSafe(int x, int y, int z, int instanceId)
 		{
 			if (!regroupReady() || instanceId != 0 || Math.hypot((long) _player.getX() - x, (long) _player.getY() - y) > 3000) { return false; }

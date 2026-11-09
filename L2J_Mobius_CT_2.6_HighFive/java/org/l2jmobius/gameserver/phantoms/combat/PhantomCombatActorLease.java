@@ -41,6 +41,9 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	ActorSnapshot actorSnapshot();
 	default boolean regroupReady() { return false; }
 	default boolean partyWalkSafe(int x, int y, int z, int instanceId) { return false; }
+	default org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult partyGatekeeper(
+		org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, int leaderObjectId,
+		java.util.Set<Integer> roster, java.util.function.BooleanSupplier current) { return null; }
 
 	default ActionOutcome regroupParty(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef actor, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef leader,
 		List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef> roster, List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef> majority, java.util.function.BooleanSupplier authority)

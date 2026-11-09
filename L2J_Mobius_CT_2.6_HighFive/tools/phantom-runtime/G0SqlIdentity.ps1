@@ -87,7 +87,8 @@ function Get-StrictG0SqlIdentity($Expected,[int]$Port=3308) {
 }
 
 function Get-G0OwnedSqlIdentity([int]$OwnedPid,[long]$Created,[string]$Executable,[string]$Config,[string]$DataDirectory,[int]$Port) {
-    if($Port -ne 33306 -or $Created -le 0){throw 'G0_OWNED_SCOPE'}
+    $ownedLanes=@{33306='sql-first-party';33307='sql-rendezvous'}
+    if(!$ownedLanes.ContainsKey($Port) -or (Split-Path (Split-Path $Config -Parent) -Leaf) -ine $ownedLanes[$Port] -or $Created -le 0){throw 'G0_OWNED_SCOPE'}
     foreach($file in @($Executable,$Config)){Assert-G0PhysicalFile $file}
     $data=Get-Item -LiteralPath $DataDirectory -Force
     if(!$data.PSIsContainer -or $data.FullName -ine (Join-Path (Split-Path $Config -Parent) 'data') -or ($data.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'G0_OWNED_DATA_PATH'}

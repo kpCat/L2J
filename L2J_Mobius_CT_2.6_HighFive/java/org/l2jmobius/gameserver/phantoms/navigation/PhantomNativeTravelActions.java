@@ -116,10 +116,15 @@ public final class PhantomNativeTravelActions
 
 	public static boolean ordinary(Player player)
 	{
+		return player.getParty() == null && ordinaryTravelActor(player);
+	}
+
+	private static boolean ordinaryTravelActor(Player player)
+	{
 		final var owner = player.getNativeWorkOwner();
 		return player.isNativeWorkManaged() && owner != null && owner.isCurrent() && !owner.sealed() && World.getInstance().getPlayer(player.getObjectId()) == player
 			&& player.getInstanceId() == 0 && !player.isGM() && !player.isFlying() && !player.isFlyingMounted() && !player.isAlikeDead() && !player.isJailed() && !player.inObserverMode() && !player.isOnEvent() && !player.isInOlympiadMode()
-			&& !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && !player.isSitting() && !player.isInStoreMode() && !player.isInCombat() && !player.isCombatFlagEquipped() && player.getParty() == null && !player.isInsideZone(ZoneId.SIEGE);
+			&& !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && !player.isSitting() && !player.isInStoreMode() && !player.isInCombat() && !player.isCombatFlagEquipped() && !player.isInsideZone(ZoneId.SIEGE);
 	}
 	public static PhantomTravelStrategy.Options snapshot(Player player, List<PhantomNormalGatekeeperTravel.Leg> legs, long remainingMillis)
 	{
@@ -162,12 +167,30 @@ public final class PhantomNativeTravelActions
 	}
 	public static GatekeeperResult gatekeeper(Player player, PhantomNormalGatekeeperTravel.Leg leg)
 	{
+		return gatekeeper(player, leg, () -> ordinary(player));
+	}
+
+	/** The route owner's action lease must still own this exact actor and stock roster. */
+	public static GatekeeperResult partyGatekeeper(Player player, PhantomNormalGatekeeperTravel.Leg leg, int leaderObjectId,
+		java.util.Set<Integer> roster, BooleanSupplier current)
+	{
+		final var party = player.getParty();
+		return gatekeeper(player, leg, () -> current.getAsBoolean() && ordinaryTravelActor(player) && !player.isMoving()
+			&& party != null && player.getParty() == party && party.getLeader().getObjectId() == leaderObjectId
+			&& roster.size() >= 2 && roster.size() <= 9 && roster.contains(player.getObjectId())
+			&& party.getMembers().size() == roster.size() && party.getMembers().stream().allMatch(member -> roster.contains(member.getObjectId())
+				&& member.getParty() == party && World.getInstance().getPlayer(member.getObjectId()) == member && member.hasHeadlessOutboundSession()));
+	}
+
+	private static GatekeeperResult gatekeeper(Player player, PhantomNormalGatekeeperTravel.Leg leg, BooleanSupplier admitted)
+	{
 		final var before = point(player); final long adena = player.getAdena();
 		final long fee = PhantomNormalGatekeeperTravel.phantomFee(leg, player.getClassIndex(), player.getLevel(), Instant.now().toEpochMilli() / 60000);
 		final var npc = gatekeeperAt(leg);
-		if (!ordinary(player) || !available(leg) || npc == null || !npc.canInteract(player)
+		if (!admitted.getAsBoolean() || !available(leg) || npc == null || !npc.canInteract(player)
 			|| !new L2jNavigationBackend().canWalkDirect(before,new PhantomNavigationPoint(npc.getX(),npc.getY(),GeoEngine.getInstance().getHeight(npc.getX(),npc.getY(),npc.getZ()),npc.getInstanceId()))) { return new GatekeeperResult(Status.UNAVAILABLE, fee, adena, adena, before, before); }
 		if (adena < fee) { return new GatekeeperResult(Status.INSUFFICIENT_RESOURCES, fee, adena, adena, before, before); }
+		if (!admitted.getAsBoolean()) { return new GatekeeperResult(Status.UNAVAILABLE, fee, adena, adena, before, before); }
 		player.stopMove(null);
 		npc.onBypassFeedback(player,"teleport "+leg.teleportListName()+" "+leg.destinationIndex());
 		if (player.hasHeadlessOutboundSession() && player.isTeleporting()) { player.onTeleported(); }

@@ -1,9 +1,10 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet('start','attest','stop')][string]$Action)
+param([Parameter(Mandatory=$true)][ValidateSet('start','attest','stop')][string]$Action,
+    [ValidateSet('first-party','rendezvous')][string]$Lane='first-party')
 
 $ErrorActionPreference='Stop'
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..')).TrimEnd('\')
-$root=Join-Path (Split-Path $repo -Parent) 'sql-first-party'
+$root=Join-Path (Split-Path $repo -Parent) ('sql-'+$Lane)
 $data=Join-Path $root 'data'
 $config=Join-Path $root 'owned-server.ini'
 $receipt=Join-Path $root 'owned-process.json'
@@ -11,7 +12,7 @@ $bin=Join-Path $env:ProgramFiles 'MariaDB 11.4\bin'
 $daemon=Join-Path $bin 'mariadbd.exe'
 $install=Join-Path $bin 'mariadb-install-db.exe'
 $admin=Join-Path $bin 'mariadb-admin.exe'
-$port=33306
+$port=if($Lane -eq 'rendezvous'){33307}else{33306}
 . (Join-Path $PSScriptRoot 'G0SqlIdentity.ps1')
 Add-Type -Path (Join-Path $PSScriptRoot 'Win32SqlIdentity.cs')
 if([Win32SqlIdentity]::CurrentTokenElevated()){throw 'TEST130_ORDINARY_TOKEN_REQUIRED'}

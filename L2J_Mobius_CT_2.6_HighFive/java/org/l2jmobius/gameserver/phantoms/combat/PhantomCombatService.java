@@ -2500,6 +2500,16 @@ public final class PhantomCombatService
 			return active() && kind() == ExternalActionKind.PARTY_ROUTE && _actorLease.partyWalkSafe(x, y, z, instanceId);
 		}
 
+		public org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult partyGatekeeper(
+			org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, int leaderObjectId, Set<Integer> roster)
+		{
+			if (!active() || kind() != ExternalActionKind.PARTY_ROUTE) { return null; }
+			try (var scope = _actorLease.enterExecutionScope())
+			{
+				return _actorLease.partyGatekeeper(leg, leaderObjectId, roster, this::active);
+			}
+		}
+
 		public PlayableSnapshot playableSnapshot(int objectId)
 		{
 			return active() ? _actorLease.playableSnapshot(objectId) : null;

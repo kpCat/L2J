@@ -700,7 +700,8 @@ final class PhantomCoordination130Native
             check(before != null && Files.isRegularFile(agreementFile), "PRODUCTION_PREFLIGHT_AGREEMENT_REQUIRED");
             check(!restart || before.groupId().equals(saved.getProperty("group")), "RESTART_SAME_GROUP");
             ids = before.members().stream().map(PhantomLogicalParty.Member::profileId).toList();
-            observe(runtime, profiles, ids, before.groupId(), planner.get(), restart, System.currentTimeMillis() + 300_000);
+            observe(runtime, profiles, ids, before.groupId(), planner.get(), restart,
+                System.currentTimeMillis() + (PhantomCoordination130Integration.rendezvousLane() ? 480_000 : 300_000));
             verifyExistingHumanHeal(runtime, jarHash);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
@@ -796,6 +797,7 @@ final class PhantomCoordination130Native
         final var population = new PhantomPopulationStore(profiles, catalog, zone);
         final Path evidence = scene(runtime), preparing = evidence.resolve("profiles130.preparing");
         final boolean firstParty = PhantomCoordination130Integration.firstPartyLane();
+        final boolean rendezvous = PhantomCoordination130Integration.rendezvousLane();
         final boolean morning = !evidence.equals(runtime);
         check(!Files.exists(evidence.resolve("native130.cut")), "BOUNDED_FIXTURE_BEFORE_CUT");
         final List<PhantomPopulationStore.ManagedSnapshot> existing;
@@ -818,7 +820,7 @@ final class PhantomCoordination130Native
         final var fields = new ArrayList<>(source.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING)
             .map(anchor -> Map.entry(anchor, L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, 0))).filter(entry -> entry.getValue().isPresent())
             .filter(entry -> { final var point = entry.getValue().orElseThrow(); return GeoEngine.getInstance().hasGeo(point.x(), point.y()) && mobs.stream().anyMatch(mob -> Math.hypot((long) point.x() - mob.getX(), (long) point.y() - mob.getY()) < 500 && Math.abs((long) point.z() - mob.getZ()) < 150 && GeoEngine.getInstance().canMoveToTarget(point.x(), point.y(), point.z(), mob.getX(), mob.getY(), mob.getZ(), 0)); })
-            .sorted(Comparator.comparing(entry -> entry.getKey().id())).limit(32).toList());
+            .sorted(Comparator.comparing(entry -> entry.getKey().id())).limit(rendezvous ? 2048 : 32).toList());
         if (morning)
         {
             final var original = read(runtime.resolve("fixture130.properties"));
@@ -834,8 +836,14 @@ final class PhantomCoordination130Native
         }
         check(!fields.isEmpty(), "CERTIFIED_FIELD");
         var field = fields.getFirst();
+        final var fixtureTravel = firstParty ? PhantomNormalGatekeeperTravel.load(runtime.resolve("data/phantoms/travel/high-five-normal-gk.xml"), source.topology()) : null;
+        if (rendezvous)
+        {
+            field = rendezvousFixtureStart(source, fixtureTravel, fields.stream().map(entry -> entry.getKey().id()).toList());
+            System.out.println("TEST_FIXTURE_SAFE_START anchor=" + field.getKey().id() + " position=" + field.getValue().orElseThrow());
+        }
         final var authority = firstParty ? new L2jPhantomBackgroundAuthority(source::knowledge, source::topology, source::progression, source::commerce,
-            PhantomNormalGatekeeperTravel.load(runtime.resolve("data/phantoms/travel/high-five-normal-gk.xml"), source.topology())) : source.authority();
+            fixtureTravel) : source.authority();
         final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), authority);
         final var goals = new PhantomGoalStateStore(profiles);
         final var ecologyCatalog = firstParty ? PhantomPopulationEcologyCatalog.load(runtime.resolve("data/phantoms/population/high-five-ecology-v1.xml"), catalog,
@@ -996,6 +1004,36 @@ final class PhantomCoordination130Native
         if (!Files.exists(runtime.resolve("human130-heal.tsv"))) { ordinaryHeal(runtime); }
         write(evidence.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\ngroup=" + group.groupId() + "\nanchor=" + group.anchorId() + "\n");
         System.out.println("NATIVE130_ZERO_WORLD_AGREEMENT group=" + group.groupId() + " profiles=" + ids);
+    }
+
+    private static Map.Entry<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor, Optional<PhantomBackgroundState.Position>>
+        rendezvousFixtureStart(PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomNormalGatekeeperTravel travel, List<String> fields)
+    {
+        final var zones = org.l2jmobius.gameserver.managers.ZoneManager.getInstance();
+        Map.Entry<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor, Optional<PhantomBackgroundState.Position>> best = null;
+        long bestCost = Long.MAX_VALUE;
+        for (var anchor : source.topology().snapshot().anchors())
+        {
+            if (anchor.role() != PhantomTopologyAnchorRole.CITY_CENTER && anchor.role() != PhantomTopologyAnchorRole.RESPAWN
+                && anchor.role() != PhantomTopologyAnchorRole.GATEKEEPER && anchor.role() != PhantomTopologyAnchorRole.ROUTE) { continue; }
+            final var position = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, 0);
+            final var point = position.orElse(null);
+            if (point == null || !GeoEngine.getInstance().hasGeo(point.x(), point.y())
+                || zones.getZone(point.x(), point.y(), point.z(), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) == null
+                && zones.getZone(point.x(), point.y(), point.z(), org.l2jmobius.gameserver.model.zone.type.TownZone.class) == null
+                || World.getInstance().getVisibleObjects().stream().anyMatch(value -> value instanceof Monster mob && mob.isAggressive() && !mob.isAlikeDead()
+                    && Math.abs((long) mob.getZ() - point.z()) <= 256
+                    && Math.hypot((long) mob.getX() - point.x(), (long) mob.getY() - point.y()) <= mob.getAggroRange() + 300)) { continue; }
+            for (String field : fields)
+            {
+                final var route = travel.route(anchor.id(), field).orElse(null);
+                if (route == null || route.isEmpty() || route.size() > 32) { continue; }
+                final long cost = route.stream().mapToLong(PhantomNormalGatekeeperTravel.Step::travelMillis).sum();
+                if (cost < bestCost) { best = Map.entry(anchor, position); bestCost = cost; }
+            }
+        }
+        check(best != null, "SAFE_CANONICAL_TOWN_WITH_FARM_ITINERARY");
+        return best;
     }
 
     private static void finishFirstPartyFixture(Path runtime, Path evidence, FirstPartyHistory history, List<Long> ids) throws Exception
@@ -1307,6 +1345,9 @@ final class PhantomCoordination130Native
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
         final Map<Integer, Long> priorHealReceipt = new HashMap<>();
         final Map<Integer, HealSample> healing = new HashMap<>();
+        final Map<Integer, PhantomNavigationPoint> partyOrigins = new HashMap<>();
+        final boolean travelRequired = PhantomCoordination130Integration.rendezvousLane() && !restart;
+        boolean groupTravel = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
         String lastCoordinationWait = ""; long lastCoordinationVersion = -1;
@@ -1332,7 +1373,23 @@ final class PhantomCoordination130Native
                 if (!partySeen)
                 {
                     System.out.println("NATIVE130_STOCK_PARTY leader=" + leader.getObjectId() + " members=" + stock.stream().map(Player::getObjectId).toList() + " logicalRoles=" + group.members());
+                    if (travelRequired)
+                    {
+                        check(stock.size() == ids.size() && stock.stream().allMatch(actor -> !actor.isAlikeDead()
+                            && (actor.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.TOWN)
+                                || actor.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))), "STOCK_PARTY_BEFORE_TOWN_DEPARTURE");
+                        stock.forEach(actor -> partyOrigins.put(actor.getObjectId(), PhantomNativeTravelActions.point(actor)));
+                        System.out.println("NATIVE130_STOCK_RENDEZVOUS positions=" + partyOrigins);
+                    }
                     partySeen = true;
+                }
+                if (travelRequired && !groupTravel && stock.size() == partyOrigins.size()
+                    && stock.stream().allMatch(actor -> partyOrigins.containsKey(actor.getObjectId())
+                        && PhantomNativeTravelActions.point(actor).distanceTo(partyOrigins.get(actor.getObjectId())) >= 300))
+                {
+                    groupTravel = true;
+                    System.out.println("NATIVE130_GROUP_TRAVEL leader=" + leader.getObjectId() + " source=" + group.objective().key()
+                        + " positions=" + stock.stream().map(PhantomNativeTravelActions::point).toList());
                 }
                 final var band = PhantomPartyFarmEligibility.forRoster(stock.stream().map(Player::getLevel).toList()).orElse(null);
                 for (var actor : stock)
@@ -1468,7 +1525,8 @@ final class PhantomCoordination130Native
                 check(stableCoordinationSamples < 3, "STABLE_COORDINATION_BLOCK_" + group.waitReason());
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
-            if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
+            if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && (!travelRequired || groupTravel)
+                && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
             {
                 System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " healerRequired=" + healerRequired + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
                 return;

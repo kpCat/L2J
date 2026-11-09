@@ -13,12 +13,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionKind;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
@@ -86,12 +88,23 @@ public final class PhantomPartyRouteCoordinator
 
 	public RouteAttempt request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
 	{
-		final String routeId = PhantomPartyModel.sha256(groupId + '|' + generation + '|' + destinationRef.namespace() + ':' + destinationRef.key() + '|' + topologyHash);
+		return request(groupId, generation, leader, destinationRef, destination, topologyHash, now, deadline, false);
+	}
+
+	RouteAttempt requestFarmWalk(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline)
+	{
+		return request(groupId, generation, leader, destinationRef, destination, topologyHash, now, deadline, true);
+	}
+
+	private RouteAttempt request(String groupId, long generation, MemberSnapshot leader, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destinationRef, PhantomNavigationPoint destination, String topologyHash, long now, long deadline, boolean farmWalk)
+	{
+		final String routeId = PhantomPartyModel.sha256(groupId + '|' + generation + '|' + destinationRef.namespace() + ':' + destinationRef.key() + '|' + topologyHash
+			+ (farmWalk ? "|" + destination + "|" + now : ""));
 		if ((_navigation == null) || (leader.ref().kind() != MemberKind.PHANTOM) || (destination.instanceId() != leader.instanceId()))
 		{
 			return RouteAttempt.unavailable(routeId, generation, destinationRef, "party.route.unavailable");
 		}
-		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline);
+		final PendingRoute pending = new PendingRoute(leader.ref().profileId(), routeId, generation, destinationRef, topologyHash, deadline, farmWalk);
 		synchronized (_stateLock)
 		{
 			final PendingRoute current = _pending.get(groupId);
@@ -107,7 +120,8 @@ public final class PhantomPartyRouteCoordinator
 			_pending.put(groupId, pending);
 		}
 		final PhantomNavigationPoint origin = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
-		final Submission submission = _navigation.submit(new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, deadline, 100000));
+		final var request = new PhantomNavigationRequest(leader.ref().profileId(), origin, destination, now, deadline, 100000);
+		final Submission submission = farmWalk ? _navigation.submitWalkCorridor(request) : _navigation.submit(request);
 		final boolean stillOwned;
 		synchronized (_stateLock)
 		{
@@ -136,7 +150,7 @@ public final class PhantomPartyRouteCoordinator
 		if (submission.status() == SubmissionStatus.COMPLETED)
 		{
 			_navigation.consume(submission.requestId());
-			final RouteAttempt result = completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash);
+			final RouteAttempt result = completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash, farmWalk);
 			if (result.status() == AttemptStatus.READY)
 			{
 				rememberRoute(groupId, routeId, deadline, generation);
@@ -166,7 +180,7 @@ public final class PhantomPartyRouteCoordinator
 		{
 			return RouteAttempt.pending(pending._routeId, pending._generation, pending._destination);
 		}
-		final RouteAttempt attempt = completed(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash);
+		final RouteAttempt attempt = completed(pending._routeId, pending._generation, pending._destination, result.get(), pending._topologyHash, pending._farmWalk);
 		synchronized (_stateLock)
 		{
 			if (!_pending.remove(groupId, pending))
@@ -713,19 +727,31 @@ public final class PhantomPartyRouteCoordinator
 		}
 	}
 
-	private static RouteAttempt completed(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash)
+	PhantomNativeTravelActions.GatekeeperResult farmGatekeeper(String journeyId, MemberRef member, MemberRef leader,
+		Set<Integer> roster, PhantomNormalGatekeeperTravel.Leg leg, long deadline, PhantomCancellationToken token)
+	{
+		if (_combat == null || token.isCancelled() || !reserveMovement(member.profileId())) { return null; }
+		try (var lease = _combat.acquireExternalAction(new ExternalActionRequest(member.profileId(), ExternalActionKind.PARTY_ROUTE,
+			"party.gk." + journeyId.substring(0, 20), deadline, token)).lease())
+		{
+			return lease == null ? null : lease.partyGatekeeper(leg, leader.characterObjectId(), roster);
+		}
+		finally { releaseMovementReservation(member.profileId()); }
+	}
+
+	private static RouteAttempt completed(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash, boolean farmWalk)
 	{
 		if ((result == null) || (result.route() == null))
 		{
 			return RouteAttempt.failed(routeId, generation, destination, result);
 		}
-		return RouteAttempt.ready(routeId, generation, destination, manifest(routeId, generation, destination, result, topologyHash), result.status());
+		return RouteAttempt.ready(routeId, generation, destination, manifest(routeId, generation, destination, result, topologyHash, farmWalk), result.status());
 	}
 
-	private static RouteManifest manifest(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash)
+	private static RouteManifest manifest(String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, PhantomNavigationResult result, String topologyHash, boolean farmWalk)
 	{
 		final String navigationHash = PhantomPartyModel.sha256(result.route().mode() + "|" + result.route().waypoints());
-		return new RouteManifest(routeId, generation, destination, result.route().waypoints(), 0, 250, 1500, RouteStatus.MOVING, topologyHash, navigationHash);
+		return new RouteManifest(routeId, generation, destination, result.route().waypoints(), 0, farmWalk ? 80 : 250, 1500, RouteStatus.MOVING, topologyHash, navigationHash);
 	}
 
 	private static double distance(MemberSnapshot snapshot, int x, int y, int z)
@@ -872,9 +898,10 @@ public final class PhantomPartyRouteCoordinator
 		private final org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef _destination;
 		private final String _topologyHash;
 		private final long _deadline;
+		private final boolean _farmWalk;
 		private volatile long _requestId;
 
-		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash, long deadline)
+		private PendingRoute(long leaderProfileId, String routeId, long generation, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef destination, String topologyHash, long deadline, boolean farmWalk)
 		{
 			_leaderProfileId = leaderProfileId;
 			_routeId = routeId;
@@ -882,6 +909,7 @@ public final class PhantomPartyRouteCoordinator
 			_destination = destination;
 			_topologyHash = topologyHash;
 			_deadline = deadline;
+			_farmWalk = farmWalk;
 		}
 	}
 

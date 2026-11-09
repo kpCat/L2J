@@ -175,7 +175,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Priority fixture did not stop."); }
 		});
-		registry.add("terminal-assembly-route-drains-the-exact-two-or-nine-member-generation", context ->
+		registry.add("distant-logical-roster-invites-without-solo-farm-travel", context ->
 		{
 			for (int size : List.of(2, 9))
 			{
@@ -198,16 +198,22 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				try
 				{
 					final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false,
-						(id, root) -> new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.TERMINAL,
-							root.goalId(), root.revision(), backend._members.get(id).characterObjectId(), backend._nativeEpoch, 0, "travel.search_limit"),
-						new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true), (_, _, _, _, current) -> current.getAsBoolean(), millis::get);
+						(_, _) -> { throw new AssertionError("Distant actors were sent individually to FARM."); },
+						new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true),
+						(_, _, _, _, _) -> { throw new AssertionError("Distant actors adopted a FARM root before meeting."); }, millis::get);
 					adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
-					for (int pulse = 0; pulse < 64 && states._rendezvous.values().stream().noneMatch(row -> row.state().phase() == org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState.Phase.CANCELLED); pulse++)
-					{ adapter.onPulse(); clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); }
-					final var failed = logical.groupFor(1).orElseThrow().group();
-					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING, failed.phase(), "Terminal route cancellation left its logical generation assembling until TTL.");
-					PhantomAssertions.assertEquals(123L, failed.backgroundCursor(), "Terminal route failure rewound confirmed group time.");
-					PhantomAssertions.assertEquals(group.generation(), failed.generation(), "Terminal physical failure silently replaced the logical generation.");
+					for (int pulse = 0; pulse < 30; pulse++)
+					{
+						adapter.onPulse();
+						for (int step = 0; step < 4; step++) { coordinator.onPulse(); }
+						clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
+					}
+					final var physical = backend.observe(backend._members.get(1L)).orElseThrow();
+					PhantomAssertions.assertEquals(size, physical.members().size(), "Stock-permitted invitation was restricted by distance.");
+					PhantomAssertions.assertEquals(size - 1, backend.invitationCount(), "Distant stock formation duplicated invitations.");
+					final var retained = logical.groupFor(1).orElseThrow().group();
+					PhantomAssertions.assertEquals(123L, retained.backgroundCursor(), "Distant invitation changed confirmed group time.");
+					PhantomAssertions.assertEquals(group.generation(), retained.generation(), "Distant invitation replaced the logical generation.");
 				}
 				finally { coordinator.beginStop(); coordinator.finishStop(); }
 			}
@@ -269,13 +275,16 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					{
 						@Override public boolean prepare(long id, PhantomGoal root, PhantomDomainRef sourceRef, long expiry, java.util.function.BooleanSupplier consent)
 						{
-							if (publicationPending.get()) { if (root.revision() == 0) { goals.put(id, supportTravelRoot(id, 1, "farm.fixture")); } return false; }
-							return consent.getAsBoolean();
+							throw new AssertionError("Logical rendezvous delegated to Solo FARM preparation.");
 						}
-						@Override public java.util.Optional<PhantomNavigationPoint> nativePartyDestination(PhantomGoal root) { nativeRouteCalls.incrementAndGet(); return java.util.Optional.empty(); }
+						@Override public java.util.Optional<PhantomNavigationPoint> nativePartyDestination(PhantomDomainRef anchor)
+						{
+							nativeRouteCalls.incrementAndGet();
+							return java.util.Optional.of(new PhantomNavigationPoint(0, 0, 0, 0));
+						}
 						@Override public boolean yieldForNativeParty(MemberRef actor, long epoch, PhantomGoal root, java.util.function.BooleanSupplier current)
 						{
-							if (!handoffAllowed.get() || !current.getAsBoolean()) { return false; }
+							if (publicationPending.get() || !handoffAllowed.get() || !current.getAsBoolean()) { return false; }
 							final var before = backend.memberSnapshot(actor).orElseThrow();
 							backend.snapshot(actor, new MemberSnapshot(actor, before.classId(), before.instanceId(), before.x(), before.y(), before.z(), before.hpPercent(), before.mpPercent(), before.cpPercent(), before.dead(), before.casting(), before.attacking(), false, before.targetObjectId(), before.attackerObjectIds(), before.capabilities(), before.progressionHash()));
 							return true; // Modeled native movement leaf; canonical handoff orchestration is real.
@@ -308,14 +317,14 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					PhantomAssertions.assertTrue(logical.groupFor(physicalLeader).orElseThrow().group().waitReason().startsWith("WAIT_PREPARATION_"), "Logical wait did not identify its actual preparation owner.");
 					preparing.set(false);
 					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
-					PhantomAssertions.assertEquals(0, backend.invitationCount(), "ACCEPTED+1 pending publication was mistaken for finished shared preparation.");
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Pending publication did not fence the native invite.");
+					handoffAllowed.set(false);
 					publicationPending.set(false);
 					final var near = backend.memberSnapshot(backend.currentMember(3).orElseThrow()).orElseThrow();
 					backend.snapshot(near.ref(), new MemberSnapshot(near.ref(), near.classId(), 0, 5000, 0, 0, 100, 100, 100, false, false, false, false, 0, near.attackerObjectIds(), near.capabilities(), near.progressionHash()));
 					for (int slice = 0; slice < 8; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
-					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Logical consent fabricated a distant physical encounter.");
+					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Distant consent bypassed the unreleased owner.");
 					backend.snapshot(near.ref(), new MemberSnapshot(near.ref(), near.classId(), near.instanceId(), near.x(), near.y(), near.z(), 100, 100, 100, false, false, false, true, 0, near.attackerObjectIds(), near.capabilities(), near.progressionHash()));
-					handoffAllowed.set(false);
 					for (int slice = 0; slice < 2; slice++) { clock.addAndGet(6_000_000_000L); millis.addAndGet(6000); adapter.onPulse(); coordinator.onPulse(); }
 					PhantomAssertions.assertEquals(0, backend.invitationCount(), "Encounter ignored an unreleased native travel owner.");
 					final String obsoleteOffer = coordinator.rendezvous(3).orElseThrow().state().offerId();
@@ -359,6 +368,61 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Projection fixture did not stop."); }
 			}
 			}
+		});
+		registry.add("nearby-logical-roster-invites-before-farm-adoption", context ->
+		{
+			final var states = new MemoryPartyStore();
+			final var goals = new MemoryGoalStore();
+			final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true;
+			backend._farmLevel = 76;
+			final var leaderRoot = historicalIdle(1, 129001, 0);
+			final var peerRoot = supportTravelRoot(3, 0, "farm.solo");
+			goals.put(1, leaderRoot);
+			goals.put(3, peerRoot);
+			for (long id : List.of(1L, 3L))
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 300, 0))));
+			}
+			final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+			final var group = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("A".repeat(64), 1, 1,
+				List.of(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(1, "damage", 129001, 0),
+					new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(3, "damage", 129003, 0)),
+				new PhantomDomainRef("background.farm", "20102@farm.shared"), "farm.shared",
+				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+			logical.agree(group).orElseThrow();
+			final var clock = new AtomicLong(1_000_000_000L);
+			final var millis = new AtomicLong(1000);
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get);
+			backend.connect(coordinator);
+			coordinator.start();
+			try
+			{
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false, null,
+					new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true),
+					(_, _, _, _, _) -> { throw new AssertionError("Nearby members were sent to FARM before being invited."); }, millis::get);
+				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+				for (int pulse = 0; pulse < 8; pulse++)
+				{
+					adapter.onPulse();
+					for (int step = 0; step < 4; step++) { coordinator.onPulse(); }
+					clock.addAndGet(6_000_000_000L);
+					millis.addAndGet(6000);
+				}
+				PhantomAssertions.assertEquals(1, backend.invitationCount(), "A lawful nearby roster required personal FARM adoption before invite.");
+				PhantomAssertions.assertEquals(2, backend.observe(backend._members.get(1L)).orElseThrow().members().size(), "The invite did not complete stock membership.");
+				PhantomAssertions.assertEquals(leaderRoot, goals.load(1).orElseThrow().goal(), "Stock membership changed the leader's personal root.");
+				PhantomAssertions.assertEquals(peerRoot, goals.load(3).orElseThrow().goal(), "Stock membership changed the peer's personal root.");
+				PhantomAssertions.assertEquals(group.groupId(), logical.groupFor(3).orElseThrow().group().groupId(), "Stock membership replaced the logical claim.");
+				coordinator.onPulse();
+				final var destination = new PhantomNavigationPoint(1000, 0, 0, 0);
+				final var wrong = coordinator.requestAutonomousFarmRoute(1, leaderRoot.selectedAnchor(), destination);
+				PhantomAssertions.assertEquals("party.route.farm_authority_unavailable", wrong.reasonKey(), "The personal Goal replaced the exact LogicalParty route.");
+				final var shared = coordinator.requestAutonomousFarmRoute(1, new PhantomDomainRef("topology.anchor", "farm.shared"), destination);
+				PhantomAssertions.assertEquals("party.route.unavailable", shared.reasonKey(), "The exact LogicalParty anchor did not reach the navigation owner.");
+			}
+			finally { coordinator.beginStop(); coordinator.finishStop(); }
 		});
 		registry.add("06-six-member-native-projection-can-request-next-farm-pull", context ->
 		{
@@ -1001,7 +1065,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		registry.add("03-route-owner-has-no-snap-or-background-travel", context ->
 		{
 			final String source = source(context, "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyRouteCoordinator.java");
-			PhantomAssertions.assertFalse(source.contains("teleToLocation") || source.contains("setXYZ") || source.contains("background"), "Party route contains snap/background travel.");
+			PhantomAssertions.assertFalse(source.contains("teleToLocation") || source.contains("setXYZ") || source.contains("onBypassFeedback"), "Party route issues direct relocation outside the native travel owner.");
 			PhantomAssertions.assertEquals(1L, source.lines().filter(line -> line.contains("_navigation.submit")).count(), "Route coordinator has more than one navigation submission site.");
 		});
 		registry.add("04-route-cancel-is-group-scoped-and-lock-free-at-boundaries", context ->

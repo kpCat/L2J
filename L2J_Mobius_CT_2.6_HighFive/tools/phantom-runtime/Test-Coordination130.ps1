@@ -3,21 +3,24 @@ param(
     [ValidateSet('package','fixture','recover','artifact-check','native','restart','postflight')][string]$Action,
     [Parameter(Mandatory=$true)][string]$RuntimeRoot,
     [ValidateSet('original','morning')][string]$Fixture='original',
-    [ValidateSet('regression','first-party')][string]$Lane='regression',
-    [string]$GeoSource
+    [ValidateSet('regression','first-party','rendezvous')][string]$Lane='regression',
+    [string]$GeoSource,
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedJarHash,
+    [ValidateRange(1,6)][int]$AttemptNumber=1
 )
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $source=[IO.Directory]::GetParent($module).FullName
 $runtime=[IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
 $parent=[IO.Directory]::GetParent($source).FullName
-$firstParty=$Lane -eq 'first-party'
-$runtimeName=if($firstParty){'runtime-first-party'}else{'runtime'}
-$localName=if($firstParty){'task130-first-party'}else{'task130'}
-$runnerName=if($firstParty){'phantom-test-first-party'}else{'phantom-test'}
-$gamePort=if($firstParty){7961}else{7960}
-$loginPort=if($firstParty){9261}else{9260}
-$pilotPort=if($firstParty){2261}else{2260}
+$firstParty=$Lane -ne 'regression'
+$rendezvous=$Lane -eq 'rendezvous'
+$runtimeName=if($firstParty){'runtime-'+$Lane}else{'runtime'}
+$localName=if($firstParty){'task130-'+$Lane}else{'task130'}
+$runnerName=if($firstParty){'phantom-test-'+$Lane}else{'phantom-test'}
+$gamePort=if($rendezvous){7962}elseif($firstParty){7961}else{7960}
+$loginPort=if($rendezvous){9262}elseif($firstParty){9261}else{9260}
+$pilotPort=if($rendezvous){2262}elseif($firstParty){2261}else{2260}
 if($firstParty -and $Fixture -ne 'original'){throw 'TEST130_FIRST_PARTY_FIXTURE'}
 if($runtime -ine (Join-Path $parent $runtimeName)){throw 'TEST130_EXACT_SIBLING_RUNTIME_REQUIRED'}
 foreach($path in @($source,$parent,$runtime)){
@@ -99,14 +102,18 @@ if($Action -eq 'postflight'){
 }
 $built=Join-Path $module 'dist\libs\GameServer.jar'
 $builtHash=(Get-FileHash -LiteralPath $built).Hash
-$nativeClaim=Join-Path $runtime 'native130.launch'
+$nativeClaim=Join-Path $runtime $(if($rendezvous){'native130.launch.'+$AttemptNumber}else{'native130.launch'})
 if($firstParty){
-    if($builtHash -cne '46E0437859939756DF1F5F1A60159DD6D4D1F41D29CAC220BC2E05642627CBC9'){throw 'TEST130_FIRST_PARTY_PINNED_JAR'}
+    $pinned=if($rendezvous){$ExpectedJarHash}else{'46E0437859939756DF1F5F1A60159DD6D4D1F41D29CAC220BC2E05642627CBC9'}
+    if(!$pinned -or $builtHash -ine $pinned){throw 'TEST130_FIRST_PARTY_PINNED_JAR'}
     if((Get-FileHash -LiteralPath $sqlConfig).Hash -cne (Get-FileHash -LiteralPath (Join-Path $runtime 'config\Database.ini')).Hash){throw 'TEST130_FIRST_PARTY_SQL_CONFIG_MISMATCH'}
     if($Action -eq 'native' -and ((Test-Path -LiteralPath $nativeClaim) -or !(Test-Path -LiteralPath (Join-Path $runtime 'fixture130.properties')) -or
         !(Test-Path -LiteralPath (Join-Path $runtime 'fixture-authority.ready')))){
         throw 'TEST130_FIRST_PARTY_FIXTURE_OR_BOOT_BUDGET'
     }
+    if($rendezvous -and $Action -eq 'native' -and
+        (@(Get-ChildItem -LiteralPath $runtime -Filter 'native130.launch.*' -File).Count -ne $AttemptNumber - 1 -or
+        (Test-Path -LiteralPath (Join-Path $runtime 'native130.complete')))){throw 'TEST130_RENDEZVOUS_SEQUENCE'}
 }
 $outcomeCheck=Join-Path $PSScriptRoot 'Assert-Coordination130Outcome.ps1'
 if($Action -in @('native','restart') -and !(Test-Path -LiteralPath $outcomeCheck -PathType Leaf)){
@@ -166,7 +173,7 @@ if($Action -in @('artifact-check','native','restart')){
 }
 $request=Join-Path $parent ('g0-native130-'+[guid]::NewGuid().ToString('N'))
 if($firstParty){
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-Coordination130FirstPartySql.ps1') -Action attest
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-Coordination130FirstPartySql.ps1') -Action attest -Lane $Lane
 }else{
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-G0IdentityAttestation.ps1') -RequestDirectory $request
 }

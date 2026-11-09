@@ -43,8 +43,8 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 /** One bounded TEST130 SQL entrypoint. No drop/reseed, no connection to a gameplay catalog. Run only after OS G0. */
 public final class PhantomCoordination130Integration
 {
-	static final String SCHEMA = firstPartyLane() ? "l2jmobiush5_phantom_test_130_first_party" : "l2jmobiush5_phantom_test_130";
-	private static final int PORT = firstPartyLane() ? 33306 : 3308;
+	static final String SCHEMA = rendezvousLane() ? "l2jmobiush5_phantom_test_130_rendezvous" : firstPartyLane() ? "l2jmobiush5_phantom_test_130_first_party" : "l2jmobiush5_phantom_test_130";
+	private static final int PORT = rendezvousLane() ? 33307 : firstPartyLane() ? 33306 : 3308;
 	static final String URL = "jdbc:mysql://127.0.0.1:" + PORT + "/" + SCHEMA + "?useSSL=false&serverTimezone=UTC";
 	private static final String ADMIN_URL = "jdbc:mysql://127.0.0.1:" + PORT + "/?useSSL=false&serverTimezone=UTC";
 	static boolean firstPartyLane()
@@ -52,24 +52,25 @@ public final class PhantomCoordination130Integration
 		return switch (System.getProperty("phantom.task130.lane", "regression"))
 		{
 			case "regression" -> false;
-			case "first-party" -> true;
+			case "first-party", "rendezvous" -> true;
 			default -> throw new IllegalArgumentException("Unknown TEST130 lane.");
 		};
 	}
+	static boolean rendezvousLane() { return System.getProperty("phantom.task130.lane", "regression").equals("rendezvous"); }
 
 	static Path localRoot(Path module)
 	{
-		return module.resolve(firstPartyLane() ? ".phantom-local/task130-first-party" : ".phantom-local/task130");
+		return module.resolve(rendezvousLane() ? ".phantom-local/task130-rendezvous" : firstPartyLane() ? ".phantom-local/task130-first-party" : ".phantom-local/task130");
 	}
 
 	static Path runtimeRoot(Path module)
 	{
-		return module.getParent().getParent().resolve(firstPartyLane() ? "runtime-first-party" : "runtime");
+		return module.getParent().getParent().resolve(rendezvousLane() ? "runtime-rendezvous" : firstPartyLane() ? "runtime-first-party" : "runtime");
 	}
 
 	static Path runnerRoot(Path module)
 	{
-		return module.getParent().resolve(firstPartyLane() ? "build/phantom-test-first-party" : "build/phantom-test");
+		return module.getParent().resolve(rendezvousLane() ? "build/phantom-test-rendezvous" : firstPartyLane() ? "build/phantom-test-first-party" : "build/phantom-test");
 	}
 	private static Properties read(Path file) throws Exception
 	{

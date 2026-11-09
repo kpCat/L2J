@@ -38,6 +38,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteResult
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
@@ -53,6 +54,9 @@ import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.Directive
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionCommand;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -369,7 +373,34 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Map<Long, ExternalActionLease> _tacticalActions = new ConcurrentHashMap<>();
 	private final Map<Long, TacticalCombatClaim> _tacticalCombat = new ConcurrentHashMap<>();
 	private volatile java.util.function.LongPredicate _logicalFarmAdmission = _ -> true;
+	private java.util.function.LongFunction<PhantomLogicalParty> _logicalFarmGroups;
+	private PhantomNormalGatekeeperTravel _farmTravel;
+	private java.util.function.Function<String, Optional<PhantomNavigationPoint>> _farmTravelAnchor;
 	public void installLogicalFarmAdmission(java.util.function.LongPredicate admitted) { _logicalFarmAdmission = Objects.requireNonNull(admitted); }
+	void installLogicalFarmGroups(java.util.function.LongFunction<PhantomLogicalParty> groups)
+	{
+		if (_logicalFarmGroups != null) { throw new IllegalStateException("Logical farm groups already installed."); }
+		_logicalFarmGroups = Objects.requireNonNull(groups);
+	}
+	public void installAutonomousFarmTravel(PhantomNormalGatekeeperTravel travel, java.util.function.Function<String, Optional<PhantomNavigationPoint>> anchor)
+	{
+		if (_farmTravel != null) { throw new IllegalStateException("Autonomous farm travel already installed."); }
+		_farmTravel = Objects.requireNonNull(travel);
+		_farmTravelAnchor = Objects.requireNonNull(anchor);
+	}
+	boolean usesFarmItinerary() { return _farmTravel != null; }
+	public boolean retainsAutonomousFarmTravel(long profileId)
+	{
+		final var claim = _claims.get(profileId);
+		if (claim == null || logicalFarmBinding(claim.state()) == null) { return false; }
+		final var runtime = _groups.get(claim.state().groupId());
+		if (runtime == null) { return false; }
+		final var journey = runtime.farmJourney;
+		final long now = _clock.getAsLong();
+		return journey != null && journey.arrivedAt > 0
+			? now - journey.arrivedAt < java.util.concurrent.TimeUnit.MINUTES.toNanos(1)
+			: now < runtime.farmTravelDeadline;
+	}
 	public boolean autonomousExecution(long profileId)
 	{
 		final var row = _claims.get(profileId);
@@ -488,16 +519,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			|| nativeView == null || now < nativeView.sampledNanos() || now >= nativeView.expiresNanos()
 			|| nativeView.groupGeneration() != authority.state().groupGeneration() || !nativeView.manifest().equals(authority.state().leaderManifestHash())
 			|| !nativeView.party().leader().equals(authority.state().leader()) || !sameRoster(nativeView.party().members(), authority.state().phantomMembers())) { return false; }
-		final var leaderRoot = source.roots().get(authority.state().leader().profileId());
-		final var sharedSource = leaderRoot == null ? null : leaderRoot.goal().validSources().stream().filter(value -> org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.SOURCE_NAMESPACE.equals(value.namespace())).findFirst().orElse(null);
-		if (sharedSource == null || !root.validSources().contains(sharedSource)) { return false; }
+		final var sharedSource = currentFarmSource(authority.state());
+		if (sharedSource == null) { return false; }
 		for (var member : authority.state().phantomMembers())
 		{
 			final var peer = _claims.get(member.profileId());
 			if (peer == null || !Set.of(StateStatus.LEADER, StateStatus.MEMBER).contains(peer.state().status()) || !peer.state().groupId().equals(authority.state().groupId())
 				|| peer.state().groupGeneration() != authority.state().groupGeneration() || !peer.state().leader().equals(authority.state().leader())
 				|| !peer.state().leaderManifestHash().equals(authority.state().leaderManifestHash()) || !peer.state().phantomMembers().equals(authority.state().phantomMembers())
-				|| !source.roots().containsKey(member.profileId()) || !source.roots().get(member.profileId()).goal().validSources().contains(sharedSource)
+				|| !source.roots().containsKey(member.profileId())
 				|| source.epochs().getOrDefault(member.profileId(), 0L) <= 0 || !Objects.equals(nativeView.epochs().get(member.profileId()), source.epochs().get(member.profileId()))
 				|| _backend.materializationEpoch(member) != source.epochs().get(member.profileId())) { return false; }
 		}
@@ -1088,6 +1118,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private boolean deferRemoteJoin(StoredPartyState leader, MemberRef target)
 	{
 		if (target.kind() != MemberKind.PHANTOM || leader.state().leader().kind() != MemberKind.PHANTOM) { return false; }
+		if (logicalFarmBinding(leader.state()) != null) { return false; }
 		final var actor = _backend.memberSnapshot(target).orElse(null); final var anchor = _backend.memberSnapshot(leader.state().leader()).orElse(null);
 		if (actor != null && anchor != null && actor.instanceId() == anchor.instanceId() && Math.abs((long) actor.z() - anchor.z()) <= 200 && Math.hypot((long) actor.x() - anchor.x(), (long) actor.y() - anchor.y()) <= 1200) { advanceRegroup(leader, target, true); return false; }
 		advanceRegroup(leader, target);
@@ -1253,9 +1284,14 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				return new RouteRequestResult(RouteOutcome.NOT_PHANTOM_LEADER, ZERO_HASH, 0, destinationRef, null, "party.route.not_phantom_leader");
 			}
 			if (autonomousFarm && (!committedClaim(claim) || !PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(claim.state().objectiveRef().namespace())
-				|| !_logicalFarmAdmission.test(leaderProfileId)
-				|| !_goals.load(leaderProfileId).map(StoredGoal::goal).map(root -> destinationRef.equals(root.selectedAnchor())).orElse(false)))
+				|| !destinationRef.equals(farmAnchor(claim.state()))))
 			{ return new RouteRequestResult(RouteOutcome.UNAVAILABLE, ZERO_HASH, claim.state().groupGeneration(), destinationRef, null, "party.route.farm_authority_unavailable"); }
+			if (autonomousFarm && !_logicalFarmAdmission.test(leaderProfileId))
+			{ return farmRouteResult(claim.state(), destinationRef, RouteOutcome.PENDING, "wait_execution_owner"); }
+			if (autonomousFarm && _farmTravel != null)
+			{
+				return advanceFarmJourney(claim, destinationRef, destination);
+			}
 			final PhantomPartyRouteCoordinator.RouteActivity routeActivity = routeActivity(claim.state());
 			if (routeActivity.nonTerminal())
 			{
@@ -1304,6 +1340,173 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			};
 			return new RouteRequestResult(outcome, attempt.routeId(), attempt.generation(), attempt.destination(), attempt.navigationStatus(), attempt.reasonKey());
 		}
+	}
+
+	private RouteRequestResult advanceFarmJourney(StoredPartyState claim, PhantomDomainRef destinationRef, PhantomNavigationPoint destination)
+	{
+		final var state = claim.state();
+		final var runtime = _groups.get(state.groupId());
+		final var party = _backend.observe(state.leader()).orElse(null);
+		if (runtime == null || party == null || !sameRoster(state.phantomMembers(), party.members()) || !party.leader().equals(state.leader()))
+		{ return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_roster"); }
+		final var roster = snapshots(party.members());
+		final long now = Math.max(1, _clock.getAsLong());
+		final var binding = logicalFarmBinding(state);
+		synchronized (runtime)
+		{
+			if (runtime.farmTravelDeadline == 0) { runtime.farmTravelDeadline = now + java.util.concurrent.TimeUnit.MINUTES.toNanos(8); }
+			var journey = runtime.farmJourney;
+			if (journey != null && (!Objects.equals(journey.binding, binding) || !journey.current(party.members(), _backend)
+				|| roster.values().stream().anyMatch(MemberSnapshot::dead)))
+			{
+				if (!clearFarmRoute(state)) { return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_route_clear"); }
+				runtime.farmJourney = null;
+				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "replan_native_lifetime");
+			}
+			if (roster.size() != party.members().size() || !currentFarmReadiness(state, party).isEmpty()
+				|| party.members().stream().anyMatch(member -> !_logicalFarmAdmission.test(member.profileId())))
+			{ return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_native_actor"); }
+			if ((journey == null || journey.index != journey.steps.size()) && now >= runtime.farmTravelDeadline)
+			{ return farmRouteResult(state, destinationRef, RouteOutcome.FAILED, "journey_deadline"); }
+			if (journey == null)
+			{
+				if (state.route() != null && !clearFarmRoute(state)) { return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_route_clear"); }
+				final var origin = point(roster.get(party.leader()));
+				if (roster.values().stream().anyMatch(member -> point(member).instanceId() != origin.instanceId() || point(member).distanceTo(origin) > 1500))
+				{
+					for (var member : party.members())
+					{
+						if (!member.equals(party.leader()) && roster.get(member).instanceId() == origin.instanceId()
+							&& _routes.follow(state.groupId(), state.groupGeneration(), roster.get(member), roster.get(party.leader()), state.topologyHash(), now,
+								4, () -> !farmJourneyOwner(state, party, binding)) > 1) { break; }
+					}
+					return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_regroup");
+				}
+				_routes.cancel(state.groupId()); // Release any approach follower before acquiring the shared WALK.
+				final var steps = farmItinerary(origin, destinationRef, destination);
+				if (steps.isEmpty()) { return farmRouteResult(state, destinationRef, RouteOutcome.UNAVAILABLE, "no_itinerary"); }
+				final var epochs = new java.util.LinkedHashMap<MemberRef, Long>();
+				for (var member : party.members()) { epochs.put(member, _backend.materializationEpoch(member)); }
+				journey = new FarmJourney(binding, Map.copyOf(epochs), steps, runtime.farmTravelDeadline, destination);
+				runtime.farmJourney = journey;
+			}
+			if (journey.index == journey.steps.size())
+			{
+				if (roster.values().stream().allMatch(member -> point(member).distanceTo(destination) <= 300))
+				{
+					if (journey.arrivedAt == 0) { journey.arrivedAt = now; }
+					return farmRouteResult(state, destinationRef, RouteOutcome.READY, "arrived");
+				}
+				runtime.farmJourney = null;
+				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "replan_displaced");
+			}
+			final var step = journey.steps.get(journey.index);
+			if (step.gatekeeper() != null)
+			{
+				return advanceFarmGatekeeper(state, party, destinationRef, journey, step.gatekeeper());
+			}
+			final var activity = routeActivity(state);
+			if (activity.nonTerminal()) { return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "walk_pending"); }
+			if (activity.status() == PhantomPartyRouteCoordinator.ActivityStatus.ARRIVED)
+			{
+				if (!clearFarmRoute(state)) { return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "wait_route_clear"); }
+				journey.index++;
+				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "walk_arrived");
+			}
+			if (activity.terminal()) { return farmRouteResult(state, destinationRef, RouteOutcome.FAILED, activity.reasonKey()); }
+			if (roster.values().stream().allMatch(member -> point(member).distanceTo(step.point()) <= 80))
+			{
+				journey.index++;
+				return farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "walk_at_checkpoint");
+			}
+			final var attempt = _routes.requestFarmWalk(state.groupId(), state.groupGeneration(), roster.get(party.leader()), destinationRef, step.point(), state.topologyHash(), now, journey.deadline);
+			if (attempt.status() == PhantomPartyRouteCoordinator.AttemptStatus.READY) { persistRoute(state.groupId(), attempt.route()); }
+			return switch (attempt.status())
+			{
+				case READY, PENDING -> farmRouteResult(state, destinationRef, RouteOutcome.PENDING, "walk_started");
+				default -> farmRouteResult(state, destinationRef, RouteOutcome.FAILED, attempt.reasonKey());
+			};
+		}
+	}
+
+	private RouteRequestResult advanceFarmGatekeeper(PartyState state, PartySnapshot party, PhantomDomainRef destination, FarmJourney journey, PhantomNormalGatekeeperTravel.Leg leg)
+	{
+		if (journey.gkArrived.entrySet().stream().anyMatch(entry -> _backend.memberSnapshot(entry.getKey())
+			.filter(actor -> !actor.dead() && point(actor).distanceTo(entry.getValue()) <= 100).isEmpty()))
+		{ return farmRouteResult(state, destination, RouteOutcome.FAILED, "gk_landing_changed"); }
+		final var member = party.members().stream().filter(actor -> !journey.gkArrived.containsKey(actor)).findFirst().orElse(null);
+		if (member == null)
+		{
+			journey.index++;
+			journey.gkArrived.clear();
+			return farmRouteResult(state, destination, RouteOutcome.PENDING, "gk_roster_arrived");
+		}
+		final var result = _routes.farmGatekeeper(state.groupId(), member, party.leader(), party.members().stream().map(MemberRef::characterObjectId).collect(java.util.stream.Collectors.toUnmodifiableSet()),
+			leg, journey.deadline, () -> !farmJourneyOwner(state, party, journey.binding) || !journey.current(party.members(), _backend));
+		if (result == null) { return farmRouteResult(state, destination, RouteOutcome.PENDING, "wait_gk_owner"); }
+		if (result.status() == PhantomNativeTravelActions.Status.ARRIVED)
+		{
+			journey.gkArrived.put(member, result.after());
+			org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(member.profileId(), "PARTY_GK", "gk.arrived", leg.id(),
+				"before=" + result.adenaBefore() + ";after=" + result.adenaAfter() + ";fee=" + result.fee() + ";landing=" + result.after(), _backend.materializationEpoch(member), state.operation().leaderGoalId(), state.operation().leaderGoalRevision());
+			return farmRouteResult(state, destination, RouteOutcome.PENDING, "gk_member_arrived");
+		}
+		final var outcome = result.status() == PhantomNativeTravelActions.Status.UNAVAILABLE ? RouteOutcome.PENDING : RouteOutcome.FAILED;
+		return farmRouteResult(state, destination, outcome, "gk_" + result.status().name().toLowerCase(java.util.Locale.ROOT));
+	}
+
+	private boolean farmJourneyOwner(PartyState state, PartySnapshot party, FarmBinding binding)
+	{
+		final var leader = _claims.get(party.leader().profileId());
+		return _state == State.RUNNING && leader != null && committedClaim(leader) && leader.state().groupId().equals(state.groupId())
+			&& leader.state().groupGeneration() == state.groupGeneration() && leader.state().phantomMembers().equals(state.phantomMembers())
+			&& Objects.equals(binding, logicalFarmBinding(leader.state()))
+			&& party.members().stream().allMatch(member -> _logicalFarmAdmission.test(member.profileId()));
+	}
+
+	private List<FarmLeg> farmItinerary(PhantomNavigationPoint origin, PhantomDomainRef destinationRef, PhantomNavigationPoint destination)
+	{
+		if (origin.instanceId() != destination.instanceId() || !destination.equals(_farmTravelAnchor.apply(destinationRef.key()).orElse(null))) { return List.of(); }
+		final var point = new PhantomTopologyPoint(origin.x(), origin.y(), origin.z(), origin.instanceId());
+		final var departures = new ArrayList<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor>();
+		for (var role : List.of(PhantomTopologyAnchorRole.CITY_CENTER, PhantomTopologyAnchorRole.RESPAWN, PhantomTopologyAnchorRole.GATEKEEPER,
+			PhantomTopologyAnchorRole.ROUTE, PhantomTopologyAnchorRole.FARMING))
+		{ departures.addAll(_farmTravel.topology().nearestAnchors(point, role, 3, 2500)); }
+		departures.sort(Comparator.comparingLong(anchor -> anchor.point().distanceSquared2D(point)));
+		for (var departure : departures)
+		{
+			final var start = _farmTravelAnchor.apply(departure.id()).orElse(null);
+			final var route = _farmTravel.route(departure.id(), destinationRef.key()).orElse(null);
+			if (start == null || start.distanceTo(origin) > 2500 || route == null || route.size() > 48) { continue; }
+			final var steps = new ArrayList<FarmLeg>();
+			steps.add(new FarmLeg(start, null));
+			for (var edge : route)
+			{
+				final var end = _farmTravelAnchor.apply(edge.toAnchorId()).orElse(null);
+				if (end == null) { steps.clear(); break; }
+				if (edge.gatekeeper() != null)
+				{
+					steps.add(new FarmLeg(PhantomNativeTravelActions.gatekeeperEndpoints(edge.gatekeeper()).source(), null));
+					steps.add(new FarmLeg(null, edge.gatekeeper()));
+				}
+				steps.add(new FarmLeg(end, null));
+			}
+			if (!steps.isEmpty()) { return List.copyOf(steps); }
+		}
+		return origin.distanceTo(destination) <= 12000 ? List.of(new FarmLeg(destination, null)) : List.of();
+	}
+
+	private static PhantomNavigationPoint point(MemberSnapshot actor)
+	{ return new PhantomNavigationPoint(actor.x(), actor.y(), actor.z(), actor.instanceId()); }
+
+	private static RouteRequestResult farmRouteResult(PartyState state, PhantomDomainRef destination, RouteOutcome outcome, String reason)
+	{ return new RouteRequestResult(outcome, ZERO_HASH, state.groupGeneration(), destination, null, "party.route.farm." + reason); }
+
+	private boolean clearFarmRoute(PartyState state)
+	{
+		_routes.cancel(state.groupId());
+		persistRoute(state.groupId(), null);
+		return claims(state.groupId()).stream().allMatch(claim -> claim.state().route() == null);
 	}
 
 	public PhantomPartyRouteCoordinator.RouteActivity observeRouteActivity(long leaderProfileId)
@@ -1763,6 +1966,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final PartySnapshot party = _backend.observe(authority.leader()).orElse(null);
 			if (operation == null || !_logicalFarmAdmission.test(leaderProfileId) || !currentFarmReady(authority, party)
 				|| party == null || !party.leader().equals(authority.leader()) || party.members().size() < 2 || party.members().size() > 9 || !sameRoster(roster(authority), party.members()) || !authority.realMembers().isEmpty()) { return false; }
+			final var runtime = _groups.get(authority.groupId());
+			if (runtime == null || _farmTravel != null && !farmJourneyArrived(runtime, authority, party)) { return false; }
 			final Set<MemberRef> supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
 			// The current native episode owns its completion and loot. A next-pull search
 			// must not cancel it merely because the killed target is no longer selectable.
@@ -1775,8 +1980,6 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final var puller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots(party.members()).values())).orElse(null);
 			final var actor = puller == null ? null : _backend.memberSnapshot(puller).orElse(null);
 			if (actor == null || actor.dead() || actor.casting() || actor.attacking()) { return false; }
-			final var runtime = _groups.get(authority.groupId());
-			if (runtime == null) { return false; }
 			runtime.farmPuller = puller;
 			final TacticalDirective directive = new TacticalDirective(DirectiveKind.ASSIST_TARGET, puller, puller, target.getAsInt(), "", "", "", 0, 0, "farm.group.native_target", 6000);
 			if (_tactics.combatMode(directive).isEmpty()) { return false; }
@@ -2576,8 +2779,19 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			persistRoute(groupId, route);
 		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
+		final var runtime = _groups.get(groupId);
+		if (runtime != null && runtime.farmJourney != null && (!runtime.farmJourney.current(party.members(), _backend)
+			|| !farmJourneyOwner(claims.getFirst().state(), party, runtime.farmJourney.binding)
+			|| snapshots.values().stream().anyMatch(MemberSnapshot::dead)))
+		{
+			if (clearFarmRoute(claims.getFirst().state())) { runtime.farmJourney = null; }
+			return 1;
+		}
 		final boolean paused = party.members().stream().anyMatch(member -> (member.kind() == MemberKind.PHANTOM) && holdsMovement(member.profileId()));
-		final PhantomPartyRouteCoordinator.AdvanceResult result = _routes.advance(groupId, route, party.leader(), party.members(), snapshots, Math.max(1, remainingBudget), Math.max(0, _clock.getAsLong()), _topologyHash.get(), () -> _state != State.RUNNING, paused);
+		final var journey = runtime == null ? null : runtime.farmJourney;
+		final var authority = claims.getFirst().state();
+		final PhantomPartyRouteCoordinator.AdvanceResult result = _routes.advance(groupId, route, party.leader(), party.members(), snapshots, Math.max(1, remainingBudget), Math.max(0, _clock.getAsLong()), _topologyHash.get(),
+			() -> _state != State.RUNNING || journey != null && (!farmJourneyOwner(authority, party, journey.binding) || !journey.current(party.members(), _backend)), paused);
 		final RouteManifest advanced = result.route();
 		if (!advanced.equals(route))
 		{
@@ -2595,7 +2809,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final long goalId = base == null ? 1 : base.leaderGoalId();
 			final long goalRevision = base == null ? 0 : base.leaderGoalRevision();
 			final PartyOperation operation = new PartyOperation(PhantomPartyModel.stableOperationId(state.groupId(), state.groupGeneration(), state.membershipRevision(), OperationKind.ROUTE, state.leader(), null, goalId, goalRevision, state.leaderManifestHash()), OperationKind.ROUTE, OperationPhase.COMMITTED, state.leader(), null, goalId, goalRevision, state.leaderManifestHash(), 0, deadline(), "");
-			final var objective = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(state.objectiveRef().namespace()) ? state.objectiveRef() : route.destination();
+			final var objective = route == null || PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(state.objectiveRef().namespace()) ? state.objectiveRef() : route.destination();
 			final PartyState draft = new PartyState(state.groupId(), state.groupGeneration(), state.membershipRevision(), state.status(), state.leader(), state.ownRoleKey(), ZERO_HASH, state.phantomMembers(), state.realMembers(), state.objectiveMode(), objective, state.requirements(), state.assignments(), route, operation, state.progressionHash(), state.topologyHash(), "");
 			final PartyState next = new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), draft.ownRoleKey(), draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), draft.route(), draft.operation(), draft.progressionHash(), draft.topologyHash(), draft.lastFailureKey(), state.command());
 			try
@@ -2773,9 +2987,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		runtime.farmSource = null; // A failed refresh cannot retain previously granted authority.
 		final var planned = PhantomAutonomousFarmParty.plannedProfiles(authority.objectiveRef());
 		final var operation = authority.operation();
+		final var binding = logicalFarmBinding(authority);
 		final Map<Long, StoredGoal> roots = new java.util.LinkedHashMap<>();
 		final Map<Long, Long> epochs = new java.util.LinkedHashMap<>();
-		boolean valid = planned.size() >= 2 && planned.getFirst() == authority.leader().profileId() && operation != null;
+		boolean valid = planned.size() >= 2 && planned.getFirst() == authority.leader().profileId() && operation != null
+			&& (_logicalFarmGroups == null || binding != null);
 		for (long profile : planned)
 		{
 			final var source = _goals.load(profile).orElse(null);
@@ -2785,9 +3001,35 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (actor != null) { epochs.put(profile, _backend.materializationEpoch(actor)); }
 			final var goal = source.goal();
 			valid &= PhantomAutonomousFarmParty.ordinaryIntent(profile, goal);
+			if (binding != null)
+			{
+				final var group = _logicalFarmGroups.apply(profile);
+				valid &= group != null && group.groupId().equals(binding.groupId()) && group.generation() == binding.generation()
+					&& group.members().stream().anyMatch(member -> member.profileId() == profile
+						&& member.goalId() == goal.goalId() && member.goalRevision() <= goal.revision());
+			}
 			if (profile == authority.leader().profileId()) { valid &= operation != null && goal.goalId() == operation.leaderGoalId() && goal.revision() == operation.leaderGoalRevision(); }
 		}
-		runtime.farmSource = new FarmSourceView(farmSourceKey(authority), now, now + 1_000_000_000L, Map.copyOf(roots), Map.copyOf(epochs), valid);
+		runtime.farmSource = new FarmSourceView(farmSourceKey(authority), now, now + 1_000_000_000L, Map.copyOf(roots), Map.copyOf(epochs), binding, valid);
+	}
+
+	private FarmBinding logicalFarmBinding(PartyState authority)
+	{
+		if (_logicalFarmGroups == null) { return null; }
+		final var group = _logicalFarmGroups.apply(authority.leader().profileId());
+		final var receipt = _rendezvousClaims.get(authority.leader().profileId());
+		if (group == null || !group.active() || group.phase() == PhantomLogicalParty.Phase.DRAINING || group.activityReplanRequired()
+			|| receipt == null || receipt.phase() == PhantomPartyRendezvousState.Phase.CANCELLED || !PhantomAutonomousFarmParty.belongsTo(receipt, group)) { return null; }
+		final var planned = PhantomAutonomousFarmParty.plannedProfiles(authority.objectiveRef());
+		if (!planned.equals(receipt.roster().stream().map(participant -> participant.actor().profileId()).toList())) { return null; }
+		return new FarmBinding(group.groupId(), group.generation(), group.objective(), new PhantomDomainRef("topology.anchor", group.anchorId()));
+	}
+
+	private PhantomDomainRef farmAnchor(PartyState authority)
+	{
+		final var binding = logicalFarmBinding(authority);
+		if (binding != null) { return binding.anchor(); }
+		return _logicalFarmGroups == null ? _goals.load(authority.leader().profileId()).map(StoredGoal::goal).map(PhantomGoal::selectedAnchor).orElse(null) : null;
 	}
 
 	private static FarmSourceKey farmSourceKey(PartyState authority)
@@ -2801,7 +3043,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final var runtime = _groups.get(authority.groupId());
 		final var source = runtime == null ? null : runtime.farmSource;
 		final long now = _clock.getAsLong();
-		return source != null && source.key().equals(farmSourceKey(authority)) && now >= source.sampledNanos() && now < source.expiresNanos() ? source : null;
+		return source != null && source.key().equals(farmSourceKey(authority)) && now >= source.sampledNanos() && now < source.expiresNanos()
+			&& Objects.equals(source.binding(), logicalFarmBinding(authority)) ? source : null;
 	}
 
 	private boolean currentFarmIntent(PartyState authority)
@@ -2813,6 +3056,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	{
 		final var view = currentFarmIntentView(authority);
 		if (view == null || !view.valid()) { return null; }
+		if (view.binding() != null) { return view.binding().source(); }
 		PhantomDomainRef common = null;
 		for (var root : view.roots().values())
 		{
@@ -4000,7 +4244,43 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	/** Source identity excludes mutable HP/MP/readiness-dependent tactical assignment scores. */
 	private record FarmSourceKey(long groupGeneration, MemberRef leader, PhantomDomainRef objective, long goalId, long goalRevision) { }
-	private record FarmSourceView(FarmSourceKey key, long sampledNanos, long expiresNanos, Map<Long, StoredGoal> roots, Map<Long, Long> epochs, boolean valid) { }
+	private record FarmBinding(String groupId, long generation, PhantomDomainRef source, PhantomDomainRef anchor) { }
+	private record FarmLeg(PhantomNavigationPoint point, PhantomNormalGatekeeperTravel.Leg gatekeeper) { }
+	private static final class FarmJourney
+	{
+		private final FarmBinding binding;
+		private final Map<MemberRef, Long> epochs;
+		private final List<FarmLeg> steps;
+		private final long deadline;
+		private final PhantomNavigationPoint destination;
+		private final Map<MemberRef, PhantomNavigationPoint> gkArrived = new HashMap<>();
+		private volatile int index;
+		private volatile long arrivedAt;
+
+		private FarmJourney(FarmBinding binding, Map<MemberRef, Long> epochs, List<FarmLeg> steps, long deadline, PhantomNavigationPoint destination)
+		{
+			this.binding = binding;
+			this.epochs = epochs;
+			this.steps = steps;
+			this.deadline = deadline;
+			this.destination = destination;
+		}
+		private boolean current(List<MemberRef> members, PhantomPartyBackend backend)
+		{
+			return members.size() == epochs.size() && members.stream().allMatch(member ->
+				epochs.containsKey(member) && epochs.get(member) > 0 && backend.materializationEpoch(member) == epochs.get(member));
+		}
+	}
+
+	private boolean farmJourneyArrived(GroupRuntime runtime, PartyState authority, PartySnapshot party)
+	{
+		final var journey = runtime.farmJourney;
+		return journey != null && journey.index == journey.steps.size() && Objects.equals(journey.binding, logicalFarmBinding(authority))
+			&& journey.current(party.members(), _backend) && !routeActivity(authority).nonTerminal()
+			&& party.members().stream().allMatch(member -> _backend.memberSnapshot(member).filter(actor -> !actor.dead()
+				&& point(actor).distanceTo(journey.destination) <= 300).isPresent());
+	}
+	private record FarmSourceView(FarmSourceKey key, long sampledNanos, long expiresNanos, Map<Long, StoredGoal> roots, Map<Long, Long> epochs, FarmBinding binding, boolean valid) { }
 	private record NativePartyView(long groupGeneration, String manifest, PartySnapshot party, Map<Long, Long> epochs, long sampledNanos, long expiresNanos) { }
 
 	private static final class GroupRuntime
@@ -4009,6 +4289,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile FarmSourceView farmSource;
 		private volatile NativePartyView nativeLifetime;
 		private volatile MemberRef farmPuller;
+		private volatile FarmJourney farmJourney;
+		private volatile long farmTravelDeadline;
 		private final Map<Long, Long> regroupDue = new HashMap<>();
 		private GroupRuntime(String groupId) { _groupId = groupId; }
 		private String groupId() { return _groupId; }
