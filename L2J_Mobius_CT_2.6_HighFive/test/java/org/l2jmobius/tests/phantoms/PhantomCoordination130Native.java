@@ -196,6 +196,8 @@ final class PhantomCoordination130Native
         final var coordinator = new PhantomLogicalPartyCoordinator(parties);
         final var existingRow = restart || recovering ? currentAgreement(coordinator, sceneIds, System.currentTimeMillis()).orElse(null) : null;
         final var existing = existingRow == null ? null : existingRow.group();
+        final boolean confirmedExistingSource = PhantomCoordination130Integration.rendezvousLane() && existing != null
+            && priorPhysicalAgreement(scene(runtime), existing);
         if (restart) { check(existing != null && existing.groupId().equals(saved.getProperty("group")), "RESTART_GROUP_NOT_CURRENT"); }
         final var eligibleIds = new ArrayList<Long>();
         for (long id : ids)
@@ -283,6 +285,12 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_PREFLIGHT_STOCK_SPAWN npc=" + npc + " configured=" + spawns.size() + " nearbyLive=" + mobs.size());
             final var approach = loadedAnchor(inspection, group.anchorId(), states.get(group.leaderProfileId()).position().heading());
             if (mobs.isEmpty()) { return physicalRefusal(group, "WAIT_LIVE_SPAWN"); }
+            if (approach != null && confirmedExistingSource && existing.equals(group))
+            {
+                System.out.println("NATIVE130_EXISTING_SPAWN_INGRESS_DEFERRED_TO_COMBAT source=" + group.objective().key()
+                    + " exactPriorAgreement=true loadedRouteToAnchor=true liveMatching=" + mobs.size());
+                return true;
+            }
             return approach != null && mobs.stream().anyMatch(mob -> loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(),
                 approach, new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()), attemptDeadline))
                 || physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS");
@@ -477,6 +485,21 @@ final class PhantomCoordination130Native
     {
         return inspection.topology().findAnchor(id).flatMap(anchor -> L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading))
             .map(PhantomCoordination130Native::navigationPoint).orElse(null);
+    }
+
+    private static boolean priorPhysicalAgreement(Path evidence, PhantomLogicalParty group) throws Exception
+    {
+        try (var files = Files.list(evidence))
+        {
+            for (var file : files.filter(path -> path.getFileName().toString().matches("agreement130[.][0-9]+")).limit(6).toList())
+            {
+                final var agreement = read(file);
+                if (group.groupId().equals(agreement.getProperty("group")) && group.objective().toString().equals(agreement.getProperty("objective"))
+                    && group.members().stream().map(PhantomLogicalParty.Member::profileId).toList().toString().equals(agreement.getProperty("profiles"))
+                    && Long.toString(group.generation()).equals(agreement.getProperty("generation", "1")) && "true".equals(agreement.getProperty("zeroWorld"))) { return true; }
+            }
+            return false;
+        }
     }
 
     private static PhantomNavigationPoint navigationPoint(PhantomBackgroundState.Position position)
