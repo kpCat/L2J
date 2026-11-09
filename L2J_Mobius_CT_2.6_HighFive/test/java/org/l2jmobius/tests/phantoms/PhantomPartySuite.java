@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomCompositeSchedulerControlPort;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
@@ -92,6 +93,11 @@ import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.BindingStatus;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftService.RouteObservation;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomPartySemanticActs;
 import org.l2jmobius.gameserver.phantoms.semantic.PhantomSemanticAct;
+import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 
 public final class PhantomPartySuite implements PhantomTestSuite
 {
@@ -394,7 +400,10 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			logical.agree(group).orElseThrow();
 			final var clock = new AtomicLong(1_000_000_000L);
 			final var millis = new AtomicLong(1000);
-			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get);
+			final var action = new PartyActionLease();
+			final var combat = cooperativeCombat(action, clock);
+			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context),
+				new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
 			backend.connect(coordinator);
 			coordinator.start();
 			try
@@ -427,8 +436,33 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				final var retained = backend.observe(backend._members.get(1L)).orElse(null);
 				PhantomAssertions.assertTrue(retained != null && retained.members().size() == 2, "A newer personal revision dissolved the same committed LogicalParty.");
 				PhantomAssertions.assertEquals(1, backend.invitationCount(), "A lawful personal revision replayed the stock invite.");
+
+				final var topologyBackend = new L2jTopologyValidationBackend();
+				final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.empty(topologyBackend, PhantomTopologyPolicy.productionDefaults()),
+					topologyBackend, new PhantomTopologyMetrics());
+				coordinator.installAutonomousFarmTravel(PhantomNormalGatekeeperTravel.empty(topology), _ -> Optional.of(destination));
+				final var leader = backend._members.get(1L);
+				final var peer = backend._members.get(3L);
+				final var buff = cap("combat.buff", "maintenance", 450, 1040);
+				final var heal = cap("combat.heal", "urgent", 450, 1011);
+				final var weapon = List.of(cap("combat.melee_damage", "weapon", 300, 0));
+				backend.snapshot(leader, new MemberSnapshot(leader, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				backend._capabilities.put(leader, List.of(buff, heal));
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(0, action.casts, "Maintenance can repeatedly block completion of the stock Party WALK/GK itinerary.");
+				backend.snapshot(peer, new MemberSnapshot(peer, 0, 0, 0, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(), weapon, ZERO));
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(1, action.casts, "Travel prevented a Party member from receiving urgent Heal.");
+				PhantomAssertions.assertEquals("combat.heal", action.support.capabilityKey(), "Maintenance took the urgent support owner.");
 			}
-			finally { coordinator.beginStop(); coordinator.finishStop(); }
+			finally
+			{
+				coordinator.beginStop();
+				coordinator.finishStop();
+				combat.beginStop();
+				PhantomAssertions.assertTrue(combat.finishStop(), "Party support owner did not drain.");
+			}
 		});
 		registry.add("06-six-member-native-projection-can-request-next-farm-pull", context ->
 		{

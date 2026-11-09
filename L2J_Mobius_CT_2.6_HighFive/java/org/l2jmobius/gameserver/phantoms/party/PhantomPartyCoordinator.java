@@ -3123,12 +3123,17 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		// Do not give their weapon an autoattack owner that can starve an urgent heal.
 		final Set<MemberRef> supportMembers = farm ? farmClaim.state().assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet()) : Set.of();
 		final var runtime = farm ? _groups.get(farmClaim.state().groupId()) : null;
+		// Idle buffs can overlap indefinitely across members, preventing WALK settlement and GK admission.
+		// Let in-flight casts finish and keep combat support and urgent recovery available.
+		final boolean farmTransit = _farmTravel != null && runtime != null && logicalFarmBinding(farmClaim.state()) != null
+			&& !farmJourneyArrived(runtime, farmClaim.state(), party);
 		if (farm && runtime != null && runtime.farmPuller == null)
 		{ runtime.farmPuller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots.values())).orElse(null); }
 		final var assist = farm && runtime != null && runtime.farmPuller != null && snapshots.containsKey(runtime.farmPuller) ? runtime.farmPuller : party.leader();
 		final List<TacticalDirective> directives = _tactics.plan(assist, party.members(), snapshots, directive ->
-			!farm || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())
-				|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor())), farm);
+			(!farmTransit || directive.kind() != DirectiveKind.PARTY_SUPPORT || directive.reasonKey().endsWith(".combat"))
+				&& (!farm || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind())
+					|| snapshots.containsKey(directive.actor()) && PhantomAutonomousFarmParty.farmContributor(snapshots.get(directive.actor()))), farm);
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
 		final Set<Long> decided = new HashSet<>();
 		int examined = 0;
