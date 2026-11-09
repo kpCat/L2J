@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
@@ -103,6 +105,9 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		catch (java.io.IOException failure) { throw new IllegalArgumentException("Cannot encode logical claim.", failure); }
 	}
 	@Override public StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expected, java.util.Map<Long, Long> versions)
+	{ return commitLogicalGroup(group, expected, versions, List.of()); }
+
+	@Override public StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expected, java.util.Map<Long, Long> versions, List<PhantomProfileComponent> guards)
 	{
 		final var prior = loadLogicalGroup(group.leaderProfileId()).orElse(null);
 		if ((prior == null ? -1 : prior.rowVersion()) != expected) { throw new java.util.ConcurrentModificationException("Stale formation aggregate."); }
@@ -122,7 +127,10 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 			mutations.add(new PhantomProfileRepository.ProfileComponentMutation(member.profileId(),
 				new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.CLAIM_COMPONENT_TYPE, version, PhantomLogicalParty.SCHEMA_VERSION, claim)));
 		}
-		return _profiles.mutateProfileComponentsAtomically(mutations).stream().filter(row -> row.componentType().equals(PhantomLogicalParty.COMPONENT_TYPE)).map(this::decodeLogicalGroup).findFirst().orElseThrow();
+		final var absentContexts = guards.stream().filter(row -> row.componentType().equals(PhantomBackgroundState.COMPONENT_TYPE))
+			.filter(row -> guards.stream().noneMatch(context -> context.profileId() == row.profileId() && context.componentType().equals(PhantomNativeContext.COMPONENT_TYPE)))
+			.map(row -> new PhantomProfileRepository.ComponentAbsence(row.profileId(), PhantomNativeContext.COMPONENT_TYPE)).toList();
+		return _profiles.mutateProfileComponentsAtomically(mutations, guards, absentContexts).stream().filter(row -> row.componentType().equals(PhantomLogicalParty.COMPONENT_TYPE)).map(this::decodeLogicalGroup).findFirst().orElseThrow();
 	}
 	@Override public StoredLogicalGroup reviseLogicalGroup(StoredLogicalGroup expected, PhantomLogicalParty replacement)
 	{

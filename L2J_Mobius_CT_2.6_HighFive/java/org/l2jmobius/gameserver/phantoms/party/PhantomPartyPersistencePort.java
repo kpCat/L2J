@@ -22,6 +22,12 @@ public interface PhantomPartyPersistencePort
 	/** Claims and the single aggregate are committed together or rolled back together. */
 	default StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expectedGroupVersion, java.util.Map<Long, Long> expectedClaimVersions)
 	{ throw new UnsupportedOperationException("Atomic logical group persistence is unavailable."); }
+	default StoredLogicalGroup commitLogicalGroup(PhantomLogicalParty group, long expectedGroupVersion, java.util.Map<Long, Long> expectedClaimVersions,
+		List<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent> guards)
+	{
+		if (!guards.isEmpty()) { throw new UnsupportedOperationException("Guarded logical group persistence is unavailable."); }
+		return commitLogicalGroup(group, expectedGroupVersion, expectedClaimVersions);
+	}
 	default StoredLogicalGroup updateLogicalGroup(PhantomLogicalParty group, long expectedGroupVersion)
 	{ throw new UnsupportedOperationException("Logical group CAS is unavailable."); }
 	/** Terminal release or idle roster revision, including all departed and incoming identity claims. */

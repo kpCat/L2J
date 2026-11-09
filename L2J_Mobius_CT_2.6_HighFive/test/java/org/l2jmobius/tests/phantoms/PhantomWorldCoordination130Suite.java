@@ -22,6 +22,8 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 		PhantomExecutionHandoff130Tests.register(registry);
 		registry.add("party-source-and-every-rendezvous-replan-ignore-solo-kill-only", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.partyContract130());
 		registry.add("party-common-source-is-tested-before-the-sixty-four-result-limit", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.widePartySources130());
+		registry.add("party-structural-walk-budget-skips-first-sixty-four-and-keeps-local-source", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.boundedStructuralSources130());
+		registry.add("party-argos-and-hot-springs-use-the-configured-java-itinerary", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.configuredPartyItinerary130());
 		registry.add("party-level-intersection-and-potential-roles-never-imply-native-readiness", _ ->
 		{
 			final var cases = List.of(List.of(76, 76, 72, 80), List.of(74, 78, 74, 78), List.of(72, 80, 76, 76), List.of(76, 81, 77, 80), List.of(85, 85, 81, 89));
@@ -184,14 +186,41 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 					&& evidence.get(changed).endsWith("equal=false"), "Catchup diagnostics lost the actual stale component.");
 			}
 		});
-		registry.add("loaded-preflight-keeps-ordinary-choice-and-requires-consent-spawn-geo-proof", _ ->
+		registry.add("read-only-preflight-and-scheduler-select-the-same-admitted-source-and-roster", _ ->
 		{
 			final var source = new PhantomDomainRef("background.farm", "20002@current.production.source");
-			final var candidates = group(1, 2).members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76, List.of(source), _ -> true, () -> true)).toList();
-			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightAgreement(candidates, (_, _) -> true, _ -> false, 1000).isEmpty(), "Preflight ignored missing stock spawn/Geo proof.");
-			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightAgreement(candidates, (_, _) -> false, _ -> true, 1000).isEmpty(), "Preflight ignored actual consent.");
-			PhantomAssertions.assertTrue(PhantomCoordination130Native.preflightAgreement(List.of(), (_, _) -> true, _ -> true, 1000).isEmpty(), "Empty production preview manufactured a source.");
-			PhantomAssertions.assertEquals(source, PhantomCoordination130Native.preflightAgreement(candidates, (_, _) -> true, _ -> true, 1000).orElseThrow().group().objective(), "Preflight replaced the ordinary production objective.");
+			final var unknown = new PhantomDomainRef("background.farm", "20001@unknown.distant.route");
+			final var candidates = group(1, 2).members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76, List.of(unknown, source), source::equals, () -> true)).toList();
+			final var store = new MemoryStore();
+			final var preview = new PhantomLogicalPartyCoordinator(store).previewDiscovery(candidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertEquals(source, preview.proposal().orElseThrow().objective(), "The first unknown route hid the later common source.");
+			PhantomAssertions.assertTrue(store.groups.isEmpty() && store.claims.isEmpty(), "A read-only proposal or rejected source wrote durable state.");
+			PhantomAssertions.assertTrue(new PhantomLogicalPartyCoordinator(store).previewDiscovery(candidates, (_, _) -> false, 1000).proposal().isEmpty(), "Preflight ignored actual consent.");
+			final var scheduled = new PhantomLogicalPartyCoordinator(store).discover(candidates, (_, _) -> true, 1000).orElseThrow();
+			PhantomAssertions.assertEquals(preview.proposal().orElseThrow(), scheduled.group(), "Production CAS chose a different source or roster.");
+			PhantomAssertions.assertEquals(2, store.claims.size(), "The rejected source leaked a claim.");
+			final var changedStore = new MemoryStore();
+			final var changed = new PhantomLogicalPartyCoordinator(changedStore);
+			final var reachable = new java.util.concurrent.atomic.AtomicBoolean(true);
+			final var liveCandidates = candidates.stream().map(candidate -> new PhantomLogicalPartyCoordinator.Candidate(candidate.member(), candidate.level(),
+				candidate.sources(), ref -> reachable.get() && candidate.reachable().test(ref), candidate.current(), candidate.durableCurrent())).toList();
+			final var stale = changed.previewDiscovery(liveCandidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertTrue(stale.proposal().isPresent(), "Stale-route control did not select a valid initial proposal.");
+			reachable.set(false);
+			PhantomAssertions.assertTrue(changed.commitDiscovery(stale).isEmpty() && changedStore.claims.isEmpty() && changedStore.groups.isEmpty(), "A changed route committed durable state.");
+		});
+		registry.add("bounded-discovery-wait-advances-the-leader-cursor-without-reservations", _ ->
+		{
+			final var source = new PhantomDomainRef("background.farm", "20002@fifth.leader.source");
+			final var candidates = group(1, 6).members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, member.profileId() < 5 ? 41 : 76,
+				member.profileId() < 5 ? List.of() : List.of(source), _ -> member.profileId() >= 5, () -> true)).toList();
+			final var store = new MemoryStore();
+			final var owner = new PhantomLogicalPartyCoordinator(store);
+			final var wait = owner.previewDiscovery(candidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertEquals(PhantomLogicalPartyCoordinator.DiscoveryStatus.WAIT_DISCOVERY_BUDGET, wait.status(), "Exhaustion lost its typed wait.");
+			PhantomAssertions.assertTrue(wait.nextDueMillis() > 1000 && owner.commitDiscovery(wait).isEmpty() && store.claims.isEmpty() && store.groups.isEmpty(), "A bounded wait wrote or failed to schedule a future round.");
+			final var later = owner.discover(List.of(), (_, _) -> true, wait.nextDueMillis()).orElseThrow();
+			PhantomAssertions.assertEquals(source, later.group().objective(), "A bounded wait starved the next leader window.");
 		});
 		registry.add("cold-expired-assembly-waits-for-solo-recovery-before-release-and-fresh-discovery", _ ->
 		{

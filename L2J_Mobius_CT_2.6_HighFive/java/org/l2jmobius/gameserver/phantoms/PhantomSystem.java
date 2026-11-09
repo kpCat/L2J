@@ -238,7 +238,9 @@ public final class PhantomSystem
 	private final PhantomPlayersConfig.Settings _settings;
 	private java.util.function.Consumer<PlanningInspection> _planningInspection = _ -> { };
 	/** Observer gate over the same planner retained by ordinary execution; called before any scheduler pulse. */
-	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology, PhantomPlayersConfig.Settings settings, PhantomHistoricalBackgroundService authorityRecovery) { }
+	public record PlanningInspection(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology,
+		PhantomPlayersConfig.Settings settings, PhantomHistoricalBackgroundService authorityRecovery, PhantomDecisionEngine decision,
+		java.util.function.BiFunction<Long, Integer, java.util.List<PhantomPopulationStore.ManagedSnapshot>> managedPartyPage) { }
 	private final PhantomMetrics _metrics;
 	private PhantomScheduler _scheduler;
 	private final PhantomDiagnosticTrace _trace;
@@ -1051,9 +1053,10 @@ public final class PhantomSystem
 						catch (java.util.ConcurrentModificationException recoveryPending) { _executionControl.wake(plan.profileId()); }
 					}
 				});
+				final java.util.function.BiFunction<Long, Integer, java.util.List<PhantomPopulationStore.ManagedSnapshot>> managedPartyPage = populationStore::loadManagedAfter;
 				autonomousFarm.installLogicalParty(_logicalParties, (after, limit) ->
 				{
-					final var page = populationStore.loadManagedAfter(after, limit);
+					final var page = managedPartyPage.apply(after, limit);
 					final var candidates = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.Candidate>();
 					for (var entry : page)
 					{
@@ -1127,7 +1130,7 @@ public final class PhantomSystem
 						}
 					}
 				});
-				_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService));
+				_planningInspection.accept(new PlanningInspection(backgroundPlanner, _topologyService.query(), _settings, _historicalBackgroundService, _decisionEngine, managedPartyPage));
 			}
 			if (_autonomousMarketProducer != null) { _autonomousMarketProducer.prepareRecoveryOwners(); }
 			if (!_scheduler.start())

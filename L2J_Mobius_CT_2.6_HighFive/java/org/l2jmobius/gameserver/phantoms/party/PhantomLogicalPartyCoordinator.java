@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.Objects;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredLogicalGroup;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 
 /** Logical agreement boundary, called by the existing Party control port; never creates a Player. */
 public final class PhantomLogicalPartyCoordinator
@@ -32,8 +33,13 @@ public final class PhantomLogicalPartyCoordinator
 	public Optional<StoredLogicalGroup> knownGroupFor(long profileId) { return Optional.ofNullable(_knownMembers.get(profileId)).filter(row -> row.group().active()); }
 	public record Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
 		java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
-		java.util.function.Function<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>> sourcesMatching)
+		java.util.function.Function<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>> sourcesMatching,
+		java.util.function.Supplier<List<PhantomProfileComponent>> commitGuards)
 	{
+		public Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
+			java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent,
+			java.util.function.Function<java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef>> sourcesMatching)
+		{ this(member, level, sources, reachable, current, durableCurrent, sourcesMatching, List::of); }
 		public Candidate(PhantomLogicalParty.Member member, int level, List<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> sources,
 			java.util.function.Predicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef> reachable, java.util.function.BooleanSupplier current, java.util.function.BooleanSupplier durableCurrent)
 		{ this(member, level, sources, reachable, current, durableCurrent, admitted -> sources.stream().filter(admitted).toList()); }
@@ -42,15 +48,52 @@ public final class PhantomLogicalPartyCoordinator
 		{ this(member, level, sources, reachable, current, current); }
 		public Candidate
 		{
-			Objects.requireNonNull(member); Objects.requireNonNull(reachable); Objects.requireNonNull(current); Objects.requireNonNull(durableCurrent); Objects.requireNonNull(sourcesMatching); sources = List.copyOf(sources);
+			Objects.requireNonNull(member); Objects.requireNonNull(reachable); Objects.requireNonNull(current); Objects.requireNonNull(durableCurrent);
+			Objects.requireNonNull(sourcesMatching); Objects.requireNonNull(commitGuards); sources = List.copyOf(sources);
 			if (level < 1 || level > 85 || sources.size() > 64) { throw new IllegalArgumentException("Invalid bounded logical candidate."); }
 		}
 	}
 	private record Discovered(Candidate candidate, long expiresMillis) { }
 	public PhantomLogicalPartyCoordinator(PhantomPartyPersistencePort store) { _store = Objects.requireNonNull(store); }
 
-	/** A page of durable facts, not materialized actors. Predicates are captured read-only facts, never SQL per source. */
+	public enum DiscoveryStatus { READY, WAIT_ROSTER, WAIT_COMMON_ROUTE, WAIT_DISCOVERY_BUDGET }
+	public record Discovery(Optional<PhantomLogicalParty> proposal, DiscoveryStatus status, long nextDueMillis, List<PhantomProfileComponent> guards)
+	{
+		public Discovery { guards = List.copyOf(guards); }
+	}
+
 	public Optional<StoredLogicalGroup> discover(List<Candidate> page, java.util.function.BiPredicate<Long, Integer> seeking, long now)
+	{
+		return commitDiscovery(previewDiscovery(page, seeking, now));
+	}
+
+	public Optional<StoredLogicalGroup> commitDiscovery(Discovery discovery)
+	{
+		return discovery.proposal().flatMap(group ->
+		{
+			try
+			{
+				for (var member : group.members())
+				{
+					final var cached = _discovered.get(member.profileId());
+					final var candidate = cached == null ? null : cached.candidate();
+					if (candidate == null || !candidate.member().equals(member) || !candidate.current().getAsBoolean()
+						|| !candidate.reachable().test(group.objective())) { return Optional.empty(); }
+					if (discovery.guards().stream().noneMatch(guard -> guard.profileId() == member.profileId())
+						&& !candidate.durableCurrent().getAsBoolean()) { return Optional.empty(); }
+				}
+				return agree(group, discovery.guards());
+			}
+			catch (java.util.ConcurrentModificationException changed) { return Optional.empty(); }
+			finally
+			{
+				for (var member : group.members()) { _discovered.remove(member.profileId()); }
+			}
+		});
+	}
+
+	/** A page of durable facts, not materialized actors. Predicates are captured read-only facts, never SQL per source. */
+	public Discovery previewDiscovery(List<Candidate> page, java.util.function.BiPredicate<Long, Integer> seeking, long now)
 	{
 		if (page == null || page.size() > 16 || now <= 0) { throw new IllegalArgumentException("Invalid durable discovery page."); }
 		_discovered.entrySet().removeIf(entry -> entry.getValue().expiresMillis() <= now);
@@ -63,6 +106,8 @@ public final class PhantomLogicalPartyCoordinator
 			_discovered.put(id, new Discovered(candidate, Math.addExact(now, 600_000)));
 		}
 		final var candidates = _discovered.values().stream().map(Discovered::candidate).toList();
+		boolean budget = candidates.size() > 4 || page.size() == 16;
+		boolean hasPeers = false;
 		for (var leader : candidates.stream().sorted(java.util.Comparator.comparing((Candidate c) -> c.member().profileId() <= _leaderCursor)
 			.thenComparingLong(c -> c.member().profileId())).limit(4).toList())
 		{
@@ -71,8 +116,11 @@ public final class PhantomLogicalPartyCoordinator
 			final var peers = candidates.stream().filter(peer -> peer.member().profileId() != leader.member().profileId()
 				&& !peer.member().role().equals("pending.native_role") && Math.abs(peer.level() - leader.level()) <= 8
 				&& peer.current().getAsBoolean() && seeking.test(peer.member().profileId(), peer.level())).sorted(java.util.Comparator.comparingLong(peer -> peer.member().profileId())).toList();
+			if (peers.isEmpty()) { continue; }
+			hasPeers = true;
 			final var sources = leader.sourcesMatching().apply(source -> peers.stream().anyMatch(peer -> peer.reachable().test(source)));
 			if (sources.size() > 64) { throw new IllegalArgumentException("Unbounded Party source search."); }
+			budget |= sources.size() == 64;
 			for (var source : sources.stream().distinct().toList())
 			{
 				if (!leader.reachable().test(source)) { continue; }
@@ -89,25 +137,30 @@ public final class PhantomLogicalPartyCoordinator
 				}
 				if (roster.size() < 2) { continue; }
 				boolean currentRoster = true;
+				final var guards = new java.util.ArrayList<PhantomProfileComponent>();
 				for (var member : roster)
 				{
 					final var candidate = _discovered.get(member.profileId());
 					if (candidate == null || !candidate.candidate().durableCurrent().getAsBoolean() || !candidate.candidate().reachable().test(source))
-					{ _discovered.remove(member.profileId()); currentRoster = false; }
+					{ _discovered.remove(member.profileId()); currentRoster = false; break; }
+					try { guards.addAll(candidate.candidate().commitGuards().get()); }
+					catch (java.util.ConcurrentModificationException changed) { _discovered.remove(member.profileId()); currentRoster = false; break; }
 				}
 				if (!currentRoster || PhantomPartyFarmEligibility.forRoster(levels).isEmpty()) { continue; }
 				final String id = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(roster + ":" + source + ":" + now);
 				final long generation = _store.loadLogicalGroup(leader.member().profileId()).map(row -> Math.addExact(row.group().generation(), 1)).orElse(1L);
 				final var group = new PhantomLogicalParty(id, generation, leader.member().profileId(), roster, source, source.key().substring(source.key().indexOf('@') + 1),
 					PhantomLogicalParty.Phase.AGREED, 0, now, "");
-				final var result = agree(group);
-				for (var member : roster) { _discovered.remove(member.profileId()); }
-				return result;
+				return new Discovery(Optional.of(group), DiscoveryStatus.READY, now, guards);
 			}
 		}
-		return Optional.empty();
+		final var status = budget ? DiscoveryStatus.WAIT_DISCOVERY_BUDGET : hasPeers ? DiscoveryStatus.WAIT_COMMON_ROUTE : DiscoveryStatus.WAIT_ROSTER;
+		return new Discovery(Optional.empty(), status, Math.addExact(now, 1000), List.of());
 	}
 	public Optional<StoredLogicalGroup> agree(PhantomLogicalParty group)
+	{ return agree(group, List.of()); }
+
+	private Optional<StoredLogicalGroup> agree(PhantomLogicalParty group, List<PhantomProfileComponent> guards)
 	{
 		if (group.phase() != PhantomLogicalParty.Phase.AGREED) { throw new IllegalArgumentException("Formation must commit an AGREED aggregate."); }
 		final var prior = _store.loadLogicalGroup(group.leaderProfileId());
@@ -123,7 +176,7 @@ public final class PhantomLogicalPartyCoordinator
 			if (claim.filter(PhantomPartyPersistencePort.StoredLogicalClaim::active).isPresent()) { return Optional.empty(); }
 			versions.put(member.profileId(), claim.map(PhantomPartyPersistencePort.StoredLogicalClaim::rowVersion).orElse(-1L));
 		}
-		return Optional.of(remember(_store.commitLogicalGroup(group, prior.map(StoredLogicalGroup::rowVersion).orElse(-1L), Map.copyOf(versions))));
+		return Optional.of(remember(_store.commitLogicalGroup(group, prior.map(StoredLogicalGroup::rowVersion).orElse(-1L), Map.copyOf(versions), guards)));
 	}
 	public List<StoredLogicalGroup> recoverAfter(long leaderCursor, int limit)
 	{

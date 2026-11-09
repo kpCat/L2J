@@ -43,6 +43,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.KnowledgePage;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnAreaSummary;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
@@ -65,7 +66,6 @@ public final class PhantomHistoricalBackgroundPlanner
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
-	private enum PlanningPurpose { SOLO, PARTY_RENDEZVOUS }
 
 	public PhantomHistoricalBackgroundPlanner(PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomBackgroundAuthority authority)
 	{
@@ -213,6 +213,14 @@ public final class PhantomHistoricalBackgroundPlanner
 		PhantomDomainRef sharedFarmSource, Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel, boolean supportTravelOnly)
 	{
 		final var source = rendezvousSource(sharedFarmSource); final var previous = visiblePredecessor(profileId, previousGoal);
+		final var anchor = _topology.findAnchor(source.anchorId()).orElse(null);
+		final var target = partyTarget(state.progress().level(), source, anchor);
+		final var steps = _authority.travelQuery(_topology).route(state.position().committedAnchorId(), source.anchorId()).orElse(null);
+		if (target == null || excludedTargets.contains(sharedFarmSource.key()) || !committedPartyRouteAvailable(state, steps, excludedSteps))
+		{ return Result.blocked("planner.rendezvous.route_unconfirmed"); }
+		final var candidate = new Candidate(target, anchor, steps.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList(),
+			steps.stream().mapToLong(PhantomNormalGatekeeperTravel.Step::travelMillis).sum(), 0);
+		if (affordableTravel && !affordableTravel(candidate, state)) { return Result.blocked("planner.rendezvous.insufficient_adena"); }
 		final var loadout = state.loadout();
 		final boolean idle = PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType());
 		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(),
@@ -220,25 +228,16 @@ public final class PhantomHistoricalBackgroundPlanner
 			idle ? loadout.summonNpcId() : previous.summonNpcId(), idle ? loadout.summonResourceItemId() : previous.summonResourceItemId(),
 			idle ? loadout.summonResourcesPerEncounter() : previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal,
 			previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, null, null, false,
-			value -> value.target().npc().npcId() == source.npcId() && value.anchor().id().equals(source.anchorId()) && (!affordableTravel || affordableTravel(value, state)), new java.util.HashMap<>(), PlanningPurpose.PARTY_RENDEZVOUS);
+			_ -> true, new java.util.HashMap<>(), candidate);
 	}
 	private Result rendezvousIngressPlan(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
 		PhantomTopologyPoint live, PhantomDomainRef source, Set<String> excludedSteps, boolean supportTravelOnly)
 	{
 		final var spec = rendezvousSource(source); final var destination = _topology.findAnchor(spec.anchorId()).orElse(null);
 		if (destination == null || destination.role() != PhantomTopologyAnchorRole.FARMING || destination.point().instanceId() != live.instanceId()) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
-		final var ingress = rendezvousIngress(state, destination, live, excludedSteps);
+		final var ingress = rendezvousIngress(state, destination, live, excludedSteps, anchor -> _authority.nativeIngressPositionKnown(anchor, state.position().heading()));
 		if (ingress == null) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
-		TargetFact selected = null; String cursor = null;
-		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES && selected == null; pageIndex++)
-		{
-			final var band = PhantomPartyFarmEligibility.forMember(state.progress().level());
-			final var page = targets(band.minimum(), band.maximum(), state.progress().level(),
-				cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
-			selected = page.values().stream().filter(target -> target.npc().npcId() == spec.npcId() && target.representativeAreas().stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && destination.nodeId().equals(area.topologyNodeId()))).findFirst().orElse(null);
-			cursor = page.nextCursor(); if (cursor == null) { break; }
-		}
-		if (selected == null) { return Result.blocked("planner.rendezvous.target_unavailable"); }
+		if (partyTarget(state.progress().level(), spec, destination) == null) { return Result.blocked("planner.rendezvous.target_unavailable"); }
 		final var route = ingress.id().equals(destination.id()) ? List.<PhantomNormalGatekeeperTravel.Step>of() : _authority.travelQuery(_topology).route(ingress.id(), destination.id()).orElseThrow();
 		final var constraints = new LinkedHashMap<String, Long>(); final var loadout = state.loadout();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, loadout.shotItemId(), PhantomBackgroundGoalSpec.SHOT_COUNT, loadout.shotsPerEncounter());
@@ -250,17 +249,17 @@ public final class PhantomHistoricalBackgroundPlanner
 			new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, spec.anchorId()), "farm.background", 500, 0, 0, 0, constraints, "background.rendezvous.native_ingress", Math.addExact(previous.revision(), 1));
 		return new Result(goal, PhantomBackgroundGoalSpec.parse(goal), digest("RENDEZVOUS_NATIVE_INGRESS_V1", profileId, seed, ordinal, previous.goalId(), goal.revision(), generation, live, ingress.id(), source, edges), generation, edges, "planner.rendezvous.native_ingress");
 	}
-	private PhantomTopologyAnchor rendezvousIngress(PhantomBackgroundState state, PhantomTopologyAnchor destination, PhantomTopologyPoint live, Set<String> excludedSteps)
+	private PhantomTopologyAnchor rendezvousIngress(PhantomBackgroundState state, PhantomTopologyAnchor destination, PhantomTopologyPoint live,
+		Set<String> excludedSteps, java.util.function.Predicate<PhantomTopologyAnchor> ingressEvidence)
 	{
 		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
-		if (destination.point().distance3D(live) <= policy.maximumLocalStraightDistance() && _authority.nativeIngressPositionKnown(destination, state.position().heading())) { return destination; }
+		if (destination.point().distance3D(live) <= policy.maximumLocalStraightDistance() && ingressEvidence.test(destination)) { return destination; }
 		final var travel = _authority.travelQuery(_topology);
 		return PhantomVisibleFarmTravel.idleIngress(_topology.snapshot().anchors(), live, destination.id(), policy.maximumRouteDistance(), anchor ->
 		{
-			if (!_authority.nativeIngressPositionKnown(anchor, state.position().heading())) { return false; }
+			if (!ingressEvidence.test(anchor)) { return false; }
 			final var route = travel.route(anchor.id(), destination.id()).orElse(null);
-			return route != null && !route.isEmpty() && route.size() <= 64 && route.stream().noneMatch(step -> excludedSteps.contains(step.id()))
-				&& PhantomVisibleFarmTravel.itineraryAffordable(route, state.identity().classIndex(), state.progress().level(), java.time.Instant.now().toEpochMilli() / 60000, state.inventory().itemCount(57));
+			return route != null && !route.isEmpty() && partyItineraryAvailable(state, route, excludedSteps);
 		});
 	}
 
@@ -284,14 +283,14 @@ public final class PhantomHistoricalBackgroundPlanner
 				cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
 			for (var target : page.values())
 			{
-				for (var area : target.representativeAreas())
+				for (var area : _knowledge.snapshot().spawnAreasByNpc().getOrDefault(target.npc().npcId(), List.of()))
 				{
 					if (area.instanceId() != 0 || area.totalConfiguredAmount() <= 0 || area.topologyNodeId() == null) { continue; }
 					for (var anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
 					{
 						if (anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != 0 || anchor.npcId() != null && anchor.npcId() != target.npc().npcId()) { continue; }
 						final var source = new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, target.npc().npcId() + "@" + anchor.id());
-						if (!excludedTargets.contains(source.key()) && admitted.test(source) && rendezvousRouteAvailable(state, source, excludedSteps)) { result.add(source); }
+						if (!excludedTargets.contains(source.key()) && rendezvousRouteAvailable(state, source, excludedSteps) && admitted.test(source)) { result.add(source); }
 						if (result.size() >= 64) { return List.copyOf(result); }
 					}
 				}
@@ -320,12 +319,24 @@ public final class PhantomHistoricalBackgroundPlanner
 	public boolean partySourceAvailable(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
 	{
 		if (state == null || state.position().instanceId() != 0) { return false; }
-		final var spec = rendezvousSource(source); final var npc = _knowledge.findNpc(spec.npcId()).orElse(null);
-		final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
-		return npc != null && npc.kind() == NpcKind.MONSTER && npc.attackable() && npc.targetable() && PhantomPartyFarmEligibility.forMember(state.progress().level()).contains(npc.level())
-			&& anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0 && (anchor.npcId() == null || anchor.npcId() == npc.npcId())
-			&& _knowledge.snapshot().spawnAreasByNpc().getOrDefault(npc.npcId(), List.of()).stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId()))
+		final var spec = rendezvousSource(source);
+		return partyTarget(state.progress().level(), spec, _topology.findAnchor(spec.anchorId()).orElse(null)) != null
 			&& rendezvousRouteAvailable(state, source, excludedSteps);
+	}
+
+	private TargetFact partyTarget(int level, PhantomBackgroundGoalSpec spec, PhantomTopologyAnchor anchor)
+	{
+		final var npc = _knowledge.findNpc(spec.npcId()).orElse(null);
+		if (npc == null || npc.kind() != NpcKind.MONSTER || !npc.attackable() || !npc.targetable() || !PhantomPartyFarmEligibility.forMember(level).contains(npc.level())
+			|| anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != 0
+			|| anchor.npcId() != null && anchor.npcId() != npc.npcId()) { return null; }
+		final var areas = _knowledge.snapshot().spawnAreasByNpc().getOrDefault(npc.npcId(), List.of());
+		for (var area : areas)
+		{
+			if (area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId()))
+			{ return new TargetFact(npc, areas.size(), List.of(SpawnAreaSummary.from(area)), areas.size() > 1); }
+		}
+		return null;
 	}
 	/** A World target must still belong to the agreed factual NPC/anchor, independently of actor level-up. */
 	public boolean partyNativeTarget(PhantomDomainRef source, int npcId, PhantomTopologyPoint point)
@@ -348,34 +359,86 @@ public final class PhantomHistoricalBackgroundPlanner
 			org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.SHILLIEN_ELDER).anyMatch(type::equalsOrChildOf) ? "support" : "damage";
 	}
 	public enum RendezvousRoute { REACHABLE, REACHABLE_VIA_INGRESS, TEMPORARILY_BLOCKED, DEFINITIVELY_UNREACHABLE, UNKNOWN }
-	public RendezvousRoute rendezvousRoutePreview(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
+	public record RendezvousItinerary(RendezvousRoute status, String departureAnchorId, List<PhantomNormalGatekeeperTravel.Step> steps)
+	{
+		public RendezvousItinerary { steps = List.copyOf(steps); }
+		public boolean available() { return status == RendezvousRoute.REACHABLE || status == RendezvousRoute.REACHABLE_VIA_INGRESS; }
+	}
+
+	/** Structural WALK/GK itinerary only. Ingress and every native connector still need physical proof. */
+	public RendezvousItinerary rendezvousItinerary(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
 	{
 		final var spec = rendezvousSource(source); final var anchor = _topology.findAnchor(spec.anchorId()).orElse(null);
-		if (state == null || anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING) { return RendezvousRoute.UNKNOWN; }
-		if (anchor.point().instanceId() != 0 || state.position().instanceId() != 0) { return RendezvousRoute.DEFINITIVELY_UNREACHABLE; }
+		if (state == null || anchor == null || anchor.role() != PhantomTopologyAnchorRole.FARMING) { return new RendezvousItinerary(RendezvousRoute.UNKNOWN, "", List.of()); }
+		if (anchor.point().instanceId() != 0 || state.position().instanceId() != 0) { return new RendezvousItinerary(RendezvousRoute.DEFINITIVELY_UNREACHABLE, "", List.of()); }
 		final var travel = _authority.travelQuery(_topology);
-		final var route = travel.route(state.position().committedAnchorId(), anchor.id()).orElse(null);
-		if (route != null)
-		{
-			return route.size() <= 64 && route.stream().noneMatch(step -> excludedSteps.contains(step.id())) ? RendezvousRoute.REACHABLE : RendezvousRoute.TEMPORARILY_BLOCKED;
-		}
+		final String departure = state.position().committedAnchorId();
 		final var position = state.position();
-		final var ingress = rendezvousIngress(state, anchor, new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId()), excludedSteps);
-		if (ingress != null)
+		final var live = new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId());
+		if (!departure.equals(anchor.id()) && structuralIngress(anchor, live)
+			&& PhantomVisibleFarmTravel.localFarmApproach(anchor, live, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance()) != null)
+		{ return new RendezvousItinerary(RendezvousRoute.REACHABLE_VIA_INGRESS, anchor.id(), List.of()); }
+		final var route = travel.route(departure, anchor.id()).orElse(null);
+		if (committedPartyRouteAvailable(state, route, excludedSteps))
 		{
-			if (ingress.id().equals(anchor.id())) { return RendezvousRoute.REACHABLE_VIA_INGRESS; }
+			final var point = _topology.findAnchor(departure).orElseThrow().point();
+			return new RendezvousItinerary(live.equals(point) ? RendezvousRoute.REACHABLE : RendezvousRoute.REACHABLE_VIA_INGRESS, departure, route);
+		}
+		final var localAnchors = _topology.locate(live).stream().flatMap(node -> _topology.snapshot().anchorsByNode().getOrDefault(node.id(), List.of()).stream())
+			.filter(candidate -> structuralIngress(candidate, live))
+			.sorted(Comparator.comparingDouble((PhantomTopologyAnchor candidate) -> candidate.point().distance3D(live)).thenComparing(PhantomTopologyAnchor::id))
+			.limit(16).toList();
+		for (var ingress : localAnchors)
+		{
 			final var onward = travel.route(ingress.id(), anchor.id()).orElse(null);
-			if (onward != null && onward.stream().noneMatch(step -> excludedSteps.contains(step.id()))) { return RendezvousRoute.REACHABLE_VIA_INGRESS; }
+			if (onward != null && partyItineraryAvailable(state, onward, excludedSteps))
+			{ return new RendezvousItinerary(RendezvousRoute.REACHABLE_VIA_INGRESS, ingress.id(), onward); }
 		}
 		// A missing graph-only route proves neither a missing native WALK ingress nor impossible Geo.
-		return RendezvousRoute.UNKNOWN;
+		return new RendezvousItinerary(route == null ? RendezvousRoute.UNKNOWN : RendezvousRoute.TEMPORARILY_BLOCKED, "", List.of());
+	}
+
+	private boolean structuralIngress(PhantomTopologyAnchor anchor, PhantomTopologyPoint live)
+	{
+		final var node = _topology.snapshot().nodeById().get(anchor.nodeId());
+		return anchor.point().instanceId() == live.instanceId() && (anchor.point().equals(live)
+			|| !anchor.sourceRefs().isEmpty() && node != null && node.area().contains(live)
+				&& anchor.point().distance3D(live) <= org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults().maximumRouteDistance());
+	}
+
+	private boolean committedPartyRouteAvailable(PhantomBackgroundState state, List<PhantomNormalGatekeeperTravel.Step> route, Set<String> excludedSteps)
+	{
+		if (route == null) { return false; }
+		final var position = state.position();
+		final var departure = _topology.findAnchor(position.committedAnchorId()).orElse(null);
+		return departure != null && structuralIngress(departure, new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId()))
+			&& partyItineraryAvailable(state, route, excludedSteps);
+	}
+
+	private boolean partyItineraryAvailable(PhantomBackgroundState state, List<PhantomNormalGatekeeperTravel.Step> route, Set<String> excludedSteps)
+	{
+		if (route.size() > 64 || !PhantomVisibleFarmTravel.itineraryAffordable(route, state.identity().classIndex(),
+			state.progress().level(), java.time.Instant.now().toEpochMilli() / 60000, state.inventory().itemCount(57))) { return false; }
+		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		for (var step : route)
+		{
+			final var from = _topology.findAnchor(step.fromAnchorId()).orElse(null);
+			final var to = _topology.findAnchor(step.toAnchorId()).orElse(null);
+			if (excludedSteps.contains(step.id()) || from == null || to == null || from.point().instanceId() != 0 || to.point().instanceId() != 0) { return false; }
+			if (step.type() == PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND && from.point().distance3D(to.point()) > policy.maximumRouteDistance()) { return false; }
+		}
+		return true;
+	}
+
+	public RendezvousRoute rendezvousRoutePreview(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
+	{
+		return rendezvousItinerary(state, source, excludedSteps).status();
 	}
 
 	/** Pure structural preflight over the same certified route catalog; no native usability or arrival claim. */
 	public boolean rendezvousRouteAvailable(PhantomBackgroundState state, PhantomDomainRef source, Set<String> excludedSteps)
 	{
-		final var result = rendezvousRoutePreview(state, source, excludedSteps);
-		return result == RendezvousRoute.REACHABLE || result == RendezvousRoute.REACHABLE_VIA_INGRESS;
+		return rendezvousItinerary(state, source, excludedSteps).available();
 	}
 	/** Positive known-graph absence only. Unknown/invalid input is not terminal evidence. */
 	public boolean rendezvousRouteAbsent(PhantomBackgroundState state, PhantomDomainRef source)
@@ -514,9 +577,9 @@ public final class PhantomHistoricalBackgroundPlanner
 	}
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability)
 	{
-		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, viability, PlanningPurpose.SOLO);
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, live, combat, allowOffscreen, admitted, viability, null);
 	}
-	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, PlanningPurpose purpose)
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live, PlanningCombat combat, boolean allowOffscreen, java.util.function.Predicate<Candidate> admitted, Map<Integer, Boolean> viability, Candidate exactPartyCandidate)
 	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
@@ -527,12 +590,13 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return Result.blocked("planner.ingress.absent");
 		}
-		final int maximum = purpose == PlanningPurpose.PARTY_RENDEZVOUS ? PhantomPartyFarmEligibility.forMember(level).maximum() : level + LEVEL_RADIUS;
+		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
+		if (exactPartyCandidate != null) { candidates.add(exactPartyCandidate); }
 		final List<String> rejections = new ArrayList<>();
 		final Set<String> seenCandidates = new java.util.HashSet<>();
 		final int[] offscreenAttempts = { 0 };
-		for (int radius : purpose == PlanningPurpose.PARTY_RENDEZVOUS ? List.of(4) : LOWER_LEVEL_TIERS)
+		for (int radius : exactPartyCandidate == null ? LOWER_LEVEL_TIERS : List.<Integer>of())
 		{
 			String cursor = null;
 			for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)

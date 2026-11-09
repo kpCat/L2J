@@ -75,7 +75,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (_executionOwnershipInstalled) { throw new IllegalStateException("Party execution ownership already installed."); }
 		_executionOwnership = java.util.Objects.requireNonNull(ownership); _executionOwnershipInstalled = true;
 	}
-	private long _logicalCursor, _groupCursor, _nextDiagnosticMillis;
+	private long _logicalCursor, _groupCursor, _nextDiagnosticMillis, _logicalNextDiscoveryMillis;
 	private String _lastFailure = "";
 	public record LogicalPage(List<PhantomLogicalPartyCoordinator.Candidate> candidates, long examinedProfileId)
 	{
@@ -123,10 +123,21 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			for (var row : recovered)
 			{ if (!presentGroups.containsKey(row.group().leaderProfileId())) { groups.putIfAbsent(row.group().leaderProfileId(), row); } }
 			for (var row : groups.values()) { if (row.group().active() && row.group().nextDueMillis() <= now) { projectLogical(row, now); } }
+			if (now < _logicalNextDiscoveryMillis) { return; }
+			_lastFailure = "";
 			final var page = _logicalDiscovery.apply(_logicalCursor, 16);
 			_logicalCursor = page.examinedProfileId();
-			_logical.discover(page.candidates(), _seeking::seeks, now);
-			_lastFailure = "";
+			final var discovery = _logical.previewDiscovery(page.candidates(), _seeking::seeks, now);
+			_logicalNextDiscoveryMillis = discovery.nextDueMillis();
+			if (discovery.proposal().isPresent())
+			{
+				if (_logical.commitDiscovery(discovery).isEmpty())
+				{
+					_logicalNextDiscoveryMillis = now + 1000;
+					_lastFailure = "WAIT_DISCOVERY_CHANGED nextDue=" + _logicalNextDiscoveryMillis;
+				}
+			}
+			else { _lastFailure = discovery.status() + " nextDue=" + discovery.nextDueMillis(); }
 		}
 		catch (RuntimeException failure) { diagnostic("logical_group", failure); }
 	}

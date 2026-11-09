@@ -149,6 +149,17 @@ public final class PhantomNativeTravelActions
 		if (npc == null) { return false; }
 		return PlayerConfig.TELEPORT_WHILE_SIEGE_IN_PROGRESS || (!npc.getCastle().getSiege().isInProgress() && PhantomNormalGatekeeperTravel.destinationCastlesAvailable(leg.destinationCastleIds(), id -> !org.l2jmobius.gameserver.managers.CastleManager.getInstance().getCastleById(id).getSiege().isInProgress()));
 	}
+
+	public record GatekeeperEndpoints(PhantomNavigationPoint source, PhantomNavigationPoint landing) { }
+
+	public static GatekeeperEndpoints gatekeeperEndpoints(PhantomNormalGatekeeperTravel.Leg leg)
+	{
+		final var geo = GeoEngine.getInstance();
+		final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), geo.getHeight(leg.sourceX(), leg.sourceY(), leg.sourceZ()), 0);
+		// Stock Creature adds five to the NORMAL teleport landing height.
+		final var landing = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), geo.getHeight(leg.destinationX(), leg.destinationY(), leg.destinationZ()) + 5, 0);
+		return new GatekeeperEndpoints(source, landing);
+	}
 	public static GatekeeperResult gatekeeper(Player player, PhantomNormalGatekeeperTravel.Leg leg)
 	{
 		final var before = point(player); final long adena = player.getAdena();

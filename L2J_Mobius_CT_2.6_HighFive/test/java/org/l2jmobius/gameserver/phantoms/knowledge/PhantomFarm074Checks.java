@@ -79,7 +79,15 @@ public final class PhantomFarm074Checks
 		PhantomAssertions.assertFalse(planner(false).rendezvousRouteAbsent(before, new PhantomDomainRef("background.farm", "102@farm.far")), "Graph-only absence cannot prove a native WALK impossible.");
 		final var ingress = planner(false, true, true, true);
 		final var far = new PhantomDomainRef("background.farm", "103@farm.alternative");
-		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundPlanner.RendezvousRoute.REACHABLE_VIA_INGRESS, ingress.rendezvousRoutePreview(before, far, Set.of()), "Composite preview lost the lawful WALK ingress.");
+		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundPlanner.RendezvousRoute.UNKNOWN, ingress.rendezvousRoutePreview(before, far, Set.of()), "A canonical far anchor alone cannot certify structural ingress from an unrelated area.");
+		final var nearFar = before.after(before.progress(), before.vitals(), new PhantomBackgroundState.Position(0, 10090, 100, 0, 0, "farm.local"),
+			before.inventory(), before.autoGetSkills(), before.clock(), before.receipt());
+		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundPlanner.RendezvousRoute.REACHABLE_VIA_INGRESS, ingress.rendezvousRoutePreview(nearFar, far, Set.of()), "Composite preview lost the authored local ingress and onward route.");
+		final var exactFar = nearFar.after(nearFar.progress(), nearFar.vitals(), new PhantomBackgroundState.Position(0, 10100, 100, 0, 0, "farm.local"),
+			nearFar.inventory(), nearFar.autoGetSkills(), nearFar.clock(), nearFar.receipt());
+		PhantomAssertions.assertEquals("farm.far", ingress.rendezvousItinerary(exactFar, far, Set.of()).departureAnchorId(), "An exact authored ingress was skipped because the saved label was stale.");
+		final var local = new PhantomDomainRef("background.farm", "102@farm.far");
+		PhantomAssertions.assertTrue(planner.rendezvousItinerary(nearFar, local, Set.of("farm.link")).available(), "A rejected graph leg hid the lawful local WALK.");
 		final var proposal = ingress.replanVisibleRendezvous(74, before, previous, 740074, 1, LOCAL, far, Set.of(), _ -> true);
 		PhantomAssertions.assertTrue(proposal.ready(), "Ingress preview and native goal adoption disagree.");
 		PhantomAssertions.assertEquals(List.of("farm.alternative.link"), proposal.routeEdgeIds(), "WALK ingress invented an offscreen edge or lost the canonical onward route.");
@@ -104,6 +112,21 @@ public final class PhantomFarm074Checks
 	private static void routeMatrix129() throws Exception { sourceRoutes129(true); }
 	/** Actual source graph/catalog with explicitly modeled factual-validation leaves, not native usability proof. */
 	public static PhantomNormalGatekeeperTravel sourceRoutes129() throws Exception { return sourceRoutes129(false); }
+
+	public static void configuredPartyItinerary130() throws Exception
+	{
+		final var travel = sourceRoutes129();
+		final String argos = "generated.farm.38520d85788548d726048a27.anchor";
+		final String springs = "generated.farm.4475282a85a97a4b396b967b.anchor";
+		PhantomAssertions.assertEquals(List.of(), travel.route(argos, argos).orElseThrow(), "A local source at the saved anchor needs no authored transit.");
+		final var steps = travel.route(argos, springs).orElseThrow();
+		PhantomAssertions.assertEquals(17, steps.size(), "Configured Hot Springs itinerary changed.");
+		final var gk = steps.stream().filter(step -> step.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER).toList();
+		PhantomAssertions.assertEquals(1, gk.size(), "Configured Hot Springs itinerary lost its ordinary GK leg.");
+		PhantomAssertions.assertEquals(9300L, gk.getFirst().gatekeeper().feeCount(), "The stock catalog quote changed.");
+		PhantomAssertions.assertEquals(springs, steps.getLast().toAnchorId(), "The configured itinerary does not end at the agreed source.");
+	}
+
 	private static PhantomNormalGatekeeperTravel sourceRoutes129(boolean report) throws Exception
 	{
 		final var module = java.nio.file.Path.of(System.getProperty("phantom.module.root", ".")).toAbsolutePath().normalize();
@@ -229,15 +252,28 @@ public final class PhantomFarm074Checks
 	}
 
 	/** Group discovery/travel must never ask whether one member can win alone. */
-	public static void widePartySources130()
+	public static void widePartySources130() { widePartySources130(false, false); }
+	public static void boundedStructuralSources130()
+	{
+		widePartySources130(true, false);
+		widePartySources130(true, true);
+	}
+
+	private static void widePartySources130(boolean overlongFirstPage, boolean sharedNpc)
 	{
 		final var base = state();
 		final var before = new PhantomBackgroundState(base.state(), base.identity(), new PhantomBackgroundState.Progress(76, 0, 0, 0), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
+		final java.util.function.IntFunction<PhantomTopologyPoint> pointFor = npc -> npc == 101 ? LOCAL : !overlongFirstPage ? FAR
+			: npc < 20064 ? new PhantomTopologyPoint(110100, 100, 0, 0) : new PhantomTopologyPoint(180, 100, 0, 0);
 		final var backend = new PhantomTopologyValidationBackend()
 		{
 			@Override public int mapRegionLocId(int x, int y) { return 1; }
 			@Override public Optional<PhantomTopologyValidationBackend.NpcFact> npc(int id) { return Optional.of(new PhantomTopologyValidationBackend.NpcFact(id, "Monster", true)); }
-			@Override public List<SpawnFact> spawns(int id, int maximum) { return List.of(new SpawnFact(id, id == 101 ? LOCAL : FAR)); }
+			@Override public List<SpawnFact> spawns(int id, int maximum)
+			{
+				return sharedNpc && id == 20000 ? List.of(new SpawnFact(id, pointFor.apply(20000)), new SpawnFact(id, pointFor.apply(20064)))
+					: List.of(new SpawnFact(id, pointFor.apply(id)));
+			}
 			@Override public Optional<DoorFact> door(int id) { return Optional.empty(); }
 			@Override public DoorState doorState(int id) { return DoorState.MISSING; }
 			@Override public boolean sourceExists(String source) { return true; }
@@ -247,10 +283,13 @@ public final class PhantomFarm074Checks
 		nodes.add(node("area.local", LOCAL)); anchors.add(anchor("farm.local", "area.local", LOCAL, 101));
 		for (int index = 0; index < 67; index++)
 		{
-			final int npc = 20000 + index; final String node = "area.page." + index, anchor = "farm.page." + index;
-			nodes.add(node(node, FAR)); anchors.add(anchor(anchor, node, FAR, npc));
+			final int npc = sharedNpc && index <= 64 ? 20000 : 20000 + index;
+			final String node = sharedNpc && index == 64 ? "area.page.zz" : "area.page." + index, anchor = "farm.page." + index;
+			final var point = pointFor.apply(20000 + index);
+			nodes.add(node(node, point)); anchors.add(anchor(anchor, node, point, npc));
 			edges.add(new PhantomTopologyEdge("edge.page." + index, "area.local", node, PhantomTopologyEdgeMode.BACKGROUND, true, 1, 100000, true, Set.of(), null, "farm.local", anchor, List.of()));
-			npcs.add(new NpcFact(npc, index == 65 ? 71 : index == 66 ? 81 : 76, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
+			if (!sharedNpc || index == 0 || index > 64)
+			{ npcs.add(new NpcFact(npc, index == 65 ? 71 : index == 66 ? 81 : 76, NpcKind.MONSTER, true, true, false, 100, 10, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT)); }
 			areas.add(new SpawnAreaFact(npc, 0, node, 1, 1, 1, List.of(), PhantomGameKnowledgeAuthority.TOPOLOGY_SNAPSHOT_FACT));
 		}
 		final var topology = new PhantomTopologyQuery(PhantomTopologySnapshot.create(1, "party130", 1, 1, nodes, anchors, edges, backend, PhantomTopologyPolicy.productionDefaults()), backend, new PhantomTopologyMetrics());
@@ -267,7 +306,17 @@ public final class PhantomFarm074Checks
 			@Override public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level) { return List.of(); }
 		};
 		final var planner = new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority);
-		final var common = new PhantomDomainRef("background.farm", "20064@farm.page.64");
+		final var common = new PhantomDomainRef("background.farm", (sharedNpc ? "20000" : "20064") + "@farm.page.64");
+		if (overlongFirstPage)
+		{
+			final var tooFar = new PhantomDomainRef("background.farm", "20000@farm.page.0");
+			PhantomAssertions.assertFalse(planner.partySourceAvailable(before, tooFar, Set.of()), "A single authored WALK leg outside the native route budget was admitted.");
+			PhantomAssertions.assertEquals(List.of(common), planner.rendezvousSources(74, before, goal(), 130, 1, Set.of(), Set.of()), "The legal local source was lost after 64 unsuitable routes.");
+			PhantomAssertions.assertFalse(planner.rendezvousRouteAbsent(before, tooFar), "An over-budget leg became definitive proof of impossible navigation.");
+			PhantomAssertions.assertEquals(common, planner.proposeLogicalActivity(74, before, goal(), 130, 1, common).goal().validSources().getFirst(),
+				"The exact source beyond the area summary cap was lost between discovery and Goal proposal.");
+			return;
+		}
 		PhantomAssertions.assertFalse(planner.rendezvousSources(74, before, goal(), 130, 1, Set.of(), Set.of()).contains(common), "Fixture did not put the common source beyond the first page.");
 		PhantomAssertions.assertEquals(List.of(common), planner.rendezvousSources(74, before, goal(), 130, 1, Set.of(), Set.of(), common::equals), "The 65th common source was lost before intersection.");
 		PhantomAssertions.assertTrue(planner.partySourceAvailable(before, common, Set.of()), "Exact peer proof depends on its first source page.");

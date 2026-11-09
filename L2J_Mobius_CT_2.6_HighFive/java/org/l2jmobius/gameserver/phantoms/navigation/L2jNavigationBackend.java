@@ -181,7 +181,6 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		}
 		if (options.gatekeeperAllowed())
 		{
-			final var geo = GeoEngine.getInstance();
 			final var returning = options.returnLanding();
 			final var proposed = options.legs().stream().filter(leg -> (Math.hypot((long)leg.sourceX() - request.origin().x(), (long)leg.sourceY() - request.origin().y()) <= policy.maximumLocalStraightDistance()
 				|| (returning != null && Math.hypot((long)leg.sourceX() - returning.x(), (long)leg.sourceY() - returning.y()) <= policy.maximumLocalStraightDistance()))
@@ -194,9 +193,9 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 				if (!budget.reserve(2, 3)) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; break; }
 				final long fee = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.phantomFee(leg, options.classIndex(), options.level(), options.epochMinute());
 				if (fee > options.adena() || !PhantomNativeTravelActions.available(leg)) { continue; }
-				final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), geo.getHeight(leg.sourceX(), leg.sourceY(), leg.sourceZ()), 0);
-				// Stock NORMAL teleport is synchronous; native Creature adds five to its factual geo landing Z.
-				final var landing = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), geo.getHeight(leg.destinationX(), leg.destinationY(), leg.destinationZ()) + 5, 0);
+				final var endpoints = PhantomNativeTravelActions.gatekeeperEndpoints(leg);
+				final var source = endpoints.source();
+				final var landing = endpoints.landing();
 				final var egress = walk.apply(landing, request.destination());
 				if (egress.status() != PhantomWalkCorridorPlanner.Status.FOUND) { if (egress.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; } continue; }
 				final var teleport = new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, source, landing, List.of(), leg, 0, fee, 0);
@@ -228,10 +227,8 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 			}, leg ->
 			{
 				if (!PhantomNativeTravelActions.available(leg)) { return null; }
-				final var geo = GeoEngine.getInstance();
-				final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), geo.getHeight(leg.sourceX(), leg.sourceY(), leg.sourceZ()), 0);
-				final var landing = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), geo.getHeight(leg.destinationX(), leg.destinationY(), leg.destinationZ()) + 5, 0);
-				return new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, source, landing, List.of(), leg, 0, org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.phantomFee(leg, options.classIndex(), options.level(), options.epochMinute()), 0);
+				final var endpoints = PhantomNativeTravelActions.gatekeeperEndpoints(leg);
+				return new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, endpoints.source(), endpoints.landing(), List.of(), leg, 0, org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.phantomFee(leg, options.classIndex(), options.level(), options.epochMinute()), 0);
 			}, () -> cancellation.changedSince(generation) || clock.getAsLong() >= request.deadlineLogicalNanos());
 			if (cancellation.changedSince(generation)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
 			if (clock.getAsLong() >= request.deadlineLogicalNanos()) { return new TravelPlan(PhantomNavigationResult.Status.DEADLINE_EXPIRED, null); }
