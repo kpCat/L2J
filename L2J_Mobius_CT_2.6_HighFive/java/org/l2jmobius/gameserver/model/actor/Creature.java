@@ -6456,6 +6456,27 @@ public abstract class Creature extends WorldObject
 	{
 		return task == (task.isSimultaneous() ? _nativeMagicUseTask2 : _nativeMagicUseTask);
 	}
+
+	/** Observe both stock cast slots, including a cast whose task has not been published yet. */
+	public NativeMagicUseObservation observeNativeMagicUse(int maximumTargets)
+	{
+		final boolean casting = _isCastingNow;
+		final boolean simultaneous = _isCastingSimultaneouslyNow;
+		final MagicUseTask first = _nativeMagicUseTask;
+		final MagicUseTask second = _nativeMagicUseTask2;
+		final var primary = !casting || first == null ? null : first.observeTargets(maximumTargets, () -> isCurrentNativeMagicUseTask(first));
+		final var secondary = !simultaneous || second == null ? null : second.observeTargets(maximumTargets, () -> isCurrentNativeMagicUseTask(second));
+		final java.util.function.BooleanSupplier sameSlots = () -> _isCastingNow == casting && _isCastingSimultaneouslyNow == simultaneous
+			&& _nativeMagicUseTask == first && _nativeMagicUseTask2 == second;
+		return new NativeMagicUseObservation(casting, simultaneous, primary, secondary, () -> sameSlots.getAsBoolean()
+			&& (primary == null || primary.isCurrent()) && (secondary == null || secondary.isCurrent()) && sameSlots.getAsBoolean());
+	}
+
+	public record NativeMagicUseObservation(boolean casting, boolean simultaneous, MagicUseTask.TargetObservation primary,
+		MagicUseTask.TargetObservation secondary, java.util.function.BooleanSupplier current)
+	{
+		public boolean isCurrent() { return current.getAsBoolean(); }
+	}
 	
 	/**
 	 * Sets _isCastingNow to true and _castInterruptTime is calculated from end time (ticks)

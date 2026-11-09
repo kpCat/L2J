@@ -16,7 +16,10 @@
  */
 package org.l2jmobius.gameserver.model.actor.tasks.creature;
 
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
@@ -29,11 +32,11 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 public class MagicUseTask implements Runnable
 {
 	private final Creature _creature;
-	private List<WorldObject> _targets;
+	private volatile List<WorldObject> _targets;
 	private final Skill _skill;
 	private int _count;
 	private int _skillTime;
-	private int _phase;
+	private volatile int _phase;
 	private final boolean _simultaneously;
 	private final boolean _nativeLifetimeOwned;
 	
@@ -93,6 +96,60 @@ public class MagicUseTask implements Runnable
 	}
 
 	public boolean isNativeLifetimeOwned() { return _nativeLifetimeOwned; }
+
+	public enum TargetStatus { READY, FINISHED, NO_RECIPIENTS, AMBIGUOUS, OVERFLOW, CHANGED, STALE }
+	public enum Disposition { HOSTILE, HARMLESS, UNKNOWN }
+
+	public record TargetObservation(TargetStatus status, Disposition disposition, List<WorldObject> targets, boolean nativeLifetimeOwned, BooleanSupplier current)
+	{
+		public TargetObservation { targets = List.copyOf(targets); }
+		public boolean isCurrent() { return current.getAsBoolean(); }
+	}
+
+	/** Observe the published targets without exposing the task's mutable list. */
+	public TargetObservation observeTargets(int maximumTargets, BooleanSupplier currentTask)
+	{
+		if (maximumTargets < 1 || maximumTargets > 64) { throw new IllegalArgumentException("Cast observation target bound."); }
+		final var disposition = _skill == null ? Disposition.UNKNOWN
+			: (_skill.isDamage() || _skill.hasNegativeEffect() || _skill.isDebuff()) ? Disposition.HOSTILE : Disposition.HARMLESS;
+		if (!currentTask.getAsBoolean()) { return new TargetObservation(TargetStatus.STALE, disposition, List.of(), _nativeLifetimeOwned, () -> false); }
+		final int phase = _phase;
+		final var published = _targets;
+		final BooleanSupplier sameTaskAndPhase = () -> currentTask.getAsBoolean() && _phase == phase && _targets == published;
+		if (phase == 3) { return new TargetObservation(TargetStatus.FINISHED, disposition, List.of(), _nativeLifetimeOwned, sameTaskAndPhase); }
+		if (phase != 1 && phase != 2) { return new TargetObservation(TargetStatus.AMBIGUOUS, disposition, List.of(), _nativeLifetimeOwned, sameTaskAndPhase); }
+		if (published == null || published.isEmpty()) { return new TargetObservation(TargetStatus.NO_RECIPIENTS, disposition, List.of(), _nativeLifetimeOwned, sameTaskAndPhase); }
+		final var captured = new ArrayList<WorldObject>(Math.min(maximumTargets, published.size()));
+		try
+		{
+			for (WorldObject target : published)
+			{
+				if (target == null) { return new TargetObservation(TargetStatus.AMBIGUOUS, disposition, List.of(), _nativeLifetimeOwned, sameTaskAndPhase); }
+				if (captured.size() == maximumTargets) { return new TargetObservation(TargetStatus.OVERFLOW, disposition, List.of(), _nativeLifetimeOwned, sameTaskAndPhase); }
+				captured.add(target);
+			}
+		}
+		catch (ConcurrentModificationException | IndexOutOfBoundsException changed)
+		{ return new TargetObservation(TargetStatus.CHANGED, disposition, List.of(), _nativeLifetimeOwned, () -> false); }
+		final BooleanSupplier current = () -> sameTaskAndPhase.getAsBoolean() && sameTargets(published, captured) && sameTaskAndPhase.getAsBoolean();
+		return current.getAsBoolean() ? new TargetObservation(TargetStatus.READY, disposition, captured, _nativeLifetimeOwned, current)
+			: new TargetObservation(TargetStatus.CHANGED, disposition, List.of(), _nativeLifetimeOwned, () -> false);
+	}
+
+	private static boolean sameTargets(List<WorldObject> published, List<WorldObject> captured)
+	{
+		if (published.size() != captured.size()) { return false; }
+		try
+		{
+			int index = 0;
+			for (WorldObject target : published)
+			{
+				if (index == captured.size() || target != captured.get(index++)) { return false; }
+			}
+			return index == captured.size();
+		}
+		catch (ConcurrentModificationException | IndexOutOfBoundsException changed) { return false; }
+	}
 	
 	public int getCount()
 	{

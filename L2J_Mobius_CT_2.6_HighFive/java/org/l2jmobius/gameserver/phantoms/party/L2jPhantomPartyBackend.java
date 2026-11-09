@@ -498,9 +498,22 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private static boolean groupViable(List<Player> actors, List<MemberSnapshot> members, Creature target, java.util.function.Consumer<String> witness, boolean continuing)
 	{
 		final var projected = L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
-		final List<Creature> threats = PhantomPartyFarmEligibility.farmThreats(actors,
-			player -> World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1200).stream().map(other -> (Creature) other),
-			other -> other != target && !other.isAlikeDead() && actors.stream().anyMatch(player -> org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(other, player)));
+		final var observedThreats = new java.util.LinkedHashMap<Creature, ThreatVictims>();
+		final List<Monster> threats = PhantomPartyFarmEligibility.farmThreats(actors,
+			player -> World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1200).stream(),
+			other ->
+			{
+				if (other == target || other.isAlikeDead()) { return false; }
+				if (observedThreats.containsKey(other)) { return true; }
+				final var ai = other.hasAI() ? other.getAI() : null;
+				final boolean related = actors.stream().anyMatch(player -> ai != null && ai.getIntention() == org.l2jmobius.gameserver.ai.Intention.ATTACK && ai.getAttackTarget() == player
+					|| other.getHating(player) > 0 && (player.getAttackByList().contains(other) || other.getTarget() == player));
+				if (!related && !other.isCastingNow() && !other.isCastingSimultaneouslyNow()) { return false; }
+				final var observation = threatVictims(other, actors, related);
+				if (!observation.relevant()) { return false; }
+				observedThreats.put(other, observation);
+				return true;
+			});
 		if (threats.size() > 4 || threats.stream().anyMatch(Creature::isRaid)) { if (witness != null) { witness.accept("WAIT_THREAT:target=" + target.getObjectId() + ":threats=" + threats.size()); } return false; }
 		final double[] intervals = new double[actors.size()];
 		final double[] costs = new double[actors.size()];
@@ -555,11 +568,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		final double millis = PhantomAutonomousFarmParty.projectedFarmDuration(target.getCurrentHp(), damagePerSecond, nativeRegenPerSecond);
 		if (!Double.isFinite(millis) || millis > 60_000) { if (witness != null) { witness.accept("WAIT_GROUP_DAMAGE:target=" + target.getObjectId() + ":durationMillis=" + millis + ":DPS=" + effective + ":HP=" + projected.maximumHp()); } return false; }
 		final var initial = PhantomAutonomousFarmParty.farmPuller(members).orElse(null);
-		final var victim = threatVictim(target, actors);
-		if (victim.objectId() == 0 && (!victim.idle() || initial == null))
+		final var victim = threatVictims(target, actors, true);
+		if (!victim.refusal().isEmpty())
+		{ if (witness != null) { witness.accept("WAIT_THREAT:target=" + target.getObjectId() + ":reason=" + victim.refusal()); } return false; }
+		if (victim.objectIds().isEmpty() && (!victim.idle() || initial == null))
 		{ if (witness != null) { witness.accept("WAIT_TANK_AGGRO:target=" + target.getObjectId() + ":reason=" + victim.reason()); } return false; }
-		final int mainVictim = victim.objectId() > 0 ? victim.objectId() : initial.characterObjectId();
-		final Player recipient = actors.stream().filter(player -> player.getObjectId() == mainVictim).findFirst().orElseThrow();
+		final var mainVictims = victim.objectIds().isEmpty() ? Set.of(initial.characterObjectId()) : victim.objectIds();
+		final Player recipient = actors.stream().filter(player -> mainVictims.contains(player.getObjectId()))
+			.min(java.util.Comparator.comparingDouble((Player player) -> player.getCurrentHp() / player.getMaxHp()).thenComparingInt(Player::getObjectId)).orElseThrow();
+		final int mainVictim = recipient.getObjectId();
 		boolean healerPresent = false;
 		Skill readyHeal = null;
 		int healerObjectId = 0;
@@ -580,13 +597,11 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (witness != null) { witness.accept("WAIT_GROUP_HEAL:target=" + target.getObjectId() + ":recipient=" + mainVictim + ":learned_mp_reuse_range_or_target"); }
 			return false;
 		}
-		final var observedThreats = new java.util.LinkedHashMap<Creature, ThreatVictim>();
-		for (Creature threat : threats)
+		for (var entry : observedThreats.entrySet())
 		{
-			final var observed = threatVictim(threat, actors);
-			if (observed.objectId() == 0)
-			{ if (witness != null) { witness.accept("WAIT_THREAT:target=" + threat.getObjectId() + ":reason=" + observed.reason()); } return false; }
-			observedThreats.put(threat, observed);
+			final var observed = entry.getValue();
+			if (!observed.refusal().isEmpty() || observed.objectIds().isEmpty())
+			{ if (witness != null) { witness.accept("WAIT_THREAT:target=" + entry.getKey().getObjectId() + ":reason=" + (observed.refusal().isEmpty() ? observed.reason() : observed.refusal())); } return false; }
 		}
 		for (int index = 0; index < actors.size(); index++)
 		{
@@ -594,14 +609,18 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final double actions = intervals[index] > 0 ? PhantomPartyFarmEligibility.requiredActions(millis, intervals[index]) : 0;
 			if (actions > ammunition[index]) { if (witness != null) { witness.accept("WAIT_GROUP_AMMO:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":shots=" + actions + ":ammo=" + ammunition[index]); } return false; }
 			if (actions * costs[index] > player.getCurrentMp() * 0.8) { if (witness != null) { witness.accept("WAIT_GROUP_MP:target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":actionMPRequired=" + actions * costs[index] + ":MP=" + player.getCurrentMp()); } return false; }
-			double incoming = farmIncomingDamage(player, target, millis, player.getObjectId() == mainVictim);
+			double incoming = farmIncomingDamage(player, target, millis, mainVictims.contains(player.getObjectId()));
 			for (var entry : observedThreats.entrySet())
 			{
-				incoming += farmIncomingDamage(player, entry.getKey(), millis, entry.getValue().objectId() == player.getObjectId());
+				incoming += farmIncomingDamage(player, entry.getKey(), millis, entry.getValue().objectIds().contains(player.getObjectId()));
 			}
 			exposures[index] = incoming;
 			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6) { if (witness != null) { witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId() + ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis); } return false; }
 		}
+		final var changedThreat = !victim.current().getAsBoolean() ? target : observedThreats.entrySet().stream()
+			.filter(entry -> !entry.getValue().current().getAsBoolean()).map(java.util.Map.Entry::getKey).findFirst().orElse(null);
+		if (changedThreat != null)
+		{ if (witness != null) { witness.accept("WAIT_THREAT:target=" + changedThreat.getObjectId() + ":reason=native.threat.changed"); } return false; }
 		if (TASK130_EVIDENCE && TASK130_SAMPLES.getAndIncrement() < 180)
 		{
 			System.out.println("NATIVE130_D03 target=" + target.getObjectId() + " level=" + target.getLevel() + " continuing=" + continuing
@@ -613,9 +632,9 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				+ " capabilities=" + members.stream().map(member -> member.capabilities().stream().filter(MemberCapability::learned)
 					.filter(cap -> cap.capabilityKey().startsWith("combat.") || cap.capabilityKey().startsWith("profession.")).limit(24)
 					.map(cap -> cap.capabilityKey() + ':' + cap.actionSkillId() + ':' + cap.actionSkillLevel() + ':' + cap.readyNow()).toList()).toList());
-			System.out.println("NATIVE130_D04 target=" + target.getObjectId() + " observedVictim=" + victim.objectId() + " plannedVictim=" + mainVictim
+			System.out.println("NATIVE130_D04 target=" + target.getObjectId() + " observedVictims=" + victim.objectIds() + " plannedVictims=" + mainVictims
 				+ " idle=" + victim.idle() + " threatCount=" + threats.size() + " threatVictims="
-				+ observedThreats.entrySet().stream().map(entry -> entry.getKey().getObjectId() + "->" + entry.getValue().objectId()).toList()
+				+ observedThreats.entrySet().stream().map(entry -> entry.getKey().getObjectId() + "->" + entry.getValue().objectIds()).toList()
 				+ " exposureMsReserve=6000 projectedDamage=" + java.util.Arrays.toString(exposures));
 			System.out.println("NATIVE130_D05 target=" + target.getObjectId() + " healerPresent=" + healerPresent + " caster=" + healerObjectId
 				+ " recipient=" + mainVictim + " readySkill=" + (readyHeal == null ? "none" : readyHeal.getId() + ":" + readyHeal.getLevel()) + " projectedHpCredit=0");
@@ -652,15 +671,27 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		return null;
 	}
 
-	private record ThreatVictim(int objectId, boolean idle, String reason) { }
-	private static ThreatVictim threatVictim(Creature threat, List<Player> actors)
+	private record ThreatVictims(Set<Integer> objectIds, boolean idle, String reason, String refusal, boolean relevant,
+		java.util.function.BooleanSupplier current) { }
+	private static ThreatVictims threatVictims(Creature threat, List<Player> actors, boolean related)
 	{
-		final Creature attacked = threat.hasAI() ? threat.getAI().getAttackTarget() : null;
-		if (attacked != null)
-		{ return actors.stream().anyMatch(player -> player == attacked) ? new ThreatVictim(attacked.getObjectId(), false, "native.ai.attack_target") : new ThreatVictim(0, false, "native.foreign_victim"); }
-		final boolean idle = !threat.isAttackingNow() && !threat.isCastingNow() && (!threat.hasAI() || threat.getAI().getIntention() != org.l2jmobius.gameserver.ai.Intention.ATTACK)
-			&& threat instanceof Monster monster && monster.getMostHated() == null;
-		return new ThreatVictim(0, idle, idle ? "native.idle.safe_pull_required" : "native.attack_target.unknown");
+		final var ai = threat.hasAI() ? threat.getAI() : null;
+		final Creature attacked = ai == null ? null : ai.getAttackTarget();
+		final var intention = ai == null ? null : ai.getIntention();
+		final boolean attacking = threat.isAttackingNow() || threat.isRangeAttackingNow();
+		final var nativeCasts = threat.observeNativeMagicUse(16);
+		final var cast = PhantomPartyFarmEligibility.observedCastVictims(nativeCasts, actors);
+		final var recipients = new HashSet<>(cast.recipients());
+		final boolean melee = attacking || !cast.hostile() && intention == org.l2jmobius.gameserver.ai.Intention.ATTACK;
+		if (melee && attacked != null && actors.stream().anyMatch(player -> player == attacked)) { recipients.add(attacked.getObjectId()); }
+		final Creature hated = threat instanceof Monster monster ? monster.getMostHated() : null;
+		final boolean idle = !cast.hostile() && !melee && hated == null;
+		final boolean relevant = !recipients.isEmpty() || related && (!cast.hostile() || !cast.refusal().isEmpty() || attacking);
+		final String reason = idle ? "native.idle.safe_pull_required" : cast.hostile() ? "native.cast.foreign_victim" : "native.attack_target.unknown_or_foreign";
+		return new ThreatVictims(Set.copyOf(recipients), idle, reason, cast.refusal(), relevant,
+			() -> nativeCasts.isCurrent() && threat.hasAI() == (ai != null) && (ai == null || threat.getAI() == ai && ai.getAttackTarget() == attacked && ai.getIntention() == intention)
+				&& (threat.isAttackingNow() || threat.isRangeAttackingNow()) == attacking
+				&& (!(threat instanceof Monster monster) || monster.getMostHated() == hated));
 	}
 
 	@Override

@@ -2,8 +2,15 @@
 package org.l2jmobius.gameserver.phantoms.party;
 
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+
+import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.actor.Creature.NativeMagicUseObservation;
+import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.Disposition;
+import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.TargetStatus;
 
 /** Pure FARM admission facts; never a native action, Solo policy or combat simulator. */
 public final class PhantomPartyFarmEligibility
@@ -48,6 +55,45 @@ public final class PhantomPartyFarmEligibility
 	{
 		if (!Double.isFinite(encounterMillis) || encounterMillis <= 0) { return Double.NaN; }
 		return mainVictim ? encounterMillis : Math.min(encounterMillis, 6000);
+	}
+
+	public record CastVictims(Set<Integer> recipients, boolean hostile, String refusal)
+	{
+		public CastVictims { recipients = Set.copyOf(recipients); }
+	}
+
+	/** Both current native slots contribute the actual Party recipients of pending hostile casts. */
+	public static CastVictims observedCastVictims(NativeMagicUseObservation observed, List<? extends WorldObject> party)
+	{
+		final var recipients = new LinkedHashSet<Integer>();
+		boolean hostile = false;
+		String refusal = "";
+		for (int slot = 0; slot < 2; slot++)
+		{
+			if (!(slot == 0 ? observed.casting() : observed.simultaneous())) { continue; }
+			final var cast = slot == 0 ? observed.primary() : observed.secondary();
+			if (cast == null)
+			{
+				refusal = "native.cast.task_unavailable";
+				continue;
+			}
+			if (cast.status() == TargetStatus.FINISHED || cast.disposition() == Disposition.HARMLESS) { continue; }
+			if (cast.disposition() == Disposition.UNKNOWN) { refusal = "native.cast.disposition_unknown"; continue; }
+			hostile = true;
+			if (cast.status() != TargetStatus.READY)
+			{
+				refusal = "native.cast." + cast.status().name().toLowerCase(Locale.ROOT);
+				continue;
+			}
+			for (var member : party)
+			{
+				if (cast.targets().stream().noneMatch(target -> target == member)) { continue; }
+				recipients.add(member.getObjectId());
+				if (!cast.nativeLifetimeOwned()) { refusal = "native.cast.recipient_lifetime_unproven"; }
+			}
+		}
+		if (!observed.isCurrent() && refusal.isEmpty()) { refusal = "native.cast.changed"; }
+		return new CastVictims(recipients, hostile || !refusal.isEmpty(), refusal);
 	}
 	/** Source/level admission precedes the expensive native Geo/combat candidate budget. */
 	public static <T> List<T> farmTargets(java.util.stream.Stream<T> ordered, java.util.function.Predicate<T> lawful)

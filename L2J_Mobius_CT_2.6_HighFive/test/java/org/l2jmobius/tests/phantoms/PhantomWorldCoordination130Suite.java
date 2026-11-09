@@ -9,8 +9,14 @@ import java.util.HashMap;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
+import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target;
+import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask;
+import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.Disposition;
+import org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.TargetStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts;
@@ -90,6 +96,64 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(3600d, exposure, "Reusing the primary defense for the adjacent attacker hid lethal pressure.");
 			PhantomAssertions.assertEquals(9000d, PhantomBackgroundModel.incomingDamage(againstExtra, extra, PhantomPartyFarmEligibility.threatExposureMillis(fight, true)),
 				"An actual target swap still used only the six-second reserve.");
+		});
+		registry.add("native-cast-snapshot-fences-replacement-mutation-phase-and-target-budget", _ ->
+		{
+			final var first = castTarget(101);
+			final var second = castTarget(102);
+			final var published = new java.util.ArrayList<WorldObject>(List.of(first));
+			final var current = new AtomicBoolean(true);
+			final var task = new MagicUseTask(null, published, null, 500, false);
+			final var initial = task.observeTargets(2, current::get);
+			PhantomAssertions.assertEquals(TargetStatus.READY, initial.status(), "The actual slot targets were unavailable.");
+			PhantomAssertions.assertEquals(List.of(first), initial.targets(), "The exact cast target was lost.");
+			published.set(0, second);
+			PhantomAssertions.assertTrue(!initial.isCurrent() && initial.targets().equals(List.of(first)), "Mutating getTargets changed or preserved the old proof.");
+			final var originalList = task.observeTargets(2, current::get);
+			task.setTargets(List.of(second));
+			PhantomAssertions.assertFalse(originalList.isCurrent(), "setTargets did not invalidate the old list identity.");
+			final var launch = task.observeTargets(2, current::get);
+			task.setPhase(2);
+			PhantomAssertions.assertFalse(launch.isCurrent(), "The launch phase survived hit publication.");
+			task.setTargets(List.of(first, second));
+			PhantomAssertions.assertEquals(TargetStatus.OVERFLOW, task.observeTargets(1, current::get).status(), "A partial AoE list was admitted.");
+			task.setTargets(List.of());
+			PhantomAssertions.assertEquals(TargetStatus.NO_RECIPIENTS, task.observeTargets(2, current::get).status(), "Missing recipients appeared safe.");
+			task.setPhase(3);
+			PhantomAssertions.assertEquals(TargetStatus.FINISHED, task.observeTargets(2, current::get).status(), "The finalizer remained a pending hit.");
+			current.set(false);
+			PhantomAssertions.assertEquals(TargetStatus.STALE, task.observeTargets(2, current::get).status(), "A superseded task was admitted.");
+		});
+		registry.add("party-cast-victims-come-from-exact-single-area-and-simultaneous-recipients", _ ->
+		{
+			final var tank = castTarget(101);
+			final var healer = castTarget(102);
+			final var foreign = castTarget(103);
+			final var party = List.of(tank, healer);
+			final var single = new MagicUseTask.TargetObservation(TargetStatus.READY, Disposition.HOSTILE, List.of(healer), true, () -> true);
+			final var area = new MagicUseTask.TargetObservation(TargetStatus.READY, Disposition.HOSTILE, List.of(tank, healer, foreign), true, () -> true);
+			final var simultaneous = new MagicUseTask.TargetObservation(TargetStatus.READY, Disposition.HOSTILE, List.of(tank), true, () -> true);
+			PhantomAssertions.assertEquals(java.util.Set.of(102), PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, false, single, null, () -> true), party).recipients(), "The cast was assigned to the old tank target.");
+			PhantomAssertions.assertEquals(java.util.Set.of(101, 102), PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, false, area, null, () -> true), party).recipients(), "The AoE did not preserve every actual Party recipient.");
+			PhantomAssertions.assertEquals(java.util.Set.of(101, 102), PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, true, single, simultaneous, () -> true), party).recipients(), "A simultaneous stock cast was hidden.");
+			final var unrelated = new MagicUseTask.TargetObservation(TargetStatus.READY, Disposition.HOSTILE, List.of(foreign), false, () -> true);
+			final var outside = PhantomPartyFarmEligibility.observedCastVictims(new Creature.NativeMagicUseObservation(true, false, unrelated, null, () -> true), party);
+			PhantomAssertions.assertTrue(outside.recipients().isEmpty() && outside.refusal().isEmpty(), "An established unrelated cast blocked the party.");
+			final var unknown = new MagicUseTask.TargetObservation(TargetStatus.NO_RECIPIENTS, Disposition.HOSTILE, List.of(), true, () -> true);
+			PhantomAssertions.assertEquals("native.cast.no_recipients", PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, false, unknown, null, () -> true), party).refusal(), "No recipients were treated as confirmed.");
+			PhantomAssertions.assertEquals("native.cast.changed", PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, false, single, null, () -> false), party).refusal(), "A changed task was reported as safe.");
+			PhantomAssertions.assertEquals("native.cast.task_unavailable", PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, false, null, null, () -> true), party).refusal(), "An active unpublished task did not wait.");
+			final var idle = PhantomPartyFarmEligibility.observedCastVictims(new Creature.NativeMagicUseObservation(false, false, null, null, () -> true), party);
+			PhantomAssertions.assertTrue(!idle.hostile() && idle.refusal().isEmpty(), "An idle spawn cannot start a lawful pull.");
+			final var unowned = new MagicUseTask.TargetObservation(TargetStatus.READY, Disposition.HOSTILE, List.of(healer), false, () -> true);
+			PhantomAssertions.assertEquals("native.cast.recipient_lifetime_unproven", PhantomPartyFarmEligibility.observedCastVictims(
+				new Creature.NativeMagicUseObservation(true, false, unowned, null, () -> true), party).refusal(), "An unowned cast proved a Party recipient.");
 		});
 		registry.add("party-native-target-budget-filters-wrong-sources-before-eight", _ ->
 		{
@@ -633,6 +697,15 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	{
 		return new PhantomLogicalParty("A".repeat(64), 1, leader, LongStream.range(leader, leader + size).mapToObj(PhantomWorldCoordination130Suite::member).toList(),
 			new PhantomDomainRef("background.farm", "20101@farm.fixture"), "farm.fixture", PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+	}
+
+	private static WorldObject castTarget(int objectId)
+	{
+		return new WorldObject(objectId)
+		{
+			@Override public boolean isAutoAttackable(Creature attacker) { return false; }
+			@Override public void sendInfo(Player player) { }
+		};
 	}
 
 	static final class MemoryStore implements PhantomPartyPersistencePort
