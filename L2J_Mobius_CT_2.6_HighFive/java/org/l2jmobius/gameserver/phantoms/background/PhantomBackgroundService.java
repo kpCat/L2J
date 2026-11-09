@@ -45,6 +45,7 @@ import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
@@ -170,7 +171,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 	private final ConcurrentHashMap<Long, Boolean> _cleanupStores = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<Long, Integer> _nativeTownReturns = new ConcurrentHashMap<>();
+	private record NativeTownReturn(int objectId, long epoch, PhantomExecutionAdmission.Stamp execution) { }
+	private final ConcurrentHashMap<Long, NativeTownReturn> _nativeTownReturns = new ConcurrentHashMap<>();
+	private PhantomExecutionAdmission _recoveryExecution;
 	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, RecoveryControl> _recoveryControls = new ConcurrentHashMap<>();
 	private final java.util.concurrent.atomic.AtomicReference<String> _firstRecoveryFailure = new java.util.concurrent.atomic.AtomicReference<>("");
@@ -178,13 +181,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final long profileId, deadline;
 		final PhantomGoal goal; final PhantomActivityState activity; final BooleanSupplier cancelled;
+		final PhantomExecutionAdmission.Stamp execution;
+		final boolean acceptedTownReturn;
 		final AtomicBoolean queued = new AtomicBoolean(), finished = new AtomicBoolean();
 		volatile OperationResult result;
 		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection, baselinePending;
 		PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff;
-		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry, long acceptedDeadline)
+		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry, long acceptedDeadline, PhantomExecutionAdmission.Stamp execution, boolean acceptedTownReturn)
 		{
 			this.profileId = profileId; this.goal = goal; this.activity = activity; this.cancelled = cancelled;
+			this.execution = execution; this.acceptedTownReturn = acceptedTownReturn;
 			deadline = recoveryControlDeadline(System.nanoTime(), acceptedDeadline);
 			objectId = entry == null ? 0 : entry.characterObjectId(); epoch = entry == null ? 0 : entry.materializedAtNanos();
 		}
@@ -338,6 +344,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		_nativeRecoveryHistory = Objects.requireNonNull(history);
 	}
 
+	public synchronized void bindRecoveryExecution(PhantomExecutionAdmission execution)
+	{
+		if (_state != ServiceState.NEW || _recoveryExecution != null) { throw new IllegalStateException("Recovery execution must bind once before start."); }
+		_recoveryExecution = Objects.requireNonNull(execution);
+	}
+
 	public synchronized boolean finishStop()
 	{
 		if (_state == ServiceState.STOPPED)
@@ -416,7 +428,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		if ((activityState == PhantomActivityState.WARM) || activityState.requiresMaterialization())
 		{
-			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && ((state.vitals().currentHp() == 0) || nativeDead(profileId) || Objects.equals(_nativeTownReturns.get(profileId), state.identity().characterObjectId())));
+			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && ((state.vitals().currentHp() == 0) || nativeDead(profileId) || nativeTownReturned(profileId, state.identity().characterObjectId())));
 			if (recoverable)
 			{
 				return new Directive(DirectiveKind.RECOVER, "state.dead", spec.anchorId());
@@ -1783,7 +1795,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			if (result.successful())
 			{
-				_nativeTownReturns.put(profileId, characterObjectId);
+				_nativeTownReturns.put(profileId, new NativeTownReturn(characterObjectId, action.player().getNativeWorkOwner().epoch(), action.executionStamp()));
 			}
 			return result;
 		}
@@ -1817,6 +1829,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationResult requestRecovery(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean acceptedForStop, long acceptedDeadline, int expectedObject, long expectedEpoch)
 	{
+		final PhantomExecutionAdmission.Stamp requested;
+		try (var permit = _recoveryExecution == null || expectedEpoch > 0 ? null : _recoveryExecution.tryAcquireScoped(profileId, null))
+		{
+			requested = permit == null ? null : permit.stamp();
+		}
 		RecoveryControl control;
 		synchronized (this)
 		{
@@ -1829,11 +1846,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			final var materialization = _materialization.get();
 			final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
-			if ((acceptedDeadline != 0) && ((System.nanoTime() >= acceptedDeadline) || (expectedEpoch <= 0) || (entry == null)
-				|| (entry.characterObjectId() != expectedObject) || (entry.materializedAtNanos() != expectedEpoch)
-				|| !Objects.equals(_nativeTownReturns.get(profileId), expectedObject))) { return retry("recovery.accepted_owner_or_deadline"); }
+			final var returned = _nativeTownReturns.get(profileId);
+			final boolean acceptedTownReturn = expectedEpoch > 0 && entry != null && entry.characterObjectId() == expectedObject
+				&& entry.materializedAtNanos() == expectedEpoch && returned != null && returned.objectId() == expectedObject && returned.epoch() == expectedEpoch;
+			if (acceptedDeadline != 0 && (System.nanoTime() >= acceptedDeadline || !acceptedTownReturn)) { return retry("recovery.accepted_owner_or_deadline"); }
+			final var execution = acceptedTownReturn ? returned.execution() : requested;
+			if (_recoveryExecution != null && execution == null) { return retry("recovery.execution_grant_unavailable"); }
 			if (((_state != ServiceState.RUNNING) && !(acceptedForStop && (_state == ServiceState.STOPPING))) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null)) { return retry("recovery.busy_or_stopping"); }
-			control = new RecoveryControl(profileId, goal, activityState, cancelled, entry, acceptedDeadline);
+			control = new RecoveryControl(profileId, goal, activityState, cancelled, entry, acceptedDeadline, execution, acceptedTownReturn);
 			_recoveryControls.put(profileId, control); increment(_currentOperations, _peakOperations);
 		}
 		queueRecovery(control);
@@ -1859,8 +1879,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private void advanceRecovery(RecoveryControl control)
 	{
-		try
+		try (var execution = control.execution == null ? null : control.acceptedTownReturn || control.storeRequested
+			? _recoveryExecution.tryAcquireCompletionScoped(control.profileId, control.execution)
+			: _recoveryExecution.tryAcquireScoped(control.profileId, control.execution);
+			var scope = execution == null ? null : execution.enterScope())
 		{
+			if (control.execution != null && execution == null) { finishRecovery(control, OperationResult.replan("recovery.control_execution_changed")); return; }
 			if (_recoveryControls.get(control.profileId) != control) { finishRecovery(control, OperationResult.inconsistent("recovery.control_replaced")); return; }
 			final var materialization = _materialization.get();
 			final var entry = materialization == null ? null : materialization.find(control.profileId).orElse(null);
@@ -1916,6 +1940,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public String firstRecoveryFailure() { return _firstRecoveryFailure.get(); }
 
+	public Optional<OperationResult> recoveryControlOutcome(long profileId)
+	{
+		final var control = _recoveryControls.get(profileId);
+		return Optional.ofNullable(control == null ? null : control.result);
+	}
+
 	/** The already returned exact corpse may finish persistence after producer closure. */
 	public OperationResult recoverAcceptedForStop(long profileId, PhantomGoal goal, int objectId, long epoch)
 	{
@@ -1932,7 +1962,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var materialization = _materialization.get();
 		final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
 		if ((entry == null) || (entry.characterObjectId() != objectId) || (entry.materializedAtNanos() != epoch)
-			|| !Objects.equals(_nativeTownReturns.get(profileId), objectId)) { return retry("recovery.stop_owner_changed"); }
+			|| !nativeTownReturned(profileId, objectId)) { return retry("recovery.stop_owner_changed"); }
 		return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true, acceptedDeadline, objectId, epoch);
 	}
 
@@ -1974,11 +2004,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return OperationResult.replan("recovery.goal");
 		}
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
-		if (loaded.successful() && (loaded.state() != null) && (loaded.state().state() == State.READY) && _nativeTownReturns.remove(profileId, loaded.state().identity().characterObjectId()))
+		if (loaded.successful() && (loaded.state() != null) && (loaded.state().state() == State.READY) && consumeNativeTownReturn(profileId, loaded.state().identity().characterObjectId()))
 		{
 			return OperationResult.success("death.recovered_at_town");
 		}
-		if (!loaded.successful() || (loaded.state() == null) || ((loaded.state().state() != State.DEAD) && !((loaded.state().state() == State.MATERIALIZED) && ((loaded.state().vitals().currentHp() == 0) || nativeDead(profileId) || Objects.equals(_nativeTownReturns.get(profileId), loaded.state().identity().characterObjectId())))))
+		if (!loaded.successful() || (loaded.state() == null) || ((loaded.state().state() != State.DEAD) && !((loaded.state().state() == State.MATERIALIZED) && ((loaded.state().vitals().currentHp() == 0) || nativeDead(profileId) || nativeTownReturned(profileId, loaded.state().identity().characterObjectId())))))
 		{
 			return OperationResult.replan("recovery.not_dead");
 		}
@@ -2007,7 +2037,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			restoreExistingMaterialization = materialized.status() == ResultStatus.ALREADY_ACTIVE;
 		}
-		final Optional<ActionLease> action = materialization.tryAcquireAction(profileId);
+		final Optional<ActionLease> action = control != null && control.acceptedTownReturn
+			? materialization.tryAcquireCompletionAction(profileId, control.execution) : materialization.tryAcquireAction(profileId);
 		if (action.isEmpty())
 		{
 			return retry("recovery.action_lease");
@@ -2068,8 +2099,20 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());
 			}
 		}
-		final boolean nativeTownReturn = _nativeTownReturns.remove(profileId, characterObjectId);
+		final boolean nativeTownReturn = consumeNativeTownReturn(profileId, characterObjectId);
 		return OperationResult.success(resumedFromResurrection && !nativeTownReturn ? "death.resurrected" : "death.recovered_at_town");
+	}
+
+	private boolean nativeTownReturned(long profileId, int objectId)
+	{
+		final var returned = _nativeTownReturns.get(profileId);
+		return returned != null && returned.objectId() == objectId;
+	}
+
+	private boolean consumeNativeTownReturn(long profileId, int objectId)
+	{
+		final var returned = _nativeTownReturns.get(profileId);
+		return returned != null && returned.objectId() == objectId && _nativeTownReturns.remove(profileId, returned);
 	}
 
 	private OperationResult recoverNativeTown(Player player, BooleanSupplier cancelled)

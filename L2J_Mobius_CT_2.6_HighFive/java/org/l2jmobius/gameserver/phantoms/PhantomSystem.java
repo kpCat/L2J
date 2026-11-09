@@ -539,6 +539,7 @@ public final class PhantomSystem
 					new PhantomSchedulerRelevanceSignalPort(_scheduler),
 					() -> _materializationService,
 					partyParticipation);
+				_backgroundService.bindRecoveryExecution(_executionAdmission);
 				if (!_backgroundService.start())
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
@@ -3621,8 +3622,14 @@ public final class PhantomSystem
 				if (background == null || !PhantomAutonomousFarmParty.ordinaryIntent(id, root)
 					|| population.state() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY
 					|| !_settings.partySeeking().seeks(id, background.progress().level())
-					|| scheduled == PhantomActivityState.SLEEPING || _materializationService.find(id).isPresent())
+					|| scheduled == PhantomActivityState.SLEEPING)
 				{ continue; }
+				if (_materializationService.find(id).isPresent())
+				{
+					final var outcome = _backgroundService.recoveryControlOutcome(id).orElse(null);
+					if (outcome != null && !outcome.successful()) { throw new IllegalStateException("stock_respawn:" + id + ":" + outcome.reason()); }
+					continue;
+				}
 				final var history = _historicalBackgroundService.status(id).orElse(null);
 				if (history == null || !_populationEcology.requestBackgroundRecovery(id, history.state().targetEpochMinute()).complete()
 					|| _executionGoals.publication(id).filter(row -> row.state().status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.PENDING).isPresent())
@@ -3637,10 +3644,17 @@ public final class PhantomSystem
 					if (background.state() == PhantomBackgroundState.State.DEAD && scheduled.requiresMaterialization())
 					{
 						// Startup permits only the existing stock town recovery here. Its STORE must finish before source proof.
-						final var recovery = _backgroundService.requestRecovery(id, root, scheduled, () -> request.completion().isDone()
-							|| !_executionAdmission.current(id, grant.component().rowVersion(), grant.state()));
-						if (recovery.status() == PhantomBackgroundService.OperationStatus.INCONSISTENT)
-						{ throw new IllegalStateException("stock_respawn:" + id + ":" + recovery.reason()); }
+						try (var execution = _executionAdmission.tryAcquire(id, grant.state().owner()))
+						{
+							if (execution == null) { continue; }
+							try (var scope = execution.enterScope())
+							{
+								final var recovery = _backgroundService.requestRecovery(id, root, scheduled, () -> request.completion().isDone()
+									|| !_executionAdmission.current(id, grant.component().rowVersion(), grant.state()));
+								if (recovery.status() == PhantomBackgroundService.OperationStatus.INCONSISTENT)
+								{ throw new IllegalStateException("stock_respawn:" + id + ":" + recovery.reason()); }
+							}
+						}
 					}
 					else if (background.state() == PhantomBackgroundState.State.READY)
 					{ ready.add(id); }

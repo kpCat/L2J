@@ -55,6 +55,14 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(startup >= 0 && recovery > startup && ready > recovery && grant > ready
 				&& respawn > grant && live > respawn && proof > live,
 				"Stock recovery must retain the exact grant and finish before the source proof.");
+			final String background = java.nio.file.Files.readString(root.resolve("background/PhantomBackgroundService.java"));
+			final int request = background.indexOf("private OperationResult requestRecovery(");
+			final int stamp = background.indexOf("requested = permit == null ? null : permit.stamp()", request);
+			final int worker = background.indexOf("private void advanceRecovery(", stamp);
+			final int acquire = background.indexOf("_recoveryExecution.tryAcquireScoped(control.profileId, control.execution)", worker);
+			final int nativeRecovery = background.indexOf("recoverOwned(control.profileId", acquire);
+			PhantomAssertions.assertTrue(request >= 0 && stamp > request && worker > stamp && acquire > worker && nativeRecovery > acquire,
+				"Stock respawn lost its captured execution grant between scheduling and the native worker.");
 			final String history = java.nio.file.Files.readString(root.resolve("background/PhantomHistoricalBackgroundService.java"));
 			final int cold = history.indexOf("public Result prepareColdStartupAuthority(");
 			final int fence = history.indexOf("_authorityRefreshBoundary.apply", cold);
