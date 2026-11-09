@@ -1,6 +1,6 @@
 # TASK130 — исполнение группового контракта
 
-Статус `PARTIAL_NATIVE_PRE_CUT / AUTHORITY_HASH_70`. FULL130=false. TASK130–136 FULL до и после 0/7 → 0/7. Исходный WIP `8140167705e6a6e76f370e3aa772b50f909b4d37`. Проверенный исходник JAR `ea0e202e26755c5ba79c096c42007e61cf3e1c5e`. Публикация только в `wip/coordination-130-preserved`.
+Статус `PARTIAL_NATIVE_PRE_CUT / NO_LAWFUL_FEASIBLE_SCENE`. FULL130=false. TASK130–136 FULL до и после 0/7 → 0/7. Исходный WIP `8140167705e6a6e76f370e3aa772b50f909b4d37`. Проверенный исходник JAR `ea0e202e26755c5ba79c096c42007e61cf3e1c5e`. Публикация только в `wip/coordination-130-preserved`.
 
 ## Read-first и сохранность
 
@@ -176,3 +176,48 @@ Read-only сравнение обоих runtime-датапаков по SHA-256 
 Правка затрагивает test runner и отчёт. `javac --release 25` для runner и MODEL130 53/53 прошли. Provenance сохранённого JAR `a71ad97ce44cb9afcff51c8d5e6416d2426453c9b7a8cd0a04398fdf60879d27` повторно подтверждён. Исправленный runner подготовлен для отдельного решения владельца по дополнительному bootstrap на этом JAR. Игровая приёмка остаётся открытой, счётчики 1/1/0.
 
 Git-публикация scope через `git add --pathspec-from-file=../evidence/authority-precut-recovery-paths.txt`, `git diff --cached --name-only`, `git -c core.whitespace=cr-at-eol diff --cached --check -- <scope>`, `git commit -m "Restore guarded TASK130 pre-CUT authority recovery"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`.
+
+## 2026-11-09 — результат дополнительного GameServer
+
+Исходный WIP `f472c16a7b83f89de21511b0c90ba591f42e7dd3` подтверждён локально и на GitHub. Затем опубликован runner-only `7aac8ace409b5a2585806501fb31948c831edcf6`. Сверка `java`, `dist/game` и `build.xml` с исходником JAR `ea0e202e2` не выявила различий. Clean JAR сохранил SHA-256 `a71ad97ce44cb9afcff51c8d5e6416d2426453c9b7a8cd0a04398fdf60879d27` и подтверждённую ранее parity 4742/4742. Новых JAR 0.
+
+Только два файла runner компилировались `javac --release 25 -encoding UTF-8` против этого JAR. На bootstrap оба класса загружены из `build/phantom-test/bin`. SHA-256 Native `b3844f16639b263ed0d83f80887532ae2fab292c932d443d96eb3259dcbd818b`, Integration `05ccea14fcfb55bcbe62466f600b73b9934a8028fafd9f172d6d9a9d1289b66b`. `javap -c -p` показал `emitAuthority` (599), `preparePreflightAuthority` (1033), `inspectAuthority` (1357). Финальный MODEL130 53/53, exit 0. Targeted MODEL/Party/Combat 237/237, F8 static 14/14, SQL 2/3/9 и F7 ранее прошли для того же production.
+
+G0 OS identity и SQL provenance подтвердили MariaDB PID 8692, principal `phantom130_d930bd6491f5@127.0.0.1` и схему `l2jmobiush5_phantom_test_130`. Geo203 и protected207 совпали до запуска. Read-only SQL подтвердил ACTIVE, consent, отсутствие блокирующих obligations и claims у 70/72. В режиме `authority` canonical Player STORE/readback принят. Witness отклонил семь запрещённых изменений unmanaged SQL-фикстуры 974 — HP, MP, позицию, EXP, SP, предмет и навык. Goal/Catchup/child и pending-intent отрицательные проверки прошли. Полные witnesses шести managed-профилей до и после SQL-пробы совпали. GameServer в этой пробе 0.
+
+Bootstrap `native-20261109-150835`, PID 54332, запущен единожды в `original`. Канонический recovery через штатного владельца выполнил STORE/readback для 70 и 72, с нулём продвинутых исторических интервалов. Оба knowledge hash обновились с `41edd0ded7c34e30db4c844c4e5efdafd7ed3be5678a801fb8ffd32f9b05c999` до текущего `13f7469d0a8018c54ffc42b776bd54e80b900661635309a518306bd61cdcb0a9`. Topology, progression и commerce совпали до и после. Причина различий knowledge между GameServer остаётся **UNKNOWN**. Разница day/night в логах не устанавливает причину.
+
+Полные `preflight130.54332.before.txt` и `.after.txt` сохранены вне Git, оба по 101 791 байту. SHA-256 соответственно `3bd1006c125ffb4bf15967352b992f959bdca17c15f71606261389b378853477` и `62f335c808464225da4a4a369f197bfbd13c77691f6e2aa58b68723ee3fb89c7`. Изменились только lifecycle-столбцы штатного Player STORE и строки `background.state`/`background.native-context` профилей 70/72. Goal/Catchup, прочие компоненты, HP/MP, EXP/SP, позиции, предметы и навыки совпали. Никаких фикстурных изменений шести профилей и ослабления F7/Background. Evidence manifest `second-native-attempt-manifest.json`, SHA-256 `a67146f71cd6ba9339d4153e83d43c409d4c9ed95fd7106b5f90672cbab5a09b`.
+
+| Стадия | Результат |
+|---|---|
+| A | MODEL PASS. Group-only ±4, пересечение и 2–9. Solo regression PASS. |
+| B | MODEL PASS. В native pre-CUT planner вернул по 53 PARTY-source для 70/72. |
+| C | Isolated SQL PASS, включая separate-JVM 2/3/9 и F7. Canonical authority recovery прошёл на текущем JAR. |
+| D01/D02/D06/D07 | Native gameplay checks NOT_RUN. Уровень первого кандидата 75 входит в [72,80], его live spawn и фактическая цель не проверялись. |
+| D03 | NOT_RUN. Нет игрового roster snapshot, замера совокупного DPS, HP/MP и ammo. |
+| D04 | NOT_RUN. Нет pull, фактического target/AI наблюдения или проверки 6-секундного резерва в бою. |
+| D05 | NOT_RUN. Нет native Heal, подтверждённого HP effect или MP debit. Final-JAR human F8 NOT_RUN. |
+| E | Pre-CUT REFUSED. Новый SQL LogicalParty, игровая materialization, stock Party, урон, kills, earned EXP/SP/loot, Heal и игровой STORE — 0 подтверждённых. Native Spoil и restart NOT_RUN. |
+
+Точный отказ `NATIVE130_NO_LAWFUL_FEASIBLE_SCENE`. Проверен единственный кандидат `21320@generated.farm.4475282a85a97a4b396b967b.anchor`, Hot Springs Yeti, уровень 75. От сохранённой позиции профиля 70 в Wall of Argos `(170156,-36726,-3376)` до Hot Springs `(149140,-108937,-2536)` около 75 200 единиц. Native route query вернул `NO_PATH_WITHIN_SEARCH`, `searchLimits=UNKNOWN`. Stock-spawn проверка этого кандидата и физическая проверка остальных кандидатов не выполнялись.
+
+Штатный STOP завершился в 17:09:21 EET, exit 0 от shutdown. Маркер `native130.failed.54332` фиксирует отказ. CUT и новый durable claim отсутствуют. Postflight exit 0 подтвердил собственные JVM/listeners 0, protected207 и Geo203 exact, тот же TEST130 principal и прежнюю пригодность/claims. Штатные менеджеры сервера сохранили своё состояние в TEST130 при STOP. Итого за продолжение **1 clean JAR / 2 GameServer bootstrap / 0 restart**. TASK130 PARTIAL, TASK131–136 NOT_STARTED, FULL 0/7 → 0/7. Native-повторы исчерпаны.
+
+### Системная причина отказа и пересмотр приёмки
+
+Runner передаёт физическую проверку в `discover(...).filter(physical)`. Координатор в MemoryStore возвращает первый логический agreement. Отказ внешнего фильтра отбрасывает его и завершает весь preflight. Этот дефект runner я пропустил. MODEL покрывал отказ при отсутствии физического proof, но не случай «первый отказ, второй допустим». Native лог доказывает ровно одну Geo-попытку и не позволяет судить о доступности остальных источников или боеспособности roster.
+
+Вторая граница проходит между logical route и физическим исполнением. Production planner допускает graph itinerary и ingress. Runner запрашивает единый PathFinding от сохранённой позиции до конечного FARM-якоря. Такой запрос не подтверждает и не опровергает весь штатный itinerary. Существующий уровень доказательства `NO_PATH_WITHIN_SEARCH` следует сохранять для конкретного коннектора. Нет оснований переводить его в глобальную недостижимость.
+
+Дешёвый положительный контроль для пересмотренной проверки есть в production XML. Обе сохранённые позиции уже лежат на якоре `generated.farm.38520d85788548d726048a27.anchor` в Wall of Argos. Его spawn polygon `godard26_2516_28` содержит NPC 21300/21301/21302 уровней 72/72/73. Это кандидат каталога внутри пересечения [72,80]. Live spawn, Geo-коннектор, authoritative source admission и Combat ещё предстоит доказать.
+
+1. До любого нового решения о native сделать bounded read-only candidate inventory от реального SQL anchor через production loader. Использовать существующий hermetic `PhantomTravelGeoProbe` для коннекторов Geo203, без GameServer и SpawnData. Отдельно записать local/graph/paid legs, статус маршрута и факт configured spawn. Подтверждение live spawn оставить World.
+2. В существующем MODEL закрепить два случая. Первый общий источник недоступен, второй должен пройти с теми же профилями. При исчерпании бюджета runner выдаёт typed WAIT с причиной и nextDue. Сверить witness, чтобы отклонённый кандидат не записал durable agreement. Пропускать физический admission до выбора единственного agreement в рамках штатных page/cap, без фиксирования конкретного NPC.
+3. Перед запросом любой будущей native-приёмки предъявить минимум один реально проверенный коннектор к законному общему источнику и доказательство, что runner проверяет фактический itinerary по шагам. В самой приёмке live spawn, законная materialization и stock Party предшествуют D03–D05, затем полезный kill, earned rewards, штатный Heal при наличии хилера, STORE и clean STOP. Этот пересмотр зафиксирован как план. Изменения production/runner после отказа не вносились.
+
+Git выполнялся в независимом clone по явному разрешению на bounded source audit и scoped WIP push. Команды с `-c safe.directory=<independent clone>` — `git rev-parse HEAD`, `git status --short`, `git rev-list --count 8140167705e6a6e76f370e3aa772b50f909b4d37..HEAD`, `git ls-remote --heads origin feature/phantom-world wip/task129-preserved-20261106 wip/coordination-130-preserved`, `git ls-remote --exit-code origin refs/heads/wip/coordination-130-preserved`, `git diff --stat`, `git diff --name-only 8140167705e6a6e76f370e3aa772b50f909b4d37 HEAD`, `git diff --name-only ea0e202e26755c5ba79c096c42007e61cf3e1c5e HEAD -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/dist/game L2J_Mobius_CT_2.6_HighFive/build.xml`, `git diff -- <два файла runner>`, `git -c core.whitespace=cr-at-eol diff --check -- <scope>`, `git add -- <два файла runner>`, `git diff --cached --name-only`, `git commit -m "Verify TASK130 canonical recovery witness before native lane"`, `git push origin HEAD:refs/heads/wip/coordination-130-preserved`. Отчёт фиксируется отдельным `git add -- <три файла отчёта>` и `git commit -m "Record TASK130 route preflight refusal and acceptance strategy"` с тем же WIP push. Перед отчётным коммитом 7 новых коммитов от исходного WIP.
+
+Mojibake-маркеры в изменённых файлах проверены. Совпадений нет.
+
+Escaped Cyrillic в изменённых файлах проверен. Совпадений нет.
