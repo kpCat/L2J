@@ -12,6 +12,22 @@ public final class PlayerNativeEvidence
 	public enum UnprovenReason { NONE, OWNER_FAILURE, INVALID_VALUE, INVALID_TARGET, TARGET_CAP, COUNTER_OVERFLOW, TIME_REGRESSION, INVALID_PHASE, PHASE_DEADLINE, COMBAT_ACCOUNTING }
 	public record Target(int objectId, int instanceId, long spawnGeneration) { }
 	public record TargetReceipts(long rewardSequence, Target rewardTarget, long killSequence, Target killTarget, long settledRewardSequence, Target settledTarget) { }
+	public record RestoredHpReceipt(long sequence, String casterName, int restoredHp, double hpAtReceipt) { }
+	private volatile RestoredHpReceipt _restoredHp;
+
+	/** Passive witness of the stock HP-restored packet, fenced by the recipient's native owner. */
+	public synchronized void recordRestoredHp(int recipientObjectId, long recipientEpoch, String casterName, int restoredHp, double hpAtReceipt)
+	{
+		if (!matches(recipientObjectId, recipientEpoch) || casterName == null || casterName.isBlank() || restoredHp <= 0
+			|| !Double.isFinite(hpAtReceipt) || hpAtReceipt <= 0) { return; }
+		final var previous = _restoredHp;
+		if (previous == null || previous.sequence() < Long.MAX_VALUE)
+		{
+			_restoredHp = new RestoredHpReceipt(previous == null ? 1 : previous.sequence() + 1, casterName, restoredHp, hpAtReceipt);
+		}
+	}
+
+	public RestoredHpReceipt restoredHpReceipt() { return _restoredHp; }
 	public static final int MAX_TARGETS = 16;
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
 	private static final ThreadLocal<RewardFrame> REWARD_CONTEXT = new ThreadLocal<>();

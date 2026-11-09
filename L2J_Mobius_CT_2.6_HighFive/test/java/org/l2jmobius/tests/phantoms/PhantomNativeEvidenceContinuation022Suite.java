@@ -15,6 +15,17 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("130-stock-restored-hp-receipt-fences-owner-and-zero-effect", _ ->
+		{
+			final var evidence = new PlayerNativeEvidence(12, 100);
+			evidence.recordRestoredHp(12, 99, "Healer", 40, 80);
+			evidence.recordRestoredHp(13, 100, "Healer", 40, 80);
+			evidence.recordRestoredHp(12, 100, "Healer", 0, 80);
+			PhantomAssertions.assertEquals(null, evidence.restoredHpReceipt(), "Foreign, stale and zero-effect messages cannot witness Heal.");
+			evidence.recordRestoredHp(12, 100, "Healer", 40, 80);
+			evidence.recordRestoredHp(12, 100, "Healer", 20, 100);
+			PhantomAssertions.assertEquals(new PlayerNativeEvidence.RestoredHpReceipt(2, "Healer", 20, 100), evidence.restoredHpReceipt(), "Only the latest positive stock receipt should be kept.");
+		});
 		registry.add("130-stock-heal-writer-has-no-conditional-test-mechanics", context ->
 		{
 			final String heal = java.nio.file.Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/skill/effects/Heal.java"));

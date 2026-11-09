@@ -174,6 +174,7 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
                 + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " position=" + state.position());
             if (!eligible) { continue; }
+            inspectAuthority(id, state.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
             System.out.println("NATIVE130_PREFLIGHT_INPUT id=" + id + " vitals=" + state.vitals() + " combat=" + state.combat() + " loadout=" + state.loadout() + " root=" + root.goalType() + ":" + root.goalId() + ":" + root.revision());
             if (inspection.authorityRecovery().potentialPartyRole(id, state).equals("support.healer"))
             {
@@ -464,7 +465,6 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_ENABLE=" + enabled);
             check(enabled.runtimeConfigured() && enabled.runtimeState() == PhantomSystem.State.RUNNING, "SYSTEM_START_" + enabled.code());
             check(proved.get() != null, "PRODUCTION_PREFLIGHT_REQUIRED");
-            verifyExistingHumanHeal(runtime, jarHash);
             ids = proved.get().members().stream().map(PhantomLogicalParty.Member::profileId).toList();
             final long agreementUntil = Math.min(deadline, System.currentTimeMillis() + 30_000);
             var agreement = currentAgreement(logical, ids, System.currentTimeMillis());
@@ -477,6 +477,7 @@ final class PhantomCoordination130Native
             for (long id : ids) { check(World.getInstance().findObject(profiles.find(id).orElseThrow().characterObjectId()) == null, "ORDINARY_AGREEMENT_ZERO_WORLD_PROOF"); }
             write(evidence.resolve("agreement130." + ProcessHandle.current().pid()), "group=" + before.group().groupId() + "\nprofiles=" + ids + "\nobjective=" + before.group().objective() + "\nzeroWorld=true\n");
             observe(runtime, profiles, ids, before.group().groupId(), restart, deadline);
+            verifyExistingHumanHeal(runtime, jarHash);
             System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
             final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
             while (PhantomSystem.hasConfiguredInstance() && PhantomSystem.configuredShutdownSnapshot().systemState() != PhantomSystem.State.STOPPED && System.nanoTime() < until) { Thread.sleep(200); }
@@ -787,6 +788,15 @@ final class PhantomCoordination130Native
     static boolean usefulGroupEvidence(boolean party, boolean kill, boolean healerRequired, boolean healHp, boolean healMp, boolean restart)
     { return party && kill && (!healerRequired || restart || healHp && healMp); }
 
+    private record HealRecipient(Player player, long receiptBefore, double hpBefore) { }
+    private record HealSample(org.l2jmobius.gameserver.model.skill.Skill skill, List<HealRecipient> recipients, double mpBefore) { }
+
+    private static org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.RestoredHpReceipt restoredHp(Player recipient)
+    {
+        final var owner = recipient.getNativeWorkOwner();
+        return owner == null || !owner.isCurrent() || owner.evidence() == null ? null : owner.evidence().restoredHpReceipt();
+    }
+
     private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId, boolean restart, long deadline) throws Exception
     {
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + ProcessHandle.current().pid() + ".tsv");
@@ -794,13 +804,12 @@ final class PhantomCoordination130Native
         final var logical = new PhantomLogicalPartyCoordinator(new PhantomPartyStore(profiles));
         final Map<org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target, TargetSeen> targets = new LinkedHashMap<>();
         final Map<Integer, Double> priorHp = new HashMap<>(), priorMp = new HashMap<>();
+        final Map<Integer, Long> priorHealReceipt = new HashMap<>();
+        final Map<Integer, HealSample> healing = new HashMap<>();
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
-        LocalPlaySyntheticHumanSession witness = null; boolean witnessWithdrawn = false;
         int stableBlockSamples = 0, idleAssemblySamples = 0, stableCoordinationSamples = 0;
         String lastCoordinationWait = ""; long lastCoordinationVersion = -1;
         long nextTrace = 0; final long start = System.currentTimeMillis();
-        try
-        {
         while (System.currentTimeMillis() < deadline)
         {
             final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow();
@@ -812,23 +821,12 @@ final class PhantomCoordination130Native
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull).filter(value -> value.getMemberCount() >= 2 && value.getMembers().stream().allMatch(actor -> ids.stream().anyMatch(id -> profiles.find(id).orElseThrow().characterObjectId() == actor.getObjectId()))).findFirst().orElse(null);
             if (party != null)
             {
-                partySeen = true;
-                if (witness == null && !witnessWithdrawn && World.getInstance().getVisibleObjectsInRange(party.getLeader(), Monster.class, 1200).stream().anyMatch(mob -> mob.getId() == objectiveNpc && !mob.isDead()))
-                {
-                    final var leader = party.getLeader(); org.l2jmobius.gameserver.model.Location site = null;
-                    for (int[] offset : new int[][] {{600,0},{-600,0},{0,600},{0,-600},{600,600},{-600,-600}})
-                    {
-                        final int x = leader.getX() + offset[0], y = leader.getY() + offset[1];
-                        final var geo = GeoEngine.getInstance(); if (!geo.hasGeo(x,y)) { continue; }
-                        final int z = geo.getHeight(x,y,leader.getZ());
-                        if (Math.abs((long) z - leader.getZ()) > 150 || World.getInstance().getVisibleObjectsInRange(leader, Monster.class, 1200).stream().anyMatch(mob -> !mob.isDead() && Math.hypot((long) x - mob.getX(), (long) y - mob.getY()) < 300)) { continue; }
-                        site = new org.l2jmobius.gameserver.model.Location(x,y,z); break;
-                    }
-                    check(site != null, "ORDINARY_WITNESS_SAFE_SITE");
-                    witness = new LocalPlaySyntheticHumanSession(existingHuman(runtime), "HumanHeal130"); witness.start(site);
-                    System.out.println("NATIVE130_ORDINARY_WITNESS_PRESENT phantomWrites=0 groupRights=unchanged");
-                }
                 check(party.getLeader() != null && party.getMembers().stream().allMatch(actor -> actor.getParty() == party), "OFFICIAL_PARTY");
+                if (!partySeen)
+                {
+                    System.out.println("NATIVE130_STOCK_PARTY leader=" + party.getLeaderObjectId() + " members=" + party.getMembers().stream().map(Player::getObjectId).toList() + " logicalRoles=" + group.members());
+                    partySeen = true;
+                }
                 for (var actor : party.getMembers())
                 {
                     if (actor.getTarget() instanceof Monster mob && mob.getId() == objectiveNpc && !mob.isDead() && targets.size() < 32)
@@ -840,16 +838,39 @@ final class PhantomCoordination130Native
                             return new TargetSeen(mob, Map.copyOf(rewards));
                         });
                     }
-                    final var last = actor.getLastSkillCast();
-                    if (last != null && "combat.heal".equals(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.nativeCapability(last)))
+                    final int casterId = actor.getObjectId();
+                    final boolean casting = actor.isCastingNow();
+                    final var skill = actor.getLastSkillCast();
+                    if (casting && !healing.containsKey(casterId) && actor.hasAI() && actor.getAI().getCastTarget() instanceof Player nativeTarget && nativeTarget.getParty() == party
+                        && actor.getCurrentSkill() != null && skill != null && actor.getCurrentSkill().getSkillId() == skill.getId()
+                        && "combat.heal".equals(org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.nativeCapability(skill)))
                     {
-                        final var beforeMp = priorMp.get(actor.getObjectId());
-                        healMpDebit |= beforeMp != null && actor.getCurrentMp() < beforeMp - 1;
-                        for (var recipient : party.getMembers())
+                        final var mp = priorMp.get(casterId);
+                        if (mp != null)
                         {
-                            final var beforeHp = priorHp.get(recipient.getObjectId());
-                            if (recipient != actor && beforeHp != null && recipient.getCurrentHp() > beforeHp + 30 && actor.getTarget() == recipient)
-                            { heal = true; System.out.println("NATIVE130_PHANTOM_HEAL caster=" + actor.getObjectId() + " target=" + recipient.getObjectId() + " hpBefore=" + beforeHp + " hpAfter=" + recipient.getCurrentHp() + " mp=" + actor.getCurrentMp()); }
+                            final var recipients = skill.getTargetList(actor, false, nativeTarget).stream().filter(Player.class::isInstance).map(Player.class::cast)
+                                .filter(peer -> peer != actor && peer.getParty() == party && priorHp.containsKey(peer.getObjectId()) && priorHealReceipt.containsKey(peer.getObjectId()))
+                                .map(peer -> new HealRecipient(peer, priorHealReceipt.get(peer.getObjectId()), priorHp.get(peer.getObjectId()))).toList();
+                            if (!recipients.isEmpty()) { healing.put(casterId, new HealSample(skill, recipients, mp)); }
+                        }
+                    }
+                    final var sample = healing.get(casterId);
+                    if (sample != null && !casting)
+                    {
+                        healing.remove(casterId);
+                        final double mpAfter = actor.getCurrentMp();
+                        if (sample.skill() != skill || mpAfter >= sample.mpBefore()) { continue; }
+                        for (var recipient : sample.recipients())
+                        {
+                            final var receipt = restoredHp(recipient.player());
+                            if (recipient.player().getParty() != party || receipt == null || receipt.sequence() <= recipient.receiptBefore()
+                                || !receipt.casterName().equals(actor.getName())) { continue; }
+                            heal = true;
+                            healMpDebit = true;
+                            System.out.println("NATIVE130_PHANTOM_HEAL caster=" + casterId + " target=" + recipient.player().getObjectId()
+                                + " skill=" + skill.getId() + ":" + skill.getLevel() + " hpBefore=" + recipient.hpBefore() + " hpAfter=" + recipient.player().getCurrentHp()
+                                + " mpBefore=" + sample.mpBefore() + " mpAfter=" + mpAfter + " restoredHp=" + receipt.restoredHp()
+                                + " hpAtStockReceipt=" + receipt.hpAtReceipt() + " receipt=" + receipt.sequence());
                         }
                     }
                 }
@@ -866,11 +887,12 @@ final class PhantomCoordination130Native
                     if (credited >= 2 && damaged) { kill = true; }
                 }
             }
-            for (var actor : actors) { priorHp.put(actor.getObjectId(), actor.getCurrentHp()); priorMp.put(actor.getObjectId(), actor.getCurrentMp()); }
-            if (witness != null && usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart))
+            for (var actor : actors)
             {
-                witness.close(); witness = null; witnessWithdrawn = true;
-                System.out.println("NATIVE130_ORDINARY_WITNESS_WITHDRAWN normalLogout=true phantomWrites=0");
+                priorHp.put(actor.getObjectId(), actor.getCurrentHp());
+                priorMp.put(actor.getObjectId(), actor.getCurrentMp());
+                final var receipt = restoredHp(actor);
+                priorHealReceipt.put(actor.getObjectId(), receipt == null ? 0 : receipt.sequence());
             }
             if (System.currentTimeMillis() >= nextTrace)
             {
@@ -926,8 +948,6 @@ final class PhantomCoordination130Native
             Thread.sleep(50);
         }
         throw new IllegalStateException("NATIVE130_FINITE_EVIDENCE_DEADLINE");
-        }
-        finally { if (witness != null) { witness.close(); } }
     }
     static String persisted(PhantomProfileRepository profiles, List<Long> ids) throws Exception
     {

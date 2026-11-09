@@ -25,13 +25,16 @@ import java.util.Objects;
 
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.network.PlayerOutboundSession;
+import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.ServerPacket;
+import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 
 /**
  * Zero-transport packet effect dispatcher with bounded reentrant execution.
  */
 public final class HeadlessPlayerOutboundSession implements PlayerOutboundSession
 {
+	private static final boolean TASK130_EVIDENCE = System.getProperty("phantom.task130.runtime") != null;
 	private final int _maximumDepth;
 	private final int _maximumPacketsPerRoot;
 	private final String[] _recordedPacketClasses;
@@ -106,6 +109,17 @@ public final class HeadlessPlayerOutboundSession implements PlayerOutboundSessio
 		try
 		{
 			packet.runImpl(player);
+			if (TASK130_EVIDENCE && packet instanceof SystemMessage message
+				&& message.getSystemMessageId() == SystemMessageId.S2_HP_HAS_BEEN_RESTORED_BY_C1)
+			{
+				final var owner = player.getNativeWorkOwner();
+				final var params = message.getParams();
+				if (owner != null && owner.isCurrent() && owner.player() == player && owner.evidence() != null && params != null && params.length == 2
+					&& params[0] != null && params[0].getValue() instanceof String caster && params[1] != null && params[1].getValue() instanceof Integer amount)
+				{
+					owner.evidence().recordRestoredHp(player.getObjectId(), owner.epoch(), caster, amount, player.getCurrentHp());
+				}
+			}
 		}
 		finally
 		{
