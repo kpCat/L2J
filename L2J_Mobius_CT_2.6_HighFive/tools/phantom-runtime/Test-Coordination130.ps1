@@ -3,6 +3,7 @@ param(
     [ValidateSet('package','fixture','recover','artifact-check','native','restart','postflight')][string]$Action,
     [Parameter(Mandatory=$true)][string]$RuntimeRoot,
     [ValidateSet('original','morning')][string]$Fixture='original',
+    [ValidateSet('regression','first-party')][string]$Lane='regression',
     [string]$GeoSource
 )
 $ErrorActionPreference='Stop'
@@ -10,13 +11,21 @@ $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $source=[IO.Directory]::GetParent($module).FullName
 $runtime=[IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
 $parent=[IO.Directory]::GetParent($source).FullName
-if($runtime -ine (Join-Path $parent 'runtime')){throw 'TEST130_EXACT_SIBLING_RUNTIME_REQUIRED'}
+$firstParty=$Lane -eq 'first-party'
+$runtimeName=if($firstParty){'runtime-first-party'}else{'runtime'}
+$localName=if($firstParty){'task130-first-party'}else{'task130'}
+$runnerName=if($firstParty){'phantom-test-first-party'}else{'phantom-test'}
+$gamePort=if($firstParty){7961}else{7960}
+$loginPort=if($firstParty){9261}else{9260}
+$pilotPort=if($firstParty){2261}else{2260}
+if($firstParty -and $Fixture -ne 'original'){throw 'TEST130_FIRST_PARTY_FIXTURE'}
+if($runtime -ine (Join-Path $parent $runtimeName)){throw 'TEST130_EXACT_SIBLING_RUNTIME_REQUIRED'}
 foreach($path in @($source,$parent,$runtime)){
     if((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'TEST130_REPARSE_ROOT'}
 }
 $marker=Join-Path $runtime 'owner130.txt'
 function Assert-PortsFree {
-    if(@(Get-NetTCPConnection -State Listen | Where-Object {$_.LocalPort -in @(7960,9260,2260)}).Count){throw 'TEST130_PORT_BUSY'}
+    if(@(Get-NetTCPConnection -State Listen | Where-Object {$_.LocalPort -in @($gamePort,$loginPort,$pilotPort)}).Count){throw 'TEST130_PORT_BUSY'}
 }
 function Assert-Protected {
     foreach($seal in (Get-Content -LiteralPath (Join-Path $parent 'evidence\protected-pre-native.json') -Raw | ConvertFrom-Json)){
@@ -29,6 +38,7 @@ function Assert-OwnJvmAbsent {
 }
 Assert-Protected
 Assert-PortsFree
+$sqlConfig=Join-Path $module ('.phantom-local\'+$localName+'\Database.ini')
 if($Action -eq 'package'){
     if(Test-Path -LiteralPath $runtime){throw 'TEST130_PACKAGE_ALREADY_EXISTS_NO_OVERWRITE'}
     $geo=[IO.Path]::GetFullPath($GeoSource).TrimEnd('\')
@@ -41,17 +51,22 @@ if($Action -eq 'package'){
     Copy-Item -LiteralPath (Join-Path $module 'dist\game\data') -Destination $runtime -Recurse
     $null=New-Item -ItemType Directory -Path (Join-Path $runtime 'geodata'),(Join-Path $runtime 'logs'),(Join-Path $runtime 'libs')
     Copy-Item -Path (Join-Path $module 'dist\libs\*.jar') -Destination (Join-Path $runtime 'libs')
-    Copy-Item -LiteralPath (Join-Path $module '.phantom-local\task130\Database.ini') -Destination (Join-Path $runtime 'config\Database.ini')
+    Copy-Item -LiteralPath $sqlConfig -Destination (Join-Path $runtime 'config\Database.ini')
     $encoding=[Text.UTF8Encoding]::new($false)
     $datapack=$runtime
     $relativeGeo=([Uri]::new($datapack+'\')).MakeRelativeUri([Uri]::new((Join-Path $runtime 'geodata')+'\')).ToString()
     $overrides=@{
         'Interface.ini'=@{EnableGUI='False'}
-        'Server.ini'=@{LoginHost='127.0.0.1';LoginPort='9260';GameserverHostname='127.0.0.1';GameserverPort='7960';DatapackRoot=$datapack.Replace('\','/')}
+        'Server.ini'=@{LoginHost='127.0.0.1';LoginPort=[string]$loginPort;GameserverHostname='127.0.0.1';GameserverPort=[string]$gamePort;DatapackRoot=$datapack.Replace('\','/')}
         'GeoEngine.ini'=@{GeoDataPath=$relativeGeo}
         'Custom\PhantomPlayers.ini'=@{EnablePhantomSystem='False';PhantomPopulationTarget='3';PhantomPopulationActiveTarget='3';EnablePhantomEcology='True'}
         'Custom\PhantomMerchants.ini'=@{EnableOfflinePhantomMerchants='False'}
         'Custom\OfflineTrade.ini'=@{RestoreOffliners='False'}
+    }
+    if($firstParty){
+        $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationTarget']='2'
+        $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationActiveTarget']='2'
+        $overrides['Custom\PhantomPlayers.ini']['PhantomEcologyWorldAgeDays']='0'
     }
     foreach($file in $overrides.Keys){
         $path=Join-Path $runtime ('config\'+$file)
@@ -84,6 +99,15 @@ if($Action -eq 'postflight'){
 }
 $built=Join-Path $module 'dist\libs\GameServer.jar'
 $builtHash=(Get-FileHash -LiteralPath $built).Hash
+$nativeClaim=Join-Path $runtime 'native130.launch'
+if($firstParty){
+    if($builtHash -cne '46E0437859939756DF1F5F1A60159DD6D4D1F41D29CAC220BC2E05642627CBC9'){throw 'TEST130_FIRST_PARTY_PINNED_JAR'}
+    if((Get-FileHash -LiteralPath $sqlConfig).Hash -cne (Get-FileHash -LiteralPath (Join-Path $runtime 'config\Database.ini')).Hash){throw 'TEST130_FIRST_PARTY_SQL_CONFIG_MISMATCH'}
+    if($Action -eq 'native' -and ((Test-Path -LiteralPath $nativeClaim) -or !(Test-Path -LiteralPath (Join-Path $runtime 'fixture130.properties')) -or
+        !(Test-Path -LiteralPath (Join-Path $runtime 'fixture-authority.ready')))){
+        throw 'TEST130_FIRST_PARTY_FIXTURE_OR_BOOT_BUDGET'
+    }
+}
 $outcomeCheck=Join-Path $PSScriptRoot 'Assert-Coordination130Outcome.ps1'
 if($Action -in @('native','restart') -and !(Test-Path -LiteralPath $outcomeCheck -PathType Leaf)){
     throw 'TEST130_OUTCOME_CHECK_REQUIRED'
@@ -100,8 +124,9 @@ if($Action -eq 'restart'){
 }
 $java=(Get-Command java -CommandType Application -ErrorAction Stop).Source
 $dependencies=@(Get-ChildItem -LiteralPath (Join-Path $runtime 'libs') -Filter '*.jar' -File | Where-Object {$_.Name -notlike 'GameServer*' -and $_.Name -notmatch '-(sources|javadoc)\.jar$'} | ForEach-Object FullName)
-$testBin=Join-Path $source 'build\phantom-test\bin'
-$classTail=($dependencies -join ';')+';'+$testBin+';'+(Join-Path $source 'build\phantom-test\resources')
+$testRoot=Join-Path (Join-Path $source 'build') $runnerName
+$testBin=Join-Path $testRoot 'bin'
+$classTail=($dependencies -join ';')+';'+$testBin+';'+(Join-Path $testRoot 'resources')
 if($Action -in @('artifact-check','native','restart')){
     $javap=Join-Path (Split-Path $java -Parent) 'javap.exe'
     if(!(Test-Path -LiteralPath $javap -PathType Leaf)){throw 'TEST130_JAVAP_REQUIRED'}
@@ -140,17 +165,25 @@ if($Action -in @('artifact-check','native','restart')){
     if($Action -eq 'artifact-check'){return}
 }
 $request=Join-Path $parent ('g0-native130-'+[guid]::NewGuid().ToString('N'))
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-G0IdentityAttestation.ps1') -RequestDirectory $request
+if($firstParty){
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-Coordination130FirstPartySql.ps1') -Action attest
+}else{
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Invoke-G0IdentityAttestation.ps1') -RequestDirectory $request
+}
 if($LASTEXITCODE -ne 0){throw 'TEST130_G0_IDENTITY_FAILED'}
 $jar=Join-Path $runtime ('libs\GameServer.'+$builtHash+'.jar')
 if(!(Test-Path -LiteralPath $jar)){Copy-Item -LiteralPath $built -Destination $jar}
 if((Get-FileHash -LiteralPath $jar).Hash -cne $builtHash){throw 'TEST130_FINAL_JAR_DIFFERS'}
 $classpath=$jar+';'+$classTail
-$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
+$javaArgs=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g',('-Dphantom.task130.runtime="'+$runtime+'"'),('-Dphantom.task130.jar="'+$jar+'"'),('-Dphantom.task130.fixture='+$Fixture),('-Dphantom.task130.lane='+$Lane),'-Djava.util.logging.config.file=log.cfg','-cp',('"'+$classpath+'"'),'org.l2jmobius.tests.phantoms.PhantomCoordination130Integration',$Action,('"'+$module+'"'))
 $attempt=$Action+'-'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $out=Join-Path $runtime ($attempt+'.stdout.log');$err=Join-Path $runtime ($attempt+'.stderr.log')
 if($Action -eq 'restart'){
     $reservation=[IO.File]::Open($restartClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    $reservation.Dispose()
+}
+if($firstParty -and $Action -eq 'native'){
+    $reservation=[IO.File]::Open($nativeClaim,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
     $reservation.Dispose()
 }
 $process=Start-Process -FilePath $java -ArgumentList $javaArgs -WorkingDirectory $runtime -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err -PassThru

@@ -85,3 +85,34 @@ function Get-StrictG0SqlIdentity($Expected,[int]$Port=3308) {
     $fact=Get-G0SqlIdentityEvidence $Expected $Port
     return Assert-G0IdentityEvidence $fact $Expected
 }
+
+function Get-G0OwnedSqlIdentity([int]$OwnedPid,[long]$Created,[string]$Executable,[string]$Config,[string]$DataDirectory,[int]$Port) {
+    if($Port -ne 33306 -or $Created -le 0){throw 'G0_OWNED_SCOPE'}
+    foreach($file in @($Executable,$Config)){Assert-G0PhysicalFile $file}
+    $data=Get-Item -LiteralPath $DataDirectory -Force
+    if(!$data.PSIsContainer -or $data.FullName -ine (Join-Path (Split-Path $Config -Parent) 'data') -or ($data.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'G0_OWNED_DATA_PATH'}
+    $binary=(Get-FileHash -LiteralPath $Executable).Hash
+    $configuration=(Get-FileHash -LiteralPath $Config).Hash
+    $expectedConfig=@('[mysqld]','bind-address=127.0.0.1',"port=$Port",('datadir="'+$data.FullName.Replace('\','/')+'"'))
+    $loaded=(Get-Content -LiteralPath $Config) -join "`n"
+    if($loaded -cne ($expectedConfig -join "`n") -and $loaded -cne (($expectedConfig+ 'default-time-zone=+00:00') -join "`n")){throw 'G0_OWNED_CONFIG_OPTIONS'}
+    $commandPattern='^"?'+[regex]::Escape($Executable)+'"?\s+"--defaults-file='+[regex]::Escape($Config)+'"\s+--console\s*$'
+    $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $command=$null
+    for($turn=0;$turn -lt 2;$turn++){
+        $native=[Win32SqlIdentity]::Process([uint32]$OwnedPid,0x1000)
+        $process=Get-CimInstance Win32_Process -Filter "ProcessId=$OwnedPid" -ErrorAction Stop
+        if(!$native.Success -or $native.ImagePath -ine $Executable -or $native.CreatedFileTime -ne $Created -or !$process -or
+            (Get-G0Microseconds $native.CreatedFileTime) -ne (Get-G0Microseconds $process.CreationDate.ToUniversalTime().ToFileTimeUtc()) -or
+            $process.ExecutablePath -ine $Executable -or $process.CommandLine -notmatch $commandPattern){throw 'G0_OWNED_PROCESS_IDENTITY'}
+        $owner=Invoke-CimMethod -InputObject $process -MethodName GetOwnerSid -ErrorAction Stop
+        if($owner.ReturnValue -ne 0 -or $owner.Sid -cne $sid){throw 'G0_OWNED_PROCESS_SID'}
+        $listeners=@([Win32SqlIdentity]::Listeners($Port))
+        if($listeners.Count -ne 1 -or $listeners[0].LocalAddress -ne '127.0.0.1' -or $listeners[0].OwningProcess -ne $OwnedPid -or
+            @(Get-CimInstance Win32_Service -Filter "ProcessId=$OwnedPid" -ErrorAction Stop).Count){throw 'G0_OWNED_LISTENER_OR_SERVICE'}
+        if($command -and $command -cne $process.CommandLine){throw 'G0_OWNED_COMMAND_CHANGED'}
+        $command=$process.CommandLine
+    }
+    if((Get-FileHash -LiteralPath $Executable).Hash -cne $binary -or (Get-FileHash -LiteralPath $Config).Hash -cne $configuration){throw 'G0_OWNED_FILE_CHANGED'}
+    return [ordered]@{PID=$OwnedPid;Created=[DateTime]::FromFileTimeUtc($Created).ToString('o');RuntimeImage=$Executable;Binary=$binary;ConfigHash=$configuration;DataDirectory=$data.FullName;Port=$Port;OwnerSid=$sid;RegisteredService=$false}
+}

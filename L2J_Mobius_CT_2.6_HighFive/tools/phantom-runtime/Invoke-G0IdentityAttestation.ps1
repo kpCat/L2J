@@ -5,6 +5,9 @@ param(
     [string]$Executable=(Join-Path $env:ProgramFiles 'MariaDB 11.4\bin\mysqld.exe'),
     [string]$Config=(Join-Path $env:ProgramFiles 'MariaDB 11.4\data\my.ini'),
     [ValidateRange(1,65535)][int]$Port=3308,
+    [int]$OwnedPid,
+    [long]$OwnedCreated,
+    [string]$OwnedDataDirectory,
     [string]$RequestDirectory=(Join-Path ([IO.Path]::GetTempPath()) ('Phantom-G0-request-'+[guid]::NewGuid().ToString('N'))),
     [switch]$CheckOnly
 )
@@ -29,6 +32,12 @@ try {
     & $ps51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-G0Attestation.ps1')
     Assert-G0HelperExit $LASTEXITCODE
     if($CheckOnly){Write-Host 'G0_CHECKS_PASS;focused3;RunAs=0;SQL=0;GameServer=0';return}
+    if($OwnedPid -gt 0){
+        $result=Get-G0OwnedSqlIdentity $OwnedPid $OwnedCreated $Executable $Config $OwnedDataDirectory $Port
+        Write-Output ([pscustomobject]$result)
+        Write-Host 'G0_ATTESTATION_PASS;OWNED_SQL_OS_IDENTITY_ATTESTED;SQL=0;GameServer=0'
+        return
+    }
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
     $sid=$identity.User.Value
     $requestRoot=[G0AttestationFile]::Canonical($RequestDirectory)

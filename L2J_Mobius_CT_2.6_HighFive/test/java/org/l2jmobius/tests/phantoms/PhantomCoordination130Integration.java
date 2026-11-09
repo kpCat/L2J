@@ -43,9 +43,34 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 /** One bounded TEST130 SQL entrypoint. No drop/reseed, no connection to a gameplay catalog. Run only after OS G0. */
 public final class PhantomCoordination130Integration
 {
-	private static final String SCHEMA = "l2jmobiush5_phantom_test_130";
-	private static final String URL = "jdbc:mysql://127.0.0.1:3308/" + SCHEMA + "?useSSL=false&serverTimezone=UTC";
-	private static final String ADMIN_URL = "jdbc:mysql://127.0.0.1:3308/?useSSL=false&serverTimezone=UTC";
+	static final String SCHEMA = firstPartyLane() ? "l2jmobiush5_phantom_test_130_first_party" : "l2jmobiush5_phantom_test_130";
+	private static final int PORT = firstPartyLane() ? 33306 : 3308;
+	static final String URL = "jdbc:mysql://127.0.0.1:" + PORT + "/" + SCHEMA + "?useSSL=false&serverTimezone=UTC";
+	private static final String ADMIN_URL = "jdbc:mysql://127.0.0.1:" + PORT + "/?useSSL=false&serverTimezone=UTC";
+	static boolean firstPartyLane()
+	{
+		return switch (System.getProperty("phantom.task130.lane", "regression"))
+		{
+			case "regression" -> false;
+			case "first-party" -> true;
+			default -> throw new IllegalArgumentException("Unknown TEST130 lane.");
+		};
+	}
+
+	static Path localRoot(Path module)
+	{
+		return module.resolve(firstPartyLane() ? ".phantom-local/task130-first-party" : ".phantom-local/task130");
+	}
+
+	static Path runtimeRoot(Path module)
+	{
+		return module.getParent().getParent().resolve(firstPartyLane() ? "runtime-first-party" : "runtime");
+	}
+
+	static Path runnerRoot(Path module)
+	{
+		return module.getParent().resolve(firstPartyLane() ? "build/phantom-test-first-party" : "build/phantom-test");
+	}
 	private static Properties read(Path file) throws Exception
 	{
 		final var properties = new Properties();
@@ -58,20 +83,23 @@ public final class PhantomCoordination130Integration
             "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
-		final Path local = module.resolve(".phantom-local/task130"), config = local.resolve("Database.ini");
+		if (firstPartyLane() && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
+		{ throw new IllegalArgumentException("First Party lane is reserved for the native fixture."); }
+		final Path local = localRoot(module), config = local.resolve("Database.ini");
 		Class.forName("com.mysql.cj.jdbc.Driver");
 		if (args[0].equals("check") || args[0].equals("prepare"))
 		{
 			if (args.length != 3) { throw new IllegalArgumentException("Read-only admin configuration required."); }
 			final var admin = read(Path.of(args[2]));
-			if (!admin.getProperty("URL", "").matches("jdbc:(mysql|mariadb)://(127\\.0\\.0\\.1|localhost):3308/[^\\s]+"))
-			{ throw new IllegalArgumentException("Admin input is not the attested loopback:3308 endpoint."); }
+			if (!admin.getProperty("URL", "").matches("jdbc:(mysql|mariadb)://(127\\.0\\.0\\.1|localhost):" + PORT + "/[^\\s]+"))
+			{ throw new IllegalArgumentException("Admin input is outside the attested loopback port."); }
 			try (var connection = DriverManager.getConnection(ADMIN_URL, admin.getProperty("Login"), admin.getProperty("Password")))
 			{
-				try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT VERSION(),@@port"))
+				try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT VERSION(),@@port,@@session.time_zone"))
 				{
-					if (!rows.next() || !rows.getString(1).startsWith("11.4.13-MariaDB") || rows.getInt(2) != 3308) { throw new IllegalStateException("Attested MariaDB version/port differs from TASK130 contract."); }
-					System.out.println("SQL130_SERVER=" + rows.getString(1) + ";PORT=3308");
+					if (!rows.next() || !rows.getString(1).startsWith("11.4.13-MariaDB") || rows.getInt(2) != PORT) { throw new IllegalStateException("Attested MariaDB version/port differs from TASK130 contract."); }
+					if (firstPartyLane() && !"+00:00".equals(rows.getString(3))) { throw new IllegalStateException("First Party SQL session must use UTC."); }
+					System.out.println("SQL130_SERVER=" + rows.getString(1) + ";PORT=" + PORT);
 				}
 				try (var statement = connection.prepareStatement("SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME=?"))
 				{
@@ -89,6 +117,11 @@ public final class PhantomCoordination130Integration
 				Files.writeString(local.resolve("owner.properties"), "owner=PHANTOM-WORLD-COORDINATION-130\nschema=" + SCHEMA + "\ninstallationId=" + token + "\n", StandardOpenOption.CREATE_NEW);
 				try (var statement = connection.createStatement())
 				{
+					if (firstPartyLane())
+					{
+						statement.executeUpdate("REVOKE ALL PRIVILEGES ON `test`.* FROM PUBLIC");
+						statement.executeUpdate("REVOKE ALL PRIVILEGES ON `test\\_%`.* FROM PUBLIC");
+					}
 					statement.executeUpdate("CREATE DATABASE `" + SCHEMA + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 					statement.executeUpdate("CREATE USER '" + user + "'@'127.0.0.1' IDENTIFIED BY '" + password + "'");
 					statement.executeUpdate("GRANT ALL PRIVILEGES ON `" + SCHEMA + "`.* TO '" + user + "'@'127.0.0.1'");
@@ -108,12 +141,13 @@ public final class PhantomCoordination130Integration
 		try (var connection = DriverManager.getConnection(URL, settings.getProperty("Login"), settings.getProperty("Password")))
 		{
 			connection.setReadOnly(true);
-			try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT CURRENT_USER(),DATABASE()"))
+			try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT CURRENT_USER(),DATABASE(),@@session.time_zone"))
 			{
 				if (!rows.next()) { throw new IllegalStateException("SQL identity unavailable."); }
 				System.out.println("SQL130_EFFECTIVE_PRINCIPAL=" + rows.getString(1) + ";CATALOG=" + rows.getString(2));
 				if (!rows.getString(1).equals(settings.getProperty("Login") + "@127.0.0.1") || !SCHEMA.equals(rows.getString(2)))
 				{ throw new IllegalStateException("TEST130 effective SQL principal/catalog mismatch: " + rows.getString(1)); }
+				if (firstPartyLane() && !"+00:00".equals(rows.getString(3))) { throw new IllegalStateException("First Party SQL session must use UTC."); }
 			}
 			try (var statement = connection.createStatement(); var rows = statement.executeQuery("SHOW GRANTS"))
 			{
@@ -128,7 +162,7 @@ public final class PhantomCoordination130Integration
 					if (scope.equals("*.*") && grant.startsWith("GRANT USAGE ON ")) { continue; }
 					// Existing MariaDB installation grants test/test_% to every newly created account.
 					// These do not match any Phantom catalog; never access or mutate those schemas/grants here.
-					if (scope.equals("`test`.*") || scope.equals("`test_%`.*")) { System.out.println("SQL130_EXISTING_INSTALLATION_TEST_GRANT=" + scope); continue; }
+					if (!firstPartyLane() && (scope.equals("`test`.*") || scope.equals("`test_%`.*"))) { System.out.println("SQL130_EXISTING_INSTALLATION_TEST_GRANT=" + scope); continue; }
 					if (!scope.equals("`" + SCHEMA + "`.*")) { throw new IllegalStateException("TEST130 has a foreign/global grant scope: " + scope); }
 				}
 			}
@@ -219,7 +253,7 @@ public final class PhantomCoordination130Integration
                 try (var connection = DatabaseFactory.getConnection(); var statement = connection.createStatement();
                     var rows = statement.executeQuery("SELECT component_type,COUNT(*) FROM phantom_profile_components WHERE component_type IN ('party.logical_group','party.logical_claim') GROUP BY component_type"))
                 { while (rows.next()) { System.out.println("SQL130_LOGICAL_ROW_COUNT type=" + rows.getString(1) + " rows=" + rows.getLong(2)); } }
-                final var saved = read(PhantomCoordination130Native.scene(module.getParent().getParent().resolve("runtime")).resolve("fixture130.properties"));
+                final var saved = read(PhantomCoordination130Native.scene(runtimeRoot(module)).resolve("fixture130.properties"));
                 for (String text : saved.getProperty("profiles").split(","))
                 {
                     final long id = Long.parseLong(text);
@@ -242,7 +276,7 @@ public final class PhantomCoordination130Integration
                         try (var rows = query.executeQuery()) { if (!rows.next()) { throw new IllegalStateException("Own profile wallet unavailable."); } System.out.println("SQL130_WALLET profile=" + id + " adena=" + rows.getLong(1)); }
                     }
                     final var population = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec().decode(profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
-                    final var zone = java.time.ZoneId.of(read(module.getParent().getParent().resolve("runtime/config/Custom/PhantomPlayers.ini")).getProperty("PhantomPopulationTimeZone", "UTC"));
+                    final var zone = java.time.ZoneId.of(read(runtimeRoot(module).resolve("config/Custom/PhantomPlayers.ini")).getProperty("PhantomPopulationTimeZone", "UTC"));
                     final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(module.resolve("dist/game/data/phantoms/population/high-five-population-v3.xml"), zone);
                     System.out.println("SQL130_CALENDAR profile=" + id + " template=" + population.scheduleTemplate() + " phase=" + population.schedulePhaseMinutes() + " now=" + java.time.Instant.now()
                         + " evaluation=" + catalog.evaluate(population.scheduleTemplate(), java.time.Instant.now(), zone, population.schedulePhaseMinutes()));

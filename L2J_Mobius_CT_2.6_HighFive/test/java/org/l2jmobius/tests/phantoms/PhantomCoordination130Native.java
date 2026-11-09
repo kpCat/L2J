@@ -28,6 +28,8 @@ import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
+import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.background.*;
 import org.l2jmobius.gameserver.phantoms.decision.*;
 import org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend;
@@ -39,7 +41,12 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner;
 import org.l2jmobius.gameserver.phantoms.party.*;
 import org.l2jmobius.gameserver.phantoms.population.*;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
@@ -49,7 +56,7 @@ final class PhantomCoordination130Native
     private static final ThreadLocal<Boolean> AUTHORITY_SQL_INITIALIZATION = ThreadLocal.withInitial(() -> false);
     static void initializeAuthoritySql(Path module) throws Exception
     {
-        final Path runtime = module.getParent().getParent().resolve("runtime").toRealPath();
+        final Path runtime = PhantomCoordination130Integration.runtimeRoot(module).toRealPath();
         System.setProperty("phantom.task130.infrastructure", "true");
         System.setProperty("phantom.task130.runtime", runtime.toString());
         System.setProperty("phantom.test.config", runtime.resolve("config/Database.ini").toString());
@@ -66,14 +73,15 @@ final class PhantomCoordination130Native
     {
         final String label = System.getProperty("phantom.task130.fixture", "original");
         check(List.of("original", "morning").contains(label), "FIXTURE_LABEL");
+        check(!PhantomCoordination130Integration.firstPartyLane() || label.equals("original"), "FIRST_PARTY_FIXTURE_LABEL");
         return label.equals("original") ? runtime : runtime.resolve("morning");
     }
 
     static void recoverAgreement(Path module, PhantomProfileRepository profiles) throws Exception
     {
-        final Path runtime = module.getParent().getParent().resolve("runtime").toRealPath();
+        final Path runtime = PhantomCoordination130Integration.runtimeRoot(module).toRealPath();
         check(runtime.equals(Path.of(".").toRealPath()) && Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "RECOVERY_OWN_RUNTIME");
-        check(Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1
+        check(Files.mismatch(runtime.resolve("config/Database.ini"), PhantomCoordination130Integration.localRoot(module).resolve("Database.ini")) == -1
             && Files.readString(runtime.resolve("config/Custom/PhantomPlayers.ini")).contains("EnablePhantomSystem = False") && !PhantomSystem.hasConfiguredInstance(), "RECOVERY_DISABLED");
         final var ids = authorizedProfiles(runtime);
         final var managed = profiles.listManagedAfter(PhantomPopulationState.COMPONENT_TYPE, 0, 16).stream().map(entry -> entry.profile().profileId()).toList();
@@ -93,6 +101,7 @@ final class PhantomCoordination130Native
         final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
         final var eligible = new LinkedHashSet<Long>();
         final var goals = new PhantomGoalStateStore(profiles);
+        final var histories = new PhantomBackgroundCatchupStore(profiles, goals);
         for (long id : ids)
         {
             final var state = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
@@ -107,12 +116,13 @@ final class PhantomCoordination130Native
                 || List.of("supply.intent", "learning.intent", "career.intent").stream().map(type -> profiles.findComponent(id, type)).flatMap(Optional::stream)
                     .anyMatch(PhantomHistoricalBackgroundService::nativeIntentPending);
             final boolean claimed = new PhantomPartyStore(profiles).loadLogicalClaim(id).filter(PhantomPartyPersistencePort.StoredLogicalClaim::active).isPresent();
+            final var history = histories.load(id).map(row -> row.state().status()).orElse(null);
             final boolean ready = population.state() == PhantomPopulationState.State.READY && population.catalogHash().equals(catalog.hash())
                 && state.state() == PhantomBackgroundState.State.READY && schedule.state().requiresMaterialization() && consent
-                && PhantomAutonomousFarmParty.ordinaryIntent(id, root) && !obligations && !claimed;
+                && history == PhantomBackgroundCatchupState.Status.COMPLETE && PhantomAutonomousFarmParty.ordinaryIntent(id, root) && !obligations && !claimed;
             System.out.println("SQL130_SCENE_MEMBER profile=" + id + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
                 + " role=" + PhantomHistoricalBackgroundPlanner.logicalRole(state) + " schedule=" + schedule + " consent=" + consent + " obligations=" + obligations
-                + " claimed=" + claimed + " eligibleNow=" + ready + " position=" + state.position());
+                + " claimed=" + claimed + " history=" + history + " eligibleNow=" + ready + " position=" + state.position());
             if (ready) { eligible.add(id); }
         }
         System.out.println("SQL130_SCENE_INSPECT_ONLY;eligible=" + eligible + ";COMMON_SOURCE=UNKNOWN;SQL_WRITES=0;CATALOG_NATIVE_BOOTSTRAP_NOT_RUN=true");
@@ -182,6 +192,7 @@ final class PhantomCoordination130Native
         final var recoveryBefore = preflightWitness(profiles, sceneIds, true);
         final var catalog = PhantomPopulationCatalog.load(runtime.resolve("data/phantoms/population/high-five-population-v3.xml"), inspection.settings().populationTimeZone());
         final var goals = new PhantomGoalStateStore(profiles); final var parties = new PhantomPartyStore(profiles);
+        final var histories = new PhantomBackgroundCatchupStore(profiles, goals);
         final var coordinator = new PhantomLogicalPartyCoordinator(parties);
         final var existingRow = restart || recovering ? currentAgreement(coordinator, sceneIds, System.currentTimeMillis()).orElse(null) : null;
         final var existing = existingRow == null ? null : existingRow.group();
@@ -201,12 +212,14 @@ final class PhantomCoordination130Native
                 || profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).map(row -> PhantomNativeContext.decode(row.payload()).phase() != PhantomNativeContext.Phase.COMPLETED).orElse(false)
                 || inspection.authorityRecovery().nativeIntentPending(id);
             final boolean consent = inspection.settings().partySeeking().seeks(id, state.progress().level());
-            final boolean eligible = population.state() == PhantomPopulationState.State.READY && calendar.state() != org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.SLEEPING
+            final var history = histories.load(id).map(row -> row.state().status()).orElse(null);
+            final boolean eligible = population.state() == PhantomPopulationState.State.READY && calendar.state().requiresMaterialization()
                 && state.state() == PhantomBackgroundState.State.READY && consent && !blocked && sceneIds.contains(id)
+                && history == PhantomBackgroundCatchupState.Status.COMPLETE
                 && (claim.isEmpty() || existing != null && claim.get().groupId().equals(existing.groupId()) && claim.get().generation() == existing.generation())
                 && PhantomAutonomousFarmParty.ordinaryIntent(id, root);
             System.out.println("NATIVE130_PREFLIGHT_MEMBER id=" + id + " eligible=" + eligible + " class=" + state.identity().activeClassId() + " level=" + state.progress().level()
-                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " position=" + state.position());
+                + " role=" + inspection.authorityRecovery().potentialPartyRole(id, state) + " calendar=" + calendar + " consent=" + consent + " obligations=" + blocked + " claimed=" + claim.isPresent() + " history=" + history + " position=" + state.position());
             if (!eligible) { continue; }
             final var savedAuthority = state.hashes();
             final var currentAuthority = inspection.planner().generation().authorityHashes();
@@ -239,7 +252,7 @@ final class PhantomCoordination130Native
         {
             checkPreflightBudget(System.nanoTime() - sceneStarted, false);
             final var population = new PhantomPopulationStateCodec().decode(profiles.findComponent(id, PhantomPopulationState.COMPONENT_TYPE).orElseThrow().payload());
-            check(catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), inspection.settings().populationTimeZone(), population.schedulePhaseMinutes()).state() != org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState.SLEEPING, "PREFLIGHT_CALENDAR_CHANGED_" + id);
+            check(catalog.evaluate(population.scheduleTemplate(), Instant.ofEpochMilli(now), inspection.settings().populationTimeZone(), population.schedulePhaseMinutes()).state().requiresMaterialization(), "PREFLIGHT_CALENDAR_CHANGED_" + id);
             final var restored = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
             inspectAuthority(id, restored.hashes(), inspection.planner().generation().authorityHashes(), System.out::println);
             states.put(id, restored);
@@ -509,7 +522,8 @@ final class PhantomCoordination130Native
     static List<Long> authorizedProfiles(Path runtime) throws Exception
     {
         final var ids = new LinkedHashSet<Long>();
-        for (Path file : List.of(runtime.resolve("fixture130.properties"), runtime.resolve("morning/fixture130.properties")))
+        for (Path file : PhantomCoordination130Integration.firstPartyLane() ? List.of(runtime.resolve("fixture130.properties"))
+            : List.of(runtime.resolve("fixture130.properties"), runtime.resolve("morning/fixture130.properties")))
         { if (Files.exists(file)) { Arrays.stream(read(file).getProperty("profiles").split(",")).map(Long::parseLong).forEach(ids::add); } }
         return List.copyOf(ids);
     }
@@ -528,14 +542,14 @@ final class PhantomCoordination130Native
     {
         if (!Boolean.getBoolean("phantom.task130.infrastructure")) { return false; }
         final Path runtime = Path.of(System.getProperty("phantom.task130.runtime")).toRealPath();
-        check(runtime.equals(module.getParent().getParent().resolve("runtime")) && runtime.equals(Path.of(".").toRealPath()), "INFRASTRUCTURE_CWD");
+        check(runtime.equals(PhantomCoordination130Integration.runtimeRoot(module)) && runtime.equals(Path.of(".").toRealPath()), "INFRASTRUCTURE_CWD");
         check(Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "INFRASTRUCTURE_OWNER");
         if (!AUTHORITY_SQL_INITIALIZATION.get())
         { check(!Files.exists(scene(runtime).resolve("native130.cut")) && !Files.exists(scene(runtime).resolve("restart130.cut")), "FIXTURE_BEFORE_CUT"); }
         check(Path.of(System.getProperty("phantom.test.config")).toRealPath().equals(runtime.resolve("config/Database.ini"))
-            && Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "INFRASTRUCTURE_EXACT_SQL");
+            && Files.mismatch(runtime.resolve("config/Database.ini"), PhantomCoordination130Integration.localRoot(module).resolve("Database.ini")) == -1, "INFRASTRUCTURE_EXACT_SQL");
         final var sql = read(runtime.resolve("config/Database.ini"));
-        check(sql.getProperty("URL").equals("jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test_130?useSSL=false&serverTimezone=UTC")
+        check(sql.getProperty("URL").equals(PhantomCoordination130Integration.URL)
             && sql.getProperty("Login").matches("phantom130_[0-9a-f]{12}"), "INFRASTRUCTURE_SQL_SCOPE");
         return true;
     }
@@ -573,25 +587,25 @@ final class PhantomCoordination130Native
     static void run(Path module, boolean restart) throws Exception
     {
         final Path runtime = Path.of(System.getProperty("phantom.task130.runtime")).toRealPath();
-        check(Path.of(".").toRealPath().equals(runtime) && runtime.equals(module.getParent().getParent().resolve("runtime")), "OWN_CWD");
+        check(Path.of(".").toRealPath().equals(runtime) && runtime.equals(PhantomCoordination130Integration.runtimeRoot(module)), "OWN_CWD");
         check(Files.readString(runtime.resolve("owner130.txt")).matches("TASK130:[0-9a-f]{32}"), "OWNER");
         final Path jar = Path.of(System.getProperty("phantom.task130.jar")).toRealPath();
         check(jar.getParent().equals(runtime.resolve("libs")) && jar.getFileName().toString().matches("GameServer\\.[0-9A-Fa-f]{64}\\.jar")
             && jar.getFileName().toString().equalsIgnoreCase("GameServer." + hash(jar) + ".jar"), "PINNED_JAR_NAME_AND_HASH");
         for (var type : List.of(GameServer.class, PhantomSystem.class, PhantomLogicalParty.class))
         { check(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath().equals(jar), "FINAL_JAR_CLASS_SOURCE"); }
-        final Path testBin = module.getParent().resolve("build/phantom-test/bin").toRealPath();
+        final Path testBin = PhantomCoordination130Integration.runnerRoot(module).resolve("bin").toRealPath();
         for (var type : List.of(PhantomCoordination130Native.class, PhantomCoordination130Integration.class))
         {
             final Path origin = Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
             check(origin.equals(testBin), "FINAL_RUNNER_CLASS_SOURCE");
             System.out.println("NATIVE130_RUNNER_ORIGIN class=" + type.getName() + " source=" + origin + " sha256=" + hash(origin.resolve(type.getName().replace('.', '/') + ".class")));
         }
-        check(Files.mismatch(runtime.resolve("config/Database.ini"), module.resolve(".phantom-local/task130/Database.ini")) == -1, "EXACT_OWN_DATABASE");
+        check(Files.mismatch(runtime.resolve("config/Database.ini"), PhantomCoordination130Integration.localRoot(module).resolve("Database.ini")) == -1, "EXACT_OWN_DATABASE");
         if (Boolean.getBoolean("phantom.task130.authorityOnly"))
         {
             final Path origin = Path.of(PhantomCoordination130Native.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
-            check(origin.equals(module.getParent().resolve("build/phantom-test/bin").toRealPath()), "AUTHORITY_DIAGNOSTIC_TEST_BIN_ORIGIN");
+            check(origin.equals(testBin), "AUTHORITY_DIAGNOSTIC_TEST_BIN_ORIGIN");
             System.out.println("NATIVE130_DIAGNOSTIC_CLASS source=" + origin + " class=" + PhantomCoordination130Native.class.getName());
         }
         final String jarHash = hash(jar);
@@ -759,6 +773,10 @@ final class PhantomCoordination130Native
     }
     static long birthSeed(PhantomPopulationCatalog catalog, long profile, long ordinal, int birth, ZoneId zone, Instant now)
     {
+        return birthSeed(catalog, profile, ordinal, birth, zone, now, _ -> true);
+    }
+    private static long birthSeed(PhantomPopulationCatalog catalog, long profile, long ordinal, int birth, ZoneId zone, Instant now, java.util.function.LongPredicate fixtureWindow)
+    {
         if (profile <= 0 || ordinal <= 0) { throw new IllegalArgumentException("Positive production creation identity/ordinal required."); }
         for (long seed = 130; seed < 1_000_130; seed++)
         {
@@ -767,7 +785,7 @@ final class PhantomCoordination130Native
             if (catalog.chooseClass(mix(seed, profile), catalog.chooseArchetype(seed, ordinal)).classId() != birth) { continue; }
             final var schedule = PhantomPopulationStore.scheduleForShell(catalog, profile, seed, null);
             final var evaluation = catalog.evaluate(schedule.template().id(), now, zone, schedule.phaseMinutes());
-            if (evaluation.state().requiresMaterialization() && evaluation.nextBoundary().isAfter(now.plusSeconds(1800))) { return seed; }
+            if (evaluation.state().requiresMaterialization() && evaluation.nextBoundary().isAfter(now.plusSeconds(1800)) && fixtureWindow.test(seed)) { return seed; }
         }
         throw new IllegalStateException("NATIVE130_LEGAL_BIRTH_AND_CALENDAR");
     }
@@ -777,6 +795,7 @@ final class PhantomCoordination130Native
         final var catalog = PhantomPopulationCatalog.load(ServerConfig.DATAPACK_ROOT.toPath().resolve("data/phantoms/population/high-five-population-v3.xml"), zone);
         final var population = new PhantomPopulationStore(profiles, catalog, zone);
         final Path evidence = scene(runtime), preparing = evidence.resolve("profiles130.preparing");
+        final boolean firstParty = PhantomCoordination130Integration.firstPartyLane();
         final boolean morning = !evidence.equals(runtime);
         check(!Files.exists(evidence.resolve("native130.cut")), "BOUNDED_FIXTURE_BEFORE_CUT");
         final List<PhantomPopulationStore.ManagedSnapshot> existing;
@@ -788,10 +807,14 @@ final class PhantomCoordination130Native
             final var allowed = new HashSet<Long>(List.of(69L,70L,72L)); existing.forEach(value -> allowed.add(value.profile().profileId()));
             check(population.loadManagedAfter(0, 16).stream().allMatch(value -> allowed.contains(value.profile().profileId())) && existing.size() <= 3, "ONLY_THREE_NEW_MANAGED_PROFILES");
         }
-        else { existing = population.loadManagedAfter(0, 4); check(existing.size() <= 3, "ORIGINAL_FIXTURE_BOUND"); }
+        else { existing = population.loadManagedAfter(0, 4); check(existing.size() <= (firstParty ? 2 : 3), "ORIGINAL_FIXTURE_BOUND"); }
         final int ordinalBase = morning ? 3 : 0;
+        final int rosterSize = firstParty ? 2 : 3;
+        final var levelBand = PhantomPartyFarmEligibility.forRoster(Collections.nCopies(rosterSize, 76)).orElseThrow();
         final var mobs = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
-            .filter(mob -> mob.isSpawned() && !mob.isRaid() && !mob.isDead() && !mob.isAggressive() && mob.getInstanceId() == 0 && mob.getLevel() >= 70 && mob.getLevel() <= 78 && mob.getMaxHp() >= 5000 && mob.getMaxHp() <= 60000).toList();
+            .filter(mob -> mob.isSpawned() && !mob.isRaid() && !mob.isDead() && !mob.isAggressive() && mob.getInstanceId() == 0
+                && (firstParty ? levelBand.contains(mob.getLevel()) : mob.getLevel() >= 70 && mob.getLevel() <= 78)
+                && mob.getMaxHp() >= 5000 && mob.getMaxHp() <= 60000).toList();
         final var fields = new ArrayList<>(source.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING)
             .map(anchor -> Map.entry(anchor, L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, 0))).filter(entry -> entry.getValue().isPresent())
             .filter(entry -> { final var point = entry.getValue().orElseThrow(); return GeoEngine.getInstance().hasGeo(point.x(), point.y()) && mobs.stream().anyMatch(mob -> Math.hypot((long) point.x() - mob.getX(), (long) point.y() - mob.getY()) < 500 && Math.abs((long) point.z() - mob.getZ()) < 150 && GeoEngine.getInstance().canMoveToTarget(point.x(), point.y(), point.z(), mob.getX(), mob.getY(), mob.getZ(), 0)); })
@@ -811,14 +834,36 @@ final class PhantomCoordination130Native
         }
         check(!fields.isEmpty(), "CERTIFIED_FIELD");
         var field = fields.getFirst();
-        final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
+        final var authority = firstParty ? new L2jPhantomBackgroundAuthority(source::knowledge, source::topology, source::progression, source::commerce,
+            PhantomNormalGatekeeperTravel.load(runtime.resolve("data/phantoms/travel/high-five-normal-gk.xml"), source.topology())) : source.authority();
+        final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), authority);
         final var goals = new PhantomGoalStateStore(profiles);
+        final var ecologyCatalog = firstParty ? PhantomPopulationEcologyCatalog.load(runtime.resolve("data/phantoms/population/high-five-ecology-v1.xml"), catalog,
+            org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(runtime.resolve("data/phantoms/social/high-five-social-v1.xml"))) : null;
+        final var firstHistory = firstParty ? new FirstPartyHistory(profiles, population, catalog, ecologyCatalog, planner, authority, goals, zone) : null;
         final var ids = new ArrayList<Long>(); final var members = new ArrayList<PhantomLogicalParty.Member>();
         final var seeds = new HashMap<Long, Long>();
-        PhantomDomainRef objective = null;
-        for (int ordinal = 0; ordinal < 3; ordinal++)
+        if (firstParty && !existing.isEmpty())
         {
-            final int birth = ordinal == 2 ? 10 : 0;
+            ids.addAll(existing.stream().map(row -> row.profile().profileId()).toList());
+            if (Files.isRegularFile(evidence.resolve("fixture130.properties")))
+            {
+                final var expected = read(evidence.resolve("fixture130.properties"));
+                check("TEST_FIXTURE".equals(expected.getProperty("fixture")) && ids.equals(authorizedProfiles(runtime))
+                    && !Files.exists(evidence.resolve("fixture-authority.ready")), "FIRST_PARTY_AUTHORITY_FIXTURE_SCOPE");
+                firstHistory.reconcileAuthority(profiles, ids);
+                write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
+                return;
+            }
+            recoverFirstPartyClock(evidence, profiles, existing);
+            finishFirstPartyFixture(runtime, evidence, firstHistory, ids);
+            write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
+            return;
+        }
+        PhantomDomainRef objective = null;
+        for (int ordinal = 0; ordinal < rosterSize; ordinal++)
+        {
+            final int birth = ordinal == rosterSize - 1 ? 10 : 0;
             long next; final long selected; PhantomPopulationStore.ManagedSnapshot managed;
             if (ordinal < existing.size())
             {
@@ -832,7 +877,10 @@ final class PhantomCoordination130Native
                 while (!PhantomPlayersConfig.PartySeekingSettings.defaults().seeks(next, 76)
                     || morning && ordinal == 1 && org.l2jmobius.gameserver.phantoms.progression.PhantomCareerChoice.choose(next, 0, false, PhantomPopulationCatalog.CareerArchetype.DAMAGE).terminalClass() != 88)
                 { check(skipped++ < 64, "BOUNDED_NATIVE_CANDIDATE_SELECTION"); profiles.create(null); next = nextProfile(); }
-                selected = birthSeed(catalog, next, ordinalBase + ordinal + 1, birth, zone, Instant.now());
+                final long profile = next, creationOrdinal = ordinalBase + ordinal + 1;
+                final Instant now = Instant.now();
+                selected = birthSeed(catalog, profile, creationOrdinal, birth, zone, now,
+                    seed -> firstHistory == null || firstHistory.fixtureAge(profile, creationOrdinal, seed, now));
                 managed = population.createShell(1, ordinalBase + ordinal + 1, selected); check(managed.profile().profileId() == next, "EXCLUSIVE_CREATION_SEQUENCE");
                 if (morning) { final var retained = new ArrayList<>(ids); retained.add(next); Files.writeString(preparing, "profiles=" + String.join(",", retained.stream().map(String::valueOf).toList()) + "\n"); }
             }
@@ -861,10 +909,10 @@ final class PhantomCoordination130Native
                 equipBeforeCut(actor);
                 System.out.println("NATIVE130_ACTUAL_COMBAT profile=" + id + " facts=" + source.authority().planningCombat(actor) + " expertise=" + actor.getKnownSkill(239));
                 PhantomHistoricalBackgroundPlanner.Result plan = null;
-                for (var candidate : objective == null && (!morning || ordinal > 0) ? fields : List.of(field))
+                for (var candidate : !firstParty && objective == null && (!morning || ordinal > 0) ? fields : List.of(field))
                 {
                     final var position = candidate.getValue().orElseThrow(); actor.setXYZInvisible(position.x(), position.y(), position.z());
-                    plan = ordinal == 2 || morning && ordinal == 0 ? planner.idleInitial(id, actor, selected, 1) : planner.planInitial(id, actor, selected, 1);
+                    plan = firstParty || birth == 10 || morning && ordinal == 0 ? planner.idleInitial(id, actor, selected, 1) : planner.planInitial(id, actor, selected, 1);
                     // Existing HistoricalBackgroundService/TEST094 fallback: a guardian/support
                     // may wait at a canonical anchor without claiming solo farm viability.
                     if (ordinal > 0 && objective != null && !plan.ready() && "planner.target_or_route.absent".equals(plan.reasonKey()))
@@ -880,11 +928,26 @@ final class PhantomCoordination130Native
                 }
                 if (objective == null && !plan.goal().validSources().isEmpty()) { objective = plan.goal().validSources().getFirst(); }
                 members.add(new PhantomLogicalParty.Member(id, ordinal == 2 ? "support" : plan.goal().goalType().equals(PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE) ? "guardian" : "damage", plan.goal().goalId(), plan.goal().revision()));
-                actor.setCurrentHp(actor.getMaxHp() * (morning || ordinal == 2 ? 1 : 0.4));
+                actor.setCurrentHp(actor.getMaxHp() * (firstParty || morning || birth == 10 ? 1 : 0.4));
                 actor.getInventory().updateDatabase(); actor.storeMe();
+                if (firstParty)
+                {
+                    final var captured = authority.captureOwnedNative(id, actor, plan.goal(), null);
+                    check(new PhantomBackgroundTransaction().captureBaseline(captured.state(), plan.goal(), captured.context()).status()
+                        == PhantomBackgroundTransaction.Status.SUCCESS, "FIRST_PARTY_BASELINE_CAPTURE");
+                    System.out.println("TEST_FIXTURE profile=" + id + " initialLevel=" + actor.getLevel() + " initialExp=" + actor.getExp()
+                        + " initialSp=" + actor.getSp() + " initialHp=" + actor.getCurrentHp() + " initialMp=" + actor.getCurrentMp()
+                        + " equipment=DECLARED_PRE_CUT role=" + (birth == 10 ? "healer" : "damage"));
+                }
                 System.out.println("NATIVE130_PREFLIGHT profile=" + id + " actor=" + actor.getObjectId() + " class=" + actor.getActiveClass() + " level=" + actor.getLevel() + " hp=" + actor.getCurrentHp() + " mp=" + actor.getCurrentMp() + " heal=" + actor.getKnownSkill(1011) + " root=" + plan.goal() + " pos=" + actor.getLocation());
             }
             finally { actor.stopAllTasks(); actor.storeMe(); actor.setOnlineStatus(true, false); actor.deleteMe(); }
+        }
+        if (firstParty)
+        {
+            finishFirstPartyFixture(runtime, evidence, firstHistory, ids);
+            write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
+            return;
         }
         check(objective != null && objective.namespace().equals("background.farm"), "REAL_FARM_SOURCE");
         if (morning)
@@ -934,6 +997,162 @@ final class PhantomCoordination130Native
         write(evidence.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\ngroup=" + group.groupId() + "\nanchor=" + group.anchorId() + "\n");
         System.out.println("NATIVE130_ZERO_WORLD_AGREEMENT group=" + group.groupId() + " profiles=" + ids);
     }
+
+    private static void finishFirstPartyFixture(Path runtime, Path evidence, FirstPartyHistory history, List<Long> ids) throws Exception
+    {
+        history.complete(ids);
+        ordinaryHeal(runtime);
+        write(evidence.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\nfixture=TEST_FIXTURE\n");
+        System.out.println("TEST_FIXTURE_READY profiles=" + ids + ";DURABLE_AGREEMENT=PRODUCTION_OWNER_AT_BOOT;POST_CUT_REWARDS=0");
+    }
+
+    /** Correct the unconsumed calendar assignments from the earlier local-time provisioning attempt. */
+    private static void recoverFirstPartyClock(Path evidence, PhantomProfileRepository profiles, List<PhantomPopulationStore.ManagedSnapshot> existing) throws Exception
+    {
+        check(existing.size() == 2 && !Files.exists(evidence.resolve("fixture130.properties"))
+            && !Files.exists(evidence.resolve("native130.cut")), "FIRST_PARTY_CLOCK_BEFORE_CUT");
+        final var ids = existing.stream().map(row -> row.profile().profileId()).toList();
+        final var before = preflightWitness(profiles, ids, false);
+        final var removals = new ArrayList<org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent>();
+        final var absent = new ArrayList<PhantomProfileRepository.ComponentAbsence>();
+        for (var entry : existing)
+        {
+            final long id = entry.profile().profileId();
+            final var raw = profiles.findComponent(id, PhantomPopulationEcologyState.COMPONENT_TYPE).orElseThrow();
+            final var state = new PhantomPopulationEcologyStateCodec().decode(raw.payload());
+            final var born = entry.profile().createdAt();
+            final long offset = ZoneId.systemDefault().getRules().getOffset(born).getTotalSeconds() / 60;
+            check(entry.state().state() == PhantomPopulationState.State.READY && offset > 0 && raw.rowVersion() == 0 && !state.requestPending()
+                && state.calendarCursorEpochMinute() == state.virtualJoinEpochMinute() && state.assignedAtEpochMinute() == born.getEpochSecond() / 60 + offset
+                && state.assignedAtEpochMinute() > Instant.now().getEpochSecond() / 60, "FIRST_PARTY_CLOCK_PROOF_" + id);
+            removals.add(raw);
+            for (String type : List.of(PhantomBackgroundCatchupState.COMPONENT_TYPE, PhantomLogicalParty.CLAIM_COMPONENT_TYPE,
+                PhantomLogicalParty.COMPONENT_TYPE, PhantomOwnedStoreIntent.COMPONENT_TYPE))
+            { absent.add(new PhantomProfileRepository.ComponentAbsence(id, type)); }
+        }
+        write(evidence.resolve("fixture-clock-before.txt"), before.canonical() + "\n" + before.components());
+        profiles.mutateProfileComponentsAtomically(List.of(), existing.stream().map(PhantomPopulationStore.ManagedSnapshot::component).toList(), absent, removals);
+        final var after = preflightWitness(profiles, ids, false);
+        write(evidence.resolve("fixture-clock-after.txt"), after.canonical() + "\n" + after.components());
+        check(before.canonical().equals(after.canonical()) && before.components().lines().filter(line -> !line.startsWith("population.ecology:")).toList()
+            .equals(after.components().lines().toList()), "FIRST_PARTY_CLOCK_FIXTURE_CONSERVATION");
+        System.out.println("TEST_FIXTURE_CLOCK_REPAIRED profiles=" + ids + ";UNCONSUMED_CALENDARS_ONLY=true");
+    }
+
+    /** Pre-CUT preparation uses the real SQL stores and historical owners, without starting native Party or Combat. */
+    private static final class FirstPartyHistory
+    {
+        private final PhantomPopulationStore _population;
+        private final PhantomPopulationCatalog _catalog;
+        private final PhantomPopulationEcologyCatalog _ecologyCatalog;
+        private final PhantomBackgroundService _background;
+        private final PhantomHistoricalBackgroundService _history;
+        private final PhantomMaterializationService _materialization;
+        private final PhantomPopulationEcologyService _ecology;
+        private static final PhantomPopulationEcologyState.Preset PRESET = PhantomPopulationEcologyState.Preset.LIVING;
+
+        FirstPartyHistory(PhantomProfileRepository profiles, PhantomPopulationStore population, PhantomPopulationCatalog catalog,
+            PhantomPopulationEcologyCatalog ecologyCatalog, PhantomHistoricalBackgroundPlanner planner, L2jPhantomBackgroundAuthority authority,
+            PhantomGoalStateStore goals, ZoneId zone)
+        {
+            _population = population;
+            _catalog = catalog;
+            _ecologyCatalog = ecologyCatalog;
+            final var metrics = new PhantomMetrics();
+            final var lifecycle = new PhantomMaterializationLifecycleBridge();
+            final var leases = PhantomIdentityLeaseRegistry.getInstance();
+            _materialization = new PhantomMaterializationService(profiles, leases, metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics),
+                2, _ -> { }, lifecycle, 5_000, 10_000);
+            final var signals = new PhantomRelevanceSignalPort()
+            {
+                @Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+                @Override public SignalDelivery withdraw(long id, String key, long sequence) { return SignalDelivery.ACCEPTED; }
+            };
+            _background = new PhantomBackgroundService(profiles, goals, leases, new PhantomBackgroundTransaction(), authority,
+                new PhantomBackgroundCompetitionRegistry(), signals, () -> _materialization);
+            _history = new PhantomHistoricalBackgroundService(profiles, goals, planner, _background, _materialization);
+            lifecycle.install(PhantomMaterializationLifecyclePort.chain(_history, _background));
+            _ecology = new PhantomPopulationEcologyService(ecologyCatalog, catalog, new PhantomPopulationEcologyStore(profiles), _history,
+                id -> _materialization.find(id).isPresent(), id -> profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent() ? "fixture.pending_store" : "",
+                Clock.systemUTC(), zone, PRESET, 0, 10);
+            _ecology.enablePeriodicDueMode();
+            _ecology.installRuntime(id -> Optional.of(population.reload(id)), new PhantomPopulationEcologyService.PopulationEvents()
+            {
+                @Override public void requestArchive(long id) { throw new IllegalStateException("A new TEST FIXTURE requested archive."); }
+                @Override public void reconcilePopulation() {}
+                @Override public void ecologyFenceChanged(long id) {}
+            });
+        }
+
+        boolean fixtureAge(long profile, long ordinal, long seed, Instant now)
+        {
+            final long minute = now.getEpochSecond() / 60;
+            final var schedule = PhantomPopulationStore.scheduleForShell(_catalog, profile, seed, null);
+            final var assignment = _ecologyCatalog.assign(PRESET, 1, ordinal, seed, minute, 0, 0, schedule.template().id());
+            return minute - assignment.virtualJoinEpochMinute() <= 45
+                && _ecology.nextProductiveWindow(assignment, schedule.phaseMinutes(), minute).productive();
+        }
+
+        void complete(List<Long> ids) throws InterruptedException
+        {
+            check(_background.start() && _materialization.start(), "FIRST_PARTY_HISTORY_OWNERS");
+            try
+            {
+                ids.forEach(id -> _ecology.register(_population.reload(id)));
+                final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(40);
+                while (System.nanoTime() < deadline)
+                {
+                    _ecology.onPopulationPulse();
+                    if (ids.stream().allMatch(id -> _ecology.dueSnapshot(id).complete()
+                        && _history.status(id).map(row -> row.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE).orElse(false))) { break; }
+                    Thread.sleep(50);
+                }
+                for (long id : ids)
+                {
+                    final var due = _ecology.dueSnapshot(id);
+                    final var history = _history.status(id).orElse(null);
+                    final var background = _background.acquisitionSnapshot(id).orElseThrow();
+                    final var role = _history.potentialPartyRole(id, background);
+                    System.out.println("TEST_FIXTURE_HISTORY profile=" + id + " due=" + due + " history=" + history + " state="
+                        + background.state() + " progress=" + background.progress() + " vitals=" + background.vitals() + " role=" + role);
+                    check(due.complete() && history != null && history.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE
+                        && background.state() == PhantomBackgroundState.State.READY && _history.permitsNormalOperation(id), "FIRST_PARTY_HISTORY_" + id + "_" + due.reason());
+                    check(id == ids.getFirst() ? role.startsWith("damage.") : role.equals("support.healer"), "FIRST_PARTY_LEARNED_ROLE_" + id);
+                }
+            }
+            finally
+            {
+                _ecology.beginStop();
+                final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+                while (!_ecology.finishStop() && System.nanoTime() < deadline) { Thread.sleep(25); }
+                check(_ecology.finishStop(), "FIRST_PARTY_ECOLOGY_DRAIN");
+                stopOwners(deadline);
+            }
+        }
+
+        void reconcileAuthority(PhantomProfileRepository profiles, List<Long> ids) throws Exception
+        {
+            check(_background.start() && _materialization.start(), "FIRST_PARTY_AUTHORITY_OWNERS");
+            try
+            {
+                for (long id : ids)
+                {
+                    preparePreflightAuthority(profiles, id, () -> _history.prepareCurrentAuthority(id));
+                    final var state = _background.acquisitionSnapshot(id).orElseThrow();
+                    System.out.println("TEST_FIXTURE_AUTHORITY profile=" + id + " hashes=" + state.hashes() + " progress=" + state.progress());
+                }
+            }
+            finally { stopOwners(System.nanoTime() + TimeUnit.SECONDS.toNanos(15)); }
+        }
+
+        private void stopOwners(long deadline)
+        {
+            check(_materialization.requestShutdown(deadline).state() == PhantomMaterializationService.ServiceState.STOPPED, "FIRST_PARTY_MATERIALIZATION_DRAIN");
+            _background.beginStop();
+            check(_background.finishStop(), "FIRST_PARTY_BACKGROUND_DRAIN");
+        }
+    }
+
     private static void equipBeforeCut(Player actor)
     {
         actor.stopAllTasks();
