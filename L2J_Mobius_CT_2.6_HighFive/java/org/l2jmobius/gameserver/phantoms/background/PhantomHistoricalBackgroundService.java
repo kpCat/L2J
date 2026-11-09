@@ -733,12 +733,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (current.state().status() != Status.COMPLETE) { return recoverStale(profileId, current, generation); }
 			final var goal = _goals.load(profileId).orElse(null);
 			final String invalid = recoveryPrerequisite(profileId, current, state, goal);
-			if (!invalid.isEmpty() || state.state() != PhantomBackgroundState.State.READY)
-			{ return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, invalid.isEmpty() ? "catchup.authority.ready_required" : invalid, current); }
+			if (!invalid.isEmpty()) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, invalid, current); }
+			// Canonical refresh preserves either READY or DEAD. A dead actor can only revive through native recovery.
 			final Result refreshed = refreshCanonicalBaseline(profileId, current);
 			if (!refreshed.successful()) { return refreshed; }
 			final var after = _background.acquisitionSnapshot(profileId).orElse(null);
-			if (after == null || after.state() != PhantomBackgroundState.State.READY || !after.hashes().equals(generation.authorityHashes()) || !_planner.generation().equals(generation)
+			if (after == null || after.state() != state.state() || !after.hashes().equals(generation.authorityHashes()) || !_planner.generation().equals(generation)
 				|| !currentClaim(profileId, current) || !Objects.equals(goal, _goals.load(profileId).orElse(null)) || _materialization.find(profileId).isPresent()
 				|| !state.identity().equals(after.identity()) || !state.progress().equals(after.progress()) || !state.receipt().equals(after.receipt()) || !state.clock().equals(after.clock()))
 			{ return Result.rejected(ResultStatusCode.RETRY, "catchup.authority.refresh_unverified", current); }

@@ -243,10 +243,11 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 				final var beforeClaim = _profiles.findComponent(f.id, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElseThrow();
 				final var beforeGoal = _profiles.findComponent(f.id, PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
 				final var state = f.baseline;
-				final var prepared = f.historical.prepareNativeRecovery(f.id, f.goals.load(f.id).orElseThrow().goal());
+				final var prepared = f.historical.prepareColdStartupAuthority(f.id);
 				PhantomAssertions.assertTrue(prepared.successful(), "Dead stale baseline needs exact owned refresh before NORMAL: " + prepared.status() + "/" + prepared.reason());
 				final var refreshed = f.transactions.load(f.id).state();
 				PhantomAssertions.assertEquals(PhantomBackgroundState.State.DEAD, refreshed.state(), "Preflight must not revive or reset the dead actor.");
+				PhantomAssertions.assertEquals(state.position(), refreshed.position(), "Authority refresh moved the corpse.");
 				PhantomAssertions.assertEquals(state.progress(), refreshed.progress(), "Preflight changed earned progress.");
 				PhantomAssertions.assertEquals(state.inventory(), refreshed.inventory(), "Preflight changed stock inventory.");
 				PhantomAssertions.assertEquals(state.receipt(), refreshed.receipt(), "Preflight changed the receipt.");

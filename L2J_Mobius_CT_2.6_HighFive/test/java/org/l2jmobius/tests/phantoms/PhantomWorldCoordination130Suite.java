@@ -48,8 +48,13 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			final int startup = system.indexOf("private boolean recoverStartupParty(");
 			final int ready = system.indexOf("_historicalBackgroundService.permitsNormalOperation(id)", startup);
 			final int recovery = system.indexOf("_historicalBackgroundService.prepareColdStartupAuthority(id)", startup);
-			PhantomAssertions.assertTrue(startup >= 0 && recovery > startup && ready > recovery,
-				"Startup requires a current baseline before invoking its canonical recovery owner.");
+			final int grant = system.indexOf("_executionAdmission.current(id, grant.component().rowVersion(), grant.state())", ready);
+			final int respawn = system.indexOf("_backgroundService.requestRecovery(id, root, scheduled", grant);
+			final int live = system.indexOf("background.state() == PhantomBackgroundState.State.READY", respawn);
+			final int proof = system.indexOf("inspect.accept", live);
+			PhantomAssertions.assertTrue(startup >= 0 && recovery > startup && ready > recovery && grant > ready
+				&& respawn > grant && live > respawn && proof > live,
+				"Stock recovery must retain the exact grant and finish before the source proof.");
 			final String history = java.nio.file.Files.readString(root.resolve("background/PhantomHistoricalBackgroundService.java"));
 			final int cold = history.indexOf("public Result prepareColdStartupAuthority(");
 			final int fence = history.indexOf("_authorityRefreshBoundary.apply", cold);

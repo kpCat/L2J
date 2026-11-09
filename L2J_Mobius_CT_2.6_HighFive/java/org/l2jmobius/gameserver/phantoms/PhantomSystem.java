@@ -55,6 +55,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetition
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomLegacyHeadlessRecovery;
@@ -3616,10 +3617,11 @@ public final class PhantomSystem
 				final var population = entry.state();
 				final var root = _executionGoals.load(id).map(row -> row.goal()).orElse(null);
 				final var background = _backgroundService.acquisitionSnapshot(id).orElse(null);
+				final var scheduled = catalog.evaluate(population.scheduleTemplate(), java.time.Instant.ofEpochMilli(now), _settings.populationTimeZone(), population.schedulePhaseMinutes()).state();
 				if (background == null || !PhantomAutonomousFarmParty.ordinaryIntent(id, root)
 					|| population.state() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY
 					|| !_settings.partySeeking().seeks(id, background.progress().level())
-					|| catalog.evaluate(population.scheduleTemplate(), java.time.Instant.ofEpochMilli(now), _settings.populationTimeZone(), population.schedulePhaseMinutes()).state() == PhantomActivityState.SLEEPING)
+					|| scheduled == PhantomActivityState.SLEEPING || _materializationService.find(id).isPresent())
 				{ continue; }
 				final var history = _historicalBackgroundService.status(id).orElse(null);
 				if (history == null || !_populationEcology.requestBackgroundRecovery(id, history.state().targetEpochMinute()).complete()
@@ -3631,7 +3633,18 @@ public final class PhantomSystem
 				final var grant = _executionHandoffs.load(id).orElse(null);
 				if (grant != null && grant.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE
 					&& grant.state().owner().equals(desiredExecutionOwner(id)) && _executionAdmission.current(id, grant.component().rowVersion(), grant.state()))
-				{ ready.add(id); }
+				{
+					if (background.state() == PhantomBackgroundState.State.DEAD && scheduled.requiresMaterialization())
+					{
+						// Startup permits only the existing stock town recovery here. Its STORE must finish before source proof.
+						final var recovery = _backgroundService.requestRecovery(id, root, scheduled, () -> request.completion().isDone()
+							|| !_executionAdmission.current(id, grant.component().rowVersion(), grant.state()));
+						if (recovery.status() == PhantomBackgroundService.OperationStatus.INCONSISTENT)
+						{ throw new IllegalStateException("stock_respawn:" + id + ":" + recovery.reason()); }
+					}
+					else if (background.state() == PhantomBackgroundState.State.READY)
+					{ ready.add(id); }
+				}
 			}
 			// Read back exact claims after the owner's expiry turn. An existing viable group takes priority over formation.
 			final var current = request.profiles().stream().sorted().map(_logicalParties::groupFor).flatMap(java.util.Optional::stream).distinct().toList();
