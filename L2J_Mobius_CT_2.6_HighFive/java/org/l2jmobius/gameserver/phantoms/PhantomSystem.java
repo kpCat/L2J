@@ -3622,8 +3622,10 @@ public final class PhantomSystem
 				{ continue; }
 				final var history = _historicalBackgroundService.status(id).orElse(null);
 				if (history == null || !_populationEcology.requestBackgroundRecovery(id, history.state().targetEpochMinute()).complete()
-					|| !_historicalBackgroundService.permitsNormalOperation(id)
 					|| _executionGoals.publication(id).filter(row -> row.state().status() == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.Status.PENDING).isPresent())
+				{ continue; }
+				if (!_historicalBackgroundService.prepareColdStartupAuthority(id).successful()
+					|| !_historicalBackgroundService.permitsNormalOperation(id))
 				{ continue; }
 				final var grant = _executionHandoffs.load(id).orElse(null);
 				if (grant != null && grant.state().phase() == org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE

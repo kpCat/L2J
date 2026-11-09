@@ -41,6 +41,23 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		PhantomExecutionHandoff130Tests.register(registry);
+		registry.add("cold-party-owner-recovers-absent-baseline-before-normal-admission", context ->
+		{
+			final var root = context.moduleRoot().resolve("java/org/l2jmobius/gameserver/phantoms");
+			final String system = java.nio.file.Files.readString(root.resolve("PhantomSystem.java"));
+			final int startup = system.indexOf("private boolean recoverStartupParty(");
+			final int ready = system.indexOf("_historicalBackgroundService.permitsNormalOperation(id)", startup);
+			final int recovery = system.indexOf("_historicalBackgroundService.prepareColdStartupAuthority(id)", startup);
+			PhantomAssertions.assertTrue(startup >= 0 && recovery > startup && ready > recovery,
+				"Startup requires a current baseline before invoking its canonical recovery owner.");
+			final String history = java.nio.file.Files.readString(root.resolve("background/PhantomHistoricalBackgroundService.java"));
+			final int cold = history.indexOf("public Result prepareColdStartupAuthority(");
+			final int fence = history.indexOf("_authorityRefreshBoundary.apply", cold);
+			final int abandoned = history.indexOf("_background.recoverAbandonedMaterialization(profileId)", cold);
+			final int attest = history.indexOf("prepareCurrentAuthority(profileId, true)", cold);
+			PhantomAssertions.assertTrue(cold >= 0 && fence > cold && abandoned > fence && attest > abandoned,
+				"Startup lost its owned abandoned-materialization recovery and canonical attestation order.");
+		});
 		registry.add("party-source-and-every-rendezvous-replan-ignore-solo-kill-only", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.partyContract130());
 		registry.add("party-common-source-is-tested-before-the-sixty-four-result-limit", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.widePartySources130());
 		registry.add("party-structural-walk-budget-skips-first-sixty-four-and-keeps-local-source", _ -> org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.boundedStructuralSources130());

@@ -667,6 +667,22 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Preparation only: no historical interval is executed or manufactured by this route. */
 	public Result prepareCurrentAuthority(long profileId)
 	{ return prepareCurrentAuthority(profileId, false); }
+
+	/** Startup recovery has closed native admission. Use the existing absent-owner transaction before reattestation. */
+	public Result prepareColdStartupAuthority(long profileId)
+	{
+		return _authorityRefreshBoundary.apply(profileId, () ->
+		{
+			final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (state != null && (state.state() == PhantomBackgroundState.State.MATERIALIZED || state.state() == PhantomBackgroundState.State.VERIFY_PENDING))
+			{
+				final var recovered = _background.recoverAbandonedMaterialization(profileId);
+				if (!recovered.successful()) { return Result.rejected(ResultStatusCode.RETRY, recovered.reason(), _store.load(profileId).orElse(null)); }
+			}
+			return prepareCurrentAuthority(profileId, true);
+		});
+	}
+
 	private Result prepareCurrentAuthority(long profileId, boolean owned)
 	{
 		try
