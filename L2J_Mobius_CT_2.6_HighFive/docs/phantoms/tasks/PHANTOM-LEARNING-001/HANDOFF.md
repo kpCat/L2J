@@ -1,13 +1,14 @@
-# Передача контекста для PHANTOM-LEARNING-002
+# Передача контекста для завершения PHANTOM-LEARNING-001
 
 LEARNING-001 имеет статус **PARTIAL**. Базовый SHA `c5b81f89ce02030eff8441395b0411137a110b2f`, реализация `518318c89c6937c80818b4035df6b0fc9523f9ce`. Ветка [wip/phantom-learning](https://github.com/kpCat/L2J/tree/wip/phantom-learning). Локальный clone `D:/Codex/worktrees/phantom-learning-001-source`. Путь пользователя `D:/Codex/repos/L2J-phantom-world` оставался read-only.
 
-## Что проверить перед новым этапом
+## Состояние native-вертикали
 
-1. Открыть [отчёт](../../reports/PHANTOM-LEARNING-001.md), [архитектуру](ARCHITECTURE.md), [ограничения](SAFETY.md) и [дорожную карту](ROADMAP.md). Сверить HEAD ветки и обе защищённые ветки. Обновление TASK130 переносить отдельно после ревью.
-2. Для минимальной native вертикали подготовить отдельную схему с полным штатным installer и двумя learning таблицами. Имеющийся SQL-only datadir под `.phantom-local/learning001/sql-first-party` содержит лишь доказательство сохранения DRAFT и годится для разбора readback. Его PID 47728 и порт 33306 остановлены. Стандартный headless guard использует 3308 и фиксированную схему, прежние lane привязаны к своим manifest. Для новой вертикали нужен отдельный attested fixture без изменения этих guards и окружений.
-3. На собственном runtime с geodata получить реальные исходы хотя бы для двух разрешённых навыков у нескольких профилей в Solo и автономной Party. Сначала SHADOW с `LearningEvidenceEnabled=True`, затем отдельная offline команда. При пустом NATIVE проверить число готовых кандидатов, фактический skill start в dispatch, наличие ровно одной цели, совпадение spawn и epoch, сторонние HP writes и receipt cancellation.
-4. После достаточного сбора выполнить offline audit по незнакомым контекстам с отдельными актёрами и сравнить отдачу выбора против штатной. Принять точную версию только по результату проверки, включить ON на безопасной границе и подтвердить тот же выбор на новом JVM после MariaDB readback. Отдельно подтвердить F7/F8, SQL conservation, Geo203, protected207 и полную остановку.
+1. Открыть [отчёт](../../reports/PHANTOM-LEARNING-001.md), [архитектуру](ARCHITECTURE.md) и [ограничения](SAFETY.md). Сверить HEAD learning-ветки и обе защищённые ветки.
+2. Готовый контур находится в `D:/Codex/worktrees/phantom-learning-001-source/.phantom-local/learning001/native`. Там есть Geo203, собственная остановленная MariaDB на 33317 со штатной схемой, шесть актёров, `rosters.tsv`, `capacity.tsv` и расходующий первый bootstrap `cut.properties`. В родительской папке находятся `native-shadow.log` и `native-shadow-readback.log`. Приватный каталог содержит credentials и хранится локально.
+3. Штатный `GameServer.java:502` игнорирует `GameserverHostname` при открытии сокета. Подтверждены IPv4 и IPv6 wildcard у собственного PID. Launcher завершает `shadow` до запуска SQL или JVM. Для дальнейшей работы сначала нужна подтверждённая сетевая изоляция самого процесса или отдельно согласованный bind fix. Проверять реальный endpoint в сетевом контуре до сбора.
+4. Для диагностики набора использовать единственный подтверждённый Solo-сеанс `profile=1, generation=1, target=268452014, spawnGeneration=1`. Повторный readback подтвердил 3 строки, оба навыка, один actor group и 0 моделей. Следующая диагностическая точка — причины отсутствия новой сессии после generation 1. Нужны статус stock session, факт наличия достижимых целей и причины отказа при admission. Native Solo был вызван в CombatService из runner. Штатный видимый AutoPlay идёт своим маршрутом.
+5. После решения обоих вопросов нужны полные train/tuning/audit и проверка боевого выбора после чистого STOP и холодной загрузки ACCEPTED версии. С текущими тремя строками для такого цикла нужны ещё два GameServer запуска, а в текущем бюджете остался один. Отдельно открыты native F7/F8, обычный Heal, PvP/PK, полная стоимость решения OFF/ON и SQL conservation по боевым итогам. PHANTOM-LEARNING-002 ждёт закрытия 001.
 
 ## Команды
 
@@ -26,10 +27,10 @@ java '-Dphantom.learning.train=true' -cp 'dist/libs/*' org.l2jmobius.gameserver.
 java '-Dphantom.learning.train=true' -cp 'dist/libs/*' org.l2jmobius.gameserver.phantoms.learning.LearningStore read dist/game $version
 ```
 
-Приёмка LEARNING-001 израсходовала 1/2 clean JAR и 0/2 GameServer boot. Набор train/tuning/audit, SHA модели и schema fingerprint зафиксированы в [отчёте](../../reports/PHANTOM-LEARNING-001.md). Синтетический checkpoint 2 закономерно отклоняется при promote. Редкие участки без точной квитанции пропускаются. Тест выбора использует настоящий CombatService с тестовым backend.
+Приёмка LEARNING-001 израсходовала 1/2 clean JAR и 1/2 GameServer boot. Для проверки сохранённых native строк использовать `powershell -NoProfile -File tools/phantom-runtime/Invoke-Learning001Fixture.ps1 -Action read-native` из модуля. Команда открывает и штатно останавливает только собственную MariaDB. Синтетический checkpoint 2 из прежней SQL-only схемы отклоняется при promote.
 
 ## Git и границы
 
 Проверка исходника и публикации использует `git ls-remote https://github.com/kpCat/L2J.git refs/heads/wip/coordination-130-preserved refs/heads/feature/phantom-world refs/heads/wip/phantom-learning`. Для локального исходника выполнены `git rev-parse --show-toplevel`, `git rev-parse --verify` для исходного ref и commit, `git worktree list`, `git remote -v` и `git for-each-ref`. В независимом clone использованы `git clone --no-checkout --single-branch --depth 1 --branch wip/coordination-130-preserved -c core.longpaths=true`, `git switch --no-track --create wip/phantom-learning c5b81f89ce02030eff8441395b0411137a110b2f`, `git symbolic-ref --short HEAD`, `git rev-parse --verify HEAD`, `git status --short --branch`, `git for-each-ref`, `git ls-tree`, `git ls-files --eol` и `git diff` для проверки scope и CRLF.
 
-Staging сделан через `git add -- <точный allowlist>`, проверен `git diff --cached --name-only`, `git diff --cached --stat` и `git -c core.whitespace=cr-at-eol diff --cached --check`. `git commit` и `git push origin HEAD:refs/heads/wip/phantom-learning` разрешены владельцем для этой ветки. Артефакты сборки, приватная SQL-папка, модель и логи остались локальными. Следующий task начинается отдельно после проверки указанных открытых gates.
+Staging сделан через `git add -- <точный allowlist>`, проверен `git diff --cached --name-only`, `git diff --cached --stat` и `git -c core.whitespace=cr-at-eol diff --cached --check`. `git commit` и `git push origin HEAD:refs/heads/wip/phantom-learning` разрешены владельцем для этой ветки. Артефакты сборки, приватная SQL-папка, модель и логи остались локальными.

@@ -387,6 +387,13 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_USER, bootstrap.settings().login(), "Headless suite does not use the dedicated allowlisted user.");
 		}
 
+		initializeOwnedPlayerInfrastructure();
+		return bootstrap;
+	}
+
+	/** Stock singleton sequence after the caller has validated and opened its own database. */
+	static void initializeOwnedPlayerInfrastructure() throws Exception
+	{
 		ThreadPool.init();
 		IdManager.getInstance();
 		World.getInstance();
@@ -423,7 +430,6 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		CursedWeaponsManager.getInstance();
 		RecipeManager.getInstance();
 		OlympiadManager.getInstance();
-		return bootstrap;
 	}
 
 	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception

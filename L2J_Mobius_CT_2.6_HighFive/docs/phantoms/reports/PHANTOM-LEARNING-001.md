@@ -53,8 +53,27 @@ MariaDB 11.4.13, loopback `33306`, отдельная схема `phantom_learni
 - Mojibake-маркеры в изменённых файлах проверены полным списком, совпадений нет.
 - Escaped Cyrillic в изменённых файлах проверен по Unicode и XML шаблонам, совпадений нет.
 
+## Native SHADOW в отдельном контуре
+
+В независимом клоне создан disposable runtime под `.phantom-local/learning001/native`. MariaDB 11.4.13 слушала только `127.0.0.1:33317`, использовала собственный datadir и схему `phantom_learning001_native`. G0 подтвердил PID, FILETIME, SID, executable, параметры запуска и слушатель. Штатный installer применил 124 SQL-скрипта, aggregate SHA-256 `c998483e60252f6ac3d8cafbb2ef6acc528569b024bd3eff0e9505a7bbb0dac5`. Из доверенного локального источника физически скопированы и сверены 203 GeoData-файла, 1 063 452 308 байт. До и после запуска сверены SHA-256 всех 207 защищённых файлов.
+
+До CUT штатными Player lifecycle, SkillTree и Inventory API подготовлены шесть Archmage с уровнями 77 и 78, экипировкой S и A и навыками **1230 Prominence** и **1339 Fire Vortex**. В каждой паре train, tuning и audit проверены общий штатный источник, общие живые NPC, Geo/LOS, расстояние, доступность наград и readback обычных farm roots. На снимке preflight было 1–2 подходящих Party-spawn и 3–4 Solo-spawn с верхней задержкой respawn 110 секунд. Это оценка возможности набора, отдельная от подтверждённых выборок.
+
+Первый GameServer запущен на ранее проверенном JAR `eec58870528bd2b77de154472892154891bea9780d2f2e22d8ca620c12f097e0` с JVM opt-in. Штатный GameServer загрузился за 25 секунд с глобальным Phantom owner в OFF. Затем runner настроил штатные owners для fixture на SHADOW, version 0, evidence enabled, и передал Solo-запрос настоящему CombatService. В журнале видна сессия 1, profile 1, actor 268480990, epoch 1137181784788900, target object 268452014, spawn generation 1. SQL хранит анонимный actor group и хеш идентичности события. По SQL-строкам нельзя восстановить исходные target и epoch.
+
+| SQL readback после STOP | Навык | Строк | Разных event keys | Снято HP |
+|---|---|---:|---:|---:|
+| NATIVE / EXACT_CAST_HP, SOLO | 1230 | 1 | 1 | 937 |
+| NATIVE / EXACT_CAST_HP, SOLO | 1339 | 2 | 2 | 592 и 1270 |
+
+После этих трёх строк от одного актёра runner завершился по `LEARNING001_SOLO_SQL_STALLED_TRAIN`. Повторные записи журнала до остановки относятся к тому же поколению сессии. Дальнейшая причина отсутствия новых сессий и образцов остаётся неустановленной. Штатный этап формирования Party остался за этим gate. Writer сообщил `dropped=0`, счётчик `unknown=0`. Readback после отдельного SQL restart вернул **3 NATIVE, 0 PARTY, 0 моделей**. Для train, tuning и независимого audit материала недостаточно. Native-качество, promotion и выбор с ON остались открыты. JFR записал 100 секунд после первых кастов, с нулём событий MethodTrace. Значения производительности выше относятся к scoring по готовым векторам.
+
+Выявлен отдельный блокер изоляции. `GameServer.java:502` создаёт `new InetSocketAddress(ServerConfig.PORT_GAME)`. При `GameserverHostname=127.0.0.1` собственный JVM PID 70664, FILETIME 134388124125525601, слушал **0.0.0.0:17961 и [::]:17961**. LoginServer не запускался, попытки соединения шли к свободному `127.0.0.1:19261`. Исправленный launcher отклоняет `shadow` до старта SQL и JVM. Повтор требует подтверждённой внешней сетевой изоляции или отдельного исправления штатного bind.
+
+Штатный STOP GameServer завершился за 5 секунд. SQL PID 45836 и PID readback 49388 остановлены. Проверены отсутствие исходных PID/FILETIME и свободные порты 33317, 17961 и 19261. JVM завершился exit 0 после штатного STOP, launcher правильно вернул exit 1 по отсутствующему `shadow.complete` и присутствующему `shadow.failed`. Native-бюджет использован **1/2 GameServer bootstrap и 1/2 clean JAR**.
+
 ## Открытые gates и Git
 
-**NATIVE_UNPROVEN.** Запись фактически атрибутированного урона из PlayerAI, обучение по этим записям, положительный переход NATIVE модели в ACCEPTED, реальное применение в Solo и Party и его повтор после загрузки остаются открыты. Общий headless guard требует порт 3308 и отдельный закреплённый fixture, а имеющийся TASK130 native маршрут требует свою привязку к полному сценарию. Для этого результата использован только собственный SQL-only контур. Полные F7/F8, native Geo203 и protected207 gates не запускались. TASK130 остаётся PARTIAL.
+**PARTIAL.** Подтверждена запись реального Solo-урона в MariaDB. Открыты native Party, достаточный набор train/tuning/audit, обучение и принятие NATIVE-модели, readback весов и применение после нового запуска. Полные native F7/F8, обычный Player Heal, PvP/PK и сравнение CPU полного пути OFF/ON остаются открыты. TASK130 остаётся PARTIAL.
 
 Scoped исключение владельца позволяет отдельный clone и обычный push только в `wip/phantom-learning`. Пользовательский checkout был read-only. MAIN, PLAY, TEST129 и старые SQL/Geo контуры не участвовали. Подготовка и runtime-артефакты находятся в независимом clone. Каталог `.phantom-local/learning001` содержит приватные данные и логи, он исключён из коммитов. В Git вошли только разрешённые пути High Five. Точные команды и следующий шаг приведены в [HANDOFF](../tasks/PHANTOM-LEARNING-001/HANDOFF.md).
