@@ -268,8 +268,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 				{
 					final long leader = nativeParty.leader().profileId();
 					final var wait = _farmWaits.remove(leader);
-					_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now,
-						wait != null && wait.matches(group) && !fightSupersedesWait(leader, wait) ? wait.replanReason() : "WAIT_NATIVE_RETENTION_ENDED");
+					final String threat = _coordinator.replanAfterCombatThreat(group, nativeParty);
+					final String reason = !threat.isEmpty() ? threat
+						: wait != null && wait.matches(group) && !fightSupersedesWait(leader, wait) ? wait.replanReason() : "WAIT_NATIVE_RETENTION_ENDED";
+					_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, reason);
 				}
 			}
 			else if (group.phase() == PhantomLogicalParty.Phase.ASSEMBLING)

@@ -120,6 +120,9 @@ public interface PhantomPartyBackend
 	{ return autonomousFarmTarget(party, supportMembers, source); }
 	/** Called by the existing Combat cancellation token; never selects another target. */
 	default boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int targetObjectId) { return true; }
+	default boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int targetObjectId,
+		java.util.function.Consumer<String> refusal)
+	{ return autonomousFarmEncounterReady(party, supportMembers, source, targetObjectId); }
 	default String autonomousFarmWaitReason(MemberRef leader) { return "WAIT_GROUP_TARGET"; }
 
 	default OptionalInt currentLevel(MemberRef member)

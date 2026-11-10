@@ -479,6 +479,23 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return runtime == null ? 0 : runtime.farmCombatAdmission.get();
 	}
 
+	/** An accepted fight can refuse its current threat before the next-pull loop runs again. */
+	public String replanAfterCombatThreat(PhantomLogicalParty group, PartySnapshot party)
+	{
+		final var claim = _claims.get(party.leader().profileId());
+		if (!committedClaim(claim) || !claim.state().leader().equals(party.leader()) || !sameRoster(roster(claim.state()), party.members())) { return ""; }
+		final var runtime = _groups.get(claim.state().groupId());
+		final var attempt = runtime == null ? null : runtime.latestFarmCombat.get();
+		final var refusal = attempt == null ? null : attempt.refusal;
+		if (refusal == null
+			|| !refusal.key().equals(farmSourceKey(claim.state()))
+			|| !refusal.binding().groupId().equals(group.groupId()) || refusal.binding().generation() != group.generation()
+			|| !refusal.binding().source().equals(group.objective()) || refusal.epochs().size() != party.members().size()
+			|| party.members().stream().anyMatch(member -> refusal.epochs().getOrDefault(member.profileId(), 0L) <= 0
+				|| refusal.epochs().get(member.profileId()) != _backend.materializationEpoch(member))) { return ""; }
+		return runtime.latestFarmCombat.get() == attempt ? refusal.reason() : "";
+	}
+
 	/** A completed stock rendezvous identifies the native epoch that still owes STORE. */
 	public boolean awaitsFarmStore(long profileId, PhantomLogicalParty group, PhantomGoal root, long now)
 	{
@@ -3386,16 +3403,30 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		final long profileId = directive.actor().profileId();
 		final boolean farm = PhantomAutonomousFarmParty.OBJECTIVE_NAMESPACE.equals(authority.objectiveRef().namespace());
+		final var runtime = farm ? _groups.get(authority.groupId()) : null;
+		final var attempt = runtime == null ? null : new FarmCombatAttempt(runtime.farmAttemptSequence.incrementAndGet());
+		final var origin = attempt == null ? null : currentFarmIntentView(authority);
 		final var supportMembers = authority.assignments().stream().filter(assignment -> assignment.roleKey().startsWith("support.")).map(RoleAssignment::member).collect(java.util.stream.Collectors.toSet());
 		final PhantomCancellationToken token = () ->
 		{
 			final StoredPartyState current = _claims.get(profileId);
 			final var observed = _backend.observe(directive.actor()).orElse(null);
-			return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId)
-				|| farm && (!currentFarmReady(authority, observed) || !_backend.autonomousFarmEncounterReady(observed, supportMembers, currentFarmSource(authority), directive.targetObjectId()))
-				|| observed == null || !observed.leader().equals(authority.leader()) || !observed.members().contains(directive.actor());
+			if ((_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId)
+				|| observed == null || !observed.leader().equals(authority.leader()) || !observed.members().contains(directive.actor())) { return true; }
+			if (!farm) { return false; }
+			if (!currentFarmReady(authority, observed)) { return true; }
+			final var view = currentFarmIntentView(authority);
+			final var source = currentFarmSource(authority);
+			return !_backend.autonomousFarmEncounterReady(observed, supportMembers, source, directive.targetObjectId(), reason ->
+			{
+				final String reasonKey = reason.split(":", 2)[0];
+				if (origin == null || origin.binding() == null || view == null || !origin.key().equals(view.key())
+					|| !origin.binding().equals(view.binding()) || !origin.epochs().equals(view.epochs()) || !origin.roots().equals(view.roots())
+					|| !origin.binding().source().equals(source)
+					|| !("WAIT_THREAT".equals(reasonKey) || "WAIT_TANK_AGGRO".equals(reasonKey))) { return; }
+				attempt.refusal = new FarmThreatRefusal(origin.key(), origin.binding(), origin.epochs(), "REPLAN_" + reasonKey.substring(5));
+			});
 		};
-		final var runtime = farm ? _groups.get(authority.groupId()) : null;
 		final int targetId = directive.targetObjectId();
 		// A defensive assist can be admitted before the intended puller is free.
 		// Keep one native loot owner for this target among the accepted sessions.
@@ -3414,7 +3445,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				else
 				{
 					retained = true;
-					if (runtime != null) { runtime.farmCombatAdmission.accumulateAndGet(_clock.getAsLong(), Math::max); }
+					if (runtime != null)
+					{
+						runtime.farmCombatAdmission.accumulateAndGet(_clock.getAsLong(), Math::max);
+						runtime.latestFarmCombat.accumulateAndGet(attempt, (prior, nextAttempt) -> prior == null || prior.sequence < nextAttempt.sequence ? nextAttempt : prior);
+					}
 					_tacticalReleases.offer(profileId);
 				}
 			}
@@ -4481,7 +4516,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				&& point(actor).distanceTo(journey.destination) <= 300).isPresent());
 	}
 	private record FarmSourceView(FarmSourceKey key, long sampledNanos, long expiresNanos, Map<Long, StoredGoal> roots, Map<Long, Long> epochs, FarmBinding binding, boolean valid) { }
+	private record FarmThreatRefusal(FarmSourceKey key, FarmBinding binding, Map<Long, Long> epochs, String reason) { }
 	private record NativePartyView(long groupGeneration, String manifest, PartySnapshot party, Map<Long, Long> epochs, long sampledNanos, long expiresNanos) { }
+
+	private static final class FarmCombatAttempt
+	{
+		private final long sequence;
+		private volatile FarmThreatRefusal refusal;
+		private FarmCombatAttempt(long sequence) { this.sequence = sequence; }
+	}
 
 	private static final class GroupRuntime
 	{
@@ -4491,6 +4534,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile MemberRef farmPuller;
 		private final AtomicInteger farmTargetPage = new AtomicInteger();
 		private final AtomicLong farmCombatAdmission = new AtomicLong();
+		private final AtomicLong farmAttemptSequence = new AtomicLong();
+		private final java.util.concurrent.atomic.AtomicReference<FarmCombatAttempt> latestFarmCombat = new java.util.concurrent.atomic.AtomicReference<>();
 		private final ConcurrentHashMap<Integer, Long> farmLootOwners = new ConcurrentHashMap<>();
 		private volatile FarmJourney farmJourney;
 		private volatile long farmTravelDeadline;

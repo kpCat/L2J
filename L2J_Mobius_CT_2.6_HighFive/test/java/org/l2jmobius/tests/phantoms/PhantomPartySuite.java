@@ -1782,6 +1782,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		});
 		registry.add("130-defender-owns-native-loot-when-planned-puller-is-busy", context ->
 		{
+			for (String outcome : List.of("loot", "active-refusal", "pre-admission-refusal"))
+			{
+			final boolean threatRefuses = !outcome.equals("loot");
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
 			backend._farmEnabled = true;
 			final var clock = new AtomicLong(1_000_000_000L);
@@ -1808,17 +1811,60 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			backend.snapshot(defender, member(2, 102, 100, 100, false, 0, damage));
 			backend._capabilities.put(guardian, tank); backend._capabilities.put(defender, damage);
 			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
-			new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get); backend.connect(coordinator); coordinator.start();
+			final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get);
+			backend.connect(coordinator); coordinator.start();
 			try
 			{
 				coordinator.formForGoal(1, 129001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,2"), List.of());
 				coordinator.invite(1, defender, PartyDistributionType.FINDERS_KEEPERS);
 				for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); }
+				final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+				if (threatRefuses)
+				{
+					final long now = System.currentTimeMillis();
+					final var members = List.of(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(1, "frontline.guardian", 129001, 0),
+						new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(2, "damage.melee", 129002, 0));
+					final var initial = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("A".repeat(64), 1, 1, members,
+						new PhantomDomainRef("background.farm", "20101@farm.fixture"), "farm.fixture",
+						org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 0, now, "");
+					var row = logical.agree(initial).orElseThrow();
+					final var roster = List.of(new PhantomPartyRendezvousState.Participant(guardian, backend.materializationEpoch(guardian), 129001, 0),
+						new PhantomPartyRendezvousState.Participant(defender, backend.materializationEpoch(defender), 129002, 0));
+					final String offerId = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.sha256(initial.groupId() + ":1:" + roster + ":" + now);
+					for (var participant : roster)
+					{ coordinator.saveRendezvous(-1, new PhantomPartyRendezvousState(participant.actor().profileId(), offerId, 1, roster, initial.objective(), now, now + 600000, PhantomPartyRendezvousState.Phase.COMPLETE, 0)).orElseThrow(); }
+					for (var phase : List.of(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.WAKE_REQUESTED,
+						org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.ASSEMBLING, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE))
+					{ row = logical.transition(row, phase, 0, now, ""); }
+					adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> false);
+				}
 				backend.snapshot(guardian, new MemberSnapshot(guardian, 0, 0, 0, 0, 0, 90, 100, 100, false, true, false, false, 0, List.of(900), tank, ZERO));
 				PhantomAssertions.assertEquals(guardian, PhantomAutonomousFarmParty.farmPuller(List.of(backend.memberSnapshot(guardian).orElseThrow(), backend.memberSnapshot(defender).orElseThrow())).orElseThrow(), "The fixture must nominate the unavailable guardian.");
+				if (outcome.equals("pre-admission-refusal")) { backend._farmEncounterRefusal = "WAIT_THREAT"; }
 				for (int pulse = 0; pulse < 12 && !coordinator.hasOwnedFarmEncounter(2); pulse++) { coordinator.onPulse(); }
+				if (outcome.equals("pre-admission-refusal"))
+				{
+					PhantomAssertions.assertFalse(coordinator.hasOwnedFarmEncounter(2), "Pre-admission refusal still created a Combat owner.");
+					PhantomAssertions.assertEquals("", coordinator.replanAfterCombatThreat(logical.groupFor(1).orElseThrow().group(), backend.observe(guardian).orElseThrow()),
+						"A pre-admission callback claimed that an accepted fight had failed.");
+					continue;
+				}
 				PhantomAssertions.assertTrue(coordinator.hasOwnedFarmEncounter(2), "The defending actor never acquired the real Combat owner.");
 				PhantomAssertions.assertFalse(coordinator.hasOwnedFarmEncounter(1), "The planned puller acquired a second native owner.");
+				if (threatRefuses)
+				{
+					backend._farmEncounterRefusal = "WAIT_THREAT";
+					PhantomAssertions.assertTrue(!workers.isEmpty(), "The accepted Combat encounter has no worker to recheck the threat.");
+					workers.removeFirst().run();
+					final var currentParty = backend.observe(guardian).orElseThrow();
+					final var currentGroup = logical.groupFor(1).orElseThrow().group();
+					PhantomAssertions.assertEquals("REPLAN_THREAT", coordinator.replanAfterCombatThreat(currentGroup, currentParty),
+						"Risk cancelled accepted Combat, but Party DRAIN lost the refusal before canonical STORE.");
+					backend._nativeEpochs.put(1L, backend.materializationEpoch(guardian) + 1);
+					PhantomAssertions.assertEquals("", coordinator.replanAfterCombatThreat(currentGroup, currentParty),
+						"A threat from an old native epoch replanned the current Party.");
+					continue;
+				}
 				lease.target = new TargetSnapshot(900, 20001, 0, 0, 1000, true, true, false, true, false, true, true, 50, false, true);
 				PhantomAssertions.assertTrue(!workers.isEmpty(), "The real Combat owner did not dispatch its worker.");
 				workers.removeFirst().run();
@@ -1826,6 +1872,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 					combat.find(2).map(value -> value.phase()).orElse(null), "The accepted defense had no Combat loot owner after victory.");
 			}
 			finally { coordinator.beginStop(); coordinator.finishStop(); combat.beginStop(); combat.finishStop(); }
+			}
 		});
 		registry.add("094-idle-maintenance-serves-peers-before-self", _ ->
 		{
@@ -4164,6 +4211,14 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		}
 		@Override public boolean autonomousFarmReady(PartySnapshot party) { return _farmEnabled && party.members().stream().allMatch(_snapshots::containsKey) && party.members().stream().map(_snapshots::get).anyMatch(PhantomAutonomousFarmParty::damageDealer); }
 		@Override public java.util.OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers) { return _farmTarget; }
+		private String _farmEncounterRefusal = "";
+		@Override public boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int targetObjectId)
+		{ return _farmEncounterRefusal.isEmpty(); }
+		@Override public boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int targetObjectId, java.util.function.Consumer<String> refusal)
+		{
+			if (!_farmEncounterRefusal.isEmpty()) { refusal.accept(_farmEncounterRefusal); }
+			return _farmEncounterRefusal.isEmpty();
+		}
 		@Override public String autonomousFarmWaitReason(MemberRef leader) { return _farmWait; }
 		@Override public FarmPage materializedFarmMembers(long cursor, int limit)
 		{

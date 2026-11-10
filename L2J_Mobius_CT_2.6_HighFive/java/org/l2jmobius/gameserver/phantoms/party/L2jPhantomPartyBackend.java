@@ -903,6 +903,11 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 
 	@Override
 	public boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int targetObjectId)
+	{ return autonomousFarmEncounterReady(party, supportMembers, source, targetObjectId, _ -> { }); }
+
+	@Override
+	public boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int targetObjectId,
+		java.util.function.Consumer<String> refusal)
 	{
 		if (party == null || source == null) { return false; }
 		final var object = World.getInstance().findObject(targetObjectId);
@@ -924,7 +929,14 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (band == null || !band.contains(target.getLevel())) { return farmWait(party, "WAIT_GROUP_LEVEL_BAND"); }
 			final var leader = actors.stream().filter(player -> player.getObjectId() == party.leader().characterObjectId()).findFirst().orElse(null);
 			if (leader == null) { return farmWait(party, "WAIT_NATIVE_OWNER"); }
-			return groupViable(actors, members, target, reason -> { if (reason.startsWith("WAIT_")) { farmWait(party, reason); } }, true);
+			return groupViable(actors, members, target, reason ->
+			{
+				if (reason.startsWith("WAIT_"))
+				{
+					farmWait(party, reason);
+					refusal.accept(reason);
+				}
+			}, true);
 		}
 		finally { for (int index = leases.size() - 1; index >= 0; index--) { leases.get(index).close(); } }
 	}
