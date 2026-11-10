@@ -80,7 +80,7 @@ public final class PhantomCombatStepHandlers
 			return PhantomStepResult.of(Type.REPLAN, "combat.start.mode");
 		}
 
-		final StartResult result = _service.startSession(new PhantomCombatRequest(context.profileId(), targetObjectId, mode, shots == 1, loot == 1, timeout, context.cancellationToken()));
+		final StartResult result = _service.startSession(new PhantomCombatRequest(context.profileId(), targetObjectId, mode, shots == 1, loot == 1, timeout, context.cancellationToken(), PhantomCombatRequest.LearningScope.SOLO, null, context.cancellationToken()));
 		return switch (result.status())
 		{
 			case ACCEPTED, IDEMPOTENT -> PhantomStepResult.of(Type.SUCCESS, "combat.start.accepted");

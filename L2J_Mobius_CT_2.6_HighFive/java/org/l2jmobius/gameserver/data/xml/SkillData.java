@@ -51,6 +51,7 @@ public class SkillData
 	private final Set<Integer> _enchantable = ConcurrentHashMap.newKeySet();
 	private final List<File> _skillFiles = new ArrayList<>();
 	private static int count = 0;
+	private volatile boolean _catalogReloaded;
 	
 	protected SkillData()
 	{
@@ -187,10 +188,16 @@ public class SkillData
 	
 	public void reload()
 	{
+		_catalogReloaded = true;
 		load();
 		
 		// Reload Skill Tree as well.
 		SkillTreeData.getInstance().load();
+	}
+
+	public boolean catalogReloaded()
+	{
+		return _catalogReloaded;
 	}
 	
 	/**

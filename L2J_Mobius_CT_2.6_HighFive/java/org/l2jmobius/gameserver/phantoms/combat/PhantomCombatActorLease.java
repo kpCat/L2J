@@ -209,6 +209,16 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return mode != PhantomCombatMode.RANGED_MAGIC;
 	}
 
+	default List<org.l2jmobius.gameserver.phantoms.learning.LearningPolicy.Candidate> learningCandidates(PhantomCombatRequest request, ActorSnapshot actor, TargetSnapshot target, List<SelectedSkill> skills)
+	{
+		return List.of();
+	}
+
+	default ActionOutcome castLearning(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode, org.l2jmobius.gameserver.phantoms.learning.LearningPolicy.Attempt attempt)
+	{
+		return cast(targetObjectId, skill, mode);
+	}
+
 	/** Uses this same actor owner for a bounded legal NPC spacing move, only between actions. */
 	default ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 	{

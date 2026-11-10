@@ -89,6 +89,9 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObser
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.learning.LearningFeatures;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
@@ -157,9 +160,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	}
 	private static boolean nativePvpSkillReady(Player player, Creature target, Skill skill)
 	{
+		return nativeOffensiveResourcesReady(player, target, skill) && (target == null || skill.checkCondition(player,target,false));
+	}
+
+	private static boolean nativeOffensiveResourcesReady(Player player, Creature target, Skill skill)
+	{
 		return !player.isSkillDisabled(skill) && player.getCurrentMp() >= player.getStat().getMpConsume(skill)+player.getStat().getMpInitialConsume(skill) && player.getCurrentHp()>skill.getHpConsume() && player.getCharges()>=skill.getChargeConsumeCount() && player.getChargedSouls()>=skill.getMaxSoulConsumeCount()
 			&& (skill.getItemConsumeCount()<=0 || player.getInventory().getInventoryItemCount(skill.getItemConsumeId(),-1)>=skill.getItemConsumeCount())
-			&& (target==null || !target.isInvul() && !target.isInvulAgainst(skill.getId(),skill.getLevel()) && (skill.isDamage() || !target.isAffectedBySkill(skill.getId())) && skill.checkCondition(player,target,false));
+			&& (target==null || !target.isInvul() && !target.isInvulAgainst(skill.getId(),skill.getLevel()) && (skill.isDamage() || !target.isAffectedBySkill(skill.getId())));
 	}
 	private static int maximumLootDistance()
 	{
@@ -1308,7 +1316,138 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public List<LearningPolicy.Candidate> learningCandidates(PhantomCombatRequest request, ActorSnapshot actor, TargetSnapshot observed, List<SelectedSkill> skills)
+		{
+			if (skills.size() > 4 || !executionValid() || actor.objectId() != _player.getObjectId()
+				|| PlayerNativeWork.observationEvidence(_player) == null || _player.isAllSkillsDisabled() || _player.isMounted()
+				|| _player.inObserverMode() || _player.isInOlympiadMode() || _player.isInAirShip()
+				|| !(World.getInstance().findObject(request.targetObjectId()) instanceof Monster target)
+				|| !targetSnapshot(target).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return List.of();
+			}
+			final var party = _player.getParty();
+			final boolean grouped = request.learningScope() == PhantomCombatRequest.LearningScope.PARTY;
+			if (grouped != (party != null))
+			{
+				return List.of();
+			}
+			final double distance = observed.distance();
+			final GeoEngine geo = GeoEngine.getInstance();
+			if (!geo.hasGeo(_player.getX(), _player.getY()) || !geo.hasGeo(target.getX(), target.getY()) || !geo.canSeeTarget(_player, target))
+			{
+				return List.of();
+			}
+			final double pDef = target.getPDef(_player);
+			final double mDef = target.getMDef(_player, null);
+			final LearningFeatures common = new LearningFeatures()
+				.set(0, _player.getLevel() / 100.0).set(1, actor.currentHp() / actor.maximumHp()).set(2, actor.currentMp() / actor.maximumMp())
+				.category(3, 6, actor.classId()).set(9, actor.currentCp() / actor.maximumCp())
+				.set(10, _player.getPAtk(target) / 5000).set(11, _player.getMAtk(target, null) / 5000)
+				.set(16, PhantomNativeShotControl.hasOffensiveReserve(_player, request.mode().magic(), 1) ? 1 : 0)
+				.set(17, _player.getPDef(target) / 3000).set(18, _player.getMDef(target, null) / 3000)
+				.set(19, _player.getBuffCount() / 40.0).set(20, _player.getEffectList().getDebuffs().size() / 16.0)
+				.set(21, _player.isMovementDisabled() ? 1 : 0).set(22, actor.moving() ? 1 : 0)
+				.set(23, actor.casting() ? 1 : 0).set(24, actor.attacking() ? 1 : 0).set(25, _player.isMageClass() ? 1 : 0)
+				.set(26, distance / 2000).set(27, ((long) target.getZ() - _player.getZ()) / 512.0).set(28, grouped ? 1 : 0)
+				.set(40, observed.currentHp() / observed.maximumHp()).set(41, (target.getLevel() - _player.getLevel()) / 40.0)
+				.set(42, (mDef - pDef) / Math.max(1, pDef + mDef)).category(43, 4, observed.npcId())
+				.set(47, target.getTarget() == _player ? 1 : 0).set(48, pDef / 3000).set(49, mDef / 3000).set(50, 1);
+			final var weapon = _player.getActiveWeaponItem();
+			if (weapon != null && weapon.useWeaponSkillsOnly())
+			{
+				return List.of();
+			}
+			final var equipped = _player.getActiveWeaponInstance();
+			if (weapon != null && equipped != null)
+			{
+				common.category(12, 1, weapon.getItemType().name().hashCode()).set(14, weapon.getCrystalType().getLevel() / 8.0).set(15, equipped.getEnchantLevel() / 20.0);
+			}
+			final var armor = _player.getChestArmorInstance();
+			if (armor != null)
+			{
+				common.category(13, 1, armor.getItemType().toString().hashCode());
+			}
+			if (grouped && !observeLearningParty(common, party.getMembers(), request.partyRoles(), target))
+			{
+				return List.of();
+			}
+			final var nativeOwner = _player.getNativeWorkOwner();
+			final var targetSpawn = target.getNativeEvidenceTarget();
+			final List<LearningPolicy.Candidate> candidates = new ArrayList<>(skills.size());
+			for (SelectedSkill selected : skills)
+			{
+				final Skill skill = _player.getKnownSkill(selected.skillId());
+				if (skill == null || !supportsSkill(selected, request.mode()) || !skill.isDamage() || skill.getAffectRange() > 0 || skill.isChanneling()
+					|| skill.isSimultaneousCast() || skill.getFlyType() != null || skill.hasCastPreconditions() || !nativeOffensiveResourcesReady(_player, target, skill)
+					|| (!skill.isStatic() && (skill.isMagic() ? _player.isMuted() : _player.isPhysicalMuted()))
+					|| distance > Math.max(40, _player.getMagicalAttackRange(skill)))
+				{
+					continue;
+				}
+				if (skill.getItemConsumeId() > 0)
+				{
+					final Item item = _player.getInventory().getItemByItemId(skill.getItemConsumeId());
+					if (item == null || item.getCount() < skill.getItemConsumeCount()) { continue; }
+				}
+				final double cost = _player.getStat().getMpConsume(skill) + _player.getStat().getMpInitialConsume(skill);
+				final float[] vector = common.fork().set(52, 1).category(53, 1, skill.getId()).set(54, skill.getLevel() / 100.0)
+					.set(55, skill.getMagicLevel() / 100.0).set(56, skill.isMagic() ? 1 : 0)
+					.set(57, cost / 500).set(58, skill.getHitTime() / 10000.0).set(59, skill.getReuseDelay() / 60000.0)
+					.set(60, skill.getCastRange() / 2000.0).category(61, 1, skill.getTargetType().name().hashCode())
+					.set(62, skill.getPower() / 5000).category(63, 1, skill.getElement()).copy();
+				candidates.add(new LearningPolicy.Candidate(selected, vector, cost, skill.getHitTime(), skill.getItemConsumeCount(),
+					() -> executionValid() && _player.getNativeWorkOwner() == nativeOwner && _player.getParty() == party
+						&& _player.getKnownSkill(selected.skillId()) == skill && World.getInstance().findObject(target.getObjectId()) == target
+						&& targetSpawn.equals(target.getNativeEvidenceTarget())));
+			}
+			return candidates;
+		}
+
+		private boolean observeLearningParty(LearningFeatures common, List<Player> members, PhantomCombatRequest.PartyRoles roles, Monster target)
+		{
+			if (roles == null || members.size() < 2 || members.size() > 9 || roles.members().size() != members.size())
+			{
+				return false;
+			}
+			int min = 100;
+			int max = 0;
+			int levels = 0;
+			double hp = 0;
+			double mp = 0;
+			int low = 0;
+			int focus = 0;
+			for (Player member : members)
+			{
+				if (member.getParty() != _player.getParty() || !roles.members().contains(member.getObjectId()) || PlayerNativeWork.observationEvidence(member) == null)
+				{
+					return false;
+				}
+				final int level = member.getLevel();
+				min = Math.min(min, level);
+				max = Math.max(max, level);
+				levels += level;
+				final double fraction = member.getCurrentHp() / Math.max(1, member.getMaxHp());
+				hp += fraction;
+				mp += member.getCurrentMp() / Math.max(1, member.getMaxMp());
+				if (fraction < .35) { low++; }
+				if (member.getTarget() == target) { focus++; }
+			}
+			final int count = members.size();
+			common.set(29, count / 9.0).set(30, roles.tanks() / 9.0).set(31, roles.healers() / 9.0).set(32, roles.damage() / 9.0)
+				.set(33, min / 100.0).set(34, max / 100.0).set(35, levels / (100.0 * count)).set(36, hp / count).set(37, mp / count)
+				.set(38, low / 9.0).set(39, focus / (double) count);
+			return true;
+		}
+
+		@Override
 		public ActionOutcome cast(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
+		{
+			return castLearning(targetObjectId, selected, mode, null);
+		}
+
+		@Override
+		public ActionOutcome castLearning(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode, LearningPolicy.Attempt attempt)
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
 			if (!(object instanceof Monster target))
@@ -1336,7 +1475,14 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.ALREADY_OWNED;
 			}
 			if (_player.getNativeWorkOwner() != null && _player.getNativeWorkOwner().requiresOffensiveShots() && _shots.activate(skill.isMagic()) == ShotOutcome.FAILED) { return ActionOutcome.UNAVAILABLE; }
-			_player.getAI().setIntention(Intention.CAST, skill, target);
+			if (attempt == null)
+			{
+				_player.getAI().setIntention(Intention.CAST, skill, target);
+			}
+			else
+			{
+				LearningCastEvidence.dispatch(attempt, _player, target, skill, this::executionValid, () -> _player.getAI().setIntention(Intention.CAST, skill, target));
+			}
 			return ActionOutcome.ISSUED;
 		}
 

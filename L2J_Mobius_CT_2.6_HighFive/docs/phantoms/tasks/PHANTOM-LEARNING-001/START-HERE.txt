@@ -1,0 +1,8 @@
+PHANTOM-LEARNING-001 — стартовый пакет для Codex, язык: русский.
+Модель мышления: Very High (multi-owner combat + versioned shared learning + SQL + ownership).
+
+1) Прочитать GOAL.txt, TASK.md, SOURCE_MAP.md, ARCHITECTURE.md, ACCEPTANCE.md, TEST_CASES.md, SAFETY.md, WORKFLOW.md, ROADMAP.md.
+2) Прочитать обязательные repository Agents.md, PHANTOM_DEVELOPMENT_MASTER_PLAN.md, CODEX_WORKFLOW_CONTRACT.md и TASK_PACKAGE_STANDARD.md. В исторических документах встречаются устаревшие пути/ветки; данное прямое владельческое разрешение устанавливает фактический Git root, исходный SHA и отдельную learning-ветку.
+3) Рабочая ветка создаётся в НЕЗАВИСИМОМ clone из WIP TASK130 на фиксированном SHA c5b81f89ce02030eff8441395b0411137a110b2f; пользовательский checkout не менять.
+4) Выполнить одну полную learn -> persist -> restart/reload -> real policy decision вертикаль и остановиться. Training Director — следующая задача.
+5) Отчёт — docs/phantoms/reports/PHANTOM-LEARNING-001.md. При PARTIAL дать точную оставшуюся границу, а не открывать бесконечное продолжение.

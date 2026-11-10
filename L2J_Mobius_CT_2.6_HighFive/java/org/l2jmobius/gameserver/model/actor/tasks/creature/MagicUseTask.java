@@ -24,6 +24,7 @@ import java.util.function.BooleanSupplier;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence;
 
 /**
  * Task dedicated to magic use of character
@@ -39,6 +40,7 @@ public class MagicUseTask implements Runnable
 	private volatile int _phase;
 	private final boolean _simultaneously;
 	private final boolean _nativeLifetimeOwned;
+	private final LearningCastEvidence _learning;
 	
 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous)
 	{
@@ -50,7 +52,10 @@ public class MagicUseTask implements Runnable
 		_skillTime = hit;
 		_simultaneously = simultaneous;
 		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
+		_learning = LearningCastEvidence.capture(creature, s, targets, simultaneous);
 	}
+
+	public LearningCastEvidence learningEvidence() { return _learning; }
 
 	private static boolean managed(WorldObject object)
 	{

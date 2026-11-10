@@ -69,6 +69,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatStepHandlers;
 import org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend;
 import org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney;
@@ -478,6 +479,7 @@ public final class PhantomSystem
 				_progressionService.start();
 				final L2jCombatBackend combatBackend = new L2jCombatBackend(_materializationService, _gameKnowledgeService::query, () -> _progressionService.findCatalog().orElse(null));
 				_combatService = new PhantomCombatService(combatBackend, PhantomCombatCapabilityResolver.fromProgression(() -> _progressionService.findCatalog().orElse(null)), combatPolicy);
+				_combatService.installLearning(LearningPolicy.configured(ServerConfig.DATAPACK_ROOT.toPath()));
 				_combatService.start();
 				final File economyPolicyFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/economy/high-five-economy-v1.xml");
 				final PhantomEconomyPolicy economyPolicy = PhantomEconomyPolicy.load(economyPolicyFile.toPath());

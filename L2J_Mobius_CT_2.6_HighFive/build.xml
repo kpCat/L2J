@@ -1266,6 +1266,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning001-test" depends="compile-tests" description="Run shared neural policy, Combat dispatch and warmed performance tests.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="learning001" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-combat-action-ownership-test" depends="compile-tests" description="Run exact dispatch, cleanup, loot, skill and respawn ownership tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

@@ -60,10 +60,57 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomOwnedAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
+
 public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 {
 	private static final long WAIT_MILLIS = 5000;
 	private static final SelectedSkill MAGIC_SKILL = new SelectedSkill(1339, 1);
+	private static final SelectedSkill SECOND_MAGIC_SKILL = new SelectedSkill(1340, 1);
+
+	static void learningDispatch(org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy model, float[] soloA, float[] soloB, float[] partyA, float[] partyB)
+	{
+		learningCast(LearningPolicy.Mode.ON, model, PhantomCombatRequest.LearningScope.SOLO, soloA, soloB, 2, SECOND_MAGIC_SKILL);
+		learningCast(LearningPolicy.Mode.ON, model, PhantomCombatRequest.LearningScope.PARTY, partyA, partyB, 2, SECOND_MAGIC_SKILL);
+		learningCast(LearningPolicy.Mode.SHADOW, model, PhantomCombatRequest.LearningScope.PARTY, partyA, partyB, 2, MAGIC_SKILL);
+		learningCast(LearningPolicy.Mode.OFF, model, PhantomCombatRequest.LearningScope.SOLO, soloA, soloB, 2, MAGIC_SKILL);
+		learningCast(LearningPolicy.Mode.ON, model, PhantomCombatRequest.LearningScope.SOLO, soloA, soloB, 1, MAGIC_SKILL);
+		learningCast(LearningPolicy.Mode.ON, model, PhantomCombatRequest.LearningScope.SOLO, soloA, soloB, 0, MAGIC_SKILL);
+	}
+
+	private static void learningCast(LearningPolicy.Mode mode, org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy model, PhantomCombatRequest.LearningScope scope,
+		float[] a, float[] b, int ready, SelectedSkill expected)
+	{
+		final var dispatcher = new ManualDispatcher();
+		final var lease = new FakeLease();
+		lease.extraLearningSkill = true;
+		lease.learning = List.of(new LearningPolicy.Candidate(MAGIC_SKILL, a, 10, 500, 0),
+			new LearningPolicy.Candidate(SECOND_MAGIC_SKILL, b, 10, 500, 0, () -> ready > 0)).subList(0, ready == 0 ? 2 : ready);
+		final var resolver = new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(PhantomCombatMode.RANGED_MAGIC.capabilityKey(), 900, List.of(MAGIC_SKILL, SECOND_MAGIC_SKILL))));
+		final var service = new PhantomCombatService(new FakeBackend(lease), resolver, PhantomCombatPolicy.productionDefaults(2), new PhantomCombatMetrics(), () -> 1, dispatcher);
+		final var policy = new LearningPolicy(mode, 1, model, 4);
+		service.installLearning(policy);
+		service.start();
+		try
+		{
+			final var request = new PhantomCombatRequest(scope == PhantomCombatRequest.LearningScope.PARTY ? 2 : 1, 100, PhantomCombatMode.RANGED_MAGIC, false, false, 30_000, () -> false, scope, null, () -> false);
+			final var start = scope == PhantomCombatRequest.LearningScope.PARTY ? service.startContentSession(request, "party.tactic.learning-test") : service.startSession(request);
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, start.status(), "Learning test combat rejected.");
+			dispatcher.runNext();
+			PhantomAssertions.assertEquals(expected, lease.actionSkill, "Wrong skill dispatched in " + scope + " " + mode);
+			PhantomAssertions.assertEquals(100, lease.actionTargetId, "Learning changed exact target.");
+			PhantomAssertions.assertEquals(mode == LearningPolicy.Mode.OFF ? 0 : 1, lease.learningReads, "Learning read while disabled.");
+			if (mode == LearningPolicy.Mode.SHADOW)
+			{
+				PhantomAssertions.assertEquals(1L, policy.counters().preferredDifferent(), "Shadow did not observe the different learned preference.");
+			}
+		}
+		finally
+		{
+			service.beginStop();
+			PhantomAssertions.assertTrue(service.finishStop(), "Learning test combat leaked the lease.");
+		}
+	}
 
 	@Override
 	public String id()
@@ -833,6 +880,9 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		private int actionTargetId;
 		private SelectedSkill actionSkill;
 		private PhantomCombatMode castMode;
+		private boolean extraLearningSkill;
+		private int learningReads;
+		private List<LearningPolicy.Candidate> learning = List.of();
 
 		@Override
 		public ActorSnapshot actorSnapshot()
@@ -874,7 +924,14 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		@Override
 		public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode)
 		{
-			return MAGIC_SKILL.equals(skill) && (mode == PhantomCombatMode.RANGED_MAGIC);
+			return (MAGIC_SKILL.equals(skill) || (extraLearningSkill && SECOND_MAGIC_SKILL.equals(skill))) && (mode == PhantomCombatMode.RANGED_MAGIC);
+		}
+
+		@Override
+		public List<LearningPolicy.Candidate> learningCandidates(PhantomCombatRequest request, ActorSnapshot actor, TargetSnapshot target, List<SelectedSkill> skills)
+		{
+			learningReads++;
+			return learning;
 		}
 
 		@Override

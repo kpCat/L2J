@@ -1,0 +1,50 @@
+{
+  "task_id": "PHANTOM-LEARNING-001",
+  "source_repo": "https://github.com/kpCat/L2J",
+  "source_ref": "wip/coordination-130-preserved",
+  "source_sha": "c5b81f89ce02030eff8441395b0411137a110b2f",
+  "target_branch": "wip/phantom-learning",
+  "module": "L2J_Mobius_CT_2.6_HighFive",
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "83fab74f12f64af580f7f3c232962f89be0dab427c2681e391db8da8da8a7d2b"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "bddf310ab2b90de6b2499ce542fbca42bfd0d70e2927cdb564dba77d20897d66"
+    },
+    {
+      "path": "GOAL.txt",
+      "sha256": "b9a4e7fc74bcfda3cfcf06fdceadee72390497179bf3ca6e6c24cb114f8afa58"
+    },
+    {
+      "path": "ROADMAP.md",
+      "sha256": "267f9926580541dd9d6f8354118278b4ce57fdb2e1d417800ed2f66944920001"
+    },
+    {
+      "path": "SAFETY.md",
+      "sha256": "6f795dcd5d65b109ad26c47aae3544ce1615a7f16b6ef1d81a113876c0ecd957"
+    },
+    {
+      "path": "SOURCE_MAP.md",
+      "sha256": "adee5fe2b9116513eb49dabfd2fba10184e1372399841ee3987634fccbc15d95"
+    },
+    {
+      "path": "START-HERE.txt",
+      "sha256": "bb1bfec876a6c08c9cc53c2ec191b84aea0dcbbf7a61a595315aa38bd40457a2"
+    },
+    {
+      "path": "TASK.md",
+      "sha256": "56280a381eb854cbcdfcd9aa70fcd8dc944684be9575c26358053f0a3d4cb4b7"
+    },
+    {
+      "path": "TEST_CASES.md",
+      "sha256": "def37baaf35b75834975670ac01fb7f76a51f249aff997ed341b2ecfff2e5771"
+    },
+    {
+      "path": "WORKFLOW.md",
+      "sha256": "7c694578e13c99292d2edc4d3bf9ee4b03fb4e3367b6edc47dbe854a03a2096e"
+    }
+  ]
+}

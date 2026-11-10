@@ -3434,7 +3434,20 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		boolean retained = false;
 		try
 		{
-			final var started = combat.startContentSession(new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token), key);
+			final boolean learning = farm && combat.learningActive(PhantomCombatRequest.LearningScope.PARTY);
+			final var roles = learning ? new PhantomCombatRequest.PartyRoles(
+				authority.phantomMembers().stream().map(MemberRef::characterObjectId).collect(java.util.stream.Collectors.toUnmodifiableSet()),
+				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("frontline.guardian")).count(),
+				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("support.healer")).count(),
+				(int) authority.assignments().stream().filter(role -> role.roleKey().startsWith("damage.")).count()) : null;
+			final var request = learning ? new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token, PhantomCombatRequest.LearningScope.PARTY, roles, () ->
+			{
+				final StoredPartyState current = _claims.get(profileId);
+				return _state != State.RUNNING || current == null || !current.state().groupId().equals(authority.groupId())
+					|| current.state().groupGeneration() != authority.groupGeneration() || current.state().membershipRevision() != authority.membershipRevision()
+					|| !current.state().leader().equals(authority.leader());
+			}) : new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token);
+			final var started = combat.startContentSession(request, key);
 			if (started.accepted() && (started.session() != null))
 			{
 				final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), targetId, key, token, loot ? runtime : null);

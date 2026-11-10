@@ -324,6 +324,7 @@ public final class PhantomTestLauncher
 			case "combat-target-preflight058" -> new PhantomCombatCoreSuite(true);
 			case "combat-ownership" -> new PhantomCombatOwnershipSuite();
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
+			case "learning001" -> new PhantomLearning001Suite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
 			case "post002-native-support" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.POST002_SUPPORT);
 			case "companion-real-support058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_REAL_SUPPORT_058);

@@ -178,7 +178,8 @@ public class CreatureStatus
 		{
 			if ((_creature instanceof Attackable target) && target.isMonster() && (attacker instanceof Player player) && player.isNativeWorkManaged() && !isHPConsumption)
 			{
-				setCurrentHp(Math.max(_currentHp - value, 0), true, player);
+				final double observedHp = _currentHp;
+				setCurrentHp(Math.max(observedHp - value, 0), true, player, false, observedHp);
 			}
 			else
 			{
@@ -281,19 +282,16 @@ public class CreatureStatus
 	}
 	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration)
 	{
-		return setCurrentHp(newHp, broadcastPacket, null, nativeRegeneration);
+		return setCurrentHp(newHp, broadcastPacket, null, nativeRegeneration, Double.NaN);
 	}
 	
-	private boolean setCurrentHp(double newHp, boolean broadcastPacket, Player damageAttacker)
-	{
-		return setCurrentHp(newHp, broadcastPacket, damageAttacker, false);
-	}
-	private boolean setCurrentHp(double newHp, boolean broadcastPacket, Player damageAttacker, boolean nativeRegeneration)
+	private boolean setCurrentHp(double newHp, boolean broadcastPacket, Player damageAttacker, boolean nativeRegeneration, double observedHp)
 	{
 		final PlayerNativeWork.Owner damageOwner = damageAttacker == null ? null : damageAttacker.getNativeWorkOwner();
 		final PlayerNativeEvidence damageEvidence = (damageOwner != null) && (damageOwner.player() == damageAttacker) && damageOwner.isCurrent() ? damageOwner.evidence() : null;
 		PlayerNativeEvidence.Target damageTarget = null;
 		double actualHpDelta = 0;
+		boolean uncontestedWrite = false;
 		
 		// Get the Max HP of the Creature
 		final int currentHp = (int) _currentHp;
@@ -337,6 +335,7 @@ public class CreatureStatus
 			{
 				damageTarget = target.getNativeEvidenceTarget();
 				actualHpDelta = beforeHp - _currentHp;
+				uncontestedWrite = beforeHp == observedHp;
 			}
 			observeRegeneration(nativeRegeneration ? _currentHp - beforeHp : 0, 0);
 		}
@@ -344,6 +343,10 @@ public class CreatureStatus
 		{
 			damageEvidence.damage(damageTarget, actualHpDelta);
 			PlayerNativeWork.combatDamage(damageAttacker, damageOwner, damageEvidence, actualHpDelta);
+			if (uncontestedWrite)
+			{
+				org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.actualDamage(damageAttacker, damageOwner, damageTarget, actualHpDelta);
+			}
 		}
 		
 		final boolean hpWasChanged = currentHp != _currentHp;

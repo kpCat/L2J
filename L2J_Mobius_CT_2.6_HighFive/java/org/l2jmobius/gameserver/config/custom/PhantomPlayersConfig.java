@@ -57,6 +57,7 @@ public final class PhantomPlayersConfig
 	public static final ZoneId DEFAULT_POPULATION_TIME_ZONE = ZoneId.of("UTC");
 
 	private static volatile Settings _settings = Settings.disabled();
+	private static volatile LearningSettings _learning = LearningSettings.off();
 
 	private PhantomPlayersConfig()
 	{
@@ -65,6 +66,38 @@ public final class PhantomPlayersConfig
 	public static void load()
 	{
 		_settings = read(Path.of(PHANTOM_PLAYERS_CONFIG_FILE));
+		_learning = _settings.enabled() && Boolean.getBoolean("phantom.learning.train") ? readLearning() : LearningSettings.off();
+	}
+
+	public record LearningSettings(String mode, long version, int maxCandidates, boolean evidence, int maxExamplesPerBatch, long seed)
+	{
+		private static LearningSettings off() { return new LearningSettings("OFF", 0, 4, false, 4096, 0); }
+	}
+
+	public static LearningSettings learningSettings()
+	{
+		return _learning;
+	}
+
+	private static LearningSettings readLearning()
+	{
+		try
+		{
+			final var config = new ConfigReader(PHANTOM_PLAYERS_CONFIG_FILE);
+			final String mode = config.getString("LearningMode", "OFF");
+			final long version = config.getLong("LearningModelVersion", 0);
+			final int candidates = config.getInt("LearningMaxCandidates", 4);
+			final int examples = config.getInt("LearningMaxExamplesPerBatch", 4096);
+			if (!Set.of("OFF", "SHADOW", "ON").contains(mode) || version < 0 || candidates < 2 || candidates > 4 || examples < 32 || examples > 4096)
+			{
+				return LearningSettings.off();
+			}
+			return new LearningSettings(mode, version, candidates, config.getBoolean("LearningEvidenceEnabled", false), examples, config.getLong("LearningDeterministicSeed", 0));
+		}
+		catch (RuntimeException invalid)
+		{
+			return LearningSettings.off();
+		}
 	}
 
 	public static Settings read(Path path)

@@ -38,6 +38,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLinkedSe
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpLocalSupportSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.PvpTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.RaidTargetSnapshot;
+import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.SiegeTargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ThreatObservation;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
@@ -248,6 +249,25 @@ public final class PhantomCombatService
 	private int _startOperations;
 	private boolean _stopFailureRecorded;
 	private boolean _stopRequested;
+	private LearningPolicy _learning = LearningPolicy.OFF;
+
+	public boolean learningActive(PhantomCombatRequest.LearningScope scope)
+	{
+		return _learning.active(scope);
+	}
+
+	/** Load once before start so an admitted action never changes policy mid-cast. */
+	public void installLearning(LearningPolicy learning)
+	{
+		synchronized (_monitor)
+		{
+			if (_state == ServiceState.RUNNING || _stopRequested)
+			{
+				throw new IllegalStateException("Learning policy can only be installed before combat starts");
+			}
+			_learning = Objects.requireNonNull(learning);
+		}
+	}
 
 	public PhantomCombatService(PhantomCombatBackend backend, PhantomCombatCapabilityResolver capabilityResolver, PhantomCombatPolicy policy)
 	{
@@ -1165,6 +1185,10 @@ public final class PhantomCombatService
 				}
 				return false;
 			}
+			if (!_learning.stop())
+			{
+				return false;
+			}
 			_state = ServiceState.STOPPED;
 			return true;
 		}
@@ -1471,7 +1495,7 @@ public final class PhantomCombatService
 				_metrics.threatObserved(session._threatTable.evictions() - evictions);
 			}
 			session._phase = PhantomCombatPhase.FIGHTING;
-			issueAction(session, actor);
+			issueAction(session, actor, target);
 			requeue(session);
 			}
 		}
@@ -1764,7 +1788,7 @@ public final class PhantomCombatService
 		}
 	}
 
-	private void issueAction(PhantomCombatSession session, ActorSnapshot actor)
+	private void issueAction(PhantomCombatSession session, ActorSnapshot actor, TargetSnapshot target)
 	{
 		if (actor.casting() || actor.attacking())
 		{
@@ -1817,6 +1841,30 @@ public final class PhantomCombatService
 		{
 			return;
 		}
+		LearningPolicy.Attempt attempt = null;
+		boolean reordered = false;
+		if (selected != null && _learning.active(session._request.learningScope()) && session._loadout.selectedSkills().size() > 1)
+		{
+			try
+			{
+				final var candidates = session._actorLease.learningCandidates(session._request, actor, target, session._loadout.selectedSkills());
+				final long sequence = Integer.toUnsignedLong(session._nextSkill);
+				final var decision = _learning.choose(candidates, selected, session._generation * 131 + sequence);
+				if (decision.observed() != null && decision.observed().exact().getAsBoolean() && session._loadout.selectedSkills().contains(decision.selected()))
+				{
+					reordered = !selected.equals(decision.selected());
+					selected = decision.selected();
+					if (_learning.collecting() && selected.equals(decision.observed().skill()))
+					{
+						attempt = new LearningPolicy.Attempt(_learning, decision.observed(), session._request, session._generation, sequence);
+					}
+				}
+			}
+			catch (RuntimeException invalidObservation)
+			{
+				_learning.observationRejected();
+			}
+		}
 		if (session._request.useShotsIfAvailable())
 		{
 			final ShotOutcome shot = session._actorLease.activateShot(session._request.mode());
@@ -1825,11 +1873,13 @@ public final class PhantomCombatService
 		final ActionOutcome outcome;
 		if (selected != null)
 		{
-			outcome = session._actorLease.cast(session._request.targetObjectId(), selected, session._request.mode());
+			outcome = attempt == null ? session._actorLease.cast(session._request.targetObjectId(), selected, session._request.mode())
+				: session._actorLease.castLearning(session._request.targetObjectId(), selected, session._request.mode(), attempt);
 			if (outcome == ActionOutcome.ISSUED)
 			{
 				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
 				_metrics.castIssued();
+				if (reordered) { _learning.castIssued(); }
 			}
 			else
 			{

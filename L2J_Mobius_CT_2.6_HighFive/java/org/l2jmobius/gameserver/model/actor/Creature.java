@@ -6079,7 +6079,15 @@ public abstract class Creature extends WorldObject
 			}
 			
 			// Launch the magic skill in order to calculate its effects
-			callSkill(mut.getSkill(), mut.getTargets());
+			final var learning = mut.learningEvidence();
+			if (learning == null)
+			{
+				callSkill(mut.getSkill(), mut.getTargets());
+			}
+			else
+			{
+				learning.hit(() -> callSkill(mut.getSkill(), mut.getTargets()));
+			}
 		}
 		catch (NullPointerException e)
 		{
@@ -6223,11 +6231,22 @@ public abstract class Creature extends WorldObject
 	 */
 	public void callSkill(Skill skill, List<WorldObject> targets)
 	{
+		final var learning = org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.takeHit();
 		final List<WorldObject> frozenTargets = List.copyOf(targets);
 		// Actual effect entry is a fresh native write operation. The strict status writer
 		// still captures its exact transfer pointer and rejects any later unmanaged change.
 		PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, frozenTargets), "cast-native-write", () ->
-			PlayerNativeWork.runCombat(this, frozenTargets, "cast-skill-effects", () -> callSkillNative(skill, frozenTargets)));
+			PlayerNativeWork.runCombat(this, frozenTargets, "cast-skill-effects", () ->
+			{
+				if (learning == null && !org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.observingEffects())
+				{
+					callSkillNative(skill, frozenTargets);
+				}
+				else
+				{
+					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.effects(learning, this, skill, frozenTargets, () -> callSkillNative(skill, frozenTargets));
+				}
+			}));
 	}
 
 	private void callSkillNative(Skill skill, List<WorldObject> targets)
@@ -6434,6 +6453,7 @@ public abstract class Creature extends WorldObject
 		catch (Exception e)
 		{
 			PlayerNativeWork.recordFailure(e);
+			org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.failedEffect();
 			LOGGER.log(Level.WARNING, getClass().getSimpleName() + ": callSkill() failed.", e);
 		}
 	}
@@ -6729,6 +6749,18 @@ public abstract class Creature extends WorldObject
 	}
 	
 	public void reduceCurrentHp(double amount, Creature attacker, boolean awake, boolean isDOT, Skill skill)
+	{
+		if (org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.observingEffects())
+		{
+			org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.directDamage(this, attacker, skill, isDOT, () -> reduceCurrentHpNative(amount, attacker, awake, isDOT, skill));
+		}
+		else
+		{
+			reduceCurrentHpNative(amount, attacker, awake, isDOT, skill);
+		}
+	}
+
+	private void reduceCurrentHpNative(double amount, Creature attacker, boolean awake, boolean isDOT, Skill skill)
 	{
 		if (isChampion() && (ChampionMonstersConfig.profile(this).hp() != 0))
 		{

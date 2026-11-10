@@ -943,6 +943,11 @@ public class Skill
 		return (_effectPoint < 0) && (_targetType != TargetType.SELF);
 	}
 	
+	public boolean hasCastPreconditions()
+	{
+		return _preCondition != null && !_preCondition.isEmpty();
+	}
+
 	public boolean checkCondition(Creature creature, WorldObject object, boolean itemOrWeapon)
 	{
 		if (creature.isFakePlayer() || (creature.isGM() && !GeneralConfig.GM_SKILL_RESTRICTION))
