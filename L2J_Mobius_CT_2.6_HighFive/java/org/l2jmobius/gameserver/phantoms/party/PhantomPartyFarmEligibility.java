@@ -112,8 +112,29 @@ public final class PhantomPartyFarmEligibility
 		final int start = Math.floorMod((long) page * limit, candidates.size());
 		return java.util.stream.IntStream.range(0, limit).mapToObj(index -> candidates.get((start + index) % candidates.size())).toList();
 	}
-	public static boolean withinThreatBudget(double incoming, double currentHp)
-	{ return Double.isFinite(incoming) && incoming < currentHp * 0.6; }
+	public static final TacticalRisk DEFAULT_TACTICAL_RISK = new TacticalRisk(0x70617274795f7076L, 68, 88, 18);
+
+	/** A durable actor's willingness to risk HP. It grants no action, mitigation or resource credit. */
+	public record TacticalRisk(long seed, int minimumPercent, int maximumPercent, int coverBonusPercent)
+	{
+		public TacticalRisk
+		{
+			if (minimumPercent <= 0 || maximumPercent < minimumPercent || maximumPercent > 120
+				|| coverBonusPercent < 0 || coverBonusPercent > 30) { throw new IllegalArgumentException("Invalid tactical risk settings."); }
+		}
+
+		public int limitPercent(long profileId, boolean covered)
+		{
+			return new java.util.SplittableRandom(seed ^ profileId).nextInt(minimumPercent, maximumPercent + 1)
+				+ (covered ? coverBonusPercent : 0);
+		}
+
+		public boolean accepts(long profileId, double incoming, double currentHp, boolean covered)
+		{
+			return profileId > 0 && Double.isFinite(incoming) && incoming >= 0 && Double.isFinite(currentHp) && currentHp > 0
+				&& incoming / currentHp < limitPercent(profileId, covered) / 100d;
+		}
+	}
 	/** Every member's local threats, deduplicated before the four-threat overflow witness. */
 	public static <A, T> List<T> farmThreats(List<A> actors, java.util.function.Function<A, java.util.stream.Stream<T>> nearby, java.util.function.Predicate<T> engaged)
 	{ return actors.stream().flatMap(nearby).filter(engaged).distinct().limit(5).toList(); }

@@ -493,8 +493,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		final var threats = java.util.stream.Stream.concat(java.util.stream.Stream.of(target), assists.stream())
 			.map(threat -> L2jPhantomBackgroundAuthority.nativePlanningTarget(threat, true)).toList();
 		final double reserve = PhantomPartyFarmEligibility.threatExposureMillis(60_000, false);
-		return roster.stream().allMatch(member -> PhantomPartyFarmEligibility.withinThreatBudget(threats.stream()
-			.mapToDouble(threat -> PhantomBackgroundModel.incomingDamage(member.combat(), threat, reserve)).sum(), member.vitals().currentHp()));
+		return roster.stream().allMatch(member -> PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK.accepts(member.identity().profileId(), threats.stream()
+			.mapToDouble(threat -> PhantomBackgroundModel.incomingDamage(member.combat(), threat, reserve)).sum(), member.vitals().currentHp(), false));
 	}
 
 	/** Bounded passive admission witness; it does not grant actions or change the guards. */
@@ -727,6 +727,9 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			if (!observed.refusal().isEmpty() || observed.objectIds().isEmpty())
 			{ if (witness != null) { witness.accept("WAIT_THREAT:target=" + entry.getKey().getObjectId() + ":reason=" + (observed.refusal().isEmpty() ? observed.reason() : observed.refusal())); } return false; }
 		}
+		final boolean covered = supportCastMillis > 0 && members.stream().anyMatch(member -> mainVictims.contains(member.ref().characterObjectId())
+			&& (victim.idle() ? PhantomAutonomousFarmParty.guardian(member) : PhantomAutonomousFarmParty.guardianPresent(member)));
+		final var risk = PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK;
 		for (int index = 0; index < actors.size(); index++)
 		{
 			final Player player = actors.get(index);
@@ -744,13 +747,14 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				incoming += farmIncomingDamage(player, assist, exposure);
 			}
 			exposures[index] = incoming;
-			if (!PhantomPartyFarmEligibility.withinThreatBudget(incoming, player.getCurrentHp()))
+			final long profileId = members.get(index).ref().profileId();
+			if (!risk.accepts(profileId, incoming, player.getCurrentHp(), covered))
 			{
 				if (witness != null)
 				{
 					witness.accept((victim.idle() ? "WAIT_TANK_AGGRO" : "WAIT_THREAT") + ":target=" + target.getObjectId() + ":actor=" + player.getObjectId()
 						+ ":incoming=" + incoming + ":HP=" + player.getCurrentHp() + ":durationMillis=" + millis + ":exposureMillis=" + exposure
-						+ ":supportCastMillis=" + supportCastMillis + ":otherThreats=" + observedThreats.size()
+						+ ":supportCastMillis=" + supportCastMillis + ":riskLimitPercent=" + risk.limitPercent(profileId, covered) + ":otherThreats=" + observedThreats.size()
 						+ ":openingAssists=" + openingAssists.stream().map(Creature::getObjectId).toList() + ":heal=" + (readyHeal == null ? 0 : readyHeal.getId()));
 				}
 				return false;
@@ -775,7 +779,8 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				+ " idle=" + victim.idle() + " threatCount=" + threats.size() + " threatVictims="
 				+ observedThreats.entrySet().stream().map(entry -> entry.getKey().getObjectId() + "->" + entry.getValue().objectIds()).toList()
 				+ " openingAssists=" + openingAssists.stream().map(Creature::getObjectId).toList()
-				+ " exposureMsReserve=6000 supportCastMs=" + supportCastMillis + " projectedDamage=" + java.util.Arrays.toString(exposures));
+				+ " exposureMsReserve=6000 supportCastMs=" + supportCastMillis + " projectedDamage=" + java.util.Arrays.toString(exposures)
+				+ " tacticalRiskPercent=" + members.stream().map(member -> risk.limitPercent(member.ref().profileId(), covered)).toList());
 			System.out.println("NATIVE130_D05 target=" + target.getObjectId() + " healerPresent=" + healerPresent + " caster=" + healerObjectId
 				+ " recipient=" + mainVictim + " readySkill=" + (readyHeal == null ? "none" : readyHeal.getId() + ":" + readyHeal.getLevel()) + " projectedHpCredit=0");
 		}

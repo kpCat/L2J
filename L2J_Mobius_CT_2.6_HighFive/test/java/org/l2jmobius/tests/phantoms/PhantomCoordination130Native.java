@@ -846,7 +846,7 @@ final class PhantomCoordination130Native
             try (var stockDrops = PhantomCoordination130Integration.rendezvousLane() ? new StockDropAudit() : null)
             {
                 observe(runtime, profiles, ids, before, planner.get(), restart, travelRequired, stockDrops,
-                    System.currentTimeMillis() + (PhantomCoordination130Integration.rendezvousLane() ? 480_000 : 300_000));
+                    System.currentTimeMillis() + (PhantomCoordination130Integration.rendezvousLane() ? (restart ? 480_000 : 600_000) : 300_000));
             }
             verifyExistingHumanHeal(runtime, jarHash);
             check(PhantomSystem.shutdownIfStarted(), "PHANTOM_SUBSYSTEM_STOP");
@@ -1742,6 +1742,8 @@ final class PhantomCoordination130Native
         long partyGeneration = -1;
         long observedGeneration = agreement.generation();
         var observedSource = agreement.objective();
+        long recoveringGeneration = -1;
+        boolean recoveryStored = false, recoveryDamage = false;
         TargetSeen earnedTarget = null;
         List<StockDrop> earnedDrops = null;
         boolean loot = false;
@@ -1763,6 +1765,16 @@ final class PhantomCoordination130Native
             }
             final var logicalObjects = group.members().stream().map(member -> objects.get(member.profileId())).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(objects.get(id))).filter(Objects::nonNull).toList();
+            if (!restart && recoveringGeneration < 0 && group.phase() == PhantomLogicalParty.Phase.DRAINING && group.activityReplanRequired())
+            { recoveringGeneration = group.generation(); }
+            if (recoveringGeneration == group.generation() && !recoveryStored && group.phase() == PhantomLogicalParty.Phase.BACKGROUND && actors.isEmpty())
+            {
+                recoveryStored = true;
+                System.out.println("NATIVE130_RECOVERY_STORED group=" + group.groupId() + " generation=" + group.generation()
+                    + " source=" + group.objective().key() + " reason=" + group.waitReason() + " zeroWorld=true");
+            }
+            final boolean observeRecoveryFight = recoveryStored && !recoveryDamage && group.generation() > recoveringGeneration;
+            final boolean allowDamageEvidence = restart || observeRecoveryFight;
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull)
                 .filter(value -> value.getMembers().stream().allMatch(actor -> logicalObjects.contains(actor.getObjectId()))).findFirst().orElse(null);
             final var stock = party == null ? List.<Player>of() : List.copyOf(party.getMembers());
@@ -1804,7 +1816,7 @@ final class PhantomCoordination130Native
                 final var band = PhantomPartyFarmEligibility.forRoster(stock.stream().map(Player::getLevel).toList()).orElse(null);
                 for (var actor : stock)
                 {
-                    if (!kill && actor.getTarget() instanceof Monster mob && !mob.isAlikeDead() && !mob.isRaid() && !mob.isInvul() && mob.isTargetable() && mob.isSpawned()
+                    if ((!kill || observeRecoveryFight) && actor.getTarget() instanceof Monster mob && !mob.isAlikeDead() && !mob.isRaid() && !mob.isInvul() && mob.isTargetable() && mob.isSpawned()
                         && band != null && band.contains(mob.getLevel()) && targets.size() < 32
                         && planner.partyNativeTarget(group.objective(), mob.getId(), new PhantomTopologyPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId())))
                     {
@@ -1873,20 +1885,20 @@ final class PhantomCoordination130Native
                         if (target.before().containsKey(damage.getKey()) && damage.getValue() > target.initialDamage().getOrDefault(damage.getKey(), 0L)) { target.observedDamage().add(damage.getKey()); }
                     }
                     final double currentHp = target.mob().getCurrentHp();
-                    if (kill || !(target.initialHp() > currentHp) || !entry.getKey().equals(target.mob().getNativeEvidenceTarget())
-                        || !restart && !target.mob().isDead()) { continue; }
+                    if (kill && !observeRecoveryFight || !(target.initialHp() > currentHp) || !entry.getKey().equals(target.mob().getNativeEvidenceTarget())
+                        || !allowDamageEvidence && !target.mob().isDead()) { continue; }
                     final var samples = new ArrayList<MemberFight>();
                     for (var actor : stock)
                     {
                         final var before = target.before().get(actor.getObjectId());
                         final var sensor = PlayerNativeWork.observationEvidence(actor);
                         if (before == null || sensor == null || actor.getParty() != party) { continue; }
-                        final boolean damage = restart && !target.mob().isAlikeDead()
+                        final boolean damage = allowDamageEvidence && !target.mob().isAlikeDead()
                             ? currentStockDamage.getOrDefault(actor.getObjectId(), 0L) > target.initialDamage().getOrDefault(actor.getObjectId(), 0L)
                             : target.observedDamage().contains(actor.getObjectId());
                         synchronized (sensor) { samples.add(new MemberFight(before, sensor.snapshot(), sensor.targetReceipts(), damage)); }
                     }
-                    if (restart && (samples.size() != stock.size() || !stock.equals(List.copyOf(party.getMembers())) || party.getLeader() != leader
+                    if (allowDamageEvidence && (samples.size() != stock.size() || !stock.equals(List.copyOf(party.getMembers())) || party.getLeader() != leader
                         || stock.stream().anyMatch(actor ->
                         {
                             final var current = PlayerNativeWork.observationEvidence(actor);
@@ -1896,20 +1908,22 @@ final class PhantomCoordination130Native
                         || World.getInstance().findObject(entry.getKey().objectId()) != target.mob()
                         || !planner.partyNativeTarget(group.objective(), target.mob().getId(), new PhantomTopologyPoint(target.mob().getX(), target.mob().getY(), target.mob().getZ(), target.mob().getInstanceId()))))
                     { continue; }
-                    if (restart && !target.mob().isAlikeDead())
+                    if (allowDamageEvidence && !target.mob().isAlikeDead())
                     {
                         final int attacker = restartDamageActor(entry.getKey(), target.mob().getNativeEvidenceTarget(), logicalObjects.size(), samples);
                         if (attacker > 0)
                         {
                             final var credited = samples.stream().filter(sample -> sample.after().objectId() == attacker).findFirst().orElseThrow();
-                            System.out.println("NATIVE130_RESTART_USEFUL_ACTION kind=DAMAGE group=" + group.groupId() + " generation=" + group.generation()
+                            System.out.println((restart ? "NATIVE130_RESTART_USEFUL_ACTION" : "NATIVE130_RECOVERY_USEFUL_ACTION") + " kind=DAMAGE group=" + group.groupId() + " generation=" + group.generation()
                                 + " leader=" + leader.getObjectId() + " roster=" + stock.stream().map(Player::getObjectId).toList()
                                 + " actor=" + attacker + " epoch=" + target.before().get(attacker).epoch() + " target=" + entry.getKey()
                                 + " source=" + group.objective().key() + " npc=" + target.mob().getId() + " hpBefore=" + target.initialHp() + " hpAfter=" + currentHp
                                 + " damageSequenceBefore=" + credited.before().damageSequence() + " damageSequenceAfter=" + credited.after().damageSequence()
                                 + " stockDamageBefore=" + target.initialDamage().getOrDefault(attacker, 0L) + " stockDamageAfter=" + currentStockDamage.get(attacker)
                                 + " nativeRewardDelta=0");
-                            return;
+                            if (restart) { return; }
+                            recoveryDamage = true;
+                            break;
                         }
                     }
                     if (!target.mob().isDead()) { continue; }
@@ -1918,6 +1932,13 @@ final class PhantomCoordination130Native
                         && (!restart || samples.stream().allMatch(sample -> sameNativeEpoch(sample)
                             && (noNativeRewardDelta(sample) || earned.stream().anyMatch(reward -> reward.objectId() == sample.after().objectId())))))
                     {
+                        if (observeRecoveryFight && !recoveryDamage)
+                        {
+                            recoveryDamage = true;
+                            System.out.println("NATIVE130_RECOVERY_USEFUL_ACTION kind=KILL group=" + group.groupId() + " generation=" + group.generation()
+                                + " source=" + group.objective().key() + " target=" + target.identity() + " earned=" + earned);
+                        }
+                        if (kill) { break; }
                         kill = true;
                         earnedTarget = target;
                         if (stockDrops != null)
@@ -1948,7 +1969,7 @@ final class PhantomCoordination130Native
                         break;
                     }
                 }
-                if (kill) { targets.clear(); }
+                if (kill && (!observeRecoveryFight || recoveryDamage)) { targets.clear(); }
             }
             else { targets.clear(); }
             if (earnedDrops != null && !earnedDrops.isEmpty() && !loot)
@@ -2016,7 +2037,7 @@ final class PhantomCoordination130Native
                 return;
             }
             if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && lootSettled && (!travelRequired || groupTravel)
-                && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
+                && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND && (recoveringGeneration < 0 || recoveryDamage))
             {
                 System.out.println("NATIVE130_USEFUL_GROUP_PASS restart=" + restart + " officialParty=" + partySeen + " realGroupKill=" + kill + " healerRequired=" + healerRequired + " nativeHeal=" + heal + " supportMpDebit=" + healMpDebit + " zeroWorld=true");
                 return;

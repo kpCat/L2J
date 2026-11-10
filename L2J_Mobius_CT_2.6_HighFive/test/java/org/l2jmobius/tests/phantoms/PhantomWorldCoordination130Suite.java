@@ -236,6 +236,21 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				actor -> actor == 1 ? java.util.stream.Stream.of(0, 1, 2, 3, 4) : java.util.stream.Stream.of(1, 2, 3, 4, 5, 6), mob -> mob > 0);
 			PhantomAssertions.assertEquals(List.of(1, 2, 3, 4, 5), overflow, "Duplicate neighborhoods hid the fifth threat or exceeded the bounded witness.");
 		});
+		registry.add("party-voluntarily-accepts-bounded-tactical-risk-above-sixty-percent", _ ->
+		{
+			final var ordinary = PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK;
+			PhantomAssertions.assertTrue(ordinary.accepts(4, 2061.155286722842, 3119, false),
+				"A legal 66% exposure automatically forbade the Cardinal from accepting the pull.");
+			final var cautious = new PhantomPartyFarmEligibility.TacticalRisk(130, 60, 60, 0);
+			final var bold = new PhantomPartyFarmEligibility.TacticalRisk(130, 88, 88, 18);
+			PhantomAssertions.assertFalse(cautious.accepts(4, 2061.155286722842, 3119, false), "A cautious profile lost its selected risk tolerance.");
+			PhantomAssertions.assertTrue(bold.accepts(4, 3200, 3119, true), "A supported bold profile could not voluntarily risk death.");
+			PhantomAssertions.assertFalse(bold.accepts(4, 3200, 3119, false), "Missing tank and Heal received fictitious cover.");
+			PhantomAssertions.assertFalse(ordinary.accepts(4, 2061.155286722842, 1000, true), "Worsening native HP did not cause reconsideration.");
+			PhantomAssertions.assertFalse(ordinary.accepts(4, Double.NaN, 3119, true), "Unknown native exposure acquired permission.");
+			PhantomAssertions.assertEquals(ordinary.limitPercent(4, false), new PhantomPartyFarmEligibility.TacticalRisk(ordinary.seed(), 68, 88, 18).limitPercent(4, false),
+				"The same seed and actor did not reproduce the opening decision.");
+		});
 		registry.add("party-whole-native-resource-budget-has-no-fractional-or-unknown-credit", _ ->
 		{
 			PhantomAssertions.assertEquals(2d, org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.requiredActions(6000, 3000), "An exact two-shot encounter consumed an extra shot.");
@@ -636,14 +651,14 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			final var store = new MemoryStore();
 			final var owner = new PhantomLogicalPartyCoordinator(store);
 			final var visited = new java.util.ArrayList<PhantomDomainRef>();
+			final var cautious = new PhantomPartyFarmEligibility.TacticalRisk(130, 60, 60, 0);
 			owner.bindOpeningProof(offer ->
 			{
 				final var source = offer.proposal().orElseThrow().objective();
 				visited.add(source);
 				final double cardinalOpening = source.equals(dangerous) ? 1975.1883435754953 : 900;
-				return org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(900, 4987)
-					&& org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(900, 5001)
-					&& org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(cardinalOpening, 3119);
+				return cautious.accepts(1, 900, 4987, false) && cautious.accepts(3, 900, 5001, false)
+					&& cautious.accepts(4, cardinalOpening, 3119, false);
 			});
 			final var candidates = party.members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76,
 				List.of(dangerous, safer), _ -> true, () -> true)).toList();
@@ -652,7 +667,7 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(safer, result.proposal().orElseThrow().objective(), "Cardinal's opening reserve was ignored.");
 			PhantomAssertions.assertTrue(store.loadLogicalClaim(1).isEmpty(), "A passive forecast acquired a claim.");
 			PhantomAssertions.assertTrue(owner.commitDiscovery(result, (_, _) -> true).isPresent(), "Only the exact selected safe proposal may be committed.");
-			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(3119 * 0.6, 3119), "Equal risk must fail closed.");
+			PhantomAssertions.assertFalse(cautious.accepts(4, 3119 * 0.6, 3119, false), "A cautious profile's exact limit was exceeded.");
 			final var next = new PhantomLogicalPartyCoordinator(new MemoryStore());
 			final var dense = new java.util.ArrayList<PhantomDomainRef>();
 			for (int index = 0; index < 16; index++) { dense.add(new PhantomDomainRef("background.farm", "21320@farm.assist." + index)); }
