@@ -84,7 +84,8 @@ public final class PhantomCoordination130Integration
             "group-pve-practical", "group-pve-practical-resume", "group-pve-practical-close", "group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close", "authority-f7", "authority", "authority-resume", "check", "prepare", "inspect", "probe", "probe-live", "cold", "handoff", "publication-retry", "publication-retry-resume", "ownership", "ownership-resume", "test", "resume", "seal", "fixture", "recover", "native", "restart").contains(args[0])) { throw new IllegalArgumentException("Unsupported TASK130 mode or arguments."); }
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
-		if (firstPartyLane() && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
+		final boolean isolatedF7 = firstPartyLane() && !rendezvousLane() && args[0].equals("authority-f7");
+		if (firstPartyLane() && !isolatedF7 && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
 		{ throw new IllegalArgumentException("First Party lane is reserved for the native fixture."); }
 		final Path local = localRoot(module), config = local.resolve("Database.ini");
 		Class.forName("com.mysql.cj.jdbc.Driver");
@@ -171,6 +172,11 @@ public final class PhantomCoordination130Integration
             final String foreign = args[0].equals("probe-live") ? " AND USER<>'" + settings.getProperty("Login") + "'" : "";
             try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB='" + SCHEMA + "' AND ID<>CONNECTION_ID()" + foreign))
 			{ if (!rows.next() || rows.getInt(1) != 0) { throw new IllegalStateException("TEST130 has foreign sessions."); } }
+			if (isolatedF7)
+			{
+				try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT (SELECT COUNT(*) FROM phantom_profiles) + (SELECT COUNT(*) FROM characters)"))
+				{ if (!rows.next() || rows.getLong(1) != 0) { throw new IllegalStateException("F7 requires a fresh isolated First Party schema."); } }
+			}
 		}
 		if (args[0].equals("inspect")) { System.out.println("SQL130_INSPECT_ONLY;SQL_WRITES=0"); return; }
         if (args[0].equals("fixture")) { PhantomCoordination130Native.prepareOnly(module); return; }

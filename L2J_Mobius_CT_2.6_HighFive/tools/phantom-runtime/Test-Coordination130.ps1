@@ -52,7 +52,7 @@ if($Action -eq 'package'){
     Copy-Item -LiteralPath (Join-Path $module 'dist\game\log.cfg') -Destination $runtime
     # Stock IXmlReader and script sourcepath require physical cwd/data, regardless of DatapackRoot.
     Copy-Item -LiteralPath (Join-Path $module 'dist\game\data') -Destination $runtime -Recurse
-    $null=New-Item -ItemType Directory -Path (Join-Path $runtime 'geodata'),(Join-Path $runtime 'logs'),(Join-Path $runtime 'libs')
+    $null=New-Item -ItemType Directory -Path (Join-Path $runtime 'geodata'),(Join-Path $runtime 'log'),(Join-Path $runtime 'libs')
     Copy-Item -Path (Join-Path $module 'dist\libs\*.jar') -Destination (Join-Path $runtime 'libs')
     Copy-Item -LiteralPath $sqlConfig -Destination (Join-Path $runtime 'config\Database.ini')
     $encoding=[Text.UTF8Encoding]::new($false)
@@ -70,6 +70,9 @@ if($Action -eq 'package'){
         $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationTarget']='2'
         $overrides['Custom\PhantomPlayers.ini']['PhantomPopulationActiveTarget']='2'
         $overrides['Custom\PhantomPlayers.ini']['PhantomEcologyWorldAgeDays']='0'
+    }
+    if($rendezvous){
+        $overrides['General.ini']=@{LogItems='True'}
     }
     foreach($file in $overrides.Keys){
         $path=Join-Path $runtime ('config\'+$file)
@@ -166,6 +169,9 @@ if($Action -in @('artifact-check','native','restart')){
     }
     if(!($witnesses['PhantomCoordination130Native'] -cmatch 'invokestatic\s+#[0-9]+\s+// Method exactGroupRewards:\(Lorg/l2jmobius/gameserver/model/actor/PlayerNativeEvidence\$Target;Ljava/util/List;\)Ljava/util/List;')){
         $missing+='runner.exactGroupRewards'
+    }
+    if($rendezvous -and !($witnesses['PhantomCoordination130Native'] -cmatch 'invokestatic\s+#[0-9]+\s+// Method stockLootSettled:\(IZ\)Z')){
+        $missing+='runner.stockLootSettled'
     }
     if($missing.Count){throw ('TEST130_SHARED_ROUTE_LINKAGE_REFUSED missing='+($missing -join ',')+' jar='+$builtHash)}
     Write-Output ('TEST130_SHARED_ROUTE_LINKAGE_PASS jar='+$builtHash+' runner='+$testBin)

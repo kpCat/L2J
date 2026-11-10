@@ -295,6 +295,14 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomCoordination130Native.usefulGroupEvidence(true, false, true, true, true, true), "An empty restart replaced a new useful action.");
 			PhantomAssertions.assertTrue(PhantomCoordination130Native.usefulGroupEvidence(true, true, true, false, false, true), "A useful restart repeated the already proved first-vertical Heal gate.");
 		});
+		registry.add("native-stock-loot-requires-drop-audit-and-exact-pickup-when-created", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.stockLootSettled(0, false), "A confirmed stock no-drop must allow an earned EXP/SP kill.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.stockLootSettled(-1, false), "Missing stock evidence was treated as no-drop.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.stockLootSettled(-1, true), "A pickup without stock source evidence was accepted.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.stockLootSettled(1, false), "An uncollected stock drop was accepted.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.stockLootSettled(1, true), "A stock drop with an exact pickup was rejected.");
+		});
 		registry.add("party-kill-witness-rejects-damage-from-another-spawn", _ ->
 		{
 			final var target = new Target(10, 0, 2);
