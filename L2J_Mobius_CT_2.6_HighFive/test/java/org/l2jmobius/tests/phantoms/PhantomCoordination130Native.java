@@ -766,21 +766,34 @@ final class PhantomCoordination130Native
             final boolean travelRequired = PhantomCoordination130Integration.rendezvousLane() && !restart && !recover;
             try (var stockDrops = PhantomCoordination130Integration.rendezvousLane() ? new StockDropAudit() : null)
             {
-                observe(runtime, profiles, ids, before.groupId(), planner.get(), restart, travelRequired, stockDrops,
+                observe(runtime, profiles, ids, before, planner.get(), restart, travelRequired, stockDrops,
                     System.currentTimeMillis() + (PhantomCoordination130Integration.rendezvousLane() ? 480_000 : 300_000));
             }
             verifyExistingHumanHeal(runtime, jarHash);
-            System.out.println("NATIVE130_DISABLE=" + PhantomSystem.operatorDisable());
-            final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
-            while (PhantomSystem.hasConfiguredInstance() && System.nanoTime() < until) { Thread.sleep(200); }
+            check(PhantomSystem.shutdownIfStarted(), "PHANTOM_SUBSYSTEM_STOP");
+            final var stopped = PhantomSystem.operatorDisable();
+            System.out.println("NATIVE130_DISABLE=" + stopped);
+            check(stopped.code() == PhantomSystem.OperatorControlCode.DISABLED && !stopped.runtimeConfigured(), "PHANTOM_TYPED_STOP");
             check(!PhantomSystem.hasConfiguredInstance(), "PHANTOM_DRAIN_BEFORE_STORE_ACCEPTANCE");
             check(ids.stream().allMatch(id -> World.getInstance().getPlayer(profiles.find(id).orElseThrow().characterObjectId()) == null), "ZERO_WORLD_AFTER_STORE");
             final var after = logical.groupFor(ids.getFirst()).orElseThrow();
-            check(after.group().groupId().equals(before.groupId()) && after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND, "SAME_LOGICAL_BACKGROUND");
+            check(after.group().groupId().equals(before.groupId()) && (restart
+                ? after.group().generation() == before.generation() && after.group().leaderProfileId() == before.leaderProfileId()
+                    && after.group().members().stream().map(PhantomLogicalParty.Member::profileId).toList().equals(ids)
+                    && after.group().phase() != PhantomLogicalParty.Phase.DISBANDED
+                : after.group().phase() == PhantomLogicalParty.Phase.BACKGROUND), "SAME_LOGICAL_AFTER_STORE");
+            if (restart)
+            {
+                verifyRestartStore(profiles, after.group());
+                System.out.println("NATIVE130_RESTART_STORE_PASS group=" + after.group().groupId() + " generation=" + after.group().generation() + " claims=" + ids.size());
+            }
             if (!restart) { write(evidence.resolve("native130.persisted"), persisted(profiles, ids)); }
-            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId() + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\npid=" + ProcessHandle.current().pid() + "\nattempt=" + attempt + "\n");
+            write(evidence.resolve(restart ? "restart130.complete" : "native130.complete"), "jar=" + jarHash + "\ngroup=" + after.group().groupId()
+                + (restart ? "\ngeneration=" + after.group().generation() : "") + "\nprofiles=" + String.join(",", ids.stream().map(String::valueOf).toList())
+                + "\npid=" + ProcessHandle.current().pid() + "\nattempt=" + attempt + "\n");
             Files.writeString(config, disabled);
-            System.out.println("NATIVE130_PASS restart=" + restart + " sameGroup=true actualPartyKill=true STORE=true");
+            System.out.println(restart ? "NATIVE130_PASS restart=true sameGroup=true usefulPartyAction=true STORE=true"
+                : "NATIVE130_PASS restart=false sameGroup=true actualPartyKill=true STORE=true");
         }
         catch (Throwable failure)
         {
@@ -801,6 +814,23 @@ final class PhantomCoordination130Native
                 try { Files.writeString(config, disabled); }
                 finally { Shutdown.getInstance().startShutdown(null, 0, false); }
             }
+        }
+    }
+
+    private static void verifyRestartStore(PhantomProfileRepository profiles, PhantomLogicalParty group)
+    {
+        final var parties = new PhantomPartyStore(profiles);
+        for (var member : group.members())
+        {
+            final long id = member.profileId();
+            final var claim = parties.loadLogicalClaim(id).orElseThrow();
+            check(claim.active() && claim.groupId().equals(group.groupId()) && claim.generation() == group.generation()
+                && claim.leaderProfileId() == group.leaderProfileId(), "RESTART_DURABLE_CLAIM_" + id);
+            final var state = profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+            final var context = PhantomNativeContext.decode(profiles.findComponent(id, PhantomNativeContext.COMPONENT_TYPE).orElseThrow().payload());
+            final var identity = new PhantomBackgroundStateCodec().decode(state.payload()).identity();
+            check(context.phase() == PhantomNativeContext.Phase.COMPLETED && context.binds(identity, state.rowVersion(), state.payload())
+                && profiles.findComponent(id, PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty(), "RESTART_CANONICAL_STORE_" + id);
         }
     }
 
@@ -1574,6 +1604,38 @@ final class PhantomCoordination130Native
     static boolean stockRosterReady(int nativeSize, int logicalSize, boolean exact)
     { return nativeSize >= 2 && nativeSize <= 9 && (!exact || nativeSize == logicalSize); }
 
+    static int restartDamageActor(PlayerNativeEvidence.Target target, PlayerNativeEvidence.Target current, int logicalSize, List<MemberFight> members)
+    {
+        if (!target.equals(current) || !stockRosterReady(members.size(), logicalSize, false) || members.size() > logicalSize) { return 0; }
+        final var observed = new HashSet<Integer>();
+        int attacker = 0;
+        for (var member : members)
+        {
+            final var before = member.before();
+            final var after = member.after();
+            if (!observed.add(after.objectId()) || !sameNativeEpoch(member) || !noNativeRewardDelta(member)) { return 0; }
+            if (attacker == 0 && member.observedDamage() && after.damageSequence() > before.damageSequence()) { attacker = after.objectId(); }
+        }
+        return attacker;
+    }
+
+    private static boolean sameNativeEpoch(MemberFight member)
+    {
+        final var before = member.before();
+        final var after = member.after();
+        return after.objectId() == before.objectId() && before.epoch() == after.epoch() && after.sampleNanos() >= before.sampleNanos()
+            && !before.overflow() && !after.overflow();
+    }
+
+    private static boolean noNativeRewardDelta(MemberFight member)
+    {
+        final var before = member.before();
+        final var after = member.after();
+        return after.killSequence() == before.killSequence() && after.rewardSequence() == before.rewardSequence()
+            && after.expGained() == before.expGained() && after.spGained() == before.spGained()
+            && after.lootSequence() == before.lootSequence() && after.lootCount() == before.lootCount();
+    }
+
     private record HealRecipient(Player player, long receiptBefore, double hpBefore) { }
     private record HealSample(org.l2jmobius.gameserver.model.skill.Skill skill, List<HealRecipient> recipients, double mpBefore) { }
 
@@ -1583,7 +1645,7 @@ final class PhantomCoordination130Native
         return owner == null || !owner.isCurrent() || owner.evidence() == null ? null : owner.evidence().restoredHpReceipt();
     }
 
-    private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, String groupId,
+    private static void observe(Path runtime, PhantomProfileRepository profiles, List<Long> ids, PhantomLogicalParty agreement,
         PhantomHistoricalBackgroundPlanner planner, boolean restart, boolean travelRequired, StockDropAudit stockDrops, long deadline) throws Exception
     {
         final var trace = scene(runtime).resolve((restart ? "restart130.trace." : "native130.trace.") + attemptKey() + ".tsv");
@@ -1595,7 +1657,7 @@ final class PhantomCoordination130Native
         final Map<Integer, Long> priorHealReceipt = new HashMap<>();
         final Map<Integer, HealSample> healing = new HashMap<>();
         final Map<Integer, PhantomNavigationPoint> partyOrigins = new HashMap<>();
-        final boolean exactRosterRequired = travelRequired || Files.isRegularFile(runtime.resolve("fixture130.guardian"));
+        final boolean exactRosterRequired = !restart && (travelRequired || Files.isRegularFile(runtime.resolve("fixture130.guardian")));
         boolean groupTravel = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         long partyGeneration = -1;
@@ -1610,14 +1672,15 @@ final class PhantomCoordination130Native
             final var logicalRow = logical.groupFor(ids.getFirst()).orElseThrow(() -> new IllegalStateException("NATIVE130_LOGICAL_AGREEMENT_RETIRED"));
             final var group = logicalRow.group();
             healerRequired |= group.members().stream().anyMatch(member -> member.role().equals("support.healer"));
-            check(group.groupId().equals(groupId), "GROUP_ID_PRESERVED");
+            check(group.groupId().equals(agreement.groupId()) && (!restart || group.generation() == agreement.generation()), "GROUP_ID_PRESERVED");
             final var logicalObjects = group.members().stream().map(member -> objects.get(member.profileId())).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(objects.get(id))).filter(Objects::nonNull).toList();
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull)
                 .filter(value -> value.getMembers().stream().allMatch(actor -> logicalObjects.contains(actor.getObjectId()))).findFirst().orElse(null);
             final var stock = party == null ? List.<Player>of() : List.copyOf(party.getMembers());
-            if (stockRosterReady(stock.size(), logicalObjects.size(), exactRosterRequired)
-                && stock.stream().allMatch(actor -> actors.contains(actor) && logicalObjects.contains(actor.getObjectId()) && actor.getParty() == party))
+            if (stockRosterReady(stock.size(), logicalObjects.size(), exactRosterRequired) && (!restart || party.getLeader() == stock.getFirst())
+                && stock.stream().allMatch(actor -> actors.contains(actor) && logicalObjects.contains(actor.getObjectId()) && actor.getParty() == party
+                    && (!restart || !actor.isAlikeDead())))
             {
                 final var leader = stock.getFirst();
                 partyGeneration = group.generation();
@@ -1711,21 +1774,56 @@ final class PhantomCoordination130Native
                 for (var entry : targets.entrySet())
                 {
                     final var target = entry.getValue();
-                    for (var damage : stockDamage(target.mob()).entrySet())
+                    final var currentStockDamage = stockDamage(target.mob());
+                    for (var damage : currentStockDamage.entrySet())
                     {
                         if (target.before().containsKey(damage.getKey()) && damage.getValue() > target.initialDamage().getOrDefault(damage.getKey(), 0L)) { target.observedDamage().add(damage.getKey()); }
                     }
-                    if (kill || !target.mob().isDead() || !(target.initialHp() > target.mob().getCurrentHp()) || !entry.getKey().equals(target.mob().getNativeEvidenceTarget())) { continue; }
+                    final double currentHp = target.mob().getCurrentHp();
+                    if (kill || !(target.initialHp() > currentHp) || !entry.getKey().equals(target.mob().getNativeEvidenceTarget())
+                        || !restart && !target.mob().isDead()) { continue; }
                     final var samples = new ArrayList<MemberFight>();
                     for (var actor : stock)
                     {
                         final var before = target.before().get(actor.getObjectId());
                         final var sensor = PlayerNativeWork.observationEvidence(actor);
                         if (before == null || sensor == null || actor.getParty() != party) { continue; }
-                        synchronized (sensor) { samples.add(new MemberFight(before, sensor.snapshot(), sensor.targetReceipts(), target.observedDamage().contains(actor.getObjectId()))); }
+                        final boolean damage = restart && !target.mob().isAlikeDead()
+                            ? currentStockDamage.getOrDefault(actor.getObjectId(), 0L) > target.initialDamage().getOrDefault(actor.getObjectId(), 0L)
+                            : target.observedDamage().contains(actor.getObjectId());
+                        synchronized (sensor) { samples.add(new MemberFight(before, sensor.snapshot(), sensor.targetReceipts(), damage)); }
                     }
+                    if (restart && (samples.size() != stock.size() || !stock.equals(List.copyOf(party.getMembers())) || party.getLeader() != leader
+                        || stock.stream().anyMatch(actor ->
+                        {
+                            final var current = PlayerNativeWork.observationEvidence(actor);
+                            return actor.getParty() != party || actor.isAlikeDead() || current == null
+                                || !current.matches(actor.getObjectId(), target.before().get(actor.getObjectId()).epoch());
+                        })
+                        || World.getInstance().findObject(entry.getKey().objectId()) != target.mob()
+                        || !planner.partyNativeTarget(group.objective(), target.mob().getId(), new PhantomTopologyPoint(target.mob().getX(), target.mob().getY(), target.mob().getZ(), target.mob().getInstanceId()))))
+                    { continue; }
+                    if (restart && !target.mob().isAlikeDead())
+                    {
+                        final int attacker = restartDamageActor(entry.getKey(), target.mob().getNativeEvidenceTarget(), logicalObjects.size(), samples);
+                        if (attacker > 0)
+                        {
+                            final var credited = samples.stream().filter(sample -> sample.after().objectId() == attacker).findFirst().orElseThrow();
+                            System.out.println("NATIVE130_RESTART_USEFUL_ACTION kind=DAMAGE group=" + group.groupId() + " generation=" + group.generation()
+                                + " leader=" + leader.getObjectId() + " roster=" + stock.stream().map(Player::getObjectId).toList()
+                                + " actor=" + attacker + " epoch=" + target.before().get(attacker).epoch() + " target=" + entry.getKey()
+                                + " source=" + group.objective().key() + " npc=" + target.mob().getId() + " hpBefore=" + target.initialHp() + " hpAfter=" + currentHp
+                                + " damageSequenceBefore=" + credited.before().damageSequence() + " damageSequenceAfter=" + credited.after().damageSequence()
+                                + " stockDamageBefore=" + target.initialDamage().getOrDefault(attacker, 0L) + " stockDamageAfter=" + currentStockDamage.get(attacker)
+                                + " nativeRewardDelta=0");
+                            return;
+                        }
+                    }
+                    if (!target.mob().isDead()) { continue; }
                     final var earned = exactGroupRewards(entry.getKey(), samples);
-                    if (!earned.isEmpty() && stock.equals(List.copyOf(party.getMembers())))
+                    if (!earned.isEmpty() && stock.equals(List.copyOf(party.getMembers()))
+                        && (!restart || samples.stream().allMatch(sample -> sameNativeEpoch(sample)
+                            && (noNativeRewardDelta(sample) || earned.stream().anyMatch(reward -> reward.objectId() == sample.after().objectId())))))
                     {
                         kill = true;
                         earnedTarget = target;
@@ -1818,6 +1916,12 @@ final class PhantomCoordination130Native
                 nextTrace = System.currentTimeMillis() + 10_000;
             }
             final boolean lootSettled = stockDrops == null ? restart || loot : stockLootSettled(earnedDrops == null ? -1 : earnedDrops.size(), loot);
+            if (restart && kill && lootSettled)
+            {
+                System.out.println("NATIVE130_RESTART_USEFUL_ACTION kind=KILL group=" + group.groupId() + " generation=" + group.generation()
+                    + " leader=" + earnedTarget.leader() + " roster=" + earnedTarget.roster().stream().map(Player::getObjectId).toList() + " target=" + earnedTarget.identity());
+                return;
+            }
             if (usefulGroupEvidence(partySeen, kill, healerRequired, heal, healMpDebit, restart) && lootSettled && (!travelRequired || groupTravel)
                 && actors.isEmpty() && group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
             {

@@ -101,6 +101,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				final NativeDeath nativeDeath = NativeDeath.capture(player);
 				_deaths.compute(snapshot.profileId(), (key, previous) ->
 				{
+					if ((previous != null) && previous.reconciliation().get()) { return previous; }
 					if ((previous != null) && (previous.observation() != null)) { previous.observation().retire(); }
 					return new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean(), nativeDeath, new AtomicLong(), new AtomicReference<>(), new AtomicReference<>("death.waiting_native_window"));
 				});
@@ -162,6 +163,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 
 	private void recoverDue(long profileId, Death death, long now)
 	{
+		if (death.reconciliation().get()) { return; }
 		// Playable emits the event immediately before publishing its dead flag.
 		if ((now - death.atNanos()) < 100_000_000L)
 		{
@@ -198,7 +200,8 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			{
 				return;
 			}
-			final var nativeResult = _background.recoverOrdinaryNativeCorpse(profileId, death.characterObjectId());
+			if (death.observation() == null) { forget(profileId, death); return; }
+			final var nativeResult = _background.recoverOrdinaryNativeCorpse(profileId, death.characterObjectId(), death.observation().epoch);
 			death.nativeReason().set(nativeResult.reason());
 			if (!nativeResult.successful())
 			{
@@ -238,27 +241,34 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			if (_deaths.get(profileId) != death) { return; }
 			if (death.goal().get() == null) { _goals.load(profileId).ifPresent(value -> death.goal().compareAndSet(null, value.goal())); }
 			final var goal = death.goal().get();
+			final long epoch = death.observation() == null ? 0 : death.observation().epoch;
 			final var result = goal == null ? null : _closing
-				? _background.recoverAcceptedForStop(profileId, goal, death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch, death.deadline().get())
-				: _background.requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, death.deadline().get(), death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch);
+				? _background.recoverAcceptedForStop(profileId, goal, death.characterObjectId(), epoch, death.deadline().get())
+				: _background.requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, death.deadline().get(), death.characterObjectId(), epoch);
 			boolean rebound = false;
+			boolean ownerMoved = false;
+			String goalCheck = "";
 			if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.REPLAN) && "recovery.control_goal_changed".equals(result.reason()))
 			{
 				final var current = _materialization.find(profileId).orElse(null);
 				final var replacement = _goals.load(profileId).orElse(null);
 				final boolean sameOwner = (death.observation() != null) && (current != null)
-					&& (current.characterObjectId() == death.characterObjectId()) && (current.materializedAtNanos() == death.observation().epoch);
-				if (permitsGoalReconciliation(result, death.nativeRecovery().get(), sameOwner, (replacement != null) && !replacement.goal().equals(goal), System.nanoTime(), death.deadline().get()))
+					&& (current.characterObjectId() == death.characterObjectId()) && (current.materializedAtNanos() == epoch);
+				final boolean changedGoal = (replacement != null) && !replacement.goal().equals(goal);
+				final long now = System.nanoTime();
+				if (permitsGoalReconciliation(result, death.nativeRecovery().get(), sameOwner, changedGoal, now, death.deadline().get()))
 				{
 					rebound = death.goal().compareAndSet(goal, replacement.goal());
 				}
+				// Release can occur between reading the control's result and checking its Goal.
+				ownerMoved = epoch > 0 && (current == null || (current.characterObjectId() == death.characterObjectId() && (current.materializedAtNanos() == 0 || current.materializedAtNanos() > epoch)));
+				goalCheck = ":sameOwner=" + sameOwner + ":changedGoal=" + changedGoal;
 			}
-			if ((result != null) && ((result.status() == PhantomBackgroundService.OperationStatus.SUCCESS)
-				|| ((result.status() == PhantomBackgroundService.OperationStatus.REPLAN) && "recovery.control_superseded".equals(result.reason()))))
+			if ((result != null) && result.status() == PhantomBackgroundService.OperationStatus.SUCCESS)
 			{
 				forget(profileId, death);
 			}
-			else if ((result != null) && (rebound || (result.status() == PhantomBackgroundService.OperationStatus.RETRY)) && (System.nanoTime() < death.deadline().get()))
+			else if ((result != null) && (rebound || ownerMoved || (result.status() == PhantomBackgroundService.OperationStatus.RETRY)) && (System.nanoTime() < death.deadline().get()))
 			{
 				final var future = ThreadPool.schedule(() ->
 				{
@@ -268,7 +278,12 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				pending = future != null;
 				if (!pending) { _firstFailure.compareAndSet("", "death.control_scheduler_rejected"); }
 			}
-			else { _firstFailure.compareAndSet("", "death.control_terminal:profile=" + profileId + ":" + result); }
+			else
+			{
+				_firstFailure.compareAndSet("", "death.control_terminal:profile=" + profileId + ":object=" + death.characterObjectId() + ":epoch=" + epoch
+					+ ":" + result + ":nativeReturned=" + death.nativeRecovery().get() + ":deadlineExpired=" + (System.nanoTime() >= death.deadline().get()) + goalCheck);
+				forget(profileId, death);
+			}
 		}
 		catch (RuntimeException failure)
 		{

@@ -503,7 +503,8 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			context.record("headless.database", PhantomCampaign058DatabaseLane.databaseName());
 		}
 		if (PhantomTask069Lane.enabled()) { context.record("headless.database", PhantomTask069Lane.SCHEMA); }
-		context.record("headless.schemaAggregateSha256", ((PhantomTask069Lane.enabled() || PhantomCampaign058DatabaseLane.enabled() || PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
+		if (Boolean.getBoolean("phantom.task130.infrastructure")) { context.record("headless.database", PhantomCoordination130Integration.SCHEMA); }
+		context.record("headless.schemaAggregateSha256", (bootstrap == null
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
 		context.record("headless.initializedSingletonCount", INITIALIZED_SINGLETONS.size());
 		context.record("headless.initializedSingletons", String.join(",", INITIALIZED_SINGLETONS));

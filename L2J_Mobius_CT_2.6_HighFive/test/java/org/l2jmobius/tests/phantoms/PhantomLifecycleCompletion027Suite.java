@@ -12,6 +12,9 @@ import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.groups.Party;
+import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyMessageType;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
@@ -48,6 +51,26 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom.m1.native.focus", "all");
+		if (focus.equals("recovery130-decision"))
+		{
+			registry.add("R130-decision-control-does-not-complete-ordinary-return", context -> ordinaryReturnAfterDecision130(context, false));
+			return;
+		}
+		if (focus.equals("recovery130-goal"))
+		{
+			registry.add("R130-goal-cas-after-native-return", context -> ordinaryReturnAfterDecision130(context, true));
+			return;
+		}
+		if (focus.equals("recovery130-store"))
+		{
+			registry.add("R130-completed-original-store-survives-close", this::ordinaryReturnAfterStore130);
+			return;
+		}
+		if (focus.equals("recovery130-party"))
+		{
+			registry.add("R130-dead-party-member-becomes-solo", this::ordinaryReturnAfterParty130);
+			return;
+		}
 		if (focus.equals("career061"))
 		{
 			registry.add("C60-transferred-native-actor-lease-context", this::transferredLease061);
@@ -548,6 +571,135 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 				}
 				finally { death.close(); final var task = queued.getAndSet(null); if (task != null) { task.run(); } }
 			}
+		}
+	}
+
+	private void ordinaryReturnAfterDecision130(PhantomTestContext context, boolean changeGoal) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup();
+			f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native actor before death.");
+			final var original = World.getInstance().getPlayer(f.objectId);
+			final var clock = new AtomicLong(System.nanoTime());
+			final var queued = new AtomicReference<Runnable>();
+			try (var death = new PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background, clock::get, queued::set))
+			{
+				PhantomAssertions.assertTrue(death.install(), "Existing death listener installed.");
+				PlayerNativeWork.run(original, "TEST130_ORDINARY_NATIVE_DEATH", () -> original.doDie(null));
+				clock.addAndGet(46_000_000_000L);
+				death.pulse();
+				PhantomAssertions.assertTrue(queued.get() != null && !original.isDead(), "Stock return accepted before reconciliation.");
+				final var initial = f.goals.load(f.id).orElseThrow();
+				if (changeGoal)
+				{
+					queued.getAndSet(null).run();
+					f.goals.replace(f.id, initial.rowVersion(), initial.goal().withStatus(initial.goal().status()));
+				}
+				else
+				{
+					f.background.requestRecovery(f.id, initial.goal(), PhantomActivityState.ACTIVE, () -> true);
+					final long deadline = System.nanoTime() + 3_000_000_000L;
+					while (f.background.recoveryControlOutcome(f.id).isEmpty() && System.nanoTime() < deadline) { Thread.sleep(10); }
+					PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.REPLAN, f.background.recoveryControlOutcome(f.id).orElseThrow().status(), "A cancelled Decision control produced its own result.");
+				}
+				drainOrdinary130(death, queued);
+				context.record("R130.decision." + changeGoal, death.snapshot());
+				PhantomAssertions.assertTrue(death.drained() && death.snapshot().firstFailure().isEmpty(), "Accepted ordinary control must complete despite the Decision boundary: " + death.snapshot());
+				PhantomAssertions.assertTrue(f.transactions.load(f.id).state().vitals().currentHp() > 0, "Verified stock revive was retained.");
+				PhantomAssertions.assertEquals(initial.goal().revision() + (changeGoal ? 1 : 0), f.goals.load(f.id).orElseThrow().goal().revision(), "Recovery cannot roll back or publish the Decision goal.");
+			}
+		}
+	}
+
+	private void ordinaryReturnAfterStore130(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup();
+			f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native actor before death.");
+			final var original = World.getInstance().getPlayer(f.objectId);
+			final long epoch = original.getNativeWorkOwner().epoch();
+			final var clock = new AtomicLong(System.nanoTime());
+			final var queued = new AtomicReference<Runnable>();
+			try (var death = new PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background, clock::get, queued::set))
+			{
+				PhantomAssertions.assertTrue(death.install(), "Existing death listener installed.");
+				PlayerNativeWork.run(original, "TEST130_STORED_NATIVE_DEATH", () -> original.doDie(null));
+				clock.addAndGet(46_000_000_000L);
+				death.pulse();
+				PhantomAssertions.assertTrue(queued.get() != null && !original.isDead(), "Stock return accepted before the external cleanup boundary.");
+				final var old = f.goals.load(f.id).orElseThrow();
+				final var current = f.goals.replace(f.id, old.rowVersion(), old.goal().withStatus(old.goal().status())).goal();
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Existing lifecycle owner completes the original canonical STORE.");
+				final var stored = f.transactions.load(f.id);
+				PhantomAssertions.assertTrue(stored.successful() && stored.state().state() == PhantomBackgroundState.State.READY && stored.state().vitals().currentHp() > 0, "Exact durable READY after native return.");
+				PhantomAssertions.assertFalse(f.background.recoverAcceptedForStop(f.id, current, f.objectId, epoch + 1, System.nanoTime() + 1_000_000_000L).successful(), "A stale callback cannot consume another epoch's store.");
+				death.close();
+				drainOrdinary130(death, queued);
+				context.record("R130.store", death.snapshot());
+				PhantomAssertions.assertTrue(death.drained() && death.snapshot().firstFailure().isEmpty(), "STOP must reconcile a canonically stored original epoch: " + death.snapshot());
+				PhantomAssertions.assertTrue(f.materialization.find(f.id).isEmpty() && World.getInstance().getPlayer(f.objectId) == null, "STOP must not open a new native epoch.");
+				PhantomAssertions.assertEquals(stored, f.transactions.load(f.id), "Completion must preserve the exact stored checkpoint.");
+				final var system = configure(f);
+				final var field = PhantomSystem.class.getDeclaredField("_ordinaryDeathRecovery");
+				field.setAccessible(true);
+				field.set(system, death);
+				PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Production Phantom World STOP must complete.");
+				PhantomAssertions.assertEquals(PhantomSystem.StopOutcome.COMPLETE, system.shutdownProgress().outcome(), "Typed STOP outcome.");
+				context.record("R130.stop", system.shutdownProgress());
+			}
+		}
+	}
+
+	private void ordinaryReturnAfterParty130(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true); var leaderFixture = _handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
+		{
+			f.removeCatchup();
+			leaderFixture.removeCatchup();
+			f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native Party member.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, leaderFixture.materialization.materialize(leaderFixture.id).status(), "Native Party leader.");
+			final var original = World.getInstance().getPlayer(f.objectId);
+			final var leader = World.getInstance().getPlayer(leaderFixture.objectId);
+			final var party = new Party(leader, PartyDistributionType.FINDERS_KEEPERS);
+			leader.setParty(party);
+			original.joinParty(party);
+			final var clock = new AtomicLong(System.nanoTime());
+			final var queued = new AtomicReference<Runnable>();
+			try (var death = new PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background, clock::get, queued::set))
+			{
+				PhantomAssertions.assertTrue(death.install() && original.getParty() == party && party.getMembers().contains(original), "Actual stock Party before death.");
+				PlayerNativeWork.run(original, "TEST130_STOCK_PARTY_MEMBER_DEATH", () -> original.doDie(null));
+				clock.addAndGet(46_000_000_000L);
+				death.pulse();
+				PhantomAssertions.assertTrue(original.isDead() && original.getParty() == party && queued.get() == null, "Ordinary recovery cannot act while stock Party owns the corpse.");
+				party.removePartyMember(original, PartyMessageType.LEFT);
+				PhantomAssertions.assertEquals(null, original.getParty(), "Stock disband released the original owner.");
+				death.pulse();
+				clock.addAndGet(46_000_000_000L);
+				death.pulse();
+				PhantomAssertions.assertTrue(queued.get() != null && !original.isDead(), "Now-Solo corpse uses the real native town return.");
+				drainOrdinary130(death, queued);
+				PhantomAssertions.assertTrue(death.drained() && death.snapshot().firstFailure().isEmpty(), "Party-to-Solo native recovery drains.");
+				PhantomAssertions.assertTrue(f.transactions.load(f.id).state().vitals().currentHp() > 0, "Canonical HP after Party-to-Solo recovery.");
+				context.record("R130.party", death.snapshot());
+			}
+			finally { if (leader.getParty() == party) { party.disbandParty(); } }
+		}
+	}
+
+	private static void drainOrdinary130(PhantomOrdinaryDeathRecovery death, AtomicReference<Runnable> queued) throws InterruptedException
+	{
+		final long deadline = System.nanoTime() + 11_000_000_000L;
+		while (!death.drained() && System.nanoTime() < deadline)
+		{
+			final var continuation = queued.getAndSet(null);
+			if (continuation != null) { continuation.run(); }
+			Thread.sleep(10);
 		}
 	}
 

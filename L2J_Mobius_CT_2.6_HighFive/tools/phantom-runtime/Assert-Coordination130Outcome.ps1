@@ -30,14 +30,40 @@ $receipt=Get-Content -LiteralPath $complete
 if($receipt -cnotcontains ('pid='+$process.pid) -or $receipt -inotcontains ('jar='+$JarHash) -or $receipt -cnotcontains ('attempt='+$Attempt)){
     throw "TEST130_COMPLETION_IDENTITY_MISMATCH attempt=$Attempt"
 }
-$restart=($phase -eq 'restart').ToString().ToLowerInvariant()
-$pass='NATIVE130_PASS restart='+$restart+' sameGroup=true actualPartyKill=true STORE=true'
+$stdout=$prefix+'.stdout.log'
+$stderr=$prefix+'.stderr.log'
+$pass='NATIVE130_PASS restart=false sameGroup=true actualPartyKill=true STORE=true'
+if($phase -eq 'restart'){
+    $prior=Get-Content -LiteralPath (Join-Path $scene 'native130.complete')
+    $group=@($receipt -cmatch '^group=[A-F0-9]{64}$')
+    $generation=@($receipt -cmatch '^generation=[1-9][0-9]*$')
+    $profiles=@($receipt -cmatch '^profiles=([1-9][0-9]*,){1,8}[1-9][0-9]*$')
+    if($group.Count -ne 1 -or $generation.Count -ne 1 -or $profiles.Count -ne 1 -or $prior -cnotcontains $group[0] -or $prior -cnotcontains $profiles[0] -or $prior -inotcontains ('jar='+$JarHash)){
+        throw "TEST130_RESTART_AGREEMENT_RECEIPT_MISMATCH attempt=$Attempt"
+    }
+    $agreement=[regex]::Escape($group[0]+' '+$generation[0])
+    $roster='leader=[1-9][0-9]* roster=\[([1-9][0-9]*, ){1,8}[1-9][0-9]*\]'
+    $target='target=Target\[objectId=[1-9][0-9]*, instanceId=[0-9]+, spawnGeneration=[1-9][0-9]*\]'
+    $damage="^NATIVE130_RESTART_USEFUL_ACTION kind=DAMAGE $agreement $roster actor=[1-9][0-9]* epoch=[1-9][0-9]* $target source=\S+ npc=[1-9][0-9]* hpBefore=\S+ hpAfter=\S+ damageSequenceBefore=[0-9]+ damageSequenceAfter=[1-9][0-9]* stockDamageBefore=[0-9]+ stockDamageAfter=[1-9][0-9]* nativeRewardDelta=0$"
+    $kill="^NATIVE130_RESTART_USEFUL_ACTION kind=KILL $agreement $roster $target$"
+    $claims=$profiles[0].Split(',').Length
+    if(!(Select-String -LiteralPath $stdout -CaseSensitive -Pattern $damage,$kill -Quiet) -or
+        !(Select-String -LiteralPath $stdout -CaseSensitive -Pattern "^NATIVE130_RESTART_STORE_PASS $agreement claims=$claims$" -Quiet)){
+        throw "TEST130_RESTART_ACTION_OR_STORE_MISSING attempt=$Attempt"
+    }
+    $pass='NATIVE130_PASS restart=true sameGroup=true usefulPartyAction=true STORE=true'
+}
 if(!(Select-String -LiteralPath ($prefix+'.stdout.log') -CaseSensitive -Pattern ('^'+[regex]::Escape($pass)+'$') -Quiet)){
     throw "TEST130_USEFUL_VERTICAL_PASS_MISSING attempt=$Attempt"
 }
-$stockStop=Select-String -LiteralPath ($prefix+'.stderr.log') -SimpleMatch -CaseSensitive -Pattern 'The server has been successfully shut down in ' -Quiet
-$poolClosed=Select-String -LiteralPath ($prefix+'.stderr.log') -SimpleMatch -CaseSensitive -Pattern 'Database: HikariCP pool closed successfully.' -Quiet
-$stockSave=Select-String -LiteralPath ($prefix+'.stderr.log') -SimpleMatch -CaseSensitive -Pattern 'All players disconnected and saved(' -Quiet
+$typedStop='NATIVE130_DISABLE=OperatorControlResult[code=DISABLED, desiredMode=DISABLED, desiredRuntimeEnabled=false, runtimeConfigured=false, runtimeState=null]'
+if(!(Select-String -LiteralPath $stdout -CaseSensitive -Pattern ('^'+[regex]::Escape($typedStop)+'$') -Quiet) -or
+    (Select-String -LiteralPath $stderr -CaseSensitive -Pattern 'Phantom World stop failed:', 'Phantom World: Initial subsystem drain remains incomplete; systemState=FAILED', 'Phantom World: Final subsystem drain (is incomplete|failed)' -Quiet)){
+    throw "TEST130_PHANTOM_SUBSYSTEM_STOP_FAILED attempt=$Attempt"
+}
+$stockStop=Select-String -LiteralPath $stderr -SimpleMatch -CaseSensitive -Pattern 'The server has been successfully shut down in ' -Quiet
+$poolClosed=Select-String -LiteralPath $stderr -SimpleMatch -CaseSensitive -Pattern 'Database: HikariCP pool closed successfully.' -Quiet
+$stockSave=Select-String -LiteralPath $stderr -SimpleMatch -CaseSensitive -Pattern 'All players disconnected and saved(' -Quiet
 if(!$stockStop -or !$poolClosed -or !$stockSave){
     throw "TEST130_STOCK_STOP_EVIDENCE_MISSING attempt=$Attempt"
 }

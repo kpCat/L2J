@@ -515,6 +515,17 @@ public final class PhantomMaterializationService
 		return requestCleanup(entry, deadlineNanos, false);
 	}
 
+	/** An accepted recovery may request STORE only for the lifetime that returned. */
+	public DematerializeResult requestDematerialize(long profileId, int objectId, long epoch, long deadlineNanos)
+	{
+		final Entry entry = _activeByProfile.get(profileId);
+		if (entry == null || entry._characterObjectId != objectId || entry._materializedPlayer.snapshot().materializedAtNanos() != epoch)
+		{
+			return new DematerializeResult(ResultStatus.NOT_ACTIVE, null);
+		}
+		return requestCleanup(entry, deadlineNanos, false);
+	}
+
 	private DematerializeResult requestCleanup(Entry entry, long deadlineNanos, boolean shutdown)
 	{
 		synchronized (entry)

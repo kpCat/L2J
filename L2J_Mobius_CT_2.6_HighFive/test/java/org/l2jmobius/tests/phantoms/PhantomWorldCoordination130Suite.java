@@ -303,6 +303,36 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomCoordination130Native.stockLootSettled(1, false), "An uncollected stock drop was accepted.");
 			PhantomAssertions.assertTrue(PhantomCoordination130Native.stockLootSettled(1, true), "A stock drop with an exact pickup was rejected.");
 		});
+		registry.add("restart-accepts-new-exact-party-damage-before-a-kill", _ ->
+		{
+			final var target = new Target(10, 0, 2);
+			final var staleSpawn = new Target(10, 0, 1);
+			final long epoch = System.nanoTime();
+			final var attacker = new PlayerNativeEvidence(1, epoch);
+			final var peer = new PlayerNativeEvidence(2, epoch + 1);
+			final var start = attacker.snapshot();
+			final var peerStart = peer.snapshot();
+			final java.util.function.Function<Boolean, PhantomCoordination130Native.MemberFight> sample = observed ->
+				new PhantomCoordination130Native.MemberFight(start, attacker.snapshot(), attacker.targetReceipts(), observed);
+			final var peerSample = new PhantomCoordination130Native.MemberFight(peerStart, peer.snapshot(), peer.targetReceipts(), false);
+			attacker.selected(target);
+			PhantomAssertions.assertEquals(0, PhantomCoordination130Native.restartDamageActor(target, target, 3, List.of(sample.apply(false), peerSample)),
+				"Selecting a target completed restart.");
+			attacker.damage(target, 20);
+			final var members = List.of(sample.apply(true), peerSample);
+			PhantomAssertions.assertEquals(1, PhantomCoordination130Native.restartDamageActor(target, target, 3, members),
+				"Exact current-spawn damage by a two-member stock Party required a kill or the full logical roster.");
+			PhantomAssertions.assertEquals(0, PhantomCoordination130Native.restartDamageActor(target, staleSpawn, 3, members),
+				"A replacement spawn inherited observed damage.");
+			PhantomAssertions.assertEquals(0, PhantomCoordination130Native.restartDamageActor(target, target, 3, List.of(sample.apply(true))),
+				"Solo damage completed restart.");
+			final var staleActor = new PhantomCoordination130Native.MemberFight(new PlayerNativeEvidence(1, epoch - 1).snapshot(), attacker.snapshot(), attacker.targetReceipts(), true);
+			PhantomAssertions.assertEquals(0, PhantomCoordination130Native.restartDamageActor(target, target, 3, List.of(staleActor, peerSample)),
+				"A replacement actor inherited the previous epoch baseline.");
+			attacker.reward(target, 40, 4);
+			PhantomAssertions.assertEquals(0, PhantomCoordination130Native.restartDamageActor(target, target, 3, List.of(sample.apply(true), peerSample)),
+				"An unreconciled native reward passed as a damage-only interval.");
+		});
 		registry.add("party-kill-witness-rejects-damage-from-another-spawn", _ ->
 		{
 			final var target = new Target(10, 0, 2);
