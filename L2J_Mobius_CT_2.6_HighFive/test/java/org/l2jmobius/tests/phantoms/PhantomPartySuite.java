@@ -251,6 +251,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				adapter.installExecutionOwnership((_, _) -> false);
 				adapter.onPulse();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, logical.groupFor(1).orElseThrow().group().phase(), "A released Source actor permanently blocked old group draining.");
+				PhantomAssertions.assertEquals(301000L, logical.groupFor(1).orElseThrow().group().nextDueMillis(), "Ordinary idle drain lost its existing cooldown.");
 				PhantomAssertions.assertTrue(backend.materializationEpoch(actor) > 0, "Releasing group custody retired the Source actor.");
 				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Old group borrowed Source execution after release.");
 
@@ -266,7 +267,7 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				for (var phase : List.of(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.WAKE_REQUESTED,
 					org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.ASSEMBLING, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE,
 					org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING))
-				{ row = logical.transition(row, phase, 0, 2000, ""); }
+				{ row = logical.transition(row, phase, 0, 2000, phase == org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING ? "REPLAN_TANK_AGGRO" : ""); }
 				clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
 				adapter.onPulse();
 				clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
@@ -280,6 +281,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				adapter.onPulse();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND,
 					logical.groupFor(1).orElseThrow().group().phase(), "Confirmed native absence did not finish the same durable Party drain.");
+				final var replanning = logical.groupFor(1).orElseThrow().group();
+				PhantomAssertions.assertEquals("REPLAN_TANK_AGGRO", replanning.waitReason(), "Retirement lost the exact source refusal.");
+				PhantomAssertions.assertTrue(replanning.nextDueMillis() <= millis.get(), "A confirmed unsafe source deferred its first alternative search for another idle cooldown.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Released custody fixture did not stop."); }
 		});

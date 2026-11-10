@@ -213,7 +213,13 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
 			else if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND)
-			{ _logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), group.phase() == PhantomLogicalParty.Phase.DRAINING && !"EXPIRED_ASSEMBLY".equals(group.waitReason()) ? now + 300_000 : now, group.activityReplanRequired() ? group.waitReason() : "WAIT_DEMAND"); }
+			{
+				// A failed spot already has a different-source requirement. Let its typed plan choose the retry after STORE.
+				final boolean cooldown = group.phase() == PhantomLogicalParty.Phase.DRAINING
+					&& !"EXPIRED_ASSEMBLY".equals(group.waitReason()) && !group.activityReplanRequired();
+				_logical.transition(row, PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), cooldown ? now + 300_000 : now,
+					group.activityReplanRequired() ? group.waitReason() : "WAIT_DEMAND");
+			}
 			else { _logical.refreshBackground(row, now); }
 			return;
 		}
