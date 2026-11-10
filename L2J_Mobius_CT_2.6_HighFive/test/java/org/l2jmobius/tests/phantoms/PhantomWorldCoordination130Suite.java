@@ -607,16 +607,58 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				final var calls = new java.util.concurrent.atomic.AtomicInteger();
 				final var unavailable = new PhantomLogicalPartyCoordinator.ActivityRevision()
 				{
-					@Override public List<PhantomLogicalParty.ActivityRoot> plan(PhantomLogicalParty group, long now) { calls.incrementAndGet(); return List.of(); }
+					@Override public PhantomLogicalPartyCoordinator.ActivityPlan plan(PhantomLogicalParty group, long now)
+					{
+						return calls.incrementAndGet() == 1 ? PhantomLogicalPartyCoordinator.ActivityPlan.waitFor("REPLAN_WAIT_AUTHORITY_1", 5000)
+							: PhantomLogicalPartyCoordinator.ActivityPlan.waitFor("REPLAN_NO_COMMON_ROUTE", 300_000);
+					}
 					@Override public void publish(PhantomLogicalParty.ActivityRoot plan) { throw new AssertionError("WAIT published a root."); }
 				};
-				final var waiting = coordinator.recoverActivity(row, 1000, unavailable);
-				PhantomAssertions.assertTrue(waiting.group().waitReason().equals("REPLAN_NO_COMMON_SOURCE") && waiting.group().nextDueMillis() == 301000, "No-source activity lacks its finite nextDue/required change.");
-				PhantomAssertions.assertEquals(waiting, coordinator.recoverActivity(waiting, 1001, unavailable), "WAIT immediately repeated the same planning failure.");
+				final var pending = coordinator.recoverActivity(row, 1000, unavailable);
+				PhantomAssertions.assertTrue(pending.group().waitReason().equals("REPLAN_WAIT_AUTHORITY_1") && pending.group().nextDueMillis() == 6000, "A stale saved leader consumed the no-route backoff.");
+				PhantomAssertions.assertEquals(pending, coordinator.recoverActivity(pending, 1001, unavailable), "WAIT immediately repeated the same planning failure.");
 				PhantomAssertions.assertEquals(1, calls.get(), "No-source WAIT spun on its old source.");
-				PhantomAssertions.assertFalse(waiting.group().assemblyPending(1, waiting.group().members().getFirst().goalId(), 0, 301000), "Failed objective regained assembly rights.");
+				final var waiting = coordinator.recoverActivity(pending, 6000, unavailable);
+				PhantomAssertions.assertTrue(waiting.group().waitReason().equals("REPLAN_NO_COMMON_ROUTE") && waiting.group().nextDueMillis() == 306000, "No-route activity lacks its finite nextDue.");
+				PhantomAssertions.assertFalse(waiting.group().assemblyPending(1, waiting.group().members().getFirst().goalId(), 0, 306000), "Failed objective regained assembly rights.");
 				PhantomAssertions.assertFalse(coordinator.recoverActivity(waiting, waiting.group().expiresAtMillis(), unavailable).group().active(), "No-source WAIT retained identity claims forever after released-owner expiry.");
 			}
+		});
+		registry.add("opening-reserve-fallback-selects-a-safe-source-for-the-entire-roster", _ ->
+		{
+			final var party = group(1, 3);
+			final var dangerous = new PhantomDomainRef("background.farm", "21320@farm.assist");
+			final var safer = new PhantomDomainRef("background.farm", "21352@farm.clear");
+			final var store = new MemoryStore();
+			final var owner = new PhantomLogicalPartyCoordinator(store);
+			final var visited = new java.util.ArrayList<PhantomDomainRef>();
+			owner.bindOpeningProof(offer ->
+			{
+				final var source = offer.proposal().orElseThrow().objective();
+				visited.add(source);
+				final double cardinalOpening = source.equals(dangerous) ? 1975.1883435754953 : 900;
+				return org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(900, 4987)
+					&& org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(900, 5001)
+					&& org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(cardinalOpening, 3119);
+			});
+			final var candidates = party.members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76,
+				List.of(dangerous, safer), _ -> true, () -> true)).toList();
+			final var result = owner.previewDiscovery(candidates, (_, _) -> true, 1000);
+			PhantomAssertions.assertEquals(List.of(dangerous, safer), visited, "Unsafe first source did not advance the bounded enumeration.");
+			PhantomAssertions.assertEquals(safer, result.proposal().orElseThrow().objective(), "Cardinal's opening reserve was ignored.");
+			PhantomAssertions.assertTrue(store.loadLogicalClaim(1).isEmpty(), "A passive forecast acquired a claim.");
+			PhantomAssertions.assertTrue(owner.commitDiscovery(result, (_, _) -> true).isPresent(), "Only the exact selected safe proposal may be committed.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.withinThreatBudget(3119 * 0.6, 3119), "Equal risk must fail closed.");
+			final var next = new PhantomLogicalPartyCoordinator(new MemoryStore());
+			final var dense = new java.util.ArrayList<PhantomDomainRef>();
+			for (int index = 0; index < 16; index++) { dense.add(new PhantomDomainRef("background.farm", "21320@farm.assist." + index)); }
+			dense.add(safer);
+			next.bindOpeningProof(offer -> offer.proposal().orElseThrow().objective().equals(safer));
+			final var densePage = party.members().stream().map(member -> new PhantomLogicalPartyCoordinator.Candidate(member, 76, dense, _ -> true, () -> true)).toList();
+			var resumed = next.previewDiscovery(densePage, (_, _) -> true, 1000);
+			PhantomAssertions.assertEquals(PhantomLogicalPartyCoordinator.DiscoveryStatus.WAIT_OPENING_PROOF_BUDGET, resumed.status(), "Opening checks ran beyond the pulse budget.");
+			for (int pulse = 1; pulse <= 4 && resumed.proposal().isEmpty(); pulse++) { resumed = next.previewDiscovery(densePage, (_, _) -> true, 1000 + pulse * 1000); }
+			PhantomAssertions.assertEquals(safer, resumed.proposal().orElseThrow().objective(), "The next bounded pulse starved the first unchecked source.");
 		});
 		registry.add("activity-revision-preserves-two-and-nine-member-cursor-and-fences-stale-roots", _ ->
 		{

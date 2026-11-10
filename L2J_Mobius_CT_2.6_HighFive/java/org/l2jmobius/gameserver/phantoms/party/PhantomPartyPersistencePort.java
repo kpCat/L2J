@@ -38,6 +38,11 @@ public interface PhantomPartyPersistencePort
 	default List<PhantomLogicalParty.ActivityRoot> activityRoots(StoredLogicalGroup expected) { return List.of(); }
 	default StoredLogicalGroup beginActivityRevision(StoredLogicalGroup expected, List<PhantomLogicalParty.ActivityRoot> roots, long now)
 	{ throw new UnsupportedOperationException("Guarded activity revision is unavailable."); }
+	default StoredLogicalGroup beginActivityRevision(StoredLogicalGroup expected, List<PhantomLogicalParty.ActivityRoot> roots, long now, java.util.Map<Long, Long> backgroundVersions)
+	{
+		if (!backgroundVersions.isEmpty()) { throw new UnsupportedOperationException("Exact Background guards are unavailable."); }
+		return beginActivityRevision(expected, roots, now);
+	}
 	/** Empty while an existing publication/owner still needs recovery; never grants partial execution. */
 	default Optional<StoredLogicalGroup> finishActivityRevision(StoredLogicalGroup expected, long now, boolean abort)
 	{ return Optional.empty(); }

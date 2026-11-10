@@ -283,7 +283,7 @@ final class PhantomCoordination130Native
                 final var state = states.get(member.profileId());
                 if (state == null || state.progress().level() != levels.get(index)) { return physicalRefusal(group, "WAIT_AUTHORITY_" + member.profileId()); }
                 if (World.getInstance().findObject(state.identity().characterObjectId()) != null) { return physicalRefusal(group, "WAIT_NATIVE_OWNER_" + member.profileId()); }
-                if (!loadedItinerary(inspection, state, group.objective(), travelFunds.get(member.profileId()), attemptDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
+                if (!loadedItinerary(inspection.planner(), inspection.topology(), state, group.objective(), travelFunds.get(member.profileId()), attemptDeadline)) { return physicalRefusal(group, "WAIT_ROUTE_" + member.profileId()); }
             }
             final int npc = Integer.parseInt(group.objective().key().split("@")[0]);
             final var band = PhantomPartyFarmEligibility.forRoster(levels).orElse(null);
@@ -294,7 +294,7 @@ final class PhantomCoordination130Native
                 && inspection.planner().partyNativeTarget(group.objective(), actor.getId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId())))
                 .sorted(Comparator.comparingDouble(actor -> Math.hypot((long) actor.getX() - point.x(), (long) actor.getY() - point.y()))).limit(4).toList();
             System.out.println("NATIVE130_PREFLIGHT_STOCK_SPAWN npc=" + npc + " configured=" + spawns.size() + " nearbyLive=" + mobs.size());
-            final var approach = loadedAnchor(inspection, group.anchorId(), states.get(group.leaderProfileId()).position().heading());
+            final var approach = loadedAnchor(inspection.topology(), group.anchorId(), states.get(group.leaderProfileId()).position().heading());
             if (mobs.isEmpty()) { return physicalRefusal(group, "WAIT_LIVE_SPAWN"); }
             if (approach != null && confirmedExistingSource && existing.equals(group))
             {
@@ -302,9 +302,21 @@ final class PhantomCoordination130Native
                     + " exactPriorAgreement=true loadedRouteToAnchor=true liveMatching=" + mobs.size());
                 return true;
             }
-            return approach != null && mobs.stream().anyMatch(mob -> loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(),
-                approach, new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()), attemptDeadline))
-                || physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS");
+            final var roster = group.members().stream().map(member -> states.get(member.profileId())).toList();
+            final var safe = mobs.stream().map(Monster.class::cast).filter(mob -> org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend.safeFarmOpening(mob, roster)).toList();
+            if (safe.isEmpty()) { return physicalRefusal(group, "WAIT_SAFE_OPENING_RESERVE"); }
+            if (approach == null) { return physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS"); }
+            for (var mob : safe)
+            {
+                final var destination = new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId());
+                if (loadedRoute("stockNpc=" + npc + ":object=" + mob.getObjectId(), group.leaderProfileId(), approach, destination, attemptDeadline)
+                    && loadedRoute("stockRetreat=" + mob.getObjectId(), group.leaderProfileId(), destination, approach, attemptDeadline))
+                {
+                    System.out.println("NATIVE130_SAFE_OPENING_PREFLIGHT source=" + group.objective().key() + " npc=" + npc + " object=" + mob.getObjectId() + " retreat=PROVED");
+                    return true;
+                }
+            }
+            return physicalRefusal(group, "WAIT_LIVE_SPAWN_INGRESS_OR_RETREAT");
         }).orElseGet(() -> physicalRefusal(group, "WAIT_ROUTE_TIME_BUDGET"));
         final PhantomLogicalParty result;
         try
@@ -468,19 +480,20 @@ final class PhantomCoordination130Native
         }
         return new PreflightWitness(output.toString(), components.toString());
     }
-    private static boolean loadedItinerary(PhantomSystem.PlanningInspection inspection, PhantomBackgroundState state, PhantomDomainRef source, long adena, long deadline)
+    private static boolean loadedItinerary(PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology,
+        PhantomBackgroundState state, PhantomDomainRef source, long adena, long deadline)
     {
-        final var itinerary = inspection.planner().rendezvousItinerary(state, source, Set.of(), adena);
+        final var itinerary = planner.rendezvousItinerary(state, source, Set.of(), adena);
         final long id = state.identity().profileId();
         System.out.println("NATIVE130_ITINERARY profile=" + id + " source=" + source + " structural=" + itinerary.status()
             + " departure=" + itinerary.departureAnchorId() + " steps=" + itinerary.steps().stream().map(PhantomNormalGatekeeperTravel.Step::id).toList());
         if (!itinerary.available()) { return false; }
         final var position = state.position();
-        var from = loadedAnchor(inspection, itinerary.departureAnchorId(), position.heading());
+        var from = loadedAnchor(topology, itinerary.departureAnchorId(), position.heading());
         if (from == null || !loadedRoute("ingress", id, navigationPoint(position), from, deadline)) { return false; }
         for (var step : itinerary.steps())
         {
-            final var to = loadedAnchor(inspection, step.toAnchorId(), position.heading());
+            final var to = loadedAnchor(topology, step.toAnchorId(), position.heading());
             if (to == null) { return false; }
             if (step.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER)
             {
@@ -500,9 +513,9 @@ final class PhantomCoordination130Native
         return true;
     }
 
-    private static PhantomNavigationPoint loadedAnchor(PhantomSystem.PlanningInspection inspection, String id, int heading)
+    private static PhantomNavigationPoint loadedAnchor(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery topology, String id, int heading)
     {
-        return inspection.topology().findAnchor(id).flatMap(anchor -> L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading))
+        return topology.findAnchor(id).flatMap(anchor -> L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(anchor, heading))
             .map(PhantomCoordination130Native::navigationPoint).orElse(null);
     }
 
@@ -610,7 +623,11 @@ final class PhantomCoordination130Native
             org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
             check(!PhantomPlayersConfig.isEnabled(), "FIXTURE_MASTER_DISABLED");
             try (var source = PhantomBackgroundSuite.ProductionAuthorityFixture.start(runtime.resolve("data/phantoms/topology"), runtime))
-            { prepare(runtime, source, PhantomProfileRepository.open()); }
+            {
+                final var profiles = PhantomProfileRepository.open();
+                if (Boolean.getBoolean("phantom.task130.verifyOpening")) { verifyPreparedOpening(runtime, source, profiles); }
+                else { prepare(runtime, source, profiles); }
+            }
             exit = 0;
         }
         catch (Throwable failure)
@@ -624,6 +641,68 @@ final class PhantomCoordination130Native
             System.out.println("NATIVE130_FIXTURE_EXIT=" + exit + ";GAMESERVER_BOOT=0");
         }
         System.exit(exit);
+    }
+
+    private static void verifyPreparedOpening(Path runtime, PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomProfileRepository profiles) throws Exception
+    {
+        check(PhantomCoordination130Integration.rendezvousLane() && Files.isRegularFile(runtime.resolve("fixture-authority.ready")), "SAFE_PREFLIGHT_OWNED_PREPARED_FIXTURE");
+        final var ids = authorizedProfiles(runtime);
+        check(ids.size() >= 2 && ids.size() <= 9, "SAFE_PREFLIGHT_ROSTER");
+        final var before = preflightWitness(profiles, ids, false);
+        final var topology = source.topology();
+        final var travel = PhantomNormalGatekeeperTravel.load(runtime.resolve("data/phantoms/travel/high-five-normal-gk.xml"), topology);
+        final var authority = new L2jPhantomBackgroundAuthority(source::knowledge, source::topology, source::progression, source::commerce, travel);
+        final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), topology, authority);
+        final var states = new ArrayList<PhantomBackgroundState>();
+        final var wallets = new LinkedHashMap<Long, Long>();
+        for (long id : ids)
+        {
+            final var state = new PhantomBackgroundStateCodec().decode(profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow().payload());
+            check(state.state() == PhantomBackgroundState.State.READY && World.getInstance().findObject(state.identity().characterObjectId()) == null, "SAFE_PREFLIGHT_NO_WORLD_" + id);
+            states.add(state);
+            try (var connection = DatabaseFactory.getConnection())
+            {
+                connection.setReadOnly(true);
+                try (var query = connection.prepareStatement("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57 AND loc='INVENTORY'"))
+                {
+                    query.setInt(1, state.identity().characterObjectId());
+                    try (var rows = query.executeQuery()) { rows.next(); wallets.put(id, rows.getLong(1)); }
+                }
+            }
+        }
+        final var leader = states.getFirst();
+        final long id = leader.identity().profileId();
+        final var goal = new PhantomGoalStateStore(profiles).load(id).orElseThrow().goal();
+        final var candidates = planner.rendezvousSourcesForRole(id, leader, goal, Set.of(), Set.of(), "damage",
+            candidate -> states.stream().allMatch(state -> planner.partySourceAvailable(state, candidate, Set.of(), wallets.get(state.identity().profileId()))), wallets.get(id));
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+        for (var candidate : candidates.stream().limit(16).toList())
+        {
+            final var split = candidate.key().split("@", 2);
+            final int npc = Integer.parseInt(split[0]);
+            final var approach = loadedAnchor(topology, split[1], leader.position().heading());
+            if (approach == null || System.nanoTime() >= deadline) { continue; }
+            final var mobs = org.l2jmobius.gameserver.data.SpawnTable.getInstance().getSpawns(npc).stream().flatMap(spawn -> spawn.getSpawnedNpcs().stream())
+                .filter(Monster.class::isInstance).map(Monster.class::cast).filter(mob -> planner.partyNativeTarget(candidate, mob.getId(),
+                    new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId()))).limit(8).toList();
+            final var safe = mobs.stream().filter(mob -> org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend.safeFarmOpening(mob, states)).toList();
+            System.out.println("TASK130_STOCK_OPENING_CHECK source=" + candidate.key() + " live=" + mobs.size() + " openingReservePassed=" + safe.size());
+            if (safe.isEmpty()) { continue; }
+            final long attempt = Math.min(deadline, System.nanoTime() + TimeUnit.SECONDS.toNanos(4));
+            if (!states.stream().allMatch(state -> loadedItinerary(planner, topology, state, candidate, wallets.get(state.identity().profileId()), attempt))) { continue; }
+            for (var mob : safe)
+            {
+                final var point = new PhantomNavigationPoint(mob.getX(), mob.getY(), mob.getZ(), mob.getInstanceId());
+                if (loadedRoute("safeOpening", id, approach, point, attempt) && loadedRoute("safeRetreat", id, point, approach, attempt))
+                {
+                    check(before.equals(preflightWitness(profiles, ids, false)), "SAFE_PREFLIGHT_CONSERVATION");
+                    System.out.println("TASK130_SAFE_STOCK_PREFLIGHT_PASS source=" + candidate.key() + " npc=" + mob.getObjectId() + " SQL_WRITES=0;WORLD_PLAYERS=0;GAMESERVER_BOOT=0");
+                    return;
+                }
+            }
+        }
+        check(before.equals(preflightWitness(profiles, ids, false)), "SAFE_PREFLIGHT_CONSERVATION");
+        throw new IllegalStateException("NATIVE130_SAFE_PREFLIGHT_NO_PROVED_SOURCE");
     }
 
     static String attemptEvidenceKey(String attempt, long pid)

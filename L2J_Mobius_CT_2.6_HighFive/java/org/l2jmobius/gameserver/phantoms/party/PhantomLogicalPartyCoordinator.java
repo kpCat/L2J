@@ -85,7 +85,16 @@ public final class PhantomLogicalPartyCoordinator
 	public PhantomLogicalPartyCoordinator(PhantomPartyPersistencePort store) { _store = Objects.requireNonNull(store); }
 
 	private static final int MAXIMUM_PHYSICAL_PROOFS = 8;
-	public enum DiscoveryStatus { READY, WAIT_ROSTER, WAIT_COMMON_ROUTE, WAIT_DISCOVERY_BUDGET, WAIT_PHYSICAL_PROOF, WAIT_PHYSICAL_PROOF_BUDGET }
+	private static final int MAXIMUM_OPENING_PROOFS = 16;
+	private final java.util.Map<Long, Integer> _openingOffsets = new java.util.HashMap<>();
+	private java.util.function.Predicate<Discovery> _openingProof;
+
+	public void bindOpeningProof(java.util.function.Predicate<Discovery> proof)
+	{
+		if (_openingProof != null) { throw new IllegalStateException("Party opening proof is already bound."); }
+		_openingProof = java.util.Objects.requireNonNull(proof);
+	}
+	public enum DiscoveryStatus { READY, WAIT_ROSTER, WAIT_COMMON_ROUTE, WAIT_DISCOVERY_BUDGET, WAIT_SAFE_OPENING, WAIT_OPENING_PROOF_BUDGET, WAIT_PHYSICAL_PROOF, WAIT_PHYSICAL_PROOF_BUDGET }
 	public record Discovery(Optional<PhantomLogicalParty> proposal, DiscoveryStatus status, long nextDueMillis, List<PhantomProfileComponent> guards, List<Integer> levels)
 	{
 		public Discovery { guards = List.copyOf(guards); levels = List.copyOf(levels); }
@@ -143,9 +152,11 @@ public final class PhantomLogicalPartyCoordinator
 			_discovered.put(id, new Discovered(candidate, Math.addExact(now, 600_000)));
 		}
 		final var candidates = _discovered.values().stream().map(Discovered::candidate).toList();
+		_openingOffsets.keySet().retainAll(_discovered.keySet());
 		boolean budget = candidates.size() > 4 || page.size() == 16;
 		boolean hasPeers = false;
 		int attemptedProofs = 0;
+		int observedOpenings = 0;
 		for (var leader : candidates.stream().sorted(java.util.Comparator.comparing((Candidate c) -> c.member().profileId() <= _leaderCursor)
 			.thenComparingLong(c -> c.member().profileId())).limit(4).toList())
 		{
@@ -159,8 +170,13 @@ public final class PhantomLogicalPartyCoordinator
 			final var sources = leader.sourcesMatching().apply(source -> peers.stream().anyMatch(peer -> peer.reachable().test(source)));
 			if (sources.size() > 64) { throw new IllegalArgumentException("Unbounded Party source search."); }
 			budget |= sources.size() == 64;
-			for (var formation : rankSources(leader, peers, sources))
+			final var ranked = rankSources(leader, peers, sources);
+			if (ranked.isEmpty()) { continue; }
+			final int start = _openingOffsets.getOrDefault(leader.member().profileId(), 0) % ranked.size();
+			for (int index = 0; index < ranked.size(); index++)
 			{
+				final int position = (start + index) % ranked.size();
+				final var formation = ranked.get(position);
 				final var source = formation.source();
 				final var roster = formation.roster();
 				final var levels = formation.levels();
@@ -180,14 +196,25 @@ public final class PhantomLogicalPartyCoordinator
 				final var group = new PhantomLogicalParty(id, generation, leader.member().profileId(), roster, source, source.key().substring(source.key().indexOf('@') + 1),
 					PhantomLogicalParty.Phase.AGREED, 0, now, "");
 				final var proposal = new Discovery(Optional.of(group), DiscoveryStatus.READY, now, guards, levels);
-				if (physicalProof == null) { return proposal; }
+				if (_openingProof != null)
+				{
+					if (observedOpenings == MAXIMUM_OPENING_PROOFS)
+					{
+						_openingOffsets.put(leader.member().profileId(), position);
+						return new Discovery(Optional.empty(), DiscoveryStatus.WAIT_OPENING_PROOF_BUDGET, Math.addExact(now, 1000), List.of(), List.of());
+					}
+					observedOpenings++;
+					if (!_openingProof.test(proposal)) { continue; }
+				}
+				if (physicalProof == null) { _openingOffsets.remove(leader.member().profileId()); return proposal; }
 				if (attemptedProofs == MAXIMUM_PHYSICAL_PROOFS)
 				{ return new Discovery(Optional.empty(), DiscoveryStatus.WAIT_PHYSICAL_PROOF_BUDGET, Math.addExact(now, 1000), List.of(), List.of()); }
 				attemptedProofs++;
-				if (physicalProof.test(proposal)) { return proposal; }
+				if (physicalProof.test(proposal)) { _openingOffsets.remove(leader.member().profileId()); return proposal; }
 			}
 		}
-		final var status = attemptedProofs > 0 ? DiscoveryStatus.WAIT_PHYSICAL_PROOF : budget ? DiscoveryStatus.WAIT_DISCOVERY_BUDGET : hasPeers ? DiscoveryStatus.WAIT_COMMON_ROUTE : DiscoveryStatus.WAIT_ROSTER;
+		final var status = attemptedProofs > 0 ? DiscoveryStatus.WAIT_PHYSICAL_PROOF : observedOpenings > 0 ? DiscoveryStatus.WAIT_SAFE_OPENING
+			: budget ? DiscoveryStatus.WAIT_DISCOVERY_BUDGET : hasPeers ? DiscoveryStatus.WAIT_COMMON_ROUTE : DiscoveryStatus.WAIT_ROSTER;
 		return new Discovery(Optional.empty(), status, Math.addExact(now, 1000), List.of(), List.of());
 	}
 
@@ -270,10 +297,23 @@ public final class PhantomLogicalPartyCoordinator
 		return committed;
 	}
 	public StoredLogicalGroup refreshBackground(StoredLogicalGroup expected, long now) { return remember(_store.refreshLogicalBackground(expected, now)); }
+	public record ActivityPlan(List<PhantomLogicalParty.ActivityRoot> roots, java.util.Map<Long, Long> backgroundVersions, String waitReason, long retryMillis)
+	{
+		public ActivityPlan
+		{
+			roots = List.copyOf(roots);
+			backgroundVersions = java.util.Map.copyOf(backgroundVersions);
+			if (roots.isEmpty() ? !backgroundVersions.isEmpty() || !waitReason.startsWith("REPLAN_") || retryMillis <= 0
+				: backgroundVersions.size() != roots.size() || !waitReason.isEmpty() || retryMillis != 0)
+			{ throw new IllegalArgumentException("Invalid Party activity result."); }
+		}
+		public static ActivityPlan ready(List<PhantomLogicalParty.ActivityRoot> roots, java.util.Map<Long, Long> versions) { return new ActivityPlan(roots, versions, "", 0); }
+		public static ActivityPlan waitFor(String reason, long retryMillis) { return new ActivityPlan(List.of(), java.util.Map.of(), reason, retryMillis); }
+	}
 	public interface ActivityRevision
 	{
 		/** Called after projection absence; reject until every old Group grant has recovered as Solo. */
-		List<PhantomLogicalParty.ActivityRoot> plan(PhantomLogicalParty group, long now);
+		ActivityPlan plan(PhantomLogicalParty group, long now);
 		void publish(PhantomLogicalParty.ActivityRoot plan);
 	}
 	/** One bounded step on the existing Party control port. All incomplete phases remain fenced in SQL. */
@@ -285,10 +325,10 @@ public final class PhantomLogicalPartyCoordinator
 		{
 			try
 			{
-				final var plans = revision.plan(group, now);
+				final var plan = revision.plan(group, now);
 				if (now >= group.expiresAtMillis()) { return expire(expected, now).orElse(expected); }
-				if (plans.isEmpty()) { return transition(expected, group.phase(), group.backgroundCursor(), now + 300_000, "REPLAN_NO_COMMON_SOURCE"); }
-				return remember(_store.beginActivityRevision(expected, plans, now));
+				if (plan.roots().isEmpty()) { return transition(expected, group.phase(), group.backgroundCursor(), Math.min(group.expiresAtMillis(), now + plan.retryMillis()), plan.waitReason()); }
+				return remember(_store.beginActivityRevision(expected, plan.roots(), now, plan.backgroundVersions()));
 			}
 			catch (java.util.ConcurrentModificationException releasePending) { return transition(expected, group.phase(), group.backgroundCursor(), now + 5000, "REPLAN_WAIT_RELEASE"); }
 		}

@@ -680,6 +680,14 @@ public final class PhantomSystem
 				}
 				partyParticipation.install(_partyCoordinator);
 				_logicalParties = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(new PhantomPartyStore(productionProfiles));
+				_logicalParties.bindOpeningProof(offer ->
+				{
+					final var group = offer.proposal().orElseThrow();
+					final var codec = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec();
+					final var roster = offer.guards().stream().filter(row -> row.componentType().equals(PhantomBackgroundState.COMPONENT_TYPE))
+						.map(row -> codec.decode(row.payload())).toList();
+					return roster.size() == group.members().size() && partyBackend.permitsObservedFarmOpening(group.objective(), roster);
+				});
 				_partyCoordinator.installLogicalFarmAdmission(id -> executionPartyOwner(id) != null && _executionAdmission.permits(id, executionPartyOwner(id))
 					&& _logicalParties.knownGroupFor(id).map(row -> row.group().phase() != org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING).orElse(false));
 				partyBackend.installScheduledMaterialization(id -> _reconcileMaterializationActivity.materialize(id).outcome() == org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS);
@@ -1086,7 +1094,7 @@ public final class PhantomSystem
 				});
 				autonomousFarm.installActivityRevision(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityRevision()
 				{
-					@Override public java.util.List<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot> plan(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now)
+					@Override public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityPlan plan(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now)
 					{
 						for (var member : group.members())
 						{
@@ -1095,7 +1103,7 @@ public final class PhantomSystem
 								|| execution.phase() != org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.Phase.ACTIVE || execution.dependencies().isEmpty())
 							{ _executionControl.wake(member.profileId()); throw new java.util.ConcurrentModificationException("Activity waits for old owner release."); }
 						}
-						return _historicalBackgroundService.planLogicalActivity(group, now);
+						return _historicalBackgroundService.planLogicalActivity(group, now, partyBackend::permitsObservedFarmOpening);
 					}
 					@Override public void publish(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot plan)
 					{
@@ -3640,7 +3648,6 @@ public final class PhantomSystem
 			{ throw new IllegalStateException("Startup recovery cannot partially operate on a durable Party."); }
 			request.profiles().stream().sorted().forEach(_executionControl::watch);
 			_executionControl.onPulse();
-			for (var row : groups) { owner.recoverColdLogicalParty(row, now); }
 			_populationEcology.onPopulationPulse();
 			final var ready = new java.util.LinkedHashSet<Long>();
 			for (var entry : managed)
@@ -3691,6 +3698,8 @@ public final class PhantomSystem
 					{ ready.add(id); }
 				}
 			}
+			// Refresh canonical authority for every saved member before asking the Party owner to plan.
+			for (var row : groups) { owner.recoverColdLogicalParty(row, now); }
 			// Read back exact claims after the owner's expiry turn. An existing viable group takes priority over formation.
 			final var current = request.profiles().stream().sorted().map(_logicalParties::groupFor).flatMap(java.util.Optional::stream).distinct().toList();
 			if (current.stream().anyMatch(row -> row.group().requiresSoloExecution(now))) { return false; }

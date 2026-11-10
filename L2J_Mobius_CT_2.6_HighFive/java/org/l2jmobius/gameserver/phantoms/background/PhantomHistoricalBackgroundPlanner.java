@@ -208,8 +208,20 @@ public final class PhantomHistoricalBackgroundPlanner
 	/** Metadata/travel proposal only; this grants no Background combat or reward permission. */
 	public Result proposeLogicalActivity(long id, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, PhantomDomainRef source)
 	{
+		return proposeLogicalActivity(id, state, previous, seed, ordinal, source, projectedAdena(state));
+	}
+
+	Result proposeLogicalActivity(long id, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, PhantomDomainRef source, long adena)
+	{
 		if (state == null || previous == null || state.identity().profileId() != id) { return Result.blocked("planner.rendezvous.identity_mismatch"); }
-		return rendezvousGraphPlan(id, state, previous, seed, ordinal, source, Set.of(), Set.of(), true, false);
+		final var itinerary = rendezvousItinerary(state, source, Set.of(), adena);
+		final var spec = rendezvousSource(source);
+		if (!itinerary.available() || partyTarget(state.progress().level(), spec, _topology.findAnchor(spec.anchorId()).orElse(null)) == null)
+		{ return Result.blocked("planner.rendezvous.route_unconfirmed"); }
+		final var position = state.position();
+		final var origin = new PhantomTopologyPoint(position.x(), position.y(), position.z(), position.instanceId());
+		// Structural ingress nominates the native Travel owner. It grants neither arrival nor an offscreen WALK.
+		return rendezvousTravelProposal(id, state, previous, seed, ordinal, origin, source, spec, itinerary.departureAnchorId(), itinerary.steps());
 	}
 	private Result rendezvousGraphPlan(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal,
 		PhantomDomainRef sharedFarmSource, Set<String> excludedTargets, Set<String> excludedSteps, boolean affordableTravel, boolean supportTravelOnly)
@@ -241,6 +253,13 @@ public final class PhantomHistoricalBackgroundPlanner
 		if (ingress == null) { return Result.blocked("planner.rendezvous.ingress_unknown"); }
 		if (partyTarget(state.progress().level(), spec, destination) == null) { return Result.blocked("planner.rendezvous.target_unavailable"); }
 		final var route = ingress.id().equals(destination.id()) ? List.<PhantomNormalGatekeeperTravel.Step>of() : _authority.travelQuery(_topology).route(ingress.id(), destination.id()).orElseThrow();
+		return rendezvousTravelProposal(profileId, state, previous, seed, ordinal, live, source, spec, ingress.id(), route);
+	}
+
+	private Result rendezvousTravelProposal(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal,
+		PhantomTopologyPoint live, PhantomDomainRef source, PhantomBackgroundGoalSpec spec, String ingress, List<PhantomNormalGatekeeperTravel.Step> route)
+	{
+		visiblePredecessor(profileId, previous);
 		final var constraints = new LinkedHashMap<String, Long>(); final var loadout = state.loadout();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, loadout.shotItemId(), PhantomBackgroundGoalSpec.SHOT_COUNT, loadout.shotsPerEncounter());
 		if (loadout.summonNpcId() > 0) { constraints.put(PhantomBackgroundGoalSpec.SUMMON_NPC, (long) loadout.summonNpcId()); }
@@ -249,7 +268,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		final var goal = new PhantomGoal(previous.goalId(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, previous.subject(),
 			new PhantomDomainRef(PhantomBackgroundGoalSpec.NPC_NAMESPACE, Integer.toString(spec.npcId())), 1, 0, "background.farm", List.of(source),
 			new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, spec.anchorId()), "farm.background", 500, 0, 0, 0, constraints, "background.rendezvous.native_ingress", Math.addExact(previous.revision(), 1));
-		return new Result(goal, PhantomBackgroundGoalSpec.parse(goal), digest("RENDEZVOUS_NATIVE_INGRESS_V1", profileId, seed, ordinal, previous.goalId(), goal.revision(), generation, live, ingress.id(), source, edges), generation, edges, "planner.rendezvous.native_ingress");
+		return new Result(goal, PhantomBackgroundGoalSpec.parse(goal), digest("RENDEZVOUS_NATIVE_INGRESS_V1", profileId, seed, ordinal, previous.goalId(), goal.revision(), generation, live, ingress, source, edges), generation, edges, "planner.rendezvous.native_ingress");
 	}
 	private PhantomTopologyAnchor rendezvousIngress(PhantomBackgroundState state, PhantomTopologyAnchor destination, PhantomTopologyPoint live,
 		Set<String> excludedSteps, java.util.function.Predicate<PhantomTopologyAnchor> ingressEvidence)
@@ -320,7 +339,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		return rendezvousSourcesForRole(id, state, root, excludedTargets, excludedSteps, potentialRole, admitted, projectedAdena(state));
 	}
 
-	List<PhantomDomainRef> rendezvousSourcesForRole(long id, PhantomBackgroundState state, PhantomGoal root,
+	public List<PhantomDomainRef> rendezvousSourcesForRole(long id, PhantomBackgroundState state, PhantomGoal root,
 		Set<String> excludedTargets, Set<String> excludedSteps, String potentialRole, java.util.function.Predicate<PhantomDomainRef> admitted, long adena)
 	{
 		if ("utility.spoiler".equals(potentialRole))

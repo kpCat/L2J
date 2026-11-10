@@ -86,6 +86,10 @@ public final class PhantomFarm074Checks
 		final var nearFar = before.after(before.progress(), before.vitals(), new PhantomBackgroundState.Position(0, 10090, 100, 0, 0, "farm.local"),
 			before.inventory(), before.autoGetSkills(), before.clock(), before.receipt());
 		PhantomAssertions.assertEquals(PhantomHistoricalBackgroundPlanner.RendezvousRoute.REACHABLE_VIA_INGRESS, ingress.rendezvousRoutePreview(nearFar, far, Set.of()), "Composite preview lost the authored local ingress and onward route.");
+		final var activity = ingress.proposeLogicalActivity(74, nearFar, previous, 740074, 1, far);
+		PhantomAssertions.assertTrue(activity.ready(), "RED130: recovery discarded the exact WALK ingress already admitted from the stored position: " + activity.reasonKey());
+		PhantomAssertions.assertEquals(List.of("farm.alternative.link"), activity.routeEdgeIds(), "Recovery must retain the authored onward route and leave native WALK to its owner.");
+		PhantomAssertions.assertFalse(ingress.proposeLogicalActivity(74, before, previous, 740074, 1, far).ready(), "An unrelated stored position cannot acquire a fabricated WALK connector.");
 		final var exactFar = nearFar.after(nearFar.progress(), nearFar.vitals(), new PhantomBackgroundState.Position(0, 10100, 100, 0, 0, "farm.local"),
 			nearFar.inventory(), nearFar.autoGetSkills(), nearFar.clock(), nearFar.receipt());
 		PhantomAssertions.assertEquals("farm.far", ingress.rendezvousItinerary(exactFar, far, Set.of()).departureAnchorId(), "An exact authored ingress was skipped because the saved label was stale.");

@@ -444,6 +444,39 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source)
 	{ return autonomousFarmTarget(party, supportMembers, source, null); }
 
+	/** Missing live spawn evidence leaves the durable source provisional. Native Combat checks it again. */
+	public boolean permitsObservedFarmOpening(org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, List<org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState> roster)
+	{
+		final int npcId = Integer.parseInt(source.key().substring(0, source.key().indexOf('@')));
+		final var targets = org.l2jmobius.gameserver.data.SpawnTable.getInstance().getSpawns(npcId).stream()
+			.flatMap(spawn -> spawn.getSpawnedNpcs().stream()).filter(Monster.class::isInstance).map(Monster.class::cast)
+			.filter(target -> observedFarmTarget(target) && _farmSourcePolicy.test(source, target)).limit(8).toList();
+		return targets.isEmpty() || targets.stream().anyMatch(target -> safeFarmOpening(target, roster));
+	}
+
+	private static boolean observedFarmTarget(Monster target)
+	{
+		return target.isSpawned() && !target.isAlikeDead() && !target.isRaid() && !target.isInvul() && target.isTargetable()
+			&& World.getInstance().findObject(target.getObjectId()) == target;
+	}
+
+	/** A read-only opening reserve forecast, with no assumption of an earned heal or tank mitigation. */
+	public static boolean safeFarmOpening(Monster target, List<org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState> roster)
+	{
+		if (!observedFarmTarget(target) || target.isCastingNow() || target.isCastingSimultaneouslyNow()
+			|| (target.hasAI() && target.getAI().getIntention() != Intention.IDLE && target.getAI().getIntention() != Intention.ACTIVE))
+		{ return false; }
+		final var band = PhantomPartyFarmEligibility.forRoster(roster.stream().map(state -> state.progress().level()).toList()).orElse(null);
+		if (band == null || !band.contains(target.getLevel())) { return false; }
+		final var assists = openingAssistThreats(target, target, Set.of());
+		if (assists.size() > 4 || assists.stream().anyMatch(Creature::isRaid)) { return false; }
+		final var threats = java.util.stream.Stream.concat(java.util.stream.Stream.of(target), assists.stream())
+			.map(threat -> L2jPhantomBackgroundAuthority.nativePlanningTarget(threat, true)).toList();
+		final double reserve = PhantomPartyFarmEligibility.threatExposureMillis(60_000, false);
+		return roster.stream().allMatch(member -> PhantomPartyFarmEligibility.withinThreatBudget(threats.stream()
+			.mapToDouble(threat -> PhantomBackgroundModel.incomingDamage(member.combat(), threat, reserve)).sum(), member.vitals().currentHp()));
+	}
+
 	/** Bounded passive admission witness; it does not grant actions or change the guards. */
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, java.util.function.Consumer<String> witness)
 	{ return autonomousFarmTarget(party, supportMembers, null, witness); }
@@ -508,7 +541,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				threats = actor.calculateDistance2D(target) <= 1200 ? List.of() : org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.pveThreats(from, actor.getLevel(), World.getInstance().getVisibleObjectsInRange(actor, Monster.class, 3500).stream().filter(monster -> monster != target).toList());
 			}
 			catch (IllegalArgumentException unavailable) { return false; }
-			if (!PhantomAutonomousFarmParty.permitsFarmApproach(members.get(index), destination, threats) || !org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend.safePartyApproach(actor, target)) { return false; }
+			if (!PhantomAutonomousFarmParty.permitsFarmApproach(members.get(index), destination, threats)
+				|| !org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend.safePartyApproach(actor, target)
+				|| !GeoEngine.getInstance().canMoveToTarget(target.getX(), target.getY(), target.getZ(), actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId()))
+			{ return false; }
 		}
 		return true;
 	}
@@ -684,7 +720,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				incoming += farmIncomingDamage(player, assist, exposure);
 			}
 			exposures[index] = incoming;
-			if (!Double.isFinite(incoming) || incoming >= player.getCurrentHp() * 0.6)
+			if (!PhantomPartyFarmEligibility.withinThreatBudget(incoming, player.getCurrentHp()))
 			{
 				if (witness != null)
 				{
@@ -723,7 +759,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	/** The stock first hit may call nearby faction members and linked minions. These are forecasts, never observed hate. */
-	private static List<Attackable> openingAssistThreats(Monster target, Player puller, Set<Creature> observed)
+	private static List<Attackable> openingAssistThreats(Monster target, Creature puller, Set<Creature> observed)
 	{
 		final var nearby = new java.util.LinkedHashSet<Attackable>();
 		final var world = World.getInstance();

@@ -144,38 +144,94 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public List<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot> planLogicalActivity(
 		org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now)
 	{
+		return planLogicalActivity(group, now, (source, roster) -> true).roots();
+	}
+
+	public org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityPlan planLogicalActivity(
+		org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group, long now,
+		java.util.function.BiPredicate<PhantomDomainRef, List<PhantomBackgroundState>> opening)
+	{
 		final var states = new java.util.LinkedHashMap<Long, PhantomBackgroundState>();
 		final var goals = new java.util.LinkedHashMap<Long, StoredGoal>();
 		final var histories = new java.util.LinkedHashMap<Long, Snapshot>();
+		final var wallets = new java.util.LinkedHashMap<Long, Long>();
+		final var backgroundVersions = new java.util.LinkedHashMap<Long, Long>();
 		final var generation = _planner.generation();
 		for (var member : group.members())
 		{
 			final long id = member.profileId(); final var state = _background.acquisitionSnapshot(id).orElse(null);
 			final var goal = _goals.load(id).orElse(null); final var history = _store.load(id).orElse(null);
-			if (state == null || goal == null || history == null || state.state() != PhantomBackgroundState.State.READY || !state.hashes().equals(generation.authorityHashes())
-				|| !org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole(member.role(), potentialPartyRole(id, state)) || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
-			{ return List.of(); }
+			if (state == null || state.state() != PhantomBackgroundState.State.READY || !logicalOwnershipClear(id))
+			{ return activityWait("REPLAN_WAIT_STORE_" + id, 5000); }
+			if (!state.hashes().equals(generation.authorityHashes())) { return activityWait("REPLAN_WAIT_AUTHORITY_" + id, 5000); }
+			final var background = _profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE)
+				.filter(row -> new PhantomBackgroundStateCodec().decode(row.payload()).equals(state)).orElse(null);
+			if (background == null) { return activityWait("REPLAN_WAIT_STORE_" + id, 5000); }
+			backgroundVersions.put(id, background.rowVersion());
+			if (goal == null || history == null || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
+			{ return activityWait("REPLAN_WAIT_GOAL_" + id, 5000); }
+			final var role = potentialPartyRole(id, state);
+			if ("pending.native_role".equals(role)) { return activityWait("REPLAN_WAIT_ROLE_EVIDENCE_" + id, 5000); }
+			if (!org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.compatibleRole(member.role(), role))
+			{ return activityWait("REPLAN_ROLE_CHANGED_" + id, 30_000); }
+			final var funds = partyTravelAdena(id, state);
+			if (funds.isEmpty()) { return activityWait("REPLAN_WAIT_WALLET_" + id, 5000); }
+			wallets.put(id, funds.get());
 			states.put(id, state); goals.put(id, goal); histories.put(id, history);
 		}
-		if (org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(states.values().stream().map(state -> state.progress().level()).toList()).isEmpty()) { return List.of(); }
-		final long leader = group.leaderProfileId(); final var leaderHistory = histories.get(leader).state();
-		final var common = _planner.rendezvousSources(leader, states.get(leader), goals.get(leader).goal(), leaderHistory.deterministicSeed(), leaderHistory.planOrdinal(), Set.of(), Set.of(),
-			source -> !source.equals(group.objective()) && states.values().stream().allMatch(state -> _planner.partySourceAvailable(state, source, Set.of())));
-		for (var source : common)
+		final var roster = List.copyOf(states.values());
+		if (org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.forRoster(roster.stream().map(state -> state.progress().level()).toList()).isEmpty())
+		{ return activityWait("REPLAN_GROUP_LEVEL_BAND", 30_000); }
+		final long leader = group.leaderProfileId();
+		final var leaderRole = group.members().stream().filter(member -> member.profileId() == leader).findFirst().orElseThrow().role();
+		final var noFunds = new java.util.concurrent.atomic.AtomicLong();
+		final var common = _planner.rendezvousSourcesForRole(leader, states.get(leader), goals.get(leader).goal(), Set.of(group.objective().key()), Set.of(), leaderRole, source ->
 		{
+			long lacking = 0;
+			for (var entry : states.entrySet())
+			{
+				final long id = entry.getKey();
+				if (_planner.partySourceAvailable(entry.getValue(), source, Set.of(), wallets.get(id))) { continue; }
+				if (!_planner.partySourceAvailable(entry.getValue(), source, Set.of(), Long.MAX_VALUE)) { return false; }
+				if (lacking == 0) { lacking = id; }
+			}
+			if (lacking != 0) { noFunds.compareAndSet(0, lacking); return false; }
+			return true;
+		}, Long.MAX_VALUE);
+		if (common.isEmpty())
+		{
+			return noFunds.get() == 0 ? activityWait("REPLAN_NO_COMMON_ROUTE", 60_000) : activityWait("REPLAN_WAIT_FUNDS_" + noFunds.get(), 30_000);
+		}
+		final String scanPrefix = "REPLAN_WAIT_SAFE_TARGET_";
+		final var wait = group.waitReason();
+		final int start = wait.startsWith(scanPrefix) && wait.substring(scanPrefix.length()).matches("[0-9]{1,2}")
+			? Integer.parseInt(wait.substring(scanPrefix.length())) % common.size() : 0;
+		final int window = Math.min(8, common.size());
+		boolean unsafe = false;
+		for (int index = 0; index < window; index++)
+		{
+			final var source = common.get((start + index) % common.size());
+			if (!opening.test(source, roster)) { unsafe = true; continue; }
 			final var proposals = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot>();
 			for (var member : group.members())
 			{
 				final long id = member.profileId(); final var before = histories.get(id);
-				final var planned = _planner.proposeLogicalActivity(id, states.get(id), goals.get(id).goal(), before.state().deterministicSeed(), Math.addExact(before.state().planOrdinal(), 1), source);
+				final var planned = _planner.proposeLogicalActivity(id, states.get(id), goals.get(id).goal(), before.state().deterministicSeed(), Math.addExact(before.state().planOrdinal(), 1), source, wallets.get(id));
 				if (!planned.ready()) { break; }
 				final var history = before.state().withPlan(planned.goal().goalId(), planned.goal().revision(), Math.addExact(before.state().planOrdinal(), 1), planned.planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
 				proposals.add(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot(group.groupId(), group.generation(), id, goals.get(id).rowVersion(), now + 60_000, planned.goal(),
 					new PhantomProfileRepository.ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, before.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, new PhantomBackgroundCatchupStateCodec().encode(history))));
 			}
-			if (proposals.size() == group.members().size() && _planner.generation().equals(generation)) { return proposals; }
+			if (!_planner.generation().equals(generation)) { return activityWait("REPLAN_WAIT_AUTHORITY", 5000); }
+			if (proposals.size() == group.members().size())
+			{ return org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityPlan.ready(proposals, backgroundVersions); }
 		}
-		return List.of();
+		return activityWait(unsafe || common.size() > window ? scanPrefix + (start + window) % common.size() : "REPLAN_WAIT_ROUTE_PROOF", 30_000);
+	}
+
+	private static org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityPlan activityWait(String reason, long delayMillis)
+	{
+		return org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator.ActivityPlan.waitFor(reason, delayMillis);
 	}
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)

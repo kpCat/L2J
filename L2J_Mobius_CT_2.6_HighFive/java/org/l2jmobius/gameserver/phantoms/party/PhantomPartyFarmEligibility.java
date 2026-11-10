@@ -104,6 +104,8 @@ public final class PhantomPartyFarmEligibility
 	/** Source/level admission precedes the expensive native Geo/combat candidate budget. */
 	public static <T> List<T> farmTargets(java.util.stream.Stream<T> ordered, java.util.function.Predicate<T> lawful)
 	{ return ordered.filter(lawful).distinct().limit(8).toList(); }
+	public static boolean withinThreatBudget(double incoming, double currentHp)
+	{ return Double.isFinite(incoming) && incoming < currentHp * 0.6; }
 	/** Every member's local threats, deduplicated before the four-threat overflow witness. */
 	public static <A, T> List<T> farmThreats(List<A> actors, java.util.function.Function<A, java.util.stream.Stream<T>> nearby, java.util.function.Predicate<T> engaged)
 	{ return actors.stream().flatMap(nearby).filter(engaged).distinct().limit(5).toList(); }

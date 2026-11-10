@@ -206,6 +206,10 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 	}
 	@Override public StoredLogicalGroup beginActivityRevision(StoredLogicalGroup expected, List<PhantomLogicalParty.ActivityRoot> plans, long now)
 	{
+		return beginActivityRevision(expected, plans, now, java.util.Map.of());
+	}
+	@Override public StoredLogicalGroup beginActivityRevision(StoredLogicalGroup expected, List<PhantomLogicalParty.ActivityRoot> plans, long now, java.util.Map<Long, Long> backgroundVersions)
+	{
 		final var group = expected.group();
 		if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND || !group.activityReplanRequired() || group.activityPending() || plans.size() != group.members().size())
 		{ throw new IllegalStateException("Activity revision waits for terminal physical drain."); }
@@ -221,7 +225,8 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 			final var root = _profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
 			final var previous = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(root.payload());
 			final var background = _profiles.findComponent(id, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
-			if (root.rowVersion() != plan.beforeGoalVersion() || previous.goalId() != member.goalId() || plan.goal().goalId() != previous.goalId() || plan.goal().revision() != Math.addExact(previous.revision(), 1)
+			if ((!backgroundVersions.isEmpty() && !java.util.Objects.equals(backgroundVersions.get(id), background.rowVersion()))
+				|| root.rowVersion() != plan.beforeGoalVersion() || previous.goalId() != member.goalId() || plan.goal().goalId() != previous.goalId() || plan.goal().revision() != Math.addExact(previous.revision(), 1)
 				|| !plan.goal().subject().equals(previous.subject()) || new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().decode(background.payload()).state() != org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.READY)
 			{ throw new java.util.ConcurrentModificationException("Activity baseline is not settled."); }
 			final var spec = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(plan.goal());
