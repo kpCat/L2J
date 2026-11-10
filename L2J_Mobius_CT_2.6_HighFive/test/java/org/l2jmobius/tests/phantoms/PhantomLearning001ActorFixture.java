@@ -376,9 +376,11 @@ public final class PhantomLearning001ActorFixture
 	{
 		final GeoEngine geo = GeoEngine.getInstance();
 		final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
-		final var targets = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
-			.filter(npc -> PARTY_TARGETS.contains(npc.getId()) && npc.isSpawned() && !npc.isAlikeDead() && !npc.isChampion() && !npc.isAggressive()
-				&& npc.getInstanceId() == 0 && npc.getMaxHp() <= 6000 && geo.hasGeo(npc.getX(), npc.getY()))
+		final var monsters = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
+			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0).toList();
+		final var aggressors = monsters.stream().filter(Monster::isAggressive).toList();
+		final var targets = monsters.stream().filter(npc -> PARTY_TARGETS.contains(npc.getId()) && !npc.isChampion() && !npc.isAggressive()
+				&& npc.getMaxHp() <= 6000 && geo.hasGeo(npc.getX(), npc.getY()))
 			.sorted(Comparator.comparingDouble(Monster::getMaxHp).thenComparingInt(Monster::getObjectId)).toList();
 		for (Monster target : targets)
 		{
@@ -392,6 +394,13 @@ public final class PhantomLearning001ActorFixture
 					|| !geo.canSeeTarget(point.x(), point.y(), point.z(), 0, target.getX(), target.getY(), target.getZ(), 0)
 					|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), target.getX(), target.getY(), target.getZ(), 0)
 					|| !geo.canMoveToTarget(target.getX(), target.getY(), target.getZ(), point.x(), point.y(), point.z(), 0)) { continue; }
+				final var aggressor = aggressors.stream().filter(npc -> Math.abs((long) npc.getZ() - point.z()) <= 200
+					&& Math.hypot((long) npc.getX() - point.x(), (long) npc.getY() - point.y()) <= npc.getAggroRange() + 250).findFirst();
+				if (aggressor.isPresent())
+				{
+					System.out.println("LEARNING001_FIXTURE_ANCHOR_AGGRO source=" + source.key() + " npc=" + aggressor.orElseThrow().getId());
+					continue;
+				}
 				System.out.println("LEARNING001_FIXTURE_ANCHOR source=" + source.key() + " point=" + point + " targetHP=" + target.getMaxHp());
 				return new Location(point.x(), point.y(), point.z());
 			}

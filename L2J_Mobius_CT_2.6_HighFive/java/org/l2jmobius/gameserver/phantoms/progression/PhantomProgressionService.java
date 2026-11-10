@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.LongFunction;
 
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionBackend.ActorLease;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionBackend.CapabilityLease;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorProgressionSnapshot;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorSnapshotResult;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityEvaluation;
@@ -101,7 +103,7 @@ public final class PhantomProgressionService
 
 	public Observation observeActor(long profileId)
 	{
-		final LeaseClaim claim = claimActor(profileId);
+		final var claim = claimActor(profileId);
 		if (claim == null)
 		{
 			return new Observation(new ActorSnapshotResult(running() ? SnapshotStatus.ACTOR_NOT_MATERIALIZED : SnapshotStatus.SERVICE_NOT_RUNNING, null), null, false);
@@ -130,7 +132,7 @@ public final class PhantomProgressionService
 
 	public List<CapabilityEvaluation> capabilities(long profileId, Integer targetObjectId)
 	{
-		final LeaseClaim claim = claimActor(profileId);
+		final var claim = claimActor(profileId, _backend::tryObserveCapabilities);
 		if (claim == null)
 		{
 			_metrics.recordQuery(true);
@@ -157,7 +159,7 @@ public final class PhantomProgressionService
 		{
 			throw new IllegalArgumentException("Owned equipment page exceeds progression policy.");
 		}
-		final LeaseClaim claim = claimActor(profileId);
+		final var claim = claimActor(profileId);
 		if (claim == null)
 		{
 			_metrics.recordQuery(true);
@@ -204,7 +206,7 @@ public final class PhantomProgressionService
 
 	public List<SubclassEligibility> subclassEligibility(long profileId)
 	{
-		final LeaseClaim claim = claimActor(profileId);
+		final var claim = claimActor(profileId);
 		if (claim == null)
 		{
 			return List.of();
@@ -219,7 +221,7 @@ public final class PhantomProgressionService
 	{
 		return executeOperation(request.profileId(), request.planOwnershipToken(), true, ownership ->
 		{
-			final LeaseClaim claim = claimActor(request.profileId());
+			final var claim = claimActor(request.profileId());
 			if (claim == null)
 			{
 				return OperationResult.rejected(OperationStatus.ACTOR_NOT_MATERIALIZED);
@@ -235,7 +237,7 @@ public final class PhantomProgressionService
 	{
 		return executeOperation(request.profileId(), request.planOwnershipToken(), false, ownership ->
 		{
-			final LeaseClaim claim = claimActor(request.profileId());
+			final var claim = claimActor(request.profileId());
 			if (claim == null)
 			{
 				return OperationResult.rejected(OperationStatus.ACTOR_NOT_MATERIALIZED);
@@ -403,7 +405,12 @@ public final class PhantomProgressionService
 		return new ServiceSnapshot(_state, _generation, catalog == null ? "none" : catalog.combinedHash(), catalog == null ? new PhantomProgressionCatalog.Counts(0, 0, 0, 0, 0, 0, 0) : catalog.counts(), _operations.size(), _peakOperations, _activeActorLeases, _peakActorLeases, _failureCategory, _metrics.snapshot());
 	}
 
-	private LeaseClaim claimActor(long profileId)
+	private LeaseClaim<ActorLease> claimActor(long profileId)
+	{
+		return claimActor(profileId, _backend::tryAcquireActor);
+	}
+
+	private <T extends CapabilityLease> LeaseClaim<T> claimActor(long profileId, LongFunction<Optional<T>> acquire)
 	{
 		final PhantomProgressionCatalog catalog;
 		synchronized (this)
@@ -415,7 +422,7 @@ public final class PhantomProgressionService
 			}
 			catalog = _catalog;
 		}
-		final Optional<ActorLease> lease = _backend.tryAcquireActor(profileId);
+		final Optional<T> lease = acquire.apply(profileId);
 		if (lease.isEmpty())
 		{
 			_metrics.recordLeaseRejected();
@@ -434,7 +441,7 @@ public final class PhantomProgressionService
 			_peakActorLeases = Math.max(_peakActorLeases, _activeActorLeases);
 			_metrics.recordLeaseAcquired();
 		}
-		return new LeaseClaim(lease.orElseThrow(), catalog);
+		return new LeaseClaim<>(lease.orElseThrow(), catalog);
 	}
 
 	private synchronized boolean running()
@@ -457,19 +464,19 @@ public final class PhantomProgressionService
 	{
 	}
 
-	private final class LeaseClaim implements AutoCloseable
+	private final class LeaseClaim<T extends CapabilityLease> implements AutoCloseable
 	{
-		private final ActorLease _lease;
+		private final T _lease;
 		private final PhantomProgressionCatalog _catalog;
 		private boolean _closed;
 
-		private LeaseClaim(ActorLease lease, PhantomProgressionCatalog catalog)
+		private LeaseClaim(T lease, PhantomProgressionCatalog catalog)
 		{
 			_lease = lease;
 			_catalog = catalog;
 		}
 
-		private ActorLease lease()
+		private T lease()
 		{
 			return _lease;
 		}

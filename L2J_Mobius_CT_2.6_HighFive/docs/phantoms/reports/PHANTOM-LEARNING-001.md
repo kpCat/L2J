@@ -111,6 +111,16 @@ Launcher проверяет фактический PID, FILETIME и единст
 
 В продолжении выполнены одна clean JAR с исправлением bind и четыре GameServer bootstrap, по одному в `cycle`, `cycle2`, `cycle3` и `cycle4`. `cycle5`, `cycle6` и `cycle7` использовали headless preflight. Последний контроль после SQL readback подтвердил свободные порты 33317, 17961 и 19261. Protected207 и Geo203 проверялись штатным launcher.
 
+## Исправление наблюдения Party
+
+Повторная диагностика обнаружила независимую причину слабого прогноза. `L2jPhantomPartyBackend` снимал характеристики под `OBSERVATION`, а вложенный запрос `PhantomProgressionService.capabilities` просил `ACTION`. Штатный барьер правильно отклонял вложенный ACTION. Снимок Archmage терял Prominence и Fire Vortex и оставлял возможность обычного удара оружием.
+
+RED на прежнем JAR подтвердил наличие изученного Prominence при прямом запросе Progression, отказ вложенного ACTION и отсутствие Prominence в снимке Party. Исправление использует существующий OBSERVATION и разделяет типы чтения и изменения. На новом JAR оба Archmage показали `combat.ranged_magic_damage` для 1230 и 1339, вложенный ACTION остался запрещён. `ant -f build.xml phantom-capability-runtime-test phantom-learning001-test jar` прошёл, **40/40** и **2/2**. SHA-256 нового JAR `2d31045180b8eeaf8d48ef41fe1676277d6fa3b8ca1c05954b12462a5074cc29`. Предыдущий JAR сохранён в исторических контурах.
+
+После восстановления снимка следующий headless gate выявил повреждённый состав `cycle7`. Phoenix Knight имел 76-й уровень перед ожиданием TUNING, в тот период загрузилась штатная таблица потерь опыта. В новой JVM танк загрузился 75-го уровня, `HP=0` и `dead=true`. Fixture теперь проверяет исходный уровень и состояние актёров, а при живой угрозе прекращает ожидание preflight. Обследование со штатными NPC отклонило прежний якорь из-за Hames Orc Overlord (21116) и нашло якорь `21115@generated.farm.87c6db395f6b9b474b17558f.anchor` возле Shaman с 4158 HP. SQL штатно остановлен. GameServer оставался за gate.
+
+Повторены DB-free Combat ownership **37/37**, Party tactics **13/13**, F8 **14/14** и F7 `TASK130_STRICT_RECEIPT_HASH_PASS`. End-to-end SQL replay F7 остаётся открытым.
+
 ## Открытые gates и Git
 
 **PARTIAL.** Подтверждены реальный Solo-урон в MariaDB и автономное формирование настоящей Party. Боевой опыт Party, достаточный набор train/tuning/audit, обучение и принятие NATIVE-модели, readback весов и применение после нового запуска остаются открыты. Полные native F7/F8, обычный Player Heal, PvP/PK и сравнение CPU полного пути OFF/ON остаются открыты. TASK130 остаётся PARTIAL.

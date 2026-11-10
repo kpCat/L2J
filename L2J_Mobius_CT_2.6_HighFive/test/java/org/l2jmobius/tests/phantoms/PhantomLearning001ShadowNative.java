@@ -191,6 +191,13 @@ public final class PhantomLearning001ShadowNative
 				final var roster = new java.util.ArrayList<>(actors.stream().filter(row -> split.equals(row[0])).toList());
 				roster.add(helper);
 				final var players = roster.stream().map(runtime::materialize).toList();
+				for (int index = 0; index < roster.size(); index++)
+				{
+					final var row = roster.get(index);
+					final Player player = players.get(index);
+					check(!player.isAlikeDead() && player.getLevel() >= Integer.parseInt(row[5]), "PARTY_PREFLIGHT_ACTOR_STATE profile=" + row[2]
+						+ " declaredLevel=" + row[5] + " loadedLevel=" + player.getLevel() + " hp=" + player.getCurrentHp() + " dead=" + player.isAlikeDead());
+				}
 				runtime.inspectParty(roster, players);
 				runtime.provePartyTarget(roster, players);
 				for (String[] row : roster) { runtime.store(Long.parseLong(row[2])); }
@@ -350,6 +357,17 @@ public final class PhantomLearning001ShadowNative
 					+ " contributor=" + (facts != null && PhantomAutonomousFarmParty.farmContributor(facts)) + " capabilities=" + (facts == null ? List.of()
 						: facts.capabilities().stream().map(value -> value.capabilityKey() + ":" + value.actionSkillId() + ":" + value.readyNow()).toList())
 					+ " x=" + player.getX() + " y=" + player.getY() + " z=" + player.getZ());
+				if (!"HELPER".equals(roster.get(index)[1]))
+				{
+					check(progression.capabilities(id, null).stream().anyMatch(capability -> capability.actionSkill().skillId() == 1230 && capability.learned()),
+						"AUTHORED_PROMINENCE_" + id);
+					try (var observation = materialization.tryAcquireObservation(id).orElseThrow(); var action = materialization.tryAcquireAction(id).orElse(null))
+					{
+						check(observation.player() == player && action == null, "PARTY_OBSERVATION_DOES_NOT_ADMIT_ACTION_" + id);
+					}
+					check(facts != null && facts.capabilities().stream().anyMatch(capability -> "combat.ranged_magic_damage".equals(capability.capabilityKey())
+						&& capability.actionSkillId() == 1230 && capability.learned()), "PARTY_OBSERVES_LEARNED_PROMINENCE_" + id);
+				}
 			}
 			final var team = candidates.stream().findFirst().map(leader -> PhantomAutonomousFarmParty.selectTeam(roles, leader, candidates)).orElse(List.of());
 			System.out.println("LEARNING001_PARTY_PREFLIGHT_TEAM " + team);
@@ -361,6 +379,7 @@ public final class PhantomLearning001ShadowNative
 			final var profiles = roster.stream().map(row -> Long.parseLong(row[2])).toList();
 			await(() ->
 			{
+				check(players.stream().noneMatch(PhantomLearning001ShadowNative::preflightThreatened), "STOCK_PARTY_PREFLIGHT_INVITE_THREAT");
 				final var nativeParty = players.getFirst().getParty();
 				if (nativeParty == null || !nativeParty.getMembers().containsAll(players)) { autonomous.onPulse(); }
 				coordinator.onPulse();
@@ -377,13 +396,15 @@ public final class PhantomLearning001ShadowNative
 			int target = backend.autonomousFarmTarget(party, supports, farm, reasons::add).orElse(0);
 			final long deadline = System.nanoTime() + Duration.ofSeconds(75).toNanos();
 			// Natural spawn movement and HP regeneration may change the same stock risk verdict.
-			while (target == 0 && System.nanoTime() < deadline)
+			while (target == 0 && System.nanoTime() < deadline && players.stream().noneMatch(PhantomLearning001ShadowNative::preflightThreatened))
 			{
 				Thread.sleep(1500);
 				reasons.clear();
 				target = backend.autonomousFarmTarget(party, supports, farm, reasons::add).orElse(0);
 			}
-			System.out.println("LEARNING001_PARTY_PREFLIGHT_TARGET profiles=" + profiles + " leader=" + leader + " target=" + target + " " + reasons);
+			final var threatened = players.stream().filter(PhantomLearning001ShadowNative::preflightThreatened).map(Player::getObjectId).toList();
+			System.out.println("LEARNING001_PARTY_PREFLIGHT_TARGET profiles=" + profiles + " leader=" + leader + " target=" + target
+				+ " wait=" + backend.autonomousFarmWaitReason(party.leader()) + " threatened=" + threatened + " " + reasons);
 			check(combat.snapshot().activeSessions() == 0, "NO_PREFLIGHT_COMBAT");
 			await(() ->
 			{
@@ -391,6 +412,7 @@ public final class PhantomLearning001ShadowNative
 				return coordinator.drainAutonomousFarm(leader);
 			}, Duration.ofSeconds(30), "STOCK_PARTY_PREFLIGHT_RELEASE");
 			check(players.stream().noneMatch(Player::isInParty), "STOCK_PARTY_PREFLIGHT_DISBANDED");
+			check(threatened.isEmpty(), "STOCK_PARTY_PREFLIGHT_THREAT");
 			check(target > 0, "STOCK_PARTY_PREFLIGHT_TARGET");
 		}
 
@@ -487,6 +509,11 @@ public final class PhantomLearning001ShadowNative
 			await(progression::finishStop, Duration.ofSeconds(30), "PROGRESSION_STOP");
 			System.out.println("LEARNING001_NATIVE_OWNERS_STOP " + policy.counters());
 		}
+	}
+
+	private static boolean preflightThreatened(Player player)
+	{
+		return player.isAlikeDead() || PhantomNativeLootControl.threat(player) != null;
 	}
 
 	private record Samples(long count, int skills, int actors)

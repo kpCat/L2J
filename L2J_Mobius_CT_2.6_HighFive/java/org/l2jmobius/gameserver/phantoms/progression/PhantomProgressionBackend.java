@@ -37,28 +37,37 @@ public interface PhantomProgressionBackend
 
 	Optional<ActorLease> tryAcquireActor(long profileId);
 
+	/** A capability query may run inside another owner's observation scope. */
+	default Optional<CapabilityLease> tryObserveCapabilities(long profileId)
+	{
+		return tryAcquireActor(profileId).map(lease -> lease);
+	}
+
 	/** Native adapter releases its ACTION lease before entering the existing durable checkpoint. */
 	default OperationResult advanceCareer(PhantomProgressionModel.CareerRequest request, BooleanSupplier ownershipCurrent)
 	{
 		return OperationResult.rejected(PhantomProgressionModel.OperationStatus.INVALID_REQUEST);
 	}
 
-	interface ActorLease extends AutoCloseable
+	interface CapabilityLease extends AutoCloseable
 	{
 		ActorProgressionSnapshot snapshot(String catalogHash, Set<Integer> referencedResourceItemIds, Set<Integer> certificationSkillIds);
 
-		Page<OwnedEquipmentFact> ownedEquipment(OwnedEquipmentFilter filter, PageRequest page);
-
 		SkillReadinessProbe canonicalSkillReadiness(SkillRef skill, Integer targetObjectId);
+
+		@Override
+		void close();
+	}
+
+	interface ActorLease extends CapabilityLease
+	{
+		Page<OwnedEquipmentFact> ownedEquipment(OwnedEquipmentFilter filter, PageRequest page);
 
 		List<SubclassEligibility> subclassEligibility(List<ClassFact> classes);
 
 		OperationResult learnClassSkill(LearnSkillRequest request, BooleanSupplier ownershipCurrent);
 
 		OperationResult equipOwnedItem(EquipItemRequest request, BooleanSupplier ownershipCurrent);
-
-		@Override
-		void close();
 	}
 
 	record BackendData(List<ClassFact> classes, List<SkillLearnFact> skillLearns, List<SkillFact> skills, List<EquipmentFact> equipment, List<SummonActorFact> summons, List<PetFact> pets, List<CapabilityRule> capabilityRules, Set<Integer> knownItemIds)

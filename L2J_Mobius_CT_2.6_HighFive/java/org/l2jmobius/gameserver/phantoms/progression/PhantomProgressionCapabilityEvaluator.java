@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionBackend.ActorLease;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionBackend.CapabilityLease;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorKind;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.ActorProgressionSnapshot;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityEvaluation;
@@ -26,7 +26,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Ski
  */
 public final class PhantomProgressionCapabilityEvaluator
 {
-	public List<CapabilityEvaluation> evaluate(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, ActorLease lease, Integer targetObjectId)
+	public List<CapabilityEvaluation> evaluate(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, CapabilityLease lease, Integer targetObjectId)
 	{
 		final List<CapabilityEvaluation> result = new ArrayList<>();
 		for (CapabilityRule rule : catalog.capabilities(actor.activeClassId()))
@@ -41,7 +41,7 @@ public final class PhantomProgressionCapabilityEvaluator
 		return List.copyOf(result);
 	}
 
-	private static ReadinessReason readiness(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, ActorLease lease, CapabilityRule rule, SkillRef action, boolean learned, Integer targetObjectId)
+	private static ReadinessReason readiness(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, CapabilityLease lease, CapabilityRule rule, SkillRef action, boolean learned, Integer targetObjectId)
 	{
 		if (actor.dead())
 		{

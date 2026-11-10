@@ -639,7 +639,17 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		{
 			return Optional.empty();
 		}
-		return _materialization.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease, _skillLearningTransaction));
+		return _materialization.tryAcquireAction(profileId).map(lease -> new L2jActorLease(profileId, lease, _skillLearningTransaction, false));
+	}
+
+	@Override
+	public Optional<CapabilityLease> tryObserveCapabilities(long profileId)
+	{
+		if (_materialization == null)
+		{
+			return Optional.empty();
+		}
+		return _materialization.tryAcquireObservation(profileId).map(lease -> new L2jActorLease(profileId, lease, _skillLearningTransaction, true));
 	}
 
 	@Override
@@ -752,14 +762,16 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		private final ActionLease _lease;
 		private final Player _player;
 		private final PhantomClassSkillLearningTransaction _skillLearningTransaction;
+		private final boolean _observationOnly;
 		private boolean _closed;
 
-		L2jActorLease(long profileId, ActionLease lease, PhantomClassSkillLearningTransaction skillLearningTransaction)
+		L2jActorLease(long profileId, ActionLease lease, PhantomClassSkillLearningTransaction skillLearningTransaction, boolean observationOnly)
 		{
 			_profileId = profileId;
 			_lease = lease;
 			_player = lease.player();
 			_skillLearningTransaction = skillLearningTransaction;
+			_observationOnly = observationOnly;
 		}
 
 		@Override
@@ -918,6 +930,10 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		public OperationResult learnClassSkill(LearnSkillRequest request, BooleanSupplier ownershipCurrent)
 		{
 			requireOpen();
+			if (_observationOnly)
+			{
+				return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED);
+			}
 			if (request.acquireKind() != AcquireKind.CLASS)
 			{
 				return OperationResult.rejected(OperationStatus.UNSUPPORTED_ACQUIRE_TYPE);
@@ -1024,6 +1040,10 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		public OperationResult equipOwnedItem(EquipItemRequest request, BooleanSupplier ownershipCurrent)
 		{
 			requireOpen();
+			if (_observationOnly)
+			{
+				return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED);
+			}
 			if (request.planOwnershipToken().isCancelled() || !ownershipCurrent.getAsBoolean())
 			{
 				return OperationResult.rejected(OperationStatus.CANCELLED);

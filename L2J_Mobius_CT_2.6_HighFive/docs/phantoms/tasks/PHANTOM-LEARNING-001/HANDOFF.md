@@ -8,7 +8,7 @@ LEARNING-001 имеет статус **PARTIAL**. Базовый SHA `c5b81f89ce
 2. Приватный корень `D:/Codex/worktrees/phantom-learning-001-source/.phantom-local/learning001` содержит отдельные datadir, Geo203, манифесты, SQL readback и исходные журналы попыток. Контуры до `cycle7` доступны только для чтения боевых итогов. Итоги по ним и аттестованный JAR указаны в отчёте.
 3. Bind fix `9fe1c1b1ac70fef8c7e8f2f1e9eef888a2d33a05` подтверждён focused-тестом и системным listener `127.0.0.1:17961`. Launcher принимает точный SHA JAR и разрешает бой после аттестации PID и сокета. Повторный запуск получает новый каталог `attempts/<uuid>` с отдельными CUT и STOP. Владелец снял прежние количественные лимиты, каждый запуск проверяет конкретный этап.
 4. В `cycle2` Solo записал оба навыка и потребил `LOW_HP_STOPPED`. NPC добил актёра после завершения Combat claim. Runner использует штатный retreat owner и отдых, отбирает Solo-цели с учётом соседних NPC и начинает с автономной Party. В `cycle3` состав блокировали необязательные Heal. В `cycle4` штатный состав сформировался, а `WAIT_TANK_AGGRO` не дал начать бой. В `cycle5` Antelope не прошёл штатный прогноз даже с Phoenix Knight. `cycle7` использует канонический источник Hames Orc Shaman. GameServer загружается с глобальным PhantomSystem OFF, затем runner поднимает штатные Materialization, Combat, Navigation, Progression и Party owners для своей группы.
-5. `cycle7` остановлен до CUT. На штатном Shaman TRAIN дважды прошёл допуск, TUNING отказал на прогнозе дополнительных угроз и входящего урона. AUDIT не дошёл до допуска. Последние логи `cycle7-normal-spawn-party.log` и `cycle7-regen-party.log` находятся в приватном корне. Перед повтором воспроизвести безопасное окно для всех трёх составов с тем же stock planner и вывести `autonomousFarmWaitReason` при пустом списке кандидатов. После полного preflight нужен один целевой SHADOW, а затем SQL coverage с раздельными split. Текущая пустая выборка корректно отклонена trainer.
+5. `cycle7` остановлен до CUT. RED и GREEN в `cycle7-observation-red.log` и `cycle7-observation-green.log` подтвердили исправление. Чтение Progression теперь работает внутри наблюдения Party и сохраняет запрет вложенного ACTION. Следующее препятствие — сохранённый танк 75-го уровня вместо подготовленного 76-го после ожидания TUNING. Сохранить `cycle7` и его логи. Для следующего отдельного состава нужен штатный якорь без немедленной агрессии и полный preflight, затем один целевой SHADOW и SQL coverage. Текущая пустая выборка корректно отклонена trainer.
 6. Для NATIVE gate нужны DRAFT с независимым улучшением, явное принятие версии, холодная загрузка и один ключ события в журнале и SQL для каждого переупорядоченного каста. `on` требует подтверждения в Solo и Party. Полные native F7/F8, обычный Heal и PvP/PK остаются отдельными проверками. PHANTOM-LEARNING-002 ждёт закрытия 001.
 
 ## Команды
@@ -24,7 +24,7 @@ ant -f build.xml jar
 
 ```powershell
 $fixture = 'tools/phantom-runtime/Invoke-Learning001Fixture.ps1'
-$jar = '4a2957bd5d6ff4389859ad34891a980399c75dfb4d56aa5606caedc7000bfc05'
+$jar = '2d31045180b8eeaf8d48ef41fe1676277d6fa3b8ca1c05954b12462a5074cc29'
 powershell -NoProfile -File $fixture -Action check-party -Lane cycle7 -JarSha $jar
 powershell -NoProfile -File $fixture -Action shadow -Lane cycle7 -JarSha $jar
 powershell -NoProfile -File $fixture -Action coverage -Lane cycle7 -JarSha $jar
