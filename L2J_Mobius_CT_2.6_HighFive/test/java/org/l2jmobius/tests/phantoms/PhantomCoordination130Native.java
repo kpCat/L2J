@@ -1399,6 +1399,9 @@ final class PhantomCoordination130Native
     static boolean usefulGroupEvidence(boolean party, boolean kill, boolean healerRequired, boolean healHp, boolean healMp, boolean restart)
     { return party && kill && (!healerRequired || restart || healHp && healMp); }
 
+    static boolean stockRosterReady(int nativeSize, int logicalSize, boolean exact)
+    { return nativeSize >= 2 && nativeSize <= 9 && (!exact || nativeSize == logicalSize); }
+
     private record HealRecipient(Player player, long receiptBefore, double hpBefore) { }
     private record HealSample(org.l2jmobius.gameserver.model.skill.Skill skill, List<HealRecipient> recipients, double mpBefore) { }
 
@@ -1420,6 +1423,7 @@ final class PhantomCoordination130Native
         final Map<Integer, Long> priorHealReceipt = new HashMap<>();
         final Map<Integer, HealSample> healing = new HashMap<>();
         final Map<Integer, PhantomNavigationPoint> partyOrigins = new HashMap<>();
+        final boolean exactRosterRequired = travelRequired || Files.isRegularFile(runtime.resolve("fixture130.guardian"));
         boolean groupTravel = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         long partyGeneration = -1;
@@ -1439,7 +1443,7 @@ final class PhantomCoordination130Native
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull)
                 .filter(value -> value.getMembers().stream().allMatch(actor -> logicalObjects.contains(actor.getObjectId()))).findFirst().orElse(null);
             final var stock = party == null ? List.<Player>of() : List.copyOf(party.getMembers());
-            if (stock.size() >= 2 && stock.size() <= 9
+            if (stockRosterReady(stock.size(), logicalObjects.size(), exactRosterRequired)
                 && stock.stream().allMatch(actor -> actors.contains(actor) && logicalObjects.contains(actor.getObjectId()) && actor.getParty() == party))
             {
                 final var leader = stock.getFirst();
@@ -1452,7 +1456,7 @@ final class PhantomCoordination130Native
                     System.out.println("NATIVE130_STOCK_PARTY leader=" + leader.getObjectId() + " members=" + stock.stream().map(Player::getObjectId).toList() + " logicalRoles=" + group.members());
                     if (travelRequired)
                     {
-                        check(stock.size() == ids.size() && stock.stream().allMatch(actor -> !actor.isAlikeDead()
+                        check(stock.stream().allMatch(actor -> !actor.isAlikeDead()
                             && (actor.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.TOWN)
                                 || actor.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))), "STOCK_PARTY_BEFORE_TOWN_DEPARTURE");
                         stock.forEach(actor -> partyOrigins.put(actor.getObjectId(), PhantomNativeTravelActions.point(actor)));

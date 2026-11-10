@@ -262,6 +262,9 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals("native-20261109-212228.79004", first, "Launch receipt lost process identity.");
 			PhantomAssertions.assertFalse(first.equals(second), "A recycled PID must not overwrite or block a later launch receipt.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomCoordination130Native.attemptEvidenceKey("../native", 79004), "Launch key admitted an untrusted path.");
+			PhantomAssertions.assertFalse(PhantomCoordination130Native.stockRosterReady(2, 3, true), "A first stock invite was mistaken for the complete fixture roster.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.stockRosterReady(3, 3, true), "The last stock accept did not complete the fixture roster.");
+			PhantomAssertions.assertTrue(PhantomCoordination130Native.stockRosterReady(2, 3, false), "Ordinary evidence lost lawful partial physical projection.");
 			final var evidence = java.nio.file.Files.createTempDirectory("phantom-party-attempt130-");
 			final var failed = evidence.resolve("native130.failed." + first);
 			final var other = evidence.resolve("agreement130." + second);
