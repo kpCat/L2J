@@ -905,7 +905,8 @@ final class PhantomCoordination130Native
         final var goals = new PhantomGoalStateStore(profiles);
         final var ecologyCatalog = firstParty ? PhantomPopulationEcologyCatalog.load(runtime.resolve("data/phantoms/population/high-five-ecology-v1.xml"), catalog,
             org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(runtime.resolve("data/phantoms/social/high-five-social-v1.xml"))) : null;
-        final var firstHistory = firstParty ? new FirstPartyHistory(profiles, population, catalog, ecologyCatalog, planner, authority, goals, zone) : null;
+        final var firstHistory = firstParty ? new FirstPartyHistory(profiles, population, catalog, ecologyCatalog, planner, authority, goals, zone,
+            guardianFixture ? field.getValue().orElseThrow() : null) : null;
         final var ids = new ArrayList<Long>(); final var members = new ArrayList<PhantomLogicalParty.Member>();
         final var seeds = new HashMap<Long, Long>();
         if (firstParty && !existing.isEmpty())
@@ -951,6 +952,10 @@ final class PhantomCoordination130Native
                 selected = birthSeed(catalog, profile, creationOrdinal, birth, archetype, zone, now,
                     seed -> firstHistory == null || firstHistory.fixtureAge(profile, creationOrdinal, seed, now));
                 managed = population.createShell(1, ordinalBase + ordinal + 1, selected); check(managed.profile().profileId() == next, "EXCLUSIVE_CREATION_SEQUENCE");
+                if (guardianFixture)
+                {
+                    check(firstHistory.fixtureAge(profile, creationOrdinal, selected, managed.profile().createdAt()), "GUARDIAN_FIXTURE_SINGLE_WINDOW_AT_BIRTH");
+                }
                 if (morning) { final var retained = new ArrayList<>(ids); retained.add(next); Files.writeString(preparing, "profiles=" + String.join(",", retained.stream().map(String::valueOf).toList()) + "\n"); }
             }
             for (int step = 0; step < 12 && managed.state().state() != PhantomPopulationState.State.READY; step++) { managed = population.advanceCreation(managed).snapshot(); }
@@ -1155,15 +1160,17 @@ final class PhantomCoordination130Native
         private final PhantomHistoricalBackgroundService _history;
         private final PhantomMaterializationService _materialization;
         private final PhantomPopulationEcologyService _ecology;
+        private final PhantomBackgroundState.Position _sharedStart;
         private static final PhantomPopulationEcologyState.Preset PRESET = PhantomPopulationEcologyState.Preset.LIVING;
 
         FirstPartyHistory(PhantomProfileRepository profiles, PhantomPopulationStore population, PhantomPopulationCatalog catalog,
             PhantomPopulationEcologyCatalog ecologyCatalog, PhantomHistoricalBackgroundPlanner planner, L2jPhantomBackgroundAuthority authority,
-            PhantomGoalStateStore goals, ZoneId zone)
+            PhantomGoalStateStore goals, ZoneId zone, PhantomBackgroundState.Position sharedStart)
         {
             _population = population;
             _catalog = catalog;
             _ecologyCatalog = ecologyCatalog;
+            _sharedStart = sharedStart;
             final var metrics = new PhantomMetrics();
             final var lifecycle = new PhantomMaterializationLifecycleBridge();
             final var leases = PhantomIdentityLeaseRegistry.getInstance();
@@ -1195,8 +1202,10 @@ final class PhantomCoordination130Native
             final long minute = now.getEpochSecond() / 60;
             final var schedule = PhantomPopulationStore.scheduleForShell(_catalog, profile, seed, null);
             final var assignment = _ecologyCatalog.assign(PRESET, 1, ordinal, seed, minute, 0, 0, schedule.template().id());
-            return minute - assignment.virtualJoinEpochMinute() <= 45
-                && _ecology.nextProductiveWindow(assignment, schedule.phaseMinutes(), minute).productive();
+            if (minute - assignment.virtualJoinEpochMinute() > 45) { return false; }
+            final var first = _ecology.nextProductiveWindow(assignment, schedule.phaseMinutes(), minute);
+            return first.productive() && (_sharedStart == null || !_ecology.nextProductiveWindow(
+                assignment.advanceCalendar(first.endEpochMinute()), schedule.phaseMinutes(), minute).productive());
         }
 
         void complete(PhantomProfileRepository profiles, List<Long> ids) throws Exception
@@ -1230,6 +1239,7 @@ final class PhantomCoordination130Native
                         && background.state() == PhantomBackgroundState.State.READY && _history.permitsNormalOperation(id), "FIRST_PARTY_HISTORY_" + id + "_" + due.reason());
                     check(id == ids.getFirst() ? role.startsWith("damage.") : id == ids.getLast() ? role.equals("support.healer")
                         : role.equals("frontline.guardian"), "FIRST_PARTY_LEARNED_ROLE_" + id);
+                    check(_sharedStart == null || _sharedStart.equals(background.position()), "GUARDIAN_FIXTURE_LOST_SHARED_START_" + id);
                 }
             }
             finally
