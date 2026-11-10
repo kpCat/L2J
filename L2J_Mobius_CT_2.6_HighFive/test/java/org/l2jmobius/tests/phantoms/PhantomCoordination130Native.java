@@ -921,7 +921,7 @@ final class PhantomCoordination130Native
                 write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
                 return;
             }
-            recoverFirstPartyClock(evidence, profiles, existing);
+            if (!guardianFixture) { recoverFirstPartyClock(evidence, profiles, existing); }
             finishFirstPartyFixture(runtime, evidence, firstHistory, ids);
             write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
             return;
@@ -1013,7 +1013,7 @@ final class PhantomCoordination130Native
                         == PhantomBackgroundTransaction.Status.SUCCESS, "FIRST_PARTY_BASELINE_CAPTURE");
                     System.out.println("TEST_FIXTURE profile=" + id + " initialLevel=" + actor.getLevel() + " initialExp=" + actor.getExp()
                         + " initialSp=" + actor.getSp() + " initialHp=" + actor.getCurrentHp() + " initialMp=" + actor.getCurrentMp()
-                        + " equipment=DECLARED_PRE_CUT role=" + (birth == 10 ? "healer" : "damage"));
+                        + " equipment=DECLARED_PRE_CUT role=" + (guardian ? "guardian" : birth == 10 ? "healer" : "damage"));
                 }
                 System.out.println("NATIVE130_PREFLIGHT profile=" + id + " actor=" + actor.getObjectId() + " class=" + actor.getActiveClass() + " level=" + actor.getLevel() + " hp=" + actor.getCurrentHp() + " mp=" + actor.getCurrentMp() + " heal=" + actor.getKnownSkill(1011) + " root=" + plan.goal() + " pos=" + actor.getLocation());
             }
@@ -1223,7 +1223,8 @@ final class PhantomCoordination130Native
                         + background.state() + " progress=" + background.progress() + " vitals=" + background.vitals() + " role=" + role);
                     check(due.complete() && history != null && history.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE
                         && background.state() == PhantomBackgroundState.State.READY && _history.permitsNormalOperation(id), "FIRST_PARTY_HISTORY_" + id + "_" + due.reason());
-                    check(id == ids.getFirst() ? role.startsWith("damage.") : role.equals("support.healer"), "FIRST_PARTY_LEARNED_ROLE_" + id);
+                    check(id == ids.getFirst() ? role.startsWith("damage.") : id == ids.getLast() ? role.equals("support.healer")
+                        : role.equals("frontline.guardian"), "FIRST_PARTY_LEARNED_ROLE_" + id);
                 }
             }
             finally
