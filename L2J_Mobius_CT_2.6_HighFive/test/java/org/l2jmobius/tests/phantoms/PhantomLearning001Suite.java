@@ -11,10 +11,16 @@ import java.util.Locale;
 import java.lang.management.ManagementFactory;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.learning.LearningFeatures;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy.Example;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.PartyState;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.RoleAssignment;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
 
 public final class PhantomLearning001Suite implements PhantomTestSuite
 {
@@ -29,6 +35,26 @@ public final class PhantomLearning001Suite implements PhantomTestSuite
 	{
 		registry.add("held-out-generalization-and-real-combat-dispatch", _ -> heldOut());
 		registry.add("warmed-128-actor-inference", _ -> benchmark());
+		registry.add("party-receipt-survives-readiness-revision", _ -> partyReceiptAuthority());
+	}
+
+	private static void partyReceiptAuthority()
+	{
+		final var leader = MemberRef.phantom(1, 101);
+		final var learner = MemberRef.phantom(2, 102);
+		final var source = new PhantomDomainRef("farm.party", "1,2");
+		final String hash = "0".repeat(64);
+		final var before = new RoleAssignment("farm.slot.1", "damage.ranged", learner, "combat.ranged_magic_damage", "prominence", 1000, "fixture");
+		final var issued = new PartyState(hash, 7, 10, StateStatus.LEADER, leader, "", hash, List.of(leader, learner), List.of(),
+			ObjectiveMode.GENERAL_PVE, source, List.of(), List.of(before), null, null, hash, hash, "");
+		final var refreshed = new RoleAssignment("farm.slot.1", "damage.ranged", learner, "combat.ranged_magic_damage", "prominence", 800, "fixture");
+		final var sameRoster = issued.committed(StateStatus.LEADER, issued.phantomMembers(), List.of(), List.of(refreshed), hash);
+		check(issued.matchesLearningAuthority(sameRoster), "An exact Party cast lost its receipt after a readiness score refresh");
+		final var nextGeneration = new PartyState(hash, 8, 11, StateStatus.LEADER, leader, "", hash, issued.phantomMembers(), List.of(),
+			ObjectiveMode.GENERAL_PVE, source, List.of(), List.of(before), null, null, hash, hash, "");
+		check(!issued.matchesLearningAuthority(nextGeneration), "A receipt survived a native roster generation change");
+		final var changedRoster = issued.committed(StateStatus.LEADER, List.of(leader, MemberRef.phantom(3, 103)), List.of(), List.of(), hash);
+		check(!issued.matchesLearningAuthority(changedRoster), "A receipt survived a different native roster");
 	}
 
 	public record Fixture(List<Example> train, List<Example> tuning, List<Example> heldOut) { }

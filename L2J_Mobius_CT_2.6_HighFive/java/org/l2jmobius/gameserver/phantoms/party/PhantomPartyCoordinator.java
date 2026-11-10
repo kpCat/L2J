@@ -3443,9 +3443,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final var request = learning ? new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token, PhantomCombatRequest.LearningScope.PARTY, roles, () ->
 			{
 				final StoredPartyState current = _claims.get(profileId);
-				return _state != State.RUNNING || current == null || !current.state().groupId().equals(authority.groupId())
-					|| current.state().groupGeneration() != authority.groupGeneration() || current.state().membershipRevision() != authority.membershipRevision()
-					|| !current.state().leader().equals(authority.leader());
+				return _state != State.RUNNING || !committedClaim(current) || !authority.matchesLearningAuthority(current.state());
 			}) : new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token);
 			final var started = combat.startContentSession(request, key);
 			if (started.accepted() && (started.session() != null))

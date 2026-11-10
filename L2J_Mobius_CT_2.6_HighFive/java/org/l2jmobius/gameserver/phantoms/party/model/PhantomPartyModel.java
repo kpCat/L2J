@@ -380,6 +380,14 @@ public final class PhantomPartyModel
 			return sha256(value.toString());
 		}
 
+		/** Party learning retains its cast-time features across live readiness score refreshes. */
+		public boolean matchesLearningAuthority(PartyState current)
+		{
+			return current != null && groupId.equals(current.groupId) && groupGeneration == current.groupGeneration
+				&& leader.equals(current.leader) && phantomMembers.equals(current.phantomMembers) && realMembers.equals(current.realMembers)
+				&& objectiveMode == current.objectiveMode && objectiveRef.equals(current.objectiveRef);
+		}
+
 		public PartyState withOperation(StateStatus replacementStatus, PartyOperation replacementOperation, String failureKey)
 		{
 			return new PartyState(groupId, groupGeneration, membershipRevision, replacementStatus, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objectiveMode, objectiveRef, requirements, assignments, route, replacementOperation, progressionHash, topologyHash, failureKey, Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(replacementStatus) ? command : null);
