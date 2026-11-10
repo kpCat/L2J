@@ -410,10 +410,16 @@ final class PhantomCoordination130Native
     }
     static PreflightWitness preflightWitness(PhantomProfileRepository profiles, List<Long> ids, boolean recovery) throws Exception
     {
+        return preflightWitness(profiles, ids, recovery, false);
+    }
+
+    private static PreflightWitness preflightWitness(PhantomProfileRepository profiles, List<Long> ids, boolean recovery, boolean fixturePosition) throws Exception
+    {
         final var output = new StringBuilder();
         final var components = new StringBuilder();
         final var allowed = Set.of(PhantomBackgroundState.COMPONENT_TYPE, PhantomNativeContext.COMPONENT_TYPE, PhantomExecutionHandoffStore.COMPONENT_TYPE);
         final var lifecycleColumns = Set.of("online", "onlinetime", "lastaccess");
+        final var placementColumns = Set.of("x", "y", "z", "heading");
         for (long id : ids)
         {
             output.append("profile=").append(id).append('\n');
@@ -436,6 +442,7 @@ final class PhantomCoordination130Native
                                 {
                                     final String label = rows.getMetaData().getColumnLabel(column);
                                     if (recovery && sql.contains("FROM characters") && lifecycleColumns.contains(label.toLowerCase(Locale.ROOT))) { continue; }
+                                    if (fixturePosition && sql.contains("FROM characters") && placementColumns.contains(label.toLowerCase(Locale.ROOT))) { continue; }
                                     final String value = rows.getString(column); output.append(label).append('=').append(value == null ? -1 : value.length()).append(':').append(value).append(';');
                                 }
                                 output.append('\n');
@@ -916,8 +923,16 @@ final class PhantomCoordination130Native
             if (Files.isRegularFile(evidence.resolve("fixture130.properties")))
             {
                 final var expected = read(evidence.resolve("fixture130.properties"));
-                check("TEST_FIXTURE".equals(expected.getProperty("fixture")) && ids.equals(authorizedProfiles(runtime))
-                    && !Files.exists(evidence.resolve("fixture-authority.ready")), "FIRST_PARTY_AUTHORITY_FIXTURE_SCOPE");
+                check("TEST_FIXTURE".equals(expected.getProperty("fixture")) && ids.equals(authorizedProfiles(runtime)), "FIRST_PARTY_AUTHORITY_FIXTURE_SCOPE");
+                final Path placement = evidence.resolve("fixture130.stage-shared-start"), placed = evidence.resolve("fixture130.shared-start.proved");
+                if (guardianFixture && Files.isRegularFile(placement))
+                {
+                    check("TEST_FIXTURE".equals(Files.readString(placement).strip()) && !Files.exists(placed), "GUARDIAN_FIXTURE_PLACEMENT_SCOPE");
+                    firstHistory.stageCompletedRendezvous(profiles, ids);
+                    write(placed, "profiles=" + ids + "\nposition=" + field.getValue().orElseThrow() + "\n");
+                    return;
+                }
+                check(!Files.exists(evidence.resolve("fixture-authority.ready")), "FIRST_PARTY_AUTHORITY_ALREADY_READY");
                 firstHistory.reconcileAuthority(profiles, ids);
                 write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
                 return;
@@ -1253,7 +1268,7 @@ final class PhantomCoordination130Native
                 {
                     if (historyReady && _sharedStart != null)
                     {
-                        for (long id : ids) { placeAtSharedStart(id); }
+                        for (long id : ids) { placeAtSharedStart(profiles, id); }
                     }
                 }
                 finally { stopOwners(System.nanoTime() + TimeUnit.SECONDS.toNanos(15)); }
@@ -1261,11 +1276,11 @@ final class PhantomCoordination130Native
         }
 
         /** Declared fixture position only. Ecology is stopped and the ordinary STORE proves conservation. */
-        private void placeAtSharedStart(long id)
+        private void placeAtSharedStart(PhantomProfileRepository profiles, long id) throws Exception
         {
             final var before = _background.acquisitionSnapshot(id).orElseThrow();
-            final var history = _history.status(id).orElseThrow();
             if (atSharedStart(before.position())) { return; }
+            final var witness = preflightWitness(profiles, List.of(id), true, true);
             check(_materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "GUARDIAN_FIXTURE_START_MATERIALIZE_" + id);
             try
             {
@@ -1284,10 +1299,25 @@ final class PhantomCoordination130Native
                 check(_materialization.dematerialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "GUARDIAN_FIXTURE_START_STORE_" + id);
             }
             final var after = _background.acquisitionSnapshot(id).orElseThrow();
-            check(atSharedStart(after.position()) && before.progress().equals(after.progress()) && before.inventory().equals(after.inventory())
-                && history.equals(_history.status(id).orElseThrow()), "GUARDIAN_FIXTURE_START_CONSERVATION_" + id);
+            check(atSharedStart(after.position()), "GUARDIAN_FIXTURE_START_POSITION_" + id + "_" + after.position());
+            verifyRecoveryWitness(witness, preflightWitness(profiles, List.of(id), true, true));
             System.out.println("TEST_FIXTURE_SHARED_START_PLACEMENT profile=" + id + " from=" + before.position() + " to=" + after.position()
                 + " conservation=true beforeCUT=true gameplayEvidence=false");
+        }
+
+        void stageCompletedRendezvous(PhantomProfileRepository profiles, List<Long> ids) throws Exception
+        {
+            check(_sharedStart != null && _background.start() && _materialization.start(), "GUARDIAN_FIXTURE_PLACEMENT_OWNERS");
+            try
+            {
+                for (long id : ids)
+                {
+                    check(_history.status(id).filter(row -> row.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE).isPresent(), "GUARDIAN_FIXTURE_PLACEMENT_HISTORY_" + id);
+                    preparePreflightAuthority(profiles, id, () -> _history.prepareCurrentAuthority(id));
+                    placeAtSharedStart(profiles, id);
+                }
+            }
+            finally { stopOwners(System.nanoTime() + TimeUnit.SECONDS.toNanos(15)); }
         }
 
         private boolean atSharedStart(PhantomBackgroundState.Position position)
