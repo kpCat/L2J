@@ -21,12 +21,12 @@ public final class PhantomLearning001FixtureSql
 
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length != 2 || !java.util.Set.of("prepare", "probe", "read-native").contains(args[0]))
+		if (args.length != 3 || !java.util.Set.of("prepare", "probe", "read-native").contains(args[0]))
 		{
-			throw new IllegalArgumentException("Expected prepare|probe|read-native and module path");
+			throw new IllegalArgumentException("Expected prepare|probe|read-native, module path and lane");
 		}
 		final Path module = Path.of(args[1]).toRealPath();
-		final Path lane = module.getParent().resolve(".phantom-local/learning001/native").toRealPath();
+		final Path lane = resolveLane(args[1], args[2]);
 		final Path config = lane.resolve("Database.ini");
 		if (!Files.readString(lane.resolve("owner.txt")).matches("LEARNING001:[0-9a-f]{32}"))
 		{
@@ -38,6 +38,14 @@ public final class PhantomLearning001FixtureSql
 		}
 		probe(lane, config);
 		if (args[0].equals("read-native")) { readNative(lane, config); }
+	}
+
+	static Path resolveLane(String module, String name) throws Exception
+	{
+		if (!java.util.Set.of("native", "cycle", "cycle2", "cycle3", "cycle4").contains(name)) { throw new IllegalArgumentException("Unknown learning lane"); }
+		final Path lane = Path.of(module).toRealPath().getParent().resolve(".phantom-local/learning001").resolve(name);
+		if (!lane.toRealPath().equals(lane)) { throw new IllegalStateException("Learning lane is not physical"); }
+		return lane;
 	}
 
 	private static void readNative(Path lane, Path config) throws Exception

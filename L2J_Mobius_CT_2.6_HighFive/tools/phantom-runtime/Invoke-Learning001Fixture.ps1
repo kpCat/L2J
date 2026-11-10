@@ -1,16 +1,22 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','shadow','read-native')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','shadow','on','coverage','train','promote','read','read-native')][string]$Action,
+    [ValidateSet('native','cycle','cycle2','cycle3','cycle4')][string]$Lane='native',
+    [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$JarSha,
+    [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ModelSha,
+    [long]$Version=0,
+    [long]$Seed=183,
     [string]$GeoSource,
     [string]$GeoManifest,
     [string]$ProtectedManifest
 )
 
 $ErrorActionPreference='Stop'
-# The pinned GameServer opens a wildcard listener even when GameserverHostname is loopback.
-if ($Action -eq 'shadow') { throw 'LEARNING001_GAME_WILDCARD_BIND_REQUIRES_EXTERNAL_ISOLATION' }
+if ($Lane -ne 'cycle4' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
+if ($Action -in @('check-party','shadow','on','coverage','train','promote','read') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
+if ($Action -in @('on','promote','read') -and ($Version -le 0 -or !$ModelSha)) { throw 'LEARNING001_EXPLICIT_MODEL_PIN_REQUIRED' }
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
-$root=Join-Path (Split-Path $module -Parent) '.phantom-local\learning001\native'
+$root=Join-Path (Split-Path $module -Parent) ('.phantom-local\learning001\'+$Lane)
 $runtime=Join-Path $root 'game'
 $sql=Join-Path $root 'sql'
 $data=Join-Path $sql 'data'
@@ -65,6 +71,23 @@ function Assert-PortsFree($Ports) {
     foreach ($candidate in $Ports) {
         if (@([Win32SqlIdentity]::Listeners($candidate)).Count) { throw "LEARNING001_PORT_BUSY $candidate" }
     }
+}
+
+function Assert-GameSocket($Game,$Executable,[string]$AttemptId) {
+    $identity=[Win32SqlIdentity]::Process([uint32]$Game.Id,0x1000)
+    $cim=Get-CimInstance Win32_Process -Filter "ProcessId=$($Game.Id)"
+    $listeners=@([Win32SqlIdentity]::Listeners($gamePort))
+    if (!$identity.Success -or $identity.CreatedFileTime -ne $Game.StartTime.ToUniversalTime().ToFileTimeUtc() -or
+        $identity.ImagePath -ine $Executable -or !$cim -or $cim.ExecutablePath -ine $Executable -or
+        $cim.CommandLine -notmatch ('\b'+[regex]::Escape($AttemptId)+'\b') -or
+        $cim.CommandLine -notmatch 'org\.l2jmobius\.tests\.phantoms\.PhantomLearning001ShadowNative' -or
+        $listeners.Count -ne 1 -or $listeners[0].OwningProcess -ne $Game.Id -or $listeners[0].LocalAddress -ne '127.0.0.1') {
+        throw 'LEARNING001_GAME_PID_OR_LOOPBACK_SOCKET'
+    }
+    $owner=Invoke-CimMethod -InputObject $cim -MethodName GetOwnerSid
+    if ($owner.ReturnValue -ne 0 -or $owner.Sid -cne $sid.Value) { throw 'LEARNING001_GAME_PROCESS_OWNER' }
+    Assert-PortsFree @($loginPort)
+    Write-Output "LEARNING001_GAME_LOOPBACK_PASS pid=$($Game.Id) filetime=$($identity.CreatedFileTime) endpoint=127.0.0.1:${gamePort}"
 }
 
 function Set-RuntimeIni([string]$Relative,$Overrides) {
@@ -197,6 +220,7 @@ if ($Action -eq 'provision-sql') {
 Assert-SqlOptions
 $attempt=[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')
 $server=$null
+$gameProcess=$null
 $owned=@{pid=0;created=0L;configHash=(Get-FileHash -LiteralPath $config).Hash;imageHash=(Get-FileHash -LiteralPath $daemon).Hash}
 try {
     $server=Start-Process -FilePath $daemon -ArgumentList @('"--defaults-file='+$config+'"','--console') -WorkingDirectory $sql -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $sql "$attempt.out") -RedirectStandardError (Join-Path $sql "$attempt.err")
@@ -209,7 +233,7 @@ try {
     $testBin=Join-Path (Split-Path $module -Parent) 'build\phantom-test\bin'
     $classpath="$testBin;"+(Join-Path $runtime 'libs\*')
     $command=switch ($Action) {'provision-sql' {'prepare'} 'read-native' {'read-native'} default {'probe'}}
-    & java -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001FixtureSql $command $module
+    & java -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001FixtureSql $command $module $Lane
     if ($LASTEXITCODE -ne 0) { throw 'LEARNING001_SQL_SCHEMA_OR_PROBE_FAILED' }
     if ($Action -eq 'provision-sql') {
         $ownConfig=Join-Path $root 'Database.ini'
@@ -221,33 +245,102 @@ try {
         Set-RuntimeIni 'Interface.ini' @{EnableGUI='False'}
         Set-RuntimeIni 'Server.ini' @{LoginHost='127.0.0.1';LoginPort=$loginPort;GameserverHostname='127.0.0.1';GameserverPort=$gamePort;DatapackRoot='.'}
         Set-RuntimeIni 'GeoEngine.ini' @{GeoDataPath='./geodata/'}
-        Set-RuntimeIni 'Custom\PhantomPlayers.ini' @{EnablePhantomSystem='False';LearningMode='OFF';LearningEvidenceEnabled='False'}
+        Set-RuntimeIni 'Custom\PhantomPlayers.ini' @{EnablePhantomSystem='False';LearningMode='OFF';LearningModelVersion='0';LearningEvidenceEnabled='False';LearningDeterministicSeed='0'}
         Set-RuntimeIni 'Custom\PhantomMerchants.ini' @{EnableOfflinePhantomMerchants='False'}
         Set-RuntimeIni 'Custom\OfflineTrade.ini' @{RestoreOffliners='False'}
         Write-Output 'LEARNING001_RUNTIME_LOCAL_ENDPOINTS_PINNED'
     }
-    if ($Action -in @('prepare-actors','plan-scenes','check-capacity')) {
+    if ($Action -in @('prepare-actors','plan-scenes','check-capacity','check-party')) {
+        if ($Action -eq 'check-party') { Assert-Hash (Join-Path $runtime 'libs/GameServer.jar') $JarSha }
         Assert-Hash (Join-Path $runtime 'config\Database.ini') (Get-FileHash -LiteralPath (Join-Path $root 'Database.ini')).Hash
         Assert-Geo (Join-Path $runtime 'geodata') (Read-Geo (Join-Path $root 'geo203.json'))
         Push-Location -LiteralPath $runtime
         try {
-            $phase=switch ($Action) {'prepare-actors' {'actors'} 'plan-scenes' {'scenes'} 'check-capacity' {'capacity'}}
-            & java '-XX:ActiveProcessorCount=4' -Xms256m -Xmx3g -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001ActorFixture $phase $module
+            $phase=switch ($Action) {'prepare-actors' {'actors'} 'plan-scenes' {'scenes'} 'check-capacity' {'capacity'} 'check-party' {'party'}}
+            & java '-XX:ActiveProcessorCount=4' -Xms256m -Xmx3g -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001ActorFixture $phase $module $Lane
             if ($LASTEXITCODE -ne 0) { throw 'LEARNING001_ACTOR_PREFLIGHT_FAILED' }
         } finally {
             Pop-Location
         }
         Assert-PortsFree @($gamePort,$loginPort)
+        if ($Action -eq 'check-party') {
+            [IO.File]::WriteAllText((Join-Path $root 'party.ready'),$JarSha.ToLowerInvariant(),$encoding)
+        }
+    }
+    if ($Action -in @('coverage','train','promote','read')) {
+        Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
+        $offlineArgs=@($Action,$module,$Lane)
+        switch ($Action) {
+            'coverage' { $offlineArgs+=@('4096') }
+            'train' { $offlineArgs+=@('4096',[string]$Seed) }
+            default { $offlineArgs+=@([string]$Version,$ModelSha.ToLowerInvariant()) }
+        }
+        & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline @offlineArgs
+        if ($LASTEXITCODE -ne 0) { throw "LEARNING001_OFFLINE_PHASE_FAILED $Action" }
+    }
+    if ($Action -in @('shadow','on')) {
+        Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
+        Assert-Hash (Join-Path $runtime 'config\Database.ini') (Get-FileHash -LiteralPath (Join-Path $root 'Database.ini')).Hash
+        Assert-Geo (Join-Path $runtime 'geodata') (Read-Geo (Join-Path $root 'geo203.json'))
+        foreach ($file in 'actors.tsv','rosters.tsv','capacity.tsv','party.ready') { Assert-G0PhysicalFile (Join-Path $root $file) }
+        if ([IO.File]::ReadAllText((Join-Path $root 'party.ready')) -cne $JarSha.ToLowerInvariant()) { throw 'LEARNING001_STOCK_PARTY_PREFLIGHT_PIN' }
+        if ($Action -eq 'on') {
+            & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline read $module $Lane $Version ($ModelSha.ToLowerInvariant())
+            if ($LASTEXITCODE -ne 0) { throw 'LEARNING001_COLD_MODEL_PIN_UNVERIFIED' }
+        }
+        $runId=[guid]::NewGuid().ToString('N')
+        $run=Join-Path $root ('attempts\'+$runId)
+        $null=[IO.Directory]::CreateDirectory($run)
+        $javaExe=(Get-Command java.exe -CommandType Application | Select-Object -First 1).Source
+        Assert-G0PhysicalFile $javaExe
+        $modelPin=if ($Action -eq 'on') { $ModelSha.ToLowerInvariant() } else { '-' }
+        $argsList=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g','-Dphantom.learning.train=true','-Dphantom.learning.witness=true','-cp',('"'+$classpath+'"'),
+            'org.l2jmobius.tests.phantoms.PhantomLearning001ShadowNative',('"'+$module+'"'),$Lane,$runId,$JarSha.ToLowerInvariant(),
+            $Action,[string]$Version,$modelPin)
+        $gameProcess=Start-Process -FilePath $javaExe -ArgumentList $argsList -WorkingDirectory $runtime -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $run 'game.out') -RedirectStandardError (Join-Path $run 'game.err')
+        Write-Output "LEARNING001_GAME_STARTED pid=$($gameProcess.Id) attempt=$runId directory=$run"
+        try {
+            $ready=Join-Path $run 'game.ready'
+            $deadline=[DateTime]::UtcNow.AddMinutes(3)
+            while (!$gameProcess.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+                if ((Test-Path -LiteralPath $ready -PathType Leaf) -and [IO.File]::ReadAllText($ready) -ceq [string]$gameProcess.Id) { break }
+                Start-Sleep -Milliseconds 250
+            }
+            Assert-G0PhysicalFile $ready
+            if ([IO.File]::ReadAllText($ready) -cne [string]$gameProcess.Id) { throw 'LEARNING001_GAME_READY_PID' }
+            Assert-OwnSql $owned
+            Assert-GameSocket $gameProcess $javaExe $runId
+            $socketPending=Join-Path $run 'socket.pending'
+            [IO.File]::WriteAllText($socketPending,[string]$gameProcess.Id,$encoding)
+            [IO.File]::Move($socketPending,(Join-Path $run 'socket.ok'))
+            if (!$gameProcess.WaitForExit(2700000)) { throw 'LEARNING001_GAME_ATTEMPT_TIMEOUT' }
+            if ($gameProcess.ExitCode -ne 0 -or (Test-Path -LiteralPath (Join-Path $run "$Action.failed")) -or
+                !(Test-Path -LiteralPath (Join-Path $run "$Action.complete"))) { throw "LEARNING001_GAME_PHASE_UNPROVEN $Action $run" }
+            Assert-PortsFree @($gamePort,$loginPort)
+            Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
+            Write-Output "LEARNING001_GAME_STOP_PASS attempt=$runId"
+            if ($Action -eq 'on') {
+                Assert-OwnSql $owned
+                & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline verify-on $module $Lane $Version $modelPin $runId
+                if ($LASTEXITCODE -ne 0) { throw "LEARNING001_ON_EVENT_SQL_UNPROVEN $run" }
+            }
+        } finally {
+            if (!$gameProcess.HasExited) {
+                [IO.File]::WriteAllText((Join-Path $run 'stop.request'),'operator',$encoding)
+                if (!$gameProcess.WaitForExit(90000)) { Write-Warning "LEARNING001_GAME_STOP_UNCONFIRMED pid=$($gameProcess.Id) attempt=$runId" }
+            }
+        }
     }
 } finally {
     try {
-        if ($server -and !$server.HasExited) {
+        if ($server -and !$server.HasExited -and (!$gameProcess -or $gameProcess.HasExited)) {
             try { Stop-OwnSql $owned }
             catch {
                 Write-Warning "LEARNING001_SQL_STOP_UNCONFIRMED pid=$($owned.pid) filetime=$($owned.created) receipt=$receipt"
                 throw
             }
         }
+        elseif ($gameProcess -and !$gameProcess.HasExited) { Write-Warning "LEARNING001_SQL_RETAINED_FOR_LIVE_GAME pid=$($owned.pid)" }
     } finally {
         Assert-Protected (Join-Path $root 'protected207.json')
     }
