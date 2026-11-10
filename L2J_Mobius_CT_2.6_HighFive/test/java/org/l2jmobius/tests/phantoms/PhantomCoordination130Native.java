@@ -827,12 +827,18 @@ final class PhantomCoordination130Native
     }
     private static long birthSeed(PhantomPopulationCatalog catalog, long profile, long ordinal, int birth, ZoneId zone, Instant now, java.util.function.LongPredicate fixtureWindow)
     {
+        return birthSeed(catalog, profile, ordinal, birth, birth == 10 ? PhantomPopulationCatalog.CareerArchetype.HEALER
+            : PhantomPopulationCatalog.CareerArchetype.DAMAGE, zone, now, fixtureWindow);
+    }
+
+    private static long birthSeed(PhantomPopulationCatalog catalog, long profile, long ordinal, int birth,
+        PhantomPopulationCatalog.CareerArchetype archetype, ZoneId zone, Instant now, java.util.function.LongPredicate fixtureWindow)
+    {
         if (profile <= 0 || ordinal <= 0) { throw new IllegalArgumentException("Positive production creation identity/ordinal required."); }
         for (long seed = 130; seed < 1_000_130; seed++)
         {
-            if (birth == 10 && catalog.chooseArchetype(seed, ordinal) != PhantomPopulationCatalog.CareerArchetype.HEALER) { continue; }
-            if (birth == 0 && catalog.chooseArchetype(seed, ordinal) != PhantomPopulationCatalog.CareerArchetype.DAMAGE) { continue; }
-            if (catalog.chooseClass(mix(seed, profile), catalog.chooseArchetype(seed, ordinal)).classId() != birth) { continue; }
+            if (catalog.chooseArchetype(seed, ordinal) != archetype
+                || catalog.chooseClass(mix(seed, profile), archetype).classId() != birth) { continue; }
             final var schedule = PhantomPopulationStore.scheduleForShell(catalog, profile, seed, null);
             final var evaluation = catalog.evaluate(schedule.template().id(), now, zone, schedule.phaseMinutes());
             if (evaluation.state().requiresMaterialization() && evaluation.nextBoundary().isAfter(now.plusSeconds(1800)) && fixtureWindow.test(seed)) { return seed; }
@@ -849,6 +855,9 @@ final class PhantomCoordination130Native
         final boolean rendezvous = PhantomCoordination130Integration.rendezvousLane();
         final boolean morning = !evidence.equals(runtime);
         check(!Files.exists(evidence.resolve("native130.cut")), "BOUNDED_FIXTURE_BEFORE_CUT");
+        final boolean guardianFixture = rendezvous && Files.isRegularFile(evidence.resolve("fixture130.guardian"));
+        if (guardianFixture) { check(Files.readString(evidence.resolve("fixture130.guardian")).strip().equals("TEST_FIXTURE"), "DECLARED_GUARDIAN_FIXTURE"); }
+        final int rosterSize = !firstParty || guardianFixture ? 3 : 2;
         final List<PhantomPopulationStore.ManagedSnapshot> existing;
         if (morning)
         {
@@ -858,9 +867,8 @@ final class PhantomCoordination130Native
             final var allowed = new HashSet<Long>(List.of(69L,70L,72L)); existing.forEach(value -> allowed.add(value.profile().profileId()));
             check(population.loadManagedAfter(0, 16).stream().allMatch(value -> allowed.contains(value.profile().profileId())) && existing.size() <= 3, "ONLY_THREE_NEW_MANAGED_PROFILES");
         }
-        else { existing = population.loadManagedAfter(0, 4); check(existing.size() <= (firstParty ? 2 : 3), "ORIGINAL_FIXTURE_BOUND"); }
+        else { existing = population.loadManagedAfter(0, 4); check(existing.size() <= rosterSize, "ORIGINAL_FIXTURE_BOUND"); }
         final int ordinalBase = morning ? 3 : 0;
-        final int rosterSize = firstParty ? 2 : 3;
         final var levelBand = PhantomPartyFarmEligibility.forRoster(Collections.nCopies(rosterSize, 76)).orElseThrow();
         final var mobs = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
             .filter(mob -> mob.isSpawned() && !mob.isRaid() && !mob.isDead() && !mob.isAggressive() && mob.getInstanceId() == 0
@@ -902,6 +910,7 @@ final class PhantomCoordination130Native
         final var seeds = new HashMap<Long, Long>();
         if (firstParty && !existing.isEmpty())
         {
+            if (guardianFixture) { check(existing.size() == rosterSize, "GUARDIAN_FIXTURE_EXACT_ROSTER"); }
             ids.addAll(existing.stream().map(row -> row.profile().profileId()).toList());
             if (Files.isRegularFile(evidence.resolve("fixture130.properties")))
             {
@@ -921,6 +930,9 @@ final class PhantomCoordination130Native
         for (int ordinal = 0; ordinal < rosterSize; ordinal++)
         {
             final int birth = ordinal == rosterSize - 1 ? 10 : 0;
+            final boolean guardian = guardianFixture && ordinal == 1;
+            final var archetype = guardian ? PhantomPopulationCatalog.CareerArchetype.TANK
+                : birth == 10 ? PhantomPopulationCatalog.CareerArchetype.HEALER : PhantomPopulationCatalog.CareerArchetype.DAMAGE;
             long next; final long selected; PhantomPopulationStore.ManagedSnapshot managed;
             if (ordinal < existing.size())
             {
@@ -936,7 +948,7 @@ final class PhantomCoordination130Native
                 { check(skipped++ < 64, "BOUNDED_NATIVE_CANDIDATE_SELECTION"); profiles.create(null); next = nextProfile(); }
                 final long profile = next, creationOrdinal = ordinalBase + ordinal + 1;
                 final Instant now = Instant.now();
-                selected = birthSeed(catalog, profile, creationOrdinal, birth, zone, now,
+                selected = birthSeed(catalog, profile, creationOrdinal, birth, archetype, zone, now,
                     seed -> firstHistory == null || firstHistory.fixtureAge(profile, creationOrdinal, seed, now));
                 managed = population.createShell(1, ordinalBase + ordinal + 1, selected); check(managed.profile().profileId() == next, "EXCLUSIVE_CREATION_SEQUENCE");
                 if (morning) { final var retained = new ArrayList<>(ids); retained.add(next); Files.writeString(preparing, "profiles=" + String.join(",", retained.stream().map(String::valueOf).toList()) + "\n"); }
@@ -964,6 +976,13 @@ final class PhantomCoordination130Native
                 }
                 check(actor.getActiveClass() == choice.terminalClass(), "PREP_PERSISTED_CAREER_BRANCH");
                 equipBeforeCut(actor);
+                if (guardian)
+                {
+                    for (int item : new int[] {6373, 6374, 6375, 6376, 6377, 6378})
+                    { actor.getInventory().equipItem(actor.addItem(ItemProcessType.REWARD, item, 1, actor, false)); }
+                    actor.setCurrentHp(actor.getMaxHp());
+                    System.out.println("TEST_FIXTURE_GUARDIAN profile=" + id + " class=" + actor.getActiveClass() + " equipment=imperial-crusader-stock-set");
+                }
                 System.out.println("NATIVE130_ACTUAL_COMBAT profile=" + id + " facts=" + source.authority().planningCombat(actor) + " expertise=" + actor.getKnownSkill(239));
                 PhantomHistoricalBackgroundPlanner.Result plan = null;
                 for (var candidate : !firstParty && objective == null && (!morning || ordinal > 0) ? fields : List.of(field))
