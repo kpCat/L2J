@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator;
@@ -85,8 +87,11 @@ public final class PhantomCoordination130Integration
 		final Path module = Path.of(args[1]).toRealPath();
 		if (!module.getFileName().toString().equals("L2J_Mobius_CT_2.6_HighFive")) { throw new IllegalArgumentException("Exact High Five module required."); }
 		final boolean isolatedF7 = firstPartyLane() && !rendezvousLane() && args[0].equals("authority-f7");
-		if (firstPartyLane() && !isolatedF7 && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
+		final boolean isolatedGroupProof = firstPartyLane() && !rendezvousLane() && List.of("group-pve-startup", "group-pve-startup-resume", "group-pve-startup-close").contains(args[0]);
+		if (firstPartyLane() && !isolatedF7 && !isolatedGroupProof && !List.of("check", "prepare", "inspect", "probe", "probe-live", "fixture", "recover", "native", "restart").contains(args[0]))
 		{ throw new IllegalArgumentException("First Party lane is reserved for the native fixture."); }
+		if (isolatedGroupProof && !PhantomCoordination130Native.validateInfrastructure(module))
+		{ throw new IllegalArgumentException("The SQL-only group proof requires the exact owned pre-CUT runtime."); }
 		final Path local = localRoot(module), config = local.resolve("Database.ini");
 		Class.forName("com.mysql.cj.jdbc.Driver");
 		if (args[0].equals("check") || args[0].equals("prepare"))
@@ -379,11 +384,22 @@ public final class PhantomCoordination130Integration
 		final boolean practical = mode.startsWith("group-pve-practical");
 		final String fixture = practical ? "group-pve-practical" : mode.startsWith("group-pve-startup") ? "group-pve-startup" : mode.startsWith("group-pve-route") ? "group-pve-route" : "group-pve";
 		final boolean routeProof = !fixture.equals("group-pve");
-		final Path checkpoint = module.resolve(".phantom-local/task130/" + fixture + "-restart.properties");
+		final Path checkpoint = localRoot(module).resolve(fixture + "-restart.properties");
 		mode = mode.replace(fixture, "group-pve");
 		final var saved = mode.equals("group-pve") ? new Properties() : read(checkpoint);
-		final var protectedIds = routeProof ? PhantomCoordination130Native.authorizedProfiles(module.getParent().getParent().resolve("runtime"))
-			: java.util.Arrays.stream(read(module.resolve(".phantom-local/task130/native-fixture.properties")).getProperty("profiles").split(",")).map(Long::parseLong).toList();
+		final List<Long> protectedIds;
+		if (firstPartyLane())
+		{
+			final var managed = profiles.listManagedAfter(PhantomPopulationState.COMPONENT_TYPE, 0, 17);
+			if (managed.size() > 16) { throw new IllegalStateException("The isolated group proof requires a bounded managed inventory."); }
+			protectedIds = managed.stream().map(PhantomProfileRepository.ManagedProfile::profile)
+				.filter(profile -> profile.characterObjectId() != null).map(PhantomProfile::profileId).toList();
+		}
+		else
+		{
+			protectedIds = routeProof ? PhantomCoordination130Native.authorizedProfiles(runtimeRoot(module))
+				: java.util.Arrays.stream(read(localRoot(module).resolve("native-fixture.properties")).getProperty("profiles").split(",")).map(Long::parseLong).toList();
+		}
 		if (protectedIds.isEmpty() || protectedIds.size() > 16) { throw new IllegalStateException("Bounded existing native fixture identity required."); }
 		final var nativeBefore = PhantomCoordination130Native.preflightWitness(profiles, protectedIds, false);
 		final String nativeHash = org.l2jmobius.gameserver.phantoms.decision.PhantomGoalPublication.digest(nativeBefore.toString().getBytes(StandardCharsets.UTF_8));

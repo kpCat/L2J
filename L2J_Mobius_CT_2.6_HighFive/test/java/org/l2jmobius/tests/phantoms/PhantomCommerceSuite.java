@@ -745,10 +745,13 @@ public final class PhantomCommerceSuite implements PhantomTestSuite
 		for (int itemId : List.of(5591, 5592))
 		{
 			final List<BuyOffer> offers = _production.catalog().findBuyOffers(itemId, 0, 256).values();
-			PhantomAssertions.assertEquals(1, offers.size(), "Unexpected CP buy source count.");
-			PhantomAssertions.assertEquals(9928, offers.get(0).listId(), "CP buy list changed.");
-			PhantomAssertions.assertEquals(0L, offers.get(0).price(), "CP zero-price current buy source changed.");
-			PhantomAssertions.assertTrue(offers.get(0).npcIds().isEmpty(), "CP buy source unexpectedly gained a vendor.");
+			PhantomAssertions.assertEquals(2, offers.size(), "Unexpected CP buy source count.");
+			final var unbound = offers.stream().filter(offer -> offer.listId() == 9928).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(0L, unbound.price(), "Unbound CP buy source price changed.");
+			PhantomAssertions.assertTrue(unbound.npcIds().isEmpty(), "Unbound CP buy source unexpectedly gained a vendor.");
+			final var paid = offers.stream().filter(offer -> offer.listId() == 3008100).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(Set.of(30081), paid.npcIds(), "Paid CP source must be stock Helvetia.");
+			PhantomAssertions.assertEquals(itemId == 5591 ? 200L : 500L, paid.price(), "Paid CP reference price changed.");
 		}
 	}
 
