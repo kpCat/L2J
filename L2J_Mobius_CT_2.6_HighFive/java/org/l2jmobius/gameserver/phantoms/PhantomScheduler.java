@@ -1066,7 +1066,7 @@ public final class PhantomScheduler
 			slot._softReclaimSelection = null;
 			final boolean idleRetirement = slot._idleRetirement;
 			slot._idleRetirement = false;
-			if (slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE))
+			if ((idleRetirement || slot._effectiveState.requiresMaterialization()) && (slot._retainedFailureKind == RetainedFailureKind.NONE))
 			{
 				return new TransitionPlan(slot._profileId, slot._generation, requested.requiresMaterialization() ? PhantomActivityState.WARM : requested, idleRetirement ? BoundaryAction.RETIRE_IDLE : BoundaryAction.RECLAIM_SOFT, selection.materializedAtNanos(), selection.requestingProfileId());
 			}
@@ -1204,12 +1204,14 @@ public final class PhantomScheduler
 	/** Enqueue an exact expired lifetime on the existing bounded ready queue; the port rechecks all holds. */
 	public boolean requestIdleRetirement(long profileId, long materializedAtNanos)
 	{
-		if (profileId <= 0 || materializedAtNanos == 0) { return false; }
+		// Background recovery can reopen a physical lifetime while this slot is WARM.
+		// Read the native port outside the scheduler monitor; the boundary rechecks the epoch.
+		if (profileId <= 0 || materializedAtNanos == 0 || !_materializationPort.isMaterialized(profileId)) { return false; }
 		final long now = _clock.nanoTime();
 		synchronized (_monitor)
 		{
 			final Slot candidate = _slots.get(profileId);
-			if ((_state != SchedulerState.RUNNING) || candidate == null || !candidate._effectiveState.requiresMaterialization()
+			if ((_state != SchedulerState.RUNNING) || candidate == null
 				|| candidate._processing || candidate._localProcessing || candidate._workInFlight || candidate._boundaryInFlight
 				|| candidate._softReclaimSelection != null || now < candidate._softReclaimCooldownUntilNanos
 				|| now < candidate._retryDueNanos || candidate._retainedFailureKind != RetainedFailureKind.NONE || !reserveReadyLocked(candidate)) { return false; }

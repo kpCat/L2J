@@ -206,6 +206,16 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(scheduler.requestIdleRetirement(1, 66), "Current epoch idle retirement was starved."); scheduler.pulse();
 				PhantomAssertions.assertFalse(delegate.isMaterialized(1), "Expired idle lifetime required another actor's pressure to retire.");
 				PhantomAssertions.assertFalse(scheduler.find(1).orElseThrow().effectiveState().requiresMaterialization(), "Retirement left false scheduler ownership.");
+
+				scheduler.submitSignal(1, signal("life", 2, PhantomActivityState.WARM, 180000));
+				clock.advanceMillis(3000); scheduler.pulse();
+				// An accepted Background recovery can open a native lifetime outside this scheduler.
+				delegate.materialize(1);
+				PhantomAssertions.assertEquals(PhantomActivityState.WARM, scheduler.find(1).orElseThrow().effectiveState(), "Recovery fixture lost the scheduler/native split.");
+				PhantomAssertions.assertTrue(scheduler.requestIdleRetirement(1, 66), "A physical recovery lifetime was ignored while the logical state was WARM.");
+				scheduler.pulse();
+				PhantomAssertions.assertFalse(delegate.isMaterialized(1), "Exact idle cleanup did not reach the recovered native lifetime.");
+				PhantomAssertions.assertEquals(PhantomActivityState.WARM, scheduler.find(1).orElseThrow().effectiveState(), "Cleanup changed the requested logical state.");
 			}
 			finally { stop(scheduler); }
 		});

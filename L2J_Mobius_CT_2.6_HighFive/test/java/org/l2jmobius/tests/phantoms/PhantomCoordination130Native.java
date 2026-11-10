@@ -1796,6 +1796,7 @@ final class PhantomCoordination130Native
                         + " stage=" + progress.get("currentStage") + " retry=" + progress.get("nextRetryMillis") + " visible=" + life.get("historical.visibleRecovery")
                         + " preparation=" + life.get("historical.visiblePreparation") + " decision=" + life.get("decision")
                         + " policy=" + (admission == null ? null : admission.admission()) + " materializationFailure=" + (admission == null ? null : admission.lastMaterializationFailure())
+                        + (admission != null && group.phase() == PhantomLogicalParty.Phase.DRAINING ? " scheduler=" + admission.scheduler() : "")
                         + " busy=" + (admission == null ? "" : admission.busyReason()) + " pins=" + (admission == null ? "" : admission.retentionPins())
                         + " supply=" + life.get("supply") + " supplyReason=" + life.get("supply.reason") + " learning=" + life.get("learning")
                         + " rendezvous=" + life.get("party.rendezvous") + " partyClaim=" + life.get("party.claim") + " partyRoute=" + life.get("party.route.reason") + " travel=" + life.get("farm.travel.reason") + " routeProof=" + life.get("farm.travel.proof") + " objective=" + group.objective() + " generation=" + group.generation() + " vitals=" + life.get("native.vitals") + " economy=" + life.get("native.economy") + " owner=" + life.get("native.owner"));

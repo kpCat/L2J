@@ -592,3 +592,20 @@ GitHub WIP и независимый checkout совпали на `de3377d385c39
 - Escaped Cyrillic и XML numeric references в изменённых файлах проверены отдельно.
 
 **TASK130 PARTIAL, TASK131–136 NOT_STARTED, FULL 0/7.**
+
+### Проверка DRAIN между native-прогонами · 2026-11-10
+
+- По сохранённой трассе старые epochs двух погибших участников получили `control_cleanup`, затем эти профили снова появились в World. Код Background допускает открытие нового epoch после проверенного READY. У лидера до 471,374 с остался исходный epoch. Его `WARM` в `NATIVE130_WAIT` относится к Population Manager. Точное состояние Scheduler и отказавший fence того запуска неизвестны.
+- В MODEL 066 воспроизведена отдельная ошибка Scheduler. При физическом присутствии профиля с логическим `WARM` запрос `requestIdleRetirement` отвергался. Теперь Scheduler проверяет физическое присутствие вне своего монитора, ставит запрос в существующую ограниченную очередь и передаёт точный epoch в штатный `reclaimSoft`. Проверка текущего epoch, human hold, правила pressure reclaim и accepted recovery сохранены. Это исправление проверено в MODEL. Естественный DRAIN всего состава на новой JAR остаётся открытым.
+- В TEST130 `NATIVE130_WAIT` при `DRAINING` теперь печатается существующий снимок Scheduler с логическим состоянием и результатом последнего перехода. Изменённый runner скомпилирован JDK 25. Первичный повтор MODEL без `phantom.module.root` завершился exit 1 из-за поиска каталогов в `dist/game/dist/game`. С явно заданным корнем и рабочей папкой `dist/game` тот же runner завершился exit 0.
+- RED на исходном Scheduler из JAR `B5EB774B7707922B9660C34BB31DACB10A90CAFA6BEFE8FEF753207434B2384E` дал 36/37, exit 1, единственный отказ в новом контроле физического lifetime при `WARM`. GREEN с отдельно скомпилированными классами дал `activity-scheduler` 37/37, `activity-scheduler-local-priority` 3/3, `world-coordination130` 73/73 и `party-lifecycle` 34/34, все exit 0. Исходная JAR сохранила тот же SHA-256. Новых native свидетельств в этом проходе нет.
+
+| Свидетельство в `short-history/evidence` | SHA-256 |
+|---|---|
+| `model-idle-retirement-red.log` | `FB42CB9A9CC0FE6AA2B422B241F069EDAA0FDC8E6941BD34D8CB3B96F67BA733` |
+| `model-drain-activity-scheduler.log` | `E232F92905DA012E3ACA83003F1F0839D0BAC69ABDB94DFBC3C03CAAD66C4C9B` |
+| `model-drain-activity-scheduler-local-priority.log` | `2F44798726FD08E079C8AF6425CCAC75A89ADA4D3B2A913B32B04090D9801A8B` |
+| `model-drain-world-coordination130-verified.log` | `E269E6BED4FDF827C5B722FCE744C203665EA4AFAC2D96E55A0D1CDA8D0FF9F9` |
+| `model-drain-party-lifecycle.log` | `2ACF00A4B218A9B0C59DFD9138C2D4D3530B92D79B7665FF386A532013FEF6FC` |
+
+Для проверки исправления в native нужна одна дополнительная clean JAR. Счётчики остаются 1/1 clean JAR, 1/3 фактических bootstrap и 0/1 условных restart. Restart допустим после полной первой вертикали. GitHub WIP при последней сверке оставалась на `de3377d385c39627bdbb1fc1844ed4d0346c11f8`. Предыдущую попытку обычного push отклонила автоматическая проверка, потребовав явного разрешения владельца на публикацию в WIP. Эта попытка не повторялась.
