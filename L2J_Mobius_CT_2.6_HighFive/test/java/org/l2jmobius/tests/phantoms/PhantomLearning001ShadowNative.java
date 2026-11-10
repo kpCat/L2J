@@ -66,7 +66,7 @@ public final class PhantomLearning001ShadowNative
 
 	public static void main(String[] args) throws Exception
 	{
-		check(args.length == 7 && "cycle7".equals(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
+		check(args.length == 7 && "cycle9".equals(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
 			&& Boolean.getBoolean("phantom.learning.train"), "EXPLICIT_OPT_IN");
 		final boolean on = "on".equals(args[4]);
 		final long version = Long.parseLong(args[5]);
@@ -145,12 +145,12 @@ public final class PhantomLearning001ShadowNative
 				try (var source = PhantomBackgroundSuite.ProductionAuthorityFixture.start(); var runtime = new Runtime(source, game, policy, stop, on))
 				{
 					final String salt = key("learning001/actor/phantom_learning001_native/" + settings.getProperty("Password"));
-					final var helper = actors.stream().filter(row -> "HELPER".equals(row[1])).findFirst().orElseThrow();
+					final var helpers = actors.stream().filter(row -> "FIXTURE".equals(row[0])).toList();
 					final var splits = on ? List.of("AUDIT") : List.of("TRAIN", "TUNING", "AUDIT");
 					for (String split : splits)
 					{
 						final var roster = actors.stream().filter(row -> split.equals(row[0])).toList();
-						runtime.party(roster, helper, salt, "TRAIN".equals(split) ? 8 : 4);
+						runtime.party(roster, helpers, salt, "TRAIN".equals(split) ? 8 : 4);
 					}
 					for (String split : splits)
 					{
@@ -182,14 +182,14 @@ public final class PhantomLearning001ShadowNative
 
 	static void preflightParty(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, Path lane, List<String[]> actors) throws Exception
 	{
-		final var helper = actors.stream().filter(row -> "HELPER".equals(row[1])).findFirst().orElseThrow();
+		final var helpers = actors.stream().filter(row -> "FIXTURE".equals(row[0])).toList();
 		try (var runtime = new Runtime(source, game, LearningPolicy.OFF, lane.resolve("preflight.stop"), false))
 		{
 			runtime.coordinator.installLogicalFarmAdmission(_ -> false);
 			for (String split : List.of("TRAIN", "TUNING", "AUDIT"))
 			{
 				final var roster = new java.util.ArrayList<>(actors.stream().filter(row -> split.equals(row[0])).toList());
-				roster.add(helper);
+				roster.addAll(helpers);
 				final var players = roster.stream().map(runtime::materialize).toList();
 				for (int index = 0; index < roster.size(); index++)
 				{
@@ -342,6 +342,8 @@ public final class PhantomLearning001ShadowNative
 
 		private void inspectParty(List<String[]> roster, List<Player> players)
 		{
+			final var first = players.getFirst();
+			PhantomLearning001ActorFixture.requireSafePartySpawn(first.getX(), first.getY(), first.getZ());
 			final var page = backend.materializedFarmMembers(0, PhantomAutonomousFarmParty.MAXIMUM_CANDIDATES);
 			final var candidates = page.members().stream().filter(member -> backend.autonomousFarmAvailable(member.ref())).toList();
 			for (int index = 0; index < roster.size(); index++)
@@ -357,7 +359,7 @@ public final class PhantomLearning001ShadowNative
 					+ " contributor=" + (facts != null && PhantomAutonomousFarmParty.farmContributor(facts)) + " capabilities=" + (facts == null ? List.of()
 						: facts.capabilities().stream().map(value -> value.capabilityKey() + ":" + value.actionSkillId() + ":" + value.readyNow()).toList())
 					+ " x=" + player.getX() + " y=" + player.getY() + " z=" + player.getZ());
-				if (!"HELPER".equals(roster.get(index)[1]))
+				if (!"FIXTURE".equals(roster.get(index)[0]))
 				{
 					check(progression.capabilities(id, null).stream().anyMatch(capability -> capability.actionSkill().skillId() == 1230 && capability.learned()),
 						"AUTHORED_PROMINENCE_" + id);
@@ -416,13 +418,12 @@ public final class PhantomLearning001ShadowNative
 			check(target > 0, "STOCK_PARTY_PREFLIGHT_TARGET");
 		}
 
-		void party(List<String[]> rows, String[] helper, String salt, int minimum) throws Exception
+		void party(List<String[]> rows, List<String[]> helpers, String salt, int minimum) throws Exception
 		{
 			final var ids = rows.stream().map(row -> Long.parseLong(row[2])).toList();
 			final var farm = PhantomAutonomousFarmParty.farmSource(goals.load(ids.getFirst()).orElseThrow().goal());
-			final long helperId = Long.parseLong(helper[2]);
 			check(farm != null && farm.equals(PhantomAutonomousFarmParty.farmSource(goals.load(ids.getLast()).orElseThrow().goal()))
-				&& farm.equals(PhantomAutonomousFarmParty.farmSource(goals.load(helperId).orElseThrow().goal())), "SHARED_STOCK_SOURCE");
+				&& helpers.stream().allMatch(row -> farm.equals(PhantomAutonomousFarmParty.farmSource(goals.load(Long.parseLong(row[2])).orElseThrow().goal()))), "SHARED_STOCK_SOURCE");
 			final String first = key(salt + ":" + ids.getFirst());
 			final String last = key(salt + ":" + ids.getLast());
 			final int minimumActors = "AUDIT".equals(rows.getFirst()[0]) ? 2 : 1;
@@ -432,7 +433,7 @@ public final class PhantomLearning001ShadowNative
 				return;
 			}
 			final var roster = new java.util.ArrayList<>(rows);
-			roster.add(helper);
+			roster.addAll(helpers);
 			final var profiles = roster.stream().map(row -> Long.parseLong(row[2])).toList();
 			final var players = roster.stream().map(this::materialize).toList();
 			inspectParty(roster, players);
@@ -441,7 +442,9 @@ public final class PhantomLearning001ShadowNative
 			long progressed = System.nanoTime();
 			long highWater = 0;
 			long nextStatus = 0;
-			for (Samples samples = samples("PARTY", first, last); !finished(LearningScope.PARTY, samples, minimum, minimumActors); samples = samples("PARTY", first, last))
+			long nextSample = 0;
+			Samples samples = samples("PARTY", first, last);
+			while (!finished(LearningScope.PARTY, samples, minimum, minimumActors))
 			{
 				check(!Files.exists(stop), "OPERATOR_STOP");
 				if (samples.count() > highWater) { highWater = samples.count(); progressed = System.nanoTime(); }
@@ -461,12 +464,19 @@ public final class PhantomLearning001ShadowNative
 				{
 					final var members = players.stream().map(player -> player.getObjectId() + ":hp=" + player.getCurrentHp() + ":mp="
 						+ player.getCurrentMp() + ":target=" + (player.getTarget() == null ? 0 : player.getTarget().getObjectId())).toList();
+					final var threats = players.stream().map(PhantomNativeLootControl::threat).filter(java.util.Objects::nonNull)
+						.map(threat -> threat.getObjectId() + ":npc=" + (threat.isNpc() ? threat.asNpc().getId() : 0)).distinct().toList();
 					final var wait = backend.currentMember(profiles.getFirst()).map(backend::autonomousFarmWaitReason).orElse("NO_LEADER");
 					System.out.println("LEARNING001_PARTY_PROGRESS split=" + rows.getFirst()[0] + " observed=" + observed + " " + samples + " wait=" + wait
-						+ " members=" + members + " " + coordinator.snapshot() + " " + combat.snapshot());
+						+ " members=" + members + " threats=" + threats + " " + coordinator.snapshot() + " " + combat.snapshot());
 					nextStatus = System.nanoTime() + Duration.ofSeconds(20).toNanos();
 				}
-				Thread.sleep(1000);
+				if (System.nanoTime() >= nextSample)
+				{
+					samples = samples("PARTY", first, last);
+					nextSample = System.nanoTime() + Duration.ofSeconds(1).toNanos();
+				}
+				Thread.sleep(PhantomPlayersConfig.settings().schedulerPulseMillis());
 			}
 			check(observed, "STOCK_PARTY_OBSERVED");
 			final Player leader = players.getFirst().getParty() == null ? null : players.getFirst().getParty().getLeader();

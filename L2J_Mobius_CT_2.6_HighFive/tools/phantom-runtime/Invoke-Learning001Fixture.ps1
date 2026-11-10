@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','survey','shadow','on','coverage','train','promote','read','read-native')][string]$Action,
-    [ValidateSet('native','cycle','cycle2','cycle3','cycle4','cycle5','cycle6','cycle7')][string]$Lane='native',
+    [ValidatePattern('^(native|cycle(?:[2-9]|[1-9][0-9]{1,2})?)$')][string]$Lane='native',
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$JarSha,
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ModelSha,
     [long]$Version=0,
@@ -12,7 +12,7 @@ param(
 )
 
 $ErrorActionPreference='Stop'
-if ($Lane -ne 'cycle7' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
+if ($Lane -cnotmatch '^cycle(?:1[2-9]|[2-9][0-9]|[1-9][0-9]{2})$' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
 if ($Action -in @('check-party','shadow','on','coverage','train','promote','read') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
 if ($Action -in @('on','promote','read') -and ($Version -le 0 -or !$ModelSha)) { throw 'LEARNING001_EXPLICIT_MODEL_PIN_REQUIRED' }
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
