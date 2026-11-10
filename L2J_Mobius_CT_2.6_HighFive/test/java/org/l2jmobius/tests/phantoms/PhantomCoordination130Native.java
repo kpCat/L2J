@@ -922,7 +922,7 @@ final class PhantomCoordination130Native
                 return;
             }
             if (!guardianFixture) { recoverFirstPartyClock(evidence, profiles, existing); }
-            finishFirstPartyFixture(runtime, evidence, firstHistory, ids);
+            finishFirstPartyFixture(runtime, evidence, firstHistory, profiles, ids);
             write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
             return;
         }
@@ -1021,7 +1021,7 @@ final class PhantomCoordination130Native
         }
         if (firstParty)
         {
-            finishFirstPartyFixture(runtime, evidence, firstHistory, ids);
+            finishFirstPartyFixture(runtime, evidence, firstHistory, profiles, ids);
             write(evidence.resolve("fixture-authority.ready"), "topology=" + authority.hashes().topology() + "\n");
             return;
         }
@@ -1104,9 +1104,9 @@ final class PhantomCoordination130Native
         return best;
     }
 
-    private static void finishFirstPartyFixture(Path runtime, Path evidence, FirstPartyHistory history, List<Long> ids) throws Exception
+    private static void finishFirstPartyFixture(Path runtime, Path evidence, FirstPartyHistory history, PhantomProfileRepository profiles, List<Long> ids) throws Exception
     {
-        history.complete(ids);
+        history.complete(profiles, ids);
         ordinaryHeal(runtime);
         write(evidence.resolve("fixture130.properties"), "profiles=" + String.join(",", ids.stream().map(String::valueOf).toList()) + "\nfixture=TEST_FIXTURE\n");
         System.out.println("TEST_FIXTURE_READY profiles=" + ids + ";DURABLE_AGREEMENT=PRODUCTION_OWNER_AT_BOOT;POST_CUT_REWARDS=0");
@@ -1199,11 +1199,16 @@ final class PhantomCoordination130Native
                 && _ecology.nextProductiveWindow(assignment, schedule.phaseMinutes(), minute).productive();
         }
 
-        void complete(List<Long> ids) throws InterruptedException
+        void complete(PhantomProfileRepository profiles, List<Long> ids) throws Exception
         {
             check(_background.start() && _materialization.start(), "FIRST_PARTY_HISTORY_OWNERS");
             try
             {
+                for (long id : ids)
+                {
+                    if (_history.status(id).filter(row -> row.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE).isPresent())
+                    { preparePreflightAuthority(profiles, id, () -> _history.prepareCurrentAuthority(id)); }
+                }
                 ids.forEach(id -> _ecology.register(_population.reload(id)));
                 final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(40);
                 while (System.nanoTime() < deadline)
