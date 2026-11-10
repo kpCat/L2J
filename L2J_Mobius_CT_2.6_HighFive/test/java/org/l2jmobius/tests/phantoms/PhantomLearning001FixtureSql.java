@@ -42,7 +42,7 @@ public final class PhantomLearning001FixtureSql
 
 	static Path resolveLane(String module, String name) throws Exception
 	{
-		if (!java.util.Set.of("native", "cycle", "cycle2", "cycle3", "cycle4").contains(name)) { throw new IllegalArgumentException("Unknown learning lane"); }
+		if (!java.util.Set.of("native", "cycle", "cycle2", "cycle3", "cycle4", "cycle5", "cycle6", "cycle7").contains(name)) { throw new IllegalArgumentException("Unknown learning lane"); }
 		final Path lane = Path.of(module).toRealPath().getParent().resolve(".phantom-local/learning001").resolve(name);
 		if (!lane.toRealPath().equals(lane)) { throw new IllegalStateException("Learning lane is not physical"); }
 		return lane;

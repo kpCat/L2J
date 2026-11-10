@@ -62,9 +62,9 @@ public final class PhantomLearning001Offline
 			case "verify-on" -> 6;
 			default -> 0;
 		};
-		if (length == 0 || args.length != length || !"cycle4".equals(args[2]) || !Boolean.getBoolean("phantom.learning.train"))
+		if (length == 0 || args.length != length || !"cycle7".equals(args[2]) || !Boolean.getBoolean("phantom.learning.train"))
 		{
-			throw new IllegalArgumentException("With -Dphantom.learning.train=true, use coverage <module> cycle4 <limit> | train <module> cycle4 <limit> <seed> | promote/read <module> cycle4 <version> <sha256> | verify-on <module> cycle4 <version> <sha256> <attempt>");
+			throw new IllegalArgumentException("With -Dphantom.learning.train=true, use coverage <module> cycle7 <limit> | train <module> cycle7 <limit> <seed> | promote/read <module> cycle7 <version> <sha256> | verify-on <module> cycle7 <version> <sha256> <attempt>");
 		}
 		final Path lane = PhantomLearning001FixtureSql.resolveLane(args[1], args[2]);
 		final Path game = lane.resolve("game");

@@ -66,7 +66,7 @@ public final class PhantomLearning001ShadowNative
 
 	public static void main(String[] args) throws Exception
 	{
-		check(args.length == 7 && "cycle4".equals(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
+		check(args.length == 7 && "cycle7".equals(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
 			&& Boolean.getBoolean("phantom.learning.train"), "EXPLICIT_OPT_IN");
 		final boolean on = "on".equals(args[4]);
 		final long version = Long.parseLong(args[5]);
@@ -185,12 +185,14 @@ public final class PhantomLearning001ShadowNative
 		final var helper = actors.stream().filter(row -> "HELPER".equals(row[1])).findFirst().orElseThrow();
 		try (var runtime = new Runtime(source, game, LearningPolicy.OFF, lane.resolve("preflight.stop"), false))
 		{
+			runtime.coordinator.installLogicalFarmAdmission(_ -> false);
 			for (String split : List.of("TRAIN", "TUNING", "AUDIT"))
 			{
 				final var roster = new java.util.ArrayList<>(actors.stream().filter(row -> split.equals(row[0])).toList());
 				roster.add(helper);
 				final var players = roster.stream().map(runtime::materialize).toList();
 				runtime.inspectParty(roster, players);
+				runtime.provePartyTarget(roster, players);
 				for (String[] row : roster) { runtime.store(Long.parseLong(row[2])); }
 			}
 		}
@@ -352,6 +354,44 @@ public final class PhantomLearning001ShadowNative
 			final var team = candidates.stream().findFirst().map(leader -> PhantomAutonomousFarmParty.selectTeam(roles, leader, candidates)).orElse(List.of());
 			System.out.println("LEARNING001_PARTY_PREFLIGHT_TEAM " + team);
 			check(team.size() == roster.size(), "STOCK_PARTY_TEAM_ADMISSION");
+		}
+
+		private void provePartyTarget(List<String[]> roster, List<Player> players) throws Exception
+		{
+			final var profiles = roster.stream().map(row -> Long.parseLong(row[2])).toList();
+			await(() ->
+			{
+				final var nativeParty = players.getFirst().getParty();
+				if (nativeParty == null || !nativeParty.getMembers().containsAll(players)) { autonomous.onPulse(); }
+				coordinator.onPulse();
+				return players.getFirst().getParty() != null && players.getFirst().getParty().getMembers().containsAll(players)
+					&& profiles.stream().allMatch(coordinator::committed);
+			}, Duration.ofSeconds(45), "STOCK_PARTY_PREFLIGHT_INVITES");
+			final long leader = profiles.get(players.indexOf(players.getFirst().getParty().getLeader()));
+			final var party = backend.currentMember(leader).flatMap(backend::observe).orElseThrow();
+			final var authority = coordinator.claim(leader).orElseThrow().state();
+			final var supports = authority.assignments().stream().filter(row -> row.roleKey().startsWith("support."))
+				.map(row -> row.member()).collect(java.util.stream.Collectors.toSet());
+			final var farm = PhantomAutonomousFarmParty.farmSource(goals.load(leader).orElseThrow().goal());
+			final var reasons = new java.util.ArrayList<String>();
+			int target = backend.autonomousFarmTarget(party, supports, farm, reasons::add).orElse(0);
+			final long deadline = System.nanoTime() + Duration.ofSeconds(75).toNanos();
+			// Natural spawn movement and HP regeneration may change the same stock risk verdict.
+			while (target == 0 && System.nanoTime() < deadline)
+			{
+				Thread.sleep(1500);
+				reasons.clear();
+				target = backend.autonomousFarmTarget(party, supports, farm, reasons::add).orElse(0);
+			}
+			System.out.println("LEARNING001_PARTY_PREFLIGHT_TARGET profiles=" + profiles + " leader=" + leader + " target=" + target + " " + reasons);
+			check(combat.snapshot().activeSessions() == 0, "NO_PREFLIGHT_COMBAT");
+			await(() ->
+			{
+				coordinator.onPulse();
+				return coordinator.drainAutonomousFarm(leader);
+			}, Duration.ofSeconds(30), "STOCK_PARTY_PREFLIGHT_RELEASE");
+			check(players.stream().noneMatch(Player::isInParty), "STOCK_PARTY_PREFLIGHT_DISBANDED");
+			check(target > 0, "STOCK_PARTY_PREFLIGHT_TARGET");
 		}
 
 		void party(List<String[]> rows, String[] helper, String salt, int minimum) throws Exception

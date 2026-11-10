@@ -66,26 +66,30 @@ public final class PhantomLearning001ActorFixture
 	private static final Set<Integer> SKILLS = Set.of(1230, 1339);
 	private static final String ACTOR_COLUMNS = "split\tscope\tprofile\tactor\tclass\tlevel\tweapon\tskills\tx\ty\tz";
 	private static final Set<String> SPLIT_SCOPES = Set.of("TRAIN/SOLO", "TRAIN/PARTY", "TUNING/SOLO", "TUNING/PARTY", "AUDIT/SOLO", "AUDIT/PARTY", "FIXTURE/HELPER");
-	private static final int SHARED_PARTY_NPC = 21318;
-	private static final Location TRAIN_POINT = new Location(146876, -112049, -2344);
+	private static final int ARCHMAGE = 94;
+	private static final int PHOENIX_KNIGHT = 90;
+	// Stock Grave Ant and Hames Orc Shaman have normal HP and natural respawns.
+	private static final Set<Integer> PARTY_TARGETS = Set.of(21648, 21115);
+	private static final int PARTY_PREFLIGHT_RANGE = 1300;
 
 	public static void main(String[] args)
 	{
 		int exit = 1;
 		try
 		{
-			if (args.length != 3 || !Set.of("actors", "scenes", "capacity", "party").contains(args[0])) { throw new IllegalArgumentException("Expected actors|scenes|capacity|party, module path and lane"); }
+			if (args.length != 3 || !Set.of("actors", "scenes", "capacity", "party", "survey").contains(args[0])) { throw new IllegalArgumentException("Expected actors|scenes|capacity|party|survey, module path and lane"); }
 			final boolean scenes = !args[0].equals("actors");
 			final boolean capacity = args[0].equals("capacity");
 			final boolean party = args[0].equals("party");
+			final boolean survey = args[0].equals("survey");
 			final Path lane = PhantomLearning001FixtureSql.resolveLane(args[1], args[2]);
 			final Path game = lane.resolve("game").toRealPath();
 			final Path config = game.resolve("config/Database.ini");
 			final Path actorManifest = lane.resolve("actors.tsv");
 			if (!Path.of(".").toRealPath().equals(game) || Files.mismatch(config, lane.resolve("Database.ini")) != -1
 				|| !Files.readString(lane.resolve("owner.txt")).matches("LEARNING001:[0-9a-f]{32}")
-				|| Files.exists(actorManifest) != scenes || Files.exists(lane.resolve("cut.properties"))
-				|| (party ? !Files.isRegularFile(lane.resolve("capacity.tsv")) : Files.exists(lane.resolve("attempts"))))
+				|| !survey && (Files.exists(actorManifest) != scenes || Files.exists(lane.resolve("cut.properties"))
+					|| (party ? !Files.isRegularFile(lane.resolve("capacity.tsv")) : Files.exists(lane.resolve("attempts")))))
 			{
 				throw new IllegalStateException("Expected fresh owned pre-CUT actor fixture");
 			}
@@ -105,7 +109,8 @@ public final class PhantomLearning001ActorFixture
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 			{
-				if (party) { PhantomLearning001ShadowNative.preflightParty(authority, game, lane, readActors(actorManifest)); }
+				if (survey) { fixturePoint(authority); }
+				else if (party) { PhantomLearning001ShadowNative.preflightParty(authority, game, lane, readActors(actorManifest)); }
 				else if (scenes) { planScenes(actorManifest, lane, authority, capacity); }
 				else { prepare(actorManifest, authority, settings.getProperty("Password")); }
 			}
@@ -114,7 +119,7 @@ public final class PhantomLearning001ActorFixture
 		catch (Throwable failure)
 		{
 			System.err.println("LEARNING001_ACTOR_PREFLIGHT_FAILED " + failure.getClass().getName());
-			if (failure instanceof IllegalStateException) { System.err.println(failure.getMessage()); }
+			if (failure instanceof IllegalStateException || failure instanceof IllegalArgumentException) { System.err.println(failure.getMessage()); }
 			for (StackTraceElement frame : failure.getStackTrace())
 			{
 				if (frame.getClassName().startsWith("org.l2jmobius.")) { System.err.println(frame); }
@@ -183,9 +188,9 @@ public final class PhantomLearning001ActorFixture
 				throw new IllegalStateException("Unexpected fixture profile");
 			}
 			final Player player = Player.load(actor);
-			if (player == null || !ACCOUNT.equals(player.getAccountName()) || player.getActiveClass() != 94)
+			if (player == null || !ACCOUNT.equals(player.getAccountName()) || player.getActiveClass() != (helper ? PHOENIX_KNIGHT : ARCHMAGE))
 			{
-				throw new IllegalStateException("Expected registered native Archmage");
+				throw new IllegalStateException("Unexpected registered actor class");
 			}
 			try
 			{
@@ -194,7 +199,7 @@ public final class PhantomLearning001ActorFixture
 				final List<Monster> visible = monsters.stream().filter(npc ->
 				{
 					final double distance = player.calculateDistance2D(npc);
-					return !npc.isChampion() && distance >= 250 && distance <= 900 && Math.abs(npc.getLevel() - player.getLevel()) <= 4
+					return !npc.isChampion() && distance >= 250 && distance <= PARTY_PREFLIGHT_RANGE && Math.abs(npc.getLevel() - player.getLevel()) <= 4
 						&& Math.abs(npc.getZ() - player.getZ()) <= 200 && npc.isTargetable() && !npc.isInvul() && npc.isAutoAttackable(player)
 						&& PhantomEngagementPlanner.rewardingFarmTarget(player, npc)
 						&& geo.hasGeo(npc.getX(), npc.getY()) && geo.canSeeTarget(player, npc)
@@ -213,7 +218,7 @@ public final class PhantomLearning001ActorFixture
 				{
 					final var live = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 					final var anchors = authority.topology().nearestAnchors(live, PhantomTopologyAnchorRole.FARMING, 8, 1200);
-					sources = visible.stream().filter(npc -> npc.getId() == SHARED_PARTY_NPC && helperDamageFits(player, npc))
+					sources = visible.stream().filter(npc -> PARTY_TARGETS.contains(npc.getId()))
 						.sorted(Comparator.comparingDouble(Monster::getMaxHp))
 						.flatMap(npc -> anchors.stream().map(anchor -> new PhantomDomainRef("background.farm", npc.getId() + "@" + anchor.id()))
 							.filter(candidate -> matchesSource(planner, candidate, npc))).distinct().limit(4).toList();
@@ -239,7 +244,7 @@ public final class PhantomLearning001ActorFixture
 				}
 				final var source = goal == null ? null : PhantomAutonomousFarmParty.farmSource(goal);
 				final var targets = visible.stream().filter(npc -> matchesSource(planner, source, npc)
-					&& (peer == null || peer.targets().contains(npc)) && (!helper || helperDamageFits(player, npc))).toList();
+					&& (peer == null || peer.targets().contains(npc))).toList();
 				if (peer != null)
 				{
 					System.out.println("LEARNING001_OPENING_RESERVE profile=" + profile + " strictSixtySecond="
@@ -250,7 +255,7 @@ public final class PhantomLearning001ActorFixture
 				System.out.println("LEARNING001_SCENE profile=" + profile + " scope=" + fields[1] + " source=" + source + " nearby=" + visible.size() + " eligible=" + targets.size() + " templates=" + templates + " maxHp=" + hp);
 				if (targets.isEmpty())
 				{
-					for (Monster npc : monsters.stream().filter(npc -> npc.getId() == SHARED_PARTY_NPC && player.calculateDistance2D(npc) <= 2000)
+					for (Monster npc : monsters.stream().filter(npc -> PARTY_TARGETS.contains(npc.getId()) && player.calculateDistance2D(npc) <= 2000)
 						.sorted(Comparator.comparingDouble(player::calculateDistance2D)).limit(6).toList())
 					{
 						System.out.println("LEARNING001_TARGET_PREFLIGHT profile=" + profile + " npc=" + npc.getId() + " object=" + npc.getObjectId()
@@ -267,7 +272,7 @@ public final class PhantomLearning001ActorFixture
 				if (capacity)
 				{
 					if (current == null || !current.goal().equals(goal) || peer != null && !source.equals(PhantomAutonomousFarmParty.farmSource(peer.goal()))
-						|| (helper ? !eligible(player.getKnownSkill(1230)) || player.getKnownSkill(1339) != null
+						|| (helper ? !guardianReady(player)
 							: SKILLS.stream().anyMatch(id -> !eligible(player.getKnownSkill(id)))))
 					{
 						throw new IllegalStateException("Sealed scene or learned skills changed for " + profile);
@@ -316,23 +321,10 @@ public final class PhantomLearning001ActorFixture
 		Files.write(sceneManifest, rows, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 	}
 
-	private static boolean helperDamageFits(Player player, Monster target)
+	private static boolean guardianReady(Player player)
 	{
-		final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, player.getKnownSkill(1230));
-		final var npc = L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
-		final var mechanics = facts.forTarget(npc);
-		final var cycle = mechanics == null ? null : PhantomBackgroundModel.estimateCastCycle(facts.combat(), npc, mechanics).orElse(null);
-		if (cycle == null)
-		{
-			System.out.println("LEARNING001_STOCK_HELPER_PREFLIGHT npc=" + target.getId() + " unsupportedScalar skillLevel="
-				+ facts.skillLevel() + " mechanics=" + mechanics + " magicResistance=" + npc.castDefense().magicSuccessResistance());
-			return false;
-		}
-		final double regen = org.l2jmobius.gameserver.model.stats.Formulas.calcHpRegen(target) / 3d;
-		final double duration = PhantomAutonomousFarmParty.projectedFarmDuration(npc.maximumHp(), cycle.damagePerCast() * 1000 / cycle.intervalMillis(), regen);
-		final double mp = Math.ceil(npc.maximumHp() / cycle.damagePerCast()) * facts.requiredMp();
-		System.out.println("LEARNING001_STOCK_HELPER_PREFLIGHT npc=" + target.getId() + " forecastMillis=" + duration + " mp=" + mp + "/" + facts.vitals().currentMp());
-		return Double.isFinite(duration) && mp <= .8 * facts.vitals().currentMp();
+		final Skill aggression = player.getKnownSkill(28);
+		return aggression != null && PhantomCombatSkillSafety.supportsNpcAggro(aggression, player.isTransformed());
 	}
 
 	static List<Monster> soloOpeningTargets(Player player)
@@ -380,10 +372,36 @@ public final class PhantomLearning001ActorFixture
 		return source != null && planner.partyNativeTarget(source, npc.getId(), new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId()));
 	}
 
-	private static void prepare(Path manifest, PhantomBackgroundSuite.ProductionAuthorityFixture authority, String password) throws Exception
+	private static Location fixturePoint(PhantomBackgroundSuite.ProductionAuthorityFixture authority)
 	{
 		final GeoEngine geo = GeoEngine.getInstance();
-		if (!geo.hasGeo(TRAIN_POINT.getX(), TRAIN_POINT.getY())) { throw new IllegalStateException("Fixture point has no Geo203 coverage"); }
+		final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
+		final var targets = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
+			.filter(npc -> PARTY_TARGETS.contains(npc.getId()) && npc.isSpawned() && !npc.isAlikeDead() && !npc.isChampion() && !npc.isAggressive()
+				&& npc.getInstanceId() == 0 && npc.getMaxHp() <= 6000 && geo.hasGeo(npc.getX(), npc.getY()))
+			.sorted(Comparator.comparingDouble(Monster::getMaxHp).thenComparingInt(Monster::getObjectId)).toList();
+		for (Monster target : targets)
+		{
+			final var position = new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), 0);
+			for (var anchor : authority.topology().nearestAnchors(position, PhantomTopologyAnchorRole.FARMING, 12, PARTY_PREFLIGHT_RANGE))
+			{
+				final var point = anchor.point();
+				final var source = new PhantomDomainRef("background.farm", target.getId() + "@" + anchor.id());
+				if (point.distance3D(position) < 250 || !matchesSource(planner, source, target) || !geo.hasGeo(point.x(), point.y())
+					|| geo.getHeight(point.x(), point.y(), point.z()) != point.z()
+					|| !geo.canSeeTarget(point.x(), point.y(), point.z(), 0, target.getX(), target.getY(), target.getZ(), 0)
+					|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), target.getX(), target.getY(), target.getZ(), 0)
+					|| !geo.canMoveToTarget(target.getX(), target.getY(), target.getZ(), point.x(), point.y(), point.z(), 0)) { continue; }
+				System.out.println("LEARNING001_FIXTURE_ANCHOR source=" + source.key() + " point=" + point + " targetHP=" + target.getMaxHp());
+				return new Location(point.x(), point.y(), point.z());
+			}
+		}
+		throw new IllegalStateException("No canonical ground anchor with an eligible normal-HP stock target, candidates=" + targets.size());
+	}
+
+	private static void prepare(Path manifest, PhantomBackgroundSuite.ProductionAuthorityFixture authority, String password) throws Exception
+	{
+		final var point = fixturePoint(authority);
 		final String salt = hash("learning001/actor/" + SCHEMA + "/" + password);
 		final int[] splitActors = new int[3];
 		final List<Integer> selected = new ArrayList<>();
@@ -423,23 +441,25 @@ public final class PhantomLearning001ActorFixture
 			final int split = split(salt, next);
 			final String scope = scopeBySplit[split]++ == 0 ? "SOLO" : "PARTY";
 			final boolean audit = split == 0;
-			rows.add(create(profiles, resolver, next, split == 0 ? "AUDIT" : split == 1 ? "TUNING" : "TRAIN", scope, TRAIN_POINT, audit ? 78 : 77, audit ? CrystalType.A : CrystalType.S));
+			rows.add(create(profiles, resolver, next, split == 0 ? "AUDIT" : split == 1 ? "TUNING" : "TRAIN", scope, point, audit ? 78 : 77, audit ? CrystalType.A : CrystalType.S));
 		}
-		rows.add(create(profiles, resolver, selected.getLast() + 1, "FIXTURE", "HELPER", TRAIN_POINT, 76, CrystalType.S));
+		rows.add(create(profiles, resolver, selected.getLast() + 1, "FIXTURE", "HELPER", point, 76, CrystalType.S));
 		Files.write(manifest, rows, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 		System.out.println("LEARNING001_ACTORS_READY train=2 tuning=2 audit=2 archmage=6 stockHelper=1 scopes=SOLO+PARTY");
 	}
 
 	private static String create(PhantomProfileRepository profiles, PhantomCombatCapabilityResolver resolver, int next, String split, String scope, Location point, int level, CrystalType grade)
 	{
-		final Player player = Player.create(PlayerTemplateData.getInstance().getTemplate(10), ACCOUNT, "LearnA" + next, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		final boolean helper = "HELPER".equals(scope);
+		final int actorClass = helper ? PHOENIX_KNIGHT : ARCHMAGE;
+		final Player player = Player.create(PlayerTemplateData.getInstance().getTemplate(helper ? 0 : 10), ACCOUNT, "LearnA" + next, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
 		if (player == null || player.isGM() || player.getClient() != null) { throw new IllegalStateException("Ordinary fixture actor required"); }
 		try
 		{
 			player.setOnlineStatus(true, false);
 			PlayerCreationInitializer.initialize(player, PlayerCreationInitializer.Mode.POPULATION, point);
-			player.setPlayerClass(94);
-			player.setBaseClass(94);
+			player.setPlayerClass(actorClass);
+			player.setBaseClass(actorClass);
 			player.getStat().setExp(player.getStat().getExpForLevel(level));
 			player.getStat().setLevel((byte) level);
 			for (Skill skill : SkillTreeData.getInstance().getAllAvailableSkills(player, player.getPlayerClass(), true, true, true))
@@ -452,37 +472,43 @@ public final class PhantomLearning001ActorFixture
 					player.addSkill(skill, true);
 				}
 			}
-			final int weapon = grade == CrystalType.S ? 6608 : 5643;
+			final int weapon = helper ? 6364 : grade == CrystalType.S ? 6608 : 5643;
 			final var casterWeapon = player.addItem(ItemProcessType.REWARD, weapon, 1, player, false);
 			casterWeapon.setEnchantLevel(12);
 			player.getInventory().equipItem(casterWeapon);
-			for (int id : new int[] {6383, 6384, 6385, 6386, 641, 920, 858, 858, 889, 889})
+			final int[] armorIds = helper ? new int[] {6373, 6374, 6375, 6376, 6377, 6378, 920, 858, 858, 889, 889}
+				: new int[] {6383, 6384, 6385, 6386, 641, 920, 858, 858, 889, 889};
+			for (int id : armorIds)
 			{
 				final var armor = player.addItem(ItemProcessType.REWARD, id, 1, player, false);
 				armor.setEnchantLevel(10);
 				player.getInventory().equipItem(armor);
 			}
-			player.addItem(ItemProcessType.REWARD, grade == CrystalType.S ? 3952 : 3951, 300, player, false);
+			final int shot = helper ? 1467 : grade == CrystalType.S ? 3952 : 3951;
+			player.addItem(ItemProcessType.REWARD, shot, 300, player, false);
 			player.addItem(ItemProcessType.REWARD, 1539, 24, player, false);
 			player.refreshExpertisePenalty();
 			player.refreshOverloaded();
 			player.setCurrentHp(player.getMaxHp());
 			player.setCurrentMp(player.getMaxMp());
 			player.setCurrentCp(player.getMaxCp());
-			final var loadout = resolver.resolve(94, PhantomCombatMode.RANGED_MAGIC, id ->
+			if (helper)
 			{
-				final Skill skill = player.getKnownSkill(id);
-				return skill == null ? 0 : skill.getLevel();
-			}, selected -> eligible(player.getKnownSkill(selected.skillId())), false, 4).orElseThrow();
-			final Set<Integer> skills = loadout.selectedSkills().stream().map(skill -> skill.skillId()).collect(Collectors.toSet());
-			final boolean helper = "HELPER".equals(scope);
-			if (!skills.equals(helper ? Set.of(1230) : SKILLS)) { throw new IllegalStateException("Native learned capability missing: " + skills); }
+				if (!guardianReady(player)) { throw new IllegalStateException("Native Aggression missing"); }
+			}
+			else
+			{
+				final var loadout = resolver.resolve(ARCHMAGE, PhantomCombatMode.RANGED_MAGIC, player::getSkillLevel,
+					selected -> eligible(player.getKnownSkill(selected.skillId())), false, 4).orElseThrow();
+				final var skills = loadout.selectedSkills().stream().map(skill -> skill.skillId()).collect(Collectors.toSet());
+				if (!skills.equals(SKILLS)) { throw new IllegalStateException("Native learned capability missing: " + skills); }
+			}
 			final long profile = profiles.create(player.getObjectId()).profileId();
 			if (profile != next) { throw new IllegalStateException("Unexpected registered actor sequence"); }
 			player.getInventory().updateDatabase();
 			player.storeMe();
-			return split + '\t' + scope + '\t' + profile + '\t' + player.getObjectId() + "\t94\t" + level + '\t' + weapon + '\t'
-				+ (helper ? "1230" : "1230,1339") + '\t' + point.getX() + '\t' + point.getY() + '\t' + point.getZ();
+			return split + '\t' + scope + '\t' + profile + '\t' + player.getObjectId() + '\t' + actorClass + '\t' + level + '\t' + weapon + '\t'
+				+ (helper ? "28" : "1230,1339") + '\t' + point.getX() + '\t' + point.getY() + '\t' + point.getZ();
 		}
 		finally
 		{

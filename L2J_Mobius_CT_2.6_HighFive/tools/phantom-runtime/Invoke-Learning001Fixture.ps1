@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','shadow','on','coverage','train','promote','read','read-native')][string]$Action,
-    [ValidateSet('native','cycle','cycle2','cycle3','cycle4')][string]$Lane='native',
+    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','survey','shadow','on','coverage','train','promote','read','read-native')][string]$Action,
+    [ValidateSet('native','cycle','cycle2','cycle3','cycle4','cycle5','cycle6','cycle7')][string]$Lane='native',
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$JarSha,
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ModelSha,
     [long]$Version=0,
@@ -12,7 +12,7 @@ param(
 )
 
 $ErrorActionPreference='Stop'
-if ($Lane -ne 'cycle4' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
+if ($Lane -ne 'cycle7' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
 if ($Action -in @('check-party','shadow','on','coverage','train','promote','read') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
 if ($Action -in @('on','promote','read') -and ($Version -le 0 -or !$ModelSha)) { throw 'LEARNING001_EXPLICIT_MODEL_PIN_REQUIRED' }
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
@@ -250,13 +250,13 @@ try {
         Set-RuntimeIni 'Custom\OfflineTrade.ini' @{RestoreOffliners='False'}
         Write-Output 'LEARNING001_RUNTIME_LOCAL_ENDPOINTS_PINNED'
     }
-    if ($Action -in @('prepare-actors','plan-scenes','check-capacity','check-party')) {
+    if ($Action -in @('prepare-actors','plan-scenes','check-capacity','check-party','survey')) {
         if ($Action -eq 'check-party') { Assert-Hash (Join-Path $runtime 'libs/GameServer.jar') $JarSha }
         Assert-Hash (Join-Path $runtime 'config\Database.ini') (Get-FileHash -LiteralPath (Join-Path $root 'Database.ini')).Hash
         Assert-Geo (Join-Path $runtime 'geodata') (Read-Geo (Join-Path $root 'geo203.json'))
         Push-Location -LiteralPath $runtime
         try {
-            $phase=switch ($Action) {'prepare-actors' {'actors'} 'plan-scenes' {'scenes'} 'check-capacity' {'capacity'} 'check-party' {'party'}}
+            $phase=switch ($Action) {'prepare-actors' {'actors'} 'plan-scenes' {'scenes'} 'check-capacity' {'capacity'} 'check-party' {'party'} 'survey' {'survey'}}
             & java '-XX:ActiveProcessorCount=4' -Xms256m -Xmx3g -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001ActorFixture $phase $module $Lane
             if ($LASTEXITCODE -ne 0) { throw 'LEARNING001_ACTOR_PREFLIGHT_FAILED' }
         } finally {
