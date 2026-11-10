@@ -89,6 +89,13 @@ public interface PhantomPartyBackend
 	/** Current managed materialization lifetime; zero never authorizes a pre-party reservation. */
 	default long materializationEpoch(MemberRef member) { return 0; }
 
+	/** Read-only stock identity check. No position, role or action admission is implied. */
+	default boolean farmJourneyRosterCurrent(MemberRef leader, List<MemberRef> roster)
+	{
+		return observe(leader).filter(party -> party.leader().equals(leader) && party.members().size() == roster.size()
+			&& party.members().containsAll(roster)).isPresent();
+	}
+
 	default boolean autonomousFarmReady(PartySnapshot party) { return false; }
 	/** Existing owner validates its accepted claim before closing only its own work. */
 	default <T> T withExecutionCompletion(java.util.function.Supplier<T> action) { return action.get(); }

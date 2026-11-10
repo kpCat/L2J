@@ -227,6 +227,14 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			return;
 		}
 		if (group.activityReplanRequired()) { return; }
+		final var journey = group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE
+			? _coordinator.farmJourneyProof(group) : PhantomPartyCoordinator.FarmJourneyProof.UNTRACKED;
+		if (journey == PhantomPartyCoordinator.FarmJourneyProof.REVOKED || journey == PhantomPartyCoordinator.FarmJourneyProof.EXPIRED)
+		{
+			final String reason = journey == PhantomPartyCoordinator.FarmJourneyProof.EXPIRED ? "REPLAN_PARTY_JOURNEY_DEADLINE" : "WAIT_PARTY_JOURNEY_OWNER_LOST";
+			_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, reason);
+			return;
+		}
 		if (nativeParty != null)
 		{
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
@@ -246,7 +254,12 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			return;
 		}
 		if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
-		{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_PARTY_LOST"); return; }
+		{
+			if (journey == PhantomPartyCoordinator.FarmJourneyProof.RETAINED)
+			{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_PARTY_JOURNEY_OBSERVATION"); }
+			else { _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now, "WAIT_NATIVE_PARTY_LOST"); }
+			return;
+		}
 		_logicalWake.accept(group, materialized.getFirst().profileId());
 		if (group.phase() == PhantomLogicalParty.Phase.AGREED || group.phase() == PhantomLogicalParty.Phase.BACKGROUND)
 		{ _logical.transition(row, PhantomLogicalParty.Phase.WAKE_REQUESTED, group.backgroundCursor(), now + 5000, "WAIT_ADMISSION"); return; }
@@ -530,7 +543,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (result.outcome() == PhantomPartyCoordinator.RouteOutcome.FAILED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.REJECTED || result.outcome() == PhantomPartyCoordinator.RouteOutcome.UNAVAILABLE)
 		{
 			java.util.logging.Logger.getLogger(PhantomAutonomousFarmParty.class.getName()).warning("Party native route declined;profile=" + leaderId + ";outcome=" + result.outcome() + ";code=" + result.reasonKey());
-			_coordinator.releaseAutonomousFarm(leaderId);
+			_coordinator.releaseAutonomousFarm(leaderId, result.reasonKey());
 		}
 		return true;
 	}

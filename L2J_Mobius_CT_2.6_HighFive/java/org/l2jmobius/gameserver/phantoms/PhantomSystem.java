@@ -833,7 +833,8 @@ public final class PhantomSystem
 				// A fresh native supply proposal must reach Decision before the accepted-owner contract can exist.
 				_historicalBackgroundService.bindSupportRendezvous(_partyCoordinator::supportRendezvousPreparation, _partyCoordinator::supportRendezvousTravel);
 				_historicalBackgroundService.bindPartyNativeLifetime(this::partyRetainsNativeLifetime, this::partyPermitsCommittedNativeDecision,
-					(id, root) -> partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true), _partyCoordinator::rendezvousTravelDecision);
+					(id, root) -> _partyCoordinator.retainsFarmJourney(id, root)
+						|| partyNativeLifetimePermission(id, root, false) && !partyNativeLifetimePermission(id, root, true), _partyCoordinator::rendezvousTravelDecision);
 				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.permitsAutonomousVisibleDecision(profileId, root) || _learningJourney.permitsAutomaticVisibleDecision(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.needsOrOwns(profileId, root) || _partyCoordinator.supportRendezvousTravel(profileId, root));
 				_historicalBackgroundService.bindAcceptedIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.protectsAutomaticRoot(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root) || _autonomousMarketProducer != null && _autonomousMarketProducer.ownsRestJourney(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
@@ -991,6 +992,26 @@ public final class PhantomSystem
 						&& (owner.equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)) || owner.equals(executionPartyOwner(id))),
 					(id, key) -> soloExecution(id) || PhantomBackgroundGoalSpec.CANDIDATE_KEY.equals(key), System::currentTimeMillis,
 					(id, failure) -> System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.WARNING, "execution.handoff profile=" + id + " reason=" + failure.getClass().getSimpleName() + ":" + failure.getMessage()));
+				_executionControl.installTransitionTrace((id, previous, requested, reason) ->
+				{
+					final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
+					if (group != null)
+					{
+						final long epoch = _materializationService.find(id).map(entry -> entry.materializedAtNanos()).orElse(0L);
+						tracePartyOwner("PARTY_EXECUTION_REQUEST", id, group, epoch, previous.toString(), requested.toString(), reason);
+					}
+				});
+				_partyCoordinator.installFarmJourneyExecutionOwner(_executionControl::owner);
+				_materializationService.installDematerializationTrace((entry, reason) ->
+				{
+					final long id = entry.profileId();
+					final var group = _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
+					if (group != null)
+					{
+						tracePartyOwner("PARTY_DEMATERIALIZE_REQUEST", id, group, entry.materializedAtNanos(),
+							String.valueOf(_executionControl.owner(id)), "NATIVE_STORE", reason);
+					}
+				});
 				_executionDecisions = _executionControl.decisionAdmission();
 				_executionControl.installGoalPublications(productionGoals);
 				_historicalBackgroundService.bindAuthorityRefreshBoundary((id, work) ->
@@ -3576,6 +3597,14 @@ public final class PhantomSystem
 		{ return org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id); }
 		return _partyCoordinator.autonomousExecution(id) || autonomousInvitation(id) ? executionPartyOwner(id) : org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id);
 	}
+	private static void tracePartyOwner(String event, long id, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty group,
+		long epoch, String previous, String next, String reason)
+	{
+		System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.INFO, event + " profileId=" + id
+			+ " groupId=" + group.groupId() + " generation=" + group.generation() + " epoch=" + epoch
+			+ " from=" + previous + " to=" + next + " reason=" + reason);
+	}
+
 	private PhantomDomainRef desiredExecutionOwner(long id)
 	{
 		final var root = _executionGoals.load(id).map(stored -> stored.goal()).orElse(null);

@@ -499,6 +499,158 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(combat.finishStop(), "Party support owner did not drain.");
 			}
 		});
+		registry.add("sequential-gatekeeper-keeps-the-exact-party-through-an-observation-gap", context ->
+		{
+			final var states = new MemoryPartyStore();
+			final var goals = new MemoryGoalStore();
+			final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true;
+			backend._farmLevel = 76;
+			final var travel = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.sourceRoutes129();
+			final String anchor = "generated.farm.5241a753fc2261cfc117ac7b.anchor";
+			final var leg = travel.legs().stream().filter(value -> value.id().equals("leg.872c4a16bdd379d147b68e83")).findFirst().orElseThrow();
+			final var geoPath = org.l2jmobius.gameserver.config.GeoEngineConfig.GEODATA_PATH;
+			final org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperEndpoints endpoints;
+			try
+			{
+				org.l2jmobius.gameserver.config.GeoEngineConfig.GEODATA_PATH = context.moduleRoot().resolve("test/resources");
+				endpoints = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.gatekeeperEndpoints(leg);
+			}
+			finally { org.l2jmobius.gameserver.config.GeoEngineConfig.GEODATA_PATH = geoPath; }
+			final var destinationRef = new PhantomDomainRef("topology.anchor", anchor);
+			final var destination = travel.topology().findAnchor(anchor).map(value -> new PhantomNavigationPoint(value.point().x(), value.point().y(), value.point().z(), value.point().instanceId())).orElseThrow();
+			final var ids = List.of(1L, 3L, 8L);
+			final var actionById = new LinkedHashMap<Long, PartyActionLease>();
+			final var paid = new java.util.ArrayList<Long>();
+			for (long id : ids)
+			{
+				final var actor = backend.add(id, 100 + (int) id);
+				backend.snapshot(actor, member(id, actor.characterObjectId(), 100, 100, false, 0, List.of(cap("combat.melee_damage", "weapon", 300, 0))));
+				placeFarmMember(backend, actor, endpoints.source());
+				goals.put(id, historicalIdle(id, 129000 + id, 0));
+				final var action = new PartyActionLease();
+				action.objectId = actor.characterObjectId();
+				action.gatekeeper = () ->
+				{
+					paid.add(id);
+					placeFarmMember(backend, actor, endpoints.landing());
+					return new org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult(
+						org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.Status.ARRIVED,
+						9300, 50000, 40700, endpoints.source(), endpoints.landing());
+				};
+				actionById.put(id, action);
+			}
+			final var logical = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalPartyCoordinator(states);
+			final var group = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty("B".repeat(64), 1, 1,
+				ids.stream().map(id -> new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Member(id, "damage.melee", 129000 + id, 0)).toList(),
+				new PhantomDomainRef("background.farm", "21320@" + anchor), anchor,
+				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+			logical.agree(group).orElseThrow();
+			final var clock = new AtomicLong(1_000_000_000L);
+			final var millis = new AtomicLong(1000);
+			final var combat = new PhantomCombatService(actionById::get, new PhantomCombatCapabilityResolver(_ -> List.of()),
+				PhantomCombatPolicy.productionDefaults(16), new PhantomCombatMetrics(), clock::get, (_, _) -> PhantomCombatService.DispatchResult.rejected());
+			combat.start();
+			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context),
+				new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+			final var temporarilyBlocked = new AtomicBoolean();
+			final var ownerChanged = new AtomicBoolean();
+			coordinator.installLogicalFarmAdmission(id -> id != 3 || !temporarilyBlocked.get());
+			coordinator.installFarmJourneyExecutionOwner(id -> id == 3 && ownerChanged.get() ? new PhantomDomainRef("execution.solo", "3") : null);
+			backend.connect(coordinator);
+			coordinator.start();
+			try
+			{
+				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> false, null,
+					new org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings(true, 100, 100, 100, 100, 100, true),
+					(_, _, _, _, _) -> { throw new AssertionError("Ordinary GK required personal FARM adoption."); }, millis::get);
+				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
+				for (int pulse = 0; pulse < 14; pulse++)
+				{
+					adapter.onPulse();
+					for (int step = 0; step < 4; step++) { coordinator.onPulse(); }
+					clock.addAndGet(6_000_000_000L);
+					millis.addAndGet(6000);
+				}
+				PhantomAssertions.assertEquals(3, backend.observe(backend._members.get(1L)).orElseThrow().members().size(), "Formation did not commit all three members.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE, logical.groupFor(1).orElseThrow().group().phase(), "The logical group never reached NATIVE_ACTIVE.");
+				coordinator.installAutonomousFarmTravel(travel, id -> travel.topology().findAnchor(id)
+					.map(value -> new PhantomNavigationPoint(value.point().x(), value.point().y(), value.point().z(), value.point().instanceId())));
+				coordinator.onPulse();
+				final var leaderBefore = coordinator.claim(1).orElseThrow().state();
+				var route = coordinator.requestAutonomousFarmRoute(1, destinationRef, destination);
+				for (int step = 0; step < 8 && paid.isEmpty() && route.outcome() == PhantomPartyCoordinator.RouteOutcome.PENDING; step++)
+				{ route = coordinator.requestAutonomousFarmRoute(1, destinationRef, destination); }
+				PhantomAssertions.assertEquals(List.of(1L), paid, "The first paid arrival was not individual: " + route.reasonKey());
+				PhantomAssertions.assertTrue(coordinator.autonomousFarmRouteReason(1).contains("profile=1;before=50000;after=40700;fee=9300"), "The route did not retain the exact first receipt.");
+				backend._missingFarmSnapshots.add(3L);
+				backend._missingPartyObservation.addAll(ids);
+				temporarilyBlocked.set(true);
+				clock.addAndGet(2_000_000_000L);
+				final var root = goals.load(1).orElseThrow().goal();
+				PhantomAssertions.assertFalse(coordinator.permitsCommittedNativeDecision(1, root, 101, 1), "Expired snapshots admitted ordinary decisions.");
+				PhantomAssertions.assertTrue(coordinator.retainsNativeLifetime(1, root, 101, 1), "The first paid landing lost its Party lifetime when the one-second proof expired.");
+				millis.accumulateAndGet(logical.groupFor(1).orElseThrow().group().nextDueMillis(), Math::max);
+				adapter.onPulse();
+				final var waiting = logical.groupFor(1).orElseThrow().group();
+				PhantomAssertions.assertEquals("WAIT_PARTY_JOURNEY_OBSERVATION", waiting.waitReason(), "Missing rich observations drained an exact World party.");
+				PhantomAssertions.assertEquals(millis.get() + 5000, waiting.nextDueMillis(), "The observation gap had no finite retry.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE, waiting.phase(), "Observation changed the logical owner.");
+				coordinator.onPulse();
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.PENDING, coordinator.requestAutonomousFarmRoute(1, destinationRef, destination).outcome(), "Incomplete current snapshots must wait.");
+				PhantomAssertions.assertEquals(List.of(1L), paid, "An incomplete snapshot admitted payment.");
+				PhantomAssertions.assertEquals(2, backend.invitationCount(), "A missing observation replayed membership.");
+				ownerChanged.set(true);
+				PhantomAssertions.assertFalse(coordinator.retainsFarmJourney(1, root), "A real execution transfer kept the old route hold.");
+				ownerChanged.set(false);
+				backend._restartAbsent.add(3L);
+				PhantomAssertions.assertFalse(coordinator.retainsFarmJourney(1, root), "A real logout kept the old route hold.");
+				backend._restartAbsent.clear();
+				backend._nativeEpochs.put(3L, 2L);
+				PhantomAssertions.assertFalse(coordinator.retainsFarmJourney(1, root), "A changed epoch kept the old route hold.");
+				backend._nativeEpochs.clear();
+				final var originalGroup = states._logical.groups.get(1L);
+				final var originalClaims = Map.copyOf(states._logical.claims);
+				final var replacement = new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty(group.groupId(), 2, 1, group.members(), group.objective(), anchor,
+					waiting.phase(), waiting.backgroundCursor(), waiting.nextDueMillis(), waiting.waitReason(), waiting.expiresAtMillis());
+				states._logical.groups.put(1L, new PhantomPartyPersistencePort.StoredLogicalGroup(originalGroup.rowVersion() + 1, replacement));
+				for (long id : ids)
+				{
+					final var old = originalClaims.get(id);
+					states._logical.claims.put(id, new PhantomPartyPersistencePort.StoredLogicalClaim(id, 1, group.groupId(), 2, old.rowVersion() + 1, true));
+				}
+				logical.groupFor(1).orElseThrow();
+				PhantomAssertions.assertFalse(coordinator.retainsFarmJourney(1, root), "A changed logical generation kept the old route hold.");
+				states._logical.groups.put(1L, new PhantomPartyPersistencePort.StoredLogicalGroup(originalGroup.rowVersion() + 2, originalGroup.group()));
+				for (long id : ids)
+				{
+					final var old = originalClaims.get(id);
+					states._logical.claims.put(id, new PhantomPartyPersistencePort.StoredLogicalClaim(id, 1, group.groupId(), 1, old.rowVersion() + 2, true));
+				}
+				logical.groupFor(1).orElseThrow();
+				temporarilyBlocked.set(false);
+				backend._missingPartyObservation.clear();
+				backend._missingFarmSnapshots.clear();
+				coordinator.onPulse();
+				for (int step = 0; step < 3 && paid.size() < 3; step++)
+				{ coordinator.requestAutonomousFarmRoute(1, destinationRef, destination); }
+				PhantomAssertions.assertEquals(ids, paid, "The same journey did not pay for each remaining member exactly once.");
+				for (long id : ids)
+				{
+					final var state = coordinator.claim(id).orElseThrow().state();
+					PhantomAssertions.assertEquals(leaderBefore.groupId(), state.groupId(), "A paid hop replaced the stock claim.");
+					PhantomAssertions.assertEquals(leaderBefore.groupGeneration(), state.groupGeneration(), "A paid hop replaced the native generation.");
+					PhantomAssertions.assertEquals(group.groupId(), logical.groupFor(id).orElseThrow().group().groupId(), "A paid hop replaced the logical claim.");
+					PhantomAssertions.assertEquals(0L, goals.load(id).orElseThrow().goal().revision(), "GK published a personal root.");
+					PhantomAssertions.assertTrue(coordinator.autonomousFarmRouteReason(id).contains("profile=" + id + ";before=50000;after=40700;fee=9300;landed=" + endpoints.landing()), "A stock member has no matching modeled fare and landing.");
+				}
+				clock.addAndGet(java.util.concurrent.TimeUnit.MINUTES.toNanos(8));
+				PhantomAssertions.assertFalse(coordinator.retainsFarmJourney(1, root), "An expired journey kept its retention.");
+				backend._missingFarmSnapshots.add(3L);
+				PhantomAssertions.assertEquals("party.route.farm.journey_deadline", coordinator.requestAutonomousFarmRoute(1, destinationRef, destination).reasonKey(), "An incomplete snapshot masked an expired route.");
+			}
+			finally { coordinator.beginStop(); coordinator.finishStop(); combat.beginStop(); combat.finishStop(); }
+		});
 		registry.add("06-six-member-native-projection-can-request-next-farm-pull", context ->
 		{
 			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend(); backend._farmEnabled = true;
@@ -2892,6 +3044,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		return new MemberCapability(key, variant, rank, skillId, 1, "PARTY_MEMBER", true, true, true, "ready", rank * 10, "test.progression.fixture");
 	}
 
+	private static void placeFarmMember(MemoryPartyBackend backend, MemberRef member, PhantomNavigationPoint point)
+	{
+		final var prior = backend._snapshots.get(member);
+		backend.snapshot(member, new MemberSnapshot(member, prior.classId(), point.instanceId(), point.x(), point.y(), point.z(),
+			prior.hpPercent(), prior.mpPercent(), prior.cpPercent(), false, false, false, false, 0, List.of(), prior.capabilities(), prior.progressionHash()));
+	}
+
 	private static MemberSnapshot member(long profileId, int objectId, int hp, int mp, boolean dead, int target, List<MemberCapability> capabilities)
 	{
 		return new MemberSnapshot(MemberRef.phantom(profileId, objectId), 0, 0, 0, 0, 0, hp, mp, 100, dead, false, false, false, target, List.of(901), capabilities, ZERO);
@@ -3646,6 +3805,15 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private boolean moving, casting;
 		private PhantomPartySupportAction support;
 		private TargetSnapshot target;
+		private java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult> gatekeeper;
+		@Override
+		public org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult partyGatekeeper(
+			PhantomNormalGatekeeperTravel.Leg leg, int leader, Set<Integer> roster, java.util.function.BooleanSupplier current)
+		{
+			PhantomAssertions.assertTrue(current.getAsBoolean() && roster.contains(objectId) && leader == 101 && roster.size() == 3, "The action owner passed an invalid GK admission.");
+			PhantomAssertions.assertEquals(9300L, leg.feeCount(), "The stock fare no longer matches the test witness.");
+			return gatekeeper == null ? null : gatekeeper.get();
+		}
 		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(objectId, 0, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, moving, 0, casting ? "CAST" : moving ? "MOVE_TO" : "IDLE", 0, 0); }
 		@Override public TargetSnapshot targetSnapshot(int objectId) { return target != null && target.objectId() == objectId ? target : null; }
 		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
@@ -3690,6 +3858,8 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private boolean _observeFarmAbsence;
 		private Runnable _afterAbsence;
 		private final Set<Long> _unavailable = new java.util.HashSet<>();
+		private final Set<Long> _missingFarmSnapshots = new HashSet<>();
+		private final Set<Long> _missingPartyObservation = new HashSet<>();
 		private final Set<Long> _busy = new java.util.HashSet<>();
 		private final Map<Long, MemberRef> _members = new LinkedHashMap<>();
 		private final Map<MemberRef, PartySnapshot> _parties = new LinkedHashMap<>();
@@ -3852,13 +4022,22 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		public Optional<PartySnapshot> observe(MemberRef member)
 		{
 			if (_rejectLifetimeReads) { throw new AssertionError("Lifetime retention performed native/repository observation."); }
+			if (_missingPartyObservation.contains(member.profileId())) { return Optional.empty(); }
 			return Optional.ofNullable(_parties.get(member));
+		}
+
+		@Override
+		public boolean farmJourneyRosterCurrent(MemberRef leader, List<MemberRef> roster)
+		{
+			final var party = _parties.get(leader);
+			return party != null && party.leader().equals(leader) && party.members().equals(roster);
 		}
 
 		@Override
 		public Optional<MemberSnapshot> memberSnapshot(MemberRef member)
 		{
 			if (_rejectLifetimeReads) { throw new AssertionError("Lifetime retention performed capability/role observation."); }
+			if (_missingFarmSnapshots.contains(member.profileId())) { return Optional.empty(); }
 			if (_requiresTypedAdmission && !_typedAdmitted.contains(member.profileId())) { return Optional.empty(); }
 			if (_afterSnapshot != null) { _afterSnapshot.accept(member); }
 			return Optional.ofNullable(_snapshots.getOrDefault(member, new MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO)));

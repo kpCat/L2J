@@ -34,6 +34,15 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 	private final java.util.concurrent.ConcurrentLinkedQueue<Long> _urgent = new java.util.concurrent.ConcurrentLinkedQueue<>();
 	private final Set<Long> _queued = ConcurrentHashMap.newKeySet();
 	private PhantomGoalStateStore _publications;
+	private TransitionTrace _transitionTrace = (_, _, _, _) -> { };
+
+	@FunctionalInterface
+	public interface TransitionTrace
+	{
+		void beforeRequest(long profileId, PhantomDomainRef previous, PhantomDomainRef requested, String reason);
+	}
+
+	public void installTransitionTrace(TransitionTrace trace) { _transitionTrace = Objects.requireNonNull(trace); }
 	private long _cursor;
 	public void installGoalPublications(PhantomGoalStateStore goals)
 	{
@@ -187,6 +196,12 @@ public final class PhantomExecutionControlPort implements PhantomSchedulerContro
 				if ((row.state().phase() == Phase.ACTIVE && (!row.state().owner().equals(wanted) || debtOwner != null || publication != null))
 					|| row.state().phase() == Phase.RECOVERING && !row.state().owner().equals(PhantomExecutionHandoff.solo(id)) && !row.state().owner().equals(wanted))
 				{
+					try
+					{
+						_transitionTrace.beforeRequest(id, row.state().owner(), wanted, publication != null ? "goal_publication:" + publication.state().requestId()
+							: debtOwner != null ? "recovery_debt" : requested != null ? "explicit_owner_request" : "logical_owner_changed");
+					}
+					catch (RuntimeException ignored) { /* Observation cannot veto the execution boundary. */ }
 					slot.row = _engine.requestExecution(row, wanted, publication == null ? "execution." + row.state().generation() + "." + row.component().rowVersion() : publication.state().requestId(), now, publication == null ? Math.addExact(now, 30_000) : publication.state().deadline());
 					slot.nextDue = now;
 				}

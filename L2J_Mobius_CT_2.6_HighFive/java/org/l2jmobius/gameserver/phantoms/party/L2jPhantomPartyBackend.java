@@ -310,6 +310,25 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 
 	@Override
+	public boolean farmJourneyRosterCurrent(MemberRef leader, List<MemberRef> roster)
+	{
+		final var world = World.getInstance();
+		final var nativeLeader = world.getPlayer(leader.characterObjectId());
+		final var party = nativeLeader == null ? null : nativeLeader.getParty();
+		if (party == null || party.getLeader() != nativeLeader) { return false; }
+		// The World player index survives stock teleport decay/spawn. Action snapshots may still be unavailable.
+		final var members = List.copyOf(party.getMembers());
+		if (members.size() != roster.size()) { return false; }
+		for (var member : roster)
+		{
+			final var player = world.getPlayer(member.characterObjectId());
+			if (player == null || player.getParty() != party || !members.contains(player) || !player.isOnline()
+				|| !player.hasHeadlessOutboundSession() || player.isAlikeDead()) { return false; }
+		}
+		return party.getLeader() == nativeLeader && members.equals(party.getMembers());
+	}
+
+	@Override
 	public FarmPage materializedFarmMembers(long afterProfileId, int limit)
 	{
 		if (limit < 1 || limit > PhantomAutonomousFarmParty.MAXIMUM_CANDIDATES) { return new FarmPage(List.of(), afterProfileId); }

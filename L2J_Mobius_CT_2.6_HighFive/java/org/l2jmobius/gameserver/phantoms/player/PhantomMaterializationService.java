@@ -104,6 +104,10 @@ public final class PhantomMaterializationService
 	private final int _maximumMaterialized;
 	private final int _physicalCeiling;
 	private volatile java.util.function.LongPredicate _softCleanupAdmission = _ -> true;
+	private volatile java.util.function.BiConsumer<MaterializationSnapshot, String> _beforeDematerialize = (_, _) -> { };
+
+	public void installDematerializationTrace(java.util.function.BiConsumer<MaterializationSnapshot, String> trace)
+	{ _beforeDematerialize = Objects.requireNonNull(trace); }
 	private org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission _execution;
 	public void installExecutionAdmission(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionAdmission execution)
 	{
@@ -485,6 +489,7 @@ public final class PhantomMaterializationService
 		final DematerializeResult result;
 		try
 		{
+			traceDematerialization(entry, "soft_reclamation");
 			if (!entry._materializedPlayer.tryPrepareSoftCleanup(expectedEpoch, () -> _softCleanupAdmission.test(profileId)))
 			{
 				return new DematerializeResult(ResultStatus.SOFT_RECLAIM_DEFERRED, snapshot(entry));
@@ -521,6 +526,7 @@ public final class PhantomMaterializationService
 		}
 		try
 		{
+			traceDematerialization(entry, shutdown ? "shutdown_control_cleanup" : "control_cleanup");
 			if (!entry._materializedPlayer.prepareCleanupDrain()) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
 		}
 		catch (RuntimeException failure)
@@ -692,11 +698,26 @@ public final class PhantomMaterializationService
 		final DematerializeResult result;
 		try
 		{
-			result = awaitMaterialization(entry, deadlineNanos) ? performCleanupEntry(entry, deadlineNanos) : new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
+			if (awaitMaterialization(entry, deadlineNanos))
+			{
+				traceDematerialization(entry, shutdown ? "shutdown_cleanup" : "synchronous_dematerialize");
+				result = performCleanupEntry(entry, deadlineNanos);
+			}
+			else { result = new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry)); }
 		}
 		finally { synchronized (entry) { entry._cleanupInProgress = false; } }
 		if (result.status() == ResultStatus.CLEANUP_FAILED_RETAINED) { registerDrainRetry(entry); }
 		return result;
+	}
+
+	private void traceDematerialization(Entry entry, String reason)
+	{
+		try
+		{
+			final var current = snapshot(entry);
+			if (current.worldPresent() && current.actionAdmissionOpen()) { _beforeDematerialize.accept(current, reason); }
+		}
+		catch (RuntimeException ignored) { /* Observation cannot veto the lifecycle boundary. */ }
 	}
 
 	private static boolean awaitMaterialization(Entry entry, long deadlineNanos)
