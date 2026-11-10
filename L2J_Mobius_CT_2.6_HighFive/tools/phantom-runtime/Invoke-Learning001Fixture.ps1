@@ -306,6 +306,7 @@ try {
                 if ((Test-Path -LiteralPath $ready -PathType Leaf) -and [IO.File]::ReadAllText($ready) -ceq [string]$gameProcess.Id) { break }
                 Start-Sleep -Milliseconds 250
             }
+            if ($gameProcess.HasExited) { throw "LEARNING001_GAME_BOOT_EXIT exit=$($gameProcess.ExitCode) attempt=$runId" }
             Assert-G0PhysicalFile $ready
             if ([IO.File]::ReadAllText($ready) -cne [string]$gameProcess.Id) { throw 'LEARNING001_GAME_READY_PID' }
             Assert-OwnSql $owned

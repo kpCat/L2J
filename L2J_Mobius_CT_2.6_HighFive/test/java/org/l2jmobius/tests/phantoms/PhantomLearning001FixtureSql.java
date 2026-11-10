@@ -40,6 +40,11 @@ public final class PhantomLearning001FixtureSql
 		if (args[0].equals("read-native")) { readNative(lane, config); }
 	}
 
+	static boolean writableLane(String name)
+	{
+		return name.matches("cycle(?:1[2-9]|[2-9][0-9]|[1-9][0-9]{2})");
+	}
+
 	static Path resolveLane(String module, String name) throws Exception
 	{
 		if (!name.matches("native|cycle(?:[2-9]|[1-9][0-9]{1,2})?")) { throw new IllegalArgumentException("Unknown learning lane"); }

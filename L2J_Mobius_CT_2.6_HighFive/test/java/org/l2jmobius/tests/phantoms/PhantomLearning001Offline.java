@@ -62,7 +62,7 @@ public final class PhantomLearning001Offline
 			case "verify-on" -> 6;
 			default -> 0;
 		};
-		if (length == 0 || args.length != length || !args[2].matches("cycle(?:1[2-9]|[2-9][0-9]|[1-9][0-9]{2})") || !Boolean.getBoolean("phantom.learning.train"))
+		if (length == 0 || args.length != length || !PhantomLearning001FixtureSql.writableLane(args[2]) || !Boolean.getBoolean("phantom.learning.train"))
 		{
 			throw new IllegalArgumentException("With -Dphantom.learning.train=true, use coverage <module> <lane> <limit> | train <module> <lane> <limit> <seed> | promote/read <module> <lane> <version> <sha256> | verify-on <module> <lane> <version> <sha256> <attempt>");
 		}

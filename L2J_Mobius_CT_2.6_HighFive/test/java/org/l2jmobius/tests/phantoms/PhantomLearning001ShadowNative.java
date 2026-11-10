@@ -66,7 +66,7 @@ public final class PhantomLearning001ShadowNative
 
 	public static void main(String[] args) throws Exception
 	{
-		check(args.length == 7 && "cycle9".equals(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
+		check(args.length == 7 && PhantomLearning001FixtureSql.writableLane(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
 			&& Boolean.getBoolean("phantom.learning.train"), "EXPLICIT_OPT_IN");
 		final boolean on = "on".equals(args[4]);
 		final long version = Long.parseLong(args[5]);
@@ -142,10 +142,11 @@ public final class PhantomLearning001ShadowNative
 			try
 			{
 				check(policy.collecting() && policy.active(LearningScope.SOLO) && policy.active(LearningScope.PARTY), "CONFIGURED_" + mode);
-				try (var source = PhantomBackgroundSuite.ProductionAuthorityFixture.start(); var runtime = new Runtime(source, game, policy, stop, on))
+				final var helpers = actors.stream().filter(row -> "FIXTURE".equals(row[0])).toList();
+				try (var source = PhantomBackgroundSuite.ProductionAuthorityFixture.start();
+					var runtime = new Runtime(source, game, policy, stop, on, 2 + helpers.size()))
 				{
 					final String salt = key("learning001/actor/phantom_learning001_native/" + settings.getProperty("Password"));
-					final var helpers = actors.stream().filter(row -> "FIXTURE".equals(row[0])).toList();
 					final var splits = on ? List.of("AUDIT") : List.of("TRAIN", "TUNING", "AUDIT");
 					for (String split : splits)
 					{
@@ -183,7 +184,7 @@ public final class PhantomLearning001ShadowNative
 	static void preflightParty(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, Path lane, List<String[]> actors) throws Exception
 	{
 		final var helpers = actors.stream().filter(row -> "FIXTURE".equals(row[0])).toList();
-		try (var runtime = new Runtime(source, game, LearningPolicy.OFF, lane.resolve("preflight.stop"), false))
+		try (var runtime = new Runtime(source, game, LearningPolicy.OFF, lane.resolve("preflight.stop"), false, 2 + helpers.size()))
 		{
 			runtime.coordinator.installLogicalFarmAdmission(_ -> false);
 			for (String split : List.of("TRAIN", "TUNING", "AUDIT"))
@@ -220,7 +221,7 @@ public final class PhantomLearning001ShadowNative
 		private final PhantomGoalStateStore goals;
 		private final LearningPolicy policy;
 
-		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on) throws Exception
+		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize) throws Exception
 		{
 			this.policy = policy;
 			this.stop = stop;
@@ -228,7 +229,8 @@ public final class PhantomLearning001ShadowNative
 			final var profiles = PhantomProfileRepository.open();
 			goals = new PhantomGoalStateStore(profiles);
 			final var metrics = new PhantomMetrics();
-			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 4);
+			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics,
+				new PhantomDiagnosticTrace(false, 0, 0, metrics), partySize);
 			progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, game, source::knowledge), PhantomProgressionPolicy.productionDefaults());
 			navigation = new PhantomNavigationService(metrics);
 			combat = new PhantomCombatService(new L2jCombatBackend(materialization, source::knowledge, () -> progression.findCatalog().orElse(null)),
@@ -253,7 +255,8 @@ public final class PhantomLearning001ShadowNative
 		private Player materialize(String[] row)
 		{
 			final long profile = Long.parseLong(row[2]);
-			check(materialization.materialize(profile).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "MATERIALIZE_" + profile);
+			final var result = materialization.materialize(profile);
+			check(result.status() == PhantomMaterializationService.ResultStatus.SUCCESS, "MATERIALIZE_" + profile + " status=" + result.status());
 			final Player player = World.getInstance().getPlayer(Integer.parseInt(row[3]));
 			check(player != null && !player.isGM() && player.getParty() == null && PlayerNativeWork.observationEvidence(player) != null, "NATIVE_PLAYER_" + profile);
 			return player;
@@ -462,8 +465,13 @@ public final class PhantomLearning001ShadowNative
 				}
 				if (System.nanoTime() >= nextStatus)
 				{
-					final var members = players.stream().map(player -> player.getObjectId() + ":hp=" + player.getCurrentHp() + ":mp="
-						+ player.getCurrentMp() + ":target=" + (player.getTarget() == null ? 0 : player.getTarget().getObjectId())).toList();
+					final var members = players.stream().map(player ->
+					{
+						final var cast = player.observeNativeMagicUse(16).primary();
+						return player.getObjectId() + ":hp=" + player.getCurrentHp() + ":mp=" + player.getCurrentMp()
+							+ ":target=" + (player.getTarget() == null ? 0 : player.getTarget().getObjectId())
+							+ ":cast=" + (cast == null || cast.skill() == null ? 0 : cast.skill().getId());
+					}).toList();
 					final var threats = players.stream().map(PhantomNativeLootControl::threat).filter(java.util.Objects::nonNull)
 						.map(threat -> threat.getObjectId() + ":npc=" + (threat.isNpc() ? threat.asNpc().getId() : 0)).distinct().toList();
 					final var wait = backend.currentMember(profiles.getFirst()).map(backend::autonomousFarmWaitReason).orElse("NO_LEADER");

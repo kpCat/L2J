@@ -30,6 +30,7 @@ public final class LearningCastEvidence
 	private static final class RunIdentity
 	{
 		private static final String SALT = UUID.randomUUID().toString();
+		private static final java.util.concurrent.atomic.AtomicInteger REJECTIONS = new java.util.concurrent.atomic.AtomicInteger();
 	}
 	private final LearningPolicy.Attempt _attempt;
 	private final Player _actor;
@@ -51,6 +52,7 @@ public final class LearningCastEvidence
 	private boolean _effectsFinished;
 	private boolean _failed;
 	private double _damage;
+	private String _captureRejection = "no-native-task";
 
 	private LearningCastEvidence(LearningPolicy.Attempt attempt, Player actor, Monster target, Skill skill, BooleanSupplier leaseValid)
 	{
@@ -87,8 +89,15 @@ public final class LearningCastEvidence
 	{
 		if (!TRAIN) { return null; }
 		final LearningCastEvidence ticket = DISPATCH.get();
-		if (ticket == null || simultaneous || ticket._bound || !ticket.matches(actor, skill, targets) || !ticket.exactLifetime())
+		if (ticket == null || ticket._bound)
 		{
+			return null;
+		}
+		final String rejection = simultaneous ? "simultaneous" : !ticket.matches(actor, skill, targets)
+			? "actor-skill-or-target" : ticket.lifetimeRejection();
+		if (rejection != null)
+		{
+			ticket._captureRejection = rejection;
 			return null;
 		}
 		ticket._bound = true;
@@ -100,14 +109,17 @@ public final class LearningCastEvidence
 		return actor == _actor && skill == _skill && targets != null && targets.size() == 1 && targets.getFirst() == _target;
 	}
 
-	private boolean exactLifetime()
+	private String lifetimeRejection()
 	{
-		return _attempt.policy().active(_attempt.request().learningScope()) && _owner != null && _nativeEvidence != null
-			&& _actor.getNativeWorkOwner() == _owner && _owner.player() == _actor && _owner.isCurrent() && _owner.epoch() == _epoch
-			&& PlayerNativeWork.observationEvidence(_actor) == _nativeEvidence && _leaseValid.getAsBoolean()
-			&& _actor.getParty() == _party && World.getInstance().findObject(_target.getObjectId()) == _target
-			&& _spawn.equals(_target.getNativeEvidenceTarget()) && _spawn.instanceId() == _actor.getInstanceId()
-			&& System.nanoTime() - _created < 15_000_000_000L;
+		if (!_attempt.policy().active(_attempt.request().learningScope())) { return "policy"; }
+		if (_owner == null || _nativeEvidence == null || _actor.getNativeWorkOwner() != _owner || _owner.player() != _actor
+			|| !_owner.isCurrent() || _owner.epoch() != _epoch || PlayerNativeWork.observationEvidence(_actor) != _nativeEvidence)
+		{ return "actor-epoch"; }
+		if (!_leaseValid.getAsBoolean()) { return "execution-lease"; }
+		if (_actor.getParty() != _party) { return "native-party"; }
+		if (World.getInstance().findObject(_target.getObjectId()) != _target || !_spawn.equals(_target.getNativeEvidenceTarget())
+			|| _spawn.instanceId() != _actor.getInstanceId()) { return "target-spawn"; }
+		return System.nanoTime() - _created < 15_000_000_000L ? null : "age";
 	}
 
 	public void hit(Runnable nativeHit)
@@ -144,7 +156,19 @@ public final class LearningCastEvidence
 			nativeEffects.run();
 			return;
 		}
-		final LearningCastEvidence current = ticket != null && ticket.matches(actor, skill, targets) && ticket.exactLifetime() && ticket.beginEffects() ? ticket : null;
+		LearningCastEvidence current = null;
+		if (ticket != null)
+		{
+			final String rejection = ticket.matches(actor, skill, targets) ? ticket.lifetimeRejection() : "actor-skill-or-target";
+			if (rejection == null && ticket.beginEffects())
+			{
+				current = ticket;
+			}
+			else
+			{
+				ticket.witnessRejection("effects", rejection == null ? "duplicate" : rejection);
+			}
+		}
 		restore(EFFECT, current);
 		try
 		{
@@ -213,6 +237,7 @@ public final class LearningCastEvidence
 		if (!_bound)
 		{
 			_attempt.policy().observationRejected();
+			witnessRejection("capture", _captureRejection);
 		}
 		publish();
 	}
@@ -232,9 +257,11 @@ public final class LearningCastEvidence
 		_published = true;
 		try
 		{
-			if (_failed || _damage <= 0 || !exactLifetime() || _attempt.request().receiptCancellation().isCancelled())
+			final String rejection = publicationRejection();
+			if (rejection != null)
 			{
 				_attempt.policy().observationRejected();
+				witnessRejection("publish", rejection);
 				return;
 			}
 			final var action = _attempt.candidate();
@@ -252,6 +279,26 @@ public final class LearningCastEvidence
 		catch (RuntimeException rejectedObservation)
 		{
 			_attempt.policy().observationRejected();
+			witnessRejection("publish", rejectedObservation.getClass().getSimpleName());
+		}
+	}
+
+	private String publicationRejection()
+	{
+		if (_failed) { return "native-effect"; }
+		if (_damage <= 0) { return "no-exact-hp"; }
+		final String lifetime = lifetimeRejection();
+		if (lifetime != null) { return lifetime; }
+		return _attempt.request().receiptCancellation().isCancelled() ? "receipt-owner" : null;
+	}
+
+	private void witnessRejection(String stage, String reason)
+	{
+		if (_attempt.policy().witnessing() && RunIdentity.REJECTIONS.getAndIncrement() < 24)
+		{
+			Logger.getLogger(LearningCastEvidence.class.getName()).info("LEARNING_CAST_REJECTED scope=" + _attempt.request().learningScope()
+				+ " skill=" + _skill.getId() + " generation=" + _attempt.generation() + " sequence=" + _attempt.sequence()
+				+ " stage=" + stage + " reason=" + reason);
 		}
 	}
 
