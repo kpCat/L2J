@@ -609,3 +609,40 @@ GitHub WIP и независимый checkout совпали на `de3377d385c39
 | `model-drain-party-lifecycle.log` | `2ACF00A4B218A9B0C59DFD9138C2D4D3530B92D79B7665FF386A532013FEF6FC` |
 
 Для проверки исправления в native нужна одна дополнительная clean JAR. Счётчики остаются 1/1 clean JAR, 1/3 фактических bootstrap и 0/1 условных restart. Restart допустим после полной первой вертикали. GitHub WIP при последней сверке оставалась на `de3377d385c39627bdbb1fc1844ed4d0346c11f8`. Предыдущую попытку обычного push отклонила автоматическая проверка, потребовав явного разрешения владельца на публикацию в WIP. Эта попытка не повторялась.
+
+## 2026-11-10 — первая вертикаль PASS, restart без новой награды
+
+После прямого разрешения владельца GitHub принял обычный fast-forward `de3377d3 → dc709644 → d642c758` в `refs/heads/wip/coordination-130-preserved`. Последний production commit `d642c758460530741d6bca68943c343e63b8ee17`. Точный checkout сборки `ddd8db8f888d5b7bbaaafb767950ae8748b12c74` добавляет только отрицательную проверку Scheduler. Штатный JDK 25 / Ant `jar compile-tests` завершился exit 0 за 52 с. GameServer SHA-256 `2FFBA27746229D1CB052F6FA715F78994FDBADFD586BC9D32AA1ABD9AA2A25D9`. Сверены состав и побайтовая идентичность 4 761 class entries, четыре runtime dependency SHA и происхождение обоих runner-классов. Native runner SHA-256 `268E47180C486F01833D21D8534AB105887DB171E395A5B4E97F3C108276FC4B`.
+
+**MODEL и SQL.** На этой JAR прошли 222 проверки в девяти suites. Контроль 066 подтвердил вызов boundary и удаление точного epoch при физическом Player и логическом `WARM`. При `WARM` без Player запрос отклонён, счётчик вызовов выгрузки остался прежним. Проверки stale epoch и возврата человека прошли. Production boundary перепроверяет epoch, World identity, human hold, действия, Party, транзакции и pending STORE перед закрытием admission. Background MODEL при seed 130 отклонил запуск до выполнения тестов. Канонический seed 15001501 дал 10/10. F7 на этой JAR прошёл в новой аттестованной схеме 33306 с нетегированным несовпадением hash, stale root, идемпотентным повтором и сохранением EXP/SP. Первую попытку оркестрации F7 остановили штатно после удержания канала PowerShell. Запрет resume для First Party сохранили и завершили F7 на свежем собственном datadir. F8 на этой JAR подтвердил обычный человеческий Heal, +48,0249 HP и расход 5 MP.
+
+| Рубеж | Свидетельство |
+|---|---|
+| A и первый native | PID 49128, `native-20261110-113705`. При 0 World сформирована группа `1D376A0783F5BAFEC6619287F559E34B4B91579BBA0E606931FB7EFAAA67D0D0`, generation 1. Штатный planner выбрал Yeti 21320 в Hot Springs. Трое вошли в stock Party через штатные invite/accept. |
+| D, платный GK | Все трое прошли `leg.872c4a16bdd379d147b68e83`. У каждого 50 000 → 40 700 аден, комиссия 9 300. |
+| D, kill, reward, Heal и loot | Yeti 21320, object 268451374, instance 0, spawn generation 1. Duelist и Hell Knight нанесли урон, все трое получили по 54 547 EXP и 9 592 SP. Cardinal, skill 1217:33, восстановил Hell Knight 516 HP за 96 MP. Stock drop object 268484398, item 1872, count 20. Duelist получил `PickupReceipt` sequence 1 для точного source object. Combat owner завершил сессию `VICTORY_LOOTED`. |
+| D, самостоятельный STORE | Переход `WAIT_NATIVE_RETENTION_ENDED`. Лидер дошёл до точного `soft_reclamation` на epoch 1109006823330400. Остальные завершили канонический STORE. Observer зафиксировал `zeroWorld=true` до выключения. После stock STOP exit 0 SQL подтвердил три контекста `COMPLETED`, `prepared=false`, 931 330 375 EXP и 9 592 SP у каждого, прежние groupId, generation 1 и три claims. |
+| E, восстановление | PID 83448, `restart-20261110-114225`. Та же JAR, та же MariaDB PID 74484, схема и datadir. До игрового допуска persisted witness совпал побайтово. Прежняя LogicalParty generation 1 восстановилась при 0 World с теми же claims и сохранённым `nextDue`. |
+| E, новая активность | После `nextDue` три профиля материализовались. Cardinal на первом наблюдении уже был мёртв и затем прошёл STORE. Точный момент и причина его смерти между снимками не установлены. Двое восстановили stock Party и наносили реальный урон. Combat-сессии завершались `CANCELLED`, новой подтверждённой Party-награды и полного состава не было. Группа ушла в `DRAINING`. На предельном сроке observer вернул `NATIVE130_FINITE_EVIDENCE_DEADLINE`, launcher exit 1. Stock STOP сохранил данные и завершился exit 0. |
+| G, сохранность | G0 перед каждым контекстом, Geo203 после каждого запуска, protected207 exact. После restart SQL сохранил одну группу и три claims, все три STORE `COMPLETED`, `prepared=false`. Состояния EXP/SP после STOP соответственно `931330375/9592`, `925830375/9592`, `920952908/45562`. Изменения SQL после начала второй сессии не засчитаны как native Party reward. Исходный listener 3308 сохранил PID 8692, собственные JVM, игровые и SQL listeners закрыты. |
+
+| Свидетельство в `final130` | SHA-256 |
+|---|---|
+| `runtime-rendezvous/native-20261110-113705.stdout.log` | `B456049947BA07B3B05F0803D63C19CFE7D6F39CA741B206B12DEBD246011DA6` |
+| `runtime-rendezvous/native130.trace.native-20261110-113705.49128.tsv` | `6EAC77EFC91F3494BC5B229C97695B5A2799D78CCA33F7DF9B9362B96C515461` |
+| `runtime-rendezvous/restart-20261110-114225.stdout.log` | `01D7EB8642EBAF56A05DE6E15D89A03EA12B79176B44BDD25165D312178064F2` |
+| `runtime-rendezvous/restart130.trace.restart-20261110-114225.83448.tsv` | `B93933428EA1B173336F46C5D741FE3154DCECB7ADC1DD75A8C70593965AD0AD` |
+| `runtime-rendezvous/native130.persisted` | `4BF7CFF07C31FB9D221BE1D6481C11C8D6E9461E38180267E5DEBD2E0C39105E` |
+| `evidence/sql-precut.log` | `F1E8293403C53FD0DFBDCAA72B3AF82B9AA817FE265D3E4983A90ADE2BD93069` |
+| `evidence/sql-between-native-and-restart.log` | `68726AB59E2BB7ADB09301CC95E01E22FA553669C9F17190F31D097B3944E501` |
+| `evidence/sql-postrestart.log` | `A742034F8C645E6635616D127CB75432844FEE8D5ED3281FF7F88479534F7893` |
+| `evidence/f7-fresh-sql.log` | `CD6D261098A61DAE916B4336E6D8487F39AAB34124B46415B39F388C978D0E2B` |
+
+В этом проходе израсходована 1 дополнительная clean JAR и оба оставшихся bootstrap, включая restart. Итого **2/2 clean JAR, 3/3 bootstrap, 1/1 условных restart**. Первая вертикаль заняла 279 с, restart 522 с вместе со stock STOP. Открытый P1 находится между холодным восстановлением и повторным PvE полного состава. Новый kill после restart и естественная выгрузка всего состава второй сессии не подтверждены. Новая production-правка после тестируемой JAR отсутствует.
+
+Git использовался в собственных независимых clones по прямому разрешению владельца. Сверка включала `git symbolic-ref --short HEAD`, `git rev-parse HEAD HEAD^ HEAD^^`, `git rev-parse HEAD HEAD^`, `git rev-parse HEAD`, `git status --short --branch --untracked-files=normal`, `git status --porcelain=v1 --untracked-files=normal`, `git merge-base --is-ancestor <base> HEAD`, `git remote get-url origin`, `git remote get-url --push origin`, `git ls-remote --exit-code origin refs/heads/wip/coordination-130-preserved`, `git diff --name-status <base> HEAD`, `git diff --name-only`, `git diff --check` и проверки staged scope. Для изоляции использованы `git clone --no-local --depth 6 --single-branch --branch wip/coordination-130-preserved`, аналогичный clone с `--depth 1` для F7 и `git remote set-url origin https://github.com/kpCat/L2J.git`. Scoped `git add -- <точный путь>` и `git commit -m` сохраняют focused тест и отчёт. Обычный `git push origin HEAD:refs/heads/wip/coordination-130-preserved` разрешён только для WIP.
+
+- Mojibake-маркеры в изменённых файлах проверены, совпадений нет.
+- Escaped Cyrillic и XML numeric references в изменённых файлах проверены отдельно, совпадений нет.
+
+**TASK130 PARTIAL, TASK131–136 NOT_STARTED, FULL 0/7.**
