@@ -2087,7 +2087,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			if (party.members().stream().anyMatch(member -> _tacticalCombat.containsKey(member.profileId()) || _tacticalActions.containsKey(member.profileId()))) { return true; }
 			final var journey = runtime.farmJourney;
 			if (journey != null) { journey.prepareBetweenPulls.set(false); }
-			final var target = _backend.autonomousFarmTarget(party, supportMembers, currentFarmSource(authority));
+			final var target = _backend.autonomousFarmTarget(party, supportMembers, currentFarmSource(authority), runtime.farmTargetPage.getAndIncrement());
 			if (target.isEmpty())
 			{
 				final String wait = _backend.autonomousFarmWaitReason(party.leader()).split(":", 2)[0];
@@ -2097,6 +2097,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				}
 				return false;
 			}
+			runtime.farmTargetPage.set(0);
 			final var puller = PhantomAutonomousFarmParty.farmPuller(new ArrayList<>(snapshots(party.members()).values())).orElse(null);
 			final var actor = puller == null ? null : _backend.memberSnapshot(puller).orElse(null);
 			if (actor == null || actor.dead() || actor.casting() || actor.attacking()) { return false; }
@@ -4488,6 +4489,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile FarmSourceView farmSource;
 		private volatile NativePartyView nativeLifetime;
 		private volatile MemberRef farmPuller;
+		private final AtomicInteger farmTargetPage = new AtomicInteger();
 		private final AtomicLong farmCombatAdmission = new AtomicLong();
 		private final ConcurrentHashMap<Integer, Long> farmLootOwners = new ConcurrentHashMap<>();
 		private volatile FarmJourney farmJourney;

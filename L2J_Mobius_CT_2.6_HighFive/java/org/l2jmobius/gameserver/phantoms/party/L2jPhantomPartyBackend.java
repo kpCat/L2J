@@ -126,16 +126,23 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 
 	@Override
 	public boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)
+	{ return withNativeAbsence(actor, reconcile, false); }
+
+	@Override
+	public boolean withStoredNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)
+	{ return withNativeAbsence(actor, reconcile, true); }
+
+	private boolean withNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile, boolean acceptCanonicalStore)
 	{
 		if (actor.kind() != MemberKind.PHANTOM) { return false; }
 		final var registry = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance();
 		try (var lease = registry.tryAcquire(actor.characterObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
 		{
-			return lease != null && unmaterializedNativeAbsence(actor, lease) && reconcile.getAsBoolean();
+			return lease != null && unmaterializedNativeAbsence(actor, lease, acceptCanonicalStore) && reconcile.getAsBoolean();
 		}
 	}
 
-	private boolean unmaterializedNativeAbsence(MemberRef actor, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+	private boolean unmaterializedNativeAbsence(MemberRef actor, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, boolean acceptCanonicalStore)
 	{
 		if (actor.kind() != MemberKind.PHANTOM || !actor.equals(currentMember(actor.profileId()).orElse(null))) { return false; }
 		final var retained = _materialization.find(actor.profileId()).orElse(null);
@@ -144,6 +151,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		final var world = World.getInstance();
 		final var owner = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId);
 		if (world.findObject(objectId) != null || world.getPlayer(objectId) != null || owner == null || owner.token() != lease.token() || lease.isClosed()) { return false; }
+		if (acceptCanonicalStore)
+		{
+			final var context = _profiles.findComponent(actor.profileId(), org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.COMPONENT_TYPE)
+				.map(row -> org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.decode(row.payload())).orElse(null);
+			if (context != null && context.phase() == org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.Phase.COMPLETED
+				&& context.identity().profileId() == actor.profileId() && context.identity().characterObjectId() == objectId
+				&& _profiles.findComponent(actor.profileId(), org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isEmpty())
+			{ return true; }
+		}
 		int examined = 0;
 		for (Player player : world.getPlayers())
 		{
@@ -442,7 +458,11 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	}
 	@Override
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source)
-	{ return autonomousFarmTarget(party, supportMembers, source, null); }
+	{ return autonomousFarmTarget(party, supportMembers, source, 0); }
+
+	@Override
+	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int page)
+	{ return autonomousFarmTarget(party, supportMembers, source, page, null); }
 
 	/** Missing live spawn evidence leaves the durable source provisional. Native Combat checks it again. */
 	public boolean permitsObservedFarmOpening(org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, List<org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState> roster)
@@ -481,6 +501,9 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, java.util.function.Consumer<String> witness)
 	{ return autonomousFarmTarget(party, supportMembers, null, witness); }
 	public OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, java.util.function.Consumer<String> witness)
+	{ return autonomousFarmTarget(party, supportMembers, source, 0, witness); }
+
+	private OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source, int page, java.util.function.Consumer<String> witness)
 	{
 		if (source == null) { farmWait(party, "WAIT_GROUP_SOURCE"); return OptionalInt.empty(); }
 		if (party.members().size() < 2 || party.members().size() > 9 || !party.members().containsAll(supportMembers) || party.members().stream().anyMatch(member -> member.kind() != MemberKind.PHANTOM)) { return OptionalInt.empty(); }
@@ -492,10 +515,11 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			for (var member : party.members())
 			{
 				final var acquired = observeActor(member);
-				if (acquired == null) { if (witness != null) { witness.accept("actor.unavailable=" + member.profileId()); } return OptionalInt.empty(); }
+				if (acquired == null) { if (witness != null) { witness.accept("actor.unavailable=" + member.profileId()); } farmWait(party, "WAIT_NATIVE_OWNER"); return OptionalInt.empty(); }
 				leases.add(acquired);
 				final Player player = acquired.player();
-				if (!farmAvailable(player) || player.getParty() == null || player.getParty().getLeader().getObjectId() != party.leader().characterObjectId()) { return OptionalInt.empty(); }
+				if (!farmAvailable(player) || player.getParty() == null || player.getParty().getLeader().getObjectId() != party.leader().characterObjectId())
+				{ farmWait(party, "WAIT_NATIVE_OWNER"); return OptionalInt.empty(); }
 				actors.add(player); members.add(snapshot(member, player));
 			}
 			final Player leader = actors.stream().filter(player -> player.getObjectId() == party.leader().characterObjectId()).findFirst().orElseThrow();
@@ -508,7 +532,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				.sorted(java.util.Comparator.comparingDouble((Monster monster) -> leader.calculateDistance2D(monster)).thenComparingInt(Creature::getObjectId)).map(monster -> (Creature) monster);
 			final var candidates = PhantomPartyFarmEligibility.farmTargets(java.util.stream.Stream.concat(selected, nearby), target ->
 				target.isMonster() && !target.isRaid() && !target.isAlikeDead() && !target.isInvul() && target.isTargetable() && target.isSpawned()
-					&& band.contains(target.getLevel()) && _farmSourcePolicy.test(source, target));
+					&& band.contains(target.getLevel()) && _farmSourcePolicy.test(source, target), page);
 			String refusal = null;
 			for (Creature target : candidates)
 			{

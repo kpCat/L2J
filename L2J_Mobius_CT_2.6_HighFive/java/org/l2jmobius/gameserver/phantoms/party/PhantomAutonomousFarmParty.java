@@ -114,7 +114,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (known.size() != group.members().size()) { return; }
 		if (group.phase() == PhantomLogicalParty.Phase.BACKGROUND && group.activityReplanRequired() && _activityRevision != null)
 		{
-			withAbsentMembers(known, 0, () -> { _logical.recoverActivity(row, now, _activityRevision); return true; });
+			withAbsentMembers(known, 0, false, () -> { _logical.recoverActivity(row, now, _activityRevision); return true; });
 		}
 		else if (now >= group.expiresAtMillis() && !group.activityPending())
 		{
@@ -126,7 +126,7 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 	{
 		final var group = row.group();
 		cancelLogicalOffers(group);
-		if (known.size() != group.members().size() || !withAbsentMembers(known, 0, () ->
+		if (known.size() != group.members().size() || !withAbsentMembers(known, 0, false, () ->
 		{
 			_logical.retireExpired(row, now, () -> true, _soloRecovered, _terminalHandoff); return true;
 		})) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
@@ -193,22 +193,39 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		// represents this group's physical session; a leftover stock Party still blocks release.
 		if (known.stream().filter(actor -> !_executionOwnership.test(actor.profileId(), group)).map(_backend::observe).flatMap(java.util.Optional::stream)
 			.anyMatch(party -> party.members().size() >= 2 && party.members().stream().allMatch(member -> member.kind() == MemberKind.PHANTOM && group.contains(member.profileId()))))
-		{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_NATIVE_OWNER"); return; }
+		{
+			if (!group.activityPending()) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_NATIVE_OWNER"); }
+			return;
+		}
 		final var identities = known.stream().filter(actor -> _executionOwnership.test(actor.profileId(), group)
 			|| group.phase() == PhantomLogicalParty.Phase.DRAINING && _coordinator.awaitsFarmStore(actor.profileId(), group,
 				_goals.load(actor.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null), now)).toList();
 		final var materialized = identities.stream().filter(actor -> _backend.materializationEpoch(actor) > 0).toList();
 		if (materialized.isEmpty())
 		{
-			if (identities.stream().anyMatch(actor -> !_backend.withUnmaterializedNativeAbsence(actor, () -> true)))
-			{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); return; }
+			if (identities.stream().anyMatch(actor -> group.activityReplanRequired()
+				? !_backend.withStoredNativeAbsence(actor, () -> true) : !_backend.withUnmaterializedNativeAbsence(actor, () -> true)))
+			{
+				if (!group.activityPending()) { _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
+				return;
+			}
 			if (now >= group.expiresAtMillis() && !group.activityPending())
 			{
 				retireColdParty(row, now, known);
 				return;
 			}
 			if (group.phase() == PhantomLogicalParty.Phase.BACKGROUND && group.activityReplanRequired() && _activityRevision != null)
-			{ _logical.recoverActivity(row, now, _activityRevision); return; }
+			{
+				final boolean absent = known.size() == group.members().size() && withAbsentMembers(known, 0, true, () ->
+				{
+					_logical.recoverActivity(row, now, _activityRevision);
+					return true;
+				});
+				// A pending publication may only leave its durable fence through finishActivityRevision.
+				if (!absent && !group.activityPending())
+				{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, group.waitReason()); }
+				return;
+			}
 			if (_logical.expire(row, now).isPresent()) { return; }
 			if (group.phase() == PhantomLogicalParty.Phase.NATIVE_ACTIVE)
 			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now + 5000, "WAIT_STORE"); }
@@ -781,9 +798,12 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		return true;
 	}
 
-	private boolean withAbsentMembers(List<MemberRef> members, int index, java.util.function.BooleanSupplier action)
+	private boolean withAbsentMembers(List<MemberRef> members, int index, boolean stored, java.util.function.BooleanSupplier action)
 	{
-		return index == members.size() ? action.getAsBoolean() : _backend.withUnmaterializedNativeAbsence(members.get(index), () -> withAbsentMembers(members, index + 1, action));
+		if (index == members.size()) { return action.getAsBoolean(); }
+		final var actor = members.get(index);
+		final java.util.function.BooleanSupplier rest = () -> withAbsentMembers(members, index + 1, stored, action);
+		return stored ? _backend.withStoredNativeAbsence(actor, rest) : _backend.withUnmaterializedNativeAbsence(actor, rest);
 	}
 	private void cancelLogicalOffers(PhantomLogicalParty group)
 	{

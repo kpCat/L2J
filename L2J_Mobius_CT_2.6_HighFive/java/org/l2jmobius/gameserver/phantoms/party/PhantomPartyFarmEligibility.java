@@ -103,7 +103,15 @@ public final class PhantomPartyFarmEligibility
 	}
 	/** Source/level admission precedes the expensive native Geo/combat candidate budget. */
 	public static <T> List<T> farmTargets(java.util.stream.Stream<T> ordered, java.util.function.Predicate<T> lawful)
-	{ return ordered.filter(lawful).distinct().limit(8).toList(); }
+	{ return farmTargets(ordered, lawful, 0); }
+	public static <T> List<T> farmTargets(java.util.stream.Stream<T> ordered, java.util.function.Predicate<T> lawful, int page)
+	{
+		final int limit = 8;
+		final var candidates = ordered.filter(lawful).distinct().toList();
+		if (candidates.size() <= limit) { return candidates; }
+		final int start = Math.floorMod((long) page * limit, candidates.size());
+		return java.util.stream.IntStream.range(0, limit).mapToObj(index -> candidates.get((start + index) % candidates.size())).toList();
+	}
 	public static boolean withinThreatBudget(double incoming, double currentHp)
 	{ return Double.isFinite(incoming) && incoming < currentHp * 0.6; }
 	/** Every member's local threats, deduplicated before the four-threat overflow witness. */

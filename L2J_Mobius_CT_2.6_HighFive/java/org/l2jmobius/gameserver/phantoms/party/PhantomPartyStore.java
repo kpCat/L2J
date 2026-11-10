@@ -211,14 +211,17 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 	@Override public StoredLogicalGroup beginActivityRevision(StoredLogicalGroup expected, List<PhantomLogicalParty.ActivityRoot> plans, long now, java.util.Map<Long, Long> backgroundVersions)
 	{
 		final var group = expected.group();
-		if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND || !group.activityReplanRequired() || group.activityPending() || plans.size() != group.members().size())
+		if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND || !group.activityReplanRequired() || group.activityPending() || plans.size() != group.members().size()
+			|| now >= group.expiresAtMillis() || group.rejectedActivitySources().size() >= PhantomLogicalParty.MAXIMUM_ACTIVITY_REPLACEMENTS)
 		{ throw new IllegalStateException("Activity revision waits for terminal physical drain."); }
 		final var guards = new java.util.ArrayList<PhantomProfileComponent>(); final var changes = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
+		final var excluded = group.activitySourceExclusions();
 		org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef source = null;
 		for (int i = 0; i < plans.size(); i++)
 		{
 			final var member = group.members().get(i); final var plan = plans.get(i); final long id = member.profileId();
-			if (!plan.pending() || plan.profileId() != id || !plan.groupId().equals(group.groupId()) || plan.generation() != group.generation() || plan.deadline() <= now || plan.deadline() > now + 120_000)
+			if (!plan.pending() || plan.profileId() != id || !plan.groupId().equals(group.groupId()) || plan.generation() != group.generation()
+				|| plan.deadline() <= now || plan.deadline() > Math.min(group.expiresAtMillis(), now + 120_000))
 			{ throw new IllegalArgumentException("Activity proposal identity/deadline differs."); }
 			requireActivityClaim(group, id);
 			if (!activitySolo(id, guards)) { throw new java.util.ConcurrentModificationException("Old execution owner has not released the member."); }
@@ -231,7 +234,7 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 			{ throw new java.util.ConcurrentModificationException("Activity baseline is not settled."); }
 			final var spec = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(plan.goal());
 			final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", spec.npcId() + "@" + spec.anchorId());
-			if (source != null && !source.equals(selected) || selected.equals(group.objective())) { throw new IllegalArgumentException("Activity proposals do not share a new source."); }
+			if (source != null && !source.equals(selected) || excluded.contains(selected.key())) { throw new IllegalArgumentException("Activity proposals do not share a new source."); }
 			source = selected;
 			final var history = _profiles.findComponent(id, plan.history().componentType()).orElseThrow();
 			if (history.rowVersion() != plan.history().expectedRowVersion()) { throw new java.util.ConcurrentModificationException("Activity history changed."); }
@@ -289,7 +292,7 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 			roots.add(new PhantomLogicalParty.Member(id, member.role(), current.goalId(), current.revision()));
 		}
 		final var source = plans.getFirst().goal().validSources().stream().filter(value -> value.namespace().equals("background.farm")).findFirst().orElseThrow();
-		final var next = abort ? group.transition(PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), now + 300_000, "REPLAN_ACTIVITY_WAIT") : group.activityReplacement(roots, source, now);
+		final var next = abort ? group.transition(PhantomLogicalParty.Phase.BACKGROUND, group.backgroundCursor(), Math.min(group.expiresAtMillis(), now + 5000), "REPLAN_ACTIVITY_WAIT") : group.activityReplacement(roots, source, now);
 		final var changes = new java.util.ArrayList<PhantomProfileRepository.ProfileComponentMutation>();
 		changes.add(new PhantomProfileRepository.ProfileComponentMutation(group.leaderProfileId(), new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, expected.rowVersion(), PhantomLogicalParty.SCHEMA_VERSION, next.encode())));
 		for (var plan : plans)
@@ -339,7 +342,8 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 		}
 		if (cursor <= group.backgroundCursor()) { return expected; }
 		final var next = new PhantomLogicalParty(group.groupId(), group.generation(), group.leaderProfileId(), group.members(), group.objective(), group.anchorId(), group.phase(),
-			cursor, now + 5000, "", Math.max(group.expiresAtMillis(), Math.addExact(now, PhantomLogicalParty.IDLE_LIFETIME_MILLIS)));
+			cursor, now + 5000, "", group.rejectedActivitySources().isEmpty()
+				? Math.max(group.expiresAtMillis(), Math.addExact(now, PhantomLogicalParty.IDLE_LIFETIME_MILLIS)) : group.expiresAtMillis(), group.rejectedActivitySources());
 		return _profiles.mutateProfileComponentsAtomically(List.of(new PhantomProfileRepository.ProfileComponentMutation(group.leaderProfileId(),
 			new PhantomProfileRepository.ComponentMutation(PhantomLogicalParty.COMPONENT_TYPE, expected.rowVersion(), PhantomLogicalParty.SCHEMA_VERSION, next.encode()))), guards)
 			.stream().map(this::decodeLogicalGroup).findFirst().orElseThrow();

@@ -350,7 +350,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		return practicalPartySources(id, state, root, excludedTargets, excludedSteps, admitted, adena);
 	}
 
-	private List<PhantomDomainRef> practicalPartySources(long id, PhantomBackgroundState state, PhantomGoal root,
+	List<PhantomDomainRef> practicalPartySources(long id, PhantomBackgroundState state, PhantomGoal root,
 		Set<String> excludedTargets, Set<String> excludedSteps, java.util.function.Predicate<PhantomDomainRef> admitted, long adena)
 	{
 		visiblePredecessor(id, root);

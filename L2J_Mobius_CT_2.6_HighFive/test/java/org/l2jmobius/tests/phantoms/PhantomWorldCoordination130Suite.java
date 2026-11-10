@@ -222,6 +222,10 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 		{
 			final var selected = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.farmTargets(java.util.stream.IntStream.rangeClosed(1, 17).boxed(), id -> id >= 9);
 			PhantomAssertions.assertEquals(List.of(9, 10, 11, 12, 13, 14, 15, 16), selected, "Eight closer wrong sources hid the legal ninth World target or the bound was removed.");
+			final var afterRefusal = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.farmTargets(
+				java.util.stream.IntStream.rangeClosed(1, 17).boxed(), id -> id >= 9, 1);
+			PhantomAssertions.assertEquals(17, afterRefusal.getFirst(), "An unsafe first page starved a different lawful target on the same spot.");
+			PhantomAssertions.assertEquals(8, afterRefusal.size(), "Continuing a live target scan exceeded its per-pulse budget.");
 		});
 		registry.add("party-threat-union-reaches-a-distant-peer-and-keeps-overflow", _ ->
 		{
@@ -676,6 +680,35 @@ public final class PhantomWorldCoordination130Suite implements PhantomTestSuite
 				final var held = pending.transition(PhantomLogicalParty.Phase.DRAINING, 123, 2000, "REPLAN_ROUTE").transition(PhantomLogicalParty.Phase.DRAINING, 123, 3000, "WAIT_STORE");
 				PhantomAssertions.assertTrue(held.activityReplanRequired(), "STORE wait erased the terminal activity failure.");
 			}
+		});
+		registry.add("repeated-unsafe-activity-keeps-the-original-deadline-and-never-returns-to-a-failed-source", _ ->
+		{
+			final var first = new PhantomLogicalParty("A".repeat(64), 1, 1, group(1, 3).members(),
+				new PhantomDomainRef("background.farm", "101@farm.local"), "farm.local", PhantomLogicalParty.Phase.AGREED, 0, 1000, "");
+			final var sourceB = new PhantomDomainRef("background.farm", "102@farm.far");
+			final var sourceC = new PhantomDomainRef("background.farm", "103@farm.alternative");
+			final var nativeA = first.transition(PhantomLogicalParty.Phase.WAKE_REQUESTED, 0, 1100, "")
+				.transition(PhantomLogicalParty.Phase.ASSEMBLING, 0, 1200, "")
+				.transition(PhantomLogicalParty.Phase.NATIVE_ACTIVE, 0, 1300, "");
+			final var pendingA = nativeA.transition(PhantomLogicalParty.Phase.DRAINING, 0, 2000, "REPLAN_TANK_AGGRO")
+				.transition(PhantomLogicalParty.Phase.DRAINING, 0, 3000, "WAIT_STORE")
+				.transition(PhantomLogicalParty.Phase.BACKGROUND, 0, 4000, "REPLAN_TANK_AGGRO")
+				.transition(PhantomLogicalParty.Phase.BACKGROUND, 0, 4000, "ACTIVITY_PENDING");
+			final var rootsB = first.members().stream().map(member -> new PhantomLogicalParty.Member(member.profileId(), member.role(), member.goalId(), member.goalRevision() + 1)).toList();
+			final var nextB = PhantomLogicalParty.decode(pendingA.activityReplacement(rootsB, sourceB, 5000).encode());
+			final var pendingB = nextB.transition(PhantomLogicalParty.Phase.DRAINING, 0, 6000, "REPLAN_TANK_AGGRO")
+				.transition(PhantomLogicalParty.Phase.BACKGROUND, 0, 7000, "REPLAN_TANK_AGGRO")
+				.transition(PhantomLogicalParty.Phase.BACKGROUND, 0, 7000, "ACTIVITY_PENDING");
+			final var rootsC = rootsB.stream().map(member -> new PhantomLogicalParty.Member(member.profileId(), member.role(), member.goalId(), member.goalRevision() + 1)).toList();
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> pendingB.activityReplacement(rootsC, first.objective(), 8000), "A second unsafe pull sent the same group back to its first rejected source.");
+			final var fixture = org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.planner(true, true);
+			final var available = fixture.rendezvousSourcesForRole(74, org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.state(),
+				org.l2jmobius.gameserver.phantoms.knowledge.PhantomFarm074Checks.goal(), pendingB.activitySourceExclusions(), java.util.Set.of(), "damage.melee", _ -> true, 50_000);
+			PhantomAssertions.assertEquals(List.of(sourceC), available, "The ordinary planner must reach C after both rejected sources.");
+			final var nextC = pendingB.activityReplacement(rootsC, sourceC, 8000);
+			PhantomAssertions.assertEquals(first.groupId(), nextC.groupId(), "Two refused pulls discarded the durable agreement.");
+			PhantomAssertions.assertEquals(first.generation() + 2, nextC.generation(), "Each replacement needs its own native generation.");
+			PhantomAssertions.assertEquals(first.expiresAtMillis(), nextC.expiresAtMillis(), "Refused pulls renewed their original recovery deadline.");
 		});
 		registry.add("activity-proposal-uses-ordinary-planner-and-preserves-unknown-physical-route", _ ->
 		{

@@ -106,6 +106,9 @@ public interface PhantomPartyBackend
 
 	/** Positive absence proof for an unmaterialized restart orphan; unavailable observation is insufficient. */
 	default boolean withUnmaterializedNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile) { return false; }
+	/** Hot activity recovery may use a completed canonical STORE to prove physical absence. */
+	default boolean withStoredNativeAbsence(MemberRef actor, java.util.function.BooleanSupplier reconcile)
+	{ return withUnmaterializedNativeAbsence(actor, reconcile); }
 
 	default OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers)
 	{
@@ -113,6 +116,8 @@ public interface PhantomPartyBackend
 	}
 	default OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source)
 	{ return autonomousFarmTarget(party, supportMembers); }
+	default OptionalInt autonomousFarmTarget(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int page)
+	{ return autonomousFarmTarget(party, supportMembers, source); }
 	/** Called by the existing Combat cancellation token; never selects another target. */
 	default boolean autonomousFarmEncounterReady(PartySnapshot party, Set<MemberRef> supportMembers, PhantomDomainRef source, int targetObjectId) { return true; }
 	default String autonomousFarmWaitReason(MemberRef leader) { return "WAIT_GROUP_TARGET"; }

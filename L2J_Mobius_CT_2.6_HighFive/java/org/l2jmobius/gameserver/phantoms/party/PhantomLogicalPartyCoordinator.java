@@ -323,17 +323,19 @@ public final class PhantomLogicalPartyCoordinator
 		if (group.phase() != PhantomLogicalParty.Phase.BACKGROUND || !group.activityReplanRequired() || now < group.nextDueMillis()) { return expected; }
 		if (!group.activityPending())
 		{
+			if (now >= group.expiresAtMillis()) { return expire(expected, now).orElse(expected); }
+			if (group.rejectedActivitySources().size() >= PhantomLogicalParty.MAXIMUM_ACTIVITY_REPLACEMENTS)
+			{ return transition(expected, group.phase(), group.backgroundCursor(), group.expiresAtMillis(), "REPLAN_WAIT_SOURCE_BUDGET"); }
 			try
 			{
 				final var plan = revision.plan(group, now);
-				if (now >= group.expiresAtMillis()) { return expire(expected, now).orElse(expected); }
 				if (plan.roots().isEmpty()) { return transition(expected, group.phase(), group.backgroundCursor(), Math.min(group.expiresAtMillis(), now + plan.retryMillis()), plan.waitReason()); }
 				return remember(_store.beginActivityRevision(expected, plan.roots(), now, plan.backgroundVersions()));
 			}
-			catch (java.util.ConcurrentModificationException releasePending) { return transition(expected, group.phase(), group.backgroundCursor(), now + 5000, "REPLAN_WAIT_RELEASE"); }
+			catch (java.util.ConcurrentModificationException releasePending) { return transition(expected, group.phase(), group.backgroundCursor(), Math.min(group.expiresAtMillis(), now + 5000), "REPLAN_WAIT_RELEASE"); }
 		}
 		final var plans = _store.activityRoots(expected);
-		final boolean expired = plans.stream().anyMatch(plan -> now >= plan.deadline());
+		final boolean expired = now >= group.expiresAtMillis() || plans.stream().anyMatch(plan -> now >= plan.deadline());
 		if (!expired) for (var plan : plans) { revision.publish(plan); }
 		return _store.finishActivityRevision(expected, now, expired).map(this::remember).orElse(expected);
 	}

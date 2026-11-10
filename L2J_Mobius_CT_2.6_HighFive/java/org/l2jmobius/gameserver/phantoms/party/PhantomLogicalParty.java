@@ -7,22 +7,29 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 
 /** Durable agreement only. Native object identities and epochs belong to the physical projection. */
 public record PhantomLogicalParty(String groupId, long generation, long leaderProfileId, List<Member> members,
-	PhantomDomainRef objective, String anchorId, Phase phase, long backgroundCursor, long nextDueMillis, String waitReason, long expiresAtMillis)
+	PhantomDomainRef objective, String anchorId, Phase phase, long backgroundCursor, long nextDueMillis, String waitReason,
+	long expiresAtMillis, List<String> rejectedActivitySources)
 {
 	public static final String COMPONENT_TYPE = "party.logical_group";
 	public static final String CLAIM_COMPONENT_TYPE = "party.logical_claim";
 	public static final String ACTIVITY_COMPONENT_TYPE = "party.logical_activity";
 	public static final int SCHEMA_VERSION = 2;
 	public static final long IDLE_LIFETIME_MILLIS = 600_000;
+	static final int MAXIMUM_ACTIVITY_REPLACEMENTS = 8;
 	private static final int MAGIC = 0x504c4702;
+	private static final int MAGIC_WITH_REJECTIONS = 0x504c4703;
 	public PhantomLogicalParty(String groupId, long generation, long leaderProfileId, List<Member> members,
 		PhantomDomainRef objective, String anchorId, Phase phase, long backgroundCursor, long nextDueMillis, String waitReason)
 	{ this(groupId, generation, leaderProfileId, members, objective, anchorId, phase, backgroundCursor, nextDueMillis, waitReason, Math.addExact(nextDueMillis, IDLE_LIFETIME_MILLIS)); }
+	public PhantomLogicalParty(String groupId, long generation, long leaderProfileId, List<Member> members,
+		PhantomDomainRef objective, String anchorId, Phase phase, long backgroundCursor, long nextDueMillis, String waitReason, long expiresAtMillis)
+	{ this(groupId, generation, leaderProfileId, members, objective, anchorId, phase, backgroundCursor, nextDueMillis, waitReason, expiresAtMillis, List.of()); }
 	public enum Phase { AGREED, BACKGROUND, WAKE_REQUESTED, ASSEMBLING, NATIVE_ACTIVE, DRAINING, DISBANDED }
 	public record Member(long profileId, String role, long goalId, long goalRevision)
 	{
@@ -36,13 +43,18 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	{
 		PhantomPartyModel.requireHash(groupId, "Logical group");
 		members = List.copyOf(members);
+		rejectedActivitySources = List.copyOf(rejectedActivitySources);
 		if (generation <= 0 || leaderProfileId <= 0 || members.size() < 2 || members.size() > 9
 			|| members.getFirst().profileId() != leaderProfileId || members.stream().map(Member::profileId).distinct().count() != members.size()
-			|| objective == null || !"background.farm".equals(objective.namespace()) || !objective.key().matches("[1-9][0-9]{0,8}@[^@\\s]{1,128}")
+			|| objective == null || !"background.farm".equals(objective.namespace()) || !validSourceKey(objective.key())
 			|| anchorId == null || !objective.key().endsWith("@" + anchorId) || phase == null || backgroundCursor < 0 || nextDueMillis <= 0
-			|| expiresAtMillis <= 0 || waitReason == null || !waitReason.matches("[A-Z0-9_.-]{0,96}"))
+			|| expiresAtMillis <= 0 || waitReason == null || !waitReason.matches("[A-Z0-9_.-]{0,96}")
+			|| rejectedActivitySources.size() > MAXIMUM_ACTIVITY_REPLACEMENTS || rejectedActivitySources.contains(objective.key())
+			|| rejectedActivitySources.stream().anyMatch(source -> !validSourceKey(source))
+			|| Set.copyOf(rejectedActivitySources).size() != rejectedActivitySources.size())
 		{ throw new IllegalArgumentException("Invalid logical group aggregate."); }
 	}
+	private static boolean validSourceKey(String key) { return key.length() <= 128 && key.matches("[1-9][0-9]{0,8}@[!-?A-~]+"); }
 	public boolean contains(long profileId) { return members.stream().anyMatch(member -> member.profileId() == profileId); }
 	public boolean active() { return phase != Phase.DISBANDED; }
 	/** A failed activity keeps membership, but cannot reacquire its old execution grant. */
@@ -50,19 +62,28 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	public boolean activityPending() { return waitReason.equals("ACTIVITY_PENDING"); }
 	public boolean requiresSoloExecution(long now)
 	{ return !active() || phase == Phase.DRAINING || activityReplanRequired() || now >= expiresAtMillis && phase != Phase.NATIVE_ACTIVE; }
+	public Set<String> activitySourceExclusions()
+	{
+		final var excluded = new java.util.HashSet<>(rejectedActivitySources);
+		excluded.add(objective.key());
+		return Set.copyOf(excluded);
+	}
 	/** Distinct from roster replacement: activity metadata never resets earned time. */
 	public PhantomLogicalParty activityReplacement(List<Member> roots, PhantomDomainRef source, long now)
 	{
 		if (phase != Phase.BACKGROUND || !activityPending()) { throw new IllegalStateException("Activity revision requires its durable idle fence."); }
-		if (source.equals(objective) || roots.size() != members.size()) { throw new IllegalArgumentException("Activity revision requires another common source."); }
+		if (activitySourceExclusions().contains(source.key()) || rejectedActivitySources.size() >= MAXIMUM_ACTIVITY_REPLACEMENTS
+			|| now >= expiresAtMillis || roots.size() != members.size()) { throw new IllegalArgumentException("Activity revision requires another common source within its original budget."); }
 		for (int i = 0; i < members.size(); i++)
 		{
 			final var old = members.get(i); final var next = roots.get(i);
 			if (next.profileId() != old.profileId() || !next.role().equals(old.role()) || next.goalId() != old.goalId() || next.goalRevision() <= old.goalRevision())
 			{ throw new IllegalArgumentException("Activity revision cannot replace membership or reuse stale roots."); }
 		}
+		final var rejected = new java.util.ArrayList<>(rejectedActivitySources);
+		rejected.add(objective.key());
 		return new PhantomLogicalParty(groupId, Math.addExact(generation, 1), leaderProfileId, roots, source, source.key().substring(source.key().indexOf('@') + 1),
-			Phase.BACKGROUND, backgroundCursor, now, "", Math.addExact(now, IDLE_LIFETIME_MILLIS));
+			Phase.BACKGROUND, backgroundCursor, now, "", expiresAtMillis, rejected);
 	}
 	/** Per-member proposal, not an executable root. The aggregate fence and all proposals commit together. */
 	public record ActivityRoot(String groupId, long generation, long profileId, long beforeGoalVersion, long deadline,
@@ -125,12 +146,15 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 	public PhantomLogicalParty transition(Phase next, long cursor, long nextDue, String reason)
 	{
 		if (cursor < backgroundCursor || !permits(phase, next) || activityReplanRequired() && phase == Phase.DRAINING && next == Phase.NATIVE_ACTIVE) { throw new IllegalArgumentException("Invalid logical group transition."); }
-		final long expiry = phase == Phase.DRAINING && next == Phase.BACKGROUND && !"EXPIRED_ASSEMBLY".equals(waitReason) && !"EXPIRED_ASSEMBLY".equals(reason)
+		final boolean ordinaryDrain = phase == Phase.DRAINING && next == Phase.BACKGROUND && !activityReplanRequired() && rejectedActivitySources.isEmpty()
+			&& !"EXPIRED_ASSEMBLY".equals(waitReason) && !"EXPIRED_ASSEMBLY".equals(reason);
+		final long expiry = ordinaryDrain
 			? Math.max(expiresAtMillis, Math.addExact(nextDue, IDLE_LIFETIME_MILLIS)) : expiresAtMillis;
 		// STORE may postpone release, but cannot erase the terminal cause and restart its lifetime.
 		final String nextReason = activityReplanRequired() && !activityPending() && (next == Phase.DRAINING || next == Phase.BACKGROUND) && !reason.startsWith("REPLAN_") && !reason.equals("ACTIVITY_PENDING")
 			|| phase == Phase.DRAINING && next == Phase.DRAINING && "EXPIRED_ASSEMBLY".equals(waitReason) ? waitReason : reason;
-		return new PhantomLogicalParty(groupId, generation, leaderProfileId, members, objective, anchorId, next, cursor, nextDue, nextReason, expiry);
+		return new PhantomLogicalParty(groupId, generation, leaderProfileId, members, objective, anchorId, next, cursor, nextDue, nextReason, expiry,
+			rejectedActivitySources);
 	}
 	private static boolean permits(Phase from, Phase to)
 	{
@@ -154,9 +178,15 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 			final var bytes = new ByteArrayOutputStream();
 			try (var out = new DataOutputStream(bytes))
 			{
-				out.writeInt(MAGIC); out.writeUTF(groupId); out.writeLong(generation); out.writeLong(leaderProfileId); out.writeInt(members.size());
+				out.writeInt(rejectedActivitySources.isEmpty() ? MAGIC : MAGIC_WITH_REJECTIONS);
+				out.writeUTF(groupId); out.writeLong(generation); out.writeLong(leaderProfileId); out.writeInt(members.size());
 				for (var member : members) { out.writeLong(member.profileId()); out.writeUTF(member.role()); out.writeLong(member.goalId()); out.writeLong(member.goalRevision()); }
 				out.writeUTF(objective.key()); out.writeUTF(anchorId); out.writeInt(phase.ordinal()); out.writeLong(backgroundCursor); out.writeLong(nextDueMillis); out.writeUTF(waitReason); out.writeLong(expiresAtMillis);
+				if (!rejectedActivitySources.isEmpty())
+				{
+					out.writeByte(rejectedActivitySources.size());
+					for (String source : rejectedActivitySources) { out.writeUTF(source); }
+				}
 			}
 			return bytes.toByteArray();
 		}
@@ -168,7 +198,7 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 		try (var in = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
 			final int magic = in.readInt();
-			if (magic != MAGIC && magic != 0x504c4701) { throw new IllegalArgumentException("Unknown logical group schema; native rendezvous v1 is not a logical group."); }
+			if (magic != MAGIC && magic != MAGIC_WITH_REJECTIONS && magic != 0x504c4701) { throw new IllegalArgumentException("Unknown logical group schema; native rendezvous v1 is not a logical group."); }
 			final String group = in.readUTF(); final long generation = in.readLong(), leader = in.readLong(); final int count = in.readInt();
 			if (count < 2 || count > 9) { throw new IllegalArgumentException("Invalid logical roster size."); }
 			final var members = new java.util.ArrayList<Member>(count);
@@ -177,8 +207,15 @@ public record PhantomLogicalParty(String groupId, long generation, long leaderPr
 			if (phase < 0 || phase >= Phase.values().length) { throw new IllegalArgumentException("Unknown logical group phase."); }
 			final long cursor = in.readLong(), due = in.readLong(); final String reason = in.readUTF();
 			// Legacy idle expiry is derived from the persisted deadline, never reset by restart.
-			final long expiry = magic == MAGIC ? in.readLong() : Math.addExact(due, IDLE_LIFETIME_MILLIS);
-			final var result = new PhantomLogicalParty(group, generation, leader, members, objective, anchor, Phase.values()[phase], cursor, due, reason, expiry);
+			final long expiry = magic == 0x504c4701 ? Math.addExact(due, IDLE_LIFETIME_MILLIS) : in.readLong();
+			final var rejected = new java.util.ArrayList<String>();
+			if (magic == MAGIC_WITH_REJECTIONS)
+			{
+				final int size = in.readUnsignedByte();
+				if (size < 1 || size > MAXIMUM_ACTIVITY_REPLACEMENTS) { throw new IllegalArgumentException("Invalid rejected source count."); }
+				for (int i = 0; i < size; i++) { rejected.add(in.readUTF()); }
+			}
+			final var result = new PhantomLogicalParty(group, generation, leader, members, objective, anchor, Phase.values()[phase], cursor, due, reason, expiry, rejected);
 			if (in.available() != 0) { throw new IllegalArgumentException("Trailing logical group payload."); }
 			return result;
 		}

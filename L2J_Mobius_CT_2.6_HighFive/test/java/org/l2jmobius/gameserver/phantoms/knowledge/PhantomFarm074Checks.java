@@ -451,7 +451,7 @@ public final class PhantomFarm074Checks
 	{
 		return planner(linked, false);
 	}
-	private static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative)
+	public static PhantomHistoricalBackgroundPlanner planner(boolean linked, boolean alternative)
 	{
 		return planner(linked, alternative, true);
 	}

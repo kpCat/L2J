@@ -1740,6 +1740,8 @@ final class PhantomCoordination130Native
         boolean groupTravel = false;
         boolean partySeen = false, kill = false, heal = false, healMpDebit = false, healerRequired = false;
         long partyGeneration = -1;
+        long observedGeneration = agreement.generation();
+        var observedSource = agreement.objective();
         TargetSeen earnedTarget = null;
         List<StockDrop> earnedDrops = null;
         boolean loot = false;
@@ -1752,6 +1754,13 @@ final class PhantomCoordination130Native
             final var group = logicalRow.group();
             healerRequired |= group.members().stream().anyMatch(member -> member.role().equals("support.healer"));
             check(group.groupId().equals(agreement.groupId()) && (!restart || group.generation() == agreement.generation()), "GROUP_ID_PRESERVED");
+            if (observedGeneration != group.generation())
+            {
+                System.out.println("NATIVE130_ACTIVITY_REVISED group=" + group.groupId() + " previousGeneration=" + observedGeneration + " generation=" + group.generation()
+                    + " previousSource=" + observedSource.key() + " source=" + group.objective().key() + " rejectedSources=" + group.rejectedActivitySources() + " roots=" + group.members());
+                observedGeneration = group.generation();
+                observedSource = group.objective();
+            }
             final var logicalObjects = group.members().stream().map(member -> objects.get(member.profileId())).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
             final var actors = ids.stream().map(id -> World.getInstance().getPlayer(objects.get(id))).filter(Objects::nonNull).toList();
             final var party = actors.stream().map(Player::getParty).filter(Objects::nonNull)
@@ -1762,6 +1771,11 @@ final class PhantomCoordination130Native
                     && (!restart || !actor.isAlikeDead())))
             {
                 final var leader = stock.getFirst();
+                if (partyGeneration > 0 && partyGeneration != group.generation())
+                {
+                    System.out.println("NATIVE130_STOCK_PARTY_REASSEMBLED group=" + group.groupId() + " generation=" + group.generation()
+                        + " source=" + group.objective().key() + " leader=" + leader.getObjectId() + " members=" + stock.stream().map(Player::getObjectId).toList());
+                }
                 partyGeneration = group.generation();
                 targets.entrySet().removeIf(entry -> !entry.getKey().equals(entry.getValue().mob().getNativeEvidenceTarget())
                     || entry.getValue().party() != party || !entry.getValue().roster().equals(stock) || entry.getValue().leader() != leader.getObjectId()

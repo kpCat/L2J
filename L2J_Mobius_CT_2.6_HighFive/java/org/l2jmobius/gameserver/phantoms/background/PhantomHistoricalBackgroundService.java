@@ -168,7 +168,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				.filter(row -> new PhantomBackgroundStateCodec().decode(row.payload()).equals(state)).orElse(null);
 			if (background == null) { return activityWait("REPLAN_WAIT_STORE_" + id, 5000); }
 			backgroundVersions.put(id, background.rowVersion());
-			if (goal == null || history == null || !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
+			if (goal == null || history == null || goal.goal().goalId() != member.goalId() || goal.goal().revision() < member.goalRevision()
+				|| !org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.ordinaryIntent(id, goal.goal()))
 			{ return activityWait("REPLAN_WAIT_GOAL_" + id, 5000); }
 			final var role = potentialPartyRole(id, state);
 			if ("pending.native_role".equals(role)) { return activityWait("REPLAN_WAIT_ROLE_EVIDENCE_" + id, 5000); }
@@ -185,7 +186,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final long leader = group.leaderProfileId();
 		final var leaderRole = group.members().stream().filter(member -> member.profileId() == leader).findFirst().orElseThrow().role();
 		final var noFunds = new java.util.concurrent.atomic.AtomicLong();
-		final var common = _planner.rendezvousSourcesForRole(leader, states.get(leader), goals.get(leader).goal(), Set.of(group.objective().key()), Set.of(), leaderRole, source ->
+		final java.util.function.Predicate<PhantomDomainRef> commonRoute = source ->
 		{
 			long lacking = 0;
 			for (var entry : states.entrySet())
@@ -197,14 +198,22 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 			if (lacking != 0) { noFunds.compareAndSet(0, lacking); return false; }
 			return true;
-		}, Long.MAX_VALUE);
+		};
+		final var excluded = group.activitySourceExclusions();
+		final var common = new java.util.ArrayList<>(_planner.rendezvousSourcesForRole(leader, states.get(leader), goals.get(leader).goal(), excluded, Set.of(), leaderRole, commonRoute, Long.MAX_VALUE));
+		if ("utility.spoiler".equals(leaderRole) && common.stream().anyMatch(_planner::partySpoilSource))
+		{
+			final var ordinaryExclusions = new java.util.HashSet<>(excluded);
+			common.forEach(source -> ordinaryExclusions.add(source.key()));
+			common.addAll(_planner.practicalPartySources(leader, states.get(leader), goals.get(leader).goal(), ordinaryExclusions, Set.of(), commonRoute, Long.MAX_VALUE));
+		}
 		if (common.isEmpty())
 		{
 			return noFunds.get() == 0 ? activityWait("REPLAN_NO_COMMON_ROUTE", 60_000) : activityWait("REPLAN_WAIT_FUNDS_" + noFunds.get(), 30_000);
 		}
 		final String scanPrefix = "REPLAN_WAIT_SAFE_TARGET_";
 		final var wait = group.waitReason();
-		final int start = wait.startsWith(scanPrefix) && wait.substring(scanPrefix.length()).matches("[0-9]{1,2}")
+		final int start = wait.startsWith(scanPrefix) && wait.substring(scanPrefix.length()).matches("[0-9]{1,3}")
 			? Integer.parseInt(wait.substring(scanPrefix.length())) % common.size() : 0;
 		final int window = Math.min(8, common.size());
 		boolean unsafe = false;
@@ -219,7 +228,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				final var planned = _planner.proposeLogicalActivity(id, states.get(id), goals.get(id).goal(), before.state().deterministicSeed(), Math.addExact(before.state().planOrdinal(), 1), source, wallets.get(id));
 				if (!planned.ready()) { break; }
 				final var history = before.state().withPlan(planned.goal().goalId(), planned.goal().revision(), Math.addExact(before.state().planOrdinal(), 1), planned.planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
-				proposals.add(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot(group.groupId(), group.generation(), id, goals.get(id).rowVersion(), now + 60_000, planned.goal(),
+				proposals.add(new org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.ActivityRoot(group.groupId(), group.generation(), id, goals.get(id).rowVersion(), Math.min(group.expiresAtMillis(), now + 60_000), planned.goal(),
 					new PhantomProfileRepository.ComponentMutation(PhantomBackgroundCatchupState.COMPONENT_TYPE, before.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, new PhantomBackgroundCatchupStateCodec().encode(history))));
 			}
 			if (!_planner.generation().equals(generation)) { return activityWait("REPLAN_WAIT_AUTHORITY", 5000); }
