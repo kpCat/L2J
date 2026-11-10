@@ -1211,6 +1211,7 @@ final class PhantomCoordination130Native
         void complete(PhantomProfileRepository profiles, List<Long> ids) throws Exception
         {
             check(_background.start() && _materialization.start(), "FIRST_PARTY_HISTORY_OWNERS");
+            boolean historyReady = false;
             try
             {
                 for (long id : ids)
@@ -1239,8 +1240,8 @@ final class PhantomCoordination130Native
                         && background.state() == PhantomBackgroundState.State.READY && _history.permitsNormalOperation(id), "FIRST_PARTY_HISTORY_" + id + "_" + due.reason());
                     check(id == ids.getFirst() ? role.startsWith("damage.") : id == ids.getLast() ? role.equals("support.healer")
                         : role.equals("frontline.guardian"), "FIRST_PARTY_LEARNED_ROLE_" + id);
-                    check(_sharedStart == null || _sharedStart.equals(background.position()), "GUARDIAN_FIXTURE_LOST_SHARED_START_" + id);
                 }
+                historyReady = true;
             }
             finally
             {
@@ -1248,8 +1249,51 @@ final class PhantomCoordination130Native
                 final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
                 while (!_ecology.finishStop() && System.nanoTime() < deadline) { Thread.sleep(25); }
                 check(_ecology.finishStop(), "FIRST_PARTY_ECOLOGY_DRAIN");
-                stopOwners(deadline);
+                try
+                {
+                    if (historyReady && _sharedStart != null)
+                    {
+                        for (long id : ids) { placeAtSharedStart(id); }
+                    }
+                }
+                finally { stopOwners(System.nanoTime() + TimeUnit.SECONDS.toNanos(15)); }
             }
+        }
+
+        /** Declared fixture position only. Ecology is stopped and the ordinary STORE proves conservation. */
+        private void placeAtSharedStart(long id)
+        {
+            final var before = _background.acquisitionSnapshot(id).orElseThrow();
+            final var history = _history.status(id).orElseThrow();
+            if (atSharedStart(before.position())) { return; }
+            check(_materialization.materialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "GUARDIAN_FIXTURE_START_MATERIALIZE_" + id);
+            try
+            {
+                try (var lease = _materialization.tryAcquireAction(id).orElseThrow())
+                {
+                    final var actor = lease.player();
+                    check(!actor.isAlikeDead() && !actor.isInCombat() && actor.getParty() == null, "GUARDIAN_FIXTURE_SAFE_PLACEMENT_" + id);
+                    actor.teleToLocation(_sharedStart.x(), _sharedStart.y(), _sharedStart.z(), _sharedStart.heading(), _sharedStart.instanceId(), false);
+                    if (actor.isTeleporting()) { actor.onTeleported(); }
+                    check(actor.getX() == _sharedStart.x() && actor.getY() == _sharedStart.y()
+                        && actor.getInstanceId() == _sharedStart.instanceId(), "GUARDIAN_FIXTURE_STOCK_LANDING_" + id);
+                }
+            }
+            finally
+            {
+                check(_materialization.dematerialize(id).status() == PhantomMaterializationService.ResultStatus.SUCCESS, "GUARDIAN_FIXTURE_START_STORE_" + id);
+            }
+            final var after = _background.acquisitionSnapshot(id).orElseThrow();
+            check(atSharedStart(after.position()) && before.progress().equals(after.progress()) && before.inventory().equals(after.inventory())
+                && history.equals(_history.status(id).orElseThrow()), "GUARDIAN_FIXTURE_START_CONSERVATION_" + id);
+            System.out.println("TEST_FIXTURE_SHARED_START_PLACEMENT profile=" + id + " from=" + before.position() + " to=" + after.position()
+                + " conservation=true beforeCUT=true gameplayEvidence=false");
+        }
+
+        private boolean atSharedStart(PhantomBackgroundState.Position position)
+        {
+            return position.instanceId() == _sharedStart.instanceId() && position.x() == _sharedStart.x() && position.y() == _sharedStart.y()
+                && Math.abs((long) position.z() - _sharedStart.z()) <= 32;
         }
 
         void reconcileAuthority(PhantomProfileRepository profiles, List<Long> ids) throws Exception
