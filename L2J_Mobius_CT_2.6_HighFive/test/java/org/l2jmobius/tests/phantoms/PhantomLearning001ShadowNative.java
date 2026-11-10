@@ -38,6 +38,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy;
@@ -203,7 +204,7 @@ public final class PhantomLearning001ShadowNative
 				if (samples.count() > highWater) { highWater = samples.count(); progressed = System.nanoTime(); }
 				check(System.nanoTime() - progressed < Duration.ofMinutes(3).toNanos(), "SOLO_SQL_STALLED_" + row[0] + " " + samples + " " + policy.counters());
 				check(System.nanoTime() < deadline && !player.isAlikeDead(), "SOLO_SAMPLE_DEADLINE_" + row[0] + " " + policy.counters());
-				if (combat.find(profile).filter(snapshot -> snapshot.result() == null).isEmpty())
+				if (readyForSoloSession(combat, profile))
 				{
 					final var geo = GeoEngine.getInstance();
 					final var target = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 800).stream()
@@ -218,7 +219,7 @@ public final class PhantomLearning001ShadowNative
 						final var request = new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.RANGED_MAGIC, true, false, 45000,
 							() -> false, LearningScope.SOLO, null, () -> false);
 						final var result = combat.startSession(request);
-						if (result.accepted() && result.session() != null)
+						if (result.status() == StartStatus.ACCEPTED && result.session() != null)
 						{
 							System.out.println("LEARNING001_SOLO_SESSION profile=" + profile + " actor=" + player.getObjectId() + " epoch="
 								+ player.getNativeWorkOwner().epoch() + " generation=" + result.session().generation() + " target=" + target.getNativeEvidenceTarget());
@@ -228,6 +229,7 @@ public final class PhantomLearning001ShadowNative
 				Thread.sleep(1200);
 			}
 			combat.cancel(profile);
+			await(() -> readyForSoloSession(combat, profile), Duration.ofSeconds(30), "SOLO_RELEASE_" + profile);
 			store(profile);
 			System.out.println("LEARNING001_SOLO_SQL_MINIMUM split=" + row[0] + " profile=" + profile + " countAtLeast=" + minimum + " bothSkills=true");
 		}
@@ -327,6 +329,13 @@ public final class PhantomLearning001ShadowNative
 		final var digest = MessageDigest.getInstance("SHA-256");
 		try (var in = new DigestInputStream(Files.newInputStream(path), digest)) { in.transferTo(java.io.OutputStream.nullOutputStream()); }
 		return HexFormat.of().formatHex(digest.digest());
+	}
+
+	static boolean readyForSoloSession(PhantomCombatService combat, long profile)
+	{
+		combat.consumeTerminal(profile).ifPresent(snapshot -> System.out.println("LEARNING001_SOLO_TERMINAL profile=" + profile
+			+ " generation=" + snapshot.generation() + " target=" + snapshot.targetObjectId() + " result=" + snapshot.result()));
+		return !combat.hasClaim(profile);
 	}
 
 	private static void await(BooleanSupplier finished, Duration duration, String label) throws InterruptedException

@@ -815,12 +815,23 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 	private static void testTerminalConsume()
 	{
 		final Fixture fixture = fixture(1);
-		fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL);
-		fixture.lease.target = target(true, true);
-		fixture.dispatcher.runNext();
-		PhantomAssertions.assertEquals(1, fixture.service.snapshot().terminalSessions(), "Terminal result was not retained.");
-		PhantomAssertions.assertTrue(fixture.service.consumeTerminal(1).isPresent(), "Terminal result was not consumable.");
-		PhantomAssertions.assertTrue(fixture.service.find(1).isEmpty(), "Consumed terminal slot remained.");
+		try
+		{
+			final var first = fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL);
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, first.status(), "Initial session did not start.");
+			fixture.lease.target = target(true, true);
+			fixture.dispatcher.runNext();
+			PhantomAssertions.assertEquals(1, fixture.service.snapshot().terminalSessions(), "Terminal result was not retained.");
+			PhantomAssertions.assertEquals(StartStatus.REJECTED_EXISTING, fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL).status(), "New session bypassed terminal consumption.");
+			PhantomAssertions.assertTrue(PhantomLearning001ShadowNative.readyForSoloSession(fixture.service, 1), "SHADOW runner could not release a completed terminal slot.");
+			PhantomAssertions.assertTrue(fixture.service.find(1).isEmpty(), "Consumed terminal slot remained.");
+			fixture.lease.target = target(false, true);
+			final var second = fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL);
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, second.status(), "Next session did not start after terminal consumption.");
+			PhantomAssertions.assertTrue(second.session().generation() > first.session().generation(), "Next encounter reused the previous generation.");
+			PhantomAssertions.assertFalse(PhantomLearning001ShadowNative.readyForSoloSession(fixture.service, 1), "SHADOW runner tried to replace an active session.");
+		}
+		finally { fixture.stop(); }
 	}
 
 	private static void testRespawn()
