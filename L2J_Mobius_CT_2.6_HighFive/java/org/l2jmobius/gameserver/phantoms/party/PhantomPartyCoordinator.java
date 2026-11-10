@@ -471,6 +471,29 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			&& claim.operationKey().startsWith(tacticalScope(row.state()))
 			&& combat.matchesOwnedSession(profileId, claim.generation(), claim.targetObjectId(), claim.token());
 	}
+
+	long lastFarmCombatAdmission(long leaderProfileId)
+	{
+		final var claim = _claims.get(leaderProfileId);
+		final var runtime = claim == null ? null : _groups.get(claim.state().groupId());
+		return runtime == null ? 0 : runtime.farmCombatAdmission.get();
+	}
+
+	/** A completed stock rendezvous identifies the native epoch that still owes STORE. */
+	public boolean awaitsFarmStore(long profileId, PhantomLogicalParty group, PhantomGoal root, long now)
+	{
+		if (group == null || group.phase() != PhantomLogicalParty.Phase.DRAINING || now >= group.expiresAtMillis()
+			|| !PhantomAutonomousFarmParty.ordinaryIntent(profileId, root) || humanExecution(profileId)) { return false; }
+		final var receipt = _rendezvousClaims.get(profileId);
+		if (receipt == null || receipt.phase() != PhantomPartyRendezvousState.Phase.COMPLETE || now >= receipt.expiresMillis()
+			|| !receipt.source().equals(group.objective()) || receipt.adoptedRevision() != root.revision()
+			|| receipt.roster().stream().anyMatch(member -> !group.contains(member.actor().profileId()))) { return false; }
+		final var member = receipt.participant();
+		if (member.goalId() != root.goalId() || group.members().stream().noneMatch(bound -> bound.profileId() == profileId
+			&& bound.goalId() == member.goalId() && bound.goalRevision() <= member.goalRevision())) { return false; }
+		final long epoch = _backend.materializationEpoch(member.actor());
+		return epoch == 0 || epoch == member.epoch();
+	}
 	public boolean humanExecution(long profileId)
 	{
 		final var row = _claims.get(profileId);
@@ -3372,25 +3395,46 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				|| observed == null || !observed.leader().equals(authority.leader()) || !observed.members().contains(directive.actor());
 		};
 		final var runtime = farm ? _groups.get(authority.groupId()) : null;
-		final boolean loot = farm && runtime != null && directive.actor().equals(runtime.farmPuller);
-		final var started = combat.startContentSession(new PhantomCombatRequest(profileId, directive.targetObjectId(), mode.orElseThrow(), true, loot, 60000, token), key);
-		if (started.accepted() && (started.session() != null))
+		final int targetId = directive.targetObjectId();
+		// A defensive assist can be admitted before the intended puller is free.
+		// Keep one native loot owner for this target among the accepted sessions.
+		final boolean loot = runtime != null && runtime.farmLootOwners.putIfAbsent(targetId, profileId) == null;
+		boolean retained = false;
+		try
 		{
-			final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), directive.targetObjectId(), key, token);
-			if (_tacticalCombat.putIfAbsent(profileId, next) != null)
+			final var started = combat.startContentSession(new PhantomCombatRequest(profileId, targetId, mode.orElseThrow(), true, loot, 60000, token), key);
+			if (started.accepted() && (started.session() != null))
 			{
-				cancelTacticalCombat(next);
+				final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), targetId, key, token, loot ? runtime : null);
+				if (_tacticalCombat.putIfAbsent(profileId, next) != null)
+				{
+					cancelTacticalCombat(next);
+				}
+				else
+				{
+					retained = true;
+					if (runtime != null) { runtime.farmCombatAdmission.accumulateAndGet(_clock.getAsLong(), Math::max); }
+					_tacticalReleases.offer(profileId);
+				}
 			}
-			_tacticalReleases.offer(profileId);
 		}
+		finally { if (loot && !retained) { runtime.farmLootOwners.remove(targetId, profileId); } }
 	}
 
 	private boolean releaseTacticalCombat(TacticalCombatClaim claim)
 	{
 		final PhantomCombatService combat = _tactics.combatOwner();
-		if ((combat == null) || !combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()) || combat.consumeTerminal(claim.profileId()).isPresent())
+		final boolean current = combat != null && combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token());
+		final var terminal = current ? combat.consumeTerminal(claim.profileId()).orElse(null) : null;
+		if (!current || terminal != null)
 		{
-			_tacticalCombat.remove(claim.profileId(), claim);
+			if (_tacticalCombat.remove(claim.profileId(), claim) && claim.lootRuntime() != null)
+			{
+				claim.lootRuntime().farmLootOwners.remove(claim.targetObjectId(), claim.profileId());
+				System.getLogger(PhantomPartyCoordinator.class.getName()).log(System.Logger.Level.INFO,
+					"PARTY_FARM_LOOT_END groupId=" + claim.lootRuntime().groupId() + " profileId=" + claim.profileId()
+						+ " targetObjectId=" + claim.targetObjectId() + " result=" + (terminal == null ? "owner_ended" : terminal));
+			}
 			return true;
 		}
 		return false;
@@ -4361,7 +4405,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		return (claim != null) && Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(claim.state().status());
 	}
 
-	private record TacticalCombatClaim(long profileId, long generation, int targetObjectId, String operationKey, PhantomCancellationToken token)
+	private record TacticalCombatClaim(long profileId, long generation, int targetObjectId, String operationKey, PhantomCancellationToken token, GroupRuntime lootRuntime)
 	{
 	}
 
@@ -4444,6 +4488,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		private volatile FarmSourceView farmSource;
 		private volatile NativePartyView nativeLifetime;
 		private volatile MemberRef farmPuller;
+		private final AtomicLong farmCombatAdmission = new AtomicLong();
+		private final ConcurrentHashMap<Integer, Long> farmLootOwners = new ConcurrentHashMap<>();
 		private volatile FarmJourney farmJourney;
 		private volatile long farmTravelDeadline;
 		private volatile String farmTravelReason = "";

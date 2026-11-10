@@ -194,7 +194,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		if (known.stream().filter(actor -> !_executionOwnership.test(actor.profileId(), group)).map(_backend::observe).flatMap(java.util.Optional::stream)
 			.anyMatch(party -> party.members().size() >= 2 && party.members().stream().allMatch(member -> member.kind() == MemberKind.PHANTOM && group.contains(member.profileId()))))
 		{ _logical.transition(row, group.phase(), group.backgroundCursor(), now + 5000, "WAIT_NATIVE_OWNER"); return; }
-		final var identities = known.stream().filter(actor -> _executionOwnership.test(actor.profileId(), group)).toList();
+		final var identities = known.stream().filter(actor -> _executionOwnership.test(actor.profileId(), group)
+			|| group.phase() == PhantomLogicalParty.Phase.DRAINING && _coordinator.awaitsFarmStore(actor.profileId(), group,
+				_goals.load(actor.profileId()).map(PhantomGoalStore.StoredGoal::goal).orElse(null), now)).toList();
 		final var materialized = identities.stream().filter(actor -> _backend.materializationEpoch(actor) > 0).toList();
 		if (materialized.isEmpty())
 		{
@@ -241,9 +243,10 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			{
 				if (!_logicalRetain.test(group))
 				{
-					final var wait = _farmWaits.remove(nativeParty.leader().profileId());
+					final long leader = nativeParty.leader().profileId();
+					final var wait = _farmWaits.remove(leader);
 					_logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), now,
-						wait != null && wait.matches(group) ? wait.replanReason() : "WAIT_NATIVE_RETENTION_ENDED");
+						wait != null && wait.matches(group) && !fightSupersedesWait(leader, wait) ? wait.replanReason() : "WAIT_NATIVE_RETENTION_ENDED");
 				}
 			}
 			else if (group.phase() == PhantomLogicalParty.Phase.ASSEMBLING)
@@ -516,7 +519,9 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 		final var group = row == null ? null : row.group();
 		final var before = _farmWaits.get(id);
 		if (before == null && _farmWaits.size() >= 1024) { _farmWaits.remove(_farmWaits.keySet().iterator().next()); }
-		final boolean sameGroup = before != null && before.matches(group);
+		if (group != null && group.members().stream().anyMatch(member -> _coordinator.hasOwnedFarmEncounter(member.profileId())))
+		{ _farmWaits.remove(id); return; }
+		final boolean sameGroup = before != null && before.matches(group) && !fightSupersedesWait(id, before);
 		final var wait = new FarmWait(sameGroup ? before.sinceNanos() : nowNanos, code, group == null ? "" : group.groupId(), group == null ? 0 : group.generation());
 		_farmWaits.put(id, wait);
 		if (before == null || !before.reason().equals(code))
@@ -527,6 +532,12 @@ public final class PhantomAutonomousFarmParty implements PhantomSchedulerControl
 			{ _logical.transition(row, PhantomLogicalParty.Phase.DRAINING, group.backgroundCursor(), _epochMillis.getAsLong(), wait.replanReason()); }
 			_farmWaits.remove(id);
 		}
+	}
+
+	private boolean fightSupersedesWait(long leader, FarmWait wait)
+	{
+		final long admitted = _coordinator.lastFarmCombatAdmission(leader);
+		return admitted != 0 && admitted >= wait.sinceNanos();
 	}
 
 	private boolean advanceNativePartyRoute(long leaderId, PhantomGoal root, List<MemberSnapshot> roster)

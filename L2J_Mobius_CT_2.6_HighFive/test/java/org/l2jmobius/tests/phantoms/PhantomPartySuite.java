@@ -56,6 +56,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingRequest;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ContentBindingResult;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRendezvousState;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend;
@@ -240,17 +241,45 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.ASSEMBLING, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE,
 				org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING))
 			{ row = logical.transition(row, phase, 0, 1000, ""); }
-			final var clock = new AtomicLong(1_000_000_000L); final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
+			final var clock = new AtomicLong(1_000_000_000L); final var millis = new AtomicLong(1000);
+			final var coordinator = coordinator(context, states, goals, backend, 64, clock::get); backend.connect(coordinator); coordinator.start();
 			try
 			{
 				final var adapter = new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get, (_, _) -> true, null,
-					org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), (_, _, _, _, _) -> false, () -> 1000);
+					org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.PartySeekingSettings.defaults(), (_, _, _, _, _) -> false, millis::get);
 				adapter.installLogicalParty(logical, (_, _) -> new PhantomAutonomousFarmParty.LogicalPage(List.of(), 0), (_, _) -> { }, _ -> true);
 				adapter.installExecutionOwnership((_, _) -> false);
 				adapter.onPulse();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND, logical.groupFor(1).orElseThrow().group().phase(), "A released Source actor permanently blocked old group draining.");
 				PhantomAssertions.assertTrue(backend.materializationEpoch(actor) > 0, "Releasing group custody retired the Source actor.");
 				PhantomAssertions.assertEquals(0, backend.invitationCount(), "Old group borrowed Source execution after release.");
+
+				final var peer = backend.add(2, 102);
+				final var root = goal(1001, "farm.background", null, 0);
+				goals.put(1, root);
+				row = logical.groupFor(1).orElseThrow();
+				final var offer = new PhantomPartyRendezvousState(1, "B".repeat(64), 1, List.of(
+					new PhantomPartyRendezvousState.Participant(actor, backend.materializationEpoch(actor), root.goalId(), 0),
+					new PhantomPartyRendezvousState.Participant(peer, backend.materializationEpoch(peer), 1002, 0)), row.group().objective(),
+					1000, 601000, PhantomPartyRendezvousState.Phase.COMPLETE, 0);
+				coordinator.saveRendezvous(-1, offer).orElseThrow();
+				for (var phase : List.of(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.WAKE_REQUESTED,
+					org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.ASSEMBLING, org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.NATIVE_ACTIVE,
+					org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING))
+				{ row = logical.transition(row, phase, 0, 2000, ""); }
+				clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
+				adapter.onPulse();
+				clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
+				adapter.onPulse();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING,
+					logical.groupFor(1).orElseThrow().group().phase(), "An execution transfer counted a former native party member as already stored.");
+				backend._restartAbsent.add(1L);
+				clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
+				adapter.onPulse();
+				clock.addAndGet(6_000_000_000L); millis.addAndGet(6000);
+				adapter.onPulse();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.BACKGROUND,
+					logical.groupFor(1).orElseThrow().group().phase(), "Confirmed native absence did not finish the same durable Party drain.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Released custody fixture did not stop."); }
 		});
@@ -1746,6 +1775,53 @@ public final class PhantomPartySuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(combat.hasClaim(1) && combat.find(1).orElseThrow().generation() == generation && lease.casts == 0, "Maintenance interrupted an existing native combat episode.");
 			}
 			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Owned combat fixture did not drain."); combat.beginStop(); PhantomAssertions.assertTrue(combat.finishStop(), "Owned combat worker did not drain."); }
+		});
+		registry.add("130-defender-owns-native-loot-when-planned-puller-is-busy", context ->
+		{
+			final var states = new MemoryPartyStore(); final var goals = new MemoryGoalStore(); final var backend = new MemoryPartyBackend();
+			backend._farmEnabled = true;
+			final var clock = new AtomicLong(1_000_000_000L);
+			final var lease = new PartyActionLease(); lease.objectId = 102;
+			lease.target = new TargetSnapshot(900, 20001, 0, 1000, 1000, false, false, true, true, false, true, true, 50, false, true);
+			final var workers = new java.util.ArrayDeque<Runnable>();
+			final var combat = new PhantomCombatService(id -> id == 2 ? lease : null, new PhantomCombatCapabilityResolver(_ -> List.of()),
+				PhantomCombatPolicy.productionDefaults(4), new PhantomCombatMetrics(), clock::get, (worker, _) ->
+				{
+					workers.addLast(worker);
+					return PhantomCombatService.DispatchResult.accepted(new PhantomCombatService.DispatchHandle()
+					{
+						@Override public boolean cancelIfNotStarted() { return workers.remove(worker); }
+						@Override public PhantomCombatService.DispatchState state() { return workers.contains(worker) ? PhantomCombatService.DispatchState.SCHEDULED : PhantomCombatService.DispatchState.FINISHED; }
+					});
+				});
+			combat.start();
+			final var guardian = backend.add(1, 101);
+			final var defender = backend.add(2, 102);
+			final var damage = List.of(cap("combat.melee_damage", "weapon", 100, 0));
+			final var tank = List.of(cap("combat.melee_damage", "weapon", 100, 0), cap("combat.tank", "aggro", 100, 28));
+			goals.put(1, supportTravelRoot(1, 0, "farm.fixture")); goals.put(2, supportTravelRoot(2, 0, "farm.fixture"));
+			backend.snapshot(guardian, member(1, 101, 100, 100, false, 0, tank));
+			backend.snapshot(defender, member(2, 102, 100, 100, false, 0, damage));
+			backend._capabilities.put(guardian, tank); backend._capabilities.put(defender, damage);
+			final var coordinator = new PhantomPartyCoordinator(states, goals, backend, currentCatalog(context), new PhantomPartyRouteCoordinator(null, combat), new PhantomPartyTactics(combat, backend), () -> ZERO, clock::get, 64);
+			new PhantomAutonomousFarmParty(coordinator, backend, goals, currentCatalog(context), clock::get); backend.connect(coordinator); coordinator.start();
+			try
+			{
+				coordinator.formForGoal(1, 129001, 0, "farm.background", ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("farm.party", "1,2"), List.of());
+				coordinator.invite(1, defender, PartyDistributionType.FINDERS_KEEPERS);
+				for (int pulse = 0; pulse < 16; pulse++) { coordinator.onPulse(); }
+				backend.snapshot(guardian, new MemberSnapshot(guardian, 0, 0, 0, 0, 0, 90, 100, 100, false, true, false, false, 0, List.of(900), tank, ZERO));
+				PhantomAssertions.assertEquals(guardian, PhantomAutonomousFarmParty.farmPuller(List.of(backend.memberSnapshot(guardian).orElseThrow(), backend.memberSnapshot(defender).orElseThrow())).orElseThrow(), "The fixture must nominate the unavailable guardian.");
+				for (int pulse = 0; pulse < 12 && !coordinator.hasOwnedFarmEncounter(2); pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertTrue(coordinator.hasOwnedFarmEncounter(2), "The defending actor never acquired the real Combat owner.");
+				PhantomAssertions.assertFalse(coordinator.hasOwnedFarmEncounter(1), "The planned puller acquired a second native owner.");
+				lease.target = new TargetSnapshot(900, 20001, 0, 0, 1000, true, true, false, true, false, true, true, 50, false, true);
+				PhantomAssertions.assertTrue(!workers.isEmpty(), "The real Combat owner did not dispatch its worker.");
+				workers.removeFirst().run();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPhase.LOOTING,
+					combat.find(2).map(value -> value.phase()).orElse(null), "The accepted defense had no Combat loot owner after victory.");
+			}
+			finally { coordinator.beginStop(); coordinator.finishStop(); combat.beginStop(); combat.finishStop(); }
 		});
 		registry.add("094-idle-maintenance-serves-peers-before-self", _ ->
 		{

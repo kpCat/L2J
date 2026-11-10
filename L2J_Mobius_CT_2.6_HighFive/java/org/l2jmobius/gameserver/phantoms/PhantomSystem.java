@@ -988,7 +988,7 @@ public final class PhantomSystem
 				_decisionEngine.installExecutionHandoff(_executionHandoffs, _executionAdmission, java.util.Map.of("execution.solo", executionOwner(false), "execution.party", executionOwner(true)));
 				_executionControl = new org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionControlPort(_decisionEngine, _executionHandoffs, _executionAdmission, _settings.maxScheduledPhantomProfiles(),
 					this::desiredExecutionOwner, this::executionRecoveryDemand, id -> productionGoals.load(id).map(stored -> stored.goal()).orElse(null),
-					(id, owner) -> (owner.equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)) || !logicalDraining(id)) && _historicalBackgroundService.permitsDecision(id) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(id))
+					(id, owner) -> !awaitingLogicalPartyStore(id) && (owner.equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)) || !logicalDraining(id)) && _historicalBackgroundService.permitsDecision(id) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(id))
 						&& (owner.equals(org.l2jmobius.gameserver.phantoms.decision.PhantomExecutionHandoff.solo(id)) || owner.equals(executionPartyOwner(id))),
 					(id, key) -> soloExecution(id) || PhantomBackgroundGoalSpec.CANDIDATE_KEY.equals(key), System::currentTimeMillis,
 					(id, failure) -> System.getLogger(PhantomSystem.class.getName()).log(System.Logger.Level.WARNING, "execution.handoff profile=" + id + " reason=" + failure.getClass().getSimpleName() + ":" + failure.getMessage()));
@@ -1188,6 +1188,8 @@ public final class PhantomSystem
 				productionWorkSink.install(item ->
 				{
 					_executionControl.watch(item.profileId());
+					// Party-to-Solo execution transfer does not mean the former native member was stored.
+					if (awaitingLogicalPartyStore(item.profileId())) { return; }
 					if (!_historicalBackgroundService.prepareCurrentAuthority(item.profileId()).successful()) { return; }
 					try (var execution = _executionControl.acquire(item.profileId()))
 					{
@@ -3849,6 +3851,16 @@ public final class PhantomSystem
 	private boolean logicalDraining(long profileId)
 	{
 		return _logicalParties != null && _logicalParties.knownGroupFor(profileId).map(row -> row.group().requiresSoloExecution(System.currentTimeMillis())).orElse(false);
+	}
+
+	private boolean awaitingLogicalPartyStore(long id)
+	{
+		final var group = _logicalParties == null ? null : _logicalParties.knownGroupFor(id).map(row -> row.group()).orElse(null);
+		if (group == null || group.phase() != org.l2jmobius.gameserver.phantoms.party.PhantomLogicalParty.Phase.DRAINING
+			|| !_materializationService.find(id).map(entry -> entry.worldPresent()).orElse(false)
+			|| _materializationRetention.recentHumanObservation(id) != PhantomMaterializationRetentionPolicy.HumanObservation.CLEAR) { return false; }
+		final var root = _executionGoals.load(id).map(row -> row.goal()).orElse(null);
+		return _partyCoordinator.awaitsFarmStore(id, group, root, System.currentTimeMillis());
 	}
 	private int physicalTarget() { return Math.min(_settings.populationActiveTarget(), _settings.maxMaterializedPhantoms()); }
 	private org.l2jmobius.gameserver.phantoms.activity.PhantomPhysicalDemand currentPhysicalDemand(long profileId)
