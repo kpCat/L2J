@@ -499,11 +499,17 @@ public class GameServer
 		LOGGER.info(StringUtil.concat(getClass().getSimpleName(), ": Maximum number of connected players is ", ServerConfig.MAXIMUM_ONLINE_USERS, "."));
 		LOGGER.info(StringUtil.concat(getClass().getSimpleName(), ": Server loaded in ", ((System.currentTimeMillis() - START_TIME) / 1000), " seconds."));
 		
-		new ConnectionManager<>(new InetSocketAddress(ServerConfig.PORT_GAME), GameClient::new, new GamePacketHandler());
+		new ConnectionManager<>(gameBindAddress(ServerConfig.GAMESERVER_HOSTNAME, ServerConfig.PORT_GAME), GameClient::new, new GamePacketHandler());
 		
 		LoginServerThread.getInstance().start();
 		
 		Toolkit.getDefaultToolkit().beep();
+	}
+
+	static InetSocketAddress gameBindAddress(String hostname, int port)
+	{
+		// Keep Java's wildcard selection for the default bind address.
+		return "0.0.0.0".equals(hostname) ? new InetSocketAddress(port) : new InetSocketAddress(hostname, port);
 	}
 	
 	private void printSection(String section)

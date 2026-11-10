@@ -391,9 +391,14 @@ public final class LearningStore
 			return NeuralPolicy.sha256((_actorSalt + ":" + profileId).getBytes(StandardCharsets.UTF_8));
 		}
 
-		synchronized void offer(Evidence evidence)
+		synchronized boolean offer(Evidence evidence)
 		{
-			if (!_accepting || !_queue.offer(evidence)) { _dropped.increment(); }
+			if (!_accepting || !_queue.offer(evidence))
+			{
+				_dropped.increment();
+				return false;
+			}
+			return true;
 		}
 
 		synchronized boolean stop()

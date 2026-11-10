@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -241,12 +242,31 @@ public final class LearningCastEvidence
 			final String actorKey = _attempt.policy().actorKey(_attempt.request().profileId());
 			final String eventKey = hash(RunIdentity.SALT + ":" + actorKey + ":" + _actor.getObjectId() + ":" + _epoch + ":" + _attempt.generation()
 				+ ":" + _attempt.sequence() + ":" + _attempt.request().learningScope() + ":" + _spawn);
-			_attempt.policy().record(new LearningStore.Evidence(eventKey, actorKey, _attempt.request().learningScope().name(),
+			final boolean enqueued = _attempt.policy().record(new LearningStore.Evidence(eventKey, actorKey, _attempt.request().learningScope().name(),
 				_attempt.policy().version(), _skill.getId(), _skill.getLevel(), _damage, reward, action.features()));
+			if (enqueued && _attempt.policy().witnessing())
+			{
+				logExactReorder(eventKey);
+			}
 		}
 		catch (RuntimeException rejectedObservation)
 		{
 			_attempt.policy().observationRejected();
+		}
+	}
+
+	private void logExactReorder(String eventKey)
+	{
+		final var baseline = _attempt.baseline();
+		final var scope = _attempt.request().learningScope();
+		if ((baseline.skillId() != _skill.getId() || baseline.skillLevel() != _skill.getLevel()) && _attempt.policy().recordExactReorder(scope))
+		{
+			final String targetKey = hash(RunIdentity.SALT + ":target:" + _spawn);
+			Logger.getLogger(LearningCastEvidence.class.getName()).info("LEARNING_EXACT_REORDER scope=" + scope + " version=" + _attempt.policy().version()
+				+ " baseline=" + baseline.skillId() + ":" + baseline.skillLevel() + " actual=" + _skill.getId() + ":" + _skill.getLevel()
+				+ " epoch=" + _epoch + " generation=" + _attempt.generation() + " sequence=" + _attempt.sequence()
+				+ " targetSpawn=" + _spawn.spawnGeneration() + " targetKey=" + targetKey + " eventKey=" + eventKey + " hp=" + _damage
+				+ " decisionNanos=" + _attempt.decisionNanos());
 		}
 	}
 

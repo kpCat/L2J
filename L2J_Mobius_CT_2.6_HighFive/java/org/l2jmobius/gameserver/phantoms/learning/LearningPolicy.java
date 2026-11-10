@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.LongSummaryStatistics;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BooleanSupplier;
 import java.util.logging.Logger;
@@ -32,9 +34,11 @@ public final class LearningPolicy
 		}
 	}
 	public record Decision(SelectedSkill selected, Candidate observed) { }
-	public record Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence) { }
+	public record Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos) { }
 	public record Counters(long evaluated, long preferredDifferent, long applied, long overBudget, long unknown) { }
 
+	private static final boolean WITNESS = Boolean.getBoolean("phantom.learning.witness");
+	private static final int WITNESS_LOG_LIMIT = 8;
 	public static final LearningPolicy OFF = new LearningPolicy(Mode.OFF, 0, null, 4, 0, null);
 	private final Mode _mode;
 	private final long _version;
@@ -48,6 +52,8 @@ public final class LearningPolicy
 	private final LongAdder _applied = new LongAdder();
 	private final LongAdder _overBudget = new LongAdder();
 	private final LongAdder _unknown = new LongAdder();
+	private final Witness _soloWitness;
+	private final Witness _partyWitness;
 
 	public LearningPolicy(Mode mode, long version, NeuralPolicy model, int maxCandidates)
 	{
@@ -72,6 +78,8 @@ public final class LearningPolicy
 		_seed = seed;
 		_writer = writer;
 		_catalogCurrent = catalogCurrent;
+		_soloWitness = WITNESS && mode != Mode.OFF ? new Witness() : null;
+		_partyWitness = WITNESS && mode != Mode.OFF ? new Witness() : null;
 	}
 
 	public static LearningPolicy configured(Path gameRoot)
@@ -190,9 +198,9 @@ public final class LearningPolicy
 		return _version;
 	}
 
-	void record(LearningStore.Evidence evidence)
+	boolean record(LearningStore.Evidence evidence)
 	{
-		_writer.offer(evidence);
+		return _writer.offer(evidence);
 	}
 
 	public void observationRejected()
@@ -210,8 +218,75 @@ public final class LearningPolicy
 		return new Counters(_evaluated.sum(), _preferredDifferent.sum(), _applied.sum(), _overBudget.sum(), _unknown.sum());
 	}
 
+	public boolean witnessing()
+	{
+		return _soloWitness != null;
+	}
+
+	public void decisionTiming(LearningScope scope, long nanos)
+	{
+		final Witness witness = witness(scope);
+		if (witness != null)
+		{
+			witness.timed(nanos);
+		}
+	}
+
+	boolean recordExactReorder(LearningScope scope)
+	{
+		final Witness witness = witness(scope);
+		return witness != null && witness._exactReordered.incrementAndGet() <= WITNESS_LOG_LIMIT;
+	}
+
+	public long exactReordered(LearningScope scope)
+	{
+		final Witness witness = witness(scope);
+		return witness == null ? 0 : witness._exactReordered.get();
+	}
+
+	private Witness witness(LearningScope scope)
+	{
+		return switch (scope)
+		{
+			case SOLO -> _soloWitness;
+			case PARTY -> _partyWitness;
+			case NONE -> null;
+		};
+	}
+
 	public boolean stop()
 	{
-		return _writer == null || _writer.stop();
+		if (_writer != null && !_writer.stop())
+		{
+			return false;
+		}
+		if (witnessing())
+		{
+			_soloWitness.report(LearningScope.SOLO, _mode, _version);
+			_partyWitness.report(LearningScope.PARTY, _mode, _version);
+		}
+		return true;
+	}
+
+	private static final class Witness
+	{
+		private final AtomicLong _exactReordered = new AtomicLong();
+		private final LongSummaryStatistics _timings = new LongSummaryStatistics();
+		private boolean _reported;
+
+		synchronized void timed(long nanos)
+		{
+			_timings.accept(nanos);
+		}
+
+		synchronized void report(LearningScope scope, Mode mode, long version)
+		{
+			if (!_reported && _timings.getCount() > 0)
+			{
+				_reported = true;
+				Logger.getLogger(LearningPolicy.class.getName()).info("LEARNING_DECISION_TIMING scope=" + scope + " mode=" + mode + " version=" + version
+					+ " samples=" + _timings.getCount() + " totalNanos=" + _timings.getSum() + " maxNanos=" + _timings.getMax());
+			}
+		}
 	}
 }
