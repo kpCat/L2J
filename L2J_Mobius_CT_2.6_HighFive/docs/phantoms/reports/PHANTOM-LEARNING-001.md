@@ -53,6 +53,11 @@ MariaDB 11.4.13, loopback `33306`, отдельная схема `phantom_learni
 - Mojibake-маркеры в изменённых файлах проверены полным списком, совпадений нет.
 - Escaped Cyrillic в изменённых файлах проверен по Unicode и XML шаблонам, совпадений нет.
 
+Дополнительные защитные проверки выполнены из `dist/game` штатными Java entrypoints на скомпилированных классах. Обе завершились с exit 0, без SQL и GameServer.
+
+- **F7.** `org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks` выдал `TASK130_STRICT_RECEIPT_HASH_PASS`. Несовпадающий хеш отклонён у квитанций с тегом и без тега. Контроли точного хеша и пустого legacy-хеша прошли. End-to-end SQL replay остаётся открытым.
+- **F8.** `org.l2jmobius.tests.phantoms.PhantomNativeEvidenceContinuation022Suite` прошёл **14/14**, seed `22002203`. Проверены штатный HP writer `Heal.java`, привязка квитанции к владельцу и положительному эффекту, изоляция отказа наблюдателя. Живой каст обычного игрока с измерением HP и MP остаётся открытым.
+
 ## Native SHADOW в отдельном контуре
 
 В независимом клоне создан disposable runtime под `.phantom-local/learning001/native`. MariaDB 11.4.13 слушала только `127.0.0.1:33317`, использовала собственный datadir и схему `phantom_learning001_native`. G0 подтвердил PID, FILETIME, SID, executable, параметры запуска и слушатель. Штатный installer применил 124 SQL-скрипта, aggregate SHA-256 `c998483e60252f6ac3d8cafbb2ef6acc528569b024bd3eff0e9505a7bbb0dac5`. Из доверенного локального источника физически скопированы и сверены 203 GeoData-файла, 1 063 452 308 байт. До и после запуска сверены SHA-256 всех 207 защищённых файлов.
