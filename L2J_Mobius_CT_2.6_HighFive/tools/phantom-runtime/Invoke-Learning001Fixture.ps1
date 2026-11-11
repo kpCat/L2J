@@ -300,6 +300,8 @@ try {
         $gameProcess=Start-Process -FilePath $javaExe -ArgumentList $argsList -WorkingDirectory $runtime -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $run 'game.out') -RedirectStandardError (Join-Path $run 'game.err')
         Write-Output "LEARNING001_GAME_STARTED pid=$($gameProcess.Id) attempt=$runId directory=$run"
         try {
+            # Windows PowerShell needs the handle while the redirected child still exists to retain its exit code.
+            $null=$gameProcess.Handle
             $ready=Join-Path $run 'game.ready'
             $deadline=[DateTime]::UtcNow.AddMinutes(3)
             while (!$gameProcess.HasExited -and [DateTime]::UtcNow -lt $deadline) {
@@ -315,8 +317,12 @@ try {
             [IO.File]::WriteAllText($socketPending,[string]$gameProcess.Id,$encoding)
             [IO.File]::Move($socketPending,(Join-Path $run 'socket.ok'))
             if (!$gameProcess.WaitForExit(2700000)) { throw 'LEARNING001_GAME_ATTEMPT_TIMEOUT' }
-            if ($gameProcess.ExitCode -ne 0 -or (Test-Path -LiteralPath (Join-Path $run "$Action.failed")) -or
-                !(Test-Path -LiteralPath (Join-Path $run "$Action.complete"))) { throw "LEARNING001_GAME_PHASE_UNPROVEN $Action $run" }
+            $gameExit=$gameProcess.ExitCode
+            $failed=Test-Path -LiteralPath (Join-Path $run "$Action.failed") -PathType Leaf
+            $complete=Test-Path -LiteralPath (Join-Path $run "$Action.complete") -PathType Leaf
+            if ($gameExit -ne 0 -or $failed -or !$complete) {
+                throw "LEARNING001_GAME_PHASE_UNPROVEN $Action exit=<$gameExit> failed=$failed complete=$complete $run"
+            }
             Assert-PortsFree @($gamePort,$loginPort)
             Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
             Write-Output "LEARNING001_GAME_STOP_PASS attempt=$runId"

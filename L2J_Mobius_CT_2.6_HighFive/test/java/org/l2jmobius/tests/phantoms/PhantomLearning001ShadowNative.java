@@ -28,19 +28,28 @@ import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionKind;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.LearningStore;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.RequestState;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService.SubmissionStatus;
 import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
@@ -148,16 +157,15 @@ public final class PhantomLearning001ShadowNative
 				{
 					final String salt = key("learning001/actor/phantom_learning001_native/" + settings.getProperty("Password"));
 					final var splits = on ? List.of("AUDIT") : List.of("TRAIN", "TUNING", "AUDIT");
+					if (on) { runtime.solo(soloActor(actors, "AUDIT"), salt, 4); }
 					for (String split : splits)
 					{
 						final var roster = actors.stream().filter(row -> split.equals(row[0])).toList();
 						runtime.party(roster, helpers, salt, "TRAIN".equals(split) ? 8 : 4);
 					}
-					for (String split : splits)
+					if (!on)
 					{
-						final var roster = actors.stream().filter(row -> split.equals(row[0])).toList();
-						final var solo = roster.stream().filter(row -> "SOLO".equals(row[1])).findFirst().orElseThrow();
-						runtime.solo(solo, salt, "TRAIN".equals(split) ? 8 : 4);
+						for (String split : splits) { runtime.solo(soloActor(actors, split), salt, "TRAIN".equals(split) ? 8 : 4); }
 					}
 				}
 				final String evidence = on ? "modelVersion=" + version + "\nmodelSha=" + args[6] + "\nexactSolo="
@@ -265,9 +273,14 @@ public final class PhantomLearning001ShadowNative
 		void solo(String[] row, String salt, int minimum) throws Exception
 		{
 			final long profile = Long.parseLong(row[2]);
+			final String group = key(salt + ":" + profile);
+			if (!on && samples("SOLO", group, group).enough(minimum, 1))
+			{
+				System.out.println("LEARNING001_SOLO_SQL_RESUME split=" + row[0] + " profile=" + profile);
+				return;
+			}
 			final Player player = materialize(row);
 			final long deadline = System.nanoTime() + Duration.ofMillis(PhantomLearning001ActorFixture.sampleWindow(minimum)).toNanos();
-			final String group = key(salt + ":" + profile);
 			long progressed = System.nanoTime();
 			long highWater = 0;
 			for (Samples samples = samples("SOLO", group, group); !finished(LearningScope.SOLO, samples, minimum, 1); samples = samples("SOLO", group, group))
@@ -307,8 +320,8 @@ public final class PhantomLearning001ShadowNative
 				}
 				Thread.sleep(1200);
 			}
-			combat.cancel(profile);
-			await(() -> readyForSoloSession(combat, profile) && !retreat(profile, player), Duration.ofSeconds(60), "SOLO_RELEASE_" + profile);
+			// No new fight starts after the quota. Let the existing owner finish before checking escape.
+			await(() -> readyForSoloSession(combat, profile) && !retreat(profile, player), Duration.ofSeconds(90), "SOLO_RELEASE_" + profile);
 			store(profile);
 			System.out.println(on ? "LEARNING001_SOLO_EXACT_REORDERED count=" + policy.exactReordered(LearningScope.SOLO)
 				: "LEARNING001_SOLO_SQL_MINIMUM split=" + row[0] + " profile=" + profile + " countAtLeast=" + minimum + " bothSkills=true");
@@ -379,6 +392,41 @@ public final class PhantomLearning001ShadowNative
 			check(team.size() == roster.size(), "STOCK_PARTY_TEAM_ADMISSION");
 		}
 
+		private void returnToPartyAnchor(String[] row, Player player) throws Exception
+		{
+			final long profile = Long.parseLong(row[2]);
+			final var origin = PhantomNativeTravelActions.point(player);
+			final var anchor = new PhantomNavigationPoint(Integer.parseInt(row[8]), Integer.parseInt(row[9]), Integer.parseInt(row[10]), 0);
+			// This keeps the stock 1200-unit compatibility check for any two members near the same anchor.
+			if (origin.distanceTo(anchor) <= 550) { return; }
+			PhantomLearning001ActorFixture.requireSafePartySpawn(anchor.x(), anchor.y(), anchor.z());
+			check(!preflightThreatened(player), "COLD_PARTY_WALK_THREAT_" + profile);
+			final long now = System.nanoTime();
+			final long deadline = now + Duration.ofSeconds(60).toNanos();
+			final var submission = navigation.submitWalkCorridor(new PhantomNavigationRequest(profile, origin, anchor, now, deadline, 3000));
+			check(submission.status() != SubmissionStatus.REJECTED, "COLD_PARTY_WALK_SUBMIT_" + profile + " " + submission.immediateResult());
+			await(() -> navigation.find(submission.requestId()).map(result -> result.state() == RequestState.TERMINAL).orElse(false),
+				Duration.ofSeconds(15), "COLD_PARTY_WALK_PLAN_" + profile);
+			final var result = navigation.consume(submission.requestId()).orElseThrow();
+			check(result.status() == Status.DIRECT_VALIDATED || result.status() == Status.PATH_FOUND, "COLD_PARTY_WALK_ROUTE_" + profile + " " + result.proof().diagnostic());
+			try (var lease = combat.acquireExternalAction(new ExternalActionRequest(profile, ExternalActionKind.PARTY_ROUTE,
+				"learning001.fixture.party.rendezvous", deadline, () -> Files.exists(stop))).lease())
+			{
+				check(lease != null, "COLD_PARTY_WALK_LEASE_" + profile);
+				for (var point : result.route().waypoints())
+				{
+					if (PhantomNativeTravelActions.point(player).distanceTo(point) <= 50) { continue; }
+					check(!preflightThreatened(player) && lease.partyWalkSafe(point.x(), point.y(), point.z(), point.instanceId()), "COLD_PARTY_WALK_SAFE_" + profile);
+					final var outcome = lease.moveTo(point.x(), point.y(), point.z(), point.instanceId());
+					check(outcome == ActionOutcome.ISSUED || outcome == ActionOutcome.ALREADY_OWNED, "COLD_PARTY_WALK_DISPATCH_" + profile + " " + outcome);
+					await(() -> !player.isMoving() && PhantomNativeTravelActions.point(player).distanceTo(point) <= 50,
+						Duration.ofSeconds(12), "COLD_PARTY_WALK_ARRIVE_" + profile);
+				}
+				lease.complete();
+			}
+			System.out.println("LEARNING001_COLD_PARTY_WALK profile=" + profile + " from=" + origin + " arrived=" + PhantomNativeTravelActions.point(player));
+		}
+
 		private void provePartyTarget(List<String[]> roster, List<Player> players) throws Exception
 		{
 			final var profiles = roster.stream().map(row -> Long.parseLong(row[2])).toList();
@@ -439,6 +487,10 @@ public final class PhantomLearning001ShadowNative
 			roster.addAll(helpers);
 			final var profiles = roster.stream().map(row -> Long.parseLong(row[2])).toList();
 			final var players = roster.stream().map(this::materialize).toList();
+			if (on)
+			{
+				for (int index = 0; index < roster.size(); index++) { returnToPartyAnchor(roster.get(index), players.get(index)); }
+			}
 			inspectParty(roster, players);
 			final long deadline = System.nanoTime() + Duration.ofMillis(PhantomLearning001ActorFixture.sampleWindow(minimum)).toNanos();
 			boolean observed = false;
@@ -532,6 +584,11 @@ public final class PhantomLearning001ShadowNative
 	private static boolean preflightThreatened(Player player)
 	{
 		return player.isAlikeDead() || PhantomNativeLootControl.threat(player) != null;
+	}
+
+	private static String[] soloActor(List<String[]> actors, String split)
+	{
+		return actors.stream().filter(row -> split.equals(row[0]) && "SOLO".equals(row[1])).findFirst().orElseThrow();
 	}
 
 	private record Samples(long count, int skills, int actors)

@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -114,8 +115,42 @@ public final class PhantomLearning001Offline
 			final Checkpoint accepted = store.accepted(version);
 			require(accepted != null && sha.equals(accepted.model().sha256()), "ACCEPTED_READBACK");
 			reportModel(connection, version, sha, "ACCEPTED", accepted, null);
+			if ("read".equals(args[0])) { reportScores(connection, accepted); }
 			if ("verify-on".equals(args[0])) { verifyOn(connection, lane, args[5], version, sha); }
 		}
+	}
+
+	private static void reportScores(Connection connection, Checkpoint checkpoint) throws Exception
+	{
+		final class Observations
+		{
+			final DoubleSummaryStatistics rewards = new DoubleSummaryStatistics();
+			final DoubleSummaryStatistics predictions = new DoubleSummaryStatistics();
+			long capped;
+		}
+		final var groups = new TreeMap<String, Observations>();
+		try (var sql = connection.prepareStatement("SELECT policy_version,scope,skill_id,reward,features FROM phantom_ai_training_examples WHERE " + NATIVE_WHERE
+			+ " AND skill_catalog=(SELECT skill_catalog FROM phantom_ai_model_versions WHERE model_id=?) ORDER BY created_at DESC,event_key LIMIT ?"))
+		{
+			sql.setString(1, LearningFeatures.SCHEMA);
+			sql.setLong(2, checkpoint.id());
+			sql.setInt(3, NeuralPolicy.MAX_EXAMPLES);
+			try (var rows = sql.executeQuery())
+			{
+				while (rows.next())
+				{
+					final String key = rows.getLong(1) + "/" + rows.getString(2) + "/" + rows.getInt(3);
+					final var observed = groups.computeIfAbsent(key, _ -> new Observations());
+					final float reward = rows.getFloat(4);
+					observed.rewards.accept(reward);
+					observed.predictions.accept(checkpoint.model().score(LearningFeatures.decode(rows.getBytes(5))));
+					if (reward == 1) { observed.capped++; }
+				}
+			}
+		}
+		groups.forEach((key, observed) -> System.out.printf(Locale.ROOT, "LEARNING001_OBSERVED_SCORE policyScopeSkill=%s rows=%d capped=%d reward=%.5f/%.5f/%.5f prediction=%.5f/%.5f/%.5f%n",
+			key, observed.rewards.getCount(), observed.capped, observed.rewards.getMin(), observed.rewards.getAverage(), observed.rewards.getMax(),
+			observed.predictions.getMin(), observed.predictions.getAverage(), observed.predictions.getMax()));
 	}
 
 	private static void verifyOn(Connection connection, Path lane, String id, long version, String sha) throws Exception

@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.data.xml.InitialEquipmentData;
 import org.l2jmobius.gameserver.data.xml.InitialShortcutData;
 import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
+import org.l2jmobius.gameserver.data.xml.EnchantSkillGroupsData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
@@ -78,6 +79,8 @@ public final class PhantomLearning001ActorFixture
 	private static final int ARCHMAGE = 94;
 	private static final int PHOENIX_KNIGHT = 90;
 	private static final int MAJOR_HEAL = 1401;
+	private static final int PROMINENCE_POWER_PLUS_ONE = 101;
+	private static final int CHANGED_CREATION = 20966;
 	private static final PhantomPartyFarmEligibility.NpcLevelBand PARTY_TARGET_BAND =
 		PhantomPartyFarmEligibility.forRoster(List.of(76, 77, 78)).orElseThrow();
 	private static final int PARTY_PREFLIGHT_RANGE = PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE;
@@ -418,8 +421,10 @@ public final class PhantomLearning001ActorFixture
 
 	private static boolean fixturePartyTarget(Monster npc)
 	{
+		final var clans = npc.getTemplate().getClans();
 		return PARTY_TARGET_BAND.contains(npc.getLevel()) && !npc.isChampion() && !npc.isAggressive()
 			&& !npc.isRaid() && npc.isTargetable() && !npc.isInvul()
+			&& (clans == null || clans.isEmpty()) && !npc.hasMinions() && npc.getLeader() == null
 			&& npc.getSpawn() != null && npc.getSpawn().getRespawnMaxDelay() > 0
 			&& java.util.stream.IntStream.rangeClosed(76, 78).allMatch(level -> PhantomCombatPolicy.farmRewardAvailable(
 				level - npc.getLevel(), RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, npc.getExpReward(level), npc.getSpReward(level)));
@@ -481,8 +486,22 @@ public final class PhantomLearning001ActorFixture
 		final var monsters = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
 			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0).toList();
 		final var aggressors = monsters.stream().filter(Monster::isAggressive).map(PhantomLearning001ActorFixture::spawnThreat).distinct().toList();
-		final var targets = monsters.stream().filter(PhantomLearning001ActorFixture::fixturePartyTarget).filter(npc -> geo.hasGeo(npc.getX(), npc.getY()))
-			.sorted(Comparator.comparingDouble(Monster::getMaxHp).thenComparingInt(Monster::getObjectId)).toList();
+		final var stockTargets = monsters.stream().filter(PhantomLearning001ActorFixture::fixturePartyTarget).toList();
+		final var targets = stockTargets.stream().filter(npc -> geo.hasGeo(npc.getX(), npc.getY()))
+			.sorted(Comparator.comparing((Monster npc) -> npc.getId() != CHANGED_CREATION)
+				.thenComparingDouble(Monster::getMaxHp).thenComparingInt(Monster::getObjectId)).toList();
+		if (surveyApproach)
+		{
+			final var changed = targets.stream().filter(npc -> npc.getId() == CHANGED_CREATION).toList();
+			final long exactSource = changed.stream().filter(npc ->
+			{
+				final var point = new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0);
+				return authority.topology().nearestAnchors(point, PhantomTopologyAnchorRole.FARMING, 12, PARTY_PREFLIGHT_RANGE).stream()
+					.anyMatch(anchor -> matchesSource(planner, new PhantomDomainRef("background.farm", CHANGED_CREATION + "@" + anchor.id()), npc));
+			}).count();
+			System.out.println("LEARNING001_CHANGED_CREATION_SURVEY live=" + monsters.stream().filter(npc -> npc.getId() == CHANGED_CREATION).count()
+				+ " eligibleWithGeo=" + changed.size() + " exactSource=" + exactSource + " allIsolatedWithGeo=" + targets.size());
+		}
 		final var rejected = new HashSet<String>();
 		final var approached = new HashSet<String>();
 		for (Monster target : targets)
@@ -664,6 +683,7 @@ public final class PhantomLearning001ActorFixture
 					player.addSkill(skill, true);
 				}
 			}
+			if (damageHelper) { provisionDamageHelperSkill(player); }
 			final int weapon = helper ? 6364 : grade == CrystalType.S ? 6608 : 5643;
 			final var casterWeapon = player.addItem(ItemProcessType.REWARD, weapon, 1, player, false);
 			casterWeapon.setEnchantLevel(12);
@@ -710,7 +730,7 @@ public final class PhantomLearning001ActorFixture
 			final String skills = switch (scope)
 			{
 				case "HELPER" -> "28";
-				case "DAMAGE_HELPER" -> "1230";
+				case "DAMAGE_HELPER" -> "1230:" + PROMINENCE_POWER_PLUS_ONE;
 				case "HEAL_HELPER" -> Integer.toString(MAJOR_HEAL);
 				default -> "1230,1339";
 			};
@@ -734,7 +754,25 @@ public final class PhantomLearning001ActorFixture
 	{
 		final var prominence = player.getKnownSkill(1230);
 		return eligible(prominence) && player.getKnownSkill(1339) == null
+			&& prominence.getLevel() == PROMINENCE_POWER_PLUS_ONE && prominence.getMagicLevel() == 76
 			&& PhantomNativeCombatCapability.mechanics(prominence) != null;
+	}
+
+	private static void provisionDamageHelperSkill(Player player)
+	{
+		final var enchant = EnchantSkillGroupsData.getInstance().getSkillEnchantmentBySkillId(1230);
+		final var skill = SkillData.getInstance().getSkill(1230, PROMINENCE_POWER_PLUS_ONE);
+		if (player.getLevel() < 76 || player.getPlayerClass().level() < 3 || enchant == null
+			|| enchant.getEnchantSkillHolder(PROMINENCE_POWER_PLUS_ONE) == null
+			|| player.getSkillLevel(1230) != enchant.getMinSkillLevel(PROMINENCE_POWER_PLUS_ONE)
+			|| skill == null || skill.getLevel() != PROMINENCE_POWER_PLUS_ONE)
+		{
+			throw new IllegalStateException("Stock Prominence enchant unavailable for damage helper");
+		}
+		player.addSkill(skill, true);
+		if (!damageHelperReady(player)) { throw new IllegalStateException("Damage helper enchant did not retain modeled magic level 76"); }
+		System.out.println("LEARNING001_DAMAGE_HELPER_ENCHANT skill=" + skill.getId() + " level=" + skill.getLevel()
+			+ " magicLevel=" + skill.getMagicLevel());
 	}
 
 	private static int split(String salt, int id)
