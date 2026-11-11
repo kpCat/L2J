@@ -204,6 +204,12 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
 
+	/** Current PvE resources/reuse only; native spacing still owns the approach to cast range. */
+	default boolean skillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+	{
+		return supportsSkill(skill, mode);
+	}
+
 	default boolean supportsNormalAttack(PhantomCombatMode mode)
 	{
 		return mode != PhantomCombatMode.RANGED_MAGIC;

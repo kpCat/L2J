@@ -36,6 +36,7 @@ public final class PhantomPartyTactics
 	private final PhantomCombatService _combat;
 	private final PhantomPartyBackend _backend;
 	private final PhantomPartySupportPolicy _policy;
+	private final org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 _learning;
 
 	public PhantomPartyTactics(PhantomCombatService combat)
 	{
@@ -49,9 +50,16 @@ public final class PhantomPartyTactics
 
 	public PhantomPartyTactics(PhantomCombatService combat, PhantomPartyBackend backend, PhantomPartySupportPolicy policy)
 	{
+		this(combat, backend, policy, org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.OFF);
+	}
+
+	public PhantomPartyTactics(PhantomCombatService combat, PhantomPartyBackend backend, PhantomPartySupportPolicy policy,
+		org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 learning)
+	{
 		_combat = combat;
 		_backend = backend;
 		_policy = java.util.Objects.requireNonNull(policy);
+		_learning = java.util.Objects.requireNonNull(learning);
 	}
 
 	public List<TacticalDirective> plan(MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots)
@@ -144,7 +152,7 @@ public final class PhantomPartyTactics
 				combatMaintenanceCount++;
 			}
 		}
-		return List.copyOf(result);
+		return _learning.rank(List.copyOf(result), snapshots);
 	}
 
 	/** The same owner already used for support and routes; no second combat executor. */
@@ -222,7 +230,7 @@ public final class PhantomPartyTactics
 		final ActionOutcome outcome;
 		if (support)
 		{
-			outcome = lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), PhantomPartySupportAction.Audience.PARTY, _policy.rebuffRemainingSeconds(), stationary));
+			outcome = _learning.dispatch(directive, () -> lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), PhantomPartySupportAction.Audience.PARTY, _policy.rebuffRemainingSeconds(), stationary)));
 		}
 		else
 		{
@@ -236,9 +244,25 @@ public final class PhantomPartyTactics
 		return Optional.of(lease);
 	}
 
-	private static void addSupport(List<TacticalDirective> output, DirectiveKind kind, MemberSnapshot actor, MemberSnapshot target, List<MemberCapability> capabilities, String capabilityKey, String reason, int priority)
+	private void addSupport(List<TacticalDirective> output, DirectiveKind kind, MemberSnapshot actor, MemberSnapshot target, List<MemberCapability> capabilities, String capabilityKey, String reason, int priority)
 	{
-		final MemberCapability capability = capabilities.stream().filter(value -> value.capabilityKey().equals(capabilityKey) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).findFirst().orElse(null);
+		final var eligible = capabilities.stream().filter(value -> value.capabilityKey().equals(capabilityKey) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0))
+			.sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).toList();
+		MemberCapability capability = eligible.isEmpty() ? null : eligible.getFirst();
+		if (capability != null && kind == DirectiveKind.HEAL_MEMBER && _backend != null && (target.hpPercent() <= 25 || !target.attackerObjectIds().isEmpty()))
+		{
+			// Unknown lethal horizon is not a fabricated death estimate: prefer a provably faster lawful Heal under pressure.
+			final var stockDuration = _backend.supportCastMillis(actor.ref(), capability);
+			if (stockDuration.isPresent())
+			{
+				int shortest = stockDuration.getAsInt();
+				for (var alternative : eligible)
+				{
+					final var duration = _backend.supportCastMillis(actor.ref(), alternative);
+					if (duration.isPresent() && duration.getAsInt() < shortest) { shortest = duration.getAsInt(); capability = alternative; }
+				}
+			}
+		}
 		if (capability != null)
 		{
 			// Capability score chooses the current skill, while member urgency chooses its target.

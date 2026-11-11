@@ -1295,7 +1295,12 @@ public class Skill
 					{
 						if (applyInstantEffects && effect.calcSuccess(info.getEffector(), info.getEffected(), info.getSkill()))
 						{
-							effect.onStart(info.getEffector(), info.getEffected(), info.getSkill());
+							if (org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.observingEffects())
+							{
+								org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.nativeEffect(info.getEffector(), info.getEffected(), info.getSkill(), effect.getEffectType(),
+									() -> effect.onStart(info.getEffector(), info.getEffected(), info.getSkill()));
+							}
+							else { effect.onStart(info.getEffector(), info.getEffected(), info.getSkill()); }
 						}
 					}
 					else if (addContinuousEffects && effect.canStart(info.getEffector(), info.getEffected(), info.getSkill()))

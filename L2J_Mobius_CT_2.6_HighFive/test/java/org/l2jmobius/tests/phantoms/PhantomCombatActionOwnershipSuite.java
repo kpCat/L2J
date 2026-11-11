@@ -158,6 +158,43 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		registry.add("074-refused-pickup-releases-only-exact-item-before-next", _ -> refusedPickupContinues());
 		registry.add("074-busy-cast-pickup-retries-same-item-within-budget", _ -> busyPickupRetriesWithinBudget());
 		registry.add("074-native-pickup-target-preserves-divergent-selection", _ -> nativePickupPreservesDivergentSelection());
+		registry.add("learning003-pve-round-robin-skips-cooldowns-and-waits", _ -> readySkillRoundRobin());
+	}
+
+	private static void readySkillRoundRobin()
+	{
+		final var dispatcher = new ManualDispatcher();
+		final var lease = new FakeLease();
+		lease.extraLearningSkill = true;
+		lease.unreadySkills = java.util.Set.of(MAGIC_SKILL.skillId());
+		final var clock = new AtomicLong(1);
+		final var resolver = new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(PhantomCombatMode.RANGED_MAGIC.capabilityKey(), 900,
+			List.of(MAGIC_SKILL, SECOND_MAGIC_SKILL))));
+		final var service = new PhantomCombatService(new FakeBackend(lease), resolver, PhantomCombatPolicy.productionDefaults(2), new PhantomCombatMetrics(), clock::get, dispatcher);
+		service.start();
+		try
+		{
+			final var request = new PhantomCombatRequest(1, 100, PhantomCombatMode.RANGED_MAGIC, false, false, 30_000, () -> false);
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, service.startSession(request).status(), "Ready-skill fixture rejected.");
+			dispatcher.runNext();
+			PhantomAssertions.assertEquals(SECOND_MAGIC_SKILL, lease.actionSkill, "PvE round-robin selected a cooling skill while another skill was ready.");
+			PhantomAssertions.assertEquals(1L, service.metrics().skillCastsIssued(), "Ready skill did not issue exactly once.");
+			lease.actionKind = ActionKind.IDLE; lease.actionSkill = null;
+			lease.unreadySkills = java.util.Set.of(MAGIC_SKILL.skillId(), SECOND_MAGIC_SKILL.skillId());
+			clock.addAndGet(TimeUnit.SECONDS.toNanos(1)); dispatcher.runNext();
+			PhantomAssertions.assertEquals(ActionKind.IDLE, lease.actionKind, "Magic loadout did not wait when all skills were unavailable.");
+			PhantomAssertions.assertEquals(1L, service.metrics().skillCastsIssued(), "Cooldown wait retried an unavailable cast.");
+			PhantomAssertions.assertEquals(0L, service.metrics().normalAttacks(), "Magic cooldown wait invented normal attack fallback.");
+			lease.unreadySkills = java.util.Set.of(SECOND_MAGIC_SKILL.skillId());
+			clock.addAndGet(TimeUnit.SECONDS.toNanos(1)); dispatcher.runNext();
+			PhantomAssertions.assertEquals(MAGIC_SKILL, lease.actionSkill, "Expired cooldown did not resume the newly ready skill.");
+			PhantomAssertions.assertEquals(2L, service.metrics().skillCastsIssued(), "Ready-skill recovery lost or duplicated its cast.");
+		}
+		finally
+		{
+			service.beginStop();
+			PhantomAssertions.assertTrue(service.finishStop(), "Ready-skill fixture leaked its owner.");
+		}
 	}
 
 	private static void explicitDispatchRejection()
@@ -883,6 +920,7 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		private boolean extraLearningSkill;
 		private int learningReads;
 		private List<LearningPolicy.Candidate> learning = List.of();
+		private java.util.Set<Integer> unreadySkills = java.util.Set.of();
 
 		@Override
 		public ActorSnapshot actorSnapshot()
@@ -925,6 +963,12 @@ public final class PhantomCombatActionOwnershipSuite implements PhantomTestSuite
 		public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode)
 		{
 			return (MAGIC_SKILL.equals(skill) || (extraLearningSkill && SECOND_MAGIC_SKILL.equals(skill))) && (mode == PhantomCombatMode.RANGED_MAGIC);
+		}
+
+		@Override
+		public boolean skillReady(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+		{
+			return supportsSkill(skill, mode) && !unreadySkills.contains(skill.skillId());
 		}
 
 		@Override

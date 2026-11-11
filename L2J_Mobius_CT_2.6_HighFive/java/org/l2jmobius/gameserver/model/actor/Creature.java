@@ -1721,6 +1721,40 @@ public abstract class Creature extends WorldObject
 		beginCast(skill, false);
 	}
 	
+	/** Pure query extracted from beginCast; uses the same native speed, shot and animation rules. */
+	public int calculateSkillCastTime(Skill skill)
+	{
+		// Get the Base Casting Time of the Skills.
+		int skillTime = (skill.getHitTime() + skill.getCoolTime());
+		if (!skill.isChanneling() || (skill.getChannelingSkillId() == 0))
+		{
+			// Calculate the Casting Time of the "Non-Static" Skills (with caster PAtk/MAtkSpd).
+			if (!skill.isStatic())
+			{
+				skillTime = Formulas.calcAtkSpd(this, skill, skillTime);
+			}
+
+			// Calculate the Casting Time of Magic Skills (reduced in 40% if using SPS/BSPS)
+			if (skill.isMagic() && (isChargedShot(ShotType.SPIRITSHOTS) || isChargedShot(ShotType.BLESSED_SPIRITSHOTS)))
+			{
+				skillTime = (int) (0.6 * skillTime);
+			}
+		}
+
+		// Avoid broken Casting Animation.
+		// Client can't handle less than 550ms Casting Animation in Magic Skills with more than 550ms base.
+		if (skill.isMagic() && ((skill.getHitTime() + skill.getCoolTime()) > 550) && (skillTime < 550))
+		{
+			skillTime = 550;
+		}
+		// Client can't handle less than 500ms Casting Animation in Physical Skills with 500ms base or more.
+		else if (!skill.isStatic() && ((skill.getHitTime() + skill.getCoolTime()) >= 500) && (skillTime < 500))
+		{
+			skillTime = 500;
+		}
+		return skillTime;
+	}
+
 	public void doSimultaneousCast(Skill skill)
 	{
 		beginCast(skill, true);
@@ -1962,34 +1996,7 @@ public abstract class Creature extends WorldObject
 			return;
 		}
 		
-		// Get the Base Casting Time of the Skills.
-		int skillTime = (skill.getHitTime() + skill.getCoolTime());
-		if (!skill.isChanneling() || (skill.getChannelingSkillId() == 0))
-		{
-			// Calculate the Casting Time of the "Non-Static" Skills (with caster PAtk/MAtkSpd).
-			if (!skill.isStatic())
-			{
-				skillTime = Formulas.calcAtkSpd(this, skill, skillTime);
-			}
-			
-			// Calculate the Casting Time of Magic Skills (reduced in 40% if using SPS/BSPS)
-			if (skill.isMagic() && (isChargedShot(ShotType.SPIRITSHOTS) || isChargedShot(ShotType.BLESSED_SPIRITSHOTS)))
-			{
-				skillTime = (int) (0.6 * skillTime);
-			}
-		}
-		
-		// Avoid broken Casting Animation.
-		// Client can't handle less than 550ms Casting Animation in Magic Skills with more than 550ms base.
-		if (skill.isMagic() && ((skill.getHitTime() + skill.getCoolTime()) > 550) && (skillTime < 550))
-		{
-			skillTime = 550;
-		}
-		// Client can't handle less than 500ms Casting Animation in Physical Skills with 500ms base or more.
-		else if (!skill.isStatic() && ((skill.getHitTime() + skill.getCoolTime()) >= 500) && (skillTime < 500))
-		{
-			skillTime = 500;
-		}
+		final int skillTime = calculateSkillCastTime(skill);
 		
 		// queue herbs and potions
 		if (_isCastingSimultaneouslyNow && simultaneously)
@@ -6232,11 +6239,13 @@ public abstract class Creature extends WorldObject
 	public void callSkill(Skill skill, List<WorldObject> targets)
 	{
 		final var learning = org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.takeHit();
+		final var healLearning = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.takeHit();
 		final List<WorldObject> frozenTargets = List.copyOf(targets);
 		// Actual effect entry is a fresh native write operation. The strict status writer
 		// still captures its exact transfer pointer and rejects any later unmanaged change.
 		PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, frozenTargets), "cast-native-write", () ->
 			PlayerNativeWork.runCombat(this, frozenTargets, "cast-skill-effects", () ->
+			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.effects(healLearning, this, skill, frozenTargets, () ->
 			{
 				if (learning == null && !org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.observingEffects())
 				{
@@ -6246,7 +6255,7 @@ public abstract class Creature extends WorldObject
 				{
 					org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.effects(learning, this, skill, frozenTargets, () -> callSkillNative(skill, frozenTargets));
 				}
-			}));
+			})));
 	}
 
 	private void callSkillNative(Skill skill, List<WorldObject> targets)
@@ -6454,6 +6463,7 @@ public abstract class Creature extends WorldObject
 		{
 			PlayerNativeWork.recordFailure(e);
 			org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.failedEffect();
+			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.failedEffect();
 			LOGGER.log(Level.WARNING, getClass().getSimpleName() + ": callSkill() failed.", e);
 		}
 	}
@@ -6490,6 +6500,23 @@ public abstract class Creature extends WorldObject
 			&& _nativeMagicUseTask == first && _nativeMagicUseTask2 == second;
 		return new NativeMagicUseObservation(casting, simultaneous, primary, secondary, () -> sameSlots.getAsBoolean()
 			&& (primary == null || primary.isCurrent()) && (secondary == null || secondary.isCurrent()) && sameSlots.getAsBoolean());
+	}
+
+	/** Remaining delay to this exact native task's next phase, never the full cast/busy deadline. */
+	public long getNativeCastNextPhaseRemainingMillis(boolean simultaneous)
+	{
+		final MagicUseTask task = simultaneous ? _nativeMagicUseTask2 : _nativeMagicUseTask;
+		final Future<?> future = simultaneous ? _skillCast2 : _skillCast;
+		final boolean casting = simultaneous ? _isCastingSimultaneouslyNow : _isCastingNow;
+		if (!casting || task == null || !(future instanceof java.util.concurrent.Delayed delayed) || task.isSimultaneous() != simultaneous
+			|| !isCurrentNativeMagicUseTask(task) || future.isCancelled() || future.isDone()) { return -1; }
+		final int phase = task.getPhase();
+		if (phase < 1 || phase > 3) { return -1; }
+		final long delay = delayed.getDelay(TimeUnit.MILLISECONDS);
+		if (task != (simultaneous ? _nativeMagicUseTask2 : _nativeMagicUseTask) || future != (simultaneous ? _skillCast2 : _skillCast)
+			|| casting != (simultaneous ? _isCastingSimultaneouslyNow : _isCastingNow) || task.getPhase() != phase
+			|| future.isCancelled() || future.isDone()) { return -1; }
+		return Math.max(0, delay);
 	}
 
 	public record NativeMagicUseObservation(boolean casting, boolean simultaneous, MagicUseTask.TargetObservation primary,

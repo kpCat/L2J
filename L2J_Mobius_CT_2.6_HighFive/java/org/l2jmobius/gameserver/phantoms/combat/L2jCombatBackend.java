@@ -815,6 +815,22 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		}
 
 		@Override
+		public boolean skillReady(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
+		{
+			if (!executionValid() || selected == null || !supportsSkill(selected, mode)
+				|| !(World.getInstance().findObject(targetObjectId) instanceof Monster target)
+				|| !targetSnapshot(target).validFor(actorSnapshot(), MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return false;
+			}
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			// isSkillDisabled covers both timestamps and short/shared disable-map entries.
+			// Cast range/LOS remain with the existing spacing and native dispatch owners.
+			return skill != null && skill.getLevel() == selected.skillLevel() && nativeOffensiveResourcesReady(_player, target, skill) && _player.checkDoCastConditions(skill)
+				&& skill.checkCondition(_player, target, false);
+		}
+
+		@Override
 		public boolean supportsPvpSkill(SelectedSkill selected, PhantomCombatMode mode)
 		{
 			if ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode))
@@ -1833,7 +1849,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			_player.setTarget(target);
 			// Player.useMagic owns currentSkill and native cast/queue checks; direct AI.CAST
 			// can replace a pending native task when an external lease is retried.
-			return _player.useMagic(skill, false, action.stationary()) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+			return org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.dispatch(_player, target, skill, this::executionValid,
+				() -> _player.useMagic(skill, false, action.stationary())) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
 		}
 
 		@Override

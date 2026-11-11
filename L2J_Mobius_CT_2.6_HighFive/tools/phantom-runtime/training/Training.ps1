@@ -2,6 +2,7 @@
 param(
     [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight')][string]$Action,
     [string]$Root,
+    [ValidateSet('V1','V3')][string]$ConfigProfile='V1',
     [ValidatePattern('^[0-9a-f]{32}$')][string]$Nonce
 )
 $ErrorActionPreference='Stop'
@@ -15,6 +16,13 @@ $script:SqlRecord=$null
 $script:NativeRecord=$null
 $script:WorkerRecord=$null
 $script:Config=$null
+function Read-TrainSourceConfig {
+    $profile=$ConfigProfile
+    $saved=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
+    if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
+    $name=if($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
+    return Read-TrainConfig (Join-Path $PSScriptRoot $name)
+}
 function Publish-TrainState([string]$Phase,[string]$Reason='') {
     if(!$script:State){return}
     $script:State.phase=$Phase;$script:State.reason=$Reason;$script:State.heartbeatUtc=[DateTime]::UtcNow.ToString('o')
@@ -64,6 +72,10 @@ function Get-TrainDependencies {
 function Get-TrainAssets {
     # Bounded discovery: only the documented sibling clone and its attested cycle19.
     $previous=Join-Path (Split-Path $layout.Clone -Parent) 'phantom-learning-001-source\.phantom-local\learning001\cycle19'
+    if($script:Config -and $script:Config.ContainsKey('assetSourceRoot') -and $script:Config.assetSourceRoot){
+        if(![IO.Path]::IsPathRooted($script:Config.assetSourceRoot)){throw 'TRAIN003_ABSOLUTE_READONLY_ASSET_ROOT_REQUIRED'}
+        $previous=[IO.Path]::GetFullPath($script:Config.assetSourceRoot);Assert-TrainDirectory $previous
+    }
     return @{Geo=(Join-Path $previous 'game\geodata');GeoManifest=(Join-Path $previous 'geo203.json');ProtectedManifest=(Join-Path $previous 'protected207.json')}
 }
 function Get-TrainSourceFingerprint {
@@ -404,17 +416,27 @@ function Invoke-TrainDirector {
                 Start-Sleep -Seconds 1
                 continue
             }
-            $next=Read-TrainConfig (Join-Path $PSScriptRoot 'TRAIN_CONFIG.ini')
+            $next=Read-TrainSourceConfig
             foreach($port in @('sqlPort','gamePort','loginPort')){if($next[$port] -cne $script:Config[$port]){throw 'TRAIN002_ENDPOINT_CHANGE_REQUIRES_NEW_INSTALLATION'}}
             $evaluation=Join-Path $layout.Root 'evaluation.json'
             if(Test-Path -LiteralPath $evaluation){$model=Read-TrainJson $evaluation;if([long]$model.modelVersion -gt 0 -and $model.modelSha -cmatch '^[0-9a-f]{64}$'){$next.learningMode='ON';$next.modelVersion=[string]$model.modelVersion;$next.modelSha=$model.modelSha}else{$next.learningMode='SHADOW';$next.modelVersion='0';$next.modelSha=''}}
+            # V3 model pins are explicit source configuration, applied only at this stopped boundary.
+            # A qualified trainer candidate never changes them automatically.
             Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $next;$script:Config=$next
             $drive=[IO.DriveInfo]::new([IO.Path]::GetPathRoot($layout.Root))
             if($drive.AvailableFreeSpace -lt ([long]$next.minFreeDiskMb*1MB)){Publish-TrainState 'PAUSED_DISK' 'Недостаточно свободного диска.';Start-Sleep -Seconds ([int]$next.idleSeconds);continue}
             Assert-TrainProcess $script:SqlRecord -Kind Sql -Port ([int]$next.sqlPort)
             Reset-TrainColdBaseline
             Publish-TrainState 'ACTORS'
-            Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingActors' @($layout.Root,(Join-Path $layout.Root 'TRAIN_CONFIG.ini'))
+            $v3Manifest=$null
+            if($next.ContainsKey('v3Enabled') -and $next.v3Enabled -ceq 'true'){
+                $v3Phase=if($next.v3Mode -ceq 'ON'){'on-v'+$next.v3ModelVersion+$(if($next.ContainsKey('v3ProofRound') -and [int]$next.v3ProofRound -gt 0){'-r'+$next.v3ProofRound}else{''})}else{'collect'+$(if($next.ContainsKey('v3CollectionRound') -and [int]$next.v3CollectionRound -gt 0){'-r'+$next.v3CollectionRound}else{''})}
+                $v3Manifest=Join-Path $layout.Root ('v3-actors-'+$v3Phase+'.tsv')
+            }
+            if($v3Manifest -and (Test-Path -LiteralPath $v3Manifest)){
+                Assert-G0PhysicalFile $v3Manifest
+                Publish-TrainState 'ACTORS_REUSE' 'Готовый собственный манифест; native вход повторно проверит фактических участников и допустимые действия.'
+            }else{Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingActors' @($layout.Root,(Join-Path $layout.Root 'TRAIN_CONFIG.ini'))}
             try{
                 Invoke-TrainNative $dependencies $jar
                 $script:State.nativeFailures=0
@@ -431,6 +453,7 @@ function Invoke-TrainDirector {
             Publish-TrainState 'EVALUATING'
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
+            if($next.ContainsKey('v3Enabled') -and $next.v3Enabled -ceq 'true' -and (Test-Path -LiteralPath (Join-Path $layout.Root ('v3-'+$v3Phase+'.complete')))){Request-TrainBoundary 'pause' $script:DirectorNonce}
             Invoke-TrainQueuedExport $dependencies
             $resourcePath=Join-Path $layout.Root ('attempts\'+$script:State.attemptId+'\native-resources.json')
             $completedResources=$null;if(Test-Path -LiteralPath $resourcePath){$completedResources=Read-TrainJson $resourcePath}
@@ -473,7 +496,7 @@ try {
     Initialize-TrainWin32
     if($Action -eq 'Status'){Publish-TrainStatus;exit 0}
     if($Action -eq 'Preflight'){
-        $check=Read-TrainConfig (Join-Path $PSScriptRoot 'TRAIN_CONFIG.ini')
+        $check=Read-TrainSourceConfig;$script:Config=$check
         $null=Get-TrainDependencies
         $assets=Get-TrainAssets
         Assert-TrainAssets $assets.Geo $assets.GeoManifest $assets.ProtectedManifest
@@ -490,11 +513,11 @@ try {
     try{
         $bootstrapArchive=$null
         if($Action -in @('Start','Resume') -and (Test-Path -LiteralPath $layout.Root) -and !(Test-Path -LiteralPath (Join-Path $layout.Root 'owner.txt'))){
-            $sourceConfig=Read-TrainConfig (Join-Path $PSScriptRoot 'TRAIN_CONFIG.ini')
+            $sourceConfig=Read-TrainSourceConfig
             $bootstrapArchive=Repair-TrainEmptyBootstrap $layout $sourceConfig
         }
         if(!(Test-Path -LiteralPath $layout.Root)){
-            $config=Read-TrainConfig (Join-Path $PSScriptRoot 'TRAIN_CONFIG.ini')
+            $config=Read-TrainSourceConfig
             New-TrainPrivateRoot $layout
             foreach($name in @('logs','attempts','workers','archives','commands')){$null=[IO.Directory]::CreateDirectory((Join-Path $layout.Root $name))}
             Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $config

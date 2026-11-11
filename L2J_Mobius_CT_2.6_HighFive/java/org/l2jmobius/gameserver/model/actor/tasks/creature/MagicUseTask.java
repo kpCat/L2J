@@ -41,6 +41,7 @@ public class MagicUseTask implements Runnable
 	private final boolean _simultaneously;
 	private final boolean _nativeLifetimeOwned;
 	private final LearningCastEvidence _learning;
+	private final org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3 _healLearning;
 	
 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous)
 	{
@@ -53,6 +54,7 @@ public class MagicUseTask implements Runnable
 		_simultaneously = simultaneous;
 		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
 		_learning = LearningCastEvidence.capture(creature, s, targets, simultaneous);
+		_healLearning = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.capture(creature, s, targets, simultaneous);
 	}
 
 	public LearningCastEvidence learningEvidence() { return _learning; }
@@ -83,7 +85,8 @@ public class MagicUseTask implements Runnable
 				}
 				case 2:
 				{
-					_creature.onMagicHitTimer(this);
+					if (_healLearning == null) { _creature.onMagicHitTimer(this); }
+					else { _healLearning.hit(() -> _creature.onMagicHitTimer(this)); }
 					break;
 				}
 				case 3:

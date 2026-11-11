@@ -1824,9 +1824,12 @@ public final class PhantomCombatService
 			}
 		}
 		SelectedSkill selected = null;
-		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
+		final List<SelectedSkill> ready = percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()
+			? session._loadout.selectedSkills().stream().filter(skill -> session._actorLease.skillReady(session._request.targetObjectId(), skill, session._request.mode())).toList()
+			: List.of();
+		if (!ready.isEmpty())
 		{
-			selected = session._loadout.selectedSkills().get(session._nextSkill++ % session._loadout.selectedSkills().size());
+			selected = ready.get(Math.floorMod(session._nextSkill++, ready.size()));
 		}
 		if (session._request.mode() != PhantomCombatMode.MELEE_PHYSICAL)
 		{
@@ -1839,18 +1842,19 @@ public final class PhantomCombatService
 		}
 		if ((selected == null) && !session._loadout.normalAttackFallback())
 		{
+			// No admissible ready skill: keep this owner and re-evaluate on the next shared pulse.
 			return;
 		}
 		LearningPolicy.Attempt attempt = null;
 		boolean reordered = false;
-		if (selected != null && _learning.active(session._request.learningScope()) && session._loadout.selectedSkills().size() > 1)
+		if (selected != null && _learning.active(session._request.learningScope()) && ready.size() > 1)
 		{
 			try
 			{
 				final SelectedSkill baseline = selected;
 				final boolean witnessing = _learning.witnessing();
 				final long started = witnessing ? System.nanoTime() : 0;
-				final var candidates = session._actorLease.learningCandidates(session._request, actor, target, session._loadout.selectedSkills());
+				final var candidates = session._actorLease.learningCandidates(session._request, actor, target, ready);
 				final long sequence = Integer.toUnsignedLong(session._nextSkill);
 				final var decision = _learning.choose(candidates, baseline, session._generation * 131 + sequence);
 				final long decisionNanos = witnessing ? System.nanoTime() - started : 0;
@@ -1858,7 +1862,7 @@ public final class PhantomCombatService
 				{
 					_learning.decisionTiming(session._request.learningScope(), decisionNanos);
 				}
-				if (decision.observed() != null && decision.observed().exact().getAsBoolean() && session._loadout.selectedSkills().contains(decision.selected()))
+				if (decision.observed() != null && decision.observed().exact().getAsBoolean() && ready.contains(decision.selected()))
 				{
 					reordered = !selected.equals(decision.selected());
 					selected = decision.selected();
@@ -2686,7 +2690,8 @@ public final class PhantomCombatService
 			{
 				return ActionOutcome.REJECTED;
 			}
-			final ActionOutcome outcome = _actorLease.castSupport(action);
+			final ActionOutcome outcome = org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.withOwnerAuthority(generation(), operationKey(),
+				() -> active() && !expired(_owner.now()), () -> _actorLease.castSupport(action));
 			if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 			{
 				_ownedAction = new ExternalOwnedAction(kind(), action.targetObjectId(), action.skill(), 0, 0, 0, 0);

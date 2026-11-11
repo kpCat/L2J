@@ -1,0 +1,9 @@
+/goal PHANTOM-LEARNING-003 — расширить LEARNING-002 в универсальный тактический нейроконтур V3 с настоящей моделью 4–8 МиБ и первым обучаемым лечебным действием в Party.
+
+GitHub https://github.com/kpCat/L2J, source wip/phantom-learning-002 @ b7b5575457c12c1b0438bcbaa646675a67778391; создать независимый clone и только wip/phantom-learning-003. Пользовательский D:\Codex\repos\L2J-phantom-world read-only.
+
+Из ZIP распаковать docs/phantoms/tasks/PHANTOM-LEARNING-003/* в корень модуля L2J_Mobius_CT_2.6_HighFive. Прочитать START_HERE_RU, TASK, ARCHITECTURE, FEATURE_SCHEMA, ACTION_CONTRACT, EVIDENCE_AND_QUALITY, ACCEPTANCE, TEST_CASES, SOURCE_MAP, SAFETY и WORKFLOW_FAST.
+
+Уровень мышления High (Very High только для реального multi-owner blocker). Reuse 002 Training Director/SQL/G0/Windows. Не повторять 7-часовую инфраструктурную отладку и много GameServer запусков одной сцены. Бюджета boot/JAR нет, но допускается только причинная проверка. Не ждать ручной приёмки TRAIN_START от пользователя.
+
+Сделать: общую размерно-ограниченную V3 модель 4–8 МиБ; честные features class/level/equip+jewelry/buffs/party/summon/enemy/geometry; типизированные legal actions; нативное обучение HEAL target/skill и результат после cold model reload в живом Party, не ломая V1 damage. Выполнить targeted tests/benchmark, сохранить FULL only with exact proof, report RU + SHA + ordinary scoped push.

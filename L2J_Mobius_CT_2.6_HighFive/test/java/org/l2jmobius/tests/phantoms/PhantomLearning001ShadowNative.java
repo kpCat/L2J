@@ -258,6 +258,7 @@ public final class PhantomLearning001ShadowNative
 		private final PhantomCombatService combat;
 		private final L2jPhantomPartyBackend backend;
 		private final PhantomPartyRoleMatcher roles;
+		private final PhantomPartyTactics healTactics;
 		private final PhantomPartyCoordinator coordinator;
 		private final PhantomAutonomousFarmParty autonomous;
 		private final PhantomGoalStateStore goals;
@@ -270,6 +271,12 @@ public final class PhantomLearning001ShadowNative
 		private volatile boolean trainingAdmission;
 
 		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize) throws Exception
+		{
+			this(source, game, policy, stop, on, partySize, org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.OFF);
+		}
+
+		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize,
+			org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 tactical) throws Exception
 		{
 			this.policy = policy;
 			this.stop = stop;
@@ -291,13 +298,74 @@ public final class PhantomLearning001ShadowNative
 			final Path rules = game.resolve("data/phantoms/party");
 			final var roleCatalog = PhantomPartyRoleCatalog.load(rules.resolve("high-five-party-roles-v1.xml"));
 			roles = new PhantomPartyRoleMatcher(roleCatalog);
-			final var tactics = new PhantomPartyTactics(combat, backend, PhantomPartySupportPolicy.load(rules.resolve("high-five-party-support-v1.xml")));
+			final var tactics = new PhantomPartyTactics(combat, backend, PhantomPartySupportPolicy.load(rules.resolve("high-five-party-support-v1.xml")), tactical);
+			healTactics = new PhantomPartyTactics(combat, backend, PhantomPartySupportPolicy.load(rules.resolve("high-five-party-support-v1.xml")));
 			coordinator = new PhantomPartyCoordinator(new PhantomPartyStore(profiles), goals, backend, roleCatalog,
 				new PhantomPartyRouteCoordinator(navigation, combat), tactics, () -> source.topology().snapshot().canonicalHash(), System::nanoTime, 64);
 			autonomous = new PhantomAutonomousFarmParty(coordinator, backend, goals, roleCatalog, System::nanoTime);
 			progression.start();
 			check(materialization.start() && navigation.start() && coordinator.start(), "NATIVE_OWNERS_START");
 			combat.start();
+		}
+
+		/** Director-only admission; ordinary 001 entrypoints retain their original lifecycle. */
+		List<Player> prepareHeal(List<String[]> rows) throws Exception
+		{
+			check(trainingRows.isEmpty() && materialization.list().isEmpty(), "V3_PREVIOUS_NOT_STORED");
+			trainingRows = List.copyOf(rows);
+			final var players = new java.util.ArrayList<Player>();
+			for (var row : rows) { players.add(materialize(row)); trainingPlayers = List.copyOf(players); }
+			final long leader = Long.parseLong(rows.getFirst()[2]);
+			final var goal = goals.load(leader).orElseThrow().goal();
+			check(coordinator.form(leader, goal.goalId(), goal.revision(), org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode.GENERAL_PVE,
+				new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("party", "v3-heal-" + leader), List.of()) == PhantomPartyCoordinator.CommandOutcome.ACCEPTED, "V3_FORM");
+			for (int index = 1; index < rows.size(); index++)
+			{
+				final long member = Long.parseLong(rows.get(index)[2]);
+				check(coordinator.invite(leader, backend.currentMember(member).orElseThrow(), org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS)
+					== PhantomPartyCoordinator.CommandOutcome.ACCEPTED, "V3_INVITE_" + member);
+				await(() -> { coordinator.onPulse(); return players.get(indexOf(rows, member)).getParty() == players.getFirst().getParty() && players.getFirst().getParty() != null; }, Duration.ofSeconds(15), "V3_PARTY_JOIN");
+			}
+			check(players.getFirst().getParty().getMemberCount() == rows.size() && players.stream().noneMatch(Player::isCastingNow), "V3_EXACT_PARTY");
+			return List.copyOf(players);
+		}
+		private static int indexOf(List<String[]> rows, long profile) { for (int i = 0; i < rows.size(); i++) { if (Long.parseLong(rows.get(i)[2]) == profile) { return i; } } throw new IllegalArgumentException("Missing member"); }
+		List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.TacticalDirective> inspectHeal()
+		{
+			final var roster = trainingRows.stream().map(row -> backend.currentMember(Long.parseLong(row[2])).orElseThrow()).toList();
+			final var snapshots = new java.util.LinkedHashMap<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot>();
+			for (var member : roster) { snapshots.put(member, backend.memberSnapshot(member).orElseThrow()); }
+			return healTactics.plan(roster.getFirst(), roster, snapshots);
+		}
+		void pulseHeal() { coordinator.onPulse(); }
+		boolean startTemporalThreat(long profile, int targetObjectId, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token)
+		{
+			return combat.startSession(new PhantomCombatRequest(profile, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, false, false, 30000, token)).accepted();
+		}
+		List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> temporalHealCapabilities(long profile, int targetObjectId)
+		{ return backend.capabilities(backend.currentMember(profile).orElseThrow(), targetObjectId, true); }
+		org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot temporalMemberSnapshot(long profile)
+		{ return backend.memberSnapshot(backend.currentMember(profile).orElseThrow()).orElseThrow(); }
+		java.util.Optional<PhantomCombatService.ExternalActionLease> dispatchTemporalHeal(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.TacticalDirective directive, String operationKey, long deadline)
+		{ return healTactics.dispatch(directive, operationKey, deadline, () -> false); }
+		boolean temporalThreatDrained(long profile) { combat.consumeTerminal(profile); return !combat.hasClaim(profile); }
+		void finishHeal() throws Exception
+		{
+			await(() -> trainingPlayers.stream().noneMatch(p -> p.isCastingNow() || p.isCastingSimultaneouslyNow() || p.isAttackingNow() || p.getQueuedSkill() != null), Duration.ofSeconds(20), "V3_CAST_DRAIN");
+			for (int index = trainingRows.size() - 1; index >= 0; index--)
+			{
+				final long profile = Long.parseLong(trainingRows.get(index)[2]);
+				if (!trainingPlayers.get(index).isInParty()) { continue; }
+				final var before = goals.load(profile).orElseThrow();
+				final var goal = PhantomLearning003Native.partyGoal(profile, before.goal().goalId() + 100000, PhantomPartyCoordinator.LEAVE_GOAL, null);
+				goals.replace(profile, before.rowVersion(), goal);
+				final var claim = coordinator.claim(profile).orElseThrow().state();
+				final var result = coordinator.leave(profile, goal.goalId(), goal.revision(), claim.groupGeneration());
+				check(result == PhantomPartyCoordinator.CommandOutcome.ACCEPTED || result == PhantomPartyCoordinator.CommandOutcome.IDEMPOTENT, "V3_LEAVE_" + result);
+			}
+			await(() -> { coordinator.onPulse(); return trainingPlayers.stream().noneMatch(Player::isInParty) && trainingRows.stream().noneMatch(row -> combat.hasClaim(Long.parseLong(row[2]))); }, Duration.ofSeconds(20), "V3_LEASE_DRAIN");
+			for (var row : trainingRows) { store(Long.parseLong(row[2])); }
+			trainingRows = List.of(); trainingPlayers = List.of();
 		}
 
 		/** Director-only admission; ordinary 001 entrypoints retain their original lifecycle. */
@@ -352,15 +420,22 @@ public final class PhantomLearning001ShadowNative
 
 		String runTrainingEpisode(TrainingCollector collector, int seconds, int evidenceLimit, BooleanSupplier requested) throws Exception
 		{
+			return runTrainingEpisode(collector, seconds, evidenceLimit, requested, null);
+		}
+
+		String runTrainingEpisode(TrainingCollector collector, int seconds, int evidenceLimit, BooleanSupplier requested, CooldownWitness cooldown) throws Exception
+		{
 			check(!trainingPlayers.isEmpty(), "TRAIN_NOT_PREPARED");
+			check(cooldown == null || !trainingParty, "COOLDOWN_WITNESS_REQUIRES_SOLO");
 			trainingAdmission = true;
 			final long deadline = System.nanoTime() + Duration.ofSeconds(seconds).toNanos();
 			final long idleDeadline = System.nanoTime() + Duration.ofSeconds(Math.min(seconds, 45)).toNanos();
 			boolean encountered = false;
-			while (System.nanoTime() < deadline && collector.size() < evidenceLimit)
+			while (System.nanoTime() < deadline && (collector.size() < evidenceLimit || cooldown != null && !cooldown.passed()))
 			{
 				if (requested.getAsBoolean()) { return "REQUESTED_DRAIN"; }
 				if (trainingPlayers.stream().anyMatch(Player::isAlikeDead)) { return "NATIVE_ACTOR_DIED"; }
+				if (cooldown != null) { cooldown.observe(collector); if (cooldown.passed() && collector.size() >= evidenceLimit) { break; } }
 				if (trainingParty)
 				{
 					coordinator.onPulse();
@@ -395,9 +470,108 @@ public final class PhantomLearning001ShadowNative
 					final var reason = trainingParty ? backend.currentMember(Long.parseLong(trainingRows.getFirst()[2])).map(backend::autonomousFarmWaitReason).orElse("NO_LEADER") : "NO_SAFE_SOLO_OPENING";
 					return "NO_LEGAL_TARGET:" + reason;
 				}
-				Thread.sleep(Math.max(100, PhantomPlayersConfig.settings().schedulerPulseMillis()));
+				Thread.sleep(cooldown == null ? Math.max(100, PhantomPlayersConfig.settings().schedulerPulseMillis()) : 50);
 			}
-			return collector.size() > 0 ? "NATIVE_EVIDENCE" : "NO_EXACT_NATIVE_EVIDENCE";
+			return collector.size() > 0 && (cooldown == null || cooldown.passed()) ? "NATIVE_EVIDENCE"
+				: cooldown == null ? "NO_EXACT_NATIVE_EVIDENCE" : "NO_NATIVE_COOLDOWN_WITNESS:" + cooldown.description();
+		}
+
+		CooldownWitness cooldownWitness()
+		{
+			check(!trainingParty && trainingPlayers.size() == 1, "COOLDOWN_WITNESS_SINGLE_NATIVE_ACTOR");
+			return new CooldownWitness(trainingPlayers.getFirst());
+		}
+
+		/** Diagnostic only: observes natural native tasks/counters; never creates an Attempt or changes reuse. */
+		final class CooldownWitness
+		{
+			private final Player actor;
+			private final PlayerNativeWork.Owner owner;
+			private final org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence evidence;
+			private final org.l2jmobius.gameserver.model.skill.Skill first, alternative;
+			private org.l2jmobius.gameserver.model.actor.instance.Monster target;
+			private org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Target spawn;
+			private boolean sawFirstTask, armed, sawAlternativeTask, done;
+			private long remainingBefore, remainingAtAlternative, damageBefore, rejectedBefore;
+			private double hpBefore, mpBefore;
+			private int recordedBefore;
+			private String result = "waiting_for_natural1339";
+
+			private CooldownWitness(Player player)
+			{
+				actor = player; owner = player.getNativeWorkOwner(); evidence = PlayerNativeWork.observationEvidence(player);
+				first = player.getKnownSkill(1339); alternative = player.getKnownSkill(1230);
+				check(owner != null && evidence != null && first != null && alternative != null && first != alternative, "COOLDOWN_NATIVE_SKILLS_OWNER");
+			}
+
+			boolean passed() { return done; }
+			String description() { return result; }
+
+			private void observe(TrainingCollector collector)
+			{
+				if (done) { return; }
+				check(actor.getNativeWorkOwner() == owner && owner.isCurrent() && PlayerNativeWork.observationEvidence(actor) == evidence
+					&& actor.getKnownSkill(1339) == first && actor.getKnownSkill(1230) == alternative, "COOLDOWN_NATIVE_AUTHORITY_CHANGED");
+				final var observed = actor.observeNativeMagicUse(1);
+				final var primary = observed.primary();
+				if (observed.isCurrent() && primary != null && primary.isCurrent() && primary.targets().size() == 1
+					&& primary.targets().getFirst() instanceof org.l2jmobius.gameserver.model.actor.instance.Monster actual)
+				{
+					if (!armed && primary.skill() == first)
+					{
+						sawFirstTask = true; target = actual; spawn = actual.getNativeEvidenceTarget();
+					}
+					if (armed && primary.skill() == alternative)
+					{
+						if (!sawAlternativeTask)
+						{
+							remainingAtAlternative = actor.getSkillRemainingReuseTime(first.getReuseHashCode());
+							check(actor.isSkillDisabled(first) && remainingAtAlternative > 0, "COOLDOWN_ALTERNATIVE_DID_NOT_SKIP_LIVE_REUSE");
+							// A lawful next target may differ after the first victim dies. Observe this exact native task's recipient.
+							target = actual; spawn = actual.getNativeEvidenceTarget();
+							hpBefore = actual.getCurrentHp(); mpBefore = actor.getCurrentMp(); damageBefore = evidence.snapshot().damageSequence();
+							sawAlternativeTask = true; result = "waiting_for1230_native_effect_and_drain";
+						}
+					}
+				}
+				if (!armed && sawFirstTask)
+				{
+					final boolean firstRecorded = collector.snapshot().stream().anyMatch(row ->
+					{
+						final var skill = java.util.regex.Pattern.compile("\"skill\"\\s*:\\s*([0-9]+)").matcher(row.json());
+						return skill.find() && "1339".equals(skill.group(1));
+					});
+					if (firstRecorded && !actor.isSkillDisabled(alternative) && actor.checkDoCastConditions(alternative) && alternative.checkCondition(actor, target, false))
+					{
+						remainingBefore = actor.getSkillRemainingReuseTime(first.getReuseHashCode());
+						check(actor.isSkillDisabled(first) && remainingBefore > 0, "COOLDOWN1339_NOT_LIVE_AFTER_NATIVE_RECEIPT");
+						check(World.getInstance().findObject(target.getObjectId()) == target && spawn.equals(target.getNativeEvidenceTarget()), "COOLDOWN_FIRST_TARGET_STALE");
+						hpBefore = target.getCurrentHp(); mpBefore = actor.getCurrentMp(); damageBefore = evidence.snapshot().damageSequence();
+						rejectedBefore = combat.metrics().skillCastsRejected(); recordedBefore = collector.size(); armed = true;
+						result = "waiting_for_ready1230_native_task";
+						System.out.println("V3_NATIVE_COOLDOWN_ARM first=1339 groupHash=" + first.getReuseHashCode() + " remainingBeforeMillis=" + remainingBefore
+							+ " disabled=true alternative=1230 alternativeReady=true actor=" + actor.getObjectId() + " target=" + target.getObjectId() + " epoch=" + owner.epoch());
+					}
+				}
+				if (armed && sawAlternativeTask && !actor.isCastingNow() && actor.getLastSkillCast() == alternative)
+				{
+					check(World.getInstance().findObject(target.getObjectId()) == target && spawn.equals(target.getNativeEvidenceTarget()), "COOLDOWN_NATIVE_TARGET_STALE");
+					final long writes = evidence.snapshot().damageSequence() - damageBefore;
+					final double hpDelta = hpBefore - target.getCurrentHp(), mpDelta = mpBefore - actor.getCurrentMp();
+					final long rejected = combat.metrics().skillCastsRejected() - rejectedBefore;
+					check(writes > 0 && hpDelta > 0 && mpDelta > 0, "COOLDOWN1230_HAS_NO_NATIVE_HP_MP_EFFECT");
+					check(rejected == 0, "COOLDOWN_REJECTED_CAST_RETRY");
+					check(collector.size() == recordedBefore, "COOLDOWN_SINGLETON_ALTERNATIVE_GOT_TRAINING_CREDIT");
+					done = true;
+					result = "V3_NATIVE_COOLDOWN_PASS first=1339 groupHash=" + first.getReuseHashCode() + " remainingBeforeMillis=" + remainingBefore
+						+ " remainingAtAlternativeMillis=" + remainingAtAlternative + " alternative=1230 actual=1230:" + alternative.getLevel()
+						+ " nativeOwnHpWrites=" + writes + " observedNetHpDelta=" + hpDelta + " observedNetMpDebit=" + mpDelta
+						+ " nativeMpCost=" + (actor.getStat().getMpInitialConsume(alternative) + actor.getStat().getMpConsume(alternative))
+						+ " castRejectedDelta=" + rejected + " actor=" + actor.getObjectId() + " target=" + target.getObjectId()
+						+ " diagnosticOnly=true alternativeTrained=false castDrained=true";
+					System.out.println(result);
+				}
+			}
 		}
 
 		String settleTraining() throws Exception

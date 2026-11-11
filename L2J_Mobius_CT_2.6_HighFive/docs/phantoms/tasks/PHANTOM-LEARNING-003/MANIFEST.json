@@ -1,0 +1,73 @@
+{
+  "package": "PHANTOM-LEARNING-003",
+  "version": "1.0",
+  "created_date": "2026-11-11",
+  "repository": "https://github.com/kpCat/L2J",
+  "source_branch": "wip/phantom-learning-002",
+  "source_sha": "b7b5575457c12c1b0438bcbaa646675a67778391",
+  "target_branch": "wip/phantom-learning-003",
+  "module": "L2J_Mobius_CT_2.6_HighFive",
+  "files": 17,
+  "contents": [
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/ACCEPTANCE.md",
+      "sha256": "e3fdaa8aefdaacd86b156572a7edc6556381bd76b5583faa5cb56f840dccbce1"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/ACTION_CONTRACT.md",
+      "sha256": "d5d75bf34911033ac8f29c4b3f3c18feb48ac8d273b90d8efaf5a988094591a1"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/ARCHITECTURE.md",
+      "sha256": "cd84dd30385dddb3ecd516389fedd31b01d57e169f2de2dfa459ee98d0146068"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/CONTEXT.md",
+      "sha256": "4bed2e6eeb584ad82c2a87cc7a7da6377bba108f913cd88f6a263245302f9a5a"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/EVIDENCE_AND_QUALITY.md",
+      "sha256": "d64322ecc85ec20c3018ca08bd2ccf43849c55ea5b7e32f3b0e86f02059eaf8a"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/FEATURE_SCHEMA.md",
+      "sha256": "a1282ef72be8b6c5893ac0e49071c58083c77158fbd21cb3bd89909698f87c16"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/GOAL.txt",
+      "sha256": "026cd8a1cb324d95dfe5cda7bde08a05823d431a9a83a7e7ad5fe4763821e17b"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/PERFORMANCE.md",
+      "sha256": "c6ff4febc97679048e1a4e971e1b76817a246dc65090976585d52c611f8c7d76"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/ROADMAP.md",
+      "sha256": "3ed03e7ef5249bb4f0fde0e62ca6f42c6361c6eaa0fa44a2826f269d73b6b23d"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/SAFETY.md",
+      "sha256": "2b6ae20bd01ee95575785f99186c87df8b8ff5803c9eeb82854a5132ed52cde2"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/SOURCE_MAP.md",
+      "sha256": "cc349cea5a40f91208a17a13a360685b70a60a7358ea6139158add767eb41fba"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/START_HERE_RU.md",
+      "sha256": "d0a961cb3960f3f6742bbe00e0dee0c5b005808fd2e3fca5fe0dae998ef4de8f"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/TASK.md",
+      "sha256": "6a90aa73ee0c3652d24f2500759dd6012a54dfed505ac9084db2a47efd892472"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/TEST_CASES.md",
+      "sha256": "4c15e5931b13b4abe1539c549dc978d234768922891664d58cab14932c75b5f3"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-003/WORKFLOW_FAST.md",
+      "sha256": "178d6dc7606081e468e951688d98bf2bf79507d129c6254c5e292cb9dbbe69ab"
+    }
+  ]
+}

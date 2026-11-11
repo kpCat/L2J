@@ -163,6 +163,9 @@ public final class TrainingStore
 		}
 	}
 
+	/** V3 offline durability reuses the exact existing TEST installation and SQL identity guards. */
+	Connection openTacticalConnection() throws SQLException { return connect(); }
+
 	@FunctionalInterface
 	private interface Transaction<T> { T run(Connection connection) throws SQLException; }
 

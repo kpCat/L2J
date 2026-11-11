@@ -34,8 +34,9 @@ public final class PhantomTrainingNative
 		if (!configPath.equals(root.resolve("TRAIN_CONFIG.ini")) || !configPath.toRealPath().equals(configPath)) { throw new IllegalArgumentException("Owned physical TRAIN_CONFIG.ini required"); }
 		final var config = TrainingConfig.load(configPath);
 		final var database = PhantomTrainingActors.settings(root);
-		PhantomTrainingActors.verify(root, config);
-		final var scenes = PhantomTrainingActors.scenes(root);
+		final boolean tacticalV3 = "true".equals(config.text("v3Enabled", "false"));
+		if (!tacticalV3) { PhantomTrainingActors.verify(root, config); }
+		final var scenes = tacticalV3 ? List.<PhantomTrainingScenarios.Scene>of() : PhantomTrainingActors.scenes(root);
 		final var attempt = root.resolve("attempts").resolve(args[1]);
 		if (!attempt.toRealPath().equals(attempt)) { throw new IllegalArgumentException("Physical owned attempt required"); }
 		final var game = root.resolve("game");
@@ -61,8 +62,8 @@ public final class PhantomTrainingNative
 		phase = setting(phase, "LearningDeterministicSeed", Long.toString(config.seed()));
 		final var store = new TrainingStore(root);
 		store.initialize();
-		final long catalogGeneration = PhantomTrainingActors.generation(root);
-		if (catalogGeneration != store.counts().attempts()) { throw new IllegalStateException("Prepared actual actor cohort does not match durable evaluation generation"); }
+		final long catalogGeneration = tacticalV3 ? 0 : PhantomTrainingActors.generation(root);
+		if (!tacticalV3 && catalogGeneration != store.counts().attempts()) { throw new IllegalStateException("Prepared actual actor cohort does not match durable evaluation generation"); }
 		String run = Files.readString(root.resolve("owner.txt")).trim().substring("LEARNING002:".length());
 		store.recover(run, args[1]);
 		boolean booted = false;
@@ -89,6 +90,12 @@ public final class PhantomTrainingNative
 			final var collector = new TrainingCollector();
 			policy.observer(collector);
 			if (!policy.collecting()) { throw new IllegalStateException("Native learning collector unavailable"); }
+			if (tacticalV3)
+			{
+				try { PhantomLearning003Native.run(root, attempt, config, policy); }
+				finally { await(policy::stop, Duration.ofSeconds(15), "Native evidence writer did not drain"); }
+				return;
+			}
 			int committed = 0, rejected = 0;
 			try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start();
 				var runtime = new PhantomLearning001ShadowNative.Runtime(authority, game, policy, attempt.resolve("stop.request"), "ON".equals(mode), config.maxActiveActors()))

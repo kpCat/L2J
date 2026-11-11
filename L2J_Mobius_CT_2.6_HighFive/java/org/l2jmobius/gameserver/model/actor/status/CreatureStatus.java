@@ -337,6 +337,7 @@ public class CreatureStatus
 				actualHpDelta = beforeHp - _currentHp;
 				uncontestedWrite = beforeHp == observedHp;
 			}
+			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.hpWritten(_creature, beforeHp, _currentHp, nativeRegeneration);
 			observeRegeneration(nativeRegeneration ? _currentHp - beforeHp : 0, 0);
 		}
 		if ((damageTarget != null) && (damageAttacker.getNativeWorkOwner() == damageOwner) && damageOwner.isCurrent() && damageEvidence.matches(damageAttacker.getObjectId(), damageOwner.epoch()))
@@ -430,6 +431,7 @@ public class CreatureStatus
 				// Start the HP/MP/CP Regeneration task with Medium priority
 				startHpMpRegeneration();
 			}
+			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.mpWritten(_creature, beforeMp, _currentMp, nativeRegeneration);
 			observeRegeneration(0, nativeRegeneration ? _currentMp - beforeMp : 0);
 		}
 		

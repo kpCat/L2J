@@ -140,6 +140,10 @@ public interface PhantomPartyBackend
 	default List<org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId, boolean exactFarmHeal)
 	{ return capabilities(actor, exactTargetObjectId); }
 
+	/** Native current cast duration only; UNKNOWN never supplies an urgent speed preference. */
+	default OptionalInt supportCastMillis(MemberRef actor, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability capability)
+	{ return OptionalInt.empty(); }
+
 	default Status supportEffectStatus(MemberRef actor, int exactTargetObjectId, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability capability, int rebuffRemainingSeconds)
 	{
 		return Status.MISSING;

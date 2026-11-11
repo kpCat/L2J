@@ -831,9 +831,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private static long farmHealCastMillis(Player healer, Skill skill)
 	{
 		if (skill.isChanneling()) { return 0; }
-		final long base = (long) skill.getHitTime() + skill.getCoolTime();
-		// Use the uncharged cast as a conservative reaction window.
-		return Math.max(550, skill.isStatic() ? base : Formulas.calcAtkSpd(healer, skill, base));
+		return Math.max(0, healer.calculateSkillCastTime(skill));
 	}
 
 	private static Skill observedFarmHeal(Player healer, Player recipient)
@@ -1165,6 +1163,20 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				case PD_UP, MD_UP, MAX_HP_UP, MAX_HP_CP_UP -> true;
 				default -> false;
 			};
+		}
+	}
+
+	@Override
+	public java.util.OptionalInt supportCastMillis(MemberRef actor, MemberCapability capability)
+	{
+		if (actor == null || actor.kind() != MemberKind.PHANTOM || capability == null || !"combat.heal".equals(capability.capabilityKey())) { return java.util.OptionalInt.empty(); }
+		try (AcquiredPlayer acquired = acquire(actor))
+		{
+			final var player = acquired == null ? null : acquired.player();
+			final Skill skill = player == null ? null : player.getKnownSkill(capability.actionSkillId());
+			if (skill == null || skill.getLevel() != capability.actionSkillLevel() || skill.isChanneling() || skill.isToggle() || skill.isSimultaneousCast()
+				|| skill.getFlyType() != null || skill.getAffectRange() > 0 || !PhantomSupportEffectAuthority.supportsCapability(skill, "combat.heal")) { return java.util.OptionalInt.empty(); }
+			return java.util.OptionalInt.of(Math.max(0, player.calculateSkillCastTime(skill)));
 		}
 	}
 

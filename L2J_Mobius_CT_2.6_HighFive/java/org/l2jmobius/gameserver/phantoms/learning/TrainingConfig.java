@@ -53,6 +53,18 @@ public final class TrainingConfig
 		final String modelSha = text("modelSha", "");
 		if ("ON".equals(text("learningMode", "SHADOW")) && (version == 0 || !modelSha.matches("[0-9a-f]{64}")))
 		{ throw new IllegalArgumentException("Для ON необходимы принятая версия и SHA модели."); }
+		if ("true".equals(text("v3Enabled", "false")))
+		{
+			if (integer("modelAlgorithmV3", 3, 3, 3) != TacticalModelV3.ALGORITHM || !Set.of("TACTICAL_V3", TacticalObservationV3.SCHEMA).contains(text("featureSchemaV3", "TACTICAL_V3"))
+				|| !"DAMAGE,HEAL".equals(text("learningActionFamilies", "DAMAGE,HEAL")) || seed() != TacticalStoreV3.SEED)
+			{ throw new IllegalArgumentException("Не совпадают версия, схема или seed тактической модели V3."); }
+			integer("maxEntities", 20, 3, 20); integer("maxActions", 16, 2, 16); integer("decisionCooldownMillis", 2000, 1000, 60000);
+			integer("v3CollectionRound", 0, 0, 99); integer("v3ProofRound", 0, 0, 99); integer("v3TrainContexts", 16, 16, 256);
+			integer("v3TuningContexts", 8, 8, 128); integer("v3AuditContexts", 8, 8, 128);
+			final String v3Mode = text("v3Mode", "SHADOW"); final long v3Version = longValue("v3ModelVersion", 0, 0, Long.MAX_VALUE);
+			if (!Set.of("OFF", "SHADOW", "ON").contains(v3Mode) || "ON".equals(v3Mode) && (v3Version <= 0 || !text("v3ModelSha", "").matches("[a-f0-9]{64}")))
+			{ throw new IllegalArgumentException("Для V3 ON необходим явный pin проверенной TEST-модели."); }
+		}
 	}
 
 	public static TrainingConfig load(Path path) throws IOException

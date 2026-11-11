@@ -31,6 +31,12 @@ public final class TrainingEvaluator
 		{
 			if (args.length != 2 || !List.of("train", "status", "report", "export", "probe").contains(args[0]))
 			{ throw new IllegalArgumentException("Команда: train|status|report|export|probe <собственная установка>."); }
+			final var v3Config = TrainingConfig.load(Path.of(args[1]).resolve("TRAIN_CONFIG.ini"));
+			if ("true".equals(v3Config.text("v3Enabled", "false")) && List.of("train", "report", "export").contains(args[0]))
+			{
+				TacticalTrainerV3.main(new String[] { args[1], "train".equals(args[0]) ? "evaluate" : args[0] });
+				return;
+			}
 			final var store = new TrainingStore(Path.of(args[1]));
 			store.initialize();
 			switch (args[0])

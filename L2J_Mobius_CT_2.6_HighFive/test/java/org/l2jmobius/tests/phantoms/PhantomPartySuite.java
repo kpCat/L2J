@@ -2003,6 +2003,26 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(available.actionSkillId(), farm.actionSkillId(), "An unavailable Heal blocked the exact farm recipient's legal fallback.");
 			PhantomAssertions.assertEquals(victim.ref(), farm.targetMember(), "Fallback changed the intended Heal recipient.");
 		});
+		registry.add("learning003-urgent-heal-native-duration-calm-stock", _ ->
+		{
+			final var backend = new MemoryPartyBackend();
+			final var victim = new MemberSnapshot(MemberRef.phantom(1, 101), 0, 0, 0, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO);
+			final var healer = member(2, 102, 100, 100, false, 0, List.of());
+			final var slow = cap("combat.heal", "slow", 100, 1401);
+			final var fast = cap("combat.heal", "fast", 90, 1015);
+			backend._capabilities.put(healer.ref(), List.of(slow, fast));
+			backend._supportCastMillis.put(1401, 4000); backend._supportCastMillis.put(1015, 1000);
+			final var roster = List.of(victim.ref(), healer.ref());
+			final var tactics = new PhantomPartyTactics(null, backend);
+			final var calm = tactics.plan(victim.ref(), roster, Map.of(victim.ref(), victim, healer.ref(), healer)).stream().filter(v -> v.kind() == DirectiveKind.HEAL_MEMBER).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(1401, calm.actionSkillId(), "Calm stock preference changed.");
+			final var urgent = new MemberSnapshot(victim.ref(), victim.classId(), 0, 0, 0, 0, 40, 100, 100, false, false, false, false, 0, List.of(901), List.of(), ZERO);
+			final var pressured = tactics.plan(victim.ref(), roster, Map.of(victim.ref(), urgent, healer.ref(), healer)).stream().filter(v -> v.kind() == DirectiveKind.HEAL_MEMBER).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(1015, pressured.actionSkillId(), "A slower known Heal blocked the ready faster Heal under native pressure.");
+			backend._supportCastMillis.clear();
+			final var unknown = tactics.plan(victim.ref(), roster, Map.of(victim.ref(), urgent, healer.ref(), healer)).stream().filter(v -> v.kind() == DirectiveKind.HEAL_MEMBER).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(1401, unknown.actionSkillId(), "UNKNOWN timing fabricated a fast Heal.");
+		});
 		registry.add("02-external-combat-ownership-is-mandatory", context ->
 		{
 			final String tactics = source(context, "java/org/l2jmobius/gameserver/phantoms/party/PhantomPartyTactics.java");
@@ -3993,6 +4013,9 @@ public final class PhantomPartySuite implements PhantomTestSuite
 		private final Map<MemberRef, MemberSnapshot> _snapshots = new LinkedHashMap<>();
 		private final Map<MemberRef, List<MemberCapability>> _capabilities = new LinkedHashMap<>();
 		private final Map<MemberRef, List<MemberCapability>> _farmHealCapabilities = new LinkedHashMap<>();
+		private final Map<Integer, Integer> _supportCastMillis = new LinkedHashMap<>();
+		@Override public java.util.OptionalInt supportCastMillis(MemberRef actor, MemberCapability capability)
+		{ final var value = _supportCastMillis.get(capability.actionSkillId()); return value == null ? java.util.OptionalInt.empty() : java.util.OptionalInt.of(value); }
 		private final Set<Integer> _protectiveSkills = new java.util.HashSet<>();
 		private final Set<String> _healthyMaintenance = new java.util.HashSet<>();
 		private PhantomPartyCoordinator _coordinator;

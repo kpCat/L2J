@@ -49,6 +49,7 @@ public final class PhantomTrainingActors
 		var configPath = Path.of(args[1]).toAbsolutePath().normalize();
 		if (!configPath.equals(root.resolve("TRAIN_CONFIG.ini")) || !configPath.toRealPath().equals(configPath)) { throw new IllegalArgumentException("Owned physical training config required"); }
 		var config = TrainingConfig.load(configPath);
+		if ("true".equals(config.text("v3Enabled", "false"))) { PhantomLearning003Native.prepareActors(root, config); return; }
 		var credentials = settings(root);
 		var ledger = new TrainingStore(root);
 		ledger.initialize();
