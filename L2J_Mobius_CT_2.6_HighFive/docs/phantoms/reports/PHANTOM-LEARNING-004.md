@@ -1,6 +1,6 @@
 # PHANTOM-LEARNING-004 — общее ядро обучения DAMAGE + HEAL
 
-Статус: **CORE_VERIFIED — доставка в новую WIP required**. G1–G8 подтверждены ниже; окончательный FULL004_CORE фиксируется после scoped push и сверки GitHub HEAD. Это квалификация обучающего ядра, а не доказательство превосходства новой политики в боях.
+Статус: **FULL004_CORE**. G0–G9 подтверждены: scoped commit `31f02bb3fbaafaa9471abac10cc3e7c9efdbd261` опубликован обычным push только в новую `wip/phantom-learning-004`, GitHub HEAD прочитан обратно и совпал; пять защищённых refs неизменны. Итоговый docs commit проверяется той же процедурой и фиксируется внешней delivery receipt. Это квалификация обучающего ядра, а не доказательство превосходства новой политики в боях.
 
 Работа ведётся в независимом clone, в `wip/phantom-learning-004`, от exact base `06d42410fbfe1ca9b7f462b0816e0da1784630d6`. Пользовательский checkout не изменялся. Старые V1 DAMAGE и accepted V3 model2 сохранены. MAIN/PLAY, старые SQL, release-среды, Semantic Pack и защищённые refs не публикуются.
 
@@ -105,7 +105,7 @@ Actual own SQL faults: forged parent, deleted latest optimizer, orphan optimizer
 
 Final STOP exit0: STOPPED generation11, own ports33337/17981/19281 свободны, история сохранена. Geo203/protected207 проверены штатными exact hash guards при STOP; старые SQL/Main/Play не запускались. Автоматическая проверка ранее отклонила предложение временного профиля1/0/0 с абсолютным assetSourceRoot как ослабление требований/жёсткую привязку; оно не применялось. Работа продолжена на полноценном bounded профиле и относительном guard-поиске ассетов.
 
-G1 COMPAT, G2 UNIFIED, G3 INCREMENTAL, G4 AUTO, G5 CURRICULUM, G6 EPISODE, G7 QUALITY, G8 PERF подтверждены приведёнными evidence. G0/G9 завершаются exact scope guard, encoding checks и scoped GitHub delivery; квитанция отдельно фиксирует итоговый HEAD без циклического самохеша.
+G0 OWNERSHIP, G1 COMPAT, G2 UNIFIED, G3 INCREMENTAL, G4 AUTO, G5 CURRICULUM, G6 EPISODE, G7 QUALITY, G8 PERF и G9 DELIVERY — PASS в обозначенном scope. Native/SQL/export/STOP подтверждены evidence; exact scope/encoding и первая scoped GitHub delivery проверены. Квитанция отдельно фиксирует итоговый HEAD после docs commit без циклического самохеша.
 
 Финальный scope:114 exact paths, включая36 source/config/test files; прочее — входной пакет004, отчёты, проверяемые evidence и архивы. Outside allowlist0, missing0. Source/TEST overlay100entries SHA `3be7dbfa88e33aee80f09d81b214d8fa72c24b814bf0349956b5a2ce9a49273b`, каждый entry прочитан обратно и SHA совпал. Полная сводка изменений по всем путям — SCOPE_ALLOWLIST.txt; private runtime не включён.
 

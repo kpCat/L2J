@@ -106,3 +106,5 @@ git status --short --untracked-files=all
 ## Кодировка
 
 `rg -n -F -f <UTF8-full27-mojibake-patterns> -- <exact-text-paths>` и отдельно `rg -n -f <UTF8-six-escaped-Cyrillic-regex> -- <exact-text-paths>`. rg exit1 означает0matches, wrapper exit0; каждый прогон/число путей сохраняется. Итоговый отчёт должен содержать обе отдельные строки, не объединённое обещание.
+
+Первый scoped commit `31f02bb3fbaafaa9471abac10cc3e7c9efdbd261` и non-force push exit0; remote readback совпал. Final docs commit: `git commit -m "Record verified FULL004 core delivery"`, затем тот же обычный push и readback. Только собственный clone; исходный checkout HEAD/branch проверены read-only и совпали. Exact итоговые команды/exit0/HEAD/clean status записаны внешней `build/learning004-focused/delivery-receipt.json`; этот локальный generated receipt не является дополнительным tracked scope. Две encoding проверки повторены на109 text paths после финальных документов,0matches каждая.

@@ -1,8 +1,8 @@
 {
   "schema": 4,
-  "status": "CORE_VERIFIED_DELIVERY_REQUIRED",
+  "status": "FULL004_CORE",
   "gates": {
-    "G0": "LOCAL_PASS_REMOTE_DELIVERY_REQUIRED",
+    "G0": "PASS_VERIFIED_REMOTE_31f02bb3fbaafaa9471abac10cc3e7c9efdbd261",
     "G1": "PASS",
     "G2": "PASS",
     "G3": "PASS",
@@ -11,7 +11,7 @@
     "G6": "PASS",
     "G7": "PASS_DRAFT_REJECTED",
     "G8": "PASS_MEASUREMENT_SCOPES_EXPLICIT",
-    "G9": "LOCAL_PASS_REMOTE_DELIVERY_REQUIRED"
+    "G9": "PASS_SOURCE_TEST_EXPORT_REPORT_SCOPE_STOP_DELIVERED"
   },
   "nativeSegments": [
     "native-b.json",
@@ -51,5 +51,7 @@
   "fullChangedList": "SCOPE_ALLOWLIST.txt",
   "nativeFitWorkerCpuRam": "NOT_SAMPLED; actual fit wall9.514s; separate math-only profile in training-resources.json",
   "stockWinRate": "UNKNOWN_SHADOW",
-  "finalRemoteHead": "EXTERNAL_DELIVERY_RECEIPT_AFTER_PUSH"
+  "finalRemoteHead": "EXTERNAL_DELIVERY_RECEIPT_AFTER_PUSH",
+  "firstVerifiedRemoteHead": "31f02bb3fbaafaa9471abac10cc3e7c9efdbd261",
+  "sourceTestOverlaySha": "3be7dbfa88e33aee80f09d81b214d8fa72c24b814bf0349956b5a2ce9a49273b"
 }

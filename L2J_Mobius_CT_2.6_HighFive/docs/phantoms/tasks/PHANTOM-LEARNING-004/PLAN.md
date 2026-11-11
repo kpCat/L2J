@@ -56,45 +56,45 @@ sequenceDiagram
 
 Files: modify TacticalModelV3.java; create test PhantomLearning004ModelChecks.java. Keep original train/bytes/restore compatible.
 
-- [ ] RED: bit-exact batch1→serialize→restore→batch2 versus continuous two batches, parent bytes immutable, corrupt/truncated/wrong-schema rejected.
-- [ ] Implement authenticated versioned optimizer with model, Adam m/v, update count and safe batch cursor. Explicit fresh-moment migration from compatible003.
-- [ ] Deterministic epoch order derived from persisted seed/epoch and exact dataset identity; bounded batch stepping outside gameplay.
-- [ ] Verify focused004 checks and existing003 model contracts; command/exit/SHA in PROGRESS.
+- [x] RED: bit-exact batch1→serialize→restore→batch2 versus continuous two batches, parent bytes immutable, corrupt/truncated/wrong-schema rejected.
+- [x] Implement authenticated versioned optimizer with model, Adam m/v, update count and safe batch cursor. Explicit fresh-moment migration from compatible003.
+- [x] Deterministic epoch order derived from persisted seed/epoch and exact dataset identity; bounded batch stepping outside gameplay.
+- [x] Verify focused004 checks and existing003 model contracts; command/exit/SHA in PROGRESS.
 
 ### Task2: Durable replay and training integration
 
 Files: TacticalStoreV3.java, TacticalTrainerV3.java, phantom_tactical_v3.sql; focused004 store checks, minimal new checkpoint/replay contract file only if needed.
 
-- [ ] RED: stale parent/partial checkpoint/no double commit; historical ledger beyond4096 produces bounded stratified fit window, no audit reuse.
-- [ ] Persist optimizer lineage, frozen sample keys/schema/campaign boundary atomically with candidate; resume same FROZEN run after interrupted offline worker.
-- [ ] Import exact accepted003 archive with validated hashes; first migration explicitly zero moments, subsequent attempts restore committed moments.
-- [ ] Per-family/class quality and prior/constant metrics; reject unsupported/fake labels and retain losing DRAFT.
+- [x] RED: stale parent/partial checkpoint/no double commit; historical ledger beyond4096 produces bounded stratified fit window, no audit reuse.
+- [x] Persist optimizer lineage, frozen sample keys/schema/campaign boundary atomically with candidate; resume same FROZEN run after interrupted offline worker.
+- [x] Import exact accepted003 archive with validated hashes; first migration explicitly zero moments, subsequent attempts restore committed moments.
+- [x] Per-family/class quality and prior/constant metrics; reject unsupported/fake labels and retain losing DRAFT.
 
 ### Task3: Shared V3 DAMAGE and real episode contracts
 
 Files: TacticalPolicyV3.java, existing Combat issueAction/backend/lease seams, native evidence adapter, TacticalStoreV3 and existing focused tests. Read exact APIs before adding signatures.
 
-- [ ] RED: lawful DAMAGE candidates/recheck, stale/cooling/dead/MP rejection; shared checkpoint, HEAL emergency unchanged.
-- [ ] Forward true LearningCastEvidence outcome into V3 envelope with rich observation; no V1-vector relabeling or second damage formula.
-- [ ] Add versioned Solo/Party episode START/SETTLE summary with native target/participant death, duration, damage/heal/MP and explicit unsupported metrics.
-- [ ] Run affected Combat/Party/learning DB-free contracts; V1 and003 binary SHA unchanged.
+- [x] RED: lawful DAMAGE candidates/recheck, stale/cooling/dead/MP rejection; shared checkpoint, HEAL emergency unchanged.
+- [x] Forward true LearningCastEvidence outcome into V3 envelope with rich observation; no V1-vector relabeling or second damage formula.
+- [x] Add versioned Solo/Party episode START/SETTLE summary with native target/participant death, duration, damage/heal/MP and explicit unsupported metrics.
+- [x] Run affected Combat/Party/learning DB-free contracts; V1 and003 binary SHA unchanged.
 
 ### Task4: Autonomous curriculum and native acceptance
 
 Files: existing PhantomTrainingNative/Actors/Scenarios and learning003 native fixtures or focused004 fixture; Training.ps1/TrainingV3.ini/RUNBOOK only relevant seams.
 
-- [ ] Generate lazy fresh contexts/actors, at least2 real dimensions/family; fresh collection segment identity after resume, no erased CUT fences.
-- [ ] Preflight existing G0/own SQL/Geo once; collect native DAMAGE Solo/Party and HEAL97/105 using actual legal alternatives and exact receipts.
-- [ ] Complete real Solo and Party encounters; matched stock/prior comparison, UNKNOWN where unsupported.
-- [ ] SessionA fit/checkpoint/STOP; fresh-process sessionB RESUME/new events/fit/STOP. Controlled exact-owned worker interruption and cold recovery.
-- [ ] Warm128 logical actor4/8/16 benchmark plus native timings/allocations/throughput/resources; report true sample counts.
+- [x] Generate lazy fresh contexts/actors, at least2 real dimensions/family; fresh collection segment identity after resume, no erased CUT fences.
+- [x] Preflight existing G0/own SQL/Geo once; collect native DAMAGE Solo/Party and HEAL97/105 using actual legal alternatives and exact receipts.
+- [x] Complete real Solo and Party encounters; matched stock/prior comparison, UNKNOWN where unsupported.
+- [x] SessionA fit/checkpoint/STOP; fresh-process sessionB RESUME/new events/fit/STOP. Controlled exact-owned worker interruption and cold recovery.
+- [x] Warm128 logical actor4/8/16 benchmark plus native timings/allocations/throughput/resources; report true sample counts.
 
 ### Task5: Delivery
 
 Files: new report PHANTOM-LEARNING-004.md; PLAN/PROGRESS/RESULT/HANDOFF, concise evidence/fixtures, SCOPE_ALLOWLIST/SCOPE_GUARD and artifact archive under module docs.
 
-- [ ] Final affected checks, F7/F8 where relevant, native STOP/ports free, protected hashes unchanged.
-- [ ] Separate full mojibake and escaped Cyrillic checks; exact scope diff and no secrets/datadir/restricted binaries.
-- [ ] Independent review, fix substantive findings with regression proof.
-- [ ] Scoped commits and ordinary non-force push exclusively wip/phantom-learning-004; verify remote GitHub HEAD.
-- [ ] FULL004_CORE only if G0–G9 passed; otherwise precise PARTIAL, no weakened gates.
+- [x] Final affected checks, F7/F8 where relevant, native STOP/ports free, protected hashes unchanged.
+- [x] Separate full mojibake and escaped Cyrillic checks; exact scope diff and no secrets/datadir/restricted binaries.
+- [x] Independent review, fix substantive findings with regression proof.
+- [x] Scoped commits and ordinary non-force push exclusively wip/phantom-learning-004; verify remote GitHub HEAD.
+- [x] FULL004_CORE only if G0–G9 passed; otherwise precise PARTIAL, no weakened gates.

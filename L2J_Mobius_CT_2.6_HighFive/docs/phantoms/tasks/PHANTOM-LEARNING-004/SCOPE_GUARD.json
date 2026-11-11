@@ -1,6 +1,6 @@
 {
   "schema": 4,
-  "phase": "PRECOMMIT",
+  "phase": "FINAL_DOCS_ONLY_AFTER_REMOTE_VERIFY",
   "allowlist": "SCOPE_ALLOWLIST.txt",
   "allowedPaths": 114,
   "actualPaths": 114,
@@ -22,5 +22,7 @@
   ],
   "cachedFullWhitespaceExit": 2,
   "immutableInputWhitespaceException": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/ARCHITECTURE.md:3 ORIGINAL_TRAILING_SPACE_MANIFEST_SHA_UNCHANGED",
-  "checkedPathsExcludingImmutableInput": 113
+  "checkedPathsExcludingImmutableInput": 113,
+  "firstVerifiedRemoteHead": "31f02bb3fbaafaa9471abac10cc3e7c9efdbd261",
+  "finalDocsOnly": true
 }

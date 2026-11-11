@@ -1,6 +1,6 @@
 # PHANTOM-LEARNING-004 — передача
 
-Рабочая ветка `wip/phantom-learning-004`, independent clone от exact003 `06d42410fbfe1ca9b7f462b0816e0da1784630d6`. Пользовательский checkout read-only; изменения выполнялись только в собственном clone. Текущий результат CORE_VERIFIED, до финальной сверки push см. RESULT.
+Рабочая ветка `wip/phantom-learning-004`, independent clone от exact003 `06d42410fbfe1ca9b7f462b0816e0da1784630d6`. Пользовательский checkout read-only; изменения выполнялись только в собственном clone. Результат FULL004_CORE; первый GitHub HEAD31f02bb3fbaafaa9471abac10cc3e7c9efdbd261 verified, final docs HEAD — во внешней delivery receipt. Ни новая политика, ни следующий goal не включены.
 
 1. Начать с RESULT, русского отчёта и EVIDENCE.json. Исторический PROGRESS сохраняет реальные неудачи и причины повторов; его старые ACTIVE POINT не являются текущим состоянием.
 2. TEST штатно STOPPED; история509native events/26episodes/checkpoints4–8 сохранена. Не удалять datadir/опыт для «чистого» запуска. Native test root обнаруживается существующим Training.ps1/config, не переносить абсолютные evidence-пути в код.

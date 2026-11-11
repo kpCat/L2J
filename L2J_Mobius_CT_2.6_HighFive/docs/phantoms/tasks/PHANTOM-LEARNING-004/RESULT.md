@@ -1,6 +1,6 @@
 # PHANTOM-LEARNING-004 — результат
 
-**CORE_VERIFIED; scoped GitHub delivery required.** После проверки новой удалённой ветки итоговый статус обновляется на FULL004_CORE. Все native/continuation/quality/performance проверки выполнены, ручной TRAIN_*.cmd DEFERRED_BY_OWNER.
+**FULL004_CORE.** Все G0–G9 выполнены: native/continuation/quality/performance/STOP/scope/encoding и scoped GitHub delivery. Первый опубликованный и прочитанный обратно HEAD `31f02bb3fbaafaa9471abac10cc3e7c9efdbd261`; окончательный docs commit/remote HEAD — во внешней delivery receipt. Ручной TRAIN_*.cmd DEFERRED_BY_OWNER.
 
 - Одна immutable V3 ранжирует законные DAMAGE и HEAL альтернативы в существующих Combat/Party owners; отдельного cross-owner planner нет.
 - Две полные native collection сессии после STOP/new-process RESUME: B56HEAL+11DAMAGE/5completed+1timeout; C56HEAL+20DAMAGE/9completed+2timeout+1pre-CUT SKIP.
