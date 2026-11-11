@@ -81,6 +81,7 @@ public final class PhantomLearning001ActorFixture
 	private static final int MAJOR_HEAL = 1401;
 	private static final int PROMINENCE_POWER_PLUS_ONE = 101;
 	private static final int CHANGED_CREATION = 20966;
+	static final long COLD_SOLO_TIMEOUT_MILLIS = 12_000;
 	private static final PhantomPartyFarmEligibility.NpcLevelBand PARTY_TARGET_BAND =
 		PhantomPartyFarmEligibility.forRoster(List.of(76, 77, 78)).orElseThrow();
 	private static final int PARTY_PREFLIGHT_RANGE = PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE;
@@ -91,10 +92,14 @@ public final class PhantomLearning001ActorFixture
 		int exit = 1;
 		try
 		{
-			if (args.length != 3 || !Set.of("actors", "scenes", "capacity", "party", "survey").contains(args[0])) { throw new IllegalArgumentException("Expected actors|scenes|capacity|party|survey, module path and lane"); }
+			if (args.length < 3 || args.length > 4 || !Set.of("actors", "scenes", "capacity", "party", "recover-audit", "stock-heal", "survey").contains(args[0])) { throw new IllegalArgumentException("Expected actors|scenes|capacity|party|recover-audit|stock-heal|survey, module path, lane and optional proof scope"); }
 			final boolean scenes = !args[0].equals("actors");
 			final boolean capacity = args[0].equals("capacity");
 			final boolean party = args[0].equals("party");
+			final boolean recovery = args[0].equals("recover-audit");
+			final boolean stockHeal = args[0].equals("stock-heal");
+			final String proofScope = args.length == 4 ? args[3] : "BOTH";
+			if (!(recovery ? Set.of("BOTH", "SOLO", "PARTY").contains(proofScope) : "BOTH".equals(proofScope))) { throw new IllegalArgumentException("Invalid fixture proof scope"); }
 			final boolean survey = args[0].equals("survey");
 			final Path lane = PhantomLearning001FixtureSql.resolveLane(args[1], args[2]);
 			final Path game = lane.resolve("game").toRealPath();
@@ -103,7 +108,7 @@ public final class PhantomLearning001ActorFixture
 			if (!Path.of(".").toRealPath().equals(game) || Files.mismatch(config, lane.resolve("Database.ini")) != -1
 				|| !Files.readString(lane.resolve("owner.txt")).matches("LEARNING001:[0-9a-f]{32}")
 				|| !survey && (Files.exists(actorManifest) != scenes || Files.exists(lane.resolve("cut.properties"))
-					|| (party ? !Files.isRegularFile(lane.resolve("capacity.tsv")) : Files.exists(lane.resolve("attempts")))))
+					|| (party || recovery || stockHeal ? !Files.isRegularFile(lane.resolve("capacity.tsv")) : Files.exists(lane.resolve("attempts")))))
 			{
 				throw new IllegalStateException("Expected fresh owned pre-CUT actor fixture");
 			}
@@ -121,16 +126,23 @@ public final class PhantomLearning001ActorFixture
 			InitialEquipmentData.getInstance();
 			InitialShortcutData.getInstance();
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
-			try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
+			if (stockHeal)
 			{
-				if (survey)
+				checkStockPlayerHeal(lane, readActors(actorManifest));
+			}
+			else
+			{
+				try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 				{
-					inspectStockMagic(authority);
-					fixturePoint(authority, true);
+					if (survey)
+					{
+						inspectStockMagic(authority);
+						fixturePoint(authority, true);
+					}
+					else if (party || recovery) { PhantomLearning001ShadowNative.preflightParty(authority, game, lane, readActors(actorManifest), recovery, proofScope); }
+					else if (scenes) { planScenes(actorManifest, lane, authority, capacity); }
+					else { prepare(actorManifest, authority, settings.getProperty("Password")); }
 				}
-				else if (party) { PhantomLearning001ShadowNative.preflightParty(authority, game, lane, readActors(actorManifest)); }
-				else if (scenes) { planScenes(actorManifest, lane, authority, capacity); }
-				else { prepare(actorManifest, authority, settings.getProperty("Password")); }
 			}
 			exit = 0;
 		}
@@ -177,6 +189,62 @@ public final class PhantomLearning001ActorFixture
 		}
 		if (!SPLIT_SCOPES.equals(groups)) { throw new IllegalStateException("Missing independent fixture split or scope"); }
 		return result;
+	}
+
+	private static void checkStockPlayerHeal(Path lane, List<String[]> actors) throws Exception
+	{
+		if (Files.exists(lane.resolve("stock-heal-cut.tsv"))) { throw new IllegalStateException("Stock Heal control already measured in this lane"); }
+		final var helper = actors.stream().filter(row -> "HEAL_HELPER".equals(row[1])).findFirst().orElseThrow();
+		final Player caster = Player.load(Integer.parseInt(helper[3]));
+		final Player recipient = Player.create(PlayerTemplateData.getInstance().getTemplate(0), ACCOUNT,
+			"LearnH" + Long.toUnsignedString(System.nanoTime(), 36), new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		if (caster == null || recipient == null) { throw new IllegalStateException("Stock Heal actors could not load"); }
+		try
+		{
+			if (caster.isNativeWorkManaged() || recipient.isNativeWorkManaged() || caster.isGM() || recipient.isGM()
+				|| caster.getKnownSkill(MAJOR_HEAL) == null || !ACCOUNT.equals(caster.getAccountName()))
+			{
+				throw new IllegalStateException("Stock Heal requires ordinary unmanaged owned Players");
+			}
+			// Independent regression input, declared before its measurement boundary.
+			recipient.setOnlineStatus(true, false);
+			PlayerCreationInitializer.initialize(recipient, PlayerCreationInitializer.Mode.POPULATION,
+				new Location(caster.getX() + 30, caster.getY(), caster.getZ()));
+			recipient.getStat().setExp(recipient.getStat().getExpForLevel(78));
+			recipient.getStat().setLevel((byte) 78);
+			recipient.setCurrentHp(recipient.getMaxHp() * .4);
+			caster.setOnlineStatus(true, false);
+			caster.spawnMe();
+			recipient.spawnMe();
+			final double hp = recipient.getCurrentHp(), mp = caster.getCurrentMp();
+			final long exp = recipient.getExp(), sp = recipient.getSp(), casterExp = caster.getExp(), casterSp = caster.getSp();
+			final var skill = caster.getKnownSkill(MAJOR_HEAL);
+			Files.writeString(lane.resolve("stock-heal-cut.tsv"), "caster\trecipient\tskill\thp\tmp\n" + caster.getObjectId() + "\t"
+				+ recipient.getObjectId() + "\t" + skill.getId() + ":" + skill.getLevel() + "\t" + hp + "\t" + mp + "\n", StandardOpenOption.CREATE_NEW);
+			caster.setTarget(recipient);
+			if (!caster.useMagic(skill, false, false)) { throw new IllegalStateException("Ordinary stock Heal dispatch rejected"); }
+			final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(12);
+			boolean healed = false, spent = false;
+			while (System.nanoTime() < deadline)
+			{
+				healed |= recipient.getCurrentHp() > hp + recipient.getMaxHp() * .15;
+				spent |= caster.getCurrentMp() < mp - 1;
+				if (healed && spent && !caster.isCastingNow()) { break; }
+				Thread.sleep(50);
+			}
+			if (!healed || !spent || recipient.getExp() != exp || recipient.getSp() != sp || caster.getExp() != casterExp || caster.getSp() != casterSp)
+			{
+				throw new IllegalStateException("Ordinary stock Heal effect, MP cost or conservation failed hp=" + hp + "->" + recipient.getCurrentHp()
+					+ " mp=" + mp + "->" + caster.getCurrentMp());
+			}
+			System.out.println("LEARNING001_STOCK_PLAYER_HEAL_PASS caster=" + caster.getObjectId() + " recipient=" + recipient.getObjectId()
+				+ " skill=" + skill.getId() + ":" + skill.getLevel() + " hp=" + hp + "->" + recipient.getCurrentHp() + " mp=" + mp + "->" + caster.getCurrentMp()
+				+ " managed=false expSp=UNCHANGED GameServer=0");
+		}
+		finally
+		{
+			for (Player player : List.of(caster, recipient)) { player.stopAllTasks(); player.storeMe(); player.deleteMe(); }
+		}
 	}
 
 	private record Scene(long profile, StoredGoal current, PhantomGoal goal, List<Monster> targets, PhantomBackgroundState state) { }
@@ -361,6 +429,35 @@ public final class PhantomLearning001ActorFixture
 				&& geo.canSeeTarget(player, npc) && geo.canMoveToTarget(player, npc))
 			.sorted(Comparator.comparingDouble(Monster::getMaxHp).thenComparingDouble(npc -> -player.calculateDistance2D(npc))).limit(24)
 			.filter(npc -> safeSoloOpening(player, npc)).toList();
+	}
+
+	static List<Monster> coldSoloOpeningTargets(Player player)
+	{
+		if (player.getCurrentHp() < player.getMaxHp() * .9) { return List.of(); }
+		final int range = SKILLS.stream().map(player::getKnownSkill).filter(java.util.Objects::nonNull)
+			.mapToInt(player::getMagicalAttackRange).min().orElse(0);
+		return soloOpeningTargets(player).stream().filter(npc -> player.calculateDistance3D(npc) <= range).filter(npc ->
+		{
+			final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, npc, player.getKnownSkill(1230));
+			final double exposure = PhantomBackgroundModel.incomingDamage(facts.combat(), L2jPhantomBackgroundAuthority.nativePlanningTarget(npc, true),
+				COLD_SOLO_TIMEOUT_MILLIS);
+			return Double.isFinite(exposure) && exposure < player.getCurrentHp() * .65;
+		}).toList();
+	}
+
+	static void inspectColdSoloOpening(Player player)
+	{
+		final int range = SKILLS.stream().map(player::getKnownSkill).filter(java.util.Objects::nonNull).mapToInt(player::getMagicalAttackRange).min().orElse(0);
+		for (var npc : World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1700).stream()
+			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead()).sorted(Comparator.comparingDouble(player::calculateDistance2D)).limit(12).toList())
+		{
+			final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, npc, player.getKnownSkill(1230));
+			final double exposure = PhantomBackgroundModel.incomingDamage(facts.combat(), L2jPhantomBackgroundAuthority.nativePlanningTarget(npc, true),
+				COLD_SOLO_TIMEOUT_MILLIS);
+			System.out.println("LEARNING001_COLD_SOLO_TARGET actor=" + player.getObjectId() + " npc=" + npc.getId() + " object=" + npc.getObjectId()
+				+ " hp=" + player.getCurrentHp() + "/" + player.getMaxHp() + " distance=" + player.calculateDistance3D(npc) + " range=" + range
+				+ " exposure=" + exposure + " ordinaryOpening=" + soloOpeningTargets(player).contains(npc) + " champion=" + npc.isChampion());
+		}
 	}
 
 	private static boolean safeSoloOpening(Player player, Monster target)

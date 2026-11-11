@@ -1,5 +1,91 @@
 # Передача контекста для завершения PHANTOM-LEARNING-001
 
+## Дополнение от 11 ноября 2026 года
+
+**SUCCESS в scope Solo и автономного Party PvE.** Реальный цикл обучения и применения завершён. Подготовка контекста для PHANTOM-LEARNING-002 выполнена, следующий goal не начат.
+
+## Идентичность и сохранность
+
+- GitHub [wip/phantom-learning](https://github.com/kpCat/L2J/tree/wip/phantom-learning).
+- База `c5b81f89ce02030eff8441395b0411137a110b2f`, предыдущий опубликованный HEAD `23c7b3377a771acb75e5c65fa8ef30a993d8f25a`. Итоговый SHA сверяется через `git rev-parse --verify HEAD` и GitHub readback.
+- Независимый clone `D:/Codex/worktrees/phantom-learning-001-source`. Пользовательский `D:/Codex/repos/L2J-phantom-world` использовался read-only.
+- Защищённый feature HEAD `faec72161f9e4f6231764e17d6f2637a4db080af`, TASK130 HEAD `c5b81f89ce02030eff8441395b0411137a110b2f`.
+- Приватный корень `D:/Codex/worktrees/phantom-learning-001-source/.phantom-local/learning001` исключён из staging. Он содержит datadir, Geo203, protected207, исходные журналы и веса. История ранних попыток сохранена в отчёте и отдельных контурах.
+- Собственные endpoints MariaDB `127.0.0.1:33317`, GameServer `127.0.0.1:17961`, исходящий Login `127.0.0.1:19261`. После финального readback все свободны, owned JVM и SQL остановлены.
+
+## Действующая модель cycle19
+
+| Поле | Значение |
+|---|---|
+| Model / algorithm / status | 2 / 2 / ACCEPTED, NATIVE |
+| SHA-256 весов | `a628f4811d9dfb257c117bfc8e0b14ac122ac8fc6b7233cd1d31121c88102777` |
+| JAR SHA-256 | `e4de040cfa6e33fa478592138d9aed95230f231df88fe40f73cb3f48a3b18a61` |
+| Feature schema | `53a0b97cd4c771a2d2a93b46829273f312e0dfd77626989e92b9b52ae2dc1d34` |
+| Skill catalog | `e46709db95ce8e92f4b4f392b5c468d147c6ddb11ab6c773cc48f3702bc6474a` |
+| Training hash | `9d6267cb3f0b9e081e68a66464edf65a82938adc7cc304240c908e35d4709393` |
+| Размер / выбранная эпоха | 12 500 Б / 3 |
+| TRAIN / TUNING / independent AUDIT | 18 / 8 / 10 |
+| AUDIT MSE / TRAIN-mean MSE | 0,05747961 / 0,07203633 |
+
+V2 обучает ту же MLP на остатке относительно среднего TRAIN, сохраняет центр и масштаб вместе с весами и возвращает исходную шкалу reward. V1 читается по старому формату 12 484 Б. Прежняя ACCEPTED v1, исходные 36 SHADOW-строк и последующие ON-события сохранены. Финально **47 уникальных EXACT_CAST_HP**, 24 Solo и 23 Party, две ACCEPTED модели.
+
+## Причинные evidence
+
+| Scope | Успешная холодная попытка | Event key | Штатный результат |
+|---|---|---|---|
+| PARTY | `4531202ea167464eb60b44832a97f3ac` | `7b814364b7d6fdcda727ebc21ab673a66433b9f6144c86fd9781811ea7396acf` | 1230:28 → 1339:1, 1203 HP |
+| PARTY | та же | `e9ba0cc32b444a30f2fb1c14a1b770be14846038e4c405f95d5ac3f2981d5fc4` | 1230:28 → 1339:1, 1408 HP |
+| SOLO | `cc532865f5aa472dbbc1d1a468abec15` | `2e075e88e836d58a07b8c9243e22e5fd36416ca9be107327f7db66aca4ae2d46` | 1230:28 → 1339:1, 1563 HP |
+
+Приватные launch logs `cycle19-algo2-party-release-on.log`, `cycle19-algo2-solo-drain-on.log` включают OS socket/PID/FILETIME, точный cold SQL SHA, GAME_STOP, независимый `ON_EVENT_SQL_PASS` и SQL_STOP. Каталоги `cycle19/attempts/<id>` содержат native stdout/stderr, CUT и `on.complete`. В Party evaluated=6, preferredDifferent=2, applied=2. В Solo 1/1/1, overBudget=0 и unknown=0 в обоих.
+
+Первый v2 Party и первый v2 Solo также дали точные SQL-подтверждённые HP, но wrapper отказал при завершении. В Party ожиданию drain требовался обычный coordinator pulse. Для конечного Solo после quota используется canonical drain/store после native terminal. Бой ограничен 12 секундами, начинается от 90% HP и в диапазоне обоих навыков. Первый Solo v1 ранее привёл к смерти. Восстановление проведено штатным Resurrection 1016 и WALK с leases, потеря EXP оставила уровень 77. Все эти исходы сохранены.
+
+## Проверки
+
+`cycle19-algo2-verified-compile.log` подтверждает compile-tests, exit 0. Targeted `cycle19-algo2-verified-*.log` подтверждают Learning 4, Solo Combat 72, ownership 37, Party tactics 13, coordination 77, PvP 14, Support 9, Supply071 11, commerce receipt 15 и F8 14, всего **266/266**. F7 strict receipt и itinerary прошли отдельным entrypoint без SQL replay.
+
+`cycle19-algo2-stock-heal.log` подтверждает ordinary unmanaged Player Heal 1401:11, HP 866,40 → 1886,73, MP 2756,00 → 2689,48, EXP/SP без изменений. Новый получатель 268435465 подготовлен до отдельного `stock-heal-cut.tsv`. Исходные learning-актёры не получали искусственного HP. Native Heal контроль выполнен без GameServer.
+
+`cycle19-algo2-final-read-native.log` и `cycle19-algo2-final-read.log` подтверждают финальные данные, SQL digest и STOP после Heal. Второй лог измеряет реальные ACCEPTED веса на 128×4 подготовленных векторах, p50/p95/p99 6,6/7,3/8,0 мкс, 24,1 Б/op, CPU 203,125 мс, payload 262 144 Б, heap 51 534 048 Б до и после. Полный native feature/selection путь измерен отдельно, Solo 2,3223 мс, Party среднее 0,5194 мс и максимум 1,9177 мс.
+
+Не оценены причинный прирост native DPS/возврата политики, полный native SQL replay F7, отдельный PvP/PK эпизод и длительное OFF/ON CPU сравнение. Наблюдённые предпочтения v2 направлены к Fire Vortex. Выборка мала, классы и NPC ограничены, парных одинаковых полных состояний с двумя исполненными действиями нет.
+
+Независимый read-only review текущего production/test diff и первичных evidence не выявил P1/P2. Generic promotion сравнивает loss со случайной v1 initialization, превосходство над constant baseline автоматически не требует. Для текущего checkpoint v2 превосходство отдельно проверено в обоих scope до promotion.
+
+## Повторное чтение
+
+Из корня High Five можно выполнить read-only по игровым данным, с временным запуском только собственной SQL. Параметры pin обязательны.
+
+```powershell
+$fixture = 'tools/phantom-runtime/Invoke-Learning001Fixture.ps1'
+$jar = 'e4de040cfa6e33fa478592138d9aed95230f231df88fe40f73cb3f48a3b18a61'
+$model = 'a628f4811d9dfb257c117bfc8e0b14ac122ac8fc6b7233cd1d31121c88102777'
+powershell -NoProfile -File $fixture -Action read-native -Lane cycle19
+powershell -NoProfile -File $fixture -Action read -Lane cycle19 -JarSha $jar -Version 2 -ModelSha $model
+powershell -NoProfile -File $fixture -Action audit-shadow -Lane cycle19 -JarSha $jar -Version 2 -ModelSha $model
+```
+
+При необходимости повторного ON сначала выполнить targeted preflight по фактическому сохранённому состоянию. `recover-audit -ProofScope SOLO|PARTY` использует штатные leases, WALK, rest и при необходимости Resurrection. `on -ProofScope SOLO|PARTY` создаёт новую идентичность попытки, проверяет pin и точные SQL события своего scope. Полная приёмка требует обоих scope с тем же checkpoint. `stage` и `provision-sql` относятся к новой схеме. Исторические datadir и одноразовый `stock-heal` сохраняются.
+
+## Контекст PHANTOM-LEARNING-002
+
+Общая policy уже находится в существующем CombatService. Следующий task может использовать versioned encoder, bounded exact evidence, offline trainer и MariaDB checkpoint. Нужны отдельно утверждённые цели и критерии для более разнообразных классов/целей, контекстного изменения предпочтений и оценки возврата. Training Director, PvP и осады в 001 не реализованы. Исторический TASK130 сохраняет свой отдельный статус.
+
+## Git
+
+Git-команды разрешены владельцем для независимого clone, scoped commits и обычного push только learning-ветки. В продолжении использованы `git status --short --branch`, `git rev-parse --verify HEAD`, `git symbolic-ref --short HEAD`, `git diff --stat`, `git diff --numstat -- <точные пути>`, `git diff -- <точные пути>`, `git -c core.whitespace=cr-at-eol diff --check`. Для stage используются `git add -- @paths`, `git diff --cached --name-only --relative`, `git -c core.whitespace=cr-at-eol diff --cached --check`. Массив paths содержит ровно 11 изменённых файлов текущего diff в High Five, два production learning-класса, пять learning test-классов, fixture launcher и три отчётных документа.
+
+Команда коммита `git commit -m 'Complete native neural learning cycle in Solo and Party'`. Проверка предка `git merge-base --is-ancestor 23c7b3377a771acb75e5c65fa8ef30a993d8f25a HEAD`. Публикация `git push origin HEAD:refs/heads/wip/phantom-learning`. До и после неё `git ls-remote origin refs/heads/wip/coordination-130-preserved refs/heads/feature/phantom-world refs/heads/wip/phantom-learning` сверяет обе защищённые ветки и exact learning HEAD.
+
+Начальная изоляция ранее выполнена через `git clone --no-checkout --single-branch --depth 1 --branch wip/coordination-130-preserved -c core.longpaths=true` и `git switch --no-track --create wip/phantom-learning c5b81f89ce02030eff8441395b0411137a110b2f`. Предыдущие bounded Git-команды описаны в истории отчёта и коммитов этой ветки.
+
+- Mojibake-маркеры в изменённых файлах проверены полным списком.
+- Escaped Cyrillic в изменённых файлах проверены Unicode и XML шаблонами.
+
+## Сохранённые результаты предыдущих этапов
+
+
 LEARNING-001 имеет статус **PARTIAL**. Базовый SHA `c5b81f89ce02030eff8441395b0411137a110b2f`, реализация `518318c89c6937c80818b4035df6b0fc9523f9ce`. Ветка [wip/phantom-learning](https://github.com/kpCat/L2J/tree/wip/phantom-learning). Локальный clone `D:/Codex/worktrees/phantom-learning-001-source`. Путь пользователя `D:/Codex/repos/L2J-phantom-world` оставался read-only.
 
 ## Состояние native-вертикали

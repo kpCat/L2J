@@ -15,21 +15,36 @@ import java.util.Random;
 public final class NeuralPolicy
 {
 	public static final int ALGORITHM = 1;
+	public static final int RESIDUAL_ALGORITHM = 2;
 	private static final int INPUTS = LearningFeatures.SIZE;
 	private static final int HIDDEN = 24;
 	private static final int STRIDE = INPUTS + 1;
 	private static final int OUTPUT = HIDDEN * STRIDE;
 	private static final int PARAMETERS = OUTPUT + HIDDEN + 1;
 	public static final int BYTE_SIZE = PARAMETERS * Float.BYTES;
+	public static final int RESIDUAL_BYTE_SIZE = BYTE_SIZE + 2 * Double.BYTES;
 	public static final int MAX_EXAMPLES = 4096;
 	private static final int BATCH_SIZE = 24;
 	private static final float WEIGHT_BOUND = 8;
 	private final float[] _weights;
+	private final int _algorithm;
+	private final double _center;
+	private final double _scale;
 
 	private NeuralPolicy(float[] weights)
 	{
-		_weights = weights;
+		this(weights, ALGORITHM, 0, 1);
 	}
+
+	private NeuralPolicy(float[] weights, int algorithm, double center, double scale)
+	{
+		_weights = weights;
+		_algorithm = algorithm;
+		_center = center;
+		_scale = scale;
+	}
+
+	public int algorithm() { return _algorithm; }
 
 	public record Example(float[] features, float reward)
 	{
@@ -69,7 +84,8 @@ public final class NeuralPolicy
 
 	public float score(float[] features)
 	{
-		return forward(_weights, features, null);
+		final float prediction = forward(_weights, features, null);
+		return _algorithm == ALGORITHM ? prediction : (float) Math.clamp(_center + _scale * prediction, -1, 1);
 	}
 
 	private static float forward(float[] weights, float[] features, float[] hidden)
@@ -147,6 +163,17 @@ public final class NeuralPolicy
 		return new Training(new NeuralPolicy(best), bestStep, initialLoss, bestLoss);
 	}
 
+	/** Fit the native reward residual. Restore the original reward units before making a decision. */
+	public static Training trainResidual(List<Example> examples, List<Example> validation, long seed)
+	{
+		final double center = examples.stream().mapToDouble(Example::reward).average().orElseThrow();
+		final double scale = 1 + Math.abs(center);
+		final java.util.function.Function<Example, Example> residual = row -> new Example(row.features, (float) ((row.reward - center) / scale));
+		final var fit = train(examples.stream().map(residual).toList(), validation.stream().map(residual).toList(), seed);
+		final var model = new NeuralPolicy(fit.model()._weights, RESIDUAL_ALGORITHM, center, scale);
+		return new Training(model, fit.step(), loss(initial(seed)._weights, validation), model.predictionLoss(validation));
+	}
+
 	/** Audit the frozen checkpoint on a third split that never chose a training epoch. */
 	public static Training audit(Training checkpoint, List<Example> heldOut, long seed)
 	{
@@ -154,7 +181,7 @@ public final class NeuralPolicy
 		{
 			throw new IllegalArgumentException("Insufficient or oversized independent audit split");
 		}
-		return new Training(checkpoint.model(), checkpoint.step(), loss(initial(seed)._weights, heldOut), loss(checkpoint.model()._weights, heldOut));
+		return new Training(checkpoint.model(), checkpoint.step(), loss(initial(seed)._weights, heldOut), checkpoint.model().predictionLoss(heldOut));
 	}
 
 	private static void accumulate(float[] weights, float[] gradient, float[] hidden, Example example)
@@ -190,10 +217,26 @@ public final class NeuralPolicy
 		return loss / examples.size();
 	}
 
+	private double predictionLoss(List<Example> examples)
+	{
+		double loss = 0;
+		for (Example example : examples)
+		{
+			final double error = score(example.features) - example.reward;
+			loss += error * error;
+		}
+		return loss / examples.size();
+	}
+
 	public byte[] bytes()
 	{
-		final ByteBuffer bytes = ByteBuffer.allocate(BYTE_SIZE);
+		final ByteBuffer bytes = ByteBuffer.allocate(_algorithm == ALGORITHM ? BYTE_SIZE : RESIDUAL_BYTE_SIZE);
 		bytes.asFloatBuffer().put(_weights);
+		if (_algorithm == RESIDUAL_ALGORITHM)
+		{
+			bytes.putDouble(BYTE_SIZE, _center);
+			bytes.putDouble(BYTE_SIZE + Double.BYTES, _scale);
+		}
 		return bytes.array();
 	}
 
@@ -204,12 +247,13 @@ public final class NeuralPolicy
 
 	public static NeuralPolicy restore(byte[] bytes, String expectedSha)
 	{
-		if (bytes == null || bytes.length != BYTE_SIZE || !sha256(bytes).equals(expectedSha))
+		if (bytes == null || (bytes.length != BYTE_SIZE && bytes.length != RESIDUAL_BYTE_SIZE) || !sha256(bytes).equals(expectedSha))
 		{
 			throw new IllegalArgumentException("Invalid model size or checksum");
 		}
 		final float[] weights = new float[PARAMETERS];
-		ByteBuffer.wrap(bytes).asFloatBuffer().get(weights);
+		final ByteBuffer payload = ByteBuffer.wrap(bytes);
+		payload.asFloatBuffer().get(weights);
 		for (float value : weights)
 		{
 			if (!Float.isFinite(value) || Math.abs(value) > WEIGHT_BOUND)
@@ -217,7 +261,14 @@ public final class NeuralPolicy
 				throw new IllegalArgumentException("Invalid model weight");
 			}
 		}
-		return new NeuralPolicy(weights);
+		if (bytes.length == BYTE_SIZE) { return new NeuralPolicy(weights); }
+		final double center = payload.getDouble(BYTE_SIZE);
+		final double scale = payload.getDouble(BYTE_SIZE + Double.BYTES);
+		if (!Double.isFinite(center) || Math.abs(center) > 1 || scale != 1 + Math.abs(center))
+		{
+			throw new IllegalArgumentException("Invalid residual calibration");
+		}
+		return new NeuralPolicy(weights, RESIDUAL_ALGORITHM, center, scale);
 	}
 
 	public static String sha256(byte[] bytes)

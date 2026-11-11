@@ -31,6 +31,7 @@ import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
@@ -39,6 +40,8 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalAct
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.learning.LearningFeatures;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
@@ -76,10 +79,12 @@ public final class PhantomLearning001ShadowNative
 
 	public static void main(String[] args) throws Exception
 	{
-		check(args.length == 7 && PhantomLearning001FixtureSql.writableLane(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
+		check(args.length == 8 && PhantomLearning001FixtureSql.writableLane(args[1]) && args[2].matches("[0-9a-f]{32}") && args[3].matches("[0-9a-f]{64}")
 			&& Boolean.getBoolean("phantom.learning.train"), "EXPLICIT_OPT_IN");
 		final boolean on = "on".equals(args[4]);
 		final long version = Long.parseLong(args[5]);
+		final String proofScope = args[7];
+		check(on ? java.util.Set.of("BOTH", "SOLO", "PARTY").contains(proofScope) : "BOTH".equals(proofScope), "EXPLICIT_PROOF_SCOPE");
 		check(on ? version > 0 && args[6].matches("[0-9a-f]{64}") && Boolean.getBoolean("phantom.learning.witness")
 			: "shadow".equals(args[4]) && version == 0 && "-".equals(args[6]), "EXPLICIT_PHASE");
 		final Path lane = PhantomLearning001FixtureSql.resolveLane(args[0], args[1]);
@@ -113,8 +118,9 @@ public final class PhantomLearning001ShadowNative
 		}
 		final var actors = PhantomLearning001ActorFixture.readActors(lane.resolve("actors.tsv"));
 		check(Files.readAllLines(lane.resolve("rosters.tsv")).size() == actors.size() + 1
-			&& Files.readAllLines(lane.resolve("capacity.tsv")).size() == actors.size() + 1
-			&& args[3].equals(Files.readString(lane.resolve("party.ready")).trim()), "ROSTER_AND_CAPACITY_PREFLIGHT");
+			&& Files.readAllLines(lane.resolve("capacity.tsv")).size() == actors.size() + 1, "ROSTER_AND_CAPACITY_PREFLIGHT");
+		if (!"SOLO".equals(proofScope)) { check(args[3].equals(Files.readString(lane.resolve("party.ready")).trim()), "PARTY_PREFLIGHT_PIN"); }
+		if (on && !"PARTY".equals(proofScope)) { check(args[3].equals(Files.readString(lane.resolve("solo.ready")).trim()), "SOLO_PREFLIGHT_PIN"); }
 		final Path config = game.resolve("config/Custom/PhantomPlayers.ini");
 		final String off = Files.readString(config);
 		check(off.contains("EnablePhantomSystem = False") && off.contains("LearningMode = OFF")
@@ -158,18 +164,21 @@ public final class PhantomLearning001ShadowNative
 				{
 					final String salt = key("learning001/actor/phantom_learning001_native/" + settings.getProperty("Password"));
 					final var splits = on ? List.of("AUDIT") : List.of("TRAIN", "TUNING", "AUDIT");
-					if (on) { runtime.solo(soloActor(actors, "AUDIT"), salt, 4); }
-					for (String split : splits)
+					if (on && !"PARTY".equals(proofScope)) { runtime.solo(soloActor(actors, "AUDIT"), salt, 4); }
+					if (!"SOLO".equals(proofScope))
 					{
-						final var roster = actors.stream().filter(row -> split.equals(row[0])).toList();
-						runtime.party(roster, helpers, salt, "TRAIN".equals(split) ? 8 : 4);
+						for (String split : splits)
+						{
+							final var roster = actors.stream().filter(row -> split.equals(row[0])).toList();
+							runtime.party(roster, helpers, salt, "TRAIN".equals(split) ? 8 : 4);
+						}
 					}
 					if (!on)
 					{
 						for (String split : splits) { runtime.solo(soloActor(actors, split), salt, "TRAIN".equals(split) ? 8 : 4); }
 					}
 				}
-				final String evidence = on ? "modelVersion=" + version + "\nmodelSha=" + args[6] + "\nexactSolo="
+				final String evidence = on ? "modelVersion=" + version + "\nmodelSha=" + args[6] + "\nproofScope=" + proofScope + "\nexactSolo="
 					+ policy.exactReordered(LearningScope.SOLO) + "\nexactParty=" + policy.exactReordered(LearningScope.PARTY) : "nativeSqlMinimum=32";
 				Files.writeString(attempt.resolve(args[4] + ".complete"), evidence + "\npolicy=" + policy.counters() + "\n", StandardOpenOption.CREATE_NEW);
 			}
@@ -190,26 +199,49 @@ public final class PhantomLearning001ShadowNative
 		}
 	}
 
-	static void preflightParty(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, Path lane, List<String[]> actors) throws Exception
+	static void preflightParty(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, Path lane, List<String[]> actors, boolean recovery, String proofScope) throws Exception
 	{
 		final var helpers = actors.stream().filter(row -> "FIXTURE".equals(row[0])).toList();
 		try (var runtime = new Runtime(source, game, LearningPolicy.OFF, lane.resolve("preflight.stop"), false, 2 + helpers.size()))
 		{
 			runtime.coordinator.installLogicalFarmAdmission(_ -> false);
-			for (String split : List.of("TRAIN", "TUNING", "AUDIT"))
+			for (String split : recovery ? List.of("AUDIT") : List.of("TRAIN", "TUNING", "AUDIT"))
 			{
 				final var roster = new java.util.ArrayList<>(actors.stream().filter(row -> split.equals(row[0])).toList());
 				roster.addAll(helpers);
 				final var players = roster.stream().map(runtime::materialize).toList();
+				if (recovery)
+				{
+					final var solo = soloActor(roster, "AUDIT");
+					final var learner = players.get(roster.indexOf(solo));
+					final var heal = helpers.stream().filter(row -> "HEAL_HELPER".equals(row[1])).findFirst().orElseThrow();
+					if (learner.isDead()) { runtime.resurrect(solo, learner, heal, players.get(roster.indexOf(heal))); }
+					runtime.returnToPartyAnchor(solo, learner);
+					if (!"PARTY".equals(proofScope))
+					{
+						await(() -> !Runtime.recover(learner, true), Duration.ofSeconds(90), "RECOVERY_SOLO_REST");
+						final var targets = PhantomLearning001ActorFixture.coldSoloOpeningTargets(learner);
+						if (targets.isEmpty()) { PhantomLearning001ActorFixture.inspectColdSoloOpening(learner); }
+						check(!targets.isEmpty(), "RECOVERY_SOLO_VIABLE_OPENING");
+						System.out.println("LEARNING001_RECOVERY_SOLO_READY profile=" + solo[2] + " targets=" + targets.stream().map(npc -> npc.getId()).toList());
+					}
+				}
 				for (int index = 0; index < roster.size(); index++)
 				{
 					final var row = roster.get(index);
 					final Player player = players.get(index);
-					check(!player.isAlikeDead() && player.getLevel() >= Integer.parseInt(row[5]), "PARTY_PREFLIGHT_ACTOR_STATE profile=" + row[2]
+					check(!player.isAlikeDead() && (recovery || player.getLevel() >= Integer.parseInt(row[5])), "PARTY_PREFLIGHT_ACTOR_STATE profile=" + row[2]
 						+ " declaredLevel=" + row[5] + " loadedLevel=" + player.getLevel() + " hp=" + player.getCurrentHp() + " dead=" + player.isAlikeDead());
+					if (recovery && player.getLevel() != Integer.parseInt(row[5]))
+					{
+						System.out.println("LEARNING001_RECOVERY_NATIVE_LEVEL profile=" + row[2] + " declared=" + row[5] + " loaded=" + player.getLevel());
+					}
 				}
-				runtime.inspectParty(roster, players);
-				runtime.provePartyTarget(roster, players);
+				if (!"SOLO".equals(proofScope))
+				{
+					runtime.inspectParty(roster, players);
+					runtime.provePartyTarget(roster, players);
+				}
 				for (String[] row : roster) { runtime.store(Long.parseLong(row[2])); }
 			}
 		}
@@ -281,6 +313,7 @@ public final class PhantomLearning001ShadowNative
 				return;
 			}
 			final Player player = materialize(row);
+			if (on) { returnToPartyAnchor(row, player); }
 			final long deadline = System.nanoTime() + Duration.ofMillis(PhantomLearning001ActorFixture.sampleWindow(minimum)).toNanos();
 			long progressed = System.nanoTime();
 			long highWater = 0;
@@ -297,16 +330,16 @@ public final class PhantomLearning001ShadowNative
 				check(System.nanoTime() < deadline, "SOLO_SAMPLE_DEADLINE_" + row[0] + " " + policy.counters());
 				if (readyForSoloSession(combat, profile))
 				{
-					if (retreat(profile, player) || recover(player))
+					if (retreat(profile, player) || recover(player, on))
 					{
 						Thread.sleep(600);
 						continue;
 					}
-					final var targets = PhantomLearning001ActorFixture.soloOpeningTargets(player);
+					final var targets = on ? PhantomLearning001ActorFixture.coldSoloOpeningTargets(player) : PhantomLearning001ActorFixture.soloOpeningTargets(player);
 					final var target = targets.isEmpty() ? null : targets.getFirst();
 					if (target != null)
 					{
-						final long timeout = 45000;
+						final long timeout = on ? PhantomLearning001ActorFixture.COLD_SOLO_TIMEOUT_MILLIS : 45_000;
 						final var request = new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.RANGED_MAGIC, true, false, timeout,
 							() -> false, LearningScope.SOLO, null, () -> false);
 						final var result = combat.startSession(request);
@@ -321,8 +354,9 @@ public final class PhantomLearning001ShadowNative
 				}
 				Thread.sleep(1200);
 			}
-			// No new fight starts after the quota. Let the existing owner finish before checking escape.
-			await(() -> readyForSoloSession(combat, profile) && !retreat(profile, player), Duration.ofSeconds(90), "SOLO_RELEASE_" + profile);
+			// The ON witness ends with canonical drain/store after its native session. SHADOW keeps farming recovery.
+			await(() -> readyForSoloSession(combat, profile) && (on || !retreat(profile, player)), Duration.ofSeconds(90), "SOLO_RELEASE_" + profile);
+			check(!player.isAlikeDead(), "SOLO_ALIVE_AT_STORE_" + profile);
 			store(profile);
 			System.out.println(on ? "LEARNING001_SOLO_EXACT_REORDERED count=" + policy.exactReordered(LearningScope.SOLO)
 				: "LEARNING001_SOLO_SQL_MINIMUM split=" + row[0] + " profile=" + profile + " countAtLeast=" + minimum + " bothSkills=true");
@@ -343,12 +377,13 @@ public final class PhantomLearning001ShadowNative
 			return true;
 		}
 
-		private static boolean recover(Player player)
+		private static boolean recover(Player player, boolean cold)
 		{
 			if (player.isMoving() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null) { return true; }
 			final var skill = player.getKnownSkill(1230);
 			final double mp = (player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill)) * 3;
-			if (!PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), mp, player.isSitting()))
+			if ((cold && player.getCurrentHp() < player.getMaxHp() * .9)
+				|| !PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), mp, player.isSitting()))
 			{
 				if (!player.isSitting()) { player.sitDown(); }
 				return true;
@@ -395,11 +430,44 @@ public final class PhantomLearning001ShadowNative
 
 		private void returnToPartyAnchor(String[] row, Player player) throws Exception
 		{
-			final long profile = Long.parseLong(row[2]);
-			final var origin = PhantomNativeTravelActions.point(player);
 			final var anchor = new PhantomNavigationPoint(Integer.parseInt(row[8]), Integer.parseInt(row[9]), Integer.parseInt(row[10]), 0);
 			// This keeps the stock 1200-unit compatibility check for any two members near the same anchor.
-			if (origin.distanceTo(anchor) <= 550) { return; }
+			walkFixture(Long.parseLong(row[2]), player, anchor, 550);
+		}
+
+		private void resurrect(String[] row, Player learner, String[] healRow, Player healer) throws Exception
+		{
+			final long profile = Long.parseLong(row[2]);
+			final long healerProfile = Long.parseLong(healRow[2]);
+			final var skill = healer.getKnownSkill(1016);
+			check(skill != null && "combat.resurrection".equals(PhantomSupportEffectAuthority.nativeCapability(skill))
+				&& !learner.isReviveRequested(), "RECOVERY_STOCK_RESURRECTION");
+			walkFixture(healerProfile, healer, PhantomNativeTravelActions.point(learner), Math.min(250, healer.getMagicalAttackRange(skill)));
+			final var action = new PhantomPartySupportAction("combat.resurrection", PhantomSupportEffectAuthority.nativeVariant(skill),
+				PhantomSupportEffectAuthority.nativeScope(skill), learner.getObjectId(), new SelectedSkill(skill.getId(), skill.getLevel()),
+				PhantomPartySupportAction.Audience.EXACT_REQUESTER, 0, true);
+			try (var lease = combat.acquireExternalAction(new ExternalActionRequest(healerProfile, ExternalActionKind.PARTY_SUPPORT,
+				"learning001.fixture.audit.resurrection", System.nanoTime() + Duration.ofSeconds(30).toNanos(), () -> Files.exists(stop))).lease())
+			{
+				check(lease != null && lease.castSupport(action) == ActionOutcome.ISSUED, "RECOVERY_RESURRECTION_DISPATCH");
+				await(() -> learner.isReviveRequested() && !learner.isRevivingPet(), Duration.ofSeconds(20), "RECOVERY_RESURRECTION_REQUEST");
+				try (var answer = materialization.tryAcquireAction(profile).orElseThrow(); var execution = answer.enterExecutionScope())
+				{
+					check(answer.player() == learner, "RECOVERY_EXACT_RECIPIENT");
+					PlayerNativeWork.run(learner, "Learning001ReviveAnswer", () -> learner.reviveAnswer(1));
+				}
+				check(!learner.isAlikeDead() && learner.getCurrentHp() > 0, "RECOVERY_RESURRECTION_EFFECT");
+				lease.complete();
+			}
+			System.out.println("LEARNING001_RECOVERY_RESURRECTED profile=" + profile + " healer=" + healerProfile + " skill=" + skill.getId()
+				+ " hp=" + learner.getCurrentHp() + " mp=" + learner.getCurrentMp());
+			returnToPartyAnchor(healRow, healer);
+		}
+
+		private void walkFixture(long profile, Player player, PhantomNavigationPoint anchor, int radius) throws Exception
+		{
+			final var origin = PhantomNativeTravelActions.point(player);
+			if (origin.distanceTo(anchor) <= radius) { return; }
 			PhantomLearning001ActorFixture.requireSafePartySpawn(anchor.x(), anchor.y(), anchor.z());
 			check(!preflightThreatened(player), "COLD_PARTY_WALK_THREAT_" + profile);
 			final long now = System.nanoTime();
@@ -545,7 +613,11 @@ public final class PhantomLearning001ShadowNative
 			if (leader != null)
 			{
 				final long profile = profiles.get(players.indexOf(leader));
-				await(() -> coordinator.drainAutonomousFarm(profile), Duration.ofSeconds(30), "PARTY_CANONICAL_RELEASE_" + profile);
+				await(() ->
+				{
+					coordinator.onPulse();
+					return coordinator.drainAutonomousFarm(profile);
+				}, Duration.ofSeconds(30), "PARTY_CANONICAL_RELEASE_" + profile);
 			}
 			for (long profile : profiles) { store(profile); }
 			System.out.println(on ? "LEARNING001_PARTY_EXACT_REORDERED count=" + policy.exactReordered(LearningScope.PARTY)

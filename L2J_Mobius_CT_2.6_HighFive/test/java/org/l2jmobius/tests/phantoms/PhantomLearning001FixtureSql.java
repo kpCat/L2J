@@ -82,6 +82,24 @@ public final class PhantomLearning001FixtureSql
 				}
 				System.out.println("LEARNING001_SQL_MODEL_TOTAL " + total);
 			}
+			try (var rows = statement.executeQuery("SELECT event_key,policy_version,scope,skill_id,skill_level,damage FROM phantom_ai_training_examples "
+				+ "WHERE origin='NATIVE' AND evidence_kind='EXACT_CAST_HP' AND policy_version>0 ORDER BY created_at,event_key LIMIT 4096"))
+			{
+				while (rows.next())
+				{
+					System.out.printf(java.util.Locale.ROOT, "LEARNING001_SQL_ON_EVENT eventKey=%s version=%d scope=%s skill=%d:%d hp=%s%n",
+						rows.getString(1), rows.getLong(2), rows.getString(3), rows.getInt(4), rows.getInt(5), rows.getDouble(6));
+				}
+			}
+			try (var rows = statement.executeQuery("SELECT p.profile_id,c.charId,c.curHp,c.maxHp,c.curMp,c.maxMp,c.x,c.y,c.z FROM phantom_profiles p "
+				+ "JOIN characters c ON c.charId=p.character_object_id WHERE c.account_name='learn001fixture' ORDER BY p.profile_id"))
+			{
+				while (rows.next())
+				{
+					System.out.printf(java.util.Locale.ROOT, "LEARNING001_SQL_ACTOR profile=%d actor=%d hp=%d/%d mp=%d/%d position=%d,%d,%d%n",
+						rows.getLong(1), rows.getLong(2), rows.getInt(3), rows.getInt(4), rows.getInt(5), rows.getInt(6), rows.getInt(7), rows.getInt(8), rows.getInt(9));
+				}
+			}
 		}
 	}
 

@@ -36,6 +36,33 @@ public final class PhantomLearning001Suite implements PhantomTestSuite
 		registry.add("held-out-generalization-and-real-combat-dispatch", _ -> heldOut());
 		registry.add("warmed-128-actor-inference", _ -> benchmark());
 		registry.add("party-receipt-survives-readiness-revision", _ -> partyReceiptAuthority());
+		registry.add("residual-model-keeps-calibration-through-reload", _ -> residualRoundtrip());
+	}
+
+	private static void residualRoundtrip()
+	{
+		final var fixture = fixture();
+		final var fit = NeuralPolicy.trainResidual(fixture.train(), fixture.tuning(), 183);
+		final var audit = NeuralPolicy.audit(fit, fixture.heldOut(), 183);
+		final var model = audit.model();
+		check(model.algorithm() == NeuralPolicy.RESIDUAL_ALGORITHM && audit.loss() < .05, "calibrated model did not learn");
+		final byte[] bytes = model.bytes();
+		final var restored = NeuralPolicy.restore(bytes, model.sha256());
+		check(restored.algorithm() == model.algorithm() && Arrays.equals(bytes, restored.bytes()), "calibration did not roundtrip");
+		for (Example row : fixture.heldOut())
+		{
+			check(restored.score(row.features()) == model.score(row.features()) && Math.abs(restored.score(row.features())) <= 1, "restored prediction changed or is out of bounds");
+		}
+		assertDispatch(restored);
+		java.nio.ByteBuffer.wrap(bytes).putDouble(NeuralPolicy.BYTE_SIZE, Double.NaN);
+		try
+		{
+			NeuralPolicy.restore(bytes, NeuralPolicy.sha256(bytes));
+			throw new AssertionError("non-finite calibration accepted with a matching SHA");
+		}
+		catch (IllegalArgumentException expected)
+		{
+		}
 	}
 
 	private static void partyReceiptAuthority()
@@ -139,7 +166,12 @@ public final class PhantomLearning001Suite implements PhantomTestSuite
 	private static void benchmark()
 	{
 		final var fixture = fixture();
-		final NeuralPolicy model = NeuralPolicy.train(fixture.train(), fixture.tuning(), 183).model();
+		final NeuralPolicy model = NeuralPolicy.trainResidual(fixture.train(), fixture.tuning(), 183).model();
+		benchmark(model);
+	}
+
+	static void benchmark(NeuralPolicy model)
+	{
 		final LearningPolicy policy = new LearningPolicy(LearningPolicy.Mode.ON, 1, model, 4);
 		final List<List<LearningPolicy.Candidate>> facts = new ArrayList<>(128);
 		for (int actor = 0; actor < 128; actor++)
@@ -174,7 +206,7 @@ public final class PhantomLearning001Suite implements PhantomTestSuite
 		final long p95 = times[times.length * 95 / 100];
 		System.out.printf(Locale.ROOT, "learning001 benchmark actors=128 candidates=4 samples=%d p50=%.3fus p95=%.3fus p99=%.3fus alloc=%.1fB/op cpu=%.3fms weights=%dB featurePayload=%dB heapBefore=%dB heapAfter=%dB%n",
 			times.length, times[times.length / 2] / 1000.0, p95 / 1000.0, times[times.length * 99 / 100] / 1000.0,
-			allocations, cpuMs, NeuralPolicy.BYTE_SIZE, 128 * 4 * LearningFeatures.SIZE * Float.BYTES, heapBefore, ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed());
+			allocations, cpuMs, model.bytes().length, 128 * 4 * LearningFeatures.SIZE * Float.BYTES, heapBefore, ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed());
 		check(p95 < 1_000_000, "four-action p95 exceeds 1ms");
 	}
 

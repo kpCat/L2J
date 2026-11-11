@@ -1,4 +1,14 @@
-# PHANTOM-LEARNING-001 — PARTIAL
+# PHANTOM-LEARNING-001 — отчёт
+
+## Итог от 11 ноября 2026 года
+
+**SUCCESS в scope обучаемого ядра Solo и автономного Party PvE.** Общая MLP обучена на реальном native-уроне, принята, прочитана из MariaDB в отдельных холодных GameServer и изменила штатный навык с фактическим HP в обоих режимах. Успешные Party и Solo попытки прошли независимый SQL verifier и canonical STOP.
+
+Учебная выборка **36 SHADOW-событий**, 18 TRAIN / 8 TUNING / 10 independent AUDIT. MSE относительно среднего TRAIN **0,07203633 → 0,05747961**. В Party baseline `1230:28` изменён на `1339:1`, **1203 и 1408 HP**, в Solo **1563 HP**. Финальное чтение подтвердило **47 уникальных NATIVE / EXACT_CAST_HP**, 24 Solo и 23 Party, две ACCEPTED модели. Веса v2 **12 500 Б**, SHA `a628f4811d9dfb257c117bfc8e0b14ac122ac8fc6b7233cd1d31121c88102777`. JAR SHA `e4de040cfa6e33fa478592138d9aed95230f231df88fe40f73cb3f48a3b18a61`.
+
+Принятые веса из SQL дали p50/p95/p99 **6,6 / 7,3 / 8,0 мкс** для 128 актёров × 4 кандидата. **266/266** targeted проверок прошли, отдельно F7 strict receipt и itinerary. Реальный ordinary Player Heal проверен headless. Независимый read-only code/evidence review не выявил P1/P2 в текущем scope. Контекст для следующего goal приведён в [HANDOFF](../tasks/PHANTOM-LEARNING-001/HANDOFF.md). Следующий goal не начат.
+
+## История реализации и проверок
 
 10 ноября 2026 года. Исходный SHA `c5b81f89ce02030eff8441395b0411137a110b2f`, коммит реализации `518318c89c6937c80818b4035df6b0fc9523f9ce`. Отчёт и передача контекста идут следующим коммитом в `wip/phantom-learning`.
 
@@ -200,8 +210,49 @@ SHADOW `740845916a6d4ffcb491519f0dec3d46`, PID 78124, FILETIME 13438830801743619
 
 `compile-tests`, SHADOW, отдельный SQL readback, coverage, train и promote завершились exit 0. ON вернул exit 1 при штатной остановке JVM с exit 0 и сохранённом `on.failed`. `cycle19-final-read.log` подтвердил свободные порты 33317, 17961 и 19261. Повторные DB-free Learning **3/3**, Combat ownership **37/37**, Party tactics **13/13**, PvP **14/14**, Support **9/9**, F8 **14/14** и F7 strict receipt прошли на том же JAR. Прогретый JDK25 benchmark на 128 актёрах и четырёх готовых векторах дал p50/p95/p99 **6,6 / 6,6 / 7,4 мкс**, **24,1 Б/выбор**.
 
+### Калибровка оценки по исходным SHADOW-данным
+
+SQL подтвердил профиль 8 с сохранёнными **0/4770 HP**, 1908/2788 MP, позиция `(178677, -74096, -2728)`. У принятой модели `cycle19` с `algo_version=1` на пяти сопоставлениях каждого режима максимальный офлайн-разрыв оценок был **0,01750 Solo / 0,01649 Party**. При сопоставлении менялась только часть вектора навыка, ранее записанная у того же актёра в том же контексте. Это диагностика модели, результаты ненаблюдённого каста из неё не выводятся.
+
+Калиброванный trainer `algo_version=2` обучает ту же MLP на остатке `(reward − среднее TRAIN) / (1 + |среднее TRAIN|)`. При выборе модель возвращает оценку в исходной шкале reward с диапазоном `[-1,1]`. Коэффициенты сохранены вместе с весами в BLOB **12 500 Б** под SHA-256. Ранее сохранённый формат **12 484 Б** читается новым JAR и проверяется по своему `algo_version`. SHADOW-разметка, формула исходного reward и порог выбора остаются прежними. Офлайн TUNING дал MSE **0,02597193 → 0,02320621** и разрыв не меньше 0,025 во всех семи сопоставлениях.
+
+`train-shadow` на прежних 36 NATIVE-событиях записал `model_id=2` как DRAFT за три шага. Training hash совпал с исходной SHADOW-выборкой `9d6267cb3f0b9e081e68a66464edf65a82938adc7cc304240c908e35d4709393`. На независимом AUDIT MSE относительно первого checkpoint **0,06704136 → 0,05747961**, по режимам **0,04637915 Solo / 0,06858008 Party**. Порог прошли все десять офлайн-сопоставлений. SHA нового checkpoint `a628f4811d9dfb257c117bfc8e0b14ac122ac8fc6b7233cd1d31121c88102777`. SHA JAR `e4de040cfa6e33fa478592138d9aed95230f231df88fe40f73cb3f48a3b18a61`. Предыдущий JAR архивирован побайтово в owned `cycle19`, оба SHA сверены. Новый JAR прочитал прежний ACCEPTED checkpoint из той же MariaDB, v1 и события сохранены. GREEN Learning **4/4**, калиброванный прогретый benchmark p50/p95/p99 **6,6 / 6,7 / 8,1 мкс** и **24,1 Б/выбор**.
+
+Headless-восстановление использовало существующие Navigation, Combat `PARTY_SUPPORT`, реальный Resurrection 1016 и принятие штатного revive-request под ACTION lease получателя. Целитель пешком дошёл до сохранённой позиции профиля 8, тот получил **1871,35 HP**, после чего оба пешком вернулись к якорю. Штатная потеря EXP оставила профиль на уровне **77**, что учитывается повторным прогнозом Party. Solo preflight из якоря пока отказал. Для ON Solo введён отдельный короткий запрос 18 секунд, старт в диапазоне обоих навыков, HP не ниже 90% и оценка входящего урона за запрос плюс штатное окно отхода. Проверка Party может выполняться независимо через `ProofScope=PARTY`. `on.complete` и SQL witness фиксируют выбранный scope, полный goal требует обоих режимов.
+
+### Холодное применение v2 в автономной Party
+
+Попытка `ee500188379f4eba9808dc44842ace9e` загрузила ACCEPTED v2 из MariaDB и изменила baseline `1230:28 Prominence` на `1339:1 Fire Vortex` у двух AUDIT-актёров. Native effect подтвердил **1594 и 1089 HP**. Отдельный `cycle19-algo2-first-party-readback.log` после STOP подтвердил оба `event_key` и те же значения HP. Проверка завершения roster сначала отказала на `PARTY_CANONICAL_RELEASE_8`. Все owned процессы остановлены. Исправление только runner добавило обычный `coordinator.onPulse()` при ожидании канонического drain.
+
+Адресный повтор `4531202ea167464eb60b44832a97f3ac` завершился exit 0. GameServer PID 62800, FILETIME 134388345235226956, фактический listener `127.0.0.1:17961`. После штатного отказа по champion с 85 950 HP и последующего respawn автономная Party снова применила Fire Vortex вместо Prominence. SQL verifier сопоставил события `7b814364b7d6fdcda727ebc21ab673a66433b9f6144c86fd9781811ea7396acf` и `e9ba0cc32b444a30f2fb1c14a1b770be14846038e4c405f95d5ac3f2981d5fc4`, **1203 и 1408 HP**, версию 2 и точный SHA модели. `on.complete` содержит `proofScope=PARTY`, `exactParty=2`, `evaluated=6`, `preferredDifferent=2`, `applied=2`, `overBudget=0`, `unknown=0`. Полный выбор с native-признаками дал среднее **0,5194 мс**, максимум **1,9177 мс**. Штатные cast, leases, target spawn и канонический STOP подтверждены. Журнал `cycle19-algo2-party-release-on.log` содержит независимую SQL-проверку после остановки GameServer.
+
+Solo headless-диагностика показала цели в радиусе 900 и оценку входящего урона **6567,41 HP за 48 секунд**. Этот срок включал введённый runner запас на весь лимит отхода. Проверочный Solo-запрос сокращён до **12 секунд** с HP от 90%, резервом 35% HP и стартом в диапазоне обоих навыков. Headless-допуск профиля 8 к 21798 прошёл, `cycle19-algo2-solo-short-preflight.log`.
+
 ## Открытые gates и Git
 
 **PARTIAL.** Подтверждены NATIVE-выборки для обоих scope, обучение и принятие модели в каждой из двух независимых схем, SQL readback весов и холодная загрузка. В `cycle19` независимый аудит охватил оба навыка в одинаковых контекстах каждого проверяемого актёра. Gate причинного изменения выбора с фактическим HP в обоих scope остаётся открытым. Полные native F7/F8, обычный Player Heal, PvP/PK и сравнение CPU полного пути OFF/ON остаются открыты. TASK130 остаётся PARTIAL.
 
 Scoped исключение владельца позволяет отдельный clone и обычный push только в `wip/phantom-learning`. Пользовательский checkout был read-only. MAIN, PLAY, TEST129 и старые SQL/Geo контуры не участвовали. Подготовка и runtime-артефакты находятся в независимом clone. Каталог `.phantom-local/learning001` содержит приватные данные и логи, он исключён из коммитов. В Git вошли только разрешённые пути High Five. Точные команды и следующий шаг приведены в [HANDOFF](../tasks/PHANTOM-LEARNING-001/HANDOFF.md).
+
+## Завершение native-цикла v2
+
+Адресная Solo попытка `cc532865f5aa472dbbc1d1a468abec15`, GameServer PID **70532**, FILETIME **134388357897693889**, прошла loopback `127.0.0.1:17961` и cold SQL read v2 с точным SHA. AUDIT профиль 8, actor 268481074, epoch **1160552990025600**, generation 1, sequence 1, target spawn 1. Выбран и штатно исполнен `1339:1` вместо baseline `1230:28`. Native HP **1563**, event key `2e075e88e836d58a07b8c9243e22e5fd36416ca9be107327f7db66aca4ae2d46`. После 12-секундного `TIMEOUT` выполнен штатный drain/store живого актёра. `on.complete` содержит `proofScope=SOLO`, `exactSolo=1`, evaluated/preferredDifferent/applied **1/1/1**, overBudget=0, unknown=0. `cycle19-algo2-solo-drain-on.log` завершился exit 0 и содержит отдельный `ON_EVENT_SQL_PASS` после GameServer STOP.
+
+Первая Solo v2 попытка `1bfbb147d7884ca39dd292bdf917a4d2` также дала **1703 HP** после смены навыка. Её самостоятельный `cycle19-algo2-first-solo-readback.log` подтвердил event key `fd3ac9be7ef66ec77bc3df047390327b5d783c2b8ac4b432abd2fddd1f183c5e`. Отказ `SOLO_RELEASE_8` относился к последующему ожиданию исчезновения угрозы. Адресное исправление runner завершает ON-эпизод штатным store после native terminal. Core Combat recovery и игровые механики используют существующие пути.
+
+Ordinary unmanaged Player контроль использовал штатные headless initialization и `Player.useMagic`. Новый получатель **268435465** подготовлен до своей границы `stock-heal-cut.tsv`, caster **268481160** загрузился без native owner. Major Heal **1401:11** увеличил HP **866,4000 → 1886,7299**, MP источника **2756,0000 → 2689,4757**. EXP/SP обоих сохранились. После границы замера HP и MP изменялись штатными cast/regen. Контроль завершился exit 0, GameServer=0 и SQL_STOP_PASS, журнал `cycle19-algo2-stock-heal.log`. Пример Heal не включался в обучение offensive policy.
+
+Финальные `cycle19-algo2-final-read-native.log` и `cycle19-algo2-final-read.log` после Heal подтвердили **47 уникальных** событий. Solo 1230 — 8, Solo 1339 — 16, Party 1230 — 12, Party 1339 — 11. Для каждой группы COUNT совпал с COUNT DISTINCT event_key. Обе модели ACCEPTED, исходные training hash и SHA сохранены, digest SQL v2 совпал с Java. Исходные 36 policy_version=0 отделены от последующих ON. Все owned порты **33317, 17961, 19261** свободны.
+
+`compile-tests` и финальные targeted suites завершились exit 0. **266/266** составляют Learning 4, Solo Combat 72, ownership 37, Party tactics 13, coordination 77, PvP 14, Support 9, Supply071 11, commerce receipt 15 и F8 14. Отдельно F7 выдал `TASK130_STRICT_RECEIPT_HASH_PASS` и `OWN068_VISIBLE_ITINERARY_PASS`. Автоматический approval review сначала отклонил coordination из-за трактовки запрета повторять TASK130. Повторная проверка прочитанного TASK §14, build.xml и MemoryStore suite подтвердила разрешённый zero-native регрессионный scope, запуск прошёл. Пробный commerce-supply использовал неверный seed, затем отказал до тестов без DB config. Завершающие Supply071 и commerce-receipt выполнены штатными DB-free маршрутами.
+
+Benchmark фактических ACCEPTED весов из MariaDB измерил **30 000** выборов после **30 000** warmup, 128 потоков фактов и 4 кандидата. p50/p95/p99 **6,6 / 7,3 / 8,0 мкс**, allocations **24,1 Б/op**, CPU **203,125 мс**, веса **12 500 Б**, payload векторов **262 144 Б**, heap **51 534 048 Б** до и после. Векторы подготовлены benchmark fixture. Полный native путь с построением настоящих признаков измерен отдельно, холодный Solo **2,3223 мс**, Party среднее **0,5194 мс**, максимум **1,9177 мс** на шести решениях. OFF пропускает learningCandidates по production `active` guard, это подтверждено dispatch-контролями. Длительное CPU сравнение OFF/ON под игровым потоком не выполнялось.
+
+Независимый read-only review production/test diff и первичных журналов подтвердил **P1/P2=0** в текущем bounded scope. Отмечена неблокирующая граница generic promotion. Его порог сравнивает loss с исходными случайными оценками v1, превосходство над постоянным прогнозом автоматически не требуется. Для текущего checkpoint v2 это превосходство отдельно проверено на независимом AUDIT в обоих scope перед promotion.
+
+Нативные данные охватывают ограниченные class/level/equip/NPC сочетания. Три AUDIT-контекста и актёры исключены из TRAIN/TUNING. В наблюдённых сопоставлениях v2 предпочитает Fire Vortex. Полных одинаковых закодированных состояний с двумя исполненными действиями нет. MSE характеризует прогноз результата наблюдённых кастов. Причинный прирост игрового DPS или возврата политики отдельно не оценивался. Полный native SQL replay F7 и отдельный PvP/PK эпизод не выполнялись. Их targeted защитные контракты прошли. Проверяемый цикл LEARNING-001 завершён, общий статус TASK130 определяется его собственной задачей.
+
+- Mojibake-маркеры в изменённых файлах проверены полным списком.
+- Escaped Cyrillic в изменённых файлах проверены Unicode и XML шаблонами.
+
+Git использован по явному разрешению владельца для независимого clone, scoped commits и обычной публикации `wip/phantom-learning`. Точные команды, pins и контекст PHANTOM-LEARNING-002 находятся в [HANDOFF](../tasks/PHANTOM-LEARNING-001/HANDOFF.md).

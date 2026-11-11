@@ -135,15 +135,16 @@ public final class LearningStore
 
 	Checkpoint read(Connection connection, long id, String status, String origin) throws SQLException
 	{
-		try (var sql = connection.prepareStatement("SELECT step,training_hash,weights_blob,sha256,training_count,holdout_count,initial_mse,holdout_mse "
-			+ "FROM phantom_ai_model_versions WHERE model_id=? AND status=? AND origin=? AND algo_version=? AND schema_fingerprint=? AND skill_catalog=?"))
+		try (var sql = connection.prepareStatement("SELECT step,training_hash,weights_blob,sha256,training_count,holdout_count,initial_mse,holdout_mse,algo_version "
+			+ "FROM phantom_ai_model_versions WHERE model_id=? AND status=? AND origin=? AND algo_version IN (?,?) AND schema_fingerprint=? AND skill_catalog=?"))
 		{
 			sql.setLong(1, id);
 			sql.setString(2, status);
 			sql.setString(3, origin);
 			sql.setInt(4, NeuralPolicy.ALGORITHM);
-			sql.setString(5, LearningFeatures.SCHEMA);
-			sql.setString(6, _catalog);
+			sql.setInt(5, NeuralPolicy.RESIDUAL_ALGORITHM);
+			sql.setString(6, LearningFeatures.SCHEMA);
+			sql.setString(7, _catalog);
 			try (var rows = sql.executeQuery())
 			{
 				if (!rows.next()) { return null; }
@@ -156,7 +157,8 @@ public final class LearningStore
 				{
 					return null;
 				}
-				return new Checkpoint(id, NeuralPolicy.restore(rows.getBytes(3), rows.getString(4)), rows.getString(2), step, train, holdout, initial, loss);
+				final var model = NeuralPolicy.restore(rows.getBytes(3), rows.getString(4));
+				return model.algorithm() == rows.getInt(9) ? new Checkpoint(id, model, rows.getString(2), step, train, holdout, initial, loss) : null;
 			}
 		}
 	}
@@ -191,6 +193,11 @@ public final class LearningStore
 
 	public Checkpoint trainNative(int limit, long seed) throws SQLException
 	{
+		return trainNative(limit, seed, false);
+	}
+
+	public Checkpoint trainNative(int limit, long seed, boolean shadowOnly) throws SQLException
+	{
 		record AuditRow(Example example, String actor, int skill, String scope, String context) { }
 		final List<Example> train = new ArrayList<>();
 		final List<Example> tuning = new ArrayList<>();
@@ -204,7 +211,8 @@ public final class LearningStore
 		final var holdoutActors = new HashSet<String>();
 		final var provenance = digest();
 		try (Connection connection = connect(); var sql = connection.prepareStatement("SELECT event_key,actor_group,skill_id,scope,features,reward FROM phantom_ai_training_examples "
-			+ "WHERE origin='NATIVE' AND evidence_kind='EXACT_CAST_HP' AND damage>0 AND schema_fingerprint=? AND skill_catalog=? ORDER BY created_at DESC,event_key LIMIT ?"))
+			+ "WHERE origin='NATIVE' AND evidence_kind='EXACT_CAST_HP' AND damage>0 AND schema_fingerprint=? AND skill_catalog=?"
+			+ (shadowOnly ? " AND policy_version=0" : "") + " ORDER BY created_at DESC,event_key LIMIT ?"))
 		{
 			sql.setString(1, LearningFeatures.SCHEMA);
 			sql.setString(2, _catalog);
@@ -253,7 +261,7 @@ public final class LearningStore
 		{
 			throw new IllegalStateException("Native training requires both PvE scopes and distinct skills in training and independent audit, with distinct audit actors");
 		}
-		final var result = NeuralPolicy.audit(NeuralPolicy.train(train, tuning, seed), holdout, seed);
+		final var result = NeuralPolicy.audit(NeuralPolicy.trainResidual(train, tuning, seed), holdout, seed);
 		return save(result, train.size(), holdout.size(), HexFormat.of().formatHex(provenance.digest()), "NATIVE");
 	}
 
@@ -276,7 +284,7 @@ public final class LearningStore
 			"INSERT INTO phantom_ai_model_versions (algo_version,schema_fingerprint,skill_catalog,step,training_hash,weights_blob,sha256,training_count,holdout_count,initial_mse,holdout_mse,origin) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS))
 		{
-			insert.setInt(1, NeuralPolicy.ALGORITHM);
+			insert.setInt(1, training.model().algorithm());
 			insert.setString(2, LearningFeatures.SCHEMA);
 			insert.setString(3, _catalog);
 			insert.setInt(4, training.step());

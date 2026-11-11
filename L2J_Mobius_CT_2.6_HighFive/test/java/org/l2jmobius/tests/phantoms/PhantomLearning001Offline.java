@@ -60,13 +60,13 @@ public final class PhantomLearning001Offline
 		final int length = args.length == 0 ? 0 : switch (args[0])
 		{
 			case "coverage" -> 4;
-			case "train", "promote", "read", "audit-shadow" -> 5;
-			case "verify-on" -> 6;
+			case "train", "train-shadow", "promote", "read", "audit-shadow" -> 5;
+			case "verify-on" -> 7;
 			default -> 0;
 		};
 		if (length == 0 || args.length != length || !PhantomLearning001FixtureSql.writableLane(args[2]) || !Boolean.getBoolean("phantom.learning.train"))
 		{
-			throw new IllegalArgumentException("With -Dphantom.learning.train=true, use coverage <module> <lane> <limit> | train <module> <lane> <limit> <seed> | promote/read/audit-shadow <module> <lane> <version> <sha256> | verify-on <module> <lane> <version> <sha256> <attempt>");
+			throw new IllegalArgumentException("With -Dphantom.learning.train=true, use coverage <module> <lane> <limit> | train/train-shadow <module> <lane> <limit> <seed> | promote/read/audit-shadow <module> <lane> <version> <sha256> | verify-on <module> <lane> <version> <sha256> <attempt> <scope>");
 		}
 		final Path lane = PhantomLearning001FixtureSql.resolveLane(args[1], args[2]);
 		final Path game = lane.resolve("game");
@@ -96,13 +96,14 @@ public final class PhantomLearning001Offline
 				require(rows.next() && rows.getInt(1) == 0, "GAME_SERVER_MUST_BE_STOPPED");
 			}
 			final var store = new LearningStore(URL, LOGIN, password, game);
-			if ("coverage".equals(args[0]) || "train".equals(args[0]))
+			final boolean shadowOnly = "train-shadow".equals(args[0]);
+			if ("coverage".equals(args[0]) || "train".equals(args[0]) || shadowOnly)
 			{
 				final int configuredLimit = new ConfigReader(game.resolve("config/Custom/PhantomPlayers.ini").toString()).getInt("LearningMaxExamplesPerBatch", NeuralPolicy.MAX_EXAMPLES);
 				final int limit = Math.clamp(Math.min(Integer.parseInt(args[3]), configuredLimit), 32, NeuralPolicy.MAX_EXAMPLES);
-				final Coverage coverage = coverage(connection, limit, false);
+				final Coverage coverage = coverage(connection, limit, shadowOnly);
 				coverage.report(limit);
-				if ("train".equals(args[0])) { train(connection, store, limit, Long.parseLong(args[4]), coverage); }
+				if (!"coverage".equals(args[0])) { train(connection, store, limit, Long.parseLong(args[4]), coverage, shadowOnly); }
 				return;
 			}
 			final long version = Long.parseLong(args[3]);
@@ -116,9 +117,18 @@ public final class PhantomLearning001Offline
 			final Checkpoint accepted = store.accepted(version);
 			require(accepted != null && sha.equals(accepted.model().sha256()), "ACCEPTED_READBACK");
 			reportModel(connection, version, sha, "ACCEPTED", accepted, null);
-			if ("read".equals(args[0])) { reportScores(connection, accepted); }
-			if ("audit-shadow".equals(args[0])) { auditCheckpoint(coverage(connection, NeuralPolicy.MAX_EXAMPLES, true), accepted); }
-			if ("verify-on".equals(args[0])) { verifyOn(connection, lane, args[5], version, sha); }
+			if ("read".equals(args[0]))
+			{
+				reportScores(connection, accepted);
+				PhantomLearning001Suite.benchmark(accepted.model());
+			}
+			if ("audit-shadow".equals(args[0]))
+			{
+				final var input = coverage(connection, NeuralPolicy.MAX_EXAMPLES, true);
+				auditCheckpoint(input, accepted);
+				reportResidualExperiment(input, accepted.model());
+			}
+			if ("verify-on".equals(args[0])) { verifyOn(connection, lane, args[5], version, sha, args[6]); }
 		}
 	}
 
@@ -155,14 +165,15 @@ public final class PhantomLearning001Offline
 			observed.predictions.getMin(), observed.predictions.getAverage(), observed.predictions.getMax()));
 	}
 
-	private static void verifyOn(Connection connection, Path lane, String id, long version, String sha) throws Exception
+	private static void verifyOn(Connection connection, Path lane, String id, long version, String sha, String proofScope) throws Exception
 	{
-		require(id.matches("[0-9a-f]{32}"), "ATTEMPT_ID");
+		require(id.matches("[0-9a-f]{32}") && java.util.Set.of("BOTH", "SOLO", "PARTY").contains(proofScope), "ATTEMPT_ID_AND_SCOPE");
 		final Path attempt = lane.resolve("attempts").resolve(id);
 		require(attempt.toRealPath().equals(attempt) && !Files.exists(attempt.resolve("on.failed")), "SUCCESSFUL_ATTEMPT");
 		final var completion = new Properties();
 		try (var reader = Files.newBufferedReader(attempt.resolve("on.complete"))) { completion.load(reader); }
-		require(Long.toString(version).equals(completion.getProperty("modelVersion")) && sha.equals(completion.getProperty("modelSha")), "EXACT_ATTEMPT_MODEL");
+		require(Long.toString(version).equals(completion.getProperty("modelVersion")) && sha.equals(completion.getProperty("modelSha"))
+			&& proofScope.equals(completion.getProperty("proofScope")), "EXACT_ATTEMPT_MODEL_AND_SCOPE");
 		final var keys = new java.util.HashSet<String>();
 		final var scopes = new java.util.HashSet<String>();
 		try (var sql = connection.prepareStatement("SELECT scope,skill_id,skill_level,damage FROM phantom_ai_training_examples WHERE " + NATIVE_WHERE
@@ -198,7 +209,8 @@ public final class PhantomLearning001Offline
 				}
 			}
 		}
-		require(scopes.equals(java.util.Set.of("SOLO", "PARTY")), "BOTH_NATIVE_SCOPES_IN_SQL");
+		final var expected = "BOTH".equals(proofScope) ? java.util.Set.of("SOLO", "PARTY") : java.util.Set.of(proofScope);
+		require(scopes.equals(expected), "REQUESTED_NATIVE_SCOPES_IN_SQL");
 	}
 
 	private static Coverage coverage(Connection connection, int limit, boolean shadowOnly) throws Exception
@@ -286,7 +298,69 @@ public final class PhantomLearning001Offline
 			final long identicalStates = countPairedStates(audit, row -> HexFormat.of().formatHex(LearningFeatures.encode(row.example().features()), 0, ACTION_FEATURE_OFFSET));
 			System.out.printf(Locale.ROOT, "LEARNING001_CHECKPOINT_AUDIT scope=%s rows=%d trainMean=%.8f constantMse=%.8f modelMse=%.8f pairedActors=%d pairedCohorts=%d pairedEncodedStates=%d%n",
 				scope, audit.size(), mean, constantLoss.getAverage(), modelLoss.getAverage(), actorPairs, cohortPairs, identicalStates);
+			if (!"ALL".equals(scope)) { reportReplayMargins("checkpoint", scope, audit, checkpoint.model()::score); }
 		}
+	}
+
+	private static void reportResidualExperiment(Coverage input, NeuralPolicy checkpoint)
+	{
+		final double mean = input.train().stream().mapToDouble(row -> row.example().reward()).average().orElseThrow();
+		final double scale = 1 + Math.abs(mean);
+		final java.util.function.Function<Sample, Example> center = row -> new Example(row.example().features(), (float) ((row.example().reward() - mean) / scale));
+		final var fit = NeuralPolicy.train(input.train().stream().map(center).toList(), input.tuning().stream().map(center).toList(), 183);
+		final java.util.function.ToDoubleFunction<float[]> predict = vector -> Math.clamp(mean + scale * fit.model().score(vector), -1, 1);
+		final double original = measuredLoss(input.tuning(), checkpoint::score);
+		final double residual = measuredLoss(input.tuning(), predict);
+		System.out.printf(Locale.ROOT, "LEARNING001_RESIDUAL_TUNING rows=%d step=%d center=%.8f scale=%.8f checkpointMse=%.8f residualMse=%.8f%n",
+			input.tuning().size(), fit.step(), mean, scale, original, residual);
+		for (String scope : List.of("SOLO", "PARTY"))
+		{
+			final var tuning = input.tuning().stream().filter(row -> scope.equals(row.scope())).toList();
+			reportReplayMargins("tuning-checkpoint", scope, tuning, checkpoint::score);
+			reportReplayMargins("tuning-residual", scope, tuning, predict);
+		}
+	}
+
+	private static double measuredLoss(List<Sample> rows, java.util.function.ToDoubleFunction<float[]> predict)
+	{
+		return rows.stream().mapToDouble(row ->
+		{
+			final double error = predict.applyAsDouble(row.example().features()) - row.example().reward();
+			return error * error;
+		}).average().orElseThrow();
+	}
+
+	/** Descriptive comparison using recorded action features from the same actor and cohort. */
+	private static void reportReplayMargins(String fit, String scope, List<Sample> audit, java.util.function.ToDoubleFunction<float[]> predict)
+	{
+		final var cohorts = audit.stream().collect(Collectors.groupingBy(row -> List.of(row.actor(), row.context()), Collectors.groupingBy(Sample::skill)));
+		final var margins = new DoubleSummaryStatistics();
+		long aboveThreshold = 0;
+		long variableAction = 0;
+		final int actionStart = ACTION_FEATURE_OFFSET / Float.BYTES;
+		for (var cohort : cohorts.values())
+		{
+			if (cohort.size() != 2) { continue; }
+			for (var entry : cohort.entrySet())
+			{
+				final var other = cohort.entrySet().stream().filter(row -> !row.getKey().equals(entry.getKey())).findFirst().orElseThrow().getValue();
+				final var suffixes = other.stream().map(row -> HexFormat.of().formatHex(LearningFeatures.encode(row.example().features()), ACTION_FEATURE_OFFSET,
+					LearningFeatures.SIZE * Float.BYTES)).distinct().toList();
+				if (suffixes.size() != 1) { variableAction += entry.getValue().size(); continue; }
+				final float[] alternate = other.getFirst().example().features();
+				for (Sample row : entry.getValue())
+				{
+					final float[] actual = row.example().features();
+					final double actualScore = predict.applyAsDouble(actual);
+					System.arraycopy(alternate, actionStart, actual, actionStart, actual.length - actionStart);
+					final double margin = Math.abs(actualScore - predict.applyAsDouble(actual));
+					margins.accept(margin);
+					if (margin >= .025f) { aboveThreshold++; }
+				}
+			}
+		}
+		System.out.printf(Locale.ROOT, "LEARNING001_REPLAY_MARGIN fit=%s scope=%s compared=%d variableAction=%d max=%s atLeast025=%d%n",
+			fit, scope, margins.getCount(), variableAction, margins.getCount() == 0 ? "unavailable" : String.format(Locale.ROOT, "%.8f", margins.getMax()), aboveThreshold);
 	}
 
 	private static long countPairedStates(List<Sample> rows, java.util.function.Function<Sample, String> state)
@@ -304,19 +378,19 @@ public final class PhantomLearning001Offline
 			rows.stream().map(Sample::skill).distinct().count(), rows.stream().map(Sample::context).distinct().count(), capped, counts);
 	}
 
-	private static void train(Connection connection, LearningStore store, int limit, long seed, Coverage coverage) throws Exception
+	private static void train(Connection connection, LearningStore store, int limit, long seed, Coverage coverage, boolean shadowOnly) throws Exception
 	{
 		System.out.println("LEARNING001_OFFLINE_TRAIN seed=" + seed);
 		final Checkpoint checkpoint;
 		try
 		{
-			checkpoint = store.trainNative(limit, seed);
+			checkpoint = shadowOnly ? store.trainNative(limit, seed, true) : store.trainNative(limit, seed);
 		}
 		catch (IllegalArgumentException failure)
 		{
 			if ("Checkpoint did not meet validation threshold".equals(failure.getMessage()))
 			{
-				final var tuned = NeuralPolicy.train(coverage.train().stream().map(Sample::example).toList(), coverage.tuning().stream().map(Sample::example).toList(), seed);
+				final var tuned = NeuralPolicy.trainResidual(coverage.train().stream().map(Sample::example).toList(), coverage.tuning().stream().map(Sample::example).toList(), seed);
 				final var audit = NeuralPolicy.audit(tuned, coverage.independent().stream().map(Sample::example).toList(), seed);
 				System.out.printf(Locale.ROOT, "LEARNING001_OFFLINE_QUALITY status=REFUSED step=%d tuningInitialMse=%s tuningMse=%s auditInitialMse=%s auditMse=%s%n",
 					audit.step(), tuned.initialLoss(), tuned.loss(), audit.initialLoss(), audit.loss());
@@ -336,8 +410,11 @@ public final class PhantomLearning001Offline
 			try (var rows = sql.executeQuery())
 			{
 				require(rows.next() && status.equals(rows.getString(1)) && "NATIVE".equals(rows.getString(2))
-					&& NeuralPolicy.ALGORITHM == rows.getInt(3) && LearningFeatures.SCHEMA.equals(rows.getString(4))
-					&& sha.equals(rows.getString(7)) && NeuralPolicy.BYTE_SIZE == rows.getInt(8) && sha.equals(rows.getString(9)), "MODEL_SQL_IDENTITY");
+					&& LearningFeatures.SCHEMA.equals(rows.getString(4)) && sha.equals(rows.getString(7)) && sha.equals(rows.getString(9)), "MODEL_SQL_IDENTITY");
+				final int algorithm = rows.getInt(3);
+				final int size = rows.getInt(8);
+				require((algorithm == NeuralPolicy.ALGORITHM && size == NeuralPolicy.BYTE_SIZE)
+					|| (algorithm == NeuralPolicy.RESIDUAL_ALGORITHM && size == NeuralPolicy.RESIDUAL_BYTE_SIZE), "MODEL_SQL_FORMAT");
 				final String actualCatalog = rows.getString(5);
 				final String trainingHash = rows.getString(6);
 				final int step = rows.getInt(10);
@@ -349,7 +426,7 @@ public final class PhantomLearning001Offline
 				require(checkpoint == null || (checkpoint.trainingHash().equals(trainingHash) && checkpoint.step() == step && checkpoint.trainCount() == train
 					&& checkpoint.holdoutCount() == audit && checkpoint.initialLoss() == initial && checkpoint.loss() == loss), "MODEL_METRICS_READBACK");
 				System.out.printf(Locale.ROOT, "LEARNING001_OFFLINE_MODEL version=%d status=%s origin=NATIVE algo=%d sha256=%s schema=%s catalog=%s trainingHash=%s bytes=%d step=%d train=%d audit=%d initialMse=%s auditMse=%s sqlDigest=PASS%n",
-					id, status, NeuralPolicy.ALGORITHM, sha, LearningFeatures.SCHEMA, actualCatalog, trainingHash, NeuralPolicy.BYTE_SIZE, step, train, audit, initial, loss);
+					id, status, algorithm, sha, LearningFeatures.SCHEMA, actualCatalog, trainingHash, size, step, train, audit, initial, loss);
 			}
 		}
 	}

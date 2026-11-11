@@ -1,11 +1,13 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','survey','shadow','on','coverage','train','promote','read','read-native','audit-shadow')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('stage','rebind-jar','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','recover-audit','stock-heal','survey','shadow','on','coverage','train','train-shadow','promote','read','read-native','audit-shadow')][string]$Action,
     [ValidatePattern('^(native|cycle(?:[2-9]|[1-9][0-9]{1,2})?)$')][string]$Lane='native',
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$JarSha,
+    [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$PreviousJarSha,
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ModelSha,
     [long]$Version=0,
     [long]$Seed=183,
+    [ValidateSet('BOTH','SOLO','PARTY')][string]$ProofScope='BOTH',
     [string]$GeoSource,
     [string]$GeoManifest,
     [string]$ProtectedManifest
@@ -13,8 +15,10 @@ param(
 
 $ErrorActionPreference='Stop'
 if ($Lane -cnotmatch '^cycle(?:1[2-9]|[2-9][0-9]|[1-9][0-9]{2})$' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
-if ($Action -in @('check-party','shadow','on','coverage','train','promote','read','audit-shadow') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
+if ($Action -in @('check-party','recover-audit','stock-heal','shadow','on','coverage','train','train-shadow','promote','read','audit-shadow') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
 if ($Action -in @('on','promote','read','audit-shadow') -and ($Version -le 0 -or !$ModelSha)) { throw 'LEARNING001_EXPLICIT_MODEL_PIN_REQUIRED' }
+if ($Action -eq 'rebind-jar' -and (!$JarSha -or !$PreviousJarSha -or $JarSha -eq $PreviousJarSha)) { throw 'LEARNING001_EXPLICIT_DISTINCT_JAR_PINS_REQUIRED' }
+if ($ProofScope -ne 'BOTH' -and $Action -notin @('on','recover-audit')) { throw 'LEARNING001_SCOPE_REQUIRES_ON_OR_RECOVERY' }
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $root=Join-Path (Split-Path $module -Parent) ('.phantom-local\learning001\'+$Lane)
 $runtime=Join-Path $root 'game'
@@ -206,6 +210,31 @@ foreach ($file in @($daemon,$install,$admin)) { Assert-G0PhysicalFile $file }
 if ((Get-Item -LiteralPath $daemon).VersionInfo.ProductVersion -ne '11.4.13.0') { throw 'LEARNING001_SQL_VERSION' }
 Assert-PortsFree @($port,$gamePort,$loginPort)
 
+if ($Action -eq 'rebind-jar') {
+    $candidate=Join-Path $module 'dist\libs\GameServer.jar'
+    $current=Join-Path $runtime 'libs\GameServer.jar'
+    $archive=Join-Path $root ('GameServer.'+$PreviousJarSha.ToLowerInvariant()+'.jar')
+    if (Test-Path -LiteralPath $archive) { throw 'LEARNING001_FRESH_JAR_ARCHIVE_REQUIRED' }
+    Assert-G0PhysicalFile $candidate
+    Assert-G0PhysicalFile $current
+    Assert-Hash $candidate $JarSha
+    Assert-Hash $current $PreviousJarSha
+    Assert-Geo (Join-Path $runtime 'geodata') (Read-Geo (Join-Path $root 'geo203.json'))
+    $pending=$current+'.'+[guid]::NewGuid().ToString('N')+'.pending'
+    try {
+        [IO.File]::Copy($candidate,$pending)
+        Assert-Hash $pending $JarSha
+        [IO.File]::Replace($pending,$current,$archive)
+        Assert-Hash $archive $PreviousJarSha
+        Assert-Hash $current $JarSha
+        Assert-Protected (Join-Path $root 'protected207.json')
+        Write-Output "LEARNING001_JAR_REBOUND previous=$PreviousJarSha current=$JarSha GAMESERVER_BOOT=0"
+    } finally {
+        if (Test-Path -LiteralPath $pending -PathType Leaf) { Remove-Item -LiteralPath $pending }
+    }
+    return
+}
+
 if ($Action -eq 'provision-sql') {
     if (Test-Path -LiteralPath $sql) { throw 'LEARNING001_FRESH_SQL_ROOT_REQUIRED' }
     $null=New-Item -ItemType Directory -Path $sql
@@ -250,29 +279,33 @@ try {
         Set-RuntimeIni 'Custom\OfflineTrade.ini' @{RestoreOffliners='False'}
         Write-Output 'LEARNING001_RUNTIME_LOCAL_ENDPOINTS_PINNED'
     }
-    if ($Action -in @('prepare-actors','plan-scenes','check-capacity','check-party','survey')) {
-        if ($Action -eq 'check-party') { Assert-Hash (Join-Path $runtime 'libs/GameServer.jar') $JarSha }
+    if ($Action -in @('prepare-actors','plan-scenes','check-capacity','check-party','recover-audit','stock-heal','survey')) {
+        if ($Action -in @('check-party','recover-audit','stock-heal')) { Assert-Hash (Join-Path $runtime 'libs/GameServer.jar') $JarSha }
         Assert-Hash (Join-Path $runtime 'config\Database.ini') (Get-FileHash -LiteralPath (Join-Path $root 'Database.ini')).Hash
         Assert-Geo (Join-Path $runtime 'geodata') (Read-Geo (Join-Path $root 'geo203.json'))
         Push-Location -LiteralPath $runtime
         try {
-            $phase=switch ($Action) {'prepare-actors' {'actors'} 'plan-scenes' {'scenes'} 'check-capacity' {'capacity'} 'check-party' {'party'} 'survey' {'survey'}}
-            & java '-XX:ActiveProcessorCount=4' -Xms256m -Xmx3g -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001ActorFixture $phase $module $Lane
+            $phase=switch ($Action) {'prepare-actors' {'actors'} 'plan-scenes' {'scenes'} 'check-capacity' {'capacity'} 'check-party' {'party'} 'recover-audit' {'recover-audit'} 'stock-heal' {'stock-heal'} 'survey' {'survey'}}
+            & java '-XX:ActiveProcessorCount=4' -Xms256m -Xmx3g -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001ActorFixture $phase $module $Lane $ProofScope
             if ($LASTEXITCODE -ne 0) { throw 'LEARNING001_ACTOR_PREFLIGHT_FAILED' }
         } finally {
             Pop-Location
         }
         Assert-PortsFree @($gamePort,$loginPort)
-        if ($Action -eq 'check-party') {
+        if ($Action -eq 'check-party' -or ($Action -eq 'recover-audit' -and $ProofScope -ne 'SOLO')) {
             [IO.File]::WriteAllText((Join-Path $root 'party.ready'),$JarSha.ToLowerInvariant(),$encoding)
         }
+        if ($Action -eq 'recover-audit' -and $ProofScope -ne 'PARTY') {
+            [IO.File]::WriteAllText((Join-Path $root 'solo.ready'),$JarSha.ToLowerInvariant(),$encoding)
+        }
     }
-    if ($Action -in @('coverage','train','promote','read','audit-shadow')) {
+    if ($Action -in @('coverage','train','train-shadow','promote','read','audit-shadow')) {
         Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
         $offlineArgs=@($Action,$module,$Lane)
         switch ($Action) {
             'coverage' { $offlineArgs+=@('4096') }
             'train' { $offlineArgs+=@('4096',[string]$Seed) }
+            'train-shadow' { $offlineArgs+=@('4096',[string]$Seed) }
             default { $offlineArgs+=@([string]$Version,$ModelSha.ToLowerInvariant()) }
         }
         & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline @offlineArgs
@@ -282,8 +315,15 @@ try {
         Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
         Assert-Hash (Join-Path $runtime 'config\Database.ini') (Get-FileHash -LiteralPath (Join-Path $root 'Database.ini')).Hash
         Assert-Geo (Join-Path $runtime 'geodata') (Read-Geo (Join-Path $root 'geo203.json'))
-        foreach ($file in 'actors.tsv','rosters.tsv','capacity.tsv','party.ready') { Assert-G0PhysicalFile (Join-Path $root $file) }
-        if ([IO.File]::ReadAllText((Join-Path $root 'party.ready')) -cne $JarSha.ToLowerInvariant()) { throw 'LEARNING001_STOCK_PARTY_PREFLIGHT_PIN' }
+        foreach ($file in 'actors.tsv','rosters.tsv','capacity.tsv') { Assert-G0PhysicalFile (Join-Path $root $file) }
+        $proofs=@()
+        if ($ProofScope -ne 'SOLO') { $proofs+='party.ready' }
+        if ($Action -eq 'on' -and $ProofScope -ne 'PARTY') { $proofs+='solo.ready' }
+        foreach ($proof in $proofs) {
+            $proofPath=Join-Path $root $proof
+            Assert-G0PhysicalFile $proofPath
+            if ([IO.File]::ReadAllText($proofPath) -cne $JarSha.ToLowerInvariant()) { throw "LEARNING001_PREFLIGHT_PIN $proof" }
+        }
         if ($Action -eq 'on') {
             & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline read $module $Lane $Version ($ModelSha.ToLowerInvariant())
             if ($LASTEXITCODE -ne 0) { throw 'LEARNING001_COLD_MODEL_PIN_UNVERIFIED' }
@@ -296,7 +336,7 @@ try {
         $modelPin=if ($Action -eq 'on') { $ModelSha.ToLowerInvariant() } else { '-' }
         $argsList=@('-XX:ActiveProcessorCount=4','-Xms512m','-Xmx4g','-Dphantom.learning.train=true','-Dphantom.learning.witness=true','-cp',('"'+$classpath+'"'),
             'org.l2jmobius.tests.phantoms.PhantomLearning001ShadowNative',('"'+$module+'"'),$Lane,$runId,$JarSha.ToLowerInvariant(),
-            $Action,[string]$Version,$modelPin)
+            $Action,[string]$Version,$modelPin,$ProofScope)
         $gameProcess=Start-Process -FilePath $javaExe -ArgumentList $argsList -WorkingDirectory $runtime -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $run 'game.out') -RedirectStandardError (Join-Path $run 'game.err')
         Write-Output "LEARNING001_GAME_STARTED pid=$($gameProcess.Id) attempt=$runId directory=$run"
         try {
@@ -328,7 +368,7 @@ try {
             Write-Output "LEARNING001_GAME_STOP_PASS attempt=$runId"
             if ($Action -eq 'on') {
                 Assert-OwnSql $owned
-                & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline verify-on $module $Lane $Version $modelPin $runId
+                & java '-Dphantom.learning.train=true' -cp $classpath org.l2jmobius.tests.phantoms.PhantomLearning001Offline verify-on $module $Lane $Version $modelPin $runId $ProofScope
                 if ($LASTEXITCODE -ne 0) { throw "LEARNING001_ON_EVENT_SQL_UNPROVEN $run" }
             }
         } finally {
