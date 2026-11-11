@@ -8,6 +8,7 @@ import java.util.Map;
 import org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3;
 import org.l2jmobius.gameserver.phantoms.learning.LegalActionV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3;
+import org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3;
 import org.l2jmobius.gameserver.phantoms.learning.TacticalObservationV3.*;
 
 /** Pure durable codec/split contracts. Fabricated receipts here never enter SQL or a native dataset. */
@@ -52,7 +53,7 @@ public final class PhantomLearning003StoreChecks
         final Object restored = call("decode", new Class<?>[] {byte[].class}, bytes);
         check("TRAIN".equals(row.getMethod("split").invoke(restored)), "split lost in receipt codec");
         check("native-context-A".equals(row.getMethod("contextKey").invoke(restored)), "actual context lost in receipt codec");
-        final var receipt = (HealEvidenceV3.Receipt) row.getMethod("receipt").invoke(restored);
+        final var receipt = (TacticalReceiptV3) row.getMethod("receipt").invoke(restored);
         check(receipt.owner().generation() == 712 && receipt.owner().operationKey().equals("party.fixture.support.lease"),
             "exact external support owner was lost from durable receipt");
         check(receipt.actualHp() == 500 && receipt.actualMp() == 80 && receipt.beforeHp() == 500 && receipt.afterHp() == 1000

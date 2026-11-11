@@ -70,6 +70,131 @@ public final class TacticalModelV3
 	/** Epochs identifies the selected tuning checkpoint, including zero for unchanged initialization. */
 	public record Fit(TacticalModelV3 model, int epochs, double initialLoss, double loss) { }
 
+	/** Candidate selection and last completed optimization boundary are deliberately separate. */
+	public record IncrementalFit(Fit fit, Optimizer continuation) { }
+
+	/** Immutable offline Adam boundary. This envelope does not change the accepted V3 model codec. */
+	public static final class Optimizer
+	{
+		private static final int MAGIC = 0x50574f34, VERSION = 1;
+		private static final String SCHEMA = digest((FINGERPRINT + "/Adam004/m=.9/v=.999/rate=.0003/epsilon=1e-8/clip=1/batch16/epoch-order-v1")
+			.getBytes(StandardCharsets.UTF_8));
+		private static final int HEADER = 3 * Integer.BYTES + 3 * Long.BYTES + 32;
+		public static final int BYTE_SIZE = HEADER + TacticalModelV3.BYTE_SIZE + 2 * WEIGHT_BYTES;
+		private final TacticalModelV3 _model;
+		private final float[] _first, _second;
+		private final long _seed, _updates, _epochs;
+
+		private Optimizer(TacticalModelV3 model, float[] first, float[] second, long seed, long updates, long epochs)
+		{
+			_model = model; _first = first; _second = second; _seed = seed; _updates = updates; _epochs = epochs;
+		}
+		public TacticalModelV3 model() { return _model; }
+		public long updates() { return _updates; }
+		public long completedEpochs() { return _epochs; }
+		public long seed() { return _seed; }
+		public String sha256() { return digest(bytes()); }
+		public byte[] bytes()
+		{
+			final var buffer = ByteBuffer.allocate(BYTE_SIZE);
+			buffer.putInt(MAGIC).putInt(VERSION).putInt(PARAMETER_COUNT).putLong(_seed).putLong(_updates).putLong(_epochs);
+			buffer.put(HexFormat.of().parseHex(SCHEMA)).put(_model.bytes());
+			buffer.asFloatBuffer().put(_first).put(_second);
+			return buffer.array();
+		}
+		public static Optimizer restore(byte[] bytes, String expectedSha)
+		{
+			if (bytes == null || bytes.length != BYTE_SIZE || expectedSha == null || !expectedSha.matches("[a-f0-9]{64}"))
+			{ throw new IllegalArgumentException("Invalid V3 optimizer size/SHA"); }
+			final byte[] owned = bytes.clone();
+			if (!digest(owned).equals(expectedSha)) { throw new IllegalArgumentException("Invalid V3 optimizer checksum"); }
+			final var buffer = ByteBuffer.wrap(owned);
+			if (buffer.getInt() != MAGIC || buffer.getInt() != VERSION || buffer.getInt() != PARAMETER_COUNT)
+			{ throw new IllegalArgumentException("Unsupported V3 optimizer format"); }
+			final long seed = buffer.getLong(), updates = buffer.getLong(), epochs = buffer.getLong();
+			if (updates < 0 || epochs < 0 || epochs > updates) { throw new IllegalArgumentException("Invalid V3 optimizer boundary"); }
+			final byte[] schema = new byte[32]; buffer.get(schema);
+			if (!SCHEMA.equals(HexFormat.of().formatHex(schema))) { throw new IllegalArgumentException("Incompatible V3 optimizer schema"); }
+			final byte[] modelBytes = new byte[TacticalModelV3.BYTE_SIZE]; buffer.get(modelBytes);
+			final var model = TacticalModelV3.restore(modelBytes, digest(modelBytes));
+			final float[] first = new float[PARAMETER_COUNT], second = new float[PARAMETER_COUNT];
+			buffer.asFloatBuffer().get(first).get(second);
+			for (int i = 0; i < first.length; i++)
+			{
+				if (!Float.isFinite(first[i]) || Math.abs(first[i]) > 1.00001f || !Float.isFinite(second[i]) || second[i] < 0 || second[i] > 1.00001f
+					|| updates == 0 && (first[i] != 0 || second[i] != 0))
+				{ throw new IllegalArgumentException("Invalid V3 Adam moments"); }
+			}
+			return new Optimizer(model, first, second, seed, updates, epochs);
+		}
+	}
+
+	/** Explicit legacy migration: preserve authenticated parent weights, initialize unavailable moments to zero. */
+	public static Optimizer startOptimization(TacticalModelV3 parent, long seed)
+	{
+		if (parent == null) { throw new IllegalArgumentException("Compatible V3 parent required"); }
+		return new Optimizer(parent, new float[PARAMETER_COUNT], new float[PARAMETER_COUNT], seed, 0, 0);
+	}
+
+	/** One ordered batch; caller must durably bind sample keys before giving this boundary credit. */
+	public static Optimizer optimizeBatch(Optimizer parent, List<Example> examples)
+	{
+		if (parent == null) { throw new IllegalArgumentException("V3 optimizer parent required"); }
+		final var batch = validatedSplit(examples);
+		if (batch.size() > BATCH_SIZE) { throw new IllegalArgumentException("V3 optimizer batch bound"); }
+		final float[] weights = parent._model._weights.clone(), first = parent._first.clone(), second = parent._second.clone();
+		final float[] gradient = new float[PARAMETER_COUNT];
+		final var scratch = new Scratch();
+		for (var example : batch) { accumulate(weights, gradient, example, scratch); }
+		final long updates = Math.incrementExact(parent._updates);
+		update(weights, gradient, first, second, batch.size(), updates);
+		return new Optimizer(new TacticalModelV3(weights), first, second, parent._seed, updates, parent._epochs);
+	}
+
+	/** Offline, deterministic whole-epoch continuation. An unfinished call has no durable completion credit. */
+	public static IncrementalFit continueTraining(Optimizer parent, List<Example> examples, List<Example> tuning)
+	{
+		if (parent == null) { throw new IllegalArgumentException("V3 optimizer parent required"); }
+		final var train = validatedSplit(examples);
+		final var selection = validatedSplit(tuning);
+		if (train.size() < 16 || selection.size() < 8 || train.size() + selection.size() > MAX_EXAMPLES)
+		{ throw new IllegalArgumentException("Insufficient or oversized V3 train/tuning split"); }
+		final float[] weights = parent._model._weights.clone(), first = parent._first.clone(), second = parent._second.clone();
+		final float[] gradient = new float[PARAMETER_COUNT];
+		final var scratch = new Scratch();
+		final double initialLoss = loss(weights, selection, scratch);
+		double bestLoss = initialLoss;
+		TacticalModelV3 best = parent._model;
+		int bestEpoch = 0, completed = 0;
+		long updates = parent._updates;
+		final int epochs = Math.max(1, Math.min(MAX_EPOCHS, 256 / ((train.size() + BATCH_SIZE - 1) / BATCH_SIZE)));
+		for (int epoch = 1; epoch <= epochs && epoch - bestEpoch <= PATIENCE; epoch++)
+		{
+			// Epoch order is reproducible from the persisted seed/global epoch, without hidden Random state.
+			final int[] order = new int[train.size()];
+			for (int i = 0; i < order.length; i++) { order[i] = i; }
+			final var shuffle = new Random(parent._seed ^ Math.addExact(parent._epochs, epoch) * 0x9e3779b97f4a7c15L);
+			for (int i = order.length - 1; i > 0; i--)
+			{
+				final int j = shuffle.nextInt(i + 1), saved = order[i]; order[i] = order[j]; order[j] = saved;
+			}
+			for (int start = 0; start < order.length; start += BATCH_SIZE)
+			{
+				final int end = Math.min(start + BATCH_SIZE, order.length);
+				Arrays.fill(gradient, 0);
+				for (int i = start; i < end; i++) { accumulate(weights, gradient, train.get(order[i]), scratch); }
+				updates = Math.incrementExact(updates);
+				update(weights, gradient, first, second, end - start, updates);
+			}
+			completed = epoch;
+			final double candidate = loss(weights, selection, scratch);
+			if (candidate + 1e-7 < bestLoss)
+			{ best = new TacticalModelV3(weights.clone()); bestLoss = candidate; bestEpoch = epoch; }
+		}
+		final var continuation = new Optimizer(new TacticalModelV3(weights), first, second, parent._seed, updates, Math.addExact(parent._epochs, completed));
+		return new IncrementalFit(new Fit(best, bestEpoch, initialLoss, bestLoss), continuation);
+	}
+
 	public static TacticalModelV3 initialized(long seed)
 	{
 		final var random = new Random(seed);
@@ -208,7 +333,7 @@ public final class TacticalModelV3
 		return new Fit(new TacticalModelV3(best), bestEpoch, initialLoss, bestLoss);
 	}
 
-	private static void update(float[] weights, float[] gradient, float[] first, float[] second, int batch, int step)
+	private static void update(float[] weights, float[] gradient, float[] first, float[] second, int batch, long step)
 	{
 		final double firstCorrection = 1 - Math.pow(.9, step);
 		final double secondCorrection = 1 - Math.pow(.999, step);

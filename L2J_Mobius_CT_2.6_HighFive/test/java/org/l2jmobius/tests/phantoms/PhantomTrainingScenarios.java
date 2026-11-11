@@ -63,7 +63,10 @@ final class PhantomTrainingScenarios
 	}
 
 	static List<Scene> discover(TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority, long catalogSeed)
+	{ return discover(config,authority,catalogSeed,Math.min(256,config.scenarioLimit()*4)); }
+	static List<Scene> discover(TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority, long catalogSeed, int candidateLimit)
 	{
+		if (candidateLimit < 1 || candidateLimit > 256) { throw new IllegalArgumentException("Bounded native scenario catalog required"); }
 		var resolver = PhantomCombatCapabilityResolver.fromProgression(authority::progression);
 		var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
 		var geo = GeoEngine.getInstance();
@@ -151,7 +154,6 @@ final class PhantomTrainingScenarios
 			if (!added) { break; }
 		}
 		var result = new ArrayList<Scene>();
-		int candidateLimit = Math.min(256, config.scenarioLimit() * 4);
 		for (int variant = 0; result.size() < candidateLimit; variant++)
 		{
 			boolean added = false;

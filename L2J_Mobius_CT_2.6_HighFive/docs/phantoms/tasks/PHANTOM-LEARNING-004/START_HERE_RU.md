@@ -1,0 +1,15 @@
+# PHANTOM-LEARNING-004 — завершение общего ОБУЧАЮЩЕГО ЯДРА (не всего игрового ИИ)
+
+**Задача в одном предложении:** довести существующую модель V3 (4,52 МиБ) до единого воспроизводимого тренировочного контура `DAMAGE + HEAL`, который может накапливать реальные PvE-эпизоды, непрерывно продолжать обучение с прежних весов, не забывать старые навыки, сохранять checkpoint и возобновляться на следующую ночь без Codex.
+
+Это **финал базовой платформы обучения**, но НЕ объявление полного PvP 1×1/1×2/N×M, PK, осад, Олимпиады, рейдов, массового фарма варлорда, pathfinding или Semantic Pack. Эти режимы потребуют собственных native receipt/learning-гейтов после 004. Не обещать пользователю, что 004 «научит всем классам играть идеально».
+
+GitHub https://github.com/kpCat/L2J. Read source `wip/phantom-learning-003` at exact SHA `06d42410fbfe1ca9b7f462b0816e0da1784630d6`. New independent clone, new branch `wip/phantom-learning-004`. Original checkout `D:\Codex\repos\L2J-phantom-world` STRICT READ-ONLY. Older `wip/phantom-learning-002`, `wip/phantom-learning-003`, `wip/coordination-130-preserved`, `feature/phantom-world` immutable. Normal scoped non-force push only new WIP.
+
+**Codex reasoning:** High; Very High only for real conflict of multiple owners, irrecoverable data schema, or measurable inference performance. New Codex conversation for this task. Work autonomously with own isolated TEST installations/SQL/processes. Owner deliberately **postponed manual TRAIN_*.cmd testing**; do not impose an approval gate or ask to run them. No arbitrary max numbers of builds/boots, but every expensive run has a reason, reuse baselines.
+
+Read in order: TASK.md → ARCHITECTURE.md → CHECKPOINT_AND_RESUME.md → NATIVE_EVIDENCE.md → CURRICULUM.md → REWARD_AND_QUALITY.md → ACCEPTANCE.md → TEST_CASES.md → SAFETY.md → SOURCE_MAP.md → WORKFLOW_FAST.md → ROADMAP.md. The 003 report/HANDOFF/OWNER_ADDENDUM are mandatory truth, not assumptions.
+
+**Current facts** (from exact 003 GitHub code/report, do not replace by speculation): V3 model 1,185,377 float32 params, 4,741,508 B weights + 72 B header; V3 HEAL model2 accepted TEST, SHA `6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc`, 120 native heals, 1.626% audit improvement overall, Cardinal97 subset worse than TRAIN constant. Existing V1/002 DAMAGE model1 SHA `e0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2`, never silently call it V3. V3 `.train` initializes weights anew every time, MAX_EXAMPLES=4096. `Training.ps1 -ConfigProfile V3` exists; original 003 manually deferred command checks and auto-ON rejected by admission, explicit `apply-test` required. Preserve baseline exactly. V3 model2 exported in Git at `docs/phantoms/tasks/PHANTOM-LEARNING-003/artifacts/accepted-model-2/model-2.zip`; verify actual ZIP/SHA before import, don't assume old disposable SQL exists.
+
+**Speed:** reuse existing Director/Win32/SID/Job/SQL/G0, do not re-prove unaffected 002 Windows lifetime, Geo203/protected207 or 003 HEAL calculations. Focused unit+native; diagnose before another full boot. No fake proof, no changing cooldown/skill damages, no bulk physics second engine.

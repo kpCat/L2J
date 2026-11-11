@@ -1,0 +1,7 @@
+learning001 fixtures train=144 tuning=48 heldOut=48 initialMse=0.446780 heldOutMse=0.000432 rrReturn=0.2500 learnedReturn=0.8000 sha256=5e3b0857f8523a8ac6ad345d5784768d6aff210bcb42dc136f777ab23be48314
+learning001 benchmark actors=128 candidates=4 samples=30000 p50=6.700us p95=7.400us p99=10.100us alloc=24.1B/op cpu=218.750ms weights=12500B featurePayload=262144B heapBefore=17979616B heapAfter=17979616B
+[PASS] learning001.held-out-generalization-and-real-combat-dispatch
+[PASS] learning001.party-receipt-survives-readiness-revision
+[PASS] learning001.residual-model-keeps-calibration-through-reload
+[PASS] learning001.warmed-128-actor-inference
+SUMMARY: suite=learning001 seed=183 total=4 passed=4 failed=0

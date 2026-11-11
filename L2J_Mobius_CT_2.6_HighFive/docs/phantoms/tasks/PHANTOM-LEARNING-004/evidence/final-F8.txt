@@ -1,0 +1,15 @@
+[PASS] native-evidence-continuation022.094-completed-cycle-retains-late-native-settlement-receipt
+[PASS] native-evidence-continuation022.094-frozen-contributor-preserves-late-one-HP-damage-and-native-cycle
+[PASS] native-evidence-continuation022.094-native-target-receipts-disambiguate-interleaved-settlements
+[PASS] native-evidence-continuation022.094-pure-party-support-settlements-do-not-exhaust-unfinished-cap
+[PASS] native-evidence-continuation022.123-consumption-observer-failure-cannot-change-native-outcome
+[PASS] native-evidence-continuation022.123-successful-consumption-is-exact-and-observational
+[PASS] native-evidence-continuation022.129-causal-heal-observation-is-exact-and-cannot-change-native-outcome
+[PASS] native-evidence-continuation022.130-stock-heal-writer-has-no-conditional-test-mechanics
+[PASS] native-evidence-continuation022.130-stock-restored-hp-receipt-fences-owner-and-zero-effect
+[PASS] native-evidence-continuation022.S08-first-phase-deadline-reason-sticky-and-stale-clear
+[PASS] native-evidence-continuation022.S09-late-native-reward-after-next-target-counted-once
+[PASS] native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth
+[PASS] native-evidence-continuation022.S11-useful-native-offense-finishes-rest-gap-without-clearing-invalidity
+[PASS] native-evidence-continuation022.S12-native-terminal-zero-SP-retired-without-inventing-cycle
+SUMMARY: suite=native-evidence-continuation022 seed=22002203 total=14 passed=14 failed=0

@@ -291,6 +291,7 @@ public final class PhantomLearning001ShadowNative
 			combat = new PhantomCombatService(new L2jCombatBackend(materialization, source::knowledge, () -> progression.findCatalog().orElse(null)),
 				PhantomCombatCapabilityResolver.fromProgression(() -> progression.findCatalog().orElse(null)), PhantomCombatPolicy.productionDefaults(64));
 			combat.installLearning(policy);
+			policy.tactical(tactical);
 			backend = new L2jPhantomPartyBackend(profiles, materialization, progression);
 			sourcePlanner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
 			backend.installFarmSourcePolicy((farm, target) -> sourcePlanner.partyNativeTarget(farm, target.asNpc().getId(),
@@ -424,6 +425,8 @@ public final class PhantomLearning001ShadowNative
 		}
 
 		String runTrainingEpisode(TrainingCollector collector, int seconds, int evidenceLimit, BooleanSupplier requested, CooldownWitness cooldown) throws Exception
+		{ return runTrainingEpisode(collector, seconds, evidenceLimit, requested, cooldown, () -> false); }
+		private String runTrainingEpisode(TrainingCollector collector, int seconds, int evidenceLimit, BooleanSupplier requested, CooldownWitness cooldown, BooleanSupplier nativeTerminal) throws Exception
 		{
 			check(!trainingPlayers.isEmpty(), "TRAIN_NOT_PREPARED");
 			check(cooldown == null || !trainingParty, "COOLDOWN_WITNESS_REQUIRES_SOLO");
@@ -431,7 +434,7 @@ public final class PhantomLearning001ShadowNative
 			final long deadline = System.nanoTime() + Duration.ofSeconds(seconds).toNanos();
 			final long idleDeadline = System.nanoTime() + Duration.ofSeconds(Math.min(seconds, 45)).toNanos();
 			boolean encountered = false;
-			while (System.nanoTime() < deadline && (collector.size() < evidenceLimit || cooldown != null && !cooldown.passed()))
+			while (System.nanoTime() < deadline && !nativeTerminal.getAsBoolean() && (collector.size() < evidenceLimit || cooldown != null && !cooldown.passed()))
 			{
 				if (requested.getAsBoolean()) { return "REQUESTED_DRAIN"; }
 				if (trainingPlayers.stream().anyMatch(Player::isAlikeDead)) { return "NATIVE_ACTOR_DIED"; }
@@ -474,6 +477,65 @@ public final class PhantomLearning001ShadowNative
 			}
 			return collector.size() > 0 && (cooldown == null || cooldown.passed()) ? "NATIVE_EVIDENCE"
 				: cooldown == null ? "NO_EXACT_NATIVE_EVIDENCE" : "NO_NATIVE_COOLDOWN_WITNESS:" + cooldown.description();
+		}
+
+		java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3> runLearning004Encounter(String id, String nonce, int seconds,
+			BooleanSupplier requested, java.util.function.Supplier<List<org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3>> receipts) throws Exception
+		{
+			final long started = System.nanoTime();
+			final var before = new java.util.HashMap<Integer,org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot>();
+			for (var player : trainingPlayers) { before.put(player.getObjectId(), PlayerNativeWork.observationEvidence(player).snapshot()); }
+			final var kills = new java.util.LinkedHashMap<String,org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Kill>();
+			final var deaths = new java.util.HashSet<Integer>();
+			final BooleanSupplier terminal = () ->
+			{
+				for (var player : trainingPlayers)
+				{
+					if (player.isAlikeDead()) { deaths.add(player.getObjectId()); }
+					final var evidence = PlayerNativeWork.observationEvidence(player);
+					if (evidence == null) { continue; }
+					final var nativeReceipts = evidence.targetReceipts();
+					final var target = nativeReceipts.killTarget();
+					if (nativeReceipts.killSequence() <= before.get(player.getObjectId()).killSequence() || target == null) { continue; }
+					if (World.getInstance().findObject(target.objectId()) instanceof org.l2jmobius.gameserver.model.actor.instance.Monster npc
+						&& target.equals(npc.getNativeEvidenceTarget()) && npc.isAlikeDead())
+					{
+						kills.putIfAbsent(target.toString() + '/' + player.getObjectId(), new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Kill(
+							target.objectId(), npc.getId(), target.spawnGeneration(), target.instanceId(), player.getObjectId(), nativeReceipts.killSequence()));
+					}
+				}
+				return !kills.isEmpty() || !deaths.isEmpty();
+			};
+			final var collector = new TrainingCollector();
+			collector.begin(id);
+			final String stopped;
+			try { stopped = runTrainingEpisode(collector, seconds, Integer.MAX_VALUE, requested, null, terminal); }
+			finally { collector.end(); }
+			terminal.getAsBoolean();
+			return () ->
+			{
+			terminal.getAsBoolean();
+			final var actors = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor>();
+			for (int index = 0; index < trainingPlayers.size(); index++)
+			{
+				final var player = trainingPlayers.get(index);
+				final var previous = before.get(player.getObjectId());
+				final var evidence = PlayerNativeWork.observationEvidence(player);
+				final var current = evidence == null ? null : evidence.snapshot();
+				final boolean known = current != null && current.epoch() == previous.epoch() && !current.overflow() && !previous.overflow()
+					&& current.firstUnprovenReason() == org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.UnprovenReason.NONE;
+				actors.add(new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor(Long.parseLong(trainingRows.get(index)[2]), player.getObjectId(), previous.epoch(),
+					player.getActiveClass(), player.getLevel(), player.getCurrentHp(), player.getCurrentMp(), player.isAlikeDead(),
+					known ? current.expGained() - previous.expGained() : null, known ? current.spGained() - previous.spGained() : null));
+			}
+			final var observed = receipts.get();
+			final String reason = !deaths.isEmpty() ? "NATIVE_ACTOR_DIED" : !kills.isEmpty() ? "NATIVE_KILL" : stopped.equals("REQUESTED_DRAIN") ? stopped : "TIMEOUT";
+			return new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3(id, nonce, trainingParty ? "PARTY" : "SOLO", started, System.nanoTime(), reason,
+				actors, List.copyOf(kills.values()), observed.stream().map(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::eventKey).toList(),
+				observed.stream().filter(row -> row.attempt().selected().family() == org.l2jmobius.gameserver.phantoms.learning.LegalActionV3.Family.DAMAGE).mapToDouble(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::actualHp).sum(),
+				observed.stream().filter(row -> row.attempt().selected().family() == org.l2jmobius.gameserver.phantoms.learning.LegalActionV3.Family.HEAL).mapToDouble(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::actualHp).sum(),
+				observed.stream().mapToDouble(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::actualMp).sum(), deaths.size());
+			};
 		}
 
 		CooldownWitness cooldownWitness()
@@ -576,8 +638,19 @@ public final class PhantomLearning001ShadowNative
 
 		String settleTraining() throws Exception
 		{
+			drainTraining();
+			return storeTraining();
+		}
+		record Learning004Settled(org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3 episode, String facts) { }
+		Learning004Settled settleLearning004(java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3> finalSnapshot) throws Exception
+		{
+			final var episode = org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.afterNativeDrain(this::drainTraining, finalSnapshot);
+			return new Learning004Settled(episode, storeTraining());
+		}
+		private void drainTraining() throws Exception
+		{
 			trainingAdmission = false;
-			if (trainingRows.isEmpty()) { return "{\"actors\":[],\"nativeRewards\":\"UNKNOWN\"}"; }
+			if (trainingRows.isEmpty()) { return; }
 			final var rows = trainingRows;
 			final var players = trainingPlayers;
 			await(() ->
@@ -603,6 +676,12 @@ public final class PhantomLearning001ShadowNative
 				return drained && players.stream().noneMatch(player -> player.isInParty() || player.isAttackingNow() || player.isCastingNow()
 					|| player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null || player.isMoving());
 			}, Duration.ofSeconds(90), "TRAIN_CANONICAL_DRAIN");
+		}
+		private String storeTraining() throws Exception
+		{
+			if (trainingRows.isEmpty()) { return "{\"actors\":[],\"nativeRewards\":\"UNKNOWN\"}"; }
+			final var rows = trainingRows;
+			final var players = trainingPlayers;
 			final String facts = trainingFacts();
 			for (var row : rows) { store(Long.parseLong(row[2])); }
 			check(players.stream().allMatch(player -> World.getInstance().getPlayer(player.getObjectId()) == null), "TRAIN_WORLD_NOT_EMPTY");

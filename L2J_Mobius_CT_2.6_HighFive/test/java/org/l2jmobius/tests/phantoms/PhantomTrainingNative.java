@@ -92,7 +92,11 @@ public final class PhantomTrainingNative
 			if (!policy.collecting()) { throw new IllegalStateException("Native learning collector unavailable"); }
 			if (tacticalV3)
 			{
-				try { PhantomLearning003Native.run(root, attempt, config, policy); }
+				try
+				{
+					if ("true".equals(config.text("v3Core004", "false"))) { PhantomLearning004Native.run(root, attempt, config, policy); }
+					else { PhantomLearning003Native.run(root, attempt, config, policy); }
+				}
 				finally { await(policy::stop, Duration.ofSeconds(15), "Native evidence writer did not drain"); }
 				return;
 			}

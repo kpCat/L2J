@@ -1,0 +1,7 @@
+[PASS] training-contracts.bounded-natural-preparation-budget
+[PASS] training-contracts.episode-admission-does-not-create-native-credit
+[PASS] training-contracts.learning004-existing-episode-budget-and-independent-splits
+[PASS] training-contracts.learning004-lawful-precut-refusal-is-not-a-fake-episode
+[PASS] training-contracts.reject-unsafe-endpoints-and-unsupported-mode
+[PASS] training-contracts.versioned-config-and-readable-cyrillic
+SUMMARY: suite=training-contracts seed=183 total=6 passed=6 failed=0

@@ -1,0 +1,10 @@
+[PASS] post002-support.01-policy-is-data-owned-and-bounded
+[PASS] post002-support.02-human-member-and-priority-use-canonical-capabilities
+[PASS] post002-support.03-healthy-suppressed-near-expiry-admitted
+[PASS] post002-support.04-song-dance-maintenance-is-bounded
+[PASS] post002-support.05-native-cast-and-raid-reuse-remain-owned
+[PASS] post002-support.06-threatened-member-heal-starts-before-critical-hp-and-protect
+[PASS] post002-support.07-early-heal-requires-pressure-health-and-ready-current-skill
+[PASS] post002-support.08-critical-member-outranks-less-urgent-target-with-current-high-rank
+[PASS] post002-support.09-healthy-first-buff-does-not-starve-another-ready-effect
+SUMMARY: suite=post002-support seed=183 total=9 passed=9 failed=0

@@ -138,6 +138,8 @@ public final class TrainingStore
 	}
 
 	private Connection connect() throws SQLException
+	{ return connect(false); }
+	private Connection connect(boolean binaryParameters) throws SQLException
 	{
 		try
 		{
@@ -147,7 +149,11 @@ public final class TrainingStore
 			{ throw new SQLException("Владелец или конфигурация тренировочной схемы изменились."); }
 		}
 		catch (IOException failure) { throw new SQLException("Не удалось подтвердить файлы собственной установки."); }
-		final Connection connection = DriverManager.getConnection(_url, _credentials);
+		final var settings = (Properties) _credentials.clone();
+		// V3 Adam envelope is14.2MB. Binary parameters avoid doubling zero bytes in text SQL;
+		// same pinned driver, endpoint and ownership checks. Legacy/V1 connections retain their prior settings.
+		if (binaryParameters) { settings.setProperty("useServerPrepStmts", "true"); }
+		final Connection connection = DriverManager.getConnection(_url, settings);
 		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT DATABASE(),@@port,VERSION(),CURRENT_USER(),@@datadir"))
 		{
 			if (!rows.next() || !SCHEMA.equals(rows.getString(1)) || rows.getInt(2) != _port || !rows.getString(3).contains("MariaDB")
@@ -164,7 +170,7 @@ public final class TrainingStore
 	}
 
 	/** V3 offline durability reuses the exact existing TEST installation and SQL identity guards. */
-	Connection openTacticalConnection() throws SQLException { return connect(); }
+	Connection openTacticalConnection() throws SQLException { return connect(true); }
 
 	@FunctionalInterface
 	private interface Transaction<T> { T run(Connection connection) throws SQLException; }

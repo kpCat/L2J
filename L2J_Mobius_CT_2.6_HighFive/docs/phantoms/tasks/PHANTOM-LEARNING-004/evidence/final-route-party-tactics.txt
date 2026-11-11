@@ -1,0 +1,15 @@
+[PASS] party-tactics.01-assist-protect-heal-recharge-resurrect-support-plan
+[PASS] party-tactics.02-external-combat-ownership-is-mandatory
+[PASS] party-tactics.076-pending-support-retains-owner-only-for-current-native-party
+[PASS] party-tactics.094-empty-next-pull-keeps-current-combat-owner
+[PASS] party-tactics.094-farm-source-refresh-does-not-cancel-unchanged-native-cast
+[PASS] party-tactics.094-idle-maintenance-serves-peers-before-self
+[PASS] party-tactics.094-idle-protection-prepares-caster-before-extra-peer-buffs
+[PASS] party-tactics.094-low-mp-castable-support-retains-role-without-maintenance
+[PASS] party-tactics.094-source-read-failure-drains-finished-native-work
+[PASS] party-tactics.126-farm-healer-keeps-support-owner-while-damage-members-fight
+[PASS] party-tactics.130-defender-owns-native-loot-when-planned-puller-is-busy
+[PASS] party-tactics.130-farm-heal-ranks-only-exact-recipient-capabilities
+[PASS] party-tactics.130-maintenance-does-not-incapacitate-healer
+[PASS] party-tactics.learning003-urgent-heal-native-duration-calm-stock
+SUMMARY: suite=party-tactics seed=183 total=14 passed=14 failed=0

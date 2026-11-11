@@ -1,0 +1,12 @@
+{
+  "scope": "OFFLINE_OPTIMIZER_MATH_ONLY_NOT_NATIVE_FIT",
+  "pid": 68212,
+  "exitCode": 0,
+  "wallMillis": 8643,
+  "sampledCpuSecondsLowerBound": 9,
+  "sampledPeakWorkingSetBytes": 1296052224,
+  "pollMillis": 100,
+  "samples": 72,
+  "nativeCredit": 0,
+  "actualNativeFitTrainingNanos": 9513726700
+}

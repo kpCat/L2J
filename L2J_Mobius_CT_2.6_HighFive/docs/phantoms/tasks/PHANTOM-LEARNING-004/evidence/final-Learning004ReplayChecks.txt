@@ -1,0 +1,2 @@
+LEARNING004_LEGACY archive=AUTHENTICATED model2=PRESERVED dataset=120 oldAudit=HISTORICAL newNativeCredit=0
+LEARNING004_REPLAY historical=5000 selected=192 freshAndOld=PASS deterministic=PASS usedAudit=EXCLUDED DB_CONNECTIONS=0 origin=SYNTHETIC

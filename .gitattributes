@@ -24,5 +24,6 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LIVING-SYSTEMS-074-data
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-OWNER-WORLD-075/* -text
 # Preserve the LEARNING003 owner package SHA256 manifest across Windows checkouts.
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-003/* -text
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/* -text
 L2J_Mobius_CT_2.6_HighFive/dist/game/config/OwnerProfile38.tsv -text
 L2J_Mobius_CT_2.6_HighFive/SaveOwnerConfig.bat text eol=crlf

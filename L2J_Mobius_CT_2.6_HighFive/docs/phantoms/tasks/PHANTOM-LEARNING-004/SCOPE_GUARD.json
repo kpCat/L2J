@@ -1,0 +1,26 @@
+{
+  "schema": 4,
+  "phase": "PRECOMMIT",
+  "allowlist": "SCOPE_ALLOWLIST.txt",
+  "allowedPaths": 114,
+  "actualPaths": 114,
+  "outsideAllowlist": [],
+  "missingPaths": [],
+  "whitespaceCheckExit": 0,
+  "encoding": "evidence/encoding.json",
+  "privateRuntimeIncluded": false,
+  "sourceTestArchive": "artifacts/source-test-export.json",
+  "historicalModelMutations": 0,
+  "gitAuthorization": "User explicitly authorized scoped commits and ordinary non-force push only wip/phantom-learning-004",
+  "excludedActions": [
+    "force",
+    "merge",
+    "reset",
+    "clean",
+    "stash",
+    "other ref writes"
+  ],
+  "cachedFullWhitespaceExit": 2,
+  "immutableInputWhitespaceException": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/ARCHITECTURE.md:3 ORIGINAL_TRAILING_SPACE_MANIFEST_SHA_UNCHANGED",
+  "checkedPathsExcludingImmutableInput": 113
+}

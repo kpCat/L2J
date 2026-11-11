@@ -2287,6 +2287,8 @@ public abstract class Creature extends WorldObject
 			if ((skill.getTargetType() == TargetType.GROUND) && isPlayer())
 			{
 				final Location wp = asPlayer().getCurrentSkillWorldPosition();
+				// Same missing-ground-target refusal as Player.checkUseMagicConditions; readiness probes have no chosen point.
+				if (wp == null) { return false; }
 				if (!zoneRegion.checkEffectRangeInsidePeaceZone(skill, wp.getX(), wp.getY(), wp.getZ()))
 				{
 					canCast = false;
@@ -4282,6 +4284,8 @@ public abstract class Creature extends WorldObject
 		{
 			// Published earned callbacks still retire their tickets, but an explicitly
 			// cancelled task no longer owns the mutable state of the next native cast.
+			if (_nativeMagicUseTask != null) { _nativeMagicUseTask.learningCancelled(); }
+			if (_nativeMagicUseTask2 != null) { _nativeMagicUseTask2.learningCancelled(); }
 			_nativeMagicUseTask = null; _nativeMagicUseTask2 = null;
 			Future<?> future = _skillCast;
 			
@@ -6041,7 +6045,8 @@ public abstract class Creature extends WorldObject
 					return;
 				}
 				
-				_status.reduceMp(mpConsume);
+				if (mut.learningEvidence() == null) { _status.reduceMp(mpConsume); }
+				else { mut.learningEvidence().mpDebit(() -> _status.reduceMp(mpConsume)); }
 				su.addAttribute(StatusUpdate.CUR_MP, (int) _status.getCurrentMp());
 				isSendStatus = true;
 			}

@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 4,
+  "attemptId": "ce2b069892d642558170c26cab5937ae",
+  "status": "PARTIAL_NATIVE_DOMAIN_REFUSAL",
+  "jarSha": "c4f812ce4fc3f97f1fe0bb72faebaee86da07300ee81237cb3bef46a1b02bb9f3",
+  "nativeHeals": 56,
+  "nativeDamageEffects": 7,
+  "episodes": [
+    {
+      "schemaVersion": 4,
+      "episode": "263c800490ca5cc8982d61a525898d27bfa4de8d51b80d4780bbc82573d96f25",
+      "ownerNonce": "ce2b069892d642558170c26cab5937ae",
+      "goal": "SOLO_PVE_TARGET",
+      "scope": "SOLO",
+      "outcome": "COMPLETED",
+      "reason": "NATIVE_KILL",
+      "durationNanos": 22180315400,
+      "confirmedKill": true,
+      "actors": [
+        {
+          "profile": 688,
+          "objectId": 268499986,
+          "epoch": 1232447774284300,
+          "class": 94,
+          "level": 77,
+          "remainingHp": 4547.761251999999,
+          "remainingMp": 2403.2579840000008,
+          "dead": false,
+          "nativeCreditedExp": 42624,
+          "nativeCreditedSp": 7595
+        }
+      ],
+      "nativeKills": [
+        {
+          "targetObjectId": 268451665,
+          "npcId": 21798,
+          "spawnGeneration": 1,
+          "instanceId": 0,
+          "creditedActorId": 268499986,
+          "nativeKillSequence": 1
+        }
+      ],
+      "eventKeys": [
+        "99a43081333644dea67c46bb1ab83573dcdfebfef677592419e416ed82b5f12f",
+        "6f122d3ff60fca2981a949f4992c73189012bf926f2b099f23dcd7d070890967",
+        "c3898e8cba42fe65c861aa35ace908db9cdafb5cd653642fb74431adf0d06dfb"
+      ],
+      "exactObservedDamage": 3981.0,
+      "usefulObservedHeal": 0.0,
+      "exactObservedMp": 243.0,
+      "observedDeathsLowerBound": 0,
+      "completeDeathCount": null,
+      "wholePartyDamage": null,
+      "consumables": null,
+      "loot": null,
+      "adenaNet": null,
+      "terminalRewardUsedForTraining": false,
+      "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+    },
+    {
+      "schemaVersion": 4,
+      "episode": "e87ff5977ecea27af6aeb623fb0258f028e2489816298446d7eaf7cc1529d57f",
+      "ownerNonce": "ce2b069892d642558170c26cab5937ae",
+      "goal": "PARTY_PVE_TARGET",
+      "scope": "PARTY",
+      "outcome": "COMPLETED",
+      "reason": "NATIVE_KILL",
+      "durationNanos": 32513000400,
+      "confirmedKill": true,
+      "actors": [
+        {
+          "profile": 689,
+          "objectId": 268501053,
+          "epoch": 1232471686941000,
+          "class": 94,
+          "level": 77,
+          "remainingHp": 4770.0,
+          "remainingMp": 2532.5767840000003,
+          "dead": false,
+          "nativeCreditedExp": 28252,
+          "nativeCreditedSp": 5034
+        },
+        {
+          "profile": 690,
+          "objectId": 268502118,
+          "epoch": 1232471710889200,
+          "class": 90,
+          "level": 76,
+          "remainingHp": 5971.6186,
+          "remainingMp": 1666.0,
+          "dead": false,
+          "nativeCreditedExp": 27523,
+          "nativeCreditedSp": 4904
+        },
+        {
+          "profile": 691,
+          "objectId": 268503167,
+          "epoch": 1232471733261700,
+          "class": 94,
+          "level": 76,
+          "remainingHp": 4713.0,
+          "remainingMp": 2450.4009599999995,
+          "dead": false,
+          "nativeCreditedExp": 27523,
+          "nativeCreditedSp": 4904
+        },
+        {
+          "profile": 692,
+          "objectId": 268504212,
+          "epoch": 1232471755563900,
+          "class": 105,
+          "level": 76,
+          "remainingHp": 5073.0,
+          "remainingMp": 2756.0,
+          "dead": false,
+          "nativeCreditedExp": 27523,
+          "nativeCreditedSp": 4904
+        }
+      ],
+      "nativeKills": [
+        {
+          "targetObjectId": 268451664,
+          "npcId": 21798,
+          "spawnGeneration": 1,
+          "instanceId": 0,
+          "creditedActorId": 268501053,
+          "nativeKillSequence": 1
+        },
+        {
+          "targetObjectId": 268451664,
+          "npcId": 21798,
+          "spawnGeneration": 1,
+          "instanceId": 0,
+          "creditedActorId": 268503167,
+          "nativeKillSequence": 1
+        }
+      ],
+      "eventKeys": [
+        "c8661ca7556ac30cfdcbe96803d5018fc430be7d37b7d9e033bf74b9e6cc54d8",
+        "942ba19457113d02466a24a855f146c25e3105ef14a60a6f56748920ab340032"
+      ],
+      "exactObservedDamage": 1798.0,
+      "usefulObservedHeal": 0.0,
+      "exactObservedMp": 174.0,
+      "observedDeathsLowerBound": 0,
+      "completeDeathCount": null,
+      "wholePartyDamage": null,
+      "consumables": null,
+      "loot": null,
+      "adenaNet": null,
+      "terminalRewardUsedForTraining": false,
+      "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+    },
+    {
+      "schemaVersion": 4,
+      "episode": "6f6ebc49151dc08800073049f33c4f7aa62d81114c5cc7392092be60b182eff7",
+      "ownerNonce": "ce2b069892d642558170c26cab5937ae",
+      "goal": "SOLO_PVE_TARGET",
+      "scope": "SOLO",
+      "outcome": "COMPLETED",
+      "reason": "NATIVE_KILL",
+      "durationNanos": 28948402200,
+      "confirmedKill": true,
+      "actors": [
+        {
+          "profile": 693,
+          "objectId": 268505307,
+          "epoch": 1232507967666100,
+          "class": 94,
+          "level": 77,
+          "remainingHp": 3542.632597149842,
+          "remainingMp": 2244.782560000001,
+          "dead": false,
+          "nativeCreditedExp": 78396,
+          "nativeCreditedSp": 13970
+        }
+      ],
+      "nativeKills": [
+        {
+          "targetObjectId": 268451666,
+          "npcId": 21799,
+          "spawnGeneration": 1,
+          "instanceId": 0,
+          "creditedActorId": 268505307,
+          "nativeKillSequence": 1
+        }
+      ],
+      "eventKeys": [
+        "8334b5ca2165eb7a4bc7c3bb063a8835436cbf41f72ddec756fa524c33a3ed1e",
+        "d3d2c1f06d5ce11e5892f0b640cb15c5400eb7d1cd34bcb2778c372d2c5a13a6"
+      ],
+      "exactObservedDamage": 3286.0,
+      "usefulObservedHeal": 0.0,
+      "exactObservedMp": 210.0,
+      "observedDeathsLowerBound": 0,
+      "completeDeathCount": null,
+      "wholePartyDamage": null,
+      "consumables": null,
+      "loot": null,
+      "adenaNet": null,
+      "terminalRewardUsedForTraining": false,
+      "metricScope": "Selected exact native action receipts plus canonical kill/EXP/SP writers; unknown metrics are not zero"
+    }
+  ],
+  "refusal": [
+    "LEARNING001_PARTY_PREFLIGHT_TARGET profiles=[694, 695, 696, 697] leader=694 target=0 wait=WAIT_GROUP_DAMAGE:target=268451667:durationMillis=Infinity:DPS=15.105275256392751:HP=128920.0 threatened=[] [WAIT_GROUP_DAMAGE:target=268451667:durationMillis=Infinity:DPS=15.105275256392751:HP=128920.0]"
+  ],
+  "nativeSegmentComplete": false,
+  "resources": {
+    "pid": 72472,
+    "startedUtc": "2026-11-11T21:48:29.5061222Z",
+    "sampledUtc": "2026-11-11T21:58:11.5871171Z",
+    "elapsedMillis": 582081,
+    "cpuSeconds": 145.3125,
+    "workingSetBytes": null,
+    "peakWorkingSetBytes": 4688433152,
+    "measurement": "PROCESS_METADATA",
+    "exitObserved": true,
+    "attemptId": "ce2b069892d642558170c26cab5937ae",
+    "finishedUtc": "2026-11-11T21:58:11.5981167Z"
+  }
+}

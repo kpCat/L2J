@@ -25,6 +25,8 @@ public final class TacticalPolicyV3
 	private final TacticalModelV3 _model;
 	private final int _maximumEntities, _maximumActions;
 	private final Consumer<HealEvidenceV3.Receipt> _sink;
+	private volatile Consumer<TacticalReceiptV3> _damageSink = _ -> { };
+	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
 	private final ConcurrentHashMap<Long, Long> _last = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, HealEvidenceV3.Attempt> _pending = new ConcurrentHashMap<>();
 	private final AtomicLong _generation = new AtomicLong();
@@ -40,6 +42,75 @@ public final class TacticalPolicyV3
 	}
 	public HealEvidenceV3.Attempt latest() { return _latest; }
 	public Mode mode() { return _mode; }
+	public void damageObserver(Consumer<TacticalReceiptV3> sink) { _damageSink = Objects.requireNonNull(sink); }
+	void recordDamage(TacticalReceiptV3 receipt) { _damageSink.accept(receipt); }
+	public void failureObserver(Consumer<TacticalFailureV3> sink) { _failureSink = Objects.requireNonNull(sink); }
+	void recordFailure(TacticalFailureV3 failure) { _failureSink.accept(failure); }
+	public record DamageChoice(LearningPolicy.Candidate selected, TacticalReceiptV3.Attempt attempt) { }
+
+	/** Reuses the existing Combat candidate filter/exact lease. No new executor or owner priority. */
+	DamageChoice damage(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest request, int actorObjectId,
+		List<LearningPolicy.Candidate> candidates, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill baseline)
+	{
+		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { return null; }
+		final long now = System.nanoTime(), profile = request.profileId();
+		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { return null; }
+		if (!CPU_SLOT.tryAcquire()) { fallback.increment(); return null; }
+		final long allocated = allocated(), cpu = THREADS.getCurrentThreadCpuTime();
+		try
+		{
+			_last.put(profile, now);
+			if (!(World.getInstance().findObject(actorObjectId) instanceof Player actor)
+				|| !(World.getInstance().findObject(request.targetObjectId()) instanceof org.l2jmobius.gameserver.model.actor.instance.Monster target)
+				|| actor.isAlikeDead() || target.isAlikeDead() || actor.isCastingNow() || actor.isAttackingNow()) { return null; }
+			final long generation = _generation.incrementAndGet(), snapshotStarted = System.nanoTime();
+			final var observation = TacticalSnapshotV3.collect(actor, profile, generation, _maximumEntities);
+			_snapshotTime.add(System.nanoTime() - snapshotStarted);
+			if (observation.entity(target.getObjectId()) == null) { return null; }
+			final var offered = new ArrayList<LegalActionV3>();
+			int stock = -1;
+			for (int index = 0; index < candidates.size(); index++)
+			{
+				final var candidate = candidates.get(index);
+				final var skill = actor.getKnownSkill(candidate.skill().skillId());
+				if (!candidate.exact().getAsBoolean() || skill == null || skill.getLevel() != candidate.skill().skillLevel()
+					|| actor.isSkillDisabled(skill) || !actor.checkDoCastConditions(skill) || !skill.checkCondition(actor, target, false)
+					|| !skill.isDamage() || skill.getAffectRange() > 0 || actor.getCurrentMp() < candidate.mpCost()) { return null; }
+				offered.add(new LegalActionV3(LegalActionV3.Family.DAMAGE, "Combat", profile, actor.getObjectId(), observation.actorEpoch(), generation,
+					target.getObjectId(), TacticalSnapshotV3.epoch(target), observation.partyIdentity(), skill.getId(), skill.getLevel(), candidate.mpCost(),
+					skill.getHitTime(), Math.max(0, actor.getMagicalAttackRange(skill)), false, true));
+				if (candidate.skill().equals(baseline)) { stock = index; }
+			}
+			if (stock < 0) { return null; }
+			int selected = stock;
+			if (_model != null)
+			{
+				final long encodeStarted = System.nanoTime();
+				final var encoded = _model.encode(observation.state());
+				_encodeTime.add(System.nanoTime() - encodeStarted);
+				final long scoreStarted = System.nanoTime();
+				float best = -Float.MAX_VALUE, second = best;
+				for (int i = 0; i < offered.size(); i++)
+				{
+					final float score = _model.scoreEncoded(encoded, offered.get(i).features(observation));
+					if (score > best) { second = best; best = score; selected = i; } else { second = Math.max(second, score); }
+				}
+				_scoreTime.add(System.nanoTime() - scoreStarted); evaluated.increment();
+				if (_mode != Mode.ON || best - second < .025f) { selected = stock; }
+			}
+			if (System.nanoTime() - now > 5_000_000L) { overBudget.increment(); selected = stock; }
+			if (selected != stock) { reordered.increment(); }
+			return new DamageChoice(candidates.get(selected), new TacticalReceiptV3.Attempt(observation, offered, offered.get(selected), offered.get(stock), _version));
+		}
+		catch (RuntimeException unavailable) { fallback.increment(); return null; }
+		finally
+		{
+			_totalTime.add(System.nanoTime() - now);
+			if (cpu >= 0) { _cpuTime.add(THREADS.getCurrentThreadCpuTime() - cpu); }
+			if (allocated >= 0) { _allocations.add(allocated() - allocated); }
+			CPU_SLOT.release();
+		}
+	}
 	public List<TacticalDirective> rank(List<TacticalDirective> stock, Map<MemberRef, MemberSnapshot> snapshots)
 	{
 		if (_mode == Mode.OFF || SkillData.getInstance().catalogReloaded()) { return stock; }
@@ -91,7 +162,7 @@ public final class TacticalPolicyV3
 					final int first = result.indexOf(choices.getFirst()), chosen = result.indexOf(choices.get(selected));
 					Collections.swap(result, first, chosen); reordered.increment();
 				}
-				final var attempt = new HealEvidenceV3.Attempt(observation, offered, offered.get(selected), offered.getFirst(), _version, _sink);
+				final var attempt = new HealEvidenceV3.Attempt(observation, offered, offered.get(selected), offered.getFirst(), _version, _sink, this::recordFailure);
 				_pending.put(ref.profileId(), attempt); _latest = attempt;
 			}
 			catch (RuntimeException unavailable) { fallback.increment(); }

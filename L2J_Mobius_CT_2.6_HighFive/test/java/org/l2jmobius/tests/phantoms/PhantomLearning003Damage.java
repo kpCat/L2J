@@ -94,7 +94,7 @@ public final class PhantomLearning003Damage
 		}
 	}
 
-	private static int sourcePreflight(PhantomBackgroundSuite.ProductionAuthorityFixture source)
+	static int sourcePreflight(PhantomBackgroundSuite.ProductionAuthorityFixture source)
 	{
 		final var anchor = source.topology().findAnchor(ANCHOR).orElseThrow(() -> new IllegalStateException("Canonical DAMAGE anchor missing"));
 		final var point = anchor.point();
@@ -113,14 +113,14 @@ public final class PhantomLearning003Damage
 			.orElseThrow(() -> new IllegalStateException("No actual safe21798/21799 at canonical DAMAGE source"));
 	}
 
-	private static PhantomTrainingScenarios.Scene scene(int npc, int level, String grade, int enchant)
+	static PhantomTrainingScenarios.Scene scene(int npc, int level, String grade, int enchant)
 	{
 		final String source = npc + "@" + ANCHOR;
 		return new PhantomTrainingScenarios.Scene(PhantomTrainingScenarios.physicalId(source, 94, level, grade, X, Y, Z, SKILLS, 3, enchant),
 			source, npc, 94, level, grade, enchant, X, Y, Z, SKILLS, "REGRESSION");
 	}
 
-	private static List<String[]> prepare(PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomTrainingScenarios.Scene solo,
+	static List<String[]> prepare(PhantomBackgroundSuite.ProductionAuthorityFixture source, PhantomTrainingScenarios.Scene solo,
 		PhantomTrainingScenarios.Scene grouped, Path attempt, TrainingConfig config) throws Exception
 	{
 		final var profiles = PhantomProfileRepository.open();
@@ -143,8 +143,11 @@ public final class PhantomLearning003Damage
 		{
 			final String split = i < 2 ? "REGRESSION" : "FIXTURE";
 			final String name = "D3" + Long.toUnsignedString(System.nanoTime(), 36) + i;
-			final String row = PhantomLearning001ActorFixture.createTraining(profiles, resolver, next++, split, roles[i], new Location(X, Y, Z),
-				i == 0 ? 77 : i == 1 ? 78 : 76, i == 0 ? CrystalType.A : CrystalType.S, classes[i], Set.copyOf(SKILLS), i == 0 ? 4 : i == 1 ? 1 : -1, name);
+			final var nativeScene = i == 0 ? solo : grouped;
+			final String row = PhantomLearning001ActorFixture.createTraining(profiles, resolver, next++, split, roles[i], new Location(nativeScene.x(), nativeScene.y(), nativeScene.z()),
+				i == 0 ? solo.level() : i == 1 ? grouped.level() : 76,
+				i == 0 ? CrystalType.valueOf(solo.grade()) : i == 1 ? CrystalType.valueOf(grouped.grade()) : CrystalType.S,
+				i < 2 ? nativeScene.classId() : classes[i], Set.copyOf(i < 2 ? nativeScene.skills() : SKILLS), i == 0 ? solo.weaponEnchant() : i == 1 ? grouped.weaponEnchant() : -1, name);
 			Files.writeString(manifest, row + "\n", StandardOpenOption.APPEND);
 			final var fields = row.split("\t", -1); rows.add(fields);
 			plan(source, fields, i == 0 ? solo : grouped, config.seed());

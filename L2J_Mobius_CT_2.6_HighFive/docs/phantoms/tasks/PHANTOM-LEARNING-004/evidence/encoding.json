@@ -1,0 +1,17 @@
+{
+  "textPathsChecked": 109,
+  "mojibakePatterns": 27,
+  "mojibakeRgExit": 1,
+  "mojibakeMatches": 0,
+  "escapedCyrillicRegexPatterns": 6,
+  "escapedCyrillicRgExit": 1,
+  "escapedCyrillicMatches": 0,
+  "binaryExcluded": [
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/artifacts/source-test-export.zip",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/artifacts/working-checkpoint-8/checkpoint.zip",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/evidence/native-a-fixtures.zip",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/evidence/native-b-fixtures.zip",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-004/evidence/native-c-fixtures.zip"
+  ],
+  "scope": "EXACT_CHANGED_TEXT_PATHS"
+}

@@ -1,0 +1,11 @@
+/goal PHANTOM-LEARNING-004 — завершить базовое ядро обучения Phantom World: одна тактическая модель V3 для законных DAMAGE+HEAL, реальный результат PvE-эпизодов и долговременное incremental обучение с checkpoint/optimizer/replay и STOP→RESUME без Codex.
+
+Источник https://github.com/kpCat/L2J, branch wip/phantom-learning-003, exact SHA 06d42410fbfe1ca9b7f462b0816e0da1784630d6. Независимый clone, новая ветка wip/phantom-learning-004. Пользовательский checkout D:\Codex\repos\L2J-phantom-world STRICT READ-ONLY. Только scoped non-force push в новую WIP. Старые ветки/models/SQL/Geo/защищённые refs не трогать.
+
+Прикреплён ZIP PHANTOM-LEARNING-004.zip. Распакуй в модуль L2J_Mobius_CT_2.6_HighFive с исходной docs/phantoms/tasks/PHANTOM-LEARNING-004/ структурой. Читай все документы, особенно START_HERE_RU/TASK/CHECKPOINT_AND_RESUME/ACCEPTANCE/SAFETY/WORKFLOW_FAST, а затем актуальный 003 отчет/код.
+
+Достичь FULL004_CORE только при настоящих Solo+Party DAMAGE V3, Party HEAL, восстановлении прежней модели и optimizer, новых native episodes в двух раздельных сессиях, честном per-episode результате, независимых quality gates и безопасном STOP/EXPORT/свежем GitHub HEAD. Сохрани модель 003 и V1 rollback. Не обещай обучение PvP/PK/осад/рейдов/паровозов/Олимпиады в этой задаче; это следующие native behavior-slices. Не объявляй модель сильнее по одному MSE.
+
+Reuse имеющийся Director/G0/SQL/Win32 и текущий V3 без нового GameServer/симулятора. Никаких ручных 10 млн сценариев, ограничения boot/JAR произвольно не вводить, но дорогие native повторы только по причине; сначала быстрые тесты и корректные native сценки. Пользователь отложил ручную проверку TRAIN_*.cmd. Codex сам запускает/останавливает owned TEST. OFF/SHADOW default, no MAIN/PLAY, никаких обходов explicit apply-test. Отчёт на русском с фактами, fail limitations, SHA, exact git commands, clean stop.
+
+Thinking: High; Very High только при реальном multi-owner/schema/inference blocker. Новый диалог Codex, не растягивать в микрозадачи. Выполняй задачу автономно.

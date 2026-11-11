@@ -346,7 +346,7 @@ public class CreatureStatus
 			PlayerNativeWork.combatDamage(damageAttacker, damageOwner, damageEvidence, actualHpDelta);
 			if (uncontestedWrite)
 			{
-				org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.actualDamage(damageAttacker, damageOwner, damageTarget, actualHpDelta);
+				org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.actualDamage(damageAttacker, damageOwner, damageTarget, actualHpDelta, observedHp, observedHp - actualHpDelta);
 			}
 		}
 		
@@ -432,6 +432,7 @@ public class CreatureStatus
 				startHpMpRegeneration();
 			}
 			org.l2jmobius.gameserver.phantoms.learning.HealEvidenceV3.mpWritten(_creature, beforeMp, _currentMp, nativeRegeneration);
+			org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.mpWritten(_creature, beforeMp, _currentMp, nativeRegeneration);
 			observeRegeneration(0, nativeRegeneration ? _currentMp - beforeMp : 0);
 		}
 		

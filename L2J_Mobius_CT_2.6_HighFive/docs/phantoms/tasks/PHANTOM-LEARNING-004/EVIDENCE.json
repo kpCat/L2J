@@ -1,0 +1,55 @@
+{
+  "schema": 4,
+  "status": "CORE_VERIFIED_DELIVERY_REQUIRED",
+  "gates": {
+    "G0": "LOCAL_PASS_REMOTE_DELIVERY_REQUIRED",
+    "G1": "PASS",
+    "G2": "PASS",
+    "G3": "PASS",
+    "G4": "PASS",
+    "G5": "PASS",
+    "G6": "PASS",
+    "G7": "PASS_DRAFT_REJECTED",
+    "G8": "PASS_MEASUREMENT_SCOPES_EXPLICIT",
+    "G9": "LOCAL_PASS_REMOTE_DELIVERY_REQUIRED"
+  },
+  "nativeSegments": [
+    "native-b.json",
+    "native-c.json"
+  ],
+  "controlledInterrupt": "controlled-interrupt.json",
+  "coldChecks": [
+    "durability-inspect.txt",
+    "durability-verify.txt",
+    "durability-faults.txt",
+    "durability-export.txt"
+  ],
+  "checkpoint": "checkpoint-8.json",
+  "nativeEvents": 509,
+  "nativeHeals": 452,
+  "nativeDamage": 57,
+  "episodes": {
+    "total": 26,
+    "completed": 23,
+    "incomplete": 3,
+    "failed": 0,
+    "danglingStart": 0
+  },
+  "workingModel": 8,
+  "acceptedModel": 2,
+  "productionPromotion": false,
+  "modelSha": "ab62799a566c4cf52807978a12bea023be864d58915b3a72beaf7934d6a96016",
+  "optimizerSha": "56cc26c43a2b2edfba23bb2a6e56a207dd10ca7243af7796611a10d7b1f58c0f",
+  "jarSha": "9b0a388414d51f1e0c1f73bffecaab5fc40c5f4d65272b27aacf4f7d95cd8606",
+  "checkpointZipSha": "f689100ec7e20aebcefb91648c9b5109c8fb82c67fc0d5b30343923639bdc798",
+  "affectedAssertions": 143,
+  "f8Assertions": 14,
+  "f7": "PASS_SQL_REPLAY_NOT_RUN",
+  "focusedMains": 6,
+  "manualTrain": "DEFERRED_BY_OWNER",
+  "stop": "evidence/stop.json",
+  "fullChangedList": "SCOPE_ALLOWLIST.txt",
+  "nativeFitWorkerCpuRam": "NOT_SAMPLED; actual fit wall9.514s; separate math-only profile in training-resources.json",
+  "stockWinRate": "UNKNOWN_SHADOW",
+  "finalRemoteHead": "EXTERNAL_DELIVERY_RECEIPT_AFTER_PUSH"
+}

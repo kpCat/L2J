@@ -58,6 +58,12 @@ public class MagicUseTask implements Runnable
 	}
 
 	public LearningCastEvidence learningEvidence() { return _learning; }
+	/** Passive observation only; cancellation still belongs to Creature/native lifetime. */
+	public void learningCancelled()
+	{
+		if (_learning != null) { _learning.cancelled(); }
+		if (_healLearning != null) { _healLearning.cancelled(); }
+	}
 
 	private static boolean managed(WorldObject object)
 	{
@@ -71,6 +77,7 @@ public class MagicUseTask implements Runnable
 	{
 		if ((_creature == null) || (_nativeLifetimeOwned && !_creature.isCurrentNativeMagicUseTask(this)))
 		{
+			learningCancelled();
 			return;
 		}
 		
@@ -92,6 +99,7 @@ public class MagicUseTask implements Runnable
 				case 3:
 				{
 					_creature.onMagicFinalizer(this);
+					learningCancelled(); // An unreported terminal task remains UNKNOWN, never a zero reward.
 					break;
 				}
 			}

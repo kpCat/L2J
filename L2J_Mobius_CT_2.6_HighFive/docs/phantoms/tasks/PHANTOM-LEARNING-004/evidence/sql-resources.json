@@ -1,0 +1,8 @@
+{
+  "pid": 13992,
+  "cpuSeconds": 4.359375,
+  "workingSetBytes": 236535808,
+  "peakWorkingSetBytes": 280162304,
+  "sampledUtc": "2026-11-11T23:27:35.3792157Z",
+  "scope": "OWN_PAUSED_SQL_ONLY"
+}

@@ -1,0 +1,18 @@
+{
+    "schemaVersion":  1,
+    "proof":  "OWN_HELD_HANDLE_EXIT",
+    "installationOwner":  "LEARNING002:f08f5f78dd834953a217afefdd957ca9",
+    "exitCode":  0,
+    "finishedUtc":  "2026-11-11T23:21:01.3847282Z",
+    "pid":  64724,
+    "created":  134389128473551026,
+    "image":  "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+    "imageHash":  "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+    "sid":  "S-1-5-21-3222746358-2785023148-68084639-1001",
+    "nonce":  "bdbc27a291e6404982615780b6d834ba",
+    "kind":  "Worker",
+    "commandHash":  "RtzceFS2bDV135mJJAWN21uXJ1BukODspbodg63+0tU=",
+    "configPath":  "D:\\Codex\\repos\\L2J-learning-004\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+    "configHash":  "D96EB7473620021421E4153EBC7C2A9A7CB26AB8D2A80458E67D68E1ABD02BA8",
+    "class":  "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator"
+}

@@ -17,12 +17,14 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 /** Exact passive native writers carried by one real MagicUseTask. Never changes HP, MP or cast validity. */
 public final class HealEvidenceV3
 {
-	public record Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long modelVersion, Consumer<Receipt> sink)
+	public record Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long modelVersion, Consumer<Receipt> sink, Consumer<TacticalFailureV3> failureSink)
 	{
+		public Attempt(TacticalObservationV3 observation, List<LegalActionV3> offered, LegalActionV3 selected, LegalActionV3 baseline, long version, Consumer<Receipt> sink)
+		{ this(observation,offered,selected,baseline,version,sink,_ -> { }); }
 		public Attempt
 		{
 			offered = List.copyOf(offered);
-			if (offered.isEmpty() || offered.size() > 16 || !offered.contains(selected) || !offered.contains(baseline) || !selected.trainable() || selected.family() != LegalActionV3.Family.HEAL || sink == null)
+			if (offered.isEmpty() || offered.size() > 16 || !offered.contains(selected) || !offered.contains(baseline) || !selected.trainable() || selected.family() != LegalActionV3.Family.HEAL || sink == null || failureSink == null)
 			{ throw new IllegalArgumentException("HEAL attempt must bind offered lawful actions"); }
 			for (var action : offered) { action.features(observation); if (action.generation() != observation.decisionId()) { throw new IllegalArgumentException("Stale action generation"); } }
 		}
@@ -58,7 +60,7 @@ public final class HealEvidenceV3
 	private final BooleanSupplier _authority;
 	private final Authority _actionOwner;
 	private final long _created = System.nanoTime();
-	private boolean _bound, _issued, _effects, _finished, _published, _invalid;
+	private boolean _bound, _issued, _effects, _finished, _published, _invalid, _failurePublished;
 	private double _hp, _mp, _beforeHp = Double.NaN, _afterHp;
 	private HealEvidenceV3(Attempt attempt, Player actor, Player target, Skill skill, BooleanSupplier authority)
 	{
@@ -84,9 +86,10 @@ public final class HealEvidenceV3
 		if (!TRAIN || attempt == null || attempt.selected().actorObjectId() != actor.getObjectId() || attempt.selected().targetObjectId() != target.getObjectId()
 			|| attempt.selected().skillId() != skill.getId() || attempt.selected().skillLevel() != skill.getLevel()) { return nativeCast.getAsBoolean(); }
 		final HealEvidenceV3 ticket = new HealEvidenceV3(attempt, actor, target, skill, authority);
-		if (System.nanoTime() - attempt.observation().capturedNanos() > 1_000_000_000L || !ticket.current()) { REJECTED.increment(); return false; }
+		if (System.nanoTime() - attempt.observation().capturedNanos() > 1_000_000_000L || !ticket.current()) { REJECTED.increment(); ticket.failure("STALE_AT_DISPATCH",false); return false; }
 		final HealEvidenceV3 previous = DISPATCH.get(); DISPATCH.set(ticket);
-		try { final boolean issued = nativeCast.getAsBoolean(); synchronized (ticket) { ticket._issued = issued; ticket.publish(); } return issued; }
+		try { final boolean issued = nativeCast.getAsBoolean(); synchronized (ticket) { ticket._issued = issued; if (!issued || !ticket._bound) { ticket.failure("NO_NATIVE_TASK",false); } ticket.publish(); } return issued; }
+		catch (RuntimeException | Error unavailable) { ticket.cancelled(); throw unavailable; }
 		finally { restore(DISPATCH, previous); }
 	}
 	public static HealEvidenceV3 capture(Creature actor, Skill skill, List<WorldObject> targets, boolean simultaneous)
@@ -165,14 +168,26 @@ public final class HealEvidenceV3
 	{
 		if (!_issued || !_finished || _published) { return; }
 		_published = true;
-		if (_hp <= 0 || _mp <= 0 || !current()) { REJECTED.increment(); return; }
+		if (_hp <= 0 || _mp <= 0 || !current()) { REJECTED.increment(); failure(_hp <= 0 ? "NO_EXACT_HP" : _mp <= 0 ? "NO_EXACT_MP" : "NATIVE_AUTHORITY_CHANGED",true); return; }
 		final long elapsed = Math.max(1, System.nanoTime() - _created);
 		final double maximum = _attempt.observation().entity(_target.getObjectId()).fact(TacticalObservationV3.Field.MAX_HP).value();
-		if (maximum <= 0) { REJECTED.increment(); return; }
+		if (maximum <= 0) { REJECTED.increment(); failure("UNKNOWN_MAXIMUM_HP",true); return; }
 		final String key = TacticalObservationV3.hash((_attempt.observation().partyIdentity() + '/' + _actor.getObjectId() + '/' + _owner.epoch() + '/' + _target.getObjectId()
 			+ '/' + _targetOwner.epoch() + '/' + _attempt.selected().generation() + '/' + _actionOwner.identity().generation() + '/' + _actionOwner.identity().operationKey() + '/' + _skill.getId() + '/' + _created).getBytes(StandardCharsets.UTF_8));
 		final float reward = reward(_hp, maximum, _mp, elapsed);
 		try { _attempt.sink().accept(new Receipt(key, _attempt, _beforeHp, _afterHp, _hp, _mp, elapsed, reward, _actionOwner.identity())); ACCEPTED.increment(); }
+		catch (RuntimeException unavailable) { REJECTED.increment(); failure("RECEIPT_REJECTED",true); }
+	}
+	public synchronized void cancelled() { if (!_published) { failure("CAST_CANCELLED",false); _published = true; } }
+	private synchronized void failure(String reason, boolean completed)
+	{
+		if (_failurePublished) { return; } _failurePublished = true;
+		try
+		{
+			final String key = TacticalObservationV3.hash(("HEAL_FAILURE/" + _attempt.observation().profileId() + '/' + _attempt.selected().generation() + '/' + _created).getBytes(StandardCharsets.UTF_8));
+			_attempt.failureSink().accept(new TacticalFailureV3(key,new TacticalReceiptV3.Attempt(_attempt.observation(),_attempt.offered(),_attempt.selected(),_attempt.baseline(),_attempt.modelVersion()),
+				reason,completed,completed ? _hp : null,_mp > 0 ? _mp : null,Math.max(1,System.nanoTime()-_created),_actionOwner == null ? null : _actionOwner.identity()));
+		}
 		catch (RuntimeException unavailable) { REJECTED.increment(); }
 	}
 	/** Useful fractional HP minus real resource/time costs. No invented prevented-death or counterfactual bonus. */

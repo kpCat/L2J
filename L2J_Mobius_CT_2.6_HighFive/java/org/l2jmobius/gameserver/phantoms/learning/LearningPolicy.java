@@ -35,9 +35,14 @@ public final class LearningPolicy
 			this(skill, features, mpCost, castMillis, itemCost, () -> true);
 		}
 	}
-	public record Decision(SelectedSkill selected, Candidate observed) { }
-	public record Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos, List<Candidate> offered)
+	public record Decision(SelectedSkill selected, Candidate observed, TacticalReceiptV3.Attempt tactical)
 	{
+		public Decision(SelectedSkill selected, Candidate observed) { this(selected, observed, null); }
+	}
+	public record Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos, List<Candidate> offered, TacticalReceiptV3.Attempt tactical)
+	{
+		public Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos, List<Candidate> offered)
+		{ this(policy, candidate, request, generation, sequence, baseline, decisionNanos, offered, null); }
 		public Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos)
 		{ this(policy, candidate, request, generation, sequence, baseline, decisionNanos, List.of()); }
 		public Attempt { offered = List.copyOf(offered); }
@@ -68,6 +73,19 @@ public final class LearningPolicy
 	private final Witness _soloWitness;
 	private final Witness _partyWitness;
 	private volatile Observer _observer;
+	private volatile TacticalPolicyV3 _tactical = TacticalPolicyV3.OFF;
+	public void tactical(TacticalPolicyV3 policy)
+	{
+		if (this == OFF) { if (policy.mode() != TacticalPolicyV3.Mode.OFF) { throw new IllegalStateException("V3 requires owned collecting Combat policy"); } return; }
+		_tactical = java.util.Objects.requireNonNull(policy);
+	}
+	public Decision choose(List<Candidate> candidates, SelectedSkill baseline, long sequence, PhantomCombatRequest request, int actorObjectId)
+	{
+		final var choice = _tactical.damage(request, actorObjectId, candidates, baseline);
+		return choice == null ? choose(candidates, baseline, sequence) : new Decision(choice.selected().skill(), choice.selected(), choice.attempt());
+	}
+	void recordTactical(TacticalReceiptV3 receipt) { _tactical.recordDamage(receipt); }
+	void recordTacticalFailure(TacticalFailureV3 failure) { _tactical.recordFailure(failure); }
 
 	public LearningPolicy(Mode mode, long version, NeuralPolicy model, int maxCandidates)
 	{

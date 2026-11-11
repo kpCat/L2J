@@ -1,0 +1,15 @@
+{
+  "phase": "STOPPED",
+  "reason": "Собственные процессы остановлены и порты свободны.",
+  "nonce": "b6ff296899f2459baf744ab65037b2a1",
+  "generation": 11,
+  "heartbeatUtc": "2026-11-11T23:28:20.334302Z",
+  "ports": [
+    33337,
+    17981,
+    19281
+  ],
+  "listeners": [],
+  "ownedStopPass": true,
+  "nativeHistoryRetained": true
+}

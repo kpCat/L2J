@@ -1,0 +1,1 @@
+LEARNING004_OPTIMIZER_TRANSPORT bytes=14224664 maxAllowedPacket=16777216 protocol=BINARY exactReadback=PASS temporaryTable=true rollback=true origin=MATH_ONLY nativeCredit=0

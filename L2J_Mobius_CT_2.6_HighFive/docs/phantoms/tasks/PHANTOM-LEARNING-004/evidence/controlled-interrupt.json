@@ -1,0 +1,26 @@
+{
+    "nonce":  "df2a7d2f2c14420a84427238c3ebebf0",
+    "imageSha":  "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+    "nativeAbsent":  true,
+    "proof":  "CONTROLLED_OWN_FROZEN_TRAIN_WORKER_INTERRUPT",
+    "attemptId":  "ea24f28dd07546afa0a64705caa4363a",
+    "frozen":  "LEARNING004_FROZEN run=a4ec5a930b3d4983bdf0c5da50954dd3 datasetSha=c8e4e783bde807f1c0acba9c50130609ef3e35cad088133febec64e6edc63c8e",
+    "created":  134389127724752818,
+    "before":  [
+                   "LEARNING004_FROZEN run=a4ec5a930b3d4983bdf0c5da50954dd3 datasetSha=c8e4e783bde807f1c0acba9c50130609ef3e35cad088133febec64e6edc63c8e",
+                   "LEARNING004_COMMITTED model=4 optimizerSha=cf8773d330f85508ddc1623fa892c86bff5c506e04cdd6ae6ce6b7a4964eaa7e updates=114 epochs=19 parent=2 parentOptimizerSha=b5139ea9c05dad43be4899c4c78003c44107ea1ab4572f3c17b327437bdef048",
+                   "LEARNING004_COMMITTED model=5 optimizerSha=d5b223717e66d32cbbd72734d6a91033f696aacad9fa168d2b55902dd8ac5bec updates=300 epochs=50 parent=4 parentOptimizerSha=cf8773d330f85508ddc1623fa892c86bff5c506e04cdd6ae6ce6b7a4964eaa7e",
+                   "LEARNING004_COMMITTED model=6 optimizerSha=2d60e60ff993dc64fcf5c0cb285d6bc83766fbe6240acf8c8c490885a8b2b541 updates=414 epochs=69 parent=5 parentOptimizerSha=d5b223717e66d32cbbd72734d6a91033f696aacad9fa168d2b55902dd8ac5bec",
+                   "LEARNING004_COMMITTED model=7 optimizerSha=76cbf6c0ac6ef823ffe223542fc4c8fde0ed7ddf78678fca00cd701621edaddc updates=594 epochs=99 parent=6 parentOptimizerSha=2d60e60ff993dc64fcf5c0cb285d6bc83766fbe6240acf8c8c490885a8b2b541",
+                   "LEARNING004_LEDGER origin=NATIVE_HEAL split=TRAIN count=291",
+                   "LEARNING004_LEDGER origin=NATIVE_HEAL split=TUNING count=113",
+                   "LEARNING004_LEDGER origin=NATIVE_HEAL split=AUDIT count=48",
+                   "LEARNING004_LEDGER origin=NATIVE_DAMAGE split=TRAIN count=33",
+                   "LEARNING004_LEDGER origin=NATIVE_DAMAGE split=TUNING count=6",
+                   "LEARNING004_LEDGER origin=NATIVE_DAMAGE split=AUDIT count=18"
+               ],
+    "pid":  69064,
+    "finishedUtc":  "2026-11-11T23:19:37.6614051Z",
+    "schemaVersion":  4,
+    "exitCode":  -1
+}

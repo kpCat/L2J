@@ -63,6 +63,31 @@ public final class PhantomTrainingContracts implements PhantomTestSuite
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> read("preparationSeconds=0\n"), "Zero preparation budget must be rejected.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> read("preparationSeconds=601\n"), "Unbounded recovery wait must be rejected.");
 		});
+		registry.add("learning004-existing-episode-budget-and-independent-splits", _ ->
+		{
+			final var catalog = new java.util.ArrayList<PhantomTrainingScenarios.Scene>();
+			for (String split : List.of("TRAIN","TUNING","AUDIT"))
+			{
+				for (int i=0; i<(split.equals("TRAIN") ? 16 : split.equals("TUNING") ? 8 : 4); i++)
+				{
+					final String id=PhantomTrainingScenarios.hash(split+":"+i);
+					catalog.add(new PhantomTrainingScenarios.Scene(id,"21798@CONTRACT_FIXTURE",21798,94,77,"A",0,0,0,0,List.of(1230,1339),split));
+				}
+			}
+			final var segment = PhantomLearning004Native.segment(catalog,12);
+			PhantomAssertions.assertEquals(6,segment.size(),"Twelve native episodes must be six independent Solo/Party pairs, not56 episodes.");
+			PhantomAssertions.assertEquals(List.of("TRAIN","TUNING","AUDIT","AUDIT","AUDIT","AUDIT"),segment.stream().map(PhantomTrainingScenarios.Scene::split).toList(),"Four fresh audit contexts support minimum4 real Party labels even when one exact receipt occurs per fight.");
+			PhantomAssertions.assertEquals(4L,segment.stream().filter(scene -> scene.split().equals("AUDIT")).map(PhantomTrainingScenarios.Scene::id).distinct().count(),"Fresh independent audit contexts must not be duplicated.");
+			PhantomAssertions.assertEquals(28,catalog.size(),"Bounded segment must not trim retained catalog.");
+			PhantomAssertions.assertEquals(segment,PhantomLearning004Native.segment(catalog,12),"Segment selection must be deterministic.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class,() -> PhantomLearning004Native.segment(catalog,6),"Insufficient independent audit budget must fail before native.");
+		});
+		registry.add("learning004-lawful-precut-refusal-is-not-a-fake-episode", _ ->
+		{
+			PhantomAssertions.assertTrue(PhantomLearning004Native.preCutRejection(new IllegalStateException("LEARNING001_STOCK_PARTY_PREFLIGHT_TARGET")),"Lawful native Party admission refusal must be retained as SKIP.");
+			PhantomAssertions.assertFalse(PhantomLearning004Native.preCutRejection(new IllegalStateException("TRAIN_SOURCE_CHANGED")),"Source corruption must remain a fatal defect.");
+			PhantomAssertions.assertFalse(PhantomLearning004Native.preCutRejection(new java.sql.SQLException()),"SQL failures must not be hidden as curriculum skips.");
+		});
 	}
 
 	private static TrainingConfig read(String text) throws Exception

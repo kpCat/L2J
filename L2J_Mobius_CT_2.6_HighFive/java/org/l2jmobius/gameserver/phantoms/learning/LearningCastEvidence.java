@@ -27,6 +27,7 @@ public final class LearningCastEvidence
 	private static final ThreadLocal<LearningCastEvidence> HIT = new ThreadLocal<>();
 	private static final ThreadLocal<LearningCastEvidence> EFFECT = new ThreadLocal<>();
 	private static final ThreadLocal<LearningCastEvidence> DAMAGE = new ThreadLocal<>();
+	private static final ThreadLocal<LearningCastEvidence> MP = new ThreadLocal<>();
 	private static final class RunIdentity
 	{
 		private static final String SALT = UUID.randomUUID().toString();
@@ -51,7 +52,9 @@ public final class LearningCastEvidence
 	private boolean _effectsStarted;
 	private boolean _effectsFinished;
 	private boolean _failed;
+	private boolean _failurePublished;
 	private double _damage;
+	private double _mp, _beforeHp = Double.NaN, _afterHp;
 	private String _captureRejection = "no-native-task";
 
 	private LearningCastEvidence(LearningPolicy.Attempt attempt, Player actor, Monster target, Skill skill, BooleanSupplier leaseValid)
@@ -80,6 +83,7 @@ public final class LearningCastEvidence
 			nativeDispatch.run();
 			ticket.issued();
 		}
+		catch (RuntimeException | Error unavailable) { ticket.cancelled(); throw unavailable; }
 		finally
 		{
 			restore(DISPATCH, previous);
@@ -223,13 +227,29 @@ public final class LearningCastEvidence
 	}
 
 	public static void actualDamage(Player attacker, PlayerNativeWork.Owner owner, PlayerNativeEvidence.Target target, double hp)
+	{ actualDamage(attacker, owner, target, hp, Double.NaN, Double.NaN); }
+	public static void actualDamage(Player attacker, PlayerNativeWork.Owner owner, PlayerNativeEvidence.Target target, double hp, double before, double after)
 	{
 		if (!TRAIN) { return; }
 		final LearningCastEvidence ticket = DAMAGE.get();
 		if (ticket != null && ticket == EFFECT.get() && attacker == ticket._actor && owner == ticket._owner && target.equals(ticket._spawn) && hp > 0 && Double.isFinite(hp))
 		{
 			ticket._damage += hp;
+			if (Double.isNaN(ticket._beforeHp)) { ticket._beforeHp = before; }
+			ticket._afterHp = after;
 		}
+	}
+	public void mpDebit(Runnable nativeDebit)
+	{
+		final var previous = MP.get(); MP.set(this);
+		try { nativeDebit.run(); } finally { restore(MP, previous); }
+	}
+	public static void mpWritten(Creature actor, double before, double after, boolean regeneration)
+	{
+		if (!TRAIN || regeneration || !Double.isFinite(before) || !Double.isFinite(after) || before <= after) { return; }
+		LearningCastEvidence ticket = MP.get(); if (ticket == null) { ticket = DISPATCH.get(); }
+		if (ticket != null && ticket._attempt.tactical() != null && actor == ticket._actor && !ticket._published && ticket.lifetimeRejection() == null)
+		{ ticket._mp += before - after; }
 	}
 
 	private synchronized void issued()
@@ -239,6 +259,7 @@ public final class LearningCastEvidence
 		{
 			_attempt.policy().observationRejected();
 			witnessRejection("capture", _captureRejection);
+			failure("NO_NATIVE_TASK",false);
 		}
 		publish();
 	}
@@ -263,6 +284,7 @@ public final class LearningCastEvidence
 			{
 				_attempt.policy().observationRejected();
 				witnessRejection("publish", rejection);
+				failure(rejection.toUpperCase(java.util.Locale.ROOT).replace('-','_'),true);
 				return;
 			}
 			final var action = _attempt.candidate();
@@ -272,6 +294,15 @@ public final class LearningCastEvidence
 				+ ":" + _attempt.sequence() + ":" + _attempt.request().learningScope() + ":" + _spawn);
 			final var evidence = new LearningStore.Evidence(eventKey, actorKey, _attempt.request().learningScope().name(),
 				_attempt.policy().version(), _skill.getId(), _skill.getLevel(), _damage, reward, action.features());
+			if (_attempt.tactical() != null)
+			{
+				final var tactical = _attempt.tactical();
+				final long elapsed = Math.max(1, System.nanoTime() - _created);
+				_attempt.policy().recordTactical(new TacticalReceiptV3(eventKey, tactical, _beforeHp, _afterHp, _damage, _mp, elapsed,
+					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), new HealEvidenceV3.SourceOwner(_attempt.generation(),
+						"Combat/" + _attempt.request().profileId() + "/" + _attempt.generation() + "/" + _attempt.sequence())));
+				return;
+			}
 			final boolean enqueued = _attempt.policy().record(evidence);
 			if (enqueued) { _attempt.policy().observeRecorded(_attempt, evidence); }
 			if (enqueued && _attempt.policy().witnessing())
@@ -283,7 +314,20 @@ public final class LearningCastEvidence
 		{
 			_attempt.policy().observationRejected();
 			witnessRejection("publish", rejectedObservation.getClass().getSimpleName());
+			failure("RECEIPT_REJECTED",true);
 		}
+	}
+	public synchronized void cancelled() { if (_attempt.tactical() != null && !_published) { failure("CAST_CANCELLED",false); _published = true; } }
+	private synchronized void failure(String reason, boolean completed)
+	{
+		if (_attempt.tactical() == null || _failurePublished) { return; } _failurePublished = true;
+		try
+		{
+			final String key = hash(RunIdentity.SALT + "/DAMAGE_FAILURE/" + _actor.getObjectId() + '/' + _epoch + '/' + _attempt.generation() + '/' + _attempt.sequence() + '/' + _created);
+			_attempt.policy().recordTacticalFailure(new TacticalFailureV3(key,_attempt.tactical(),reason,completed,completed ? _damage : null,_mp > 0 ? _mp : null,
+				Math.max(1,System.nanoTime()-_created),new HealEvidenceV3.SourceOwner(_attempt.generation(),"Combat/" + _attempt.request().profileId() + '/' + _attempt.generation() + '/' + _attempt.sequence())));
+		}
+		catch (RuntimeException unavailable) { _attempt.policy().observationRejected(); }
 	}
 
 	private String publicationRejection()

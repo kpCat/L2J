@@ -1,0 +1,22 @@
+{
+  "schema": 4,
+  "baseHead": "06d42410fbfe1ca9b7f462b0816e0da1784630d6",
+  "branch": "wip/phantom-learning-004",
+  "originalHead": "a7cb9a7c2bd4ced33ed693c4d6f3d22f809981a5",
+  "originalBranch": "feature/phantom-world",
+  "originalWrites": 0,
+  "packageFilesVerified": 16,
+  "inputZipSha": "5be6f923cdef9ed7fcd5ebdbe80a13a5153044ab3dab8a324e2ac6995a8404a1",
+  "protectedHeads": [
+    "faec72161f9e4f6231764e17d6f2637a4db080af\trefs/heads/feature/phantom-world",
+    "16d61833b3983a3976583d0e4813e0de9457a52f\trefs/heads/master",
+    "c5b81f89ce02030eff8441395b0411137a110b2f\trefs/heads/wip/coordination-130-preserved",
+    "b7b5575457c12c1b0438bcbaa646675a67778391\trefs/heads/wip/phantom-learning-002",
+    "06d42410fbfe1ca9b7f462b0816e0da1784630d6\trefs/heads/wip/phantom-learning-003"
+  ],
+  "geo203Count": 203,
+  "protected207Count": 207,
+  "assetGuard": "canonical STOP exact hash verification exit0",
+  "phase": "STOPPED",
+  "runtimeWrites": "OWN_ROOT_ONLY"
+}

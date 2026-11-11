@@ -25,6 +25,11 @@ import org.l2jmobius.gameserver.scripting.ScriptEngine;
 /** TEST-only scene inputs before CUT; all measured effects use the real Party/Combat/Skill owners. */
 public final class PhantomLearning003Native
 {
+	@FunctionalInterface
+	interface CoreContinuation
+	{
+		void run(PhantomBackgroundSuite.ProductionAuthorityFixture authority, PhantomLearning001ShadowNative.Runtime runtime, TacticalPolicyV3 shared) throws Exception;
+	}
 	private static final String HEADER = "context\tsplit\tvariant\tactorRow";
 	private static String phase(TrainingConfig config)
 	{
@@ -76,7 +81,8 @@ public final class PhantomLearning003Native
 				final String split = "ON".equals(mode) ? "PROOF" : scene < train ? "TRAIN" : scene < train + tuning ? "TUNING" : "AUDIT";
 				final int variant = "ON".equals(mode) ? scene : scene < train ? scene : scene < train + tuning ? scene - train : scene - train - tuning;
 				final int level = 76 + variant / 4 % 3, healerClass = variant / 2 % 2 == 0 ? 97 : 105, enchant = 4 + variant / 4 % 4;
-				final int offset = "TRAIN".equals(split) ? 0 : "TUNING".equals(split) ? 10 : "AUDIT".equals(split) ? 20 : 30;
+				final int segmentOffset = "true".equals(config.text("v3Core004", "false")) ? Math.multiplyExact(config.integer("v3CollectionRound", 4, 4, 99) - 4, 30) : 0;
+				final int offset = ("TRAIN".equals(split) ? 0 : "TUNING".equals(split) ? 10 : "AUDIT".equals(split) ? 20 : 30) + segmentOffset;
 				final String context = "giran.v3r" + config.integer("v3CollectionRound", 0, 0, 99) + ".class" + healerClass + ".level" + level
 					+ ".enchant" + enchant + ".hp" + (variant % 8) + ".d" + (45 + offset) + "-" + (90 + offset);
 				final var rows = new ArrayList<String[]>();
@@ -106,13 +112,17 @@ public final class PhantomLearning003Native
 		System.out.println("V3_ACTORS_PREPARED contexts=" + (lines.size() - 1) / 3 + " manifest=" + manifest.getFileName());
 	}
 	static void run(Path root, Path attempt, TrainingConfig config, LearningPolicy legacy) throws Exception
+	{ run(root, attempt, config, legacy, null); }
+	static void run(Path root, Path attempt, TrainingConfig config, LearningPolicy legacy, CoreContinuation continuation) throws Exception
 	{
 		if (config.integer("modelAlgorithmV3", 3, 3, 3) != TacticalModelV3.ALGORITHM || !Set.of("TACTICAL_V3", TacticalObservationV3.SCHEMA).contains(config.text("featureSchemaV3", "TACTICAL_V3"))
 			|| !"DAMAGE,HEAL".equals(config.text("learningActionFamilies", "DAMAGE,HEAL"))) { throw new IllegalArgumentException("V3 contract configuration mismatch"); }
 		final var store = new TacticalStoreV3(root); store.initialize();
 		final var mode = TacticalPolicyV3.Mode.valueOf(config.text("v3Mode", "SHADOW"));
-		final long version = config.longValue("v3ModelVersion", 0, 0, Long.MAX_VALUE);
-		final var checkpoint = mode == TacticalPolicyV3.Mode.ON ? store.accepted(version, config.text("v3ModelSha", "")) : null;
+		final long requestedVersion = config.longValue("v3ModelVersion", 0, 0, Long.MAX_VALUE);
+		final var checkpoint = mode == TacticalPolicyV3.Mode.ON || requestedVersion > 0 ? store.accepted(requestedVersion, config.text("v3ModelSha", ""))
+			: continuation != null && mode == TacticalPolicyV3.Mode.SHADOW ? store.latestAccepted() : null;
+		final long version = checkpoint == null ? requestedVersion : checkpoint.id();
 		if (mode == TacticalPolicyV3.Mode.ON && checkpoint == null) { throw new IllegalStateException("Cold V3 accepted TEST checkpoint missing"); }
 		if (checkpoint != null) { System.out.println("V3_COLD_MODEL version=" + checkpoint.id() + " sha=" + checkpoint.sha() + " bytes=" + checkpoint.model().bytes().length); }
 		if (checkpoint != null)
@@ -122,8 +132,10 @@ public final class PhantomLearning003Native
 			System.out.println("V3_WARMUP mathOnly=true iterations=2048 beforeNativeOn=true");
 		}
 		final var receipts = new ConcurrentLinkedQueue<HealEvidenceV3.Receipt>();
+		final var failures = new ConcurrentLinkedQueue<org.l2jmobius.gameserver.phantoms.learning.TacticalFailureV3>();
 		final var policy = new TacticalPolicyV3(mode, version, checkpoint == null ? null : checkpoint.model(), config.integer("maxEntities", 20, 3, 20), config.integer("maxActions", 16, 2, 16),
 			config.integer("decisionCooldownMillis", 2000, 1000, 60000), receipt -> { if (receipts.size() >= 64) { throw new IllegalStateException("V3 receipt queue bound"); } receipts.add(receipt); });
+		policy.failureObserver(failure -> { if (failures.size() >= 1024) { throw new IllegalStateException("V3 failure queue bound"); } failures.add(failure); });
 		final var manifest = root.resolve("v3-actors-" + phase(config) + ".tsv");
 		final var lines = Files.readAllLines(manifest);
 		if (lines.isEmpty() || !HEADER.equals(lines.getFirst()) || (lines.size() - 1) % 3 != 0) { throw new IllegalStateException("V3 actor manifest"); }
@@ -166,8 +178,14 @@ public final class PhantomLearning003Native
 				{
 					runtime.pulseHeal(); if (players.stream().anyMatch(PhantomLearning003Native::threatened)) { throw new IllegalStateException("Unexpected native threat"); } Thread.sleep(50);
 				}
-				if (receipts.isEmpty()) { throw new IllegalStateException("V3 no exact HEAL: latest=" + policy.latest() + " rejects=" + HealEvidenceV3.REJECTED.sum()); }
 				runtime.finishHeal();
+				org.l2jmobius.gameserver.phantoms.learning.TacticalFailureV3 failed;
+				while ((failed = failures.poll()) != null)
+				{
+					if (failed.choice().observation().profileId() != Long.parseLong(roster.getFirst()[2])) { throw new IllegalStateException("V3 foreign failure"); }
+					store.recordFailure(failed,split,context,null); System.out.println("LEARNING004_NATIVE_FAILURE " + failed.json());
+				}
+				if (receipts.isEmpty()) { throw new IllegalStateException("V3 no exact HEAL: latest=" + policy.latest() + " rejects=" + HealEvidenceV3.REJECTED.sum()); }
 				HealEvidenceV3.Receipt receipt;
 				while ((receipt = receipts.poll()) != null)
 				{
@@ -183,6 +201,7 @@ public final class PhantomLearning003Native
 				}
 				finished++;
 			}
+			if (continuation != null && complete((lines.size() - 1) / 3, finished, interrupted)) { continuation.run(authority, runtime, policy); }
 		}
 		if (!complete((lines.size() - 1) / 3, finished, interrupted))
 		{
@@ -190,13 +209,13 @@ public final class PhantomLearning003Native
 			System.out.println("V3_NATIVE_BATCH_PARTIAL finished=" + finished + " terminalMarker=false"); return;
 		}
 		if (mode == TacticalPolicyV3.Mode.ON && changed == 0) { throw new IllegalStateException("Cold accepted model did not change lawful native HEAL choice"); }
-		if (mode == TacticalPolicyV3.Mode.SHADOW)
+		if (mode == TacticalPolicyV3.Mode.SHADOW && continuation == null)
 		{
 			final int healerObjectId = Integer.parseInt(lines.get(1).split("\t", 4)[3].split("\t", -1)[3]);
 			normalHealControl(attempt, healerObjectId);
 		}
 		System.out.println("V3_NATIVE_DECISION_TIMING " + policy.timing());
-		if (mode == TacticalPolicyV3.Mode.ON)
+		if (mode == TacticalPolicyV3.Mode.ON && continuation == null)
 		{
 			PhantomLearning003Damage.run(root, attempt, config);
 			PhantomLearning003TemporalNative.run(root, attempt, config, legacy);

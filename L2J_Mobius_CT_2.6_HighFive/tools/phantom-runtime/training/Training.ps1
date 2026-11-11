@@ -70,13 +70,37 @@ function Get-TrainDependencies {
     return @{Java=$java;Ant=$ant}
 }
 function Get-TrainAssets {
+    if((Test-Path -LiteralPath (Join-Path $layout.Root 'geo203.json')) -and (Test-Path -LiteralPath (Join-Path $layout.Root 'protected207.json')) -and (Test-Path -LiteralPath (Join-Path $layout.Game 'geodata'))){
+        return @{Geo=(Join-Path $layout.Game 'geodata');GeoManifest=(Join-Path $layout.Root 'geo203.json');ProtectedManifest=(Join-Path $layout.Root 'protected207.json')}
+    }
     # Bounded discovery: only the documented sibling clone and its attested cycle19.
     $previous=Join-Path (Split-Path $layout.Clone -Parent) 'phantom-learning-001-source\.phantom-local\learning001\cycle19'
     if($script:Config -and $script:Config.ContainsKey('assetSourceRoot') -and $script:Config.assetSourceRoot){
         if(![IO.Path]::IsPathRooted($script:Config.assetSourceRoot)){throw 'TRAIN003_ABSOLUTE_READONLY_ASSET_ROOT_REQUIRED'}
         $previous=[IO.Path]::GetFullPath($script:Config.assetSourceRoot);Assert-TrainDirectory $previous
     }
+    elseif(!(Test-Path -LiteralPath (Join-Path $previous 'geo203.json'))){
+        # The independent clone may be in repos while the documented001 source is in sibling worktrees.
+        # This is read-only bounded discovery; Assert-TrainAssets still verifies every pinned hash.
+        $documentedWorktrees=Join-Path (Split-Path (Split-Path $layout.Clone -Parent) -Parent) 'worktrees'
+        $previous=Join-Path $documentedWorktrees 'phantom-learning-001-source\.phantom-local\learning001\cycle19'
+        Assert-TrainDirectory $previous
+    }
     return @{Geo=(Join-Path $previous 'game\geodata');GeoManifest=(Join-Path $previous 'geo203.json');ProtectedManifest=(Join-Path $previous 'protected207.json')}
+}
+function Set-TrainV3CampaignRound($Config) {
+    if(!$Config.ContainsKey('v3Core004') -or $Config.v3Core004 -cne 'true'){return}
+    $path=Join-Path $layout.Root 'v3-campaign.json'
+    if(Test-Path -LiteralPath $path){
+        $campaign=Read-TrainJson $path
+        if($campaign.schemaVersion -ne 4 -or $campaign.installationOwner -cne [IO.File]::ReadAllText((Join-Path $layout.Root 'owner.txt')) -or [int]$campaign.nextCollectionRound -lt 4 -or [int]$campaign.nextCollectionRound -gt 99){throw 'TRAIN004_CAMPAIGN_IDENTITY_OR_ROUND'}
+        $Config.v3CollectionRound=[string][Math]::Max([int]$Config.v3CollectionRound,[int]$campaign.nextCollectionRound)
+    }
+}
+function Save-TrainV3SegmentDispatch($Config,[string]$Phase) {
+    if(!$Config.ContainsKey('v3Core004') -or $Config.v3Core004 -cne 'true'){return}
+    # Reserve the next fresh physical cohort before dispatch. A killed native worker never resets old CUT actors.
+    Write-TrainJson (Join-Path $layout.Root 'v3-campaign.json') @{schemaVersion=4;installationOwner=[IO.File]::ReadAllText((Join-Path $layout.Root 'owner.txt'));runId=$script:State.runId;generation=$script:State.generation;dispatchedPhase=$Phase;nextCollectionRound=([int]$Config.v3CollectionRound+1);dispatchedUtc=[DateTime]::UtcNow.ToString('o')}
 }
 function Get-TrainSourceFingerprint {
     $files=@(Get-ChildItem -LiteralPath (Join-Path $layout.Module 'java'),(Join-Path $layout.Module 'test\java') -File -Recurse -Filter '*.java')
@@ -377,6 +401,8 @@ function Publish-TrainStatus {
         Write-Host ('Полные факты и покрытие: '+$status)
     }
     $evaluation=Join-Path $layout.Root 'evaluation.json';if(Test-Path -LiteralPath $evaluation){$model=Read-TrainJson $evaluation;Write-Host ('Модель: '+$model.state+'; версия '+$model.modelVersion+'; '+$model.reason)}
+    $v3Evaluation=Join-Path $layout.Root 'tactical-v3-evaluation.json'
+    if(Test-Path -LiteralPath $v3Evaluation){$model=Read-TrainJson $v3Evaluation;Write-Host ('V3: '+$model.state+'; принятая TEST '+$model.modelVersion+'; SHA '+$model.modelSha+'; кандидат '+$model.candidateVersion);if($model.metrics.PSObject.Properties['optimizerUpdates']){Write-Host ('Оптимизатор: '+$model.metrics.optimizerMigration+'; шагов '+$model.metrics.optimizerUpdates+'; SHA '+$model.metrics.optimizerSha)};Write-Host ('Причина: '+$model.reason)}
     $request=Join-Path $layout.Root 'export-request.json';$result=Join-Path $layout.Root 'export-result.json'
     if(Test-Path -LiteralPath $request){$queued=Read-TrainJson $request;if((Test-Path -LiteralPath $result) -and (Read-TrainJson $result).id -ceq $queued.id){$export=Read-TrainJson $result;Write-Host ('Экспорт '+$export.id+': '+$export.state+'; '+$export.reason)}else{Write-Host ('Экспорт '+$queued.id+': ожидает безопасной границы батча.')}}
 }
@@ -409,6 +435,10 @@ function Invoke-TrainDirector {
         $script:SqlRecord=Start-TrainSql $dependencies
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
+        if($script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'){
+            Publish-TrainState 'RESUMING_V3' 'Восстановление committed optimizer либо точного FROZEN батча; ON не изменяется.'
+            Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+        }
         while(!(Test-TrainRequest 'stop')){
             Invoke-TrainQueuedExport $dependencies
             if(Test-TrainRequest 'pause'){
@@ -417,6 +447,7 @@ function Invoke-TrainDirector {
                 continue
             }
             $next=Read-TrainSourceConfig
+            Set-TrainV3CampaignRound $next
             foreach($port in @('sqlPort','gamePort','loginPort')){if($next[$port] -cne $script:Config[$port]){throw 'TRAIN002_ENDPOINT_CHANGE_REQUIRES_NEW_INSTALLATION'}}
             $evaluation=Join-Path $layout.Root 'evaluation.json'
             if(Test-Path -LiteralPath $evaluation){$model=Read-TrainJson $evaluation;if([long]$model.modelVersion -gt 0 -and $model.modelSha -cmatch '^[0-9a-f]{64}$'){$next.learningMode='ON';$next.modelVersion=[string]$model.modelVersion;$next.modelSha=$model.modelSha}else{$next.learningMode='SHADOW';$next.modelVersion='0';$next.modelSha=''}}
@@ -438,6 +469,7 @@ function Invoke-TrainDirector {
                 Publish-TrainState 'ACTORS_REUSE' 'Готовый собственный манифест; native вход повторно проверит фактических участников и допустимые действия.'
             }else{Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingActors' @($layout.Root,(Join-Path $layout.Root 'TRAIN_CONFIG.ini'))}
             try{
+                if($v3Manifest){Save-TrainV3SegmentDispatch $next $v3Phase}
                 Invoke-TrainNative $dependencies $jar
                 $script:State.nativeFailures=0
             }catch{
@@ -453,7 +485,7 @@ function Invoke-TrainDirector {
             Publish-TrainState 'EVALUATING'
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
-            if($next.ContainsKey('v3Enabled') -and $next.v3Enabled -ceq 'true' -and (Test-Path -LiteralPath (Join-Path $layout.Root ('v3-'+$v3Phase+'.complete')))){Request-TrainBoundary 'pause' $script:DirectorNonce}
+            if($next.ContainsKey('v3Enabled') -and $next.v3Enabled -ceq 'true' -and (!$next.ContainsKey('v3Core004') -or $next.v3Core004 -cne 'true') -and (Test-Path -LiteralPath (Join-Path $layout.Root ('v3-'+$v3Phase+'.complete')))){Request-TrainBoundary 'pause' $script:DirectorNonce}
             Invoke-TrainQueuedExport $dependencies
             $resourcePath=Join-Path $layout.Root ('attempts\'+$script:State.attemptId+'\native-resources.json')
             $completedResources=$null;if(Test-Path -LiteralPath $resourcePath){$completedResources=Read-TrainJson $resourcePath}

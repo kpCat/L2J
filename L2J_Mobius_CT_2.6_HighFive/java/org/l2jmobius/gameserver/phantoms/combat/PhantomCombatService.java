@@ -1856,7 +1856,7 @@ public final class PhantomCombatService
 				final long started = witnessing ? System.nanoTime() : 0;
 				final var candidates = session._actorLease.learningCandidates(session._request, actor, target, ready);
 				final long sequence = Integer.toUnsignedLong(session._nextSkill);
-				final var decision = _learning.choose(candidates, baseline, session._generation * 131 + sequence);
+				final var decision = _learning.choose(candidates, baseline, session._generation * 131 + sequence, session._request, actor.objectId());
 				final long decisionNanos = witnessing ? System.nanoTime() - started : 0;
 				if (witnessing && candidates.size() >= 2 && candidates.size() <= _learning.maximumCandidates())
 				{
@@ -1868,7 +1868,7 @@ public final class PhantomCombatService
 					selected = decision.selected();
 					if (_learning.collecting() && selected.equals(decision.observed().skill()))
 					{
-						attempt = new LearningPolicy.Attempt(_learning, decision.observed(), session._request, session._generation, sequence, baseline, decisionNanos, candidates);
+						attempt = new LearningPolicy.Attempt(_learning, decision.observed(), session._request, session._generation, sequence, baseline, decisionNanos, candidates, decision.tactical());
 					}
 				}
 			}

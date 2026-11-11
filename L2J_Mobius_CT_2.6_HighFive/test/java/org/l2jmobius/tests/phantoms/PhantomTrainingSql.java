@@ -44,6 +44,7 @@ public final class PhantomTrainingSql
 			{
 				prepare(root, module, config, port);
 			}
+			if ("true".equals(read(root.resolve("TRAIN_CONFIG.ini")).getProperty("v3Core004"))) { PhantomLearning004Schema.upgrade(root,module,config,port); }
 			probe(root, module, config, port);
 			System.out.println("TRAIN002_SQL_PROBE_PASS port=" + port + " schema=" + SCHEMA);
 		}
@@ -167,7 +168,7 @@ public final class PhantomTrainingSql
 		}
 	}
 
-	private static void requireIdentity(Connection connection, Path root, int port, String schema, String user) throws Exception
+	static void requireIdentity(Connection connection, Path root, int port, String schema, String user) throws Exception
 	{
 		final Path data = physical(root.resolve("sql/data"));
 		try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT DATABASE(),@@port,VERSION(),CURRENT_USER(),@@session.time_zone,@@datadir"))
@@ -181,7 +182,7 @@ public final class PhantomTrainingSql
 		}
 	}
 
-	private static Properties read(Path file) throws Exception
+	static Properties read(Path file) throws Exception
 	{
 		physical(file);
 		final Properties properties = new Properties();
