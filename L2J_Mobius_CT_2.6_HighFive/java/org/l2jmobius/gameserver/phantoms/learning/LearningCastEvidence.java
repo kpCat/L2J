@@ -73,6 +73,7 @@ public final class LearningCastEvidence
 	{
 		final LearningCastEvidence previous = DISPATCH.get();
 		final LearningCastEvidence ticket = new LearningCastEvidence(attempt, actor, target, skill, leaseValid);
+		attempt.policy().observeIssued(attempt, actor, target);
 		DISPATCH.set(ticket);
 		try
 		{
@@ -269,8 +270,10 @@ public final class LearningCastEvidence
 			final String actorKey = _attempt.policy().actorKey(_attempt.request().profileId());
 			final String eventKey = hash(RunIdentity.SALT + ":" + actorKey + ":" + _actor.getObjectId() + ":" + _epoch + ":" + _attempt.generation()
 				+ ":" + _attempt.sequence() + ":" + _attempt.request().learningScope() + ":" + _spawn);
-			final boolean enqueued = _attempt.policy().record(new LearningStore.Evidence(eventKey, actorKey, _attempt.request().learningScope().name(),
-				_attempt.policy().version(), _skill.getId(), _skill.getLevel(), _damage, reward, action.features()));
+			final var evidence = new LearningStore.Evidence(eventKey, actorKey, _attempt.request().learningScope().name(),
+				_attempt.policy().version(), _skill.getId(), _skill.getLevel(), _damage, reward, action.features());
+			final boolean enqueued = _attempt.policy().record(evidence);
+			if (enqueued) { _attempt.policy().observeRecorded(_attempt, evidence); }
 			if (enqueued && _attempt.policy().witnessing())
 			{
 				logExactReorder(eventKey);

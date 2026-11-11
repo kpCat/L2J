@@ -1,0 +1,15 @@
+/goal PHANTOM-LEARNING-002 — автономный Training Director для Phantom World
+
+Приложен ZIP PHANTOM-LEARNING-002.zip. Распакуй с сохранением структуры в `L2J_Mobius_CT_2.6_HighFive` и исполни `docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK.md` + ACCEPTANCE.md, ARCHITECTURE.md, SAFETY.md, TEST_CASES.md.
+
+Уровень мышления: Very High.
+GitHub: https://github.com/kpCat/L2J
+Локальная пользовательская репа `D:\Codex\repos\L2J-phantom-world` — READ-ONLY.
+Source WIP `wip/phantom-learning`, HEAD `b85dd2a3a5f6f153c77b02f1e4887c490eb08ea8`.
+Сделай независимый clone `D:\Codex\worktrees\phantom-learning-002-source` (либо безопасный уникальный) и собственную ветку `wip/phantom-learning-002`. Scoped обычный non-force push только туда. TASK130 WIP, исходная learning001 и `feature/phantom-world` защищены.
+
+Задача: не новый AI и не очередной тест одного Archmage, а автономный директор: одна команда запуска на Windows, независимая от Codex работа, автоматический выбор законных сцен Solo и Party PvE, повторяемые native бои, точные квитанции обучения, расширяемая структурная память эпизодов, фоновое обучение/оценка кандидатов, pause/resume/stop/status/report/export, restart с сохранением истории. Обучение не выдумывает игровой прогресс, живые навыки и Geo/owner checks штатные.
+
+У владельца больше НЕТ количественных ограничений на GameServer boots и clean JAR: прогоны должны доказывать результат, а не бессмысленно повторяться. Обычную инфраструктуру создавай самостоятельно; чужие серверы/SQL/порты не трогай. Не останавливайся из-за одной опасной точки фарма — выбирай другую и записывай причину. Не раздувай задачу в новый универсальный PvP/Healer/Olympiad AI.
+
+Полный успех — доказать, что после закрытия исходного терминала/диалога Codex директор сам продолжает собирать NATIVE опыт, обучать и проверять модели, безопасно останавливается и оставляет русскоязычный отчёт. При отсутствии реального улучшения — честно оставляет DRAFT, а не подделывает качество. Отдельно сравни throughput, latency и SQL сохранность. Финал: HEAD, SHA, PASS, точный report/RUNBOOK в docs/phantoms/reports и компактный handoff для LEARN-003.

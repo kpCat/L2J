@@ -753,12 +753,27 @@ public final class PhantomLearning001ActorFixture
 
 	private static String create(PhantomProfileRepository profiles, PhantomCombatCapabilityResolver resolver, int next, String split, String scope, Location point, int level, CrystalType grade)
 	{
+		return createTraining(profiles, resolver, next, split, scope, point, level, grade, actorClass(scope), SKILLS, -1);
+	}
+
+	/** Pre-CUT setup shared with the owned director; never called for an existing actor. */
+	static String createTraining(PhantomProfileRepository profiles, PhantomCombatCapabilityResolver resolver, int next, String split, String scope,
+		Location point, int level, CrystalType grade, int selectedClass, Set<Integer> selectedSkills, int configuredEnchant)
+	{
+		return createTraining(profiles, resolver, next, split, scope, point, level, grade, selectedClass, selectedSkills, configuredEnchant, "LearnA" + next);
+	}
+
+	static String createTraining(PhantomProfileRepository profiles, PhantomCombatCapabilityResolver resolver, int next, String split, String scope,
+		Location point, int level, CrystalType grade, int selectedClass, Set<Integer> selectedSkills, int configuredEnchant, String characterName)
+	{
 		final boolean helper = "HELPER".equals(scope);
 		final boolean damageHelper = "DAMAGE_HELPER".equals(scope);
 		final boolean healHelper = "HEAL_HELPER".equals(scope);
-		final int actorClass = actorClass(scope);
-		final int baseTemplate = healHelper ? PlayerClass.ELVEN_MAGE.getId() : helper ? 0 : 10;
-		final Player player = Player.create(PlayerTemplateData.getInstance().getTemplate(baseTemplate), ACCOUNT, "LearnA" + next, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		final int actorClass = selectedClass;
+		final var type = PlayerClass.getPlayerClass(actorClass);
+		if (type == null) { throw new IllegalArgumentException("Unknown ordinary actor class"); }
+		final int baseTemplate = type.getRootClass().getId();
+		final Player player = Player.create(PlayerTemplateData.getInstance().getTemplate(baseTemplate), ACCOUNT, characterName, new PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
 		if (player == null || player.isGM() || player.getClient() != null) { throw new IllegalStateException("Ordinary fixture actor required"); }
 		try
 		{
@@ -783,7 +798,7 @@ public final class PhantomLearning001ActorFixture
 			if (damageHelper) { provisionDamageHelperSkill(player); }
 			final int weapon = helper ? 6364 : grade == CrystalType.S ? 6608 : 5643;
 			final var casterWeapon = player.addItem(ItemProcessType.REWARD, weapon, 1, player, false);
-			final int weaponEnchant = switch (split)
+			final int weaponEnchant = configuredEnchant >= 0 ? configuredEnchant : switch (split)
 			{
 				case "TRAIN" -> 0;
 				case "TUNING" -> 4;
@@ -822,10 +837,10 @@ public final class PhantomLearning001ActorFixture
 			}
 			else
 			{
-				final var loadout = resolver.resolve(ARCHMAGE, PhantomCombatMode.RANGED_MAGIC, player::getSkillLevel,
+				final var loadout = resolver.resolve(actorClass, PhantomCombatMode.RANGED_MAGIC, player::getSkillLevel,
 					selected -> eligible(player.getKnownSkill(selected.skillId())), false, 4).orElseThrow();
 				final var skills = loadout.selectedSkills().stream().map(skill -> skill.skillId()).collect(Collectors.toSet());
-				if (!(damageHelper ? skills.equals(Set.of(1230)) && damageHelperReady(player) : skills.equals(SKILLS)))
+				if (!(damageHelper ? skills.equals(Set.of(1230)) && damageHelperReady(player) : skills.equals(selectedSkills)))
 				{
 					throw new IllegalStateException("Native learned capability missing: " + skills);
 				}
@@ -839,7 +854,7 @@ public final class PhantomLearning001ActorFixture
 				case "HELPER" -> "28";
 				case "DAMAGE_HELPER" -> "1230:" + PROMINENCE_POWER_PLUS_ONE;
 				case "HEAL_HELPER" -> Integer.toString(MAJOR_HEAL);
-				default -> "1230,1339";
+				default -> selectedSkills.stream().sorted().map(String::valueOf).collect(Collectors.joining(","));
 			};
 			return split + '\t' + scope + '\t' + profile + '\t' + player.getObjectId() + '\t' + actorClass + '\t' + level + '\t' + weapon + '\t'
 				+ skills + '\t' + point.getX() + '\t' + point.getY() + '\t' + point.getZ();
@@ -851,7 +866,7 @@ public final class PhantomLearning001ActorFixture
 		}
 	}
 
-	private static boolean eligible(Skill skill)
+	static boolean eligible(Skill skill)
 	{
 		return skill != null && PhantomCombatSkillSafety.supports(skill, PhantomCombatMode.RANGED_MAGIC, false) && skill.isDamage()
 			&& skill.getAffectRange() <= 0 && !skill.isChanneling() && !skill.isSimultaneousCast() && skill.getFlyType() == null && !skill.hasCastPreconditions();

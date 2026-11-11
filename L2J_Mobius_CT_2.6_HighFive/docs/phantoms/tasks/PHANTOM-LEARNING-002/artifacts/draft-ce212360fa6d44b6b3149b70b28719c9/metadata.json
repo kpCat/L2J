@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "state": "DRAFT",
+  "runtimeApplicable": false,
+  "provenance": "NATIVE",
+  "attemptId": "ce212360fa6d44b6b3149b70b28719c9",
+  "architecture": "128x24x1",
+  "algoVersion": 2,
+  "step": 55,
+  "bytes": 12500,
+  "sha256": "bb61a8a0b98e730ca2012259ea8f2ddb590234bef07bb41e43c31201ad418fc9",
+  "configHash": "0b1bb51a9b9a7f28b1534101146e7bd49e2b72c73bebbeb0afc75a081e4eadfb",
+  "datasetHash": "c149426140cd3e7aff382384a5990958806c17b2f60c7a8e58be294f907f1b0c",
+  "featureSchema": "53a0b97cd4c771a2d2a93b46829273f312e0dfd77626989e92b9b52ae2dc1d34",
+  "skillCatalog": "e46709db95ce8e92f4b4f392b5c468d147c6ddb11ab6c773cc48f3702bc6474a",
+  "metrics": {
+    "schemaVersion": 1,
+    "datasetHash": "c149426140cd3e7aff382384a5990958806c17b2f60c7a8e58be294f907f1b0c",
+    "seed": 183,
+    "train": 22,
+    "tuning": 37,
+    "audit": 15,
+    "auditFresh": true,
+    "step": 55,
+    "tuningMse": 0.060362978198577916,
+    "auditMse": 0.12343237934581115,
+    "randomInitialMse": 1.1732171236362825,
+    "minimumRelativeImprovement": 0.01,
+    "trainingMillis": 33,
+    "scopes": {
+      "SOLO": {
+        "rows": 11,
+        "actors": 3,
+        "trainMean": 0.7024329900741577,
+        "constantMse": 0.12911425787625133,
+        "modelMse": 0.13947465697990527,
+        "priorMse": null,
+        "pass": false
+      },
+      "PARTY": {
+        "rows": 4,
+        "actors": 2,
+        "trainMean": 0.4660147115588188,
+        "constantMse": 0.08203502943800237,
+        "modelMse": 0.07931611585205234,
+        "priorMse": null,
+        "pass": true
+      }
+    },
+    "unsafeActionRate": null,
+    "nativeActionReorderingRate": null,
+    "unknownMetricsReason": "Нужна отдельная проверка холодного native-сеанса; offline MSE её не заменяет."
+  }
+}

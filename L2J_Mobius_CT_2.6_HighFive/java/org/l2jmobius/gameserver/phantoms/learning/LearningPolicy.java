@@ -17,6 +17,8 @@ import org.l2jmobius.commons.config.DatabaseConfig;
 import org.l2jmobius.gameserver.config.GeneralConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.data.xml.SkillData;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope;
@@ -34,7 +36,18 @@ public final class LearningPolicy
 		}
 	}
 	public record Decision(SelectedSkill selected, Candidate observed) { }
-	public record Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos) { }
+	public record Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos, List<Candidate> offered)
+	{
+		public Attempt(LearningPolicy policy, Candidate candidate, PhantomCombatRequest request, long generation, long sequence, SelectedSkill baseline, long decisionNanos)
+		{ this(policy, candidate, request, generation, sequence, baseline, decisionNanos, List.of()); }
+		public Attempt { offered = List.copyOf(offered); }
+	}
+	public interface Observer
+	{
+		void issued(Attempt attempt, Player actor, Monster target);
+		void recorded(Attempt attempt, LearningStore.Evidence evidence);
+	}
+	public record TimingSummary(long count, long p50Nanos, long p95Nanos, long p99Nanos, long maxNanos) { }
 	public record Counters(long evaluated, long preferredDifferent, long applied, long overBudget, long unknown) { }
 
 	private static final boolean WITNESS = Boolean.getBoolean("phantom.learning.witness");
@@ -54,6 +67,7 @@ public final class LearningPolicy
 	private final LongAdder _unknown = new LongAdder();
 	private final Witness _soloWitness;
 	private final Witness _partyWitness;
+	private volatile Observer _observer;
 
 	public LearningPolicy(Mode mode, long version, NeuralPolicy model, int maxCandidates)
 	{
@@ -223,6 +237,35 @@ public final class LearningPolicy
 		return _soloWitness != null;
 	}
 
+	/** Optional bounded observation only; never an authority for executing or crediting actions. */
+	public void observer(Observer observer)
+	{
+		if (observer != null && !Boolean.getBoolean("phantom.learning.train")) { throw new IllegalStateException("Training opt-in required"); }
+		_observer = observer;
+	}
+
+	void observeIssued(Attempt attempt, Player actor, Monster target)
+	{
+		final Observer observer = _observer;
+		if (observer == null) { return; }
+		try { observer.issued(attempt, actor, target); }
+		catch (RuntimeException failure) { observationRejected(); }
+	}
+
+	void observeRecorded(Attempt attempt, LearningStore.Evidence evidence)
+	{
+		final Observer observer = _observer;
+		if (observer == null) { return; }
+		try { observer.recorded(attempt, evidence); }
+		catch (RuntimeException failure) { observationRejected(); }
+	}
+
+	public TimingSummary timing(LearningScope scope)
+	{
+		final Witness witness = witness(scope);
+		return witness == null ? new TimingSummary(0, 0, 0, 0, 0) : witness.summary();
+	}
+
 	public void decisionTiming(LearningScope scope, long nanos)
 	{
 		final Witness witness = witness(scope);
@@ -272,11 +315,30 @@ public final class LearningPolicy
 	{
 		private final AtomicLong _exactReordered = new AtomicLong();
 		private final LongSummaryStatistics _timings = new LongSummaryStatistics();
+		private final long[] _samples = new long[2048];
 		private boolean _reported;
 
 		synchronized void timed(long nanos)
 		{
 			_timings.accept(nanos);
+			final long count = _timings.getCount();
+			if (count <= _samples.length) { _samples[(int) count - 1] = nanos; }
+			else
+			{
+				// A bounded deterministic reservoir, independent of gameplay RNG.
+				final long slot = Math.floorMod(Long.rotateLeft(count * 0x9e3779b97f4a7c15L, 23), count);
+				if (slot < _samples.length) { _samples[(int) slot] = nanos; }
+			}
+		}
+
+		synchronized TimingSummary summary()
+		{
+			final int size = (int) Math.min(_timings.getCount(), _samples.length);
+			if (size == 0) { return new TimingSummary(0, 0, 0, 0, 0); }
+			final long[] sorted = java.util.Arrays.copyOf(_samples, size);
+			java.util.Arrays.sort(sorted);
+			return new TimingSummary(_timings.getCount(), sorted[(size - 1) / 2], sorted[(int) Math.ceil(size * .95) - 1],
+				sorted[(int) Math.ceil(size * .99) - 1], _timings.getMax());
 		}
 
 		synchronized void report(LearningScope scope, Mode mode, long version)
@@ -284,8 +346,10 @@ public final class LearningPolicy
 			if (!_reported && _timings.getCount() > 0)
 			{
 				_reported = true;
+				final var timing = summary();
 				Logger.getLogger(LearningPolicy.class.getName()).info("LEARNING_DECISION_TIMING scope=" + scope + " mode=" + mode + " version=" + version
-					+ " samples=" + _timings.getCount() + " totalNanos=" + _timings.getSum() + " maxNanos=" + _timings.getMax());
+					+ " samples=" + _timings.getCount() + " totalNanos=" + _timings.getSum() + " maxNanos=" + _timings.getMax()
+					+ " p50Nanos=" + timing.p50Nanos() + " p95Nanos=" + timing.p95Nanos() + " p99Nanos=" + timing.p99Nanos());
 			}
 		}
 	}

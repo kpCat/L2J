@@ -125,6 +125,11 @@ public final class LearningStore
 		}
 	}
 
+	String catalogFingerprint()
+	{
+		return _catalog;
+	}
+
 	Checkpoint fixture(long id) throws SQLException
 	{
 		try (Connection connection = connect())
@@ -174,20 +179,27 @@ public final class LearningStore
 		try (Connection connection = connect())
 		{
 			connection.setAutoCommit(false);
-			// Lock this version before checking the bytes and status; no old accepted row is overwritten.
-			try (var lock = connection.prepareStatement("SELECT model_id FROM phantom_ai_model_versions WHERE model_id=? FOR UPDATE"))
-			{
-				lock.setLong(1, id);
-				try (var rows = lock.executeQuery()) { if (!rows.next()) { return false; } }
-			}
-			if (read(connection, id, "DRAFT", "NATIVE") == null) { return false; }
-			try (var update = connection.prepareStatement("UPDATE phantom_ai_model_versions SET status='ACCEPTED' WHERE model_id=? AND status='DRAFT'"))
-			{
-				update.setLong(1, id);
-				final boolean changed = update.executeUpdate() == 1;
-				connection.commit();
-				return changed;
-			}
+			final boolean changed = promote(connection, id);
+			if (changed) { connection.commit(); }
+			else { connection.rollback(); }
+			return changed;
+		}
+	}
+
+	/** The training ledger includes promotion and its active-checkpoint CAS in one transaction. */
+	boolean promote(Connection connection, long id) throws SQLException
+	{
+		// Lock this version before checking the bytes and status; no old accepted row is overwritten.
+		try (var lock = connection.prepareStatement("SELECT model_id FROM phantom_ai_model_versions WHERE model_id=? FOR UPDATE"))
+		{
+			lock.setLong(1, id);
+			try (var rows = lock.executeQuery()) { if (!rows.next()) { return false; } }
+		}
+		if (read(connection, id, "DRAFT", "NATIVE") == null) { return false; }
+		try (var update = connection.prepareStatement("UPDATE phantom_ai_model_versions SET status='ACCEPTED' WHERE model_id=? AND status='DRAFT'"))
+		{
+			update.setLong(1, id);
+			return update.executeUpdate() == 1;
 		}
 	}
 
@@ -267,7 +279,7 @@ public final class LearningStore
 
 	private static final int[] CONTEXT_SLOTS = {0, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20, 28, 30, 31, 32, 41, 43, 44, 45, 46};
 
-	private static String contextKey(byte[] features)
+	static String contextKey(byte[] features)
 	{
 		final MessageDigest digest = digest();
 		for (int slot : CONTEXT_SLOTS) { digest.update(features, slot * 2 * Float.BYTES, 2 * Float.BYTES); }
@@ -386,6 +398,10 @@ public final class LearningStore
 	{
 		private final ArrayBlockingQueue<Evidence> _queue = new ArrayBlockingQueue<>(512);
 		private final LongAdder _dropped = new LongAdder();
+		private final LongAdder _persistedBatches = new LongAdder();
+		private final LongAdder _persistedExamples = new LongAdder();
+		private long _totalSqlNanos;
+		private long _maxSqlNanos;
 		private final Thread _thread;
 		private volatile boolean _accepting = true;
 
@@ -426,7 +442,14 @@ public final class LearningStore
 					if (first == null) { continue; }
 					batch.add(first);
 					_queue.drainTo(batch, 63);
-					try { persist(batch, true); }
+					try
+					{
+						final long started = System.nanoTime();
+						persist(batch, true);
+						final long nanos = System.nanoTime() - started;
+						_persistedBatches.increment(); _persistedExamples.add(batch.size());
+						_totalSqlNanos += nanos; _maxSqlNanos = Math.max(_maxSqlNanos, nanos);
+					}
 					catch (SQLException | RuntimeException failure) { _dropped.add(batch.size()); }
 					batch.clear();
 				}
@@ -434,7 +457,8 @@ public final class LearningStore
 			catch (InterruptedException failure) { Thread.currentThread().interrupt(); }
 			finally
 			{
-				java.util.logging.Logger.getLogger(LearningStore.class.getName()).info("Learning evidence writer stopped, dropped=" + (_dropped.sum() + _queue.size()));
+				java.util.logging.Logger.getLogger(LearningStore.class.getName()).info("Learning evidence writer stopped, dropped=" + (_dropped.sum() + _queue.size())
+					+ " sqlBatches=" + _persistedBatches.sum() + " persistedOffers=" + _persistedExamples.sum() + " totalSqlNanos=" + _totalSqlNanos + " maxSqlNanos=" + _maxSqlNanos);
 			}
 		}
 	}

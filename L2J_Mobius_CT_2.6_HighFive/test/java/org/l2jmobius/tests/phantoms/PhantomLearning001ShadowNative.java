@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.phantoms.learning.LearningFeatures;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.LearningStore;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy;
+import org.l2jmobius.gameserver.phantoms.learning.TrainingCollector;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
@@ -247,7 +248,7 @@ public final class PhantomLearning001ShadowNative
 		}
 	}
 
-	private static final class Runtime implements AutoCloseable
+	static final class Runtime implements AutoCloseable
 	{
 		private final Path stop;
 		private final boolean on;
@@ -261,6 +262,12 @@ public final class PhantomLearning001ShadowNative
 		private final PhantomAutonomousFarmParty autonomous;
 		private final PhantomGoalStateStore goals;
 		private final LearningPolicy policy;
+		private final PhantomHistoricalBackgroundPlanner sourcePlanner;
+		private List<String[]> trainingRows = List.of();
+		private List<Player> trainingPlayers = List.of();
+		private PhantomTrainingScenarios.Scene trainingScene;
+		private boolean trainingParty;
+		private volatile boolean trainingAdmission;
 
 		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize) throws Exception
 		{
@@ -278,8 +285,8 @@ public final class PhantomLearning001ShadowNative
 				PhantomCombatCapabilityResolver.fromProgression(() -> progression.findCatalog().orElse(null)), PhantomCombatPolicy.productionDefaults(64));
 			combat.installLearning(policy);
 			backend = new L2jPhantomPartyBackend(profiles, materialization, progression);
-			final var planner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
-			backend.installFarmSourcePolicy((farm, target) -> planner.partyNativeTarget(farm, target.asNpc().getId(),
+			sourcePlanner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
+			backend.installFarmSourcePolicy((farm, target) -> sourcePlanner.partyNativeTarget(farm, target.asNpc().getId(),
 				new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())));
 			final Path rules = game.resolve("data/phantoms/party");
 			final var roleCatalog = PhantomPartyRoleCatalog.load(rules.resolve("high-five-party-roles-v1.xml"));
@@ -291,6 +298,157 @@ public final class PhantomLearning001ShadowNative
 			progression.start();
 			check(materialization.start() && navigation.start() && coordinator.start(), "NATIVE_OWNERS_START");
 			combat.start();
+		}
+
+		/** Director-only admission; ordinary 001 entrypoints retain their original lifecycle. */
+		String prepareTraining(PhantomTrainingScenarios.Scene scene, List<String[]> roster, boolean grouped, int preparationSeconds, BooleanSupplier requested) throws Exception
+		{
+			check(trainingRows.isEmpty() && materialization.list().isEmpty(), "TRAIN_PREVIOUS_EPISODE_NOT_STORED");
+			trainingAdmission = false;
+			coordinator.installLogicalFarmAdmission(_ -> trainingAdmission);
+			trainingScene = scene;
+			trainingParty = grouped;
+			trainingRows = grouped ? List.copyOf(roster) : List.<String[]>of(roster.stream().filter(row -> "SOLO".equals(row[1])).findFirst().orElseThrow());
+			final var materialized = new java.util.ArrayList<Player>();
+			// Keep partial preparation visible to settlement if the next actor refuses admission.
+			for (var row : trainingRows)
+			{
+				final var player = materialize(row);
+				materialized.add(player);
+				trainingPlayers = List.copyOf(materialized);
+				check(!player.isAlikeDead(), "TRAIN_RETIRED_DEAD_ACTOR_" + row[2]);
+				returnToPartyAnchor(row, player);
+				final var root = goals.load(Long.parseLong(row[2])).orElseThrow().goal();
+				check(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", scene.source()).equals(PhantomAutonomousFarmParty.farmSource(root)), "TRAIN_SOURCE_CHANGED");
+			}
+			System.out.println("TRAIN_PREPARATION_START grouped=" + grouped + " budgetSeconds=" + preparationSeconds + " facts=" + trainingFacts());
+			boolean prepared = false;
+			try
+			{
+				await(() ->
+				{
+					check(!requested.getAsBoolean(), "TRAIN_PREPARATION_REQUESTED_DRAIN");
+					boolean recovered = true;
+					for (int index = 0; index < trainingPlayers.size(); index++)
+					{
+						final var player = trainingPlayers.get(index);
+						check(!preflightThreatened(player), "TRAIN_PREPARATION_NATIVE_THREAT");
+						check("FIXTURE".equals(trainingRows.get(index)[0]) || player.getKnownSkill(1230) != null, "TRAIN_PREPARATION_LEARNED_PROMINENCE");
+						// Every member begins native rest on the same shared preparation pulse.
+						recovered &= !recover(player, true);
+					}
+					return recovered;
+				}, Duration.ofSeconds(preparationSeconds), "TRAIN_NATURAL_RECOVERY_DEADLINE");
+				prepared = true;
+			}
+			finally { System.out.println("TRAIN_PREPARATION_END ready=" + prepared + " facts=" + trainingFacts()); }
+			if (grouped)
+			{
+				inspectParty(trainingRows, trainingPlayers);
+				provePartyTarget(trainingRows, trainingPlayers);
+			}
+			return trainingFacts();
+		}
+
+		String runTrainingEpisode(TrainingCollector collector, int seconds, int evidenceLimit, BooleanSupplier requested) throws Exception
+		{
+			check(!trainingPlayers.isEmpty(), "TRAIN_NOT_PREPARED");
+			trainingAdmission = true;
+			final long deadline = System.nanoTime() + Duration.ofSeconds(seconds).toNanos();
+			final long idleDeadline = System.nanoTime() + Duration.ofSeconds(Math.min(seconds, 45)).toNanos();
+			boolean encountered = false;
+			while (System.nanoTime() < deadline && collector.size() < evidenceLimit)
+			{
+				if (requested.getAsBoolean()) { return "REQUESTED_DRAIN"; }
+				if (trainingPlayers.stream().anyMatch(Player::isAlikeDead)) { return "NATIVE_ACTOR_DIED"; }
+				if (trainingParty)
+				{
+					coordinator.onPulse();
+					// This is the same stock autonomous scheduler, including its five-second budget.
+					autonomous.onPulse();
+					encountered |= combat.snapshot().activeSessions() > 0;
+				}
+				else
+				{
+					final var row = trainingRows.getFirst();
+					final long profile = Long.parseLong(row[2]);
+					final var player = trainingPlayers.getFirst();
+					if (readyForSoloSession(combat, profile) && !retreat(profile, player) && !recover(player, on))
+					{
+						final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", trainingScene.source());
+						final var targets = on ? PhantomLearning001ActorFixture.coldSoloOpeningTargets(player) : PhantomLearning001ActorFixture.soloOpeningTargets(player);
+						final var target = targets.stream()
+							.filter(npc -> npc.getId() == trainingScene.npc() && sourcePlanner.partyNativeTarget(source, npc.getId(), new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId())))
+							.findFirst().orElse(null);
+						if (target != null)
+						{
+							final var request = new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.RANGED_MAGIC, true, true,
+								on ? PhantomLearning001ActorFixture.COLD_SOLO_TIMEOUT_MILLIS : 45_000, () -> false, LearningScope.SOLO, null, () -> false);
+							final var accepted = combat.startSession(request);
+							encountered |= accepted.accepted();
+						}
+					}
+				}
+				if (!encountered && collector.size() == 0 && System.nanoTime() >= idleDeadline)
+				{
+					if (!trainingParty) { PhantomLearning001ActorFixture.inspectColdSoloOpening(trainingPlayers.getFirst()); }
+					final var reason = trainingParty ? backend.currentMember(Long.parseLong(trainingRows.getFirst()[2])).map(backend::autonomousFarmWaitReason).orElse("NO_LEADER") : "NO_SAFE_SOLO_OPENING";
+					return "NO_LEGAL_TARGET:" + reason;
+				}
+				Thread.sleep(Math.max(100, PhantomPlayersConfig.settings().schedulerPulseMillis()));
+			}
+			return collector.size() > 0 ? "NATIVE_EVIDENCE" : "NO_EXACT_NATIVE_EVIDENCE";
+		}
+
+		String settleTraining() throws Exception
+		{
+			trainingAdmission = false;
+			if (trainingRows.isEmpty()) { return "{\"actors\":[],\"nativeRewards\":\"UNKNOWN\"}"; }
+			final var rows = trainingRows;
+			final var players = trainingPlayers;
+			await(() ->
+			{
+				coordinator.onPulse();
+				boolean drained = true;
+				for (var player : players)
+				{
+					final var nativeParty = player.getParty();
+					if (nativeParty != null)
+					{
+						final var leader = nativeParty.getLeader();
+						final var leaderRow = rows.stream().filter(row -> Integer.parseInt(row[3]) == leader.getObjectId()).findFirst().orElseThrow();
+						drained &= coordinator.drainAutonomousFarm(Long.parseLong(leaderRow[2]));
+					}
+				}
+				for (var row : rows)
+				{
+					long profile = Long.parseLong(row[2]);
+					if (!coordinator.committed(profile)) { combat.consumeTerminal(profile); }
+					drained &= !combat.hasClaim(profile);
+				}
+				return drained && players.stream().noneMatch(player -> player.isInParty() || player.isAttackingNow() || player.isCastingNow()
+					|| player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null || player.isMoving());
+			}, Duration.ofSeconds(90), "TRAIN_CANONICAL_DRAIN");
+			final String facts = trainingFacts();
+			for (var row : rows) { store(Long.parseLong(row[2])); }
+			check(players.stream().allMatch(player -> World.getInstance().getPlayer(player.getObjectId()) == null), "TRAIN_WORLD_NOT_EMPTY");
+			trainingRows = List.of(); trainingPlayers = List.of(); trainingScene = null;
+			return facts;
+		}
+
+		private String trainingFacts()
+		{
+			final var facts = new java.util.ArrayList<String>();
+			for (int index = 0; index < trainingPlayers.size(); index++)
+			{
+				final var player = trainingPlayers.get(index);
+				final var owner = player.getNativeWorkOwner();
+				facts.add("{\"profile\":" + trainingRows.get(index)[2] + ",\"actor\":" + player.getObjectId() + ",\"epoch\":" + (owner == null ? 0 : owner.epoch())
+					+ ",\"class\":" + player.getActiveClass() + ",\"level\":" + player.getLevel() + ",\"hp\":" + player.getCurrentHp() + ",\"maxHp\":" + player.getMaxHp()
+					+ ",\"mp\":" + player.getCurrentMp() + ",\"maxMp\":" + player.getMaxMp()
+					+ ",\"exp\":" + player.getExp() + ",\"sp\":" + player.getSp() + ",\"adena\":" + player.getAdena() + ",\"x\":" + player.getX() + ",\"y\":" + player.getY() + ",\"z\":" + player.getZ() + ",\"dead\":" + player.isAlikeDead() + "}");
+			}
+			return "{\"schema\":1,\"actors\":[" + String.join(",", facts) + "],\"rewardAttribution\":\"UNKNOWN\",\"spoil\":\"UNKNOWN\"}";
 		}
 
 		private Player materialize(String[] row)
@@ -381,7 +539,7 @@ public final class PhantomLearning001ShadowNative
 		{
 			if (player.isMoving() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null) { return true; }
 			final var skill = player.getKnownSkill(1230);
-			final double mp = (player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill)) * 3;
+			final double mp = skill == null ? 0 : (player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill)) * 3;
 			if ((cold && player.getCurrentHp() < player.getMaxHp() * .9)
 				|| !PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), mp, player.isSitting()))
 			{

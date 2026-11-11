@@ -1864,7 +1864,7 @@ public final class PhantomCombatService
 					selected = decision.selected();
 					if (_learning.collecting() && selected.equals(decision.observed().skill()))
 					{
-						attempt = new LearningPolicy.Attempt(_learning, decision.observed(), session._request, session._generation, sequence, baseline, decisionNanos);
+						attempt = new LearningPolicy.Attempt(_learning, decision.observed(), session._request, session._generation, sequence, baseline, decisionNanos, candidates);
 					}
 				}
 			}

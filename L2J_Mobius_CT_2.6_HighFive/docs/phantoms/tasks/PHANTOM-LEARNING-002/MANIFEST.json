@@ -1,0 +1,23 @@
+{
+  "task": "PHANTOM-LEARNING-002",
+  "source_git": "https://github.com/kpCat/L2J",
+  "base_ref": "wip/phantom-learning",
+  "base_sha": "b85dd2a3a5f6f153c77b02f1e4887c490eb08ea8",
+  "target_branch": "wip/phantom-learning-002",
+  "module": "L2J_Mobius_CT_2.6_HighFive",
+  "lang": "ru",
+  "version": 1,
+  "files": [
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/ARCHITECTURE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/ACCEPTANCE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/TEST_CASES.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/CONTEXT.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SOURCE_MAP.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SAFETY.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/WORKFLOW.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/ROADMAP.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/GOAL.txt",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/RUNBOOK_RU.md"
+  ]
+}

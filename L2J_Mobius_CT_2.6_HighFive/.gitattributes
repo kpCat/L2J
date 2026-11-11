@@ -15,3 +15,18 @@ dist/game/data/phantoms/semantic/high-five-ru-corpus-v3.tsv text eol=lf
 # Owner-supplied TASK065 hashes describe exact bytes, including line endings.
 docs/phantoms/tasks/PHANTOM-LIVING-PRESENCE-065/* -text
 docs/phantoms/PHANTOM_WORLD_ROADMAP_REVISED_2026-10-21.md -text
+
+# LEARNING-002 owner inputs have byte-exact SHA256SUMS; preserve their original bytes.
+docs/phantoms/tasks/PHANTOM-LEARNING-002/ACCEPTANCE.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/ARCHITECTURE.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/CONTEXT.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/GOAL.txt -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/MANIFEST.json -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/ROADMAP.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/RUNBOOK_RU.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/SAFETY.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/SHA256SUMS.txt -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/SOURCE_MAP.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/TEST_CASES.md -text
+docs/phantoms/tasks/PHANTOM-LEARNING-002/WORKFLOW.md -text

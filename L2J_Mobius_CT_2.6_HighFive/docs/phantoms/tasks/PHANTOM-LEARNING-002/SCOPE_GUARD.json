@@ -1,0 +1,421 @@
+{
+  "schemaVersion": 1,
+  "task": "PHANTOM-LEARNING-002",
+  "checkedUtc": "2026-11-11T14:54:35.0810173Z",
+  "base": "b85dd2a3a5f6f153c77b02f1e4887c490eb08ea8",
+  "branch": "wip/phantom-learning-002",
+  "allowlistCount": 68,
+  "statusBeforeSelf": 67,
+  "outsideAllowlist": 0,
+  "moduleRelativePaths": [
+    ".gitattributes",
+    "dist/db_installer/sql/game/phantom_training.sql",
+    "java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatService.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/LearningCastEvidence.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/LearningPolicy.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/LearningStore.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TrainingCollector.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TrainingEvaluator.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TrainingStore.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingCatalogChecks.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingContracts.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarioChecks.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingSql.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingStoreChecks.java",
+    "tools/phantom-runtime/training/RUNBOOK_RU.md",
+    "tools/phantom-runtime/training/TRAIN_CONFIG.ini",
+    "tools/phantom-runtime/training/TRAIN_EXPORT.cmd",
+    "tools/phantom-runtime/training/TRAIN_PAUSE.cmd",
+    "tools/phantom-runtime/training/TRAIN_REPORT.cmd",
+    "tools/phantom-runtime/training/TRAIN_RESUME.cmd",
+    "tools/phantom-runtime/training/TRAIN_START.cmd",
+    "tools/phantom-runtime/training/TRAIN_STATUS.cmd",
+    "tools/phantom-runtime/training/TRAIN_STOP.cmd",
+    "tools/phantom-runtime/training/Test-Training.ps1",
+    "tools/phantom-runtime/training/Training.ps1",
+    "tools/phantom-runtime/training/TrainingBootstrap.ps1",
+    "tools/phantom-runtime/training/TrainingBroker.ps1",
+    "tools/phantom-runtime/training/TrainingJobProbe.cs",
+    "tools/phantom-runtime/training/TrainingOwnedJobFixture.cs",
+    "tools/phantom-runtime/training/TrainingOwner.ps1",
+    "docs/phantoms/reports/PHANTOM-LEARNING-002.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/ACCEPTANCE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/ARCHITECTURE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/CATALOG_PROTOCOL.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/CONTEXT.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/DESIGN_DECISIONS.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/GOAL.txt",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/HANDOFF.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/IMPLEMENTATION_NATIVE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/IMPLEMENTATION_SUPERVISOR.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/MANIFEST.json",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/PLAN.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/PROGRESS.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/RESULT.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/ROADMAP.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/RUNBOOK_RU.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SAFETY.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SCOPE_ALLOWLIST.txt",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SCOPE_GUARD.json",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SHA256SUMS.txt",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/SOURCE_MAP.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK2_HANDOFF.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/TEST_CASES.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/WORKFLOW.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/accepted-model-1/README_RU.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/accepted-model-1/model-1.zip",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/draft-ce212360fa6d44b6b3149b70b28719c9/README_RU.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/draft-ce212360fa6d44b6b3149b70b28719c9/metadata.json",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/draft-ce212360fa6d44b6b3149b70b28719c9/weights.bin",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/evidence/PROOF.json"
+  ],
+  "hashes": [
+    {
+      "path": ".gitattributes",
+      "bytes": 2200,
+      "sha256": "a6916b304f8db5740a5f411a7f70b7da9fe75779b281ca85f770fbd569c64c1f"
+    },
+    {
+      "path": "dist/db_installer/sql/game/phantom_training.sql",
+      "bytes": 6069,
+      "sha256": "3fabbcaf10d534999bec27881d004b2e999fd59e65780e1d4b2b2b0f5ea79931"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatService.java",
+      "bytes": 94064,
+      "sha256": "9028f8c024bbea0369415ef6fc471aa984f25637395c56e0012c9d6bcb9db406"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/LearningCastEvidence.java",
+      "bytes": 11548,
+      "sha256": "51df63e1c35cb61ff072b9650fb860196698a879be866294a820a59f42a2013e"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/LearningPolicy.java",
+      "bytes": 12012,
+      "sha256": "7c4674a04d8cd4ecc99d05afd64ba81126309a3fb3553cd915cbe4d7038b26e0"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/LearningStore.java",
+      "bytes": 19123,
+      "sha256": "5c6c8d000e95923512e4e575d51715fe7342f683b8a2db4197a3c08eee82d3fd"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/TrainingCollector.java",
+      "bytes": 9168,
+      "sha256": "0d37c96e164a07ef4805d9f11d4740d8ae11f2ea83b6eb830398bc475e87b27f"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "bytes": 7422,
+      "sha256": "074e928a6ff1553190bd0f4694b6bfca3717d59835ab3d98252fbac9e34346a9"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/TrainingEvaluator.java",
+      "bytes": 21183,
+      "sha256": "cc3baf24b7fa571dabc1c2cb177a3c11156407571ee6827ca13d8b8172091447"
+    },
+    {
+      "path": "java/org/l2jmobius/gameserver/phantoms/learning/TrainingStore.java",
+      "bytes": 52909,
+      "sha256": "8e6c1a0328138dec24c09f0f01413156b479837fed3c6d99d97e8b885a49ba22"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+      "bytes": 50236,
+      "sha256": "53b432d1a1a81911b09a40f7999bac91d8f3e4442afaf27a284a9a2f8d2cb362"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 52375,
+      "sha256": "a8bd6b68f3f3f68d955257ec14bfc13cb87150dfbba563757958a095b86baa30"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java",
+      "bytes": 56635,
+      "sha256": "0269c720acf8ee00624a45f7213e7ec271eba232c08048808be08705f2272e7a"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+      "bytes": 29242,
+      "sha256": "38b4171cc42b98c8482c9d305510bdf55ad5c869e97eaa24daa256efd0ac51bf"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingCatalogChecks.java",
+      "bytes": 5211,
+      "sha256": "6d6a551c7b66f35cb1bcbedf9ed3e9cd2af01fd553503bbdf1438da0006467ac"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingContracts.java",
+      "bytes": 3763,
+      "sha256": "4a073a61ba2b74703dcf625ea5316461ef7aa7c3e184c5a3f1217a2b10616c78"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+      "bytes": 13850,
+      "sha256": "d9e074238f7a50b41848e62206ca1d811c12c4c7950561ccb58c5c14d9a774a8"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarioChecks.java",
+      "bytes": 6083,
+      "sha256": "748c306dfe84c1952415fd8274533186721ffdc0879f1be41ccb8a99c0fb4aab"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "bytes": 11730,
+      "sha256": "05e7f6fe910cc833990183aa50f33430a3c7b7461c9880c90b4f5abcd0c68a9e"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingSql.java",
+      "bytes": 9353,
+      "sha256": "6730895acd9c6077d807972b120e177d01e5fc5b534ddbdb6394a06dcbee6e11"
+    },
+    {
+      "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingStoreChecks.java",
+      "bytes": 13616,
+      "sha256": "95a0fc532691de909e3853712bdba044bba695495d6e819a0be92c9fc4562dbe"
+    },
+    {
+      "path": "tools/phantom-runtime/training/RUNBOOK_RU.md",
+      "bytes": 7177,
+      "sha256": "fe2ccbdab4c0e20154f503c913a0673468aa7d0108d4e6318bedc7f7f1861218"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_CONFIG.ini",
+      "bytes": 832,
+      "sha256": "65356c577a72996edef12ca408790286a4ef980504e16e1b8ff4a892acf99934"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_EXPORT.cmd",
+      "bytes": 269,
+      "sha256": "e6799c396a65f3a1c1f1d991ca620280f5ca3a506936e0fd6f10da375d6c7c12"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_PAUSE.cmd",
+      "bytes": 268,
+      "sha256": "bbc2bb84a892488df46623cb158389408bf1150f2d59a85a15cba3616491f237"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_REPORT.cmd",
+      "bytes": 269,
+      "sha256": "76a089b63638f58c798d8a52dc5c6caa4997a8d83380c6d93282a82c9af056de"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_RESUME.cmd",
+      "bytes": 269,
+      "sha256": "ab94ce9a7edeb8b9aa3bfab7532fb82983f44b5d9104e808fb1d37010e78ab68"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_START.cmd",
+      "bytes": 268,
+      "sha256": "65032e4dd89929428fbef0851e7cfe4bb64eca87cce6b3725b6688127c68b0e3"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_STATUS.cmd",
+      "bytes": 269,
+      "sha256": "911f8fb7b37fdef01c3d5806900bdbfa18abf2c28a24a81bf4acd96445c0a841"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TRAIN_STOP.cmd",
+      "bytes": 267,
+      "sha256": "541062a4aaeca04de70ec151797f051baa709213509b1dd273662ad37689d179"
+    },
+    {
+      "path": "tools/phantom-runtime/training/Test-Training.ps1",
+      "bytes": 48125,
+      "sha256": "172875d881fe800e8ac638e9fbb01de586d2f185a5f1727887bae0192e8b3e92"
+    },
+    {
+      "path": "tools/phantom-runtime/training/Training.ps1",
+      "bytes": 50727,
+      "sha256": "348cf22d0ca36a04cf622e7b842fa54450e74bdb1ceaff86a0a49442ad65109e"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TrainingBootstrap.ps1",
+      "bytes": 7766,
+      "sha256": "7c0a835d330ad688a4a1910e85a3ce972c539e13a4bffea8e6c62672026d63ab"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TrainingBroker.ps1",
+      "bytes": 14118,
+      "sha256": "229ad2a65ec3290a4da3a014818aa8e27e9f85c60ec82f9425082d0ccab26541"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TrainingJobProbe.cs",
+      "bytes": 4863,
+      "sha256": "ac6353380f065081edfaf33fbe4eaaf0b17be06abec99a661cf544ff5850dbfc"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TrainingOwnedJobFixture.cs",
+      "bytes": 5773,
+      "sha256": "94daa38f33dfd7e02c900d5d82920fa00d70bafe8a9672929aab3836cacea897"
+    },
+    {
+      "path": "tools/phantom-runtime/training/TrainingOwner.ps1",
+      "bytes": 33344,
+      "sha256": "294a6a27413204bd2cecc5e40dc43dc843b47fc8ad969c7290b0f20eb628f4b8"
+    },
+    {
+      "path": "docs/phantoms/reports/PHANTOM-LEARNING-002.md",
+      "bytes": 18756,
+      "sha256": "390bbd5924bec72bf172bb498826a6a3dbd17878977f73249f05986298d3ce34"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/ACCEPTANCE.md",
+      "bytes": 5580,
+      "sha256": "e0647277e93bc19ba9f886b6069cc75152f3108083e7bef5049b33527ba60b7a"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/ARCHITECTURE.md",
+      "bytes": 7088,
+      "sha256": "f02292f7b1628be7e3d6461a924681072cd8cef53c0798c4d81ad208d4c47837"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/CATALOG_PROTOCOL.md",
+      "bytes": 3356,
+      "sha256": "b9fa9bd1f5c805560c5d5dc731621adab63ccb379dd331ab798334085f872c72"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/CONTEXT.md",
+      "bytes": 3764,
+      "sha256": "b7178b8e4c98218fccd49c291474f38758d6a22ef4cd5e80e3b555d8a58e0d34"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/DESIGN_DECISIONS.md",
+      "bytes": 18279,
+      "sha256": "9125c1e406a73b93a44d2ff732ab18c2cdfe548c9b6d9b0b2468315978f65436"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/GOAL.txt",
+      "bytes": 3212,
+      "sha256": "ac3372a132767aa78e3c002b5dff00d70e734a5e10134ff7bf97176db7d2770b"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/HANDOFF.md",
+      "bytes": 6223,
+      "sha256": "51ee043c79aae7fd4bf9bdb993b7e3e84cdb8d47c449ed446ac1bcbabae4c267"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/IMPLEMENTATION_NATIVE.md",
+      "bytes": 9517,
+      "sha256": "c277cb613abc2cb8d58b81b7a0b989804e9c54059a522afdefe567ce43ff2220"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/IMPLEMENTATION_SUPERVISOR.md",
+      "bytes": 11497,
+      "sha256": "211ec15c8b45d0839ca95256ef225070ba64e93346d6b8738caa7c33e9140c17"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/MANIFEST.json",
+      "bytes": 980,
+      "sha256": "0ed0245c7857b975b5715e7b80efd7da11bd29f9220fedd28c7c462ec18d11b5"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/PLAN.md",
+      "bytes": 10282,
+      "sha256": "c954ef908f596f0e888262bab1a6051549189a3b3c7413b2edb42aa12bb8bf34"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/PROGRESS.md",
+      "bytes": 31783,
+      "sha256": "4aca2d4a407ca11dc889ea18b4a644228a354aac87e41f022123908454727e05"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/RESULT.md",
+      "bytes": 4368,
+      "sha256": "3e089481187e94237ac7f3612e5efa22606e76d743ad0fb3cdd083c2255c2eae"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/ROADMAP.md",
+      "bytes": 2012,
+      "sha256": "d4691f07751d346d88869024935496bdad99bad8706f743470953caa8039d9e1"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/RUNBOOK_RU.md",
+      "bytes": 3490,
+      "sha256": "503fda15ff88e02a245f33fd4ca56197a8030b934f4cf4f193f557744a0c93dc"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/SAFETY.md",
+      "bytes": 2987,
+      "sha256": "10e4449d9418a467f157b8853875968f18aa45fce19cfb0a61efec4e1d9baa5f"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/SCOPE_ALLOWLIST.txt",
+      "bytes": 4087,
+      "sha256": "a79adcecfe709a9114e0a72d9d6106873dd76af03ed630b65e3c69470759f65d"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/SHA256SUMS.txt",
+      "bytes": 1431,
+      "sha256": "e8fb9defed2a73d3d5ec5b5ef84ad77fa6a88ae4de941a6e3755000d282aadba"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/SOURCE_MAP.md",
+      "bytes": 3066,
+      "sha256": "05251069f0cb242dcc8c6f6aef89311c56ea9ec2c7759fe24844d270d1d1698c"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK.md",
+      "bytes": 19959,
+      "sha256": "f7433a52e4db744400fc15076a02c965d9e5da4d036f83e92a971a19e3afdebc"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/TASK2_HANDOFF.md",
+      "bytes": 10753,
+      "sha256": "122e8bfbb1f5f8850b1cd50c3a8dc612ff9bb846707a614acb1ec57e2f2d07cd"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/TEST_CASES.md",
+      "bytes": 4108,
+      "sha256": "92dc63a97428bc7b232ddda0d36079db9e40fdad6e789882039f0e570f100785"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/WORKFLOW.md",
+      "bytes": 2238,
+      "sha256": "f5443d715fb0c59e7e237572ac47a0ff13800977749afec987b888e5d267d99d"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/accepted-model-1/README_RU.md",
+      "bytes": 2353,
+      "sha256": "35723421cbcadc8141a9357bb57bf6411dc3396736988b67f061150d134b65ea"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/accepted-model-1/model-1.zip",
+      "bytes": 69127,
+      "sha256": "10fc9c6c8c450e4974ca7abed861805a7640e2c67c8474ac5a4c96e003b493da"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/draft-ce212360fa6d44b6b3149b70b28719c9/README_RU.md",
+      "bytes": 1350,
+      "sha256": "924bd76529323bd6049d7b2330f1904f33843606642dedc60bd657cc843c37ad"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/draft-ce212360fa6d44b6b3149b70b28719c9/metadata.json",
+      "bytes": 1862,
+      "sha256": "1ada51f2e0b1a44178bff6f8b1d5a96300c09fea365a212952058b94eb02fc7b"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/draft-ce212360fa6d44b6b3149b70b28719c9/weights.bin",
+      "bytes": 12500,
+      "sha256": "bb61a8a0b98e730ca2012259ea8f2ddb590234bef07bb41e43c31201ad418fc9"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/evidence/PROOF.json",
+      "bytes": 23442,
+      "sha256": "137e9de43bf8103260adb9b06bf8adadf6ccb2d48bfe8bef029fc6e487df1d8d"
+    }
+  ],
+  "selfHash": "EXCLUDED_SELF_REFERENCE",
+  "hashBoundary": "Physical verified Windows checkout before scoped staging; input13 pinned -text",
+  "runtimeExcluded": ".phantom-local/learning002/",
+  "manualAcceptance": "REQUIRED"
+}

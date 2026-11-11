@@ -325,6 +325,9 @@ public final class PhantomTestLauncher
 			case "combat-ownership" -> new PhantomCombatOwnershipSuite();
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "learning001" -> new PhantomLearning001Suite();
+			case "training-contracts" -> new PhantomTrainingContracts();
+			case "training-scenarios" -> new PhantomTrainingScenarioChecks();
+			case "training-catalogs" -> new PhantomTrainingCatalogChecks();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
 			case "post002-native-support" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.POST002_SUPPORT);
 			case "companion-real-support058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_REAL_SUPPORT_058);

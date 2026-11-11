@@ -1,0 +1,670 @@
+{
+  "schemaVersion": 1,
+  "task": "PHANTOM-LEARNING-002",
+  "assembledUtc": "2026-11-11T14:38:36.1284483Z",
+  "base": "b85dd2a3a5f6f153c77b02f1e4887c490eb08ea8",
+  "branch": "wip/phantom-learning-002",
+  "manualAcceptance": "REQUIRED",
+  "literalCodexUiCloseObserved": false,
+  "ancestorJobChain": "NOT_ENUMERATED",
+  "sourcePins": [
+    {
+      "sha256": "348cf22d0ca36a04cf622e7b842fa54450e74bdb1ceaff86a0a49442ad65109e",
+      "path": "tools/phantom-runtime/training/Training.ps1"
+    },
+    {
+      "sha256": "294a6a27413204bd2cecc5e40dc43dc843b47fc8ad969c7290b0f20eb628f4b8",
+      "path": "tools/phantom-runtime/training/TrainingOwner.ps1"
+    },
+    {
+      "sha256": "7c0a835d330ad688a4a1910e85a3ce972c539e13a4bffea8e6c62672026d63ab",
+      "path": "tools/phantom-runtime/training/TrainingBootstrap.ps1"
+    },
+    {
+      "sha256": "229ad2a65ec3290a4da3a014818aa8e27e9f85c60ec82f9425082d0ccab26541",
+      "path": "tools/phantom-runtime/training/TrainingBroker.ps1"
+    },
+    {
+      "sha256": "ac6353380f065081edfaf33fbe4eaaf0b17be06abec99a661cf544ff5850dbfc",
+      "path": "tools/phantom-runtime/training/TrainingJobProbe.cs"
+    }
+  ],
+  "build": {
+    "builtUtc": "2026-11-11T12:18:36.3053046Z",
+    "sourceFingerprint": "39970f0e40bc2f29879a30bcedcd6908a67c75bb3104f43640087da7fcbe02f8",
+    "jarSha": "B1E69A773CEC5E9FCDBF99480EAB16498678BD61C88A834370BEF151C3F92EE5"
+  },
+  "acceptedModel": {
+    "observedUtc": "2026-11-11T13:12:23.8608312Z",
+    "attemptId": "d01e95f0233549acb85bf5c358189559",
+    "modelVersion": 1,
+    "sha256": "e0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2",
+    "datasetHash": "202623c277aec76aadafdf3b203a48660461f0e0789b926ef37d102e121a2d77",
+    "algoVersion": 2,
+    "step": 47,
+    "bytes": 12500,
+    "metrics": {
+      "schemaVersion": 1,
+      "datasetHash": "202623c277aec76aadafdf3b203a48660461f0e0789b926ef37d102e121a2d77",
+      "seed": 183,
+      "train": 33,
+      "tuning": 45,
+      "audit": 9,
+      "auditFresh": true,
+      "step": 47,
+      "tuningMse": 0.03422320752746659,
+      "auditMse": 0.05248381189002416,
+      "randomInitialMse": 1.577168254638786,
+      "minimumRelativeImprovement": 0.01,
+      "trainingMillis": 33,
+      "scopes": {
+        "SOLO": {
+          "rows": 5,
+          "actors": 1,
+          "trainMean": 0.794696284191949,
+          "constantMse": 0.03944743309218234,
+          "modelMse": 0.012446571212712598,
+          "priorMse": null,
+          "pass": true
+        },
+        "PARTY": {
+          "rows": 4,
+          "actors": 2,
+          "trainMean": 0.49615772029286936,
+          "constantMse": 0.1397164244576262,
+          "modelMse": 0.1025303627366636,
+          "priorMse": null,
+          "pass": true
+        }
+      },
+      "unsafeActionRate": null,
+      "nativeActionReorderingRate": null,
+      "unknownMetricsReason": "Нужна отдельная проверка холодного native-сеанса; offline MSE её не заменяет."
+    }
+  },
+  "unattendedWmi": {
+    "observedUtc": "2026-11-11T14:08:10.8920054Z",
+    "bootstrapNonce": "df5b9f777c1246d08028158fdfde0908",
+    "baselineCommitted": 31,
+    "newEpisodesTsv": [
+      "64\tc282612d66a74b6187cb7f2106dc3b0c\tSOLO\tCOMMITTED\tNATIVE_EVIDENCE",
+      "65\tfee7e74a576b4c5882e677e63dc913ea\tPARTY\tINCOMPLETE\tNO_EXACT_NATIVE_EVIDENCE",
+      "66\t1c3b10355dc547189b2a39acd2d1b7ce\tSOLO\tCOMMITTED\tNATIVE_EVIDENCE"
+    ],
+    "launcherCallerAbsent": true,
+    "baselineExactEvents": 114,
+    "newCommitted": 2,
+    "committed": 33,
+    "elapsedMillis": 1015715,
+    "literalUiCloseObserved": false,
+    "controlsSinceStart": "NONE; read-only observations only",
+    "director": {
+      "schemaVersion": 1,
+      "runId": "95cf92cb9402464fa202cde3084de42e",
+      "generation": 7,
+      "nonce": "df5b9f777c1246d08028158fdfde0908",
+      "phase": "NATIVE",
+      "reason": "",
+      "heartbeatUtc": "2026-11-11T14:08:10.4761394Z",
+      "attemptId": "f91047ad9b504b9aa2f2245d64eac4a4",
+      "batchesCompleted": 16,
+      "nativeFailures": 0,
+      "cpuSeconds": 32.781,
+      "workingSetBytes": 132370432,
+      "primaryFailureId": "",
+      "primaryFailureCode": "",
+      "primaryFailurePhase": "",
+      "cleanupFailureId": "",
+      "adaptiveIdleSeconds": 10
+    },
+    "exactEvents": 116,
+    "elapsedTimestampSource": "DateTimeOffset: original UTC literal observedUtc in start/proof JSON",
+    "supersedesElapsed": {
+      "sourceSha": "9388239DEAF22C7C103BD57888B67E749BFCF079A2A3FF389B2AB800F4143066",
+      "reason": "PowerShell 7 JSON date coercion followed by Parse caused a local timezone shift; original timestamps and SQL facts unchanged.",
+      "priorIncorrectMillis": 8214966
+    }
+  },
+  "crashRecovery": {
+    "observedUtc": "2026-11-11T12:08:05.5975898Z",
+    "probeId": "14b2d4887e3b4d92b3591378a6a4533a",
+    "sqlPid": 32536,
+    "sqlCreated": 134388696778347420,
+    "sqlSameProcess": true,
+    "director": {
+      "schemaVersion": 1,
+      "runId": "95cf92cb9402464fa202cde3084de42e",
+      "generation": 5,
+      "nonce": "177adf4504484d4fb490a19604b2d54c",
+      "phase": "NATIVE",
+      "reason": "",
+      "heartbeatUtc": "2026-11-11T12:08:05.0228688Z",
+      "attemptId": "888691e280e0428d8687d7423f56db84",
+      "batchesCompleted": 5,
+      "nativeFailures": 1,
+      "cpuSeconds": 70.422,
+      "workingSetBytes": 141529088,
+      "primaryFailureId": "",
+      "primaryFailureCode": "",
+      "primaryFailurePhase": "",
+      "cleanupFailureId": "",
+      "adaptiveIdleSeconds": 10
+    },
+    "sqlReadbackTsv": [
+      "episode_id\tstate\treason\tepoch",
+      "caa7c58b5e324963baf5ffa408fe6a99\tINCOMPLETE\tПрервано до подтверждения эпизода\t0647df0be0fa428899ece8600a36dbde",
+      "committed\tdistinct_keys",
+      "65\t65",
+      "pending_memberships",
+      "0"
+    ]
+  },
+  "modeledKillJob": {
+    "finalImmediateJob": {
+      "Scope": "CURRENT_IMMEDIATE_JOB_ONLY",
+      "LimitsSucceeded": true,
+      "LimitFlags": 6144,
+      "KillOnJobClose": false,
+      "BreakawayOk": true,
+      "SilentBreakawayOk": true
+    },
+    "nonInheritedHandle": true,
+    "helper": {
+      "pid": 10720,
+      "created": 134388803351605193,
+      "nonce": "326c37c461c4434d9d33960d96d9cb5b",
+      "imageHash": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "commandHash": "fiPF/8VNy8oDmgc+zE0l6nJptIV14q+NzGNoRWPaUx0="
+    },
+    "ownJobFlags": 8192,
+    "final": {
+      "pid": 82060,
+      "created": 134388803373966852,
+      "nonce": "326c37c461c4434d9d33960d96d9cb5b",
+      "imageHash": "9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+      "commandHash": "OgqvC+F1xS5/zLQ/29bY4fZXxYo4XKwjaVgtcH3fH+s="
+    },
+    "unnamed": true,
+    "after": {
+      "nonce": "326c37c461c4434d9d33960d96d9cb5b",
+      "result": "OWN_KILL_JOB_LIFETIME_INDEPENDENCE_VERIFIED",
+      "literalUiCloseObserved": false,
+      "finalExit": {
+        "pid": 82060,
+        "created": 134388803373966852,
+        "exited": true,
+        "exitCode": 5
+      },
+      "afterHeartbeat": {
+        "nonce": "326c37c461c4434d9d33960d96d9cb5b",
+        "created": 134388803373966852,
+        "pid": 82060,
+        "sequence": 10,
+        "observedUtc": "2026-11-11T14:19:05.0718679Z"
+      },
+      "helperExit": {
+        "pid": 10720,
+        "created": 134388803351605193,
+        "exited": true,
+        "exitCode": 0
+      },
+      "ownJobClosedUtc": "2026-11-11T14:19:02.3072704Z",
+      "additionalHeartbeats": 9
+    }
+  },
+  "startupHandshake": [
+    {
+      "pid": 82240,
+      "nonce": "911de1a618254a44970f1fffecf9fce7",
+      "sqlLaunched": false,
+      "exitCode": 1,
+      "case": "NO_ACK",
+      "pendingConfirmed": true,
+      "created": 134388802964811840,
+      "runReached": false
+    },
+    {
+      "pid": 82756,
+      "nonce": "255aff748c0f4856a48510ccc72f69ea",
+      "sqlLaunched": false,
+      "exitCode": 0,
+      "case": "CANCEL_AFTER_ACK",
+      "pendingConfirmed": true,
+      "created": 134388803005248329,
+      "runReached": false
+    }
+  ],
+  "pause": {
+    "state": {
+      "schemaVersion": 1,
+      "runId": "95cf92cb9402464fa202cde3084de42e",
+      "generation": 8,
+      "nonce": "38db0b7589fd43ce89ad435d4f9537ef",
+      "phase": "PAUSED",
+      "reason": "Текущий батч завершён; новые эпизоды не запускаются.",
+      "heartbeatUtc": "2026-11-11T14:28:36.4821073Z",
+      "attemptId": "965dc6d440274cd3965ab7455043bf46",
+      "batchesCompleted": 18,
+      "nativeFailures": 0,
+      "cpuSeconds": 22.266,
+      "workingSetBytes": 130527232,
+      "primaryFailureId": "",
+      "primaryFailureCode": "",
+      "primaryFailurePhase": "",
+      "cleanupFailureId": "",
+      "adaptiveIdleSeconds": 10
+    },
+    "nativeExited": true,
+    "sqlSnapshot": {
+      "schemaVersion": 1,
+      "updatedAt": "2026-11-11T14:26:41.408437200Z",
+      "committed": 34,
+      "incomplete": 35,
+      "events": 117,
+      "attempts": 2,
+      "accepted": 1,
+      "nextOrdinal": 69,
+      "activeModelVersion": 1,
+      "activeModelSha": "e0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2",
+      "schema": "53a0b97cd4c771a2d2a93b46829273f312e0dfd77626989e92b9b52ae2dc1d34",
+      "catalog": "e46709db95ce8e92f4b4f392b5c468d147c6ddb11ab6c773cc48f3702bc6474a",
+      "counterWindow": "LIFETIME",
+      "coverage": {
+        "windowStartUtc": "2026-11-11T10:45:33.924Z",
+        "windowEndUtc": "2026-11-11T14:26:41.404412600Z",
+        "windowMillis": 13267480,
+        "firstOrdinal": 0,
+        "nextOrdinal": 69,
+        "boundedToEpisodes": 512,
+        "olderEpisodesExcluded": false,
+        "throughputIncludesIdleTime": true,
+        "scopes": {
+          "SOLO": {
+            "committed": 18,
+            "incomplete": 18,
+            "active": 0,
+            "exactEvents": 54,
+            "distinctActors": 18,
+            "distinctSkills": 2,
+            "distinctActualScenarios": 14,
+            "distinctRecordedSeeds": 18,
+            "verifiedExactHp": 98777.5,
+            "episodeElapsedMillis": 4910916,
+            "committedEpisodesPerHour": 4.884122681926033,
+            "exactEventsPerHour": 14.652368045778097,
+            "outcomes": {
+              "COMMITTED:NATIVE_EVIDENCE": 18,
+              "INCOMPLETE:NO_EXACT_EVIDENCE": 4,
+              "INCOMPLETE:NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING": 1,
+              "INCOMPLETE:SYNTHETIC_REFUSED": 4,
+              "INCOMPLETE:UNKNOWN": 9
+            },
+            "rejectionReasons": {
+              "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING": 8,
+              "PREPARATION_OR_NATIVE_REFUSED": 1,
+              "Нет точного подтверждённого native-события": 4,
+              "Прервано до подтверждения эпизода": 1,
+              "Событие отсутствует, не является точным native или уже принадлежит эпизоду": 4
+            },
+            "committedEpisodesByNpcTemplate": {
+              "21798": 10,
+              "21799": 8
+            },
+            "committedEpisodesByLearnerClass": {
+              "94": 18
+            },
+            "committedEpisodesByLearnerLevel": {
+              "77": 7,
+              "78": 11
+            },
+            "committedEpisodesByEquipmentGrade": {
+              "A": 7,
+              "S": 11
+            },
+            "committedEpisodesByCatalogGeneration": {
+              "0": 8,
+              "1": 4,
+              "2": 6
+            }
+          },
+          "PARTY": {
+            "committed": 16,
+            "incomplete": 17,
+            "active": 0,
+            "exactEvents": 63,
+            "distinctActors": 30,
+            "distinctSkills": 2,
+            "distinctActualScenarios": 12,
+            "distinctRecordedSeeds": 16,
+            "verifiedExactHp": 89132.0,
+            "episodeElapsedMillis": 2639584,
+            "committedEpisodesPerHour": 4.341442383934251,
+            "exactEventsPerHour": 17.094429386741115,
+            "outcomes": {
+              "COMMITTED:NATIVE_EVIDENCE": 14,
+              "COMMITTED:REQUESTED_DRAIN": 2,
+              "INCOMPLETE:CONTRACT_ABORTED": 1,
+              "INCOMPLETE:NATIVE_REPLAY_REFUSED": 4,
+              "INCOMPLETE:NO_EXACT_NATIVE_EVIDENCE": 1,
+              "INCOMPLETE:PREPARATION_OR_NATIVE_REFUSED": 4,
+              "INCOMPLETE:UNKNOWN": 7
+            },
+            "rejectionReasons": {
+              "CONTRACT_ABORTED": 1,
+              "NO_EXACT_NATIVE_EVIDENCE": 3,
+              "NO_LEGAL_TARGET:WAIT_GROUP_DAMAGE:target=268451557:durationMillis=Infinity:DPS=18.359784904715017:HP=85950.0": 1,
+              "PREPARATION_OR_NATIVE_REFUSED": 8,
+              "Событие отсутствует, не является точным native или уже принадлежит эпизоду": 4
+            },
+            "committedEpisodesByNpcTemplate": {
+              "21798": 3,
+              "21799": 13
+            },
+            "committedEpisodesByLearnerClass": {
+              "94": 16
+            },
+            "committedEpisodesByLearnerLevel": {
+              "77": 8,
+              "78": 8
+            },
+            "committedEpisodesByEquipmentGrade": {
+              "A": 6,
+              "S": 10
+            },
+            "committedEpisodesByCatalogGeneration": {
+              "0": 10,
+              "1": 3,
+              "2": 3
+            }
+          }
+        }
+      },
+      "fullNativeDecisionLatency": null,
+      "unsupportedModes": [
+        "PVP",
+        "PK",
+        "RAID",
+        "SIEGE",
+        "TW",
+        "OLYMPIAD",
+        "SUMMON",
+        "HEAL",
+        "CONTROL",
+        "SPOIL/SWEEP",
+        "MOVE"
+      ]
+    },
+    "observedUtc": "2026-11-11T14:28:36.8348522Z"
+  },
+  "resume": {
+    "state": {
+      "schemaVersion": 1,
+      "runId": "95cf92cb9402464fa202cde3084de42e",
+      "generation": 8,
+      "nonce": "38db0b7589fd43ce89ad435d4f9537ef",
+      "phase": "ACTORS",
+      "reason": "",
+      "heartbeatUtc": "2026-11-11T14:28:40.8922364Z",
+      "attemptId": "965dc6d440274cd3965ab7455043bf46",
+      "batchesCompleted": 18,
+      "nativeFailures": 0,
+      "cpuSeconds": 22.391,
+      "workingSetBytes": 130752512,
+      "primaryFailureId": "",
+      "primaryFailureCode": "",
+      "primaryFailurePhase": "",
+      "cleanupFailureId": "",
+      "adaptiveIdleSeconds": 10
+    },
+    "observedUtc": "2026-11-11T14:28:41.1832369Z"
+  },
+  "finalStop": {
+    "processes": [
+      {
+        "created": 134388804292952438,
+        "pid": 63324,
+        "absent": true,
+        "kind": "Director"
+      },
+      {
+        "created": 134388809230780035,
+        "pid": 14204,
+        "absent": true,
+        "kind": "Native"
+      },
+      {
+        "created": 134388811060943217,
+        "pid": 42388,
+        "absent": true,
+        "kind": "Worker"
+      },
+      {
+        "created": 134388811035793491,
+        "pid": 77644,
+        "absent": true,
+        "kind": "Sql"
+      }
+    ],
+    "stopNonce": "e4272a169e844b98855888a7953ad2be",
+    "confirmedUtc": "2026-11-11T14:31:52.8466956Z",
+    "ownerNonce": "38db0b7589fd43ce89ad435d4f9537ef",
+    "ports": [
+      33327,
+      17971,
+      19271
+    ]
+  },
+  "finalStatus": {
+    "schemaVersion": 1,
+    "updatedAt": "2026-11-11T14:31:40.730711900Z",
+    "committed": 34,
+    "incomplete": 35,
+    "events": 117,
+    "attempts": 2,
+    "accepted": 1,
+    "nextOrdinal": 69,
+    "activeModelVersion": 1,
+    "activeModelSha": "e0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2",
+    "schema": "53a0b97cd4c771a2d2a93b46829273f312e0dfd77626989e92b9b52ae2dc1d34",
+    "catalog": "e46709db95ce8e92f4b4f392b5c468d147c6ddb11ab6c773cc48f3702bc6474a",
+    "counterWindow": "LIFETIME",
+    "coverage": {
+      "windowStartUtc": "2026-11-11T10:45:33.924Z",
+      "windowEndUtc": "2026-11-11T14:31:40.727698700Z",
+      "windowMillis": 13566803,
+      "firstOrdinal": 0,
+      "nextOrdinal": 69,
+      "boundedToEpisodes": 512,
+      "olderEpisodesExcluded": false,
+      "throughputIncludesIdleTime": true,
+      "scopes": {
+        "SOLO": {
+          "committed": 18,
+          "incomplete": 18,
+          "active": 0,
+          "exactEvents": 54,
+          "distinctActors": 18,
+          "distinctSkills": 2,
+          "distinctActualScenarios": 14,
+          "distinctRecordedSeeds": 18,
+          "verifiedExactHp": 98777.5,
+          "episodeElapsedMillis": 4910916,
+          "committedEpisodesPerHour": 4.776364778054196,
+          "exactEventsPerHour": 14.329094334162589,
+          "outcomes": {
+            "COMMITTED:NATIVE_EVIDENCE": 18,
+            "INCOMPLETE:NO_EXACT_EVIDENCE": 4,
+            "INCOMPLETE:NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING": 1,
+            "INCOMPLETE:SYNTHETIC_REFUSED": 4,
+            "INCOMPLETE:UNKNOWN": 9
+          },
+          "rejectionReasons": {
+            "NO_LEGAL_TARGET:NO_SAFE_SOLO_OPENING": 8,
+            "PREPARATION_OR_NATIVE_REFUSED": 1,
+            "Нет точного подтверждённого native-события": 4,
+            "Прервано до подтверждения эпизода": 1,
+            "Событие отсутствует, не является точным native или уже принадлежит эпизоду": 4
+          },
+          "committedEpisodesByNpcTemplate": {
+            "21798": 10,
+            "21799": 8
+          },
+          "committedEpisodesByLearnerClass": {
+            "94": 18
+          },
+          "committedEpisodesByLearnerLevel": {
+            "77": 7,
+            "78": 11
+          },
+          "committedEpisodesByEquipmentGrade": {
+            "A": 7,
+            "S": 11
+          },
+          "committedEpisodesByCatalogGeneration": {
+            "0": 8,
+            "1": 4,
+            "2": 6
+          }
+        },
+        "PARTY": {
+          "committed": 16,
+          "incomplete": 17,
+          "active": 0,
+          "exactEvents": 63,
+          "distinctActors": 30,
+          "distinctSkills": 2,
+          "distinctActualScenarios": 12,
+          "distinctRecordedSeeds": 16,
+          "verifiedExactHp": 89132.0,
+          "episodeElapsedMillis": 2639584,
+          "committedEpisodesPerHour": 4.245657580492619,
+          "exactEventsPerHour": 16.717276723189684,
+          "outcomes": {
+            "COMMITTED:NATIVE_EVIDENCE": 14,
+            "COMMITTED:REQUESTED_DRAIN": 2,
+            "INCOMPLETE:CONTRACT_ABORTED": 1,
+            "INCOMPLETE:NATIVE_REPLAY_REFUSED": 4,
+            "INCOMPLETE:NO_EXACT_NATIVE_EVIDENCE": 1,
+            "INCOMPLETE:PREPARATION_OR_NATIVE_REFUSED": 4,
+            "INCOMPLETE:UNKNOWN": 7
+          },
+          "rejectionReasons": {
+            "CONTRACT_ABORTED": 1,
+            "NO_EXACT_NATIVE_EVIDENCE": 3,
+            "NO_LEGAL_TARGET:WAIT_GROUP_DAMAGE:target=268451557:durationMillis=Infinity:DPS=18.359784904715017:HP=85950.0": 1,
+            "PREPARATION_OR_NATIVE_REFUSED": 8,
+            "Событие отсутствует, не является точным native или уже принадлежит эпизоду": 4
+          },
+          "committedEpisodesByNpcTemplate": {
+            "21798": 3,
+            "21799": 13
+          },
+          "committedEpisodesByLearnerClass": {
+            "94": 16
+          },
+          "committedEpisodesByLearnerLevel": {
+            "77": 8,
+            "78": 8
+          },
+          "committedEpisodesByEquipmentGrade": {
+            "A": 6,
+            "S": 10
+          },
+          "committedEpisodesByCatalogGeneration": {
+            "0": 10,
+            "1": 3,
+            "2": 3
+          }
+        }
+      }
+    },
+    "fullNativeDecisionLatency": null,
+    "unsupportedModes": [
+      "PVP",
+      "PK",
+      "RAID",
+      "SIEGE",
+      "TW",
+      "OLYMPIAD",
+      "SUMMON",
+      "HEAL",
+      "CONTROL",
+      "SPOIL/SWEEP",
+      "MOVE"
+    ]
+  },
+  "finalSqlReadbackTsv": [
+    "policy_version\tscope\texact_events\texact_hp",
+    "0\tSOLO\t48\t86371.500",
+    "0\tPARTY\t54\t74501.000",
+    "1\tSOLO\t6\t12406.000",
+    "1\tPARTY\t9\t14631.000",
+    "events\tdistinct_keys",
+    "117\t117",
+    "active_model\tactive_sha",
+    "1\te0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2",
+    "state\tmodel_id\talgo_version\tbytes\tsha256",
+    "DRAFT\t0\t2\t12500\tbb61a8a0b98e730ca2012259ea8f2ddb590234bef07bb41e43c31201ad418fc9",
+    "ACCEPTED\t1\t2\t12500\te0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2",
+    "ordinal\tscope\tevent_key\tskill_id\tdamage\tpolicy_version",
+    "64\tSOLO\tde172c119dbb653473cdca39d9680e7e8738872f3e8ff414fc95c554c23e6040\t1339\t1404\t1",
+    "66\tSOLO\te2ed520bbc055c6dc12ecfa0a858e0a5c48eb5ceb88c83e8de2b0f0353922d9c\t1339\t1503\t1",
+    "68\tSOLO\tefcfd66647273091bc5430e055134e2d924caf283ac58502c05332e1f819ef41\t1339\t1503\t1",
+    "incomplete_credited_events",
+    "0"
+  ],
+  "finalNative": {
+    "fullDecisionNanos": 2334900,
+    "attempt": "965dc6d440274cd3965ab7455043bf46",
+    "eventKey": "efcfd66647273091bc5430e055134e2d924caf283ac58502c05332e1f819ef41",
+    "exactHp": 1503,
+    "modelVersion": 1,
+    "skillId": 1339,
+    "resources": {
+      "pid": 57236,
+      "startedUtc": "2026-11-11T14:20:50.1414117Z",
+      "sampledUtc": "2026-11-11T14:26:39.7080793Z",
+      "elapsedMillis": 349567,
+      "cpuSeconds": 92.078125,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4654895104,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "965dc6d440274cd3965ab7455043bf46",
+      "finishedUtc": "2026-11-11T14:26:39.7190783Z"
+    }
+  },
+  "sqlResources": {
+    "pid": 38572,
+    "startedUtc": "2026-11-11T12:18:41.8807766Z",
+    "sampledUtc": "2026-11-11T13:33:58.7952276Z",
+    "elapsedMillis": 4516914,
+    "cpuSeconds": 16.4375,
+    "workingSetBytes": null,
+    "peakWorkingSetBytes": 154066944,
+    "measurement": "PROCESS_METADATA",
+    "exitObserved": true,
+    "finishedUtc": "2026-11-11T13:33:58.8042278Z"
+  },
+  "protected": {
+    "geoManifestSha256": "a8a4b73bc7b53bed28f545cd889f489492b585b369f8e84988f8db8a91c973d5",
+    "geoBytes": 1063452308,
+    "geoFiles": 203,
+    "protectedFiles": 207,
+    "finalIsolationExitCode": 0,
+    "protectedManifestSha256": "9777ab48bc8d14bdee77d4aca8e7e650cb099f03ca33fea108d5cdb941c59dcd"
+  },
+  "regression": {
+    "f7": "PASS_DB_FREE_SQL_REPLAY_NOT_RUN",
+    "javaFailed": 0,
+    "javaPassed": 277,
+    "inputManifestVerified": 12
+  },
+  "export": {
+    "sha256": "10fc9c6c8c450e4974ca7abed861805a7640e2c67c8474ac5a4c96e003b493da",
+    "productionPromotion": false,
+    "bytes": 69127,
+    "path": "artifacts/accepted-model-1/model-1.zip",
+    "weightsSha256": "e0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2"
+  }
+}
