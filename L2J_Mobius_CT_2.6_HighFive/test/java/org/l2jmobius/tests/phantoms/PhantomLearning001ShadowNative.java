@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalAct
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeLootControl;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.learning.LearningFeatures;
 import org.l2jmobius.gameserver.phantoms.learning.LearningPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.LearningStore;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy;
@@ -591,24 +592,37 @@ public final class PhantomLearning001ShadowNative
 		return actors.stream().filter(row -> split.equals(row[0]) && "SOLO".equals(row[1])).findFirst().orElseThrow();
 	}
 
-	private record Samples(long count, int skills, int actors)
+	private record Samples(long count, int skills, int actors, int pairedActors)
 	{
-		boolean enough(int minimum, int minimumActors) { return count >= minimum && skills == 2 && actors >= minimumActors; }
+		boolean enough(int minimum, int minimumActors) { return count >= minimum && skills == 2 && pairedActors >= minimumActors; }
 	}
 
 	private static Samples samples(String scope, String first, String last) throws Exception
 	{
 		try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement(
-			"SELECT COUNT(*), COUNT(DISTINCT skill_id), COUNT(DISTINCT actor_group) FROM phantom_ai_training_examples WHERE origin='NATIVE' AND evidence_kind='EXACT_CAST_HP' "
-			+ "AND policy_version=0 AND damage>0 AND scope=? AND actor_group IN (?,?)"))
+			"SELECT actor_group,skill_id,features FROM phantom_ai_training_examples WHERE origin='NATIVE' AND evidence_kind='EXACT_CAST_HP' "
+			+ "AND policy_version=0 AND damage>0 AND schema_fingerprint=? AND scope=? AND actor_group IN (?,?)"))
 		{
-			statement.setString(1, scope);
-			statement.setString(2, first);
-			statement.setString(3, last);
+			statement.setString(1, LearningFeatures.SCHEMA);
+			statement.setString(2, scope);
+			statement.setString(3, first);
+			statement.setString(4, last);
 			try (var rows = statement.executeQuery())
 			{
-				check(rows.next(), "SQL_SAMPLE_TOTALS");
-				return new Samples(rows.getLong(1), rows.getInt(2), rows.getInt(3));
+				long count = 0;
+				final var skills = new java.util.HashSet<Integer>();
+				final var skillsByActor = new java.util.HashMap<String, java.util.Map<String, java.util.Set<Integer>>>();
+				while (rows.next())
+				{
+					final String actor = rows.getString(1);
+					final int skill = rows.getInt(2);
+					final String context = Math.floorMod(actor.hashCode(), 5) == 0 ? PhantomLearning001Offline.contextKey(rows.getBytes(3)) : "";
+					skills.add(skill);
+					skillsByActor.computeIfAbsent(actor, _ -> new java.util.HashMap<>()).computeIfAbsent(context, _ -> new java.util.HashSet<>()).add(skill);
+					count++;
+				}
+				final long pairs = skillsByActor.values().stream().filter(byContext -> byContext.values().stream().anyMatch(known -> known.size() == 2)).count();
+				return new Samples(count, skills.size(), skillsByActor.size(), (int) pairs);
 			}
 		}
 	}

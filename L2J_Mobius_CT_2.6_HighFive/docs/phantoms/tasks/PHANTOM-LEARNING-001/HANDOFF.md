@@ -16,7 +16,12 @@ LEARNING-001 имеет статус **PARTIAL**. Базовый SHA `c5b81f89ce
 9. Рабочая схема `cycle18` содержит 35 уникальных NATIVE-примеров до ON. `cycle18-post-resume-coverage.log` хранит 16 TRAIN, 9 TUNING и 10 независимых AUDIT. `cycle18-train.log` и `cycle18-promote.log` фиксируют DRAFT и ACCEPTED v1, независимый MSE `1,590303635782161 → 0,05059066793980769`. SHA весов `0675bacb74aac678c10038c37fdc5db6fde5a56961f36c72810d78b54a6bc1ec`. Новый JVM подтвердил холодное чтение этой версии. В попытке `ebaa10a445b24ab6b2f75021d68957c4` Party выполнила десять обычных действий, `preferredDifferent=0` и `applied=0`. SQL-диагностика `cycle18-score-diagnostic.log` зафиксировала отсечение оценки у 20 из 35 учебных событий и диапазон прогнозов 0,88143–0,89009 на сохранённых ON-векторах Party.
 10. В отдельной попытке `829e589cf0dd48c3a7f70cadce525aa3` Solo проверен первым. Три победы, семь решений, `preferredDifferent=0` и `applied=0`. Итоговые `cycle18-final-read-native.log` и `cycle18-final-read.log` подтвердили 51 уникальный пример, единственную ACCEPTED v1 и чистый STOP. Перед следующим GameServer доказать полезное различие оценок в независимых контекстах для обоих навыков и scope. Нужны реальные касты с отличающимися наблюдаемыми результатами, включая примеры ниже верхней границы reward. Сохранить v1, исходные 35 строк по training hash и последующие ON-строки. Диагностика оценки второй законной альтернативы не создаёт training evidence без каста. Сравнивать с простым базовым прогнозом и проверять преимущество выбора в независимых контекстах до принятия новой версии. Штатные пороги, права, leases, HP-атрибуция и награды остаются в силе. Нативный gate требует совпадения `event_key` журнала и SQL для изменившегося каста в каждом scope. Полные native F7/F8, обычный Heal и PvP/PK остаются отдельными проверками. PHANTOM-LEARNING-002 ждёт закрытия 001.
 
+11. В `cycle19` сохранены полный SHADOW `740845916a6d4ffcb491519f0dec3d46`, **36 уникальных событий до ON**, 18 TRAIN, 8 TUNING, 10 независимых AUDIT, по два парных контекста в Solo и Party. `cycle19-train.log` и `cycle19-promote.log` подтверждают MSE относительно среднего TRAIN в обоих scope и ACCEPTED v1 с SHA `e206d84bed2ccccee031a64809ded06dfcef622293f2102936fde13d6eb78c86`. Холодная попытка `e86dc693617f40eab22df96bfa46f68b` подтвердила SHA, четыре штатных Solo-решения без смены навыка и один `VICTORY`. Второй бой закончился `TIMEOUT`, затем повторными `LOW_HP_STOPPED` и гибелью профиля 8. Итоговые `cycle19-final-read-native.log` и `cycle19-final-read.log` подтверждают 39 уникальных событий, одну модель и чистый STOP. Party ON ещё не проверена в этой схеме.
+12. Перед повтором проверить сохранённое состояние профиля 8 и возможность обычного восстановления через существующие native owners. Для Solo перепроверить допуск из восстановленной позиции и возможность безопасного отхода через штатную геометрию до холодного старта. `safeSoloOpening` допускает fallback по входящему урону за 12 секунд, тогда как реальная сессия может длиться 45 секунд. Сверить этот предел с исходом `TIMEOUT` и журналом отходов. Сохранить модель, SHADOW, обе предыдущие схемы и все журналы. Выбор модели и атрибуцию продолжать на штатном CombatService, критерий конечного успеха тот же.
+
 ## Команды
+
+`audit-shadow` сверяет исходную SHADOW-выборку по training hash принятой модели и печатает MSE постоянного среднего TRAIN, MSE модели, число актёров и контекстов с двумя навыками. Для `cycle18` в Party оба актёра применяли оба навыка, но ни один не дал оба навыка в одном аудиторском контексте. В `cycle19` runner требует пары по каждому проверяемому актёру AUDIT. Новый DRAFT печатает те же показатели до принятия.
 
 Из корня модуля выполнить дешёвый gate перед JAR.
 
@@ -30,8 +35,8 @@ ant -f build.xml jar
 ```powershell
 $fixture = 'tools/phantom-runtime/Invoke-Learning001Fixture.ps1'
 $jar = 'cdbe0615240aca65de85d94dfbcf3c7666ce88240fc86710c43fd3c4c0bc69b6'
-$lane = 'cycle19' # Для новой схемы. Действующий cycle18 не переинициализировать.
-$previous = Join-Path (Split-Path $PWD -Parent) '.phantom-local/learning001/cycle18'
+$lane = 'cycle20' # Пример для новой схемы. cycle18 и cycle19 сохраняются.
+$previous = Join-Path (Split-Path $PWD -Parent) '.phantom-local/learning001/cycle19'
 powershell -NoProfile -File $fixture -Action stage -Lane $lane -GeoSource (Join-Path $previous 'game/geodata') -GeoManifest (Join-Path $previous 'geo203.json') -ProtectedManifest (Join-Path $previous 'protected207.json')
 powershell -NoProfile -File $fixture -Action provision-sql -Lane $lane
 powershell -NoProfile -File $fixture -Action survey -Lane $lane
@@ -45,6 +50,8 @@ powershell -NoProfile -File $fixture -Action train -Lane $lane -JarSha $jar
 powershell -NoProfile -File $fixture -Action promote -Lane $lane -JarSha $jar -Version $version -ModelSha $sha
 powershell -NoProfile -File $fixture -Action on -Lane $lane -JarSha $jar -Version $version -ModelSha $sha
 ```
+
+Для `cycle19` подготовка уже выполнена. Её отдельные логи находятся в приватном корне, `cycle19-prepare-actors.log`, `cycle19-check-capacity.log` и `cycle19-check-party.log`. Текущие попытки сохраняются отдельно в `cycle19/attempts`. При возобновлении использовать тот же datadir и новый идентификатор попытки. Шаги `stage` и `provision-sql` относятся только к ещё не созданной схеме.
 
 Для диагностики принятой v1 используется `powershell -NoProfile -File $fixture -Action read -Lane cycle18 -JarSha $jar -Version 1 -ModelSha 0675bacb74aac678c10038c37fdc5db6fde5a56961f36c72810d78b54a6bc1ec`. Она читает сохранённые reward и прогнозы по навыку и версии политики. Model v1 проверяется по сохранённому `cycle18-post-resume-coverage.log`, поскольку последующий `coverage` включает новые NATIVE-строки, собранные после обучения.
 

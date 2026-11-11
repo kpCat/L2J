@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','survey','shadow','on','coverage','train','promote','read','read-native')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('stage','provision-sql','probe-sql','prepare-actors','plan-scenes','check-capacity','check-party','survey','shadow','on','coverage','train','promote','read','read-native','audit-shadow')][string]$Action,
     [ValidatePattern('^(native|cycle(?:[2-9]|[1-9][0-9]{1,2})?)$')][string]$Lane='native',
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$JarSha,
     [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ModelSha,
@@ -13,8 +13,8 @@ param(
 
 $ErrorActionPreference='Stop'
 if ($Lane -cnotmatch '^cycle(?:1[2-9]|[2-9][0-9]|[1-9][0-9]{2})$' -and $Action -notin @('probe-sql','read-native')) { throw 'LEARNING001_HISTORICAL_LANE_READBACK_ONLY' }
-if ($Action -in @('check-party','shadow','on','coverage','train','promote','read') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
-if ($Action -in @('on','promote','read') -and ($Version -le 0 -or !$ModelSha)) { throw 'LEARNING001_EXPLICIT_MODEL_PIN_REQUIRED' }
+if ($Action -in @('check-party','shadow','on','coverage','train','promote','read','audit-shadow') -and !$JarSha) { throw 'LEARNING001_EXPLICIT_JAR_SHA_REQUIRED' }
+if ($Action -in @('on','promote','read','audit-shadow') -and ($Version -le 0 -or !$ModelSha)) { throw 'LEARNING001_EXPLICIT_MODEL_PIN_REQUIRED' }
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $root=Join-Path (Split-Path $module -Parent) ('.phantom-local\learning001\'+$Lane)
 $runtime=Join-Path $root 'game'
@@ -267,7 +267,7 @@ try {
             [IO.File]::WriteAllText((Join-Path $root 'party.ready'),$JarSha.ToLowerInvariant(),$encoding)
         }
     }
-    if ($Action -in @('coverage','train','promote','read')) {
+    if ($Action -in @('coverage','train','promote','read','audit-shadow')) {
         Assert-Hash (Join-Path $runtime 'libs\GameServer.jar') $JarSha
         $offlineArgs=@($Action,$module,$Lane)
         switch ($Action) {

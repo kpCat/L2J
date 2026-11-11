@@ -686,7 +686,14 @@ public final class PhantomLearning001ActorFixture
 			if (damageHelper) { provisionDamageHelperSkill(player); }
 			final int weapon = helper ? 6364 : grade == CrystalType.S ? 6608 : 5643;
 			final var casterWeapon = player.addItem(ItemProcessType.REWARD, weapon, 1, player, false);
-			casterWeapon.setEnchantLevel(12);
+			final int weaponEnchant = switch (split)
+			{
+				case "TRAIN" -> 0;
+				case "TUNING" -> 4;
+				case "AUDIT" -> 2;
+				default -> 12;
+			};
+			casterWeapon.setEnchantLevel(weaponEnchant);
 			player.getInventory().equipItem(casterWeapon);
 			final int[] armorIds = helper ? new int[] {6373, 6374, 6375, 6376, 6377, 6378, 920, 858, 858, 889, 889}
 				: new int[] {6383, 6384, 6385, 6386, 641, 920, 858, 858, 889, 889};
@@ -696,8 +703,11 @@ public final class PhantomLearning001ActorFixture
 				armor.setEnchantLevel(10);
 				player.getInventory().equipItem(armor);
 			}
-			final int shot = helper ? 1467 : grade == CrystalType.S ? 3952 : 3951;
+			final boolean ordinarySpiritshot = "PARTY".equals(scope);
+			final int shot = helper ? 1467 : grade == CrystalType.S ? (ordinarySpiritshot ? 2514 : 3952) : (ordinarySpiritshot ? 2513 : 3951);
 			player.addItem(ItemProcessType.REWARD, shot, 300, player, false);
+			System.out.println("LEARNING001_AUTHORED_LOADOUT split=" + split + " scope=" + scope + " profile=" + next
+				+ " weapon=" + weapon + " enchant=" + weaponEnchant + " shot=" + shot);
 			player.addItem(ItemProcessType.REWARD, 1539, 24, player, false);
 			if (healHelper) { player.addItem(ItemProcessType.REWARD, 3031, 100, player, false); }
 			player.refreshExpertisePenalty();
