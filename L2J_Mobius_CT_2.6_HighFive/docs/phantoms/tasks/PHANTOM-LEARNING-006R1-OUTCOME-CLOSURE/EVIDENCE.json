@@ -15,7 +15,7 @@
     "G5": "PARTIAL",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PARTIAL"
+    "G8": "PASS"
   },
   "blockers": [
     "Ни одного подтверждённого paid stock≠neural действия новой модели в bounded proof/A/B.",
@@ -246,8 +246,36 @@
     "escapedCyrillic": "separate final gate;6patterns"
   },
   "githubDelivery": {
-    "state": "REQUIRES_POST_COMMIT_READBACK",
-    "receipt": "external delivery006r1.json; actual SHA in final chat"
+    "sourceCommit": "bec388c3923e7a2c4b4872d9ecbf946fd7cb731c",
+    "sourceBase": "5a38d35194c914c5dda90f8d57763a916201e977",
+    "branch": "wip/phantom-learning-006r1",
+    "remoteShaMatch": true,
+    "githubReadback": true,
+    "githubCommitBlobMatches": 28,
+    "githubFileReadbacks": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-006R1-OUTCOME-CLOSURE/EVIDENCE.json",
+        "blobSha": "545cc2b864078ad60773a98644f38a71d0076f0a",
+        "contentRead": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+        "blobSha": "5a6dcfeca1b9d8e6500dc0ec146ef23a853bc55a",
+        "contentRead": true
+      }
+    ],
+    "protectedRefsUnchanged": true,
+    "remoteRefs": {
+      "refs/heads/feature/phantom-world": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+      "refs/heads/master": "16d61833b3983a3976583d0e4813e0de9457a52f",
+      "refs/heads/wip/phantom-learning-006": "5a38d35194c914c5dda90f8d57763a916201e977",
+      "refs/heads/wip/phantom-learning-006r1": "bec388c3923e7a2c4b4872d9ecbf946fd7cb731c"
+    },
+    "scopeVerified": true,
+    "nonForcePush": true,
+    "checkedUtc": "2026-11-12 20:27:40 UTC",
+    "state": "PUBLISHED_SOURCE_VERIFIED",
+    "finalDeliveryCommit": "This receipt is committed after source readback; final branch HEAD independently checked in external delivery006r1.json"
   },
   "evidenceFiles": [
     {

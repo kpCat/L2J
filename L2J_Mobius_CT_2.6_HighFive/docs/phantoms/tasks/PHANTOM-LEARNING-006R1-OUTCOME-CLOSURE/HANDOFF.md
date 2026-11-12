@@ -23,3 +23,7 @@
 Новый scope должен отдельно решить, нужен ли дальнейший эксперимент. Не ослаблять HEAL safeToRank/emergency/5ms/cooldown2000/margin.025. Нельзя превращать offline score или stock HEAL в proof изменённого DRAFT-действия. Нельзя сравнивать UNMATCHED/INCOMPLETE как победу и UNKNOWN deaths/economy как0.
 
 Все native receipts/observations/clock/markers и failed attempts сохранены; compact ZIP не заменяет retained SQL. Публикация finalSHA/readback в delivery receipt и финальном сообщении; protected feature/master refs до/после сверяются отдельно.
+
+## Подтверждённая публикация
+
+Source/evidence commit [`bec388c3923e7a2c4b4872d9ecbf946fd7cb731c`](https://github.com/kpCat/L2J/commit/bec388c3923e7a2c4b4872d9ecbf946fd7cb731c) опубликован ordinary non-force push в wip/phantom-learning-006r1. Независимые ls-remote и GitHub GET readback подтвердили exact SHA и опубликованные файлы; feature/master hashes неизменны. G8 **PASS** для docs/publication/readback/postflight, final manual gate **REQUIRED**. Это observed source HEAD до commit данной delivery receipt; финальный branch HEAD и его readback записаны отдельно в delivery006r1.json и финальном сообщении. Код/native evidence между source commit и receipt commit не меняются.

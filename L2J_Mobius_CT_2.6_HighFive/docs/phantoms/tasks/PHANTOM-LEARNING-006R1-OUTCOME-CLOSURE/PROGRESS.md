@@ -67,3 +67,8 @@
 - Report generation сначала упала только на console CP1251 rendering символа сравнения после успешной UTF-8 записи файлов; print metadata исправлен, повтор exit0. Нормальная кириллица в исходниках/документах сохранена.
 - Перед publication выполняются fresh exact28path scope/whitespace/encoding/link gates; actual source SHA и GitHub readback записываются после commit/push отдельной delivery receipt. Final manual gate REQUIRED, следующий Goal не начат.
 - Первый final encoding guard обнаружил mojibake в generated evidence ab-r1/proof-r1: exporter читал UTF-8 native report через Windows default encoding. Чтение report.md явно UTF-8,8JSON и result metadata пересозданы до stage/commit. Исходные native reports/ZIP bytes не менялись. Ошибка gate не выдавалась за PASS.
+- Delivery-receipt updater повторно прочитал EVIDENCE через default encoding; отдельный gate поймал это до второго commit. Все его JSON readers теперь UTF-8-sig; metadata заново собрана из корректных evidence, fresh28path encoding и8doc links PASS. Уже опубликованный source commit содержал корректную кириллицу.
+
+## Подтверждённая публикация
+
+Source/evidence commit [`bec388c3923e7a2c4b4872d9ecbf946fd7cb731c`](https://github.com/kpCat/L2J/commit/bec388c3923e7a2c4b4872d9ecbf946fd7cb731c) опубликован ordinary non-force push в wip/phantom-learning-006r1. Независимые ls-remote и GitHub GET readback подтвердили exact SHA и опубликованные файлы; feature/master hashes неизменны. G8 **PASS** для docs/publication/readback/postflight, final manual gate **REQUIRED**. Это observed source HEAD до commit данной delivery receipt; финальный branch HEAD и его readback записаны отдельно в delivery006r1.json и финальном сообщении. Код/native evidence между source commit и receipt commit не меняются.

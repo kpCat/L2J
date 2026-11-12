@@ -21,7 +21,7 @@
 |G5 negatives/atomicity|PARTIAL|Split leakage/authority/duplicate reward+application SQL1062ROLLBACK/secondFreeze NONE PASS; live pre-COMMIT crash NOT_RUN|
 |G6 cold recovery|PASS|Повторный SQL readback exact model9/Adam817/172/dataset/run; old006 used=false; EVAL state unchanged|
 |G7 regression/performance|PASS|143affected,28old005,focused006,F7,F8,compile-tests/JAR; actual CPU/RAM/timing/fallback измерены; budget overruns видимы|
-|G8 delivery/postflight|PARTIAL|Own STOPPED/listeners0/processes0; exact28path scope/encoding/archive проверяются при доставке; final manual review REQUIRED|
+|G8 delivery/postflight|PASS|Own STOPPED/listeners0/processes0; exact28path scope/encoding/archive PASS; source push/independent readback подтверждены ниже; final manual review REQUIRED|
 
 ## Coverage и native provenance
 
@@ -110,3 +110,7 @@ Git использован по прямому заданию; exact коман�
 
 - mojibake-маркеры в изменённых файлах проверены отдельным gate (27markers).
 - escaped Cyrillic в изменённых файлах проверены отдельным gate (6regex patterns).
+
+## Подтверждённая публикация
+
+Source/evidence commit [`bec388c3923e7a2c4b4872d9ecbf946fd7cb731c`](https://github.com/kpCat/L2J/commit/bec388c3923e7a2c4b4872d9ecbf946fd7cb731c) опубликован ordinary non-force push в wip/phantom-learning-006r1. Независимые ls-remote и GitHub GET readback подтвердили exact SHA и опубликованные файлы; feature/master hashes неизменны. G8 **PASS** для docs/publication/readback/postflight, final manual gate **REQUIRED**. Это observed source HEAD до commit данной delivery receipt; финальный branch HEAD и его readback записаны отдельно в delivery006r1.json и финальном сообщении. Код/native evidence между source commit и receipt commit не меняются.
