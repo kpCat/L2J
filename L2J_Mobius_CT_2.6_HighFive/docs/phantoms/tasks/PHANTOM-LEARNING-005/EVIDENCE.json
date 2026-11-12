@@ -548,7 +548,7 @@
     "nativeAfterCompletedBudget": "NOT_RERUN_BY_DESIGN"
   },
   "gates": {
-    "G0": "PASS_WITH_EXPLICIT_BASELINE005_EXCEPTION; publication checked separately",
+    "G0": "PASS_FOR_NATIVE005_BEFORE_AUTHORIZED_CONSOLIDATION; later tracked build.xml changed, old TEST baseline must be re-attested before future Resume",
     "G1": "PASS_ACCEPTED1_ACCEPTED2_ONLY; DRAFT8_NOT_ACTIVE",
     "G2": "REQUIRED_NOT_MET",
     "G3": "PARTIAL_NO_POLICY_DIVERGENCE_IN_PARTY_HEAL_V3",
@@ -601,5 +601,33 @@
   },
   "manualFullGate": "NOT_PASSED",
   "publication": "SEE_DELIVERY_JSON",
-  "consolidation": "AUTHORIZED_SEPARATE_OPERATION"
+  "consolidation": "AUTHORIZED_SEPARATE_OPERATION",
+  "postNativeConsolidation": {
+    "sourceHeadIntegrated": "4a910adaea9dfb0ec5341439ffebd83d11c7cac8",
+    "originalBranch": "feature/phantom-world",
+    "fastForwardVerified": true,
+    "trackedDirtAfterResolution": 0,
+    "oldUnmergedPathsResolved": 11,
+    "exactSourceResolutions": 23,
+    "documentCollisionsBackedUpAndMoved": 10,
+    "mergedFocusedContracts": 28,
+    "inputHashesVerified": true,
+    "protectedGuardBeforeConsolidation": {
+      "checked": 207,
+      "mismatches": 0
+    },
+    "protectedGuardAfterConsolidation": {
+      "checked": 207,
+      "unchanged": 206,
+      "changed": 1,
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "beforeSha256": "13b0144d55d5d1d195b0d859f785e8c9c66dfb22d6190d9f2982a2bef36c7756",
+      "afterSha256": "04eb66eb74e16a5203489ed14e00bf2de593d83ad5cba7a5cd75049e741335c4",
+      "cause": "17 tracked Ant lines from already-published chain; separately authorized consolidation",
+      "oldManifestUnchanged": true,
+      "futureTestResume": "BLOCKED_UNTIL_SEPARATELY_ATTESTED_BASELINE"
+    },
+    "nativeTestsRanBeforeConsolidation": true,
+    "protectedReleaseRuntimeMutations": false
+  }
 }

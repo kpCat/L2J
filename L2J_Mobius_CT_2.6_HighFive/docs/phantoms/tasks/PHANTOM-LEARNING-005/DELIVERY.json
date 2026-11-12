@@ -1,6 +1,52 @@
 {
-  "state": "PREPARED_FOR_SCOPED_PUBLICATION",
-  "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
-  "targetBranch": "wip/phantom-learning-005",
-  "consolidationBranch": "feature/phantom-world"
+  "schemaVersion": 5,
+  "sourceCommit": "4a910adaea9dfb0ec5341439ffebd83d11c7cac8",
+  "sourceBranch": "wip/phantom-learning-005",
+  "sourcePush": "NON_FORCE_VERIFIED",
+  "independentGithubReadback": "4a910adaea9dfb0ec5341439ffebd83d11c7cac8",
+  "integrationBranch": "feature/phantom-world",
+  "integrationState": "LOCAL_SOURCE_FF_VERIFIED",
+  "oldDraftArchive": {
+    "schemaVersion": 1,
+    "archiveSha256": "0a81523bbea45e9053adc5318f770e4330cf3ea4892ee34c6e910aa78d7a2e7f",
+    "bytes": 971624,
+    "entries": 82,
+    "allEntriesByteVerified": true,
+    "indexOutsideArchiveSha256": "5cf6a7f5fafbe435785fb1e058fca7d5ef2e64f3b80725ca474253e66bc322b9",
+    "trackedWorkingFiles": 23,
+    "oldUnmergedFiles": 11,
+    "untrackedDocumentCollisions": 10,
+    "untrackedDependencyFiles": 1
+  },
+  "full005Evaluator": false,
+  "implementationStatus": "PARTIAL",
+  "finalHeadAttestation": "Final GitHub branch HEAD is verified outside this self-referential commit and reported to the user",
+  "integration": {
+    "sourceHeadIntegrated": "4a910adaea9dfb0ec5341439ffebd83d11c7cac8",
+    "originalBranch": "feature/phantom-world",
+    "fastForwardVerified": true,
+    "trackedDirtAfterResolution": 0,
+    "oldUnmergedPathsResolved": 11,
+    "exactSourceResolutions": 23,
+    "documentCollisionsBackedUpAndMoved": 10,
+    "mergedFocusedContracts": 28,
+    "inputHashesVerified": true,
+    "protectedGuardBeforeConsolidation": {
+      "checked": 207,
+      "mismatches": 0
+    },
+    "protectedGuardAfterConsolidation": {
+      "checked": 207,
+      "unchanged": 206,
+      "changed": 1,
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "beforeSha256": "13b0144d55d5d1d195b0d859f785e8c9c66dfb22d6190d9f2982a2bef36c7756",
+      "afterSha256": "04eb66eb74e16a5203489ed14e00bf2de593d83ad5cba7a5cd75049e741335c4",
+      "cause": "17 tracked Ant lines from already-published chain; separately authorized consolidation",
+      "oldManifestUnchanged": true,
+      "futureTestResume": "BLOCKED_UNTIL_SEPARATELY_ATTESTED_BASELINE"
+    },
+    "nativeTestsRanBeforeConsolidation": true,
+    "protectedReleaseRuntimeMutations": false
+  }
 }

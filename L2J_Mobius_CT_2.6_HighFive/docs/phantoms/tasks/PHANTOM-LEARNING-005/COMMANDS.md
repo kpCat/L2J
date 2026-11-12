@@ -104,3 +104,15 @@ Build/tests005, jar, Start/Run/Resume/Stop серверов, SQL install/import,
 `preserve_index005.py`: `git ls-files --stage -z -- <each of23 receipt paths>`, `git cat-file blob <each exact stage blob>`, `git ls-tree HEAD -- <each exact path>`;23working files, всеstageblobs иindex сохранены сSHA. Committed HEAD SHA metadata исправлена отдельным cat-file readback; исходный receipt сохранён. Independentreview: bounded `git log --all --format=%H --find-object=<blob> -- <exact path>`, `git log --raw -- <exact path>`, `git cat-file -p <receipt/history blob>`, `git merge-base --is-ancestor`. Старые предложения сохраняются; следующие игровые goals не активируются автоматически.
 
 Scoped stage/commit/push и consolidation фиксируются отдельным publication receipt после фактического выполнения.
+
+## Scoped005 publication выполнена
+
+`git --literal-pathspecs add --pathspec-from-file=L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-005/SCOPE_ALLOWLIST.txt`; `git diff --cached --check`; staged exact scope guard; `git commit -m 'phantom(learning005): add isolated native paired evaluation and evidence'`; `git push -u origin wip/phantom-learning-005`: все exit0. Commit 4a910adaea9dfb0ec5341439ffebd83d11c7cac8,156paths. GitHub GET refs/heads/wip/phantom-learning-005 независимо вернул тот же SHA. Приватные26653 runtime files не staged.
+
+## Применённый local FF и merged validation
+
+`git fetch --no-tags origin refs/heads/wip/phantom-learning-005`; exact23 resolutions из committed objects через `git cat-file blob 4a910adaea9dfb0ec5341439ffebd83d11c7cac8:<exact path>`; `git --literal-pathspecs add -- <23 exact paths from CONSOLIDATION.md>`; verified backup/copy и Move-Item10exactcollisionpaths; `git merge --ff-only --no-stat FETCH_HEAD`: exit0, original HEAD4a910adaea9dfb0ec5341439ffebd83d11c7cac8. `git status --porcelain=v1 --untracked-files=no` пуст.
+
+GitCRLF byte sync27exact paths (10source+17immutableinput), с предварительным `git hash-object --path=<exact path> --stdin` против `git rev-parse HEAD:<exact path>`;22line-ending-only copies, затем exact27gitadd и `git diff --cached --exit-code` exit0. Git tree не менялся. Merged28contracts exit0;17input hash verification0failures. Post-consolidation207diagnostic:206unchanged,build.xml changed17trackedAntlines; это не PASS нового runtime baseline, старый207manifest оставлен immutable.
+
+Перед финальным metadata commit повторены exact159path guard и обе отдельные encoding checks (158UTF8text+1byte-verifiedhistoricalZIP). Финальная публикация выполняется ordinary push005/feature с independent GitHub readback; итоговый self-referential commit SHA фиксируется внешним receipt и в ответе пользователю.

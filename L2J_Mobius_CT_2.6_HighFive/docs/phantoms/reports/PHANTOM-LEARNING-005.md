@@ -29,7 +29,7 @@ Mojibake-маркеры и escaped Cyrillic проверяются двумя о
 
 ## G0–G8
 
-- G0: PASS_WITH_EXPLICIT_BASELINE005_EXCEPTION; publication checked separately
+- G0: PASS_FOR_NATIVE005_BEFORE_AUTHORIZED_CONSOLIDATION; later tracked build.xml changed, old TEST baseline must be re-attested before future Resume
 - G1: PASS_ACCEPTED1_ACCEPTED2_ONLY; DRAFT8_NOT_ACTIVE
 - G2: REQUIRED_NOT_MET
 - G3: PARTIAL_NO_POLICY_DIVERGENCE_IN_PARTY_HEAL_V3
@@ -52,3 +52,9 @@ PROCESS_METADATA включает весь соответствующий GameSe
 Подробные individual deltas/медианы/разброс/bootstrap CI: [основной native отчёт](../tasks/PHANTOM-LEARNING-005/evidence/native/eval005d/report.md). При n<20 вывод о значимом преимуществе запрещён. Все source keys, actor epochs, личные EXP/SP, latency/performance scopes доступны в EVIDENCE.json и evidence/.
 
 Осталось для FULL: минимум4 честных completed pairs каждого режима, реальное V3 HEAL решение B, отличное от stock, и итоговый review всех gates. Следующий игровой goal не начат. Изменения безопасно публикуются как PARTIAL; дальнейшие испытания требуют отдельного объявленного бюджета и анализа native причин, а не перебора ради победы.
+
+## После отдельно разрешённого объединения
+
+Локальный feature/phantom-world fast-forward до005 source commit4a910adaea9dfb0ec5341439ffebd83d11c7cac8 выполнен;23source resolutions и10collision документов сохранены,11UU устранены. Tracked dirt0. Merged focused contracts28/28 и17input hashes подтверждены; source tree соответствует уже собранной и проверенной005 версии. Восстанавливаемый старый draft опубликован отдельным архивом,7незавершённых предложений не активированы.
+
+Важно для будущего TEST: опубликованная цепь добавляет17строк Ant в tracked build.xml исходного checkout. Поэтому после этой отдельной consolidation старый frozen207manifest видит206unchanged и1ожидаемое source изменение build.xml (13b0144d… →04eb66eb…). Сами старые manifests не переписаны; защищённые release runtime/SQL/Geo не менялись. Все native005 и coldResume прошли ДО consolidation с207/207PASS. Новый запуск старогоTEST требует отдельно аттестованного baseline; guard не обходить. Это отражено отдельно от исторических G0 результатов в DELIVERY/EVIDENCE.

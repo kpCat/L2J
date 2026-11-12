@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "archiveSha256": "0a81523bbea45e9053adc5318f770e4330cf3ea4892ee34c6e910aa78d7a2e7f",
+  "bytes": 971624,
+  "entries": 82,
+  "allEntriesByteVerified": true,
+  "indexOutsideArchiveSha256": "5cf6a7f5fafbe435785fb1e058fca7d5ef2e64f3b80725ca474253e66bc322b9",
+  "trackedWorkingFiles": 23,
+  "oldUnmergedFiles": 11,
+  "untrackedDocumentCollisions": 10,
+  "untrackedDependencyFiles": 1
+}

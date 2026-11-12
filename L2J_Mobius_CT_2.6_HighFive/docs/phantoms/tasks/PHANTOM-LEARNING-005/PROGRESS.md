@@ -85,3 +85,9 @@ Consolidation read-only inventory выявил10 untracked collision файло�
 РеальныйSTOP/freshDirector/evaluator-workerRESUME: immutable records/summary byte hashes unchanged; завершённый native budget не повторялся. ФинальныеSTOP/Report/Export exit0, свои3порта свободны. Final tests28+143/F7/F8 и separate156path encoding/scope checks PASS.17input file hashes unchanged.
 
 Последующая consolidation: старые23tracked dirty/11UU безMERGE_HEAD. Пользователь подтвердил старую работу и автономный разбор. Всеworking/stages/index bytes сохранены сSHA; independentreview выделил16historical/regressive файлов и7незавершённых предложений. Проверенная chainTASK130+001–005 переносится в feature/phantom-world; незавершённый patch сохраняется как восстанавливаемый архив предложений.
+
+## После отдельно разрешённого объединения
+
+Локальный feature/phantom-world fast-forward до005 source commit4a910adaea9dfb0ec5341439ffebd83d11c7cac8 выполнен;23source resolutions и10collision документов сохранены,11UU устранены. Tracked dirt0. Merged focused contracts28/28 и17input hashes подтверждены; source tree соответствует уже собранной и проверенной005 версии. Восстанавливаемый старый draft опубликован отдельным архивом,7незавершённых предложений не активированы.
+
+Важно для будущего TEST: опубликованная цепь добавляет17строк Ant в tracked build.xml исходного checkout. Поэтому после этой отдельной consolidation старый frozen207manifest видит206unchanged и1ожидаемое source изменение build.xml (13b0144d… →04eb66eb…). Сами старые manifests не переписаны; защищённые release runtime/SQL/Geo не менялись. Все native005 и coldResume прошли ДО consolidation с207/207PASS. Новый запуск старогоTEST требует отдельно аттестованного baseline; guard не обходить. Это отражено отдельно от исторических G0 результатов в DELIVERY/EVIDENCE.
