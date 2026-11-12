@@ -156,12 +156,101 @@ public final class PhantomLearning004Native
 			System.out.println("LEARNING004_SHARED_MODEL families=DAMAGE,HEAL onePolicy=true damageEvaluations=" + (shared.evaluated.sum() - evaluationsBefore) + " timing=" + shared.timing());
 		});
 	}
+	static final class OutcomeClock implements AutoCloseable
+	{
+		static final long LIMIT=java.time.Duration.ofMinutes(90).toNanos();
+		private final Path state;private final long previous,started,bootstrap;private final java.util.function.LongSupplier now;private boolean closed;
+		OutcomeClock(Path campaign,long bootstrapNanos,java.util.function.LongSupplier now) throws java.io.IOException
+		{
+			if(bootstrapNanos<0||!campaign.equals(campaign.toRealPath())){throw new IllegalArgumentException("Physical outcome clock required");}
+			state=campaign.resolve("active.nanos");if(Files.exists(state)&&!state.equals(state.toRealPath())){throw new java.io.IOException("Physical clock state required");}
+			previous=Files.exists(state)?Long.parseLong(Files.readString(state)):0;if(previous<0||previous>LIMIT){throw new IllegalArgumentException("Invalid retained outcome time");}
+			this.now=now;bootstrap=bootstrapNanos;started=now.getAsLong();
+			// Unclosed/crashed segments retain the full charge. Only a controlled close refunds unused time.
+			persist(LIMIT);
+		}
+		long spentNanos(){return Math.min(LIMIT,previous+bootstrap+Math.max(0,now.getAsLong()-started));}
+		boolean expired(){return spentNanos()>=LIMIT;}
+		boolean canStart(long maximumSlotAndDrainNanos){return maximumSlotAndDrainNanos>=0&&spentNanos()<LIMIT-maximumSlotAndDrainNanos;}
+		private void persist(long value) throws java.io.IOException
+		{
+			final Path pending=state.resolveSibling("clock-"+java.util.UUID.randomUUID()+".pending");
+			try
+			{
+				try(var channel=java.nio.channels.FileChannel.open(pending,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE))
+				{final var bytes=java.nio.ByteBuffer.wrap(Long.toString(value).getBytes(StandardCharsets.UTF_8));while(bytes.hasRemaining()){channel.write(bytes);}channel.force(true);}
+				Files.move(pending,state,java.nio.file.StandardCopyOption.ATOMIC_MOVE,java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			}
+			finally{Files.deleteIfExists(pending);}
+		}
+		@Override public void close() throws java.io.IOException{if(!closed){persist(spentNanos());closed=true;}}
+	}
+	static Path outcomeCampaign(Path root,String id) throws java.io.IOException
+	{
+		if(id==null||!id.isEmpty()&&!id.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,63}")){throw new IllegalArgumentException("Invalid outcome campaign identity");}
+		final Path path=id.isEmpty()?root.resolve("outcome006/collection"):root.resolve("outcome006/campaigns").resolve(id);
+		Files.createDirectories(path);
+		if(!path.toAbsolutePath().normalize().equals(path.toRealPath())){throw new java.io.IOException("Physical outcome campaign required");}
+		return path;
+	}
+	static boolean reserveOutcomeSlot(Path campaign,int slot,String json) throws java.io.IOException
+	{
+		if(slot<0||slot>=48){throw new IllegalArgumentException("Outcome slot ceiling exceeded");}
+		final Path work=campaign.resolve("slot-"+slot);
+		if(Files.exists(work,java.nio.file.LinkOption.NOFOLLOW_LINKS))
+		{
+			if(!work.equals(work.toRealPath())||!Files.isDirectory(work)){throw new java.io.IOException("Physical consumed slot required");}
+			return false;
+		}
+		Files.createDirectory(work);
+		Files.writeString(work.resolve("reserved.json"),json,StandardOpenOption.CREATE_NEW);
+		return true;
+	}
+	private static List<org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1> outcomeReceipts(Path campaign) throws java.io.IOException
+	{
+		final var result=new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1>();
+		for(int slot=0;slot<48;slot++)
+		{
+			final Path path=campaign.resolve("slot-"+slot).resolve("terminal.bin");
+			if(!Files.exists(path)){continue;}
+			if(!path.equals(path.toRealPath())||Files.size(path)>org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.MAX_BYTES){throw new java.io.IOException("Physical bounded terminal receipt required");}
+			final byte[] bytes=Files.readAllBytes(path);
+			result.add(org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.restore(bytes,TacticalObservationV3.hash(bytes)));
+		}
+		return List.copyOf(result);
+	}
+	private static boolean outcomeNeeded(Path campaign,String split) throws java.io.IOException
+	{
+		final var receipts=outcomeReceipts(campaign).stream().filter(r->r.split().equals(split)).toList();
+		final long actions=receipts.stream().mapToLong(r->r.actions().size()).sum();
+		return switch(split)
+		{
+			case "TRAIN" -> actions<16||receipts.stream().flatMap(r->r.actions().stream()).map(a->a.row().contextKey()).distinct().count()<2
+				||receipts.stream().filter(r->r.episode().scope().equals("SOLO")&&r.episode().outcome().equals("COMPLETED")).count()<2
+				||receipts.stream().filter(r->r.episode().scope().equals("PARTY")&&r.episode().outcome().equals("COMPLETED")).count()<2;
+			case "TUNING" -> actions<8;
+			case "AUDIT" -> receipts.stream().flatMap(r->r.actions().stream()).map(a->a.row().actorProfile()).distinct().count()<2
+				||receipts.stream().flatMap(r->r.actions().stream()).map(a->a.row().contextKey()).distinct().count()<2;
+			default -> throw new IllegalArgumentException("Outcome split required");
+		};
+	}
+	private static boolean outcomeQuota(Path campaign) throws java.io.IOException
+	{return !outcomeNeeded(campaign,"TRAIN")&&!outcomeNeeded(campaign,"TUNING")&&!outcomeNeeded(campaign,"AUDIT");}
 	private static void runOutcome006(Path root,Path attempt,TrainingConfig config,LearningPolicy legacy,TacticalStoreV3 store) throws Exception
 	{
 		final var rewardConfig=store.terminalConfig();
-		final Path campaign=root.resolve("outcome006/collection");Files.createDirectories(campaign);
+		final String campaignId=config.text("outcome006Campaign","");final boolean r1=!campaignId.isEmpty();
+		final Path campaign=outcomeCampaign(root,campaignId);
+		if(r1&&(!campaignId.equals("learning006r1")||!config.text("outcome006DatasetId","").equals("outcome006r1-v1")||!config.text("v3DatasetContextPrefix","").equals("outcome006r1|"))){throw new IllegalArgumentException("Exact R1 campaign/dataset/context pins required");}
 		if(!campaign.equals(campaign.toRealPath())){throw new IllegalStateException("Physical006 collection required");}
+		if(r1)
+		{
+			final Path pin=campaign.resolve("config.sha256");
+			if(Files.exists(pin)){if(!pin.equals(pin.toRealPath())||!Files.readString(pin).equals(config.sha256())){throw new IllegalArgumentException("Outcome campaign config changed");}}
+			else{Files.writeString(pin,config.sha256(),StandardOpenOption.CREATE_NEW);}
+		}
 		if(Files.exists(campaign.resolve("native.complete"))){Files.writeString(attempt.resolve("batch.complete"),"schemaVersion=6\ncollectionOnly=true\nreusedCompleteBudget=true\n",StandardOpenOption.CREATE_NEW);System.out.println("OUTCOME006_COLLECTION_ALREADY_SETTLED noRepeat=true");return;}
+		final OutcomeClock clock=r1?new OutcomeClock(campaign,java.time.Duration.ofMillis(java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime()+1).toNanos(),System::nanoTime):null;
 		final String installation=TacticalObservationV3.hash(Files.readString(root.resolve("owner.txt")).getBytes(StandardCharsets.UTF_8));
 		final String director=Files.readString(root.resolve("director.json"));
 		final var generationMatch=java.util.regex.Pattern.compile("\"generation\"\\s*:\\s*([0-9]+)").matcher(director);
@@ -179,25 +268,32 @@ public final class PhantomLearning004Native
 			if(Files.exists(plan)){scenes=Files.readAllLines(plan).stream().map(PhantomTrainingScenarios.Scene::parse).toList();}
 			else
 			{
-				final var catalog=PhantomTrainingScenarios.discover(config,authority,config.seed()+6,256).stream().filter(s->java.util.Set.of(21798,21799).contains(s.npc())).toList();
+				final var historical=r1?store.recordedSceneIds():java.util.Set.<String>of();
+				final var catalog=PhantomTrainingScenarios.discover(config,authority,config.seed()+6,256).stream().filter(s->java.util.Set.of(21798,21799).contains(s.npc())).filter(s->!historical.contains(s.id())).toList();
 				final var selected=new java.util.ArrayList<PhantomTrainingScenarios.Scene>();
 				for(String split:List.of("TRAIN","TUNING","AUDIT"))
 				{
-					final int required=split.equals("TRAIN")?4:2;
+					final int required=r1?(split.equals("TRAIN")?16:4):(split.equals("TRAIN")?4:2);
 					final var group=catalog.stream().filter(s->PhantomTrainingScenarios.sceneSplit(s.id()).equals(split)).limit(required).map(s->s.withSplit(split)).toList();
 					if(group.size()!=required){throw new IllegalStateException("006 native split catalog insufficient");}selected.addAll(group);
 				}
 				scenes=List.copyOf(selected);Files.writeString(plan,scenes.stream().map(PhantomTrainingScenarios.Scene::row).collect(java.util.stream.Collectors.joining("\n","","\n")),StandardOpenOption.CREATE_NEW);
 			}
-			if(scenes.size()!=8){throw new IllegalStateException("006 fixed16-attempt budget changed");}
-			int ordinal=0;
-			for(var scene:scenes){for(boolean grouped:new boolean[]{false,true})
+			if(scenes.size()!=(r1?24:8)){throw new IllegalStateException("006 declared attempt budget changed");}
+			int consumed=0;for(int slot=0;slot<48;slot++){if(Files.exists(campaign.resolve("slot-"+slot))){consumed++;}}
+			final int segmentLimit=r1&&consumed==0?4:48;
+			int ordinal=0,segmentAttempts=0;boolean quota=false,timeBudget=false;
+			collection:for(var scene:scenes){for(boolean grouped:new boolean[]{false,true})
 			{
 				final int slot=ordinal++;if(requested(attempt)){throw new IllegalStateException("006 requested boundary; unfinished slots retained");}
-				final Path work=campaign.resolve("slot-"+slot);if(Files.exists(work)){System.out.println("OUTCOME006_SLOT_RETAINED slot="+slot+" rerun=false");continue;}
-				Files.createDirectory(work);Files.writeString(work.resolve("reserved.json"),"{\"slot\":"+slot+",\"attempt\":\""+attempt.getFileName()+"\",\"split\":\""+scene.split()+"\",\"party\":"+grouped+"}\n",StandardOpenOption.CREATE_NEW);
+				if(r1&&outcomeQuota(campaign)){quota=true;break collection;}
+				if(r1&&!clock.canStart(java.time.Duration.ofSeconds((long)config.preparationSeconds()+config.episodeSeconds()+config.integer("shutdownTimeoutSeconds",180,30,900)).toNanos())){timeBudget=true;break collection;}
+				if(r1&&!outcomeNeeded(campaign,scene.split())){continue;}
+				final Path work=campaign.resolve("slot-"+slot);
+				if(!reserveOutcomeSlot(campaign,slot,"{\"slot\":"+slot+",\"attempt\":\""+attempt.getFileName()+"\",\"split\":\""+scene.split()+"\",\"party\":"+grouped+"}\n")){System.out.println("OUTCOME006_SLOT_RETAINED slot="+slot+" rerun=false");continue;}
+				segmentAttempts++;
 				receipts.clear();failures.clear();timings.clear();
-				final String scope=grouped?"PARTY":"SOLO",context="outcome006|"+scope+"|spot="+scene.npc()+":"+scene.x()+":"+scene.y()+":"+scene.z()+"|scene="+scene.id();
+				final String scope=grouped?"PARTY":"SOLO",context=(r1?"outcome006r1|":"outcome006|")+scope+"|spot="+scene.npc()+":"+scene.x()+":"+scene.y()+":"+scene.z()+"|scene="+scene.id();
 				final String id=TacticalObservationV3.hash((attempt.getFileName()+"/"+context+"/"+slot).getBytes(StandardCharsets.UTF_8));
 				org.l2jmobius.gameserver.model.actor.instance.Monster target=null;TacticalEpisodeV3 episode=null;boolean cut=false;
 				String exclusion=null;
@@ -269,13 +365,16 @@ public final class PhantomLearning004Native
 				finally{if(target!=null){target.deleteMe();}}
 				Files.writeString(work.resolve("result.json"),"{\"slot\":"+slot+",\"afterCut\":"+cut+",\"nativeOutcome\":"+(episode==null?"null":PhantomLearning005Evaluation.q(episode.outcome()))+",\"exclusion\":"+(exclusion==null?"null":PhantomLearning005Evaluation.q(exclusion))+"}\n",StandardOpenOption.CREATE_NEW);
 				System.out.println("OUTCOME006_SLOT_END slot="+slot+" exclusion="+exclusion);
+				if(r1&&segmentAttempts>=segmentLimit){break collection;}
 			}}
-			Files.writeString(campaign.resolve("diagnostics.json"),shared.diagnostics()+"\n",StandardOpenOption.CREATE_NEW);
-			Files.writeString(campaign.resolve("timing.txt"),shared.timing()+"\n",StandardOpenOption.CREATE_NEW);
-			Files.writeString(campaign.resolve("native.complete"),"Fixed16 slots consumed; no acceptance or advantage implied.\n",StandardOpenOption.CREATE_NEW);
+			Files.writeString((r1?attempt:campaign).resolve("diagnostics.json"),shared.diagnostics()+"\n",StandardOpenOption.CREATE_NEW);
+			Files.writeString((r1?attempt:campaign).resolve("timing.txt"),shared.timing()+"\n",StandardOpenOption.CREATE_NEW);
+			if(r1){quota=outcomeQuota(campaign);
+				Files.writeString(attempt.resolve("campaign.segment.json"),"{\"campaign\":\""+campaignId+"\",\"attempted\":"+segmentAttempts+",\"quota\":"+quota+",\"timeBudget\":"+timeBudget+",\"allSlotsVisited\":"+(ordinal>=48)+"}\n",StandardOpenOption.CREATE_NEW);}
+			if(!r1||quota||timeBudget||ordinal>=48){Files.writeString(campaign.resolve("native.complete"),r1?(quota?"QUOTA_REACHED\n":timeBudget?"TIME_BUDGET_EXHAUSTED\n":"SLOT_BUDGET_EXHAUSTED\n"):"Fixed16 slots consumed; no acceptance or advantage implied.\n",StandardOpenOption.CREATE_NEW);}
 			Files.writeString(attempt.resolve("batch.complete"),"schemaVersion=6\ncollectionOnly=true\n",StandardOpenOption.CREATE_NEW);
 		}
-		finally{org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.nativeTimingObserver(_ -> { });}
+		finally{try{if(clock!=null){clock.close();}}finally{org.l2jmobius.gameserver.phantoms.learning.TerminalRewardReceiptV1.nativeTimingObserver(_ -> { });}}
 	}
 	private static boolean requested(Path attempt)
 	{ return Files.exists(attempt.resolve("stop.request")) || Files.exists(attempt.resolve("pause.request")); }

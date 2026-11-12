@@ -38,7 +38,14 @@ public final class TerminalReplayV1
 		public String configSha(){return receipts.getFirst().config().sha256();}
 		public String datasetId(){return receipts.getFirst().dataset();}
 		public byte[] bytes(){return pack(receipts);}
-		public boolean sufficient(){return TacticalStoreV3.sufficient(sourceRows());}
+		public boolean sufficient()
+		{
+			final var train=receipts.stream().filter(r->r.split().equals("TRAIN")).toList();
+			return TacticalStoreV3.sufficient(sourceRows())
+				&& train.stream().flatMap(r->r.actions().stream()).map(a->a.row().contextKey()).distinct().count()>=2
+				&& train.stream().filter(r->r.episode().outcome().equals("COMPLETED")&&r.episode().scope().equals("SOLO")).count()>=2
+				&& train.stream().filter(r->r.episode().outcome().equals("COMPLETED")&&r.episode().scope().equals("PARTY")).count()>=2;
+		}
 		public double constantLoss()
 		{
 			final double mean=examples("TRAIN").stream().mapToDouble(TacticalModelV3.Example::reward).average().orElseThrow();

@@ -19,10 +19,14 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 	private final FileChannel channel;
 	private final FileLock lock;
 	private final String build;
+	private final DraftAuthority authority;
 	public PhantomLearning005Ledger(Path directory,String campaign,String build) throws IOException
 	{this(directory,campaign,build,build);}
 	public PhantomLearning005Ledger(Path directory,String campaign,String build,String protocolSha) throws IOException
+	{this(directory,campaign,build,protocolSha,null);}
+	public PhantomLearning005Ledger(Path directory,String campaign,String build,String protocolSha,DraftAuthority authority) throws IOException
 	{
+		this.authority=authority;
 		PhantomLearning005Evaluation.sha(build);
 		PhantomLearning005Evaluation.sha(protocolSha);
 		if(campaign==null||!campaign.matches("[A-Za-z0-9._-]{1,96}")){throw new IllegalArgumentException("Campaign identity required");}
@@ -36,7 +40,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 		{
 			try{acquired=channel.tryLock();}catch(OverlappingFileLockException busy){throw new IOException("Campaign already locked",busy);}
 			if(acquired==null){throw new IOException("Campaign already locked");}
-			final String identity="schemaVersion=5\ncampaign="+campaign+"\nbuild="+build+"\nprotocol="+protocolSha+"\nsplit=EVAL005\n";
+			final String identity="schemaVersion="+(authority==null?5:6)+"\ncampaign="+campaign+"\nbuild="+build+"\nprotocol="+protocolSha+"\nsplit="+(authority==null?"EVAL005":"EVAL006R1")+"\n"+(authority==null?"":"authority="+authority.fingerprint()+"\n");
 			final Path manifest=root.resolve("campaign.ini");
 			if(Files.exists(manifest)){physicalIfExists(manifest);if(!Files.readString(manifest).equals(identity)){throw new IOException("Campaign pins changed");}}
 			else{atomic(manifest,identity.getBytes(StandardCharsets.UTF_8));}
@@ -46,7 +50,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 	}
 	public boolean put(Arm arm) throws IOException
 	{
-		requireOpen();if(!arm.buildSha().equals(build)){throw new IOException("Arm build differs from campaign");}
+		requireOpen();if(!arm.buildSha().equals(build)||!Objects.equals(authority,arm.pin().authority())){throw new IOException("Arm build or authority differs from campaign");}
 		TrainingStore.validateObservation(arm.json());
 		final var payload=pack(arm);final Path path=root.resolve(arm.id()+".bin");
 		if(Files.exists(path))
@@ -82,7 +86,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 		for(var group:arms().stream().collect(java.util.stream.Collectors.groupingBy(Arm::pair,TreeMap::new,java.util.stream.Collectors.toList())).values())
 		{
 			if(group.size()!=2){continue;}final var pair=PhantomLearning005Evaluation.compare(group.get(0),group.get(1));
-			final String json="{\"schemaVersion\":5,\"pairId\":"+PhantomLearning005Evaluation.q(pair.id())+",\"status\":"+PhantomLearning005Evaluation.q(pair.status())+",\"reason\":"+PhantomLearning005Evaluation.q(pair.reason())
+			final String json="{\"schemaVersion\":"+(authority==null?5:6)+",\"pairId\":"+PhantomLearning005Evaluation.q(pair.id())+",\"status\":"+PhantomLearning005Evaluation.q(pair.status())+",\"reason\":"+PhantomLearning005Evaluation.q(pair.reason())
 				+",\"stockArm\":"+PhantomLearning005Evaluation.q(pair.stock().id())+",\"stockSha\":"+PhantomLearning005Evaluation.q(PhantomLearning005Evaluation.hash(pair.stock().json()))
 				+",\"learnedArm\":"+PhantomLearning005Evaluation.q(pair.learned().id())+",\"learnedSha\":"+PhantomLearning005Evaluation.q(PhantomLearning005Evaluation.hash(pair.learned().json()))
 				+",\"deltas\":"+PhantomLearning005Evaluation.mapJson(pair.deltas())+",\"divergences\":"+pair.divergences()+"}\n";
@@ -100,7 +104,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 		physicalIfExists(path);if(Files.size(path)>MAX){throw new IOException("Oversized receipt");}
 		try(var in=new DataInputStream(Files.newInputStream(path)))
 		{
-			if(in.readInt()!=MAGIC||in.readInt()!=5){throw new IOException("Unknown evaluator schema");}
+			if(in.readInt()!=MAGIC||in.readInt()!=(authority==null?5:6)){throw new IOException("Unknown evaluator schema");}
 			int length=in.readInt();if(length<1||length>MAX){throw new IOException("Invalid frame length");}
 			String sha=in.readUTF();byte[] bytes=in.readNBytes(length);
 			if(bytes.length!=length||in.read()!=-1||!sha.equals(digest(bytes))){throw new IOException("Receipt digest or truncation");}
@@ -114,7 +118,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 					bytes=payload;
 				}
 			}
-			final var arm=unpack(bytes);
+			final var arm=unpack(bytes,authority);
 			if(!path.getFileName().toString().equals(arm.id()+(complete?".bin":".started.bin"))){throw new IOException("Receipt filename mismatch");}
 			if(!complete){return new ReadFrame(arm,nonce);}
 			final var json=root.resolve(arm.id()+".json");
@@ -131,6 +135,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 	public record Started(Arm arm,String nonce) { }
 	public void begin(Arm arm,String nonce) throws IOException
 	{
+		if(!Objects.equals(authority,arm.pin().authority())){throw new IOException("START evaluation authority differs");}
 		requireOpen();if(nonce==null||!nonce.matches("[a-f0-9]{32}")||arm.outcome()!=Outcome.INCOMPLETE||!arm.effects().isEmpty()||!arm.kills().isEmpty()){throw new IOException("Invalid START journal");}
 		if(Files.exists(root.resolve(arm.id()+".bin"))||Files.exists(root.resolve(arm.id()+".started.bin"))){throw new IOException("Arm already started; no fresh credit");}
 		final var bytes=new ByteArrayOutputStream();final byte[] payload=pack(arm);
@@ -149,9 +154,9 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 			}
 		}return List.copyOf(starts);
 	}
-	private static byte[] frame(byte[] payload) throws IOException
+	private byte[] frame(byte[] payload) throws IOException
 	{
-		final var output=new ByteArrayOutputStream();try(var out=new DataOutputStream(output)){out.writeInt(MAGIC);out.writeInt(5);out.writeInt(payload.length);out.writeUTF(digest(payload));out.write(payload);}return output.toByteArray();
+		final var output=new ByteArrayOutputStream();try(var out=new DataOutputStream(output)){out.writeInt(MAGIC);out.writeInt(authority==null?5:6);out.writeInt(payload.length);out.writeUTF(digest(payload));out.write(payload);}return output.toByteArray();
 	}
 	private void atomic(Path target,byte[] bytes) throws IOException
 	{
@@ -179,6 +184,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 			out.writeInt(a.facts().size());for(var e:a.facts().entrySet()){out.writeUTF(e.getKey());out.writeUTF(e.getValue());}
 			out.writeInt(a.actors().size());for(var i:a.actors()){incarnation(out,i);}out.writeBoolean(a.target()!=null);if(a.target()!=null){incarnation(out,a.target());}
 			out.writeLong(a.pin().id());out.writeUTF(a.pin().status());out.writeUTF(a.pin().sha());out.writeUTF(a.pin().schema());out.writeInt(a.pin().algorithm());
+			if(a.pin().authority()!=null){final var pin=a.pin().authority();out.writeLong(pin.modelId());out.writeUTF(pin.modelSha());out.writeUTF(pin.terminalDatasetSha());out.writeUTF(pin.optimizerSha());out.writeUTF(pin.runId());}
 			out.writeUTF(a.outcome().name());out.writeUTF(a.reason());out.writeDouble(a.elapsedMillis());out.writeDouble(a.preparationMillis());
 			out.writeInt(a.metrics().size());for(var e:a.metrics().entrySet()){out.writeUTF(e.getKey());out.writeBoolean(e.getValue()!=null);if(e.getValue()!=null){out.writeDouble(e.getValue());}}
 			out.writeInt(a.effects().size());for(var e:a.effects())
@@ -189,20 +195,22 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 			out.writeInt(a.kills().size());for(var k:a.kills()){out.writeInt(k.target());out.writeLong(k.spawn());out.writeInt(k.instance());out.writeInt(k.creditedActor());}out.writeBoolean(a.nativeSource());
 		}return bytes.toByteArray();
 	}
-	private static Arm unpack(byte[] bytes) throws IOException
+	private static Arm unpack(byte[] bytes,DraftAuthority expected) throws IOException
 	{
 		try(var in=new DataInputStream(new ByteArrayInputStream(bytes)))
 		{
 			String pair=in.readUTF();Side side=Side.valueOf(in.readUTF());Mode mode=Mode.valueOf(in.readUTF());long seed=in.readLong();int position=in.readInt();String build=in.readUTF(),config=in.readUTF(),scenario=in.readUTF();
 			var facts=new TreeMap<String,String>();for(int n=count(in,64);n>0;n--){if(facts.put(in.readUTF(),in.readUTF())!=null){throw new IOException("Duplicate fact key");}}
 			var actors=new ArrayList<Incarnation>();for(int n=count(in,9);n>0;n--){actors.add(incarnation(in));}var target=in.readBoolean()?incarnation(in):null;
-			var pin=new Pin(mode,in.readLong(),in.readUTF(),in.readUTF(),in.readUTF(),in.readInt());var outcome=Outcome.valueOf(in.readUTF());String reason=in.readUTF();double elapsed=in.readDouble(),preparation=in.readDouble();
+			var pin=new Pin(mode,in.readLong(),in.readUTF(),in.readUTF(),in.readUTF(),in.readInt());
+			if(expected!=null){final var decoded=new DraftAuthority(in.readLong(),in.readUTF(),in.readUTF(),in.readUTF(),in.readUTF());if(!expected.equals(decoded)){throw new IOException("Cold DRAFT authority changed");}pin=new Pin(mode,pin.id(),pin.status(),pin.sha(),pin.schema(),pin.algorithm(),decoded);}
+			var outcome=Outcome.valueOf(in.readUTF());String reason=in.readUTF();double elapsed=in.readDouble(),preparation=in.readDouble();
 			var metrics=new TreeMap<String,Double>();for(int n=count(in,64);n>0;n--){String key=in.readUTF();if(metrics.containsKey(key)){throw new IOException("Duplicate metric key");}metrics.put(key,in.readBoolean()?in.readDouble():null);}
 			var effects=new ArrayList<Effect>();
 			for(int n=count(in,2048);n>0;n--)
 			{
 				String key=in.readUTF();int actor=in.readInt();long epoch=in.readLong();int recipient=in.readInt();long targetEpoch=in.readLong();int instance=in.readInt();String selected=in.readUTF(),baseline=in.readUTF();
-				var legal=new ArrayList<String>();for(int m=count(in,16);m>0;m--){legal.add(in.readUTF());}Family family=Family.valueOf(in.readUTF());double hp=in.readDouble();Double mp=in.readBoolean()?in.readDouble():null;effects.add(new Effect(key,actor,epoch,recipient,targetEpoch,instance,selected,baseline,legal,family,hp,mp,in.readUTF(),in.readUTF()));
+				var legal=new ArrayList<String>();for(int m=count(in,16);m>0;m--){legal.add(in.readUTF());}Family family=Family.valueOf(in.readUTF());double hp=in.readDouble();Double mp=in.readBoolean()?in.readDouble():null;effects.add(new Effect(key,actor,epoch,recipient,targetEpoch,instance,selected,baseline,legal,family,hp,mp,in.readUTF(),in.readUTF(),expected==null?null:pin));
 			}
 			var kills=new ArrayList<Kill>();for(int n=count(in,32);n>0;n--){kills.add(new Kill(in.readInt(),in.readLong(),in.readInt(),in.readInt()));}
 			var result=new Arm(pair,side,mode,seed,position,build,config,scenario,facts,actors,target,pin,outcome,reason,elapsed,preparation,metrics,effects,kills,in.readBoolean());

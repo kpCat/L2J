@@ -1,0 +1,141 @@
+{
+  "readbacks": [
+    {
+      "file": "commit-cold-0d29be69-cf52-43fd-a5e2-2ca27b09ec98.json",
+      "sha256": "9097dc4417306871fb2cba1afc2acd6a48bea8bb81e45005a3f07afcce751472",
+      "receipt": {
+        "check": "R1_COMMIT_COLD_DUPLICATE_SQL",
+        "modelId": 9,
+        "modelSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+        "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "updates": 817,
+        "completedEpochs": 172,
+        "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+        "runId": "6610167d6f044536954e926e5df843dc",
+        "applicationMarkers": 13,
+        "trainReceiptsUsed": 7,
+        "duplicateReward": "REJECTED_1062_ROLLBACK",
+        "duplicateApplication": "REJECTED_1062_ROLLBACK",
+        "secondFreeze": "NONE",
+        "historical006Used": false
+      }
+    },
+    {
+      "file": "commit-cold-ee08f4df-560f-4b20-9594-5642e0a3f2fa.json",
+      "sha256": "9097dc4417306871fb2cba1afc2acd6a48bea8bb81e45005a3f07afcce751472",
+      "receipt": {
+        "check": "R1_COMMIT_COLD_DUPLICATE_SQL",
+        "modelId": 9,
+        "modelSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+        "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "updates": 817,
+        "completedEpochs": 172,
+        "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+        "runId": "6610167d6f044536954e926e5df843dc",
+        "applicationMarkers": 13,
+        "trainReceiptsUsed": 7,
+        "duplicateReward": "REJECTED_1062_ROLLBACK",
+        "duplicateApplication": "REJECTED_1062_ROLLBACK",
+        "secondFreeze": "NONE",
+        "historical006Used": false
+      }
+    }
+  ],
+  "evaluationUnchanged": [
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "sha256": "0d8ac8fcd36bc2547710083a1c46b10edaf30eca34a2c1acd58284761a3f55e3",
+      "receipt": {
+        "before": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "after": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "equal": true
+      }
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "sha256": "0d8ac8fcd36bc2547710083a1c46b10edaf30eca34a2c1acd58284761a3f55e3",
+      "receipt": {
+        "before": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "after": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "equal": true
+      }
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "sha256": "0d8ac8fcd36bc2547710083a1c46b10edaf30eca34a2c1acd58284761a3f55e3",
+      "receipt": {
+        "before": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "after": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "equal": true
+      }
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "sha256": "0d8ac8fcd36bc2547710083a1c46b10edaf30eca34a2c1acd58284761a3f55e3",
+      "receipt": {
+        "before": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "after": "[0,568,0]/22/13/7/6/f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "equal": true
+      }
+    }
+  ],
+  "checkpoint": {
+    "format": 3,
+    "createdUtc": "2026-11-12T18:55:10.759003900Z",
+    "algorithm": 3,
+    "algorithmHash": "75b1e5ba26da9f1542454cec3e3d2093a6541fa03fb135af4fdb4e403a466d90",
+    "featureSchema": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
+    "actionSpace": "e6292efa77156bb840ce8bd29920cf90821982324f4b92408bf3c07224aff982",
+    "normalization": "4d224f2256dc9b16a5cf7c50f2b8ebd33e68d18e6f7e37f95d7d426fbd21274d",
+    "origin": "NATIVE_HEAL",
+    "status": "ACCEPTED_TEST",
+    "productionPromotion": false,
+    "modelVersion": 2,
+    "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+    "weightBytes": 4741508,
+    "metrics": {
+      "seed": 183,
+      "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "origin": "NATIVE_HEAL",
+      "train": 64,
+      "tuning": 32,
+      "audit": 24,
+      "auditActors": 24,
+      "auditContexts": 24,
+      "epochs": 42,
+      "trainingNanos": 12155789500,
+      "tuningInitialMse": 0.5404271486560249,
+      "tuningMse": 0.014236471492589208,
+      "auditMse": 0.015467628967592325,
+      "constantMse": 0.015723296413069764,
+      "priorVersion": 0,
+      "priorMse": null,
+      "stockMatchedEvents": 120,
+      "differentSelectionEvents": 0,
+      "stockCounterfactualMse": null,
+      "nativeColdDecisionChange": null,
+      "limitation": "Only chosen actions have native outcomes; MSE does not prove tactical superiority or cold behavior"
+    },
+    "workingModelVersion": 9,
+    "workingStatus": "DRAFT",
+    "workingWeightsSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+    "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+    "optimizerUpdates": 817,
+    "completedEpochs": 172,
+    "replaySha": "16eab6527a6e9882d388147ae3351da05d80a38ed5e562a2326187bd3cec459e",
+    "contextReplaySha": "3598fd7d6917be417c59fe0b878b28d2002fdc3bf51f07c136c15e4ddb0f83de",
+    "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+    "rewardConfigSha": "3d1ae88c1e8cfc2da6e7c465254b5e8a561373c5fc047b8d0947f63c9f48f8ae",
+    "workingRunId": "6610167d6f044536954e926e5df843dc",
+    "episodeCounts": {
+      "total": 49,
+      "completed": 45,
+      "failed": 0,
+      "incomplete": 4,
+      "started": 0,
+      "lastCreatedUtc": "2026-11-12 18:52:56.937924"
+    }
+  },
+  "standaloneExportHasFullSqlParentAncestry": false
+}

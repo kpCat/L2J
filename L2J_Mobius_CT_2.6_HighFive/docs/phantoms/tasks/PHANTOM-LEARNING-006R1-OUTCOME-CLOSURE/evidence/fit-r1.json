@@ -1,0 +1,211 @@
+{
+  "initialFit": {
+    "state": "DRAFT",
+    "modelVersion": 2,
+    "modelSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "reason": "Terminal targets fitted from exact optimizer parent; immutable TEST draft requires independent native evaluation",
+    "candidateVersion": 9,
+    "candidateSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+    "productionPromotion": false,
+    "metrics": {
+      "objective": "TERMINAL_OUTCOME_V1",
+      "seed": 183,
+      "samplerRevision": "006/terminal-mc-gamma1/episode-split/native-credit-once/v1",
+      "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+      "rewardConfigSha": "3d1ae88c1e8cfc2da6e7c465254b5e8a561373c5fc047b8d0947f63c9f48f8ae",
+      "datasetId": "outcome006r1-v1",
+      "terminalReceipts": 13,
+      "train": 16,
+      "tuning": 11,
+      "audit": 4,
+      "epochs": 41,
+      "trainingNanos": 5788238000,
+      "tuningInitialMse": 0.5328426400959675,
+      "tuningMse": 0.0008222151957723931,
+      "terminalAuditMse": 0.0004099416992877636,
+      "terminalConstantMse": 0.00043149044167391237,
+      "terminalPriorMse": 1.0836231002186842,
+      "parentModelVersion": 8,
+      "parentOptimizerSha": "56cc26c43a2b2edfba23bb2a6e56a207dd10ca7243af7796611a10d7b1f58c0f",
+      "parentWeightsSha": "fad52efe1757ae86b234314c8c15ece54b281fdcd3de370f8d6a215f3179709c",
+      "optimizerMigration": "RESTORED",
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "optimizerUpdates": 817,
+      "completedEpochs": 172,
+      "terminalRewardUsedForTraining": true,
+      "productionPromotion": false,
+      "limitation": "Registry audit columns validate unchanged source cast receipts; terminal losses are separate. Goal MSE does not prove native advantage."
+    }
+  },
+  "initialFitFileSha256": "93d6b4459705a13336176e9927c5bfe7d7ab91e6f6c54b98144b663e8afd8cbf",
+  "checkpointManifest": {
+    "format": 3,
+    "createdUtc": "2026-11-12T18:55:10.759003900Z",
+    "algorithm": 3,
+    "algorithmHash": "75b1e5ba26da9f1542454cec3e3d2093a6541fa03fb135af4fdb4e403a466d90",
+    "featureSchema": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
+    "actionSpace": "e6292efa77156bb840ce8bd29920cf90821982324f4b92408bf3c07224aff982",
+    "normalization": "4d224f2256dc9b16a5cf7c50f2b8ebd33e68d18e6f7e37f95d7d426fbd21274d",
+    "origin": "NATIVE_HEAL",
+    "status": "ACCEPTED_TEST",
+    "productionPromotion": false,
+    "modelVersion": 2,
+    "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+    "weightBytes": 4741508,
+    "metrics": {
+      "seed": 183,
+      "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "origin": "NATIVE_HEAL",
+      "train": 64,
+      "tuning": 32,
+      "audit": 24,
+      "auditActors": 24,
+      "auditContexts": 24,
+      "epochs": 42,
+      "trainingNanos": 12155789500,
+      "tuningInitialMse": 0.5404271486560249,
+      "tuningMse": 0.014236471492589208,
+      "auditMse": 0.015467628967592325,
+      "constantMse": 0.015723296413069764,
+      "priorVersion": 0,
+      "priorMse": null,
+      "stockMatchedEvents": 120,
+      "differentSelectionEvents": 0,
+      "stockCounterfactualMse": null,
+      "nativeColdDecisionChange": null,
+      "limitation": "Only chosen actions have native outcomes; MSE does not prove tactical superiority or cold behavior"
+    },
+    "workingModelVersion": 9,
+    "workingStatus": "DRAFT",
+    "workingWeightsSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+    "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+    "optimizerUpdates": 817,
+    "completedEpochs": 172,
+    "replaySha": "16eab6527a6e9882d388147ae3351da05d80a38ed5e562a2326187bd3cec459e",
+    "contextReplaySha": "3598fd7d6917be417c59fe0b878b28d2002fdc3bf51f07c136c15e4ddb0f83de",
+    "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+    "rewardConfigSha": "3d1ae88c1e8cfc2da6e7c465254b5e8a561373c5fc047b8d0947f63c9f48f8ae",
+    "workingRunId": "6610167d6f044536954e926e5df843dc",
+    "episodeCounts": {
+      "total": 49,
+      "completed": 45,
+      "failed": 0,
+      "incomplete": 4,
+      "started": 0,
+      "lastCreatedUtc": "2026-11-12 18:52:56.937924"
+    }
+  },
+  "applicationMarkers": [
+    {
+      "naturalKey": "0beb0643ceed55e58a91f3cf0538c71d2a4d4ba9590c1c1c9cc733f9a2e6840c",
+      "receiptSha": "a12cef5c7a6cd71ef9e5d14f81476a82dfefaab2df6fc733a2e0cb914023e9b0",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    },
+    {
+      "naturalKey": "2c0d1dd61b2b2f454cb8e35db11a86aee6a9a3ac6e1f0ad03aee47544b6f1367",
+      "receiptSha": "23e13dc6728db3167f675f18bd5e33183fe1157e4a6ae791914abf0708ae5868",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    },
+    {
+      "naturalKey": "437d9aa7b125cdb0bdb945005cc49a83f33712848501a7102a2ad9cf62823144",
+      "receiptSha": "52179aa0563c09e746bef4461eaa076a01ae7135857a6b3a93a9825ea0e0a09c",
+      "fitRole": "TUNING",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": false
+    },
+    {
+      "naturalKey": "763a84546c8c17ed9dba1ad37a46a010d7f2d5fd570774518cb41cd8d3d27d7c",
+      "receiptSha": "55f54674891f758ce652780197f9c58a2a559fe8fdba347e104b7b076c69b18c",
+      "fitRole": "TUNING",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": false
+    },
+    {
+      "naturalKey": "77d0e246ee7d7eb8eb557281a8d76929ebe6fb9eb71ea49c2b5664f3e7b0798d",
+      "receiptSha": "55958a40cd35faa6c75c24ad7fbe1f9ae38898cf6e9b15206f7f9c6c89fa9fe8",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    },
+    {
+      "naturalKey": "86c0ca9e11d2bb1e912d0f99d81828540eec9f9f46b7d3ad1e6b93c6d7c0d5a4",
+      "receiptSha": "4321014a2ff93d541dd0bdbde375cf69497a9509fca0b7ae16f682084c26b581",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    },
+    {
+      "naturalKey": "9895410f6a5221181f90b4dc12cea093bf1a7e377fd2808a6752999612c4c523",
+      "receiptSha": "fd9abe6e94d66a0c7de2f0e3a3c0237dd17af546a19e0ee77d32be8d2c663e60",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    },
+    {
+      "naturalKey": "9918a479098a3395e296fdb42c2c73eb02fade896f4bc089a429ca3b451cfe54",
+      "receiptSha": "8fffd25eb3399fd103618c9e049b40bf6ef05d01109959d3825c9cc6baef7560",
+      "fitRole": "TUNING",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": false
+    },
+    {
+      "naturalKey": "99356e8d2b6c77bd9c87d178b42936f8d4cfe5b6d2e7e91870b52bf610583252",
+      "receiptSha": "bf82aa792a6c5d5520f5ac0207d9c75ae311bd525ae76595c39b9a9bb179d62a",
+      "fitRole": "AUDIT",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": false
+    },
+    {
+      "naturalKey": "a4b7616834d28f8de1f35de8a5041d0b90bf6e781aa4f05f97bdc3204c75fbc6",
+      "receiptSha": "d49d5c3bc1ad82ffcdd88d60735bdd5b377ec17ed8fac439c4500bb4a24a8575",
+      "fitRole": "AUDIT",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": false
+    },
+    {
+      "naturalKey": "ba4db624baebc896ff268bf612494067867795b9e5c7ce344db05624162596dd",
+      "receiptSha": "840f00ad1c84b5622f63416a2fa26f72e75a2446d5855d7506abef90b65a9c06",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    },
+    {
+      "naturalKey": "fc9e06359e32b9833d2f85d772b00812c5873324f3918ba052234fcd55059d49",
+      "receiptSha": "7e7cb10d76ae7eb8f02138fab9b7dacefc8f4e76279eae03bcb26c55d7d09f0d",
+      "fitRole": "TUNING",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": false
+    },
+    {
+      "naturalKey": "fd1b889662475c8bae802f651aa844dbd33111774959fb0fd8898ff0ee4ba110",
+      "receiptSha": "99dc2c3a40874af02bc3781994c38caccf602799cb7c7cc4eff2296059948d26",
+      "fitRole": "TRAIN",
+      "modelVersion": 9,
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "terminalRewardUsedForTraining": true
+    }
+  ],
+  "applicationMarkerFileSha256": "657a3b7993beed54f92c0ffdd2a2bdc0299b95a06dfc2b46db8d04a96606577e",
+  "terminalTargetsBlobSha256": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+  "newOptimizerUpdates": 48,
+  "newCompletedEpochs": 48,
+  "selectedEpoch": 41,
+  "newDraftSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc"
+}

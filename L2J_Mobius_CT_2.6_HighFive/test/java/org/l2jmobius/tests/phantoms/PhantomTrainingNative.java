@@ -25,6 +25,8 @@ import org.l2jmobius.gameserver.phantoms.learning.TrainingStore;
 /** One owned stock GameServer bootstrap, multiple exact native episodes, no offline simulator. */
 public final class PhantomTrainingNative
 {
+	static boolean evaluationOnly(TrainingConfig config)
+	{return "true".equals(config.text("evaluation005Enabled","false"))||PhantomLearning005Native.outcomeEvaluation(config);}
 	public static void main(String[] args) throws Exception
 	{
 		if (args.length != 4 || !args[1].matches("[a-f0-9]{32}") || !args[2].matches("[a-f0-9]{64}") || !Boolean.getBoolean("phantom.learning.train"))
@@ -80,7 +82,7 @@ public final class PhantomTrainingNative
 			if (PhantomPlayersConfig.isEnabled() || PhantomSystem.hasConfiguredInstance()) { throw new IllegalStateException("Global Phantom owner must remain inactive"); }
 			Files.writeString(phantomConfig, setting(phase, "EnablePhantomSystem", "True"));
 			PhantomPlayersConfig.load();
-			if ("true".equals(config.text("evaluation005Enabled", "false")))
+			if (evaluationOnly(config))
 			{
 				PhantomLearning005Native.run(root, attempt, config);
 				return;

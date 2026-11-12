@@ -474,18 +474,42 @@ function Invoke-TrainDirector {
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
         if($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'OUTCOME006'){
-            if(!$script:Config.ContainsKey('outcome006Phase') -or $script:Config.outcome006Phase -notin @('PREPARE','COLLECT')){throw 'OUTCOME006_PHASE_NOT_IMPLEMENTED'}
+            if(!$script:Config.ContainsKey('outcome006Phase') -or $script:Config.outcome006Phase -notin @('PREPARE','COLLECT','PROOF','EVALUATE','CONTROL')){throw 'OUTCOME006_PHASE_NOT_IMPLEMENTED'}
             if($script:Config.outcome006Phase -ceq 'COLLECT'){
-                # One fixed campaign. Its durable slot reservations are never retried for a desired result.
-                if(!(Test-Path -LiteralPath (Join-Path $layout.Root 'outcome006\collection\native.complete'))){
+                $outcomeCampaign=Join-Path $layout.Root 'outcome006\collection'
+                if($script:Config.ContainsKey('outcome006Campaign') -and $script:Config.outcome006Campaign){
+                    if($script:Config.outcome006Campaign -cne 'learning006r1' -or $script:Config.outcome006DatasetId -cne 'outcome006r1-v1'){throw 'OUTCOME006R1_EXACT_CAMPAIGN_REQUIRED'}
+                    $outcomeCampaign=Join-Path $layout.Root 'outcome006\campaigns\learning006r1'
+                    $clock=Join-Path $outcomeCampaign 'active.nanos'
+                    if((Test-Path -LiteralPath $clock) -and !(Test-Path -LiteralPath (Join-Path $outcomeCampaign 'native.complete'))){
+                        Assert-G0PhysicalFile $clock
+                        if([long][IO.File]::ReadAllText($clock) -ge 5400000000000){Write-TrainText (Join-Path $outcomeCampaign 'native.complete') "TIME_BUDGET_EXHAUSTED_OR_UNCLOSED_SEGMENT`n"}
+                    }
+                }
+                # Consumed slots remain immutable across native segments and fresh Director generations.
+                if(!(Test-Path -LiteralPath (Join-Path $outcomeCampaign 'native.complete'))){
+                    if($script:Config.ContainsKey('outcome006Campaign') -and $script:Config.outcome006Campaign -ceq 'learning006r1'){
+                        Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning006OutcomeChecks' @('before-r1',$layout.Root)
+                    }
                     Reset-TrainColdBaseline
                     Invoke-TrainNative $dependencies $jar
                 }
-                if(!(Test-TrainRequest 'stop')){
+                if(!(Test-TrainRequest 'stop') -and (Test-Path -LiteralPath (Join-Path $outcomeCampaign 'native.complete'))){
                     Publish-TrainState 'EVALUATING' 'Проверка terminal targets006; только existing optimizer continuation.'
                     Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
                     Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
                 }
+            }
+            elseif($script:Config.outcome006Phase -in @('PROOF','EVALUATE','CONTROL')){
+                if(!$script:Config.ContainsKey('outcome006Campaign') -or $script:Config.outcome006Campaign -cne 'learning006r1'){throw 'OUTCOME006R1_EXPLICIT_EVALUATION_CAMPAIGN_REQUIRED'}
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+                if($script:Config.outcome006Phase -ceq 'PROOF'){Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning006OutcomeChecks' @('commit-r1',$layout.Root)}
+                $evaluationName=$script:Config.outcome006Phase.ToLowerInvariant()
+                if($script:Config.ContainsKey('outcome006EvaluationCampaign')){$evaluationName=$script:Config.outcome006EvaluationCampaign}
+                if($evaluationName -cnotmatch '^[a-z][a-z0-9_-]{0,63}$' -or !$evaluationName.StartsWith($script:Config.outcome006Phase.ToLowerInvariant(),[StringComparison]::Ordinal)){throw 'OUTCOME006R1_EVALUATION_NAMESPACE_REQUIRED'}
+                $evaluationDirectory=Join-Path $layout.Root ('outcome006\evaluation006r1\'+$evaluationName)
+                if(!(Test-Path -LiteralPath (Join-Path $evaluationDirectory 'native.complete'))){Reset-TrainColdBaseline;Invoke-TrainNative $dependencies $jar}
+                if(!(Test-TrainRequest 'stop')){Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)}
             }
             Publish-TrainState 'PAUSED' 'Граница006: native budget сохранён; следующая фаза требует отдельного exact candidate pin.'
             while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}

@@ -1,0 +1,5714 @@
+{
+  "totalGameServerStarts": 7,
+  "ceilingStarts": 8,
+  "processes": [
+    {
+      "attempt": "83ce94870ecd462499b0ff2191db6dd8",
+      "resources": {
+        "pid": 73968,
+        "startedUtc": "2026-11-12T18:37:47.8233177Z",
+        "sampledUtc": "2026-11-12T18:41:14.4987582Z",
+        "elapsedMillis": 206675,
+        "cpuSeconds": 210.40625,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4685516800,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "83ce94870ecd462499b0ff2191db6dd8",
+        "finishedUtc": "2026-11-12T18:41:14.5077563Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T18:41:14.4797530Z",
+        "pid": 73968,
+        "created": 134389822678233177,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "83ce94870ecd462499b0ff2191db6dd8",
+        "kind": "Native",
+        "commandHash": "pOL479xXodVBRLcHEG+PoDvartTKmZe/2zZS1YvM3p0=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "01428367E9FC6A9C04A290C9ACEF0616854064D5FB84B10586F74D8704B1C3D6",
+        "attemptId": "83ce94870ecd462499b0ff2191db6dd8"
+      },
+      "batchCompleteSha256": "1b2dcee19cf4d3105c49693c15646ca8a9f8449c6e67ef5509d81df79a00d158",
+      "failed": null,
+      "timing": "snapshotNanos={n:13,p50:785200,p95:6844600,p99:6844600,max:6844600} encodeNanos={n:13,p50:1576900,p95:2222100,p99:2222100,max:2222100} scoreNanos={n:13,p50:40900,p95:197400,p99:197400,max:197400} totalNanos={n:15,p50:2558500,p95:10803100,p99:10803100,max:10803100} dispatchNanos={n:2,p50:8433100,p95:15348200,p99:15348200,max:15348200} cpuNanos={n:15,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:15,p50:115192,p95:1163176,p99:1163176,max:1163176}\n",
+      "diagnostics": {
+        "counters": {
+          "BUDGET_5MS": 1,
+          "COOLDOWN_OR_ACTOR_CAP": 118,
+          "DAMAGE_STOCK": 11,
+          "HEAL_OFFER_COUNT": 229,
+          "HEAL_STOCK": 2,
+          "SHADOW": 13
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2139,
+            "target": 268491695
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2147,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2148,
+            "target": 268495733
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2145,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2147,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2145,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2147,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2145,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2147,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2145,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2147,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2145,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2147,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2148,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2145,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.01688265
+      }
+    },
+    {
+      "attempt": "2b7537f946474f2aada163387cf8a47f",
+      "resources": {
+        "pid": 73948,
+        "startedUtc": "2026-11-12T18:45:16.4588958Z",
+        "sampledUtc": "2026-11-12T18:53:31.2663132Z",
+        "elapsedMillis": 494807,
+        "cpuSeconds": 287.40625,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4680224768,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "2b7537f946474f2aada163387cf8a47f",
+        "finishedUtc": "2026-11-12T18:53:31.2833244Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T18:53:31.2052896Z",
+        "pid": 73948,
+        "created": 134389827164588958,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "2b7537f946474f2aada163387cf8a47f",
+        "kind": "Native",
+        "commandHash": "jTuEeXbtWy41kdlUpUvZcIFxl2k4goX+2caknQImbm8=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "01428367E9FC6A9C04A290C9ACEF0616854064D5FB84B10586F74D8704B1C3D6",
+        "attemptId": "2b7537f946474f2aada163387cf8a47f"
+      },
+      "batchCompleteSha256": "1b2dcee19cf4d3105c49693c15646ca8a9f8449c6e67ef5509d81df79a00d158",
+      "failed": null,
+      "timing": "snapshotNanos={n:32,p50:661000,p95:2239400,p99:8741800,max:8741800} encodeNanos={n:32,p50:1519500,p95:2060800,p99:6510000,max:6510000} scoreNanos={n:32,p50:35300,p95:112400,p99:121400,max:121400} totalNanos={n:36,p50:2328700,p95:9157500,p99:13890600,max:13890600} dispatchNanos={n:4,p50:7518000,p95:13380600,p99:13380600,max:13380600} cpuNanos={n:36,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:36,p50:95912,p95:221224,p99:1165096,max:1165096}\n",
+      "diagnostics": {
+        "counters": {
+          "BUDGET_5MS": 2,
+          "COOLDOWN_OR_ACTOR_CAP": 247,
+          "DAMAGE_STOCK": 28,
+          "HEAL_OFFER_COUNT": 583,
+          "HEAL_STOCK": 4,
+          "SHADOW": 32
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2159,
+            "target": 268491606
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2168,
+            "target": 268495510
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2165,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2165,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2165,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2165,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2165,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2165,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2167,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2168,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.023056567
+      }
+    },
+    {
+      "attempt": "fdabc1c3f80a48eabc020a4e801103fc",
+      "resources": {
+        "pid": 80652,
+        "startedUtc": "2026-11-12T19:23:18.2603877Z",
+        "sampledUtc": "2026-11-12T19:24:11.7993117Z",
+        "elapsedMillis": 53539,
+        "cpuSeconds": 135.578125,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4622036992,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "fdabc1c3f80a48eabc020a4e801103fc",
+        "finishedUtc": "2026-11-12T19:24:11.8083082Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T19:24:11.7583059Z",
+        "pid": 80652,
+        "created": 134389849982603877,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "fdabc1c3f80a48eabc020a4e801103fc",
+        "kind": "Native",
+        "commandHash": "LRktBfzkRcjVILoxzuy1phhrLOw9BcN6bMqVogOEBk4=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "A118DF438C295F3341F42C5D1FC8C66C23D58C94FFC42C664B413EADB080F313",
+        "attemptId": "fdabc1c3f80a48eabc020a4e801103fc"
+      },
+      "batchCompleteSha256": null,
+      "failed": "IllegalStateException: Stock side observer model unavailable",
+      "timing": null,
+      "diagnostics": null
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "resources": {
+        "pid": 66064,
+        "startedUtc": "2026-11-12T20:17:29.5921829Z",
+        "sampledUtc": "2026-11-12T20:21:58.4326834Z",
+        "elapsedMillis": 268841,
+        "cpuSeconds": 241.875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4688711680,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "17f02943986447e4bd2f3049c980d215",
+        "finishedUtc": "2026-11-12T20:21:58.4426834Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T20:21:58.4136816Z",
+        "pid": 66064,
+        "created": 134389882495921829,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "17f02943986447e4bd2f3049c980d215",
+        "kind": "Native",
+        "commandHash": "BEnCpTRj8bm4iyM+5RHmSKtXKQ9ZBYH3BlqnN9wNdiY=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "71160AE9CC8D6784DF7EAE90F114F290F2666BCF7FBD208E7BB973C096D88C2B",
+        "attemptId": "17f02943986447e4bd2f3049c980d215"
+      },
+      "batchCompleteSha256": "50961191e8c0b5687a0d2e83ba7760c1cdb6d0331986e9fc2c2166a99a9c909e",
+      "failed": null,
+      "timing": null,
+      "diagnostics": null
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "resources": {
+        "pid": 52340,
+        "startedUtc": "2026-11-12T19:48:38.9725898Z",
+        "sampledUtc": "2026-11-12T19:53:10.5424583Z",
+        "elapsedMillis": 271570,
+        "cpuSeconds": 255.171875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4699561984,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "6af75e47249042139c98e48fa13c38ac",
+        "finishedUtc": "2026-11-12T19:53:10.5514636Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T19:53:10.5204552Z",
+        "pid": 52340,
+        "created": 134389865189725898,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "6af75e47249042139c98e48fa13c38ac",
+        "kind": "Native",
+        "commandHash": "6eXpdq3vfo36br/0B0KNi3X3I8UL7lSD3P9IxdnzvBI=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "2AFB643FE2CB738BC1F4F62376E23F44659599999AFB630C0EB398A822FC7EE1",
+        "attemptId": "6af75e47249042139c98e48fa13c38ac"
+      },
+      "batchCompleteSha256": "50961191e8c0b5687a0d2e83ba7760c1cdb6d0331986e9fc2c2166a99a9c909e",
+      "failed": null,
+      "timing": null,
+      "diagnostics": null
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "resources": {
+        "pid": 87856,
+        "startedUtc": "2026-11-12T20:07:35.8639497Z",
+        "sampledUtc": "2026-11-12T20:15:42.6787845Z",
+        "elapsedMillis": 486815,
+        "cpuSeconds": 328.140625,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4694777856,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "6c17e7995f0a459285b8acd142f5a2ee",
+        "finishedUtc": "2026-11-12T20:15:42.6878028Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T20:15:42.6597871Z",
+        "pid": 87856,
+        "created": 134389876558639497,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "6c17e7995f0a459285b8acd142f5a2ee",
+        "kind": "Native",
+        "commandHash": "JYHSY6wdA8AunYrez02ytQK41Uz7iSXIiicV1xk9BlI=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "DF9802431FA9D05008F09D902FD99D8DA1D9A6F60920F4B18A28195AE1D9A863",
+        "attemptId": "6c17e7995f0a459285b8acd142f5a2ee"
+      },
+      "batchCompleteSha256": "50961191e8c0b5687a0d2e83ba7760c1cdb6d0331986e9fc2c2166a99a9c909e",
+      "failed": null,
+      "timing": null,
+      "diagnostics": null
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "resources": {
+        "pid": 49656,
+        "startedUtc": "2026-11-12T20:00:20.4729106Z",
+        "sampledUtc": "2026-11-12T20:04:27.1549159Z",
+        "elapsedMillis": 246682,
+        "cpuSeconds": 243.546875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4689821696,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+        "finishedUtc": "2026-11-12T20:04:27.1629191Z"
+      },
+      "exit": {
+        "schemaVersion": 1,
+        "proof": "OWN_HELD_HANDLE_EXIT",
+        "installationOwner": "LEARNING002:c1c93fc739ab4769b580273520396403",
+        "exitCode": 0,
+        "finishedUtc": "2026-11-12T20:04:27.1389156Z",
+        "pid": 49656,
+        "created": 134389872204729106,
+        "image": "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+        "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+        "sid": "S-1-5-21-3222746358-2785023148-68084639-1001",
+        "nonce": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+        "kind": "Native",
+        "commandHash": "YkIGjHNZI1XKJL8gmkZ1F/PJCB4LAt9EYhCQ+1E0qbI=",
+        "configPath": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\TRAIN_CONFIG.ini",
+        "configHash": "DF9802431FA9D05008F09D902FD99D8DA1D9A6F60920F4B18A28195AE1D9A863",
+        "attemptId": "8aadc85f9cea41c5b07dd3d3271b5dfb"
+      },
+      "batchCompleteSha256": "50961191e8c0b5687a0d2e83ba7760c1cdb6d0331986e9fc2c2166a99a9c909e",
+      "failed": null,
+      "timing": null,
+      "diagnostics": null
+    }
+  ],
+  "nativeWallSeconds": 2028.929,
+  "nativeCpuSeconds": 1702.125,
+  "peakWorkingSetBytes": 4699561984,
+  "scope": "Actual owned native process resources include full GameServer; scorer timings are separate",
+  "policyTimings": [
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=285700, p95Nanos=355100, p99Nanos=355100, maxNanos=355100]\nv3=snapshotNanos={n:1,p50:1240700,p95:1240700,p99:1240700,max:1240700} encodeNanos={n:1,p50:1584000,p95:1584000,p99:1584000,max:1584000} scoreNanos={n:1,p50:42600,p95:42600,p99:42600,max:42600} totalNanos={n:4,p50:26400,p95:3892900,p99:3892900,max:3892900} dispatchNanos={n:1,p50:14082600,p95:14082600,p99:14082600,max:14082600} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:88,p95:220424,p99:220424,max:220424}\n",
+      "sha256": "6b22b2d291abcfcb3b4aafca3ea53f83886d705b4089bf9cf7b91d2227219a1d"
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=1, p50Nanos=401900, p95Nanos=401900, p99Nanos=401900, maxNanos=401900]\nv3=snapshotNanos={n:1,p50:876200,p95:876200,p99:876200,max:876200} encodeNanos={n:1,p50:1426000,p95:1426000,p99:1426000,max:1426000} scoreNanos={n:1,p50:34300,p95:34300,p99:34300,max:34300} totalNanos={n:4,p50:23200,p95:2732400,p99:2732400,max:2732400} dispatchNanos={n:1,p50:8613800,p95:8613800,p99:8613800,max:8613800} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:88,p95:109704,p99:109704,max:109704}\n",
+      "sha256": "5c390cde4c20199180777f1692990acb4ea2621f6cdd8b299996608fc5a03971"
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=5, p50Nanos=2957100, p95Nanos=20297700, p99Nanos=20297700, maxNanos=20297700]\nv3=snapshotNanos={n:5,p50:1088600,p95:9861700,p99:9861700,max:9861700} encodeNanos={n:5,p50:1522700,p95:1904500,p99:1904500,max:1904500} scoreNanos={n:5,p50:41300,p95:88000,p99:88000,max:88000} totalNanos={n:5,p50:2634100,p95:15916500,p99:15916500,max:15916500} dispatchNanos={n:0} cpuNanos={n:5,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:5,p50:92312,p95:1099912,p99:1099912,max:1099912}\n",
+      "sha256": "87b52ef2f7dfdc392fd1d1106865ed4230a5337ea365bc2a5c4eb6787141d87e"
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=2837800, p95Nanos=22931700, p99Nanos=22931700, maxNanos=22931700]\nv3=snapshotNanos={n:3,p50:966900,p95:6134700,p99:6134700,max:6134700} encodeNanos={n:3,p50:1518500,p95:15781000,p99:15781000,max:15781000} scoreNanos={n:3,p50:53300,p95:70500,p99:70500,max:70500} totalNanos={n:3,p50:2652200,p95:22758900,p99:22758900,max:22758900} dispatchNanos={n:0} cpuNanos={n:3,p50:0,p95:31250000,p99:31250000,max:31250000} allocatedBytes={n:3,p50:92400,p95:92432,p99:92432,max:92432}\n",
+      "sha256": "5c1f0577801ff4b1da685932bcc7010304f8a4210da48e1a94679b7963161ac5"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=0, p50Nanos=0, p95Nanos=0, p99Nanos=0, maxNanos=0]\nv3=snapshotNanos={n:1,p50:1329800,p95:1329800,p99:1329800,max:1329800} encodeNanos={n:1,p50:1528200,p95:1528200,p99:1528200,max:1528200} scoreNanos={n:1,p50:37800,p95:37800,p99:37800,max:37800} totalNanos={n:4,p50:30800,p95:3918600,p99:3918600,max:3918600} dispatchNanos={n:1,p50:9800500,p95:9800500,p99:9800500,max:9800500} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:88,p95:219784,p99:219784,max:219784}\n",
+      "sha256": "294600e960bdbca8fcdbcfccfecbd881d183869befe64f0788ce1425d659622d"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=0, p50Nanos=0, p95Nanos=0, p99Nanos=0, maxNanos=0]\nv3=snapshotNanos={n:1,p50:1087000,p95:1087000,p99:1087000,max:1087000} encodeNanos={n:1,p50:1628700,p95:1628700,p99:1628700,max:1628700} scoreNanos={n:1,p50:35800,p95:35800,p99:35800,max:35800} totalNanos={n:4,p50:25800,p95:3094300,p99:3094300,max:3094300} dispatchNanos={n:1,p50:6807800,p95:6807800,p99:6807800,max:6807800} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:88,p95:109368,p99:109368,max:109368}\n",
+      "sha256": "fb9bb70f88b68660c6491d9e7bf3e503d06f2fb0442f7d43b96e8fff018df704"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=4, p50Nanos=3263500, p95Nanos=15061300, p99Nanos=15061300, maxNanos=15061300]\nv3=snapshotNanos={n:4,p50:1287400,p95:7788200,p99:7788200,max:7788200} encodeNanos={n:4,p50:1573600,p95:1714300,p99:1714300,max:1714300} scoreNanos={n:4,p50:49200,p95:72300,p99:72300,max:72300} totalNanos={n:4,p50:3056400,p95:12073200,p99:12073200,max:12073200} dispatchNanos={n:0} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:95088,p95:1103968,p99:1103968,max:1103968}\n",
+      "sha256": "d8e8b1bfbfb9de33389fdeb8b309c4c465d629112c76ac6c2fc887abda1358f5"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=3366700, p95Nanos=4248300, p99Nanos=4248300, maxNanos=4248300]\nv3=snapshotNanos={n:2,p50:1058900,p95:1180200,p99:1180200,max:1180200} encodeNanos={n:2,p50:1857300,p95:2451500,p99:2451500,max:2451500} scoreNanos={n:2,p50:53300,p95:80900,p99:80900,max:80900} totalNanos={n:2,p50:3124200,p95:3949400,p99:3949400,max:3949400} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:101056,p95:101368,p99:101368,max:101368}\n",
+      "sha256": "321d0024cfd111700c4bfe8631fabc1849bdadad3b3a3cccdc3535f334f15f30"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-1-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=1, p50Nanos=404400, p95Nanos=404400, p99Nanos=404400, maxNanos=404400]\nv3=snapshotNanos={n:1,p50:961900,p95:961900,p99:961900,max:961900} encodeNanos={n:1,p50:1449400,p95:1449400,p99:1449400,max:1449400} scoreNanos={n:1,p50:43600,p95:43600,p99:43600,max:43600} totalNanos={n:2,p50:22100,p95:2820700,p99:2820700,max:2820700} dispatchNanos={n:1,p50:6586300,p95:6586300,p99:6586300,max:6586300} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:109368,p99:109368,max:109368}\n",
+      "sha256": "aef7ea69c25319935a0b7da3b7b414b4a37741e905222d4ce4c602552c1d41f8"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-1-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=220900, p95Nanos=476600, p99Nanos=476600, maxNanos=476600]\nv3=snapshotNanos={n:1,p50:971800,p95:971800,p99:971800,max:971800} encodeNanos={n:1,p50:1289000,p95:1289000,p99:1289000,max:1289000} scoreNanos={n:1,p50:14300,p95:14300,p99:14300,max:14300} totalNanos={n:2,p50:24500,p95:3096500,p99:3096500,max:3096500} dispatchNanos={n:1,p50:9127000,p95:9127000,p99:9127000,max:9127000} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:219896,p99:219896,max:219896}\n",
+      "sha256": "600b12172eceb86c9de1e85585c9ccdbe7de5f0fbe0ebc47a686dfb5c6ff97f4"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-2-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=267200, p95Nanos=319100, p99Nanos=319100, maxNanos=319100]\nv3=snapshotNanos={n:1,p50:1116200,p95:1116200,p99:1116200,max:1116200} encodeNanos={n:1,p50:1551600,p95:1551600,p99:1551600,max:1551600} scoreNanos={n:1,p50:21900,p95:21900,p99:21900,max:21900} totalNanos={n:2,p50:31800,p95:2849400,p99:2849400,max:2849400} dispatchNanos={n:1,p50:8744800,p95:8744800,p99:8744800,max:8744800} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:109368,p99:109368,max:109368}\n",
+      "sha256": "3ee20094fcac810ba2fe1a06df5689355d3cb745e8ddf8367d90627e4d61b54f"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-2-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=289400, p95Nanos=309500, p99Nanos=309500, maxNanos=309500]\nv3=snapshotNanos={n:1,p50:963200,p95:963200,p99:963200,max:963200} encodeNanos={n:1,p50:1527600,p95:1527600,p99:1527600,max:1527600} scoreNanos={n:1,p50:23400,p95:23400,p99:23400,max:23400} totalNanos={n:2,p50:38500,p95:2640600,p99:2640600,max:2640600} dispatchNanos={n:1,p50:9137200,p95:9137200,p99:9137200,max:9137200} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:109368,p99:109368,max:109368}\n",
+      "sha256": "f040883ac9699f81587ba45521880605d1d37ea62a421d21212e7a069386fb87"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-3-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=247800, p95Nanos=4363700, p99Nanos=4363700, maxNanos=4363700]\nv3=snapshotNanos={n:1,p50:2693700,p95:2693700,p99:2693700,max:2693700} encodeNanos={n:1,p50:1689000,p95:1689000,p99:1689000,max:1689000} scoreNanos={n:1,p50:21500,p95:21500,p99:21500,max:21500} totalNanos={n:2,p50:32100,p95:4556800,p99:4556800,max:4556800} dispatchNanos={n:1,p50:7089700,p95:7089700,p99:7089700,max:7089700} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:109432,p99:109432,max:109432}\n",
+      "sha256": "d726f4000aeb6289ff9fb26ba1f20a86e00864dee10b034aeba82e3af3be26f7"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-3-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=309600, p95Nanos=366800, p99Nanos=366800, maxNanos=366800]\nv3=snapshotNanos={n:1,p50:728100,p95:728100,p99:728100,max:728100} encodeNanos={n:1,p50:1371300,p95:1371300,p99:1371300,max:1371300} scoreNanos={n:1,p50:14200,p95:14200,p99:14200,max:14200} totalNanos={n:2,p50:25800,p95:2207600,p99:2207600,max:2207600} dispatchNanos={n:1,p50:8973800,p95:8973800,p99:8973800,max:8973800} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:88,p95:109368,p99:109368,max:109368}\n",
+      "sha256": "a4718c6e3cc11043fd4bc50b6c1816c8e6ecc6e9d0a0bc35549ed2ae9bdead9d"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-1-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=4, p50Nanos=3297300, p95Nanos=3634300, p99Nanos=3634300, maxNanos=3634300]\nv3=snapshotNanos={n:4,p50:1054400,p95:1297400,p99:1297400,max:1297400} encodeNanos={n:4,p50:1661100,p95:1963200,p99:1963200,max:1963200} scoreNanos={n:4,p50:45200,p95:64100,p99:64100,max:64100} totalNanos={n:4,p50:3090500,p95:3401200,p99:3401200,max:3401200} dispatchNanos={n:0} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:93968,p95:96440,p99:96440,max:96440}\n",
+      "sha256": "621ca20c9d6d47fc9812f1b553ef1d1489b78d91005ff78e4fef2e166d2ee192"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-1-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=2855700, p95Nanos=14007300, p99Nanos=14007300, maxNanos=14007300]\nv3=snapshotNanos={n:3,p50:953700,p95:6389400,p99:6389400,max:6389400} encodeNanos={n:3,p50:1455500,p95:1517700,p99:1517700,max:1517700} scoreNanos={n:3,p50:41800,p95:74200,p99:74200,max:74200} totalNanos={n:3,p50:2575800,p95:10750800,p99:10750800,max:10750800} dispatchNanos={n:0} cpuNanos={n:3,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:3,p50:93608,p95:1097536,p99:1097536,max:1097536}\n",
+      "sha256": "720af0918dd8bad90f457b2caa5ac89434a538bbcf3391a9a4719aa41984d12d"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-2-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=2602700, p95Nanos=2680600, p99Nanos=2680600, maxNanos=2680600]\nv3=snapshotNanos={n:3,p50:739000,p95:741300,p99:741300,max:741300} encodeNanos={n:3,p50:1444700,p95:1480800,p99:1480800,max:1480800} scoreNanos={n:3,p50:42100,p95:67500,p99:67500,max:67500} totalNanos={n:3,p50:2365000,p95:2439300,p99:2439300,max:2439300} dispatchNanos={n:0} cpuNanos={n:3,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:3,p50:92176,p95:94272,p99:94272,max:94272}\n",
+      "sha256": "bd236d00cd0b62a6096c4dd15e0475d1a8180e51cf4291b594e4eaf8047738d8"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-2-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=2915500, p95Nanos=3008500, p99Nanos=3008500, maxNanos=3008500]\nv3=snapshotNanos={n:2,p50:599900,p95:915400,p99:915400,max:915400} encodeNanos={n:2,p50:1567100,p95:2005600,p99:2005600,max:2005600} scoreNanos={n:2,p50:19700,p95:42500,p99:42500,max:42500} totalNanos={n:2,p50:2698100,p95:2747000,p99:2747000,max:2747000} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:91408,p95:94152,p99:94152,max:94152}\n",
+      "sha256": "9e167f9b14a2ef182bb7365deedd508d42d6ff94fd0a756d0678124c00c2f39a"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-3-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=2059300, p95Nanos=2432800, p99Nanos=2432800, maxNanos=2432800]\nv3=snapshotNanos={n:2,p50:450300,p95:632700,p99:632700,max:632700} encodeNanos={n:2,p50:1279700,p95:1410700,p99:1410700,max:1410700} scoreNanos={n:2,p50:26400,p95:28300,p99:28300,max:28300} totalNanos={n:2,p50:1902400,p95:2197600,p99:2197600,max:2197600} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:2,p50:92616,p95:92928,p99:92928,max:92928}\n",
+      "sha256": "98dc2d655575e9e62fb4bf49c52b0fabf2fb0737dd7d96623f4436b96d6af4d8"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-3-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=2, p50Nanos=2126500, p95Nanos=2450800, p99Nanos=2450800, maxNanos=2450800]\nv3=snapshotNanos={n:2,p50:493600,p95:727200,p99:727200,max:727200} encodeNanos={n:2,p50:1351700,p95:1355600,p99:1355600,max:1355600} scoreNanos={n:2,p50:15400,p95:16300,p99:16300,max:16300} totalNanos={n:2,p50:1965600,p95:2228100,p99:2228100,max:2228100} dispatchNanos={n:0} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:92616,p95:92928,p99:92928,max:92928}\n",
+      "sha256": "09fd525b61c2a86f1512e6a9ba78e9bcf350ed7c8237a3dfbd98e41ccb20a86f"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=310800, p95Nanos=432100, p99Nanos=432100, maxNanos=432100]\nv3=snapshotNanos={n:1,p50:1674900,p95:1674900,p99:1674900,max:1674900} encodeNanos={n:1,p50:1638000,p95:1638000,p99:1638000,max:1638000} scoreNanos={n:1,p50:18500,p95:18500,p99:18500,max:18500} totalNanos={n:4,p50:27900,p95:4428200,p99:4428200,max:4428200} dispatchNanos={n:1,p50:9921200,p95:9921200,p99:9921200,max:9921200} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:88,p95:219784,p99:219784,max:219784}\n",
+      "sha256": "9429ccb4f3d96f300abb9fb6bb11f127b7080cc0f281b3292be310067793576d"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=303000, p95Nanos=432100, p99Nanos=432100, maxNanos=432100]\nv3=snapshotNanos={n:1,p50:784300,p95:784300,p99:784300,max:784300} encodeNanos={n:1,p50:1233700,p95:1233700,p99:1233700,max:1233700} scoreNanos={n:1,p50:28400,p95:28400,p99:28400,max:28400} totalNanos={n:4,p50:24800,p95:2352300,p99:2352300,max:2352300} dispatchNanos={n:1,p50:25611400,p95:25611400,p99:25611400,max:25611400} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:88,p95:109368,p99:109368,max:109368}\n",
+      "sha256": "cb3f290728e0abc275579df1f06e5bac6369f692b56f551801687b43cf38e22d"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/policy-timing.txt",
+      "text": "v1=TimingSummary[count=4, p50Nanos=2908900, p95Nanos=15973600, p99Nanos=15973600, maxNanos=15973600]\nv3=snapshotNanos={n:4,p50:1091700,p95:6816400,p99:6816400,max:6816400} encodeNanos={n:4,p50:1410600,p95:1867300,p99:1867300,max:1867300} scoreNanos={n:4,p50:55600,p95:84400,p99:84400,max:84400} totalNanos={n:4,p50:2731400,p95:11808600,p99:11808600,max:11808600} dispatchNanos={n:0} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:92088,p95:1094776,p99:1094776,max:1094776}\n",
+      "sha256": "8edc51fe64ba8e8dd593f50fc9ee27ddbe1a722972099947ad2c7c7cf5e4181d"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-STOCK/policy-timing.txt",
+      "text": "v1=TimingSummary[count=3, p50Nanos=2229500, p95Nanos=3518800, p99Nanos=3518800, maxNanos=3518800]\nv3=snapshotNanos={n:3,p50:724900,p95:1218500,p99:1218500,max:1218500} encodeNanos={n:3,p50:1240400,p95:1837600,p99:1837600,max:1837600} scoreNanos={n:3,p50:14100,p95:38500,p99:38500,max:38500} totalNanos={n:3,p50:2079900,p95:3287900,p99:3287900,max:3287900} dispatchNanos={n:0} cpuNanos={n:3,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:3,p50:91096,p95:91632,p99:91632,max:91632}\n",
+      "sha256": "eb388eeb251671b5a8d418bbe9ed5aadad7ea903383fecf44179c4e192f362af"
+    }
+  ],
+  "policyDiagnostics": [
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 109,
+          "HEAL_OFFER_COUNT": 104,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2323,
+            "target": 268498066
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2320,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2323,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2322,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.015597165
+      },
+      "sha256": "20314df3903519ec3c6ac27df43ebaa19b08c58c0a9f2be08afcf91cd32abce1"
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 113,
+          "HEAL_OFFER_COUNT": 129,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2328,
+            "target": 268503937
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2327,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2325,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2328,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.015597105
+      },
+      "sha256": "151ed1ef30b69d5c8227f43ea50646849def959e39571d70bc9b03f9f349ab23"
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "BUDGET_5MS": 1,
+          "DAMAGE_STOCK": 5,
+          "SHADOW": 5
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2309,
+            "target": 268491039
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2309,
+            "target": 268491039
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.007345736
+      },
+      "sha256": "801faa31606caae9de4380d7d0a7a6ac3525699666d28e740ed226e34af1563d"
+    },
+    {
+      "attempt": "17f02943986447e4bd2f3049c980d215",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "BUDGET_5MS": 1,
+          "DAMAGE_STOCK": 3,
+          "SHADOW": 3
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2314,
+            "target": 268496879
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2314,
+            "target": 268496879
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2314,
+            "target": 268496879
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2314,
+            "target": 268496879
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2314,
+            "target": 268496879
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2314,
+            "target": 268496879
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2314,
+            "target": 268496879
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0073634386
+      },
+      "sha256": "264373bee8686cabaa6acec9a3b7e5fffa14c97d0198e8d726349d87da107ea6"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 101,
+          "HEAL_OFFER_COUNT": 120,
+          "HEAL_STOCK": 1,
+          "MARGIN": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2223,
+            "target": 268497230
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2222,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2220,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2223,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.015597284
+      },
+      "sha256": "16e27e7f77e8e3e41a3cf0339c89a2e70e8e4c81aaeaccac0eb536b05c09290c"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 115,
+          "HEAL_OFFER_COUNT": 129,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2228,
+            "target": 268502723
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2228,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2227,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2225,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.015597224
+      },
+      "sha256": "9e44a6699f486499a3d488c766e606f6a451119c949257aa5ac9a5a7f0ac5149"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "BUDGET_5MS": 1,
+          "DAMAGE_STOCK": 4,
+          "MARGIN": 4
+        },
+        "samples": [
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2209,
+            "target": 268490645
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2209,
+            "target": 268490645
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0074299574
+      },
+      "sha256": "46704341f268d7ff0d8df906fd4131835fe7c9dda2fec9c9e694274917282977"
+    },
+    {
+      "attempt": "6af75e47249042139c98e48fa13c38ac",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 2,
+          "SHADOW": 2
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2214,
+            "target": 268496108
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2214,
+            "target": 268496108
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2214,
+            "target": 268496108
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2214,
+            "target": 268496108
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.007830858
+      },
+      "sha256": "20d5c02bd03aad36c7e181873e19d9aec368be6c6bf67008c202d208cef34509"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-1-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 57,
+          "HEAL_OFFER_COUNT": 133,
+          "HEAL_STOCK": 1,
+          "MARGIN": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2288,
+            "target": 268529395
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2285,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2287,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2288,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0035577416
+      },
+      "sha256": "420dd1ba083b929b41420678d0f49c3ac730aa2eaf01f4946f766d4000df6c4e"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-1-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 65,
+          "HEAL_OFFER_COUNT": 56,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2283,
+            "target": 268523705
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2283,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2280,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2282,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0035577416
+      },
+      "sha256": "d494c5ee158d241e4c42f0985897776d5c8d703360eae075fd6674d1abc88125"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-2-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 57,
+          "HEAL_OFFER_COUNT": 129,
+          "HEAL_STOCK": 1,
+          "MARGIN": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2293,
+            "target": 268532617
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2292,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2290,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2293,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.01103121
+      },
+      "sha256": "cf311213fab167e97b3f2086cae3866afa945025ee30c8c8f8b5ef2de13b6da9"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-2-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 54,
+          "HEAL_OFFER_COUNT": 50,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2298,
+            "target": 268537991
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2298,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2297,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2295,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.01103121
+      },
+      "sha256": "34ad789ee1ebe0ba5523fc961ac088c0599a5ce3d73e9c00cbfa306739707913"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-3-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 59,
+          "HEAL_OFFER_COUNT": 133,
+          "HEAL_STOCK": 1,
+          "MARGIN": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2308,
+            "target": 268551154
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2305,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2307,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2308,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.006493211
+      },
+      "sha256": "9aee4e97d3529fe0872933cc036355b7d854275e723a03d39879ac4e996083b8"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/PARTY_HEAL_V3-3-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 55,
+          "HEAL_OFFER_COUNT": 129,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2303,
+            "target": 268545656
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2303,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2300,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2302,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.006493211
+      },
+      "sha256": "b64173147cc678333c9d6b91a9c5f4c359dc7c2f62e14f138b8967c77928512a"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-1-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 4,
+          "MARGIN": 4
+        },
+        "samples": [
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2254,
+            "target": 268497311
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2254,
+            "target": 268497311
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0072920322
+      },
+      "sha256": "14b37e635fea1cb2bb5d9a78fe29d3ae4b0e78cd010da569030eb3886a0ca7f8"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-1-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "BUDGET_5MS": 1,
+          "DAMAGE_STOCK": 3,
+          "SHADOW": 3
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2249,
+            "target": 268491246
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2249,
+            "target": 268491246
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2249,
+            "target": 268491246
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2249,
+            "target": 268491246
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2249,
+            "target": 268491246
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2249,
+            "target": 268491246
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2249,
+            "target": 268491246
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.007784009
+      },
+      "sha256": "202afc46d28bdcb9f04db0bbdb45f19023c046b05c6531a411e842cbac36e369"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-2-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 3,
+          "MARGIN": 3
+        },
+        "samples": [
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2259,
+            "target": 268503036
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2259,
+            "target": 268503036
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2259,
+            "target": 268503036
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2259,
+            "target": 268503036
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2259,
+            "target": 268503036
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2259,
+            "target": 268503036
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0073311925
+      },
+      "sha256": "4f5d1f76c3295a5689e570f81722652c1afa63931fd794f028ef1faf15583956"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-2-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 2,
+          "SHADOW": 2
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2264,
+            "target": 268508696
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2264,
+            "target": 268508696
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2264,
+            "target": 268508696
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2264,
+            "target": 268508696
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0073048472
+      },
+      "sha256": "4305b13caebaf8194ca896e60cbc2dcb9ce84ff96649c73cd7e250d4c95c16d1"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-3-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 2,
+          "MARGIN": 2
+        },
+        "samples": [
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2274,
+            "target": 268520111
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2274,
+            "target": 268520111
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2274,
+            "target": 268520111
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2274,
+            "target": 268520111
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.007825077
+      },
+      "sha256": "38bc60b5ffb0f2bcc666cd1140aa1af4d750cf0570c1f24292a770615f3b7a9d"
+    },
+    {
+      "attempt": "6c17e7995f0a459285b8acd142f5a2ee",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-3-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 2,
+          "SHADOW": 2
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2269,
+            "target": 268514411
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2269,
+            "target": 268514411
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2269,
+            "target": 268514411
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2269,
+            "target": 268514411
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.007800162
+      },
+      "sha256": "c619e259ff849881464bd6aa40be86a0e3e710c774dc986e5f8a232ebe39cec4"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 107,
+          "HEAL_OFFER_COUNT": 130,
+          "HEAL_STOCK": 1,
+          "MARGIN": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2243,
+            "target": 268497495
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2242,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2240,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2243,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.015597224
+      },
+      "sha256": "c02f038f7bb95fcd15a385072ae62d0c7b014ec5248e9bc2fdf831a092fd6c03"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/PARTY_HEAL_V3-0-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "COOLDOWN_OR_ACTOR_CAP": 119,
+          "HEAL_OFFER_COUNT": 130,
+          "HEAL_STOCK": 1,
+          "SHADOW": 1
+        },
+        "samples": [
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_STOCK",
+            "actorProfile": 2248,
+            "target": 268503135
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2247,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2247,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2247,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2247,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2247,
+            "target": 0
+          },
+          {
+            "reason": "HEAL_OFFER_COUNT",
+            "actorProfile": 2245,
+            "target": 0
+          },
+          {
+            "reason": "COOLDOWN_OR_ACTOR_CAP",
+            "actorProfile": 2248,
+            "target": 0
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.015597105
+      },
+      "sha256": "0f9f4b3ac85f18b007a50caa0f193efa9035bf0e28a789dcc14857ba11d960f7"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "BUDGET_5MS": 1,
+          "DAMAGE_STOCK": 4,
+          "MARGIN": 4
+        },
+        "samples": [
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "BUDGET_5MS",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "MARGIN",
+            "actorProfile": 2229,
+            "target": 268490800
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2229,
+            "target": 268490800
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.0073078275
+      },
+      "sha256": "b25a959e9bd91d4f818b99c4d07314c6afb4e2184fa5ed229dc3209e82bce78b"
+    },
+    {
+      "attempt": "8aadc85f9cea41c5b07dd3d3271b5dfb",
+      "path": "evaluation006r1/SOLO_DAMAGE_V3-0-STOCK/policy-diagnostics.json",
+      "receipt": {
+        "counters": {
+          "DAMAGE_STOCK": 3,
+          "SHADOW": 3
+        },
+        "samples": [
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2234,
+            "target": 268496370
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2234,
+            "target": 268496370
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2234,
+            "target": 268496370
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2234,
+            "target": 268496370
+          },
+          {
+            "reason": "SHADOW",
+            "actorProfile": 2234,
+            "target": 268496370
+          },
+          {
+            "reason": "DAMAGE_STOCK",
+            "actorProfile": 2234,
+            "target": 268496370
+          }
+        ],
+        "sampleLimit": 64,
+        "lastMargin": 0.007363677
+      },
+      "sha256": "da4525324d4449c2cb0bc7c46d8d8d67b8fd3cd13f04a4cbfb72af216df3659b"
+    }
+  ]
+}

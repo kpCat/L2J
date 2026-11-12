@@ -664,6 +664,21 @@ public final class TacticalStoreV3
         { while (found.next()) { result.add(found.getString(1)); } }
         return Set.copyOf(result);
     }
+    public Set<String> recordedSceneIds() throws SQLException
+    {
+        final var result=new HashSet<String>();
+        try(var connection=_guard.openTacticalConnection();var query=connection.createStatement();var rows=query.executeQuery("SELECT receipt_blob,receipt_sha FROM phantom_tactical_v3_events"))
+        {
+            while(rows.next())
+            {
+                final byte[] bytes=rows.getBytes(1);
+                if(!hashBytes(bytes).equals(rows.getString(2))){throw new IllegalArgumentException("Historical scene receipt changed");}
+                final var match=java.util.regex.Pattern.compile("(?:^|\\|)scene=([a-f0-9]{64})(?:\\||$)").matcher(decode(bytes).contextKey());
+                if(match.find()){result.add(match.group(1));}
+            }
+        }
+        return Set.copyOf(result);
+    }
     public List<Row> examples() throws SQLException { return dataset(); }
     public List<Row> dataset() throws SQLException
     { try (var connection = _guard.openTacticalConnection()) { return replay(connection, Set.of(), "").rows(); } }

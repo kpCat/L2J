@@ -39,6 +39,11 @@ public final class PhantomLearning005Native
 	private static TrainingConfig configuration(Path root) throws Exception
 	{
 		final var config=TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini"));
+		if(outcomeEvaluation(config))
+		{
+			if(!config.text("outcome006Enabled","false").equals("true")||!config.text("learningMode","").equals("SHADOW")||config.longValue("modelVersion",0,0,Long.MAX_VALUE)!=0){throw new IllegalArgumentException("Explicit TEST006R1 evaluation opt-in required");}
+			draftAuthority(config);return config;
+		}
 		if(!config.text("evaluation005Enabled","false").equals("true")||!config.text("configProfile","").equals("EVAL005")||!config.text("evaluation005Mode","").equals("ACCEPTED_ONLY")
 			||config.text("v3Core004","false").equals("true")||!config.text("learningMode","SHADOW").equals("SHADOW")||config.longValue("modelVersion",0,0,Long.MAX_VALUE)!=0)
 		{throw new IllegalArgumentException("Explicit EVAL005 profile required; training/auto ON forbidden");}
@@ -54,7 +59,30 @@ public final class PhantomLearning005Native
 		return config;
 	}
 	private static String jarSha(Path root) throws Exception{return NeuralPolicy.sha256(Files.readAllBytes(root.resolve("game/libs/GameServer.jar")));}
-	private static Path directory(Path root,TrainingConfig c){return root.resolve("evaluation005").resolve(c.text("evaluation005Campaign",""));}
+	static boolean outcomeEvaluation(TrainingConfig c)
+	{return c.text("configProfile","").equals("OUTCOME006")&&c.text("outcome006Campaign","").equals("learning006r1")&&Set.of("PROOF","EVALUATE","CONTROL").contains(c.text("outcome006Phase",""));}
+	private static DraftAuthority draftAuthority(TrainingConfig c)
+	{return new DraftAuthority(c.longValue("outcome006DraftId",0,9,Long.MAX_VALUE),c.text("outcome006DraftSha",""),c.text("outcome006TerminalDatasetSha",""),c.text("outcome006OptimizerSha",""),c.text("outcome006RunId",""));}
+	private static Pin draftPin(TrainingConfig c,Mode mode)
+	{final var a=draftAuthority(c);return new Pin(mode,a.modelId(),"DRAFT",a.modelSha(),TacticalObservationV3.SCHEMA,3,a);}
+	private static TacticalStoreV3.Checkpoint verifiedDraft(Path root,TrainingConfig c) throws Exception
+	{
+		final var pin=draftAuthority(c);final var store=new TacticalStoreV3(root);store.initialize();
+		final var model=store.candidate(pin.modelId());final var optimizer=store.optimizationParent();
+		if(model==null||!model.status().equals("DRAFT")||!model.sha().equals(pin.modelSha())||!model.runId().equals(pin.runId())
+			||optimizer.modelId()!=pin.modelId()||!optimizer.sha().equals(pin.optimizerSha())||!store.terminalSnapshot(pin.modelId()).datasetSha().equals(pin.terminalDatasetSha())
+			||!model.metrics().contains("\"objective\":\"TERMINAL_OUTCOME_V1\"")){throw new IllegalArgumentException("Frozen terminal DRAFT lineage differs from evaluation authority");}
+		return model;
+	}
+	static String evaluationName(TrainingConfig c)
+	{
+		final String phase=c.text("outcome006Phase","").toLowerCase(Locale.ROOT),name=c.text("outcome006EvaluationCampaign",phase);
+		if(!name.matches("[a-z][a-z0-9_-]{0,63}")||!name.startsWith(phase)){throw new IllegalArgumentException("Explicit phase-scoped evaluation campaign name required");}return name;
+	}
+	private static String campaign(TrainingConfig c){return outcomeEvaluation(c)?"learning006r1-"+evaluationName(c):c.text("evaluation005Campaign","");}
+	private static Path directory(Path root,TrainingConfig c){return outcomeEvaluation(c)?root.resolve("outcome006/evaluation006r1").resolve(evaluationName(c)):root.resolve("evaluation005").resolve(c.text("evaluation005Campaign",""));}
+	private static PhantomLearning005Ledger ledger(Path root,TrainingConfig c) throws Exception
+	{return new PhantomLearning005Ledger(directory(root,c),campaign(c),jarSha(root),protocol(c),outcomeEvaluation(c)?draftAuthority(c):null);}
 	private static String protocol(TrainingConfig c) throws Exception
 	{
 		final Path classes=Path.of(PhantomLearning005Native.class.getProtectionDomain().getCodeSource().getLocation().toURI()).resolve("org/l2jmobius/tests/phantoms");
@@ -69,6 +97,7 @@ public final class PhantomLearning005Native
 	}
 	private static void prepare(Path root,TrainingConfig config) throws Exception
 	{
+		if(outcomeEvaluation(config)){prepareOutcome(root,config);return;}
 		PhantomTrainingActors.settings(root);
 		final var tactical=new TacticalStoreV3(root);tactical.initialize();tactical.ensureLegacyParent();
 		final var champion=tactical.accepted(2,PhantomLearning005Evaluation.approved(Mode.PARTY_HEAL_V3).sha());
@@ -119,6 +148,7 @@ public final class PhantomLearning005Native
 	}
 	static void run(Path root,Path attempt,TrainingConfig config) throws Exception
 	{
+		if(outcomeEvaluation(config)){runOutcome(root,attempt,config);return;}
 		configuration(root);PhantomTrainingActors.settings(root);
 		final String jar=jarSha(root),before=counts();
 		final var v1=new LearningStore(DatabaseConfig.DATABASE_URL,DatabaseConfig.DATABASE_LOGIN,DatabaseConfig.DATABASE_PASSWORD,root.resolve("game")).accepted(1);
@@ -156,25 +186,108 @@ public final class PhantomLearning005Native
 		report(root,config);
 	}
 	private record Issued(int actor,long epoch,int target,long targetEpoch,int instance,String selected,String baseline,List<String> legal,long profile,long generation,long sequence) { }
+	private static void prepareOutcome(Path root,TrainingConfig c) throws Exception
+	{
+		PhantomTrainingActors.settings(root);final var model=verifiedDraft(root,c);
+		ConfigLoader.init();DatabaseFactory.initFromConfig(root.resolve("game/config/Database.ini").toString());
+		final var clone=root.getParent().getParent().getParent();
+		final var imported=Learning003DamageImport.load(root,clone.resolve("L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-002/artifacts/accepted-model-1/model-1.zip"),c);
+		final long writerDeadline=System.nanoTime()+java.time.Duration.ofSeconds(15).toNanos();
+		while(!imported.policy().stop()){if(System.nanoTime()>=writerDeadline){throw new IllegalStateException("Historical observer import writer did not drain");}Thread.sleep(100);}
+		Learning003DamageImport.verifyUnchanged(root,c);
+		try(var ledger=ledger(root,c))
+		{
+			for(var pending:ledger.pending())
+			{
+				verifyPriorExit(root,pending.nonce());final var a=pending.arm();
+				ledger.put(new Arm(a.pair(),a.side(),a.mode(),a.seed(),a.position(),a.buildSha(),a.configSha(),a.scenario(),a.facts(),a.actors(),a.target(),a.pin(),Outcome.INCOMPLETE,"OWNER_EXIT_BEFORE_SETTLEMENT",0,a.preparationMillis(),Map.of(),List.of(),List.of(),true));
+			}
+		}
+		final String admission="{\"schemaVersion\":6,\"authority\":"+draftAuthority(c).json()+",\"draftStatus\":"+PhantomLearning005Evaluation.q(model.status())+",\"acceptedOnly005Unchanged\":true,\"acceptedV1ObserverSha\":"+PhantomLearning005Evaluation.q(imported.checkpoint().model().sha256())+",\"trainingEnabled\":false}";
+		Files.writeString(directory(root,c).resolve("admission.json"),admission+"\n");System.out.println("EVAL006R1_ADMISSION "+admission);
+		report(root,c);
+	}
+	private static String trainingState(Path root) throws Exception
+	{
+		final var parent=new TacticalStoreV3(root).optimizationParent();
+		try(var connection=DatabaseFactory.getConnection();var sql=connection.createStatement();var rows=sql.executeQuery("SELECT (SELECT COUNT(*) FROM phantom_tactical_v3_terminal_rewards),(SELECT COUNT(*) FROM phantom_tactical_v3_terminal_applications),(SELECT COUNT(*) FROM phantom_tactical_v3_models),(SELECT COUNT(*) FROM phantom_tactical_v3_optimizers)"))
+		{if(!rows.next()){throw new IllegalStateException("Evaluation train state missing");}return counts()+"/"+rows.getLong(1)+"/"+rows.getLong(2)+"/"+rows.getLong(3)+"/"+rows.getLong(4)+"/"+parent.sha();}
+	}
+	private static boolean fairOutcomeQuota(PhantomLearning005Ledger ledger,Mode mode) throws Exception
+	{
+		final var complete=ledger.pairs().stream().filter(p->p.stock().mode()==mode&&p.status().equals("MATCHED_COMPLETED")).toList();
+		return complete.stream().filter(p->p.stock().position()==0).count()>=2&&complete.stream().filter(p->p.stock().position()==1).count()>=2;
+	}
+	private static void runOutcome(Path root,Path attempt,TrainingConfig c) throws Exception
+	{
+		configuration(root);PhantomTrainingActors.settings(root);final var model=verifiedDraft(root,c);
+		final var v1=new LearningStore(DatabaseConfig.DATABASE_URL,DatabaseConfig.DATABASE_LOGIN,DatabaseConfig.DATABASE_PASSWORD,root.resolve("game")).accepted(1);
+		if(v1==null||!v1.model().sha256().equals(PhantomLearning005Evaluation.approved(Mode.SOLO_DAMAGE_V1).sha())){throw new IllegalStateException("Stock side observer model unavailable");}
+		final String before=trainingState(root),jar=jarSha(root);final boolean ab=c.text("outcome006Phase","").equals("EVALUATE");
+		for(int i=0;i<2048;i++){model.model().scoreEncoded(model.model().encode(new float[128]),new float[64]);}
+		try(var ledger=ledger(root,c);var authority=PhantomBackgroundSuite.ProductionAuthorityFixture.start())
+		{
+			final boolean smoke=ab&&ledger.arms().isEmpty();final int limit=ab&&!smoke?8:1;
+			for(var mode:Mode.values())
+			{
+				for(int ordinal=0;ordinal<limit&&!requested(attempt);ordinal++)
+				{
+					if(ab&&fairOutcomeQuota(ledger,mode)){break;}
+					final String pair=(mode==Mode.SOLO_DAMAGE_V1?"SOLO_DAMAGE_V3":"PARTY_HEAL_V3")+"-"+ordinal;
+					final var previous=ledger.arms().stream().filter(a->a.pair().equals(pair)&&a.facts().containsKey("npcTemplateLevel")).findFirst().orElse(null);
+					final int npc=previous==null?PhantomLearning003Damage.sourcePreflight(authority):Integer.parseInt(previous.facts().get("npcTemplateLevel").split(":")[0]);
+					// Held-out lawful equipment: TRAIN campaign enchants are 0..7. No model score enters scene selection.
+					final var scene=PhantomLearning003Damage.scene(npc,77+ordinal%2,ordinal%2==0?"A":"S",8+ordinal%3);
+					final var geo=GeoEngine.getInstance();
+					final var planner=new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner(authority.knowledge(),authority.topology(),authority.authority());
+					final var source=new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm",scene.source());
+					final var base=World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
+						.filter(m->m.getId()==npc&&!m.isAlikeDead()&&Math.hypot(m.getX()-scene.x(),m.getY()-scene.y())<1600
+							&&planner.partyNativeTarget(source,npc,new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(m.getX(),m.getY(),m.getZ(),m.getInstanceId()))
+							&&geo.canSeeTarget(scene.x(),scene.y(),scene.z(),0,m.getX(),m.getY(),m.getZ(),m.getInstanceId())
+							&&geo.canMoveToTarget(scene.x(),scene.y(),scene.z(),m.getX(),m.getY(),m.getZ(),0))
+						.min(Comparator.comparingInt(Monster::getObjectId)).orElseThrow();
+					final String[] pinned=previous==null?null:previous.facts().get("npcHpPosition").split(":");
+					final int x=pinned==null?base.getX():Integer.parseInt(pinned[2]),y=pinned==null?base.getY():Integer.parseInt(pinned[3]),z=pinned==null?base.getZ():Integer.parseInt(pinned[4]);
+					final Side first=PhantomLearning005Evaluation.order(c.seed(),ordinal);
+					for(int position=0;position<2&&!requested(attempt);position++)
+					{
+						final Side side=position==0?first:first==Side.STOCK?Side.LEARNED:Side.STOCK;
+						if(ledger.arms().stream().anyMatch(a->a.pair().equals(pair)&&a.side()==side)){continue;}
+						arm(root,attempt,c,authority,ledger,v1.model(),model.model(),scene,pair,mode,side,position,ordinal,x,y,z,jar);
+					}
+				}
+			}
+		}
+		if(!before.equals(trainingState(root))){throw new IllegalStateException("EVAL006R1 changed training credit or optimizer");}
+		Files.writeString(attempt.resolve("evaluation006r1.training-unchanged.json"),"{\"before\":"+PhantomLearning005Evaluation.q(before)+",\"after\":"+PhantomLearning005Evaluation.q(trainingState(root))+",\"equal\":true}\n",StandardOpenOption.CREATE_NEW);
+		Files.writeString(attempt.resolve("batch.complete"),"schemaVersion=6\nevaluationOnly=true\n",StandardOpenOption.CREATE_NEW);report(root,c);
+	}
 	private record Raw(String key,String json,byte[] observation) { }
 	private static String skill(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill s){return s.skillId()+":"+s.skillLevel();}
 	private static String action(LegalActionV3 action){return action.skillId()+":"+action.skillLevel()+"/"+action.targetObjectId();}
 	private static void arm(Path root,Path attempt,TrainingConfig config,PhantomBackgroundSuite.ProductionAuthorityFixture authority,PhantomLearning005Ledger ledger,
 		NeuralPolicy damage,TacticalModelV3 heal,PhantomTrainingScenarios.Scene scene,String pair,Mode mode,Side side,int position,int ordinal,int x,int y,int z,String jar) throws Exception
 	{
-		final Path work=attempt.resolve("evaluation005").resolve(pair+"-"+side);Files.createDirectories(work);
+		final boolean r1=outcomeEvaluation(config),neural=side==Side.LEARNED&&!config.text("outcome006Phase","").equals("CONTROL");
+		final Pin evaluationPin=r1?draftPin(config,mode):PhantomLearning005Evaluation.approved(mode);
+		final Path work=attempt.resolve(r1?"evaluation006r1":"evaluation005").resolve(pair+"-"+side);Files.createDirectories(work);
 		final var effects=new ConcurrentLinkedQueue<Effect>();final var raw=new ConcurrentLinkedQueue<Raw>();final var heals=new ConcurrentLinkedQueue<TacticalReceiptV3>();
+		final var nativeTimes=new ConcurrentHashMap<String,TerminalRewardReceiptV1.NativeTiming>();
+		if(r1){TerminalRewardReceiptV1.nativeTimingObserver(t->{if(nativeTimes.size()>=2048){throw new IllegalStateException("006R1 timing capacity");}nativeTimes.put(t.eventKey(),t);});}
 		final var issued=new ConcurrentHashMap<LearningPolicy.Attempt,Issued>();
-		final var policy=LearningPolicy.evaluation(mode==Mode.SOLO_DAMAGE_V1&&side==Side.LEARNED?LearningPolicy.Mode.ON:LearningPolicy.Mode.SHADOW,1,damage,4,PhantomLearning005Evaluation.hash(config.text("evaluation005Campaign","")+"/"+pair+"/"+side));
+		final var policy=LearningPolicy.evaluation(!r1&&mode==Mode.SOLO_DAMAGE_V1&&side==Side.LEARNED?LearningPolicy.Mode.ON:LearningPolicy.Mode.SHADOW,1,damage,4,PhantomLearning005Evaluation.hash(campaign(config)+"/"+pair+"/"+side));
 		policy.observer(new LearningPolicy.Observer()
 		{
 			@Override public void issued(LearningPolicy.Attempt a,Player actor,Monster target)
 			{
+				if(r1){return;}
 				if(issued.size()>=2048){throw new IllegalStateException("005 pending receipt capacity");}
 				issued.put(a,new Issued(actor.getObjectId(),TacticalSnapshotV3.epoch(actor),target.getObjectId(),TacticalSnapshotV3.epoch(target),target.getInstanceId(),skill(a.candidate().skill()),skill(a.baseline()),a.offered().stream().map(c->skill(c.skill())).toList(),a.request().profileId(),a.generation(),a.sequence()));
 			}
 			@Override public void recorded(LearningPolicy.Attempt a,LearningStore.Evidence e)
 			{
+				if(r1){return;}
 				final var i=issued.remove(a);if(i==null||effects.size()>=2048){throw new IllegalStateException("005 missing issued receipt");}
 				final String json="{\"origin\":\"NATIVE_V1_EXACT_CAST_HP\",\"eventKey\":"+PhantomLearning005Evaluation.q(e.eventKey())+",\"actor\":"+i.actor()+",\"actorEpoch\":"+i.epoch()+",\"profile\":"+i.profile()+",\"generation\":"+i.generation()+",\"sequence\":"+i.sequence()
 					+",\"target\":"+i.target()+",\"targetEpoch\":"+i.targetEpoch()+",\"instance\":"+i.instance()+",\"selected\":"+PhantomLearning005Evaluation.q(i.selected())+",\"baseline\":"+PhantomLearning005Evaluation.q(i.baseline())+",\"legalSha\":"+PhantomLearning005Evaluation.q(PhantomLearning005Evaluation.hash(PhantomLearning005Evaluation.arrayJson(i.legal())))+",\"actualDamage\":"+e.damage()+",\"exactMpDebit\":null,\"modelVersion\":"+e.version()+",\"modelSha\":"+PhantomLearning005Evaluation.q(damage.sha256())+",\"trainingCredit\":false}";
@@ -182,8 +295,9 @@ public final class PhantomLearning005Native
 				effects.add(new Effect(e.eventKey(),i.actor(),i.epoch(),i.target(),i.targetEpoch(),i.instance(),i.selected(),i.baseline(),i.legal(),Family.DAMAGE,e.damage(),null,sha,json));raw.add(new Raw(e.eventKey(),json,null));
 			}
 		});
-		final var tactical=mode==Mode.SOLO_DAMAGE_V1?TacticalPolicyV3.OFF:new TacticalPolicyV3(side==Side.LEARNED?TacticalPolicyV3.Mode.ON:TacticalPolicyV3.Mode.SHADOW,2,heal,20,16,2000,r->
+		final var tactical=mode==Mode.SOLO_DAMAGE_V1&&!r1?TacticalPolicyV3.OFF:new TacticalPolicyV3(neural?TacticalPolicyV3.Mode.ON:TacticalPolicyV3.Mode.SHADOW,r1?evaluationPin.id():2,heal,20,16,2000,r->
 		{
+			if(r1){if(heals.size()>=2048){throw new IllegalStateException("006R1 native effect capacity");}heals.add(TacticalReceiptV3.fromHeal(r));return;}
 			if(effects.size()>=2048){throw new IllegalStateException("005 effect capacity");}
 			final var receipt=TacticalReceiptV3.fromHeal(r);final var a=r.attempt();final var s=a.selected();
 			if(!(World.getInstance().findObject(s.targetObjectId()) instanceof Player recipient)||TacticalSnapshotV3.epoch(recipient)!=s.targetEpoch()){throw new IllegalStateException("Stale native heal recipient");}
@@ -193,6 +307,7 @@ public final class PhantomLearning005Native
 				action(s),action(a.baseline()),a.offered().stream().map(PhantomLearning005Native::action).toList(),Family.HEAL,r.actualHp(),r.actualMp(),PhantomLearning005Evaluation.hash(json),json));
 			heals.add(receipt);raw.add(new Raw(r.eventKey(),json,a.observation().bytes()));
 		});
+		if(r1&&mode==Mode.SOLO_DAMAGE_V1){tactical.damageObserver(r->{if(heals.size()>=2048){throw new IllegalStateException("006R1 native effect capacity");}heals.add(r);});}
 		tactical.failureObserver(failure ->
 		{
 			final String json=failure.json();raw.add(new Raw(failure.eventKey()+".failure",json,null));
@@ -200,8 +315,8 @@ public final class PhantomLearning005Native
 		});
 		final long preparation=System.nanoTime(); boolean cut=false;Monster target=null;
 		Map<String,String> facts=Map.of();List<Incarnation> incarnations=List.of();Incarnation targetIdentity=null;
-		TacticalEpisodeV3 episode=null;String reason="PREPARATION_FAILED";double prepareMillis=0,elapsed=0,drainMillis=0,startHp=0,startMp=0;Outcome outcome=Outcome.SKIP;
-		try(var runtime=new PhantomLearning001ShadowNative.Runtime(authority,root.resolve("game"),policy,attempt.resolve("stop.request"),true,5,tactical,false))
+		TacticalEpisodeV3 episode=null;String reason="PREPARATION_FAILED";double prepareMillis=0,elapsed=0,drainMillis=0,startHp=0,startMp=0;Outcome outcome=Outcome.SKIP;long nativeCut=0,nativeTerminal=0;
+		try(var runtime=new PhantomLearning001ShadowNative.Runtime(authority,root.resolve("game"),policy,attempt.resolve("stop.request"),true,5,tactical,r1&&mode==Mode.SOLO_DAMAGE_V1))
 		{
 			java.util.function.Supplier<TacticalEpisodeV3> terminal=null;
 			try
@@ -222,26 +337,39 @@ public final class PhantomLearning005Native
 				}
 				Files.writeString(work.resolve("target-admissions.jsonl"),admissions,StandardOpenOption.CREATE_NEW);
 				if(target==null){throw new IllegalStateException("EVAL005_NO_NORMAL_TARGET_WITHIN_FOUR_ADMISSIONS");}
-				runtime.prepareEvaluation(target,ordinal);
 				// Matched declared TEST input before durable CUT. Stock spawn RNG was consumed unchanged.
-				target.teleToLocation(x,y,z,0,false);
+				if(r1){target.teleToLocation(x,y,z,0,false);target.setHeading(0);runtime.prepareOutcome006(target,ordinal);}
+				else{runtime.prepareEvaluation(target,ordinal);target.teleToLocation(x,y,z,0,false);}
 				final var players=runtime.evaluationPlayers();facts=facts(players,target,scene,config);
+				if(r1){for(var p:players){if(!GeoEngine.getInstance().canSeeTarget(p,target)
+					||!GeoEngine.getInstance().canMoveToTarget(p.getX(),p.getY(),p.getZ(),target.getX(),target.getY(),target.getZ(),p.getInstanceId()))
+				{throw new IllegalStateException("EVAL006R1_PRE_CUT_GEOMETRY");}}}
 				startHp=players.stream().mapToDouble(Player::getCurrentHp).sum();startMp=players.stream().mapToDouble(Player::getCurrentMp).sum();
 				incarnations=players.stream().map(p->new Incarnation(p.getObjectId(),TacticalSnapshotV3.epoch(p),p.getInstanceId())).toList();targetIdentity=new Incarnation(target.getObjectId(),TacticalSnapshotV3.epoch(target),target.getInstanceId());
-				prepareMillis=(System.nanoTime()-preparation)/1e6;effects.clear();raw.clear();heals.clear();issued.clear();
-				final var start=new Arm(pair,side,mode,config.seed(),position,jar,protocol(config),scene.id(),facts,incarnations,targetIdentity,PhantomLearning005Evaluation.approved(mode),Outcome.INCOMPLETE,"STARTED",0,prepareMillis,Map.of(),List.of(),List.of(),true);
+				prepareMillis=(System.nanoTime()-preparation)/1e6;effects.clear();raw.clear();heals.clear();issued.clear();nativeTimes.clear();
+				final var start=new Arm(pair,side,mode,config.seed(),position,jar,protocol(config),scene.id(),facts,incarnations,targetIdentity,evaluationPin,Outcome.INCOMPLETE,"STARTED",0,prepareMillis,Map.of(),List.of(),List.of(),true);
 				ledger.begin(start,attempt.getFileName().toString());cut=true;
 				Files.writeString(work.resolve("precut.json"),start.json()+"\n",StandardOpenOption.CREATE_NEW);
 				System.out.println("EVAL005_CUT pair="+pair+" side="+side+" mode="+mode+" target="+targetIdentity+" fingerprint="+start.fingerprint());
-				terminal=runtime.runLearning004Encounter(PhantomLearning005Evaluation.hash(pair+side),attempt.getFileName().toString(),config.episodeSeconds(),()->requested(attempt),()->List.copyOf(heals));
+				terminal=r1?runtime.runLearning006Encounter(PhantomLearning005Evaluation.hash(campaign(config)+pair+side),attempt.getFileName().toString(),config.episodeSeconds(),()->requested(attempt),()->List.copyOf(heals),stamp->{try{Files.writeString(work.resolve("cut.nanos"),Long.toString(stamp),StandardOpenOption.CREATE_NEW);}catch(java.io.IOException e){throw new IllegalStateException("EVAL006R1 durable CUT failed",e);}})
+					:runtime.runLearning004Encounter(PhantomLearning005Evaluation.hash(pair+side),attempt.getFileName().toString(),config.episodeSeconds(),()->requested(attempt),()->List.copyOf(heals));
 			}
 			catch(IllegalStateException refusal){reason=refusal.getMessage();if(cut){outcome=Outcome.INCOMPLETE;}System.out.println("EVAL005_REFUSAL pair="+pair+" side="+side+" afterCut="+cut+" reason="+reason);}
 			finally
 			{
 				if(terminal==null){runtime.settleTraining();}else{var settled=runtime.settleLearning004(terminal);episode=settled.episode();elapsed=runtime.evaluationEncounterMillis();drainMillis=runtime.evaluationDrainMillis();Files.writeString(work.resolve("terminal.json"),episode.json()+"\n",StandardOpenOption.CREATE_NEW);}
+				if(r1){nativeCut=runtime.outcomeCutNanos();nativeTerminal=runtime.outcomeTerminalNanos();runtime.releaseOutcome006();}
 			}
 		}
-		finally{policy.stop();if(target!=null){target.deleteMe();}}
+		finally{policy.stop();if(target!=null){target.deleteMe();}if(r1){TerminalRewardReceiptV1.nativeTimingObserver(_ -> { });}}
+		if(r1){for(var receipt:heals)
+		{
+			final var time=nativeTimes.get(receipt.eventKey());final var action=receipt.attempt().selected();
+			final boolean lethal=episode!=null&&time!=null&&time.lethal()&&action.family()==LegalActionV3.Family.DAMAGE&&episode.kills().stream().anyMatch(k->k.targetObjectId()==action.targetObjectId()&&k.spawnGeneration()==action.targetEpoch());
+			if(time!=null&&time.hpStart()>=nativeCut&&time.hpStart()<=nativeTerminal&&(time.hpEnd()<=nativeTerminal||lethal)&&time.mpStart()>=nativeCut&&time.mpEnd()<=nativeTerminal)
+			{recordOutcomeEffect(receipt,heal,evaluationPin,time,nativeCut,nativeTerminal,effects,raw);}
+			else{raw.add(new Raw(receipt.eventKey()+".excluded",nativeReceiptJson(receipt),receipt.attempt().observation().bytes()));}
+		}}
 		final var metrics=new TreeMap<String,Double>();final var kills=new ArrayList<Kill>();
 		if(episode!=null)
 		{
@@ -251,18 +379,48 @@ public final class PhantomLearning005Native
 			metrics.put("exp",episode.actors().stream().allMatch(a->a.exp()!=null)?episode.actors().stream().mapToDouble(a->a.exp()).sum():null);
 			metrics.put("sp",episode.actors().stream().allMatch(a->a.sp()!=null)?episode.actors().stream().mapToDouble(a->a.sp()).sum():null);
 			metrics.put("netHpChange",metrics.get("hp")-startHp);metrics.put("netMpChange",metrics.get("mp")-startMp);
-			metrics.put("observedUsefulHeal",heals.stream().mapToDouble(TacticalReceiptV3::actualHp).sum());metrics.put("observedHealMpDebit",heals.stream().mapToDouble(TacticalReceiptV3::actualMp).sum());metrics.put("deathsLowerBound",(double)episode.observedDeaths());
+			healMetrics(metrics,List.copyOf(effects),List.copyOf(heals),r1);metrics.put("deathsLowerBound",(double)episode.observedDeaths());
 			metrics.put("uniqueEnemyKills",(double)PhantomLearning005Evaluation.distinctKills(kills));
 			metrics.put("expPerMinute",metrics.get("exp")==null||elapsed<=0?null:metrics.get("exp")*60000/elapsed);metrics.put("spPerMinute",metrics.get("sp")==null||elapsed<=0?null:metrics.get("sp")*60000/elapsed);
 			for(String unknown:List.of("deaths","loot","consumables","adenaNet","wholePartyDamage","allActionsMpDebit")){metrics.put(unknown,null);}
 			if(effects.isEmpty()){outcome=Outcome.INCOMPLETE;reason="NO_TRACKED_NATIVE_EFFECT";}
 		}
-		if(policy.counters().unknown()>0){outcome=cut?Outcome.INCOMPLETE:Outcome.SKIP;reason="EVIDENCE_REJECTED_"+policy.counters().unknown();}
-		final var result=new Arm(pair,side,mode,config.seed(),position,jar,protocol(config),scene.id(),facts,incarnations,targetIdentity,PhantomLearning005Evaluation.approved(mode),outcome,reason,elapsed,prepareMillis,metrics,List.copyOf(effects),kills,true);
+		if(!r1&&policy.counters().unknown()>0){outcome=cut?Outcome.INCOMPLETE:Outcome.SKIP;reason="EVIDENCE_REJECTED_"+policy.counters().unknown();}
+		if(r1){metrics.put("untrackedStockDamageUnknown",(double)policy.counters().unknown());metrics.put("canonicalCompleted",episode!=null&&episode.outcome().equals("COMPLETED")?1.0:0.0);}
+		final var result=new Arm(pair,side,mode,config.seed(),position,jar,protocol(config),scene.id(),facts,incarnations,targetIdentity,evaluationPin,outcome,reason,elapsed,prepareMillis,metrics,List.copyOf(effects),kills,true);
 		for(var r:raw){Files.writeString(work.resolve(r.key()+".source.json"),r.json()+"\n",StandardOpenOption.CREATE_NEW);if(r.observation()!=null){Files.write(work.resolve(r.key()+".observation.bin"),r.observation(),StandardOpenOption.CREATE_NEW);}}
 		Files.writeString(work.resolve("policy-timing.txt"),"v1="+policy.timing(mode==Mode.SOLO_DAMAGE_V1?org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.SOLO:org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.PARTY)+"\nv3="+tactical.timing()+"\n",StandardOpenOption.CREATE_NEW);
+		if(r1){Files.writeString(work.resolve("policy-diagnostics.json"),tactical.diagnostics()+"\n",StandardOpenOption.CREATE_NEW);}
 		ledger.put(result);System.out.println("EVAL005_ARM "+result.json());
 	}
+	private static void recordOutcomeEffect(TacticalReceiptV3 receipt,TacticalModelV3 model,Pin pin,TerminalRewardReceiptV1.NativeTiming timing,long cut,long terminal,ConcurrentLinkedQueue<Effect> effects,ConcurrentLinkedQueue<Raw> raw)
+	{
+		final var a=receipt.attempt();final var selected=a.selected();final var observation=a.observation();final var legal=a.offered().stream().map(PhantomLearning005Native::action).toList();
+		final var encoded=model.encode(observation.state());float best=-Float.MAX_VALUE,second=-Float.MAX_VALUE;
+		for(var action:a.offered()){final float score=model.scoreEncoded(encoded,action.features(observation));if(score>best){second=best;best=score;}else{second=Math.max(second,score);}}
+		final String nativeJson=nativeReceiptJson(receipt),nativeSha=PhantomLearning005Evaluation.hash(nativeJson);
+		final boolean heal=selected.family()==LegalActionV3.Family.HEAL;
+		final String json="{\"origin\":"+PhantomLearning005Evaluation.q(heal?"NATIVE_V3_EXACT_HEAL_HP":"NATIVE_V3_EXACT_CAST_HP")+",\"eventKey\":"+PhantomLearning005Evaluation.q(receipt.eventKey())
+			+",\"actor\":"+selected.actorObjectId()+",\"actorEpoch\":"+selected.actorEpoch()+",\"profile\":"+observation.profileId()+",\"owner\":"+PhantomLearning005Evaluation.q(receipt.owner().operationKey())+",\"generation\":"+receipt.owner().generation()
+			+",\"target\":"+selected.targetObjectId()+",\"targetEpoch\":"+selected.targetEpoch()+",\"instance\":"+timing.instanceId()+",\"selected\":"+PhantomLearning005Evaluation.q(action(selected))+",\"baseline\":"+PhantomLearning005Evaluation.q(action(a.baseline()))
+			+",\"legalSha\":"+PhantomLearning005Evaluation.q(PhantomLearning005Evaluation.hash(PhantomLearning005Evaluation.arrayJson(legal)))+",\"beforeHp\":"+receipt.beforeHp()+",\"afterHp\":"+receipt.afterHp()+","+(heal?"\"usefulHp\":":"\"actualDamage\":")+receipt.actualHp()
+			+",\"actualMp\":"+receipt.actualMp()+",\"elapsedNanos\":"+receipt.elapsedNanos()+",\"modelVersion\":"+a.modelVersion()+",\"modelSha\":"+PhantomLearning005Evaluation.q(model.sha256())+",\"authoritySha\":"+PhantomLearning005Evaluation.q(pin.authority().fingerprint())
+			+",\"selectedScore\":"+model.scoreEncoded(encoded,selected.features(observation))+",\"stockScore\":"+model.scoreEncoded(encoded,a.baseline().features(observation))+",\"margin\":"+(best-second)+",\"scoreEvidence\":\"OFFLINE_RECOMPUTED_FROZEN_OBSERVATION\""
+			+",\"cutNanos\":"+cut+",\"terminalNanos\":"+terminal+",\"hpStartedNanos\":"+timing.hpStart()+",\"hpFinishedNanos\":"+timing.hpEnd()+",\"mpStartedNanos\":"+timing.mpStart()+",\"mpFinishedNanos\":"+timing.mpEnd()+",\"linkedLethal\":"+timing.lethal()
+			+",\"nativeReceiptSha\":"+PhantomLearning005Evaluation.q(nativeSha)+",\"observationSha\":"+PhantomLearning005Evaluation.q(NeuralPolicy.sha256(observation.bytes()))+",\"trainingCredit\":false}";
+		effects.add(new Effect(receipt.eventKey(),selected.actorObjectId(),selected.actorEpoch(),selected.targetObjectId(),selected.targetEpoch(),timing.instanceId(),action(selected),action(a.baseline()),legal,heal?Family.HEAL:Family.DAMAGE,receipt.actualHp(),receipt.actualMp(),PhantomLearning005Evaluation.hash(json),json,pin));
+		raw.add(new Raw(receipt.eventKey(),json,observation.bytes()));raw.add(new Raw(receipt.eventKey()+".native",nativeJson,null));
+	}
+	static void healMetrics(Map<String,Double> metrics,List<Effect> effects,List<TacticalReceiptV3> raw,boolean r1)
+	{
+		final double hp=raw.stream().filter(r->r.attempt().selected().family()==LegalActionV3.Family.HEAL).mapToDouble(TacticalReceiptV3::actualHp).sum();
+		final double mp=raw.stream().filter(r->r.attempt().selected().family()==LegalActionV3.Family.HEAL).mapToDouble(TacticalReceiptV3::actualMp).sum();
+		metrics.put("observedUsefulHeal",r1?effects.stream().filter(e->e.family()==Family.HEAL).mapToDouble(Effect::hp).sum():hp);
+		metrics.put("observedHealMpDebit",r1?effects.stream().filter(e->e.family()==Family.HEAL).mapToDouble(e->e.mp()==null?0:e.mp()).sum():mp);
+		if(r1){metrics.put("rawObservedUsefulHealIncludingDrain",hp);metrics.put("rawObservedHealMpIncludingDrain",mp);}
+	}
+	private static String nativeReceiptJson(TacticalReceiptV3 receipt)
+	{return "{\"schemaVersion\":6,\"format\":\"IMMUTABLE_JAVA_RECORD_TEXT_V1\",\"nativeRecord\":"+PhantomLearning005Evaluation.q(receipt.toString())+",\"observationSha\":"+PhantomLearning005Evaluation.q(NeuralPolicy.sha256(receipt.attempt().observation().bytes()))+"}";}
 	private static Map<String,String> facts(List<Player> players,Monster target,PhantomTrainingScenarios.Scene scene,TrainingConfig config) throws Exception
 	{
 		final var result=new TreeMap<String,String>();final var classes=new ArrayList<String>();final var skills=new ArrayList<String>();final var equipment=new ArrayList<String>();final var buffs=new ArrayList<String>();final var health=new ArrayList<String>();final var positions=new ArrayList<String>();final var roles=new ArrayList<String>();
@@ -295,6 +453,7 @@ public final class PhantomLearning005Native
 	}
 	private static void report(Path root,TrainingConfig config) throws Exception
 	{
+		if(outcomeEvaluation(config)){reportOutcome(root,config);return;}
 		final Path dir=directory(root,config);Files.createDirectories(dir);final List<Arm> arms;final List<Pair> paired;
 		try(var ledger=new PhantomLearning005Ledger(dir,config.text("evaluation005Campaign",""),jarSha(root),protocol(config))){arms=ledger.arms();paired=ledger.pairs();}
 		final var text=new StringBuilder("# PHANTOM-LEARNING-005 — наблюдения EVAL\n\nСтатус реализации: PARTIAL до проверки всех G0–G8. Это не утверждение о превосходстве модели.\n\n");
@@ -322,4 +481,26 @@ public final class PhantomLearning005Native
 		System.out.println("EVAL005_REPORT "+summary);
 	}
 	private static boolean requested(Path attempt){return Files.exists(attempt.resolve("stop.request"))||Files.exists(attempt.resolve("pause.request"));}
+	private static void reportOutcome(Path root,TrainingConfig c) throws Exception
+	{
+		final List<Arm> arms;final List<org.l2jmobius.tests.phantoms.PhantomLearning005Evaluation.Pair> pairs;boolean quota=true;
+		try(var ledger=ledger(root,c)){arms=ledger.arms();pairs=ledger.pairs();for(var mode:Mode.values()){quota&=fairOutcomeQuota(ledger,mode);}}
+		final boolean ab=c.text("outcome006Phase","").equals("EVALUATE"),settled=ab?(quota||arms.size()>=32):arms.size()>=4;
+		final var summaries=new ArrayList<String>();
+		final var text=new StringBuilder("# PHANTOM-LEARNING-006R1 — независимые TEST наблюдения\n\nНовая модель DRAFT, accepted1/2 неизменны. EVAL никогда не обучает. Game verdict INCONCLUSIVE: бюджет меньше20пар на режим.\n\n");
+		text.append("Native outcome подтверждается отдельно terminal.json; неполная action evidence не означает отсутствие kill. UNKNOWN deaths/loot/economy не заменяются0. Score/margin пересчитаны после drain по frozen model и exact observation; native selection и paid effect — из настоящих owners.\n\n");
+		for(var mode:Mode.values())
+		{
+			final var selected=pairs.stream().filter(p->p.stock().mode()==mode).toList();final var s=PhantomLearning005Evaluation.summarize(selected,c.seed());
+			final String name=mode==Mode.SOLO_DAMAGE_V1?"SOLO_DAMAGE_V3":"PARTY_HEAL_V3";
+			final long firstA=selected.stream().filter(p->p.status().equals("MATCHED_COMPLETED")&&p.stock().position()==0).count(),firstB=selected.stream().filter(p->p.status().equals("MATCHED_COMPLETED")&&p.stock().position()==1).count();
+			summaries.add("{\"mode\":"+PhantomLearning005Evaluation.q(name)+",\"fairPairs\":"+s.n()+",\"attemptedPairs\":"+selected.size()+",\"incompletePairs\":"+s.incomplete()+",\"unmatched\":"+s.unmatched()+",\"divergences\":"+s.divergences()+",\"completedAFirst\":"+firstA+",\"completedBFirst\":"+firstB+",\"diagnostic\":"+PhantomLearning005Evaluation.q(s.label())+",\"gameVerdict\":\"INCONCLUSIVE\"}");
+			text.append("## ").append(name).append("\n\nFair completed pairs: ").append(s.n()).append("; A→B=").append(firstA).append("; B→A=").append(firstB).append("; paid divergences=").append(s.divergences()).append(". Median Δms=").append(s.median()).append("; 95% bootstrap CI=").append(s.ciLow()).append("…").append(s.ciHigh()).append(".\n\n");
+			for(var p:selected){text.append("- ").append(p.id()).append(": ").append(p.status()).append('/').append(p.reason()).append("; A=").append(p.stock().outcome()).append('/').append(p.stock().elapsedMillis()).append("ms; B=").append(p.learned().outcome()).append('/').append(p.learned().elapsedMillis()).append("ms; divergences=").append(p.divergences()).append("; deltas=").append(p.deltas()).append(".\n");}
+		}
+		final String summary="{\"schemaVersion\":6,\"split\":\"EVAL006R1\",\"campaign\":"+PhantomLearning005Evaluation.q(campaign(c))+",\"authority\":"+draftAuthority(c).json()+",\"jarSha\":"+PhantomLearning005Evaluation.q(jarSha(root))+",\"protocolSha\":"+PhantomLearning005Evaluation.q(protocol(c))+",\"arms\":"+arms.size()+",\"quota\":"+quota+",\"budgetSettled\":"+settled+",\"modes\":["+String.join(",",summaries)+"],\"trainingCredit\":false,\"gameVerdict\":\"INCONCLUSIVE\"}";
+		Files.writeString(directory(root,c).resolve("summary.json"),summary+"\n");Files.writeString(directory(root,c).resolve("report.md"),text,StandardCharsets.UTF_8);
+		final Path complete=directory(root,c).resolve("native.complete");if(settled&&!Files.exists(complete)){Files.writeString(complete,"Bounded evaluation settled; no training or promotion.\n",StandardOpenOption.CREATE_NEW);}
+		System.out.println("EVAL006R1_REPORT "+summary);
+	}
 }
