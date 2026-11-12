@@ -64,6 +64,7 @@ public final class LearningPolicy
 	private final int _maxCandidates;
 	private final long _seed;
 	private final LearningStore.Writer _writer;
+	private String _evaluationIdentity;
 	private final BooleanSupplier _catalogCurrent;
 	private final LongAdder _evaluated = new LongAdder();
 	private final LongAdder _preferredDifferent = new LongAdder();
@@ -217,7 +218,19 @@ public final class LearningPolicy
 
 	public boolean collecting()
 	{
-		return _writer != null;
+		return _writer != null || _evaluationIdentity != null;
+	}
+
+	/** Explicit owned TEST evaluation; this entrypoint must never create a training writer. */
+	public static LearningPolicy evaluation(Mode mode, long version, NeuralPolicy model, int maximumCandidates, String identity)
+	{
+		if (!Boolean.getBoolean("phantom.learning.train") || mode == null || mode == Mode.OFF || version != 1 || model == null
+			|| !"e0691f728847cebea7293d87e45acebbd3db5bc2d71b76c7c5e40549e13c43d2".equals(model.sha256())
+			|| identity == null || !identity.matches("[a-f0-9]{64}"))
+		{ throw new IllegalArgumentException("Exact accepted V1 and explicit TEST evaluation identity required"); }
+		final var policy = new LearningPolicy(mode, version, model, maximumCandidates, 0, null, () -> !SkillData.getInstance().catalogReloaded());
+		policy._evaluationIdentity = identity;
+		return policy;
 	}
 
 	public void castIssued()
@@ -232,7 +245,7 @@ public final class LearningPolicy
 
 	boolean record(LearningStore.Evidence evidence)
 	{
-		return _writer.offer(evidence);
+		return _evaluationIdentity != null || _writer != null && _writer.offer(evidence);
 	}
 
 	public void observationRejected()
@@ -242,7 +255,8 @@ public final class LearningPolicy
 
 	String actorKey(long profileId)
 	{
-		return _writer.actorKey(profileId);
+		return _evaluationIdentity == null ? _writer.actorKey(profileId)
+			: NeuralPolicy.sha256((_evaluationIdentity + "/EVAL005/" + profileId).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
 	public Counters counters()

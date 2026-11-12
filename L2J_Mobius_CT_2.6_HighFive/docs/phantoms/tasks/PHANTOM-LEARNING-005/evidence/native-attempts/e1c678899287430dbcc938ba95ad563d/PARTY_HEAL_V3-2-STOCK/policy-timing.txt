@@ -1,0 +1,2 @@
+v1=TimingSummary[count=3, p50Nanos=155400, p95Nanos=180900, p99Nanos=180900, maxNanos=180900]
+v3=snapshotNanos={n:1,p50:795400,p95:795400,p99:795400,max:795400} encodeNanos={n:1,p50:1135900,p95:1135900,p99:1135900,max:1135900} scoreNanos={n:1,p50:60200,p95:60200,p99:60200,max:60200} totalNanos={n:2,p50:23100,p95:2067800,p99:2067800,max:2067800} dispatchNanos={n:1,p50:4169300,p95:4169300,p99:4169300,max:4169300} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 5,
+  "status": "HISTORICAL_BLOCKER_RESOLVED_BY_EXPLICIT_USER_EXCEPTION",
+  "stage": "STAGING",
+  "failureId": "e069c23f5e9b4782900a62b7b3700670",
+  "code": "TRAIN002_HASH_MISMATCH",
+  "relativeProtectedPath": "L2J_Mobius_CT_2.6_HighFive/dist/game/config/OwnerConfig.json",
+  "expectedSha256": "5776e83810689da1acf94d0a3d8ee54d204e87ca0bf7488e685034b57c61f4e8",
+  "actualSha256": "d8dbe7f2e87de37c3f04c9a856bb925c7e4ffbeddd7c33b5a08ba55e695f2976",
+  "protectedCount": 207,
+  "matchedCount": 206,
+  "nativeStarted": false,
+  "guardChanged": false,
+  "protectionBypassed": false,
+  "approvedReplacementManifestSha256": "a523f7ffe87682d2c1bbb0d23f40cad8db9634f7f2bfced83232c3e6703d754a",
+  "oldManifestAndProtectedFilesUnchanged": true
+}

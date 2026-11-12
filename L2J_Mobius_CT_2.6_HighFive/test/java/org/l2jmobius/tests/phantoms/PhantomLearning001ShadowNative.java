@@ -23,6 +23,7 @@ import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
@@ -64,6 +65,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
@@ -278,6 +280,16 @@ public final class PhantomLearning001ShadowNative
 		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize,
 			org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 tactical) throws Exception
 		{
+			this(source, game, policy, stop, on, partySize, tactical, true);
+		}
+		private Monster evaluationTarget;
+		private long evaluationStarted, evaluationStopped, evaluationTerminal, evaluationDrainNanos;
+		private BooleanSupplier evaluationTerminalProbe = () -> false;
+		double evaluationEncounterMillis() { return ((evaluationTerminal > 0 ? evaluationTerminal : evaluationStopped) - evaluationStarted) / 1e6; }
+		double evaluationDrainMillis() { return evaluationDrainNanos / 1e6; }
+		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize,
+			org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 tactical, boolean rankDamageWithV3) throws Exception
+		{
 			this.policy = policy;
 			this.stop = stop;
 			this.on = on;
@@ -291,10 +303,10 @@ public final class PhantomLearning001ShadowNative
 			combat = new PhantomCombatService(new L2jCombatBackend(materialization, source::knowledge, () -> progression.findCatalog().orElse(null)),
 				PhantomCombatCapabilityResolver.fromProgression(() -> progression.findCatalog().orElse(null)), PhantomCombatPolicy.productionDefaults(64));
 			combat.installLearning(policy);
-			policy.tactical(tactical);
+			policy.tactical(rankDamageWithV3 ? tactical : org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.OFF);
 			backend = new L2jPhantomPartyBackend(profiles, materialization, progression);
 			sourcePlanner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
-			backend.installFarmSourcePolicy((farm, target) -> sourcePlanner.partyNativeTarget(farm, target.asNpc().getId(),
+			backend.installFarmSourcePolicy((farm, target) -> (evaluationTarget == null || target == evaluationTarget) && sourcePlanner.partyNativeTarget(farm, target.asNpc().getId(),
 				new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())));
 			final Path rules = game.resolve("data/phantoms/party");
 			final var roleCatalog = PhantomPartyRoleCatalog.load(rules.resolve("high-five-party-roles-v1.xml"));
@@ -456,12 +468,13 @@ public final class PhantomLearning001ShadowNative
 						final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", trainingScene.source());
 						final var targets = on ? PhantomLearning001ActorFixture.coldSoloOpeningTargets(player) : PhantomLearning001ActorFixture.soloOpeningTargets(player);
 						final var target = targets.stream()
-							.filter(npc -> npc.getId() == trainingScene.npc() && sourcePlanner.partyNativeTarget(source, npc.getId(), new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId())))
+							.filter(npc -> (evaluationTarget == null || npc == evaluationTarget) && npc.getId() == trainingScene.npc() && sourcePlanner.partyNativeTarget(source, npc.getId(), new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId())))
 							.findFirst().orElse(null);
 						if (target != null)
 						{
 							final var request = new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.RANGED_MAGIC, true, true,
-								on ? PhantomLearning001ActorFixture.COLD_SOLO_TIMEOUT_MILLIS : 45_000, () -> false, LearningScope.SOLO, null, () -> false);
+								evaluationTarget != null ? Math.max(1, (deadline - System.nanoTime()) / 1_000_000L) : on ? PhantomLearning001ActorFixture.COLD_SOLO_TIMEOUT_MILLIS : 45_000,
+								() -> false, LearningScope.SOLO, null, () -> false);
 							final var accepted = combat.startSession(request);
 							encountered |= accepted.accepted();
 						}
@@ -483,6 +496,7 @@ public final class PhantomLearning001ShadowNative
 			BooleanSupplier requested, java.util.function.Supplier<List<org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3>> receipts) throws Exception
 		{
 			final long started = System.nanoTime();
+			evaluationStarted = started; evaluationStopped = 0; evaluationTerminal = 0; evaluationDrainNanos = 0;
 			final var before = new java.util.HashMap<Integer,org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot>();
 			for (var player : trainingPlayers) { before.put(player.getObjectId(), PlayerNativeWork.observationEvidence(player).snapshot()); }
 			final var kills = new java.util.LinkedHashMap<String,org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Kill>();
@@ -504,13 +518,17 @@ public final class PhantomLearning001ShadowNative
 							target.objectId(), npc.getId(), target.spawnGeneration(), target.instanceId(), player.getObjectId(), nativeReceipts.killSequence()));
 					}
 				}
-				return !kills.isEmpty() || !deaths.isEmpty();
+				final boolean done = !kills.isEmpty() || !deaths.isEmpty();
+				if (done && evaluationTerminal == 0) { evaluationTerminal = System.nanoTime(); }
+				return done;
 			};
+			evaluationTerminalProbe = terminal;
 			final var collector = new TrainingCollector();
 			collector.begin(id);
 			final String stopped;
 			try { stopped = runTrainingEpisode(collector, seconds, Integer.MAX_VALUE, requested, null, terminal); }
 			finally { collector.end(); }
+			evaluationStopped = System.nanoTime();
 			terminal.getAsBoolean();
 			return () ->
 			{
@@ -644,7 +662,9 @@ public final class PhantomLearning001ShadowNative
 		record Learning004Settled(org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3 episode, String facts) { }
 		Learning004Settled settleLearning004(java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3> finalSnapshot) throws Exception
 		{
+			final long drainStarted = System.nanoTime();
 			final var episode = org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.afterNativeDrain(this::drainTraining, finalSnapshot);
+			evaluationDrainNanos = System.nanoTime() - drainStarted;
 			return new Learning004Settled(episode, storeTraining());
 		}
 		private void drainTraining() throws Exception
@@ -655,6 +675,7 @@ public final class PhantomLearning001ShadowNative
 			final var players = trainingPlayers;
 			await(() ->
 			{
+				if (evaluationTarget != null) { evaluationTerminalProbe.getAsBoolean(); }
 				coordinator.onPulse();
 				boolean drained = true;
 				for (var player : players)
@@ -687,6 +708,43 @@ public final class PhantomLearning001ShadowNative
 			check(players.stream().allMatch(player -> World.getInstance().getPlayer(player.getObjectId()) == null), "TRAIN_WORLD_NOT_EMPTY");
 			trainingRows = List.of(); trainingPlayers = List.of(); trainingScene = null;
 			return facts;
+		}
+
+		List<Player> evaluationPlayers() { return List.copyOf(trainingPlayers); }
+		/** TEST input only, before caller's durable CUT. No action is forced and no native target is replaced after CUT. */
+		void prepareEvaluation(Monster target, int variant) throws Exception
+		{
+			check(evaluationTarget == null && !trainingPlayers.isEmpty() && !target.isAlikeDead() && !target.isChampion() && !target.isRaid()
+				&& target.getCurrentHp() == target.getMaxHp() && !target.isAggressive(), "EVAL005_FRESH_STOCK_TARGET prior=" + (evaluationTarget != null)
+				+ " players=" + trainingPlayers.size() + " dead=" + target.isAlikeDead() + " champion=" + target.isChampion() + " raid=" + target.isRaid()
+				+ " hp=" + target.getCurrentHp() + "/" + target.getMaxHp() + " aggressive=" + target.isAggressive());
+			evaluationTarget = target;
+			if (!trainingParty) { return; }
+			final var profiles = trainingRows.stream().map(row -> Long.parseLong(row[2])).toList();
+			await(() ->
+			{
+				check(!trainingAdmission && trainingPlayers.stream().noneMatch(PhantomLearning001ShadowNative::preflightThreatened), "EVAL005_PRE_CUT_THREAT");
+				autonomous.onPulse(); coordinator.onPulse();
+				return trainingPlayers.getFirst().getParty() != null && trainingPlayers.getFirst().getParty().getMembers().containsAll(trainingPlayers)
+					&& profiles.stream().allMatch(coordinator::committed) && trainingPlayers.stream().noneMatch(p -> p.isCastingNow() || p.isAttackingNow());
+			}, Duration.ofSeconds(60), "EVAL005_PARTY_PRE_CUT_FORMATION");
+			// Declared pre-CUT positions reuse003's45/90 distance variation. No post-CUT relocation.
+			final var healer = trainingPlayers.get(3);
+			for (int index : new int[] {0, 2})
+			{
+				final int offset = index == 0 ? 45 : 90;
+				check(org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().canMoveToTarget(healer.getX(), healer.getY(), healer.getZ(), healer.getX() + offset, healer.getY(), healer.getZ(), healer.getInstanceId()), "EVAL005_PRE_CUT_POSITION_GEO");
+				final var player = trainingPlayers.get(index);
+				player.teleToLocation(healer.getX() + offset, healer.getY(), healer.getZ(), 0, false);
+				if (player.hasHeadlessOutboundSession() && player.isTeleporting()) { player.onTeleported(); }
+				check(!player.isTeleporting() && !player.isMoving(), "EVAL005_PRE_CUT_POSITION_SETTLED");
+			}
+			// Declared matched initial injuries, following the003 native fixture. Nothing writes HP after this method.
+			final double lower = .30 + variant % 4 * .025, higher = .48 + variant % 3 * .015;
+			trainingPlayers.get(0).setCurrentHp(trainingPlayers.get(0).getMaxHp() * (variant % 2 == 0 ? lower : higher));
+			trainingPlayers.get(2).setCurrentHp(trainingPlayers.get(2).getMaxHp() * (variant % 2 == 0 ? higher : lower));
+			final var offers = inspectHeal().stream().filter(d -> d.kind() == DirectiveKind.HEAL_MEMBER).toList();
+			check(offers.size() >= 2, "EVAL005_TWO_STOCK_HEAL_ALTERNATIVES");
 		}
 
 		private String trainingFacts()

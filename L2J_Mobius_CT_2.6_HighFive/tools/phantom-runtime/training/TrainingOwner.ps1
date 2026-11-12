@@ -3,6 +3,7 @@
 $script:TrainUtf8=[Text.UTF8Encoding]::new($false)
 $script:TrainGeoSha='A8A4B73BC7B53BED28F545CD889F489492B585B369F8E84988F8DB8A91C973D5'
 $script:TrainProtectedSha='9777AB48BC8D14BDEE77D4ACA8E7E650CB099F03CA33FEA108D5CDB941C59DCD'
+$script:TrainProtected005Sha='A523F7FFE87682D2C1BBB0D23F40CAD8DB9634F7F2BFCED83232C3E6703D754A'
 $script:TrainWin32Initialized=$false
 function Hold-ProcessHandle([Diagnostics.Process]$Process) {
     if ($null -eq $Process) { throw 'OWN108R3C_PROCESS_REQUIRED' }
@@ -335,8 +336,15 @@ function Get-TrainProcessResources([Diagnostics.Process]$Process,$Prior=$null) {
 }
 function Assert-TrainPortsFree($Ports){Initialize-TrainWin32;foreach($port in $Ports){if(@([Win32SqlIdentity]::Listeners([int]$port)).Count){throw ('TRAIN002_PORT_BUSY:'+ $port)}}}
 function Assert-TrainHash([string]$Path,[string]$Sha){Assert-G0PhysicalFile $Path;if((Get-FileHash -LiteralPath $Path).Hash -ine $Sha){throw ('TRAIN002_HASH_MISMATCH:'+ $Path)}}
-function Assert-TrainAssets([string]$GeoDirectory,[string]$GeoManifest,[string]$ProtectedManifest) {
-    Assert-TrainHash $GeoManifest $script:TrainGeoSha;Assert-TrainHash $ProtectedManifest $script:TrainProtectedSha
+function Get-TrainProtectedPin($Config) {
+    if($Config -and $Config.ContainsKey('configProfile') -and $Config.configProfile -ceq 'EVAL005'){
+        if(!$Config.ContainsKey('evaluation005ProtectedSha') -or $Config.evaluation005ProtectedSha -ine $script:TrainProtected005Sha){throw 'EVAL005_EXACT_PROTECTED_BASELINE_REQUIRED'}
+        return $script:TrainProtected005Sha
+    }
+    return $script:TrainProtectedSha
+}
+function Assert-TrainAssets([string]$GeoDirectory,[string]$GeoManifest,[string]$ProtectedManifest,$Config=$null) {
+    Assert-TrainHash $GeoManifest $script:TrainGeoSha;Assert-TrainHash $ProtectedManifest (Get-TrainProtectedPin $Config)
     $geo=ConvertFrom-Json ([IO.File]::ReadAllText($GeoManifest));$protected=ConvertFrom-Json ([IO.File]::ReadAllText($ProtectedManifest))
     Assert-TrainDirectory $GeoDirectory
     $files=@(Get-ChildItem -LiteralPath $GeoDirectory -Force -File)

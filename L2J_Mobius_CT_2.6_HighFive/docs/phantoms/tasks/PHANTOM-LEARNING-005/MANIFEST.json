@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "task": "PHANTOM-LEARNING-005",
+  "createdFor": "L2J Mobius CT 2.6 HighFive Phantom World",
+  "sourceRepository": "https://github.com/kpCat/L2J",
+  "sourceBranch": "wip/phantom-learning-004",
+  "sourceCommit": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+  "targetBranch": "wip/phantom-learning-005",
+  "destination": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-005/",
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "bytes": 3996,
+      "sha256": "0eab023091bf067814282f1f7bad98195b843bb52a35eca94db2607a826cf2e7"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "bytes": 3696,
+      "sha256": "b2b63801d5eb663fb5a218f38e0a60ecfb80b91235803e09cc7e814c28dda33b"
+    },
+    {
+      "path": "CONTEXT.md",
+      "bytes": 3707,
+      "sha256": "4731058eab959f258128f8199a3e30b029e150f8fb08da0160d7c4cd5cbc9a7f"
+    },
+    {
+      "path": "EXPERIMENT_PROTOCOL.md",
+      "bytes": 5850,
+      "sha256": "cce0a681f25129f2476bd43f7e8d673c2f8c5bf19594d1d33f2241c10ee5b5b0"
+    },
+    {
+      "path": "GOAL.txt",
+      "bytes": 3310,
+      "sha256": "b8f00988cca60217afc62dd285ca7da9f802b755d8dd999a311e6d471e3e763e"
+    },
+    {
+      "path": "METRICS_AND_DECISION.md",
+      "bytes": 5945,
+      "sha256": "08fe5c1bf47d1f02bf370f1154aa66db9740043d5063c94ed9e185d0f908cae0"
+    },
+    {
+      "path": "REPORT_TEMPLATE.md",
+      "bytes": 2115,
+      "sha256": "38464792db3cd6d916b00d65f26f79593b2f2662b3a47e3c05205acd2d3b6e01"
+    },
+    {
+      "path": "ROADMAP.md",
+      "bytes": 2274,
+      "sha256": "4f34e30bc44e0a5054a953da6efdefde14dd3158e85c8430749fcab31048c543"
+    },
+    {
+      "path": "RUNBOOK_RU.md",
+      "bytes": 2479,
+      "sha256": "67357029724c551112856b8b21b9543facc1c6e7260d7194304b07996e001c1c"
+    },
+    {
+      "path": "SAFETY.md",
+      "bytes": 2199,
+      "sha256": "ebf5276a96c862f8cd26f1edc51a95b38375d9568571facf9033b7c76cd40073"
+    },
+    {
+      "path": "SOURCE_MAP.md",
+      "bytes": 3402,
+      "sha256": "35ee52e12eca7ea6a56b15f48a680a0298318b48ade1b1b6082caefff059bcb0"
+    },
+    {
+      "path": "START_HERE_RU.md",
+      "bytes": 4136,
+      "sha256": "577dd2442f243019718c9c4cb54abd5b956cb29297286422087dc7da81070ab0"
+    },
+    {
+      "path": "TASK.md",
+      "bytes": 11611,
+      "sha256": "a3e857138e05aa86e6b577b1f4481241ffa5b368a45ab93369490dad7a7900be"
+    },
+    {
+      "path": "TEST_CASES.md",
+      "bytes": 2903,
+      "sha256": "80e6b869674e138cca77295502db9ecdc09b7472d880ceb44fa36bd05b68093f"
+    },
+    {
+      "path": "WORKFLOW_FAST.md",
+      "bytes": 2431,
+      "sha256": "19e72194b542d5158fe9cab04066b0649402029a4ed54dbd75430a17432a84bb"
+    }
+  ]
+}

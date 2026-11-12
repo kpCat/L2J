@@ -1,0 +1,1 @@
+LEARNING005_CONTRACT assertions=28 PASS native=NOT_RUN fixtures=CONTRACT_ONLY

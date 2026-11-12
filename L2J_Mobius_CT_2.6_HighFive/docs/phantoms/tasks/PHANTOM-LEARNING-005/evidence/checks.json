@@ -1,0 +1,34 @@
+{
+  "canonicalCompileExit": 0,
+  "canonicalJarExit": 0,
+  "legacyCompilerWarnings": 5,
+  "focused005": {
+    "assertions": 28,
+    "exit": 0,
+    "fixtures": "CONTRACT_ONLY"
+  },
+  "affected": {
+    "learning001": 4,
+    "combat-core": 72,
+    "combat-action-ownership": 38,
+    "party-tactics": 14,
+    "training-contracts": 6,
+    "post002-support": 9,
+    "totalPassed": 143,
+    "failed": 0
+  },
+  "F7": {
+    "exit": 0,
+    "dbConnections": 0,
+    "actors": 0,
+    "sqlReplay": "NOT_RUN"
+  },
+  "F8": {
+    "passed": 14,
+    "failed": 0,
+    "exit": 0
+  },
+  "nativeTrials": "RUN",
+  "nativeColdResume": "RUN_FRESH_DIRECTOR_AND_EVALUATOR_WORKER",
+  "nativeAfterCompletedBudget": "NOT_RERUN_BY_DESIGN"
+}

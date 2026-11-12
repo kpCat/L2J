@@ -1,0 +1,6 @@
+{
+  "state": "PREPARED_FOR_SCOPED_PUBLICATION",
+  "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+  "targetBranch": "wip/phantom-learning-005",
+  "consolidationBranch": "feature/phantom-world"
+}

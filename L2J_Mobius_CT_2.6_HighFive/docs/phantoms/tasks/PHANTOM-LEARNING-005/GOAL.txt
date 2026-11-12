@@ -1,0 +1,11 @@
+/goal PHANTOM-LEARNING-005 — честно измерить игровой профит боевого ИИ против штатного управления в реальных PvE-схватках, на парных одинаково подготовленных Solo и Party сценах.
+
+Источник GitHub https://github.com/kpCat/L2J; source branch `wip/phantom-learning-004`, точный SHA `dff800f4b95232c132b374f8ec97c932eda4a6b1`. Сделай independent clone и новую `wip/phantom-learning-005`. Пользовательский `D:\Codex\repos\L2J-phantom-world` строго READ-ONLY; старый 004 clone/SQL также не изменять. Only scoped non-force push в новую ветку, protected refs не трогать.
+
+Распакуй PHANTOM-LEARNING-005.zip с сохранением `docs/phantoms/tasks/PHANTOM-LEARNING-005/*` внутрь модуля `L2J_Mobius_CT_2.6_HighFive`. Прочитай ВСЕ файлы пакета, особенно START_HERE_RU/TASK/EXPERIMENT_PROTOCOL/METRICS_AND_DECISION/ACCEPTANCE/SAFETY/WORKFLOW_FAST; далее текущие Agents и отчет004, actual source.
+
+Задача: отдельные законные сравнения в настоящем GameServer: SOLO_DAMAGE_V1 stock vs accepted V1 model1; PARTY_HEAL_V3 stock vs accepted V3 model2. 004 V3 model8 — DRAFT, включать её ON НЕЛЬЗЯ. Парные объективные pre-CUT условия, без forced побед, исходы/EXP/SP/HP/MP/время/расходы и honest UNKNOWN, реальные расхождения нейронных решений, русская статистика с n и неопределённостью. Минимум4 честные пары каждого режима и минимум одно реально выполненное отличающееся решение в каждом. Учитывать неполные попытки, не выбирать только выигрышные. Если превосходства нет или выборка мала — вывод INCONCLUSIVE/NO_ADVANTAGE, но работающий comparator можно завершить FULL005_EVALUATOR, не выдавая этого за боевое превосходство.
+
+Переиспользуй 002–004 Director/SQL/G0/native fixtures, не переписывай engine и Windows launcher. Сам запускай/останавливай TEST и делай report; ручные TRAIN_*.cmd от владельца DEFERRED. Фиксируй реальный CPU/perf/throughput и clean STOP. Не обучать 005 PvP, массовый фарм, рейды, осады, Олимпиаду, pathfinding, Semantic Pack. Не смешивать пробный EVAL с TRAIN/TUNING/AUDIT.
+
+Thinking High, Very High только при доказанном owner/schema blocker. Экономить время: сначала focused тесты, потом один Solo+Party A/B smoke, затем bounded pairs; не гоняться за зелёной статистикой ценой десятков GameServer starts. Отчёт на русском с exact GitHub HEAD, модельными/JAR SHA, реальные raw evidence и ограничения.

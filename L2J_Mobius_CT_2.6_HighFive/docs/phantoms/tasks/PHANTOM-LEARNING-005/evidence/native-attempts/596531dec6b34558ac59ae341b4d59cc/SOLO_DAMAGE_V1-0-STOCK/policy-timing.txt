@@ -1,0 +1,2 @@
+v1=TimingSummary[count=3, p50Nanos=160000, p95Nanos=221000, p99Nanos=221000, maxNanos=221000]
+v3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}

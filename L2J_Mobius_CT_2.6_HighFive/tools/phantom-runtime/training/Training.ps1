@@ -2,7 +2,10 @@
 param(
     [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight')][string]$Action,
     [string]$Root,
-    [ValidateSet('V1','V3')][string]$ConfigProfile='V1',
+    [ValidateSet('V1','V3','EVAL005')][string]$ConfigProfile='V1',
+    [switch]$EnableEvaluation005,
+    [ValidateRange(1,4)][int]$Evaluation005PairLimit=4,
+    [ValidatePattern('^[A-Za-z0-9._-]{1,64}$')][string]$Evaluation005Campaign='learning005',
     [ValidatePattern('^[0-9a-f]{32}$')][string]$Nonce
 )
 $ErrorActionPreference='Stop'
@@ -18,10 +21,17 @@ $script:WorkerRecord=$null
 $script:Config=$null
 function Read-TrainSourceConfig {
     $profile=$ConfigProfile
+    $current=$null
     $saved=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
     if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
-    $name=if($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
-    return Read-TrainConfig (Join-Path $PSScriptRoot $name)
+    $name=if($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
+    $values=Read-TrainConfig (Join-Path $PSScriptRoot $name)
+    if($profile -ceq 'EVAL005'){
+        if($EnableEvaluation005){$values.evaluation005Enabled='true';$values.evaluation005MaxPairsPerScope=[string]$Evaluation005PairLimit;$values.evaluation005Campaign=$Evaluation005Campaign}
+        elseif($current -and $current.ContainsKey('evaluation005Enabled')){foreach($key in @('evaluation005Enabled','evaluation005MaxPairsPerScope','evaluation005Campaign')){$values[$key]=$current[$key]}}
+        if($Action -in @('Start','Resume','Run') -and $values.evaluation005Enabled -cne 'true'){throw 'EVAL005_EXPLICIT_OPT_IN_REQUIRED'}
+    }
+    return $values
 }
 function Publish-TrainState([string]$Phase,[string]$Reason='') {
     if(!$script:State){return}
@@ -86,7 +96,12 @@ function Get-TrainAssets {
         $previous=Join-Path $documentedWorktrees 'phantom-learning-001-source\.phantom-local\learning001\cycle19'
         Assert-TrainDirectory $previous
     }
-    return @{Geo=(Join-Path $previous 'game\geodata');GeoManifest=(Join-Path $previous 'geo203.json');ProtectedManifest=(Join-Path $previous 'protected207.json')}
+    $protectedManifest=Join-Path $previous 'protected207.json'
+    if($script:Config -and $script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'EVAL005'){
+        $protectedManifest=Join-Path $layout.Root 'protected207.005.json'
+        Assert-TrainHash $protectedManifest (Get-TrainProtectedPin $script:Config)
+    }
+    return @{Geo=(Join-Path $previous 'game\geodata');GeoManifest=(Join-Path $previous 'geo203.json');ProtectedManifest=$protectedManifest}
 }
 function Set-TrainV3CampaignRound($Config) {
     if(!$Config.ContainsKey('v3Core004') -or $Config.v3Core004 -cne 'true'){return}
@@ -140,7 +155,7 @@ function Set-TrainIni([string]$Game,[string]$Relative,$Overrides) {
 }
 function Ensure-TrainStage([string]$JarSha,$Assets) {
     Publish-TrainState 'STAGING'
-    Assert-TrainAssets $Assets.Geo $Assets.GeoManifest $Assets.ProtectedManifest
+    Assert-TrainAssets $Assets.Geo $Assets.GeoManifest $Assets.ProtectedManifest $script:Config
     if(!(Test-Path -LiteralPath $layout.Game)){
         $pending=Join-Path $layout.Root ('game.pending.'+[guid]::NewGuid().ToString('N'))
         $null=[IO.Directory]::CreateDirectory($pending)
@@ -156,7 +171,7 @@ function Ensure-TrainStage([string]$JarSha,$Assets) {
         Set-TrainIni $pending 'Custom\PhantomPlayers.ini' @{EnablePhantomSystem='False';LearningMode='OFF';LearningModelVersion='0';LearningEvidenceEnabled='False';LearningDeterministicSeed='0'}
         Set-TrainIni $pending 'Custom\PhantomMerchants.ini' @{EnableOfflinePhantomMerchants='False'}
         Set-TrainIni $pending 'Custom\OfflineTrade.ini' @{RestoreOffliners='False'}
-        Assert-TrainAssets (Join-Path $pending 'geodata') $Assets.GeoManifest $Assets.ProtectedManifest
+        Assert-TrainAssets (Join-Path $pending 'geodata') $Assets.GeoManifest $Assets.ProtectedManifest $script:Config
         [IO.Directory]::Move($pending,$layout.Game)
     }
     Assert-TrainDirectory $layout.Game
@@ -170,7 +185,7 @@ function Ensure-TrainStage([string]$JarSha,$Assets) {
     }
     Assert-TrainHash $current $JarSha
     Set-TrainIni $layout.Game 'Server.ini' @{LoginHost='127.0.0.1';LoginPort=$script:Config.loginPort;GameserverHostname='127.0.0.1';GameserverPort=$script:Config.gamePort;DatapackRoot='.'}
-    Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json')
+    Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json') $script:Config
 }
 function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int]$TimeoutSeconds=600) {
     $workerId=[guid]::NewGuid().ToString('N');$directory=Join-Path $layout.Root ('workers\'+$workerId)
@@ -317,7 +332,10 @@ function Invoke-TrainQueuedExport($Dependencies) {
     Assert-TrainProcess $script:SqlRecord -Kind Sql -Port ([int]$script:Config.sqlPort)
     Publish-TrainState 'EXPORTING' $request.id
     $result=@{id=$request.id;state='COMPLETED';reason='Проверенная TEST-модель экспортирована.';finishedUtc=''}
-    try{Invoke-TrainJava $Dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('export',$layout.Root)}
+    try{
+        if($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('export',$layout.Root)}
+        else{Invoke-TrainJava $Dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('export',$layout.Root)}
+    }
     catch{
         # A missing accepted model rejects this request, not the training campaign.
         # An unconfirmed live worker still prevents further work and SQL shutdown.
@@ -380,6 +398,16 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha) {
     }
 }
 function Publish-TrainStatus {
+    $evaluationConfigPath=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
+    if(Test-Path -LiteralPath $evaluationConfigPath){
+        $evaluationConfig=Read-TrainConfig $evaluationConfigPath
+        if($evaluationConfig.ContainsKey('evaluation005Enabled') -and $evaluationConfig.evaluation005Enabled -ceq 'true' -and $evaluationConfig.evaluation005Campaign -cmatch '^[A-Za-z0-9._-]{1,64}$'){
+            $evaluationDirectory=Join-Path $layout.Root ('evaluation005\'+$evaluationConfig.evaluation005Campaign)
+            $summary=Join-Path $evaluationDirectory 'summary.json'
+            if(Test-Path -LiteralPath $summary){Write-Host ([IO.File]::ReadAllText($summary,[Text.Encoding]::UTF8))}
+            Write-Host ('Парный EVAL005: '+(Join-Path $evaluationDirectory 'report.md'))
+        }
+    }
     if(!(Test-Path -LiteralPath $layout.Root)){Write-Host 'Тренажёр ещё не установлен. Запустите TRAIN_START.cmd.';return}
     Assert-TrainInstallation $layout
     $statePath=Join-Path $layout.Root 'director.json'
@@ -435,7 +463,9 @@ function Invoke-TrainDirector {
         $script:SqlRecord=Start-TrainSql $dependencies
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
-        if($script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'){
+        $isEvaluationIdentity005=($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'EVAL005') -or ($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true')
+        if($isEvaluationIdentity005 -and (!$script:Config.ContainsKey('evaluation005Enabled') -or $script:Config.evaluation005Enabled -cne 'true' -or ($script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'))){throw 'EVAL005_TRAINING_RECOVERY_FORBIDDEN'}
+        if(!$isEvaluationIdentity005 -and $script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'){
             Publish-TrainState 'RESUMING_V3' 'Восстановление committed optimizer либо точного FROZEN батча; ON не изменяется.'
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
         }
@@ -450,7 +480,8 @@ function Invoke-TrainDirector {
             Set-TrainV3CampaignRound $next
             foreach($port in @('sqlPort','gamePort','loginPort')){if($next[$port] -cne $script:Config[$port]){throw 'TRAIN002_ENDPOINT_CHANGE_REQUIRES_NEW_INSTALLATION'}}
             $evaluation=Join-Path $layout.Root 'evaluation.json'
-            if(Test-Path -LiteralPath $evaluation){$model=Read-TrainJson $evaluation;if([long]$model.modelVersion -gt 0 -and $model.modelSha -cmatch '^[0-9a-f]{64}$'){$next.learningMode='ON';$next.modelVersion=[string]$model.modelVersion;$next.modelSha=$model.modelSha}else{$next.learningMode='SHADOW';$next.modelVersion='0';$next.modelSha=''}}
+            $isEvaluation005=$next.ContainsKey('evaluation005Enabled') -and $next.evaluation005Enabled -ceq 'true'
+            if(!$isEvaluation005 -and (Test-Path -LiteralPath $evaluation)){$model=Read-TrainJson $evaluation;if([long]$model.modelVersion -gt 0 -and $model.modelSha -cmatch '^[0-9a-f]{64}$'){$next.learningMode='ON';$next.modelVersion=[string]$model.modelVersion;$next.modelSha=$model.modelSha}else{$next.learningMode='SHADOW';$next.modelVersion='0';$next.modelSha=''}}
             # V3 model pins are explicit source configuration, applied only at this stopped boundary.
             # A qualified trainer candidate never changes them automatically.
             Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $next;$script:Config=$next
@@ -464,18 +495,23 @@ function Invoke-TrainDirector {
                 $v3Phase=if($next.v3Mode -ceq 'ON'){'on-v'+$next.v3ModelVersion+$(if($next.ContainsKey('v3ProofRound') -and [int]$next.v3ProofRound -gt 0){'-r'+$next.v3ProofRound}else{''})}else{'collect'+$(if($next.ContainsKey('v3CollectionRound') -and [int]$next.v3CollectionRound -gt 0){'-r'+$next.v3CollectionRound}else{''})}
                 $v3Manifest=Join-Path $layout.Root ('v3-actors-'+$v3Phase+'.tsv')
             }
-            if($v3Manifest -and (Test-Path -LiteralPath $v3Manifest)){
+            if($isEvaluation005){
+                $v3Manifest=$null
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+            }elseif($v3Manifest -and (Test-Path -LiteralPath $v3Manifest)){
                 Assert-G0PhysicalFile $v3Manifest
                 Publish-TrainState 'ACTORS_REUSE' 'Готовый собственный манифест; native вход повторно проверит фактических участников и допустимые действия.'
             }else{Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingActors' @($layout.Root,(Join-Path $layout.Root 'TRAIN_CONFIG.ini'))}
             try{
                 if($v3Manifest){Save-TrainV3SegmentDispatch $next $v3Phase}
-                Invoke-TrainNative $dependencies $jar
+                $evaluationComplete=if($isEvaluation005){Join-Path $layout.Root ('evaluation005\'+$next.evaluation005Campaign+'\native.complete')}else{$null}
+                if(!$evaluationComplete -or !(Test-Path -LiteralPath $evaluationComplete)){Invoke-TrainNative $dependencies $jar}
                 $script:State.nativeFailures=0
             }catch{
                 $null=Save-TrainFailure $layout $script:State $_ 'NATIVE_RETRY'
                 Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
                 $script:State.nativeFailures=[int]$script:State.nativeFailures+1
+                if($isEvaluation005){throw}
                 Publish-TrainState 'RETRY' 'Предыдущий батч неполон; committed события сохранены.'
                 if($script:State.nativeFailures -ge 3){throw 'TRAIN002_NATIVE_CONSECUTIVE_FAILURE_LIMIT'}
                 if(Test-TrainProcessAbsent $script:SqlRecord){$script:SqlRecord=Start-TrainSql $dependencies}
@@ -483,6 +519,11 @@ function Invoke-TrainDirector {
                 continue
             }
             Publish-TrainState 'EVALUATING'
+            if($isEvaluation005){
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)
+                Request-TrainBoundary 'pause' $script:DirectorNonce
+                continue
+            }
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
             Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
             if($next.ContainsKey('v3Enabled') -and $next.v3Enabled -ceq 'true' -and (!$next.ContainsKey('v3Core004') -or $next.v3Core004 -cne 'true') -and (Test-Path -LiteralPath (Join-Path $layout.Root ('v3-'+$v3Phase+'.complete')))){Request-TrainBoundary 'pause' $script:DirectorNonce}
@@ -510,7 +551,7 @@ function Invoke-TrainDirector {
             if($script:Config){Wait-TrainWorker ([int]$script:Config.shutdownTimeoutSeconds)}
             if($script:SqlRecord -and !(Test-TrainProcessAbsent $script:SqlRecord)){Stop-TrainSql $layout $script:Config $script:SqlRecord}
             if($script:Config){Assert-TrainPortsFree @([int]$script:Config.sqlPort,[int]$script:Config.gamePort,[int]$script:Config.loginPort)}
-            if(Test-Path -LiteralPath (Join-Path $layout.Root 'protected207.json')){Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json')}
+            if(Test-Path -LiteralPath (Join-Path $layout.Root 'protected207.json')){Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json') $script:Config}
             $clean=$true
             if($script:State.phase -ne 'FAILED'){Publish-TrainState 'STOPPED'}
         }catch{
@@ -531,7 +572,7 @@ try {
         $check=Read-TrainSourceConfig;$script:Config=$check
         $null=Get-TrainDependencies
         $assets=Get-TrainAssets
-        Assert-TrainAssets $assets.Geo $assets.GeoManifest $assets.ProtectedManifest
+        Assert-TrainAssets $assets.Geo $assets.GeoManifest $assets.ProtectedManifest $script:Config
         Assert-TrainPortsFree @([int]$check.sqlPort,[int]$check.gamePort,[int]$check.loginPort)
         Write-Host 'Предварительная проверка пройдена: config, JDK25, MariaDB11.4, Geo203, protected207 и свободные порты. Сборок и запусков серверов не было.'
         exit 0
@@ -613,7 +654,8 @@ try {
                 }catch{$null=Save-TrainFailure $layout $script:State $_ CLEANUP}
                 throw $primary
             }finally{$process.Dispose()}
-            Write-Host ('Автономный директор запущен, PID '+$launch.pid+'. Подготовка и обучение продолжаются в отдельном процессе.')
+            $workLabel=if($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){'Подготовка и парные испытания продолжаются в отдельном процессе.'}else{'Подготовка и обучение продолжаются в отдельном процессе.'}
+            Write-Host ('Автономный директор запущен, PID '+$launch.pid+'. '+$workLabel)
             Write-Host ('Статус: '+(Join-Path $PSScriptRoot 'TRAIN_STATUS.cmd'))
             exit 0
         }
@@ -676,7 +718,7 @@ try {
                     exit 0
                 }
                 Publish-TrainStatus
-                $report=Join-Path $layout.Root 'report.md'
+                $report=if($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){Join-Path $layout.Root ('evaluation005\'+$script:Config.evaluation005Campaign+'\report.md')}else{Join-Path $layout.Root 'report.md'}
                 if(Test-Path -LiteralPath $report){Write-Host ('Последний независимый отчёт: '+$report)}else{Write-Host 'Первый независимый отчёт появится после завершения батча.'}
                 exit 0
             }
@@ -686,8 +728,12 @@ try {
                 Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
                 Assert-TrainPortsFree @([int]$script:Config.gamePort,[int]$script:Config.loginPort)
                 if($Action -eq 'Export' -and (Get-TrainExportAdmission $false $true $true) -cne 'OFFLINE'){throw 'TRAIN002_EXPORT_ADMISSION'}
-                $script:SqlRecord=Start-TrainSql $dependencies
-                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @($Action.ToLowerInvariant(),$layout.Root)
+                if($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @($Action.ToLowerInvariant(),$layout.Root)
+                }else{
+                    $script:SqlRecord=Start-TrainSql $dependencies
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @($Action.ToLowerInvariant(),$layout.Root)
+                }
             }finally{
                 Wait-TrainWorker ([int]$script:Config.shutdownTimeoutSeconds)
                 if($script:SqlRecord -and !(Test-TrainProcessAbsent $script:SqlRecord)){Stop-TrainSql $layout $script:Config $script:SqlRecord}

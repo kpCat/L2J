@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 5,
+  "status": "PARTIAL",
+  "full005Evaluator": false,
+  "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+  "branch": "wip/phantom-learning-005",
+  "recordedUtc": "2026-11-12T12:55:30.127838+00:00",
+  "sourceFilesSha256": {
+    "java/org/l2jmobius/gameserver/phantoms/learning/LearningPolicy.java": "0c8f2df756daf1f30310357130ea976a4abff975e590de85daad5851e47ec830",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java": "2e0126e880cddefb9a12266d3b9faa2872277d7aeb476f65877d769276ce60fa",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java": "09c29da6e74cf853bdea7b3496753ef576626ba8d0977aea2ad171100661066d",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Checks.java": "9aad23fb6b0fe97ee72ebe2d0a9feeba2ad707cdf051d7eaa90aa93d9c45f1fe",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java": "2660409998302cba0c3abfc8d74128ed38b44ddc417da8397d091b420d96c0a9",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "3c00c599394da72983ed41b569ce8cd0d9361ae22e30df87cc0032cea29c2767",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "a025c54003f6be32de435aaaaaf587e8c8991512c219790a058930c188dca2f4",
+    "tools/phantom-runtime/training/Training.ps1": "46c0d96a9368c46341ab9c4c61b635f21faa38f4bc563147380aec9a59b186a9",
+    "tools/phantom-runtime/training/TrainingOwner.ps1": "c24d810281c028880f0b4fee57e254cc9767192899d5fc224c6ad92a6d61a941",
+    "tools/phantom-runtime/training/Evaluation005.ini": "c9acb9e11c27a2a4d26fb1304a3a73b0b0d80fc836827b93f99e67882eb145aa"
+  },
+  "finalCandidateJarSha256": "aba85844f9afa9669f8ad32844fe3c315588acd7a706c32d3b232b1a96cc4e97",
+  "modelV1ZipSha256": "10fc9c6c8c450e4974ca7abed861805a7640e2c67c8474ac5a4c96e003b493da",
+  "modelV3ZipSha256": "04393f2cbc7ba8c4760e42c6f32ae93edd4b8bf848e50d25e97ee8b4348716b5",
+  "checkpoint8ZipSha256": "f689100ec7e20aebcefb91648c9b5109c8fb82c67fc0d5b30343923639bdc798",
+  "currentCampaign": {
+    "schemaVersion": 5,
+    "campaign": "eval005d",
+    "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+    "jarSha": "aba85844f9afa9669f8ad32844fe3c315588acd7a706c32d3b232b1a96cc4e97",
+    "protocolSha": "0f2d23f4621e8934ec2c68d7b4bad6da4c8ab6a913580ba2519a5ca8e55d6bfd",
+    "arms": 16,
+    "plannedArms": 16,
+    "budgetSettled": true,
+    "modes": [
+      {
+        "mode": "SOLO_DAMAGE_V1",
+        "arms": 8,
+        "fairPairs": 2,
+        "incompletePairs": 2,
+        "unmatched": 0,
+        "singleArms": 0,
+        "divergences": 3,
+        "label": "INCONCLUSIVE"
+      },
+      {
+        "mode": "PARTY_HEAL_V3",
+        "arms": 8,
+        "fairPairs": 1,
+        "incompletePairs": 2,
+        "unmatched": 1,
+        "singleArms": 0,
+        "divergences": 0,
+        "label": "NO_POLICY_DIVERGENCE"
+      }
+    ]
+  },
+  "allCampaigns": [
+    {
+      "campaign": "eval005d",
+      "summary": {
+        "schemaVersion": 5,
+        "campaign": "eval005d",
+        "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+        "jarSha": "aba85844f9afa9669f8ad32844fe3c315588acd7a706c32d3b232b1a96cc4e97",
+        "protocolSha": "0f2d23f4621e8934ec2c68d7b4bad6da4c8ab6a913580ba2519a5ca8e55d6bfd",
+        "arms": 16,
+        "plannedArms": 16,
+        "budgetSettled": true,
+        "modes": [
+          {
+            "mode": "SOLO_DAMAGE_V1",
+            "arms": 8,
+            "fairPairs": 2,
+            "incompletePairs": 2,
+            "unmatched": 0,
+            "singleArms": 0,
+            "divergences": 3,
+            "label": "INCONCLUSIVE"
+          },
+          {
+            "mode": "PARTY_HEAL_V3",
+            "arms": 8,
+            "fairPairs": 1,
+            "incompletePairs": 2,
+            "unmatched": 1,
+            "singleArms": 0,
+            "divergences": 0,
+            "label": "NO_POLICY_DIVERGENCE"
+          }
+        ]
+      },
+      "arms": 16,
+      "pairs": [
+        {
+          "schemaVersion": 5,
+          "pairId": "PARTY_HEAL_V3-1",
+          "status": "MATCHED_INCOMPLETE",
+          "reason": "INCOMPLETE/COMPLETED",
+          "stockArm": "1e6c8e8d45fcae8f3800c9bb561da175e53fbf9c321c1d3ada795813762ff6ed",
+          "stockSha": "8acbafc6fef6f0dcc22baa69a8cde4746d9ebaca9a54f904a117eb593b2ecd75",
+          "learnedArm": "dc15ee8566f5f3660c14a6aae891b47ea00ab790e627b945f3b2f26794651db6",
+          "learnedSha": "997339f693449b24ae207886aab69878a8c9fe048fe834011998a2fb1d6ab297",
+          "deltas": {},
+          "divergences": 0
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "PARTY_HEAL_V3-0",
+          "status": "MATCHED_INCOMPLETE",
+          "reason": "INCOMPLETE/COMPLETED",
+          "stockArm": "9f2f851303218e34ced91f33cfc15b2c3af82f7dcfa18aa2bf7a911e2b3f51ea",
+          "stockSha": "1bd6e7af4d6a0f8cd3bcf9ca0b20cbbb0b3af43726fbbb5a9d4a36bd846f5ee0",
+          "learnedArm": "5e35794da95aedbbc47fb60e870f6938e669a6a4db5bad5ba7fbe1e2a29c198d",
+          "learnedSha": "8a7b7d2a8a0b377ab3877f9f094b65c2423c961585d20b9d270befe283b50a9d",
+          "deltas": {},
+          "divergences": 0
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "PARTY_HEAL_V3-3",
+          "status": "UNMATCHED",
+          "reason": "PRE_CUT_FACTS_DIFFER",
+          "stockArm": "dd92443921e864ed972ba4dfe7651ae2b0a6a652fbf98ef788e69e66055df72d",
+          "stockSha": "2582f8a6a90d364fafa3a5bbd4312ed50dec68bb606be166673b64a3e6087d61",
+          "learnedArm": "fb0be5afcda7c074bd2b1ff6a6281035db28d4781633a836a80858ad89c04e70",
+          "learnedSha": "b3b9511e7ca1b4f3424531b07dc46906ab9b3ca4d864c3c807cc622648c1779f",
+          "deltas": {},
+          "divergences": 0
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "SOLO_DAMAGE_V1-0",
+          "status": "MATCHED_COMPLETED",
+          "reason": "PHYSICAL_FACTS_EQUAL_NATIVE_RANDOMNESS_INDEPENDENT",
+          "stockArm": "b8c05c828c6d31fa3197236b8a8ba59a6c5263ca49aaea3896e5933754f08de4",
+          "stockSha": "60a1c2e5f3a28c2d1b2b62485865c762f9b9d980c7c0a9ba8eb5a0b763cf2b3f",
+          "learnedArm": "7664c6f9ae24c33befdd5fb30d028987edf7ced3d7da302a5b404f9b66fe63f6",
+          "learnedSha": "fcb9607b3bf54f18d13bd1c24e0d31337c83107758b37f02ef91271b6cc49a5b",
+          "deltas": {
+            "adenaNet": null,
+            "allActionsMpDebit": null,
+            "consumables": null,
+            "deaths": null,
+            "deathsLowerBound": 0.0,
+            "drainMillis": 507.8192999999999,
+            "elapsedMillis": 3968.415500000001,
+            "exp": 0.0,
+            "expPerMinute": -35354.93210021188,
+            "hp": 318.25116399999933,
+            "loot": null,
+            "mp": -153.03665599999977,
+            "netHpChange": 318.25116399999933,
+            "netMpChange": -153.03665599999977,
+            "observedHealMpDebit": 0.0,
+            "observedUsefulHeal": 0.0,
+            "settlementSnapshotMillis": 4476.7502,
+            "sp": 0.0,
+            "spPerMinute": -6299.753878122872,
+            "uniqueEnemyKills": 0.0,
+            "usefulHeal": null,
+            "wholePartyDamage": null
+          },
+          "divergences": 1
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "SOLO_DAMAGE_V1-1",
+          "status": "MATCHED_COMPLETED",
+          "reason": "PHYSICAL_FACTS_EQUAL_NATIVE_RANDOMNESS_INDEPENDENT",
+          "stockArm": "06a97b0d2da1b8670f358f56d8148dc6e27f680c797410e81664ea67b86b236e",
+          "stockSha": "a25956ebfd61f3e00fa2565f3913834d9278a0dfa51d1af1cc937bdd4c0a93c4",
+          "learnedArm": "94a59117a7ee9b3f6ed639423f5866370e2d21e1a3320a04b44b8d7678f7cccb",
+          "learnedSha": "16d9a5d68dd03027e569ebb0566a2cd3ff917fe54268789b94c0348b3a100fc8",
+          "deltas": {
+            "adenaNet": null,
+            "allActionsMpDebit": null,
+            "consumables": null,
+            "deaths": null,
+            "deathsLowerBound": 0.0,
+            "drainMillis": -1316.206,
+            "elapsedMillis": -12315.9296,
+            "exp": 3263.0,
+            "expPerMinute": 85947.33192790905,
+            "hp": 1648.1083334250789,
+            "loot": null,
+            "mp": 110.3607520000005,
+            "netHpChange": 1648.1083334250789,
+            "netMpChange": 110.3607520000005,
+            "observedHealMpDebit": 0.0,
+            "observedUsefulHeal": 0.0,
+            "settlementSnapshotMillis": -13632.134900000001,
+            "sp": 0.0,
+            "spPerMinute": 13059.289555059706,
+            "uniqueEnemyKills": 0.0,
+            "usefulHeal": null,
+            "wholePartyDamage": null
+          },
+          "divergences": 2
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "SOLO_DAMAGE_V1-2",
+          "status": "MATCHED_INCOMPLETE",
+          "reason": "FAILED/COMPLETED",
+          "stockArm": "05ffc4754f722144a64253c59121d27de2f5faf528c63bcb18cf4d4da5280a1a",
+          "stockSha": "23a94a5213a18621101222b679947e3cf54a02936f15a71b401d78701215b455",
+          "learnedArm": "41d3ff776deadf24e4a39c1333fa32e30b2247bfbb1039d49ec6fc86bf372dfb",
+          "learnedSha": "46260c1998f6ddc1ae5af7ce0cec798280b8009147d8911ec83e5b3cf6d9d9f2",
+          "deltas": {},
+          "divergences": 1
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "SOLO_DAMAGE_V1-3",
+          "status": "MATCHED_INCOMPLETE",
+          "reason": "INCOMPLETE/INCOMPLETE",
+          "stockArm": "67381b5a1b4fc4c632b0e76b861955efe6511fb898406eeb9e2554ee17d3473b",
+          "stockSha": "8ae2931401f87f877538b2b376eb7fe1fb1dc99e2c513d00b7aae9706fbaede1",
+          "learnedArm": "df0520da54505b65f51e74c0063e7ca3114fff98b58a33ec71534657986c94a6",
+          "learnedSha": "4e1b1003ca5743797a785750b833b1d7fb26b7f1d2234e96865797de08794217",
+          "deltas": {},
+          "divergences": 0
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "PARTY_HEAL_V3-2",
+          "status": "MATCHED_COMPLETED",
+          "reason": "PHYSICAL_FACTS_EQUAL_NATIVE_RANDOMNESS_INDEPENDENT",
+          "stockArm": "94141ee11c5d8f608aaab36eea6cc78d938004560d683f5eefd4b268a89680ec",
+          "stockSha": "a4db4e41c448f8a413d08b959d21b6fb1061e9ec583562da11f643269f55d2d7",
+          "learnedArm": "98e58403b27297002b24fa3a642e6a9148f5066efe2d003e33a78ba27d4705c9",
+          "learnedSha": "ba4edf1c7217658fd6274a8a099b732978e6e3729301ab5d604007a7f177823d",
+          "deltas": {
+            "adenaNet": null,
+            "allActionsMpDebit": null,
+            "consumables": null,
+            "deaths": null,
+            "deathsLowerBound": 0.0,
+            "drainMillis": 579.0881999999999,
+            "elapsedMillis": 50.20460000000094,
+            "exp": 0.0,
+            "expPerMinute": -821.2469604433863,
+            "hp": 688.1616770850887,
+            "loot": null,
+            "mp": 0.0,
+            "netHpChange": 688.1616770850887,
+            "netMpChange": 0.0,
+            "observedHealMpDebit": 0.0,
+            "observedUsefulHeal": 0.0,
+            "settlementSnapshotMillis": 629.2991000000002,
+            "sp": 0.0,
+            "spPerMinute": -146.32914773296216,
+            "uniqueEnemyKills": 0.0,
+            "usefulHeal": null,
+            "wholePartyDamage": null
+          },
+          "divergences": 0
+        }
+      ]
+    },
+    {
+      "campaign": "smoke005a",
+      "summary": {
+        "schemaVersion": 5,
+        "campaign": "smoke005a",
+        "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+        "jarSha": "3c420f80256cd3ef7c2d57293b2289040bbf72aeeec1862c30628d12fcdb3c45",
+        "protocolSha": "3562f7e3e2d9122a162094eeb8804e18ca23811b6b1ed022a5441ec2509a9965",
+        "arms": 4,
+        "plannedArms": 4,
+        "budgetSettled": true,
+        "modes": [
+          {
+            "mode": "SOLO_DAMAGE_V1",
+            "arms": 2,
+            "fairPairs": 0,
+            "incompletePairs": 0,
+            "unmatched": 1,
+            "singleArms": 0,
+            "divergences": 0,
+            "label": "INCONCLUSIVE"
+          },
+          {
+            "mode": "PARTY_HEAL_V3",
+            "arms": 2,
+            "fairPairs": 0,
+            "incompletePairs": 0,
+            "unmatched": 1,
+            "singleArms": 0,
+            "divergences": 0,
+            "label": "INCONCLUSIVE"
+          }
+        ]
+      },
+      "arms": 4,
+      "pairs": [
+        {
+          "schemaVersion": 5,
+          "pairId": "PARTY_HEAL_V3-0",
+          "status": "UNMATCHED",
+          "reason": "PRE_CUT_FACTS_DIFFER",
+          "stockArm": "9f2f851303218e34ced91f33cfc15b2c3af82f7dcfa18aa2bf7a911e2b3f51ea",
+          "stockSha": "7c3ba5c7a9f58a21196ac0eed70a8f19fdce7d851384c729b76507709c27714a",
+          "learnedArm": "5e35794da95aedbbc47fb60e870f6938e669a6a4db5bad5ba7fbe1e2a29c198d",
+          "learnedSha": "63d3087f81cde6561a7c92b3cff8393c0369dac113a03e0f92e3389b7e24fc7e",
+          "deltas": {},
+          "divergences": 0
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "SOLO_DAMAGE_V1-0",
+          "status": "UNMATCHED",
+          "reason": "PRE_CUT_FACTS_DIFFER",
+          "stockArm": "b8c05c828c6d31fa3197236b8a8ba59a6c5263ca49aaea3896e5933754f08de4",
+          "stockSha": "bd6407d112b57aa3c8e6e853581adcac4504ec1edc53f906674f58d21f1097b2",
+          "learnedArm": "7664c6f9ae24c33befdd5fb30d028987edf7ced3d7da302a5b404f9b66fe63f6",
+          "learnedSha": "885a7cf47b4aeb7bedc4be207dfc246de992b6db6878b2e41aeb7573e310c57e",
+          "deltas": {},
+          "divergences": 0
+        }
+      ]
+    },
+    {
+      "campaign": "smoke005b",
+      "summary": {
+        "schemaVersion": 5,
+        "campaign": "smoke005b",
+        "sourceBase": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+        "jarSha": "cdef8b6b2071713489218fdf4994c40c4a19044ccbbea1695713504c507db774",
+        "protocolSha": "51b709d27c75ab02717ac742bfa2bbc96d133274105c2b29b298236edf652d5e",
+        "arms": 4,
+        "plannedArms": 4,
+        "budgetSettled": true,
+        "modes": [
+          {
+            "mode": "SOLO_DAMAGE_V1",
+            "arms": 2,
+            "fairPairs": 0,
+            "incompletePairs": 0,
+            "unmatched": 1,
+            "singleArms": 0,
+            "divergences": 0,
+            "label": "INCONCLUSIVE"
+          },
+          {
+            "mode": "PARTY_HEAL_V3",
+            "arms": 2,
+            "fairPairs": 0,
+            "incompletePairs": 0,
+            "unmatched": 1,
+            "singleArms": 0,
+            "divergences": 0,
+            "label": "INCONCLUSIVE"
+          }
+        ]
+      },
+      "arms": 4,
+      "pairs": [
+        {
+          "schemaVersion": 5,
+          "pairId": "PARTY_HEAL_V3-0",
+          "status": "UNMATCHED",
+          "reason": "PRE_CUT_FACTS_DIFFER",
+          "stockArm": "9f2f851303218e34ced91f33cfc15b2c3af82f7dcfa18aa2bf7a911e2b3f51ea",
+          "stockSha": "d13c495a40c3f584683df8c244a613cdc6b8c2f661af594be9124334128ea10a",
+          "learnedArm": "5e35794da95aedbbc47fb60e870f6938e669a6a4db5bad5ba7fbe1e2a29c198d",
+          "learnedSha": "e8d3b693fe79f48337aa64d30e3af3835003be84e97070fc21130040339c25c3",
+          "deltas": {},
+          "divergences": 0
+        },
+        {
+          "schemaVersion": 5,
+          "pairId": "SOLO_DAMAGE_V1-0",
+          "status": "UNMATCHED",
+          "reason": "PRE_CUT_FACTS_DIFFER",
+          "stockArm": "b8c05c828c6d31fa3197236b8a8ba59a6c5263ca49aaea3896e5933754f08de4",
+          "stockSha": "a2ff86235db279d11855f87a11aed87b3691f7629966f2e8b9046fe16379008d",
+          "learnedArm": "7664c6f9ae24c33befdd5fb30d028987edf7ced3d7da302a5b404f9b66fe63f6",
+          "learnedSha": "3bc8396e00bf6670907db66f1edf640f8e1f368f7ed9be61a37fa6e74c3b81f5",
+          "deltas": {},
+          "divergences": 0
+        }
+      ]
+    }
+  ],
+  "nativeAttempts": [
+    {
+      "attemptId": "596531dec6b34558ac59ae341b4d59cc",
+      "arms": [
+        "7664c6f9ae24c33befdd5fb30d028987edf7ced3d7da302a5b404f9b66fe63f6",
+        "b8c05c828c6d31fa3197236b8a8ba59a6c5263ca49aaea3896e5933754f08de4",
+        "5e35794da95aedbbc47fb60e870f6938e669a6a4db5bad5ba7fbe1e2a29c198d",
+        "9f2f851303218e34ced91f33cfc15b2c3af82f7dcfa18aa2bf7a911e2b3f51ea"
+      ],
+      "protocolShas": [
+        "51b709d27c75ab02717ac742bfa2bbc96d133274105c2b29b298236edf652d5e"
+      ],
+      "jarShas": [
+        "cdef8b6b2071713489218fdf4994c40c4a19044ccbbea1695713504c507db774"
+      ],
+      "resources": {
+        "pid": 85252,
+        "startedUtc": "2026-11-12T12:22:11.0076316Z",
+        "sampledUtc": "2026-11-12T12:25:00.7778297Z",
+        "elapsedMillis": 169770,
+        "cpuSeconds": 122.046875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4687896576,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "596531dec6b34558ac59ae341b4d59cc",
+        "finishedUtc": "2026-11-12T12:25:00.7843806Z"
+      },
+      "timings": {
+        "PARTY_HEAL_V3-0-LEARNED": "v1=TimingSummary[count=2, p50Nanos=94200, p95Nanos=344100, p99Nanos=344100, maxNanos=344100]\nv3=snapshotNanos={n:1,p50:4838200,p95:4838200,p99:4838200,max:4838200} encodeNanos={n:1,p50:1158000,p95:1158000,p99:1158000,max:1158000} scoreNanos={n:1,p50:39200,p95:39200,p99:39200,max:39200} totalNanos={n:2,p50:19700,p95:6634700,p99:6634700,max:6634700} dispatchNanos={n:1,p50:9693500,p95:9693500,p99:9693500,max:9693500} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:905768,p99:905768,max:905768}\n",
+        "PARTY_HEAL_V3-0-STOCK": "v1=TimingSummary[count=2, p50Nanos=111500, p95Nanos=119000, p99Nanos=119000, maxNanos=119000]\nv3=snapshotNanos={n:1,p50:783900,p95:783900,p99:783900,max:783900} encodeNanos={n:1,p50:1157300,p95:1157300,p99:1157300,max:1157300} scoreNanos={n:1,p50:37500,p95:37500,p99:37500,max:37500} totalNanos={n:2,p50:17300,p95:2203500,p99:2203500,max:2203500} dispatchNanos={n:1,p50:4748800,p95:4748800,p99:4748800,max:4748800} cpuNanos={n:2,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:2,p50:40,p95:111384,p99:111384,max:111384}\n",
+        "SOLO_DAMAGE_V1-0-LEARNED": "v1=TimingSummary[count=2, p50Nanos=211300, p95Nanos=2250700, p99Nanos=2250700, maxNanos=2250700]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-0-STOCK": "v1=TimingSummary[count=3, p50Nanos=160000, p95Nanos=221000, p99Nanos=221000, maxNanos=221000]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n"
+      },
+      "healFailures": []
+    },
+    {
+      "attemptId": "a01c2d3820cd4cd8886d29cd987fa984",
+      "arms": [
+        "7664c6f9ae24c33befdd5fb30d028987edf7ced3d7da302a5b404f9b66fe63f6",
+        "b8c05c828c6d31fa3197236b8a8ba59a6c5263ca49aaea3896e5933754f08de4",
+        "5e35794da95aedbbc47fb60e870f6938e669a6a4db5bad5ba7fbe1e2a29c198d",
+        "9f2f851303218e34ced91f33cfc15b2c3af82f7dcfa18aa2bf7a911e2b3f51ea"
+      ],
+      "protocolShas": [
+        "3562f7e3e2d9122a162094eeb8804e18ca23811b6b1ed022a5441ec2509a9965"
+      ],
+      "jarShas": [
+        "3c420f80256cd3ef7c2d57293b2289040bbf72aeeec1862c30628d12fcdb3c45"
+      ],
+      "resources": {
+        "pid": 73504,
+        "startedUtc": "2026-11-12T12:07:00.2354235Z",
+        "sampledUtc": "2026-11-12T12:10:56.8369542Z",
+        "elapsedMillis": 236602,
+        "cpuSeconds": 138.09375,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4599164928,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "a01c2d3820cd4cd8886d29cd987fa984",
+        "finishedUtc": "2026-11-12T12:10:56.8429541Z"
+      },
+      "timings": {
+        "PARTY_HEAL_V3-0-LEARNED": "v1=TimingSummary[count=1, p50Nanos=134900, p95Nanos=134900, p99Nanos=134900, maxNanos=134900]\nv3=snapshotNanos={n:1,p50:5589000,p95:5589000,p99:5589000,max:5589000} encodeNanos={n:1,p50:1260200,p95:1260200,p99:1260200,max:1260200} scoreNanos={n:1,p50:57900,p95:57900,p99:57900,max:57900} totalNanos={n:4,p50:23500,p95:7617900,p99:7617900,max:7617900} dispatchNanos={n:1,p50:8713900,p95:8713900,p99:8713900,max:8713900} cpuNanos={n:4,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:4,p50:40,p95:905768,p99:905768,max:905768}\n",
+        "PARTY_HEAL_V3-0-STOCK": "v1=TimingSummary[count=0, p50Nanos=0, p95Nanos=0, p99Nanos=0, maxNanos=0]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-0-LEARNED": "v1=TimingSummary[count=0, p50Nanos=0, p95Nanos=0, p99Nanos=0, maxNanos=0]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-0-STOCK": "v1=TimingSummary[count=1, p50Nanos=2967200, p95Nanos=2967200, p99Nanos=2967200, maxNanos=2967200]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n"
+      },
+      "healFailures": []
+    },
+    {
+      "attemptId": "e1c678899287430dbcc938ba95ad563d",
+      "arms": [
+        "7664c6f9ae24c33befdd5fb30d028987edf7ced3d7da302a5b404f9b66fe63f6",
+        "b8c05c828c6d31fa3197236b8a8ba59a6c5263ca49aaea3896e5933754f08de4",
+        "06a97b0d2da1b8670f358f56d8148dc6e27f680c797410e81664ea67b86b236e",
+        "94a59117a7ee9b3f6ed639423f5866370e2d21e1a3320a04b44b8d7678f7cccb",
+        "41d3ff776deadf24e4a39c1333fa32e30b2247bfbb1039d49ec6fc86bf372dfb",
+        "05ffc4754f722144a64253c59121d27de2f5faf528c63bcb18cf4d4da5280a1a",
+        "67381b5a1b4fc4c632b0e76b861955efe6511fb898406eeb9e2554ee17d3473b",
+        "df0520da54505b65f51e74c0063e7ca3114fff98b58a33ec71534657986c94a6",
+        "5e35794da95aedbbc47fb60e870f6938e669a6a4db5bad5ba7fbe1e2a29c198d",
+        "9f2f851303218e34ced91f33cfc15b2c3af82f7dcfa18aa2bf7a911e2b3f51ea",
+        "1e6c8e8d45fcae8f3800c9bb561da175e53fbf9c321c1d3ada795813762ff6ed",
+        "dc15ee8566f5f3660c14a6aae891b47ea00ab790e627b945f3b2f26794651db6",
+        "98e58403b27297002b24fa3a642e6a9148f5066efe2d003e33a78ba27d4705c9",
+        "94141ee11c5d8f608aaab36eea6cc78d938004560d683f5eefd4b268a89680ec",
+        "dd92443921e864ed972ba4dfe7651ae2b0a6a652fbf98ef788e69e66055df72d",
+        "fb0be5afcda7c074bd2b1ff6a6281035db28d4781633a836a80858ad89c04e70"
+      ],
+      "protocolShas": [
+        "0f2d23f4621e8934ec2c68d7b4bad6da4c8ab6a913580ba2519a5ca8e55d6bfd"
+      ],
+      "jarShas": [
+        "aba85844f9afa9669f8ad32844fe3c315588acd7a706c32d3b232b1a96cc4e97"
+      ],
+      "resources": {
+        "pid": 20828,
+        "startedUtc": "2026-11-12T12:30:50.5868675Z",
+        "sampledUtc": "2026-11-12T12:43:05.3251545Z",
+        "elapsedMillis": 734738,
+        "cpuSeconds": 208.0625,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 4687106048,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true,
+        "attemptId": "e1c678899287430dbcc938ba95ad563d",
+        "finishedUtc": "2026-11-12T12:43:05.3321439Z"
+      },
+      "timings": {
+        "PARTY_HEAL_V3-0-LEARNED": "v1=TimingSummary[count=2, p50Nanos=113800, p95Nanos=162900, p99Nanos=162900, maxNanos=162900]\nv3=snapshotNanos={n:1,p50:5073700,p95:5073700,p99:5073700,max:5073700} encodeNanos={n:1,p50:12852300,p95:12852300,p99:12852300,max:12852300} scoreNanos={n:1,p50:166100,p95:166100,p99:166100,max:166100} totalNanos={n:4,p50:20000,p95:19031400,p99:19031400,max:19031400} dispatchNanos={n:1,p50:7067400,p95:7067400,p99:7067400,max:7067400} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:40,p95:904832,p99:904832,max:904832}\n",
+        "PARTY_HEAL_V3-0-STOCK": "v1=TimingSummary[count=2, p50Nanos=114100, p95Nanos=192900, p99Nanos=192900, maxNanos=192900]\nv3=snapshotNanos={n:1,p50:1209800,p95:1209800,p99:1209800,max:1209800} encodeNanos={n:1,p50:1393000,p95:1393000,p99:1393000,max:1393000} scoreNanos={n:1,p50:136100,p95:136100,p99:136100,max:136100} totalNanos={n:4,p50:27700,p95:3056300,p99:3056300,max:3056300} dispatchNanos={n:1,p50:5952500,p95:5952500,p99:5952500,max:5952500} cpuNanos={n:4,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:4,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "PARTY_HEAL_V3-1-LEARNED": "v1=TimingSummary[count=1, p50Nanos=128200, p95Nanos=128200, p99Nanos=128200, maxNanos=128200]\nv3=snapshotNanos={n:1,p50:747000,p95:747000,p99:747000,max:747000} encodeNanos={n:1,p50:1185100,p95:1185100,p99:1185100,max:1185100} scoreNanos={n:1,p50:39400,p95:39400,p99:39400,max:39400} totalNanos={n:2,p50:43600,p95:2052200,p99:2052200,max:2052200} dispatchNanos={n:1,p50:4811500,p95:4811500,p99:4811500,max:4811500} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "PARTY_HEAL_V3-1-STOCK": "v1=TimingSummary[count=3, p50Nanos=128400, p95Nanos=157800, p99Nanos=157800, maxNanos=157800]\nv3=snapshotNanos={n:1,p50:686700,p95:686700,p99:686700,max:686700} encodeNanos={n:1,p50:1148100,p95:1148100,p99:1148100,max:1148100} scoreNanos={n:1,p50:67700,p95:67700,p99:67700,max:67700} totalNanos={n:2,p50:43400,p95:1984100,p99:1984100,max:1984100} dispatchNanos={n:1,p50:5984200,p95:5984200,p99:5984200,max:5984200} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "PARTY_HEAL_V3-2-LEARNED": "v1=TimingSummary[count=3, p50Nanos=150600, p95Nanos=151200, p99Nanos=151200, maxNanos=151200]\nv3=snapshotNanos={n:1,p50:685700,p95:685700,p99:685700,max:685700} encodeNanos={n:1,p50:1215000,p95:1215000,p99:1215000,max:1215000} scoreNanos={n:1,p50:68700,p95:68700,p99:68700,max:68700} totalNanos={n:2,p50:23100,p95:2089600,p99:2089600,max:2089600} dispatchNanos={n:1,p50:4882900,p95:4882900,p99:4882900,max:4882900} cpuNanos={n:2,p50:0,p95:15625000,p99:15625000,max:15625000} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "PARTY_HEAL_V3-2-STOCK": "v1=TimingSummary[count=3, p50Nanos=155400, p95Nanos=180900, p99Nanos=180900, maxNanos=180900]\nv3=snapshotNanos={n:1,p50:795400,p95:795400,p99:795400,max:795400} encodeNanos={n:1,p50:1135900,p95:1135900,p99:1135900,max:1135900} scoreNanos={n:1,p50:60200,p95:60200,p99:60200,max:60200} totalNanos={n:2,p50:23100,p95:2067800,p99:2067800,max:2067800} dispatchNanos={n:1,p50:4169300,p95:4169300,p99:4169300,max:4169300} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "PARTY_HEAL_V3-3-LEARNED": "v1=TimingSummary[count=2, p50Nanos=108300, p95Nanos=148500, p99Nanos=148500, maxNanos=148500]\nv3=snapshotNanos={n:1,p50:611100,p95:611100,p99:611100,max:611100} encodeNanos={n:1,p50:1140100,p95:1140100,p99:1140100,max:1140100} scoreNanos={n:1,p50:22100,p95:22100,p99:22100,max:22100} totalNanos={n:2,p50:23300,p95:1851000,p99:1851000,max:1851000} dispatchNanos={n:1,p50:4805700,p95:4805700,p99:4805700,max:4805700} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "PARTY_HEAL_V3-3-STOCK": "v1=TimingSummary[count=1, p50Nanos=190300, p95Nanos=190300, p99Nanos=190300, maxNanos=190300]\nv3=snapshotNanos={n:1,p50:653900,p95:653900,p99:653900,max:653900} encodeNanos={n:1,p50:1663000,p95:1663000,p99:1663000,max:1663000} scoreNanos={n:1,p50:19700,p95:19700,p99:19700,max:19700} totalNanos={n:2,p50:21300,p95:2415200,p99:2415200,max:2415200} dispatchNanos={n:1,p50:4337600,p95:4337600,p99:4337600,max:4337600} cpuNanos={n:2,p50:0,p95:0,p99:0,max:0} allocatedBytes={n:2,p50:40,p95:110856,p99:110856,max:110856}\n",
+        "SOLO_DAMAGE_V1-0-LEARNED": "v1=TimingSummary[count=2, p50Nanos=166000, p95Nanos=2342900, p99Nanos=2342900, maxNanos=2342900]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-0-STOCK": "v1=TimingSummary[count=2, p50Nanos=139400, p95Nanos=166500, p99Nanos=166500, maxNanos=166500]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-1-LEARNED": "v1=TimingSummary[count=2, p50Nanos=125600, p95Nanos=139600, p99Nanos=139600, maxNanos=139600]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-1-STOCK": "v1=TimingSummary[count=3, p50Nanos=152300, p95Nanos=225500, p99Nanos=225500, maxNanos=225500]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-2-LEARNED": "v1=TimingSummary[count=3, p50Nanos=153400, p95Nanos=184100, p99Nanos=184100, maxNanos=184100]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-2-STOCK": "v1=TimingSummary[count=4, p50Nanos=114500, p95Nanos=139600, p99Nanos=139600, maxNanos=139600]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-3-LEARNED": "v1=TimingSummary[count=0, p50Nanos=0, p95Nanos=0, p99Nanos=0, maxNanos=0]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n",
+        "SOLO_DAMAGE_V1-3-STOCK": "v1=TimingSummary[count=0, p50Nanos=0, p95Nanos=0, p99Nanos=0, maxNanos=0]\nv3=snapshotNanos={n:0} encodeNanos={n:0} scoreNanos={n:0} totalNanos={n:0} dispatchNanos={n:0} cpuNanos={n:0} allocatedBytes={n:0}\n"
+      },
+      "healFailures": []
+    }
+  ],
+  "checks": {
+    "canonicalCompileExit": 0,
+    "canonicalJarExit": 0,
+    "legacyCompilerWarnings": 5,
+    "focused005": {
+      "assertions": 28,
+      "exit": 0,
+      "fixtures": "CONTRACT_ONLY"
+    },
+    "affected": {
+      "learning001": 4,
+      "combat-core": 72,
+      "combat-action-ownership": 38,
+      "party-tactics": 14,
+      "training-contracts": 6,
+      "post002-support": 9,
+      "totalPassed": 143,
+      "failed": 0
+    },
+    "F7": {
+      "exit": 0,
+      "dbConnections": 0,
+      "actors": 0,
+      "sqlReplay": "NOT_RUN"
+    },
+    "F8": {
+      "passed": 14,
+      "failed": 0,
+      "exit": 0
+    },
+    "nativeTrials": "RUN",
+    "nativeColdResume": "RUN_FRESH_DIRECTOR_AND_EVALUATOR_WORKER",
+    "nativeAfterCompletedBudget": "NOT_RERUN_BY_DESIGN"
+  },
+  "gates": {
+    "G0": "PASS_WITH_EXPLICIT_BASELINE005_EXCEPTION; publication checked separately",
+    "G1": "PASS_ACCEPTED1_ACCEPTED2_ONLY; DRAFT8_NOT_ACTIVE",
+    "G2": "REQUIRED_NOT_MET",
+    "G3": "PARTIAL_NO_POLICY_DIVERGENCE_IN_PARTY_HEAL_V3",
+    "G4": "PASS_NATIVE_OUTCOMES_AND_UNKNOWN_MASKS_RETAINED; at least one completed matched pair per mode",
+    "G5": "PASS_INCONCLUSIVE",
+    "G6": "PASS_COLD_RESUME_IMMUTABLE_LEDGER; no completed native rerun",
+    "G7": "PASS_TARGETED_CHECKS_AND_MEASURED_NATIVE_COST_SCOPE",
+    "G8": "SCOPED_DELIVERY; remote SHA attestation in DELIVERY.json and final receipt"
+  },
+  "resume": {
+    "immutableEqual": true,
+    "summaryEqual": true,
+    "freshDirector": true,
+    "freshEvaluatorWorker": true,
+    "nativeRerunAvoided": true
+  },
+  "stop": {
+    "schemaVersion": 5,
+    "phase": "STOPPED",
+    "confirmedUtc": "2026-11-12T12:47:29.2769465Z",
+    "ports": [
+      33347,
+      17991,
+      19291
+    ],
+    "processes": [
+      {
+        "pid": 59916,
+        "kind": "Director",
+        "absent": true
+      },
+      {
+        "pid": 20828,
+        "kind": "Native",
+        "absent": true
+      },
+      {
+        "pid": 44588,
+        "kind": "Worker",
+        "absent": true
+      },
+      {
+        "pid": 71232,
+        "kind": "Sql",
+        "absent": true
+      }
+    ],
+    "sqlStarted": true,
+    "gameServerStarted": true
+  },
+  "manualFullGate": "NOT_PASSED",
+  "publication": "SEE_DELIVERY_JSON",
+  "consolidation": "AUTHORIZED_SEPARATE_OPERATION"
+}
