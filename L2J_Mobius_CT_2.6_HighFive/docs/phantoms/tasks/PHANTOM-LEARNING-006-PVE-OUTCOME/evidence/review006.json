@@ -1,0 +1,18 @@
+{
+  "scopeSourcePaths": 17,
+  "mode": "READ_ONLY_SOURCE_REVIEW",
+  "critical": 0,
+  "important": 0,
+  "manualGateAccepted": false,
+  "fixedFindings": [
+    "late drain goal/death changed reward",
+    "HEAL substituted for encounter admission",
+    "terminal sampler downgraded to legacy ancestry",
+    "inconsistent death publication and CAS winner",
+    "postdeadline kill promoted timeout",
+    "native dead without event ordering proof"
+  ],
+  "limitations": [
+    "No proof of actual006 optimizer update or independent A/B; those phases were not run."
+  ]
+}

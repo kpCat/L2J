@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "dfcba154fa1f459be6082a559744d2b4a5c9b47a",
+  "previousManifestSha256": "a523f7ffe87682d2c1bbb0d23f40cad8db9634f7f2bfced83232c3e6703d754a",
+  "newManifestSha256": "246ac12cd718e698b18e6ab2b338622b24d505f75ba492eb1cd348bca2e335cd",
+  "protectedChecked": 207,
+  "unchangedAgainst005": 206,
+  "changes": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "before": "13b0144d55d5d1d195b0d859f785e8c9c66dfb22d6190d9f2982a2bef36c7756",
+      "after": "04eb66eb74e16a5203489ed14e00bf2de593d83ad5cba7a5cd75049e741335c4"
+    }
+  ],
+  "oldManifestPreservedByteExact": true,
+  "newManifestReadOnly": true,
+  "geoFilesHashVerified": 203,
+  "geoBytes": 1063452308,
+  "geoManifestSha256": "a8a4b73bc7b53bed28f545cd889f489492b585b369f8e84988f8db8a91c973d5",
+  "runtimePreflight": "NOT_RUN",
+  "guardIntegration": "NOT_IMPLEMENTED"
+}

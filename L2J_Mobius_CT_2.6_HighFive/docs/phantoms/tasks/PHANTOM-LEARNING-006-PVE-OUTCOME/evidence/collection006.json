@@ -1,0 +1,1071 @@
+{
+  "schemaVersion": 1,
+  "task": "PHANTOM-LEARNING-006-PVE-OUTCOME",
+  "plannedSlots": 16,
+  "slots": [
+    {
+      "slot": 0,
+      "reservation": {
+        "slot": 0,
+        "attempt": "d7b9b2d2845c4e36901e284458f367c4",
+        "split": "TRAIN",
+        "party": false
+      },
+      "result": {
+        "slot": 0,
+        "afterCut": false,
+        "nativeOutcome": null,
+        "exclusion": "Unexpected registered actor sequence"
+      },
+      "status": "PRE_CUT_REJECTED"
+    },
+    {
+      "slot": 1,
+      "reservation": {
+        "slot": 1,
+        "attempt": "d7b9b2d2845c4e36901e284458f367c4",
+        "split": "TRAIN",
+        "party": true
+      },
+      "result": {
+        "slot": 1,
+        "afterCut": false,
+        "nativeOutcome": null,
+        "exclusion": "Unexpected registered actor sequence"
+      },
+      "status": "PRE_CUT_REJECTED"
+    },
+    {
+      "slot": 2,
+      "reservation": {
+        "slot": 2,
+        "attempt": "d7b9b2d2845c4e36901e284458f367c4",
+        "split": "TRAIN",
+        "party": false
+      },
+      "result": {
+        "slot": 2,
+        "afterCut": false,
+        "nativeOutcome": null,
+        "exclusion": "Unexpected registered actor sequence"
+      },
+      "status": "PRE_CUT_REJECTED"
+    },
+    {
+      "slot": 3,
+      "reservation": {
+        "slot": 3,
+        "attempt": "d7b9b2d2845c4e36901e284458f367c4",
+        "split": "TRAIN",
+        "party": true
+      },
+      "result": {
+        "slot": 3,
+        "afterCut": false,
+        "nativeOutcome": null,
+        "exclusion": "Unexpected registered actor sequence"
+      },
+      "status": "PRE_CUT_REJECTED"
+    },
+    {
+      "slot": 4,
+      "reservation": {
+        "slot": 4,
+        "attempt": "d7b9b2d2845c4e36901e284458f367c4",
+        "split": "TRAIN",
+        "party": false
+      },
+      "result": {
+        "slot": 4,
+        "afterCut": false,
+        "nativeOutcome": null,
+        "exclusion": "Unexpected registered actor sequence"
+      },
+      "status": "PRE_CUT_REJECTED"
+    },
+    {
+      "slot": 5,
+      "reservation": {
+        "slot": 5,
+        "attempt": "d7b9b2d2845c4e36901e284458f367c4",
+        "split": "TRAIN",
+        "party": true
+      },
+      "result": {
+        "slot": 5,
+        "afterCut": false,
+        "nativeOutcome": null,
+        "exclusion": "Unexpected registered actor sequence"
+      },
+      "status": "PRE_CUT_REJECTED"
+    },
+    {
+      "slot": 6,
+      "reservation": {
+        "slot": 6,
+        "attempt": "6c9a1e6e82cd40b0a360767d4c400366",
+        "split": "TRAIN",
+        "party": false
+      },
+      "result": null,
+      "status": "INTERRUPTED_PRE_CUT"
+    },
+    {
+      "slot": 7,
+      "reservation": {
+        "slot": 7,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "TRAIN",
+        "party": true
+      },
+      "result": {
+        "slot": 7,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "8137d8561604d6fe2689efa4d45b4389a4bc706f302c1cc77389e98991580326",
+      "terminalJsonSha256": "0b1ff6000f278f2b573f1ba25f49b1f19c20ac32101a93a3afdc43bb7c1655bd",
+      "reward": 0.74945194,
+      "actions": 3
+    },
+    {
+      "slot": 8,
+      "reservation": {
+        "slot": 8,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "TUNING",
+        "party": false
+      },
+      "result": {
+        "slot": 8,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "3c48ca8ed15b43f9c12226f78ee72e22c602bdc171273adcc733e4670caf3bb8",
+      "terminalJsonSha256": "3bc86797fffcead63e9ed5ecd29ecefaf36690610ada1625e2a21799dc3b39d5",
+      "reward": 0.7024719,
+      "actions": 3
+    },
+    {
+      "slot": 9,
+      "reservation": {
+        "slot": 9,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "TUNING",
+        "party": true
+      },
+      "result": {
+        "slot": 9,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "442507551ad875e9efa7e12164cd83c2fc1d6a5c277e64e77630c3e49fe2ac9f",
+      "terminalJsonSha256": "804ab1ba311de0477f11a90d5fac036d6f234855cf1ffd86661edc0e55212ea1",
+      "reward": 0.7392668,
+      "actions": 4
+    },
+    {
+      "slot": 10,
+      "reservation": {
+        "slot": 10,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "TUNING",
+        "party": false
+      },
+      "result": {
+        "slot": 10,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "0c217c3bcbb140d1507404777526a94e68dad4edaf0732ed5d11c12d544728cb",
+      "terminalJsonSha256": "6f9e6455a1a4e10a244557831fff808d855f059497e8af89355a93aaf9e33fa4",
+      "reward": 0.6753144,
+      "actions": 3
+    },
+    {
+      "slot": 11,
+      "reservation": {
+        "slot": 11,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "TUNING",
+        "party": true
+      },
+      "result": {
+        "slot": 11,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "99236e526ccfa6ab03b6da00aa91fe99394dfaf4e170f1ffa5b5a0a5f7998b52",
+      "terminalJsonSha256": "56d68f3b5fa2987fd242b9ee01ddfb843ac75e7963037d4f4724c9aefdc8ffca",
+      "reward": 0.74789274,
+      "actions": 3
+    },
+    {
+      "slot": 12,
+      "reservation": {
+        "slot": 12,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "AUDIT",
+        "party": false
+      },
+      "result": {
+        "slot": 12,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "2d529f37eb06e12a7ab0eb14a6f59c72483419ff1a897f5bc4e8a624fa8e2d1b",
+      "terminalJsonSha256": "c304c9434a77ff1b30a97486d949e755812ae02a41474ffd3afde28d07b4d1c3",
+      "reward": 0.69997287,
+      "actions": 3
+    },
+    {
+      "slot": 13,
+      "reservation": {
+        "slot": 13,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "AUDIT",
+        "party": true
+      },
+      "result": {
+        "slot": 13,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "652bd9bf1145f0b64bf9b5017a0093d1c0a203080274e7d861138570308e4995",
+      "terminalJsonSha256": "eab3f6ba7b2ef1f9a9b5ea9777dfc96da7dd9fee22ce5644b9c621e14bd048bf",
+      "reward": 0.7448243,
+      "actions": 2
+    },
+    {
+      "slot": 14,
+      "reservation": {
+        "slot": 14,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "AUDIT",
+        "party": false
+      },
+      "result": {
+        "slot": 14,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "4d7bcbac259d3760d0e921e3fa9504626776c293965f35dbcc9ccf850327b30c",
+      "terminalJsonSha256": "cab004a04ed57fe4d7a473bf3dad0681774489fd50ac8a1a82399883c87d920a",
+      "reward": 0.64170194,
+      "actions": 3
+    },
+    {
+      "slot": 15,
+      "reservation": {
+        "slot": 15,
+        "attempt": "330cb0a9be7542d3841b12046ff2afbe",
+        "split": "AUDIT",
+        "party": true
+      },
+      "result": {
+        "slot": 15,
+        "afterCut": true,
+        "nativeOutcome": "COMPLETED",
+        "exclusion": null
+      },
+      "status": "NATIVE_SETTLED",
+      "terminalReceiptSha256": "ce482080ac71735eb1654128ee881784ffe7e3e7292eb1504ea25b902de7211a",
+      "terminalJsonSha256": "31311e7e0fd05cace0f101783d4847b031fed7983768d4d078ea0c07ab592544",
+      "reward": 0.7233577,
+      "actions": 3
+    }
+  ],
+  "splits": {
+    "TRAIN": {
+      "episodes": 1,
+      "actions": 3,
+      "solo": 0,
+      "party": 1
+    },
+    "TUNING": {
+      "episodes": 4,
+      "actions": 13,
+      "solo": 2,
+      "party": 2
+    },
+    "AUDIT": {
+      "episodes": 4,
+      "actions": 11,
+      "solo": 2,
+      "party": 2
+    }
+  },
+  "terminalReceipts": 9,
+  "distinctCanonicalGoals": 9,
+  "observedUsefulHeal": 6901.155825460804,
+  "observedPaidMp": 2242.0,
+  "terminalRewardUsedForTraining": false,
+  "fit": "NOT_CREATED_INSUFFICIENT_TRAIN",
+  "newDraft": null,
+  "abPairs": 0,
+  "completeDeaths": null,
+  "wholePartyMp": null,
+  "gameVerdict": "INCONCLUSIVE",
+  "nativePolicy": {
+    "mode": "SHADOW",
+    "version": 2,
+    "sha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc"
+  },
+  "nativeJarSha256": "48f29631c128ccc44afc62fbc330269d57fbecef5a7150ef2f669c55faf1f817",
+  "nativeProcess": {
+    "pid": 67556,
+    "created": 134389715313953372,
+    "nonce": "330cb0a9be7542d3841b12046ff2afbe",
+    "kind": "Native",
+    "imageHash": "5808527E3DFC4EB285C7664BA356BC267055EF906E83ED4660D9F7976DA7349B",
+    "commandHash": "Jzxkg92pPNmPV2/Ia1vsTzgOwlVLwNO6lPm7cXBDyT0=",
+    "configHash": "489DE075F27038987C7199D999150311845C2633A282FD833FBA213343C856D2"
+  },
+  "diagnostics": {
+    "counters": {
+      "BUDGET_5MS": 1,
+      "COOLDOWN_OR_ACTOR_CAP": 322,
+      "DAMAGE_STOCK": 26,
+      "HEAL_OFFER_COUNT": 767,
+      "HEAL_STOCK": 5,
+      "SHADOW": 31
+    },
+    "samples": [
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "SHADOW",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "BUDGET_5MS",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_STOCK",
+        "actorProfile": 2098,
+        "target": 268488209
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      },
+      {
+        "reason": "COOLDOWN_OR_ACTOR_CAP",
+        "actorProfile": 2098,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2095,
+        "target": 0
+      },
+      {
+        "reason": "HEAL_OFFER_COUNT",
+        "actorProfile": 2097,
+        "target": 0
+      }
+    ],
+    "sampleLimit": 64,
+    "lastMargin": 0.024695069
+  },
+  "timings": {
+    "snapshotNanos": {
+      "n": 31,
+      "p50": 539800,
+      "p95": 1324700,
+      "p99": 5878500,
+      "max": 5878500
+    },
+    "encodeNanos": {
+      "n": 31,
+      "p50": 1154400,
+      "p95": 1479500,
+      "p99": 1611500,
+      "max": 1611500
+    },
+    "scoreNanos": {
+      "n": 31,
+      "p50": 29000,
+      "p95": 83300,
+      "p99": 97500,
+      "max": 97500
+    },
+    "totalNanos": {
+      "n": 36,
+      "p50": 1841700,
+      "p95": 2530000,
+      "p99": 8045300,
+      "max": 8045300
+    },
+    "dispatchNanos": {
+      "n": 5,
+      "p50": 4994200,
+      "p95": 10326900,
+      "p99": 10326900,
+      "max": 10326900
+    },
+    "cpuNanos": {
+      "n": 36,
+      "p50": 0,
+      "p95": 15625000,
+      "p99": 15625000,
+      "max": 15625000
+    },
+    "allocatedBytes": {
+      "n": 36,
+      "p50": 103632,
+      "p95": 136464,
+      "p99": 966376,
+      "max": 966376
+    }
+  },
+  "resources": {
+    "pid": 67556,
+    "startedUtc": "2026-11-12T15:38:51.3953372Z",
+    "sampledUtc": "2026-11-12T15:45:57.3335950Z",
+    "elapsedMillis": 425938,
+    "cpuSeconds": 171.734375,
+    "workingSetBytes": null,
+    "peakWorkingSetBytes": 4689653760,
+    "measurement": "PROCESS_METADATA",
+    "exitObserved": true,
+    "attemptId": "330cb0a9be7542d3841b12046ff2afbe",
+    "finishedUtc": "2026-11-12T15:45:57.3405997Z"
+  },
+  "limitations": [
+    "Collection before.json was captured before declared pre-CUT injury/position setup; source correction is not a rerun.",
+    "Six setup allocation failures and one requested pre-CUT interruption remain in denominator16.",
+    "Native worker exit is checked separately; missing supervisor batch.complete was repaired after this campaign.",
+    "No trained006 candidate, optimizer update, changed006 action or independent A/B proof."
+  ],
+  "archive": {
+    "path": "artifacts/native-terminal-receipts.zip",
+    "sha256": "aeb537ae7be326349aa2805e607cd1dcde3ea017e001ecbb370ee4cc25d45abb",
+    "bytes": 85456,
+    "entries": {
+      "diagnostics.json": {
+        "sha256": "c47cea9463412b7260ff24b4a0732312953aca51a2b5eaedd4d6238875a8cf7a",
+        "bytes": 4300
+      },
+      "native.complete": {
+        "sha256": "d33aa2169717a0dc4c7403b5c195dceae8528082b1a349e1fbcdfa57c13c3b3d",
+        "bytes": 60
+      },
+      "scenes.tsv": {
+        "sha256": "94a12164e2973cffa37541bff05bcfd4a70f9105ab16fea9478ee9c429ef3359",
+        "bytes": 1362
+      },
+      "slot-0/reserved.json": {
+        "sha256": "f6e71bf017228c31fa80e2f2b04407481d9dc04d8369ea5eb5898e38b888753f",
+        "bytes": 86
+      },
+      "slot-0/result.json": {
+        "sha256": "7f17307d7f84de96f892f466efea363b01c47ae5918676544f38a2eae575bec3",
+        "bytes": 100
+      },
+      "slot-1/reserved.json": {
+        "sha256": "f64a65e25a76fd3eb6de7d2400df5e9130c244b5a2184fc6570b0573fed44319",
+        "bytes": 85
+      },
+      "slot-1/result.json": {
+        "sha256": "52870412266395ec172270e73ee796d0f7f8065abf9aa1808b77a5499d7875a6",
+        "bytes": 100
+      },
+      "slot-10/admissions.jsonl": {
+        "sha256": "ec6143dbb1305b40c4838a3a3beae1b5c4c017ccbf1f609610714483d4532bfa",
+        "bytes": 107
+      },
+      "slot-10/before.json": {
+        "sha256": "51bd1c62e817cb7366fb826499a20bfe67b6bcdbb46fc1af1232502d643af4c6",
+        "bytes": 286
+      },
+      "slot-10/reserved.json": {
+        "sha256": "03cba6cc739ff1b9c8f19680fbcffa6a60c371811998cc77dfa637ad27e7af61",
+        "bytes": 88
+      },
+      "slot-10/result.json": {
+        "sha256": "1d70f1928b69a9df7b073fb595209fdec47f10903a9e82d14081e26e475744c9",
+        "bytes": 73
+      },
+      "slot-10/settlement.json": {
+        "sha256": "28f8dee88b841c4bd3cca1c6473f2291448466c474f2bb411aff22959ba4671a",
+        "bytes": 1224
+      },
+      "slot-10/terminal.bin": {
+        "sha256": "0c217c3bcbb140d1507404777526a94e68dad4edaf0732ed5d11c12d544728cb",
+        "bytes": 34317
+      },
+      "slot-10/terminal.json": {
+        "sha256": "6f9e6455a1a4e10a244557831fff808d855f059497e8af89355a93aaf9e33fa4",
+        "bytes": 2027
+      },
+      "slot-11/admissions.jsonl": {
+        "sha256": "6cf19bfc12a1a5afa4b21ebd99187a0f9957a1639b4c95241e9d2ffd5793119a",
+        "bytes": 54
+      },
+      "slot-11/before.json": {
+        "sha256": "d54cd4b5b1d199ed6d070fcebf88b59129a9a1af13e054e409efeb165c51b79a",
+        "bytes": 926
+      },
+      "slot-11/reserved.json": {
+        "sha256": "4a077bda8a2dd0833acb6892ffb00cf3e79fcd8a27518ed9f769dcb5c974bc96",
+        "bytes": 87
+      },
+      "slot-11/result.json": {
+        "sha256": "548570cac5a1a861c2b46e9bb95be3d1180478b346f70c6dca771eb58b693bb2",
+        "bytes": 73
+      },
+      "slot-11/settlement.json": {
+        "sha256": "de567d15438197236aa8c409141f330d5c489c8485af1e13fd527f9c51ff8108",
+        "bytes": 2101
+      },
+      "slot-11/terminal.bin": {
+        "sha256": "99236e526ccfa6ab03b6da00aa91fe99394dfaf4e170f1ffa5b5a0a5f7998b52",
+        "bytes": 40823
+      },
+      "slot-11/terminal.json": {
+        "sha256": "56d68f3b5fa2987fd242b9ee01ddfb843ac75e7963037d4f4724c9aefdc8ffca",
+        "bytes": 2044
+      },
+      "slot-12/admissions.jsonl": {
+        "sha256": "bfd971b24cf04080d3fe829847f57e6125fc1f0c6d2e78a6ddbb1ba537f475d5",
+        "bytes": 54
+      },
+      "slot-12/before.json": {
+        "sha256": "971460ac472a9ac42ae4fe603779180a4d181eeb24a8bccb5fafc7b1c9178af1",
+        "bytes": 286
+      },
+      "slot-12/reserved.json": {
+        "sha256": "08968218b488523baa7df4376ab47d97c6778df9158f0b719189b584ecdc8b03",
+        "bytes": 87
+      },
+      "slot-12/result.json": {
+        "sha256": "4c12e2a3b743a6fa6f31662b5da6a26d0395064d1c59186215af7627e494370e",
+        "bytes": 73
+      },
+      "slot-12/settlement.json": {
+        "sha256": "9104299ac4b323caed50f96e9fedbc0379583d350a7c8e28eecf2c8aa29a64b9",
+        "bytes": 1219
+      },
+      "slot-12/terminal.bin": {
+        "sha256": "2d529f37eb06e12a7ab0eb14a6f59c72483419ff1a897f5bc4e8a624fa8e2d1b",
+        "bytes": 36858
+      },
+      "slot-12/terminal.json": {
+        "sha256": "c304c9434a77ff1b30a97486d949e755812ae02a41474ffd3afde28d07b4d1c3",
+        "bytes": 2029
+      },
+      "slot-13/admissions.jsonl": {
+        "sha256": "748b2c626c8b45d74fefb0155c595ad70f48b55ae39e7fb5e0d66eb25e02f079",
+        "bytes": 107
+      },
+      "slot-13/before.json": {
+        "sha256": "82ae2497e3a329026421bf04940118c5ca72917fbfdd4199dcac8c35c04a8fff",
+        "bytes": 926
+      },
+      "slot-13/reserved.json": {
+        "sha256": "7755cca727a4ce9f6ed1f7e0fc2cc4c4c03c86895d4abb165682dce98cc24220",
+        "bytes": 86
+      },
+      "slot-13/result.json": {
+        "sha256": "b056aa1e44335ddc0c27e7d6c50faa090d1d4583c9b4992a0cc63c5abd38d384",
+        "bytes": 73
+      },
+      "slot-13/settlement.json": {
+        "sha256": "43715209a3d2c5023fbe3a1dbf928f7bf172b4610ce9b066f869c6dd957eea24",
+        "bytes": 2040
+      },
+      "slot-13/terminal.bin": {
+        "sha256": "652bd9bf1145f0b64bf9b5017a0093d1c0a203080274e7d861138570308e4995",
+        "bytes": 27980
+      },
+      "slot-13/terminal.json": {
+        "sha256": "eab3f6ba7b2ef1f9a9b5ea9777dfc96da7dd9fee22ce5644b9c621e14bd048bf",
+        "bytes": 1753
+      },
+      "slot-14/admissions.jsonl": {
+        "sha256": "0c817c11d1ff5d5c3ece07524547c6b415de18f330298e9f450e20deba38efc4",
+        "bytes": 54
+      },
+      "slot-14/before.json": {
+        "sha256": "8bb2662af097dbb0fe80c9642c89327206b73b682bf7e453022c407751344467",
+        "bytes": 286
+      },
+      "slot-14/reserved.json": {
+        "sha256": "111432a11ff42f005e7d759ec21a7deeef52a4b17d7284c974753415cd6e90b3",
+        "bytes": 87
+      },
+      "slot-14/result.json": {
+        "sha256": "8fabf4abee08e7f6ade17a2246437cbbc8a9851466b37d3c811f87cb6b767c3a",
+        "bytes": 73
+      },
+      "slot-14/settlement.json": {
+        "sha256": "f18c5aa10774faf500485460a593625fba9a1c234b49acef565029b7364010f2",
+        "bytes": 1225
+      },
+      "slot-14/terminal.bin": {
+        "sha256": "4d7bcbac259d3760d0e921e3fa9504626776c293965f35dbcc9ccf850327b30c",
+        "bytes": 37816
+      },
+      "slot-14/terminal.json": {
+        "sha256": "cab004a04ed57fe4d7a473bf3dad0681774489fd50ac8a1a82399883c87d920a",
+        "bytes": 2027
+      },
+      "slot-15/admissions.jsonl": {
+        "sha256": "1cdd783aa195007206f64992b293c81001c6aaaa6d2aa56e875aea0804ad88e2",
+        "bytes": 54
+      },
+      "slot-15/before.json": {
+        "sha256": "0bb237393f4219e750fdf1d9f09819f8c0e12fd3ba210cfef6f20ca18a7531d3",
+        "bytes": 926
+      },
+      "slot-15/reserved.json": {
+        "sha256": "18955db4a76b93b988c753d6f9d81436c011b98bd0f530926fdfedfbed078284",
+        "bytes": 86
+      },
+      "slot-15/result.json": {
+        "sha256": "d397203e396aa3a18464d6679ed10ea220618cc6d2cd0974f7bf2200d7550a8b",
+        "bytes": 73
+      },
+      "slot-15/settlement.json": {
+        "sha256": "0bb6e8919a6e29852ae26760cd856e7b79486b9052686389dd51ad3d11838b53",
+        "bytes": 2078
+      },
+      "slot-15/terminal.bin": {
+        "sha256": "ce482080ac71735eb1654128ee881784ffe7e3e7292eb1504ea25b902de7211a",
+        "bytes": 42585
+      },
+      "slot-15/terminal.json": {
+        "sha256": "31311e7e0fd05cace0f101783d4847b031fed7983768d4d078ea0c07ab592544",
+        "bytes": 2044
+      },
+      "slot-2/reserved.json": {
+        "sha256": "cb95b2f6b299954a1710637150baf04bf3750d550769815190e90d9579cda397",
+        "bytes": 86
+      },
+      "slot-2/result.json": {
+        "sha256": "1dbd6086419f806577cb56bca37156eb200e15580478140fce41be2f32d55b99",
+        "bytes": 100
+      },
+      "slot-3/reserved.json": {
+        "sha256": "dc1d9d6f7782a5d1f09ff12d3bf35e798ccf2bed32432f0dbc5aa8b281d9aa07",
+        "bytes": 85
+      },
+      "slot-3/result.json": {
+        "sha256": "cd91dc5e2e3447f105213e7482d3218a193d3f8c61351567a631228233a4d7de",
+        "bytes": 100
+      },
+      "slot-4/reserved.json": {
+        "sha256": "6a9dc041992f832c45c54cc74241670db6cafb615114df29b4e21540d9d9eac1",
+        "bytes": 86
+      },
+      "slot-4/result.json": {
+        "sha256": "ec5b306d5b1aaa098c9cddf68e95875f868de4f19e7085ba422b6170292d0d7d",
+        "bytes": 100
+      },
+      "slot-5/reserved.json": {
+        "sha256": "c4fc04fe0a994b7884f94c03ef61393499f196739c6ef4bdbd195ffce8d1a0ee",
+        "bytes": 85
+      },
+      "slot-5/result.json": {
+        "sha256": "a93e8cdcc0c72ee3dfc53a4b43c44789686eafd2414fec5296be3e55f664e4ad",
+        "bytes": 100
+      },
+      "slot-6/reserved.json": {
+        "sha256": "ccd375c4ad9e9eea603d29ea53e918a527d9a11d3813df0eac6c4d25eb360dc8",
+        "bytes": 86
+      },
+      "slot-7/admissions.jsonl": {
+        "sha256": "70781212e4d34e73a741778a2fee6562110b0ab02fed5a6bad0504ddc70fb99b",
+        "bytes": 54
+      },
+      "slot-7/before.json": {
+        "sha256": "008494ddb7bb3d858577d1d726bc3aecf0e5074e77db4b8ed7514fde1a3f630d",
+        "bytes": 926
+      },
+      "slot-7/reserved.json": {
+        "sha256": "4b450798472d0530c18a41a2f23f197505bbb7ca60c58b4e5fdce53849e65b4f",
+        "bytes": 85
+      },
+      "slot-7/result.json": {
+        "sha256": "14089c1f6d67a91d5805a2d2707649aa21e52f74ede4c43df653b813ad59abbf",
+        "bytes": 72
+      },
+      "slot-7/settlement.json": {
+        "sha256": "df6626acd8d9ccfd628a4456b08ecee927c2c0289a78254896e6692fec845d67",
+        "bytes": 2108
+      },
+      "slot-7/terminal.bin": {
+        "sha256": "8137d8561604d6fe2689efa4d45b4389a4bc706f302c1cc77389e98991580326",
+        "bytes": 42243
+      },
+      "slot-7/terminal.json": {
+        "sha256": "0b1ff6000f278f2b573f1ba25f49b1f19c20ac32101a93a3afdc43bb7c1655bd",
+        "bytes": 2043
+      },
+      "slot-8/admissions.jsonl": {
+        "sha256": "1c68ba99a70e2f7f388cd307da0a188a80979d804ad27262c3232cbe0e94aa72",
+        "bytes": 54
+      },
+      "slot-8/before.json": {
+        "sha256": "d0b678543755dd80065d59d7e553082eebde7a7e0fd04b71e68f5cfbfed102cf",
+        "bytes": 286
+      },
+      "slot-8/reserved.json": {
+        "sha256": "c4c2b1f83d80452491547f1bea2816c4d98604fb9de90864a8a8a8101013925b",
+        "bytes": 87
+      },
+      "slot-8/result.json": {
+        "sha256": "455d53170e680e39b373651436c18313351f3f9a42e89dc05ddfe5b50d92d239",
+        "bytes": 72
+      },
+      "slot-8/settlement.json": {
+        "sha256": "8f33af39f9d7879e312c889a76e516bd15d66b448384f0af74382228026b4c8e",
+        "bytes": 1225
+      },
+      "slot-8/terminal.bin": {
+        "sha256": "3c48ca8ed15b43f9c12226f78ee72e22c602bdc171273adcc733e4670caf3bb8",
+        "bytes": 38623
+      },
+      "slot-8/terminal.json": {
+        "sha256": "3bc86797fffcead63e9ed5ecd29ecefaf36690610ada1625e2a21799dc3b39d5",
+        "bytes": 2029
+      },
+      "slot-9/admissions.jsonl": {
+        "sha256": "f6e6c5ce7ebeaf2efb2680655b961c938473c7c62a54b35527a716b72eda87bd",
+        "bytes": 54
+      },
+      "slot-9/before.json": {
+        "sha256": "66bb49ef68e7ccb84236ad51b01cc10b81b50b9f3854de5989fcd79448050b46",
+        "bytes": 926
+      },
+      "slot-9/reserved.json": {
+        "sha256": "cff5748dbb7bf2999e5b7d4b212cf3978d47677030470bad0003e880d5898d40",
+        "bytes": 86
+      },
+      "slot-9/result.json": {
+        "sha256": "b471a465e6f843792da3895164a383988123f51053a9ae01f5aa7f4befec0443",
+        "bytes": 72
+      },
+      "slot-9/settlement.json": {
+        "sha256": "827c96c09a285c890e26cdb8128ad802c84a2ccd62e9138d953501c884eb38ab",
+        "bytes": 2168
+      },
+      "slot-9/terminal.bin": {
+        "sha256": "442507551ad875e9efa7e12164cd83c2fc1d6a5c277e64e77630c3e49fe2ac9f",
+        "bytes": 57045
+      },
+      "slot-9/terminal.json": {
+        "sha256": "804ab1ba311de0477f11a90d5fac036d6f234855cf1ffd86661edc0e55212ea1",
+        "bytes": 2334
+      },
+      "timing.txt": {
+        "sha256": "7fe62b433f18e2641fb8c98fd803e98784db4b6414932c83eb248124614e4c21",
+        "bytes": 457
+      }
+    }
+  }
+}

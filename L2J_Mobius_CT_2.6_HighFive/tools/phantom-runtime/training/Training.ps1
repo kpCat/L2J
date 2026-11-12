@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight')][string]$Action,
     [string]$Root,
-    [ValidateSet('V1','V3','EVAL005')][string]$ConfigProfile='V1',
+    [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
+    [switch]$EnableOutcome006,
     [switch]$EnableEvaluation005,
     [ValidateRange(1,4)][int]$Evaluation005PairLimit=4,
     [ValidatePattern('^[A-Za-z0-9._-]{1,64}$')][string]$Evaluation005Campaign='learning005',
@@ -24,8 +25,13 @@ function Read-TrainSourceConfig {
     $current=$null
     $saved=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
     if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
-    $name=if($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
+    $name=if($profile -ceq 'OUTCOME006'){'Outcome006.ini'}elseif($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
     $values=Read-TrainConfig (Join-Path $PSScriptRoot $name)
+    if($profile -ceq 'OUTCOME006'){
+        if($EnableOutcome006){$values.outcome006Enabled='true'}
+        elseif($current -and $current.ContainsKey('outcome006Enabled')){$values.outcome006Enabled=$current.outcome006Enabled}
+        if($Action -in @('Start','Resume','Run') -and $values.outcome006Enabled -cne 'true'){throw 'OUTCOME006_EXPLICIT_OPT_IN_REQUIRED'}
+    }
     if($profile -ceq 'EVAL005'){
         if($EnableEvaluation005){$values.evaluation005Enabled='true';$values.evaluation005MaxPairsPerScope=[string]$Evaluation005PairLimit;$values.evaluation005Campaign=$Evaluation005Campaign}
         elseif($current -and $current.ContainsKey('evaluation005Enabled')){foreach($key in @('evaluation005Enabled','evaluation005MaxPairsPerScope','evaluation005Campaign')){$values[$key]=$current[$key]}}
@@ -97,6 +103,10 @@ function Get-TrainAssets {
         Assert-TrainDirectory $previous
     }
     $protectedManifest=Join-Path $previous 'protected207.json'
+    if($script:Config -and $script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'OUTCOME006'){
+        $protectedManifest=Join-Path $layout.Clone '.phantom-local\learning006-baseline\protected207.006.json'
+        Assert-TrainHash $protectedManifest (Get-TrainProtectedPin $script:Config)
+    }
     if($script:Config -and $script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'EVAL005'){
         $protectedManifest=Join-Path $layout.Root 'protected207.005.json'
         Assert-TrainHash $protectedManifest (Get-TrainProtectedPin $script:Config)
@@ -463,6 +473,24 @@ function Invoke-TrainDirector {
         $script:SqlRecord=Start-TrainSql $dependencies
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
+        if($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'OUTCOME006'){
+            if(!$script:Config.ContainsKey('outcome006Phase') -or $script:Config.outcome006Phase -notin @('PREPARE','COLLECT')){throw 'OUTCOME006_PHASE_NOT_IMPLEMENTED'}
+            if($script:Config.outcome006Phase -ceq 'COLLECT'){
+                # One fixed campaign. Its durable slot reservations are never retried for a desired result.
+                if(!(Test-Path -LiteralPath (Join-Path $layout.Root 'outcome006\collection\native.complete'))){
+                    Reset-TrainColdBaseline
+                    Invoke-TrainNative $dependencies $jar
+                }
+                if(!(Test-TrainRequest 'stop')){
+                    Publish-TrainState 'EVALUATING' 'Проверка terminal targets006; только existing optimizer continuation.'
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
+                }
+            }
+            Publish-TrainState 'PAUSED' 'Граница006: native budget сохранён; следующая фаза требует отдельного exact candidate pin.'
+            while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}
+            return
+        }
         $isEvaluationIdentity005=($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'EVAL005') -or ($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true')
         if($isEvaluationIdentity005 -and (!$script:Config.ContainsKey('evaluation005Enabled') -or $script:Config.evaluation005Enabled -cne 'true' -or ($script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'))){throw 'EVAL005_TRAINING_RECOVERY_FORBIDDEN'}
         if(!$isEvaluationIdentity005 -and $script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'){

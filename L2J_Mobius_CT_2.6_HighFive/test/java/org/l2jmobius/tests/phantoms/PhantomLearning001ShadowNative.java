@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.Shutdown;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
@@ -287,6 +288,56 @@ public final class PhantomLearning001ShadowNative
 		private BooleanSupplier evaluationTerminalProbe = () -> false;
 		double evaluationEncounterMillis() { return ((evaluationTerminal > 0 ? evaluationTerminal : evaluationStopped) - evaluationStarted) / 1e6; }
 		double evaluationDrainMillis() { return evaluationDrainNanos / 1e6; }
+		long outcomeCutNanos(){return evaluationStarted;}
+		long outcomeTerminalNanos(){return evaluationTerminal>0?evaluationTerminal:evaluationStopped;}
+		private boolean outcome006;
+		private boolean outcomeEncounterAdmitted;
+		boolean outcomeEncounterAdmitted(){return outcomeEncounterAdmitted;}
+		static final class OutcomeDeaths006
+		{
+			record Snapshot(long first,java.util.Map<Integer,Long> times)
+			{boolean firstDeath(int object){return times.getOrDefault(object,Long.MAX_VALUE)<=first;}}
+			private final java.util.Map<Integer,Long> times=new java.util.HashMap<>();
+			private Snapshot frozen;
+			synchronized void observe(int object,long stamp)
+			{if(frozen==null){times.merge(object,stamp,Math::min);}}
+			synchronized Snapshot snapshot(long deadline,boolean freeze)
+			{
+				if(frozen!=null){return frozen;}
+				final var bounded=new java.util.HashMap<Integer,Long>();
+				for(var entry:times.entrySet()){if(entry.getValue()<=deadline){bounded.put(entry.getKey(),entry.getValue());}}
+				final long first=bounded.values().stream().mapToLong(Long::longValue).min().orElse(0);
+				final var result=new Snapshot(first,java.util.Map.copyOf(bounded));if(freeze){frozen=result;}return result;
+			}
+		}
+		private OutcomeDeaths006 outcomeDeaths=new OutcomeDeaths006();
+		private OutcomeDeaths006.Snapshot outcomeFrozen;
+		private long outcomeDeadline;
+		private final java.util.Map<org.l2jmobius.gameserver.model.actor.Creature,org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener> outcomeListeners=new java.util.LinkedHashMap<>();
+		void prepareOutcome006(Monster target,int variant) throws Exception
+		{
+			prepareEvaluation(target,variant);
+			if(!trainingParty)
+			{
+				final var player=trainingPlayers.getFirst();
+				final var geo=org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+				check(geo.canMoveToTarget(player.getX(),player.getY(),player.getZ(),target.getX()+180,target.getY(),target.getZ(),player.getInstanceId()),"OUTCOME006_PRE_CUT_GEO");
+				player.teleToLocation(target.getX()+180,target.getY(),target.getZ(),0,false);
+				if(player.hasHeadlessOutboundSession()&&player.isTeleporting()){player.onTeleported();}
+				check(PhantomLearning001ActorFixture.soloOpeningTargets(player).contains(target),"OUTCOME006_FULL_SOLO_ADMISSION");
+			}
+			outcome006=true;outcomeDeaths=new OutcomeDeaths006();outcomeFrozen=null;outcomeEncounterAdmitted=false;
+			final var observed=new java.util.ArrayList<org.l2jmobius.gameserver.model.actor.Creature>(trainingPlayers);observed.add(target);
+			for(var creature:observed)
+			{
+				final var listener=new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(creature,org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DEATH,
+					(org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDeath event)->
+					{if(event.getTarget()==creature){outcomeDeaths.observe(creature.getObjectId(),System.nanoTime());org.l2jmobius.gameserver.phantoms.learning.LearningCastEvidence.terminalDeath(creature);}},this);
+				creature.addListener(listener);outcomeListeners.put(creature,listener);
+			}
+		}
+		void releaseOutcome006()
+		{for(var entry:outcomeListeners.entrySet()){entry.getKey().removeListener(entry.getValue());}outcomeListeners.clear();}
 		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize,
 			org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 tactical, boolean rankDamageWithV3) throws Exception
 		{
@@ -443,7 +494,7 @@ public final class PhantomLearning001ShadowNative
 			check(!trainingPlayers.isEmpty(), "TRAIN_NOT_PREPARED");
 			check(cooldown == null || !trainingParty, "COOLDOWN_WITNESS_REQUIRES_SOLO");
 			trainingAdmission = true;
-			final long deadline = System.nanoTime() + Duration.ofSeconds(seconds).toNanos();
+			final long deadline = outcome006?outcomeDeadline:System.nanoTime() + Duration.ofSeconds(seconds).toNanos();
 			final long idleDeadline = System.nanoTime() + Duration.ofSeconds(Math.min(seconds, 45)).toNanos();
 			boolean encountered = false;
 			while (System.nanoTime() < deadline && !nativeTerminal.getAsBoolean() && (collector.size() < evidenceLimit || cooldown != null && !cooldown.passed()))
@@ -457,6 +508,7 @@ public final class PhantomLearning001ShadowNative
 					// This is the same stock autonomous scheduler, including its five-second budget.
 					autonomous.onPulse();
 					encountered |= combat.snapshot().activeSessions() > 0;
+					if(outcome006){outcomeEncounterAdmitted|=encountered;}
 				}
 				else
 				{
@@ -477,6 +529,7 @@ public final class PhantomLearning001ShadowNative
 								() -> false, LearningScope.SOLO, null, () -> false);
 							final var accepted = combat.startSession(request);
 							encountered |= accepted.accepted();
+							if(outcome006){outcomeEncounterAdmitted|=encountered;}
 						}
 					}
 				}
@@ -494,24 +547,32 @@ public final class PhantomLearning001ShadowNative
 
 		java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3> runLearning004Encounter(String id, String nonce, int seconds,
 			BooleanSupplier requested, java.util.function.Supplier<List<org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3>> receipts) throws Exception
+		{return runLearning006Encounter(id,nonce,seconds,requested,receipts,_ -> { });}
+		java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3> runLearning006Encounter(String id,String nonce,int seconds,
+			BooleanSupplier requested,java.util.function.Supplier<List<org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3>> receipts,java.util.function.LongConsumer cut) throws Exception
 		{
 			final long started = System.nanoTime();
 			evaluationStarted = started; evaluationStopped = 0; evaluationTerminal = 0; evaluationDrainNanos = 0;
+			if(outcome006){outcomeDeadline=Math.addExact(started,Duration.ofSeconds(seconds).toNanos());}
+			cut.accept(started);
 			final var before = new java.util.HashMap<Integer,org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot>();
 			for (var player : trainingPlayers) { before.put(player.getObjectId(), PlayerNativeWork.observationEvidence(player).snapshot()); }
 			final var kills = new java.util.LinkedHashMap<String,org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Kill>();
 			final var deaths = new java.util.HashSet<Integer>();
+			final boolean[] terminalClosed={false};
 			final BooleanSupplier terminal = () ->
 			{
+				if(outcome006&&terminalClosed[0]){return true;}
+				final var deathSnapshot=outcome006?outcomeDeaths.snapshot(outcomeDeadline,false):null;
 				for (var player : trainingPlayers)
 				{
-					if (player.isAlikeDead()) { deaths.add(player.getObjectId()); }
+					if (player.isAlikeDead()&&(!outcome006||deathSnapshot.firstDeath(player.getObjectId()))) { deaths.add(player.getObjectId()); }
 					final var evidence = PlayerNativeWork.observationEvidence(player);
 					if (evidence == null) { continue; }
 					final var nativeReceipts = evidence.targetReceipts();
 					final var target = nativeReceipts.killTarget();
 					if (nativeReceipts.killSequence() <= before.get(player.getObjectId()).killSequence() || target == null) { continue; }
-					if (World.getInstance().findObject(target.objectId()) instanceof org.l2jmobius.gameserver.model.actor.instance.Monster npc
+					if ((!outcome006||deathSnapshot.firstDeath(target.objectId()))&&World.getInstance().findObject(target.objectId()) instanceof org.l2jmobius.gameserver.model.actor.instance.Monster npc
 						&& target.equals(npc.getNativeEvidenceTarget()) && npc.isAlikeDead())
 					{
 						kills.putIfAbsent(target.toString() + '/' + player.getObjectId(), new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Kill(
@@ -519,7 +580,7 @@ public final class PhantomLearning001ShadowNative
 					}
 				}
 				final boolean done = !kills.isEmpty() || !deaths.isEmpty();
-				if (done && evaluationTerminal == 0) { evaluationTerminal = System.nanoTime(); }
+				if (done && evaluationTerminal == 0) { evaluationTerminal = outcome006?deathSnapshot.first():System.nanoTime(); }
 				return done;
 			};
 			evaluationTerminalProbe = terminal;
@@ -529,31 +590,44 @@ public final class PhantomLearning001ShadowNative
 			try { stopped = runTrainingEpisode(collector, seconds, Integer.MAX_VALUE, requested, null, terminal); }
 			finally { collector.end(); }
 			evaluationStopped = System.nanoTime();
+			if(outcome006){outcomeFrozen=outcomeDeaths.snapshot(Math.min(outcomeDeadline,evaluationStopped),true);kills.clear();deaths.clear();evaluationTerminal=0;}
 			terminal.getAsBoolean();
+			if(outcome006){terminalClosed[0]=true;evaluationTerminal=outcomeFrozen.first()>0?outcomeFrozen.first():Math.min(outcomeDeadline,evaluationStopped);}
+			final var frozenActors=outcome006?outcomeActors(before):null;
+			final boolean pendingTerminal=outcome006&&(outcomeFrozen.first()>0&&kills.isEmpty()&&deaths.isEmpty()||stopped.equals("NATIVE_ACTOR_DIED")&&deaths.isEmpty()
+				||trainingPlayers.stream().anyMatch(p->p.isAlikeDead()&&!outcomeFrozen.times().containsKey(p.getObjectId()))
+				||evaluationTarget!=null&&evaluationTarget.isAlikeDead()&&!outcomeFrozen.firstDeath(evaluationTarget.getObjectId())&&outcomeFrozen.first()==0);
 			return () ->
 			{
 			terminal.getAsBoolean();
-			final var actors = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor>();
-			for (int index = 0; index < trainingPlayers.size(); index++)
-			{
-				final var player = trainingPlayers.get(index);
-				final var previous = before.get(player.getObjectId());
-				final var evidence = PlayerNativeWork.observationEvidence(player);
-				final var current = evidence == null ? null : evidence.snapshot();
-				final boolean known = current != null && current.epoch() == previous.epoch() && !current.overflow() && !previous.overflow()
-					&& current.firstUnprovenReason() == org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.UnprovenReason.NONE;
-				actors.add(new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor(Long.parseLong(trainingRows.get(index)[2]), player.getObjectId(), previous.epoch(),
-					player.getActiveClass(), player.getLevel(), player.getCurrentHp(), player.getCurrentMp(), player.isAlikeDead(),
-					known ? current.expGained() - previous.expGained() : null, known ? current.spGained() - previous.spGained() : null));
-			}
+			final var actors=outcome006?frozenActors:outcomeActors(before);
 			final var observed = receipts.get();
-			final String reason = !deaths.isEmpty() ? "NATIVE_ACTOR_DIED" : !kills.isEmpty() ? "NATIVE_KILL" : stopped.equals("REQUESTED_DRAIN") ? stopped : "TIMEOUT";
+			final String reason = outcome006?(pendingTerminal?"NATIVE_TERMINAL_CREDIT_PENDING":outcomeReason(stopped,outcomeEncounterAdmitted,!kills.isEmpty(),!deaths.isEmpty())):!deaths.isEmpty() ? "NATIVE_ACTOR_DIED" : !kills.isEmpty() ? "NATIVE_KILL" : stopped.equals("REQUESTED_DRAIN") ? stopped : "TIMEOUT";
 			return new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3(id, nonce, trainingParty ? "PARTY" : "SOLO", started, System.nanoTime(), reason,
 				actors, List.copyOf(kills.values()), observed.stream().map(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::eventKey).toList(),
 				observed.stream().filter(row -> row.attempt().selected().family() == org.l2jmobius.gameserver.phantoms.learning.LegalActionV3.Family.DAMAGE).mapToDouble(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::actualHp).sum(),
 				observed.stream().filter(row -> row.attempt().selected().family() == org.l2jmobius.gameserver.phantoms.learning.LegalActionV3.Family.HEAL).mapToDouble(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::actualHp).sum(),
 				observed.stream().mapToDouble(org.l2jmobius.gameserver.phantoms.learning.TacticalReceiptV3::actualMp).sum(), deaths.size());
 			};
+		}
+		static String outcomeReason(String stopped,boolean admitted,boolean killed,boolean died)
+		{
+			if(stopped.equals("REQUESTED_DRAIN")||stopped.startsWith("NO_LEGAL_TARGET")){return stopped;}
+			if(died){return "NATIVE_ACTOR_DIED";}if(killed){return "NATIVE_KILL";}
+			return admitted?"TIMEOUT":"NO_LEGAL_TARGET:NOT_ADMITTED";
+		}
+		private List<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor> outcomeActors(java.util.Map<Integer,PlayerNativeEvidence.Snapshot> before)
+		{
+			final var actors=new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor>();
+			for(int index=0;index<trainingPlayers.size();index++)
+			{
+				final var player=trainingPlayers.get(index);final var previous=before.get(player.getObjectId());
+				final var evidence=PlayerNativeWork.observationEvidence(player);final var current=evidence==null?null:evidence.snapshot();
+				final boolean known=current!=null&&current.epoch()==previous.epoch()&&!current.overflow()&&!previous.overflow()&&current.firstUnprovenReason()==PlayerNativeEvidence.UnprovenReason.NONE;
+				final boolean dead=outcome006?outcomeFrozen.firstDeath(player.getObjectId()):player.isAlikeDead();
+				actors.add(new org.l2jmobius.gameserver.phantoms.learning.TacticalEpisodeV3.Actor(Long.parseLong(trainingRows.get(index)[2]),player.getObjectId(),previous.epoch(),player.getActiveClass(),player.getLevel(),player.getCurrentHp(),player.getCurrentMp(),dead,known?current.expGained()-previous.expGained():null,known?current.spGained()-previous.spGained():null));
+			}
+			return List.copyOf(actors);
 		}
 
 		CooldownWitness cooldownWitness()
@@ -711,6 +785,7 @@ public final class PhantomLearning001ShadowNative
 		}
 
 		List<Player> evaluationPlayers() { return List.copyOf(trainingPlayers); }
+		String outcomeBeforeFacts(){return trainingFacts();}
 		/** TEST input only, before caller's durable CUT. No action is forced and no native target is replaced after CUT. */
 		void prepareEvaluation(Monster target, int variant) throws Exception
 		{

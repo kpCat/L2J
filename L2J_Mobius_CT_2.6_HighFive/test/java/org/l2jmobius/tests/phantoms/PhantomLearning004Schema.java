@@ -15,6 +15,26 @@ final class PhantomLearning004Schema
 	private static final String OLD_SCRIPT = "771923AC49ABAA60BA08D0149F7A9842A6E3AA174D2EED3CFD336FC791ADAFE6";
 	private static final String OLD_ALL = "DB97B49B23193D4A3A75528F6378D12FEDEC0600D9E01276FC3E872FF4A5B0AA";
 	private static final Set<String> ADDED = Set.of("failures","event_episodes","context_replay");
+	private static final String BEFORE_TERMINAL = "79B176A2F596D9ED77258315AC203867B2D1127B24DEE53D6FB0B4482B299521";
+	static List<String> terminalDelta(List<String> before,List<String> after)
+	{
+		final var remaining=new ArrayList<>(after);
+		for(String sql:before){if(!remaining.remove(sql)){throw new IllegalArgumentException("006 changed a historical schema statement");}}
+		final var names=new HashSet<String>();
+		for(String sql:remaining)
+		{
+			final var match=java.util.regex.Pattern.compile("(?s)^CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_(terminal_rewards|terminal_applications)` \\(.*").matcher(sql.strip());
+			if(!match.matches()||!names.add(match.group(1))||sql.matches("(?is).*\\b(?:ALTER|DROP|DELETE|UPDATE|INSERT|DATABASE|USE|GRANT|USER)\\b.*")){throw new IllegalArgumentException("006 migration is not the exact additive allowlist");}
+		}
+		if(!names.equals(Set.of("terminal_rewards","terminal_applications"))){throw new IllegalArgumentException("006 terminal table set changed");}
+		return List.copyOf(remaining);
+	}
+	private static Path terminalFixture(Path module)throws Exception
+	{
+		final Path fixture=module.resolve("docs/phantoms/tasks/PHANTOM-LEARNING-006-PVE-OUTCOME/fixtures/schema-before-terminal.sql");
+		if(!fixture.equals(fixture.toRealPath())||Files.isSymbolicLink(fixture)||!sha(Files.readAllBytes(fixture)).equals(BEFORE_TERMINAL)){throw new IllegalStateException("TRAIN002_006_SCHEMA_FIXTURE");}
+		return fixture;
+	}
 	static List<String> delta(List<String> before, List<String> after)
 	{
 		final var remaining = new ArrayList<>(after);
@@ -36,6 +56,8 @@ final class PhantomLearning004Schema
 		final Path local = root.resolve("sql/schema-manifest.properties");
 		final var localState = PhantomTestSchemaManifest.read(local);
 		if (localState.equals(current)) { return; } // Canonical probe below still validates DB identity and manifest.
+		if("OUTCOME006".equals(PhantomTrainingSql.read(root.resolve("TRAIN_CONFIG.ini")).getProperty("configProfile")))
+		{upgradeTerminal(root,module,config,port,inventory,current,localState);return;}
 		final Path fixture = module.resolve("docs/phantoms/tasks/PHANTOM-LEARNING-004/fixtures/schema-before-failure-ledger.sql");
 		if (!fixture.equals(fixture.toRealPath()) || !sha(Files.readAllBytes(fixture)).equals(OLD_SCRIPT)) { throw new IllegalStateException("TRAIN002_004_MIGRATION_FIXTURE"); }
 		final var oldStatements = StrictSqlScriptRunner.splitStatements(fixture,Files.readString(fixture));
@@ -80,10 +102,50 @@ final class PhantomLearning004Schema
 			System.out.println("LEARNING004_SCHEMA_UPGRADE tables=3 retainedSha=" + before + " previous=" + OLD_ALL + " current=" + current.aggregateSha256() + " recoveredPublication=" + alreadyPublished);
 		}
 	}
+	private static void upgradeTerminal(Path root,Path module,Path config,int port,List<StrictSqlScriptRunner.ScriptInfo> inventory,
+		PhantomTestSchemaManifest.Snapshot current,PhantomTestSchemaManifest.Snapshot localState)throws Exception
+	{
+		final Path fixture=terminalFixture(module);
+		final var before=StrictSqlScriptRunner.splitStatements(fixture,Files.readString(fixture));
+		final var oldInventory=new ArrayList<StrictSqlScriptRunner.ScriptInfo>();List<String> additions=null;
+		for(var script:inventory)
+		{
+			if(script.relativePath().equals(SCRIPT)){additions=terminalDelta(before,script.statements());oldInventory.add(new StrictSqlScriptRunner.ScriptInfo(fixture,SCRIPT,BEFORE_TERMINAL,before));}
+			else{oldInventory.add(script);}
+		}
+		final var previous=PhantomTestSchemaManifest.fromScripts(oldInventory);
+		if(additions==null||!localState.equals(previous)){throw new IllegalStateException("TRAIN002_006_SCHEMA_UNRECOGNIZED_SCOPE");}
+		final var settings=PhantomTrainingSql.read(config);final String endpoint="jdbc:mysql://127.0.0.1:"+port+"/phantom_learning001_train002";
+		if(!endpoint.equals(settings.getProperty("URL"))||!"learning001".equals(settings.getProperty("Login"))){throw new IllegalStateException("TRAIN002_006_SCHEMA_ENDPOINT");}
+		try(var connection=DriverManager.getConnection(endpoint,"learning001",settings.getProperty("Password")))
+		{
+			PhantomTrainingSql.requireIdentity(connection,root,port,"phantom_learning001_train002","learning001@127.0.0.1");
+			boolean published=false;
+			try{PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection,previous);}
+			catch(PhantomTestConfigurationException mismatch){PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection,current);published=true;}
+			final var retained=List.of("events","optimizers","episodes","failures","event_episodes","context_replay","splits","runs","audit_used","models");
+			final String retainedBefore=retainedSha(connection,retained);
+			if(!published)
+			{
+				try(var statement=connection.createStatement()){for(String sql:additions){statement.executeUpdate(sql);}}
+				if(!retainedBefore.equals(retainedSha(connection,retained))){throw new IllegalStateException("TRAIN002_006_SCHEMA_RETAINED_DATA_CHANGED");}
+				PhantomTestSchemaManifest.writeDatabaseMetadata(connection,current);
+			}
+			PhantomTestSchemaManifest.requireExactDatabaseMetadata(connection,current);
+			final Path local=root.resolve("sql/schema-manifest.properties");final byte[] prior=Files.readAllBytes(local);
+			final Path backup=root.resolve("archives/schema-before-terminal-"+sha(prior)+".properties");
+			if(Files.exists(backup)){if(!Arrays.equals(prior,Files.readAllBytes(backup))){throw new IllegalStateException("TRAIN002_006_SCHEMA_BACKUP_CHANGED");}}
+			else{Files.write(backup,prior,StandardOpenOption.CREATE_NEW);}
+			PhantomTestSchemaManifest.writeAtomic(local,current);
+			System.out.println("LEARNING006_SCHEMA_UPGRADE exactAdditive=2 retainedTenTablesSha="+retainedBefore+" previous="+previous.aggregateSha256()+" current="+current.aggregateSha256()+" recovered="+published);
+		}
+	}
 	private static String retainedSha(Connection connection) throws Exception
+	{return retainedSha(connection,List.of("events","optimizers","episodes","splits","runs","audit_used","models"));}
+	private static String retainedSha(Connection connection,List<String> tables) throws Exception
 	{
 		final var digest = MessageDigest.getInstance("SHA-256");
-		for (String table : List.of("events","optimizers","episodes","splits","runs","audit_used","models"))
+		for (String table : tables)
 		{
 			digest.update(table.getBytes(StandardCharsets.US_ASCII));
 			try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT * FROM phantom_tactical_v3_" + table + " ORDER BY 1"))
@@ -105,7 +167,12 @@ final class PhantomLearning004Schema
 	{
 		final Path module = Path.of(args[0]).toRealPath();
 		final var before = StrictSqlScriptRunner.splitStatements(module.resolve(SCRIPT),Files.readString(module.resolve("docs/phantoms/tasks/PHANTOM-LEARNING-004/fixtures/schema-before-failure-ledger.sql")));
-		final var after = StrictSqlScriptRunner.splitStatements(module.resolve(SCRIPT),Files.readString(module.resolve(SCRIPT)));
+		var after = StrictSqlScriptRunner.splitStatements(module.resolve(SCRIPT),Files.readString(module.resolve(SCRIPT)));
+		if(after.stream().anyMatch(sql->sql.contains("`phantom_tactical_v3_terminal_rewards`")))
+		{
+			final Path fixture=terminalFixture(module);final var original004=StrictSqlScriptRunner.splitStatements(fixture,Files.readString(fixture));
+			if(terminalDelta(original004,after).size()!=2){throw new AssertionError("Missing006 additive tables");}after=original004;
+		}
 		if (delta(before,after).size() != 3) { throw new AssertionError("Missing additive migration"); }
 		final var changed = new ArrayList<>(after); changed.set(0,changed.getFirst().replace("MEDIUMBLOB","LONGBLOB")); reject(() -> delta(before,changed));
 		final var dropped = new ArrayList<>(after); dropped.add("DROP TABLE phantom_tactical_v3_events"); reject(() -> delta(before,dropped));

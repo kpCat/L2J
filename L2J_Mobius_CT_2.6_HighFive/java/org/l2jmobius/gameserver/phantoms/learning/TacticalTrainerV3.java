@@ -105,6 +105,7 @@ public final class TacticalTrainerV3
     {
         final var store = new TacticalStoreV3(root); store.initialize(); store.requireStopped();
         store.ensureLegacyParent();
+        if (store.terminalMode()) { return evaluateTerminal(store); }
         final var prior = store.latestAccepted();
         final var optimizerParent = store.optimizationParent();
         final var frozen = store.freeze();
@@ -153,6 +154,41 @@ public final class TacticalTrainerV3
             throw failure;
         }
     }
+    private static Evaluation evaluateTerminal(TacticalStoreV3 store) throws IOException, SQLException
+    {
+        final var prior=store.latestAccepted();
+        final var parent=store.optimizationParent();
+        final var frozen=store.freezeTerminal();
+        if(frozen==null)
+        {
+            return publish(store,new Evaluation("COLLECTING",prior==null?0:prior.id(),prior==null?"":prior.sha(),
+                "Need verified terminal TRAIN>=16, TUNING>=8 and fresh AUDIT actors/contexts; legacy cast rows are never fitted by006",0,"",
+                "{\"objective\":\"TERMINAL_OUTCOME_V1\",\"terminalRewardUsedForTraining\":false}"));
+        }
+        final var train=frozen.examples("TRAIN");
+        final var tuning=frozen.examples("TUNING");
+        final var audit=frozen.examples("AUDIT");
+        final long started=System.nanoTime();
+        final var trained=TacticalModelV3.continueTraining(parent.state(),train,tuning);
+        final long elapsed=System.nanoTime()-started;
+        final var fit=trained.fit();
+        final String metrics="{\"objective\":\"TERMINAL_OUTCOME_V1\",\"seed\":183,\"samplerRevision\":"+quote(TerminalReplayV1.REVISION)
+            +",\"terminalDatasetSha\":"+quote(frozen.datasetSha())+",\"rewardConfigSha\":"+quote(frozen.configSha())+",\"datasetId\":"+quote(frozen.datasetId())
+            +",\"terminalReceipts\":"+frozen.receipts().size()+",\"train\":"+train.size()+",\"tuning\":"+tuning.size()+",\"audit\":"+audit.size()
+            +",\"epochs\":"+fit.epochs()+",\"trainingNanos\":"+elapsed+",\"tuningInitialMse\":"+fit.initialLoss()+",\"tuningMse\":"+fit.loss()
+            +",\"terminalAuditMse\":"+fit.model().loss(audit)+",\"terminalConstantMse\":"+frozen.constantLoss()
+            +",\"terminalPriorMse\":"+(prior==null?"null":prior.model().loss(audit))+",\"parentModelVersion\":"+parent.modelId()
+            +",\"parentOptimizerSha\":"+quote(parent.sha())+",\"parentWeightsSha\":"+quote(parent.state().model().sha256())
+            +",\"optimizerMigration\":\"RESTORED\",\"optimizerSha\":"+quote(trained.continuation().sha256())+",\"optimizerUpdates\":"+trained.continuation().updates()
+            +",\"completedEpochs\":"+trained.continuation().completedEpochs()+",\"terminalRewardUsedForTraining\":true,\"productionPromotion\":false"
+            +",\"limitation\":\"Registry audit columns validate unchanged source cast receipts; terminal losses are separate. Goal MSE does not prove native advantage.\"}";
+        // A failed fit leaves the frozen reservation resumable, without marking any target applied.
+        final var candidate=store.saveTerminal(frozen,trained,parent,prior,metrics);
+        final var restored=store.terminalSnapshot(candidate.id());
+        if(!restored.datasetSha().equals(frozen.datasetSha())){throw new IllegalArgumentException("Committed terminal dataset changed");}
+        return publish(store,new Evaluation("DRAFT",prior==null?0:prior.id(),prior==null?"":prior.sha(),
+            "Terminal targets fitted from exact optimizer parent; immutable TEST draft requires independent native evaluation",candidate.id(),candidate.sha(),metrics));
+    }
     private static Evaluation publish(TacticalStoreV3 store, Evaluation evaluation) throws IOException
     {
         final String json = json(evaluation) + "\n";
@@ -192,6 +228,7 @@ public final class TacticalTrainerV3
         final var working = store.candidate(optimizer.modelId());
         if (working == null) { throw new IllegalArgumentException("Working V3 checkpoint missing"); }
         final byte[] replay = TacticalStoreV3.pack(working.rows());
+        final var terminal=working.metrics().contains("\"objective\":\"TERMINAL_OUTCOME_V1\"")?store.terminalSnapshot(working.id()):null;
         final byte[] contexts = working.origin().equals("NATIVE_COMBAT") ? store.replayContexts(working.runId(),working.datasetSha(),working.rows()) : null;
         final Path directory = store.installation().resolve("tactical-v3-exports");
         Files.createDirectories(directory);
@@ -205,6 +242,8 @@ public final class TacticalTrainerV3
             + ",\"workingModelVersion\":" + working.id() + ",\"workingStatus\":" + quote(working.status()) + ",\"workingWeightsSha\":" + quote(working.sha())
             + ",\"optimizerSha\":" + quote(optimizer.sha()) + ",\"optimizerUpdates\":" + optimizer.state().updates() + ",\"completedEpochs\":" + optimizer.state().completedEpochs()
             + ",\"replaySha\":" + quote(TacticalObservationV3.hash(replay)) + ",\"contextReplaySha\":" + (contexts == null ? "null" : quote(TacticalObservationV3.hash(contexts)))
+            + ",\"terminalDatasetSha\":"+(terminal==null?"null":quote(terminal.datasetSha()))
+            + ",\"rewardConfigSha\":"+(terminal==null?"null":quote(terminal.configSha()))
             + ",\"workingRunId\":" + quote(optimizer.runId()) + ",\"episodeCounts\":" + store.episodeCounts() + "}";
         try
         {
@@ -214,6 +253,14 @@ public final class TacticalTrainerV3
                 entry(zip,"events.bin",TacticalStoreV3.pack(model.rows()));
                 entry(zip,"optimizer.bin",optimizer.state().bytes());
                 entry(zip,"replay.bin",replay);
+                if(terminal!=null)
+                {
+                    entry(zip,"terminal-targets.bin",terminal.bytes());
+                    final String receipts=terminal.receipts().stream().map(r->"{\"naturalKey\":"+quote(r.naturalKey())+",\"receiptSha\":"+quote(r.sha256())
+                        +",\"fitRole\":"+quote(r.split())+",\"modelVersion\":"+working.id()+",\"optimizerSha\":"+quote(optimizer.sha())
+                        +",\"terminalRewardUsedForTraining\":"+r.split().equals("TRAIN")+"}\n").collect(java.util.stream.Collectors.joining());
+                    entry(zip,"terminal-applications.jsonl",receipts.getBytes(StandardCharsets.UTF_8));
+                }
                 if (contexts != null)
                 {
                     entry(zip,"context-replay.bin",contexts);

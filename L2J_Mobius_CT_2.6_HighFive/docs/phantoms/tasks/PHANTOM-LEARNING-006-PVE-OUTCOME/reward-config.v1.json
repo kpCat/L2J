@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "name": "GOAL_TIME_EXP_SP_HEAL_OBSERVED_MP_DEATH_LB_V1",
+  "weights": { "goal": 0.65, "time": 0.15, "exp": 0.08, "sp": 0.04, "heal": 0.06, "observedMp": 0.02 },
+  "scales": { "timeNanos": 120000000000, "creditedExp": 100000, "creditedSp": 20000, "usefulHealHp": 10000, "observedPaidMp": 2000 },
+  "componentClip": [0, 1],
+  "rewardClip": [-1, 1],
+  "confirmedKillGoal": 1,
+  "admittedEncounterTimeoutGoal": -1,
+  "observedDeathRewardOverride": -1,
+  "completeDeathCount": "UNKNOWN_EXCLUDED",
+  "wholePartyMp": "UNKNOWN_EXCLUDED",
+  "economy": "UNKNOWN_EXCLUDED",
+  "attribution": "EXECUTED_ACTION_MONTE_CARLO_GAMMA_1",
+  "incompleteOrInterrupted": "EXCLUDED",
+  "lateDrainEffects": "RETAIN_EVIDENCE_EXCLUDE_FIT",
+  "trainMinActions": 16,
+  "tuningMinActions": 8,
+  "modelStatus": "DRAFT"
+}
