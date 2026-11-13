@@ -1,6 +1,6 @@
 # ACCEPTANCE007
 
-Final manual gate — **REQUIRED**. Таблица отражает техническую верификацию; не означает принятия владельцем.
+Final manual gate — **ACCEPTED_BY_OWNER**. Владелец подтвердил результат 13 ноября 2026; технические G0–G8 верифицированы.
 
 |Gate|Статус|Evidence|
 |---|---|---|
@@ -16,4 +16,8 @@ Final manual gate — **REQUIRED**. Таблица отражает технич
 
 Game verdict **INCONCLUSIVE**: оба 95%CI включают 0,n=4/режим. Paid learned intervention доказано; преимущество над stock не доказано. AUDITMSE хуже constant. Новаямодель DRAFT,непримененав MAIN/PLAY.
 
-Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate ACCEPTED_BY_OWNER. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+
+## Принятие владельцем — 13 ноября 2026
+
+Владелец явно подтвердил: «Принять результат 007». Финальный manual gate **ACCEPTED**; Goal007 завершён. Технические G0–G8 VERIFIED, игровой verdict **INCONCLUSIVE**, модель остаётся DRAFT11. Ответ зафиксирован 2026-11-13 08:19:43 UTC; часовой пояс клиента Europe/Chisinau.

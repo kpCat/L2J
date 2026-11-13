@@ -1,7 +1,7 @@
 {
   "goal": "PHANTOM-LEARNING-007-CAUSAL-EXPLORATION",
-  "stage": "FINAL_MANUAL_GATE_REQUIRED",
-  "goalComplete": false,
+  "stage": "COMPLETE",
+  "goalComplete": true,
   "productCodeChanged": true,
   "gameServerStarts": 5,
   "ceilingGameServerStarts": 8,
@@ -47,7 +47,7 @@
     }
   },
   "gameVerdict": "INCONCLUSIVE",
-  "finalManualGate": "REQUIRED",
+  "finalManualGate": "ACCEPTED_BY_OWNER",
   "designOwnerApproval": "APPROVED_EXPLICIT_USER_REPLY",
   "baselineAndCold": "evidence/g0-cold.json",
   "diagnostics": "evidence/diagnostics.json",
@@ -56,7 +56,8 @@
   "gitUsed": true,
   "branch": "wip/phantom-learning-007",
   "commits007": [
-    "60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22"
+    "60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22",
+    "5d118d4ec01258d16bd5997e14d666e7d477f347"
   ],
   "push007": "NON_FORCE_SOURCE_COMMIT_READBACK_VERIFIED",
   "budget": {
@@ -2142,5 +2143,14 @@
       "origin",
       "wip/phantom-learning-007"
     ]
-  ]
+  ],
+  "ownerAcceptance": {
+    "status": "ACCEPTED",
+    "answer": "Принять результат 007",
+    "source": "explicit_owner_reply_in_this_chat",
+    "questionCall": "call_c7e6ac52d9b44d50889cd84758053223",
+    "recordedAtUtc": "2026-11-13T08:19:43Z",
+    "clientTimezone": "Europe/Chisinau",
+    "reviewedReceiptCommit": "5d118d4ec01258d16bd5997e14d666e7d477f347"
+  }
 }

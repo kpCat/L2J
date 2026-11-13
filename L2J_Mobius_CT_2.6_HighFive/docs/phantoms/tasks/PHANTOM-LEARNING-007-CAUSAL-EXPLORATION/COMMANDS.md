@@ -54,4 +54,8 @@ Final guard: `git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,
 
 Final regressions дополнительно: `PhantomLearning006Checks clock-r1`, `heal-totals-r1`, `authority-r1`, `campaign-r1`, `boundaries`, `routing-r1 <module>` — exit0. Canonical `ant -f <module>/build.xml phantom-learning007-test jar` — exit0;5pre-existing warnings.
 
-Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate ACCEPTED_BY_OWNER. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+
+## Принятие владельцем — 13 ноября 2026
+
+Владелец явно подтвердил: «Принять результат 007». Финальный manual gate **ACCEPTED**; Goal007 завершён. Технические G0–G8 VERIFIED, игровой verdict **INCONCLUSIVE**, модель остаётся DRAFT11. Ответ зафиксирован 2026-11-13 08:19:43 UTC; часовой пояс клиента Europe/Chisinau.

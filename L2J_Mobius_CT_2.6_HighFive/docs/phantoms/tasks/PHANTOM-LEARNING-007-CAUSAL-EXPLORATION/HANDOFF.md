@@ -2,7 +2,7 @@
 
 `/goal PHANTOM-LEARNING-007-CAUSAL-EXPLORATION`
 
-Состояние/границы: [RESULT](RESULT.md), [EVIDENCE](EVIDENCE.json), [ACCEPTANCE](ACCEPTANCE.md). Final manual gate REQUIRED; следующий Goal/Slice не начинался. Новый budget задач:1/13 использована,12 осталось.
+Состояние/границы: [RESULT](RESULT.md), [EVIDENCE](EVIDENCE.json), [ACCEPTANCE](ACCEPTANCE.md). Final manual gate ACCEPTED_BY_OWNER; следующий Goal/Slice не начинался. Новый budget задач:1/13 использована,12 осталось.
 
 Существующий TEST006 сохранён:SQL33357/Game18001/Login19301, checkpoints/history/новый DRAFT11. STOPPED generation25 и свободные порты подтверждены; cold Export exit0, все 10payload entries совпали, manifest отличается только createdUtc. Запускать MAIN/PLAY/protectedreleases нельзя.
 
@@ -10,6 +10,10 @@ Frozen experiment JAR63bbf752…;DRAFT11 SHA7de6f5b6…;Adamf13d2f73…;datasetd
 
 Сохранённые отказы: initialPREPARE со старым private006R1config,plannedworkerhalt73,TRAINmissing/fallback/no-effect и 16NOT_RUN_BUDGET. Они не удалены. Исправление guard послеревью — только admission,математический objective/epsilon/safety не менялись; prefit-admissionprovesactualdatafulfillednewguard.
 
-Незавершённое принятие: ручной review и решение о дальнейшей разработке/новом budget. Не объявлять n=4 доказанным превосходством. Из четырёх useful HEAL только один был neural intervention, остальные — штатные choices. Control quota=false означает общий порог четырёх пар; плановые controls1+1 выполнены, budgetSettled=true.
+Финальный результат007 принят владельцем. Решение о дальнейшей разработке и новом задании остаётся отдельным. Не объявлять n=4 доказанным превосходством. Из четырёх useful HEAL только один был neural intervention, остальные — штатные choices. Control quota=false означает общий порог четырёх пар; плановые controls1+1 выполнены, budgetSettled=true.
 
-Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate ACCEPTED_BY_OWNER. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+
+## Принятие владельцем — 13 ноября 2026
+
+Владелец явно подтвердил: «Принять результат 007». Финальный manual gate **ACCEPTED**; Goal007 завершён. Технические G0–G8 VERIFIED, игровой verdict **INCONCLUSIVE**, модель остаётся DRAFT11. Ответ зафиксирован 2026-11-13 08:19:43 UTC; часовой пояс клиента Europe/Chisinau.

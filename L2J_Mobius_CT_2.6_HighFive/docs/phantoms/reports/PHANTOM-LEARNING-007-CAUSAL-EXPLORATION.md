@@ -2,7 +2,7 @@
 
 `/goal PHANTOM-LEARNING-007-CAUSAL-EXPLORATION`
 
-**G0–G8 технически VERIFIED. Final manual gate REQUIRED.** Игровой verdict — **INCONCLUSIVE**. Новая модель остаётся DRAFT11; automatic promotion не выполнялась.
+**G0–G8 технически VERIFIED. Final manual gate ACCEPTED_BY_OWNER.** Игровой verdict — **INCONCLUSIVE**. Новая модель остаётся DRAFT11; automatic promotion не выполнялась.
 
 Реальное изменение тактики подтверждено при exploration OFF:6paid Solo divergences выбирают другой DAMAGE skill,1Party divergence выбирает другую законную цель того же HEAL1401. Это самостоятельные решения V3, отдельно от случайного TRAIN exploration. Основной EVAL содержит 4fair Solo+4fair Party пары, AB/BA2+2 на режим. Stock-stock controls:1fair пара на режим,0divergences.
 
@@ -49,4 +49,8 @@ CPU/RAM: в collection segment2 CPU621.328s/1683.520s wall, peakWorkingSet4.377G
 
 Final verification: canonical007+JAR exit0; old004/005/006 и 006R1 focused routes exit0; SQL/cold/ZIP/source scope PASS. Own TEST STOPPED generation25; native/SQL/worker/Director отсутствуют,203/207/ports preflight PASS. CRLF распознаны как EOL через временный git -c core.whitespace; blank-at-eol/blank-at-eof/space-before-tab включены, Git config не изменён.
 
-Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate ACCEPTED_BY_OWNER. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
+
+## Принятие владельцем — 13 ноября 2026
+
+Владелец явно подтвердил: «Принять результат 007». Финальный manual gate **ACCEPTED**; Goal007 завершён. Технические G0–G8 VERIFIED, игровой verdict **INCONCLUSIVE**, модель остаётся DRAFT11. Ответ зафиксирован 2026-11-13 08:19:43 UTC; часовой пояс клиента Europe/Chisinau.
