@@ -11,3 +11,5 @@ Frozen experiment JAR63bbf752…;DRAFT11 SHA7de6f5b6…;Adamf13d2f73…;datasetd
 Сохранённые отказы: initialPREPARE со старым private006R1config,plannedworkerhalt73,TRAINmissing/fallback/no-effect и 16NOT_RUN_BUDGET. Они не удалены. Исправление guard послеревью — только admission,математический objective/epsilon/safety не менялись; prefit-admissionprovesactualdatafulfillednewguard.
 
 Незавершённое принятие: ручной review и решение о дальнейшей разработке/новом budget. Не объявлять n=4 доказанным превосходством. Из четырёх useful HEAL только один был neural intervention, остальные — штатные choices. Control quota=false означает общий порог четырёх пар; плановые controls1+1 выполнены, budgetSettled=true.
+
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.

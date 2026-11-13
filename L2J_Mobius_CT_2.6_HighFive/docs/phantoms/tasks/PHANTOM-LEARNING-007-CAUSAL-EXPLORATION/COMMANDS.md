@@ -53,3 +53,5 @@ git diff --name-only -- AGENTS.md L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/
 Final guard: `git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- <31 exact SCOPE_ALLOWLIST paths>` → exit0. Без CRLF option default check сообщил trailingCR; source EOL не переписывались.
 
 Final regressions дополнительно: `PhantomLearning006Checks clock-r1`, `heal-totals-r1`, `authority-r1`, `campaign-r1`, `boundaries`, `routing-r1 <module>` — exit0. Canonical `ant -f <module>/build.xml phantom-learning007-test jar` — exit0;5pre-existing warnings.
+
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.

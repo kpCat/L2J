@@ -1,6 +1,6 @@
 {
   "goal": "PHANTOM-LEARNING-007-CAUSAL-EXPLORATION",
-  "stage": "PUBLICATION_REQUIRED",
+  "stage": "FINAL_MANUAL_GATE_REQUIRED",
   "goalComplete": false,
   "productCodeChanged": true,
   "gameServerStarts": 5,
@@ -55,8 +55,10 @@
   "historicalPaidDivergences006R1": 0,
   "gitUsed": true,
   "branch": "wip/phantom-learning-007",
-  "commits007": [],
-  "push007": "PENDING",
+  "commits007": [
+    "60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22"
+  ],
+  "push007": "NON_FORCE_SOURCE_COMMIT_READBACK_VERIFIED",
   "budget": {
     "historicalIssuedTasks001Through006R1": 7,
     "remainingDevelopmentRangeAfter006R1": [
@@ -1532,7 +1534,10 @@
       "status": "VERIFIED"
     },
     "G8": {
-      "status": "REQUIRED_PUBLICATION_READBACK"
+      "status": "VERIFIED",
+      "sourceCommit": "60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22",
+      "independentReadback": "GitHub connector compare31 exact paths + exact evidence/guard/default-OFF blobs",
+      "metadataReceipt": "Follow-up report commit; exact SHA in final response and branch HEAD"
     }
   },
   "rulings": [
@@ -1897,7 +1902,7 @@
       "?? L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning007Native.java",
       "?? L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini"
     ],
-    "zipEntries": 931,
+    "zipEntries": 936,
     "gitDiffCheckExit": 0
   },
   "verification": {
@@ -1931,5 +1936,211 @@
       "cpuSeconds": 21.531,
       "primaryFailurePhase": ""
     }
-  }
+  },
+  "technicalStatus": "G0-G8_VERIFIED",
+  "publicationReadback": {
+    "commit": "60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22",
+    "base": "3bfdce560a24882519a3358d405bfe4b99bb25de",
+    "githubCompare": {
+      "status": "ahead",
+      "ahead": 1,
+      "behind": 0,
+      "commits": 1,
+      "files": [
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_tactical_v3.sql",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/ACCEPTANCE.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/COMMANDS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/EVIDENCE.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/EXPERIMENT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/PROGRESS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/SCOPE_ALLOWLIST.txt",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/artifacts/readfirst007.zip",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/evidence/diagnostics.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/evidence/g0-cold.json",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV1.java",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalModelV3.java",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning007Checks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning004Schema.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning007Native.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+      ]
+    },
+    "evidenceBlobSha": "881bac8fee31cdd46bcd8ff155442118ce13628f",
+    "exactAllowlist": true,
+    "exactEvidenceBlob": true,
+    "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+    "archiveSha": "9e36ccbd010cbadac6766e6d3f213c02bf5b6766ba8897827d8ee6e3d56557c1",
+    "sourceBlobs": {
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV1.java": "c941f7b6853d4e51edadf0b5ec91e90a0ef7b84c",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini": "d064dd7de8e8f4471ee8fa962680e6bb569d2d8c"
+    }
+  },
+  "gitPublicationCommands": [
+    [
+      "git",
+      "rev-parse",
+      "--abbrev-ref",
+      "HEAD"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "status",
+      "--short"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "--abbrev-ref",
+      "HEAD"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "status",
+      "--short"
+    ],
+    [
+      "git",
+      "add",
+      "--",
+      "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_tactical_v3.sql",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/ACCEPTANCE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/COMMANDS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/EVIDENCE.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/EXPERIMENT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/HANDOFF.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/PLAN.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/PROGRESS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/RESULT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/SCOPE_ALLOWLIST.txt",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/artifacts/readfirst007.zip",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/evidence/diagnostics.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/evidence/g0-cold.json",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalModelV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning007Checks.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning004Schema.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning007Native.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+    ],
+    [
+      "git",
+      "diff",
+      "--cached",
+      "--name-only",
+      "--",
+      "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_tactical_v3.sql",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/ACCEPTANCE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/COMMANDS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/EVIDENCE.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/EXPERIMENT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/HANDOFF.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/PLAN.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/PROGRESS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/RESULT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/SCOPE_ALLOWLIST.txt",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/artifacts/readfirst007.zip",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/evidence/diagnostics.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/evidence/g0-cold.json",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalModelV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning007Checks.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning004Schema.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning007Native.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+    ],
+    [
+      "git",
+      "status",
+      "--short"
+    ],
+    [
+      "git",
+      "commit",
+      "-m",
+      "PHANTOM-LEARNING-007: bounded TRAIN exploration and action advantage"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "--abbrev-ref",
+      "HEAD"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "push",
+      "origin",
+      "HEAD:refs/heads/wip/phantom-learning-007"
+    ],
+    [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    [
+      "git",
+      "ls-remote",
+      "--heads",
+      "origin",
+      "wip/phantom-learning-007"
+    ]
+  ]
 }

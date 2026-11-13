@@ -2,7 +2,7 @@
 
 `/goal PHANTOM-LEARNING-007-CAUSAL-EXPLORATION`
 
-Текущая стадия **DELIVERY_PREPARED**; G0–G7 VERIFIED, G8 publication/readback REQUIRED, final manual gate REQUIRED.
+Текущая стадия **FINAL_MANUAL_GATE_REQUIRED**. G0–G8 технически VERIFIED; ручной gate REQUIRED.
 
 1. Прочитано полное задание из attachment, локальные инструкции и релевантные source/evidence004–006R1.
 2. Проверены exact WIP006R1 HEAD и clean tracked state; основной feature checkout с чужим untracked dirt оставлен без изменений.
@@ -74,3 +74,5 @@ Ruling: operational budget amendment до TUNING/AUDIT. Фактический m
 Native закончена:5starts,58.835min;4fairSolo+4fairParty;6+1learnedpaiddivergences;controls1+1fair/0divergences. GameINCONCLUSIVE. ColdSTOP/export,finalcanonicalchecks,scope/encoding/ZIP и scopedpublication фиксируются в EVIDENCE; manualgate непринят.
 
 Final canonical007+JAR и focused004/005/006/006R1 exit0. Exact scope31paths, ZIP entrySHA/CRC и обе 30-file encoding scans PASS. Cold export11payloads including manifest:10entries exact, createdUtc-only manifest difference. Final preflight203/207/ports PASS; STOPPED generation25. Source JAR после validation guard fix отличается от frozen experiment JAR; private stage не заменён.
+
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.

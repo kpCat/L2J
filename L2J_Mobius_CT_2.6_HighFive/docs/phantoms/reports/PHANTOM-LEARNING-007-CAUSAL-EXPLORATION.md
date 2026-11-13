@@ -2,7 +2,7 @@
 
 `/goal PHANTOM-LEARNING-007-CAUSAL-EXPLORATION`
 
-**G0–G7 VERIFIED; G8 ожидает публикации/readback. Final manual gate REQUIRED.** Игровой verdict — **INCONCLUSIVE**. Новая модель остаётся DRAFT11; automatic promotion не выполнялась.
+**G0–G8 технически VERIFIED. Final manual gate REQUIRED.** Игровой verdict — **INCONCLUSIVE**. Новая модель остаётся DRAFT11; automatic promotion не выполнялась.
 
 Реальное изменение тактики подтверждено при exploration OFF:6paid Solo divergences выбирают другой DAMAGE skill,1Party divergence выбирает другую законную цель того же HEAL1401. Это самостоятельные решения V3, отдельно от случайного TRAIN exploration. Основной EVAL содержит 4fair Solo+4fair Party пары, AB/BA2+2 на режим. Stock-stock controls:1fair пара на режим,0divergences.
 
@@ -37,7 +37,7 @@ TUNING MSE .40014272→.10534861; AUDIT .01445076 против constant .0028910
 
 CPU/RAM: в collection segment2 CPU621.328s/1683.520s wall, peakWorkingSet4.377GiB;segment3 CPU258.328s/923.712s,peak4.361GiB. Это process CPU-seconds и process peak, не machine load. Optimizer compute1.412s. Полные native/worker resources и per-episode policy timing/fallback census в архиве; cold5ms overruns приводили к fallback. Throughput64real episodes/45.514native minutes≈1.41episode/min. После поздних проверок показатели всех 5starts доступны в EVIDENCE/archive.
 
-Исходный WIP006R1 HEAD3bfdce560a24882519a3358d405bfe4b99bb25de сохранён как parent; feature/master/MAIN/PLAY/чужие SQL/worktrees не менялись. Git использован по прямому разрешению 007 и bounded root contract; точные команды и allowlist — [COMMANDS](../tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/COMMANDS.md), [SCOPE_ALLOWLIST](../tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/SCOPE_ALLOWLIST.txt). Commit/push/readback ещё требуются на этой стадии подготовки.
+Исходный WIP006R1 HEAD3bfdce560a24882519a3358d405bfe4b99bb25de сохранён как parent; feature/master/MAIN/PLAY/чужие SQL/worktrees не менялись. Git использован по прямому разрешению 007 и bounded root contract; точные команды и allowlist — [COMMANDS](../tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/COMMANDS.md), [SCOPE_ALLOWLIST](../tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/SCOPE_ALLOWLIST.txt). Source commit/push и independent readback выполнены; receipt ниже.
 
 007 расходует задачу№1 из 13 после 006R1;осталось 12 до пересмотра. Исторические 001–006R1 —7 заданий. Новый бюджет 7–13 задач;PARTIAL и исправительные задачи также расходуют его. Проценты готовности не назначаются. Следующий Goal не начат.
 
@@ -48,3 +48,5 @@ CPU/RAM: в collection segment2 CPU621.328s/1683.520s wall, peakWorkingSet4.377G
 
 
 Final verification: canonical007+JAR exit0; old004/005/006 и 006R1 focused routes exit0; SQL/cold/ZIP/source scope PASS. Own TEST STOPPED generation25; native/SQL/worker/Director отсутствуют,203/207/ports preflight PASS. CRLF распознаны как EOL через временный git -c core.whitespace; blank-at-eol/blank-at-eof/space-before-tab включены, Git config не изменён.
+
+Публикация: source/evidence commit `60a2ddff06a2d9ef4b4e7131f61ad52b81e5af22` — обычный non-force push только `wip/phantom-learning-007`. Независимый GitHub connector подтвердил parent3bfdce56…,31exactpaths, exact EVIDENCE blob и source guard/default-OFF INI blobs. G8 VERIFIED; final manual gate REQUIRED. Текущий report receipt находится в HEAD этой WIP-ветки; его точный SHA указан в финальном сообщении. Feature/master не сливались и не публиковались.
