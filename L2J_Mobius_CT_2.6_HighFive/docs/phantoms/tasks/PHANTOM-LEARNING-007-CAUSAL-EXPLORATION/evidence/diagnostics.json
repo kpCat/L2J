@@ -1,0 +1,372 @@
+{
+  "stage": "READ_FIRST_ONLY",
+  "method": "CANONICAL_JAVA_READ_ONLY_DRAFT9_RECONSTRUCTION",
+  "historicalArchiveSha": "0ff89822a9d808a80d7ec08821428bfb5a296225cb78210b0e80878ae181a443",
+  "canonicalReconstructedObservations": 44,
+  "primaryLearnedPaidActions": 16,
+  "topEqualsStock": 8,
+  "topDifferentFromStock": 8,
+  "allPrimaryGapsBelow0025": true,
+  "families": {
+    "DAMAGE": {
+      "n": 12,
+      "topEqualsStock": 6,
+      "minimumGap": 0.0072920322,
+      "maximumGap": 0.008579075,
+      "minimumScore": 0.69674826,
+      "maximumScore": 0.70691687
+    },
+    "HEAL": {
+      "n": 4,
+      "topEqualsStock": 2,
+      "minimumGap": 0.0035577416,
+      "maximumGap": 0.015597224,
+      "minimumScore": 0.7711962,
+      "maximumScore": 0.7871821
+    }
+  },
+  "countersScope": "Published 006R1 proof plus independentAB plus stock-stock diagnostics; overlapping reasons",
+  "counters": {
+    "BUDGET_5MS": 5,
+    "COOLDOWN_OR_ACTOR_CAP": 1011,
+    "DAMAGE_STOCK": 37,
+    "HEAL_OFFER_COUNT": 1372,
+    "HEAL_STOCK": 12,
+    "MARGIN": 22,
+    "SHADOW": 27
+  },
+  "safetyReasonKeysRecorded": [],
+  "nativeReadinessRefusalCensus": "UNKNOWN",
+  "trainEpisodeRewards": [
+    0.6623064,
+    0.75001025,
+    0.7513083,
+    0.70435375,
+    0.6810777,
+    0.6799366,
+    0.74582195
+  ],
+  "gradientDiagnosis": "Static chain-rule review only; no obvious defect; numerical gradient NOT_RUN",
+  "scoreRows": [
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/PARTY_HEAL_V3-1-LEARNED/3fc393d01c964f266925127c6b8371e8a445771f935c5c71c6fe5473e2255a5a.native.source.json",
+      "key": "3fc393d01c964f266925127c6b8371e8a445771f935c5c71c6fe5473e2255a5a",
+      "family": "HEAL",
+      "stock": "1401:11/268529395",
+      "selected": "1401:11/268529395",
+      "neuralTop": "1401:11/268529395",
+      "topEqualsStock": true,
+      "gap": 0.0035577416,
+      "scores": [
+        {
+          "action": "1401:11/268529395",
+          "score": 0.78477544
+        },
+        {
+          "action": "1401:11/268527080",
+          "score": 0.7812177
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/PARTY_HEAL_V3-2-LEARNED/a99dbc2febfc686503bfbfc0790f96edd20b1d59e552c847354178bff8db3518.native.source.json",
+      "key": "a99dbc2febfc686503bfbfc0790f96edd20b1d59e552c847354178bff8db3518",
+      "family": "HEAL",
+      "stock": "1401:11/268532617",
+      "selected": "1401:11/268532617",
+      "neuralTop": "1401:11/268534774",
+      "topEqualsStock": false,
+      "gap": 0.01103121,
+      "scores": [
+        {
+          "action": "1401:11/268532617",
+          "score": 0.7761509
+        },
+        {
+          "action": "1401:11/268534774",
+          "score": 0.7871821
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/PARTY_HEAL_V3-3-LEARNED/4baf1a88bfe6eb645bd642a154cd309a7f1dbec93015eb33996c6cbf7c2fb1ca.native.source.json",
+      "key": "4baf1a88bfe6eb645bd642a154cd309a7f1dbec93015eb33996c6cbf7c2fb1ca",
+      "family": "HEAL",
+      "stock": "1401:11/268551154",
+      "selected": "1401:11/268551154",
+      "neuralTop": "1401:11/268551154",
+      "topEqualsStock": true,
+      "gap": 0.006493211,
+      "scores": [
+        {
+          "action": "1401:11/268551154",
+          "score": 0.78542805
+        },
+        {
+          "action": "1401:11/268548927",
+          "score": 0.77893484
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-1-LEARNED/0f379a22f123578511c3704d48b7cf55f8bb88d46bd259b0e650d602282f2401.native.source.json",
+      "key": "0f379a22f123578511c3704d48b7cf55f8bb88d46bd259b0e650d602282f2401",
+      "family": "DAMAGE",
+      "stock": "1339:1/268497311",
+      "selected": "1339:1/268497311",
+      "neuralTop": "1230:28/268497311",
+      "topEqualsStock": false,
+      "gap": 0.0072920322,
+      "scores": [
+        {
+          "action": "1230:28/268497311",
+          "score": 0.7068012
+        },
+        {
+          "action": "1339:1/268497311",
+          "score": 0.69950914
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-1-LEARNED/40f96eaf8b1a5fcfc2b2d7890cc48983a8c8c9a7288e2f99360748a810cbb0c2.native.source.json",
+      "key": "40f96eaf8b1a5fcfc2b2d7890cc48983a8c8c9a7288e2f99360748a810cbb0c2",
+      "family": "DAMAGE",
+      "stock": "1339:1/268497311",
+      "selected": "1339:1/268497311",
+      "neuralTop": "1230:28/268497311",
+      "topEqualsStock": false,
+      "gap": 0.007813752,
+      "scores": [
+        {
+          "action": "1230:28/268497311",
+          "score": 0.70691687
+        },
+        {
+          "action": "1339:1/268497311",
+          "score": 0.6991031
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-1-LEARNED/e155b77367e78ca5b68f3b45cfc0a71a86d94635a6a6ee9b3500544a23854abd.native.source.json",
+      "key": "e155b77367e78ca5b68f3b45cfc0a71a86d94635a6a6ee9b3500544a23854abd",
+      "family": "DAMAGE",
+      "stock": "1230:28/268497311",
+      "selected": "1230:28/268497311",
+      "neuralTop": "1230:28/268497311",
+      "topEqualsStock": true,
+      "gap": 0.007414758,
+      "scores": [
+        {
+          "action": "1230:28/268497311",
+          "score": 0.7067101
+        },
+        {
+          "action": "1339:1/268497311",
+          "score": 0.69929534
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-1-LEARNED/fa63664ce78e197b459e7f5578e0b9abf5fd460881c8941f64f5bb04c8d6c064.native.source.json",
+      "key": "fa63664ce78e197b459e7f5578e0b9abf5fd460881c8941f64f5bb04c8d6c064",
+      "family": "DAMAGE",
+      "stock": "1230:28/268497311",
+      "selected": "1230:28/268497311",
+      "neuralTop": "1230:28/268497311",
+      "topEqualsStock": true,
+      "gap": 0.00857836,
+      "scores": [
+        {
+          "action": "1230:28/268497311",
+          "score": 0.7065171
+        },
+        {
+          "action": "1339:1/268497311",
+          "score": 0.69793874
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-2-LEARNED/397b991f5a166cbcfa0960ba42ebfbf8c3346faf55ba1283eca1fba2313551b2.native.source.json",
+      "key": "397b991f5a166cbcfa0960ba42ebfbf8c3346faf55ba1283eca1fba2313551b2",
+      "family": "DAMAGE",
+      "stock": "1339:1/268503036",
+      "selected": "1339:1/268503036",
+      "neuralTop": "1230:28/268503036",
+      "topEqualsStock": false,
+      "gap": 0.007821441,
+      "scores": [
+        {
+          "action": "1230:28/268503036",
+          "score": 0.70690316
+        },
+        {
+          "action": "1339:1/268503036",
+          "score": 0.6990817
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-2-LEARNED/e671fb918e30cb9648833634ec40b6a6eb51ac5313408e064aadbff5e425208b.native.source.json",
+      "key": "e671fb918e30cb9648833634ec40b6a6eb51ac5313408e064aadbff5e425208b",
+      "family": "DAMAGE",
+      "stock": "1230:28/268503036",
+      "selected": "1230:28/268503036",
+      "neuralTop": "1230:28/268503036",
+      "topEqualsStock": true,
+      "gap": 0.008578479,
+      "scores": [
+        {
+          "action": "1230:28/268503036",
+          "score": 0.70651466
+        },
+        {
+          "action": "1339:1/268503036",
+          "score": 0.6979362
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-3-LEARNED/0672c485e34545747761771444528b7868d8ad569ff4445ad8891c77054c6ba6.native.source.json",
+      "key": "0672c485e34545747761771444528b7868d8ad569ff4445ad8891c77054c6ba6",
+      "family": "DAMAGE",
+      "stock": "1230:28/268520111",
+      "selected": "1230:28/268520111",
+      "neuralTop": "1230:28/268520111",
+      "topEqualsStock": true,
+      "gap": 0.008578658,
+      "scores": [
+        {
+          "action": "1230:28/268520111",
+          "score": 0.7065159
+        },
+        {
+          "action": "1339:1/268520111",
+          "score": 0.69793725
+        }
+      ]
+    },
+    {
+      "path": "attempts/6c17e7995f0a459285b8acd142f5a2ee/evaluation006r1/SOLO_DAMAGE_V3-3-LEARNED/d4969f102cc8101d2a8acb3adce01f0095c30cc15071b84a4df2f463087c2b50.native.source.json",
+      "key": "d4969f102cc8101d2a8acb3adce01f0095c30cc15071b84a4df2f463087c2b50",
+      "family": "DAMAGE",
+      "stock": "1339:1/268520111",
+      "selected": "1339:1/268520111",
+      "neuralTop": "1230:28/268520111",
+      "topEqualsStock": false,
+      "gap": 0.007825077,
+      "scores": [
+        {
+          "action": "1230:28/268520111",
+          "score": 0.7068654
+        },
+        {
+          "action": "1339:1/268520111",
+          "score": 0.6990403
+        }
+      ]
+    },
+    {
+      "path": "attempts/8aadc85f9cea41c5b07dd3d3271b5dfb/evaluation006r1/PARTY_HEAL_V3-0-LEARNED/1305c23afa78beb03b7e853400da7db233c6286e00ebcf8f268fb25ee77a4c46.native.source.json",
+      "key": "1305c23afa78beb03b7e853400da7db233c6286e00ebcf8f268fb25ee77a4c46",
+      "family": "HEAL",
+      "stock": "1401:11/268497495",
+      "selected": "1401:11/268497495",
+      "neuralTop": "1401:11/268499740",
+      "topEqualsStock": false,
+      "gap": 0.015597224,
+      "scores": [
+        {
+          "action": "1401:11/268497495",
+          "score": 0.7711962
+        },
+        {
+          "action": "1401:11/268499740",
+          "score": 0.7867934
+        }
+      ]
+    },
+    {
+      "path": "attempts/8aadc85f9cea41c5b07dd3d3271b5dfb/evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/0b90d236425c2a24046db5abcd7f5a73ddf2d5e63dcccc218ab6a0f115f68e6a.native.source.json",
+      "key": "0b90d236425c2a24046db5abcd7f5a73ddf2d5e63dcccc218ab6a0f115f68e6a",
+      "family": "DAMAGE",
+      "stock": "1339:1/268490800",
+      "selected": "1339:1/268490800",
+      "neuralTop": "1230:28/268490800",
+      "topEqualsStock": false,
+      "gap": 0.007803738,
+      "scores": [
+        {
+          "action": "1230:28/268490800",
+          "score": 0.7068983
+        },
+        {
+          "action": "1339:1/268490800",
+          "score": 0.69909453
+        }
+      ]
+    },
+    {
+      "path": "attempts/8aadc85f9cea41c5b07dd3d3271b5dfb/evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/617ce4808642f4c9a61471347bb66eacb0c10cbc21d46ca7b653064a93fd647f.native.source.json",
+      "key": "617ce4808642f4c9a61471347bb66eacb0c10cbc21d46ca7b653064a93fd647f",
+      "family": "DAMAGE",
+      "stock": "1230:28/268490800",
+      "selected": "1230:28/268490800",
+      "neuralTop": "1230:28/268490800",
+      "topEqualsStock": true,
+      "gap": 0.008579075,
+      "scores": [
+        {
+          "action": "1230:28/268490800",
+          "score": 0.7065116
+        },
+        {
+          "action": "1339:1/268490800",
+          "score": 0.69793254
+        }
+      ]
+    },
+    {
+      "path": "attempts/8aadc85f9cea41c5b07dd3d3271b5dfb/evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/c13d08cf3c28c069d5584f34ccd784050199cd5495c6c081661dd212c4e50dc1.native.source.json",
+      "key": "c13d08cf3c28c069d5584f34ccd784050199cd5495c6c081661dd212c4e50dc1",
+      "family": "DAMAGE",
+      "stock": "1339:1/268490800",
+      "selected": "1339:1/268490800",
+      "neuralTop": "1230:28/268490800",
+      "topEqualsStock": false,
+      "gap": 0.0073078275,
+      "scores": [
+        {
+          "action": "1230:28/268490800",
+          "score": 0.7054809
+        },
+        {
+          "action": "1339:1/268490800",
+          "score": 0.69817305
+        }
+      ]
+    },
+    {
+      "path": "attempts/8aadc85f9cea41c5b07dd3d3271b5dfb/evaluation006r1/SOLO_DAMAGE_V3-0-LEARNED/c14769e6df76cfb131f3e44b0cce302a7a033a548405d3aad4b05b85fd7ae4c4.native.source.json",
+      "key": "c14769e6df76cfb131f3e44b0cce302a7a033a548405d3aad4b05b85fd7ae4c4",
+      "family": "DAMAGE",
+      "stock": "1230:28/268490800",
+      "selected": "1230:28/268490800",
+      "neuralTop": "1230:28/268490800",
+      "topEqualsStock": true,
+      "gap": 0.007651508,
+      "scores": [
+        {
+          "action": "1230:28/268490800",
+          "score": 0.70439976
+        },
+        {
+          "action": "1339:1/268490800",
+          "score": 0.69674826
+        }
+      ]
+    }
+  ]
+}

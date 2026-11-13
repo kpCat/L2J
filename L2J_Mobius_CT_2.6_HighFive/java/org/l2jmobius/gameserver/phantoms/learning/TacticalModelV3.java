@@ -68,6 +68,12 @@ public final class TacticalModelV3
 	}
 
 	/** Epochs identifies the selected tuning checkpoint, including zero for unchanged initialization. */
+	public record WeightedExample(Example example,double weight)
+	{
+		public WeightedExample
+		{if(example==null||!Double.isFinite(weight)||weight<=0||weight>4){throw new IllegalArgumentException("Invalid bounded V3 sample weight");}}
+	}
+
 	public record Fit(TacticalModelV3 model, int epochs, double initialLoss, double loss) { }
 
 	/** Candidate selection and last completed optimization boundary are deliberately separate. */
@@ -333,6 +339,35 @@ public final class TacticalModelV3
 		return new Fit(new TacticalModelV3(best), bestEpoch, initialLoss, bestLoss);
 	}
 
+	/** New007 objective uses executed advantage labels and bounded propensity weights; historical fit/codec are unchanged. */
+	public static IncrementalFit continueTrainingWeighted(Optimizer parent,List<WeightedExample> examples,List<Example> tuning)
+	{
+		if(parent==null||examples==null||examples.size()<16||examples.size()>MAX_EXAMPLES||examples.stream().anyMatch(java.util.Objects::isNull))
+		{throw new IllegalArgumentException("Insufficient weighted TRAIN examples");}
+		final var train=List.copyOf(examples);final var selection=validatedSplit(tuning);
+		if(selection.size()<8||train.size()+selection.size()>MAX_EXAMPLES){throw new IllegalArgumentException("Insufficient or oversized weighted split");}
+		final double meanWeight=train.stream().mapToDouble(WeightedExample::weight).average().orElseThrow();
+		final float[] weights=parent._model._weights.clone(),first=parent._first.clone(),second=parent._second.clone(),gradient=new float[PARAMETER_COUNT];
+		final var scratch=new Scratch();final double initial=loss(weights,selection,scratch);double bestLoss=initial;
+		TacticalModelV3 best=parent._model;int bestEpoch=0,completed=0;long updates=parent._updates;
+		final int epochs=Math.max(1,Math.min(MAX_EPOCHS,256/((train.size()+BATCH_SIZE-1)/BATCH_SIZE)));
+		for(int epoch=1;epoch<=epochs&&epoch-bestEpoch<=PATIENCE;epoch++)
+		{
+			int[] order=new int[train.size()];for(int i=0;i<order.length;i++){order[i]=i;}
+			var shuffle=new Random(parent._seed^Math.addExact(parent._epochs,epoch)*0x9e3779b97f4a7c15L);
+			for(int i=order.length-1;i>0;i--){int j=shuffle.nextInt(i+1),saved=order[i];order[i]=order[j];order[j]=saved;}
+			for(int start=0;start<order.length;start+=BATCH_SIZE)
+			{
+				int end=Math.min(start+BATCH_SIZE,order.length);Arrays.fill(gradient,0);
+				for(int i=start;i<end;i++){var row=train.get(order[i]);accumulate(weights,gradient,row.example(),scratch,(float)(row.weight()/meanWeight));}
+				update(weights,gradient,first,second,end-start,++updates);
+			}
+			completed=epoch;double candidate=loss(weights,selection,scratch);
+			if(candidate+1e-7<bestLoss){best=new TacticalModelV3(weights.clone());bestLoss=candidate;bestEpoch=epoch;}
+		}
+		return new IncrementalFit(new Fit(best,bestEpoch,initial,bestLoss),new Optimizer(new TacticalModelV3(weights),first,second,parent._seed,updates,Math.addExact(parent._epochs,completed)));
+	}
+
 	private static void update(float[] weights, float[] gradient, float[] first, float[] second, int batch, long step)
 	{
 		final double firstCorrection = 1 - Math.pow(.9, step);
@@ -350,10 +385,12 @@ public final class TacticalModelV3
 
 	/** All five dense layers receive derivatives of the same observed reward loss. */
 	private static void accumulate(float[] weights, float[] gradient, Example example, Scratch s)
+	{accumulate(weights,gradient,example,s,1);}
+	private static void accumulate(float[] weights,float[] gradient,Example example,Scratch s,float weight)
 	{
 		encode(weights, example.state, s.first, s.second, s.encoded);
 		final float prediction = head(weights, s.encoded, example.action, s.head);
-		final float error = (prediction - example.reward) * (1 - prediction * prediction);
+		final float error = weight * (prediction - example.reward) * (1 - prediction * prediction);
 		gradient[OUTPUT_OFFSET + HEAD] += error;
 		Arrays.fill(s.encodedDelta, 0);
 		for (int h = 0; h < HEAD; h++)

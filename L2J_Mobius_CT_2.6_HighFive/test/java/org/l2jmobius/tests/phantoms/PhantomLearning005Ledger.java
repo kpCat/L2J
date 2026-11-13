@@ -40,7 +40,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 		{
 			try{acquired=channel.tryLock();}catch(OverlappingFileLockException busy){throw new IOException("Campaign already locked",busy);}
 			if(acquired==null){throw new IOException("Campaign already locked");}
-			final String identity="schemaVersion="+(authority==null?5:6)+"\ncampaign="+campaign+"\nbuild="+build+"\nprotocol="+protocolSha+"\nsplit="+(authority==null?"EVAL005":"EVAL006R1")+"\n"+(authority==null?"":"authority="+authority.fingerprint()+"\n");
+			final String identity="schemaVersion="+(authority==null?5:authority.schemaVersion())+"\ncampaign="+campaign+"\nbuild="+build+"\nprotocol="+protocolSha+"\nsplit="+(authority==null?"EVAL005":authority.namespace())+"\n"+(authority==null?"":"authority="+authority.fingerprint()+"\n");
 			final Path manifest=root.resolve("campaign.ini");
 			if(Files.exists(manifest)){physicalIfExists(manifest);if(!Files.readString(manifest).equals(identity)){throw new IOException("Campaign pins changed");}}
 			else{atomic(manifest,identity.getBytes(StandardCharsets.UTF_8));}
@@ -86,7 +86,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 		for(var group:arms().stream().collect(java.util.stream.Collectors.groupingBy(Arm::pair,TreeMap::new,java.util.stream.Collectors.toList())).values())
 		{
 			if(group.size()!=2){continue;}final var pair=PhantomLearning005Evaluation.compare(group.get(0),group.get(1));
-			final String json="{\"schemaVersion\":"+(authority==null?5:6)+",\"pairId\":"+PhantomLearning005Evaluation.q(pair.id())+",\"status\":"+PhantomLearning005Evaluation.q(pair.status())+",\"reason\":"+PhantomLearning005Evaluation.q(pair.reason())
+			final String json="{\"schemaVersion\":"+(authority==null?5:authority.schemaVersion())+",\"pairId\":"+PhantomLearning005Evaluation.q(pair.id())+",\"status\":"+PhantomLearning005Evaluation.q(pair.status())+",\"reason\":"+PhantomLearning005Evaluation.q(pair.reason())
 				+",\"stockArm\":"+PhantomLearning005Evaluation.q(pair.stock().id())+",\"stockSha\":"+PhantomLearning005Evaluation.q(PhantomLearning005Evaluation.hash(pair.stock().json()))
 				+",\"learnedArm\":"+PhantomLearning005Evaluation.q(pair.learned().id())+",\"learnedSha\":"+PhantomLearning005Evaluation.q(PhantomLearning005Evaluation.hash(pair.learned().json()))
 				+",\"deltas\":"+PhantomLearning005Evaluation.mapJson(pair.deltas())+",\"divergences\":"+pair.divergences()+"}\n";
@@ -104,7 +104,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 		physicalIfExists(path);if(Files.size(path)>MAX){throw new IOException("Oversized receipt");}
 		try(var in=new DataInputStream(Files.newInputStream(path)))
 		{
-			if(in.readInt()!=MAGIC||in.readInt()!=(authority==null?5:6)){throw new IOException("Unknown evaluator schema");}
+			if(in.readInt()!=MAGIC||in.readInt()!=(authority==null?5:authority.schemaVersion())){throw new IOException("Unknown evaluator schema");}
 			int length=in.readInt();if(length<1||length>MAX){throw new IOException("Invalid frame length");}
 			String sha=in.readUTF();byte[] bytes=in.readNBytes(length);
 			if(bytes.length!=length||in.read()!=-1||!sha.equals(digest(bytes))){throw new IOException("Receipt digest or truncation");}
@@ -156,7 +156,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 	}
 	private byte[] frame(byte[] payload) throws IOException
 	{
-		final var output=new ByteArrayOutputStream();try(var out=new DataOutputStream(output)){out.writeInt(MAGIC);out.writeInt(authority==null?5:6);out.writeInt(payload.length);out.writeUTF(digest(payload));out.write(payload);}return output.toByteArray();
+		final var output=new ByteArrayOutputStream();try(var out=new DataOutputStream(output)){out.writeInt(MAGIC);out.writeInt(authority==null?5:authority.schemaVersion());out.writeInt(payload.length);out.writeUTF(digest(payload));out.write(payload);}return output.toByteArray();
 	}
 	private void atomic(Path target,byte[] bytes) throws IOException
 	{
@@ -184,7 +184,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 			out.writeInt(a.facts().size());for(var e:a.facts().entrySet()){out.writeUTF(e.getKey());out.writeUTF(e.getValue());}
 			out.writeInt(a.actors().size());for(var i:a.actors()){incarnation(out,i);}out.writeBoolean(a.target()!=null);if(a.target()!=null){incarnation(out,a.target());}
 			out.writeLong(a.pin().id());out.writeUTF(a.pin().status());out.writeUTF(a.pin().sha());out.writeUTF(a.pin().schema());out.writeInt(a.pin().algorithm());
-			if(a.pin().authority()!=null){final var pin=a.pin().authority();out.writeLong(pin.modelId());out.writeUTF(pin.modelSha());out.writeUTF(pin.terminalDatasetSha());out.writeUTF(pin.optimizerSha());out.writeUTF(pin.runId());}
+			if(a.pin().authority()!=null){final var pin=a.pin().authority();out.writeLong(pin.modelId());out.writeUTF(pin.modelSha());out.writeUTF(pin.terminalDatasetSha());out.writeUTF(pin.optimizerSha());out.writeUTF(pin.runId());if(pin.namespace().equals("EVAL007")){out.writeUTF(pin.namespace());}}
 			out.writeUTF(a.outcome().name());out.writeUTF(a.reason());out.writeDouble(a.elapsedMillis());out.writeDouble(a.preparationMillis());
 			out.writeInt(a.metrics().size());for(var e:a.metrics().entrySet()){out.writeUTF(e.getKey());out.writeBoolean(e.getValue()!=null);if(e.getValue()!=null){out.writeDouble(e.getValue());}}
 			out.writeInt(a.effects().size());for(var e:a.effects())
@@ -203,7 +203,7 @@ public final class PhantomLearning005Ledger implements AutoCloseable
 			var facts=new TreeMap<String,String>();for(int n=count(in,64);n>0;n--){if(facts.put(in.readUTF(),in.readUTF())!=null){throw new IOException("Duplicate fact key");}}
 			var actors=new ArrayList<Incarnation>();for(int n=count(in,9);n>0;n--){actors.add(incarnation(in));}var target=in.readBoolean()?incarnation(in):null;
 			var pin=new Pin(mode,in.readLong(),in.readUTF(),in.readUTF(),in.readUTF(),in.readInt());
-			if(expected!=null){final var decoded=new DraftAuthority(in.readLong(),in.readUTF(),in.readUTF(),in.readUTF(),in.readUTF());if(!expected.equals(decoded)){throw new IOException("Cold DRAFT authority changed");}pin=new Pin(mode,pin.id(),pin.status(),pin.sha(),pin.schema(),pin.algorithm(),decoded);}
+			if(expected!=null){long id=in.readLong();String sha=in.readUTF(),targetSha=in.readUTF(),optimizer=in.readUTF(),run=in.readUTF();final var decoded=new DraftAuthority(id,sha,targetSha,optimizer,run,expected.namespace().equals("EVAL007")?in.readUTF():"EVAL006R1");if(!expected.equals(decoded)){throw new IOException("Cold DRAFT authority changed");}pin=new Pin(mode,pin.id(),pin.status(),pin.sha(),pin.schema(),pin.algorithm(),decoded);}
 			var outcome=Outcome.valueOf(in.readUTF());String reason=in.readUTF();double elapsed=in.readDouble(),preparation=in.readDouble();
 			var metrics=new TreeMap<String,Double>();for(int n=count(in,64);n>0;n--){String key=in.readUTF();if(metrics.containsKey(key)){throw new IOException("Duplicate metric key");}metrics.put(key,in.readBoolean()?in.readDouble():null);}
 			var effects=new ArrayList<Effect>();

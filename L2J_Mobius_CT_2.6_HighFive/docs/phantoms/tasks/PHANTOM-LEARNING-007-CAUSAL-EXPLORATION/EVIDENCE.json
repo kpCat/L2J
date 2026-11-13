@@ -1,0 +1,1935 @@
+{
+  "goal": "PHANTOM-LEARNING-007-CAUSAL-EXPLORATION",
+  "stage": "PUBLICATION_REQUIRED",
+  "goalComplete": false,
+  "productCodeChanged": true,
+  "gameServerStarts": 5,
+  "ceilingGameServerStarts": 8,
+  "nativeWallSeconds": 3530.127,
+  "ceilingNativeWallSeconds": 5400,
+  "training007": {
+    "state": "DRAFT",
+    "modelVersion": 2,
+    "modelSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "reason": "Advantage DRAFT обучен от terminal Adam9; требуется независимая проверка решений.",
+    "candidateVersion": 11,
+    "candidateSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+    "productionPromotion": false,
+    "metrics": {
+      "objective": "CAUSAL_ACTION_ADVANTAGE_V1",
+      "configSha": "e36619ea1f8fa7cf42d8c0ab699880fbb0042fd772ceac7a364583a2b9c528c8",
+      "datasetSha": "d021f8c6fe2f352d2895a406436c849f94dcfeea57ed539e2cccd241e0132d84",
+      "samples": 58,
+      "train": 19,
+      "tuning": 8,
+      "audit": 8,
+      "paidExploratoryAlternatives": 5,
+      "baselineData": "TRAIN_A_ONLY_LEAVE_BLOCK_OUT_MIN3",
+      "propensity": "CLIPPED_IPS_UNIFORM_ACTIONS",
+      "counterfactualLabels": false,
+      "productionPromotion": false,
+      "epochs": 3,
+      "trainingNanos": 1412026900,
+      "tuningInitialMse": 0.40014272002402507,
+      "tuningMse": 0.10534861039541094,
+      "advantageAuditMse": 0.014450758585127704,
+      "advantageConstantMse": 0.002891084926059745,
+      "parentModelVersion": 9,
+      "parentOptimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "parentWeightsSha": "dc82041d52cb92918990a64d6d003931139e20d82e3a02cd3a973559994158ed",
+      "optimizerSha": "f13d2f73ed7d0f3ffd38534b8ad413966b64cf7ba7c980a6ade2318da019d74d",
+      "optimizerUpdates": 855,
+      "completedEpochs": 191,
+      "optimizerWeightsSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+      "advantageUsedForTraining": true,
+      "optimizerMigration": "RESTORED",
+      "limitation": "Stochastic outcomes, paid-selection bias and clipped IPS; score gaps do not prove causal superiority"
+    }
+  },
+  "gameVerdict": "INCONCLUSIVE",
+  "finalManualGate": "REQUIRED",
+  "designOwnerApproval": "APPROVED_EXPLICIT_USER_REPLY",
+  "baselineAndCold": "evidence/g0-cold.json",
+  "diagnostics": "evidence/diagnostics.json",
+  "historicalGameVerdict006R1": "INCONCLUSIVE",
+  "historicalPaidDivergences006R1": 0,
+  "gitUsed": true,
+  "branch": "wip/phantom-learning-007",
+  "commits007": [],
+  "push007": "PENDING",
+  "budget": {
+    "historicalIssuedTasks001Through006R1": 7,
+    "remainingDevelopmentRangeAfter006R1": [
+      7,
+      13
+    ],
+    "currentTaskNumberWithin13": 1,
+    "remainingUntilReviewThreshold": 12,
+    "partialAndFixTasksConsumeBudget": true
+  },
+  "encoding": {
+    "files": 30,
+    "mojibake": {
+      "markers": 27,
+      "matches": [],
+      "status": "PASS"
+    },
+    "escapedCyrillic": {
+      "patterns": 6,
+      "matches": [],
+      "status": "PASS"
+    }
+  },
+  "artifactVerification": {
+    "status": "ZIP_CRC_AND_EXACT_ENTRY_SHA_PASS",
+    "canonicalExportSha": "36c98911400057cb5223c066ed243a7e89fcd166089e9050b01655d7a6e3a47a",
+    "canonicalExportName": "model-2-9ef28c7628b44c04891bf4926d780ef2.zip",
+    "archiveSha": "9e36ccbd010cbadac6766e6d3f213c02bf5b6766ba8897827d8ee6e3d56557c1",
+    "archiveBytes": 23953502,
+    "entries": 936
+  },
+  "designReview": {
+    "reviewer": "independent builder-check subagent",
+    "importantQuestions": 2,
+    "resolvedInDesign": [
+      "campaign STOP versus transient decision fallback",
+      "quantitative G4 admission"
+    ],
+    "ownerApproval": "APPROVED_EXPLICIT_USER_REPLY",
+    "implementationApproved": true
+  },
+  "collection": {
+    "nativeEpisodes": 64,
+    "budgetNotRun": 16,
+    "selections": 61,
+    "paidRawEffects": 122,
+    "matchedSamples": 58,
+    "gradientActions": 19,
+    "tuningTargets": 8,
+    "auditTargets": 8,
+    "paidAlternatives": 6,
+    "paidGradientAlternatives": 5,
+    "amendment": {
+      "schemaVersion": 7,
+      "parentProtocolSha": "2c31a786c3d1c0a90b463ed546e26396fb3b1516261527efdbbdd5dad69f4ccf",
+      "reason": "NOT_RUN_BUDGET_RESERVE_HELD_OUT",
+      "basis": "Elapsed operational throughput only; no held-out observations consumed",
+      "trainBlocksAttemptCeiling": 24,
+      "blocksPerCell": 6,
+      "orderPerCell": "AB,BA,AB,BA,BA,AB",
+      "tuningEpisodes": 8,
+      "auditEpisodes": 8,
+      "budgetNotRunSlots": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ],
+      "nativeAttemptCeiling": 64,
+      "privatePreparationTimeoutSeconds": 120,
+      "startsCeiling": 8,
+      "nativeMinutesCeiling": 90,
+      "collectionStartsCeiling": 3,
+      "collectionMinutesCeiling": 60,
+      "objectiveChanged": false,
+      "epsilonChanged": false,
+      "safetyChanged": false
+    }
+  },
+  "optimizerCold": {
+    "check": "COLD007_ATOMIC_MODEL_ADAM_APPLICATIONS",
+    "modelId": 11,
+    "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+    "optimizerSha": "f13d2f73ed7d0f3ffd38534b8ad413966b64cf7ba7c980a6ade2318da019d74d",
+    "updates": 855,
+    "epochs": 191,
+    "applications": 58,
+    "gradientActions": 19,
+    "duplicateAndRepack": "REJECTED_1062_ROLLBACK",
+    "secondFreeze": "NONE"
+  },
+  "offlineAdmission": {
+    "schemaVersion": 7,
+    "check": "INDEPENDENT_FROZEN_NATIVE_OBSERVATION_RANKING",
+    "modelId": 11,
+    "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+    "targetSha": "d021f8c6fe2f352d2895a406436c849f94dcfeea57ed539e2cccd241e0132d84",
+    "marginThreshold": 0.025,
+    "soloAdmitted": true,
+    "partyAdmitted": true,
+    "countsTuningAudit": [
+      [
+        8,
+        12
+      ],
+      [
+        4,
+        4
+      ]
+    ],
+    "differentAtMarginTuningAudit": [
+      [
+        5,
+        5
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "observations": [
+      {
+        "eventKey": "f7d7fa0c4c63f2a899f68ffbd4f5c615ca756b4a4761f2a3f074557fadf1cc65",
+        "receiptSha": "9518a6e1d6de6d209c783e0d6c481d58520f25db1febdd34394c794032247998",
+        "terminalSha": "3e6ca379a330f61466ebd129128da503de2ccd86c7a15dc17255c44c5bffff98",
+        "episodeId": "687ea40398799437464ae63cad5e88495770bdd42e7bd0d79a5619582bae5a47",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268609778",
+        "neuralTop": "1230:28/268609778",
+        "topDifferentFromStock": false,
+        "gap": 0.030911908,
+        "scores": [
+          {
+            "action": "1230:28/268609778",
+            "score": 0.13902351,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268609778",
+            "score": 0.108111605,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "2adc8aef71c5dd5afab34f3ff6882635e4c2c35ee6df214f9e340d46c8a68192",
+        "receiptSha": "f0ca44cd7caa72820c291b82dae48dc47f6931038c539cddf6134136408240c3",
+        "terminalSha": "b260cc2fd86a7ed77004ed981c4a3d4e17719757cc518544a7f9f47809912c17",
+        "episodeId": "17c9ff5f4d86df1e204e2019d21caa2f4fe8ac16a7e2cd09687fa4f70a713587",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268544219",
+        "neuralTop": "1230:28/268544219",
+        "topDifferentFromStock": false,
+        "gap": 0.030912511,
+        "scores": [
+          {
+            "action": "1230:28/268544219",
+            "score": 0.13903709,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268544219",
+            "score": 0.10812458,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "15e0de12c556ada9f096cf7b9f0ec1bf5c7d01078f764bff9847b825927b0de2",
+        "receiptSha": "60d23c8be805047c86d29d6af20121833cc1dd675b8f02a874cd16335ce0cf09",
+        "terminalSha": "b260cc2fd86a7ed77004ed981c4a3d4e17719757cc518544a7f9f47809912c17",
+        "episodeId": "17c9ff5f4d86df1e204e2019d21caa2f4fe8ac16a7e2cd09687fa4f70a713587",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268544219",
+        "neuralTop": "1230:28/268544219",
+        "topDifferentFromStock": true,
+        "gap": 0.030848466,
+        "scores": [
+          {
+            "action": "1230:28/268544219",
+            "score": 0.1502924,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268544219",
+            "score": 0.11944393,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "25566105251096584b33dbde8585174dee5523306bb332ac713260edbbd05ba2",
+        "receiptSha": "4b9bd2fe095bb350dfdd23bfd79e82a925f0ae42ba0da0a28f05ec473d908bb5",
+        "terminalSha": "6868a2b95cb15bb62c4e83062481d8c743a40c03b662f3f9748920ae4a643ab1",
+        "episodeId": "d2276a5269f59246c7fb1f27cfc56c0838ce0d13daf3d77ca52da3853b15ed3a",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268598860",
+        "neuralTop": "1230:28/268598860",
+        "topDifferentFromStock": false,
+        "gap": 0.030893005,
+        "scores": [
+          {
+            "action": "1230:28/268598860",
+            "score": 0.13858867,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268598860",
+            "score": 0.10769566,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "ac48fbfbf40b99166112a7cc07cae95313282245a58aa97a4fe594523bd30908",
+        "receiptSha": "2f277a5f3feec28b0ebfd80d41bbf9d54ce76d6dfaec9078766a224a72557ba7",
+        "terminalSha": "6868a2b95cb15bb62c4e83062481d8c743a40c03b662f3f9748920ae4a643ab1",
+        "episodeId": "d2276a5269f59246c7fb1f27cfc56c0838ce0d13daf3d77ca52da3853b15ed3a",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268598860",
+        "neuralTop": "1230:28/268598860",
+        "topDifferentFromStock": true,
+        "gap": 0.030843787,
+        "scores": [
+          {
+            "action": "1230:28/268598860",
+            "score": 0.1496432,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268598860",
+            "score": 0.11879941,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "93adb028eb210fcd2efacb31c2535df7d26bfee3d7711abba3cf373fe0c23dfe",
+        "receiptSha": "c6cbdf7e823de5e37273ecb3cc05b0d12c2ee1c8bcc79c4c8eeec4d120f31c3b",
+        "terminalSha": "6868a2b95cb15bb62c4e83062481d8c743a40c03b662f3f9748920ae4a643ab1",
+        "episodeId": "d2276a5269f59246c7fb1f27cfc56c0838ce0d13daf3d77ca52da3853b15ed3a",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268598860",
+        "neuralTop": "1230:28/268598860",
+        "topDifferentFromStock": false,
+        "gap": 0.030515164,
+        "scores": [
+          {
+            "action": "1230:28/268598860",
+            "score": 0.18086314,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268598860",
+            "score": 0.15034798,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "34bc68857d5d600caee763d402f6ef399787771f719f9c19497efe636f5dc1bd",
+        "receiptSha": "8aabc9e43ca3e2ec5601657d02b2a994cfb2aa908bf4374d23f2368cbd134192",
+        "terminalSha": "6868a2b95cb15bb62c4e83062481d8c743a40c03b662f3f9748920ae4a643ab1",
+        "episodeId": "d2276a5269f59246c7fb1f27cfc56c0838ce0d13daf3d77ca52da3853b15ed3a",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268598860",
+        "neuralTop": "1230:28/268598860",
+        "topDifferentFromStock": true,
+        "gap": 0.025380462,
+        "scores": [
+          {
+            "action": "1230:28/268598860",
+            "score": 0.1876455,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268598860",
+            "score": 0.16226503,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "bbaa0756e2b44c9d83f1698dcffd9d9e7122b045995231a6ccf597b451db1af5",
+        "receiptSha": "72a0c3e4e618395cf97df9102664626cdbfa3f97567b58277ad220351a8ec321",
+        "terminalSha": "4ca1c620a0842c07cf360dfe7e887801b26cf9b35d557bfb23fdd0bcd2e8d5ac",
+        "episodeId": "8864578c5c8e511e3e9709ebe4ad96e97f2ec767245332ee3ea6a630472c540d",
+        "split": "AUDIT",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268591501",
+        "neuralTop": "1401:11/268589229",
+        "topDifferentFromStock": true,
+        "gap": 0.045773223,
+        "scores": [
+          {
+            "action": "1401:11/268591501",
+            "score": 0.12552026,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268589229",
+            "score": 0.17129348,
+            "actionFeatureL1FromStock": 0.8474841061979532
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "7d65d2f419a9483de706cbc6f682f6ef9eeba9e4aa445b2c2d3b67d1d04e2f16",
+        "receiptSha": "acc39f8f22fd4c1aca259364ac160350cb980668bc539b9ac327329ed021b8e0",
+        "terminalSha": "db28b9d9799022082841afab4fdfd218aacc154d72ddb968171dc98e705c64bd",
+        "episodeId": "abefb06736908a413ac45cec62ef4a7af44150df8b7857d8da89143159a9f732",
+        "split": "TUNING",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268556331",
+        "neuralTop": "1401:11/268556331",
+        "topDifferentFromStock": false,
+        "gap": 0.008139029,
+        "scores": [
+          {
+            "action": "1401:11/268556331",
+            "score": 0.13036737,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268558467",
+            "score": 0.12222834,
+            "actionFeatureL1FromStock": 0.354049252346158
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "53f17f4e9539f17458c33db032db2c7c84c81aa2573cd52adb65499994ed6718",
+        "receiptSha": "4ffda8569a7ef676c5a9a92838ca735c034188dae94465ff7cf48c25a9e1798f",
+        "terminalSha": "839091d7c46342c738a112be8e79568b5d243e7d34e13814953a332c7126a26d",
+        "episodeId": "b114c13c86957e7f53836a926c46c6806ec5dd4cd54e17fae7b90777586c52ba",
+        "split": "TUNING",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268569684",
+        "neuralTop": "1401:11/268567413",
+        "topDifferentFromStock": true,
+        "gap": 0.045773715,
+        "scores": [
+          {
+            "action": "1401:11/268569684",
+            "score": 0.12551814,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268567413",
+            "score": 0.17129186,
+            "actionFeatureL1FromStock": 0.8474841061979532
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "30b5a5352b907759280bbb2c0382aa4266972479512e259d44e40601345248bd",
+        "receiptSha": "748b22f67ee7c3a5c2426092358a9b618cd79d07d469aa8360c5251b34664b35",
+        "terminalSha": "ea6feb78df18b768221cb2a359d9b7deabdd37d8da059ae99f8692362c2dafe4",
+        "episodeId": "3dd18256932057caf2a208c552ee138920808d21bd2be58f5ee96d19b8003d3e",
+        "split": "AUDIT",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268599944",
+        "neuralTop": "1401:11/268599944",
+        "topDifferentFromStock": false,
+        "gap": 0.008139364,
+        "scores": [
+          {
+            "action": "1401:11/268599944",
+            "score": 0.13037461,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268602058",
+            "score": 0.122235246,
+            "actionFeatureL1FromStock": 0.354049252346158
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "6761aaa3e61f99bdac839b2fbb330d1885ad38e7a8c52b0337f169b1de6c0e51",
+        "receiptSha": "8d6a139d9c5df506f81995827c13ce848228d8c7cfbcd6fdd44dc35f69a9824c",
+        "terminalSha": "fcc60e12f599cad448bf61f2bd8f63fba11fd1c3503a77369219f08e8ed2d079",
+        "episodeId": "31a9fb172ce67d4bb88277fd301f2b3988ba51a90ce82ac1ac05f71932d2f608",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268555277",
+        "neuralTop": "1230:28/268555277",
+        "topDifferentFromStock": true,
+        "gap": 0.030893743,
+        "scores": [
+          {
+            "action": "1230:28/268555277",
+            "score": 0.13860624,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268555277",
+            "score": 0.10771249,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "86467184e8acfb1d19e2ac13cd43985600ab91aa4568fff102e3e4f3611af3b0",
+        "receiptSha": "cf9043e3f33de674c627795488377ba476e6419aa4c5ec431942a9ddfb428b65",
+        "terminalSha": "58d510a47af7c434fd5d6ebdb0c51a851fdc67bfb94c134dc8c7f3d6e5f1e2a7",
+        "episodeId": "85f72651482a47f3193a580dcd308fda810486692388add9c6d629e150ce3d0b",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268577064",
+        "neuralTop": "1230:28/268577064",
+        "topDifferentFromStock": false,
+        "gap": 0.030893378,
+        "scores": [
+          {
+            "action": "1230:28/268577064",
+            "score": 0.1385987,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268577064",
+            "score": 0.10770532,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "6929559c65041fb0a4609f2e5a27a46852b00f38b0422c90ffc9c3e47c2d5fd8",
+        "receiptSha": "d9d52431cef737263936c3982ef931719ae8b15f5e34e462eedbe8a143b3d770",
+        "terminalSha": "58d510a47af7c434fd5d6ebdb0c51a851fdc67bfb94c134dc8c7f3d6e5f1e2a7",
+        "episodeId": "85f72651482a47f3193a580dcd308fda810486692388add9c6d629e150ce3d0b",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268577064",
+        "neuralTop": "1230:28/268577064",
+        "topDifferentFromStock": true,
+        "gap": 0.030806571,
+        "scores": [
+          {
+            "action": "1230:28/268577064",
+            "score": 0.15252842,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268577064",
+            "score": 0.12172185,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "586b0605ccac4b8c145a13bcdb9068f1c78c68f16e268be09330a2fa97cd5bc6",
+        "receiptSha": "7869597af00e142804033b67d735e74276080038fb38052e762471cd44baf577",
+        "terminalSha": "77bcddabab35cef4f98645868de84d1b4abca99c9d97e10773f8c9d2bc994638",
+        "episodeId": "674034f7c80229276df3f28922d7e051f2e86f4c9adedf93cfe8bec4f91f31a8",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268532786",
+        "neuralTop": "1230:28/268532786",
+        "topDifferentFromStock": true,
+        "gap": 0.03089419,
+        "scores": [
+          {
+            "action": "1230:28/268532786",
+            "score": 0.13861468,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268532786",
+            "score": 0.107720494,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "b2aa155da4095ef61f4bd5cb9d01267f35864614fc69de7c3945ab9ac7890b83",
+        "receiptSha": "fd7a8735a418e8ea16372de16c4ccceb0c385cf80c66d4696888b4747140519c",
+        "terminalSha": "77bcddabab35cef4f98645868de84d1b4abca99c9d97e10773f8c9d2bc994638",
+        "episodeId": "674034f7c80229276df3f28922d7e051f2e86f4c9adedf93cfe8bec4f91f31a8",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268532786",
+        "neuralTop": "1230:28/268532786",
+        "topDifferentFromStock": false,
+        "gap": 0.03053759,
+        "scores": [
+          {
+            "action": "1230:28/268532786",
+            "score": 0.18187788,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268532786",
+            "score": 0.15134029,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "495a14d312ec2e7a0b4fe85e21dc52112a2418184061911d7cbca5ba6aa9bab8",
+        "receiptSha": "a5e1b539c01e9fbd13df77883a601fb39ea49cb4b0ccad4d9e1b846e35a03f4a",
+        "terminalSha": "75a56145902772da04471ab4a398496b196fecfca3a6998a10f42dbb5c1c31ae",
+        "episodeId": "dc540a28b0d131e2a08d6a35da501476ce0d8eb5d04d8eaf1779e7f0422c8667",
+        "split": "AUDIT",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268613285",
+        "neuralTop": "1401:11/268611013",
+        "topDifferentFromStock": true,
+        "gap": 0.04577288,
+        "scores": [
+          {
+            "action": "1401:11/268613285",
+            "score": 0.12551945,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268611013",
+            "score": 0.17129233,
+            "actionFeatureL1FromStock": 0.8474841061979532
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "697c0883fcaa29d10fac70c0e551e8767dededf4feabf434c761841ce1b245ad",
+        "receiptSha": "9c3578f3b537072a4a00faf8a6e42c508cbaccc48a3faf68cad98f6f21e67315",
+        "terminalSha": "3cea0c6c56231d6c52a67427ee543437dc2c83c2d90c993bcbaca84d567f99b6",
+        "episodeId": "6f3d5efb464e7abbb3a356128949e24fe8850e965ec27ff807689fcde1b9347e",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268587965",
+        "neuralTop": "1230:28/268587965",
+        "topDifferentFromStock": false,
+        "gap": 0.030912258,
+        "scores": [
+          {
+            "action": "1230:28/268587965",
+            "score": 0.13902941,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268587965",
+            "score": 0.108117156,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "837d5a09ec8718243123f065ea2a36c3f27ea1ba591ff751679c232b5895d607",
+        "receiptSha": "e86bd9a32cb00ee08d57cd85676d0f0e7788dd95bce01ae312f558c04d69c79f",
+        "terminalSha": "3cea0c6c56231d6c52a67427ee543437dc2c83c2d90c993bcbaca84d567f99b6",
+        "episodeId": "6f3d5efb464e7abbb3a356128949e24fe8850e965ec27ff807689fcde1b9347e",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268587965",
+        "neuralTop": "1230:28/268587965",
+        "topDifferentFromStock": true,
+        "gap": 0.030818313,
+        "scores": [
+          {
+            "action": "1230:28/268587965",
+            "score": 0.15376614,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268587965",
+            "score": 0.12294783,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "2b8043adf7e384f4f73cb81fb2d7a11494a46280e934d9be7607e422936198d8",
+        "receiptSha": "9159ef39584c70dce56365e2bdd74f515f3be188ddd15cdec9b1c47ab82b108c",
+        "terminalSha": "3cea0c6c56231d6c52a67427ee543437dc2c83c2d90c993bcbaca84d567f99b6",
+        "episodeId": "6f3d5efb464e7abbb3a356128949e24fe8850e965ec27ff807689fcde1b9347e",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268587965",
+        "neuralTop": "1230:28/268587965",
+        "topDifferentFromStock": true,
+        "gap": 0.03059125,
+        "scores": [
+          {
+            "action": "1230:28/268587965",
+            "score": 0.17822617,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268587965",
+            "score": 0.14763492,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "5a30774e9275269cc506e8f37b4d3bdbcfc34157367ed35648dc510fe25d09a1",
+        "receiptSha": "3141db47d2a83d1aa66a4ed9de313c5ac4e6c7ce9bc9458bdfe7b646648f358a",
+        "terminalSha": "3cea0c6c56231d6c52a67427ee543437dc2c83c2d90c993bcbaca84d567f99b6",
+        "episodeId": "6f3d5efb464e7abbb3a356128949e24fe8850e965ec27ff807689fcde1b9347e",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268587965",
+        "neuralTop": "1230:28/268587965",
+        "topDifferentFromStock": false,
+        "gap": 0.027887464,
+        "scores": [
+          {
+            "action": "1230:28/268587965",
+            "score": 0.18522848,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268587965",
+            "score": 0.15734102,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "4c168475fe6503f294c46c0a401403df6708451c86477e0cb015f2f845627408",
+        "receiptSha": "b1d3af03a2f1d522f502eec9be4739c88615ebb9ebe0c3d6589176e93d0ae890",
+        "terminalSha": "3cea0c6c56231d6c52a67427ee543437dc2c83c2d90c993bcbaca84d567f99b6",
+        "episodeId": "6f3d5efb464e7abbb3a356128949e24fe8850e965ec27ff807689fcde1b9347e",
+        "split": "AUDIT",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268587965",
+        "neuralTop": "1230:28/268587965",
+        "topDifferentFromStock": false,
+        "gap": 0.023942128,
+        "scores": [
+          {
+            "action": "1230:28/268587965",
+            "score": 0.18420622,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268587965",
+            "score": 0.16026409,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "063ad73f31f8ce3bb3a0cfefe4a8a7fb44ab621fa4200adefa8112d61efb98aa",
+        "receiptSha": "c37dd88f6bcc5baf185396548db0da1b9cfc98a682cbbbfcad02cdada449509f",
+        "terminalSha": "59b86be0f004ff7bbccf75e326cbfc0220f24197570adab8f3ec9bbdd5f50282",
+        "episodeId": "834547e236b788066d276a22ff5e05fd74879ea2145dfffc767b5f6cbebb0ce9",
+        "split": "TUNING",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268547808",
+        "neuralTop": "1401:11/268545472",
+        "topDifferentFromStock": true,
+        "gap": 0.04577525,
+        "scores": [
+          {
+            "action": "1401:11/268547808",
+            "score": 0.12551008,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268545472",
+            "score": 0.17128533,
+            "actionFeatureL1FromStock": 0.8474841061979532
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "5a6db632a7bc9df0bcf91374698c33567bc0303e474e0754475e96c82a89cc74",
+        "receiptSha": "45e96ac44c42fd8ded18969e1aa1da0ea984389620731d6a4da6e3719553300a",
+        "terminalSha": "0d276dca05b97251690c8cab953f2c66916a2767fc9e42cab2eeeaa0cfbdeaa5",
+        "episodeId": "a73b6e9b64bae53c99e1b91a7dbf8f06efa192c9d48f3e090114fe600b1491a5",
+        "split": "AUDIT",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268578159",
+        "neuralTop": "1401:11/268578159",
+        "topDifferentFromStock": false,
+        "gap": 0.008139208,
+        "scores": [
+          {
+            "action": "1401:11/268578159",
+            "score": 0.13036844,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268580272",
+            "score": 0.12222923,
+            "actionFeatureL1FromStock": 0.354049252346158
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "85966711c32814685ba2f23c9e832bbd43215d99fa8f3425e49619ec2868de70",
+        "receiptSha": "452390184deb15a20fbcb6e4a1933dd67dff7db35288a31df534f5ed3c18f91f",
+        "terminalSha": "7d9627d99eac7b1f5262f872272811ed820bad8d79174321ec51276af99eeeff",
+        "episodeId": "a5f3abc30f3a4b2293aee8d267be98619b9f48610c4bb61a5c4bbe92fb5a6736",
+        "split": "TUNING",
+        "scope": "PARTY",
+        "class": 105,
+        "coveredByTrain": true,
+        "stock": "1401:11/268533948",
+        "neuralTop": "1401:11/268533948",
+        "topDifferentFromStock": false,
+        "gap": 0.00813891,
+        "scores": [
+          {
+            "action": "1401:11/268533948",
+            "score": 0.13036266,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1401:11/268536193",
+            "score": 0.12222375,
+            "actionFeatureL1FromStock": 0.354049252346158
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "aef312668527f1363856f5a22cc72946ece6f5402c7c1ef87a6d6ae52e49fa53",
+        "receiptSha": "2ddf416cb28ca248128ff39d82f9c09f0a4dc62aa45a4ceb594b74e419b5033b",
+        "terminalSha": "5f51793614c3f86eaeb2ed667e0786f1c20fe58535450fa198316cffdfe3f4ee",
+        "episodeId": "21b695232714a741e8da2f13313f9e5ac9d80e9f27765f842645410d02e71a7d",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1230:28/268566166",
+        "neuralTop": "1230:28/268566166",
+        "topDifferentFromStock": false,
+        "gap": 0.03091243,
+        "scores": [
+          {
+            "action": "1230:28/268566166",
+            "score": 0.13903233,
+            "actionFeatureL1FromStock": 0.0
+          },
+          {
+            "action": "1339:1/268566166",
+            "score": 0.108119905,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "f43349efff9b8244307a31eecb852213b5d4c78444ee8a56a8920987678daeaa",
+        "receiptSha": "40aec368f320b08e61601d38bcfb946da743950e6a0a737bbf95dfe1f5a79c36",
+        "terminalSha": "5f51793614c3f86eaeb2ed667e0786f1c20fe58535450fa198316cffdfe3f4ee",
+        "episodeId": "21b695232714a741e8da2f13313f9e5ac9d80e9f27765f842645410d02e71a7d",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268566166",
+        "neuralTop": "1230:28/268566166",
+        "topDifferentFromStock": true,
+        "gap": 0.030578345,
+        "scores": [
+          {
+            "action": "1230:28/268566166",
+            "score": 0.1789164,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268566166",
+            "score": 0.14833805,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      },
+      {
+        "eventKey": "dcdaa0b629001bb3682df4b1852a659c5331b41e1fe5d0108e35052a78993a78",
+        "receiptSha": "880bae415eb7b416bce4f23de020e9b309a5205415ebe76cf941cac88be30364",
+        "terminalSha": "5f51793614c3f86eaeb2ed667e0786f1c20fe58535450fa198316cffdfe3f4ee",
+        "episodeId": "21b695232714a741e8da2f13313f9e5ac9d80e9f27765f842645410d02e71a7d",
+        "split": "TUNING",
+        "scope": "SOLO",
+        "class": 94,
+        "coveredByTrain": true,
+        "stock": "1339:1/268566166",
+        "neuralTop": "1230:28/268566166",
+        "topDifferentFromStock": true,
+        "gap": 0.026074976,
+        "scores": [
+          {
+            "action": "1230:28/268566166",
+            "score": 0.18626836,
+            "actionFeatureL1FromStock": 0.5474500246345997
+          },
+          {
+            "action": "1339:1/268566166",
+            "score": 0.16019338,
+            "actionFeatureL1FromStock": 0.0
+          }
+        ],
+        "counterfactualOutcome": null
+      }
+    ],
+    "trainingCredit": false,
+    "limitation": "All actions stay episode-split; correlated observations and predicted rankings do not prove native intervention or causal advantage"
+  },
+  "evaluation007": {
+    "schemaVersion": 7,
+    "split": "EVAL007",
+    "campaign": "learning007-evaluate-v1",
+    "authority": {
+      "namespace": "EVAL007",
+      "modelId": 11,
+      "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+      "advantageDatasetSha": "d021f8c6fe2f352d2895a406436c849f94dcfeea57ed539e2cccd241e0132d84",
+      "optimizerSha": "f13d2f73ed7d0f3ffd38534b8ad413966b64cf7ba7c980a6ade2318da019d74d",
+      "runId": "12f42fa58fc34d7ca4a22fe73f2c7d4d"
+    },
+    "jarSha": "63bbf75235eb3a9a6f3a2f57d7b234476b8b7f12c92bb8042124a4642d41c85b",
+    "protocolSha": "eaca6dc0f96cb6e89fb2065c0c26749f9c0770672f16a1c4417f8e549e16816d",
+    "arms": 16,
+    "quota": true,
+    "budgetSettled": true,
+    "modes": [
+      {
+        "mode": "SOLO_DAMAGE_V3",
+        "fairPairs": 4,
+        "attemptedPairs": 4,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 6,
+        "completedAFirst": 2,
+        "completedBFirst": 2,
+        "diagnostic": "INCONCLUSIVE",
+        "gameVerdict": "INCONCLUSIVE"
+      },
+      {
+        "mode": "PARTY_HEAL_V3",
+        "fairPairs": 4,
+        "attemptedPairs": 4,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 1,
+        "completedAFirst": 2,
+        "completedBFirst": 2,
+        "diagnostic": "INCONCLUSIVE",
+        "gameVerdict": "INCONCLUSIVE"
+      }
+    ],
+    "trainingCredit": false,
+    "gameVerdict": "INCONCLUSIVE"
+  },
+  "controls007": {
+    "schemaVersion": 7,
+    "split": "EVAL007",
+    "campaign": "learning007-control-v1",
+    "authority": {
+      "namespace": "EVAL007",
+      "modelId": 11,
+      "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+      "advantageDatasetSha": "d021f8c6fe2f352d2895a406436c849f94dcfeea57ed539e2cccd241e0132d84",
+      "optimizerSha": "f13d2f73ed7d0f3ffd38534b8ad413966b64cf7ba7c980a6ade2318da019d74d",
+      "runId": "12f42fa58fc34d7ca4a22fe73f2c7d4d"
+    },
+    "jarSha": "63bbf75235eb3a9a6f3a2f57d7b234476b8b7f12c92bb8042124a4642d41c85b",
+    "protocolSha": "31aa9dd42693a18aa3fefa83a2c451174d8b847131f32e9fc70a75d7a5299ad5",
+    "arms": 4,
+    "quota": false,
+    "budgetSettled": true,
+    "modes": [
+      {
+        "mode": "SOLO_DAMAGE_V3",
+        "fairPairs": 1,
+        "attemptedPairs": 1,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 0,
+        "completedAFirst": 0,
+        "completedBFirst": 1,
+        "diagnostic": "NO_POLICY_DIVERGENCE",
+        "gameVerdict": "INCONCLUSIVE"
+      },
+      {
+        "mode": "PARTY_HEAL_V3",
+        "fairPairs": 1,
+        "attemptedPairs": 1,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 0,
+        "completedAFirst": 0,
+        "completedBFirst": 1,
+        "diagnostic": "NO_POLICY_DIVERGENCE",
+        "gameVerdict": "INCONCLUSIVE"
+      }
+    ],
+    "trainingCredit": false,
+    "gameVerdict": "INCONCLUSIVE",
+    "quotaInterpretation": "quota is the main four-pair threshold; planned negative controls are one fair pair per mode and budgetSettled=true."
+  },
+  "nativeBudget": {
+    "schemaVersion": 7,
+    "starts": 5,
+    "collectionStarts": 3,
+    "wallMillis": 3530127,
+    "collectionWallMillis": 2730826,
+    "pending": false,
+    "pendingStartedUtc": "2026-11-13T00:07:06.5878422Z",
+    "lastAttempt": "e710de1babdd47e2a4a6f43d3ecbaef2",
+    "conservativeRecovery": false
+  },
+  "learnedInference": {
+    "paidDamageDivergences": 6,
+    "paidHealDivergences": 1,
+    "usefulPaidHealCount": 4,
+    "usefulPaidHealHp": 5412.663544095603,
+    "proofs": [
+      {
+        "key": "893182bff543f05525a5c1df040f1c426b5bb528e77c8e7b70a5d354a448e4ba",
+        "actor": 268510189,
+        "actorEpoch": 1326168449978200,
+        "target": 268515882,
+        "targetEpoch": 2,
+        "instance": 0,
+        "selected": "1230:28/268515882",
+        "stock": "1339:1/268515882",
+        "legal": [
+          "1230:28/268515882",
+          "1339:1/268515882"
+        ],
+        "family": "DAMAGE",
+        "hp": 1397.0,
+        "mp": 69.0,
+        "sourceSha": "fe7e81b0e1512ac0bb9948936e2352262d3b6d31fafa56871d1f40d2292589b3",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_CAST_HP",
+          "eventKey": "893182bff543f05525a5c1df040f1c426b5bb528e77c8e7b70a5d354a448e4ba",
+          "actor": 268510189,
+          "actorEpoch": 1326168449978200,
+          "profile": 2669,
+          "owner": "Combat/2669/1/4",
+          "generation": 1,
+          "target": 268515882,
+          "targetEpoch": 2,
+          "instance": 0,
+          "selected": "1230:28/268515882",
+          "baseline": "1339:1/268515882",
+          "legalSha": "c7906ec15817a03f2ad3669b47a27523a358deda56526bcd1126a4d6422f9020",
+          "beforeHp": 11482.0,
+          "afterHp": 10085.0,
+          "actualDamage": 1397.0,
+          "actualMp": 69.0,
+          "elapsedNanos": 1900365900,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.18549192,
+          "stockScore": 0.15413275,
+          "margin": 0.031359166,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326168485362900,
+          "terminalNanos": 1326192010906900,
+          "hpStartedNanos": 1326173157079300,
+          "hpFinishedNanos": 1326173157119000,
+          "mpStartedNanos": 1326171257007400,
+          "mpFinishedNanos": 1326173156770700,
+          "linkedLethal": false,
+          "nativeReceiptSha": "28323126a25ebf20ddcff9a8ba8591d7aa08d93360ba1e1543b6f1c76a249a96",
+          "observationSha": "1a8440bd7eb6a5375e16c311681d44082bb82d2ce75e5236faf0fc89376868cb",
+          "trainingCredit": false
+        }
+      },
+      {
+        "key": "0c8fe4c5d6531371297f667ab97ea6a1ad0e561c6fd31d792571b1595849d66e",
+        "actor": 268510189,
+        "actorEpoch": 1326168449978200,
+        "target": 268515882,
+        "targetEpoch": 2,
+        "instance": 0,
+        "selected": "1230:28/268515882",
+        "stock": "1339:1/268515882",
+        "legal": [
+          "1230:28/268515882",
+          "1339:1/268515882"
+        ],
+        "family": "DAMAGE",
+        "hp": 1265.0,
+        "mp": 69.0,
+        "sourceSha": "e22f4b858c995b19ae07e29232ab13381564083932ba494d39389988581eabe7",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_CAST_HP",
+          "eventKey": "0c8fe4c5d6531371297f667ab97ea6a1ad0e561c6fd31d792571b1595849d66e",
+          "actor": 268510189,
+          "actorEpoch": 1326168449978200,
+          "profile": 2669,
+          "owner": "Combat/2669/1/28",
+          "generation": 1,
+          "target": 268515882,
+          "targetEpoch": 2,
+          "instance": 0,
+          "selected": "1230:28/268515882",
+          "baseline": "1339:1/268515882",
+          "legalSha": "c7906ec15817a03f2ad3669b47a27523a358deda56526bcd1126a4d6422f9020",
+          "beforeHp": 10161.5,
+          "afterHp": 8896.5,
+          "actualDamage": 1265.0,
+          "actualMp": 69.0,
+          "elapsedNanos": 1900337600,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.20317833,
+          "stockScore": 0.17784214,
+          "margin": 0.025336191,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326168485362900,
+          "terminalNanos": 1326192010906900,
+          "hpStartedNanos": 1326180947142600,
+          "hpFinishedNanos": 1326180947183800,
+          "mpStartedNanos": 1326179047064300,
+          "mpFinishedNanos": 1326180946855300,
+          "linkedLethal": false,
+          "nativeReceiptSha": "1834142f38af3dd7528b7f598676efff780123e3e3561879942e7f2ed66e0dd4",
+          "observationSha": "c75ce6e282d9a8578fc7cc2a96d3df074b206f5b1a12814301cd0216b6265e90",
+          "trainingCredit": false
+        }
+      },
+      {
+        "key": "e425ffb3a6e03d7b92f6954f78c471ba02618b7d5eeb7af9f215baad4f8557ae",
+        "actor": 268503773,
+        "actorEpoch": 1326146152032000,
+        "target": 268510182,
+        "targetEpoch": 2,
+        "instance": 0,
+        "selected": "1230:28/268510182",
+        "stock": "1339:1/268510182",
+        "legal": [
+          "1230:28/268510182",
+          "1339:1/268510182"
+        ],
+        "family": "DAMAGE",
+        "hp": 4741.0,
+        "mp": 69.0,
+        "sourceSha": "69dd186e2a1fbee94ff398eb5a2c19ecf7b59d1493c1653054e5ca598556f059",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_CAST_HP",
+          "eventKey": "e425ffb3a6e03d7b92f6954f78c471ba02618b7d5eeb7af9f215baad4f8557ae",
+          "actor": 268503773,
+          "actorEpoch": 1326146152032000,
+          "profile": 2664,
+          "owner": "Combat/2664/1/4",
+          "generation": 1,
+          "target": 268510182,
+          "targetEpoch": 2,
+          "instance": 0,
+          "selected": "1230:28/268510182",
+          "baseline": "1339:1/268510182",
+          "legalSha": "752e41bc3dcdd1d55d1947de56d7c5b111b71b226ac074484f6143e2a89f3b54",
+          "beforeHp": 7331.0,
+          "afterHp": 2590.0,
+          "actualDamage": 4741.0,
+          "actualMp": 69.0,
+          "elapsedNanos": 1901630500,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.1512037,
+          "stockScore": 0.12037545,
+          "margin": 0.03082826,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326146187444800,
+          "terminalNanos": 1326160852085100,
+          "hpStartedNanos": 1326150857117700,
+          "hpFinishedNanos": 1326150857167200,
+          "mpStartedNanos": 1326148955831000,
+          "mpFinishedNanos": 1326150856861400,
+          "linkedLethal": false,
+          "nativeReceiptSha": "59c7065b7f56ee535bfebaed42a2d2cab0c80cabb0796f2dcc31443b621aa1e5",
+          "observationSha": "1cf83f677e702f7fcdd0bc036467beb77e6bc200e0d22e05dba0b901be7ae3a7",
+          "trainingCredit": false
+        }
+      },
+      {
+        "key": "15b58305357e1d95d57756655e34a9f11ce9773a927f41f0d427355a76038d07",
+        "actor": 268538294,
+        "actorEpoch": 1326283647591500,
+        "target": 268537182,
+        "targetEpoch": 1326283624735300,
+        "instance": 0,
+        "selected": "1401:11/268537182",
+        "stock": "1401:11/268534912",
+        "legal": [
+          "1401:11/268534912",
+          "1401:11/268537182"
+        ],
+        "family": "HEAL",
+        "hp": 2431.7817,
+        "mp": 80.0,
+        "sourceSha": "d606deb839262ac133d0d7e2000696d49af45e5af16d9f133b5fb5abb7307710",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_HEAL_HP",
+          "eventKey": "15b58305357e1d95d57756655e34a9f11ce9773a927f41f0d427355a76038d07",
+          "actor": 268538294,
+          "actorEpoch": 1326283647591500,
+          "profile": 2693,
+          "owner": "party.tactic.1433FAF1381DD0DFBE01C843EBC11FC7C95A7875BDB1592412E59041A62CAF55.heal_member.2693",
+          "generation": 2,
+          "target": 268537182,
+          "targetEpoch": 1326283624735300,
+          "instance": 0,
+          "selected": "1401:11/268537182",
+          "baseline": "1401:11/268534912",
+          "legalSha": "96b75a0f57ee3272202facf6c578681b307289d4ad23e6e567921246741ec363",
+          "beforeHp": 2281.2183,
+          "afterHp": 4713.0,
+          "usefulHp": 2431.7817,
+          "actualMp": 80.0,
+          "elapsedNanos": 3426992000,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.12223199,
+          "stockScore": 0.08497225,
+          "margin": 0.037259743,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326294000841100,
+          "terminalNanos": 1326312594362000,
+          "hpStartedNanos": 1326297462952800,
+          "hpFinishedNanos": 1326297464541500,
+          "mpStartedNanos": 1326294042907200,
+          "mpFinishedNanos": 1326297461121600,
+          "linkedLethal": false,
+          "nativeReceiptSha": "c6cc0306a3ab1ca746182a9a43cf55047d7516ae8c9db6761380adeb1c62a6d1",
+          "observationSha": "601598c83cbff4c0e2b19eff4eb1a999598cc31a24d2bf33c71036ae0da3c2be",
+          "trainingCredit": false
+        }
+      },
+      {
+        "key": "dbd2b640411ef9fe1b90cb69d87b4ede0eb67d1c14da59bb2bf6a1d7db827c0d",
+        "actor": 268527698,
+        "actorEpoch": 1326259980080700,
+        "target": 268533752,
+        "targetEpoch": 2,
+        "instance": 0,
+        "selected": "1230:28/268533752",
+        "stock": "1339:1/268533752",
+        "legal": [
+          "1230:28/268533752",
+          "1339:1/268533752"
+        ],
+        "family": "DAMAGE",
+        "hp": 1569.0,
+        "mp": 69.0,
+        "sourceSha": "a1aafda933c8f52d6533b906be93888325663d4528bac48510ed69302137ee2e",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_CAST_HP",
+          "eventKey": "dbd2b640411ef9fe1b90cb69d87b4ede0eb67d1c14da59bb2bf6a1d7db827c0d",
+          "actor": 268527698,
+          "actorEpoch": 1326259980080700,
+          "profile": 2684,
+          "owner": "Combat/2684/1/4",
+          "generation": 1,
+          "target": 268533752,
+          "targetEpoch": 2,
+          "instance": 0,
+          "selected": "1230:28/268533752",
+          "baseline": "1339:1/268533752",
+          "legalSha": "16e0e6f5e05e66ce6e48f9caa0ae830e65712489879483650b824d35cf1cccbb",
+          "beforeHp": 8009.0,
+          "afterHp": 6440.0,
+          "actualDamage": 1569.0,
+          "actualMp": 69.0,
+          "elapsedNanos": 1900216900,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.14504558,
+          "stockScore": 0.11416948,
+          "margin": 0.0308761,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326260014984900,
+          "terminalNanos": 1326275737840900,
+          "hpStartedNanos": 1326264680802100,
+          "hpFinishedNanos": 1326264680834700,
+          "mpStartedNanos": 1326262780758500,
+          "mpFinishedNanos": 1326264680686200,
+          "linkedLethal": false,
+          "nativeReceiptSha": "cd70cf85683ffdd4ebe6670df6f46950c73c99523504115944cf0397fa694093",
+          "observationSha": "ea4dac3ed6b609bca3bef49c0c1ee6c6bd86db6e387d1107279378a7fcde2d8b",
+          "trainingCredit": false
+        }
+      },
+      {
+        "key": "ed8b63bd40f47c1098a1a3f7df0bbaecb726c6fb4d0ace9f18059dbd8a491c79",
+        "actor": 268484512,
+        "actorEpoch": 1326070588672500,
+        "target": 268490902,
+        "targetEpoch": 2,
+        "instance": 0,
+        "selected": "1230:28/268490902",
+        "stock": "1339:1/268490902",
+        "legal": [
+          "1230:28/268490902",
+          "1339:1/268490902"
+        ],
+        "family": "DAMAGE",
+        "hp": 3540.0,
+        "mp": 69.0,
+        "sourceSha": "3088d7f662a16e11c9ca5f90f72809fb16c377e895d28d94102aade4cd1ce75b",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_CAST_HP",
+          "eventKey": "ed8b63bd40f47c1098a1a3f7df0bbaecb726c6fb4d0ace9f18059dbd8a491c79",
+          "actor": 268484512,
+          "actorEpoch": 1326070588672500,
+          "profile": 2649,
+          "owner": "Combat/2649/1/4",
+          "generation": 1,
+          "target": 268490902,
+          "targetEpoch": 2,
+          "instance": 0,
+          "selected": "1230:28/268490902",
+          "baseline": "1339:1/268490902",
+          "legalSha": "6855eb0a9d76ea98a7b89850a5d20ce659addc0147cf517b524c401617add620",
+          "beforeHp": 7390.0,
+          "afterHp": 3850.0,
+          "actualDamage": 3540.0,
+          "actualMp": 69.0,
+          "elapsedNanos": 1900651500,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.15071727,
+          "stockScore": 0.1198953,
+          "margin": 0.030821972,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326070668115700,
+          "terminalNanos": 1326088684140000,
+          "hpStartedNanos": 1326075361222100,
+          "hpFinishedNanos": 1326075361277400,
+          "mpStartedNanos": 1326073460929700,
+          "mpFinishedNanos": 1326075360834100,
+          "linkedLethal": false,
+          "nativeReceiptSha": "43dafc4752c799c6bbf74c8a8b8e531bf0dcc6e3cc407b61d9d58908caf95c82",
+          "observationSha": "ae66ec4c2104cfcd230bb6628ce3c8976cad57cbb15fe737fd8f3d147ef336b3",
+          "trainingCredit": false
+        }
+      },
+      {
+        "key": "77963d9ce1f530fc2740d5840d983d450b4b783123ac93ef5c851f45adcfa822",
+        "actor": 268484512,
+        "actorEpoch": 1326070588672500,
+        "target": 268490902,
+        "targetEpoch": 2,
+        "instance": 0,
+        "selected": "1230:28/268490902",
+        "stock": "1339:1/268490902",
+        "legal": [
+          "1230:28/268490902",
+          "1339:1/268490902"
+        ],
+        "family": "DAMAGE",
+        "hp": 1385.0,
+        "mp": 69.0,
+        "sourceSha": "354781f0d6abefb10f34235c5cb341821b633ae3432a2c8f06c460701c5ac4b9",
+        "sourceReceipt": {
+          "origin": "NATIVE_V3_EXACT_CAST_HP",
+          "eventKey": "77963d9ce1f530fc2740d5840d983d450b4b783123ac93ef5c851f45adcfa822",
+          "actor": 268484512,
+          "actorEpoch": 1326070588672500,
+          "profile": 2649,
+          "owner": "Combat/2649/1/24",
+          "generation": 1,
+          "target": 268490902,
+          "targetEpoch": 2,
+          "instance": 0,
+          "selected": "1230:28/268490902",
+          "baseline": "1339:1/268490902",
+          "legalSha": "6855eb0a9d76ea98a7b89850a5d20ce659addc0147cf517b524c401617add620",
+          "beforeHp": 3884.0,
+          "afterHp": 2499.0,
+          "actualDamage": 1385.0,
+          "actualMp": 69.0,
+          "elapsedNanos": 1900563000,
+          "modelVersion": 11,
+          "modelSha": "7de6f5b6bd51f71a8bfce143422139e6b18da44cf81e6ea81f91728b0da206d0",
+          "authoritySha": "dba8532e26175558e757ee52c9dc7864c4e8465ff1836452c00dfba0ba631dcc",
+          "selectedScore": 0.18521108,
+          "stockScore": 0.15476672,
+          "margin": 0.030444354,
+          "scoreEvidence": "OFFLINE_RECOMPUTED_FROZEN_OBSERVATION",
+          "cutNanos": 1326070668115700,
+          "terminalNanos": 1326088684140000,
+          "hpStartedNanos": 1326082148151900,
+          "hpFinishedNanos": 1326082148231000,
+          "mpStartedNanos": 1326080248038200,
+          "mpFinishedNanos": 1326082147874800,
+          "linkedLethal": false,
+          "nativeReceiptSha": "88e360141644258e92b798af3ff4c7f0bf7923a86242ff8c16920b69b4db5501",
+          "observationSha": "bf29b08e39a3f5a2be49d3daeaff29d5d18ad6d78675a829ebeb3b1b11a6db2d",
+          "trainingCredit": false
+        }
+      }
+    ]
+  },
+  "sourceHashes": {
+    "L2J_Mobius_CT_2.6_HighFive/build.xml": "646030b94336f5000ea42f7209870629b33a1e7a83d7b7474e49958dc9e8d8ff",
+    "L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_tactical_v3.sql": "73a231b41d34fddda03cde699cae7fd6c4594367fd563cbb0729771c378d8f39",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV1.java": "172d053b6c3c74b893c89bc3c648cae4112b7286e655f7a82c4bf3836ea7877d",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalModelV3.java": "554c023b76a7b02a559b3fb69384cd23594ad7569e1a936044e54a2154e23329",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java": "fa5cf4fffbeb53a9849039169bb95ffaf02a63d73c4c199ae36da4205e096d56",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java": "8b571e3780dc3d746fe37806e669e7a63d24e6cd71b5888f22ae69c20518883e",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java": "9798a1c010ad25c324d4a65a12444aab2dd330d773c83d3041b25a8586f54e7d",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java": "d58559f958ed711212647ecf303a9fdf9f47025b9e334eb0a2f007be418bc34c",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning007Checks.java": "9450aa6c88e7c1b739ced902809784e0065d7589910283983764701d06a26f1c",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning004Schema.java": "9f9bce4816d551bcea6d189b3670e027cbeae96d789d52e39b06683ac927112a",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java": "d862757b4691edb2fc061515a90af822d29291451e0af7a75c01928dcd7a84b1",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java": "b164e67dab38c60261748b5ade61a620dd836c023d9356c5f0c9419799d36d99",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java": "ab5c98e2967c20b45a9619194b293782f3fc25b25df10975d63ab5c7735abfd8",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning007Native.java": "cb9e893dfdb2524f53d685d7e0f3c5710468326dac7ca277c5096d9ae9aea641",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "513949a7a0a91a9b98e98c3c665bbca3465f87d3b778f88fdde8f55186de69b0",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini": "0d5999f3c1db6cd0d71f45bc68aa3131c8146f843c3ba877adbb1e66c07a19bf",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1": "9b1d3f78216d2b4a14ddf95118ea749dee691763d2096ace73a3baf24dca3b31"
+  },
+  "coldExport": {
+    "before": "model-2-acd56694b4d54fc4b4192b46be17a90f.zip",
+    "beforeSha": "2f3b643e6ddb0ccc78f4b40a66daadf9223332467f4176f2af7fb067793bc551",
+    "after": "model-2-9ef28c7628b44c04891bf4926d780ef2.zip",
+    "afterSha": "36c98911400057cb5223c066ed243a7e89fcd166089e9050b01655d7a6e3a47a",
+    "exactPayloads": [
+      "weights.bin",
+      "events.bin",
+      "optimizer.bin",
+      "replay.bin",
+      "advantage-targets.bin",
+      "advantage-applications.jsonl",
+      "context-replay.bin",
+      "working-weights.bin",
+      "working-metrics.json",
+      "dataset.jsonl"
+    ],
+    "manifestDifference": "createdUtc only"
+  },
+  "implementationReview": {
+    "critical": 0,
+    "important": 1,
+    "fixed": "Paid gradient TRAIN B alternative required; focused RED→GREEN and all4groups GREEN",
+    "minor": 0,
+    "experimentJarSha": "63bbf75235eb3a9a6f3a2f57d7b234476b8b7f12c92bb8042124a4642d41c85b",
+    "tightenedAdmission": {
+      "check": "CANONICAL_PREFIT_TIGHTENED_GUARD",
+      "sufficient": true,
+      "targetSha": "d021f8c6fe2f352d2895a406436c849f94dcfeea57ed539e2cccd241e0132d84",
+      "train": 19,
+      "tuning": 8,
+      "audit": 8,
+      "paidGradientAlternatives": 5,
+      "receiptCensusSha": "79e926086eee561d319081ff04969663543eaeef011fcd8df4869fe739c0d94e",
+      "guardSourceSha": "172d053b6c3c74b893c89bc3c648cae4112b7286e655f7a82c4bf3836ea7877d",
+      "newGuardClassSha": "d583221499ce70008c31e67de695d7029b955ab4bc4d2bb900b5bc7cfd33b444",
+      "experimentJarSha": "63bbf75235eb3a9a6f3a2f57d7b234476b8b7f12c92bb8042124a4642d41c85b"
+    }
+  },
+  "gates": {
+    "G0": {
+      "status": "VERIFIED"
+    },
+    "G1": {
+      "status": "VERIFIED"
+    },
+    "G2": {
+      "status": "VERIFIED"
+    },
+    "G3": {
+      "status": "VERIFIED"
+    },
+    "G4": {
+      "status": "VERIFIED"
+    },
+    "G5": {
+      "status": "VERIFIED",
+      "note": "6Solo skill divergences;1Party HEAL target divergence. No exploration in EVAL."
+    },
+    "G6": {
+      "status": "VERIFIED"
+    },
+    "G7": {
+      "status": "VERIFIED"
+    },
+    "G8": {
+      "status": "REQUIRED_PUBLICATION_READBACK"
+    }
+  },
+  "rulings": [
+    "Ruling: baseline и focused tests запускаются существующими console mains. Stage-only javac компилирует взаимозависимые новые sources вместе; окончательная сборка будет canonical Ant compile-tests/jar. Новый test project не создаётся.",
+    "Ruling: G4 диагностирует все оплаченные TUNING/AUDIT legal observations из frozen terminal receipts, а не только первое attribution decision. Все действия эпизода сохраняют один split; TRAIN gradient получает только одно совпавшее selection action. Причина — штатная ротация stock skills делает поздние observations информативными для offline ranking. Цена ошибки — коррелированные observations могут переоценить устойчивость; это не доказательство causal advantage, требуется native EVAL.",
+    "Ruling: matching key — policy-cell estimator: exact pre-CUT physical SHA, actor class/level и canonical legal action shape. Он не требует точного равенства непрерывных decision-time HP/MP/CP/distance и не доказывает matched decision-state causal effect. A/B до первого eligible draw используют одинаковую stock-тактику и gates; независимый review не нашёл pre-draw eligibility asymmetry. Это позволяет оценивать среднее stock utility в объявленной cell; stochastic state variance и отбор только paid actions остаются ограничениями. Цена ошибки — шум/selection bias может создавать ложное индивидуальное advantage; итог не объявляет causal superiority, EVAL и малые n не устраняют это ограничение.",
+    "Ruling: fresh review вынес экспериментальную causal superiority, коррелированность held-out observations и фактические G2–G8 за пределы source verification. Эти вопросы остаются явными evidence gates/ограничениями; source PASS не заменяет native, SQL, budget, cold readback, publication или manual acceptance. Цена ошибочного смешения — ложный FULL verdict; финальный статус формируется только по фактическим evidence.",
+    "Ruling: operational budget amendment до TUNING/AUDIT. Фактический mean total эпизода после23completed ≈39.7s; guard резервирует ещё14.5мин до collection60мин. Изначальные80native attempts рискуют отрезать независимые splits. Поэтому попытки TRAIN ограничены первыми24balanced blocks: по6/cell, порядок AB,BA,AB,BA,BA,AB; слоты48–63 получат явный NOT_RUN_BUDGET без native episode/actor/effect. TUNING/AUDIT по8 сохранены. Следующий cold segment использует preparation timeout120s вместо420s; это operational upper bound, не изменение начальных HP/MP/skills, objective или owner gates. Fixed source/native JAR и objective остаются прежними. Общие пределы3collection starts/60min и8starts/90min не повышаются. Решение основано на elapsed throughput до held-out, не на scores/rewards. Цена ошибки — меньше TRAIN мощности и возможный PARTIAL при недостаточных≥16gradient/8tuning/8audit; gates не ослабляются. Amendment будет immutable в private campaign до start3."
+  ],
+  "nativeResources": {
+    "20a924787f6b4e6ca00d926f3e52ced0": {
+      "pid": 88092,
+      "startedUtc": "2026-11-12T23:32:28.6540059Z",
+      "sampledUtc": "2026-11-12T23:47:52.3664526Z",
+      "elapsedMillis": 923712,
+      "cpuSeconds": 258.328125,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4682452992,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "20a924787f6b4e6ca00d926f3e52ced0",
+      "finishedUtc": "2026-11-12T23:47:52.3734501Z"
+    },
+    "20f01a00f6e9481fa00719d1e4a6fe78": {
+      "pid": 31048,
+      "startedUtc": "2026-11-12T23:54:42.3637005Z",
+      "sampledUtc": "2026-11-13T00:04:26.5440045Z",
+      "elapsedMillis": 584180,
+      "cpuSeconds": 246.40625,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4710883328,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "20f01a00f6e9481fa00719d1e4a6fe78",
+      "finishedUtc": "2026-11-13T00:04:26.5500307Z"
+    },
+    "64511a3c62d94e8ca9416a3d7bb36ab9": {
+      "pid": 82760,
+      "startedUtc": "2026-11-12T23:03:33.0315254Z",
+      "sampledUtc": "2026-11-12T23:31:36.5512416Z",
+      "elapsedMillis": 1683520,
+      "cpuSeconds": 621.328125,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4700037120,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "64511a3c62d94e8ca9416a3d7bb36ab9",
+      "finishedUtc": "2026-11-12T23:31:36.5582389Z"
+    },
+    "64fa8b7912874aa59300fa3857405dc3": {
+      "pid": 87892,
+      "startedUtc": "2026-11-12T22:59:54.9634964Z",
+      "sampledUtc": "2026-11-12T23:01:52.4955529Z",
+      "elapsedMillis": 117532,
+      "cpuSeconds": 170.140625,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4674826240,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "64fa8b7912874aa59300fa3857405dc3",
+      "finishedUtc": "2026-11-12T23:01:52.5085521Z"
+    },
+    "e710de1babdd47e2a4a6f43d3ecbaef2": {
+      "pid": 65420,
+      "startedUtc": "2026-11-13T00:07:07.7695008Z",
+      "sampledUtc": "2026-11-13T00:10:39.9570362Z",
+      "elapsedMillis": 212188,
+      "cpuSeconds": 153.296875,
+      "workingSetBytes": null,
+      "peakWorkingSetBytes": 4703883264,
+      "measurement": "PROCESS_METADATA",
+      "exitObserved": true,
+      "attemptId": "e710de1babdd47e2a4a6f43d3ecbaef2",
+      "finishedUtc": "2026-11-13T00:10:39.9640369Z"
+    }
+  },
+  "workerResources": [
+    {
+      "worker": "08bdb790e6e144e4b700bc5891bfb94c",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning007Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 80740,
+        "startedUtc": "2026-11-12T23:50:38.5438235Z",
+        "sampledUtc": "2026-11-12T23:50:42.0934793Z",
+        "elapsedMillis": 3550,
+        "cpuSeconds": 7.34375,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 513445888,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "2364213f57ad42d783d5450b49486023",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning007Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 38432,
+        "startedUtc": "2026-11-12T23:54:30.1081068Z",
+        "sampledUtc": "2026-11-12T23:54:34.7348536Z",
+        "elapsedMillis": 4627,
+        "cpuSeconds": 8.453125,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 462426112,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "337aa706cb9e4f7c8ab239f32a78083f",
+      "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+      "exitCode": 0,
+      "resources": {
+        "pid": 52740,
+        "startedUtc": "2026-11-12T23:54:29.3680241Z",
+        "sampledUtc": "2026-11-12T23:54:30.0462228Z",
+        "elapsedMillis": 678,
+        "cpuSeconds": 1.375,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 2609152,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "39ab7056c9b74659bafab67a1b1a7f9d",
+      "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+      "exitCode": 0,
+      "resources": {
+        "pid": 83576,
+        "startedUtc": "2026-11-12T23:50:46.2717141Z",
+        "sampledUtc": "2026-11-12T23:50:55.8617042Z",
+        "elapsedMillis": 9590,
+        "cpuSeconds": 14.703125,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 643100672,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "39ffa962f7da4246b7d920b8b2181462",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning005Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 76264,
+        "startedUtc": "2026-11-13T00:07:00.2030590Z",
+        "sampledUtc": "2026-11-13T00:07:06.3913878Z",
+        "elapsedMillis": 6188,
+        "cpuSeconds": 11.9375,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 542617600,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "4444184361ca495ab6ae27b0e1bc1286",
+      "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+      "exitCode": 0,
+      "resources": {
+        "pid": 51040,
+        "startedUtc": "2026-11-12T23:50:37.8692240Z",
+        "sampledUtc": "2026-11-12T23:50:38.5036776Z",
+        "elapsedMillis": 634,
+        "cpuSeconds": 1.421875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 2609152,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "541efe0b029241d5abcbe9daec9809d2",
+      "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+      "exitCode": 0,
+      "resources": {
+        "pid": 57624,
+        "startedUtc": "2026-11-13T00:13:30.9909882Z",
+        "sampledUtc": "2026-11-13T00:13:37.0426666Z",
+        "elapsedMillis": 6052,
+        "cpuSeconds": 10.984375,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 507740160,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "683bb4e151fd4cd795cf359a3fbe2afd",
+      "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+      "exitCode": 0,
+      "resources": {
+        "pid": 58472,
+        "startedUtc": "2026-11-12T23:51:00.6937024Z",
+        "sampledUtc": "2026-11-12T23:51:06.7515611Z",
+        "elapsedMillis": 6058,
+        "cpuSeconds": 11.171875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 496603136,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "89df15b937e249af9d67c807984df8a7",
+      "class": "org.l2jmobius.gameserver.phantoms.learning.Learning007Checks",
+      "exitCode": 0,
+      "resources": {
+        "pid": 76676,
+        "startedUtc": "2026-11-12T23:50:42.1211791Z",
+        "sampledUtc": "2026-11-12T23:50:46.2395433Z",
+        "elapsedMillis": 4118,
+        "cpuSeconds": 8.5,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 493617152,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "99ab8e6cd4214cff95d6c8c4ffd75896",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning005Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 13708,
+        "startedUtc": "2026-11-12T23:54:34.7782405Z",
+        "sampledUtc": "2026-11-12T23:54:40.6184622Z",
+        "elapsedMillis": 5840,
+        "cpuSeconds": 11.5,
+        "workingSetBytes": 402219008,
+        "peakWorkingSetBytes": 715689984,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "9aec4881b7124186ae12c4187ba4cec0",
+      "class": "org.l2jmobius.tests.phantoms.PhantomTrainingSql",
+      "exitCode": 0,
+      "resources": {
+        "pid": 40652,
+        "startedUtc": "2026-11-13T00:06:54.9575631Z",
+        "sampledUtc": "2026-11-13T00:06:55.6602627Z",
+        "elapsedMillis": 703,
+        "cpuSeconds": 1.53125,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 2609152,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "a9ba55b9287c4ba6b52be74b3ba087f6",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning005Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 80268,
+        "startedUtc": "2026-11-13T00:04:26.5626660Z",
+        "sampledUtc": "2026-11-13T00:04:28.8106682Z",
+        "elapsedMillis": 2248,
+        "cpuSeconds": 6.1875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 281874432,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "aa2766fc7d8a46b78e060e1da0b5c581",
+      "class": "org.l2jmobius.gameserver.phantoms.learning.Learning007Checks",
+      "exitCode": 0,
+      "resources": {
+        "pid": 67528,
+        "startedUtc": "2026-11-12T23:50:55.8847886Z",
+        "sampledUtc": "2026-11-12T23:51:00.6708517Z",
+        "elapsedMillis": 4786,
+        "cpuSeconds": 9.875,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 439472128,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "bf5e8bb4cd2c488984914942a88b4393",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning007Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 56164,
+        "startedUtc": "2026-11-13T00:06:55.7198066Z",
+        "sampledUtc": "2026-11-13T00:07:00.1797171Z",
+        "elapsedMillis": 4460,
+        "cpuSeconds": 9.265625,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 450527232,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "c4ec4942896e460389ac34e81d202ba6",
+      "class": "org.l2jmobius.tests.phantoms.PhantomLearning005Native",
+      "exitCode": 0,
+      "resources": {
+        "pid": 48876,
+        "startedUtc": "2026-11-13T00:10:40.1540113Z",
+        "sampledUtc": "2026-11-13T00:10:42.3552477Z",
+        "elapsedMillis": 2201,
+        "cpuSeconds": 5.34375,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 287739904,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    },
+    {
+      "worker": "cf4880511c4c4faf9a2b3da04436d326",
+      "class": "org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator",
+      "exitCode": 73,
+      "resources": {
+        "pid": 76120,
+        "startedUtc": "2026-11-12T23:49:17.4498956Z",
+        "sampledUtc": "2026-11-12T23:49:27.3438211Z",
+        "elapsedMillis": 9894,
+        "cpuSeconds": 14.65625,
+        "workingSetBytes": null,
+        "peakWorkingSetBytes": 643137536,
+        "measurement": "PROCESS_METADATA",
+        "exitObserved": true
+      }
+    }
+  ],
+  "scopeGuard": {
+    "status": "PASS",
+    "allowlistPaths": 31,
+    "sourcePaths": 17,
+    "deliveryPaths": 14,
+    "mainHead": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+    "branch": "wip/phantom-learning-007",
+    "statusLines": [
+      " M L2J_Mobius_CT_2.6_HighFive/build.xml",
+      " M L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_tactical_v3.sql",
+      " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalModelV3.java",
+      " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java",
+      " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+      " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+      " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning004Schema.java",
+      " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+      " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+      " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+      " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+      " M L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "?? .phantom-local/",
+      "?? L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "?? L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION.md",
+      "?? L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-007-CAUSAL-EXPLORATION/",
+      "?? L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV1.java",
+      "?? L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+      "?? L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning007Checks.java",
+      "?? L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning007Native.java",
+      "?? L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration007.ini"
+    ],
+    "zipEntries": 931,
+    "gitDiffCheckExit": 0
+  },
+  "verification": {
+    "canonical007AndJarExit": 0,
+    "canonicalLogSha": "1b556c947ecac66adabd15adb0f365785adb2ff1f403afa06d2612a0dbbdbc1c",
+    "legacy004ModelGroups": 3,
+    "legacy005Assertions": 28,
+    "legacy006Contracts": "R01-R07 PASS",
+    "legacy006R1": "clock/healTotals/authority/campaign/boundaries/routing PASS",
+    "schemaContract": "exact additive2, historical mutation rejected, DB_FREE",
+    "finalPreflight": "203/207/JDK25/MariaDB11.4/ports PASS",
+    "sourceJarSha": "4c3dfb0d9fbb4a404e78df7406bd190d930ce5fd885e2c2a0af1018d1a081a54",
+    "experimentJarSha": "63bbf75235eb3a9a6f3a2f57d7b234476b8b7f12c92bb8042124a4642d41c85b",
+    "runtimeState": {
+      "runId": "753dfebef8664cb2b3b490bcbb9031dc",
+      "nonce": "70f7b44181ad432b882a9a3bd3d3547c",
+      "schemaVersion": 1,
+      "attemptId": "e710de1babdd47e2a4a6f43d3ecbaef2",
+      "phase": "STOPPED",
+      "workingSetBytes": 138170368,
+      "batchesCompleted": 11,
+      "cleanupFailureId": "",
+      "generation": 25,
+      "reason": "Собственные процессы остановлены и порты свободны.",
+      "stopConfirmedUtc": "2026-11-13T00:13:28.7046475Z",
+      "stopNonce": "38c26bd9cd3b4e2db7abb06840928ead",
+      "primaryFailureId": "",
+      "nativeFailures": 0,
+      "heartbeatUtc": "2026-11-13T00:13:28.7046475Z",
+      "primaryFailureCode": "",
+      "cpuSeconds": 21.531,
+      "primaryFailurePhase": ""
+    }
+  }
+}

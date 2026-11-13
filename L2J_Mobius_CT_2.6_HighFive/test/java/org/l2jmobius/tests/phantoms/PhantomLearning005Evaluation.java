@@ -16,14 +16,17 @@ public final class PhantomLearning005Evaluation
 	public enum Side { STOCK, LEARNED }
 	public enum Outcome { COMPLETED, FAILED, INCOMPLETE, SKIP }
 	public enum Family { DAMAGE, HEAL }
-	public record DraftAuthority(long modelId,String modelSha,String terminalDatasetSha,String optimizerSha,String runId)
+	public record DraftAuthority(long modelId,String modelSha,String terminalDatasetSha,String optimizerSha,String runId,String namespace)
 	{
+		public DraftAuthority(long modelId,String modelSha,String terminalDatasetSha,String optimizerSha,String runId)
+		{this(modelId,modelSha,terminalDatasetSha,optimizerSha,runId,"EVAL006R1");}
 		public DraftAuthority
 		{
-			if(modelId<=8||runId==null||!runId.matches("[a-f0-9]{32}")){throw new IllegalArgumentException("New terminal DRAFT authority required");}
+			if(!Set.of("EVAL006R1","EVAL007").contains(namespace)||modelId<=(namespace.equals("EVAL007")?9:8)||runId==null||!runId.matches("[a-f0-9]{32}")){throw new IllegalArgumentException("New frozen DRAFT authority required");}
 			PhantomLearning005Evaluation.sha(modelSha);PhantomLearning005Evaluation.sha(terminalDatasetSha);PhantomLearning005Evaluation.sha(optimizerSha);
 		}
-		String json(){return "{\"namespace\":\"EVAL006R1\",\"modelId\":"+modelId+",\"modelSha\":"+q(modelSha)+",\"terminalDatasetSha\":"+q(terminalDatasetSha)+",\"optimizerSha\":"+q(optimizerSha)+",\"runId\":"+q(runId)+"}";}
+		String json(){return "{\"namespace\":"+q(namespace)+",\"modelId\":"+modelId+",\"modelSha\":"+q(modelSha)+","+q(namespace.equals("EVAL007")?"advantageDatasetSha":"terminalDatasetSha")+":"+q(terminalDatasetSha)+",\"optimizerSha\":"+q(optimizerSha)+",\"runId\":"+q(runId)+"}";}
+		int schemaVersion(){return namespace.equals("EVAL007")?7:6;}
 		String fingerprint(){return hash(json());}
 	}
 	public record Pin(Mode mode,long id,String status,String sha,String schema,int algorithm,DraftAuthority authority)
@@ -105,7 +108,7 @@ public final class PhantomLearning005Evaluation
 		public String fingerprint(){return hash(modeLabel()+"/"+q(scenario)+"/"+mapJson(facts));}
 		public String json()
 		{
-			return "{\"schemaVersion\":"+(pin.authority()==null?5:6)+",\"split\":"+q(pin.authority()==null?"EVAL005":"EVAL006R1")+",\"armId\":"+q(id())+",\"pairId\":"+q(pair)+",\"side\":"+q(side.name())+",\"mode\":"+q(modeLabel())
+			return "{\"schemaVersion\":"+(pin.authority()==null?5:pin.authority().schemaVersion())+",\"split\":"+q(pin.authority()==null?"EVAL005":pin.authority().namespace())+",\"armId\":"+q(id())+",\"pairId\":"+q(pair)+",\"side\":"+q(side.name())+",\"mode\":"+q(modeLabel())
 				+",\"seed\":"+seed+",\"position\":"+position+",\"buildSha\":"+q(buildSha)+",\"configSha\":"+q(configSha)+",\"scenario\":"+q(scenario)+",\"fingerprint\":"+q(fingerprint())
 				+",\"facts\":"+mapJson(facts)+",\"actors\":["+actors.stream().map(a->"{\"id\":"+a.objectId()+",\"epoch\":"+a.epoch()+",\"instance\":"+a.instance()+"}").collect(java.util.stream.Collectors.joining(","))+"]"
 				+",\"target\":"+(target==null?"null":"{\"id\":"+target.objectId()+",\"epoch\":"+target.epoch()+",\"instance\":"+target.instance()+"}")+",\"modelId\":"+pin.id()+",\"modelSha\":"+q(pin.sha())+",\"modelStatus\":"+q(pin.status())

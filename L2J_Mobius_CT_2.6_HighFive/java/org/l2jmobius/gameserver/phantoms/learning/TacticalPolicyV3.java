@@ -27,6 +27,7 @@ public final class TacticalPolicyV3
 	private final Consumer<HealEvidenceV3.Receipt> _sink;
 	private volatile Consumer<TacticalReceiptV3> _damageSink = _ -> { };
 	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
+	private volatile TrainExplorationV1 _exploration;
 	private final ConcurrentHashMap<Long, Long> _last = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, HealEvidenceV3.Attempt> _pending = new ConcurrentHashMap<>();
 	private final AtomicLong _generation = new AtomicLong();
@@ -56,6 +57,13 @@ public final class TacticalPolicyV3
 	}
 	public HealEvidenceV3.Attempt latest() { return _latest; }
 	public Mode mode() { return _mode; }
+	/** Explicit pre-CUT owned TRAIN binding. Ordinary ON inference cannot receive an exploration window. */
+	public void trainExploration(TrainExplorationV1 session)
+	{
+		if(session!=null&&(_mode!=Mode.SHADOW||_model==null||session.modelVersion()!=_version||!session.modelSha().equals(_model.sha256())))
+		{throw new IllegalArgumentException("Exploration requires exact SHADOW TEST model authority");}
+		_exploration=session;
+	}
 	public void damageObserver(Consumer<TacticalReceiptV3> sink) { _damageSink = Objects.requireNonNull(sink); }
 	void recordDamage(TacticalReceiptV3 receipt) { _damageSink.accept(receipt); }
 	public void failureObserver(Consumer<TacticalFailureV3> sink) { _failureSink = Objects.requireNonNull(sink); }
@@ -114,6 +122,18 @@ public final class TacticalPolicyV3
 				if (_mode != Mode.ON || best - second < .025f) { reason(_mode!=Mode.ON?"SHADOW":"MARGIN",profile,target.getObjectId());selected = stock; }
 			}
 			if (System.nanoTime() - now > 5_000_000L) { reason("BUDGET_5MS",profile,target.getObjectId());overBudget.increment(); selected = stock; }
+			else if(_exploration!=null&&!_exploration.spent())
+			{
+				var session=_exploration;
+				var decision=session.offer(observation,offered,offered.get(stock),actor.getNativeWorkOwner()!=null&&actor.getNativeWorkOwner().isCurrent()
+					&&candidates.stream().allMatch(c->c.exact().getAsBoolean()),actor.getCurrentHp()>actor.getMaxHp()*.30);
+				if(decision!=null)
+				{
+					if(System.nanoTime()-now>5_000_000L){decision=decision.failed("BUDGET_5MS");overBudget.increment();selected=stock;}
+					else{selected=offered.indexOf(decision.selected());}
+					session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),profile,target.getObjectId());
+				}
+			}
 			reason(selected==stock?"DAMAGE_STOCK":"DAMAGE_REORDER",profile,target.getObjectId());
 			if (selected != stock) { reordered.increment(); }
 			return new DamageChoice(candidates.get(selected), new TacticalReceiptV3.Attempt(observation, offered, offered.get(selected), offered.get(stock), _version));
@@ -175,6 +195,20 @@ public final class TacticalPolicyV3
 					if (best - second < .025f || _mode != Mode.ON) { reason(_mode!=Mode.ON?"SHADOW":"MARGIN",ref.profileId(),0);selected = 0; }
 				}
 				if (System.nanoTime() - now > 5_000_000L) { reason("BUDGET_5MS",ref.profileId(),0);overBudget.increment(); selected = 0; }
+				else if(_exploration!=null&&!_exploration.spent())
+				{
+					var session=_exploration;
+					var decision=session.offer(observation,offered,offered.getFirst(),actor.getNativeWorkOwner()!=null&&actor.getNativeWorkOwner().isCurrent()
+						&&offered.stream().allMatch(a->World.getInstance().findObject(a.targetObjectId()) instanceof Player p&&p.getNativeWorkOwner()!=null&&p.getNativeWorkOwner().isCurrent()&&TacticalSnapshotV3.epoch(p)==a.targetEpoch()),safeToRank(choices,snapshots)
+						&&actor.getCurrentHp()>actor.getMaxHp()*.30&&actor.getAttackByList().isEmpty()
+						&&offered.stream().allMatch(a->World.getInstance().findObject(a.targetObjectId()) instanceof Player p&&p.getCurrentHp()>p.getMaxHp()*.25&&p.getAttackByList().isEmpty()));
+					if(decision!=null)
+					{
+						if(System.nanoTime()-now>5_000_000L){decision=decision.failed("BUDGET_5MS");overBudget.increment();selected=0;}
+						else{selected=offered.indexOf(decision.selected());}
+						session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),ref.profileId(),decision.selected().targetObjectId());
+					}
+				}
 				reason(selected==0?"HEAL_STOCK":"HEAL_REORDER",ref.profileId(),offered.get(selected).targetObjectId());
 				if (selected > 0)
 				{

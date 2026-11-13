@@ -4,6 +4,7 @@ param(
     [string]$Root,
     [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
     [switch]$EnableOutcome006,
+    [switch]$EnableExploration007,
     [switch]$EnableEvaluation005,
     [ValidateRange(1,4)][int]$Evaluation005PairLimit=4,
     [ValidatePattern('^[A-Za-z0-9._-]{1,64}$')][string]$Evaluation005Campaign='learning005',
@@ -25,8 +26,15 @@ function Read-TrainSourceConfig {
     $current=$null
     $saved=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
     if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
-    $name=if($profile -ceq 'OUTCOME006'){'Outcome006.ini'}elseif($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
+    $is007=$EnableExploration007 -or ($current -and $current.ContainsKey('exploration007Enabled') -and $current.exploration007Enabled -ceq 'true')
+    if($is007){$profile='OUTCOME006'}
+    $name=if($is007){'Exploration007.ini'}elseif($profile -ceq 'OUTCOME006'){'Outcome006.ini'}elseif($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
     $values=Read-TrainConfig (Join-Path $PSScriptRoot $name)
+    if($is007){
+        if($EnableExploration007){$values.exploration007Enabled='true';$values.outcome006Enabled='true'}
+        elseif($current){$values.exploration007Enabled=$current.exploration007Enabled;$values.outcome006Enabled=$current.outcome006Enabled}
+        if($values.exploration007Campaign -cne 'learning007-causal-v1' -or $values.exploration007Dataset -cne 'learning007-advantage-v1'){throw 'TRAIN007_EXACT_CAMPAIGN_REQUIRED'}
+    }
     if($profile -ceq 'OUTCOME006'){
         if($EnableOutcome006){$values.outcome006Enabled='true'}
         elseif($current -and $current.ContainsKey('outcome006Enabled')){$values.outcome006Enabled=$current.outcome006Enabled}
@@ -201,8 +209,13 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
     $workerId=[guid]::NewGuid().ToString('N');$directory=Join-Path $layout.Root ('workers\'+$workerId)
     $null=[IO.Directory]::CreateDirectory($directory)
     $javaArguments=@(Get-TrainJavaArguments $Class $Arguments $layout.ClassPath $workerId ([int]$script:Config.cpuCount) ([int]$script:Config.maxHeapMb))
+    if($script:Config.ContainsKey('exploration007FaultOnce') -and $script:Config.exploration007FaultOnce -ceq 'true' -and $Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train'){
+        if($script:Config.exploration007Phase -cne 'FIT'){throw 'TRAIN007_FAULT_OFFLINE_FIT_ONLY'}
+        $javaArguments=@('-Dphantom.learning007.preCommitFault=true')+$javaArguments
+    }
     $process=Start-Process -FilePath $Dependencies.Java -ArgumentList $javaArguments -WorkingDirectory $layout.Game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $directory 'worker.out') -RedirectStandardError (Join-Path $directory 'worker.err')
     $handle=Hold-ProcessHandle $process
+    $workerResources=Get-TrainProcessResources $process
     try{
     $record=New-TrainProcessRecord $process $Dependencies.Java $workerId Worker (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
     $script:WorkerRecord=$record
@@ -210,6 +223,7 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
     Write-TrainJson (Join-Path $layout.Root 'worker-process.json') $record
     $deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     while(!$process.WaitForExit(1000)){
+        $workerResources=Get-TrainProcessResources $process $workerResources
         if($process.HasExited){Save-TrainProcessObservation $record $null 'OWN_WORKER_EXIT_AFTER_WAIT' (Get-TrackedProcessExitCode $process $handle);break}
         try{Assert-TrainProcess $record -Kind Worker}catch{
             if(Test-TrainTerminatedCimRace $_ $record $process $handle){
@@ -227,6 +241,8 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
         if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_WORKER_TIMEOUT_NO_FORCE'}
     }
     $exit=Get-TrackedProcessExitCode $process $handle
+    $workerResources=Get-TrainProcessResources $process $workerResources
+    Write-TrainJson (Join-Path $directory 'resources.json') $workerResources
     Assert-TrainHash $record.image $record.imageHash
     Assert-TrainHash $record.configPath $record.configHash
     Write-TrainExitReceipt $layout $record $process $handle $Class
@@ -248,6 +264,27 @@ function Wait-TrainWorker([int]$Seconds) {
         if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_WORKER_STILL_ACTIVE_SQL_RETAINED'}
         Publish-TrainState 'WAIT_OWN_WORKER'
         Start-Sleep -Milliseconds 500
+    }
+}
+function Invoke-Train007Native($Dependencies,[string]$Jar) {
+    $campaign=Join-Path $layout.Root 'outcome006\campaigns\learning007-causal-v1'
+    $budgetPath=Join-Path $campaign 'budget.json'
+    if(Test-Path -LiteralPath $budgetPath){$budget=Read-TrainJson $budgetPath}else{
+        $budget=[pscustomobject]@{schemaVersion=7;starts=0;collectionStarts=0;wallMillis=0L;collectionWallMillis=0L;pending=$false;pendingStartedUtc='';lastAttempt='';conservativeRecovery=$false}
+    }
+    if($budget.pending){throw 'TRAIN007_PENDING_NATIVE_RESERVATION_REQUIRES_OWN_EXIT_AUDIT'}
+    $collection=$script:Config.exploration007Phase -ceq 'COLLECT'
+    if([int]$budget.starts -ge 8 -or [long]$budget.wallMillis -ge 5400000 -or ($collection -and ([int]$budget.collectionStarts -ge 3 -or [long]$budget.collectionWallMillis -ge 3600000))){throw 'TRAIN007_NATIVE_BUDGET_EXHAUSTED'}
+    $budget.starts=[int]$budget.starts+1;if($collection){$budget.collectionStarts=[int]$budget.collectionStarts+1}
+    $budget.pending=$true;$budget.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $budgetPath $budget
+    $budgetTimer=[Diagnostics.Stopwatch]::StartNew()
+    try{Invoke-TrainNative $Dependencies $Jar}finally{
+        $nativePath=Join-Path $layout.Root 'native-process.json'
+        if((Test-Path -LiteralPath $nativePath) -and (Test-TrainProcessAbsent (Read-TrainJson $nativePath))){
+            $elapsed=[long]$budgetTimer.ElapsedMilliseconds
+            $budget.wallMillis=[long]$budget.wallMillis+$elapsed;if($collection){$budget.collectionWallMillis=[long]$budget.collectionWallMillis+$elapsed}
+            $budget.lastAttempt=$script:State.attemptId;$budget.pending=$false;Write-TrainJson $budgetPath $budget
+        }
     }
 }
 function Start-TrainSql($Dependencies) {
@@ -473,6 +510,29 @@ function Invoke-TrainDirector {
         $script:SqlRecord=Start-TrainSql $dependencies
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
+        if($script:Config.ContainsKey('exploration007Enabled') -and $script:Config.exploration007Enabled -ceq 'true'){
+            if($script:Config.exploration007Campaign -cne 'learning007-causal-v1' -or $script:Config.exploration007Dataset -cne 'learning007-advantage-v1'){throw 'TRAIN007_EXACT_CAMPAIGN_REQUIRED'}
+            Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning007Native' @('prepare',$layout.Root)
+            if($script:Config.exploration007Phase -ceq 'COLLECT'){
+                $complete=Join-Path $layout.Root 'outcome006\campaigns\learning007-causal-v1\native.complete'
+                if(!(Test-Path -LiteralPath $complete)){Reset-TrainColdBaseline;Invoke-Train007Native $dependencies $jar}
+            }elseif($script:Config.exploration007Phase -ceq 'FIT'){
+                if($script:Config.ContainsKey('exploration007VerifyRollback') -and $script:Config.exploration007VerifyRollback -ceq 'true'){
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning007Checks' @('fault-readback',$layout.Root)
+                }
+                Publish-TrainState 'EVALUATING' 'Advantage007 offline fit; native collection is stopped.'
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning007Checks' @('offline',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('export',$layout.Root)
+            }elseif($script:Config.exploration007Phase -in @('EVALUATE','CONTROL')){
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+                Reset-TrainColdBaseline;Invoke-Train007Native $dependencies $jar
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)
+            }elseif($script:Config.exploration007Phase -cne 'PREPARE'){throw 'TRAIN007_UNKNOWN_PHASE'}
+            Publish-TrainState 'PAUSED' 'Advantage007 segment settled; history and native reservations retained.'
+            while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}
+            return
+        }
         if($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'OUTCOME006'){
             if(!$script:Config.ContainsKey('outcome006Phase') -or $script:Config.outcome006Phase -notin @('PREPARE','COLLECT','PROOF','EVALUATE','CONTROL')){throw 'OUTCOME006_PHASE_NOT_IMPLEMENTED'}
             if($script:Config.outcome006Phase -ceq 'COLLECT'){

@@ -105,6 +105,7 @@ public final class TacticalTrainerV3
     {
         final var store = new TacticalStoreV3(root); store.initialize(); store.requireStopped();
         store.ensureLegacyParent();
+        if(store.advantageMode()){return evaluateAdvantage(store);}
         if (store.terminalMode()) { return evaluateTerminal(store); }
         final var prior = store.latestAccepted();
         final var optimizerParent = store.optimizationParent();
@@ -189,6 +190,35 @@ public final class TacticalTrainerV3
         return publish(store,new Evaluation("DRAFT",prior==null?0:prior.id(),prior==null?"":prior.sha(),
             "Terminal targets fitted from exact optimizer parent; immutable TEST draft requires independent native evaluation",candidate.id(),candidate.sha(),metrics));
     }
+    private static Evaluation evaluateAdvantage(TacticalStoreV3 store) throws IOException,SQLException
+    {
+        final var prior=store.latestAccepted();final var parent=store.optimizationParent();
+        final var frozen=store.freezeAdvantage();
+        if(frozen==null)
+        {
+            final var working=store.candidate(parent.modelId());
+            if(working!=null&&working.metrics().contains("\"objective\":\""+ActionAdvantageV1.OBJECTIVE+"\""))
+            {store.advantageSnapshot(working.id());return publish(store,new Evaluation("DRAFT",prior.id(),prior.sha(),"Сохранённый advantage DRAFT восстановлен без повторного credit.",working.id(),working.sha(),working.metrics()));}
+            return publish(store,new Evaluation("COLLECTING",prior.id(),prior.sha(),"Недостаточно независимых TRAIN baseline/paid decisions для advantage007.",0,"","{\"objective\":\""+ActionAdvantageV1.OBJECTIVE+"\",\"advantageUsedForTraining\":false}"));
+        }
+        if(parent.modelId()!=9||!parent.sha().equals("f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c")
+            ||!parent.state().model().sha256().equals("dc82041d52cb92918990a64d6d003931139e20d82e3a02cd3a973559994158ed"))
+        {throw new IllegalArgumentException("007 requires exact terminal Adam9, never selected early-stopping weights");}
+        final long started=System.nanoTime();
+        final var trained=TacticalModelV3.continueTrainingWeighted(parent.state(),frozen.weightedExamples(),frozen.examples("TUNING"));
+        final long elapsed=System.nanoTime()-started;final var fit=trained.fit();
+        final String basic=frozen.metrics();
+        final String metrics=basic.substring(0,basic.length()-1)+",\"epochs\":"+fit.epochs()+",\"trainingNanos\":"+elapsed
+            +",\"tuningInitialMse\":"+fit.initialLoss()+",\"tuningMse\":"+fit.loss()+",\"advantageAuditMse\":"+fit.model().loss(frozen.examples("AUDIT"))
+            +",\"advantageConstantMse\":"+frozen.constantLoss()+",\"parentModelVersion\":"+parent.modelId()+",\"parentOptimizerSha\":"+quote(parent.sha())
+            +",\"parentWeightsSha\":"+quote(parent.state().model().sha256())+",\"optimizerSha\":"+quote(trained.continuation().sha256())
+            +",\"optimizerUpdates\":"+trained.continuation().updates()+",\"completedEpochs\":"+trained.continuation().completedEpochs()
+            +",\"optimizerWeightsSha\":"+quote(trained.continuation().model().sha256())
+            +",\"advantageUsedForTraining\":true,\"optimizerMigration\":\"RESTORED\",\"limitation\":\"Stochastic outcomes, paid-selection bias and clipped IPS; score gaps do not prove causal superiority\"}";
+        final var candidate=store.saveAdvantage(frozen,trained,parent,prior,metrics);
+        if(!store.advantageSnapshot(candidate.id()).datasetSha().equals(frozen.datasetSha())){throw new IllegalArgumentException("Committed007 target changed");}
+        return publish(store,new Evaluation("DRAFT",prior.id(),prior.sha(),"Advantage DRAFT обучен от terminal Adam9; требуется независимая проверка решений.",candidate.id(),candidate.sha(),metrics));
+    }
     private static Evaluation publish(TacticalStoreV3 store, Evaluation evaluation) throws IOException
     {
         final String json = json(evaluation) + "\n";
@@ -229,6 +259,7 @@ public final class TacticalTrainerV3
         if (working == null) { throw new IllegalArgumentException("Working V3 checkpoint missing"); }
         final byte[] replay = TacticalStoreV3.pack(working.rows());
         final var terminal=working.metrics().contains("\"objective\":\"TERMINAL_OUTCOME_V1\"")?store.terminalSnapshot(working.id()):null;
+        final var advantage=working.metrics().contains("\"objective\":\""+ActionAdvantageV1.OBJECTIVE+"\"")?store.advantageSnapshot(working.id()):null;
         final byte[] contexts = working.origin().equals("NATIVE_COMBAT") ? store.replayContexts(working.runId(),working.datasetSha(),working.rows()) : null;
         final Path directory = store.installation().resolve("tactical-v3-exports");
         Files.createDirectories(directory);
@@ -241,8 +272,11 @@ public final class TacticalTrainerV3
             + ",\"datasetSha\":" + quote(model.datasetSha()) + ",\"weightBytes\":" + TacticalModelV3.WEIGHT_BYTES + ",\"metrics\":" + model.metrics()
             + ",\"workingModelVersion\":" + working.id() + ",\"workingStatus\":" + quote(working.status()) + ",\"workingWeightsSha\":" + quote(working.sha())
             + ",\"optimizerSha\":" + quote(optimizer.sha()) + ",\"optimizerUpdates\":" + optimizer.state().updates() + ",\"completedEpochs\":" + optimizer.state().completedEpochs()
+            + ",\"optimizerWeightsSha\":" + quote(optimizer.state().model().sha256())
             + ",\"replaySha\":" + quote(TacticalObservationV3.hash(replay)) + ",\"contextReplaySha\":" + (contexts == null ? "null" : quote(TacticalObservationV3.hash(contexts)))
             + ",\"terminalDatasetSha\":"+(terminal==null?"null":quote(terminal.datasetSha()))
+            + ",\"advantageDatasetSha\":"+(advantage==null?"null":quote(advantage.datasetSha()))
+            + ",\"advantageConfigSha\":"+(advantage==null?"null":quote(ActionAdvantageV1.CONFIG_SHA))
             + ",\"rewardConfigSha\":"+(terminal==null?"null":quote(terminal.configSha()))
             + ",\"workingRunId\":" + quote(optimizer.runId()) + ",\"episodeCounts\":" + store.episodeCounts() + "}";
         try
@@ -253,6 +287,16 @@ public final class TacticalTrainerV3
                 entry(zip,"events.bin",TacticalStoreV3.pack(model.rows()));
                 entry(zip,"optimizer.bin",optimizer.state().bytes());
                 entry(zip,"replay.bin",replay);
+                if(advantage!=null)
+                {
+                    entry(zip,"advantage-targets.bin",advantage.bytes());
+                    final var targets=advantage.targets();
+                    final String rows=advantage.samples().stream().map(s->"{\"naturalKey\":"+quote(s.terminal().naturalKey())+",\"actionKey\":"+quote(s.actionKey())
+                        +",\"receiptSha\":"+quote(s.terminal().sha256())+",\"selectionSha\":"+quote(s.selection().sha256())+",\"split\":"+quote(s.selection().split())
+                        +",\"gradientUsed\":"+(s.selection().split().equals("TRAIN")&&s.selection().experimental()&&targets.stream().anyMatch(t->t.sample().actionKey().equals(s.actionKey())))
+                        +",\"modelVersion\":"+working.id()+",\"optimizerSha\":"+quote(optimizer.sha())+"}").collect(java.util.stream.Collectors.joining("\n"))+"\n";
+                    entry(zip,"advantage-applications.jsonl",rows.getBytes(StandardCharsets.UTF_8));
+                }
                 if(terminal!=null)
                 {
                     entry(zip,"terminal-targets.bin",terminal.bytes());

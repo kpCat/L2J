@@ -22,6 +22,7 @@ import org.l2jmobius.tests.phantoms.PhantomLearning005Evaluation.*;
 public final class PhantomLearning005Native
 {
 	private static final String BASE="dff800f4b95232c132b374f8ec97c932eda4a6b1";
+	private static volatile boolean advantageDeadline;
 	public static void main(String[] args)
 	{
 		int exit=1;
@@ -60,15 +61,27 @@ public final class PhantomLearning005Native
 	}
 	private static String jarSha(Path root) throws Exception{return NeuralPolicy.sha256(Files.readAllBytes(root.resolve("game/libs/GameServer.jar")));}
 	static boolean outcomeEvaluation(TrainingConfig c)
-	{return c.text("configProfile","").equals("OUTCOME006")&&c.text("outcome006Campaign","").equals("learning006r1")&&Set.of("PROOF","EVALUATE","CONTROL").contains(c.text("outcome006Phase",""));}
+	{return advantageEvaluation(c)||c.text("configProfile","").equals("OUTCOME006")&&c.text("outcome006Campaign","").equals("learning006r1")&&Set.of("PROOF","EVALUATE","CONTROL").contains(c.text("outcome006Phase",""));}
+	static boolean advantageEvaluation(TrainingConfig c)
+	{return c.text("configProfile","").equals("OUTCOME006")&&PhantomLearning007Native.enabled(c)&&Set.of("EVALUATE","CONTROL").contains(c.text("exploration007Phase",""));}
 	private static DraftAuthority draftAuthority(TrainingConfig c)
-	{return new DraftAuthority(c.longValue("outcome006DraftId",0,9,Long.MAX_VALUE),c.text("outcome006DraftSha",""),c.text("outcome006TerminalDatasetSha",""),c.text("outcome006OptimizerSha",""),c.text("outcome006RunId",""));}
+	{return advantageEvaluation(c)?new DraftAuthority(c.longValue("exploration007DraftId",0,10,Long.MAX_VALUE),c.text("exploration007DraftSha",""),c.text("exploration007TargetSha",""),c.text("exploration007OptimizerSha",""),c.text("exploration007RunId",""),"EVAL007")
+		:new DraftAuthority(c.longValue("outcome006DraftId",0,9,Long.MAX_VALUE),c.text("outcome006DraftSha",""),c.text("outcome006TerminalDatasetSha",""),c.text("outcome006OptimizerSha",""),c.text("outcome006RunId",""));}
 	private static Pin draftPin(TrainingConfig c,Mode mode)
 	{final var a=draftAuthority(c);return new Pin(mode,a.modelId(),"DRAFT",a.modelSha(),TacticalObservationV3.SCHEMA,3,a);}
 	private static TacticalStoreV3.Checkpoint verifiedDraft(Path root,TrainingConfig c) throws Exception
 	{
 		final var pin=draftAuthority(c);final var store=new TacticalStoreV3(root);store.initialize();
 		final var model=store.candidate(pin.modelId());final var optimizer=store.optimizationParent();
+		if(advantageEvaluation(c))
+		{
+			if(model==null||!model.status().equals("DRAFT")||!model.sha().equals(pin.modelSha())||!model.runId().equals(pin.runId())||optimizer.modelId()!=pin.modelId()||!optimizer.sha().equals(pin.optimizerSha())
+				||!model.metrics().contains("\"objective\":\""+ActionAdvantageV1.OBJECTIVE+"\"")){throw new IllegalArgumentException("Frozen007 DRAFT authority changed");}
+			var frozen=store.advantageSnapshot(model.id());if(!frozen.datasetSha().equals(pin.terminalDatasetSha())){throw new IllegalArgumentException("Frozen007 targets changed");}
+			var offline=org.l2jmobius.gameserver.phantoms.learning.Learning007Checks.offlineResult(model,frozen);
+			if(!offline.solo()&&!offline.party()){throw new IllegalArgumentException("G4 did not admit any007 native mode");}
+			return model;
+		}
 		if(model==null||!model.status().equals("DRAFT")||!model.sha().equals(pin.modelSha())||!model.runId().equals(pin.runId())
 			||optimizer.modelId()!=pin.modelId()||!optimizer.sha().equals(pin.optimizerSha())||!store.terminalSnapshot(pin.modelId()).datasetSha().equals(pin.terminalDatasetSha())
 			||!model.metrics().contains("\"objective\":\"TERMINAL_OUTCOME_V1\"")){throw new IllegalArgumentException("Frozen terminal DRAFT lineage differs from evaluation authority");}
@@ -76,11 +89,13 @@ public final class PhantomLearning005Native
 	}
 	static String evaluationName(TrainingConfig c)
 	{
+		if(advantageEvaluation(c))
+		{String phase=c.text("exploration007Phase","").toLowerCase(Locale.ROOT),name=c.text("exploration007EvaluationCampaign",phase+"-v1");if(!name.matches("[a-z][a-z0-9_-]{0,63}")||!name.startsWith(phase)){throw new IllegalArgumentException("007 phase namespace required");}return name;}
 		final String phase=c.text("outcome006Phase","").toLowerCase(Locale.ROOT),name=c.text("outcome006EvaluationCampaign",phase);
 		if(!name.matches("[a-z][a-z0-9_-]{0,63}")||!name.startsWith(phase)){throw new IllegalArgumentException("Explicit phase-scoped evaluation campaign name required");}return name;
 	}
-	private static String campaign(TrainingConfig c){return outcomeEvaluation(c)?"learning006r1-"+evaluationName(c):c.text("evaluation005Campaign","");}
-	private static Path directory(Path root,TrainingConfig c){return outcomeEvaluation(c)?root.resolve("outcome006/evaluation006r1").resolve(evaluationName(c)):root.resolve("evaluation005").resolve(c.text("evaluation005Campaign",""));}
+	private static String campaign(TrainingConfig c){return advantageEvaluation(c)?"learning007-"+evaluationName(c):outcomeEvaluation(c)?"learning006r1-"+evaluationName(c):c.text("evaluation005Campaign","");}
+	private static Path directory(Path root,TrainingConfig c){return advantageEvaluation(c)?root.resolve("outcome006/evaluation007").resolve(evaluationName(c)):outcomeEvaluation(c)?root.resolve("outcome006/evaluation006r1").resolve(evaluationName(c)):root.resolve("evaluation005").resolve(c.text("evaluation005Campaign",""));}
 	private static PhantomLearning005Ledger ledger(Path root,TrainingConfig c) throws Exception
 	{return new PhantomLearning005Ledger(directory(root,c),campaign(c),jarSha(root),protocol(c),outcomeEvaluation(c)?draftAuthority(c):null);}
 	private static String protocol(TrainingConfig c) throws Exception
@@ -207,11 +222,20 @@ public final class PhantomLearning005Native
 		Files.writeString(directory(root,c).resolve("admission.json"),admission+"\n");System.out.println("EVAL006R1_ADMISSION "+admission);
 		report(root,c);
 	}
-	private static String trainingState(Path root) throws Exception
+	private static String trainingState(Path root,boolean seven) throws Exception
 	{
 		final var parent=new TacticalStoreV3(root).optimizationParent();
 		try(var connection=DatabaseFactory.getConnection();var sql=connection.createStatement();var rows=sql.executeQuery("SELECT (SELECT COUNT(*) FROM phantom_tactical_v3_terminal_rewards),(SELECT COUNT(*) FROM phantom_tactical_v3_terminal_applications),(SELECT COUNT(*) FROM phantom_tactical_v3_models),(SELECT COUNT(*) FROM phantom_tactical_v3_optimizers)"))
-		{if(!rows.next()){throw new IllegalStateException("Evaluation train state missing");}return counts()+"/"+rows.getLong(1)+"/"+rows.getLong(2)+"/"+rows.getLong(3)+"/"+rows.getLong(4)+"/"+parent.sha();}
+		{
+			if(!rows.next()){throw new IllegalStateException("Evaluation train state missing");}
+			String result=counts()+"/"+rows.getLong(1)+"/"+rows.getLong(2)+"/"+rows.getLong(3)+"/"+rows.getLong(4)+"/"+parent.sha();
+			if(seven)
+			{
+				try(var extra=connection.createStatement();var markers=extra.executeQuery("SELECT (SELECT COUNT(*) FROM phantom_tactical_v3_advantage_snapshots),(SELECT COUNT(*) FROM phantom_tactical_v3_advantage_applications),(SELECT COUNT(*) FROM phantom_tactical_v3_advantage_applications WHERE gradient_used=TRUE)"))
+				{if(!markers.next()){throw new IllegalStateException("Evaluation007 advantage state missing");}result+="/"+markers.getLong(1)+"/"+markers.getLong(2)+"/"+markers.getLong(3);}
+			}
+			return result;
+		}
 	}
 	private static boolean fairOutcomeQuota(PhantomLearning005Ledger ledger,Mode mode) throws Exception
 	{
@@ -223,13 +247,17 @@ public final class PhantomLearning005Native
 		configuration(root);PhantomTrainingActors.settings(root);final var model=verifiedDraft(root,c);
 		final var v1=new LearningStore(DatabaseConfig.DATABASE_URL,DatabaseConfig.DATABASE_LOGIN,DatabaseConfig.DATABASE_PASSWORD,root.resolve("game")).accepted(1);
 		if(v1==null||!v1.model().sha256().equals(PhantomLearning005Evaluation.approved(Mode.SOLO_DAMAGE_V1).sha())){throw new IllegalStateException("Stock side observer model unavailable");}
-		final String before=trainingState(root),jar=jarSha(root);final boolean ab=c.text("outcome006Phase","").equals("EVALUATE");
+		final boolean seven=advantageEvaluation(c);
+		advantageDeadline=seven;
+		final String before=trainingState(root,seven),jar=jarSha(root);final boolean ab=(seven?c.text("exploration007Phase",""):c.text("outcome006Phase","")).equals("EVALUATE");
+		final var offline=seven?org.l2jmobius.gameserver.phantoms.learning.Learning007Checks.offlineResult(model,new TacticalStoreV3(root).advantageSnapshot(model.id())):null;
 		for(int i=0;i<2048;i++){model.model().scoreEncoded(model.model().encode(new float[128]),new float[64]);}
 		try(var ledger=ledger(root,c);var authority=PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
-			final boolean smoke=ab&&ledger.arms().isEmpty();final int limit=ab&&!smoke?8:1;
+			final boolean smoke=ab&&ledger.arms().isEmpty();final int limit=seven?(ab?4:1):ab&&!smoke?8:1;
 			for(var mode:Mode.values())
 			{
+				if(seven&&!(mode==Mode.SOLO_DAMAGE_V1?offline.solo():offline.party())){continue;}
 				for(int ordinal=0;ordinal<limit&&!requested(attempt);ordinal++)
 				{
 					if(ab&&fairOutcomeQuota(ledger,mode)){break;}
@@ -259,9 +287,9 @@ public final class PhantomLearning005Native
 				}
 			}
 		}
-		if(!before.equals(trainingState(root))){throw new IllegalStateException("EVAL006R1 changed training credit or optimizer");}
-		Files.writeString(attempt.resolve("evaluation006r1.training-unchanged.json"),"{\"before\":"+PhantomLearning005Evaluation.q(before)+",\"after\":"+PhantomLearning005Evaluation.q(trainingState(root))+",\"equal\":true}\n",StandardOpenOption.CREATE_NEW);
-		Files.writeString(attempt.resolve("batch.complete"),"schemaVersion=6\nevaluationOnly=true\n",StandardOpenOption.CREATE_NEW);report(root,c);
+		if(!before.equals(trainingState(root,seven))){throw new IllegalStateException("Evaluation changed training credit or optimizer");}
+		Files.writeString(attempt.resolve(seven?"evaluation007.training-unchanged.json":"evaluation006r1.training-unchanged.json"),"{\"before\":"+PhantomLearning005Evaluation.q(before)+",\"after\":"+PhantomLearning005Evaluation.q(trainingState(root,seven))+",\"equal\":true}\n",StandardOpenOption.CREATE_NEW);
+		Files.writeString(attempt.resolve("batch.complete"),"schemaVersion="+(seven?7:6)+"\nevaluationOnly=true\n",StandardOpenOption.CREATE_NEW);report(root,c);
 	}
 	private record Raw(String key,String json,byte[] observation) { }
 	private static String skill(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill s){return s.skillId()+":"+s.skillLevel();}
@@ -269,9 +297,9 @@ public final class PhantomLearning005Native
 	private static void arm(Path root,Path attempt,TrainingConfig config,PhantomBackgroundSuite.ProductionAuthorityFixture authority,PhantomLearning005Ledger ledger,
 		NeuralPolicy damage,TacticalModelV3 heal,PhantomTrainingScenarios.Scene scene,String pair,Mode mode,Side side,int position,int ordinal,int x,int y,int z,String jar) throws Exception
 	{
-		final boolean r1=outcomeEvaluation(config),neural=side==Side.LEARNED&&!config.text("outcome006Phase","").equals("CONTROL");
+		final boolean r1=outcomeEvaluation(config),neural=side==Side.LEARNED&&!(advantageEvaluation(config)?config.text("exploration007Phase",""):config.text("outcome006Phase","")).equals("CONTROL");
 		final Pin evaluationPin=r1?draftPin(config,mode):PhantomLearning005Evaluation.approved(mode);
-		final Path work=attempt.resolve(r1?"evaluation006r1":"evaluation005").resolve(pair+"-"+side);Files.createDirectories(work);
+		final Path work=attempt.resolve(advantageEvaluation(config)?"evaluation007":r1?"evaluation006r1":"evaluation005").resolve(pair+"-"+side);Files.createDirectories(work);
 		final var effects=new ConcurrentLinkedQueue<Effect>();final var raw=new ConcurrentLinkedQueue<Raw>();final var heals=new ConcurrentLinkedQueue<TacticalReceiptV3>();
 		final var nativeTimes=new ConcurrentHashMap<String,TerminalRewardReceiptV1.NativeTiming>();
 		if(r1){TerminalRewardReceiptV1.nativeTimingObserver(t->{if(nativeTimes.size()>=2048){throw new IllegalStateException("006R1 timing capacity");}nativeTimes.put(t.eventKey(),t);});}
@@ -419,9 +447,9 @@ public final class PhantomLearning005Native
 		metrics.put("observedHealMpDebit",r1?effects.stream().filter(e->e.family()==Family.HEAL).mapToDouble(e->e.mp()==null?0:e.mp()).sum():mp);
 		if(r1){metrics.put("rawObservedUsefulHealIncludingDrain",hp);metrics.put("rawObservedHealMpIncludingDrain",mp);}
 	}
-	private static String nativeReceiptJson(TacticalReceiptV3 receipt)
+	static String nativeReceiptJson(TacticalReceiptV3 receipt)
 	{return "{\"schemaVersion\":6,\"format\":\"IMMUTABLE_JAVA_RECORD_TEXT_V1\",\"nativeRecord\":"+PhantomLearning005Evaluation.q(receipt.toString())+",\"observationSha\":"+PhantomLearning005Evaluation.q(NeuralPolicy.sha256(receipt.attempt().observation().bytes()))+"}";}
-	private static Map<String,String> facts(List<Player> players,Monster target,PhantomTrainingScenarios.Scene scene,TrainingConfig config) throws Exception
+	static Map<String,String> facts(List<Player> players,Monster target,PhantomTrainingScenarios.Scene scene,TrainingConfig config) throws Exception
 	{
 		final var result=new TreeMap<String,String>();final var classes=new ArrayList<String>();final var skills=new ArrayList<String>();final var equipment=new ArrayList<String>();final var buffs=new ArrayList<String>();final var health=new ArrayList<String>();final var positions=new ArrayList<String>();final var roles=new ArrayList<String>();
 		final var geo=GeoEngine.getInstance();final var los=new ArrayList<String>();
@@ -480,14 +508,21 @@ public final class PhantomLearning005Native
 		if(arms.size()==expected){Files.writeString(dir.resolve("native.complete"),"Budget settled; implementation acceptance remains G0-G8\n");}
 		System.out.println("EVAL005_REPORT "+summary);
 	}
-	private static boolean requested(Path attempt){return Files.exists(attempt.resolve("stop.request"))||Files.exists(attempt.resolve("pause.request"));}
+	private static boolean requested(Path attempt)
+	{
+		if(Files.exists(attempt.resolve("stop.request"))||Files.exists(attempt.resolve("pause.request"))){return true;}
+		return advantageDeadline&&PhantomLearning007Native.evaluationDeadline(attempt.getParent().getParent());
+	}
 	private static void reportOutcome(Path root,TrainingConfig c) throws Exception
 	{
 		final List<Arm> arms;final List<org.l2jmobius.tests.phantoms.PhantomLearning005Evaluation.Pair> pairs;boolean quota=true;
 		try(var ledger=ledger(root,c)){arms=ledger.arms();pairs=ledger.pairs();for(var mode:Mode.values()){quota&=fairOutcomeQuota(ledger,mode);}}
-		final boolean ab=c.text("outcome006Phase","").equals("EVALUATE"),settled=ab?(quota||arms.size()>=32):arms.size()>=4;
+		final boolean seven=advantageEvaluation(c),ab=(seven?c.text("exploration007Phase",""):c.text("outcome006Phase","")).equals("EVALUATE");
+		final var admitted=seven?org.l2jmobius.gameserver.phantoms.learning.Learning007Checks.offlineResult(new TacticalStoreV3(root).candidate(draftAuthority(c).modelId()),new TacticalStoreV3(root).advantageSnapshot(draftAuthority(c).modelId())):null;
+		final int expected=seven?((admitted.solo()?1:0)+(admitted.party()?1:0))*(ab?8:2):ab?32:4;
+		final boolean settled=seven?arms.size()>=expected:ab?(quota||arms.size()>=32):arms.size()>=4;
 		final var summaries=new ArrayList<String>();
-		final var text=new StringBuilder("# PHANTOM-LEARNING-006R1 — независимые TEST наблюдения\n\nНовая модель DRAFT, accepted1/2 неизменны. EVAL никогда не обучает. Game verdict INCONCLUSIVE: бюджет меньше20пар на режим.\n\n");
+		final var text=new StringBuilder("# PHANTOM-LEARNING-"+(seven?"007":"006R1")+" — независимые TEST наблюдения\n\nНовая модель DRAFT, accepted1/2 неизменны. EVAL никогда не обучает. Game verdict INCONCLUSIVE: бюджет меньше20пар на режим.\n\n");
 		text.append("Native outcome подтверждается отдельно terminal.json; неполная action evidence не означает отсутствие kill. UNKNOWN deaths/loot/economy не заменяются0. Score/margin пересчитаны после drain по frozen model и exact observation; native selection и paid effect — из настоящих owners.\n\n");
 		for(var mode:Mode.values())
 		{
@@ -498,7 +533,7 @@ public final class PhantomLearning005Native
 			text.append("## ").append(name).append("\n\nFair completed pairs: ").append(s.n()).append("; A→B=").append(firstA).append("; B→A=").append(firstB).append("; paid divergences=").append(s.divergences()).append(". Median Δms=").append(s.median()).append("; 95% bootstrap CI=").append(s.ciLow()).append("…").append(s.ciHigh()).append(".\n\n");
 			for(var p:selected){text.append("- ").append(p.id()).append(": ").append(p.status()).append('/').append(p.reason()).append("; A=").append(p.stock().outcome()).append('/').append(p.stock().elapsedMillis()).append("ms; B=").append(p.learned().outcome()).append('/').append(p.learned().elapsedMillis()).append("ms; divergences=").append(p.divergences()).append("; deltas=").append(p.deltas()).append(".\n");}
 		}
-		final String summary="{\"schemaVersion\":6,\"split\":\"EVAL006R1\",\"campaign\":"+PhantomLearning005Evaluation.q(campaign(c))+",\"authority\":"+draftAuthority(c).json()+",\"jarSha\":"+PhantomLearning005Evaluation.q(jarSha(root))+",\"protocolSha\":"+PhantomLearning005Evaluation.q(protocol(c))+",\"arms\":"+arms.size()+",\"quota\":"+quota+",\"budgetSettled\":"+settled+",\"modes\":["+String.join(",",summaries)+"],\"trainingCredit\":false,\"gameVerdict\":\"INCONCLUSIVE\"}";
+		final String summary="{\"schemaVersion\":"+(seven?7:6)+",\"split\":"+PhantomLearning005Evaluation.q(draftAuthority(c).namespace())+",\"campaign\":"+PhantomLearning005Evaluation.q(campaign(c))+",\"authority\":"+draftAuthority(c).json()+",\"jarSha\":"+PhantomLearning005Evaluation.q(jarSha(root))+",\"protocolSha\":"+PhantomLearning005Evaluation.q(protocol(c))+",\"arms\":"+arms.size()+",\"quota\":"+quota+",\"budgetSettled\":"+settled+",\"modes\":["+String.join(",",summaries)+"],\"trainingCredit\":false,\"gameVerdict\":\"INCONCLUSIVE\"}";
 		Files.writeString(directory(root,c).resolve("summary.json"),summary+"\n");Files.writeString(directory(root,c).resolve("report.md"),text,StandardCharsets.UTF_8);
 		final Path complete=directory(root,c).resolve("native.complete");if(settled&&!Files.exists(complete)){Files.writeString(complete,"Bounded evaluation settled; no training or promotion.\n",StandardOpenOption.CREATE_NEW);}
 		System.out.println("EVAL006R1_REPORT "+summary);

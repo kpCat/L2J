@@ -1275,6 +1275,26 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning007-test" depends="compile-tests" description="Run bounded TRAIN exploration, executed advantage and isolated EVAL007 contracts without database access.">
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning007Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="selection" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning007Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="objective" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning007Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="authority" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning007Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="mathematics" />
+		</java>
+	</target>
+
 	<target name="phantom-combat-action-ownership-test" depends="compile-tests" description="Run exact dispatch, cleanup, loot, skill and respawn ownership tests.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
