@@ -38,6 +38,12 @@ N09: независимый native EVAL009 не подменяется исто�
 ## Публикация и независимый readback
 
 Source/evidence commit: `ac712dbb0fef304daffb528a4d33b2dd52b3c63f`, parent `85b1c3558e35c1df0a7625fcf5a9e5c119c18b96`. Обычный non-force push только `wip/phantom-learning-009`, exit0. GitHub connector независимо подтвердил branch=commit (compare identical/0ahead/0behind), один commit поверх008 и exact39diff paths. Все25source blobs, EVIDENCE и ZIP прочитаны connector с совпавшими Git blob IDs. Remote EVIDENCE:PARTIAL/fits0/nightReadyfalse/manualgateREQUIRED.
-Архив591282bytes/119entries, SHA256 `bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652`, local CRC и every-entry SHAreadbackPASS. Архив — pre-publication snapshot; поздний docs-only receipt не включён в него. MAIN/feature HEAD повторно прочитан:7e997636dbac9d5e1754e00c793cd6fac858b0c6, записи не выполнялись.
+Исторический архив до Status fix:591282bytes/119entries, SHA256 `bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652`, local CRC и every-entry SHAreadbackPASS. Архив — pre-publication snapshot; поздний docs-only receipt не включён в него. MAIN/feature HEAD повторно прочитан:7e997636dbac9d5e1754e00c793cd6fac858b0c6, записи не выполнялись.
 
 Final docs-only publication receipt меняет только6изужеутверждённых39paths: EVIDENCE/RESULT/ACCEPTANCE/HANDOFF/COMMANDS иполныйreport. Source25/ZIP/runtime не меняются. Следующий Goal/Slice не создан; manualgateREQUIRED, FULL009неподтверждён.
+
+
+## Последняя проверка CLI Status
+
+После publication receipt11425af7366… read-only `Status -Json` выявил StrictMode PropertyNotFound на пустойDкогорте: Measure-Object не давал Sum; pre-CUT rows также не обязаны содержать outcome/paidRawEffects. Минимальный fix только в3ранее разрешённыхPSpaths: optional field-safe Get-TrainEpisodeSummary; учёт только reserved.json directories;3focused cases empty/pre-CUT/mixed. REDmissinghelper→GREEN, Test-Configexit0; реальныйStatusexit0:STOPPED/directorLivefalse/attempted0/paidEffects0/starts6/fits0. Independentread-onlyreviewCritical/Importantнеобнаружил. SQL/GameServer не запускались, model/Adam/runtimeconfig/budget не менялись.
+Архив пересобран с обновлённымиPSsource; старый архивbd1217e0… сохранён побайтно внеcheckout. Его SHA в предыдущем publication receipt является историческим. Актуальный архив и source hashes — EVIDENCE. Новый bounded commit/push затрагивает только тежеapproved39paths; дополнительныхGoal/Slice/nativebudget нет. Перед окончательным ответом требуется independent remote HEAD/diff/PS-source/EVIDENCE/ZIP readback.

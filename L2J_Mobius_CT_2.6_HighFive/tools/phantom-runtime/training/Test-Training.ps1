@@ -402,7 +402,14 @@ if ($Action -eq 'Test-Config') {
     Require ((Get-TrainHeartbeat ($now.ToString('o')) $now).state -ceq 'FRESH') 'FRESH_HEARTBEAT_REJECTED'
     Require ((Get-TrainHeartbeat ($now.AddMinutes(-2).ToString('o')) $now).state -ceq 'STALE') 'STALE_HEARTBEAT_PRESENTED_AS_CURRENT'
     Require ((Get-TrainHeartbeat 'broken' $now).state -ceq 'UNKNOWN') 'INVALID_HEARTBEAT_PRESENTED_AS_CURRENT'
-    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=6 heartbeat=3 SQL=0 NATIVE=0'
+    $empty=Get-TrainEpisodeSummary @() 0
+    Require ($empty.attempted -eq 0 -and $empty.settled -eq 0 -and $empty.paidEffects -eq 0 -and $empty.classes.Count -eq 0) 'EMPTY_COHORT_STATUS_FAILED'
+    $refused=[pscustomobject]@{classId=103;exclusion='PRE_CUT_REFUSED'}
+    $precut=Get-TrainEpisodeSummary @($refused) 1
+    Require ($precut.settled -eq 1 -and $precut.completed -eq 0 -and $precut.failed -eq 0 -and $precut.paidEffects -eq 0 -and $precut.classes.Count -eq 0) 'PRE_CUT_STATUS_INVENTED_EFFECTS'
+    $native=Get-TrainEpisodeSummary @($refused,[pscustomobject]@{classId=94;afterCut=$true;outcome='COMPLETED';paidRawEffects=2},[pscustomobject]@{classId=110;afterCut=$true;outcome='FAILED';paidRawEffects=0}) 3
+    Require ($native.attempted -eq 3 -and $native.settled -eq 3 -and $native.completed -eq 1 -and $native.failed -eq 1 -and $native.paidEffects -eq 2 -and ($native.classes -join ',') -ceq '94,110') 'MIXED_COHORT_STATUS_INCORRECT'
+    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=6 heartbeat=3 episodeSummary=3 SQL=0 NATIVE=0'
     return
 }
 # Authorized OWN disposable TEST fault only: active package TEST_CASES.md T08/T14

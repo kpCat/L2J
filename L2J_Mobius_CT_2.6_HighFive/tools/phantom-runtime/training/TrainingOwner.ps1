@@ -276,6 +276,18 @@ function Get-TrainAdaptiveIdle($Config,$Resource) {
     $decision.predictedAverageNativeCpuPercent=[Math]::Round(100*$cpu/($cores*($elapsed/1000.0+$delay)),3)
     return $decision
 }
+function Get-TrainEpisodeSummary([object[]]$Rows,[int]$Attempted) {
+    if($null -eq $Rows){$Rows=@()}
+    $completed=0;$failed=0;[long]$effects=0;$classes=@()
+    foreach($row in $Rows){
+        $outcome=$row.PSObject.Properties['outcome'];$afterCut=$row.PSObject.Properties['afterCut'];$classId=$row.PSObject.Properties['classId'];$paid=$row.PSObject.Properties['paidRawEffects']
+        if($outcome -and $outcome.Value -ceq 'COMPLETED'){$completed++}
+        if($outcome -and $outcome.Value -ceq 'FAILED'){$failed++}
+        if($afterCut -and $afterCut.Value -eq $true -and $classId){$classes+=([int]$classId.Value)}
+        if($paid -and $null -ne $paid.Value){$effects+=[long]$paid.Value}
+    }
+    return @{attempted=$Attempted;settled=$Rows.Count;completed=$completed;failed=$failed;classes=@($classes|Sort-Object -Unique);paidEffects=$effects}
+}
 function Get-TrainHeartbeat([string]$Heartbeat,[datetime]$UtcNow) {
     $stamp=[datetime]::MinValue
     if(!$Heartbeat -or ![datetime]::TryParse($Heartbeat,[ref]$stamp)){return @{state='UNKNOWN';ageSeconds=$null}}

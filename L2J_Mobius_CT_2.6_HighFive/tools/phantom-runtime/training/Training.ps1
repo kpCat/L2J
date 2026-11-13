@@ -678,8 +678,10 @@ function Publish-TrainStatus {
                 if($result.autonomous -and $result.autonomous.dataset){
                     $cohort=Join-Path $campaign ('cohorts\'+$result.autonomous.dataset)
                     if(Test-Path -LiteralPath $cohort){
-                        Assert-TrainDirectory $cohort;$rows=@(Get-ChildItem -LiteralPath $cohort -Directory | Select-Object -First 512 | ForEach-Object{$item=Join-Path $_.FullName 'result.json';if(Test-Path -LiteralPath $item){Read-TrainJson $item}})
-                        $result.episodes=@{attempted=@(Get-ChildItem -LiteralPath $cohort -Directory).Count;settled=$rows.Count;completed=@($rows|Where-Object outcome -CEQ 'COMPLETED').Count;failed=@($rows|Where-Object outcome -CEQ 'FAILED').Count;classes=@($rows|Where-Object afterCut|Select-Object -ExpandProperty classId -Unique);paidEffects=($rows|Measure-Object paidRawEffects -Sum).Sum}
+                        Assert-TrainDirectory $cohort
+                        $reserved=@(Get-ChildItem -LiteralPath $cohort -Directory | Where-Object {Test-Path -LiteralPath (Join-Path $_.FullName 'reserved.json')} | Select-Object -First 512)
+                        $rows=@($reserved | ForEach-Object{$item=Join-Path $_.FullName 'result.json';if(Test-Path -LiteralPath $item){Read-TrainJson $item}})
+                        $result.episodes=Get-TrainEpisodeSummary $rows $reserved.Count
                     }
                 }
             }

@@ -152,3 +152,9 @@ Targeted004/005/00610existing routes exit0; первый sandbox005отказа�
 Final Stop exit0. Cold Export worker7bc3c044…exit0: ZIP89bebd7480285c65299343d742a0fe109961981fc7bbb2bd06b6ae41fa2fe17e; selected12/rawAdam12/terminalweights побайтно прежние,887updates/207epochs,42applications/12gradient episodes008. CRC/readback/copy verified. No promotion.
 
 Final owned postflight exit0: Director/native/worker/SQL0, listeners33357/18001/19301=0, Geo203/protected207exactPASS. Dconfig bytebackup сохранён, privateprofileOFF/faultsfalse, campaign/6starts/2231818ms сохранены. Новый overnight profile не подготовлен; nightReady=false. Финальные scope/encoding/archive/publication receipts фиксируются в EVIDENCE/COMMANDS. Goal009—PARTIAL, final manual gate REQUIRED;008остаётсяотдельнымPARTIAL.
+
+
+## Последняя проверка CLI Status
+
+После publication receipt11425af7366… read-only `Status -Json` выявил StrictMode PropertyNotFound на пустойDкогорте: Measure-Object не давал Sum; pre-CUT rows также не обязаны содержать outcome/paidRawEffects. Минимальный fix только в3ранее разрешённыхPSpaths: optional field-safe Get-TrainEpisodeSummary; учёт только reserved.json directories;3focused cases empty/pre-CUT/mixed. REDmissinghelper→GREEN, Test-Configexit0; реальныйStatusexit0:STOPPED/directorLivefalse/attempted0/paidEffects0/starts6/fits0. Independentread-onlyreviewCritical/Importantнеобнаружил. SQL/GameServer не запускались, model/Adam/runtimeconfig/budget не менялись.
+Архив пересобран с обновлённымиPSsource; старый архивbd1217e0… сохранён побайтно внеcheckout. Его SHA в предыдущем publication receipt является историческим. Актуальный архив и source hashes — EVIDENCE. Новый bounded commit/push затрагивает только тежеapproved39paths; дополнительныхGoal/Slice/nativebudget нет. Перед окончательным ответом требуется independent remote HEAD/diff/PS-source/EVIDENCE/ZIP readback.

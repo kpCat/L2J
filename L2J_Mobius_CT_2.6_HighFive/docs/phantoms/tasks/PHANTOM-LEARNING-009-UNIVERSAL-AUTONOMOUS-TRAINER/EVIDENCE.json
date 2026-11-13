@@ -1263,6 +1263,10 @@
     "heartbeat": {
       "cases": 3,
       "exitCode": 0
+    },
+    "episodeSummary": {
+      "cases": 3,
+      "exitCode": 0
     }
   },
   "gui": {
@@ -1599,9 +1603,9 @@
       "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "4623BDCD5C7B7C19FC898D9CBB8BD3392E6020B342648CCE7D679DDA30C1D7CD",
       "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java": "78D3887B315FD4C13D182C26E4151F6B232CA121D1A6556BB0A8306C04E6B0A6",
       "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java": "5407232B2BF415DF44D731260EB71C4A38911E4D2B0D48D507DB209F9F949876",
-      "tools/phantom-runtime/training/Training.ps1": "3FC3B248A4DF7A6939086AF3CBC04F85637182F0156EF752DB1747CAD4D44448",
-      "tools/phantom-runtime/training/TrainingOwner.ps1": "75696769DDED0B2B995E90930C58D585B30D25D77D64040A5DCDB8D807E75FD2",
-      "tools/phantom-runtime/training/Test-Training.ps1": "6D4D7B2E234E07AFCECDCD687BB17DE56507B531E9AFF421BBFB0F98483BC444",
+      "tools/phantom-runtime/training/Training.ps1": "0CEC35584F2FDEBC988DA5E419B559407AF6BF799194DB55650822DCFD4462B2",
+      "tools/phantom-runtime/training/TrainingOwner.ps1": "222FBBD2E0D266FA1AE509084108B09176FFF252A27EFC8F9AB44A8F76FFF335",
+      "tools/phantom-runtime/training/Test-Training.ps1": "9DF6E19C60CD1F318F35775E15FB881B9A2E1F8FDBE97E37F57C4F12A4B3F6DA",
       "tools/phantom-runtime/training/AutonomousTraining.ini": "2A257500A722D0C8988357CC3F8146EFF5D1A2D144B77D4FC0A1E271B8B0EA88",
       "tools/phantom-runtime/training/TrainingGui.ps1": "D6D0551F1AD8AE6403A5FD17F828C65AAFC4555C2BA1BAED74BA143D00039862",
       "tools/phantom-runtime/training/TrainingGui.cs": "DA52F0B49981306B3CCF2986201D834AFCE668B138A95DAC91CB311C9F086B82",
@@ -1618,11 +1622,11 @@
   "archive": {
     "crc": "PASS",
     "shaReadback": "PASS",
-    "entries": 119,
-    "bytes": 591282,
-    "sha256": "bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652",
+    "entries": 123,
+    "bytes": 603672,
+    "sha256": "11ff591029f101de100bc86b2e96b6c74177306608bfc545ecb9fb018bb836db",
     "layout": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/",
-    "snapshot": "PRE_PUBLICATION_REVIEWABLE_SNAPSHOT",
+    "snapshot": "REVIEWABLE_SOURCE_BEFORE_FINAL_STATUS_FIX_PUBLICATION",
     "sourceFilesIncluded": 25,
     "credentialsOrDatadirIncluded": false
   },
@@ -1832,5 +1836,51 @@
     "sourceFiles": 25,
     "evidenceAndArchive": true
   },
-  "mainCheckoutFinalHeadReadOnly": "7e997636dbac9d5e1754e00c793cd6fac858b0c6"
+  "mainCheckoutFinalHeadReadOnly": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+  "postPublicationStatusFix": {
+    "reason": "EMPTY_MEASURE_SUM_AND_MISSING_PRE_CUT_FIELDS_IN_STATUS",
+    "paths": [
+      "Training.ps1",
+      "TrainingOwner.ps1",
+      "Test-Training.ps1"
+    ],
+    "cases": 3,
+    "red": "MISSING_HELPER",
+    "greenExitCode": 0,
+    "actualLiveStatus": {
+      "phase": "STOPPED",
+      "directorLive": false,
+      "episodes": {
+        "classes": [],
+        "paidEffects": 0,
+        "settled": 0,
+        "failed": 0,
+        "completed": 0,
+        "attempted": 0
+      },
+      "exitCode": 0,
+      "starts": 6,
+      "fits": 0,
+      "nativeMillis": 2231818,
+      "SQLStarts": 0,
+      "gameServerStarts": 0
+    },
+    "review": "NO_CONCRETE_CRITICAL_OR_IMPORTANT",
+    "nativeRestarts": 0,
+    "finalBranchHeadIncludesFix": true,
+    "independentFinalHeadReadbackRequired": true,
+    "exactCommitPaths": [
+      "tools/phantom-runtime/training/Training.ps1",
+      "tools/phantom-runtime/training/TrainingOwner.ps1",
+      "tools/phantom-runtime/training/Test-Training.ps1",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+      "docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md"
+    ]
+  }
 }
