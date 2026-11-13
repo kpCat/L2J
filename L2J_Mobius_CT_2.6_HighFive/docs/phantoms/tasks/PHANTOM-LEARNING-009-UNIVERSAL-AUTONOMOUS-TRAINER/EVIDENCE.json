@@ -19,8 +19,7 @@
     "gameServerNativeMillis": 2089505,
     "ceilingMinutes": 90,
     "pendingNative": false,
-    "completedNativeMillis": 2231818,
-    "pendingElapsedMillisAtSnapshot": 103524
+    "completedNativeMillis": 2231818
   },
   "newFits": 0,
   "newCheckpoints": 0,
@@ -1223,7 +1222,7 @@
     "G5": "PARTIAL_GUI_COMPILED_STATUS_READ_BUTTONS_NOT_VERIFIED",
     "G6": "NOT_RUN_INDEPENDENT_NATIVE_009_EVAL",
     "G7": "PARTIAL_COMPILE_TARGETED_F7_F8_PASS_STOPPED_NATIVE_TRAIN_ACCEPTANCE_INSUFFICIENT",
-    "G8": "PENDING_SCOPED_PUBLICATION_READBACK"
+    "G8": "PASS_SCOPED_NONFORCE_009_REMOTE_EXACT39_25SOURCE_EVIDENCE_ARCHIVE_BLOBS"
   },
   "executionSnapshotUtc": "2026-11-13T20:59:54.628323+00:00",
   "directorSnapshot": {
@@ -1626,5 +1625,212 @@
     "snapshot": "PRE_PUBLICATION_REVIEWABLE_SNAPSHOT",
     "sourceFilesIncluded": 25,
     "credentialsOrDatadirIncluded": false
-  }
+  },
+  "publication": {
+    "sourceCommit": "ac712dbb0fef304daffb528a4d33b2dd52b3c63f",
+    "parent": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96",
+    "branch": "wip/phantom-learning-009",
+    "repository": "kpCat/L2J",
+    "nonForcePush": "PASS",
+    "independentConnector": "GitHub",
+    "remoteBranchAgainstCommit": {
+      "status": "identical",
+      "ahead": 0,
+      "behind": 0,
+      "commits": 0
+    },
+    "compare": {
+      "status": "ahead",
+      "totalCommits": 1,
+      "paths": 39,
+      "exactDiff": true
+    },
+    "blobReadback": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "blob": "6bdfcde83df620b65c64128723bb187eb296911f",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+        "blob": "8e07dbdcc9ccfbeec0e384fd638085d78ba816ae",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+        "blob": "f37fbadde248e7e11d2e40aa3220633197b1e6c3",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
+        "blob": "eaeebb77aaee040a95ce8e582d17084f6c804af4",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
+        "blob": "18719e1bc9434fc745b69b6eddc3a494f7acfa28",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+        "blob": "6d14bfe878f37e448a5215a4d105b752f8a5aec4",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+        "blob": "85a93696baa9c75e1c8ed3fc21c9a9ef14ca804d",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+        "blob": "fa10efabeed907fadead26c0d21045731e200626",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+        "blob": "83b5afe98f34cb01fe3f83cc629b6b9accd9b81a",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+        "blob": "66943c7e68cb6b5aadc19ba945b09e162e90985a",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+        "blob": "9c66ca292a73c84e1f1db9d156eefc7be1c4b137",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "blob": "ce7b4e0f5fa41c2495818c73a4a43fd957a8a5ca",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "blob": "fcdcb1251ebf0ebfa081e0eba62ac74421e071ae",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+        "blob": "df3cd5bd6acc0b7f9d0f27f9deb7f4123fffb07c",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "blob": "6c36129fc43689c19a700a4d034934e7bcb70541",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+        "blob": "659999af99c61ba61dcc938231c0e9f1c7de2900",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+        "blob": "13562da77985c731adaa7bdffa98c3bc03a89ef0",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+        "blob": "358863e75fcc07a1d4e76f342a932ce8a3bc6c5b",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+        "blob": "f640b54de95fd05a8cfe9252b74ab7f329b3aaf4",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
+        "blob": "b1944f6eb1754e7130cc03d5b2393abe8a7d1726",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TRAIN_GUI.cmd",
+        "blob": "1c30633105dde14151d81a3b8d4198e3f610f301",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "blob": "b929a95c02be083d2285fd2fda14321f15774aad",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "blob": "5774750bccacf330a51aa0db65c2abd6f0b689bd",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.Designer.cs",
+        "blob": "570c5c34babc60f617c51040b47d475284ecba8a",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+        "blob": "554db5e872f41e5c19c63988b221c353560f4096",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
+        "blob": "64dd17326e1ba3840048733387aa164dbbff9c6f",
+        "match": true,
+        "readEncoding": "base64"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+        "blob": "d64836cca84f4c2295b8d0d8f2e124aa5ad619f1",
+        "match": true,
+        "readEncoding": "base64"
+      }
+    ],
+    "remoteFacts": {
+      "status": "PARTIAL",
+      "goalComplete": false,
+      "gate": "REQUIRED",
+      "budget": {
+        "gameServerStarts": 6,
+        "ceilingStarts": 6,
+        "nativeMinutes": 37.196967,
+        "headlessNativeCompletedMillis": 142313,
+        "headlessNativeStarts": 3,
+        "gameServerNativeMillis": 2089505,
+        "ceilingMinutes": 90,
+        "pendingNative": false,
+        "completedNativeMillis": 2231818,
+        "pendingElapsedMillisAtSnapshot": 103524
+      },
+      "newFits": 0,
+      "nightReady": false,
+      "archiveSha": "bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652"
+    },
+    "sourceFiles": 25,
+    "evidenceAndArchive": true
+  },
+  "mainCheckoutFinalHeadReadOnly": "7e997636dbac9d5e1754e00c793cd6fac858b0c6"
 }

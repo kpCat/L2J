@@ -147,7 +147,7 @@ Postflight currentOwnBytes=2555034135, availableDiskBytes=384569659392; исхо
 |G5|PARTIAL_GUI_COMPILED_STATUS_READ_BUTTONS_NOT_VERIFIED|
 |G6|NOT_RUN_INDEPENDENT_NATIVE_009_EVAL|
 |G7|PARTIAL_COMPILE_TARGETED_F7_F8_PASS_STOPPED_NATIVE_TRAIN_ACCEPTANCE_INSUFFICIENT|
-|G8|PENDING_SCOPED_PUBLICATION_READBACK|
+|G8|PASS_SCOPED_NONFORCE_009_REMOTE_EXACT39_25SOURCE_EVIDENCE_ARCHIVE_BLOBS|
 
 Scoped commit/push разрешён TASK только в009. Exact Git commands, publication SHA и independent connector readback фиксируются в COMMANDS/EVIDENCE; merge/force/main публикации нет. Состояние008не принимается задним числом.
 009—задача№3из13 после006R1; осталось10дообязательного пересмотра. Новый Goal/Slice не создан.
@@ -268,3 +268,11 @@ mojibake-маркеры в изменённых файлах проверены;
 escaped Cyrillic в изменённых файлах проверены;6patterns,38textfiles,0matches,exit0.
 
 Git-команды использовались только для разрешённых source/ref/scope checks и scoped публикации009. Полный перечень/авторизация —COMMANDS. Никаких merge/force/history changes, MAIN/feature/master записей нет.
+
+
+## Публикация и независимый readback
+
+Source/evidence commit: `ac712dbb0fef304daffb528a4d33b2dd52b3c63f`, parent `85b1c3558e35c1df0a7625fcf5a9e5c119c18b96`. Обычный non-force push только `wip/phantom-learning-009`, exit0. GitHub connector независимо подтвердил branch=commit (compare identical/0ahead/0behind), один commit поверх008 и exact39diff paths. Все25source blobs, EVIDENCE и ZIP прочитаны connector с совпавшими Git blob IDs. Remote EVIDENCE:PARTIAL/fits0/nightReadyfalse/manualgateREQUIRED.
+Архив591282bytes/119entries, SHA256 `bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652`, local CRC и every-entry SHAreadbackPASS. Архив — pre-publication snapshot; поздний docs-only receipt не включён в него. MAIN/feature HEAD повторно прочитан:7e997636dbac9d5e1754e00c793cd6fac858b0c6, записи не выполнялись.
+
+Final docs-only publication receipt меняет только6изужеутверждённых39paths: EVIDENCE/RESULT/ACCEPTANCE/HANDOFF/COMMANDS иполныйreport. Source25/ZIP/runtime не меняются. Следующий Goal/Slice не создан; manualgateREQUIRED, FULL009неподтверждён.
