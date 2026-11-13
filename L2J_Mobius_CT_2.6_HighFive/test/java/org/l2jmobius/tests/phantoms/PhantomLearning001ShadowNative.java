@@ -267,6 +267,7 @@ public final class PhantomLearning001ShadowNative
 		private final PhantomGoalStateStore goals;
 		private final LearningPolicy policy;
 		private final PhantomHistoricalBackgroundPlanner sourcePlanner;
+		private final PhantomCombatCapabilityResolver.CapabilitySource acquiredCapabilitySource;
 		private List<String[]> trainingRows = List.of();
 		private List<Player> trainingPlayers = List.of();
 		private PhantomTrainingScenarios.Scene trainingScene;
@@ -326,6 +327,10 @@ public final class PhantomLearning001ShadowNative
 				if(player.hasHeadlessOutboundSession()&&player.isTeleporting()){player.onTeleported();}
 				check(PhantomLearning001ActorFixture.soloOpeningTargets(player).contains(target),"OUTCOME006_FULL_SOLO_ADMISSION");
 			}
+			observeOutcome006(target);
+		}
+		private void observeOutcome006(Monster target)
+		{
 			outcome006=true;outcomeDeaths=new OutcomeDeaths006();outcomeFrozen=null;outcomeEncounterAdmitted=false;
 			final var observed=new java.util.ArrayList<org.l2jmobius.gameserver.model.actor.Creature>(trainingPlayers);observed.add(target);
 			for(var creature:observed)
@@ -341,9 +346,16 @@ public final class PhantomLearning001ShadowNative
 		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize,
 			org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 tactical, boolean rankDamageWithV3) throws Exception
 		{
+			this(source, game, policy, stop, on, partySize, tactical, rankDamageWithV3, null);
+		}
+		/** TEST episode seam only; a new resolver instance carries one frozen acquired shortlist. */
+		Runtime(PhantomBackgroundSuite.ProductionAuthorityFixture source, Path game, LearningPolicy policy, Path stop, boolean on, int partySize,
+			org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3 tactical, boolean rankDamageWithV3, PhantomCombatCapabilityResolver.CapabilitySource frozenCapabilities) throws Exception
+		{
 			this.policy = policy;
 			this.stop = stop;
 			this.on = on;
+			acquiredCapabilitySource = frozenCapabilities;
 			final var profiles = PhantomProfileRepository.open();
 			goals = new PhantomGoalStateStore(profiles);
 			final var metrics = new PhantomMetrics();
@@ -352,10 +364,10 @@ public final class PhantomLearning001ShadowNative
 			progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, game, source::knowledge), PhantomProgressionPolicy.productionDefaults());
 			navigation = new PhantomNavigationService(metrics);
 			combat = new PhantomCombatService(new L2jCombatBackend(materialization, source::knowledge, () -> progression.findCatalog().orElse(null)),
-				PhantomCombatCapabilityResolver.fromProgression(() -> progression.findCatalog().orElse(null)), PhantomCombatPolicy.productionDefaults(64));
+				frozenCapabilities == null ? PhantomCombatCapabilityResolver.fromProgression(() -> progression.findCatalog().orElse(null)) : new PhantomCombatCapabilityResolver(frozenCapabilities), PhantomCombatPolicy.productionDefaults(64));
 			combat.installLearning(policy);
 			policy.tactical(rankDamageWithV3 ? tactical : org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.OFF);
-			backend = new L2jPhantomPartyBackend(profiles, materialization, progression);
+			backend = new L2jPhantomPartyBackend(profiles, materialization, progression, frozenCapabilities);
 			sourcePlanner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
 			backend.installFarmSourcePolicy((farm, target) -> (evaluationTarget == null || target == evaluationTarget) && sourcePlanner.partyNativeTarget(farm, target.asNpc().getId(),
 				new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())));
@@ -433,6 +445,110 @@ public final class PhantomLearning001ShadowNative
 		}
 
 		/** Director-only admission; ordinary 001 entrypoints retain their original lifecycle. */
+		private boolean acquiredTraining;
+		private PhantomCombatMode acquiredMode;
+		private List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> acquiredActions = List.of();
+		/** Separate acquired-state admission; historical fixture provisioning/recovery branches are not called. */
+		String prepareAcquired(PhantomTrainingScenarios.Scene scene, List<String[]> roster, boolean grouped, PhantomCombatMode mode,
+			List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> frozenActions, java.util.Map<Long, String> inventories,
+			int preparationSeconds, BooleanSupplier requested) throws Exception
+		{
+			check(trainingRows.isEmpty() && materialization.list().isEmpty() && !roster.isEmpty() && (grouped || mode != null), "AUTONOMOUS_PREPARATION_INPUT");
+			acquiredTraining = true; acquiredMode = mode; acquiredActions = List.copyOf(frozenActions);
+			trainingAdmission = false; coordinator.installLogicalFarmAdmission(_ -> trainingAdmission);
+			trainingScene = scene; trainingParty = grouped; trainingRows = grouped ? List.copyOf(roster) : List.<String[]>of(roster.getFirst());
+			await(() -> progression.findCatalog().isPresent(), Duration.ofSeconds(preparationSeconds), "AUTONOMOUS_CATALOG_NOT_READY");
+			final var players = new java.util.ArrayList<Player>();
+			for (var row : trainingRows)
+			{
+				final var player = materialize(row); players.add(player); trainingPlayers = List.copyOf(players);
+				final long profile = Long.parseLong(row[2]);
+				check(!player.isAlikeDead() && inventories.containsKey(profile), "AUTONOMOUS_SOURCE_NOT_ATTESTED");
+				final var inventory = org.l2jmobius.gameserver.phantoms.combat.PhantomSkillInventory.acquired(player, progression.findCatalog().orElseThrow());
+				check(inventory.fingerprint().equals(inventories.get(profile)), "AUTONOMOUS_ACQUIRED_STATE_CHANGED");
+				check(players.stream().map(Player::getActiveClass).distinct().count() == players.size(), "AUTONOMOUS_CLASS_ONLY_RESOLVER_ROSTER_COLLISION");
+				returnToPartyAnchor(row, player);
+				final var root = goals.load(profile).orElseThrow().goal();
+				check(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", scene.source()).equals(PhantomAutonomousFarmParty.farmSource(root)), "AUTONOMOUS_SOURCE_GOAL_CHANGED");
+			}
+			await(() ->
+			{
+				check(!requested.getAsBoolean(), "AUTONOMOUS_PREPARATION_REQUESTED_DRAIN");
+				boolean ready = true;
+				for (var player : trainingPlayers) { check(!preflightThreatened(player), "AUTONOMOUS_PREPARATION_NATIVE_THREAT"); ready &= !recoverAcquired(player); }
+				return ready;
+			}, Duration.ofSeconds(preparationSeconds), "AUTONOMOUS_NATURAL_RECOVERY_DEADLINE");
+			return trainingFacts();
+		}
+		private boolean recoverAcquired(Player player)
+		{
+			if (player.isMoving() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null) { return true; }
+			double minimumMp = 0;
+			if (player.getActiveClass() == trainingScene.classId())
+			{
+				for (var ref : acquiredActions)
+				{
+					final var skill = player.getKnownSkill(ref.skillId());
+					check(skill != null && skill.getLevel() == ref.skillLevel(), "AUTONOMOUS_FROZEN_SKILL_CHANGED");
+					minimumMp = Math.max(minimumMp, player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
+				}
+			}
+			if (player.getCurrentHp() < player.getMaxHp() * .9 || !PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), minimumMp * 3, player.isSitting()))
+			{ if (!player.isSitting()) { player.sitDown(); } return true; }
+			if (player.isSitting()) { player.standUp(); return true; }
+			return false;
+		}
+		String acquiredSourceFacts()
+		{
+			check(acquiredTraining && acquiredCapabilitySource != null, "AUTONOMOUS_FROZEN_SOURCE_REQUIRED");
+			final var facts = new java.util.ArrayList<String>();
+			for (int index = 0; index < trainingPlayers.size(); index++)
+			{
+				final var player = trainingPlayers.get(index); final long profile = Long.parseLong(trainingRows.get(index)[2]);
+				final var observed = backend.currentMember(profile).flatMap(backend::memberSnapshot).orElseThrow().capabilities();
+				for (var evidence : acquiredCapabilitySource.capabilities(player.getActiveClass()))
+				{
+					for (var ref : evidence.skills())
+					{
+						check(observed.stream().anyMatch(cap -> cap.capabilityKey().equals(evidence.capabilityKey()) && cap.actionSkillId() == ref.skillId() && cap.actionSkillLevel() == ref.skillLevel() && cap.learned()), "AUTONOMOUS_PARTY_SOURCE_NOT_SHARED");
+						facts.add(player.getActiveClass() + ":" + evidence.capabilityKey() + ":" + ref.skillId() + ":" + ref.skillLevel());
+					}
+				}
+			}
+			return facts.toString();
+		}
+		void prepareAcquiredOutcome(Monster target) throws Exception
+		{
+			check(acquiredTraining && evaluationTarget == null && !trainingPlayers.isEmpty() && !target.isAlikeDead() && !target.isChampion() && !target.isRaid()
+				&& !target.isAggressive() && target.getCurrentHp() == target.getMaxHp(), "AUTONOMOUS_FRESH_STOCK_TARGET_REQUIRED");
+			evaluationTarget = target;
+			if (trainingParty)
+			{
+				final var profiles = trainingRows.stream().map(row -> Long.parseLong(row[2])).toList();
+				await(() ->
+				{
+					check(!trainingAdmission && trainingPlayers.stream().noneMatch(PhantomLearning001ShadowNative::preflightThreatened), "AUTONOMOUS_PARTY_PRE_CUT_THREAT");
+					autonomous.onPulse(); coordinator.onPulse();
+					return trainingPlayers.getFirst().getParty() != null && trainingPlayers.getFirst().getParty().getMembers().containsAll(trainingPlayers)
+						&& profiles.stream().allMatch(coordinator::committed) && trainingPlayers.stream().noneMatch(p -> p.isCastingNow() || p.isAttackingNow());
+				}, Duration.ofSeconds(60), "AUTONOMOUS_PARTY_FORMATION_REFUSED");
+			}
+			observeOutcome006(target);
+		}
+		/** Same passive admission witness as provePartyTarget; no action or guard bypass. */
+		java.util.Map<String, Object> acquiredPartyAdmission()
+		{
+			check(acquiredTraining && trainingParty && evaluationTarget != null, "AUTONOMOUS_PARTY_ADMISSION_INPUT");
+			final var nativeLeader = trainingPlayers.getFirst().getParty().getLeader();
+			final int index = trainingPlayers.indexOf(nativeLeader); final long leader = Long.parseLong(trainingRows.get(index)[2]);
+			final var party = backend.currentMember(leader).flatMap(backend::observe).orElseThrow();
+			final var authority = coordinator.claim(leader).orElseThrow().state();
+			final var supports = authority.assignments().stream().filter(row -> row.roleKey().startsWith("support.")).map(row -> row.member()).collect(java.util.stream.Collectors.toSet());
+			final var farm = PhantomAutonomousFarmParty.farmSource(goals.load(leader).orElseThrow().goal()); final var reasons = new java.util.ArrayList<String>();
+			final int target = backend.autonomousFarmTarget(party, supports, farm, value -> { if (reasons.size() < 64) { reasons.add(value); } }).orElse(0);
+			return java.util.Map.of("admitted", target == evaluationTarget.getObjectId(), "target", target, "wait", backend.autonomousFarmWaitReason(party.leader()), "reasons", reasons.toString());
+		}
+
 		String prepareTraining(PhantomTrainingScenarios.Scene scene, List<String[]> roster, boolean grouped, int preparationSeconds, BooleanSupplier requested) throws Exception
 		{
 			check(trainingRows.isEmpty() && materialization.list().isEmpty(), "TRAIN_PREVIOUS_EPISODE_NOT_STORED");
@@ -516,7 +632,22 @@ public final class PhantomLearning001ShadowNative
 					final var row = trainingRows.getFirst();
 					final long profile = Long.parseLong(row[2]);
 					final var player = trainingPlayers.getFirst();
-					if (readyForSoloSession(combat, profile) && !retreat(profile, player) && !recover(player, on))
+					if (acquiredTraining)
+					{
+						if (readyForSoloSession(combat, profile) && !preflightThreatened(player) && !recoverAcquired(player))
+						{
+							final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", trainingScene.source());
+							final var target = evaluationTarget;
+							if (target != null && !target.isAlikeDead() && target.getId() == trainingScene.npc()
+								&& sourcePlanner.partyNativeTarget(source, target.getId(), new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())))
+							{
+								final var request = new PhantomCombatRequest(profile, target.getObjectId(), acquiredMode, true, true,
+									Math.max(1, (deadline - System.nanoTime()) / 1_000_000L), () -> false, LearningScope.SOLO, null, () -> false);
+								final var accepted = combat.startSession(request); encountered |= accepted.accepted(); outcomeEncounterAdmitted |= accepted.accepted();
+							}
+						}
+					}
+					else if (readyForSoloSession(combat, profile) && !retreat(profile, player) && !recover(player, on))
 					{
 						final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", trainingScene.source());
 						final var targets = on ? PhantomLearning001ActorFixture.coldSoloOpeningTargets(player) : PhantomLearning001ActorFixture.soloOpeningTargets(player);
@@ -536,7 +667,7 @@ public final class PhantomLearning001ShadowNative
 				}
 				if (!encountered && collector.size() == 0 && System.nanoTime() >= idleDeadline)
 				{
-					if (!trainingParty) { PhantomLearning001ActorFixture.inspectColdSoloOpening(trainingPlayers.getFirst()); }
+					if (!trainingParty && !acquiredTraining) { PhantomLearning001ActorFixture.inspectColdSoloOpening(trainingPlayers.getFirst()); }
 					final var reason = trainingParty ? backend.currentMember(Long.parseLong(trainingRows.getFirst()[2])).map(backend::autonomousFarmWaitReason).orElse("NO_LEADER") : "NO_SAFE_SOLO_OPENING";
 					return "NO_LEGAL_TARGET:" + reason;
 				}

@@ -167,6 +167,182 @@ public final class TacticalStoreV3
         &&_guard.config().text("exploration007Dataset","").equals(TrainExplorationV1.DATASET);}
     public Path advantageDirectory(){return _root.resolve("outcome006/campaigns").resolve(TrainExplorationV1.CAMPAIGN);}
 
+    public boolean autonomousMode()
+    {
+        final var config = _guard.config();
+        return terminalMode() && config.text("autonomous009Enabled", "false").equals("true") && config.text("v3Enabled", "false").equals("true")
+            && config.text("exploration007Enabled", "false").equals("false") && config.text("exploration008Enabled", "false").equals("false")
+            && config.text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR)
+            && config.text("v3DatasetContextPrefix", "").equals("autonomous009|");
+    }
+    public Path autonomousDirectory()
+    {
+        final String campaign = _guard.config().text("autonomous009Campaign", "");
+        if (!campaign.matches("autonomous009-[A-Za-z0-9_-]{1,64}")) { throw new IllegalArgumentException("Invalid009 campaign identity"); }
+        return _root.resolve("autonomous/v1/campaigns").resolve(campaign);
+    }
+    private String autonomousDataset()
+    {
+        final String dataset = _guard.config().text("outcome006DatasetId", "");
+        if (!dataset.matches(ActionAdvantageV2.DATASET_PREFIX + "[A-Za-z0-9_-]{1,80}")) { throw new IllegalArgumentException("Invalid009 cohort dataset"); }
+        return dataset;
+    }
+    static boolean autonomousSampler(String metrics, String revision)
+    {
+        final boolean sampler = ActionAdvantageV2.REVISION.equals(revision);
+        if (metrics.contains("\"objective\":\"" + ActionAdvantageV2.OBJECTIVE + "\"") != sampler) { throw new IllegalArgumentException("009 objective/sampler mismatch"); }
+        return sampler;
+    }
+    private List<ActionAdvantageV2.Sample> autonomousSources() throws SQLException, IOException
+    {
+        if (!autonomousMode()) { throw new IllegalArgumentException("Explicit009 objective required"); }
+        final Path directory = autonomousDirectory().resolve("cohorts").resolve(autonomousDataset()).resolve("samples");
+        if (!Files.exists(directory)) { return List.of(); }
+        if (!directory.equals(directory.toRealPath()) || Files.isSymbolicLink(directory)) { throw new IOException("Physical009 samples required"); }
+        final List<Path> paths;
+        try (var stream = Files.list(directory)) { paths = stream.filter(path -> path.getFileName().toString().endsWith(".selection.bin")).sorted().toList(); }
+        if (paths.size() > 512) { throw new IllegalArgumentException("009 bounded unapplied replay capacity"); }
+        final var samples = new ArrayList<ActionAdvantageV2.Sample>();
+        try (var connection = _guard.openTacticalConnection(); var query = connection.prepareStatement("SELECT receipt_sha,receipt_blob FROM phantom_tactical_v3_terminal_rewards WHERE episode_id=? AND dataset_id=?"))
+        {
+            for (var path : paths)
+            {
+                if (!path.equals(path.toRealPath()) || Files.isSymbolicLink(path) || Files.size(path) > 1000000 || !path.getFileName().toString().matches("[a-f0-9]{64}\\.selection\\.bin"))
+                { throw new IOException("Invalid009 selection path"); }
+                final var selection = TrainExplorationV1.Selection.restore(Files.readAllBytes(path));
+                if (!path.getFileName().toString().equals(selection.episode() + ".selection.bin")) { throw new IllegalArgumentException("009 selection identity changed"); }
+                if (!selection.fallback().isEmpty()) { continue; }
+                query.setString(1, selection.episode()); query.setString(2, autonomousDataset());
+                try (var found = query.executeQuery())
+                {
+                    if (!found.next()) { continue; } // Native failed/no-paid slots remain in the cohort census, not invented targets.
+                    final var receipt = TerminalRewardReceiptV1.restore(found.getBytes(2), found.getString(1));
+                    if (receipt.actions().stream().filter(action -> selection.matches(action.row().receipt())).count() == 1)
+                    { samples.add(new ActionAdvantageV2.Sample(selection, receipt)); }
+                }
+            }
+        }
+        return List.copyOf(samples);
+    }
+    private static String autonomousRole(ActionAdvantageV2.Frozen frozen, ActionAdvantageV2.Sample sample)
+    {
+        if (!sample.selection().split().equals("TRAIN")) { return "HELD_OUT"; }
+        if (!sample.selection().experimental()) { return "BASELINE"; }
+        return frozen.targets().stream().anyMatch(target -> target.sample().actionKey().equals(sample.actionKey())) ? "GRADIENT" : "EXCLUDED";
+    }
+    private static void requireAutonomousRows(Connection connection, ActionAdvantageV2.Frozen frozen, Long model) throws SQLException
+    {
+        for (var sample : frozen.samples())
+        {
+            final var receipt = sample.terminal(); requireTerminalNative(connection, receipt);
+            try (var query = connection.prepareStatement("SELECT before_json FROM phantom_tactical_v3_episodes WHERE episode_id=?"))
+            {
+                query.setString(1, receipt.episode().id());
+                try (var found = query.executeQuery())
+                {
+                    if (!found.next()) { throw new IllegalArgumentException("009 native pre-CUT setup missing"); }
+                    requireTerminalString(found.getString(1), "comparisonCellSha", sample.selection().cell());
+                    requireTerminalString(found.getString(1), "comparator", AutonomousTrainingV1.COMPARATOR);
+                }
+            }
+            try (var query = connection.prepareStatement("SELECT receipt_sha,receipt_blob,(SELECT COUNT(*) FROM phantom_tactical_v3_terminal_applications WHERE natural_key=?) FROM phantom_tactical_v3_terminal_rewards WHERE natural_key=?"))
+            {
+                query.setString(1, receipt.naturalKey()); query.setString(2, receipt.naturalKey());
+                try (var found = query.executeQuery())
+                { if (!found.next() || !receipt.sha256().equals(found.getString(1)) || !Arrays.equals(receipt.bytes(), found.getBytes(2)) || found.getLong(3) != 0) { throw new IllegalArgumentException("009 native target changed or was applied by another objective"); } }
+            }
+            try (var query = connection.prepareStatement("SELECT a.action_key,a.run_id,a.model_id,a.target_sha,a.receipt_sha,a.selection_sha,a.optimizer_sha,a.split,a.fit_role,a.gradient_used,o.optimizer_sha FROM phantom_tactical_v3_advantage_applications a LEFT JOIN phantom_tactical_v3_optimizers o ON o.model_id=a.model_id WHERE a.natural_key=?"))
+            {
+                query.setString(1, receipt.naturalKey());
+                try (var found = query.executeQuery())
+                {
+                    if (model == null) { if (found.next()) { throw new IllegalArgumentException("009 native action already reserved/applied"); } continue; }
+                    final String role = autonomousRole(frozen, sample);
+                    if (!found.next() || !sample.actionKey().equals(found.getString(1)) || !frozen.runId().equals(found.getString(2)) || found.getLong(3) != model
+                        || !frozen.datasetSha().equals(found.getString(4)) || !receipt.sha256().equals(found.getString(5)) || !sample.selection().sha256().equals(found.getString(6))
+                        || !(model == 0 ? "0".repeat(64) : found.getString(11)).equals(found.getString(7)) || !sample.selection().split().equals(found.getString(8))
+                        || !role.equals(found.getString(9)) || found.getBoolean(10) != (model > 0 && role.equals("GRADIENT")))
+                    { throw new IllegalArgumentException("009 application/model/Adam proof changed"); }
+                }
+            }
+        }
+    }
+    private static ActionAdvantageV2.Frozen autonomousSnapshot(Connection connection, String run, String sourceSha, byte[] sourceBytes, long model) throws SQLException
+    {
+        try (var query = connection.prepareStatement("SELECT target_sha,config_sha,snapshot_blob FROM phantom_tactical_v3_advantage_snapshots WHERE run_id=?"))
+        {
+            query.setString(1, run);
+            try (var found = query.executeQuery())
+            {
+                if (!found.next() || !ActionAdvantageV2.CONFIG_SHA.equals(found.getString(2))) { throw new IllegalArgumentException("009 frozen objective missing/changed"); }
+                final var frozen = ActionAdvantageV2.restore(run, found.getBytes(3), found.getString(1));
+                if (!frozen.sufficient() || !sourceSha.equals(hashBytes(sourceBytes)) || !Arrays.equals(sourceBytes, pack(frozen.sourceRows())))
+                { throw new IllegalArgumentException("009 frozen source/target changed"); }
+                requireAutonomousRows(connection, frozen, model); return frozen;
+            }
+        }
+    }
+    public ActionAdvantageV2.Frozen autonomousSnapshot(long model) throws SQLException
+    {
+        try (var connection = _guard.openTacticalConnection(); var query = connection.prepareStatement("SELECT m.run_id,m.dataset_sha,r.snapshot_blob FROM phantom_tactical_v3_models m JOIN phantom_tactical_v3_runs r ON r.run_id=m.run_id WHERE m.model_id=?"))
+        {
+            query.setLong(1, model);
+            try (var found = query.executeQuery())
+            { if (!found.next()) { throw new IllegalArgumentException("009 model missing"); } return autonomousSnapshot(connection, found.getString(1), found.getString(2), found.getBytes(3), model); }
+        }
+    }
+    public ActionAdvantageV2.Frozen freezeAutonomous() throws SQLException, IOException
+    {
+        requireStopped(); if (!autonomousMode() || !_guard.config().text("autonomous009Phase", "").equals("FIT")) { throw new IllegalArgumentException("009 offline FIT opt-in required"); }
+        final var samples = autonomousSources();
+        return transaction(connection ->
+        {
+            try (var query = connection.createStatement(); var found = query.executeQuery("SELECT run_id,dataset_sha,snapshot_blob FROM phantom_tactical_v3_runs WHERE state='FROZEN' ORDER BY created_at,run_id LIMIT 1 FOR UPDATE"))
+            {
+                if (found.next())
+                {
+                    final var frozen = autonomousSnapshot(connection, found.getString(1), found.getString(2), found.getBytes(3), 0);
+                    if (!frozen.samples().getFirst().terminal().dataset().equals(autonomousDataset())) { throw new IllegalArgumentException("Recover the original009 cohort before changing dataset"); }
+                    return frozen;
+                }
+            }
+            if (samples.isEmpty()) { return null; }
+            final var unused = new ArrayList<ActionAdvantageV2.Sample>();
+            for (var sample : samples)
+            {
+                try (var query = connection.prepareStatement("SELECT COUNT(*) FROM phantom_tactical_v3_advantage_applications WHERE natural_key=? OR action_key=?"))
+                { query.setString(1, sample.terminal().naturalKey()); query.setString(2, sample.actionKey()); try (var found = query.executeQuery()) { found.next(); if (found.getLong(1) == 0) { unused.add(sample); } } }
+            }
+            if (unused.isEmpty()) { return null; }
+            final var frozen = ActionAdvantageV2.freeze(UUID.randomUUID().toString().replace("-", ""), unused);
+            if (!frozen.sufficient()) { return null; }
+            requireAutonomousRows(connection, frozen, null);
+            final var rows = frozen.sourceRows(); final byte[] sourceBytes = pack(rows); final String sourceSha = hashBytes(sourceBytes);
+            try (var insert = connection.prepareStatement("INSERT INTO phantom_tactical_v3_runs(run_id,dataset_sha,seed,snapshot_blob,state) VALUES(?,?,?,?,'FROZEN')"))
+            { insert.setString(1, frozen.runId()); insert.setString(2, sourceSha); insert.setLong(3, SEED); insert.setBytes(4, sourceBytes); insert.executeUpdate(); }
+            try (var insert = connection.prepareStatement("INSERT INTO phantom_tactical_v3_advantage_snapshots(run_id,target_sha,config_sha,snapshot_blob) VALUES(?,?,?,?)"))
+            { insert.setString(1, frozen.runId()); insert.setString(2, frozen.datasetSha()); insert.setString(3, ActionAdvantageV2.CONFIG_SHA); insert.setBytes(4, frozen.bytes()); insert.executeUpdate(); }
+            try (var reserve = connection.prepareStatement("INSERT INTO phantom_tactical_v3_advantage_applications(natural_key,action_key,run_id,model_id,target_sha,receipt_sha,selection_sha,optimizer_sha,split,fit_role,gradient_used) VALUES(?,?,?,0,?,?,?,?,?,?,FALSE)"))
+            {
+                for (var sample : frozen.samples())
+                {
+                    reserve.setString(1, sample.terminal().naturalKey()); reserve.setString(2, sample.actionKey()); reserve.setString(3, frozen.runId()); reserve.setString(4, frozen.datasetSha());
+                    reserve.setString(5, sample.terminal().sha256()); reserve.setString(6, sample.selection().sha256()); reserve.setString(7, "0".repeat(64)); reserve.setString(8, sample.selection().split()); reserve.setString(9, autonomousRole(frozen, sample)); reserve.addBatch();
+                }
+                reserve.executeBatch();
+            }
+            final var contexts = new ArrayList<TacticalReplayV3.ContextSample>();
+            for (var sample : frozen.samples()) { for (var action : sample.terminal().actions())
+            { final var row = action.row(); contexts.add(new TacticalReplayV3.ContextSample(row.eventKey(), "EFFECT", sample.terminal().episode().outcome(), TacticalReplayV3.spot(row.contextKey()), hashBytes(encode(row)), sample.terminal().episode().id(), sample.terminal().episode().sha256())); } }
+            final byte[] contextBytes = TacticalReplayV3.packContexts(contexts, sourceSha);
+            try (var insert = connection.prepareStatement("INSERT INTO phantom_tactical_v3_context_replay(run_id,dataset_sha,sample_sha,sample_blob) VALUES(?,?,?,?)"))
+            { insert.setString(1, frozen.runId()); insert.setString(2, sourceSha); insert.setString(3, hashBytes(contextBytes)); insert.setBytes(4, contextBytes); insert.executeUpdate(); }
+            try (var insert = connection.prepareStatement("INSERT INTO phantom_tactical_v3_audit_used(cohort_hash,run_id) VALUES(?,?)"))
+            { for (String cohort : rows.stream().filter(row -> row.split().equals("AUDIT")).map(Row::cohort).distinct().toList()) { insert.setString(1, cohort); insert.setString(2, frozen.runId()); insert.addBatch(); } insert.executeBatch(); }
+            return frozen;
+        });
+    }
+
     public boolean residualMode()
     {return terminalMode()&&_guard.config().text("exploration008Enabled","false").equals("true")
         &&!_guard.config().text("exploration007Enabled","false").equals("true")
@@ -1151,6 +1327,21 @@ public final class TacticalStoreV3
         var audit=rows.stream().filter(row->row.split().equals("AUDIT")).map(Row::example).toList();
         return save(source,trained,parent,champion==null?0:champion.id(),trained.fit().model().loss(audit),TacticalTrainerV3.constantLoss(rows),champion==null?null:champion.model().loss(audit),metrics,null,advantage);
     }
+    public Checkpoint saveAutonomous(ActionAdvantageV2.Frozen autonomous, TacticalModelV3.IncrementalFit trained, Optimization parent, Checkpoint champion, String metrics) throws SQLException
+    {
+        requireStopped();
+        if (!autonomousMode() || !_guard.config().text("autonomous009Phase", "").equals("FIT") || metrics == null
+            || !autonomousSampler(metrics, ActionAdvantageV2.REVISION) || !metrics.contains("\"configSha\":\"" + ActionAdvantageV2.CONFIG_SHA + "\""))
+        { throw new IllegalArgumentException("009 fit objective/authority changed"); }
+        final var teacher = candidate(parent.modelId()); final var declared = autonomous.samples().getFirst().selection();
+        if (teacher == null || declared.modelVersion() != parent.modelId() || !declared.modelSha().equals(teacher.sha()))
+        { throw new IllegalArgumentException("009 collection model and optimizer parent identity differ"); }
+        final var rows = autonomous.sourceRows(); final var source = new Frozen(autonomous.runId(), hashBytes(pack(rows)), rows);
+        final var audit = rows.stream().filter(row -> row.split().equals("AUDIT")).map(Row::example).toList();
+        // Registry columns retain historical local-receipt loss units; V2 target quality is separate in metrics.
+        return save(source, trained, parent, champion == null ? 0 : champion.id(), trained.fit().model().loss(audit), TacticalTrainerV3.constantLoss(rows),
+            champion == null ? null : champion.model().loss(audit), metrics, null, null, null, autonomous);
+    }
     private Checkpoint save(Frozen frozen,TacticalModelV3.IncrementalFit trained,Optimization parent,long championId,double auditLoss,double constantLoss,Double priorLoss,String metrics,TerminalReplayV1.Frozen terminal) throws SQLException
     {return save(frozen,trained,parent,championId,auditLoss,constantLoss,priorLoss,metrics,terminal,null);}
     public Checkpoint saveResidual(ActionAdvantage008.Frozen residual,TacticalModelV3.IncrementalFit trained,Optimization parent,Checkpoint teacher,Checkpoint champion,String metrics) throws SQLException
@@ -1161,6 +1352,8 @@ public final class TacticalStoreV3
     private Checkpoint save(Frozen frozen,TacticalModelV3.IncrementalFit trained,Optimization parent,long championId,double auditLoss,double constantLoss,Double priorLoss,String metrics,TerminalReplayV1.Frozen terminal,ActionAdvantageV1.Frozen advantage) throws SQLException
     {return save(frozen,trained,parent,championId,auditLoss,constantLoss,priorLoss,metrics,terminal,advantage,null);}
     private Checkpoint save(Frozen frozen,TacticalModelV3.IncrementalFit trained,Optimization parent,long championId,double auditLoss,double constantLoss,Double priorLoss,String metrics,TerminalReplayV1.Frozen terminal,ActionAdvantageV1.Frozen advantage,ActionAdvantage008.Frozen residual) throws SQLException
+    { return save(frozen, trained, parent, championId, auditLoss, constantLoss, priorLoss, metrics, terminal, advantage, residual, null); }
+    private Checkpoint save(Frozen frozen,TacticalModelV3.IncrementalFit trained,Optimization parent,long championId,double auditLoss,double constantLoss,Double priorLoss,String metrics,TerminalReplayV1.Frozen terminal,ActionAdvantageV1.Frozen advantage,ActionAdvantage008.Frozen residual,ActionAdvantageV2.Frozen autonomous) throws SQLException
     {
         final var fit = trained.fit();
         final var continuation = trained.continuation();
@@ -1208,6 +1401,12 @@ public final class TacticalStoreV3
                 if(!residualMode()||!residual.runId().equals(frozen.runId())||!Arrays.equals(pack(residual.sourceRows()),pack(frozen.rows()))){throw new IllegalArgumentException("008 fit source changed");}
                 requireResidualRows(connection,residual,0L);
             }
+            else if (autonomous != null)
+            {
+                if (!autonomousMode() || !autonomous.runId().equals(frozen.runId()) || !Arrays.equals(pack(autonomous.sourceRows()), pack(frozen.rows())))
+                { throw new IllegalArgumentException("009 fit source changed"); }
+                requireAutonomousRows(connection, autonomous, 0L);
+            }
             else if(current!=null)
             {
                 try(var query=connection.prepareStatement("SELECT COUNT(*) FROM phantom_tactical_v3_terminal_applications WHERE model_id=?"))
@@ -1233,7 +1432,7 @@ public final class TacticalStoreV3
                         optimizer.setString(4,parent.sha()); optimizer.setString(5,parent.state().model().sha256());
                         optimizer.setString(6,continuation.sha256()); optimizer.setBytes(7,continuation.bytes());
                         optimizer.setLong(8,continuation.updates()); optimizer.setLong(9,continuation.completedEpochs()); optimizer.setLong(10,continuation.seed());
-                        optimizer.setString(11,TacticalObservationV3.SCHEMA); optimizer.setString(12,NORMALIZATION); optimizer.setString(13,residual!=null?ActionAdvantage008.REVISION:advantage!=null?ActionAdvantageV1.REVISION:terminal==null?TacticalReplayV3.REVISION:TerminalReplayV1.REVISION);
+                        optimizer.setString(11,TacticalObservationV3.SCHEMA); optimizer.setString(12,NORMALIZATION); optimizer.setString(13,autonomous!=null?ActionAdvantageV2.REVISION:residual!=null?ActionAdvantage008.REVISION:advantage!=null?ActionAdvantageV1.REVISION:terminal==null?TacticalReplayV3.REVISION:TerminalReplayV1.REVISION);
                         optimizer.setLong(14,championId);
                         if (optimizer.executeUpdate() != 1) { throw new SQLException("V3 optimizer checkpoint not committed"); }
                     }
@@ -1264,14 +1463,46 @@ public final class TacticalStoreV3
                             {update.setLong(1,model);update.setString(2,continuation.sha256());update.setBoolean(3,residualRole(residual,sample).equals("GRADIENT"));update.setString(4,sample.terminal().naturalKey());update.setString(5,residual.runId());update.setString(6,residual.datasetSha());update.setString(7,sample.terminal().sha256());update.setString(8,sample.selection().sha256());if(update.executeUpdate()!=1){throw new SQLException("008 episode credit already committed or changed");}}
                         }
                     }
+                    if (autonomous != null)
+                    {
+                        try (var update = connection.prepareStatement("UPDATE phantom_tactical_v3_advantage_applications SET model_id=?,optimizer_sha=?,gradient_used=? WHERE natural_key=? AND run_id=? AND model_id=0 AND target_sha=? AND receipt_sha=? AND selection_sha=?"))
+                        {
+                            for (var sample : autonomous.samples())
+                            {
+                                update.setLong(1, model); update.setString(2, continuation.sha256()); update.setBoolean(3, autonomousRole(autonomous, sample).equals("GRADIENT"));
+                                update.setString(4, sample.terminal().naturalKey()); update.setString(5, autonomous.runId()); update.setString(6, autonomous.datasetSha()); update.setString(7, sample.terminal().sha256()); update.setString(8, sample.selection().sha256());
+                                if (update.executeUpdate() != 1) { throw new SQLException("009 action credit already committed or changed"); }
+                            }
+                        }
+                    }
                     try (var update = connection.prepareStatement("UPDATE phantom_tactical_v3_runs SET state=? WHERE run_id=? AND state='FROZEN'"))
                     { update.setString(1,status); update.setString(2,frozen.runId()); if (update.executeUpdate() != 1) { throw new SQLException("V3 frozen state changed"); } }
                     if(advantage!=null){advantagePreCommitFault(advantage,model);}
+                    if (autonomous != null) { autonomousPreCommitFault(autonomous, parent); }
                     return model;
                 }
             }
         });
         return read(id,sha,false);
+    }
+    private void autonomousPreCommitFault(ActionAdvantageV2.Frozen frozen, Optimization parent)
+    {
+        if (!Boolean.getBoolean("phantom.learning009.preCommitFault")) { return; }
+        if (!Boolean.getBoolean("phantom.learning.train") || !autonomousMode() || !_guard.config().text("autonomous009Phase", "").equals("FIT"))
+        { throw new IllegalArgumentException("009 fault requires explicit own offline TEST FIT"); }
+        final Path directory = autonomousDirectory().resolve("cohorts").resolve(autonomousDataset());
+        final Path marker = directory.resolve("fault-before-commit-" + frozen.runId() + ".json");
+        final String body = "{\"schema\":\"AUTONOMOUS_PRECOMMIT_FAULT_V1\",\"runId\":" + TrainingStore.quote(frozen.runId())
+            + ",\"targetSha\":" + TrainingStore.quote(frozen.datasetSha()) + ",\"parentOptimizerSha\":" + TrainingStore.quote(parent.sha()) + "}\n";
+        try
+        {
+            if (!directory.equals(directory.toRealPath())) { throw new IOException("Physical009 fault directory required"); }
+            if (Files.exists(marker))
+            { if (!marker.equals(marker.toRealPath()) || !Files.readString(marker).equals(body)) { throw new IOException("009 fault marker changed"); } return; }
+            Files.writeString(marker, body, java.nio.charset.StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
+        }
+        catch (IOException failure) { throw new IllegalArgumentException("009 fault proof unavailable", failure); }
+        Runtime.getRuntime().halt(74); // MariaDB must roll back the interrupted transaction; the prior FROZEN reservation survives.
     }
     /** TEST-only controlled process failure after all writes and before transaction COMMIT. Never entered by native combat. */
     private void advantagePreCommitFault(ActionAdvantageV1.Frozen frozen,long model)
@@ -1366,7 +1597,7 @@ public final class TacticalStoreV3
                 if (candidate == null || !candidate.origin().equals("NATIVE_COMBAT") || !candidate.runId().equals(found.getString(2))
                     || state.updates() != found.getLong(5) || state.completedEpochs() != found.getLong(6) || state.seed() != SEED || state.seed() != found.getLong(7)
                     || !TacticalObservationV3.SCHEMA.equals(found.getString(8)) || !NORMALIZATION.equals(found.getString(9))
-                    || !(TacticalReplayV3.REVISION.equals(found.getString(10))||TerminalReplayV1.REVISION.equals(found.getString(10))||ActionAdvantageV1.REVISION.equals(found.getString(10))||ActionAdvantage008.REVISION.equals(found.getString(10))))
+                    || !(TacticalReplayV3.REVISION.equals(found.getString(10))||TerminalReplayV1.REVISION.equals(found.getString(10))||ActionAdvantageV1.REVISION.equals(found.getString(10))||ActionAdvantage008.REVISION.equals(found.getString(10))||ActionAdvantageV2.REVISION.equals(found.getString(10))))
                 { throw new IllegalArgumentException("Incompatible V3 optimizer committed provenance"); }
                 final boolean terminalObjective=candidate.metrics().contains("\"objective\":\"TERMINAL_OUTCOME_V1\"");
                 final boolean terminalSampler=TerminalReplayV1.REVISION.equals(found.getString(10));
@@ -1374,6 +1605,7 @@ public final class TacticalStoreV3
                 if(candidate.metrics().contains("\"objective\":\""+ActionAdvantageV1.OBJECTIVE+"\"")!=advantageSampler){throw new IllegalArgumentException("007 objective/sampler mismatch");}
                 final boolean residualSampler=ActionAdvantage008.REVISION.equals(found.getString(10));
                 if(candidate.metrics().contains("\"objective\":\""+ActionAdvantage008.OBJECTIVE+"\"")!=residualSampler){throw new IllegalArgumentException("008 objective/sampler mismatch");}
+                final boolean autonomousSampler = autonomousSampler(candidate.metrics(), found.getString(10));
                 final boolean terminalApplications;
                 try(var markers=connection.prepareStatement("SELECT COUNT(*) FROM phantom_tactical_v3_terminal_applications WHERE model_id=?"))
                 {markers.setLong(1,id);try(var rows=markers.executeQuery()){rows.next();terminalApplications=rows.getLong(1)>0;}}
@@ -1392,6 +1624,11 @@ public final class TacticalStoreV3
                 {
                     try(var snapshot=connection.prepareStatement("SELECT snapshot_blob FROM phantom_tactical_v3_runs WHERE run_id=?"))
                     {snapshot.setString(1,candidate.runId());try(var rows=snapshot.executeQuery()){if(!rows.next()){throw new IllegalArgumentException("008 frozen source missing");}residualSnapshot(connection,candidate.runId(),candidate.datasetSha(),rows.getBytes(1),id);}}
+                }
+                if (autonomousSampler)
+                {
+                    try (var snapshot = connection.prepareStatement("SELECT snapshot_blob FROM phantom_tactical_v3_runs WHERE run_id=?"))
+                    { snapshot.setString(1, candidate.runId()); try (var rows = snapshot.executeQuery()) { if (!rows.next()) { throw new IllegalArgumentException("009 frozen source missing"); } autonomousSnapshot(connection, candidate.runId(), candidate.datasetSha(), rows.getBytes(1), id); } }
                 }
                 return new OptimizationBoundary(new Optimization(id,found.getString(2),found.getString(3),state),found.getLong(11),found.getString(12),found.getString(13),candidate.runId());
             }
@@ -1432,6 +1669,8 @@ public final class TacticalStoreV3
     {
         requireStopped();
         final Checkpoint candidate = read(version,expectedSha,false);
+        if (candidate != null && candidate.metrics().contains("\"objective\":\"" + ActionAdvantageV2.OBJECTIVE + "\""))
+        { throw new IllegalArgumentException("009 keeps working/best TEST checkpoints separate from accepted models; promotion requires a later explicit integration contract"); }
         if (candidate == null || !admissionPermitted(candidate.status(),TacticalObservationV3.SCHEMA,candidate.sha(),expectedSha,
             candidate.epochs(),candidate.auditLoss(),candidate.constantLoss(),candidate.priorLoss(),true))
         { throw new IllegalArgumentException("Exact V3 TEST candidate did not pass independent admission"); }
@@ -1513,6 +1752,11 @@ public final class TacticalStoreV3
                 {
                     if(!status.equals("DRAFT")){throw new IllegalArgumentException("008 remains an explicitly unpromoted DRAFT");}
                     residual=residualSnapshot(connection,found.getString(23),found.getString(8),bytes,version);
+                }
+                if (found.getString(19).contains("\"objective\":\"" + ActionAdvantageV2.OBJECTIVE + "\""))
+                {
+                    if (!status.equals("DRAFT")) { throw new IllegalArgumentException("009 weights remain an unpromoted TEST draft"); }
+                    autonomousSnapshot(connection, found.getString(23), found.getString(8), bytes, version);
                 }
                 final var auditExamples=coldAuditExamples(rows,residual);
                 final double loss = model.loss(auditExamples);

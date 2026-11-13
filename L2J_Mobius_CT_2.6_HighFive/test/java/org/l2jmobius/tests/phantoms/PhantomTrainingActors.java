@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.sql.Connection;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.threads.ThreadPool;
@@ -34,6 +38,241 @@ import org.l2jmobius.gameserver.scripting.ScriptEngine;
 /** Bounded ordinary Player setup before the campaign CUT; sealed restart is read-only. */
 public final class PhantomTrainingActors
 {
+	/** SQL image for TEST incarnation reproduction, not a second Player serializer/loader. */
+	static record SavedTable(String name, String identity, List<String> columns, List<Integer> types, List<List<String>> rows)
+	{
+		SavedTable
+		{
+			if (!Set.of("characters", "character_skills", "character_subclasses", "character_hennas", "character_variables",
+				"character_skills_save", "character_item_reuse_save", "character_summons", "pets", "items", "item_attributes", "item_elementals", "item_variables").contains(name)
+				|| columns.isEmpty() || columns.size() != types.size() || columns.stream().anyMatch(value -> !value.matches("[A-Za-z_][A-Za-z0-9_]*"))
+				|| !columns.contains(identity) || rows.size() > 8192)
+			{ throw new IllegalArgumentException("AUTONOMOUS_SNAPSHOT_TABLE_SCOPE"); }
+			columns = List.copyOf(columns); types = List.copyOf(types);
+			final int width = columns.size();
+			rows = rows.stream().map(row ->
+			{
+				if (row.size() != width || row.stream().anyMatch(value -> value != null && value.length() > 65536))
+				{ throw new IllegalArgumentException("AUTONOMOUS_SNAPSHOT_ROW_BOUND"); }
+				return Collections.unmodifiableList(new ArrayList<>(row)); // SQL NULL remains NULL.
+			}).sorted(java.util.Comparator.comparing(SavedTable::rowJson)).toList();
+		}
+		String value(List<String> row, String column) { return row.get(columns.indexOf(column)); }
+		String json()
+		{
+			return "{\"table\":" + q(name) + ",\"identity\":" + q(identity) + ",\"columns\":" + rowJson(columns)
+				+ ",\"jdbcTypes\":" + types + ",\"rows\":[" + rows.stream().map(SavedTable::rowJson).collect(java.util.stream.Collectors.joining(",")) + "]}";
+		}
+		String physicalRow(List<String> row, Set<String> ignored)
+		{
+			final var fields = new ArrayList<String>();
+			for (int column = 0; column < columns.size(); column++)
+			{
+				final String key = columns.get(column).toLowerCase(java.util.Locale.ROOT);
+				if (!ignored.contains(key)) { fields.add(q(key) + ":" + q(row.get(column))); }
+			}
+			fields.sort(String::compareTo); return "{" + String.join(",", fields) + "}";
+		}
+		SavedTable forIncarnation(int sourceId, int incarnation, String characterName, Map<Integer, Integer> itemIds)
+		{
+			if (sourceId <= 0 || incarnation <= 0 || sourceId == incarnation || !characterName.matches("AT[A-Za-z0-9]{1,13}"))
+			{ throw new IllegalArgumentException("AUTONOMOUS_SNAPSHOT_IDENTITY"); }
+			final var output = new ArrayList<List<String>>();
+			for (var row : rows)
+			{
+				final var copy = new ArrayList<>(row);
+				final int index = columns.indexOf(identity);
+				final int id = Integer.parseInt(row.get(index));
+				if (Set.of("item_attributes", "item_elementals", "item_variables").contains(name))
+				{
+					final Integer replacement = itemIds.get(id);
+					if (replacement == null || replacement <= 0 || replacement == id) { throw new IllegalArgumentException("AUTONOMOUS_UNMAPPED_ITEM"); }
+					copy.set(index, replacement.toString());
+				}
+				else
+				{
+					if (id != sourceId) { throw new IllegalArgumentException("AUTONOMOUS_FOREIGN_SOURCE_ROW"); }
+					copy.set(index, Integer.toString(incarnation));
+					if (name.equals("items"))
+					{
+						final int object = columns.indexOf("object_id");
+						final Integer replacement = itemIds.get(Integer.parseInt(row.get(object)));
+						if (replacement == null) { throw new IllegalArgumentException("AUTONOMOUS_UNMAPPED_ITEM"); }
+						copy.set(object, replacement.toString());
+					}
+					if (name.equals("characters")) { copy.set(columns.indexOf("char_name"), characterName); copy.set(columns.indexOf("online"), "0"); }
+				}
+				output.add(copy);
+			}
+			return new SavedTable(name, identity, columns, types, output);
+		}
+		void insert(Connection connection) throws Exception
+		{
+			if (rows.isEmpty()) { return; }
+			final String sql = "INSERT INTO `" + name + "` (`" + String.join("`,`", columns) + "`) VALUES (" + String.join(",", Collections.nCopies(columns.size(), "?")) + ")";
+			try (var insert = connection.prepareStatement(sql))
+			{
+				for (var row : rows)
+				{
+					for (int column = 0; column < row.size(); column++)
+					{ if (row.get(column) == null) { insert.setNull(column + 1, types.get(column)); } else { insert.setString(column + 1, row.get(column)); } }
+					if (insert.executeUpdate() != 1) { throw new IllegalStateException("AUTONOMOUS_SNAPSHOT_INSERT"); }
+				}
+			}
+		}
+		private static String rowJson(List<String> values) { return "[" + values.stream().map(PhantomTrainingActors::q).collect(java.util.stream.Collectors.joining(",")) + "]"; }
+	}
+	static record SavedActor(int sourceId, List<SavedTable> tables)
+	{
+		SavedActor
+		{
+			tables = List.copyOf(tables);
+			if (sourceId <= 0 || tables.stream().map(SavedTable::name).distinct().count() != tables.size()) { throw new IllegalArgumentException("AUTONOMOUS_SNAPSHOT_DUPLICATE"); }
+		}
+		SavedTable table(String name) { return tables.stream().filter(value -> value.name().equals(name)).findFirst().orElseThrow(); }
+		String field(String column) { final var character = table("characters"); return character.value(character.rows().getFirst(), column); }
+		String json() { return "{\"schema\":\"AUTONOMOUS_SAVED_ACTOR_V1\",\"sourceActorId\":" + sourceId + ",\"tables\":[" + tables.stream().map(SavedTable::json).collect(java.util.stream.Collectors.joining(",")) + "]}"; }
+		String sha() { return PhantomTrainingScenarios.hash(json()); }
+		/** Matching projection only, never identity, split authority, eligibility or a native state simulator. */
+		String physicalFingerprint()
+		{
+			final var facts = new ArrayList<String>();
+			final var extensions = Set.of("item_attributes", "item_elementals", "item_variables");
+			for (var table : tables)
+			{
+				if (extensions.contains(table.name())) { continue; }
+				final var physical = new ArrayList<String>();
+				for (var row : table.rows())
+				{
+					if (table.name().equals("items"))
+					{
+						final String object = table.value(row, "object_id"); final var attributes = new ArrayList<String>();
+						for (var extension : tables)
+						{
+							if (!extensions.contains(extension.name())) { continue; }
+							final var values = extension.rows().stream().filter(value -> extension.value(value, extension.identity()).equals(object))
+								.map(value -> extension.physicalRow(value, Set.of(extension.identity().toLowerCase(java.util.Locale.ROOT)))).sorted().toList();
+							attributes.add(q(extension.name()) + ":[" + String.join(",", values) + "]");
+						}
+						attributes.sort(String::compareTo);
+						physical.add("{\"item\":" + table.physicalRow(row, Set.of("owner_id", "object_id")) + ",\"attributes\":{" + String.join(",", attributes) + "}}");
+					}
+					else
+					{
+						final var ignored = new HashSet<String>(); ignored.add(table.identity().toLowerCase(java.util.Locale.ROOT));
+						if (table.name().equals("characters")) { ignored.addAll(Set.of("char_name", "account_name", "online", "onlinetime", "lastaccess", "char_slot", "createdate")); }
+						physical.add(table.physicalRow(row, ignored));
+					}
+				}
+				physical.sort(String::compareTo); facts.add(q(table.name()) + ":[" + String.join(",", physical) + "]");
+			}
+			facts.sort(String::compareTo); return PhantomTrainingScenarios.hash("AUTONOMOUS_SAVED_PHYSICAL_V1/{" + String.join(",", facts) + "}");
+		}
+		int classIndex()
+		{
+			if (field("classid").equals(field("base_class"))) { return 0; }
+			final var classes = table("character_subclasses");
+			return classes.rows().stream().filter(row -> classes.value(row, "class_id").equals(field("classid")))
+				.mapToInt(row -> Integer.parseInt(classes.value(row, "class_index"))).findFirst().orElseThrow(() -> new IllegalStateException("AUTONOMOUS_MISSING_ACTIVE_SUBCLASS"));
+		}
+		Map<Integer, Integer> learned()
+		{
+			final var result = new LinkedHashMap<Integer, Integer>(); final var skills = table("character_skills");
+			for (var row : skills.rows())
+			{
+				if (Integer.parseInt(skills.value(row, "class_index")) == classIndex()
+					&& result.put(Integer.parseInt(skills.value(row, "skill_id")), Integer.parseInt(skills.value(row, "skill_level"))) != null)
+				{ throw new IllegalStateException("AUTONOMOUS_DUPLICATE_LEARNED_SKILL"); }
+			}
+			return Map.copyOf(result);
+		}
+		/** Unknown external/timed state is retained in the snapshot and explicitly refused. */
+		void requireReproducible()
+		{
+			if (!field("account_name").equals("learn001fixture") || !field("accesslevel").equals("0") || !field("online").equals("0")
+				|| !field("clanid").equals("0") || !field("nobless").equals("0") || !field("transform_id").equals("0")
+				|| !field("death_penalty_level").equals("0") || !field("faction").equals("0"))
+			{ throw new IllegalStateException("AUTONOMOUS_EXTERNAL_ACTOR_STATE"); }
+			for (String reference : List.of("apprentice", "sponsor", "subpledge", "lvl_joined_academy"))
+			{ if (!field(reference).equals("0")) { throw new IllegalStateException("AUTONOMOUS_EXTERNAL_ACTOR_REFERENCE"); } }
+			if (Double.parseDouble(field("curHp")) <= 0 || Double.parseDouble(field("curMp")) < 0 || field("x") == null || field("y") == null || field("z") == null)
+			{ throw new IllegalStateException("AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"); }
+			// Native features/SkillTransfer stores an acquisition marker, not an object reference or effect timer.
+			final var variables = table("character_variables");
+			for (var row : variables.rows())
+			{
+				final String key = variables.value(row, "var");
+				if (!key.matches("HOLY_POMANDER_[0-9]+") || !variables.value(row, "val").equals("true")
+					|| org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(Integer.parseInt(key.substring("HOLY_POMANDER_".length()))) == null)
+				{ throw new IllegalStateException("AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_VARIABLES"); }
+			}
+			for (String name : List.of("character_skills_save", "character_item_reuse_save", "character_summons", "pets", "item_variables"))
+			{ if (!table(name).rows().isEmpty()) { throw new IllegalStateException("AUTONOMOUS_UNSUPPORTED_SAVED_" + name.toUpperCase(java.util.Locale.ROOT)); } }
+			final var items = table("items");
+			for (var row : items.rows())
+			{
+				if (!Set.of("INVENTORY", "PAPERDOLL").contains(items.value(row, "loc"))
+					|| !Set.of("-1", "0").contains(items.value(row, "time")) || !Set.of("-1", "0").contains(items.value(row, "mana_left")))
+				{ throw new IllegalStateException("AUTONOMOUS_UNSUPPORTED_TIMED_OR_REMOTE_ITEM"); }
+			}
+		}
+	}
+	static SavedActor readSavedActor(Connection connection, int id) throws Exception
+	{
+		if (id <= 0) { throw new IllegalArgumentException("AUTONOMOUS_SOURCE_ID"); }
+		final var tables = new ArrayList<SavedTable>();
+		for (String name : List.of("characters", "character_skills", "character_subclasses", "character_hennas", "character_variables", "character_skills_save", "character_item_reuse_save"))
+		{ tables.add(readSavedTable(connection, name, "charId", "`charId`=?", id)); }
+		if (tables.getFirst().rows().size() != 1) { throw new IllegalStateException("AUTONOMOUS_SOURCE_NOT_FOUND"); }
+		tables.add(readSavedTable(connection, "character_summons", "ownerId", "`ownerId`=?", id));
+		tables.add(readSavedTable(connection, "pets", "ownerId", "`ownerId`=? OR item_obj_id IN (SELECT object_id FROM items WHERE owner_id=?)", id, id));
+		tables.add(readSavedTable(connection, "items", "owner_id", "`owner_id`=?", id));
+		for (String name : List.of("item_attributes", "item_elementals", "item_variables"))
+		{ final String key = name.equals("item_variables") ? "id" : "itemId"; tables.add(readSavedTable(connection, name, key, "`" + key + "` IN (SELECT object_id FROM items WHERE owner_id=?)", id)); }
+		return new SavedActor(id, tables);
+	}
+	private static SavedTable readSavedTable(Connection connection, String name, String key, String predicate, int... ids) throws Exception
+	{
+		try (var query = connection.prepareStatement("SELECT * FROM `" + name + "` WHERE " + predicate + " LIMIT 8193"))
+		{
+			for (int index = 0; index < ids.length; index++) { query.setInt(index + 1, ids[index]); }
+			try (var rows = query.executeQuery())
+			{
+				final var columns = new ArrayList<String>(); final var types = new ArrayList<Integer>(); final var values = new ArrayList<List<String>>();
+				for (int column = 1; column <= rows.getMetaData().getColumnCount(); column++)
+				{ columns.add(rows.getMetaData().getColumnName(column)); types.add(rows.getMetaData().getColumnType(column)); }
+				while (rows.next())
+				{
+					if (values.size() >= 8192) { throw new IllegalStateException("AUTONOMOUS_SNAPSHOT_CAPACITY"); }
+					final var row = new ArrayList<String>(); for (int column = 1; column <= columns.size(); column++) { row.add(rows.getString(column)); } values.add(row);
+				}
+				return new SavedTable(name, key, columns, types, values);
+			}
+		}
+	}
+	/** Caller owns the stopped-installation lock and an initialized native IdManager. One atomic SQL image. */
+	static int reproduceSavedActor(Connection connection, SavedActor source, String name) throws Exception
+	{
+		source.requireReproducible();
+		if (!connection.getAutoCommit()) { throw new IllegalArgumentException("AUTONOMOUS_TRANSACTION_ALREADY_ACTIVE"); }
+		final int priorIsolation = connection.getTransactionIsolation();
+		connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE); connection.setAutoCommit(false);
+		try
+		{
+			if (!readSavedActor(connection, source.sourceId()).sha().equals(source.sha())) { throw new IllegalStateException("AUTONOMOUS_SOURCE_SNAPSHOT_CHANGED"); }
+			final int id = org.l2jmobius.gameserver.managers.IdManager.getInstance().getNextId();
+			final var itemIds = new LinkedHashMap<Integer, Integer>(); final var items = source.table("items");
+			for (var row : items.rows()) { itemIds.put(Integer.parseInt(items.value(row, "object_id")), org.l2jmobius.gameserver.managers.IdManager.getInstance().getNextId()); }
+			final var expected = source.tables().stream().map(table -> table.forIncarnation(source.sourceId(), id, name, itemIds)).toList();
+			for (var table : expected) { table.insert(connection); }
+			if (!readSavedActor(connection, id).json().equals(new SavedActor(id, expected).json())) { throw new IllegalStateException("AUTONOMOUS_INCARNATION_SQL_READBACK_CHANGED"); }
+			if (!readSavedActor(connection, source.sourceId()).sha().equals(source.sha())) { throw new IllegalStateException("AUTONOMOUS_SOURCE_MUTATED"); }
+			connection.commit(); return id;
+		}
+		catch (Exception | Error failure) { connection.rollback(); throw failure; }
+		finally { connection.setAutoCommit(true); connection.setTransactionIsolation(priorIsolation); }
+	}
+	private static String q(String value) { return value == null ? "null" : PhantomLearning005Evaluation.q(value); }
 	private static final String HEADER = "scene\tsplit\tscope\tprofile\tactor\tclass\tlevel\tweapon\tskills\tx\ty\tz";
 	public static void main(String[] args) throws Exception
 	{

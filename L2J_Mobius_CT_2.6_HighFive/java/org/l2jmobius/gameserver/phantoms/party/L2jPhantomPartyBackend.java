@@ -79,6 +79,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
 	private final PhantomCombatCapabilityResolver _combatLoadouts;
+	private final PhantomCombatCapabilityResolver.CapabilitySource _trainCapabilities;
 	private final PartyInvitationService _invitations;
 	private final CommandChannelInvitationService _commandChannels;
 	private java.util.function.BiPredicate<org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef, Creature> _farmSourcePolicy = (_, _) -> false;
@@ -103,10 +104,19 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 
 	public L2jPhantomPartyBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression)
 	{
+		this(profiles, materialization, progression, null);
+	}
+
+	/** Explicit isolated TRAIN source. Ordinary owners retain the canonical progression path. */
+	public L2jPhantomPartyBackend(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression,
+		PhantomCombatCapabilityResolver.CapabilitySource trainCapabilities)
+	{
+		if (trainCapabilities != null && !Boolean.getBoolean("phantom.learning.train")) { throw new IllegalArgumentException("Acquired Party source requires isolated TRAIN opt-in."); }
 		_profiles = profiles;
 		_materialization = materialization;
 		_progression = progression;
-		_combatLoadouts = PhantomCombatCapabilityResolver.fromProgression(() -> _progression.findCatalog().orElse(null));
+		_trainCapabilities = trainCapabilities;
+		_combatLoadouts = trainCapabilities == null ? PhantomCombatCapabilityResolver.fromProgression(() -> _progression.findCatalog().orElse(null)) : new PhantomCombatCapabilityResolver(trainCapabilities);
 		_invitations = PartyInvitationService.getInstance();
 		_commandChannels = CommandChannelInvitationService.getInstance();
 	}
@@ -1141,7 +1151,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		{
 			try (var acquired = acquire(actor))
 			{
-				return acquired == null ? List.of() : nativeCapabilities(acquired.player(), phantomCapabilities(actor.profileId(), exactTargetObjectId), exactTargetObjectId, exactFarmHeal);
+				return acquired == null ? List.of() : nativeCapabilities(acquired.player(), phantomCapabilities(actor.profileId(), acquired.player(), exactTargetObjectId), exactTargetObjectId, exactFarmHeal);
 			}
 		}
 		try (AcquiredPlayer acquired = acquire(actor))
@@ -1233,14 +1243,15 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	{
 		final WorldObject target = player.getTarget();
 		final List<Integer> attackers = World.getInstance().getVisibleObjects(player, Monster.class, npc -> !npc.isDead() && (npc.getInstanceId() == player.getInstanceId()) && npc.hasAI() && (npc.getAI().getIntention() == Intention.ATTACK) && (npc.getAI().getAttackTarget() == player)).stream().map(Creature::getObjectId).distinct().sorted().limit(32).toList();
-		final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? nativeCapabilities(player, phantomCapabilities(member.profileId(), 0), 0, false) : realCapabilities(player, 0);
+		final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? nativeCapabilities(player, phantomCapabilities(member.profileId(), player, 0), 0, false) : realCapabilities(player, 0);
 		final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
 		return new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash);
 	}
 
-	private List<MemberCapability> phantomCapabilities(long profileId, int targetObjectId)
+	private List<MemberCapability> phantomCapabilities(long profileId, Player player, int targetObjectId)
 	{
-		return _progression.capabilities(profileId, targetObjectId > 0 ? targetObjectId : null).stream().map(L2jPhantomPartyBackend::capability).toList();
+		final var authored = _progression.capabilities(profileId, targetObjectId > 0 ? targetObjectId : null).stream().map(L2jPhantomPartyBackend::capability).toList();
+		return acquiredCapabilities(player, authored, targetObjectId);
 	}
 
 	private static List<MemberCapability> nativeCapabilities(Player player, List<MemberCapability> authored, int targetObjectId, boolean exactFarmHeal)
@@ -1308,6 +1319,35 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 			final boolean ready = learned && !player.isDead() && !player.isCastingNow() && targetReady && !player.isSkillDisabled(skill) && player.checkDoCastConditions(skill);
 			final String reason = !learned ? "skill.missing" : !targetReady ? (targetObjectId > 0 ? "target.invalid" : "target.required") : ready ? "ready" : "skill.unavailable";
 			result.add(new MemberCapability(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill().skillId(), learned ? skill.getLevel() : rule.actionSkill().skillLevel(), rule.targetScope().name(), true, learned, ready, reason, Math.max(1, percent(player.getCurrentMp(), player.getMaxMp()) * 10), "progression.catalog+real.current_player"));
+		}
+		return result;
+	}
+
+	private List<MemberCapability> acquiredCapabilities(Player player, List<MemberCapability> authored, int targetObjectId)
+	{
+		if (_trainCapabilities == null) { return authored; }
+		final var result = new ArrayList<>(authored);
+		if (_trainCapabilities != null)
+		{
+			// The TEST Combat owner and this passive planner see the same acquired frozen refs.
+			final var modes = java.util.Arrays.asList(PhantomCombatMode.values());
+			result.removeIf(capability -> modes.stream().anyMatch(mode -> mode.capabilityKey().equals(capability.capabilityKey())));
+			for (var evidence : _trainCapabilities.capabilities(player.getActiveClass()))
+			{
+				final var mode = modes.stream().filter(value -> value.capabilityKey().equals(evidence.capabilityKey())).findFirst().orElseThrow(() -> new IllegalArgumentException("TRAIN source contains a non-offensive capability."));
+				if (evidence.skills().size() > 4) { throw new IllegalArgumentException("TRAIN acquired shortlist exceeds the native bound."); }
+				for (var ref : evidence.skills())
+				{
+					final var skill = player.getKnownSkill(ref.skillId());
+					final boolean learned = skill != null && skill.getLevel() == ref.skillLevel() && PhantomCombatSkillSafety.supports(skill, mode, player.isTransformed());
+					final WorldObject target = targetObjectId > 0 ? World.getInstance().findObject(targetObjectId) : null;
+					final boolean targetReady = targetObjectId <= 0 || target instanceof Creature creature && !creature.isAlikeDead() && learned && skill.checkCondition(player, creature, false);
+					final boolean ready = learned && targetReady && !player.isAlikeDead() && !player.isSitting() && !player.isSkillDisabled(skill) && player.checkDoCastConditions(skill)
+						&& player.getCurrentMp() >= player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill);
+					result.add(new MemberCapability(evidence.capabilityKey(), evidence.variantKey() + "." + ref.skillId(), evidence.rank(), ref.skillId(), ref.skillLevel(), "SINGLE_TARGET", true, learned, ready,
+						ready ? "ready" : "native.unavailable", evidence.rank(), "TRAIN.acquired_frozen_source+exact_native_skill"));
+				}
+			}
 		}
 		return result;
 	}

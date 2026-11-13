@@ -1,5 +1,38 @@
 # Автономная тренировка Phantom World
 
+## Универсальный режим009
+
+Фактическая приёмка009: **PARTIAL / INSUFFICIENT_NATIVE_EVIDENCE**, manual gate REQUIRED. Новых весов нет: Adam887/207 сохранён; final generator не нашёл lawful target-bound cohort. Исчерпаны6acceptance starts, config передан OFF, обе fault flags выключены. Ночной запуск не подготовлен, реальные кнопки GUI не проверены. Приведённые далее команды описывают реализованный интерфейс и не заменяют эту проверку. Подробности и ограничения — task package009.
+
+В сохранённом отдельном TEST-клоне дважды щёлкните `TRAIN_GUI.cmd` из этой папки. Нужны Windows PowerShell5.1, JDK25, Ant и существующая собственная установка TRAIN с сохранённой SQL/Geo. Интерфейс собирается штатным `Add-Type` в частный runtime.
+
+1. Нажмите **«Учиться»**. Director проверит владельца, исходники, JAR, Geo203/protected207, порты, SQL и холодный model/Adam checkpoint. Второй START присоединяется к работающему Director.
+2. GUI и Codex можно закрыть. Обучением владеет отдельный broker. Повторный запуск GUI получает статус через CLI с проверкой живого owned процесса.
+3. **«Пауза»** завершает атомарную операцию, сохраняет границу и закрывает native workers/SQL. **«Продолжить»** восстанавливает ту же кампанию и terminal Adam в новом Director. Зарезервированные эпизоды заново не исполняются.
+4. **«Стоп»** штатно закрывает свои GameServer/workers/SQL. Дождитесь подтверждённой остановки и свободных портов. На следующий день нажмите **«Продолжить»**.
+5. **«Экспорт»** при активном Director ставит запрос в очередь до безопасной границы. При остановленном Director экспорт выполняет существующий trainer/store.
+
+CLI остаётся доступным:
+
+```powershell
+.\Training.ps1 -Action Start -Autonomous
+.\Training.ps1 -Action Status -Json
+.\Training.ps1 -Action Pause
+.\Training.ps1 -Action Resume -Autonomous
+.\Training.ps1 -Action Stop
+.\Training.ps1 -Action Export
+```
+
+Исходный `AutonomousTraining.ini` выключен. Рабочие настройки после первого запуска находятся в `.phantom-local/learning002/train/TRAIN_CONFIG.ini`; меняйте их после Stop. `classes=auto` использует весь PlayerClass; `levels=auto` — заданный диапазон. Skill ID перечислять не нужно. Нужен сохранённый законный acquired source: отсутствие персонажа или adapter остаётся диагностикой; навыки автоматически не выдаются.
+
+Настройки сеанса: `autonomous009DurationMinutes`, `cpuCount`, `cpuBudgetPercent`, `maxHeapMb`, `autonomous009MemoryBudgetMb`, `minFreeDiskMb`, частота EVAL, action families, уровни и class weights. CPU budget — ограниченный JVM processor count и пауза между батчами; кратковременный пик возможен. Память и диск проверяются во время workers/native. Лимит6запусков/90native-минут относится к acceptance smoke; обычный ночной профиль его не включает. Windows sleep/power settings не меняются.
+
+Данные009: `autonomous/v1/campaigns/<campaign>/` — фаза Director, immutable manifests, failed/timeout/reserved попытки, отдельные EVAL и checkpoints. Достаточный новый cohort обучает существующую V3 с сохранением terminal optimizer lineage. Три sufficient fit без улучшения TUNING дают PAUSED; повторный недостаток evidence ограничивает цикл. Улучшение MSE не означает улучшения боевого поведения. Автоматического продвижения в accepted TEST или MAIN/PLAY нет.
+
+После sealed cohort изменение source/JAR даёт pin refusal. До первого sealed cohort допускается записанный pre-CUT source revision с сохранением cumulative бюджета. Не удаляйте журналы для обхода отказа при чужом PID, занятом порте или повреждённом checkpoint.
+
+Фактические проверки и ограничения009 перечислены в task package `PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER`; финальный manual gate требуется отдельно. Далее сохранены исторические инструкции.
+
 Рабочая папка команд: `L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/`
 в отдельном клоне ветки `wip/phantom-learning-002`.
 

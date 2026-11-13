@@ -389,7 +389,20 @@ if ($Action -eq 'Test-Config') {
         $invalid=@{}; foreach($key in $fact.Keys){$invalid[$key]=$fact[$key]}; foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
         Reject { Assert-TrainIdentitySnapshot $invalid $expected } ('FOREIGN_IDENTITY_ACCEPTED:'+($change.Keys -join ','))
     }
-    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 SQL=0 NATIVE=0'
+    $auto=@{};foreach($key in $config.Keys){$auto[$key]=[string]$config[$key]}
+    foreach($entry in @{autonomous009Version='1';autonomous009Enabled='false';autonomous009Phase='OFF';autonomous009Comparator='STOCK_ON_FROZEN_SHORTLIST_V1';v3Enabled='true';classes='auto';levels='auto';autonomous009MinLevel='20';autonomous009MaxLevel='21';autonomous009ClassWeights='88:3';autonomous009MemoryBudgetMb='8192';episodesPerBatch='48'}.GetEnumerator()){$auto[$entry.Key]=$entry.Value}
+    Assert-TrainConfig $auto
+    $profile=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini')
+    Require ($profile.autonomous009Enabled -ceq 'false' -and $profile.classes -ceq 'auto' -and $profile.levels -ceq 'auto') 'AUTONOMOUS_PROFILE_OFF_DEFAULT'
+    foreach($change in @(@{autonomous009Version='2'},@{autonomous009MinLevel='22'},@{autonomous009MemoryBudgetMb='4096'},@{autonomous009ClassWeights='999:3'},@{episodesPerBatch='50'},@{autonomous009PriorStarts='7'})){
+        $invalid=@{};foreach($key in $auto.Keys){$invalid[$key]=[string]$auto[$key]};foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
+        Reject {Assert-TrainConfig $invalid} ('INVALID_AUTONOMOUS_CONFIG_ACCEPTED:'+($change.Keys -join ','))
+    }
+    $now=[DateTime]::UtcNow
+    Require ((Get-TrainHeartbeat ($now.ToString('o')) $now).state -ceq 'FRESH') 'FRESH_HEARTBEAT_REJECTED'
+    Require ((Get-TrainHeartbeat ($now.AddMinutes(-2).ToString('o')) $now).state -ceq 'STALE') 'STALE_HEARTBEAT_PRESENTED_AS_CURRENT'
+    Require ((Get-TrainHeartbeat 'broken' $now).state -ceq 'UNKNOWN') 'INVALID_HEARTBEAT_PRESENTED_AS_CURRENT'
+    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=6 heartbeat=3 SQL=0 NATIVE=0'
     return
 }
 # Authorized OWN disposable TEST fault only: active package TEST_CASES.md T08/T14

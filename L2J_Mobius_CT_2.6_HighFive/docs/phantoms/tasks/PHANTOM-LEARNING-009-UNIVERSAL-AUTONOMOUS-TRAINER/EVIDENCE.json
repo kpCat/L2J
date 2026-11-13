@@ -1,0 +1,1630 @@
+{
+  "goal": "PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER",
+  "status": "PARTIAL",
+  "goalComplete": false,
+  "planApproval": "APPROVED_EXPLICIT_USER_REPLY",
+  "finalManualGate": "REQUIRED",
+  "sourceBase": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96",
+  "branch": "wip/phantom-learning-009",
+  "mainFeatureHead": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+  "mainCheckoutModified": false,
+  "sourceScopeMaximum": 25,
+  "deliveryScopeMaximum": 14,
+  "nativeBudget": {
+    "gameServerStarts": 6,
+    "ceilingStarts": 6,
+    "nativeMinutes": 37.196967,
+    "headlessNativeCompletedMillis": 142313,
+    "headlessNativeStarts": 3,
+    "gameServerNativeMillis": 2089505,
+    "ceilingMinutes": 90,
+    "pendingNative": false,
+    "completedNativeMillis": 2231818,
+    "pendingElapsedMillisAtSnapshot": 103524
+  },
+  "newFits": 0,
+  "newCheckpoints": 0,
+  "productionPromotion": false,
+  "preflight": {
+    "exitCode": 0,
+    "geo203": "VERIFIED",
+    "protected207": "VERIFIED",
+    "testPortsFree": true
+  },
+  "baselineTests": {
+    "command": "ant -f L2J_Mobius_CT_2.6_HighFive/build.xml phantom-learning008-test phantom-learning007-test",
+    "exitCode": 0
+  },
+  "foundationTests": {
+    "canonicalInventoryShortlist007008ExitCode": 0,
+    "focusedReadinessExitCode": 0,
+    "readinessNativeBridge": "NOT_RUN",
+    "canonicalWithThirdGroup": "EXIT_0",
+    "curriculumAndModePoolFocusedExitCode": 0,
+    "savedImageRemapFocusedExitCode": 0,
+    "objectiveV2FocusedExitCode": 0,
+    "canonicalAllSixGroups": "EXIT_0_BEFORE_ACQUIRED_SCENE_REFINEMENT",
+    "canonicalSixGroupsAnd007008Seconds": 207
+  },
+  "versionedConfig": {
+    "profileDefault": "OFF",
+    "privateConfigSwitchedFrom008": true,
+    "javaFocusedConfigExitCode": 0,
+    "powerShellConfigExitCode": 0,
+    "legacyInvalidCases": 7,
+    "foreignIdentityCases": 6,
+    "autonomousInvalidCases": 4,
+    "canonicalSevenGroupsAnd007008ExitCode": 0,
+    "canonicalSevenGroupsAnd007008Seconds": 206,
+    "resourceEnforcement": "IMPLEMENTED_OWN_WORKER_MEMORY_DISK_CPU_BOUND_IDLE",
+    "cyclicDirector": "IMPLEMENTED_NATIVE_NO_DATA_TRANSITION_VERIFIED"
+  },
+  "physicalComparisonProjection": {
+    "focusedExitCode": 0,
+    "incarnationIdsExcluded": true,
+    "elementalGearChangeDetected": true,
+    "nativeCollectorIntegration": "IMPLEMENTED_NATIVE_C_MATCHED_SOLO_ADMITTED_BEFORE_CUT",
+    "sourceIndexNativeGeneration": "GENERATED_NATIVE_CAMPAIGNS"
+  },
+  "savedSourceCensus": {
+    "payloadSha": "cf14ec8eb3ccec19a4fa6497845dd2fa8ff7e3f65b6d7c6ba77df2d5c6e895d4",
+    "sourceJarSha": "7bf5f210d9e86834843a933fe3af071b25a60122b3588c818944bdfd118e6bbc",
+    "persistedActors": 1006,
+    "classesWithPersistedActors": 6,
+    "persistedSkillRowsAllClassIndexes": 55668,
+    "actualPlayerCount": null,
+    "readOnlyInspectExitCode": 0
+  },
+  "offlineSqlPreservation": {
+    "files": 513,
+    "bytes": 460368518,
+    "shaVerifiedCopies": true,
+    "privateAcl": true,
+    "manifestSha": "c6be117f9c49033d62f9c4af2abb6ab6f2b4facf816bf8aabf4f0cfc8088a68f",
+    "initialCopyCommandExitCode": 1,
+    "failurePhase": "FINAL_CONSOLE_SIZE_SUM_AFTER_ALL_VERIFIED_COPIES_AND_MANIFEST",
+    "receiptReadbackExitCode": 0
+  },
+  "headlessIngressProbes": [
+    {
+      "worker": "c7ed750a618241c58550b68213727769",
+      "exitCode": 2,
+      "wallMillis": 42641,
+      "cpuSeconds": 115.25,
+      "peakWorkingSetBytes": 4219949056,
+      "result": "REJECTED_UPPERCASE_CANONICAL_CATALOG_HASH",
+      "sqlStopped": true
+    },
+    {
+      "worker": "59e9512c15a841e8a94364ce1d694d12",
+      "exitCode": 2,
+      "wallMillis": 47317,
+      "cpuSeconds": 125.21875,
+      "peakWorkingSetBytes": 4529262592,
+      "result": "SAME_FAILURE_LOCALIZED_TO_CAPTURE_ARGUMENT_GUARD",
+      "sqlStopped": true
+    },
+    {
+      "session": "9fa0afee24a7404e9af935c2d5334cb9",
+      "exitCode": 0,
+      "wallMillis": 52355,
+      "cpuSeconds": 134.375,
+      "peakWorkingSetBytes": 4607107072,
+      "result": "TEN_NATIVE_ACQUIRED_SNAPSHOTS_VERIFIED",
+      "sqlStopped": true
+    }
+  ],
+  "nativeAcquiredIngress": {
+    "reportSha": "679c158633bc0199b40c0dfa4254c412c90ffd61e4575d20fd7e125ad4a11bb2",
+    "verifiedIncarnations": 10,
+    "classes": 5,
+    "actualGetAllSkillsEntries": 570,
+    "noOriginalPlayerLoaded": true,
+    "persistedSkillsUnchanged": true,
+    "nativeTargetOwnerAdmission": "REAL_C_COLLECTION_SOME_PRE_CUT_PARTY_REFUSALS",
+    "actualCastTerminalCredit": "RAW_PAID_EFFECTS_PRESENT_CREDIT_NOT_PROVEN"
+  },
+  "objectiveV2": {
+    "status": "STORE_TRAINER_INTEGRATED_INSUFFICIENT_NATIVE_DATA_NO_NEW_FIT",
+    "redCompilerDiagnostics": 9,
+    "matchedControls": "TRAIN_ONLY_EXACT_CELL_LEAVE_OWN_BLOCK_OUT_MIN3_INDEPENDENT_BLOCKS",
+    "classBalanced": true,
+    "maximumPaidCreditsPerEpisode": 1,
+    "oldCodecsModified": false,
+    "actualFit": false
+  },
+  "coldReadWithV2Store": {
+    "exitCode": 0,
+    "reportSha": "0e7db9886e2c3be84d28f7b4c8bc73e923f1352b5d779b9dc4feeab29b7d1d74",
+    "sourceJarSha": "0adcdc2c5d376bcbc1c15744e74ba696adc17fe154c75beaaaa4ce17d71e8447",
+    "modelVersion": 12,
+    "selectedWeightsSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+    "optimizerSha": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+    "terminalWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "updates": 887,
+    "epochs": 207,
+    "persistedActors": 1018,
+    "sourceActorsExcludingNewIncarnations": 1006,
+    "sqlStopped": true,
+    "testPortsFree": true,
+    "newSqlFreezeCommitFault": "NOT_RUN"
+  },
+  "interimEncoding": {
+    "changedStagedFiles": 20,
+    "mojibakePatterns": 27,
+    "mojibakeExitCode": 0,
+    "escapedCyrillicPatterns": 6,
+    "escapedCyrillicExitCode": 0,
+    "finalRerunRequired": false
+  },
+  "classDiscovery": {
+    "schema": "AUTONOMOUS_CLASS_DISCOVERY_V1",
+    "source": "PlayerClass/SkillTreeData.getCompleteClassSkillTree",
+    "classesDiscovered": 103,
+    "completeTheoreticalLearnFacts": 43749,
+    "uniqueTheoreticalSkillVersions": 7172,
+    "actualAcquiredSkillCount": null,
+    "nativeReadiness": "NOT_RUN",
+    "classes": [
+      {
+        "classId": 0,
+        "name": "FIGHTER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 56,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 1,
+        "name": "WARRIOR",
+        "tier": 1,
+        "parentClassId": 0,
+        "completeTheoreticalLearnFacts": 160,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 2,
+        "name": "GLADIATOR",
+        "tier": 2,
+        "parentClassId": 1,
+        "completeTheoreticalLearnFacts": 639,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 3,
+        "name": "WARLORD",
+        "tier": 2,
+        "parentClassId": 1,
+        "completeTheoreticalLearnFacts": 491,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 4,
+        "name": "KNIGHT",
+        "tier": 1,
+        "parentClassId": 0,
+        "completeTheoreticalLearnFacts": 149,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 5,
+        "name": "PALADIN",
+        "tier": 2,
+        "parentClassId": 4,
+        "completeTheoreticalLearnFacts": 575,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 6,
+        "name": "DARK_AVENGER",
+        "tier": 2,
+        "parentClassId": 4,
+        "completeTheoreticalLearnFacts": 558,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 7,
+        "name": "ROGUE",
+        "tier": 1,
+        "parentClassId": 0,
+        "completeTheoreticalLearnFacts": 155,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 8,
+        "name": "TREASURE_HUNTER",
+        "tier": 2,
+        "parentClassId": 7,
+        "completeTheoreticalLearnFacts": 436,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 9,
+        "name": "HAWKEYE",
+        "tier": 2,
+        "parentClassId": 7,
+        "completeTheoreticalLearnFacts": 399,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 10,
+        "name": "MAGE",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 61,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 11,
+        "name": "WIZARD",
+        "tier": 1,
+        "parentClassId": 10,
+        "completeTheoreticalLearnFacts": 183,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 12,
+        "name": "SORCERER",
+        "tier": 2,
+        "parentClassId": 11,
+        "completeTheoreticalLearnFacts": 554,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 13,
+        "name": "NECROMANCER",
+        "tier": 2,
+        "parentClassId": 11,
+        "completeTheoreticalLearnFacts": 628,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 14,
+        "name": "WARLOCK",
+        "tier": 2,
+        "parentClassId": 11,
+        "completeTheoreticalLearnFacts": 540,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 15,
+        "name": "CLERIC",
+        "tier": 1,
+        "parentClassId": 10,
+        "completeTheoreticalLearnFacts": 181,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 16,
+        "name": "BISHOP",
+        "tier": 2,
+        "parentClassId": 15,
+        "completeTheoreticalLearnFacts": 676,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 17,
+        "name": "PROPHET",
+        "tier": 2,
+        "parentClassId": 15,
+        "completeTheoreticalLearnFacts": 510,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 18,
+        "name": "ELVEN_FIGHTER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 60,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 19,
+        "name": "ELVEN_KNIGHT",
+        "tier": 1,
+        "parentClassId": 18,
+        "completeTheoreticalLearnFacts": 151,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 20,
+        "name": "TEMPLE_KNIGHT",
+        "tier": 2,
+        "parentClassId": 19,
+        "completeTheoreticalLearnFacts": 545,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 21,
+        "name": "SWORDSINGER",
+        "tier": 2,
+        "parentClassId": 19,
+        "completeTheoreticalLearnFacts": 386,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 22,
+        "name": "ELVEN_SCOUT",
+        "tier": 1,
+        "parentClassId": 18,
+        "completeTheoreticalLearnFacts": 185,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 23,
+        "name": "PLAINS_WALKER",
+        "tier": 2,
+        "parentClassId": 22,
+        "completeTheoreticalLearnFacts": 530,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 24,
+        "name": "SILVER_RANGER",
+        "tier": 2,
+        "parentClassId": 22,
+        "completeTheoreticalLearnFacts": 513,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 25,
+        "name": "ELVEN_MAGE",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 59,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 26,
+        "name": "ELVEN_WIZARD",
+        "tier": 1,
+        "parentClassId": 25,
+        "completeTheoreticalLearnFacts": 174,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 27,
+        "name": "SPELLSINGER",
+        "tier": 2,
+        "parentClassId": 26,
+        "completeTheoreticalLearnFacts": 600,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 28,
+        "name": "ELEMENTAL_SUMMONER",
+        "tier": 2,
+        "parentClassId": 26,
+        "completeTheoreticalLearnFacts": 536,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 29,
+        "name": "ORACLE",
+        "tier": 1,
+        "parentClassId": 25,
+        "completeTheoreticalLearnFacts": 184,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 30,
+        "name": "ELDER",
+        "tier": 2,
+        "parentClassId": 29,
+        "completeTheoreticalLearnFacts": 643,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 31,
+        "name": "DARK_FIGHTER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 60,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 32,
+        "name": "PALUS_KNIGHT",
+        "tier": 1,
+        "parentClassId": 31,
+        "completeTheoreticalLearnFacts": 152,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 33,
+        "name": "SHILLIEN_KNIGHT",
+        "tier": 2,
+        "parentClassId": 32,
+        "completeTheoreticalLearnFacts": 619,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 34,
+        "name": "BLADEDANCER",
+        "tier": 2,
+        "parentClassId": 32,
+        "completeTheoreticalLearnFacts": 430,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 35,
+        "name": "ASSASSIN",
+        "tier": 1,
+        "parentClassId": 31,
+        "completeTheoreticalLearnFacts": 187,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 36,
+        "name": "ABYSS_WALKER",
+        "tier": 2,
+        "parentClassId": 35,
+        "completeTheoreticalLearnFacts": 592,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 37,
+        "name": "PHANTOM_RANGER",
+        "tier": 2,
+        "parentClassId": 35,
+        "completeTheoreticalLearnFacts": 550,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 38,
+        "name": "DARK_MAGE",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 62,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 39,
+        "name": "DARK_WIZARD",
+        "tier": 1,
+        "parentClassId": 38,
+        "completeTheoreticalLearnFacts": 183,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 40,
+        "name": "SPELLHOWLER",
+        "tier": 2,
+        "parentClassId": 39,
+        "completeTheoreticalLearnFacts": 602,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 41,
+        "name": "PHANTOM_SUMMONER",
+        "tier": 2,
+        "parentClassId": 39,
+        "completeTheoreticalLearnFacts": 562,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 42,
+        "name": "SHILLIEN_ORACLE",
+        "tier": 1,
+        "parentClassId": 38,
+        "completeTheoreticalLearnFacts": 186,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 43,
+        "name": "SHILLIEN_ELDER",
+        "tier": 2,
+        "parentClassId": 42,
+        "completeTheoreticalLearnFacts": 542,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 44,
+        "name": "ORC_FIGHTER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 49,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 45,
+        "name": "ORC_RAIDER",
+        "tier": 1,
+        "parentClassId": 44,
+        "completeTheoreticalLearnFacts": 160,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 46,
+        "name": "DESTROYER",
+        "tier": 2,
+        "parentClassId": 45,
+        "completeTheoreticalLearnFacts": 525,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 47,
+        "name": "ORC_MONK",
+        "tier": 1,
+        "parentClassId": 44,
+        "completeTheoreticalLearnFacts": 125,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 48,
+        "name": "TYRANT",
+        "tier": 2,
+        "parentClassId": 47,
+        "completeTheoreticalLearnFacts": 462,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 49,
+        "name": "ORC_MAGE",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 53,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 50,
+        "name": "ORC_SHAMAN",
+        "tier": 1,
+        "parentClassId": 49,
+        "completeTheoreticalLearnFacts": 158,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 51,
+        "name": "OVERLORD",
+        "tier": 2,
+        "parentClassId": 50,
+        "completeTheoreticalLearnFacts": 648,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 52,
+        "name": "WARCRYER",
+        "tier": 2,
+        "parentClassId": 50,
+        "completeTheoreticalLearnFacts": 527,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 53,
+        "name": "DWARVEN_FIGHTER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 33,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 54,
+        "name": "SCAVENGER",
+        "tier": 1,
+        "parentClassId": 53,
+        "completeTheoreticalLearnFacts": 130,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 55,
+        "name": "BOUNTY_HUNTER",
+        "tier": 2,
+        "parentClassId": 54,
+        "completeTheoreticalLearnFacts": 584,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 56,
+        "name": "ARTISAN",
+        "tier": 1,
+        "parentClassId": 53,
+        "completeTheoreticalLearnFacts": 120,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 57,
+        "name": "WARSMITH",
+        "tier": 2,
+        "parentClassId": 56,
+        "completeTheoreticalLearnFacts": 467,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 88,
+        "name": "DUELIST",
+        "tier": 3,
+        "parentClassId": 2,
+        "completeTheoreticalLearnFacts": 662,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 89,
+        "name": "DREADNOUGHT",
+        "tier": 3,
+        "parentClassId": 3,
+        "completeTheoreticalLearnFacts": 512,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 90,
+        "name": "PHOENIX_KNIGHT",
+        "tier": 3,
+        "parentClassId": 5,
+        "completeTheoreticalLearnFacts": 609,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 91,
+        "name": "HELL_KNIGHT",
+        "tier": 3,
+        "parentClassId": 6,
+        "completeTheoreticalLearnFacts": 592,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 92,
+        "name": "SAGITTARIUS",
+        "tier": 3,
+        "parentClassId": 9,
+        "completeTheoreticalLearnFacts": 418,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 93,
+        "name": "ADVENTURER",
+        "tier": 3,
+        "parentClassId": 8,
+        "completeTheoreticalLearnFacts": 459,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 94,
+        "name": "ARCHMAGE",
+        "tier": 3,
+        "parentClassId": 12,
+        "completeTheoreticalLearnFacts": 574,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 95,
+        "name": "SOULTAKER",
+        "tier": 3,
+        "parentClassId": 13,
+        "completeTheoreticalLearnFacts": 649,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 96,
+        "name": "ARCANA_LORD",
+        "tier": 3,
+        "parentClassId": 14,
+        "completeTheoreticalLearnFacts": 571,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 97,
+        "name": "CARDINAL",
+        "tier": 3,
+        "parentClassId": 16,
+        "completeTheoreticalLearnFacts": 699,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 98,
+        "name": "HIEROPHANT",
+        "tier": 3,
+        "parentClassId": 17,
+        "completeTheoreticalLearnFacts": 530,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 99,
+        "name": "EVA_TEMPLAR",
+        "tier": 3,
+        "parentClassId": 20,
+        "completeTheoreticalLearnFacts": 578,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 100,
+        "name": "SWORD_MUSE",
+        "tier": 3,
+        "parentClassId": 21,
+        "completeTheoreticalLearnFacts": 414,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 101,
+        "name": "WIND_RIDER",
+        "tier": 3,
+        "parentClassId": 23,
+        "completeTheoreticalLearnFacts": 553,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 102,
+        "name": "MOONLIGHT_SENTINEL",
+        "tier": 3,
+        "parentClassId": 24,
+        "completeTheoreticalLearnFacts": 533,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 103,
+        "name": "MYSTIC_MUSE",
+        "tier": 3,
+        "parentClassId": 27,
+        "completeTheoreticalLearnFacts": 622,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 104,
+        "name": "ELEMENTAL_MASTER",
+        "tier": 3,
+        "parentClassId": 28,
+        "completeTheoreticalLearnFacts": 566,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 105,
+        "name": "EVA_SAINT",
+        "tier": 3,
+        "parentClassId": 30,
+        "completeTheoreticalLearnFacts": 665,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 106,
+        "name": "SHILLIEN_TEMPLAR",
+        "tier": 3,
+        "parentClassId": 33,
+        "completeTheoreticalLearnFacts": 652,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 107,
+        "name": "SPECTRAL_DANCER",
+        "tier": 3,
+        "parentClassId": 34,
+        "completeTheoreticalLearnFacts": 457,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 108,
+        "name": "GHOST_HUNTER",
+        "tier": 3,
+        "parentClassId": 36,
+        "completeTheoreticalLearnFacts": 615,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 109,
+        "name": "GHOST_SENTINEL",
+        "tier": 3,
+        "parentClassId": 37,
+        "completeTheoreticalLearnFacts": 570,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 110,
+        "name": "STORM_SCREAMER",
+        "tier": 3,
+        "parentClassId": 40,
+        "completeTheoreticalLearnFacts": 625,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 111,
+        "name": "SPECTRAL_MASTER",
+        "tier": 3,
+        "parentClassId": 41,
+        "completeTheoreticalLearnFacts": 593,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 112,
+        "name": "SHILLIEN_SAINT",
+        "tier": 3,
+        "parentClassId": 43,
+        "completeTheoreticalLearnFacts": 564,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 113,
+        "name": "TITAN",
+        "tier": 3,
+        "parentClassId": 46,
+        "completeTheoreticalLearnFacts": 545,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 114,
+        "name": "GRAND_KHAVATARI",
+        "tier": 3,
+        "parentClassId": 48,
+        "completeTheoreticalLearnFacts": 484,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 115,
+        "name": "DOMINATOR",
+        "tier": 3,
+        "parentClassId": 51,
+        "completeTheoreticalLearnFacts": 672,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 116,
+        "name": "DOOMCRYER",
+        "tier": 3,
+        "parentClassId": 52,
+        "completeTheoreticalLearnFacts": 546,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 117,
+        "name": "FORTUNE_SEEKER",
+        "tier": 3,
+        "parentClassId": 55,
+        "completeTheoreticalLearnFacts": 616,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 118,
+        "name": "MAESTRO",
+        "tier": 3,
+        "parentClassId": 57,
+        "completeTheoreticalLearnFacts": 487,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 123,
+        "name": "MALE_SOLDIER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 54,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 124,
+        "name": "FEMALE_SOLDIER",
+        "tier": 0,
+        "parentClassId": null,
+        "completeTheoreticalLearnFacts": 56,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 125,
+        "name": "TROOPER",
+        "tier": 1,
+        "parentClassId": 123,
+        "completeTheoreticalLearnFacts": 162,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 126,
+        "name": "WARDER",
+        "tier": 1,
+        "parentClassId": 124,
+        "completeTheoreticalLearnFacts": 171,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 127,
+        "name": "BERSERKER",
+        "tier": 2,
+        "parentClassId": 125,
+        "completeTheoreticalLearnFacts": 532,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 128,
+        "name": "MALE_SOULBREAKER",
+        "tier": 2,
+        "parentClassId": 125,
+        "completeTheoreticalLearnFacts": 555,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 129,
+        "name": "FEMALE_SOULBREAKER",
+        "tier": 2,
+        "parentClassId": 126,
+        "completeTheoreticalLearnFacts": 564,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 130,
+        "name": "ARBALESTER",
+        "tier": 2,
+        "parentClassId": 126,
+        "completeTheoreticalLearnFacts": 542,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 131,
+        "name": "DOOMBRINGER",
+        "tier": 3,
+        "parentClassId": 127,
+        "completeTheoreticalLearnFacts": 549,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 132,
+        "name": "MALE_SOUL_HOUND",
+        "tier": 3,
+        "parentClassId": 128,
+        "completeTheoreticalLearnFacts": 577,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 133,
+        "name": "FEMALE_SOUL_HOUND",
+        "tier": 3,
+        "parentClassId": 129,
+        "completeTheoreticalLearnFacts": 586,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 134,
+        "name": "TRICKSTER",
+        "tier": 3,
+        "parentClassId": 130,
+        "completeTheoreticalLearnFacts": 559,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 135,
+        "name": "INSPECTOR",
+        "tier": 2,
+        "parentClassId": 126,
+        "completeTheoreticalLearnFacts": 458,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      },
+      {
+        "classId": 136,
+        "name": "JUDICATOR",
+        "tier": 3,
+        "parentClassId": 135,
+        "completeTheoreticalLearnFacts": 467,
+        "actualAcquiredSkills": null,
+        "trainReadiness": "NOT_ASSESSED",
+        "reason": "ACTUAL_ACTOR_CENSUS_NOT_RUN"
+      }
+    ]
+  },
+  "coldExport": {
+    "command": "Training.ps1 -Action Export",
+    "exitCode": 0,
+    "archiveSha256": "31be59ec5e877ed4480cf0cc9e14bb0c9f9eefc4b9cb0c758d87f602fc176eb6",
+    "selectedDraft12Sha256": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+    "adam12Sha256": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+    "terminalWeightsSha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "binaryAdamUpdates": 887,
+    "binaryAdamEpochs": 207,
+    "applications": 42,
+    "gradientEpisodes": 12,
+    "crc": "PASS",
+    "preservedByteCopy": "SHA256_VERIFIED",
+    "postflightTestListeners": 0,
+    "historicalTableDigest": "NOT_RUN"
+  },
+  "gates": {
+    "G0": "PASS_EXACT_BASE_39_SCOPE_TEST_OWNERSHIP_GEO203_PROTECTED207_POSTFLIGHT",
+    "G1": "PASS_CANONICAL_103_CLASSES_ACTUAL_ACQUIRED_5_CLASSES",
+    "G2": "PARTIAL_NATIVE_CASTS_FINAL_TARGET_BOUND_PLANNING_NO_LAWFUL_CELLS",
+    "G3": "PARTIAL_AUTOMATIC_NO_DATA_LOOPS_NO_ACTUAL_OPTIMIZER_UPDATE",
+    "G4": "PARTIAL_REAL_START_PAUSE_STOP_RESUME_OLD_ADAM_EXACT_NEW_COMMIT_FAULTS_NOT_RUN",
+    "G5": "PARTIAL_GUI_COMPILED_STATUS_READ_BUTTONS_NOT_VERIFIED",
+    "G6": "NOT_RUN_INDEPENDENT_NATIVE_009_EVAL",
+    "G7": "PARTIAL_COMPILE_TARGETED_F7_F8_PASS_STOPPED_NATIVE_TRAIN_ACCEPTANCE_INSUFFICIENT",
+    "G8": "PENDING_SCOPED_PUBLICATION_READBACK"
+  },
+  "executionSnapshotUtc": "2026-11-13T20:59:54.628323+00:00",
+  "directorSnapshot": {
+    "generation": 45,
+    "phase": "STOPPED",
+    "reason": "Собственные процессы остановлены и порты свободны.",
+    "attemptId": "18d1aface6b64a69b1632a23053874b6",
+    "heartbeatUtc": "2026-11-13T20:55:55.8018457Z",
+    "autonomousCampaign": "autonomous009-goal009-20261113-d"
+  },
+  "canonicalAdmissionFixBuild": {
+    "exitCode": 0,
+    "seconds": 168,
+    "log": "admission-fix-build.log",
+    "targets": [
+      "phantom-autonomous-training-test",
+      "phantom-learning008-test",
+      "phantom-learning007-test",
+      "jar"
+    ]
+  },
+  "controlRegressions": {
+    "config": {
+      "legacyInvalid": 7,
+      "foreignIdentity": 6,
+      "autonomousInvalid": 6,
+      "exitCode": 0
+    },
+    "arguments": {
+      "exitCode": 0
+    },
+    "atomic": {
+      "exitCode": 0
+    },
+    "adaptiveIdle": {
+      "exitCode": 0
+    },
+    "heartbeat": {
+      "cases": 3,
+      "exitCode": 0
+    }
+  },
+  "gui": {
+    "compile": "PASS_WINDOWS_POWERSHELL_ADD_TYPE_EXE",
+    "actualWindowStatus": "READ_VIA_ACCESSIBILITY",
+    "buttons": "NOT_VERIFIED",
+    "screenshotError": "window capture timed out: timed out waiting on channel",
+    "inputError": "coordinate input geometry is unavailable",
+    "computerUse": "STOPPED_AT_USER_REQUEST_USE_OTHER_TOOLS"
+  },
+  "firstNativeAutonomous": {
+    "attempt": "3095caf6366d436d9de6ec80f1d2263d",
+    "cut": false,
+    "error": "AUTONOMOUS_ROSTER_LEVEL_BAND",
+    "fix": "CANONICAL_FOR_MEMBER_FOR_SOLO",
+    "chargedMillis": 75182
+  },
+  "secondNativeAutonomous": {
+    "attempt": "5e704169d61f48f28831e583dcd3c421",
+    "pause": "PASS_NEW_DIRECTOR_PAUSED_WORKERS_DRAINED",
+    "chargedMillis": 260527,
+    "usefulHeal": 993.627281365201,
+    "actualMp": 80,
+    "paidEffects": 1,
+    "reason": "NO_LEGAL_TARGET:NOT_ADMITTED",
+    "selectionCount": 0,
+    "trainingCredit": false,
+    "nextSlotRefused": "AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER"
+  },
+  "exactScopeMaximum": 39,
+  "additionalScopeApproval": {
+    "path": "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+    "status": "EXPLICIT_USER_APPROVAL_39TH_PATH",
+    "limits": "MINIMAL_TEST_SHARED_SOURCE_OLD_CTOR_AND_PRODUCTION_UNCHANGED"
+  },
+  "reviewFixBuild": {
+    "exitCode": 0,
+    "seconds": 158,
+    "log": "review-fixes-build.log",
+    "targets": [
+      "phantom-autonomous-training-test",
+      "phantom-learning008-test",
+      "phantom-learning007-test",
+      "jar"
+    ]
+  },
+  "independentCodeReview": {
+    "reviewer": "review_goal009_implementation",
+    "context": "FRESH_READ_ONLY",
+    "initialImportant": 2,
+    "importantFixed": 2,
+    "minorFixed": 2,
+    "recheck": "NO_CONCRETE_CRITICAL_OR_IMPORTANT",
+    "nativeExecution": "NOT_REVIEWED"
+  },
+  "f7": {
+    "exitCode": 0,
+    "log": "f7-canonical-cwd.log",
+    "dbConnections": 0,
+    "actors": 0
+  },
+  "f8": {
+    "exitCode": 0,
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "dbConnections": 0,
+    "gameServerStarts": 0
+  },
+  "targetBoundPlanningFix": {
+    "file": "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+    "reason": "C_NPC76_EXCEEDS_HELPER_MAGIC74_LEARNER_MAGIC14_35_74",
+    "contractRedMissingMethods": 2,
+    "contractGreenExit": 0,
+    "canonicalBuildExit": 0,
+    "canonicalBuildSeconds": 185,
+    "log": "target-bound-planning-build.log",
+    "reviewer": "NO_CONCRETE_CRITICAL_OR_IMPORTANT_HELPER_CHECK_IS_NECESSARY_ONLY",
+    "oldCSealedData": "UNCHANGED"
+  },
+  "exactAllowlist": [
+    "build.xml",
+    "java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+    "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+    "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+    "tools/phantom-runtime/training/Training.ps1",
+    "tools/phantom-runtime/training/TrainingOwner.ps1",
+    "tools/phantom-runtime/training/Test-Training.ps1",
+    "tools/phantom-runtime/training/AutonomousTraining.ini",
+    "tools/phantom-runtime/training/TrainingGui.ps1",
+    "tools/phantom-runtime/training/TrainingGui.cs",
+    "tools/phantom-runtime/training/TrainingGui.Designer.cs",
+    "tools/phantom-runtime/training/TRAIN_GUI.cmd",
+    "tools/phantom-runtime/training/RUNBOOK_RU.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/TASK.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PLAN.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RUNBOOK_RU.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/SKILL_COVERAGE.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/AUTONOMY_PROTOCOL.md",
+    "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+    "docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md",
+    "docs/phantoms/COMBAT-AI-ROADMAP.md",
+    "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java"
+  ],
+  "result": "PARTIAL009_INSUFFICIENT_NATIVE_EVIDENCE",
+  "postflight": {
+    "schema": "GOAL009_POSTFLIGHT_V1",
+    "utc": "2026-11-13T20:59:01.1430143Z",
+    "phase": "STOPPED",
+    "processes": [
+      {
+        "ownedProcessAbsent": true,
+        "record": "owner-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "native-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "worker-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "sql\\process.json"
+      }
+    ],
+    "ports": [
+      33357,
+      18001,
+      19301
+    ],
+    "listeners": 0,
+    "geo203": "PASS_EXACT_HASHES",
+    "protected207": "PASS_EXACT_HASHES",
+    "starts": 6,
+    "nativeMillis": 2231818,
+    "pending": false,
+    "fits": 0,
+    "faultFlagsDisabled": true,
+    "autonomousEnabled": false,
+    "configPhase": "OFF",
+    "campaignRetained": "autonomous009-goal009-20261113-d",
+    "acceptanceLimitRetained": "true",
+    "currentOwnFiles": 33340,
+    "currentOwnBytes": 2555034135,
+    "availableDiskBytes": 384569659392,
+    "configSha": "F655482B2411D175824F716C512A82EA26BA36ACFA898ACFFACEEA533681E2B5",
+    "backupSha": "6D40D15EE2A37D220A0A95D1924C21BAB27CF472A8B9DD43139BEA0DA346707C",
+    "promotion": false
+  },
+  "finalColdExport": {
+    "archive": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-103f926cec56469189070c338206bab3.zip",
+    "preserved": "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\13\\01a1d543-450f-7951-9679-4380f7f7b85a\\goal009\\preserved\\final-cold\\model-2-103f926cec56469189070c338206bab3.zip",
+    "archiveSha256": "89bebd7480285c65299343d742a0fe109961981fc7bbb2bd06b6ae41fa2fe17e",
+    "manifest": {
+      "format": 3,
+      "createdUtc": "2026-11-13T20:56:46.084110100Z",
+      "algorithm": 3,
+      "algorithmHash": "75b1e5ba26da9f1542454cec3e3d2093a6541fa03fb135af4fdb4e403a466d90",
+      "featureSchema": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
+      "actionSpace": "e6292efa77156bb840ce8bd29920cf90821982324f4b92408bf3c07224aff982",
+      "normalization": "4d224f2256dc9b16a5cf7c50f2b8ebd33e68d18e6f7e37f95d7d426fbd21274d",
+      "origin": "NATIVE_HEAL",
+      "status": "ACCEPTED_TEST",
+      "productionPromotion": false,
+      "modelVersion": 2,
+      "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+      "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "weightBytes": 4741508,
+      "metrics": {
+        "seed": 183,
+        "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+        "origin": "NATIVE_HEAL",
+        "train": 64,
+        "tuning": 32,
+        "audit": 24,
+        "auditActors": 24,
+        "auditContexts": 24,
+        "epochs": 42,
+        "trainingNanos": 12155789500,
+        "tuningInitialMse": 0.5404271486560249,
+        "tuningMse": 0.014236471492589208,
+        "auditMse": 0.015467628967592325,
+        "constantMse": 0.015723296413069764,
+        "priorVersion": 0,
+        "priorMse": null,
+        "stockMatchedEvents": 120,
+        "differentSelectionEvents": 0,
+        "stockCounterfactualMse": null,
+        "nativeColdDecisionChange": null,
+        "limitation": "Only chosen actions have native outcomes; MSE does not prove tactical superiority or cold behavior"
+      },
+      "workingModelVersion": 12,
+      "workingStatus": "DRAFT",
+      "workingWeightsSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+      "optimizerSha": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+      "optimizerUpdates": 887,
+      "completedEpochs": 207,
+      "optimizerWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "replaySha": "6d1b4010682018ae18ebf0bdbcc602e07584bf845b5b7f26e47845f7866e9418",
+      "contextReplaySha": "529b3f6129d0f1d9e65d6983bd2ef3e013cadb51b1454e7d831c5742c3491606",
+      "terminalDatasetSha": null,
+      "advantageDatasetSha": null,
+      "advantageConfigSha": null,
+      "residualDatasetSha": "02ff9c654a1e5c7881494937304ee798be6a2623e6db770e16495ccdeca6c08c",
+      "residualConfigSha": "f2940869ea88f424c66c5f4af58b105d3b427a656dd0e165cee7738d515745e2",
+      "rewardConfigSha": null,
+      "workingRunId": "1bd4a0d92a804b54b49373bc0d37e5e1",
+      "episodeCounts": {
+        "total": 200,
+        "completed": 151,
+        "failed": 7,
+        "incomplete": 42,
+        "started": 0,
+        "lastCreatedUtc": "2026-11-13 20:41:50.689611"
+      }
+    },
+    "entrySha256": {
+      "weights.bin": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+      "manifest.json": "d2a6c2146674484ebf99a205b7473266ab97b16245094c99b319c05f9285db5f",
+      "events.bin": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "optimizer.bin": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+      "replay.bin": "6d1b4010682018ae18ebf0bdbcc602e07584bf845b5b7f26e47845f7866e9418",
+      "residual-targets.bin": "02ff9c654a1e5c7881494937304ee798be6a2623e6db770e16495ccdeca6c08c",
+      "residual-applications.jsonl": "7c6561485f4663b4a6a627007aeef9cc46eacdf92b6e995e8a8ecc3b000a708d",
+      "residual-labels.jsonl": "df3f105d3d3041d8df4b93aae277ca9ea2b8ece9d2719a36d1aaa6eb25be52bc",
+      "context-replay.bin": "529b3f6129d0f1d9e65d6983bd2ef3e013cadb51b1454e7d831c5742c3491606",
+      "working-weights.bin": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+      "working-metrics.json": "5c3e0c346dc677ac541629459b1759d415c8b68575198c821941031cb4540232",
+      "dataset.jsonl": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39"
+    },
+    "adamUpdates": 887,
+    "adamEpochs": 207,
+    "terminalWeightsSha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "applications": 42,
+    "gradientEpisodes": 12,
+    "checkpointUsedForTraining": false,
+    "nativeGameServerStarted": false
+  },
+  "historicalLineagePreserved": {
+    "selected": true,
+    "rawAdam": true,
+    "terminalWeights": true,
+    "updates": 887,
+    "epochs": 207,
+    "applications": 42,
+    "gradientEpisodes008": 12
+  },
+  "existing004005006Regressions": {
+    "exitCode": 0,
+    "cases": 10,
+    "dbConnections": 0,
+    "gameServerStarts": 0,
+    "initialSandboxRun": "TEMP_ACL_ACCESS_DENIED_IN_005",
+    "authorizedRerun": "ALL_TEN_EXISTING_RUNNERS_PASS"
+  },
+  "blockers": [
+    "No lawful target-bound cohort in final D:111 insufficient alternative refusals +10helper envelope refusals,0sealedcells.",
+    "No actual optimizer update or newly trained checkpoint; Adam remains887/207.",
+    "Pre-COMMIT and post-COMMIT cold recovery faults NOT_RUN:fit sufficiency gate was never reached.",
+    "Independent native EVAL009 NOT_RUN; cumulative6GameServer starts exhausted, no seventhstart authorized.",
+    "Live GUI button operations and VisualStudio Designer round-trip NOT_VERIFIED; ComputerUse stopped at user request."
+  ],
+  "nativeAcceptanceD": {
+    "planningRefusals": 121,
+    "insufficientAlternatives": 111,
+    "helperEnvelopeRefusals": 10,
+    "sealedCells": 0,
+    "episodes": 0,
+    "newFit": false,
+    "complete": true,
+    "failClosed": true
+  },
+  "nightReady": false,
+  "acceptanceFaults": {
+    "preCommit": "NOT_RUN_INSUFFICIENT_EVIDENCE",
+    "afterCommitBeforeJournal": "NOT_RUN_INSUFFICIENT_EVIDENCE",
+    "disabledAtHandoff": true
+  },
+  "finalCodeReview": {
+    "status": "NO_CONCRETE_CRITICAL_OR_IMPORTANT",
+    "evidence": "READ_ONLY_FRESH_REVIEWER",
+    "limitations": "NATIVE_TRAIN_FIT_GUI_EVAL_GATES_REMAIN_PARTIAL_OR_NOT_RUN",
+    "minorStaleGs6Sentence": "CORRECTED"
+  },
+  "finalEncoding": {
+    "changedTextFiles": 38,
+    "mojibake": {
+      "patterns": 27,
+      "matches": 0,
+      "exitCode": 0
+    },
+    "escapedCyrillic": {
+      "patterns": 6,
+      "matches": 0,
+      "exitCode": 0
+    }
+  },
+  "finalScope": {
+    "exactAllowlist": 39,
+    "source": 25,
+    "delivery": 14,
+    "sourceHashes": {
+      "build.xml": "94C5405BA312DA540E032D7E6200F4B826B1B6862D059B8A6B9280BC88463C94",
+      "java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java": "F62F2C33064CC68499BDF3B63D7362E50B9FDC8FFC63968C6D595F4B68585880",
+      "java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java": "A4A9B87C8C976C413A5682314CF097FE263F10837F7D99FD0968E90F94636576",
+      "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java": "D941BA33728F0249E3C09E2D054772093EC9A742813FD37672B003EC7BDF1193",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java": "DA6509D7B7C97C263E35260CE3A99F905E145F36271A37BE3EB3CD8967F08042",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java": "C0869CB4A51B41014F7E8B09B91A989D4C1DF9F06707DBD85FFA0E80BB3F8E34",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java": "20321806B2914EE0475ADD737228EBF3FBB6E491AE708EC925494DC71219B796",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java": "C41560BABF2B4FEAF8857D93F1FB92D4B77A47A00CE6EFC1DE0E0E06A9D71D6B",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java": "3418E2ACB1ABA816ECC253C0EAAEAAD36A7A139D12D88D0D9B18F3171D9F06A9",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java": "03443900E0599B376FCD44EF229B8290014DB04C69422C0468E787937F122FAE",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "8EC544254B6C14D6F92B6A2075866DA808F01B6DDF21D1ADDEBDFB534AACB13A",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java": "0BB677EAE31F810AD51EA25722A9EF90C0660BB92018CEFE27768BC5A16E7AA3",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "4623BDCD5C7B7C19FC898D9CBB8BD3392E6020B342648CCE7D679DDA30C1D7CD",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java": "78D3887B315FD4C13D182C26E4151F6B232CA121D1A6556BB0A8306C04E6B0A6",
+      "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java": "5407232B2BF415DF44D731260EB71C4A38911E4D2B0D48D507DB209F9F949876",
+      "tools/phantom-runtime/training/Training.ps1": "3FC3B248A4DF7A6939086AF3CBC04F85637182F0156EF752DB1747CAD4D44448",
+      "tools/phantom-runtime/training/TrainingOwner.ps1": "75696769DDED0B2B995E90930C58D585B30D25D77D64040A5DCDB8D807E75FD2",
+      "tools/phantom-runtime/training/Test-Training.ps1": "6D4D7B2E234E07AFCECDCD687BB17DE56507B531E9AFF421BBFB0F98483BC444",
+      "tools/phantom-runtime/training/AutonomousTraining.ini": "2A257500A722D0C8988357CC3F8146EFF5D1A2D144B77D4FC0A1E271B8B0EA88",
+      "tools/phantom-runtime/training/TrainingGui.ps1": "D6D0551F1AD8AE6403A5FD17F828C65AAFC4555C2BA1BAED74BA143D00039862",
+      "tools/phantom-runtime/training/TrainingGui.cs": "DA52F0B49981306B3CCF2986201D834AFCE668B138A95DAC91CB311C9F086B82",
+      "tools/phantom-runtime/training/TrainingGui.Designer.cs": "6309BC126835F879DC3636C4761AEF11B83B003E9E7EDF85DCBCFB2530A6C5F3",
+      "tools/phantom-runtime/training/TRAIN_GUI.cmd": "0F4AAFC2DDA7746BF2072E378B7EBD987A95F3D982B2B522085B26B2B2A73705",
+      "tools/phantom-runtime/training/RUNBOOK_RU.md": "45A62FCBDBEBF047CCCF8EEF0B2D1FC39AFD234AC26FE782E78A5DF0929B68F6",
+      "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java": "B1B8E6DE2B87B4D9AB20722E9F500DEF7A91703CB7B1E714C13CDFA82E64635B"
+    },
+    "textStageEqualsDeployed": true,
+    "outsideScope": 0,
+    "originalByteBackupsVerified": true,
+    "finalIncludingArchive": "PASS"
+  },
+  "archive": {
+    "crc": "PASS",
+    "shaReadback": "PASS",
+    "entries": 119,
+    "bytes": 591282,
+    "sha256": "bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652",
+    "layout": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/",
+    "snapshot": "PRE_PUBLICATION_REVIEWABLE_SNAPSHOT",
+    "sourceFilesIncluded": 25,
+    "credentialsOrDatadirIncluded": false
+  }
+}

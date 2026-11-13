@@ -765,6 +765,62 @@ public final class PhantomLearning001ActorFixture
 	}
 
 	/** Pre-CUT setup shared with the owned director; never called for an existing actor. */
+	static void requireSavedSkillDefinitions(PhantomTrainingActors.SavedActor source)
+	{
+		final int classId = Integer.parseInt(source.field("classid"));
+		final int level = Integer.parseInt(source.field("level"));
+		final var type = PlayerClass.getPlayerClass(classId);
+		if (type == null || level < 1 || level > 85) { throw new IllegalStateException("AUTONOMOUS_SOURCE_CLASS_OR_LEVEL"); }
+		if (org.l2jmobius.gameserver.model.olympiad.Hero.getInstance().isHero(source.sourceId())) { throw new IllegalStateException("AUTONOMOUS_EXTERNAL_HERO_STATE"); }
+		for (var entry : source.learned().entrySet())
+		{
+			final var skill = SkillData.getInstance().getSkill(entry.getKey(), entry.getValue());
+			if (skill == null || skill.getId() != entry.getKey() || skill.getLevel() != entry.getValue())
+			{ throw new IllegalStateException("AUTONOMOUS_SKILL_DEFINITION_FALLBACK"); }
+			int base = skill.getLevel();
+			if (base > SkillData.getInstance().getMaxLevel(skill.getId()))
+			{
+				final var enchant = EnchantSkillGroupsData.getInstance().getSkillEnchantmentBySkillId(skill.getId());
+				if (enchant == null || enchant.getEnchantSkillHolder(base) == null) { throw new IllegalStateException("AUTONOMOUS_UNKNOWN_ENCHANT_ROUTE"); }
+				base = enchant.getBaseLevel();
+			}
+			final var learn = SkillTreeData.getInstance().getClassSkill(skill.getId(), base, type);
+			if (learn != null && learn.getGetLevel() > level) { throw new IllegalStateException("AUTONOMOUS_SOURCE_SKILL_ABOVE_LEVEL"); }
+		}
+	}
+
+	/** Exact pre-CUT reproduction; no initializer, tree grant, gear grant or missing-skill repair. */
+	static Player createFromSaved(PhantomTrainingActors.SavedActor source, String name) throws Exception
+	{
+		source.requireReproducible(); requireSavedSkillDefinitions(source);
+		final int id;
+		try (var connection = DatabaseFactory.getConnection()) { id = PhantomTrainingActors.reproduceSavedActor(connection, source, name); }
+		final Player player = Player.load(id);
+		if (player == null) { throw new IllegalStateException("AUTONOMOUS_INCARNATION_LOAD_FAILED"); }
+		try
+		{
+			if (player.isGM() || player.getClient() != null || player.getClassIndex() != source.classIndex()
+				|| player.getPlayerClass().getId() != Integer.parseInt(source.field("classid")) || player.getLevel() != Integer.parseInt(source.field("level")))
+			{ throw new IllegalStateException("AUTONOMOUS_INCARNATION_IDENTITY_CHANGED"); }
+			try (var connection = DatabaseFactory.getConnection())
+			{
+				if (!PhantomTrainingActors.readSavedActor(connection, id).learned().equals(source.learned()))
+				{ throw new IllegalStateException("AUTONOMOUS_NATIVE_LOAD_CHANGED_PERSISTED_SKILLS"); }
+				if (!PhantomTrainingActors.readSavedActor(connection, source.sourceId()).sha().equals(source.sha()))
+				{ throw new IllegalStateException("AUTONOMOUS_SOURCE_MUTATED"); }
+			}
+			for (var entry : source.learned().entrySet())
+			{
+				final var skill = player.getKnownSkill(entry.getKey());
+				if (skill == null || skill.getLevel() != entry.getValue() || !SkillTreeData.getInstance().isSkillAllowed(player, skill))
+				{ throw new IllegalStateException("AUTONOMOUS_NATIVE_LEARNED_STATE_REFUSED"); }
+			}
+			return player;
+		}
+		catch (Exception | Error failure) { player.stopAllTasks(); player.deleteMe(); throw failure; }
+	}
+
+	/** Historical fixture provisioning is deliberately not used by createFromSaved. */
 	static String createTraining(PhantomProfileRepository profiles, PhantomCombatCapabilityResolver resolver, int next, String split, String scope,
 		Location point, int level, CrystalType grade, int selectedClass, Set<Integer> selectedSkills, int configuredEnchant)
 	{

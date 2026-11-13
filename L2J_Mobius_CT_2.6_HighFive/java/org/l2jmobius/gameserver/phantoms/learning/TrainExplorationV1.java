@@ -21,6 +21,15 @@ public final class TrainExplorationV1
 		if(!isolated||!optIn||!"COLLECT".equals(phase)||!CAMPAIGN.equals(campaign)||!"TRAIN".equals(split))
 		{throw new IllegalArgumentException("TRAIN007 exploration requires isolated explicit TRAIN campaign authority");}
 	}
+	public static void validateAutonomousPermit(boolean isolated, boolean enabled, String phase, String campaign, String dataset, String split,
+		boolean experimental, LegalActionV3.Family family, long actorProfile, long modelVersion, String modelSha)
+	{
+		if (!isolated || !enabled || !"COLLECT".equals(phase) || campaign == null || !campaign.matches("autonomous009-[A-Za-z0-9_-]{1,64}")
+			|| dataset == null || !dataset.matches(ActionAdvantageV2.DATASET_PREFIX + "[A-Za-z0-9_-]{1,80}") || split == null || !Set.of("TRAIN", "TUNING", "AUDIT").contains(split)
+			|| experimental && !split.equals("TRAIN") || family == null || !Set.of(LegalActionV3.Family.DAMAGE, LegalActionV3.Family.HEAL).contains(family)
+			|| actorProfile <= 0 || modelVersion <= 0 || modelSha == null || !modelSha.matches("[a-f0-9]{64}"))
+		{ throw new IllegalArgumentException("Автономная exploration требует отдельный TEST, opt-in, TRAIN authority и точную привязку actor/model."); }
+	}
 	/** Distribution mathematics only; runtime draws come directly from ThreadLocalRandom, never from a seed override. */
 	public static Pick pick(int candidates,int stock,double draw,boolean experimental)
 	{
@@ -85,12 +94,39 @@ public final class TrainExplorationV1
 	}
 	private final String _episode,_block,_cell,_split,_modelSha;
 	private final long _modelVersion;
+	private final long _actorProfile;
 	private final boolean _experimental;
 	private final LegalActionV3.Family _family;
 	private final Consumer<Selection> _sink;
 	private final AtomicBoolean _spent=new AtomicBoolean();
+	private Set<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> _autonomousSkills = Set.of();
 	private TrainExplorationV1(String episode,String block,String cell,String split,boolean experimental,LegalActionV3.Family family,long version,String sha,Consumer<Selection> sink)
-	{_episode=episode;_block=block;_cell=cell;_split=split;_experimental=experimental;_family=family;_modelVersion=version;_modelSha=sha;_sink=Objects.requireNonNull(sink);}
+	{this(episode,block,cell,split,experimental,family,version,sha,sink,0);}
+	private TrainExplorationV1(String episode,String block,String cell,String split,boolean experimental,LegalActionV3.Family family,long version,String sha,Consumer<Selection> sink,long actorProfile)
+	{_episode=episode;_block=block;_cell=cell;_split=split;_experimental=experimental;_family=family;_modelVersion=version;_modelSha=sha;_sink=Objects.requireNonNull(sink);_actorProfile=actorProfile;}
+	/** New opt-in route only. Historical owned()/Selection bytes retain their original semantics. */
+	public static TrainExplorationV1 ownedAutonomous(Path installation, String episode, String block, String cell, String split, boolean experimental,
+		LegalActionV3.Family family, long actorProfile, long version, String sha,
+		List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> frozenActions, Consumer<Selection> sink) throws IOException
+	{
+		final var guard = new TrainingStore(installation); final var config = guard.config();
+		final Path root = guard.installation(), clone = root.getParent().getParent().getParent();
+		final boolean isolated = Boolean.getBoolean("phantom.learning.train") && root.equals(root.toRealPath())
+			&& root.equals(clone.resolve(".phantom-local/learning002/train")) && Files.isDirectory(clone.resolve("L2J_Mobius_CT_2.6_HighFive"));
+		final boolean enabled = config.text("autonomous009Enabled", "false").equals("true") && config.text("outcome006Enabled", "false").equals("true")
+			&& config.text("configProfile", "").equals("OUTCOME006") && config.text("v3Enabled", "false").equals("true")
+			&& config.text("exploration007Enabled", "false").equals("false") && config.text("exploration008Enabled", "false").equals("false")
+			&& config.text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR)
+			&& config.text("v3DatasetContextPrefix", "").equals("autonomous009|");
+		validateAutonomousPermit(isolated, enabled, config.text("autonomous009Phase", ""), config.text("autonomous009Campaign", ""),
+			config.text("outcome006DatasetId", ""), split, experimental, family, actorProfile, version, sha);
+		if (version != config.longValue("autonomous009ModelVersion", 0, 0, Long.MAX_VALUE) || !sha.equals(config.text("autonomous009ModelSha", "")))
+		{ throw new IllegalArgumentException("Автономная collection model не совпадает с frozen pin."); }
+		if (frozenActions == null || frozenActions.isEmpty() || frozenActions.size() > 4 || frozenActions.stream().map(ref -> ref.skillId()).distinct().count() != frozenActions.size())
+		{ throw new IllegalArgumentException("Автономной selection нужен точный frozen shortlist."); }
+		final var window = new TrainExplorationV1(episode, block, cell, split, experimental, family, version, sha, sink, actorProfile);
+		window._autonomousSkills = Set.copyOf(frozenActions); return window;
+	}
 	/** Called before CUT by the existing native TEST adapter, never by an ordinary PLAY/MAIN policy. */
 	public static TrainExplorationV1 owned(Path installation,String episode,String block,String cell,String split,boolean experimental,LegalActionV3.Family family,long version,String sha,Consumer<Selection> sink) throws IOException
 	{
@@ -118,7 +154,8 @@ public final class TrainExplorationV1
 	}
 	Selection offer(TacticalObservationV3 observation,List<LegalActionV3> offered,LegalActionV3 stock,boolean current,boolean rescueClear)
 	{
-		if(!current||!rescueClear||stock.family()!=_family||_spent.get()){return null;}
+		if(!current||!rescueClear||stock.family()!=_family||_spent.get()||_actorProfile>0&&observation.profileId()!=_actorProfile){return null;}
+		if (_actorProfile > 0 && offered.stream().anyMatch(action -> !_autonomousSkills.contains(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef(action.skillId(), action.skillLevel())))) { return null; }
 		new TacticalReceiptV3.Attempt(observation,offered,stock,stock,_modelVersion);
 		if(!_spent.compareAndSet(false,true)){return null;}
 		double draw=_experimental?ThreadLocalRandom.current().nextDouble():0;

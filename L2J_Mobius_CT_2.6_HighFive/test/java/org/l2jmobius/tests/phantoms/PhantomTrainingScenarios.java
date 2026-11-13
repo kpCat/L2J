@@ -23,6 +23,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.learning.NeuralPolicy;
 import org.l2jmobius.gameserver.phantoms.learning.TrainingConfig;
+import org.l2jmobius.gameserver.phantoms.learning.AutonomousTrainingV1;
 import org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchor;
@@ -167,6 +168,83 @@ final class PhantomTrainingScenarios
 		return List.copyOf(result);
 	}
 	static PhantomTopologyPoint preparationPoint(PhantomTopologyAnchor anchor) { return anchor.point(); }
+	/** Actual acquired proposal only. This path never forecasts learned ranks or provisions a loadout. */
+	static PhantomCombatCapabilityResolver frozenResolver(int actorClass, PhantomCombatMode mode,
+		List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> shortlist,
+		java.util.function.Supplier<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog> fallback)
+	{
+		if (PlayerClass.getPlayerClass(actorClass) == null || mode == null || shortlist.isEmpty() || shortlist.size() > 4
+			|| shortlist.stream().map(value -> value.skillId()).distinct().count() != shortlist.size()) { throw new IllegalArgumentException("AUTONOMOUS_FROZEN_RESOLVER_INPUT"); }
+		final var exact = List.copyOf(shortlist);
+		return new PhantomCombatCapabilityResolver(classId ->
+		{
+			if (classId == actorClass)
+			{
+				return List.of(new PhantomCombatCapabilityResolver.CapabilityEvidence(mode.capabilityKey(), "autonomous-frozen", 1,
+					exact.stream().map(ref -> new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(ref.skillId(), ref.skillLevel())).toList()));
+			}
+			final var catalog = fallback.get();
+			return catalog == null ? List.of() : catalog.capabilities(classId).stream().map(fact -> new PhantomCombatCapabilityResolver.CapabilityEvidence(fact.capabilityKey(), fact.variantKey(), fact.rank(),
+				List.of(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(fact.actionSkill().skillId(), fact.actionSkill().skillLevel())))).toList();
+		});
+	}
+	/** One data-selected acquired actor/roster; no class tree forecasting or gear provisioning. */
+	static List<Scene> acquiredScenes(AutonomousTrainingV1.Proposal proposal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
+		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum)
+	{
+		if (maximum < 1 || maximum > 64 || rosterLevels.isEmpty() || !rosterLevels.contains(proposal.actor().level()) || proposal.shortlist().candidates().isEmpty())
+		{ throw new IllegalArgumentException("AUTONOMOUS_SCENE_INPUT"); }
+		final var band = acquiredLevelBand(rosterLevels);
+		final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
+		final var geo = GeoEngine.getInstance(); final var candidates = new LinkedHashMap<String, Scene>();
+		// Order by frozen identity/seed, never by outcomes, score or speed of an easy victory.
+		final var monsters = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
+			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && !npc.isAggressive() && !npc.isRaid() && !npc.isChampion()
+				&& npc.isTargetable() && !npc.isInvul() && !npc.hasMinions() && npc.getLeader() == null
+				&& (npc.getTemplate().getClans() == null || npc.getTemplate().getClans().isEmpty()) && npc.getSpawn() != null && npc.getSpawn().getRespawnMaxDelay() > 0)
+			.sorted(Comparator.comparing((Monster npc) -> hash(seed + "/" + npc.getId() + "/" + npc.getX() + "/" + npc.getY() + "/" + npc.getZ()))
+				.thenComparingInt(Monster::getId).thenComparingInt(Monster::getObjectId)).toList();
+		final var fieldsPerNpc = new java.util.HashMap<Integer, Integer>();
+		for (var npc : monsters)
+		{
+			if (candidates.size() >= maximum) { break; }
+			if (fieldsPerNpc.getOrDefault(npc.getId(), 0) >= 2 || !band.contains(npc.getLevel()) || !geo.hasGeo(npc.getX(), npc.getY())
+				|| !PhantomCombatPolicy.farmRewardAvailable(proposal.actor().level() - npc.getLevel(), RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE,
+					npc.getExpReward(proposal.actor().level()), npc.getSpReward(proposal.actor().level()))) { continue; }
+			final var target = new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0);
+			for (var anchor : authority.topology().nearestAnchors(target, PhantomTopologyAnchorRole.FARMING, 12, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
+			{
+				final var source = new PhantomDomainRef("background.farm", npc.getId() + "@" + anchor.id());
+				if (!planner.partyNativeTarget(source, npc.getId(), target)) { continue; }
+				final var area = authority.topology().findNode(anchor.nodeId()).orElseThrow().area(); final var point = preparationPoint(anchor);
+				if (!geo.hasGeo(point.x(), point.y()) || geo.getHeight(point.x(), point.y(), point.z()) != point.z() || !area.contains(point)
+					|| org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(point.x(), point.y(), point.z(), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null
+					|| point.distance3D(target) < 100 || point.distance3D(target) > PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE || Math.abs(point.z() - target.z()) > 200
+					|| !geo.canSeeTarget(point.x(), point.y(), point.z(), 0, target.x(), target.y(), target.z(), 0)
+					|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), target.x(), target.y(), target.z(), 0)
+					|| !geo.canMoveToTarget(target.x(), target.y(), target.z(), point.x(), point.y(), point.z(), 0)) { continue; }
+				try { PhantomLearning001ActorFixture.requireSafePartySpawn(point.x(), point.y(), point.z()); }
+				catch (IllegalStateException unsafe) { continue; }
+				final String id = acquiredSceneId(proposal, source.key(), npc.getId(), point.x(), point.y(), point.z(), grade, enchant);
+				if (candidates.putIfAbsent(id, new Scene(id, source.key(), npc.getId(), proposal.actor().classId(), proposal.actor().level(), grade, enchant,
+					point.x(), point.y(), point.z(), proposal.shortlist().candidates().stream().map(skill -> skill.skillId()).toList(), "UNASSIGNED")) == null)
+				{ fieldsPerNpc.merge(npc.getId(), 1, Integer::sum); }
+				break;
+			}
+		}
+		return orderedKeys(List.copyOf(candidates.keySet()), seed, 0).stream().map(candidates::get).toList();
+	}
+	/** Dispatch identity contains source binding; the separate pre-CUT comparison key excludes incarnation IDs. */
+	static PhantomPartyFarmEligibility.NpcLevelBand acquiredLevelBand(List<Integer> levels)
+	{
+		return levels.size() == 1 ? PhantomPartyFarmEligibility.forMember(levels.getFirst())
+			: PhantomPartyFarmEligibility.forRoster(levels).orElseThrow(() -> new IllegalStateException("AUTONOMOUS_ROSTER_LEVEL_BAND"));
+	}
+	static String acquiredSceneId(AutonomousTrainingV1.Proposal proposal, String source, int npc, int x, int y, int z, String grade, int enchant)
+	{
+		return hash(AutonomousTrainingV1.VERSION + "/" + proposal.actor().sourceSnapshotSha() + "/" + proposal.actor().classId() + "/" + proposal.actor().level()
+			+ "/" + proposal.actor().classIndex() + "/" + proposal.pool().key() + "/" + proposal.shortlist().candidates() + "/" + source + "/" + npc + "/" + x + "/" + y + "/" + z + "/" + grade + "/" + enchant);
+	}
 	static String physicalId(String source, int classId, int level, String grade, int x, int y, int z, List<Integer> skills, int helperCount, int weaponEnchant)
 	{
 		String facts = source + ":" + classId + ":" + level + ":" + grade + ":" + x + ":" + y + ":" + z + ":" + skills + ":helpers=" + helperCount;

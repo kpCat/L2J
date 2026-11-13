@@ -198,6 +198,42 @@ function Read-TrainConfig([string]$Path) {
     Assert-TrainConfig $values
     return $values
 }
+function Assert-TrainAutonomousConfig($Values) {
+    foreach($entry in @{autonomous009Enabled='false';autonomous009Exploration='true';autonomous009AcceptanceSmoke='false';autonomous009Phase='OFF';autonomous009MinLevel='1';autonomous009MaxLevel='85';autonomous009MemoryBudgetMb='8192';autonomous009DurationMinutes='1440';autonomous009CheckpointMinutes='15';autonomous009ReplayCapacity='128';autonomous009EvaluationEveryCycles='1';autonomous009StagnationLimit='3';autonomous009NoDataLimit='3';autonomous009CycleLimit='0';autonomous009SourceCursor='0';autonomous009ClassWeights='auto';autonomous009Families='DAMAGE,HEAL';autonomous009SmokeMaxStarts='6';autonomous009SmokeMaxNativeMinutes='90'}.GetEnumerator()){
+        if(!$Values.ContainsKey($entry.Key)){$Values[$entry.Key]=$entry.Value}
+    }
+    $bounds=@{autonomous009Version=@(1,1);autonomous009MinLevel=@(1,85);autonomous009MaxLevel=@(1,85);autonomous009MemoryBudgetMb=@(1536,131072);autonomous009DurationMinutes=@(1,10080);autonomous009CheckpointMinutes=@(1,1440);autonomous009ReplayCapacity=@(48,512);autonomous009EvaluationEveryCycles=@(1,100);autonomous009StagnationLimit=@(3,3);autonomous009NoDataLimit=@(1,16);autonomous009CycleLimit=@(0,1000000);autonomous009SourceCursor=@(0,[long]::MaxValue)}
+    foreach($key in $bounds.Keys){$number=0L;if(![long]::TryParse([string]$Values[$key],[ref]$number) -or $number -lt $bounds[$key][0] -or $number -gt $bounds[$key][1]){throw ('TRAIN009_CONFIG_RANGE:'+ $key)}}
+    foreach($key in @('autonomous009Enabled','autonomous009Exploration','autonomous009AcceptanceSmoke')){if($Values[$key] -cnotin @('true','false')){throw ('TRAIN009_CONFIG_BOOLEAN:'+ $key)}}
+    if($Values['autonomous009Comparator'] -cne 'STOCK_ON_FROZEN_SHORTLIST_V1' -or $Values['v3Enabled'] -cne 'true' -or $Values.autonomous009Phase -cnotin @('OFF','PREPARE','COLLECT','FIT','EVAL')){throw 'TRAIN009_CONFIG_VERSION_OR_PHASE'}
+    if($Values.autonomous009Enabled -ceq 'true'){
+        if($Values['configProfile'] -cne 'OUTCOME006' -or $Values['outcome006Enabled'] -cne 'true' -or $Values['v3Terminal006'] -cne 'true' -or
+           $Values['exploration007Enabled'] -ceq 'true' -or $Values['exploration008Enabled'] -ceq 'true' -or $Values.autonomous009Phase -ceq 'OFF' -or
+           $Values['v3DatasetContextPrefix'] -cne 'autonomous009|' -or $Values['autonomous009Campaign'] -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,64}$' -or
+           $Values['outcome006DatasetId'] -cnotmatch '^autonomous009-[A-Za-z0-9_-]{1,80}$'){throw 'TRAIN009_CONFIG_AUTHORITY'}
+        if($Values.autonomous009Phase -cin @('COLLECT','FIT','EVAL')){
+            $version=0L
+            if(![long]::TryParse([string]$Values['autonomous009ModelVersion'],[ref]$version) -or $version -lt 1 -or $Values['autonomous009ModelSha'] -cnotmatch '^[0-9a-f]{64}$'){throw 'TRAIN009_MODEL_PIN_REQUIRED'}
+        }
+    }
+    if([int]$Values.autonomous009MinLevel -gt [int]$Values.autonomous009MaxLevel){throw 'TRAIN009_LEVEL_INTERVAL'}
+    if([int]$Values.autonomous009MemoryBudgetMb -lt ([int]$Values.maxHeapMb+512)){throw 'TRAIN009_MEMORY_HEADROOM'}
+    if([int]$Values.episodesPerBatch -lt 48 -or [int]$Values.episodesPerBatch % 12 -ne 0 -or [int]$Values.episodesPerBatch -gt [int]$Values.autonomous009ReplayCapacity){throw 'TRAIN009_COHORT_CAPACITY'}
+    foreach($bound in @(@('autonomous009PriorStarts',6L),@('autonomous009PriorNativeMillis',5400000L))){if($Values.ContainsKey($bound[0])){$value=0L;if(![long]::TryParse([string]$Values[$bound[0]],[ref]$value) -or $value -lt 0 -or $value -gt $bound[1]){throw 'TRAIN009_PRIOR_BUDGET_INVALID'}}}
+    $families=@($Values.autonomous009Families.Split(','))
+    if(!$families.Count -or @($families|Select-Object -Unique).Count -ne $families.Count -or @($families|Where-Object {$_ -cnotin @('DAMAGE','HEAL')}).Count){throw 'TRAIN009_ACTION_FAMILIES'}
+    if($Values.autonomous009ClassWeights -cne 'auto'){
+        $seen=@{}
+        foreach($entry in $Values.autonomous009ClassWeights.Split(',')){
+            if($entry -cnotmatch '^([0-9]{1,3}):([0-9]{1,4})$'){throw 'TRAIN009_CLASS_WEIGHT_SYNTAX'}
+            $classId=[int]$Matches[1];$weight=[int]$Matches[2]
+            if($classId -gt 200 -or $weight -lt 1 -or $weight -gt 1000 -or $seen.ContainsKey($classId)){throw 'TRAIN009_CLASS_WEIGHT_RANGE'}
+            $seen[$classId]=$true
+        }
+        # Actual PlayerClass membership is validated by Java; no second manual class catalog in PowerShell.
+    }
+    if($Values.autonomous009AcceptanceSmoke -ceq 'true' -and ($Values.autonomous009SmokeMaxStarts -cne '6' -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90')){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
+}
 function Assert-TrainConfig($Values) {
     foreach($entry in @{maxTrainingCohorts=32;maxStoredActors=4096;maxStoredProfiles=4096;cpuBudgetPercent=75;maxAdaptiveIdleSeconds=300}.GetEnumerator()){
         if(!$Values.ContainsKey($entry.Key)){$Values[$entry.Key]=[string]$entry.Value}
@@ -212,12 +248,15 @@ function Assert-TrainConfig($Values) {
     foreach($key in $optional.Keys){if($Values.ContainsKey($key)){$number=0L;if(![long]::TryParse([string]$Values[$key],[ref]$number) -or $number -lt $optional[$key][0] -or $number -gt $optional[$key][1]){throw ('TRAIN002_CONFIG_RANGE:'+ $key)}}}
     $seed=0L;if(!$Values.ContainsKey('seed') -or ![long]::TryParse([string]$Values.seed,[ref]$seed)){throw 'TRAIN002_CONFIG_SEED'}
     foreach($key in @('classes','levels','grades','npcIds','modes','learningMode','modelSha')){if(!$Values.ContainsKey($key)){throw ('TRAIN002_CONFIG_REQUIRED:'+ $key)}}
-    foreach($key in @('classes','levels')){if([string]$Values[$key] -cnotmatch '^[0-9]+(?:,[0-9]+)*$'){throw ('TRAIN002_CONFIG_LIST:'+ $key)}}
+    if($Values.ContainsKey('autonomous009Enabled') -and $Values.autonomous009Enabled -ceq 'true' -and !$Values.ContainsKey('autonomous009Version')){throw 'TRAIN009_CONFIG_VERSION_REQUIRED'}
+    $autonomous=$Values.ContainsKey('autonomous009Version')
+    foreach($key in @('classes','levels')){if(!($autonomous -and $Values[$key] -ceq 'auto') -and [string]$Values[$key] -cnotmatch '^[0-9]+(?:,[0-9]+)*$'){throw ('TRAIN002_CONFIG_LIST:'+ $key)}}
     if($Values.grades -cnotmatch '^(?:NONE|D|C|B|A|S)(?:,(?:NONE|D|C|B|A|S))*$' -or ($Values.npcIds -and $Values.npcIds -cnotmatch '^[0-9]+(?:,[0-9]+)*$')){throw 'TRAIN002_CONFIG_CATALOG'}
     if($Values.modes -cnotmatch '^(?:SOLO|PARTY)(?:,(?:SOLO|PARTY))*$' -or ($Values.ContainsKey('mode') -and $Values.mode -cnotmatch '^(?:SOLO|PARTY|BOTH)$')){throw 'TRAIN002_UNSUPPORTED_MODE'}
     if($Values.learningMode -notin @('SHADOW','ON') -or ($Values.learningMode -eq 'ON' -and ([long]$Values.modelVersion -lt 1 -or $Values.modelSha -cnotmatch '^[0-9a-f]{64}$'))){throw 'TRAIN002_MODEL_PIN'}
     if(@($Values.sqlPort,$Values.gamePort,$Values.loginPort|Select-Object -Unique).Count -ne 3){throw 'TRAIN002_DISTINCT_ENDPOINTS_REQUIRED'}
     if([int]$Values.maxAdaptiveIdleSeconds -lt [int]$Values.idleSeconds){throw 'TRAIN002_ADAPTIVE_IDLE_BELOW_BASE'}
+    if($autonomous){Assert-TrainAutonomousConfig $Values}
 }
 function Get-TrainAdaptiveIdle($Config,$Resource) {
     $cores=[int]$Config.cpuCount;$budget=[int]$Config.cpuBudgetPercent;$base=[int]$Config.idleSeconds;$maximum=[int]$Config.maxAdaptiveIdleSeconds
@@ -236,6 +275,13 @@ function Get-TrainAdaptiveIdle($Config,$Resource) {
     if($Resource.PSObject.Properties['sampledUtc']){$decision.sampledUtc=$Resource.sampledUtc}
     $decision.predictedAverageNativeCpuPercent=[Math]::Round(100*$cpu/($cores*($elapsed/1000.0+$delay)),3)
     return $decision
+}
+function Get-TrainHeartbeat([string]$Heartbeat,[datetime]$UtcNow) {
+    $stamp=[datetime]::MinValue
+    if(!$Heartbeat -or ![datetime]::TryParse($Heartbeat,[ref]$stamp)){return @{state='UNKNOWN';ageSeconds=$null}}
+    $age=($UtcNow.ToUniversalTime()-$stamp.ToUniversalTime()).TotalSeconds
+    if($age -lt -5){return @{state='UNKNOWN';ageSeconds=$age}}
+    return @{state=$(if($age -gt 90){'STALE'}else{'FRESH'});ageSeconds=[Math]::Round($age,1)}
 }
 function Write-TrainConfig([string]$Path,$Values){Assert-TrainConfig $Values;Write-TrainText $Path (($Values.Keys|Sort-Object|ForEach-Object{$_+'='+$Values[$_]}) -join "`n")}
 function Get-TrainColdBaseline([string]$Body) {
