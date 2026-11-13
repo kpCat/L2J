@@ -22,11 +22,11 @@ public final class PhantomLearning005Evaluation
 		{this(modelId,modelSha,terminalDatasetSha,optimizerSha,runId,"EVAL006R1");}
 		public DraftAuthority
 		{
-			if(!Set.of("EVAL006R1","EVAL007").contains(namespace)||modelId<=(namespace.equals("EVAL007")?9:8)||runId==null||!runId.matches("[a-f0-9]{32}")){throw new IllegalArgumentException("New frozen DRAFT authority required");}
+			if(!Set.of("EVAL006R1","EVAL007","EVAL008").contains(namespace)||modelId<=(namespace.equals("EVAL008")?11:namespace.equals("EVAL007")?9:8)||runId==null||!runId.matches("[a-f0-9]{32}")){throw new IllegalArgumentException("New frozen DRAFT authority required");}
 			PhantomLearning005Evaluation.sha(modelSha);PhantomLearning005Evaluation.sha(terminalDatasetSha);PhantomLearning005Evaluation.sha(optimizerSha);
 		}
-		String json(){return "{\"namespace\":"+q(namespace)+",\"modelId\":"+modelId+",\"modelSha\":"+q(modelSha)+","+q(namespace.equals("EVAL007")?"advantageDatasetSha":"terminalDatasetSha")+":"+q(terminalDatasetSha)+",\"optimizerSha\":"+q(optimizerSha)+",\"runId\":"+q(runId)+"}";}
-		int schemaVersion(){return namespace.equals("EVAL007")?7:6;}
+		String json(){return "{\"namespace\":"+q(namespace)+",\"modelId\":"+modelId+",\"modelSha\":"+q(modelSha)+","+q(namespace.equals("EVAL008")?"residualDatasetSha":namespace.equals("EVAL007")?"advantageDatasetSha":"terminalDatasetSha")+":"+q(terminalDatasetSha)+",\"optimizerSha\":"+q(optimizerSha)+",\"runId\":"+q(runId)+"}";}
+		int schemaVersion(){return namespace.equals("EVAL008")?8:namespace.equals("EVAL007")?7:6;}
 		String fingerprint(){return hash(json());}
 	}
 	public record Pin(Mode mode,long id,String status,String sha,String schema,int algorithm,DraftAuthority authority)

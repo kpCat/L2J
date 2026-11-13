@@ -105,6 +105,7 @@ public final class TacticalTrainerV3
     {
         final var store = new TacticalStoreV3(root); store.initialize(); store.requireStopped();
         store.ensureLegacyParent();
+        if(store.residualMode()){return evaluateResidual(store);}
         if(store.advantageMode()){return evaluateAdvantage(store);}
         if (store.terminalMode()) { return evaluateTerminal(store); }
         final var prior = store.latestAccepted();
@@ -190,6 +191,46 @@ public final class TacticalTrainerV3
         return publish(store,new Evaluation("DRAFT",prior==null?0:prior.id(),prior==null?"":prior.sha(),
             "Terminal targets fitted from exact optimizer parent; immutable TEST draft requires independent native evaluation",candidate.id(),candidate.sha(),metrics));
     }
+    private static Evaluation evaluateResidual(TacticalStoreV3 store) throws IOException,SQLException
+    {
+        var accepted=store.latestAccepted();var parent=store.optimizationParent();var frozen=store.freezeResidual();
+        if(frozen==null)
+        {
+            var working=store.candidate(parent.modelId());
+            if(working!=null&&working.metrics().contains("\"objective\":\""+ActionAdvantage008.OBJECTIVE+"\""))
+            {store.residualSnapshot(working.id());return publish(store,new Evaluation("DRAFT",accepted.id(),accepted.sha(),"Сохранённый DRAFT008 восстановлен без повторного credit.",working.id(),working.sha(),working.metrics()));}
+            return publish(store,new Evaluation("COLLECTING",accepted.id(),accepted.sha(),"Недостаточно независимых class-aware paid данных008; пороги не снижены.",0,"","{\"objective\":\""+ActionAdvantage008.OBJECTIVE+"\",\"usedForTraining\":false}"));
+        }
+        var teacher=store.candidate(ActionAdvantage008.TEACHER_VERSION);
+        if(teacher==null||!ActionAdvantage008.pinsMatch(parent.modelId(),teacher.sha(),parent.sha(),parent.state().model().sha256(),parent.state().updates(),parent.state().completedEpochs()))
+        {throw new IllegalArgumentException("008 requires exact terminal Adam11, never selected checkpoint weights with terminal moments");}
+        long started=System.nanoTime();var trained=TacticalModelV3.continueTrainingWeighted(parent.state(),frozen.weightedExamples(),frozen.examples("TUNING"));long elapsed=System.nanoTime()-started;
+        var fit=trained.fit();String basic=frozen.metrics();String metrics=basic.substring(0,basic.length()-1)
+            +",\"epochs\":"+fit.epochs()+",\"trainingNanos\":"+elapsed+",\"tuningInitialMse\":"+fit.initialLoss()+",\"tuningMse\":"+fit.loss()
+            +",\"auditMse\":"+fit.model().loss(frozen.examples("AUDIT"))+",\"constantAuditMse\":"+frozen.constantLoss("AUDIT")+",\"draft11AuditMse\":"+teacher.model().loss(frozen.examples("AUDIT"))
+            +",\"classQuality\":"+residualQuality(frozen,fit.model(),teacher.model())+",\"parentModelVersion\":"+parent.modelId()+",\"parentOptimizerSha\":"+quote(parent.sha())
+            +",\"parentWeightsSha\":"+quote(parent.state().model().sha256())+",\"optimizerSha\":"+quote(trained.continuation().sha256())
+            +",\"optimizerUpdates\":"+trained.continuation().updates()+",\"completedEpochs\":"+trained.continuation().completedEpochs()
+            +",\"optimizerWeightsSha\":"+quote(trained.continuation().model().sha256())+",\"optimizerMigration\":\"RESTORED\",\"usedForTraining\":true"
+            +",\"limitation\":\"TRAIN-only nuisance forecast may be biased out of distribution; factual residual MSE is not causal stock advantage\"}";
+        var candidate=store.saveResidual(frozen,trained,parent,teacher,accepted,metrics);
+        if(!store.residualSnapshot(candidate.id()).datasetSha().equals(frozen.datasetSha())){throw new IllegalArgumentException("Committed008 target changed");}
+        return publish(store,new Evaluation("DRAFT",accepted.id(),accepted.sha(),"Class-aware DRAFT008 обучен от terminal Adam11; продвижение не выполнялось.",candidate.id(),candidate.sha(),metrics));
+    }
+    private static String residualQuality(ActionAdvantage008.Frozen frozen,TacticalModelV3 model,TacticalModelV3 teacher)
+    {
+        var groups=new java.util.ArrayList<String>();double constant=frozen.constantMean();
+        for(String split:List.of("TUNING","AUDIT")){for(int classId:List.of(94,103,110))
+        {
+            var targets=frozen.targets().stream().filter(t->t.sample().selection().split().equals(split)&&t.sample().selection().observation().self().classId()==classId&&t.sample().selection().matches(t.row().receipt())).toList();
+            if(targets.isEmpty()){continue;}var examples=targets.stream().map(ActionAdvantage008.Target::example).toList();double mean=targets.stream().mapToDouble(ActionAdvantage008.Target::utility).average().orElseThrow();
+            double variance=targets.size()<2?0:targets.stream().mapToDouble(t->Math.pow(t.utility()-mean,2)).sum()/(targets.size()-1);
+            groups.add("{\"split\":"+quote(split)+",\"class\":"+classId+",\"episodes\":"+targets.size()+",\"candidateMse\":"+model.loss(examples)+",\"draft11Mse\":"+teacher.loss(examples)
+                +",\"constantMse\":"+examples.stream().mapToDouble(e->Math.pow(e.reward()-constant,2)).average().orElseThrow()+",\"rawUtilityMean\":"+mean+",\"rawUtilityVariance\":"+variance
+                +",\"trainGradients\":"+frozen.targets().stream().filter(t->t.sample().selection().split().equals("TRAIN")&&t.sample().selection().observation().self().classId()==classId).count()+"}");
+        }}
+        return "["+String.join(",",groups)+"]";
+    }
     private static Evaluation evaluateAdvantage(TacticalStoreV3 store) throws IOException,SQLException
     {
         final var prior=store.latestAccepted();final var parent=store.optimizationParent();
@@ -260,6 +301,7 @@ public final class TacticalTrainerV3
         final byte[] replay = TacticalStoreV3.pack(working.rows());
         final var terminal=working.metrics().contains("\"objective\":\"TERMINAL_OUTCOME_V1\"")?store.terminalSnapshot(working.id()):null;
         final var advantage=working.metrics().contains("\"objective\":\""+ActionAdvantageV1.OBJECTIVE+"\"")?store.advantageSnapshot(working.id()):null;
+        final var residual=working.metrics().contains("\"objective\":\""+ActionAdvantage008.OBJECTIVE+"\"")?store.residualSnapshot(working.id()):null;
         final byte[] contexts = working.origin().equals("NATIVE_COMBAT") ? store.replayContexts(working.runId(),working.datasetSha(),working.rows()) : null;
         final Path directory = store.installation().resolve("tactical-v3-exports");
         Files.createDirectories(directory);
@@ -277,6 +319,7 @@ public final class TacticalTrainerV3
             + ",\"terminalDatasetSha\":"+(terminal==null?"null":quote(terminal.datasetSha()))
             + ",\"advantageDatasetSha\":"+(advantage==null?"null":quote(advantage.datasetSha()))
             + ",\"advantageConfigSha\":"+(advantage==null?"null":quote(ActionAdvantageV1.CONFIG_SHA))
+            + (residual==null?"":",\"residualDatasetSha\":"+quote(residual.datasetSha())+",\"residualConfigSha\":"+quote(ActionAdvantage008.CONFIG_SHA))
             + ",\"rewardConfigSha\":"+(terminal==null?"null":quote(terminal.configSha()))
             + ",\"workingRunId\":" + quote(optimizer.runId()) + ",\"episodeCounts\":" + store.episodeCounts() + "}";
         try
@@ -304,6 +347,20 @@ public final class TacticalTrainerV3
                         +",\"fitRole\":"+quote(r.split())+",\"modelVersion\":"+working.id()+",\"optimizerSha\":"+quote(optimizer.sha())
                         +",\"terminalRewardUsedForTraining\":"+r.split().equals("TRAIN")+"}\n").collect(java.util.stream.Collectors.joining());
                     entry(zip,"terminal-applications.jsonl",receipts.getBytes(StandardCharsets.UTF_8));
+                }
+                if(residual!=null)
+                {
+                    entry(zip,"residual-targets.bin",residual.bytes());var targets=residual.targets();
+                    String applications=residual.samples().stream().map(s->"{\"naturalKey\":"+quote(s.terminal().naturalKey())+",\"eligibleActionKeysSha\":"+quote(s.actionKey())
+                        +",\"receiptSha\":"+quote(s.terminal().sha256())+",\"selectionSha\":"+quote(s.selection().sha256())+",\"split\":"+quote(s.selection().split())+",\"class\":"+s.selection().observation().self().classId()
+                        +",\"gradientUsed\":"+(s.selection().split().equals("TRAIN")&&s.selection().experimental()&&targets.stream().anyMatch(t->t.sample().terminal().naturalKey().equals(s.terminal().naturalKey())))
+                        +",\"modelVersion\":"+working.id()+",\"optimizerSha\":"+quote(optimizer.sha())+"}").collect(java.util.stream.Collectors.joining("\n"))+"\n";
+                    entry(zip,"residual-applications.jsonl",applications.getBytes(StandardCharsets.UTF_8));
+                    String labels=targets.stream().map(t->"{\"episode\":"+quote(t.sample().terminal().episode().id())+",\"actionKey\":"+quote(t.row().actionKey())+",\"eventKey\":"+quote(t.row().eventKey())
+                        +",\"split\":"+quote(t.sample().selection().split())+",\"class\":"+t.sample().selection().observation().self().classId()+",\"propensity\":"+t.propensity()+",\"actualUtility\":"+t.utility()
+                        +",\"baseline\":"+t.baseline()+",\"baselineKind\":"+quote(t.baselineKind())+",\"baselineSha\":"+quote(t.baselineSha())+",\"baselineCount\":"+t.baselineCount()
+                        +",\"residual\":"+t.residual()+",\"weight\":"+t.weight()+",\"counterfactualOutcome\":null}").collect(java.util.stream.Collectors.joining("\n"))+"\n";
+                    entry(zip,"residual-labels.jsonl",labels.getBytes(StandardCharsets.UTF_8));
                 }
                 if (contexts != null)
                 {

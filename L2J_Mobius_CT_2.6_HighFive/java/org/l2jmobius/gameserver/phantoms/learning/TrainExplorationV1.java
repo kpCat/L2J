@@ -98,6 +98,16 @@ public final class TrainExplorationV1
 		Path root=guard.installation(),clone=root.getParent().getParent().getParent();
 		boolean isolated=Boolean.getBoolean("phantom.learning.train")&&root.equals(root.toRealPath())
 			&&root.equals(clone.resolve(".phantom-local/learning002/train"))&&Files.isDirectory(clone.resolve("L2J_Mobius_CT_2.6_HighFive"));
+		if(config.text("exploration008Enabled","false").equals("true"))
+		{
+			boolean optIn008=!config.text("exploration007Enabled","false").equals("true")&&config.text("outcome006Enabled","false").equals("true")
+				&&config.text("configProfile","").equals("OUTCOME006")&&config.text("outcome006DatasetId","").equals(ActionAdvantage008.DATASET);
+			if(!ActionAdvantage008.explorationPermitted(isolated,optIn008,config.text("exploration008Phase",""),config.text("exploration008Campaign",""),config.text("exploration008Dataset",""),"TRAIN")
+				||!Set.of("TRAIN","TUNING","AUDIT").contains(split)||experimental&&!split.equals("TRAIN")||family!=LegalActionV3.Family.DAMAGE
+				||version!=ActionAdvantage008.TEACHER_VERSION||!ActionAdvantage008.TEACHER_SHA.equals(sha))
+			{throw new IllegalArgumentException("008 exploration requires exact isolated TRAIN-only DRAFT11 campaign authority");}
+			return new TrainExplorationV1(episode,block,cell,split,experimental,family,version,sha,sink);
+		}
 		boolean optIn=config.text("exploration007Enabled","false").equals("true")&&config.text("outcome006Enabled","false").equals("true")
 			&&config.text("configProfile","").equals("OUTCOME006")&&config.text("exploration007Dataset","").equals(DATASET);
 		if(!Set.of("TRAIN","TUNING","AUDIT").contains(split)||family!=LegalActionV3.Family.DAMAGE&&family!=LegalActionV3.Family.HEAL||experimental&&!split.equals("TRAIN"))

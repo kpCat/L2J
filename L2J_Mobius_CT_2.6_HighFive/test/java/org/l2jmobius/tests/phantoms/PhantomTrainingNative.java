@@ -82,6 +82,13 @@ public final class PhantomTrainingNative
 			if (PhantomPlayersConfig.isEnabled() || PhantomSystem.hasConfiguredInstance()) { throw new IllegalStateException("Global Phantom owner must remain inactive"); }
 			Files.writeString(phantomConfig, setting(phase, "EnablePhantomSystem", "True"));
 			PhantomPlayersConfig.load();
+			if(PhantomLearning008Native.enabled(config))
+			{
+				if(config.text("exploration008Phase","").equals("COLLECT")){PhantomLearning008Native.run(root,attempt,config);}
+				else if(PhantomLearning005Native.generalizationEvaluation(config)){PhantomLearning008Native.runEvaluation(root,attempt,config);}
+				else{throw new IllegalArgumentException("008 native phase refused");}
+				return;
+			}
 			if(PhantomLearning007Native.enabled(config)&&config.text("exploration007Phase","").equals("COLLECT"))
 			{PhantomLearning007Native.run(root,attempt,config);return;}
 			if (evaluationOnly(config))

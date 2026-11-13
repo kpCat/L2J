@@ -465,7 +465,8 @@ public final class PhantomLearning001ShadowNative
 					{
 						final var player = trainingPlayers.get(index);
 						check(!preflightThreatened(player), "TRAIN_PREPARATION_NATIVE_THREAT");
-						check("FIXTURE".equals(trainingRows.get(index)[0]) || player.getKnownSkill(1230) != null, "TRAIN_PREPARATION_LEARNED_PROMINENCE");
+						check("FIXTURE".equals(trainingRows.get(index)[0]) || (scene.classId() == 94 ? player.getKnownSkill(1230) != null
+							: PhantomLearning008Scenarios.learned(player.getActiveClass(), scene.skills(), id -> player.getKnownSkill(id) != null)), "TRAIN_PREPARATION_LEARNED_DAMAGE");
 						// Every member begins native rest on the same shared preparation pulse.
 						recovered &= !recover(player, true);
 					}
@@ -924,7 +925,8 @@ public final class PhantomLearning001ShadowNative
 		private static boolean recover(Player player, boolean cold)
 		{
 			if (player.isMoving() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.getQueuedSkill() != null) { return true; }
-			final var skill = player.getKnownSkill(1230);
+			final int primary = player.getActiveClass() == 103 ? 1235 : player.getActiveClass() == 110 ? 1239 : 1230;
+			final var skill = player.getKnownSkill(primary);
 			final double mp = skill == null ? 0 : (player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill)) * 3;
 			if ((cold && player.getCurrentHp() < player.getMaxHp() * .9)
 				|| !PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), mp, player.isSitting()))
@@ -957,14 +959,15 @@ public final class PhantomLearning001ShadowNative
 					+ " x=" + player.getX() + " y=" + player.getY() + " z=" + player.getZ());
 				if (!"FIXTURE".equals(roster.get(index)[0]))
 				{
-					check(progression.capabilities(id, null).stream().anyMatch(capability -> capability.actionSkill().skillId() == 1230 && capability.learned()),
-						"AUTHORED_PROMINENCE_" + id);
+					final int primary = trainingScene == null || trainingScene.classId() == 94 ? 1230 : trainingScene.skills().getFirst();
+					check(progression.capabilities(id, null).stream().anyMatch(capability -> capability.actionSkill().skillId() == primary && capability.learned()),
+						"AUTHORED_NATIVE_DAMAGE_" + id);
 					try (var observation = materialization.tryAcquireObservation(id).orElseThrow(); var action = materialization.tryAcquireAction(id).orElse(null))
 					{
 						check(observation.player() == player && action == null, "PARTY_OBSERVATION_DOES_NOT_ADMIT_ACTION_" + id);
 					}
 					check(facts != null && facts.capabilities().stream().anyMatch(capability -> "combat.ranged_magic_damage".equals(capability.capabilityKey())
-						&& capability.actionSkillId() == 1230 && capability.learned()), "PARTY_OBSERVES_LEARNED_PROMINENCE_" + id);
+						&& capability.actionSkillId() == primary && capability.learned()), "PARTY_OBSERVES_LEARNED_NATIVE_DAMAGE_" + id);
 				}
 			}
 			final var team = candidates.stream().findFirst().map(leader -> PhantomAutonomousFarmParty.selectTeam(roles, leader, candidates)).orElse(List.of());

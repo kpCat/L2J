@@ -5,6 +5,7 @@ param(
     [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
     [switch]$EnableOutcome006,
     [switch]$EnableExploration007,
+    [switch]$EnableExploration008,
     [switch]$EnableEvaluation005,
     [ValidateRange(1,4)][int]$Evaluation005PairLimit=4,
     [ValidatePattern('^[A-Za-z0-9._-]{1,64}$')][string]$Evaluation005Campaign='learning005',
@@ -26,10 +27,17 @@ function Read-TrainSourceConfig {
     $current=$null
     $saved=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
     if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
-    $is007=$EnableExploration007 -or ($current -and $current.ContainsKey('exploration007Enabled') -and $current.exploration007Enabled -ceq 'true')
-    if($is007){$profile='OUTCOME006'}
-    $name=if($is007){'Exploration007.ini'}elseif($profile -ceq 'OUTCOME006'){'Outcome006.ini'}elseif($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
+    if($EnableExploration007 -and $EnableExploration008){throw 'TRAIN008_EXCLUSIVE_OPT_IN_REQUIRED'}
+    $is008=$EnableExploration008 -or ($current -and $current.ContainsKey('exploration008Enabled') -and $current.exploration008Enabled -ceq 'true')
+    $is007=!$is008 -and ($EnableExploration007 -or ($current -and $current.ContainsKey('exploration007Enabled') -and $current.exploration007Enabled -ceq 'true'))
+    if($is007 -or $is008){$profile='OUTCOME006'}
+    $name=if($is008){'Exploration008.ini'}elseif($is007){'Exploration007.ini'}elseif($profile -ceq 'OUTCOME006'){'Outcome006.ini'}elseif($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
     $values=Read-TrainConfig (Join-Path $PSScriptRoot $name)
+    if($is008){
+        if($EnableExploration008){$values.exploration008Enabled='true';$values.outcome006Enabled='true'}
+        elseif($current){foreach($key in @($values.Keys | Where-Object {$_ -like 'exploration008*' -or $_ -eq 'outcome006Enabled'})){if($current.ContainsKey($key)){$values[$key]=$current[$key]}}}
+        if($values.exploration008Campaign -cne 'learning008-pve-generalization-v1' -or $values.exploration008Dataset -cne 'learning008-residual-v1' -or $values.exploration007Enabled -cne 'false'){throw 'TRAIN008_EXACT_CAMPAIGN_REQUIRED'}
+    }
     if($is007){
         if($EnableExploration007){$values.exploration007Enabled='true';$values.outcome006Enabled='true'}
         elseif($current){$values.exploration007Enabled=$current.exploration007Enabled;$values.outcome006Enabled=$current.outcome006Enabled}
@@ -287,6 +295,34 @@ function Invoke-Train007Native($Dependencies,[string]$Jar) {
         }
     }
 }
+function Invoke-Train008Native($Dependencies,[string]$Jar) {
+    $budgetPath=Join-Path $layout.Root 'outcome006\campaigns\learning008-pve-generalization-v1\budget.json'
+    if(Test-Path -LiteralPath $budgetPath){$budget=Read-TrainJson $budgetPath}else{
+        $budget=[pscustomobject]@{schemaVersion=8;starts=0;collectionStarts=0;wallMillis=0L;collectionWallMillis=0L;pending=$false;pendingStartedUtc='';lastAttempt='';conservativeRecovery=$false}
+    }
+    if($budget.schemaVersion -ne 8 -or $budget.pending){throw 'TRAIN008_PENDING_NATIVE_RESERVATION_REQUIRES_OWN_EXIT_AUDIT'}
+    $collection=$script:Config.exploration008Phase -ceq 'COLLECT'
+    $recovery=$script:Config.ContainsKey('exploration008Recovery') -and $script:Config.exploration008Recovery -ceq 'true'
+    $minimumSlotMillis=([long]$script:Config.startupTimeoutSeconds+[long]$script:Config.preparationSeconds+[long]$script:Config.episodeSeconds+[long]$script:Config.shutdownTimeoutSeconds+150L)*1000L
+    if([int]$budget.starts -ge 8 -or [long]$budget.wallMillis+$minimumSlotMillis -ge 5400000 -or ($collection -and (([int]$budget.collectionStarts -ge 3 -and (!$recovery -or [int]$budget.collectionStarts -ge 4)) -or [long]$budget.collectionWallMillis+$minimumSlotMillis -ge 3600000))){throw 'TRAIN008_NATIVE_BUDGET_EXHAUSTED_WITH_BOOT_SETTLEMENT_RESERVE'}
+    $budget.starts=[int]$budget.starts+1;if($collection){$budget.collectionStarts=[int]$budget.collectionStarts+1}
+    $budget | Add-Member -MemberType NoteProperty -Name recoveryStarts -Value ([Math]::Max(0,[int]$budget.collectionStarts-3)) -Force
+    $budget.pending=$true;$budget.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $budgetPath $budget
+    $budgetTimer=[Diagnostics.Stopwatch]::StartNew()
+    $remainingMillis=5400000L-[long]$budget.wallMillis
+    if($collection){$remainingMillis=[Math]::Min($remainingMillis,3600000L-[long]$budget.collectionWallMillis)}
+    $nativeDeadline=[DateTime]::UtcNow.AddMilliseconds($remainingMillis-([long]$script:Config.shutdownTimeoutSeconds+30L)*1000L)
+    try{Invoke-TrainNative $Dependencies $Jar -BudgetDeadline $nativeDeadline}finally{
+        # Charge teardown as well, including a failed boot/timeout. Unconfirmed exit leaves pending fail-closed.
+        Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
+        $nativePath=Join-Path $layout.Root 'native-process.json'
+        if((Test-Path -LiteralPath $nativePath) -and (Test-TrainProcessAbsent (Read-TrainJson $nativePath))){
+            $elapsed=[long]$budgetTimer.ElapsedMilliseconds;$budget.wallMillis=[long]$budget.wallMillis+$elapsed
+            if($collection){$budget.collectionWallMillis=[long]$budget.collectionWallMillis+$elapsed}
+            $budget.lastAttempt=$script:State.attemptId;$budget.pending=$false;Write-TrainJson $budgetPath $budget
+        }
+    }
+}
 function Start-TrainSql($Dependencies) {
     $initialized=Join-Path $layout.Sql 'initialized.json'
     $receipt=Join-Path $layout.Sql 'owned-process.json'
@@ -393,7 +429,7 @@ function Invoke-TrainQueuedExport($Dependencies) {
     Write-TrainJson (Join-Path $layout.Root ('export-requests\'+$request.id+'.result.json')) $result
     Write-TrainJson $resultPath $result
 }
-function Invoke-TrainNative($Dependencies,[string]$JarSha) {
+function Invoke-TrainNative($Dependencies,[string]$JarSha,[datetime]$BudgetDeadline=[datetime]::MaxValue) {
     Reset-TrainColdBaseline
     Assert-TrainPortsFree @([int]$script:Config.gamePort,[int]$script:Config.loginPort)
     Assert-TrainProcess $script:SqlRecord -Kind Sql -Port ([int]$script:Config.sqlPort)
@@ -413,6 +449,7 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha) {
         $resources=Get-TrainProcessResources $process $resources
         Publish-TrainState 'NATIVE_BOOT'
         if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce}
+        if([DateTime]::UtcNow -ge $BudgetDeadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BOOT_BUDGET_DEADLINE'}
         if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_NATIVE_BOOT_TIMEOUT'}
         Start-Sleep -Milliseconds 500
     }
@@ -428,6 +465,7 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha) {
         Publish-TrainState 'NATIVE'
         if(Test-TrainRequest 'stop'){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce}
         if(Test-TrainRequest 'pause'){Write-TrainText (Join-Path $directory 'pause.request') $script:DirectorNonce}
+        if([DateTime]::UtcNow -ge $BudgetDeadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BUDGET_DEADLINE'}
         if([DateTime]::UtcNow -gt $deadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN002_NATIVE_BATCH_TIMEOUT'}
     }
     $exit=Get-TrackedProcessExitCode $process $handle
@@ -510,6 +548,28 @@ function Invoke-TrainDirector {
         $script:SqlRecord=Start-TrainSql $dependencies
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
+        if($script:Config.ContainsKey('exploration008Enabled') -and $script:Config.exploration008Enabled -ceq 'true'){
+            if($script:Config.exploration008Campaign -cne 'learning008-pve-generalization-v1' -or $script:Config.exploration008Dataset -cne 'learning008-residual-v1' -or $script:Config.exploration007Enabled -cne 'false'){throw 'TRAIN008_EXACT_CAMPAIGN_REQUIRED'}
+            Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning008Native' @('prepare',$layout.Root)
+            if($script:Config.exploration008Phase -ceq 'COLLECT'){
+                $complete=Join-Path $layout.Root 'outcome006\campaigns\learning008-pve-generalization-v1\native.complete'
+                if(!(Test-Path -LiteralPath $complete)){Reset-TrainColdBaseline;Invoke-Train008Native $dependencies $jar}
+            }elseif($script:Config.exploration008Phase -ceq 'FIT'){
+                Publish-TrainState 'EVALUATING' 'Factual residual008 fit; native collection is stopped.'
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning008Checks' @('offline',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('export',$layout.Root)
+            }elseif($script:Config.exploration008Phase -in @('EVALUATE','CONTROL')){
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+                $complete=Join-Path $layout.Root ('outcome006\evaluation008\'+$script:Config.exploration008EvaluationCampaign+'\native.complete')
+                if(!(Test-Path -LiteralPath $complete)){Reset-TrainColdBaseline;Invoke-Train008Native $dependencies $jar}
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)
+            }elseif($script:Config.exploration008Phase -cne 'PREPARE'){throw 'TRAIN008_UNKNOWN_PHASE'}
+            Publish-TrainState 'PAUSED' 'Граница008: сохранены native reservations, optimizer и история; автоматического повышения нет.'
+            while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}
+            return
+        }
         if($script:Config.ContainsKey('exploration007Enabled') -and $script:Config.exploration007Enabled -ceq 'true'){
             if($script:Config.exploration007Campaign -cne 'learning007-causal-v1' -or $script:Config.exploration007Dataset -cne 'learning007-advantage-v1'){throw 'TRAIN007_EXACT_CAMPAIGN_REQUIRED'}
             Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning007Native' @('prepare',$layout.Root)

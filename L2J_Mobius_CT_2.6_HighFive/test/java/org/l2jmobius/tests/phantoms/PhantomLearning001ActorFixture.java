@@ -431,14 +431,22 @@ public final class PhantomLearning001ActorFixture
 			.filter(npc -> safeSoloOpening(player, npc)).toList();
 	}
 
+	public static int coldOpeningRange(int classId, java.util.function.IntUnaryOperator knownSkillRange)
+	{
+		var ids = classId == 103 || classId == 110 ? PhantomLearning008Scenarios.damageSkillIds(classId) : SKILLS;
+		return ids.stream().mapToInt(knownSkillRange::applyAsInt).filter(range -> range > 0).min().orElse(0);
+	}
+	private static int coldOpeningRange(Player player)
+	{ return coldOpeningRange(player.getActiveClass(), id -> { var skill = player.getKnownSkill(id); return skill == null ? 0 : player.getMagicalAttackRange(skill); }); }
+	private static Skill coldPlanningSkill(Player player, Monster target)
+	{ return player.getActiveClass() == 103 || player.getActiveClass() == 110 ? PhantomNativeCombatCapability.preparationSkill(player, target) : player.getKnownSkill(1230); }
 	static List<Monster> coldSoloOpeningTargets(Player player)
 	{
 		if (player.getCurrentHp() < player.getMaxHp() * .9) { return List.of(); }
-		final int range = SKILLS.stream().map(player::getKnownSkill).filter(java.util.Objects::nonNull)
-			.mapToInt(player::getMagicalAttackRange).min().orElse(0);
+		final int range = coldOpeningRange(player);
 		return soloOpeningTargets(player).stream().filter(npc -> player.calculateDistance3D(npc) <= range).filter(npc ->
 		{
-			final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, npc, player.getKnownSkill(1230));
+			final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, npc, coldPlanningSkill(player, npc));
 			final double exposure = PhantomBackgroundModel.incomingDamage(facts.combat(), L2jPhantomBackgroundAuthority.nativePlanningTarget(npc, true),
 				COLD_SOLO_TIMEOUT_MILLIS);
 			return Double.isFinite(exposure) && exposure < player.getCurrentHp() * .65;
@@ -447,11 +455,11 @@ public final class PhantomLearning001ActorFixture
 
 	static void inspectColdSoloOpening(Player player)
 	{
-		final int range = SKILLS.stream().map(player::getKnownSkill).filter(java.util.Objects::nonNull).mapToInt(player::getMagicalAttackRange).min().orElse(0);
+		final int range = coldOpeningRange(player);
 		for (var npc : World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1700).stream()
 			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead()).sorted(Comparator.comparingDouble(player::calculateDistance2D)).limit(12).toList())
 		{
-			final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, npc, player.getKnownSkill(1230));
+			final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, npc, coldPlanningSkill(player, npc));
 			final double exposure = PhantomBackgroundModel.incomingDamage(facts.combat(), L2jPhantomBackgroundAuthority.nativePlanningTarget(npc, true),
 				COLD_SOLO_TIMEOUT_MILLIS);
 			System.out.println("LEARNING001_COLD_SOLO_TARGET actor=" + player.getObjectId() + " npc=" + npc.getId() + " object=" + npc.getObjectId()
@@ -471,7 +479,7 @@ public final class PhantomLearning001ActorFixture
 			return false;
 		}
 		if (PhantomEngagementPlanner.viable(player, target)) { return true; }
-		final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, player.getKnownSkill(1230));
+		final var facts = L2jPhantomBackgroundAuthority.nativePlanningCombat(player, target, coldPlanningSkill(player, target));
 		return PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(),
 			player.getCurrentMp(), facts.requiredMp() * 3, false)
 			&& soloIncoming(facts.combat(), target) < player.getCurrentHp() * .65;

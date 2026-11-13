@@ -1275,6 +1275,27 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning008-test" depends="compile-tests" description="Run class-aware canonical admission and generalization contracts without database access.">
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning008Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="authority" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning008Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="targets" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning008Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="baseline" />
+		</java>
+		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning008Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-XX:ActiveProcessorCount=2" />
+			<arg value="admission" />
+		</java>
+	</target>
+
 	<target name="phantom-learning007-test" depends="compile-tests" description="Run bounded TRAIN exploration, executed advantage and isolated EVAL007 contracts without database access.">
 		<java classname="org.l2jmobius.gameserver.phantoms.learning.Learning007Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
