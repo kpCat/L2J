@@ -79,3 +79,29 @@ Review cwd `<repo>`: `git status --short`. Exact `git diff --` paths испол�
 `FinalScope008.ps1 -TestRepo <repo> -Scratch <owned-scratch>`: final exit0. В helper последовательно выполнены `git status --short --untracked-files=normal`, `git status --short --untracked-files=all -- L2J_Mobius_CT_2.6_HighFive`, `git diff --check -- <27exactpaths>`, `git diff -- <27exactpaths>`. Полные развёрнутые argv — archive `analysis/final-scope-encoding.json`; root status допускает только прежний untracked private root. Final scope27/27, никаких дополнительных изменённых paths.
 
 Две отдельные encoding команды `rg -n -- <full-mojibake-pattern> <26textpaths>` и `rg -n -- <escaped-Cyrillic-and-XML-pattern> <26textpaths>` вернули1/no matches, что означает PASS. Полные patterns/paths в archive helper FinalScope008.ps1. Первые helper parser/short inline quoting failures и diff-check CRLF rejection сохранены в PROGRESS; исправлен только helper quoting и21новых Ant line endings, baseline bytes вокруг сохранены. После этого exact diff-check exit0.
+
+## Публикация и независимый readback
+
+`Publish008.ps1 -TestRepo <repo> -Scratch <owned-scratch> -ExpectedHead 062862eca8e0bcedd4107d7b91720627307f736c -Phase Source`: exit0; commit063ea173f69d53d6174569cc1f2d5118a9b640f7,27paths. Из cwd `<repo>` последовательно:
+
+```text
+git symbolic-ref --quiet --short HEAD
+git rev-parse HEAD
+git status --short --untracked-files=normal
+git diff --check -- <27exact allowlist paths>
+git add -- <27exact allowlist paths>
+git diff --cached --name-only -- <27exact allowlist paths>
+git diff --cached --check -- <27exact allowlist paths>
+git commit -m "phantom(learning-008): validate multiclass PvE with partial training result"
+git rev-parse HEAD
+git push origin HEAD:refs/heads/wip/phantom-learning-008
+git status --short --untracked-files=normal
+```
+
+Каждая команда exit0. Полные развёрнутые argv с конкретными путями и stdout/exit codes сохранены в **EVIDENCE.json → publication.gitSourceCommands**; paths ровно из PLAN, не add./StageAll. Рабочий индекс доstage проверен на отсутствие чужих staged changes. Единственный push target —008.
+
+GitHub connector GET: commit parent exact007; compare baseline→A ahead1/behind0, exact27files; compareA→branch identical; fetch_file всех16source blobs совпал с raw либо штатно LF-normalized Git blob; EVIDENCE blob152bf507… exact, ZIP metadata blob8800790a…/20027039bytes exact. `InspectPublication008.py` вычислял SHA1 blob самостоятельно стандартной библиотекой, без git hash-object. Source default exploration008=false. Independent compare feature/007 с исходными SHA — identical. Encoded branch endpoint rejected INVALID_ARGUMENT; заменён compare, безопасно.
+
+Archive local+independent CRC/MANIFEST/model/source proof PASS. Cleanup: exact-path Remove-Item только EXPERIMENT.final.md и evidence/DiagnoseFit008.java в проверенном own scratch; no recursive delete. Necessary backups и private train не удалены.
+
+Documentation-only receipt использует тот же Publish008.ps1 с `-ExpectedHead 063ea173f69d53d6174569cc1f2d5118a9b640f7 -Phase Receipt`, subject `phantom(learning-008): record independent publication readback` и тот же non-force push target. При его формировании exact HEAD ещё не существует; итоговый SHA и independent remote verification указываются в финальном ответе. Новых Ant/native/SQL запусков после receipt не требуется: меняются только шесть документов.

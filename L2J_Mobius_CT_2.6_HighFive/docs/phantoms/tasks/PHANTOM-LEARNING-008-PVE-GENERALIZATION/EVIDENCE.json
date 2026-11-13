@@ -2899,7 +2899,507 @@
     "status": "PASS"
   },
   "publication": {
-    "state": "REQUIRED"
+    "state": "SOURCE_EVIDENCE_PUBLICATION_VERIFIED",
+    "sourceCommit": "063ea173f69d53d6174569cc1f2d5118a9b640f7",
+    "nonForcePush": true,
+    "targetBranch": "wip/phantom-learning-008",
+    "gitCwd": "D:\\Codex\\repos\\L2J-learning-006",
+    "gitSourceCommands": [
+      {
+        "argv": [
+          "git",
+          "symbolic-ref",
+          "--quiet",
+          "--short",
+          "HEAD"
+        ],
+        "exitCode": 0,
+        "output": [
+          "wip/phantom-learning-008"
+        ],
+        "utc": "2026-11-13T13:41:11.5017632Z"
+      },
+      {
+        "argv": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exitCode": 0,
+        "output": [
+          "062862eca8e0bcedd4107d7b91720627307f736c"
+        ],
+        "utc": "2026-11-13T13:41:11.5549957Z"
+      },
+      {
+        "argv": [
+          "git",
+          "status",
+          "--short",
+          "--untracked-files=normal"
+        ],
+        "exitCode": 0,
+        "output": [
+          " M L2J_Mobius_CT_2.6_HighFive/build.xml",
+          " M L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          " M L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          " M L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          " M L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "?? .phantom-local/",
+          "?? L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          "?? L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/",
+          "?? L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "?? L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "?? L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "?? L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "?? L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini"
+        ],
+        "utc": "2026-11-13T13:41:11.6555226Z"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "--",
+          "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EVIDENCE.json",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/artifacts/learning008-evidence.zip"
+        ],
+        "exitCode": 0,
+        "output": [
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java', LF will be replaced by CRLF the next time Git touches it"
+        ],
+        "utc": "2026-11-13T13:41:11.8793925Z"
+      },
+      {
+        "argv": [
+          "git",
+          "add",
+          "--",
+          "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EVIDENCE.json",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/artifacts/learning008-evidence.zip"
+        ],
+        "exitCode": 0,
+        "output": [
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java', LF will be replaced by CRLF the next time Git touches it",
+          "warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini', LF will be replaced by CRLF the next time Git touches it"
+        ],
+        "utc": "2026-11-13T13:41:13.1078393Z"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EVIDENCE.json",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/artifacts/learning008-evidence.zip"
+        ],
+        "exitCode": 0,
+        "output": [
+          "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EVIDENCE.json",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/artifacts/learning008-evidence.zip",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+        ],
+        "utc": "2026-11-13T13:41:13.2567453Z"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--cached",
+          "--check",
+          "--",
+          "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EVIDENCE.json",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/artifacts/learning008-evidence.zip"
+        ],
+        "exitCode": 0,
+        "output": [],
+        "utc": "2026-11-13T13:41:13.4350529Z"
+      },
+      {
+        "argv": [
+          "git",
+          "commit",
+          "-m",
+          "phantom(learning-008): validate multiclass PvE with partial training result"
+        ],
+        "exitCode": 0,
+        "output": [
+          "[wip/phantom-learning-008 063ea173f69] phantom(learning-008): validate multiclass PvE with partial training result",
+          " 27 files changed, 5162 insertions(+), 43 deletions(-)",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-008-PVE-GENERALIZATION.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/ACCEPTANCE.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/COMMANDS.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EVIDENCE.json",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/EXPERIMENT.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/HANDOFF.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PLAN.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/PROGRESS.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/RESULT.md",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-008-PVE-GENERALIZATION/artifacts/learning008-evidence.zip",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          " create mode 100644 L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Exploration008.ini"
+        ],
+        "utc": "2026-11-13T13:41:13.9581780Z"
+      },
+      {
+        "argv": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exitCode": 0,
+        "output": [
+          "063ea173f69d53d6174569cc1f2d5118a9b640f7"
+        ],
+        "utc": "2026-11-13T13:41:14.0151501Z"
+      },
+      {
+        "argv": [
+          "git",
+          "push",
+          "origin",
+          "HEAD:refs/heads/wip/phantom-learning-008"
+        ],
+        "exitCode": 0,
+        "output": [
+          "remote: ",
+          "remote: Create a pull request for 'wip/phantom-learning-008' on GitHub by visiting:        ",
+          "remote:      https://github.com/kpCat/L2J/pull/new/wip/phantom-learning-008        ",
+          "remote: ",
+          "To https://github.com/kpCat/L2J.git",
+          " * [new branch]              HEAD -> wip/phantom-learning-008"
+        ],
+        "utc": "2026-11-13T13:41:22.2041622Z"
+      },
+      {
+        "argv": [
+          "git",
+          "status",
+          "--short",
+          "--untracked-files=normal"
+        ],
+        "exitCode": 0,
+        "output": [
+          "?? .phantom-local/"
+        ],
+        "utc": "2026-11-13T13:41:22.3434003Z"
+      }
+    ],
+    "independentReadback": {
+      "goal": "PHANTOM-LEARNING-008-PVE-GENERALIZATION",
+      "sourceCommit": "063ea173f69d53d6174569cc1f2d5118a9b640f7",
+      "baselineCommit": "062862eca8e0bcedd4107d7b91720627307f736c",
+      "parent": "062862eca8e0bcedd4107d7b91720627307f736c",
+      "remoteHeadMatches": true,
+      "exactScopeCount": 27,
+      "exactScopeMatch": true,
+      "sourceBlobs": [
+        {
+          "path": "build.xml",
+          "remoteBlobSha": "d048eacd716d3c964b88b28253bf7adc0695ff6f",
+          "rawExpected": "d048eacd716d3c964b88b28253bf7adc0695ff6f",
+          "lfExpected": "d6ddfadd36a29e651c3035bffa8df632df430cbe",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "remoteBlobSha": "e750f1457d0765d12ebf55d4a774104718596045",
+          "rawExpected": "e750f1457d0765d12ebf55d4a774104718596045",
+          "lfExpected": "e750f1457d0765d12ebf55d4a774104718596045",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "remoteBlobSha": "927df269f40b873ab4c292aa1da6f576d998cabe",
+          "rawExpected": "6837df9c96d1bec8e399b4549f7a08d27158e9f6",
+          "lfExpected": "927df269f40b873ab4c292aa1da6f576d998cabe",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "remoteBlobSha": "13a78a174f73ac3c9c8a64472bc9a377be2a0bf1",
+          "rawExpected": "fe4a769ff9d6cf28db78b7fd30ae9f4b261a2aa4",
+          "lfExpected": "13a78a174f73ac3c9c8a64472bc9a377be2a0bf1",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantage008.java",
+          "remoteBlobSha": "650f9b44613fb0e2076adc81edf51c462b04a32c",
+          "rawExpected": "650f9b44613fb0e2076adc81edf51c462b04a32c",
+          "lfExpected": "650f9b44613fb0e2076adc81edf51c462b04a32c",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/gameserver/phantoms/learning/Learning008Checks.java",
+          "remoteBlobSha": "ffaea97b9aaa8f049e7eb3921dc537aa7632de07",
+          "rawExpected": "ffaea97b9aaa8f049e7eb3921dc537aa7632de07",
+          "lfExpected": "ffaea97b9aaa8f049e7eb3921dc537aa7632de07",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Scenarios.java",
+          "remoteBlobSha": "1a576740330e824ed37b7323779bb14b3f7663b4",
+          "rawExpected": "1a576740330e824ed37b7323779bb14b3f7663b4",
+          "lfExpected": "1a576740330e824ed37b7323779bb14b3f7663b4",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning008Native.java",
+          "remoteBlobSha": "d805bb1b6216323bf30a7697e8dca01cf1183325",
+          "rawExpected": "d805bb1b6216323bf30a7697e8dca01cf1183325",
+          "lfExpected": "d805bb1b6216323bf30a7697e8dca01cf1183325",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "remoteBlobSha": "574d864eecf9d16970c8b48ef026022ac4c4a82c",
+          "rawExpected": "fafd245c0ce6d05086cb043fe0a3d2d2e2a97a79",
+          "lfExpected": "574d864eecf9d16970c8b48ef026022ac4c4a82c",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Ledger.java",
+          "remoteBlobSha": "3fc9196c9d518ca92ebc90262adb97effd8a97c7",
+          "rawExpected": "6d340db98bdb678a6b361b83379bb986d44a97cd",
+          "lfExpected": "3fc9196c9d518ca92ebc90262adb97effd8a97c7",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+          "remoteBlobSha": "b5d1bcbf33ffbdfe2a6d057aefb9dbca0be123a6",
+          "rawExpected": "fe26621cb3b8ea6001bf54a13d13993dc0c4f651",
+          "lfExpected": "b5d1bcbf33ffbdfe2a6d057aefb9dbca0be123a6",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java",
+          "remoteBlobSha": "9bf85715036c579f51e0540911ecaf661e6ef661",
+          "rawExpected": "01ef9e7fd16437fc7a68b03c36fdf6d7f523925b",
+          "lfExpected": "9bf85715036c579f51e0540911ecaf661e6ef661",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "remoteBlobSha": "741d82134bf7f915f2259010e62f107a1e067b39",
+          "rawExpected": "64b1bff2b71ccff36613969c2df059b112c535d3",
+          "lfExpected": "741d82134bf7f915f2259010e62f107a1e067b39",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "remoteBlobSha": "b38e99f1732ea543515d51ce38f0156918b25860",
+          "rawExpected": "159fc65833afce1a4ddce846af51a252fc80b10a",
+          "lfExpected": "b38e99f1732ea543515d51ce38f0156918b25860",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "tools/phantom-runtime/training/Training.ps1",
+          "remoteBlobSha": "d9fcd4a96d0e41772042f17809dc7c4d6b01075f",
+          "rawExpected": "16c53f0663518a14534fa443028d75d53219d6a7",
+          "lfExpected": "d9fcd4a96d0e41772042f17809dc7c4d6b01075f",
+          "match": true,
+          "isError": false
+        },
+        {
+          "path": "tools/phantom-runtime/training/Exploration008.ini",
+          "remoteBlobSha": "9de074bb400a97a43df356617e0bdbbc5b8359ed",
+          "rawExpected": "9de074bb400a97a43df356617e0bdbbc5b8359ed",
+          "lfExpected": "9de074bb400a97a43df356617e0bdbbc5b8359ed",
+          "match": true,
+          "isError": false
+        }
+      ],
+      "sourceBlobsVerified": 16,
+      "evidenceBlob": {
+        "sha": "152bf507ccbabd98e1784a269697b4f8ecdeab3d",
+        "match": true
+      },
+      "archiveBlob": {
+        "sha": "8800790ac6004b7affa6e4af1e4305a4863f6605",
+        "size": 20027039,
+        "sha256": "7179df6f3df4453c4e7b47734ebc4ec62503dee4b6253545799d4c334308f429",
+        "match": true
+      },
+      "defaultExplorationOff": true,
+      "compare": {
+        "status": "ahead",
+        "ahead": 1,
+        "behind": 0
+      },
+      "independentReader": "GitHub connector GET, separate from local Git CLI",
+      "failedReadOnlyRequest": "Encoded branch URL rejected INVALID_ARGUMENT; replaced by compare(A,branch)==identical",
+      "manualGate": "REQUIRED",
+      "gameVerdict": "INCONCLUSIVE",
+      "overall": "PARTIAL"
+    },
+    "featureAnd007RemoteRefsUnchanged": true,
+    "receiptCommit": "Documentation-only HEAD after recording source readback; exact SHA and verification in final reply",
+    "twoCommitReason": "Record actual source commit identity and post-push evidence without self-reference"
   },
   "taskBudget": {
     "historicalIssued001Through006R1": 7,
@@ -2914,5 +3414,43 @@
     "entries": 1136,
     "manifestVerified": true,
     "path": "D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-LEARNING-008-PVE-GENERALIZATION\\artifacts\\learning008-evidence.zip"
+  },
+  "cleanup": {
+    "status": "DONE",
+    "removed": [
+      "EXPERIMENT.final.md",
+      "evidence\\DiagnoseFit008.java"
+    ],
+    "archiveSha256": "7179df6f3df4453c4e7b47734ebc4ec62503dee4b6253545799d4c334308f429",
+    "recursiveDelete": false,
+    "retained": "evidence, baseline SHA backups, private TEST dataset/optimizer/checkpoints/ledger"
+  },
+  "archiveIndependentReview": {
+    "status": "PASS",
+    "manifestEntries": 1135,
+    "archiveEntries": 1136,
+    "missing": 0,
+    "duplicates": 0,
+    "unsafePaths": 0,
+    "sourceHashesVerified": 16,
+    "all48ReservationsPresent": true,
+    "sqlGeoCredentialArtifactsFound": false
+  },
+  "gates": {
+    "G0": "VERIFIED",
+    "G1": "VERIFIED",
+    "G2": "VERIFIED_BOUNDED",
+    "G3": "PARTIAL_NO_TUNING_CHECKPOINT_IMPROVEMENT",
+    "G4": "VERIFIED_WITH_NEGATIVE_RESULT",
+    "G5": "CANONICAL_TRANSFER_VERIFIED_TRAINING_CAUSATION_UNPROVEN",
+    "G6": "VERIFIED_BOUNDED_INCONCLUSIVE",
+    "G7": "VERIFIED_BOUNDED",
+    "G8": "VERIFIED_SOURCE_PUBLICATION",
+    "finalManualGate": "REQUIRED"
+  },
+  "frozenTopSkillDifferenceDraft11Vs12": {
+    "different": 0,
+    "observations": 42,
+    "comparisonToStockCountsBySplitClass": "See offlineReadback: both models same counts 4/6/0/0/2"
   }
 }
