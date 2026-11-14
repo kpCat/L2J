@@ -883,10 +883,12 @@ public final class PhantomAutonomousTrainingNative
 	private static org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest soloRequestProbe(boolean party, long profile, int target, PhantomCombatMode mode, long timeout)
 	{
 		if (party) { return null; }
-		return new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(profile, target, mode, true, true, timeout, () -> false, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.SOLO, null, () -> false);
+		return PhantomLearning001ShadowNative.acquiredSoloRequest(profile, target, mode, timeout);
 	}
 	private static void sourceContract()
 	{
+		if (PhantomLearning001ShadowNative.acquiredSoloRequest(1, 1, PhantomCombatMode.RANGED_MAGIC, 500) != null) { throw new AssertionError("Sub-second native request was dispatched"); }
+		if (PhantomLearning001ShadowNative.acquiredSoloRequest(1, 1, PhantomCombatMode.RANGED_MAGIC, 1000).timeoutMillis() != 1000) { throw new AssertionError("Native lower request boundary changed"); }
 		if (soloRequestProbe(true, 1, 1, PhantomCombatMode.RANGED_MAGIC, 180000) != null) { throw new AssertionError("Party inherited the SOLO observation-window request"); }
 		if (soloRequestProbe(false, 1, 1, PhantomCombatMode.RANGED_MAGIC, 120000).timeoutMillis() != 120000) { throw new AssertionError("Canonical120s SOLO boundary changed"); }
 		try { soloRequestProbe(false, 1, 1, PhantomCombatMode.RANGED_MAGIC, 180000); throw new AssertionError("Native SOLO maximum relaxed"); } catch (IllegalArgumentException expected) { }

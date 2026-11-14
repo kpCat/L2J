@@ -656,9 +656,8 @@ public final class PhantomLearning001ShadowNative
 							if (target != null && !target.isAlikeDead() && target.getId() == trainingScene.npc()
 								&& sourcePlanner.partyNativeTarget(source, target.getId(), new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())))
 							{
-								final var request = new PhantomCombatRequest(profile, target.getObjectId(), acquiredMode, true, true,
-									Math.max(1, (deadline - System.nanoTime()) / 1_000_000L), () -> false, LearningScope.SOLO, null, () -> false);
-								final var accepted = combat.startSession(request); encountered |= accepted.accepted(); outcomeEncounterAdmitted |= accepted.accepted();
+								final var request = acquiredSoloRequest(profile, target.getObjectId(), acquiredMode, (deadline - System.nanoTime()) / 1_000_000L);
+								if (request != null) { final var accepted = combat.startSession(request); encountered |= accepted.accepted(); outcomeEncounterAdmitted |= accepted.accepted(); }
 							}
 						}
 					}
@@ -1408,6 +1407,11 @@ public final class PhantomLearning001ShadowNative
 		return !combat.hasClaim(profile);
 	}
 
+	static PhantomCombatRequest acquiredSoloRequest(long profile, int target, PhantomCombatMode mode, long remainingMillis)
+	{
+		if (remainingMillis < 1000) { return null; }
+		return new PhantomCombatRequest(profile, target, mode, true, true, remainingMillis, () -> false, LearningScope.SOLO, null, () -> false);
+	}
 	private static void await(BooleanSupplier finished, Duration duration, String label) throws InterruptedException
 	{
 		final long deadline = System.nanoTime() + duration.toNanos();
