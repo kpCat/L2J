@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 11,
+  "verifiedRef": "b12d943d72970692387da05f43849b5f653b5c38",
+  "sourceRef": "d138611901cb3ef98dbcafa8c046a2143dfbd75c",
+  "baseline": "f153d137a7d666ea0c28586a45a429a94a9d1c44",
+  "branch": "feature/phantom-world",
+  "parent": "d138611901cb3ef98dbcafa8c046a2143dfbd75c",
+  "tree": "696d061c11169c1051b5230fb8127c3180f49489",
+  "technicalDeliveryGate": "PASS",
+  "manualAcceptanceGate": "REQUIRED",
+  "overallVerdict": "PARTIAL011_LAWFUL_COVERAGE_BLOCKED",
+  "full011": false,
+  "methods": {
+    "headAndParent": "Independent GitHub REST Git ref/commit GET via connected GitHub app",
+    "diff": "GitHub compare baseline..delivery: exactly49 allowlisted paths, two scoped commits",
+    "source": "All8 full fetch_file bodies retrieved; byte lengths and Git blob SHA matched local git ls-tree and delivery tree",
+    "documents": "All41 full bodies verified with node:crypto Git blob SHA1 and exact byte size",
+    "utf16Transport": "Two TEST build logs were transcoded by connector; original UTF16LE bytes reconstructed and Git blob SHA1 verified",
+    "finalReceipt": "This receipt-only followup must be independently read back after ordinary push; self commit SHA is not embedded"
+  },
+  "verifiedSourceFiles": [
+    {
+      "sha": "270616a2d808694c69b300c21306f973429ea9c1",
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 331057,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "46f7c00f905281667fc19c4b3484bbeecb998ae0",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+      "bytes": 4934,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 29139,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "f2b983baef4d931dffe3b19a01f66e051a6e31be",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 136255,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+      "bytes": 3654,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "e976cdcd00ab8dc441cd7704d1332a51591467c7",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+      "bytes": 8630,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "a73fc0d6686f035968baa356e1984d94a71cbb0b",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 99959,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "0bffd3e5f14380116f9112040e6814860751f214",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "bytes": 29121,
+      "fullBodyRetrieved": true
+    }
+  ],
+  "verifiedDocumentationFiles": [
+    {
+      "sha": "45d675541076aa4ae8e3ab47cd6ff0587f119334",
+      "bytes": 9823,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "c3de7a6db5dc9313757d431d6fd0e7814ef37b7d",
+      "bytes": 2537,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "75f0c4da3369334b05b8a8bfe21dec452c6c548a",
+      "bytes": 3896,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ACCEPTANCE.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "060c2a1f4adcb1b089d00fe9d33f0cb3c345809b",
+      "bytes": 4725,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ARCHITECTURE.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "9f0b40a0ad6077d5d1dd1c45fd1276ed27084064",
+      "bytes": 12095,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/COMMANDS.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "253558912cee771d74fc48345d07b12aa09fd719",
+      "bytes": 293,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ENCODING-CHECK.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "fa836f557ec77eb8f373f420047dafbeca3492f9",
+      "bytes": 8551,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/EVIDENCE.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "e4ca7e41035f6df433cf461282543647b35352ed",
+      "bytes": 4773,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/FAILURES.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "f72e90a23140f71a62ee9792d826137d87289fc1",
+      "bytes": 2150,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GITHUB-SOURCE-READBACK.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "9c54eb0bc321edf4dc691b83fb81338a3b87536a",
+      "bytes": 2402,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GIT_AND_PRESERVATION.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "188ab092e0d8119bf24085d8095a1aac3d7cd461",
+      "bytes": 166,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-LIFECYCLE.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "dfbff07b10678f3f5c22fb1e580bda51a0408bdd",
+      "bytes": 33,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-REVIEW-FINAL.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "dfbff07b10678f3f5c22fb1e580bda51a0408bdd",
+      "bytes": 33,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-REVIEW.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "81ac392e250b8d78aecc5753d423218cc6e9a63c",
+      "bytes": 8216,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-TESTS.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "3959677a45e40e8dde444d8b2906429e426986ca",
+      "bytes": 3170,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/HANDOFF.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "f668d797d6e3e436971e7db83babc62a8caceef6",
+      "bytes": 5832,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/IMPLEMENTATION_PLAN.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "a6a3ee94fc42b618cbbba0f50674b6422155e47e",
+      "bytes": 4221,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/PLAN.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "f198fbd66edc0091aa29fd6dbd7729bb688d5af8",
+      "bytes": 6190,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/PROGRESS.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "c57ad824949c7229ce53742982068c12aa903267",
+      "bytes": 1129,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RAW-LOGS-INDEX.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "97cda38418ce4a73b9e3d44c8dc28d84136a67cc",
+      "bytes": 1163,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/README.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "146412fe4039d6382d87e3394e48544af78c026e",
+      "bytes": 2401,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-CATALOG.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "6aefae07b1a2930c4a32326a26f960185b7d92dd",
+      "bytes": 8488,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-DISPATCH.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "1cb22b845437f4517da60f1961a2fc837558956f",
+      "bytes": 1088,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-LIFECYCLE.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "ac7a55076d4568f3232e086b7a21c71792158413",
+      "bytes": 7341,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-PROTOCOL.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "f0fb20569ef5570ca10a11c16a110c0dfee1233d",
+      "bytes": 357,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-REASONS.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "5cf5e1daf92efd6cc9f1e7d85890a10fb965ef68",
+      "bytes": 8380,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RESULT.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "7d17c6b15c3884bfd9260b4900d76d42c021d422",
+      "bytes": 1780,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RUNBOOK_RU.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "4e99933df6288e1f67a2ca238589301385ced138",
+      "bytes": 5143,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCENARIO_COVERAGE.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "6592cb6621c66867da630abf22cffbc5b5bc9731",
+      "bytes": 6821,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCOPE-GUARD.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "e9852c5d91611d365da807171660b1c706e34f28",
+      "bytes": 1758,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SOURCE-HASHES.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "312f04cb46eeb0f522f5d0064b0bd5bf27bf2e54",
+      "bytes": 23990,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/TASK.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "7b8ee9c133a7ba5d185f5cef9e86b1161e4e0e4c",
+      "bytes": 4328,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/TEST_MATRIX.md",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "75b5f6e7fd231852a63b5fb58b43eeca8d87da50",
+      "bytes": 15178,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/build-compile-tests-20261114174723639.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "721fe563efab8bd30a0f86c551af51a1716ac2e6",
+      "bytes": 11738,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/build-jar-20261114174815685.log",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "b3832f5adf8f05c9d7413c8af99fa575d3e26fb8",
+      "bytes": 2762,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/cells.tsv",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "457b79ab801f6328425129d69b3a9844f4034789",
+      "bytes": 1086,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/independence.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "008e2ac39967462dec7fc0ee1093bc0dc569d4f3",
+      "bytes": 16734,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/planning-refusals.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "d3bcd6f384fbb529c29258e2b9dec61a0e662178",
+      "bytes": 290,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/scene-catalog-counts.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "e38b8fd3e1684715f367d9079abe9748c4d2504a",
+      "bytes": 9996,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/source-coverage.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "c43078074d289635c4f007f95983696f94f29ccb",
+      "bytes": 286,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/lineage-after.json",
+      "fullBodyGitBlobSha1Verified": true
+    },
+    {
+      "sha": "abf89bfac20655dedcd7a531b60f86ab814b28cd",
+      "bytes": 288,
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/lineage-before.json",
+      "fullBodyGitBlobSha1Verified": true
+    }
+  ],
+  "exactScope": true,
+  "privateModelsSqlOrGeoPublished": false,
+  "nativeStarts": 0,
+  "nativeMillis": 0,
+  "frozenSql183Equal": true,
+  "g2": "PARTIAL",
+  "g3": "FAIL",
+  "g4": "NOT_RUN",
+  "g8": "PASS"
+}

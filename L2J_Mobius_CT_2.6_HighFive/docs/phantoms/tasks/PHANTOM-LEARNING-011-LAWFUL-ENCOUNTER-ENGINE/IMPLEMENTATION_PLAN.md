@@ -31,11 +31,11 @@ Documentation allowlist: данный task directory (девять исходн�
 - [x] Диагностика010: request после CUT; headless catalog не потребляется live; capability×NPC level и topology/faction placement.
 - [x] Baseline Ant autonomous/008/007 — exit0.
 - [x] Tests-first gate/protocol compile RED; отдельно behavioral lifecycle RED retained native claim.
-- [ ] GREEN protocol/lifecycle/source-contract и targeted regression/JAR.
-- [ ] Новый отдельный private campaign011 с 3 starts/45min; исторические009/010 не переносить и не сбрасывать.
-- [ ] Canonical headless prepare, counts/refusals/independence/SQL frozen comparison.
+- [x] GREEN protocol/lifecycle/source-contract и targeted regression/JAR.
+- [x] Новый отдельный private campaign011 с 3 starts/45min; исторические009/010 сохранены.
+- [x] Canonical headless prepare и frozen comparison выполнены;4preliminary PartyHEAL/SoloDAMAGE0, required coverage FAIL.
 - [ ] Только при доказанных Solo+Party families — bounded GS pilot и собственные matched пары011. При отсутствии сцен GS0.
-- [ ] STOP/OFF/ports/cold frozen readback; scope+encoding checks; scoped commit/non-force push; independent GitHub source/diff/evidence readback.
+- [x] STOP/OFF/ports/cold frozen readback, scope/encoding, scoped publication и independent GitHub readbackb12d943d729; G8PASS. Native pilot NOT_RUN, manual gate REQUIRED.
 
 Два прямых причинных направления: единый admission lifecycle и source-bound preparation/parity. Production Combat/Party/Player/Geo mechanics, optimizer/model/schema/rates не меняются. Модель DRAFT14/Adam903/223/apps48, TRAIN_CREDIT/FIT/PROMOTION011=0. Native budget011 ≤3/2700000ms; один старт в резерве, без автоматического третьего старта при непонятном отказе.
 

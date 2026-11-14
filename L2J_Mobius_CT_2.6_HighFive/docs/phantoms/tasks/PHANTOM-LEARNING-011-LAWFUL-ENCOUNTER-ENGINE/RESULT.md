@@ -34,7 +34,7 @@ Canonical Preflight exit0: config/JDK25/MariaDB11.4/Geo203/protected207/ports, �
 |G5 FROZEN|PASS|183SQL rows byte-identical; cold model/optimizer/application bytes unchanged|
 |G6 RESOURCE|PASS|GS0110/3,0/2700000ms; STOPPED/OFF/owned0/portsfree|
 |G7 REGRESSION|PASS|Observed RED→GREEN lifecycle/reason, shared protocol/source contracts,007/008/009/010 targeted, AntJAR|
-|G8 DELIVERY|PENDING_READBACK|Source push/readback8files PASS; итоговый docs readback выполняется после публикации|
+|G8 DELIVERY|PASS|GitHub HEAD/parent/tree/diff49paths;8fullsource bodies и41full documentation bodies verified; GITHUB-FINAL-READBACK.json|
 
 ## Frozen, безопасность и стоимость
 
@@ -54,3 +54,5 @@ Git-команды использовались по явному разреше
 ## Передача
 
 Нужен manual review владельца. Для дальнейшего достижения FULL необходимо отдельно разрешённое решение source/topology/encounter realization, сохраняя actual acquired skills и native rules; новые fit или дополнительный GS budget не являются исправлением отсутствующих сцен. Автоматического продолжения следующего Goal нет.
+
+Независимый readback доставки `b12d943d72970692387da05f43849b5f653b5c38`: parentd138/tree/diff49exact paths совпали;8source bodies/blob SHA и41documentation bodies с полным Git blob SHA1/size проверены. Два UTF-16 TEST build logs восстановлены из UTF-8 транспорта коннектора и совпали raw blob SHA. G8PASS не меняет G2PARTIAL/G3FAIL/G4NOT_RUN и manual gate REQUIRED. Последний receipt-only commit проверяется отдельно, исходники он не меняет.

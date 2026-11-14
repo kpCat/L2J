@@ -20,4 +20,4 @@ Scope011 только надёжность общего Encounter/Admission дл
 
 Frozen SQL183/SHA9a9c2d0e…4da70e7d, DRAFT14/Adam903/223/apps48/grad16/acceptedTEST2/pointer12 unchanged. TRAIN_CREDIT/FIT/PROMOTION011=0. Budgets00910/5803240 и0104/715447 сохранены; новый011journal не создан. TEST006 STOPPED/OFF/owned0/portsfree, foreign8692/3308 untouched, main dirty7e997636 сохранён. Active config011 сохранён вне checkout, текущийconfigOFF.
 
-G8 final docs/readback пока PENDING_READBACK; source full readback8blobs PASS. RESULT/EVIDENCE/COMMANDS и финальный receipt содержат published HEAD/diff. Владелец принимает результат отдельно; не закрывать старые008/009/010 gates и не начинать следующий Goal автоматически.011 —№5/13, после выдачи остаётся8.
+G8PASS: независимый readbackb12d943d72970692387da05f43849b5f653b5c38 подтвердил HEAD/parent/tree/diff49paths,8source blobs и41полных documentation bodies. RESULT/EVIDENCE/COMMANDS и GITHUB-FINAL-READBACK содержат доказательства. Владелец принимает результат отдельно; не закрывать старые008/009/010 gates и не начинать следующий Goal автоматически.011 —№5/13, после выдачи остаётся8.

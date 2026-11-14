@@ -76,7 +76,7 @@
     "G5": "PASS",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PENDING_READBACK"
+    "G8": "PASS"
   },
   "status": {
     "scenarioEngine": "PARTIAL",
@@ -232,7 +232,7 @@
     "reviewImportantFixed": 3,
     "mojibakePatterns": 27,
     "escapedCyrillicPatterns": 6,
-    "finalAllFilesEncoding": "PASS_49_PUBLISHED_FILES_BEFORE_FINAL_READBACK_RECEIPT",
+    "finalAllFilesEncoding": "PASS_50_PUBLISHED_FILES_INCLUDING_FINAL_READBACK_RECEIPT",
     "rawConsoleEncodingArtifacts": {"files": 3, "mojibakeMatches": 36, "escapedCyrillicMatches": 0, "preservedByteExactlyOutsideCheckout": true, "publishedIndex": "RAW-LOGS-INDEX.json"}
   },
   "limitations": [

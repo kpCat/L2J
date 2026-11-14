@@ -25,6 +25,6 @@
 
 ## Фактическая проверка011
 
-G0PASS;G1PASS;G2PARTIAL;G3FAIL;G4NOT_RUN;G5PASS;G6PASS;G7PASS;G8PENDING_READBACK. Fresh headless4PartyHEAL proposals/SoloDAMAGE0; HEADLESS_READY0,live0,CUT0,matchedpairs0. GameServer0/3 и0/2700000ms. FULL011 не объявлен. Итог PARTIAL011_LAWFUL_COVERAGE_BLOCKED, game INCONCLUSIVE, PVP/RAID NOT_IMPLEMENTED.
+G0PASS;G1PASS;G2PARTIAL;G3FAIL;G4NOT_RUN;G5PASS;G6PASS;G7PASS;G8PASS. Fresh headless4PartyHEAL proposals/SoloDAMAGE0; HEADLESS_READY0,live0,CUT0,matchedpairs0. GameServer0/3 и0/2700000ms. FULL011 не объявлен. Итог PARTIAL011_LAWFUL_COVERAGE_BLOCKED, game INCONCLUSIVE, PVP/RAID NOT_IMPLEMENTED.
 
 183SQL rows и frozen model/optimizer/applications byte-identical; canonical STOPPED/OFF/owned0/portsfree. Source8files опубликованыd138611901c и независимо прочитаны сGitHub; final docs/readback receipt дополняет G8. Подробности — RESULT/EVIDENCE/SCENARIO_COVERAGE. **Ручная приёмка владельца REQUIRED, агент её не отмечает PASS.**011 №5/13, после выдачи8.
