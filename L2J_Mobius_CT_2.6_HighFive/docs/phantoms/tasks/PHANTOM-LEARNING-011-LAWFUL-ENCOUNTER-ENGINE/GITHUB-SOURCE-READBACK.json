@@ -1,0 +1,56 @@
+{
+  "verifiedRef": "d138611901cb3ef98dbcafa8c046a2143dfbd75c",
+  "repository": "kpCat/L2J",
+  "branch": "feature/phantom-world",
+  "method": "GitHub connector full fetch_file; blob SHA matched local git ls-tree; no source body truncation requested",
+  "files": [
+    {
+      "sha": "270616a2d808694c69b300c21306f973429ea9c1",
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 331057,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "46f7c00f905281667fc19c4b3484bbeecb998ae0",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+      "bytes": 4934,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 29139,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "f2b983baef4d931dffe3b19a01f66e051a6e31be",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 136255,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+      "bytes": 3654,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "e976cdcd00ab8dc441cd7704d1332a51591467c7",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+      "bytes": 8630,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "a73fc0d6686f035968baa356e1984d94a71cbb0b",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 99959,
+      "fullBodyRetrieved": true
+    },
+    {
+      "sha": "0bffd3e5f14380116f9112040e6814860751f214",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "bytes": 29121,
+      "fullBodyRetrieved": true
+    }
+  ]
+}

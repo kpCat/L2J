@@ -1,0 +1,31 @@
+.\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java:992: error: cannot find symbol
+			try { catalogArtifactBindings(headless, body); } catch (java.io.IOException expected) { missingRiskRejected = true; }
+			      ^
+  symbol:   method catalogArtifactBindings(Path,String)
+  location: class PhantomAutonomousTrainingNative
+.\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java:995: error: cannot find symbol
+			final var bindings = catalogArtifactBindings(headless, body); copyPreparedArtifacts(headless, live, body);
+			                     ^
+  symbol:   method catalogArtifactBindings(Path,String)
+  location: class PhantomAutonomousTrainingNative
+.\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java:995: error: cannot find symbol
+			final var bindings = catalogArtifactBindings(headless, body); copyPreparedArtifacts(headless, live, body);
+			                                                              ^
+  symbol:   method copyPreparedArtifacts(Path,Path,String)
+  location: class PhantomAutonomousTrainingNative
+.\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java:996: error: cannot find symbol
+			if (!bindings.equals(catalogArtifactBindings(live, body))) { throw new AssertionError("Different headless/live directories lost native risk provenance"); }
+			                     ^
+  symbol:   method catalogArtifactBindings(Path,String)
+  location: class PhantomAutonomousTrainingNative
+.\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java:998: error: cannot find symbol
+			if (bindings.equals(catalogArtifactBindings(live, body))) { throw new AssertionError("Changed risk pin retained prepared identity"); }
+			                    ^
+  symbol:   method catalogArtifactBindings(Path,String)
+  location: class PhantomAutonomousTrainingNative
+.\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomAutonomousTrainingNative.java:1000: error: cannot find symbol
+			try { requirePhysicalParity(hash(PhantomLearning005Evaluation.mapJson(Map.of("hp", "100"))), Map.of("hp", "101")); }
+			      ^
+  symbol:   method requirePhysicalParity(String,Map<String,String>)
+  location: class PhantomAutonomousTrainingNative
+6 errors

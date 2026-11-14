@@ -1,3 +1,15 @@
+<!-- GOAL011_CURRENT -->
+# Текущее состояние после011
+
+011 — задача№5/13: **PARTIAL011_LAWFUL_COVERAGE_BLOCKED**, SCENARIO_ENGINE=PARTIAL, final manual gate REQUIRED. После выдачи остаётся8. Source8paths опубликованы в feature/phantom-world, commitd138611901cb3ef98dbcafa8c046a2143dfbd75c, independent full source readback PASS. Shared versioned proposal/admission, real canonical opening reservation перед CUT, pinned headless/live catalog+risk+physical integrity и source-first placement реализованы без изменения production mechanics.
+
+Fresh headless:19source records/10acquired/4independent,4preliminary PartyHEAL, SoloDAMAGE0; paired admission0. G2PARTIAL/G3FAIL/G4NOT_RUN; native011 **0/3GS и0/45мин**, matchedpairs0, game INCONCLUSIVE. PVP/RAID NOT_IMPLEMENTED. DRAFT14/Adam903/223/apps48/grad16, acceptedTEST2 и pointer12 unchanged;183SQL rows byte-identical. TRAIN_CREDIT/FIT/PROMOTION011=0. TEST STOPPED/OFF/owned0/portsfree, foreignSQL/MAIN/PLAY/main dirty сохранены. Истории00910/5803240ms и0104/715447ms не сброшены и не закрыты задним числом.
+
+G0/G1/G5/G6/G7PASS; G8finaldocs/readback завершается отдельно. Ни coordinate expansion, ни новые fit/неразрешённые GS не использованы для обхода отсутствующих сцен. [RESULT011](tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RESULT.md), [EVIDENCE011](tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/EVIDENCE.json), [COVERAGE011](tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCENARIO_COVERAGE.md). Следующий Goal автоматически не начинался; требуется manual review владельца.
+
+Исторические записи010 и ниже сохранены без переписывания их прежних результатов.
+<!-- GOAL011_END -->
+
 <!-- GOAL010_CURRENT -->
 # Текущее состояние после010
 

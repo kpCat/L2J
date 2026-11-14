@@ -1,0 +1,10 @@
+{
+    "sqlPid":  11800,
+    "readOnly":  true,
+    "equalBefore":  true,
+    "observedUtc":  "2026-11-14T17:54:16.4758866Z",
+    "rows":  183,
+    "tag":  "after",
+    "sqlCreated":  134391524517455952,
+    "sha256":  "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D"
+}

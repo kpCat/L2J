@@ -1,0 +1,92 @@
+Buildfile: D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+checkRequirements:
+
+owner-config-apply:
+     [exec] OwnerConfig Apply OK filesChecked=70 overridesStored=288 conflicts=0 changed=0 paths=[]; ????? ????: 70; ?????? ???????????: 288; ??????: 0; ???????? ???: 0.
+
+owner-profile-validate:
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	AltWeightLimit	100	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaxPvtStoreSellSlotsDwarf	20	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaxPvtStoreSellSlotsOther	20	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaxPvtStoreBuySlotsDwarf	20	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaxPvtStoreBuySlotsOther	20	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumSlotsForNoDwarf	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumSlotsForDwarf	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumSlotsForGMPlayer	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumSlotsForQuestItems	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForDwarf	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForNoDwarf	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumWarehouseSlotsForClan	250	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	MaximumFreightSlots	200	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	DwarfRecipeLimit	100	PASS
+     [java] OWNER_RULE	PLAYER	dist/game/config/Player.ini	CommonRecipeLimit	100	PASS
+     [java] OWNER_RULE	ENCHANT	dist/game/data/EnchantItemGroups.xml	ARMOR_GROUP/FIGHTER_WEAPON_GROUP/MAGE_WEAPON_GROUP.current	0-2:100;3-9:85;10-15:70;16-24:66;25-65535:0	PASS
+     [java] OWNER_RULE	ENCHANT	dist/game/data/EnchantItemGroups.xml	FULL_ARMOR_GROUP.current	0-3:100;4-9:85;10-15:70;16-24:66;25-65535:0	PASS
+     [java] OWNER_RULE	ENCHANT	dist/game/data/EnchantItemData.xml	standard scroll maxEnchant previously16	25	PASS
+     [java] OWNER_RULE	ENCHANT	dist/game/config/Player.ini	DisableOverEnchanting	True	PASS
+     [java] OWNER_RULE	ENCHANT	dist/game/config/Player.ini	OverEnchantProtection	True	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	EnableServitorShareBonusTuning	True	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorSharePAtkBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorSharePDefBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMAtkBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMDefBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxHpBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxMpBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxRecoverableHpBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMaxRecoverableMpBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareCritRateBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorSharePAtkSpdBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	SERVITOR	dist/game/config/Custom/ServitorShare.ini	ServitorShareMAtkSpdBonusMultiplier	2.0	PASS
+     [java] OWNER_RULE	STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromPlayer	50	PASS
+     [java] OWNER_RULE	STORE	dist/game/config/Custom/PrivateStoreRange.ini	ShopMinRangeFromNpc	100	PASS
+     [java] OWNER_RULE	STORE	dist/game/config/Custom/PhantomMerchants.ini	MerchantLinesPerStore	20	PASS
+     [java] OWNER_RULE	CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	EnablePersonalWondrousCubicCooldown	True	PASS
+     [java] OWNER_RULE	CUBIC	dist/game/config/Custom/PersonalCharacterQoL.ini	PersonalWondrousCubicCooldownMinutes	10	PASS
+     [java] OWNER_RULE	QUEST	dist/game/config/Rates.ini	Quest rates (all keys)	PRESERVE_EXISTING_VALUES	PASS
+     [java] OWNER_PROFILE_PASS rules=38 profileSha256=4f25d9419b1a01aff2792a29f09a6b12f6fc464314ace73419ea4590a6ad3244 preservedSha256=e7d6a0d91e388c9563a01c39f5863cc2ae84d9c1dd2ad339d9e8d63019dc3764 questSha256=5f62ca25a25eb94773e58c2e43689fc8ed125d2923552e38ea085f639b2ae256 XML_XSD=PASS READ_ONLY=true
+
+init:
+   [delete] Deleting directory D:\Codex\repos\L2J-learning-004\build\bin
+    [mkdir] Created dir: D:\Codex\repos\L2J-learning-004\build\bin
+
+compile:
+    [javac] Compiling 2422 source files to D:\Codex\repos\L2J-learning-004\build\bin
+
+init-test:
+   [delete] Deleting directory D:\Codex\repos\L2J-learning-004\build\phantom-test
+    [mkdir] Created dir: D:\Codex\repos\L2J-learning-004\build\phantom-test\bin
+    [mkdir] Created dir: D:\Codex\repos\L2J-learning-004\build\phantom-test\resources
+    [mkdir] Created dir: D:\Codex\repos\L2J-learning-004\build\phantom-test\reports
+     [copy] Copying 15 files to D:\Codex\repos\L2J-learning-004\build\phantom-test\resources
+
+compile-tests:
+    [javac] Compiling 514 source files to D:\Codex\repos\L2J-learning-004\build\phantom-test\bin
+    [javac] D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\gameserver\localplay\LocalPlayPilotWriter070Checks.java:15: warning: ExtendedOpenOption is internal proprietary API and may be removed in a future release
+    [javac] import com.sun.nio.file.ExtendedOpenOption;
+    [javac]                        ^
+    [javac] D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\gameserver\localplay\LocalPlayPilotWriter070Checks.java:38: warning: ExtendedOpenOption is internal proprietary API and may be removed in a future release
+    [javac] 		final SeekableByteChannel held = Files.newByteChannel(target, Set.of(StandardOpenOption.READ, ExtendedOpenOption.NOSHARE_DELETE));
+    [javac] 		                                                                                              ^
+    [javac] D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\gameserver\localplay\LocalPlayPilotWriter070Checks.java:73: warning: ExtendedOpenOption is internal proprietary API and may be removed in a future release
+    [javac] 		try (var held = Files.newByteChannel(target, Set.of(StandardOpenOption.READ, ExtendedOpenOption.NOSHARE_DELETE)))
+    [javac] 		                                                                             ^
+    [javac] D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnduranceGoal029Checkpoint3Suite.java:897: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnvironmentGoal029Checkpoint2Suite.java:574: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] 5 warnings
+
+phantom-learning011-test:
+     [java] AUTONOMOUS_TRAINING_GREEN encounter
+     [java] Exception in thread "main" java.lang.AssertionError: Already-started delegate failed to acknowledge native stop
+     [java] 	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.check(PhantomEncounterDispatchGateChecks.java:151)
+     [java] 	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.runningDelegateAcknowledgesNativeStop(PhantomEncounterDispatchGateChecks.java:132)
+     [java] 	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.main(PhantomEncounterDispatchGateChecks.java:30)
+
+BUILD FAILED
+D:\Codex\repos\L2J-learning-004\L2J_Mobius_CT_2.6_HighFive\build.xml:1282: Java returned: 1
+
+Total time: 51 seconds

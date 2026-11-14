@@ -1,0 +1,3 @@
+Exception in thread "main" java.lang.AssertionError: Native admission reason was lost or arbitrary vendor text was exposed
+	at org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative.sourceContract(PhantomAutonomousTrainingNative.java:979)
+	at org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative.main(PhantomAutonomousTrainingNative.java:790)

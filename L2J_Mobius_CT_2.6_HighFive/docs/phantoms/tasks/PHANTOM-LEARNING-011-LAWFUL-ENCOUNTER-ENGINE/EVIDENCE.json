@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 11,
+  "goal": "PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE",
+  "date": "2026-11-14",
+  "verdict": "PARTIAL011_LAWFUL_COVERAGE_BLOCKED",
+  "manualGate": "REQUIRED",
+  "taskOrdinal": 5,
+  "taskBudget": 13,
+  "remainingAfterIssue": 8,
+  "nextGoalStarted": false,
+  "source": {
+    "branch": "feature/phantom-world",
+    "baseline": "f153d137a7d666ea0c28586a45a429a94a9d1c44",
+    "commit": "d138611901cb3ef98dbcafa8c046a2143dfbd75c",
+    "parent": "f153d137a7d666ea0c28586a45a429a94a9d1c44",
+    "tree": "dac30e6309da2c1911e27666ec1d860eeb08dd8d",
+    "ordinaryPush": true,
+    "newBranches": 0,
+    "fullGitHubSourceReadback": [
+      {
+        "sha": "270616a2d808694c69b300c21306f973429ea9c1",
+        "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "bytes": 331057,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "46f7c00f905281667fc19c4b3484bbeecb998ae0",
+        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+        "bytes": 4934,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd",
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "bytes": 29139,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "f2b983baef4d931dffe3b19a01f66e051a6e31be",
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "bytes": 136255,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54",
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+        "bytes": 3654,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "e976cdcd00ab8dc441cd7704d1332a51591467c7",
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+        "bytes": 8630,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "a73fc0d6686f035968baa356e1984d94a71cbb0b",
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "bytes": 99959,
+        "fullBodyRetrieved": true
+      },
+      {
+        "sha": "0bffd3e5f14380116f9112040e6814860751f214",
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+        "bytes": 29121,
+        "fullBodyRetrieved": true
+      }
+    ]
+  },
+  "gates": {
+    "G0": "PASS",
+    "G1": "PASS",
+    "G2": "PARTIAL",
+    "G3": "FAIL",
+    "G4": "NOT_RUN",
+    "G5": "PASS",
+    "G6": "PASS",
+    "G7": "PASS",
+    "G8": "PENDING_READBACK"
+  },
+  "status": {
+    "scenarioEngine": "PARTIAL",
+    "nativePveSolo": "NOT_RUN",
+    "nativePveParty": "NOT_RUN",
+    "pvpRaid": "NOT_IMPLEMENTED",
+    "gameAdvantage": "INCONCLUSIVE",
+    "bootstrapMatchedParity": "NOT_PROVEN_ON_LAWFUL_SCENE"
+  },
+  "headless": {
+    "session": "fc019d570f72417a8ae2282ee5a9e66a",
+    "campaign": "autonomous009-goal011-20261114",
+    "wrapperExit": 1,
+    "workerPid": 86644,
+    "workerExit": 2,
+    "kernelExitUtc": "2026-11-14T17:51:10.8036561Z",
+    "reason": "AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE",
+    "sourceRecords": 19,
+    "acquiredSources": 10,
+    "excludedTrainSources": 6,
+    "independentSources": 4,
+    "proposedCells": 4,
+    "soloDamageProposals": 0,
+    "partyHealProposals": 4,
+    "headlessReadyCells": 0,
+    "liveAdmitted": 0,
+    "cut": 0,
+    "paid": 0,
+    "terminal": 0,
+    "matchedSoloPairs": 0,
+    "matchedPartyPairs": 0,
+    "ab": 0,
+    "ba": 0,
+    "admissionComplete": false,
+    "aggregateRefusals": 26998,
+    "sampleLimit": 128,
+    "counts": {
+      "SAFE_TEMPLATE_SEEN": 448838,
+      "LEVEL_REWARD_GEO_ACCEPTED": 35891,
+      "SOURCE_SKILLS_OR_MAGIC_LEVEL": 26998,
+      "CAPABILITY_TARGET_ACCEPTED": 8893,
+      "CANONICAL_ANCHOR_ACCEPTED": 4455,
+      "ANCHOR_AGGRO_REFUSED": 2131,
+      "NO_ISOLATED_TARGET_POINT": 280,
+      "ISOLATED_SCENE_ACCEPTED": 12,
+      "OUT_OF_WORLD_TEMPLATE_REFUSED": 52
+    },
+    "globalPveImpossible": false,
+    "fullPartyReadiness": "NOT_EXECUTED_COVERAGE_STOP"
+  },
+  "nativeBudget": {
+    "maximumStarts": 3,
+    "maximumMillis": 2700000,
+    "actualStarts": 0,
+    "actualMillis": 0,
+    "newNativeJournalCreated": false,
+    "proof": "NO_GS_ENTRYPOINT_DISPATCHED; stale historical Native PID absent; process/port postflight",
+    "historical009": {
+      "starts": 10,
+      "chargedMillis": 5803240,
+      "exactOldKernelExit": "UNKNOWN_PRESERVED"
+    },
+    "historical010": {
+      "starts": 4,
+      "chargedMillis": 715447,
+      "exactExitProof": "OWN_HELD_HANDLE_EXIT_TIME"
+    }
+  },
+  "frozen": {
+    "draftModel": 14,
+    "workingWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "optimizerSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+    "adamUpdates": 903,
+    "adamEpochs": 223,
+    "applications": 48,
+    "gradientEpisodes": 16,
+    "acceptedTestModel": 2,
+    "acceptedWeightsSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "completedCyclePointer": 12,
+    "pointerSha": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+    "sqlRows": 183,
+    "sqlBytes": 79660,
+    "beforeAfterSqlSha": "9a9c2d0ee9a2b8f37da5dd6bcf625334b76be96fe9b76e22490ed20b4da70e7d",
+    "rawSqlBeforeAfterEqual": true,
+    "beforeColdZipSha": "ff503a44e9009e96a48e63f780c2c74ac49c1ecbee35394202075d7c46a495a0",
+    "afterColdZipSha": "f4305126cc2b7d9a933d6bba5eba05a841d7a60586d66bf10981503454ca7be7",
+    "zipEntriesCrcVerified": 12,
+    "workingOptimizerAcceptedApplicationMetricBytesEqual": true,
+    "newCredits": 0,
+    "newFit": 0,
+    "newPromotion": 0
+  },
+  "resources": {
+    "headlessPrepare": {
+      "wallMillis": 98718,
+      "cpuSeconds": 205.09375,
+      "peakWorkingSetBytes": 4644433920
+    },
+    "coldExport": {
+      "wallMillis": 14113,
+      "cpuSeconds": 25.046875,
+      "peakWorkingSetBytes": 548753408
+    },
+    "stagedJarSha": "186b71fd5ec4db132fb7b6522dd9566839cca39d658a583dc8828325e8ecf0ec",
+    "buildReceiptSourceFingerprint": "a362e7cf726169ad5f86e4195e07711ee6eabf240183c132b5da2a698b71267a",
+    "buildFingerprintIndependentlyRecomputed": false,
+    "nativePerformance": "NOT_RUN",
+    "assistantBillingCost": "UNKNOWN"
+  },
+  "config": {
+    "prior010Sha": "8fae8c57835f2be551b2162be906fec5c81e7ff579b8411e28c629e0fdcff500",
+    "active011Sha": "ea76441914213f92f881e153633618288d5684616180b4d940a6968cd95a31ae",
+    "off011Sha": "abe72bbcd7e713857c6e8aaa4829000ad1307a2550eed20f9718e4d46365ea9a",
+    "priorConfigByteBackupOutsideCheckout": true
+  },
+  "postflight": {
+    "canonicalStopExit": 0,
+    "director": "STOPPED",
+    "activeFlags": "OFF",
+    "ownedProcesses": 0,
+    "portsFree": [
+      33357,
+      18001,
+      19301
+    ],
+    "foreignSqlPid": 8692,
+    "foreignSqlPort": 3308,
+    "foreignSqlCreatedUtc": "2026-10-28T15:34:43.982701Z",
+    "foreignSqlUntouched": true,
+    "mainDirtyHead": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+    "mainDirtyUntouched": true,
+    "protectedPreflightExit": 0,
+    "fullHistoricalFileInventoryRehashed": false
+  },
+  "verification": {
+    "baselineAntExit": 0,
+    "baselineSeconds": 201,
+    "firstNewSuiteExit": 1,
+    "firstNewSuiteSeconds": 51,
+    "regression007008009010Exit": 0,
+    "regressionSeconds": 231,
+    "final011AutonomousJarExit": 0,
+    "finalBuildSeconds": 162,
+    "finalSourceContractExit": 0,
+    "lifecycleChecks": 4,
+    "behavioralReds": [
+      "DELEGATE_REFUSAL_RETAINED_CLAIM",
+      "STARTED_WORKER_STOP",
+      "NATIVE_REASON_LOST"
+    ],
+    "compileRedsRecordedSeparately": true,
+    "reviewImportantFindings": 3,
+    "reviewImportantFixed": 3,
+    "mojibakePatterns": 27,
+    "escapedCyrillicPatterns": 6,
+    "finalAllFilesEncoding": "PASS_49_PUBLISHED_FILES_BEFORE_FINAL_READBACK_RECEIPT",
+    "rawConsoleEncodingArtifacts": {"files": 3, "mojibakeMatches": 36, "escapedCyrillicMatches": 0, "preservedByteExactlyOutsideCheckout": true, "publishedIndex": "RAW-LOGS-INDEX.json"}
+  },
+  "limitations": [
+    "Required Solo DAMAGE absent; four Party HEAL proposals are not lawfully ready encounters",
+    "No actual new native arm or outcome",
+    "Existing topology/source and conservative placement coverage remain bounded",
+    "G2/G3/G4 do not satisfy FULL011"
+  ]
+}

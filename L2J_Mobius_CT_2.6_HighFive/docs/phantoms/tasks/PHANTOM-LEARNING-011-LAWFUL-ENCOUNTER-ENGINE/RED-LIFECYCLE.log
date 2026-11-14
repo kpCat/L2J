@@ -1,0 +1,13 @@
+JAVAC_EXIT=0
+Exception in thread "main" java.lang.AssertionError: Rejected release retained a native worker claim or actor lease
+	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.check(PhantomEncounterDispatchGateChecks.java:135)
+	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.rejectedReleaseDoesNotRetainServiceClaim(PhantomEncounterDispatchGateChecks.java:96)
+	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.main(PhantomEncounterDispatchGateChecks.java:29)
+JAVA_EXIT=1
+STAGE=RUNNING_BEFORE_NATIVE_PULSE
+JAVAC_EXIT=0
+Exception in thread "main" java.lang.AssertionError: Already-started delegate failed to acknowledge native stop
+	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.check(PhantomEncounterDispatchGateChecks.java:151)
+	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.runningDelegateAcknowledgesNativeStop(PhantomEncounterDispatchGateChecks.java:132)
+	at org.l2jmobius.tests.phantoms.PhantomEncounterDispatchGateChecks.main(PhantomEncounterDispatchGateChecks.java:30)
+JAVA_EXIT=1

@@ -1,0 +1,41 @@
+{
+  "reason": "Generated console captures contain pre-existing runtime text encoding artifacts; source/docs are clean. Raw evidence was not rewritten.",
+  "archive": "external Goal011 artifacts/raw-logs",
+  "logs": [
+    {
+      "name": "BASELINE-TESTS.log",
+      "bytes": 26171,
+      "sha256": "7bc7fbdb9e322ef6c5806c11f006119e286f870184ac9ec3994a2f406c3a3bef",
+      "rawPreservedByteExactlyOutsideCheckout": true
+    },
+    {
+      "name": "GREEN-REGRESSION.log",
+      "bytes": 33764,
+      "sha256": "2c2ee6b085ce5da39cc54fb8038c43f905bed32eb07b6c2a69fdcddff95637e4",
+      "rawPreservedByteExactlyOutsideCheckout": true
+    },
+    {
+      "name": "FINAL-BUILD.log",
+      "bytes": 23383,
+      "sha256": "38ea1c3775f0b3448e220407c82442782c6089fb933cdafeb64dd417afbf3da7",
+      "rawPreservedByteExactlyOutsideCheckout": true
+    }
+  ],
+  "exitReceipts": [
+    {
+      "name": "BASELINE-TESTS.log",
+      "exit": 0,
+      "seconds": 201
+    },
+    {
+      "name": "GREEN-REGRESSION.log",
+      "exit": 0,
+      "seconds": 231
+    },
+    {
+      "name": "FINAL-BUILD.log",
+      "exit": 0,
+      "seconds": 162
+    }
+  ]
+}
