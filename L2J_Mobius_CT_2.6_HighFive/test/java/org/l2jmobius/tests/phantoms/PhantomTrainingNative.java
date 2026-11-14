@@ -60,10 +60,7 @@ public final class PhantomTrainingNative
 		if (!off.matches("(?s).*EnablePhantomSystem\\s*=\\s*False.*")) { throw new IllegalArgumentException("Master must be OFF at bootstrap"); }
 		final String mode = config.text("learningMode", "SHADOW");
 		final long version = config.longValue("modelVersion", 0, 0, Long.MAX_VALUE);
-		String phase = setting(off, "LearningMode", mode);
-		phase = setting(phase, "LearningModelVersion", Long.toString(version));
-		phase = setting(phase, "LearningEvidenceEnabled", "True");
-		phase = setting(phase, "LearningDeterministicSeed", Long.toString(config.seed()));
+		String phase = phaseConfiguration(off, mode, version, config.seed(), false);
 		final var store = new TrainingStore(root);
 		store.initialize();
 		final long catalogGeneration = tacticalV3 ? 0 : PhantomTrainingActors.generation(root);
@@ -216,6 +213,14 @@ public final class PhantomTrainingNative
 		}
 	}
 	private static boolean requested(Path attempt) { return Files.exists(attempt.resolve("stop.request")) || Files.exists(attempt.resolve("pause.request")); }
+	static String phaseConfiguration(String off, String mode, long version, long seed, boolean master)
+	{
+		String phase = setting(off, "LearningMode", mode);
+		phase = setting(phase, "LearningModelVersion", Long.toString(version));
+		phase = setting(phase, "LearningEvidenceEnabled", "True");
+		phase = setting(phase, "LearningDeterministicSeed", Long.toString(seed));
+		return setting(phase, "EnablePhantomSystem", master ? "True" : "False");
+	}
 	private static String setting(String original, String key, String value)
 	{
 		String pattern = "(?m)^" + key + "\\s*=.*$";

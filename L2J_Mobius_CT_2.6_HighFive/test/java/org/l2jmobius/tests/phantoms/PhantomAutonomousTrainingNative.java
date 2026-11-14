@@ -785,13 +785,20 @@ public final class PhantomAutonomousTrainingNative
 		final var sourceIndex = new ArrayList<String>();
 		sourceIndex.add("sourceActorId\tsourceProfileId\tsourceSnapshotSha\tsourcePhysicalSha\tinventorySha\tclassId\tclassIndex\tlevel");
 		final var attempts = new HashMap<Integer, Integer>(); final var accepted = new HashMap<Integer, Integer>();
-		ConfigLoader.init();
-		if (PhantomPlayersConfig.isEnabled()) { throw new IllegalStateException("AUTONOMOUS_MASTER_MUST_BE_OFF"); }
-		DatabaseFactory.initFromConfig(root.resolve("game/config/Database.ini").toString());
+		final Path phantomConfig = root.resolve("game/config/Custom/PhantomPlayers.ini"); final String off = Files.readString(phantomConfig);
+		if (!off.matches("(?s).*EnablePhantomSystem\\s*=\\s*False.*")) { throw new IllegalStateException("AUTONOMOUS_MASTER_MUST_BE_OFF"); }
 		try
 		{
+			Files.writeString(phantomConfig, PhantomTrainingNative.phaseConfiguration(off, config.text("learningMode", "SHADOW"), config.longValue("modelVersion", 0, 0, Long.MAX_VALUE), config.seed(), false));
+			ConfigLoader.init();
+			if (PhantomPlayersConfig.isEnabled()) { throw new IllegalStateException("AUTONOMOUS_MASTER_MUST_BE_OFF"); }
+			DatabaseFactory.initFromConfig(root.resolve("game/config/Database.ini").toString());
 			PhantomHeadlessPlayerTestEnvironment.initializeOwnedPlayerInfrastructure();
+			org.l2jmobius.gameserver.data.xml.EnchantItemHPBonusData.getInstance();
 			org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
+			Files.writeString(phantomConfig, PhantomTrainingNative.phaseConfiguration(off, config.text("learningMode", "SHADOW"), config.longValue("modelVersion", 0, 0, Long.MAX_VALUE), config.seed(), true));
+			PhantomPlayersConfig.load();
+			if (org.l2jmobius.gameserver.phantoms.PhantomSystem.hasConfiguredInstance()) { throw new IllegalStateException("AUTONOMOUS_GLOBAL_OWNER_MUST_REMAIN_ABSENT"); }
 			try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 			{
 				if (admissionOnly) { admitEvaluation(root, session, config, authority); return; }
@@ -854,7 +861,7 @@ public final class PhantomAutonomousTrainingNative
 				+ ",\"gameServerStarted\":false,\"trainingCredit\":false,\"records\":[" + String.join(",", records) + "]}\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 			System.out.println("AUTONOMOUS_SOURCE_PREPARED accepted=" + accepted.values().stream().mapToInt(Integer::intValue).sum() + " attempted=" + records.size() + " session=" + session.getFileName() + " gameServerStarted=false trainingCredit=false");
 		}
-		finally { ThreadPool.shutdown(); DatabaseFactory.close(); }
+		finally { try { Files.writeString(phantomConfig, off); PhantomPlayersConfig.load(); } finally { ThreadPool.shutdown(); DatabaseFactory.close(); } }
 	}
 	private static String inventoryJson(PhantomSkillInventory.Snapshot inventory)
 	{
@@ -892,6 +899,11 @@ public final class PhantomAutonomousTrainingNative
 		if (soloRequestProbe(true, 1, 1, PhantomCombatMode.RANGED_MAGIC, 180000) != null) { throw new AssertionError("Party inherited the SOLO observation-window request"); }
 		if (soloRequestProbe(false, 1, 1, PhantomCombatMode.RANGED_MAGIC, 120000).timeoutMillis() != 120000) { throw new AssertionError("Canonical120s SOLO boundary changed"); }
 		try { soloRequestProbe(false, 1, 1, PhantomCombatMode.RANGED_MAGIC, 180000); throw new AssertionError("Native SOLO maximum relaxed"); } catch (IllegalArgumentException expected) { }
+		final String offPhase = "EnablePhantomSystem = False\nLearningMode = OFF\nLearningModelVersion = 0\nLearningEvidenceEnabled = False\nLearningDeterministicSeed = 0\n";
+		final String bootPhase = PhantomTrainingNative.phaseConfiguration(offPhase, "SHADOW", 2, 183, false);
+		final String activePhase = PhantomTrainingNative.phaseConfiguration(offPhase, "SHADOW", 2, 183, true);
+		if (!bootPhase.contains("EnablePhantomSystem = False") || !activePhase.contains("EnablePhantomSystem = True") || !activePhase.contains("LearningDeterministicSeed = 183")
+			|| !activePhase.equals(PhantomTrainingNative.phaseConfiguration(bootPhase, "SHADOW", 2, 183, true))) { throw new AssertionError("Headless/native phase configuration diverged"); }
 		final var geometryFirst = java.util.stream.IntStream.range(0, 14).boxed().toList();
 		final var lawful = PhantomTrainingScenarios.lawfulPage(geometryFirst.stream(), value -> value >= 12, 12, () -> false);
 		if (!lawful.equals(List.of(12, 13))) { throw new AssertionError("Geometric candidate cap starved later lawful native scenes"); }
@@ -928,6 +940,9 @@ public final class PhantomAutonomousTrainingNative
 			|| PhantomTrainingScenarios.inWorldBounds(0, 0, World.WORLD_Z_MAX + 1)
 			|| !PhantomTrainingScenarios.inWorldBounds(World.WORLD_X_MIN, World.WORLD_Y_MAX, World.WORLD_Z_MIN))
 		{ throw new AssertionError("Unrelated raw World NPC coordinates crashed or weakened the topology admission boundary"); }
+		final var driftClan = new PhantomTrainingScenarios.ClanNeighbor(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(1000, 0, 0, 0), Set.of(1));
+		if (!PhantomTrainingScenarios.factionClear(Set.of(1), 300, 20, point, List.of(driftClan)) || PhantomTrainingScenarios.planningFactionClear(Set.of(1), 300, 20, point, List.of(driftClan), 300))
+		{ throw new AssertionError("Planning ignored canonical NPC drift or changed the live faction guard"); }
 		final var nearClan = new PhantomTrainingScenarios.ClanNeighbor(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(400, 0, 0, 0), Set.of(1));
 		if (PhantomTrainingScenarios.factionClear(Set.of(1), 300, 20, point, List.of(nearClan)))
 		{ throw new AssertionError("A nearby same-clan NPC crossed the native help-range reserve"); }

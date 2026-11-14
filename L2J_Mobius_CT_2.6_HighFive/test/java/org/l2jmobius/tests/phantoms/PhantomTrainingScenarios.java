@@ -268,7 +268,7 @@ final class PhantomTrainingScenarios
 						|| !geo.canMoveToTarget(desired.x() + 180, desired.y(), desired.z(), desired.x(), desired.y(), desired.z(), 0)
 						|| !geo.canMoveToTarget(desired.x(), desired.y(), desired.z(), desired.x() + 180, desired.y(), desired.z(), 0)
 						|| !geo.hasGeo(desired.x() + 180, desired.y()) || geo.getHeight(desired.x() + 180, desired.y(), desired.z()) != desired.z()
-						|| !factionClear(npc.getTemplate().getClans(), npc.getTemplate().getClanHelpRange(), npc.getTemplate().getCollisionRadius(), desired, factionNeighbors)) { continue; }
+						|| !planningFactionClear(npc.getTemplate().getClans(), npc.getTemplate().getClanHelpRange(), npc.getTemplate().getCollisionRadius(), desired, factionNeighbors, org.l2jmobius.gameserver.config.NpcConfig.MAX_DRIFT_RANGE)) { continue; }
 					try
 					{
 						PhantomLearning001ActorFixture.requireSafePartySpawn(desired.x() + 180, desired.y(), desired.z());
@@ -323,6 +323,11 @@ final class PhantomTrainingScenarios
 			if ((x != 0 || y != 0) && Math.hypot(x, y) <= bound) { result.add(new PhantomTopologyPoint(x, y, 0, 0)); }
 		} }
 		return result.stream().filter(point -> Math.hypot(point.x(), point.y()) <= bound).distinct().toList();
+	}
+	static boolean planningFactionClear(Set<Integer> clans, int helpRange, int collision, PhantomTopologyPoint point, List<ClanNeighbor> neighbors, int drift)
+	{
+		if (drift < 0) { throw new IllegalArgumentException("Negative native drift"); }
+		return factionClear(clans, Math.addExact(helpRange, Math.multiplyExact(drift, 2)), collision, point, neighbors);
 	}
 	/** Conservative pre-CUT placement proof. Native faction AI and all post-CUT threats remain ordinary. */
 	static boolean factionClear(Set<Integer> clans, int helpRange, int collision, PhantomTopologyPoint point, List<ClanNeighbor> neighbors)
