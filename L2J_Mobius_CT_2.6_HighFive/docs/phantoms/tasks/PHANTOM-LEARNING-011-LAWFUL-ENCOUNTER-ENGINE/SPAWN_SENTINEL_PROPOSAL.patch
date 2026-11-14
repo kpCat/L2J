@@ -1,0 +1,15 @@
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java
+@@ -645,0 +646,12 @@
++	/** Preserve Spawn's documented random-heading sentinel without changing ordinary Location headings. */
++	@Override
++	public void setHeading(int heading)
++	{
++		if (heading == -1)
++		{
++			_heading = -1;
++			return;
++		}
++		super.setHeading(heading);
++	}
++

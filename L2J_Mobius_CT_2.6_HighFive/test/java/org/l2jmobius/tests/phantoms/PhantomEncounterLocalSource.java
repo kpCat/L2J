@@ -55,7 +55,7 @@ final class PhantomEncounterLocalSource
 	{
 		return origin(fact).flatMap(spawn -> spawn.getSpawnTerritory().geometrySnapshot());
 	}
-	private static Optional<org.l2jmobius.gameserver.model.spawns.Spawn> origin(SpawnFact fact)
+	static Optional<org.l2jmobius.gameserver.model.spawns.Spawn> origin(SpawnFact fact)
 	{
 		final var matches = SpawnTable.getInstance().getSpawnTable().getOrDefault(fact.npcId(), java.util.Set.of()).stream()
 			.filter(spawn -> spawn.getInstanceId() == fact.instanceId() && spawn.getAmount() > 0 && spawn.getRespawnMaxDelay() > 0 && spawn.getSpawnTerritory() != null)

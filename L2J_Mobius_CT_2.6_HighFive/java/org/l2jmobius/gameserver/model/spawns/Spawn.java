@@ -643,6 +643,18 @@ public class Spawn extends Location
 		return _spawnTemplateId;
 	}
 	
+	/** Preserve Spawn's documented random-heading sentinel without changing ordinary Location headings. */
+	@Override
+	public void setHeading(int heading)
+	{
+		if (heading == -1)
+		{
+			_heading = -1;
+			return;
+		}
+		super.setHeading(heading);
+	}
+
 	public Location getSpawnLocation()
 	{
 		return _spawnLocation;

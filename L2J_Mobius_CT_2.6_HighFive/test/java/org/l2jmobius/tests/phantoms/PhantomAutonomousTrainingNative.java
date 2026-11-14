@@ -906,6 +906,13 @@ public final class PhantomAutonomousTrainingNative
 		if (stock == null) { throw new IllegalStateException("AUTONOMOUS_STOCK_OBSERVER_UNAVAILABLE"); }
 		final var sources = evaluationSources(root, directory, discoverSources(root, directory, config, authority, () -> requested(directory)), config);
 		final var cells = planCells(directory, sources, config, authority, () -> requested(directory)); requireEvaluationCoverage(cells);
+		final var localProbe = cells.stream().filter(cell -> PhantomEncounterLocalSource.local(cell.scene().source())).findFirst();
+		if (localProbe.isPresent())
+		{
+			final var probe = localProbe.orElseThrow();
+			PhantomEncounterLocalSourceChecks.nativeSpawns(PhantomEncounterLocalSource.resolve(authority, probe.scene(),
+				new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(probe.x(), probe.y(), probe.z(), 0)).orElseThrow(), directory);
+		}
 		final List<Cell> selected = cells; // Every planned native cell receives the paired passive preflight.
 		for (var cell : selected)
 		{
