@@ -29,7 +29,7 @@ GUI: PASS:6реальных handlers,2окна/1Director,фактический 
 |G5|PASS_REAL_SIX_WINFORMS_HANDLERS_TWO_WINDOWS_CLOSE_INDEPENDENCE|
 |G6|FAIL_NATIVE_EVAL_ZERO_LAWFUL_CELLS_ZERO_PAIRS_NO_BEHAVIOR_VERDICT|
 |G7|FAIL_NATIVE90_LIMIT_PROOF_STOP_UNCONFIRMED_REGRESSIONS_AND_FINAL_CLEANUP_PASS|
-|G8|PENDING_SCOPED009_PUBLICATION_AND_INDEPENDENT_GITHUB_READBACK|
+|G8|PASS_SCOPED009_NON_FORCE_PUSH_INDEPENDENT39_CONTENT_BLOB_HASHES_AND_ARCHIVE_BYTES|
 
 ## Финальный итог по указанию владельца
 
@@ -50,3 +50,9 @@ Cold SQL working14 подтверждён двумя независимыми э
 Незакрыты G2/G3/G4/G6/G7: неполная lawful coverage, нет двух завершённых обученных cycles, STOP_UNCONFIRMED,0EVAL pairs и провал native90-limit proof. G0/G1/G5 подтверждены в указанном bounded scope. G8 завершается только обычной публикацией009 и независимым GitHub readback. Низкий MSE и факт Adam updates не считаются улучшением поведения. VisualStudio Designer round-trip и24h soak NOT_RUN; nightReady=false.
 
 Архив финального F-среза: SHA256 `5baed08e6749cd1964c4e260242ba3621b858e5a73ebb3bfa30620bf194e6569`, 3591637bytes/1102entries, CRC/every-entry SHA PASS. Source25 включены, raw SQL/datadir/Geo/private actor source tables не включены; реальные private credential values отсутствуют. Архив является snapshot до поздних archive/scope/publication receipts, поэтому не включает собственный hash или будущий GitHub readback.
+
+## Публикация и независимая проверка F
+
+Обычный non-force push только `wip/phantom-learning-009`: source/evidence commit `bfa68559c3ac7653e92e9ada50b33e8fef38f4dd`, parent `c36e2a2c757d1fb72f754e9710d65c5da3d1761c`. Изменены24пути внутри approved39; полный diff от008 содержит ровно39путей. GitHub branch=sourceHEAD проверен независимо, все39полных file contents сверены стандартным SHA1 Git blob hash иSHA256, включая source25 и raw ZIP. ZIP SHA256 `5baed08e6749cd1964c4e260242ba3621b858e5a73ebb3bfa30620bf194e6569`,3591637bytes/1102entries, локальныйCRC PASS. Для ZIP connector вернул только blob metadata; полные bytes прочитаны по raw URL exactcommit и hash совпал.
+
+G8 PASS для source/publication readback. Этот поздний docs-only receipt меняет только6разрешённых delivery paths, source25/ZIP/runtime не меняются. Его окончательный HEAD и изменённые blobs проверяются после push отдельным внешним receipt. Final product status остаётся PARTIAL, manual gate REQUIRED; native/model failures не превращены в PASS. Feature/master/MAIN/PLAY не публиковались.

@@ -1227,7 +1227,7 @@
     "G5": "PASS_REAL_SIX_WINFORMS_HANDLERS_TWO_WINDOWS_CLOSE_INDEPENDENCE",
     "G6": "FAIL_NATIVE_EVAL_ZERO_LAWFUL_CELLS_ZERO_PAIRS_NO_BEHAVIOR_VERDICT",
     "G7": "FAIL_NATIVE90_LIMIT_PROOF_STOP_UNCONFIRMED_REGRESSIONS_AND_FINAL_CLEANUP_PASS",
-    "G8": "PENDING_SCOPED009_PUBLICATION_AND_INDEPENDENT_GITHUB_READBACK"
+    "G8": "PASS_SCOPED009_NON_FORCE_PUSH_INDEPENDENT39_CONTENT_BLOB_HASHES_AND_ARCHIVE_BYTES"
   },
   "executionSnapshotUtc": "2026-11-14T00:14:49.225823+00:00",
   "directorSnapshot": {
@@ -2279,10 +2279,334 @@
     }
   },
   "publication": {
-    "state": "PENDING_NON_FORCE009_AND_INDEPENDENT_READBACK",
-    "previousHead": "c36e2a2c757d1fb72f754e9710d65c5da3d1761c",
+    "head": "bfa68559c3ac7653e92e9ada50b33e8fef38f4dd",
+    "parent": "c36e2a2c757d1fb72f754e9710d65c5da3d1761c",
+    "paths": [
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/AUTONOMY_PROTOCOL.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PLAN.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RUNBOOK_RU.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/TASK.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
+    ],
+    "exactTotalAllowlist": 39,
     "branch": "wip/phantom-learning-009",
-    "exactScope": 39
+    "push": "PASS_NON_FORCE",
+    "trackedClean": true,
+    "starts": 10,
+    "nativeMillis": 5803240,
+    "state": "PASS_SOURCE_PUBLICATION_AND_INDEPENDENT_READBACK",
+    "readback": {
+      "head": "bfa68559c3ac7653e92e9ada50b33e8fef38f4dd",
+      "files": [
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "sha": "6bdfcde83df620b65c64128723bb187eb296911f",
+          "bytes": 330467,
+          "sha256": "94c5405ba312da540e032d7e6200f4b826b1b6862d059b8a6b9280bc88463c94",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+          "sha": "d07b952831e2a9e128cef4a33fad0786ff5d204e",
+          "bytes": 4973,
+          "sha256": "ecb1484e4361f16c4a17bebf2eb21154677bd7f92c4bb0173a31db0fed231f1c",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md",
+          "sha": "80c6f520ec9ba2d8f102df2de123e1f0ce48d956",
+          "bytes": 32123,
+          "sha256": "fa2ccd901eac737918c474937ab78900df0c219fa0b26acdf30fb218c9dfa2d9",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md",
+          "sha": "9d58f8ffe0e185a9b85126a30b65ceac583257df",
+          "bytes": 8562,
+          "sha256": "6e1acffd865f1b0ec70f090b38a4621a937055af5e940e0bad24d9be450cc59d",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/AUTONOMY_PROTOCOL.md",
+          "sha": "95f4afd3a46707d29c9609379ee6eb60df0624cf",
+          "bytes": 9666,
+          "sha256": "7e2f26591b3fb69ed78fd0249ce1b2244acc8cd1ea04789e5a4b1dc4a249dfc6",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md",
+          "sha": "ebbb8b294f9a54934d4644103fbbb2cb062b6d1d",
+          "bytes": 8603,
+          "sha256": "5f3eb688f6f51633b3e25019f9b19626608acb9b1892987363cd2c304a8f026d",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+          "sha": "80d0b05257cb8f4ab5dcb63e9b0ddd71905257be",
+          "bytes": 98415,
+          "sha256": "c2925d25de513704994411ff47c7f44f8f46a5292948724114ed5ec68480d017",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md",
+          "sha": "e7f2d06598ac5336e6e59b3125b5fcd5f2693f56",
+          "bytes": 10946,
+          "sha256": "bcac8e250862542f21536c41265fa2c29bec6102b7c2355b288dada3e94d10f7",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PLAN.md",
+          "sha": "ffd228f668ddeb21d3c0c28422edf28c79291a7c",
+          "bytes": 47810,
+          "sha256": "fb3539d53348eaaa4a4cc30e9e47f90befb528d969d33147211f106f66c07ea7",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md",
+          "sha": "244340d3f88615263115af61dfece6b8adcc09c3",
+          "bytes": 40686,
+          "sha256": "d04515d2b216579c57023b4716226c62fffeea81207f5d5d9ba26fe28b43f86d",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md",
+          "sha": "36330f1d7eb49a3fd84ba7e34ad43eb3e12ead60",
+          "bytes": 8810,
+          "sha256": "9cf9689b93d56c2827468b31dc8ae27327304cf6ed0286be7d5c11a87d4437e8",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RUNBOOK_RU.md",
+          "sha": "6d59263045643b6b8dde05d6169dba18945833e7",
+          "bytes": 10345,
+          "sha256": "5cdefca9644fcf263cd0186a67f4dc7cd9a4ead178f362df77807b23caf43f18",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/SKILL_COVERAGE.md",
+          "sha": "cfac7e2620daaa9d6092a923a891c1e3961596cf",
+          "bytes": 1582,
+          "sha256": "075a003ba57994f35a3e2b6195dea729e0d9c95d902b3673b62643e18aef8039",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/TASK.md",
+          "sha": "e1a3e4689711098ad51df65003280579a7b19929",
+          "bytes": 46776,
+          "sha256": "aee69d94b55ede951ca3925356cb2bb14c3f42582014b1ba0a135244bba2c13b",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+          "sha": "15aec0c29c262103cc6c859d9d0f2a6b17cda9d3",
+          "bytes": 3591637,
+          "sha256": "5baed08e6749cd1964c4e260242ba3621b858e5a73ebb3bfa30620bf194e6569",
+          "contentVerified": true,
+          "readVia": "EXACT_COMMIT_RAW_GITHUB_DOWNLOAD_AND_CONNECTOR_BLOB_ID"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
+          "sha": "eaeebb77aaee040a95ce8e582d17084f6c804af4",
+          "bytes": 17450,
+          "sha256": "f62f2c33064cc68499bdf3b63d7362e50b9fdc8ffc63968c6d595f4b68585880",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
+          "sha": "18719e1bc9434fc745b69b6eddc3a494f7acfa28",
+          "bytes": 13250,
+          "sha256": "d941ba33728f0249e3c09e2d054772093ec9a742813fd37672b003ec7bdf1193",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+          "sha": "1e1f6cf7da1e405da2a72636fb6779ed214e93f7",
+          "bytes": 10415,
+          "sha256": "c54551e9063548fdf202d0a9e325e45ec31d20a9587dfbd5d49dc3110aa6556a",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "sha": "85a93696baa9c75e1c8ed3fc21c9a9ef14ca804d",
+          "bytes": 150523,
+          "sha256": "b0147c094f9012769b173e0111a9d97bd9a88e91cacc3e7b68d8c26c7c0da868",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "sha": "fa10efabeed907fadead26c0d21045731e200626",
+          "bytes": 44495,
+          "sha256": "6a4246f06259d645f9103a65c67c88d2602450604df0d84dad1344b41c2c0854",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "sha": "83b5afe98f34cb01fe3f83cc629b6b9accd9b81a",
+          "bytes": 14047,
+          "sha256": "c41560babf2b4feaf8857d93f1fb92d4b77a47a00ce6efc1de0e0e06a9d71d6b",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+          "sha": "b5e974667b15f6581e9686886ea0daa9e7a32108",
+          "bytes": 15558,
+          "sha256": "970cfb5118162f6192c18c9ada1511aa64dc5fd261843c85f22e3ec7b167852d",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+          "sha": "9c66ca292a73c84e1f1db9d156eefc7be1c4b137",
+          "bytes": 83964,
+          "sha256": "d1f65e85e970b7e95878acdb9e6f3584c872fe8f5f803aec1b134d1735fa36a6",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+          "sha": "73074c88199063b81b560632b8ded6d6e7e1c7ac",
+          "bytes": 24613,
+          "sha256": "4a1e0efc35dec5d21be39c3d9f18d3a22d7330143b4b5b42a2c76f75e553e05f",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+          "sha": "be3e886768ec48d14cee8cf1b9961b3d508582ab",
+          "bytes": 90299,
+          "sha256": "c79218e82729001192ae454d784659914e0358fc34d777c001c2413cb678e9a3",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "sha": "df3cd5bd6acc0b7f9d0f27f9deb7f4123fffb07c",
+          "bytes": 53270,
+          "sha256": "9046d07d44ff86c67c121318f98c7e545d21eaa5825a811fb51de849abd20ec1",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "sha": "6c36129fc43689c19a700a4d034934e7bcb70541",
+          "bytes": 89297,
+          "sha256": "d9d447a4247b2a5ef981508a5a26f33baea1695324249e7afd5cb7ea8696becd",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+          "sha": "659999af99c61ba61dcc938231c0e9f1c7de2900",
+          "bytes": 44160,
+          "sha256": "d9b1a508c31705f3876ca05a0d9bc22425272c4ba63328bef8c4fdcd98e68586",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "sha": "13562da77985c731adaa7bdffa98c3bc03a89ef0",
+          "bytes": 15625,
+          "sha256": "20c6309ca88afbb563281bd5e50a9fdaae459549d0584729e92fdfcfc3894ff3",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+          "sha": "cc1f4700d913333e6d42820f54d3dc84eba08806",
+          "bytes": 25128,
+          "sha256": "140c2d4d42398d9bb975297f231317169bc6f3b83848876072bc4edd17a9cb22",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+          "sha": "f640b54de95fd05a8cfe9252b74ab7f329b3aaf4",
+          "bytes": 2391,
+          "sha256": "2a257500a722d0c8988357cc3f8146eff5d1a2d144b77d4fc0a1e271b8b0ea88",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
+          "sha": "604e91bebe8ff13feeda72f0660d380c8b608ded",
+          "bytes": 13562,
+          "sha256": "7cad35c603a3c9931db00ce9a66e9ecf0087389f70e0cdfc65d299f05f62b21f",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TRAIN_GUI.cmd",
+          "sha": "1c30633105dde14151d81a3b8d4198e3f610f301",
+          "bytes": 170,
+          "sha256": "0f4aafc2dda7746bf2072e378b7ebd987a95f3d982b2b522085b26b2b2a73705",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+          "sha": "3b56cd124ce6a3644ebfa1dc5ba47a8980b8bc79",
+          "bytes": 61157,
+          "sha256": "7d39bddeb2ed514b23a72bcbae5b6e8ed54a0b4d4ad28a17484f8c549f833677",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "sha": "42c0f955e078b18d3f45744602041a103565a490",
+          "bytes": 100547,
+          "sha256": "11194516b134e045986d1478023ed8234de84fa65210f3be7075d086c3192f4a",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.Designer.cs",
+          "sha": "570c5c34babc60f617c51040b47d475284ecba8a",
+          "bytes": 5805,
+          "sha256": "6309bc126835f879dc3636c4761aef11b83b003e9e7edf85dcbcfb2530a6c5f3",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+          "sha": "e56cf7becac24c8e119593c871dea5f0633d7143",
+          "bytes": 15317,
+          "sha256": "ffd44c4226dac58982f1be521f02e10fcb9f6ec64a5eb95169399e1d8559e35f",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
+          "sha": "7e4db27a6b756837562f5d0f601ee817ad8ef4bb",
+          "bytes": 1985,
+          "sha256": "2d00a62f3ac3f17d5b756fda60d06b7e224f04bf54d12a97cd9a1a5a9c12667a",
+          "contentVerified": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+          "sha": "812cb40118d0571f3e9d5e19d6538eee95f2fb1f",
+          "bytes": 41031,
+          "sha256": "0e4d63746a325c6a81cf5899f1333a9674765cb5269432d862c1db5f2305817c",
+          "contentVerified": true
+        }
+      ],
+      "evidence": {
+        "status": "PARTIAL",
+        "productGoalComplete": false,
+        "fits": 1,
+        "model": 14,
+        "updates": 903,
+        "epochs": 223,
+        "starts": 10,
+        "chargedMillis": 5803240,
+        "evalPairs": 0,
+        "manualGate": "REQUIRED"
+      }
+    },
+    "finalDocsReceipt": "PENDING_FINAL_HEAD_EXTERNAL_READBACK",
+    "protectedFeatureHeadUnchanged": "7e997636dbac9d5e1754e00c793cd6fac858b0c6"
   },
   "gitUsage": {
     "authorizedBy": "TASK_SECTION1_AND_PROJECT_AGENTS_BOUNDED_INSPECTION_AND_EXPLICIT009_PUBLICATION",
@@ -2404,5 +2728,42 @@
     "credentialsOrDatadirIncluded": false,
     "exactCredentialValuesAbsent": true,
     "snapshotSemantics": "Pre-publication source/evidence snapshot; later archive/scope/publication receipts outside ZIP self-reference"
-  }
+  },
+  "actualAutonomousFitMetrics": {
+    "objective": "ACQUIRED_ACTION_ADVANTAGE_V2",
+    "configSha": "df46df5c067af1e108d854b3dbebf7ad36aa091279fc6b743086cf006d09c314",
+    "datasetSha": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+    "samples": 48,
+    "train": 16,
+    "tuning": 9,
+    "audit": 9,
+    "baselineData": "EXACT_CELL_TRAIN_A_ONLY_LEAVE_OWN_BLOCK_OUT_MIN3",
+    "propensity": "CONDITIONAL_ON_FROZEN_SHORTLIST_CLIPPED_IPS",
+    "classBalanced": true,
+    "maximumPaidCreditsPerEpisode": 1,
+    "counterfactualLabels": false,
+    "productionPromotion": false,
+    "epochs": 0,
+    "trainingNanos": 1047582400,
+    "tuningInitialMse": 0.012064650272281256,
+    "tuningMse": 0.012064650272281256,
+    "autonomousAuditMse": 0.014208026999193706,
+    "autonomousConstantMse": 0.01817946496704735,
+    "collectionTeacherAuditMse": 0.005066568221929007,
+    "collectionModelVersion": 12,
+    "collectionModelSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+    "parentModelVersion": 12,
+    "parentOptimizerSha": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+    "parentWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "optimizerSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+    "optimizerUpdates": 903,
+    "completedEpochs": 223,
+    "optimizerWeightsSha": "f830a1cc4ead23f36dd6153fd1d818bbb0ae3b830d9e666f1988a4c82f05e9bf",
+    "optimizerMigration": "RESTORED",
+    "usedForTraining": true,
+    "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+    "limitation": "Paid-action selection bias, reused source templates, conditional shortlist propensity and unknown whole-party economy limit causal claims; independent native evaluation remains required"
+  },
+  "noTuningCheckpointImprovement": true,
+  "auditPredictionRegressedAgainstCollectionTeacher": true
 }

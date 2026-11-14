@@ -48,6 +48,57 @@ F7: `java -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 -Dphantom.module.root=
 
 Аварийная попытка exact-process cleanup остановлена `Assert-TrainProcess` с TRAIN002_PROCESS_UNAVAILABLE до вызова Kill. Kill/TerminateProcess не выполнялись. Последующий штатный Stop подтвердил STOPPED. Exact native exit time UNKNOWN; negative gate не заменён PASS.
 
-Использованы разрешённые TASK§1/AGENTS bounded Git reads `git rev-parse HEAD`, `git symbolic-ref --short HEAD`, `git status --porcelain=v1 -z --untracked-files=all -- . ':(exclude).phantom-local'`, `git ls-tree -r HEAD -- <exact39paths>`, scoped diff check. Для разрешённой публикации будут только `git add -- <exact changed allowlist paths>`, `git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check -- <those paths>`, `git commit -m "Verify acquired TRAIN with resilient native evidence and real GUI controls"`, `git push origin HEAD:refs/heads/wip/phantom-learning-009`. Exact paths — EVIDENCE.exactAllowlist и publication receipt; никакого StageAll/force/merge/main push.
+Использованы разрешённые TASK§1/AGENTS bounded Git reads `git rev-parse HEAD`, `git symbolic-ref --short HEAD`, `git status --porcelain=v1 -z --untracked-files=all -- . ':(exclude).phantom-local'`, `git ls-tree -r HEAD -- <exact39paths>`, scoped diff check. Для разрешённой публикации выполнены `git add -- <exact changed allowlist paths>`, `git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check -- <those paths>`, `git commit -m "Verify acquired TRAIN with resilient native evidence and real GUI controls"`, `git push origin HEAD:refs/heads/wip/phantom-learning-009`. Exact paths — EVIDENCE.exactAllowlist и publication receipt; никакого StageAll/force/merge/main push.
 
 Архив финального F-среза: SHA256 `5baed08e6749cd1964c4e260242ba3621b858e5a73ebb3bfa30620bf194e6569`, 3591637bytes/1102entries, CRC/every-entry SHA PASS. Source25 включены, raw SQL/datadir/Geo/private actor source tables не включены; реальные private credential values отсутствуют. Архив является snapshot до поздних archive/scope/publication receipts, поэтому не включает собственный hash или будущий GitHub readback.
+
+## Публикация и независимая проверка F
+
+Обычный non-force push только `wip/phantom-learning-009`: source/evidence commit `bfa68559c3ac7653e92e9ada50b33e8fef38f4dd`, parent `c36e2a2c757d1fb72f754e9710d65c5da3d1761c`. Изменены24пути внутри approved39; полный diff от008 содержит ровно39путей. GitHub branch=sourceHEAD проверен независимо, все39полных file contents сверены стандартным SHA1 Git blob hash иSHA256, включая source25 и raw ZIP. ZIP SHA256 `5baed08e6749cd1964c4e260242ba3621b858e5a73ebb3bfa30620bf194e6569`,3591637bytes/1102entries, локальныйCRC PASS. Для ZIP connector вернул только blob metadata; полные bytes прочитаны по raw URL exactcommit и hash совпал.
+
+G8 PASS для source/publication readback. Этот поздний docs-only receipt меняет только6разрешённых delivery paths, source25/ZIP/runtime не меняются. Его окончательный HEAD и изменённые blobs проверяются после push отдельным внешним receipt. Final product status остаётся PARTIAL, manual gate REQUIRED; native/model failures не превращены в PASS. Feature/master/MAIN/PLAY не публиковались.
+
+Exact Git arguments source-публикации (разрешены TASK§1 и явным финальным указанием владельца):
+
+```powershell
+$paths = @(
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/AUTONOMY_PROTOCOL.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PLAN.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RUNBOOK_RU.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/TASK.md'
+    'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip'
+    'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java'
+    'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java'
+    'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java'
+    'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java'
+    'L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java'
+    'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md'
+    'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1'
+    'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1'
+    'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs'
+    'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1'
+    'L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1'
+)
+git symbolic-ref --short HEAD
+git rev-parse HEAD
+git status --porcelain=v1 --untracked-files=all -- . ':(exclude).phantom-local'
+git add -- @paths
+git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check -- @paths
+git status --porcelain=v1 --untracked-files=no
+git commit -m 'Verify acquired TRAIN with resilient native evidence and real GUI controls'
+git rev-parse HEAD
+git push origin HEAD:refs/heads/wip/phantom-learning-009
+git status --porcelain=v1 --untracked-files=no
+```
+
+Для exact39inventory отдельно выполнен `git ls-tree -r HEAD -- @allow`, где `$allow` —39module-prefixed paths из EVIDENCE.exactAllowlist; scope guard использовал `git status --porcelain=v1 -z --untracked-files=all -- . ':(exclude).phantom-local'`. На read-only main checkout только `git rev-parse HEAD` и `git symbolic-ref --short HEAD`:7e997636…/feature/phantom-world.
+
+Первая попытка source publication остановилась на diff-check до commit/push:4лишних EOF blank lines в разрешённых Markdown. Исправлены только эти окончания, negative log сохранён, повтор прошёл. Docs-only receipt использует те же scoped add/diff-check/status/commit/push commands для6paths: EVIDENCE/RESULT/ACCEPTANCE/HANDOFF/COMMANDS и полного report, commit message `Record independent Goal009 partial closure verification`. Это не новая задача и не новая native проверка.
