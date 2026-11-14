@@ -60,6 +60,51 @@ public final class PhantomAutonomousTrainingNative
 		boolean party() { return roster.size() > 1; }
 		int learnerIndex() { for (int i = 0; i < roster.size(); i++) { if (roster.get(i).seed().equals(proposal.actor())) { return i; } } throw new IllegalStateException("AUTONOMOUS_ROSTER_LEARNER_MISSING"); }
 	}
+	private record EvaluationArm(String physical, List<PhantomLearning005Evaluation.Incarnation> actors,
+		PhantomLearning005Evaluation.Incarnation target, boolean completed, List<String> events) { }
+	private static String incarnationText(PhantomLearning005Evaluation.Incarnation value)
+	{ return value.objectId() + ":" + value.epoch() + ":" + value.instance(); }
+	private static PhantomLearning005Evaluation.Incarnation decodeIncarnation(String text)
+	{ final var fields = text.split(":", -1); if (fields.length != 3) { throw new IllegalStateException("AUTONOMOUS_EVAL_ARM_CODEC"); } return new PhantomLearning005Evaluation.Incarnation(Integer.parseInt(fields[0]), Long.parseLong(fields[1]), Integer.parseInt(fields[2])); }
+	private static String encodeArm(EvaluationArm arm)
+	{
+		return "EVAL_ARM_V1\t" + arm.physical() + "\t" + arm.completed() + "\t" + (arm.target() == null ? "" : incarnationText(arm.target())) + "\n"
+			+ arm.actors().stream().map(PhantomAutonomousTrainingNative::incarnationText).collect(java.util.stream.Collectors.joining(",")) + "\n" + String.join(",", arm.events()) + "\n";
+	}
+	private static EvaluationArm decodeArm(String body)
+	{
+		final var lines = body.split("\n", -1); if (lines.length != 4 || !lines[3].isEmpty()) { throw new IllegalStateException("AUTONOMOUS_EVAL_ARM_CODEC"); }
+		final var header = lines[0].split("\t", -1);
+		if (header.length != 4 || !header[0].equals("EVAL_ARM_V1") || !Set.of("true", "false").contains(header[2]) || !header[1].matches("[A-Za-z0-9_-]{0,128}")) { throw new IllegalStateException("AUTONOMOUS_EVAL_ARM_CODEC"); }
+		final var actors = lines[1].isEmpty() ? List.<PhantomLearning005Evaluation.Incarnation>of() : java.util.Arrays.stream(lines[1].split(",")).map(PhantomAutonomousTrainingNative::decodeIncarnation).toList();
+		final var events = lines[2].isEmpty() ? List.<String>of() : List.of(lines[2].split(","));
+		if (actors.size() > 9 || actors.stream().map(PhantomLearning005Evaluation.Incarnation::objectId).distinct().count() != actors.size() || events.size() > 2048 || events.stream().distinct().count() != events.size() || events.stream().anyMatch(event -> !event.matches("[A-Za-z0-9_-]{1,128}"))) { throw new IllegalStateException("AUTONOMOUS_EVAL_ARM_CODEC"); }
+		final var arm = new EvaluationArm(header[1], actors, header[3].isEmpty() ? null : decodeIncarnation(header[3]), Boolean.parseBoolean(header[2]), events);
+		if (!encodeArm(arm).equals(body)) { throw new IllegalStateException("AUTONOMOUS_EVAL_ARM_CODEC"); } return arm;
+	}
+	private static String pairStatus(List<EvaluationArm> arms)
+	{
+		if (arms.size() != 2) { return "INCOMPLETE_ARMS"; }
+		final var a = arms.getFirst(); final var b = arms.getLast();
+		if (a.physical().isEmpty() || !a.physical().equals(b.physical())) { return "PRE_CUT_FACTS_DIFFER"; }
+		if (a.target() == null || b.target() == null || a.actors().isEmpty() || b.actors().isEmpty() || a.target().equals(b.target()) || a.actors().stream().anyMatch(x -> b.actors().stream().anyMatch(y -> x.objectId() == y.objectId()))) { return "REUSED_OR_MISSING_INCARNATION"; }
+		if (a.events().stream().anyMatch(b.events()::contains)) { return "DUPLICATED_NATIVE_EVENT"; }
+		return a.completed() && b.completed() && !a.events().isEmpty() && !b.events().isEmpty() ? "MATCHED_COMPLETED" : "MATCHED_INCOMPLETE";
+	}
+	private static long matchingRiskProfile(long first, int uncovered, int maximum)
+	{
+		if (first < 1 || first > maximum) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PROFILE_UNAVAILABLE"); }
+		final var risk = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK;
+		for (long candidate = first; candidate <= maximum && candidate - first < 512; candidate++)
+		{ if (risk.limitPercent(candidate, false) == uncovered) { return candidate; } }
+		throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PROFILE_UNAVAILABLE");
+	}
+	/** Same read-only native CUT/terminal window as the established005 evaluator. */
+	private static boolean evaluationTiming(TerminalRewardReceiptV1.NativeTiming time, long cut, long terminal, boolean linkedLethal)
+	{
+		return time != null && cut > 0 && terminal > cut && time.hpStart() >= cut && time.hpStart() <= terminal
+			&& (time.hpEnd() <= terminal || linkedLethal) && time.mpStart() >= cut && time.mpEnd() <= terminal;
+	}
 	private static Path cohort(Path root, TrainingConfig config) throws Exception
 	{
 		final Path directory = root.resolve("autonomous/v1/campaigns").resolve(config.text("autonomous009Campaign", "")).resolve("cohorts").resolve(config.text("outcome006DatasetId", ""));
@@ -89,7 +134,7 @@ public final class PhantomAutonomousTrainingNative
 		return List.copyOf(result);
 	}
 	/** Canonical acquisition is probed on fresh replicas. The cursor rotates source order between cohorts. */
-	private static List<Source> discoverSources(Path root, Path directory, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority) throws Exception
+	private static List<Source> discoverSources(Path root, Path directory, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority, java.util.function.BooleanSupplier requested) throws Exception
 	{
 		final var headers = new ArrayList<int[]>();
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement(); var rows = query.executeQuery("SELECT charId,classid FROM characters WHERE account_name='learn001fixture' AND char_name NOT LIKE 'AT%' ORDER BY classid,charId"))
@@ -100,6 +145,7 @@ public final class PhantomAutonomousTrainingNative
 		final var coverage = new ArrayList<String>();
 		for (var header : headers)
 		{
+			PhantomTrainingScenarios.requirePlanningActive(requested);
 			final int id = header[0], classId = header[1];
 			if (!config.classes().contains(classId) || sources.size() >= 64 || attempts.getOrDefault(classId, 0) >= 16
 				|| signatures.getOrDefault(classId, Set.of()).size() >= 2) { continue; }
@@ -112,7 +158,7 @@ public final class PhantomAutonomousTrainingNative
 				if (!config.levels().contains(Integer.parseInt(image.field("level")))) { continue; }
 				final String signature = image.physicalFingerprint();
 				if (signatures.getOrDefault(classId, Set.of()).contains(signature)) { continue; }
-				player = reproduce(config, image);
+				PhantomTrainingScenarios.requirePlanningActive(requested); player = reproduce(config, image);
 				final var inventory = PhantomSkillInventory.acquired(player, authority.progression());
 				final var seed = new AutonomousTrainingV1.ActorSeed(image.sha(), classId, player.getLevel(), player.getClassIndex(), inventory.abilities().stream().map(PhantomSkillInventory.Ability::skill).toList(), pools(player, inventory));
 				final var weapon = player.getActiveWeaponItem(); final var item = player.getActiveWeaponInstance();
@@ -123,13 +169,13 @@ public final class PhantomAutonomousTrainingNative
 				coverage.add("{\"source\":" + id + ",\"classId\":" + classId + ",\"inventorySha\":" + q(inventory.fingerprint()) + ",\"learned\":" + inventory.abilities().size() + ",\"status\":\"ACQUIRED\"}");
 			}
 			catch (IllegalStateException refused)
-			{ coverage.add("{\"source\":" + id + ",\"classId\":" + classId + ",\"status\":\"REJECTED\",\"reason\":" + q(safeReason(refused)) + "}"); }
+			{ PhantomTrainingScenarios.requirePlanningActive(requested); coverage.add("{\"source\":" + id + ",\"classId\":" + classId + ",\"status\":\"REJECTED\",\"reason\":" + q(safeReason(refused)) + "}"); }
 			finally { if (player != null) { player.stopAllTasks(); player.deleteMe(); } }
 		}
 		final var classes = new ArrayList<String>();
 		for (int id : PhantomSkillInventory.classIds())
 		{ classes.add("{\"classId\":" + id + ",\"sources\":" + sources.stream().filter(s -> s.seed().classId() == id).count() + ",\"status\":" + q(sources.stream().anyMatch(s -> s.seed().classId() == id) ? "NATIVE_ADMISSION_REQUIRED" : "NO_ACQUIRED_SOURCE_IN_BOUNDED_PAGE") + "}"); }
-		immutable(directory.resolve("source-coverage.json"), "{\"classes\":[" + String.join(",", classes) + "],\"sourceCursor\":" + cursor + ",\"records\":[" + String.join(",", coverage) + "]}");
+		PhantomTrainingScenarios.requirePlanningActive(requested); immutable(directory.resolve("source-coverage.json"), "{\"classes\":[" + String.join(",", classes) + "],\"sourceCursor\":" + cursor + ",\"records\":[" + String.join(",", coverage) + "]}");
 		return List.copyOf(sources);
 	}
 	private static String safeReason(Exception failure)
@@ -165,34 +211,84 @@ public final class PhantomAutonomousTrainingNative
 		final var settings = PhantomTrainingActors.settings(root); final var v1 = new LearningStore(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password"), root.resolve("game")).accepted(1);
 		if (v1 == null) { throw new IllegalStateException("AUTONOMOUS_STOCK_OBSERVER_UNAVAILABLE"); }
 		final String before = PhantomLearning005Native.trainingState(root, true);
+		boolean allSettled = true;
 		try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
-			final var sources = discoverSources(root, directory, config, authority); final var cells = planCells(directory, sources, config, authority);
+			final var sources = evaluationSources(root, directory, discoverSources(root, directory, config, authority, () -> requested(attempt)), config);
+			final var cells = planCells(directory, sources, config, authority, () -> requested(attempt)); requireEvaluationCoverage(cells);
 			immutable(directory.resolve("protocol.json"), "{\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"comparator\":" + q(AutonomousTrainingV1.COMPARATOR) + ",\"trainingStateSha\":" + q(hash(before)) + ",\"verdict\":\"INCONCLUSIVE_UNTIL_NATIVE_PAIRS\",\"trainingCredit\":false}");
+			final var paired = new ArrayList<String>(); int completedPairs = 0;
 			for (var cell : cells)
 			{
+				if (requested(attempt)) { allSettled = false; break; }
+				final var arms = new ArrayList<EvaluationArm>();
 				final var slot = new AutonomousTrainingV1.CohortSlot(cells.indexOf(cell), cell.key(), hash("EVAL/" + cell.key()), "EVAL", false);
 				for (String side : cells.indexOf(cell) % 2 == 0 ? List.of("STOCK", "LEARNED") : List.of("LEARNED", "STOCK"))
 				{
 					if (requested(attempt)) { break; }
 					final String id = hash("EVAL/" + config.text("outcome006DatasetId", "") + "/" + cell.key() + "/" + side); final var work = directory.resolve(id);
-					if (Files.exists(work)) { continue; } Files.createDirectory(work); immutable(work.resolve("reserved.json"), "{\"episode\":" + q(id) + ",\"side\":" + q(side) + ",\"split\":\"EVAL\",\"trainingCredit\":false}");
-					collectEpisode(root, attempt, config, authority, store, model, v1.model(), directory, work, id, slot, cell, side);
+					if (Files.exists(work))
+					{
+						final Path saved = work.resolve("evaluation-arm.tsv");
+						if (!Files.exists(saved)) { allSettled = false; break; }
+						if (!saved.equals(saved.toRealPath())) { throw new IllegalStateException("AUTONOMOUS_EVAL_ARM_PATH"); }
+						arms.add(decodeArm(Files.readString(saved))); continue;
+					}
+					Files.createDirectory(work); immutable(work.resolve("reserved.json"), "{\"episode\":" + q(id) + ",\"side\":" + q(side) + ",\"split\":\"EVAL\",\"trainingCredit\":false}");
+					arms.add(collectEpisode(root, attempt, config, authority, store, model, v1.model(), directory, work, id, slot, cell, side, false));
 				}
+				if (arms.size() != 2) { allSettled = false; continue; }
+				final String status = pairStatus(arms); if (status.equals("MATCHED_COMPLETED")) { completedPairs++; }
+				final String receipt = "{\"cell\":" + q(cell.key()) + ",\"direction\":" + q(evaluationDirection(cell)) + ",\"order\":" + q(cells.indexOf(cell) % 2 == 0 ? "STOCK_LEARNED" : "LEARNED_STOCK") + ",\"arms\":" + arms.size() + ",\"status\":" + q(status) + ",\"trainingCredit\":false}";
+				immutable(directory.resolve(cell.key() + ".pair.json"), receipt); paired.add(receipt);
 			}
+			if (allSettled && !requested(attempt)) { immutable(directory.resolve("evaluation-pairs.json"), "{\"completedPairs\":" + completedPairs + ",\"pairs\":[" + String.join(",", paired) + "],\"trainingCredit\":false,\"verdict\":\"INCONCLUSIVE\"}"); }
 		}
 		final String after = PhantomLearning005Native.trainingState(root, true); if (!before.equals(after)) { throw new IllegalStateException("AUTONOMOUS_EVAL_CHANGED_TRAINING_STATE"); }
 		immutable(attempt.resolve("batch.complete"), "schemaVersion=9\nevaluationOnly=true\ntrainingStateUnchanged=true\n");
-		if (!requested(attempt)) { immutable(directory.resolve("evaluation.complete"), "{\"verdict\":\"INCONCLUSIVE\",\"reason\":\"BOUNDED_NATIVE_SAMPLE_NO_PROMOTION\",\"trainingStateUnchanged\":true,\"productionPromotion\":false}"); }
+		if (allSettled && !requested(attempt)) { immutable(directory.resolve("evaluation.complete"), "{\"verdict\":\"INCONCLUSIVE\",\"reason\":\"BOUNDED_NATIVE_SAMPLE_NO_PROMOTION\",\"trainingStateUnchanged\":true,\"productionPromotion\":false}"); }
 	}
-	private static List<Cell> planCells(Path directory, List<Source> sources, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority) throws Exception
+	private static List<Source> evaluationSources(Path root, Path directory, List<Source> sources, TrainingConfig config) throws Exception
 	{
+		if (!config.text("autonomous009EvaluationOnly", "false").equals("true")) { return sources; }
+		final String campaign = config.text("autonomous009EvaluationReferenceCampaign", ""), dataset = config.text("autonomous009EvaluationReferenceDataset", "");
+		if (!campaign.matches("autonomous009-[A-Za-z0-9_-]{1,64}") || !dataset.matches("autonomous009-[A-Za-z0-9_-]{1,80}"))
+		{ throw new IllegalStateException("AUTONOMOUS_EVAL_REFERENCE_REQUIRED"); }
+		final Path reference = root.resolve("autonomous/v1/campaigns").resolve(campaign);
+		final Path cells = reference.resolve("cohorts").resolve(dataset).resolve("cells.tsv");
+		final Path pin = reference.resolve("evaluations").resolve(dataset + "-" + config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE)).resolve("protocol.json");
+		if (!cells.equals(cells.toRealPath()) || !pin.equals(pin.toRealPath())) { throw new IllegalStateException("AUTONOMOUS_EVAL_REFERENCE_PATH"); }
+		final String pinned = Files.readString(pin);
+		if (!pinned.contains("\"modelSha\":" + q(config.text("autonomous009ModelSha", "")))) { throw new IllegalStateException("AUTONOMOUS_EVAL_REFERENCE_MODEL_CHANGED"); }
+		final var excluded = new java.util.TreeSet<String>();
+		for (String line : Files.readAllLines(cells).stream().skip(1).toList())
+		{ final String[] fields = line.split("\t", -1); if (fields.length != 16) { throw new IllegalStateException("AUTONOMOUS_CELL_CODEC"); } excluded.addAll(List.of(fields[1].split(","))); }
+		if (excluded.isEmpty() || !sources.stream().map(s -> s.image().sha()).toList().containsAll(excluded)) { throw new IllegalStateException("AUTONOMOUS_EVAL_REFERENCE_SOURCES_CHANGED"); }
+		final var usedPhysical = sources.stream().filter(s -> excluded.contains(s.image().sha())).map(s -> s.image().physicalFingerprint()).collect(java.util.stream.Collectors.toSet());
+		final var independent = sources.stream().filter(s -> !excluded.contains(s.image().sha()) && !usedPhysical.contains(s.image().physicalFingerprint())).toList();
+		immutable(directory.resolve("independence.json"), "{\"referenceCampaign\":" + q(campaign) + ",\"referenceDataset\":" + q(dataset) + ",\"referenceCellsSha\":" + q(NeuralPolicy.sha256(Files.readAllBytes(cells)))
+			+ ",\"referenceModelSha\":" + q(config.text("autonomous009ModelSha", "")) + ",\"excludedSourceSnapshots\":[" + excluded.stream().map(PhantomAutonomousTrainingNative::q).collect(java.util.stream.Collectors.joining(","))
+			+ "],\"selectedSourceSnapshots\":[" + independent.stream().map(s -> q(s.image().sha())).collect(java.util.stream.Collectors.joining(",")) + "],\"authority\":\"PRE_CUT_SOURCE_PROVENANCE_ONLY\",\"trainingCredit\":false}");
+		return independent;
+	}
+	private static String evaluationDirection(Cell cell)
+	{ return (cell.party() ? "PARTY_" : "SOLO_") + cell.proposal().pool().family(); }
+	private static void requireEvaluationCoverage(List<Cell> cells)
+	{
+		final var directions = cells.stream().map(PhantomAutonomousTrainingNative::evaluationDirection).collect(java.util.stream.Collectors.toSet());
+		if (cells.stream().map(c -> c.scene().id()).distinct().count() < 2 || !directions.contains("SOLO_DAMAGE") || (!directions.contains("PARTY_HEAL") && !directions.contains("PARTY_DAMAGE")))
+		{ throw new IllegalStateException("AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE"); }
+	}
+	private static List<Cell> planCells(Path directory, List<Source> sources, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority, java.util.function.BooleanSupplier requested) throws Exception
+	{
+		PhantomTrainingScenarios.requirePlanningActive(requested);
 		final Path sealed = directory.resolve("cells.tsv");
 		if (Files.exists(sealed))
 		{
 			final var result = new ArrayList<Cell>();
 			for (String line : Files.readAllLines(sealed).subList(1, Files.readAllLines(sealed).size()))
 			{
+				PhantomTrainingScenarios.requirePlanningActive(requested);
 				final String[] f = line.split("\t", -1);
 				if (f.length != 16) { throw new IllegalStateException("AUTONOMOUS_CELL_CODEC"); }
 				final var roster = java.util.Arrays.stream(f[1].split(",")).map(sha -> sources.stream().filter(s -> s.image().sha().equals(sha)).findFirst().orElseThrow(() -> new IllegalStateException("AUTONOMOUS_SEALED_SOURCE_CHANGED"))).toList();
@@ -213,6 +309,7 @@ public final class PhantomAutonomousTrainingNative
 		for (var source : sources) { for (var pool : source.seed().supported()) { cursors.put("shortlist/" + source.seed().sourceSnapshotSha() + "/" + pool.key(), Math.multiplyExact(config.longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE), 4)); } }
 		for (int sequence = 0; sequence < 48 && planned.size() < cellLimit; sequence++)
 		{
+			PhantomTrainingScenarios.requirePlanningActive(requested);
 			final var weightedVisits = new HashMap<>(visits); final var weights = config.autonomousClassWeights();
 			for (var source : sources) { final String key = "class/" + source.seed().classId(); weightedVisits.put(key, visits.getOrDefault(key, 0L) * 1000 / weights.get(source.seed().classId())); }
 			final var next = AutonomousTrainingV1.nextCandidate(sources.stream().map(Source::seed).toList(), weightedVisits, cursors, sequence, config.seed());
@@ -238,41 +335,26 @@ public final class PhantomAutonomousTrainingNative
 					roster.remove(leader); roster.addFirst(leader);
 				}
 			}
-			final var scenes = PhantomTrainingScenarios.acquiredScenes(proposal, authority, roster.stream().map(s -> s.seed().level()).toList(), source.grade(), source.enchant(), config.seed() + config.longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE) + planned.size(), 12, sceneCounts);
 			Player probe = null;
 			try
 			{
-				probe = reproduce(config, source.image());
+				PhantomTrainingScenarios.requirePlanningActive(requested); probe = reproduce(config, source.image());
+				final Player actor = probe; final var admitted = new HashMap<String, AutonomousTrainingV1.Proposal>();
+				final var scenes = PhantomTrainingScenarios.acquiredScenes(proposal, authority, roster.stream().map(s -> s.seed().level()).toList(), source.grade(), source.enchant(), config.seed() + config.longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE) + planned.size(), 12, sceneCounts,
+					candidate -> { final var bound = admitScene(proposal, source, List.copyOf(roster), candidate, actor, refusals); bound.ifPresent(value -> admitted.put(candidate.scene().id(), value)); return bound.isPresent(); }, requested);
 				for (var candidate : scenes)
 				{
+					PhantomTrainingScenarios.requirePlanningActive(requested);
 					final var candidateScene = candidate.scene(); final var targetPoint = candidate.target();
 					var scene = candidateScene;
-					var admittedProposal = proposal;
+					final var admittedProposal = admitted.get(candidateScene.id());
 					final var geo = GeoEngine.getInstance();
 					final var target = candidate.exemplar();
 					if (!target.isSpawned() || target.isAlikeDead() || !target.getAttackByList().isEmpty() || !openingGeometry(candidateScene, targetPoint.x(), targetPoint.y(), targetPoint.z())) { continue; }
-					probe.setXYZ(target.getX() + 180, target.getY(), target.getZ());
-					probe.setCurrentHp(probe.getMaxHp()); probe.setCurrentMp(probe.getMaxMp());
 					if (proposal.pool().family() == LegalActionV3.Family.DAMAGE)
 					{
-						final Player actor = probe;
-						final var targetFacts = org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
-						final var eligible = proposal.pool().skills().stream().filter(ref -> source.inventory().abilities().stream().filter(a -> a.skill().equals(ref)).anyMatch(a -> PhantomSkillInventory.eligibility(actor, target, a, () -> true, true).ready()))
-							.filter(ref ->
-							{
-								final var combat = org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.nativePlanningCombat(actor, target, actor.getKnownSkill(ref.skillId()));
-								final var mechanics = combat.forTarget(targetFacts);
-								return mechanics != null && org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.estimateCastCycle(combat.combat(), targetFacts, mechanics).isPresent();
-							}).toList();
-						final var bound = targetBoundProposal(proposal, eligible);
-						if (bound.isEmpty()) { refusals.add("TARGET_BOUND_ALTERNATIVES:" + source.image().sha() + ":npc=" + target.getId() + ":level=" + target.getLevel() + ":eligible=" + eligible.size() + ":full=" + proposal.pool().skills().size()); continue; }
-						admittedProposal = bound.orElseThrow();
 						final String sceneId = hash(PhantomTrainingScenarios.acquiredSceneId(admittedProposal, scene.source(), scene.npc(), scene.x(), scene.y(), scene.z(), scene.grade(), scene.weaponEnchant()) + "/target/" + targetPoint);
 						scene = new PhantomTrainingScenarios.Scene(sceneId, scene.source(), scene.npc(), scene.classId(), scene.level(), scene.grade(), scene.weaponEnchant(), scene.x(), scene.y(), scene.z(), admittedProposal.shortlist().candidates().stream().map(ref -> ref.skillId()).toList(), scene.split());
-					}
-					else if (party && !targetBoundHelper(new Cell("planning", proposal, List.copyOf(roster), scene, targetPoint.x(), targetPoint.y(), targetPoint.z()), target))
-					{
-						refusals.add("TARGET_BOUND_HELPER_MAGIC_ENVELOPE:" + source.image().sha() + ":npc=" + target.getId() + ":level=" + target.getLevel()); continue;
 					}
 					final String key = hash("cell/" + planned.size() + "/" + source.image().physicalFingerprint() + "/" + proposal.pool().key() + "/" + party + "/" + scene.id());
 					cursors.put(admittedProposal.shortlistKey(), admittedProposal.shortlist().nextCursor());
@@ -287,9 +369,34 @@ public final class PhantomAutonomousTrainingNative
 			final var scene = cell.scene(); final var p = cell.proposal();
 			lines.add(String.join("\t", cell.key(), cell.roster().stream().map(s -> s.image().sha()).collect(java.util.stream.Collectors.joining(",")), p.pool().family().name(), p.pool().mode() == null ? "PARTY" : p.pool().mode().name(), p.shortlist().candidates().stream().map(r -> r.skillId() + ":" + r.skillLevel()).collect(java.util.stream.Collectors.joining(",")), Long.toString(p.shortlist().nextCursor()), p.actor().sourceSnapshotSha() + ":" + scene.id(), scene.source(), Integer.toString(scene.npc()), Integer.toString(scene.x()), Integer.toString(scene.y()), Integer.toString(scene.z()), Integer.toString(cell.x()), Integer.toString(cell.y()), Integer.toString(cell.z()), hash(config.text("autonomous009ModelSha", "") + "/" + config.episodeSeconds())));
 		}
-		immutable(sealed, String.join("\n", lines) + "\n"); immutable(directory.resolve("planning-refusals.json"), "{\"refusals\":[" + refusals.stream().map(PhantomAutonomousTrainingNative::q).collect(java.util.stream.Collectors.joining(",")) + "],\"plannedCells\":" + planned.size() + "}");
+		PhantomTrainingScenarios.requirePlanningActive(requested); immutable(sealed, String.join("\n", lines) + "\n"); immutable(directory.resolve("planning-refusals.json"), "{\"refusals\":[" + refusals.stream().map(PhantomAutonomousTrainingNative::q).collect(java.util.stream.Collectors.joining(",")) + "],\"plannedCells\":" + planned.size() + "}");
 		immutable(directory.resolve("scene-catalog-counts.json"), PhantomLearning005Evaluation.mapJson(sceneCounts));
 		return List.copyOf(planned);
+	}
+	/** The same explicit native admission runs before the bounded scene page in TRAIN and EVAL. */
+	private static java.util.Optional<AutonomousTrainingV1.Proposal> admitScene(AutonomousTrainingV1.Proposal proposal, Source source,
+		List<Source> roster, PhantomTrainingScenarios.AcquiredScene candidate, Player actor, List<String> refusals)
+	{
+		final var target = candidate.exemplar(); final var scene = candidate.scene(); final var point = candidate.target();
+		if (!target.isSpawned() || target.isAlikeDead() || !target.getAttackByList().isEmpty() || !openingGeometry(scene, point.x(), point.y(), point.z())) { return java.util.Optional.empty(); }
+		actor.setXYZ(target.getX() + 180, target.getY(), target.getZ()); actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp());
+		var admitted = java.util.Optional.of(proposal);
+		if (proposal.pool().family() == LegalActionV3.Family.DAMAGE)
+		{
+			final var targetFacts = org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.nativePlanningTarget(target, true);
+			final var eligible = proposal.pool().skills().stream().filter(ref -> source.inventory().abilities().stream().filter(a -> a.skill().equals(ref)).anyMatch(a -> PhantomSkillInventory.eligibility(actor, target, a, () -> true, true).ready()))
+				.filter(ref ->
+				{
+					final var combat = org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.nativePlanningCombat(actor, target, actor.getKnownSkill(ref.skillId()));
+					final var mechanics = combat.forTarget(targetFacts);
+					return mechanics != null && org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.estimateCastCycle(combat.combat(), targetFacts, mechanics).isPresent();
+				}).toList();
+			admitted = targetBoundProposal(proposal, eligible);
+			if (admitted.isEmpty()) { refusals.add("TARGET_BOUND_ALTERNATIVES:" + source.image().sha() + ":npc=" + target.getId() + ":level=" + target.getLevel() + ":eligible=" + eligible.size() + ":full=" + proposal.pool().skills().size()); return admitted; }
+		}
+		if (roster.size() > 1 && !targetBoundHelper(new Cell("planning", admitted.orElseThrow(), roster, scene, point.x(), point.y(), point.z()), target))
+		{ refusals.add("TARGET_BOUND_HELPER_MAGIC_ENVELOPE:" + source.image().sha() + ":npc=" + target.getId() + ":level=" + target.getLevel()); return java.util.Optional.empty(); }
+		return admitted;
 	}
 	/** Keep the complete acquired pool; only the conditional pre-CUT shortlist is target-bound. */
 	private static java.util.Optional<AutonomousTrainingV1.Proposal> targetBoundProposal(AutonomousTrainingV1.Proposal proposal,
@@ -343,7 +450,7 @@ public final class PhantomAutonomousTrainingNative
 		for (int warm = 0; warm < 2048; warm++) { model.model().score(new float[128], new float[64]); }
 		try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 		{
-			final var sources = discoverSources(root, directory, config, authority); final var cells = planCells(directory, sources, config, authority);
+			final var sources = discoverSources(root, directory, config, authority, () -> requested(attempt)); final var cells = planCells(directory, sources, config, authority, () -> requested(attempt));
 			final String jar = NeuralPolicy.sha256(Files.readAllBytes(root.resolve("game/libs/GameServer.jar")));
 			immutable(directory.resolve("protocol.json"), "{\"version\":" + q(AutonomousTrainingV1.VERSION) + ",\"objective\":\"ACQUIRED_ACTION_ADVANTAGE_V2\",\"configSha\":" + q(org.l2jmobius.gameserver.phantoms.learning.ActionAdvantageV2.CONFIG_SHA)
 				+ ",\"comparator\":" + q(AutonomousTrainingV1.COMPARATOR) + ",\"jarSha\":" + q(jar) + ",\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"parentAdamSha\":" + q(parent.sha()) + ",\"cellsSha\":" + q(NeuralPolicy.sha256(Files.readAllBytes(directory.resolve("cells.tsv")))) + ",\"explorationEpsilon\":0.25,\"nativeRng\":\"UNMODIFIED\",\"episodeSeconds\":" + config.episodeSeconds() + ",\"episodeBudget\":" + config.integer("episodesPerBatch", 48, 48, 256) + ",\"productionPromotion\":false}");
@@ -356,15 +463,25 @@ public final class PhantomAutonomousTrainingNative
 				if (Files.exists(work)) { continue; } // Reserved incarnations are never dispatched twice, including crash/partial slots.
 				Files.createDirectory(work); immutable(work.resolve("reserved.json"), "{\"episode\":" + q(id) + ",\"slot\":" + slot.ordinal() + ",\"block\":" + q(slot.block()) + ",\"split\":" + q(slot.split()) + ",\"attempt\":" + q(attempt.getFileName().toString()) + "}");
 				final var cell = cells.stream().filter(c -> c.key().equals(slot.cell())).findFirst().orElseThrow();
-				collectEpisode(root, attempt, config, authority, store, model, v1.model(), directory, work, id, slot, cell, null);
+				collectEpisode(root, attempt, config, authority, store, model, v1.model(), directory, work, id, slot, cell, null, false);
 			}
 			if (!requested(attempt)) { immutable(directory.resolve("collection.complete"), "Reserved attempts are settled or preserved; no claim of dataset sufficiency.\n"); }
 		}
 		immutable(attempt.resolve("batch.complete"), "schemaVersion=9\ncollectionOnly=true\n");
 	}
-	private static List<String[]> reproduceRoster(PhantomBackgroundSuite.ProductionAuthorityFixture authority, Cell cell, Path work, String split, TrainingConfig config) throws Exception
+	private static List<String[]> reproduceRoster(PhantomBackgroundSuite.ProductionAuthorityFixture authority, Cell cell, Path work, String split, TrainingConfig config, Path riskPin) throws Exception
 	{
 		final var profiles = PhantomProfileRepository.open();
+		final List<String[]> pinned;
+		if (riskPin != null && Files.exists(riskPin))
+		{
+			if (!riskPin.equals(riskPin.toRealPath())) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PIN_PATH"); }
+			pinned = Files.readAllLines(riskPin).stream().skip(1).map(line -> line.split("\t", -1)).toList();
+			if (pinned.size() != cell.roster().size()) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PIN_ROSTER"); }
+		}
+		else { pinned = List.of(); }
+		final var riskLines = new ArrayList<String>(); riskLines.add("role\tsourcePhysicalSha\tuncovered\tcovered");
+		final var risk = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK;
 		try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement(); var rows = query.executeQuery("SELECT GREATEST(COALESCE(MAX(profile_id),0),(SELECT COALESCE(MAX(actor_profile),0) FROM phantom_tactical_v3_events))+1,(SELECT COUNT(*) FROM characters) FROM phantom_profiles"))
 		{
 			if (!rows.next() || rows.getLong(1) + cell.roster().size() > config.integer("maxStoredProfiles", 4096, 64, 32768) || rows.getLong(2) + cell.roster().size() > config.integer("maxStoredActors", 4096, 32, 32768))
@@ -374,6 +491,18 @@ public final class PhantomAutonomousTrainingNative
 		final var roster = new ArrayList<String[]>();
 		for (var source : cell.roster())
 		{
+			long expectedProfile = 0; final int index = roster.size();
+			if (!pinned.isEmpty())
+			{
+				final String[] expected = pinned.get(index);
+				if (expected.length != 4 || !expected[0].equals(Integer.toString(index)) || !expected[1].equals(source.image().physicalFingerprint())) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PIN_ROSTER"); }
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.createStatement(); var rows = query.executeQuery("SELECT GREATEST(COALESCE(MAX(profile_id),0),(SELECT COALESCE(MAX(actor_profile),0) FROM phantom_tactical_v3_events))+1 FROM phantom_profiles"))
+				{
+					if (!rows.next()) { throw new IllegalStateException("AUTONOMOUS_ACTOR_CAPACITY"); }
+					expectedProfile = matchingRiskProfile(rows.getLong(1), Integer.parseInt(expected[2]), config.integer("maxStoredProfiles", 4096, 64, 32768) - (cell.roster().size() - index));
+					try (var alter = connection.createStatement()) { alter.executeUpdate("ALTER TABLE phantom_profiles AUTO_INCREMENT=" + expectedProfile); }
+				}
+			}
 			final var player = reproduce(config, source.image());
 			try
 			{
@@ -381,6 +510,9 @@ public final class PhantomAutonomousTrainingNative
 				// Declared scene input before preparation/CUT. No skill/item grants and no post-CUT resource writes.
 				player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.setCurrentCp(player.getMaxCp());
 				final long profile = profiles.create(player.getObjectId()).profileId();
+				final String riskLine = index + "\t" + source.image().physicalFingerprint() + "\t" + risk.limitPercent(profile, false) + "\t" + risk.limitPercent(profile, true);
+				if (!pinned.isEmpty() && (profile != expectedProfile || !riskLine.equals(String.join("\t", pinned.get(index))))) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PROFILE_CHANGED"); }
+				riskLines.add(riskLine);
 				final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
 				final var initial = planner.planInitial(profile, player, config.seed(), 1); final var baseline = (initial.ready() ? initial : planner.idleInitial(profile, player, config.seed(), 1)).goal();
 				if (baseline == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_UNAVAILABLE"); }
@@ -393,6 +525,7 @@ public final class PhantomAutonomousTrainingNative
 			}
 			finally { player.stopAllTasks(); player.deleteMe(); }
 		}
+		if (riskPin != null) { immutable(riskPin, String.join("\n", riskLines) + "\n"); }
 		immutable(work.resolve("roster.tsv"), roster.stream().map(row -> String.join("\t", row)).collect(java.util.stream.Collectors.joining("\n")) + "\n"); return List.copyOf(roster);
 	}
 	private static org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver.CapabilitySource rosterSource(Cell cell)
@@ -419,8 +552,8 @@ public final class PhantomAutonomousTrainingNative
 		}
 		final var immutable = Map.copyOf(frozen); return classId -> immutable.getOrDefault(classId, List.of());
 	}
-	private static void collectEpisode(Path root, Path attempt, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority, TacticalStoreV3 store, TacticalStoreV3.Checkpoint model, NeuralPolicy v1,
-		Path directory, Path work, String id, AutonomousTrainingV1.CohortSlot slot, Cell cell, String evaluationSide) throws Exception
+	private static EvaluationArm collectEpisode(Path root, Path attempt, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority, TacticalStoreV3 store, TacticalStoreV3.Checkpoint model, NeuralPolicy v1,
+		Path directory, Path work, String id, AutonomousTrainingV1.CohortSlot slot, Cell cell, String evaluationSide, boolean admissionOnly) throws Exception
 	{
 		final boolean evaluation = evaluationSide != null;
 		final var receipts = new ConcurrentLinkedQueue<TacticalReceiptV3>(); final var failures = new ConcurrentLinkedQueue<TacticalFailureV3>(); final var selections = new ConcurrentLinkedQueue<TrainExplorationV1.Selection>();
@@ -431,13 +564,14 @@ public final class PhantomAutonomousTrainingNative
 		final var scene = cell.scene(); final var proposal = cell.proposal(); final var family = proposal.pool().family();
 		final var source = rosterSource(cell);
 		Monster target = null; TacticalEpisodeV3 episode = null; boolean cut = false; String exclusion = "", physical = ""; final long started = System.nanoTime();
+		List<PhantomLearning005Evaluation.Incarnation> actors = List.of(); PhantomLearning005Evaluation.Incarnation targetIdentity = null;
 		List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> frozenActions = proposal.shortlist().candidates();
 		try (var runtime = new PhantomLearning001ShadowNative.Runtime(authority, root.resolve("game"), policy, attempt.resolve("stop.request"), true, config.maxActiveActors(), tactical, true, source))
 		{
 			java.util.function.Supplier<TacticalEpisodeV3> terminal = null;
 			try
 			{
-				final var roster = reproduceRoster(authority, cell, work, slot.split(), config); final var inventories = new HashMap<Long, String>();
+				final var roster = reproduceRoster(authority, cell, work, slot.split(), config, evaluation && cell.party() ? directory.resolve(cell.key() + ".risk.tsv") : null); final var inventories = new HashMap<Long, String>();
 				for (int i = 0; i < roster.size(); i++) { inventories.put(Long.parseLong(roster.get(i)[2]), cell.roster().get(i).inventory().fingerprint()); }
 				runtime.prepareAcquired(scene, roster, cell.party(), proposal.pool().mode(), proposal.shortlist().candidates(), inventories, config.preparationSeconds(), () -> requested(attempt));
 				immutable(work.resolve("shared-source.txt"), runtime.acquiredSourceFacts());
@@ -489,6 +623,11 @@ public final class PhantomAutonomousTrainingNative
 				final var facts = new java.util.TreeMap<>(PhantomLearning005Native.facts(players, target, scene, config));
 				facts.put("npcFactionIsolation", "clear=true;helpRange=" + target.getTemplate().getClanHelpRange() + ";collision=" + target.getTemplate().getCollisionRadius() + ";reserve=300");
 				facts.put("sourcePhysical", cell.roster().stream().map(s -> s.image().physicalFingerprint()).toList().toString()); facts.put("shortlist", frozenActions.toString()); facts.put("comparator", AutonomousTrainingV1.COMPARATOR);
+				if (evaluation)
+				{
+					final var risk = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK;
+					facts.put("nativeRiskThresholds", cell.party() ? roster.stream().map(row -> risk.limitPercent(Long.parseLong(row[2]), false) + ":" + risk.limitPercent(Long.parseLong(row[2]), true)).toList().toString() : "SOLO");
+				}
 				physical = hash(PhantomLearning005Evaluation.mapJson(facts));
 				immutable(work.resolve("admission-facts.json"), PhantomLearning005Evaluation.mapJson(facts));
 				if (cell.party())
@@ -498,6 +637,15 @@ public final class PhantomAutonomousTrainingNative
 				}
 				final Path match = directory.resolve(cell.key() + ".physical.sha"); if (Files.exists(match) && !Files.readString(match).equals(physical)) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER"); } immutable(match, physical);
 				immutable(work.resolve("precut.json"), "{\"comparisonCellSha\":" + q(physical) + ",\"facts\":" + PhantomLearning005Evaluation.mapJson(facts) + ",\"actorProfile\":" + roster.get(cell.learnerIndex())[2] + "}");
+				actors = players.stream().map(player -> new PhantomLearning005Evaluation.Incarnation(player.getObjectId(), org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3.epoch(player), player.getInstanceId())).toList();
+				targetIdentity = new PhantomLearning005Evaluation.Incarnation(target.getObjectId(), org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3.epoch(target), target.getInstanceId());
+				immutable(work.resolve("incarnations.tsv"), "role\tobjectId\tepoch\tinstance\n" + players.stream().map(player -> "ACTOR\t" + player.getObjectId() + "\t" + org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3.epoch(player) + "\t" + player.getInstanceId()).collect(java.util.stream.Collectors.joining("\n"))
+					+ "\nTARGET\t" + target.getObjectId() + "\t" + org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3.epoch(target) + "\t" + target.getInstanceId() + "\n");
+				if (admissionOnly)
+				{
+					if (!receipts.isEmpty() || !failures.isEmpty()) { throw new IllegalStateException("AUTONOMOUS_ADMISSION_NATIVE_ACTION_OBSERVED"); }
+					immutable(work.resolve("admission-only.json"), "{\"admitted\":true,\"afterCut\":false,\"gameServerStarted\":false,\"nativeActionsObserved\":0,\"trainingCredit\":false}"); return new EvaluationArm(physical, actors, targetIdentity, false, List.of());
+				}
 				final var window = evaluation ? null : TrainExplorationV1.ownedAutonomous(root, id, slot.block(), physical, slot.split(), slot.experimental() && config.text("autonomous009Exploration", "true").equals("true"), family, Long.parseLong(roster.get(cell.learnerIndex())[2]), model.id(), model.sha(), frozenActions, selections::add);
 				final String before = "{\"comparisonCellSha\":" + q(physical) + ",\"comparator\":" + q(AutonomousTrainingV1.COMPARATOR) + ",\"runtime\":" + runtime.outcomeBeforeFacts() + ",\"cell\":" + q(cell.key()) + "}";
 				final long generation = Long.parseLong(new String(Files.readAllBytes(root.resolve("director.json")), StandardCharsets.UTF_8).replaceAll("(?s).*\"generation\"\\s*:\\s*([0-9]+).*", "$1"));
@@ -537,6 +685,22 @@ public final class PhantomAutonomousTrainingNative
 			}
 			immutable(work.resolve("result.json"), "{\"episode\":" + q(id) + ",\"classId\":" + scene.classId() + ",\"scope\":" + q(cell.party() ? "PARTY" : "SOLO") + ",\"family\":" + q(family.name()) + ",\"split\":" + q(slot.split()) + ",\"experimental\":" + slot.experimental() + ",\"afterCut\":" + cut + ",\"outcome\":" + (episode == null ? "null" : q(episode.outcome())) + ",\"exclusion\":" + q(exclusion) + ",\"opportunities\":" + selections.size() + ",\"paidRawEffects\":" + receipts.size() + ",\"totalMillis\":" + (System.nanoTime() - started) / 1e6 + ",\"policyDiagnostics\":" + tactical.diagnostics() + ",\"policyTiming\":" + q(tactical.timing()) + "}");
 			System.out.println("AUTONOMOUS_EPISODE slot=" + slot.ordinal() + " class=" + scene.classId() + " scope=" + (cell.party() ? "PARTY" : "SOLO") + " split=" + slot.split() + " cut=" + cut + " effects=" + receipts.size() + " exclusion=" + exclusion);
+			final var paid = new ArrayList<String>();
+			if (evaluation && episode != null)
+			{
+				for (var receipt : receipts)
+				{
+					final var time = timings.get(receipt.eventKey()); final var action = receipt.attempt().selected();
+					final boolean lethal = time != null && time.lethal() && action.family() == LegalActionV3.Family.DAMAGE && episode.kills().stream().anyMatch(k -> k.targetObjectId() == action.targetObjectId() && k.spawnGeneration() == action.targetEpoch());
+					final boolean valid = evaluationTiming(time, runtime.outcomeCutNanos(), runtime.outcomeTerminalNanos(), lethal);
+					if (valid) { paid.add(receipt.eventKey()); }
+					immutable(work.resolve(receipt.eventKey() + ".evaluation-timing.json"), "{\"eventKey\":" + q(receipt.eventKey()) + ",\"included\":" + valid + ",\"cutNanos\":" + runtime.outcomeCutNanos() + ",\"terminalNanos\":" + runtime.outcomeTerminalNanos()
+						+ ",\"hpStartedNanos\":" + (time == null ? "null" : time.hpStart()) + ",\"hpFinishedNanos\":" + (time == null ? "null" : time.hpEnd()) + ",\"mpStartedNanos\":" + (time == null ? "null" : time.mpStart()) + ",\"mpFinishedNanos\":" + (time == null ? "null" : time.mpEnd()) + ",\"linkedLethal\":" + lethal + ",\"trainingCredit\":false}");
+				}
+			}
+			final var arm = new EvaluationArm(physical, actors, targetIdentity, cut && episode != null && episode.outcome().equals("COMPLETED"), List.copyOf(paid));
+			if (evaluation) { immutable(work.resolve("evaluation-arm.tsv"), encodeArm(arm)); }
+			return arm;
 		}
 		finally { if (target != null) { target.deleteMe(); } TerminalRewardReceiptV1.nativeTimingObserver(_ -> { }); final long deadline = System.nanoTime() + java.time.Duration.ofSeconds(15).toNanos(); while (!policy.stop() && System.nanoTime() < deadline) { Thread.sleep(50); } }
 	}
@@ -546,8 +710,9 @@ public final class PhantomAutonomousTrainingNative
 		{
 			if (args.length == 1 && args[0].equals("source-contract")) { sourceContract(); return; }
 			if (args.length == 2 && args[0].equals("diagnose-cohort")) { diagnoseCohort(Path.of(args[1])); return; }
-			if (args.length != 2 || !List.of("inspect", "prepare", "checkpoint").contains(args[0])) { throw new IllegalArgumentException("Ожидается inspect/prepare/checkpoint <собственная установка>."); }
-			if (args[0].equals("prepare")) { prepareSources(Path.of(args[1])); } else if (args[0].equals("checkpoint")) { checkpoint(Path.of(args[1])); } else { inspect(Path.of(args[1])); }
+			if (args.length != 2 || !List.of("inspect", "prepare", "admit-eval", "checkpoint").contains(args[0])) { throw new IllegalArgumentException("Ожидается inspect/prepare/admit-eval/checkpoint <собственная установка>."); }
+			if (args[0].equals("prepare") || args[0].equals("admit-eval")) { prepareSources(Path.of(args[1]), args[0].equals("admit-eval")); } else if (args[0].equals("checkpoint")) { checkpoint(Path.of(args[1])); } else { inspect(Path.of(args[1])); }
+			if (args[0].equals("admit-eval")) { System.exit(0); }
 		}
 		catch (Exception failure)
 		{
@@ -560,7 +725,35 @@ public final class PhantomAutonomousTrainingNative
 		}
 	}
 	/** Bounded native Player ingress before GameServer collection; originals are never loaded. */
-	private static void prepareSources(Path installation) throws Exception
+	private static void admitEvaluation(Path root, Path directory, TrainingConfig config, PhantomBackgroundSuite.ProductionAuthorityFixture authority) throws Exception
+	{
+		if (!config.text("autonomous009EvaluationOnly", "false").equals("true") || !config.text("autonomous009Exploration", "true").equals("false"))
+		{ throw new IllegalStateException("AUTONOMOUS_EVAL_ONLY_REQUIRED"); }
+		final String before = PhantomLearning005Native.trainingState(root, true); final var store = new TacticalStoreV3(root);
+		final var model = store.candidate(config.longValue("autonomous009ModelVersion", 0, 1, Long.MAX_VALUE));
+		if (model == null || !model.sha().equals(config.text("autonomous009ModelSha", ""))) { throw new IllegalStateException("AUTONOMOUS_EVAL_MODEL_CHANGED"); }
+		final var settings = PhantomTrainingActors.settings(root); final var stock = new LearningStore(settings.getProperty("URL"), settings.getProperty("Login"), settings.getProperty("Password"), root.resolve("game")).accepted(1);
+		if (stock == null) { throw new IllegalStateException("AUTONOMOUS_STOCK_OBSERVER_UNAVAILABLE"); }
+		final var sources = evaluationSources(root, directory, discoverSources(root, directory, config, authority, () -> requested(directory)), config);
+		final var cells = planCells(directory, sources, config, authority, () -> requested(directory)); requireEvaluationCoverage(cells);
+		final var selected = new ArrayList<Cell>();
+		selected.add(cells.stream().filter(c -> evaluationDirection(c).equals("SOLO_DAMAGE")).findFirst().orElseThrow());
+		selected.add(cells.stream().filter(c -> evaluationDirection(c).equals("PARTY_HEAL")).findFirst()
+			.orElseGet(() -> cells.stream().filter(c -> evaluationDirection(c).equals("PARTY_DAMAGE")).findFirst().orElseThrow()));
+		for (var cell : selected)
+		{
+			PhantomTrainingScenarios.requirePlanningActive(() -> requested(directory)); final String id = hash("ADMISSION/" + cell.key());
+			final Path work = directory.resolve(id); Files.createDirectory(work);
+			collectEpisode(root, directory, config, authority, store, model, stock.model(), directory, work, id,
+				new AutonomousTrainingV1.CohortSlot(selected.indexOf(cell), cell.key(), hash(id), "EVAL", false), cell, "STOCK", true);
+			if (!Files.exists(work.resolve("admission-only.json"))) { throw new IllegalStateException("AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE"); }
+		}
+		if (!before.equals(PhantomLearning005Native.trainingState(root, true))) { throw new IllegalStateException("AUTONOMOUS_EVAL_CHANGED_TRAINING_STATE"); }
+		immutable(directory.resolve("admission.complete.json"), "{\"admittedScenes\":2,\"directions\":[" + selected.stream().map(c -> q(evaluationDirection(c))).collect(java.util.stream.Collectors.joining(","))
+			+ "],\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"trainingStateSha\":" + q(hash(before)) + ",\"afterCut\":false,\"gameServerStarted\":false,\"trainingStateUnchanged\":true,\"trainingCredit\":false}");
+		System.out.println("AUTONOMOUS_EVAL_ADMISSION_GREEN scenes=2 gameServerStarted=false afterCut=false session=" + directory);
+	}
+	private static void prepareSources(Path installation, boolean admissionOnly) throws Exception
 	{
 		final var root = PhantomTrainingActors.physicalRoot(installation);
 		final var config = TrainingConfig.load(root.resolve("TRAIN_CONFIG.ini"));
@@ -579,7 +772,7 @@ public final class PhantomAutonomousTrainingNative
 			try (var query = connection.createStatement(); var rows = query.executeQuery("SELECT charId,classid FROM characters WHERE account_name='learn001fixture' AND char_name NOT LIKE 'AT%' ORDER BY classid,charId"))
 			{ while (rows.next()) { sourceIds.add(new int[] { rows.getInt(1), rows.getInt(2) }); } }
 		}
-		final Path directory = root.resolve("autonomous/v1/ingress"); requirePhysicalDirectory(root, directory);
+		final Path directory = admissionOnly ? new TacticalStoreV3(root).autonomousDirectory().resolve("admission") : root.resolve("autonomous/v1/ingress"); requirePhysicalDirectory(root, directory);
 		final Path session = directory.resolve(UUID.randomUUID().toString().replace("-", "")); Files.createDirectory(session);
 		final var records = new ArrayList<String>();
 		final var sourceIndex = new ArrayList<String>();
@@ -594,6 +787,7 @@ public final class PhantomAutonomousTrainingNative
 			org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
 			try (var authority = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
 			{
+				if (admissionOnly) { admitEvaluation(root, session, config, authority); return; }
 				for (var header : sourceIds)
 				{
 					final int sourceId = header[0], classId = header[1];
@@ -681,6 +875,32 @@ public final class PhantomAutonomousTrainingNative
 	}
 	private static void sourceContract()
 	{
+		final var geometryFirst = java.util.stream.IntStream.range(0, 14).boxed().toList();
+		final var lawful = PhantomTrainingScenarios.lawfulPage(geometryFirst.stream(), value -> value >= 12, 12, () -> false);
+		if (!lawful.equals(List.of(12, 13))) { throw new AssertionError("Geometric candidate cap starved later lawful native scenes"); }
+		try { PhantomTrainingScenarios.lawfulPage(geometryFirst.stream(), value -> true, 12, () -> true); throw new AssertionError("Cancelled planning returned a sealable partial page"); }
+		catch (IllegalStateException expected) { if (!"AUTONOMOUS_PLANNING_REQUESTED_DRAIN".equals(expected.getMessage())) { throw expected; } }
+		final var a = new EvaluationArm("same", List.of(new PhantomLearning005Evaluation.Incarnation(1, 1)), new PhantomLearning005Evaluation.Incarnation(2, 1), true, List.of("event-a"));
+		final var b = new EvaluationArm("same", List.of(new PhantomLearning005Evaluation.Incarnation(3, 1)), new PhantomLearning005Evaluation.Incarnation(4, 1), true, List.of("event-b"));
+		if (!pairStatus(List.of(decodeArm(encodeArm(a)), b)).equals("MATCHED_COMPLETED") || !pairStatus(List.of(decodeArm(encodeArm(a)))).equals("INCOMPLETE_ARMS"))
+		{ throw new AssertionError("Interrupted EVAL lost its immutable settled arm or counted one arm as a pair"); }
+		if (!pairStatus(List.of(a, b)).equals("MATCHED_COMPLETED") || !pairStatus(List.of(a)).equals("INCOMPLETE_ARMS")
+			|| !pairStatus(List.of(a, new EvaluationArm("risk-differs", b.actors(), b.target(), true, b.events()))).equals("PRE_CUT_FACTS_DIFFER")
+			|| !pairStatus(List.of(a, a)).equals("REUSED_OR_MISSING_INCARNATION"))
+		{ throw new AssertionError("EVAL pair count accepted a single arm, unmatched native policy or reused incarnation"); }
+		final var risk = org.l2jmobius.gameserver.phantoms.party.PhantomPartyFarmEligibility.DEFAULT_TACTICAL_RISK;
+		final int expectedRisk = risk.limitPercent(11, false); long firstProfile = 12;
+		while (risk.limitPercent(firstProfile, false) == expectedRisk) { firstProfile++; }
+		final long matchedProfile = matchingRiskProfile(firstProfile, expectedRisk, 32768);
+		if (matchedProfile < firstProfile || matchedProfile >= firstProfile + 512 || risk.limitPercent(matchedProfile, false) != expectedRisk)
+		{ throw new AssertionError("Fresh evaluation profile changed the pinned native tactical risk"); }
+		try { matchingRiskProfile(firstProfile, expectedRisk, (int) firstProfile); throw new AssertionError("Risk matching exceeded the stored profile cap"); }
+		catch (IllegalStateException expected) { if (!expected.getMessage().equals("AUTONOMOUS_EVAL_RISK_PROFILE_UNAVAILABLE")) { throw expected; } }
+		final var paidTiming = new TerminalRewardReceiptV1.NativeTiming("paid", 0, 110, 140, 105, 130, false);
+		final var lateTiming = new TerminalRewardReceiptV1.NativeTiming("late", 0, 110, 160, 105, 130, true);
+		if (!evaluationTiming(paidTiming, 100, 150, false) || evaluationTiming(lateTiming, 100, 150, false)
+			|| !evaluationTiming(lateTiming, 100, 150, true) || evaluationTiming(null, 100, 150, false))
+		{ throw new AssertionError("EVAL counted an unproven or late effect without the canonical linked lethal exception"); }
 		final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(0, 0, 0, 0);
 		final var outsideTopology = new PhantomTrainingScenarios.ClanNeighbor(400, 0, World.WORLD_Z_MAX + 1, 0, Set.of(1));
 		if (PhantomTrainingScenarios.factionClear(Set.of(1), 300, 20, point, List.of(outsideTopology))

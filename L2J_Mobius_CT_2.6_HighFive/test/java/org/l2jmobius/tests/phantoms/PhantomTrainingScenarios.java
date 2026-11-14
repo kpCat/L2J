@@ -192,6 +192,15 @@ final class PhantomTrainingScenarios
 	}
 	/** One data-selected acquired actor/roster; no class tree forecasting or gear provisioning. */
 	static record AcquiredScene(Scene scene, Monster exemplar, PhantomTopologyPoint target) { }
+	static <T> List<T> lawfulPage(java.util.stream.Stream<T> ordered, java.util.function.Predicate<T> lawful, int maximum, java.util.function.BooleanSupplier requested)
+	{
+		if (maximum < 1) { throw new IllegalArgumentException("AUTONOMOUS_SCENE_INPUT"); }
+		requirePlanningActive(requested);
+		final var result = ordered.filter(value -> { requirePlanningActive(requested); return lawful.test(value); }).limit(maximum).toList();
+		requirePlanningActive(requested); return result;
+	}
+	static void requirePlanningActive(java.util.function.BooleanSupplier requested)
+	{ if (requested.getAsBoolean()) { throw new IllegalStateException("AUTONOMOUS_PLANNING_REQUESTED_DRAIN"); } }
 	static record ClanNeighbor(int x, int y, int z, int instanceId, Set<Integer> clans)
 	{
 		ClanNeighbor(PhantomTopologyPoint point, Set<Integer> clans) { this(point.x(), point.y(), point.z(), point.instanceId(), clans); }
@@ -202,7 +211,8 @@ final class PhantomTrainingScenarios
 			&& z >= World.WORLD_Z_MIN && z <= World.WORLD_Z_MAX;
 	}
 	static List<AcquiredScene> acquiredScenes(AutonomousTrainingV1.Proposal proposal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
-		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum, Map<String, Long> diagnostics)
+		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum, Map<String, Long> diagnostics,
+		java.util.function.Predicate<AcquiredScene> lawful, java.util.function.BooleanSupplier requested)
 	{
 		if (maximum < 1 || maximum > 64 || rosterLevels.isEmpty() || !rosterLevels.contains(proposal.actor().level()) || proposal.shortlist().candidates().isEmpty())
 		{ throw new IllegalArgumentException("AUTONOMOUS_SCENE_INPUT"); }
@@ -224,6 +234,7 @@ final class PhantomTrainingScenarios
 		final var fieldsPerNpc = new java.util.HashMap<Integer, Integer>();
 		for (var npc : monsters)
 		{
+			requirePlanningActive(requested);
 			if (candidates.size() >= maximum) { break; }
 			if (!inWorldBounds(npc.getX(), npc.getY(), npc.getZ())) { diagnostics.merge("OUT_OF_WORLD_TEMPLATE_REFUSED", 1L, Long::sum); continue; }
 			diagnostics.merge("SAFE_TEMPLATE_SEEN", 1L, Long::sum);
@@ -234,6 +245,7 @@ final class PhantomTrainingScenarios
 			final var target = new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0);
 			for (var anchor : authority.topology().nearestAnchors(target, PhantomTopologyAnchorRole.FARMING, 12, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
 			{
+				requirePlanningActive(requested);
 				final var source = new PhantomDomainRef("background.farm", npc.getId() + "@" + anchor.id());
 				if (!planner.partyNativeTarget(source, npc.getId(), target)) { continue; }
 				diagnostics.merge("CANONICAL_ANCHOR_ACCEPTED", 1L, Long::sum);
@@ -249,6 +261,7 @@ final class PhantomTrainingScenarios
 				PhantomTopologyPoint isolated = null;
 				for (var desired : acquiredTargetPoints(npc, anchor, seed))
 				{
+					requirePlanningActive(requested);
 					if (!area.contains(desired) || !planner.partyNativeTarget(source, npc.getId(), desired) || point.distance3D(desired) < 100
 						|| !geo.canSeeTarget(point.x(), point.y(), point.z(), 0, desired.x(), desired.y(), desired.z(), 0)
 						|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), desired.x() + 180, desired.y(), desired.z(), 0)
@@ -268,11 +281,14 @@ final class PhantomTrainingScenarios
 				final String id = hash(acquiredSceneId(proposal, source.key(), npc.getId(), point.x(), point.y(), point.z(), grade, enchant) + "/target/" + isolated);
 				final var scene = new Scene(id, source.key(), npc.getId(), proposal.actor().classId(), proposal.actor().level(), grade, enchant,
 					point.x(), point.y(), point.z(), proposal.shortlist().candidates().stream().map(skill -> skill.skillId()).toList(), "UNASSIGNED");
-				if (candidates.putIfAbsent(id, new AcquiredScene(scene, npc, isolated)) == null)
+				final var admitted = lawfulPage(java.util.stream.Stream.of(new AcquiredScene(scene, npc, isolated)), lawful, 1, requested);
+				if (admitted.isEmpty()) { diagnostics.merge("TARGET_BOUND_SCENE_REFUSED", 1L, Long::sum); break; }
+				if (candidates.putIfAbsent(id, admitted.getFirst()) == null)
 				{ fieldsPerNpc.merge(npc.getId(), 1, Integer::sum); diagnostics.merge("ISOLATED_SCENE_ACCEPTED", 1L, Long::sum); }
 				break;
 			}
 		}
+		requirePlanningActive(requested);
 		return orderedKeys(List.copyOf(candidates.keySet()), seed, 0).stream().map(candidates::get).toList();
 	}
 	private static List<PhantomTopologyPoint> acquiredTargetPoints(Monster npc, PhantomTopologyAnchor anchor, long seed)

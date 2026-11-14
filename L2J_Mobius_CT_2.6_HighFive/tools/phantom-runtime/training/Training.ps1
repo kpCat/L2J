@@ -39,7 +39,7 @@ function Read-TrainSourceConfig {
         if($Action -in @('Start','Resume')){
             $values.autonomous009Enabled='true';$values.outcome006Enabled='true'
             if($values.autonomous009Campaign -ceq 'autonomous009-uninitialized'){$values.autonomous009Campaign='autonomous009-'+[guid]::NewGuid().ToString('N');$values.outcome006DatasetId=$values.autonomous009Campaign+'-c000001'}
-            if($values.autonomous009Phase -ceq 'OFF'){$values.autonomous009Phase='PREPARE'}
+            if($values.autonomous009Phase -ceq 'OFF'){$values.autonomous009Phase=if($values.autonomous009EvaluationOnly -ceq 'true'){'EVAL'}else{'PREPARE'}}
         }
         Assert-TrainConfig $values;return $values
     }
@@ -230,6 +230,7 @@ function Ensure-TrainStage([string]$JarSha,$Assets) {
     Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json') $script:Config
 }
 function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int]$TimeoutSeconds=600) {
+    if($script:Config.ContainsKey('autonomous009EvaluationOnly') -and $script:Config.autonomous009EvaluationOnly -ceq 'true' -and $Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train'){throw 'TRAIN010_EVAL_TRAINING_REFUSED'}
     $workerId=[guid]::NewGuid().ToString('N');$directory=Join-Path $layout.Root ('workers\'+$workerId)
     $null=[IO.Directory]::CreateDirectory($directory)
     $javaArguments=@(Get-TrainJavaArguments $Class $Arguments $layout.ClassPath $workerId ([int]$script:Config.cpuCount) ([int]$script:Config.maxHeapMb))
@@ -406,20 +407,29 @@ function Start-TrainSql($Dependencies) {
     Wait-TrainSqlReady $record
     return $record
 }
-function Stop-TrainNative([int]$Seconds) {
+function Stop-TrainNative([int]$Seconds,[Diagnostics.Process]$TrackedProcess=$null,[object]$TrackedHandle=$null) {
     $path=Join-Path $layout.Root 'native-process.json'
     if(!(Test-Path -LiteralPath $path)){return}
     $record=Read-TrainJson $path
-    if(Test-TrainProcessAbsent $record){return}
-    Assert-TrainProcess $record -Kind Native
-    $process=Get-Process -Id $record.pid -ErrorAction Stop;$handle=Hold-ProcessHandle $process
+    if($TrackedProcess){
+        if((Get-TrainHeldExitProof $record $TrackedProcess $TrackedHandle).exited){Write-TrainExitReceipt $layout $record $TrackedProcess $TrackedHandle;return}
+    }elseif(Test-TrainProcessAbsent $record){return}
+    try{Assert-TrainProcess $record -Kind Native}catch{
+        if($TrackedProcess -and (Get-TrainHeldExitProof $record $TrackedProcess $TrackedHandle).exited){Write-TrainExitReceipt $layout $record $TrackedProcess $TrackedHandle;return}
+        throw
+    }
+    $process=$TrackedProcess;$handle=$TrackedHandle;$dispose=$false
+    if(!$process){$process=Get-Process -Id $record.pid -ErrorAction Stop;$handle=Hold-ProcessHandle $process;$dispose=$true}
     try{
-        if($process.StartTime.ToUniversalTime().ToFileTimeUtc() -ne [long]$record.created){throw 'TRAIN002_TRACKED_PROCESS_IDENTITY'}
+        $null=Get-TrainHeldExitProof $record $process $handle
         Write-TrainText (Join-Path $layout.Root ('attempts\'+$record.nonce+'\stop.request')) $script:DirectorNonce
-        $deadline=[DateTime]::UtcNow.AddSeconds($Seconds)
-        do{if(Test-TrainProcessAbsent $record $process $handle){return};Publish-TrainState 'DRAINING';Start-Sleep -Milliseconds 500}while([DateTime]::UtcNow -lt $deadline)
+        $timer=[Diagnostics.Stopwatch]::StartNew()
+        do{
+            if(Test-TrainProcessAbsent $record $process $handle){Write-TrainExitReceipt $layout $record $process $handle;return}
+            Publish-TrainState 'DRAINING';Start-Sleep -Milliseconds 200
+        }while($timer.Elapsed.TotalSeconds -lt $Seconds)
         throw 'TRAIN002_NATIVE_STOP_UNCONFIRMED_SQL_RETAINED'
-    }finally{$process.Dispose()}
+    }finally{if($dispose){$process.Dispose()}}
 }
 function Reset-TrainColdBaseline {
     Assert-TrainInstallation $layout
@@ -488,13 +498,19 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha,[datetime]$BudgetDeadl
     $record=New-TrainProcessRecord $process $Dependencies.Java $attempt Native $config
     $script:NativeRecord=$record;Write-TrainJson (Join-Path $layout.Root 'native-process.json') $record
     $resources=Get-TrainProcessResources $process
+    if($script:AutonomousCheckpointContext){
+        $journal=$script:AutonomousCheckpointContext.journal
+        $reservation=Join-Path $directory 'budget-reservation.json'
+        if(Test-Path -LiteralPath $reservation){throw 'TRAIN010_NATIVE_RESERVATION_EXISTS'}
+        Write-TrainJson $reservation @{campaign=$journal.campaign;attemptId=$attempt;pid=$record.pid;created=$record.created;bootUtc=[DateTime]::FromFileTimeUtc([long]$record.created).ToString('o');reservedUtc=$journal.pendingStartedUtc;startOrdinal=$journal.starts;priorNativeMillis=$journal.nativeMillis}
+    }
     try{
     $ready=Join-Path $directory 'game.ready';$deadline=[DateTime]::UtcNow.AddSeconds([int]$script:Config.startupTimeoutSeconds)
     while(!$process.HasExited -and !(Test-Path -LiteralPath $ready)){
         $resources=Get-TrainProcessResources $process $resources
         Publish-TrainState 'NATIVE_BOOT'
         if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce}
-        if([DateTime]::UtcNow -ge $BudgetDeadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BOOT_BUDGET_DEADLINE'}
+        if([DateTime]::UtcNow -ge $BudgetDeadline -or ($script:AutonomousCheckpointContext -and $script:AutonomousCheckpointContext.timer.ElapsedMilliseconds -ge $script:AutonomousCheckpointContext.nativeBudgetMillis)){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BOOT_BUDGET_DEADLINE'}
         if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_NATIVE_BOOT_TIMEOUT'}
         Start-Sleep -Milliseconds 500
     }
@@ -512,7 +528,7 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha,[datetime]$BudgetDeadl
         Save-TrainAutonomousProgressCheckpoint
         if(Test-TrainRequest 'stop'){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce}
         if(Test-TrainRequest 'pause'){Write-TrainText (Join-Path $directory 'pause.request') $script:DirectorNonce}
-        if([DateTime]::UtcNow -ge $BudgetDeadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BUDGET_DEADLINE'}
+        if([DateTime]::UtcNow -ge $BudgetDeadline -or ($script:AutonomousCheckpointContext -and $script:AutonomousCheckpointContext.timer.ElapsedMilliseconds -ge $script:AutonomousCheckpointContext.nativeBudgetMillis)){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BUDGET_DEADLINE'}
         if([DateTime]::UtcNow -gt $deadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN002_NATIVE_BATCH_TIMEOUT'}
     }
     $exit=Get-TrackedProcessExitCode $process $handle
@@ -527,10 +543,14 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha,[datetime]$BudgetDeadl
     $script:State.batchesCompleted=[int]$script:State.batchesCompleted+1
     $script:NativeRecord=$null
     }finally{
-        $resources=Get-TrainProcessResources $process $resources
-        $resources['attemptId']=$attempt;$resources['finishedUtc']=[DateTime]::UtcNow.ToString('o')
-        Write-TrainJson (Join-Path $directory 'native-resources.json') $resources
-        $process.Dispose()
+        try{Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds) $process $handle}finally{
+            $resources=Get-TrainProcessResources $process $resources
+            $resources['attemptId']=$attempt;$resources['observedUtc']=[DateTime]::UtcNow.ToString('o');$resources['finishedUtc']=$null
+            $held=Get-TrainHeldExitProof $record $process $handle
+            if($held.exited){$resources['finishedUtc']=$held.terminatedUtc;$resources['elapsedMillis']=$held.nativeElapsedMillis;$resources['exitObserved']=$true;$resources['exitCode']=$held.exitCode}
+            Write-TrainJson (Join-Path $directory 'native-resources.json') $resources
+            $process.Dispose()
+        }
     }
 }
 function Assert-TrainAutonomousResources {
@@ -558,7 +578,9 @@ function Save-TrainAutonomousProgressCheckpoint {
 function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[string]$JournalPath) {
     Assert-TrainAutonomousResources
     $smoke=$script:Config.autonomous009AcceptanceSmoke -ceq 'true'
-    if($smoke -and ([int]$Journal.starts -ge [int]$script:Config.autonomous009SmokeMaxStarts -or [long]$Journal.nativeMillis -ge 5400000L)){throw 'TRAIN009_NATIVE_BUDGET_EXHAUSTED'}
+    $nativeLimit=if($script:Config.autonomous009EvaluationOnly -ceq 'true'){[long]$script:Config.autonomous009SmokeMaxNativeMinutes*60000L}else{5400000L}
+    $reserve=([long]$script:Config.shutdownTimeoutSeconds+30L)*1000L
+    if($smoke -and ([int]$Journal.starts -ge [int]$script:Config.autonomous009SmokeMaxStarts -or [long]$Journal.nativeMillis+$reserve -ge $nativeLimit)){throw 'TRAIN009_NATIVE_BUDGET_EXHAUSTED'}
     if($script:Config.autonomous009GuiHoldBeforeNative -ceq 'true'){
         if(!$smoke){throw 'TRAIN009_GUI_HOLD_REQUIRES_ACCEPTANCE'}
         $holdDeadline=[DateTime]::UtcNow.AddMinutes(3)
@@ -573,13 +595,24 @@ function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[strin
     if($Journal.pending){throw 'TRAIN009_PENDING_NATIVE_REQUIRES_EXIT_RECOVERY'}
     $Journal.starts=[int]$Journal.starts+1;$Journal.pending=$true;$Journal.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $JournalPath $Journal
     $timer=[Diagnostics.Stopwatch]::StartNew()
-    $script:AutonomousCheckpointContext=@{journal=$Journal;journalPath=$JournalPath;lastUtc=[DateTime]::UtcNow}
-    $deadline=if($smoke){[DateTime]::UtcNow.AddMilliseconds(5400000L-[long]$Journal.nativeMillis-([long]$script:Config.shutdownTimeoutSeconds+30L)*1000L)}else{[DateTime]::Parse($Journal.sessionStartedUtc).ToUniversalTime().AddMinutes([int]$script:Config.autonomous009DurationMinutes)}
+    $script:AutonomousCheckpointContext=@{journal=$Journal;journalPath=$JournalPath;lastUtc=[DateTime]::UtcNow;timer=$timer;nativeBudgetMillis=($nativeLimit-[long]$Journal.nativeMillis-$reserve)}
+    $deadline=if($smoke){[DateTime]::UtcNow.AddMilliseconds($nativeLimit-[long]$Journal.nativeMillis-$reserve)}else{[DateTime]::Parse($Journal.sessionStartedUtc).ToUniversalTime().AddMinutes([int]$script:Config.autonomous009DurationMinutes)}
     try{Invoke-TrainNative $Dependencies $Jar -BudgetDeadline $deadline}finally{
         Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
         $script:AutonomousCheckpointContext=$null
         $path=Join-Path $layout.Root 'native-process.json'
-        if((Test-Path -LiteralPath $path) -and (Test-TrainProcessAbsent (Read-TrainJson $path))){$Journal.nativeMillis=[long]$Journal.nativeMillis+$timer.ElapsedMilliseconds;$Journal.pending=$false;$Journal.lastAttempt=$script:State.attemptId;Write-TrainJson $JournalPath $Journal}
+        if((Test-Path -LiteralPath $path) -and (Test-TrainProcessAbsent (Read-TrainJson $path))){
+            $record=Read-TrainJson $path;$exitPath=Get-TrainExitReceiptPath $layout $record;$elapsed=[long]$timer.ElapsedMilliseconds;$proof='MONOTONIC_CONSERVATIVE'
+            if((Test-TrainExitReceipt $layout $record)){
+                $exitFact=Read-TrainJson $exitPath
+                if($exitFact.PSObject.Properties['nativeElapsedMillis']){$elapsed=[long]$exitFact.nativeElapsedMillis;$proof='OWN_HELD_HANDLE_EXIT_TIME'}
+            }
+            if($script:Config.autonomous009EvaluationOnly -ceq 'true' -and $proof -cne 'OWN_HELD_HANDLE_EXIT_TIME'){throw 'TRAIN010_NATIVE_TIME_UNKNOWN'}
+            $charge=Join-Path $layout.Root ('attempts\'+$record.nonce+'\budget-charge.json')
+            if(Test-Path -LiteralPath $charge){throw 'TRAIN010_NATIVE_CHARGE_ALREADY_RECORDED'}
+            Write-TrainJson $charge @{campaign=$Journal.campaign;attemptId=$record.nonce;pid=$record.pid;created=$record.created;chargedMillis=$elapsed;monotonicUpperMillis=$timer.ElapsedMilliseconds;proof=$proof;priorNativeMillis=$Journal.nativeMillis;maximumNativeMillis=$nativeLimit}
+            $Journal.nativeMillis=[long]$Journal.nativeMillis+$elapsed;$Journal.pending=$false;$Journal.lastAttempt=$script:State.attemptId;Write-TrainJson $JournalPath $Journal
+        }
     }
 }
 function Invoke-TrainAutonomousDirector($Dependencies,[string]$Jar) {
@@ -599,12 +632,24 @@ function Invoke-TrainAutonomousDirector($Dependencies,[string]$Jar) {
         if($journal.pending){
             $native=Join-Path $layout.Root 'native-process.json'
             if(!(Test-Path -LiteralPath $native) -or !(Test-TrainProcessAbsent (Read-TrainJson $native))){throw 'TRAIN009_PENDING_NATIVE_EXIT_UNPROVEN'}
-            $journal.nativeMillis=[long]$journal.nativeMillis+[long][Math]::Ceiling(([DateTime]::UtcNow-[DateTime]::Parse($journal.pendingStartedUtc).ToUniversalTime()).TotalMilliseconds);$journal.pending=$false;$journal.conservativeRecovery=$true
+            $elapsed=[long][Math]::Ceiling(([DateTime]::UtcNow-[DateTime]::Parse($journal.pendingStartedUtc).ToUniversalTime()).TotalMilliseconds);$exact=$false
+            $record=Read-TrainJson $native
+            if((Test-TrainExitReceipt $layout $record)){
+                $exitFact=Read-TrainJson (Get-TrainExitReceiptPath $layout $record)
+                if($exitFact.PSObject.Properties['nativeElapsedMillis'] -and [DateTime]::FromFileTimeUtc([long]$record.created) -ge [DateTime]::Parse($journal.pendingStartedUtc).ToUniversalTime()){$elapsed=[long]$exitFact.nativeElapsedMillis;$exact=$true}
+            }
+            if($script:Config.autonomous009EvaluationOnly -ceq 'true' -and !$exact){throw 'TRAIN010_PENDING_EXIT_TIME_UNPROVEN'}
+            $journal.nativeMillis=[long]$journal.nativeMillis+$elapsed;$journal.pending=$false;$journal.conservativeRecovery=!$exact
         }
     }else{
         $prior=0L;if($script:Config.ContainsKey('autonomous009PriorNativeMillis')){$prior=[long]$script:Config.autonomous009PriorNativeMillis;if($prior -lt 0 -or $prior -gt 5400000){throw 'TRAIN009_PRIOR_BUDGET_INVALID'}}
         $priorStarts=0;if($script:Config.ContainsKey('autonomous009PriorStarts')){$priorStarts=[int]$script:Config.autonomous009PriorStarts}
         $journal=[pscustomobject]@{schemaVersion=9;campaign=$campaign;jarSha=$Jar;ownerSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'owner.txt')).Hash;cycle=1;phase='NEW';dataset='';teacherVersion=0L;teacherSha='';starts=$priorStarts;nativeMillis=$prior;pending=$false;pendingStartedUtc='';lastAttempt='';conservativeRecovery=$false;sessionStartedUtc=[DateTime]::UtcNow.ToString('o');completedCycles=0;fits=0;noData=0;stagnation=0;lastCheckpoint='';lastEvaluation='';improved=$false}
+    }
+    if($script:Config.autonomous009EvaluationOnly -ceq 'true'){
+        if($journal.phase -ceq 'NEW'){$journal.phase='EVAL';$journal.dataset=$script:Config.outcome006DatasetId;$journal.teacherVersion=[long]$script:Config.autonomous009ModelVersion;$journal.teacherSha=$script:Config.autonomous009ModelSha;$journal.lastEvaluation=[pscustomobject]@{candidateVersion=$journal.teacherVersion;candidateSha=$journal.teacherSha;kind='FROZEN_EVALUATION_ONLY'}}
+        if($journal.phase -cnotin @('EVAL','EVAL_COMPLETE') -or [int]$journal.fits -ne 0){throw 'TRAIN010_EVAL_JOURNAL_SCOPE'}
+        if($journal.phase -ceq 'EVAL_COMPLETE'){Publish-TrainState 'PAUSED' 'Независимая EVAL уже завершена; повторных запусков нет.';return}
     }
     $journal.sessionStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $path $journal
     while(!(Test-TrainRequest 'stop')){
@@ -645,11 +690,21 @@ function Invoke-TrainAutonomousDirector($Dependencies,[string]$Jar) {
         }
         if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
         if($journal.phase -ceq 'EVAL'){
-            if([int]$journal.cycle % [int]$script:Config.autonomous009EvaluationEveryCycles -eq 0){
+            if($script:Config.autonomous009EvaluationOnly -ceq 'true' -or [int]$journal.cycle % [int]$script:Config.autonomous009EvaluationEveryCycles -eq 0){
                 $script:Config.autonomous009Phase='EVAL';$script:Config.autonomous009ModelVersion=[string]$journal.lastEvaluation.candidateVersion;$script:Config.autonomous009ModelSha=$journal.lastEvaluation.candidateSha;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
                 $evaluationDirectory=Join-Path $directory ('evaluations\'+$journal.dataset+'-'+$journal.lastEvaluation.candidateVersion)
                 if(!(Test-Path -LiteralPath (Join-Path $evaluationDirectory 'evaluation.complete'))){Publish-TrainState 'AUDITING' 'Независимые native A/B; без training credits.';Invoke-TrainAutonomousNative $Dependencies $Jar $journal $path}
                 if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
+            }
+            if($script:Config.autonomous009EvaluationOnly -ceq 'true'){
+                $complete=Join-Path $evaluationDirectory 'evaluation.complete';$pairPath=Join-Path $evaluationDirectory 'evaluation-pairs.json'
+                if(!(Test-Path -LiteralPath $complete) -or !(Test-Path -LiteralPath $pairPath)){throw 'TRAIN010_EVAL_PROOF_MISSING'}
+                $nativeProof=Read-TrainJson $complete;$pairs=Read-TrainJson $pairPath
+                $matched=@($pairs.pairs|Where-Object {$_.status -ceq 'MATCHED_COMPLETED'});$directions=@($matched|ForEach-Object {$_.direction})
+                $ab=@($matched|Where-Object {$_.order -ceq 'STOCK_LEARNED'}).Count;$ba=@($matched|Where-Object {$_.order -ceq 'LEARNED_STOCK'}).Count
+                if($nativeProof.trainingStateUnchanged -ne $true -or [int]$pairs.completedPairs -ne $matched.Count -or $matched.Count -lt 2 -or $ab -ne $ba -or
+                   $directions -cnotcontains 'SOLO_DAMAGE' -or ($directions -cnotcontains 'PARTY_HEAL' -and $directions -cnotcontains 'PARTY_DAMAGE')){throw 'TRAIN010_EVAL_MATCHED_PAIR_COVERAGE'}
+                $journal.phase='EVAL_COMPLETE';Write-TrainJson $path $journal;Publish-TrainState 'PAUSED' 'Независимая EVAL завершена без обучения и изменения cycle pointer.';return
             }
             $journal.phase='CHECKPOINT';Write-TrainJson $path $journal
         }
@@ -1129,7 +1184,7 @@ try {
                     $jar=Ensure-TrainBuild $dependencies
                     $assets=Get-TrainAssets;Ensure-TrainStage $jar $assets
                     $script:SqlRecord=Start-TrainSql $dependencies
-                    $operation=if($Action -eq 'Prepare'){'prepare'}else{'inspect'}
+                    $operation=if($Action -eq 'Prepare' -and $script:Config.autonomous009EvaluationOnly -ceq 'true'){'admit-eval'}elseif($Action -eq 'Prepare'){'prepare'}else{'inspect'}
                     Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @($operation,$layout.Root)
                 }elseif($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){
                     Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @($Action.ToLowerInvariant(),$layout.Root)

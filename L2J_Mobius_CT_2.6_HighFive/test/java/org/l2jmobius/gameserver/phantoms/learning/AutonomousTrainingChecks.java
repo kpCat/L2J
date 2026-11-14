@@ -218,6 +218,18 @@ public final class AutonomousTrainingChecks
 			java.nio.file.Files.writeString(path, body + "autonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=10\nautonomous009SmokeMaxNativeMinutes=90\nautonomous009PriorStarts=6\nautonomous009PriorNativeMillis=2231818\nautonomous009GuiHoldBeforeNative=true\n", java.nio.charset.StandardCharsets.UTF_8);
 			final var extended = TrainingConfig.load(path);
 			check(extended.integer("autonomous009SmokeMaxStarts", 6, 6, 10) == 10 && extended.longValue("autonomous009PriorNativeMillis", 0, 0, 5400000) == 2231818, "Explicit budget extension reset cumulative native usage");
+			final String evaluation = body + "autonomous009EvaluationOnly=true\nautonomous009Exploration=false\nautonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=3\nautonomous009SmokeMaxNativeMinutes=45\n";
+			java.nio.file.Files.writeString(path, evaluation, java.nio.charset.StandardCharsets.UTF_8);
+			final var bounded = TrainingConfig.load(path);
+			check(bounded.text("autonomous009EvaluationOnly", "false").equals("true") && bounded.integer("autonomous009SmokeMaxStarts", 3, 1, 3) == 3, "Bounded independent evaluation3/45 rejected");
+			for (String invalidEvaluation : List.of(evaluation.replace("EvaluationOnly=true", "EvaluationOnly=TRUE"), evaluation.replace("Phase=OFF", "Phase=FIT"), evaluation.replace("Exploration=false", "Exploration=true"),
+				evaluation.replace("AcceptanceSmoke=true", "AcceptanceSmoke=false"), evaluation.replace("MaxStarts=3", "MaxStarts=4"), evaluation.replace("MaxStarts=3", "MaxStarts=0"), evaluation.replace("MaxNativeMinutes=45", "MaxNativeMinutes=46"),
+				evaluation.replace("MaxNativeMinutes=45", "MaxNativeMinutes=0"), evaluation.replace("EvaluationOnly=true", "EvaluationOnly=false"), evaluation + "autonomous009EvaluationEveryCycles=2\n"))
+			{
+				java.nio.file.Files.writeString(path, invalidEvaluation, java.nio.charset.StandardCharsets.UTF_8);
+				boolean rejected = false; try { TrainingConfig.load(path); } catch (IllegalArgumentException expected) { rejected = true; }
+				check(rejected, "Evaluation-only scope/budget or legacy bound was weakened");
+			}
 			for (String invalidBudget : List.of("autonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=11\n", "autonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=10\nautonomous009SmokeMaxNativeMinutes=91\n", "autonomous009PriorStarts=11\n", "autonomous009GuiHoldBeforeNative=true\n"))
 			{
 				java.nio.file.Files.writeString(path, body + invalidBudget, java.nio.charset.StandardCharsets.UTF_8);

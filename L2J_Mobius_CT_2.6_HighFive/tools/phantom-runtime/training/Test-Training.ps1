@@ -356,8 +356,17 @@ if($Action -eq 'Test-CimExitRace'){
                 }
                 Write-TrainExitReceipt $fixture $entry.record $child $entry.handle 'short-lived-powershell'
                 Require (Test-TrainExitReceipt $fixture $entry.record) 'EXIT_RECEIPT_NOT_VERIFIED'
+                $exitFact=Read-TrainJson (Get-TrainExitReceiptPath $fixture $entry.record)
+                Require ($null -ne $exitFact.PSObject.Properties['terminatedUtc'] -and $null -ne $exitFact.PSObject.Properties['nativeElapsedMillis']) 'EXACT_NATIVE_EXIT_TIME_MISSING'
+                Require ([DateTime]::Parse($exitFact.terminatedUtc).ToUniversalTime().ToFileTimeUtc() -eq $child.ExitTime.ToUniversalTime().ToFileTimeUtc()) 'EXIT_TIME_IS_OBSERVATION_TIME'
+                Require ([long]$exitFact.nativeElapsedMillis -eq [long][Math]::Ceiling(($child.ExitTime.ToUniversalTime()-$child.StartTime.ToUniversalTime()).TotalMilliseconds)) 'NATIVE_ELAPSED_INCLUDES_OBSERVER_DELAY'
                 $receipt=Get-TrainExitReceiptPath $fixture $entry.record;$before=[IO.File]::ReadAllText($receipt);$tampered=Read-TrainJson $receipt;$tampered.created=[long]$tampered.created+1;Write-TrainJson $receipt $tampered
                 Require (!(Test-TrainExitReceipt $fixture $entry.record)) 'STALE_FILETIME_RECEIPT_ACCEPTED'
+                Write-TrainText $receipt $before
+                foreach($change in @(@{nativeElapsedMillis=$null},@{nativeElapsedMillis=-1},@{nativeElapsedMillis=([long]$exitFact.nativeElapsedMillis+1)},@{terminatedUtc='unknown'})){
+                    $invalid=ConvertFrom-Json $before;foreach($key in $change.Keys){$invalid.$key=$change[$key]};Write-TrainJson $receipt $invalid
+                    Require (!(Test-TrainExitReceipt $fixture $entry.record)) ('UNKNOWN_EXIT_TIME_ACCEPTED:'+($change.Keys -join ','))
+                }
                 Write-TrainText $receipt $before
                 $null=Get-TrainProcessResources $child
                 Require ((Get-TrainHeldExitProof $entry.record $child $entry.handle).exitCode -eq 7) 'REFRESH_LOST_HELD_EXIT'
@@ -506,6 +515,13 @@ if ($Action -eq 'Test-Config') {
     foreach($entry in @{autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='10';autonomous009SmokeMaxNativeMinutes='90';autonomous009PriorStarts='6';autonomous009PriorNativeMillis='2231818'}.GetEnumerator()){$extended[$entry.Key]=$entry.Value}
     Assert-TrainConfig $extended
     $extended.autonomous009GuiHoldBeforeNative='true';Assert-TrainConfig $extended
+    $evalOnly=@{};foreach($key in $profile.Keys){$evalOnly[$key]=[string]$profile[$key]}
+    foreach($entry in @{autonomous009EvaluationOnly='true';autonomous009Exploration='false';autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='3';autonomous009SmokeMaxNativeMinutes='45';autonomous009Phase='OFF'}.GetEnumerator()){$evalOnly[$entry.Key]=$entry.Value}
+    Assert-TrainConfig $evalOnly
+    foreach($change in @(@{autonomous009Phase='COLLECT'},@{autonomous009Phase='FIT'},@{autonomous009SmokeMaxStarts='4'},@{autonomous009SmokeMaxNativeMinutes='46'},@{autonomous009EvaluationEveryCycles='2'})){
+        $invalid=@{};foreach($key in $evalOnly.Keys){$invalid[$key]=[string]$evalOnly[$key]};foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
+        Reject {Assert-TrainConfig $invalid} ('EVALUATION_ONLY_SCOPE_ACCEPTED:'+($change.Keys -join ','))
+    }
     Require ($extended.autonomous009PriorStarts -ceq '6' -and $extended.autonomous009PriorNativeMillis -ceq '2231818') 'EXTENDED_BUDGET_RESET_PRIOR_USAGE'
     foreach($change in @(@{autonomous009Version='2'},@{autonomous009MinLevel='22'},@{autonomous009MemoryBudgetMb='4096'},@{autonomous009ClassWeights='999:3'},@{episodesPerBatch='50'},@{autonomous009PriorStarts='11'},@{autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='11'},@{autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='10';autonomous009SmokeMaxNativeMinutes='91'},@{autonomous009GuiHoldBeforeNative='true'})){
         $invalid=@{};foreach($key in $auto.Keys){$invalid[$key]=[string]$auto[$key]};foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
@@ -522,7 +538,7 @@ if ($Action -eq 'Test-Config') {
     Require ($precut.settled -eq 1 -and $precut.completed -eq 0 -and $precut.failed -eq 0 -and $precut.paidEffects -eq 0 -and $precut.classes.Count -eq 0) 'PRE_CUT_STATUS_INVENTED_EFFECTS'
     $native=Get-TrainEpisodeSummary @($refused,[pscustomobject]@{classId=94;afterCut=$true;outcome='COMPLETED';paidRawEffects=2},[pscustomobject]@{classId=110;afterCut=$true;outcome='FAILED';paidRawEffects=0}) 3
     Require ($native.attempted -eq 3 -and $native.settled -eq 3 -and $native.completed -eq 1 -and $native.failed -eq 1 -and $native.paidEffects -eq 2 -and ($native.classes -join ',') -ceq '94,110') 'MIXED_COHORT_STATUS_INCORRECT'
-    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=9 heartbeat=3 episodeSummary=3 extendedBudget=10/90 SQL=0 NATIVE=0'
+    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=9 heartbeat=3 episodeSummary=3 extendedBudget=10/90 evalOnlyBudget=3/45 evalOnlyInvalid=5 SQL=0 NATIVE=0'
     return
 }
 # Authorized OWN disposable TEST fault only: active package TEST_CASES.md T08/T14

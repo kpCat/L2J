@@ -29,7 +29,9 @@ function Get-TrainHeldExitProof($Record,[Diagnostics.Process]$Process,[object]$H
        $Process.Id -ne $Record.pid -or $Process.StartTime.ToUniversalTime().ToFileTimeUtc() -ne [long]$Record.created){throw 'TRAIN002_TRACKED_PROCESS_IDENTITY'}
     $exited=$Process.HasExited;$exit=$null
     if($exited){$exit=Get-TrackedProcessExitCode $Process $Handle}
-    return [ordered]@{pid=$Record.pid;created=$Record.created;exited=$exited;exitCode=$exit}
+    $terminated=$null;$elapsed=$null
+    if($exited){$terminated=$Process.ExitTime.ToUniversalTime();$elapsed=[long][Math]::Ceiling(($terminated-$Process.StartTime.ToUniversalTime()).TotalMilliseconds);if($elapsed -lt 0){throw 'TRAIN010_NATIVE_TIME_UNKNOWN'}}
+    return [ordered]@{pid=$Record.pid;created=$Record.created;exited=$exited;exitCode=$exit;terminatedUtc=$(if($exited){$terminated.ToString('o')}else{$null});nativeElapsedMillis=$elapsed}
 }
 function Test-TrainTerminatedCimRace([Management.Automation.ErrorRecord]$Failure,$Record,[Diagnostics.Process]$Process,[object]$Handle) {
     if($Failure.Exception.GetType().FullName -cne 'Microsoft.Management.Infrastructure.CimException' -or
@@ -52,7 +54,9 @@ function Write-TrainExitReceipt($Layout,$Record,[Diagnostics.Process]$Process,[o
     if(!$held.exited){throw 'TRAIN002_EXIT_RECEIPT_PROCESS_LIVE'}
     Assert-TrainHash $Record.image $Record.imageHash
     if($Record.configPath){Assert-TrainHash $Record.configPath $Record.configHash}
-    $fact=[ordered]@{schemaVersion=1;proof='OWN_HELD_HANDLE_EXIT';installationOwner=[IO.File]::ReadAllText((Join-Path $Layout.Root 'owner.txt'));exitCode=$held.exitCode;finishedUtc=[DateTime]::UtcNow.ToString('o')}
+    $receiptPath=Get-TrainExitReceiptPath $Layout $Record
+    if(Test-Path -LiteralPath $receiptPath){if(!(Test-TrainExitReceipt $Layout $Record)){throw 'TRAIN010_EXIT_RECEIPT_CHANGED'};return}
+    $fact=[ordered]@{schemaVersion=1;proof='OWN_HELD_HANDLE_EXIT';installationOwner=[IO.File]::ReadAllText((Join-Path $Layout.Root 'owner.txt'));exitCode=$held.exitCode;finishedUtc=[DateTime]::UtcNow.ToString('o');terminatedUtc=$held.terminatedUtc;nativeElapsedMillis=$held.nativeElapsedMillis}
     foreach($key in @('pid','created','image','imageHash','sid','nonce','kind','commandHash','configPath','configHash')){$fact[$key]=$Record.$key}
     if($Class){$fact['class']=$Class}
     if($Record.kind -ceq 'Native'){$fact['attemptId']=$Record.nonce}
@@ -67,6 +71,15 @@ function Test-TrainExitReceipt($Layout,$Record) {
     if($fact.schemaVersion -ne 1 -or $fact.proof -cne 'OWN_HELD_HANDLE_EXIT' -or $fact.installationOwner -cne [IO.File]::ReadAllText((Join-Path $Layout.Root 'owner.txt')) -or $fact.exitCode -isnot [int]){return $false}
     foreach($key in @('pid','created','image','imageHash','sid','nonce','kind','commandHash','configPath','configHash')){
         if(!$fact.PSObject.Properties[$key] -or [string]$fact.$key -cne [string]$Record.$key){return $false}
+    }
+    $hasTime=$null -ne $fact.PSObject.Properties['terminatedUtc'] -or $null -ne $fact.PSObject.Properties['nativeElapsedMillis']
+    if($hasTime){
+        if($null -eq $fact.PSObject.Properties['terminatedUtc'] -or $null -eq $fact.PSObject.Properties['nativeElapsedMillis'] -or
+           ($fact.nativeElapsedMillis -isnot [int] -and $fact.nativeElapsedMillis -isnot [long]) -or [long]$fact.nativeElapsedMillis -lt 0){return $false}
+        $terminated=[DateTime]::MinValue
+        if(![DateTime]::TryParseExact([string]$fact.terminatedUtc,'o',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind,[ref]$terminated) -or $terminated.Kind -ne [DateTimeKind]::Utc){return $false}
+        try{$started=[DateTime]::FromFileTimeUtc([long]$Record.created)}catch{return $false}
+        if($terminated -lt $started -or [long]$fact.nativeElapsedMillis -ne [long][Math]::Ceiling(($terminated-$started).TotalMilliseconds)){return $false}
     }
     return $true
 }
@@ -204,6 +217,9 @@ function Assert-TrainAutonomousConfig($Values) {
     }
     $bounds=@{autonomous009Version=@(1,1);autonomous009MinLevel=@(1,85);autonomous009MaxLevel=@(1,85);autonomous009MemoryBudgetMb=@(1536,131072);autonomous009DurationMinutes=@(1,10080);autonomous009CheckpointMinutes=@(1,1440);autonomous009ReplayCapacity=@(48,512);autonomous009EvaluationEveryCycles=@(1,100);autonomous009StagnationLimit=@(3,3);autonomous009NoDataLimit=@(1,16);autonomous009CycleLimit=@(0,1000000);autonomous009SourceCursor=@(0,[long]::MaxValue)}
     foreach($key in $bounds.Keys){$number=0L;if(![long]::TryParse([string]$Values[$key],[ref]$number) -or $number -lt $bounds[$key][0] -or $number -gt $bounds[$key][1]){throw ('TRAIN009_CONFIG_RANGE:'+ $key)}}
+    if(!$Values.ContainsKey('autonomous009EvaluationOnly')){$Values.autonomous009EvaluationOnly='false'}
+    if($Values.autonomous009EvaluationOnly -cnotin @('true','false')){throw 'TRAIN010_EVAL_BOOLEAN'}
+    if($Values.autonomous009EvaluationOnly -ceq 'true' -and ($Values.autonomous009Phase -cnotin @('OFF','EVAL') -or $Values.autonomous009Exploration -cne 'false' -or $Values.autonomous009AcceptanceSmoke -cne 'true' -or [int]$Values.autonomous009EvaluationEveryCycles -ne 1)){throw 'TRAIN010_EVALUATION_ONLY_SCOPE'}
     if(!$Values.ContainsKey('autonomous009GuiHoldBeforeNative')){$Values.autonomous009GuiHoldBeforeNative='false'}
     foreach($key in @('autonomous009Enabled','autonomous009Exploration','autonomous009AcceptanceSmoke','autonomous009GuiHoldBeforeNative')){if($Values[$key] -cnotin @('true','false')){throw ('TRAIN009_CONFIG_BOOLEAN:'+ $key)}}
     if($Values.autonomous009GuiHoldBeforeNative -ceq 'true' -and $Values.autonomous009AcceptanceSmoke -cne 'true'){throw 'TRAIN009_GUI_HOLD_REQUIRES_ACCEPTANCE'}
@@ -236,7 +252,10 @@ function Assert-TrainAutonomousConfig($Values) {
     }
     if($Values.autonomous009AcceptanceSmoke -ceq 'true'){
         $starts=0
-        if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 6 -or $starts -gt 10 -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90'){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
+        if($Values.autonomous009EvaluationOnly -ceq 'true'){
+            $minutes=0
+            if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 1 -or $starts -gt 3 -or ![int]::TryParse([string]$Values.autonomous009SmokeMaxNativeMinutes,[ref]$minutes) -or $minutes -lt 1 -or $minutes -gt 45){throw 'TRAIN010_EVALUATION_BUDGET'}
+        }elseif(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 6 -or $starts -gt 10 -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90'){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
     }
 }
 function Assert-TrainConfig($Values) {

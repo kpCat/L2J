@@ -130,8 +130,13 @@ public final class TrainingConfig
 		if (!text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR) || !text("v3Enabled", "false").equals("true")
 			|| !Set.of("OFF", "PREPARE", "COLLECT", "FIT", "EVAL").contains(text("autonomous009Phase", "OFF")))
 		{ throw new IllegalArgumentException("Не совпадают автономная версия, comparator или V3 phase."); }
-		for (String flag : List.of("autonomous009Enabled", "autonomous009Exploration", "autonomous009AcceptanceSmoke", "autonomous009GuiHoldBeforeNative"))
+		for (String flag : List.of("autonomous009Enabled", "autonomous009Exploration", "autonomous009AcceptanceSmoke", "autonomous009GuiHoldBeforeNative", "autonomous009EvaluationOnly"))
 		{ if (!Set.of("true", "false").contains(text(flag, flag.equals("autonomous009Exploration") ? "true" : "false"))) { throw new IllegalArgumentException("Неверный автономный флаг: " + flag); } }
+		final boolean evaluationOnly = text("autonomous009EvaluationOnly", "false").equals("true");
+		if (evaluationOnly && (!Set.of("OFF", "EVAL").contains(text("autonomous009Phase", "OFF")) || !text("autonomous009Exploration", "true").equals("false") || !text("autonomous009AcceptanceSmoke", "false").equals("true")))
+		{ throw new IllegalArgumentException("Независимая EVAL допускает только OFF/EVAL без exploration и с отдельным acceptance budget."); }
+		if (evaluationOnly && integer("autonomous009EvaluationEveryCycles", 1, 1, 100) != 1)
+		{ throw new IllegalArgumentException("Независимая EVAL требует отдельный единственный evaluation cycle."); }
 		if (text("autonomous009GuiHoldBeforeNative", "false").equals("true") && !text("autonomous009AcceptanceSmoke", "false").equals("true"))
 		{ throw new IllegalArgumentException("Проверка GUI до native разрешена только в acceptance smoke."); }
 		if (text("autonomous009Enabled", "false").equals("true"))
@@ -157,7 +162,10 @@ public final class TrainingConfig
 		integer("autonomous009CycleLimit", 0, 0, 1000000); longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE);
 		integer("cpuBudgetPercent", 75, 1, 100);
 		if (text("autonomous009AcceptanceSmoke", "false").equals("true"))
-		{ integer("autonomous009SmokeMaxStarts", 6, 6, 10); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
+		{
+			if (evaluationOnly) { integer("autonomous009SmokeMaxStarts", 3, 1, 3); integer("autonomous009SmokeMaxNativeMinutes", 45, 1, 45); }
+			else { integer("autonomous009SmokeMaxStarts", 6, 6, 10); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
+		}
 		autonomousClassWeights(); autonomousFamilies();
 	}
 	public Map<Integer, Integer> autonomousClassWeights()
