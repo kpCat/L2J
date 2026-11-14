@@ -901,6 +901,10 @@ public final class PhantomAutonomousTrainingNative
 		if (!evaluationTiming(paidTiming, 100, 150, false) || evaluationTiming(lateTiming, 100, 150, false)
 			|| !evaluationTiming(lateTiming, 100, 150, true) || evaluationTiming(null, 100, 150, false))
 		{ throw new AssertionError("EVAL counted an unproven or late effect without the canonical linked lethal exception"); }
+		final var offsets = PhantomTrainingScenarios.acquiredTargetOffsets();
+		if (offsets.size() > 400 || !offsets.contains(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(600, 200, 0, 0))
+			|| offsets.stream().anyMatch(p -> Math.hypot(p.x(), p.y()) > org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
+		{ throw new AssertionError("Sparse placement page missed an in-bound lawful pocket or exceeded the ordinary acquisition bound"); }
 		final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(0, 0, 0, 0);
 		final var outsideTopology = new PhantomTrainingScenarios.ClanNeighbor(400, 0, World.WORLD_Z_MAX + 1, 0, Set.of(1));
 		if (PhantomTrainingScenarios.factionClear(Set.of(1), 300, 20, point, List.of(outsideTopology))

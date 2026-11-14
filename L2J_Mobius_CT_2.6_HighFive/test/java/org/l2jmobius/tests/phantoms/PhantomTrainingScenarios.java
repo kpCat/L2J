@@ -295,20 +295,34 @@ final class PhantomTrainingScenarios
 	{
 		if (npc.getTemplate().getClans() == null || npc.getTemplate().getClans().isEmpty()) { return List.of(new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0)); }
 		final var result = new ArrayList<PhantomTopologyPoint>(); final var geo = GeoEngine.getInstance();
+		for (var offset : acquiredTargetOffsets())
+		{
+			final int x = anchor.point().x() + offset.x(), y = anchor.point().y() + offset.y();
+			if (!geo.hasGeo(x, y)) { continue; }
+			final int z = geo.getHeight(x, y, npc.getZ());
+			if (!inWorldBounds(x, y, z)) { continue; }
+			final var point = new PhantomTopologyPoint(x, y, z, 0);
+			if (point.distance3D(anchor.point()) <= PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE && Math.abs((long) point.z() - anchor.point().z()) <= 200) { result.add(point); }
+		}
+		return result.stream().sorted(Comparator.comparing(point -> hash(seed + "/isolated-target/" + point))).toList();
+	}
+	static List<PhantomTopologyPoint> acquiredTargetOffsets()
+	{
+		final var result = new ArrayList<PhantomTopologyPoint>();
 		for (int radius : List.of(400, 700, 1000))
 		{
 			for (int dx = -1; dx <= 1; dx++) { for (int dy = -1; dy <= 1; dy++)
 			{
-				if (dx == 0 && dy == 0) { continue; }
-				final int x = anchor.point().x() + dx * radius, y = anchor.point().y() + dy * radius;
-				if (!geo.hasGeo(x, y)) { continue; }
-				final int z = geo.getHeight(x, y, npc.getZ());
-				if (!inWorldBounds(x, y, z)) { continue; }
-				final var point = new PhantomTopologyPoint(x, y, z, 0);
-				if (point.distance3D(anchor.point()) <= PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE && Math.abs((long) point.z() - anchor.point().z()) <= 200) { result.add(point); }
+				if (dx != 0 || dy != 0) { result.add(new PhantomTopologyPoint(dx * radius, dy * radius, 0, 0)); }
 			} }
 		}
-		return result.stream().sorted(Comparator.comparing(point -> hash(seed + "/isolated-target/" + point))).toList();
+		// Bounded geometric coverage only: every point still passes the same live guards.
+		final int bound = PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE;
+		for (int x = -bound; x <= bound; x += 200) { for (int y = -bound; y <= bound; y += 200)
+		{
+			if ((x != 0 || y != 0) && Math.hypot(x, y) <= bound) { result.add(new PhantomTopologyPoint(x, y, 0, 0)); }
+		} }
+		return result.stream().filter(point -> Math.hypot(point.x(), point.y()) <= bound).distinct().toList();
 	}
 	/** Conservative pre-CUT placement proof. Native faction AI and all post-CUT threats remain ordinary. */
 	static boolean factionClear(Set<Integer> clans, int helpRange, int collision, PhantomTopologyPoint point, List<ClanNeighbor> neighbors)
