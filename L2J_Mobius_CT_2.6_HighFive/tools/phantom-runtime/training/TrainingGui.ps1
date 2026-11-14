@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Root,[switch]$CompileOnly)
+param([string]$Root,[switch]$CompileOnly,[string]$SmokeControl)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'TrainingOwner.ps1')
@@ -20,4 +20,10 @@ if(Test-Path -LiteralPath $assembly){
 }
 if($CompileOnly){Write-Output ('TRAIN009_GUI_COMPILE_GREEN '+$assembly);return}
 # The visible application is a WinForms executable; PowerShell remains a short launcher.
-Start-Process -FilePath $assembly -ArgumentList @(('"'+(Join-Path $PSScriptRoot 'Training.ps1')+'"'),('"'+$layout.Root+'"')) -WindowStyle Normal | Out-Null
+$arguments=@(('"'+(Join-Path $PSScriptRoot 'Training.ps1')+'"'),('"'+$layout.Root+'"'))
+if($SmokeControl){
+    Assert-TrainDirectory $SmokeControl
+    if([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($SmokeControl)) -cne (Join-Path $layout.Root 'gui-smoke')){throw 'TRAIN009_GUI_SMOKE_OWN_DIRECTORY_REQUIRED'}
+    $arguments+=@('--smoke-control',('"'+$SmokeControl+'"'))
+}
+Start-Process -FilePath $assembly -ArgumentList $arguments -WindowStyle Normal | Out-Null

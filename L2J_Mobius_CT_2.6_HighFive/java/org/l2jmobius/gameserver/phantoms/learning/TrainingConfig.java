@@ -130,8 +130,10 @@ public final class TrainingConfig
 		if (!text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR) || !text("v3Enabled", "false").equals("true")
 			|| !Set.of("OFF", "PREPARE", "COLLECT", "FIT", "EVAL").contains(text("autonomous009Phase", "OFF")))
 		{ throw new IllegalArgumentException("Не совпадают автономная версия, comparator или V3 phase."); }
-		for (String flag : List.of("autonomous009Enabled", "autonomous009Exploration", "autonomous009AcceptanceSmoke"))
+		for (String flag : List.of("autonomous009Enabled", "autonomous009Exploration", "autonomous009AcceptanceSmoke", "autonomous009GuiHoldBeforeNative"))
 		{ if (!Set.of("true", "false").contains(text(flag, flag.equals("autonomous009Exploration") ? "true" : "false"))) { throw new IllegalArgumentException("Неверный автономный флаг: " + flag); } }
+		if (text("autonomous009GuiHoldBeforeNative", "false").equals("true") && !text("autonomous009AcceptanceSmoke", "false").equals("true"))
+		{ throw new IllegalArgumentException("Проверка GUI до native разрешена только в acceptance smoke."); }
 		if (text("autonomous009Enabled", "false").equals("true"))
 		{
 			if (!text("configProfile", "").equals("OUTCOME006") || !text("outcome006Enabled", "false").equals("true") || !text("v3Terminal006", "false").equals("true")
@@ -149,13 +151,13 @@ public final class TrainingConfig
 		integer("autonomous009DurationMinutes", 1440, 1, 10080); integer("autonomous009CheckpointMinutes", 15, 1, 1440);
 		integer("autonomous009ReplayCapacity", 128, 48, 512); integer("autonomous009EvaluationEveryCycles", 1, 1, 100);
 		integer("autonomous009StagnationLimit", 3, 3, 3); integer("autonomous009NoDataLimit", 3, 1, 16);
-		integer("autonomous009PriorStarts", 0, 0, 6); longValue("autonomous009PriorNativeMillis", 0, 0, 5400000);
+		integer("autonomous009PriorStarts", 0, 0, 10); longValue("autonomous009PriorNativeMillis", 0, 0, 5400000);
 		if (integer("episodesPerBatch", 48, 48, 256) % 12 != 0 || integer("episodesPerBatch", 48, 48, 256) > integer("autonomous009ReplayCapacity", 128, 48, 512))
 		{ throw new IllegalArgumentException("Автономный batch должен вмещаться в replay и состоять из полных12-slot cells."); }
 		integer("autonomous009CycleLimit", 0, 0, 1000000); longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE);
 		integer("cpuBudgetPercent", 75, 1, 100);
 		if (text("autonomous009AcceptanceSmoke", "false").equals("true"))
-		{ integer("autonomous009SmokeMaxStarts", 6, 6, 6); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
+		{ integer("autonomous009SmokeMaxStarts", 6, 6, 10); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
 		autonomousClassWeights(); autonomousFamilies();
 	}
 	public Map<Integer, Integer> autonomousClassWeights()

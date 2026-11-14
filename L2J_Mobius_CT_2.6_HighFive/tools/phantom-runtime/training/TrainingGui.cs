@@ -14,9 +14,11 @@ namespace PhantomTraining
         [STAThread]
         private static void Main(string[] args)
         {
-            if (args.Length != 2) throw new ArgumentException("Запустите TRAIN_GUI.cmd из собственной TEST-копии.");
+            if (args.Length != 2 && (args.Length != 4 || args[2] != "--smoke-control")) throw new ArgumentException("Запустите TRAIN_GUI.cmd из собственной TEST-копии.");
             Application.EnableVisualStyles();
-            var window = new TrainingForm(); window.Configure(args[0], args[1]); Application.Run(window);
+            var window = new TrainingForm(); window.Configure(args[0], args[1]);
+            if (args.Length == 4) window.ConfigureSmokeControl(args[3]);
+            Application.Run(window);
         }
     }
     // This window is a CLI client. The existing broker owns the detached Director.
@@ -31,6 +33,10 @@ namespace PhantomTraining
         private Task<string> statusOutput;
         private Task<string> statusError;
         private readonly JavaScriptSerializer serializer = new JavaScriptSerializer();
+        private string smokeControl;
+        private string smokeRequestId;
+        private string smokeAction;
+        private string lastSmokeRequest;
         public TrainingForm() { InitializeComponent(); }
         public void Configure(string scriptPath, string installation)
         {
@@ -53,6 +59,56 @@ namespace PhantomTraining
                 if (command != null) command.Dispose();
                 if (status != null) status.Dispose();
             };
+        }
+        // Opt-in integration smoke inside this real form; normal GUI never reads a control file.
+        public void ConfigureSmokeControl(string directory)
+        {
+            string full = Path.GetFullPath(directory);
+            string parent = Path.Combine(root, "gui-smoke");
+            Guid nonce;
+            if (!String.Equals(Path.GetDirectoryName(full), parent, StringComparison.OrdinalIgnoreCase)
+                || !Guid.TryParseExact(Path.GetFileName(full), "N", out nonce) || !Directory.Exists(full)
+                || !File.ReadAllText(Path.Combine(root, "owner.txt")).StartsWith("LEARNING002:", StringComparison.Ordinal))
+                throw new ArgumentException("Для GUI smoke нужен собственный частный каталог.");
+            for (var item = new DirectoryInfo(full); item != null && item.FullName.StartsWith(root, StringComparison.OrdinalIgnoreCase); item = item.Parent)
+                if ((item.Attributes & FileAttributes.ReparsePoint) != 0) throw new ArgumentException("GUI smoke не поддерживает перенаправленный каталог.");
+            Directory.CreateDirectory(Path.Combine(full, "responses")); smokeControl = full;
+        }
+        private void CompleteSmoke(int exitCode, string output, object facts, int cliPid)
+        {
+            if (smokeRequestId == null) return;
+            var receipt = new Dictionary<string, object> {
+                {"id", smokeRequestId}, {"action", smokeAction}, {"exitCode", exitCode}, {"output", output}, {"facts", facts},
+                {"guiPid", Process.GetCurrentProcess().Id}, {"cliPid", cliPid}, {"utc", DateTime.UtcNow.ToString("o")},
+                {"guiCreatedUtc", Process.GetCurrentProcess().StartTime.ToUniversalTime().ToString("o")},
+                {"invokedVia", smokeAction == "Close" ? "FORM_CLOSE" : "WINFORMS_BUTTON_PERFORMCLICK"}, {"stateCaption", stateLabel.Text}
+            };
+            string target = Path.Combine(smokeControl, "responses", smokeRequestId + ".json");
+            string pending = target + ".pending";
+            File.WriteAllText(pending, serializer.Serialize(receipt), new UTF8Encoding(false)); File.Move(pending, target);
+            smokeRequestId = null; smokeAction = null;
+        }
+        private void SmokeTick()
+        {
+            if (smokeControl == null || smokeRequestId != null || command != null || status != null) return;
+            string path = Path.Combine(smokeControl, "request.json");
+            if (!File.Exists(path)) return;
+            var request = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
+            string id = FactText(request, "id"); Guid parsed;
+            if (id == lastSmokeRequest) return;
+            if (!Guid.TryParseExact(id, "N", out parsed)) throw new ArgumentException("Некорректный GUI smoke request.");
+            smokeRequestId = id; lastSmokeRequest = id; smokeAction = FactText(request, "action");
+            switch (smokeAction)
+            {
+                case "Start": startButton.PerformClick(); break;
+                case "Pause": pauseButton.PerformClick(); break;
+                case "Stop": stopButton.PerformClick(); break;
+                case "Resume": resumeButton.PerformClick(); break;
+                case "Status": refreshButton.PerformClick(); break;
+                case "Export": exportButton.PerformClick(); break;
+                case "Close": CompleteSmoke(0, "Closed without sending Stop", null, 0); Close(); break;
+                default: CompleteSmoke(1, "Unsupported smoke command", null, 0); break;
+            }
         }
         private Process Launch(string action, bool json)
         {
@@ -77,7 +133,7 @@ namespace PhantomTraining
                 SetCommandButtons(false);
                 messageLabel.Text = "Команда выполняется: " + Caption(action);
             }
-            catch (Exception error) { messageLabel.Text = "Не удалось передать команду: " + error.Message; }
+            catch (Exception error) { messageLabel.Text = "Не удалось передать команду: " + error.Message; CompleteSmoke(1, error.Message, null, 0); }
         }
         private void PollStatus()
         {
@@ -96,6 +152,7 @@ namespace PhantomTraining
             {
                 messageLabel.Text = command.ExitCode == 0 ? "Команда принята. Обновляю состояние." : "Команда завершилась с ошибкой; подробности ниже.";
                 logBox.AppendText(commandOutput.Result + Environment.NewLine + commandError.Result + Environment.NewLine);
+                if (smokeRequestId != null && smokeAction != "Status") CompleteSmoke(command.ExitCode, commandOutput.Result + commandError.Result, null, command.Id);
                 command.Dispose(); command = null; SetCommandButtons(true);
             }
             if (status != null && status.HasExited && statusOutput.IsCompleted && statusError.IsCompleted)
@@ -129,11 +186,13 @@ namespace PhantomTraining
                     if (episodes != null) report.AppendLine("Попыток текущего cohort: " + FactText(episodes, "attempted") + " · завершённых: " + FactText(episodes, "completed") + " · проигранных: " + FactText(episodes, "failed") + " · settled: " + FactText(episodes, "settled") + " · paid effects: " + FactText(episodes, "paidEffects"));
                     report.AppendLine("TRAIN / TUNING / AUDIT / EVAL хранятся раздельно. Неизвестные метрики показываются как «нет данных».");
                     detailsBox.Text = report.ToString();
+                    if (smokeAction == "Status") CompleteSmoke(0, statusOutput.Result, facts, status.Id);
                 }
-                catch (Exception error) { stateLabel.Text = "Не удалось подтвердить состояние"; messageLabel.Text = error.Message; }
+                catch (Exception error) { stateLabel.Text = "Не удалось подтвердить состояние"; messageLabel.Text = error.Message; if (smokeAction == "Status") CompleteSmoke(1, error.Message, null, status.Id); }
                 finally { status.Dispose(); status = null; }
             }
-            PollStatus();
+            SmokeTick();
+            if (!IsDisposed) PollStatus();
         }
         private void SetCommandButtons(bool enabled)
         { startButton.Enabled = pauseButton.Enabled = stopButton.Enabled = resumeButton.Enabled = exportButton.Enabled = enabled; }
@@ -154,6 +213,7 @@ namespace PhantomTraining
                 case "CHECKPOINTING": return "Сохранение checkpoint"; case "PAUSED": return "Пауза"; case "STOPPED": return "Остановлен";
                 case "STOPPING": case "DRAINING": return "Безопасная остановка"; case "FAILED": return "Ошибка";
                 case "RESOURCE_LIMIT": return "Лимит ресурсов"; case "INSUFFICIENT_EVIDENCE": return "Недостаточно независимых данных"; case "STALE": return "Состояние устарело";
+                case "GUI_HOLD": return "Проверка интерфейса до native";
                 default: return value;
             }
         }

@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.l2jmobius.gameserver.config.RatesConfig;
@@ -14,6 +15,7 @@ import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
@@ -189,33 +191,52 @@ final class PhantomTrainingScenarios
 		});
 	}
 	/** One data-selected acquired actor/roster; no class tree forecasting or gear provisioning. */
-	static List<Scene> acquiredScenes(AutonomousTrainingV1.Proposal proposal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
-		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum)
+	static record AcquiredScene(Scene scene, Monster exemplar, PhantomTopologyPoint target) { }
+	static record ClanNeighbor(int x, int y, int z, int instanceId, Set<Integer> clans)
+	{
+		ClanNeighbor(PhantomTopologyPoint point, Set<Integer> clans) { this(point.x(), point.y(), point.z(), point.instanceId(), clans); }
+	}
+	static boolean inWorldBounds(int x, int y, int z)
+	{
+		return x >= World.WORLD_X_MIN && x <= World.WORLD_X_MAX && y >= World.WORLD_Y_MIN && y <= World.WORLD_Y_MAX
+			&& z >= World.WORLD_Z_MIN && z <= World.WORLD_Z_MAX;
+	}
+	static List<AcquiredScene> acquiredScenes(AutonomousTrainingV1.Proposal proposal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
+		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum, Map<String, Long> diagnostics)
 	{
 		if (maximum < 1 || maximum > 64 || rosterLevels.isEmpty() || !rosterLevels.contains(proposal.actor().level()) || proposal.shortlist().candidates().isEmpty())
 		{ throw new IllegalArgumentException("AUTONOMOUS_SCENE_INPUT"); }
 		final var band = acquiredLevelBand(rosterLevels);
 		final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
-		final var geo = GeoEngine.getInstance(); final var candidates = new LinkedHashMap<String, Scene>();
+		final var geo = GeoEngine.getInstance(); final var candidates = new LinkedHashMap<String, AcquiredScene>();
+		// Planning points may cross World-region boundaries. Snapshot the full current faction census here;
+		// the actual clone still performs a fresh native-region check immediately before CUT.
+		final var factionNeighbors = World.getInstance().getVisibleObjects().stream().filter(Attackable.class::isInstance).map(Attackable.class::cast)
+			.filter(other -> other.isSpawned() && !other.isAlikeDead() && other.getInstanceId() == 0 && other.getTemplate().getClans() != null && !other.getTemplate().getClans().isEmpty())
+			.map(other -> new ClanNeighbor(other.getX(), other.getY(), other.getZ(), 0, other.getTemplate().getClans())).toList();
 		// Order by frozen identity/seed, never by outcomes, score or speed of an easy victory.
 		final var monsters = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
 			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && !npc.isAggressive() && !npc.isRaid() && !npc.isChampion()
 				&& npc.isTargetable() && !npc.isInvul() && !npc.hasMinions() && npc.getLeader() == null
-				&& (npc.getTemplate().getClans() == null || npc.getTemplate().getClans().isEmpty()) && npc.getSpawn() != null && npc.getSpawn().getRespawnMaxDelay() > 0)
+				&& npc.getSpawn() != null && npc.getSpawn().getRespawnMaxDelay() > 0)
 			.sorted(Comparator.comparing((Monster npc) -> hash(seed + "/" + npc.getId() + "/" + npc.getX() + "/" + npc.getY() + "/" + npc.getZ()))
 				.thenComparingInt(Monster::getId).thenComparingInt(Monster::getObjectId)).toList();
 		final var fieldsPerNpc = new java.util.HashMap<Integer, Integer>();
 		for (var npc : monsters)
 		{
 			if (candidates.size() >= maximum) { break; }
+			if (!inWorldBounds(npc.getX(), npc.getY(), npc.getZ())) { diagnostics.merge("OUT_OF_WORLD_TEMPLATE_REFUSED", 1L, Long::sum); continue; }
+			diagnostics.merge("SAFE_TEMPLATE_SEEN", 1L, Long::sum);
 			if (fieldsPerNpc.getOrDefault(npc.getId(), 0) >= 2 || !band.contains(npc.getLevel()) || !geo.hasGeo(npc.getX(), npc.getY())
 				|| !PhantomCombatPolicy.farmRewardAvailable(proposal.actor().level() - npc.getLevel(), RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE,
 					npc.getExpReward(proposal.actor().level()), npc.getSpReward(proposal.actor().level()))) { continue; }
+			diagnostics.merge("LEVEL_REWARD_GEO_ACCEPTED", 1L, Long::sum);
 			final var target = new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0);
 			for (var anchor : authority.topology().nearestAnchors(target, PhantomTopologyAnchorRole.FARMING, 12, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
 			{
 				final var source = new PhantomDomainRef("background.farm", npc.getId() + "@" + anchor.id());
 				if (!planner.partyNativeTarget(source, npc.getId(), target)) { continue; }
+				diagnostics.merge("CANONICAL_ANCHOR_ACCEPTED", 1L, Long::sum);
 				final var area = authority.topology().findNode(anchor.nodeId()).orElseThrow().area(); final var point = preparationPoint(anchor);
 				if (!geo.hasGeo(point.x(), point.y()) || geo.getHeight(point.x(), point.y(), point.z()) != point.z() || !area.contains(point)
 					|| org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(point.x(), point.y(), point.z(), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null
@@ -224,15 +245,73 @@ final class PhantomTrainingScenarios
 					|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), target.x(), target.y(), target.z(), 0)
 					|| !geo.canMoveToTarget(target.x(), target.y(), target.z(), point.x(), point.y(), point.z(), 0)) { continue; }
 				try { PhantomLearning001ActorFixture.requireSafePartySpawn(point.x(), point.y(), point.z()); }
-				catch (IllegalStateException unsafe) { continue; }
-				final String id = acquiredSceneId(proposal, source.key(), npc.getId(), point.x(), point.y(), point.z(), grade, enchant);
-				if (candidates.putIfAbsent(id, new Scene(id, source.key(), npc.getId(), proposal.actor().classId(), proposal.actor().level(), grade, enchant,
-					point.x(), point.y(), point.z(), proposal.shortlist().candidates().stream().map(skill -> skill.skillId()).toList(), "UNASSIGNED")) == null)
-				{ fieldsPerNpc.merge(npc.getId(), 1, Integer::sum); }
+				catch (IllegalStateException unsafe) { diagnostics.merge("ANCHOR_AGGRO_REFUSED", 1L, Long::sum); continue; }
+				PhantomTopologyPoint isolated = null;
+				for (var desired : acquiredTargetPoints(npc, anchor, seed))
+				{
+					if (!area.contains(desired) || !planner.partyNativeTarget(source, npc.getId(), desired) || point.distance3D(desired) < 100
+						|| !geo.canSeeTarget(point.x(), point.y(), point.z(), 0, desired.x(), desired.y(), desired.z(), 0)
+						|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), desired.x() + 180, desired.y(), desired.z(), 0)
+						|| !geo.canMoveToTarget(desired.x() + 180, desired.y(), desired.z(), desired.x(), desired.y(), desired.z(), 0)
+						|| !geo.canMoveToTarget(desired.x(), desired.y(), desired.z(), desired.x() + 180, desired.y(), desired.z(), 0)
+						|| !geo.hasGeo(desired.x() + 180, desired.y()) || geo.getHeight(desired.x() + 180, desired.y(), desired.z()) != desired.z()
+						|| !factionClear(npc.getTemplate().getClans(), npc.getTemplate().getClanHelpRange(), npc.getTemplate().getCollisionRadius(), desired, factionNeighbors)) { continue; }
+					try
+					{
+						PhantomLearning001ActorFixture.requireSafePartySpawn(desired.x() + 180, desired.y(), desired.z());
+						PhantomLearning001ActorFixture.requireSafePartySpawn(desired.x() + 180 + (rosterLevels.size() - 1) * 20, desired.y(), desired.z());
+					}
+					catch (IllegalStateException unsafe) { continue; }
+					isolated = desired; break;
+				}
+				if (isolated == null) { diagnostics.merge("NO_ISOLATED_TARGET_POINT", 1L, Long::sum); continue; }
+				final String id = hash(acquiredSceneId(proposal, source.key(), npc.getId(), point.x(), point.y(), point.z(), grade, enchant) + "/target/" + isolated);
+				final var scene = new Scene(id, source.key(), npc.getId(), proposal.actor().classId(), proposal.actor().level(), grade, enchant,
+					point.x(), point.y(), point.z(), proposal.shortlist().candidates().stream().map(skill -> skill.skillId()).toList(), "UNASSIGNED");
+				if (candidates.putIfAbsent(id, new AcquiredScene(scene, npc, isolated)) == null)
+				{ fieldsPerNpc.merge(npc.getId(), 1, Integer::sum); diagnostics.merge("ISOLATED_SCENE_ACCEPTED", 1L, Long::sum); }
 				break;
 			}
 		}
 		return orderedKeys(List.copyOf(candidates.keySet()), seed, 0).stream().map(candidates::get).toList();
+	}
+	private static List<PhantomTopologyPoint> acquiredTargetPoints(Monster npc, PhantomTopologyAnchor anchor, long seed)
+	{
+		if (npc.getTemplate().getClans() == null || npc.getTemplate().getClans().isEmpty()) { return List.of(new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0)); }
+		final var result = new ArrayList<PhantomTopologyPoint>(); final var geo = GeoEngine.getInstance();
+		for (int radius : List.of(400, 700, 1000))
+		{
+			for (int dx = -1; dx <= 1; dx++) { for (int dy = -1; dy <= 1; dy++)
+			{
+				if (dx == 0 && dy == 0) { continue; }
+				final int x = anchor.point().x() + dx * radius, y = anchor.point().y() + dy * radius;
+				if (!geo.hasGeo(x, y)) { continue; }
+				final int z = geo.getHeight(x, y, npc.getZ());
+				if (!inWorldBounds(x, y, z)) { continue; }
+				final var point = new PhantomTopologyPoint(x, y, z, 0);
+				if (point.distance3D(anchor.point()) <= PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE && Math.abs((long) point.z() - anchor.point().z()) <= 200) { result.add(point); }
+			} }
+		}
+		return result.stream().sorted(Comparator.comparing(point -> hash(seed + "/isolated-target/" + point))).toList();
+	}
+	/** Conservative pre-CUT placement proof. Native faction AI and all post-CUT threats remain ordinary. */
+	static boolean factionClear(Set<Integer> clans, int helpRange, int collision, PhantomTopologyPoint point, List<ClanNeighbor> neighbors)
+	{
+		if (clans == null || clans.isEmpty()) { return true; }
+		final long radius = Math.addExact(Math.addExact((long) helpRange, collision), 300L);
+		if (helpRange < 0 || collision < 0) { throw new IllegalArgumentException("Invalid native faction radius"); }
+		return neighbors.stream().noneMatch(other -> other.instanceId() == point.instanceId() && other.clans().stream().anyMatch(clans::contains)
+			&& Math.hypot((long) other.x() - point.x(), (long) other.y() - point.y()) <= radius);
+	}
+	static boolean factionIsolated(Monster exemplar, PhantomTopologyPoint point, Monster ignored)
+	{
+		final var template = exemplar.getTemplate(); if (template.getClans() == null || template.getClans().isEmpty()) { return true; }
+		final int queryRange = Math.addExact(PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE * 2 + 900, Math.addExact(template.getClanHelpRange(), template.getCollisionRadius()));
+		final var neighbors = new ArrayList<>(World.getInstance().getVisibleObjectsInRange(exemplar, Attackable.class, queryRange).stream()
+			.filter(other -> other != ignored && other.isSpawned() && !other.isAlikeDead() && other.getInstanceId() == point.instanceId())
+			.map(other -> new ClanNeighbor(other.getX(), other.getY(), other.getZ(), other.getInstanceId(), other.getTemplate().getClans() == null ? Set.of() : other.getTemplate().getClans())).toList());
+		if (exemplar != ignored) { neighbors.add(new ClanNeighbor(exemplar.getX(), exemplar.getY(), exemplar.getZ(), exemplar.getInstanceId(), template.getClans())); }
+		return factionClear(template.getClans(), template.getClanHelpRange(), template.getCollisionRadius(), point, neighbors);
 	}
 	/** Dispatch identity contains source binding; the separate pre-CUT comparison key excludes incarnation IDs. */
 	static PhantomPartyFarmEligibility.NpcLevelBand acquiredLevelBand(List<Integer> levels)

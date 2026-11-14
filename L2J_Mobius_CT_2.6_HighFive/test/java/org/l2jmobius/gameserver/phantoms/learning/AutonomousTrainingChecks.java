@@ -215,6 +215,15 @@ public final class AutonomousTrainingChecks
 			final var config = TrainingConfig.load(path);
 			check(config.autonomousConfigured() && config.classes().size() == PlayerClass.values().length && config.levels().equals(List.of(20, 21)), "Automatic classes/level interval is still a manual class list");
 			check(config.autonomousClassWeights().get(88) == 3 && config.autonomousClassWeights().get(94) == 1, "Class distribution lost requested/default weight");
+			java.nio.file.Files.writeString(path, body + "autonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=10\nautonomous009SmokeMaxNativeMinutes=90\nautonomous009PriorStarts=6\nautonomous009PriorNativeMillis=2231818\nautonomous009GuiHoldBeforeNative=true\n", java.nio.charset.StandardCharsets.UTF_8);
+			final var extended = TrainingConfig.load(path);
+			check(extended.integer("autonomous009SmokeMaxStarts", 6, 6, 10) == 10 && extended.longValue("autonomous009PriorNativeMillis", 0, 0, 5400000) == 2231818, "Explicit budget extension reset cumulative native usage");
+			for (String invalidBudget : List.of("autonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=11\n", "autonomous009AcceptanceSmoke=true\nautonomous009SmokeMaxStarts=10\nautonomous009SmokeMaxNativeMinutes=91\n", "autonomous009PriorStarts=11\n", "autonomous009GuiHoldBeforeNative=true\n"))
+			{
+				java.nio.file.Files.writeString(path, body + invalidBudget, java.nio.charset.StandardCharsets.UTF_8);
+				boolean rejected = false; try { TrainingConfig.load(path); } catch (IllegalArgumentException expected) { rejected = true; }
+				check(rejected, "Unauthorized starts/minutes exceeded the explicit cumulative bound");
+			}
 			for (String invalid : List.of(body.replace("MinLevel=20", "MinLevel=22"), body.replace("MemoryBudgetMb=8192", "MemoryBudgetMb=4096"), body.replace("ClassWeights=88:3", "ClassWeights=999:3")))
 			{
 				java.nio.file.Files.writeString(path, invalid, java.nio.charset.StandardCharsets.UTF_8);

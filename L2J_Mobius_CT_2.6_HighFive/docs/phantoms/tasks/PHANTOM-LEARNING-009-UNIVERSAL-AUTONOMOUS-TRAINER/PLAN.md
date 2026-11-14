@@ -1,5 +1,15 @@
 # PHANTOM-LEARNING-009 — проект решения и PLAN
 
+## Дополнение владельца: продолжение того же Goal009, 14 ноября 2026
+
+После опубликованного PARTIAL владелец явно разрешил: «Разрешить максимум10запусков/90минут суммарно». Сохранены prior6GameServer starts/2231818ms native, exact39paths и тот же Goal009; нового Goal, сброса counters или расширения source scope нет. Предыдущие6-start ограничения ниже относятся к исходному плану и сохранены как история решения.
+
+Следующая acceptance revision: canonical passive target может иметь clan только при проверенном размещении отдельной копии вне native helpRange+collision+300reserve, в той же допустимой farming-области с Geo/LOS/reward/partyNativeTarget. Полный текущий World faction census используется до seal; actual clone, все actor points, owner/readiness/faction/Party admission повторно проверяются до CUT. AI/навыки/уровни/NPC stats после CUT не меняются. Legacy discovery и oldC/Dcells сохраняются.
+
+GUI acceptance использует настоящую WinForms-форму и Button.PerformClick→обычные async CLI handlers; внешнего управления мышью нет. Временный acceptance-only hold перед native позволяет проверить6кнопок/2окна/одного Director, Pause/Resume/Stop/Export без дополнительныхGS. После stopped-boundary bytebackup hold выключается, Resume запускаетGS7; закрытие обоихGUI проверяется по exitidentity и живому GameServer/socket proof. Normal GUI остаётся2-argument client, default hold=false.
+
+ПротоколE:60slots/cohort,15sec episodes,2cycles,evaluationeverycycle,noDataLimit1, max10GS/5400000ms cumulative. Два controlled offline fit faults остаются acceptance tests; после их проверки flags должны быть выключены до следующего автономного цикла. Objective16/8/8,2classes/2scopes, realpaidactions, legacylineage и no-promotion не ослабляются. Native успех ещё требует фактических данных.
+
 Статус: PLAN_APPROVED — явный ответ владельца «Подтверждаю PLAN — начать реализацию». Дата: 13 ноября 2026, Europe/Chisinau.
 
 `/goal PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER`
@@ -171,3 +181,23 @@ Private runtime mutations ограничены уже существующей o
 **Предварительное решение владельца получено:** «Подтверждаю PLAN — начать реализацию». Exact38-path bounded exception утверждён. Рутинные проверки, исправления, owned native start/stop и выполнение этапов продолжаются без повторного согласования. Это не принятие008 и не финальный manual gate009.
 
 Builder review выполнен отдельным read-only reviewer: уточнены frozen-shortlist comparator/actor isolation, разделение comparison и split keys, source snapshot provenance, однократное применение replay и48episode/fit accounting. Неустранимых вопросов владельцу по review не осталось; это проверка проекта, не доказательство native/SQL/GUI.
+
+## Утверждённые уточнения текущего Goal009
+
+Владелец разрешил39-й exact path `java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java`: только передачу общего acquired CapabilitySource в TEST Party с сохранением публичного старого конструктора и MAIN/PLAY. Другие пути не добавлены.
+
+Владелец затем явно разрешил **максимум10 GameServer starts /90 native-минут суммарно**. До расширения использованы6starts/2231818ms; счётчики не сбрасываются, новый Goal не создаётся. Original6/90 protocol остаётся историческим. Обновление лимита строго acceptance-only, обычный default6 сохранён.
+
+Ruling: после неудачного7-го запуска до первого CUT сохранить ту же кампанию `autonomous009-goal009-20261114-e`, starts7/nativeMillis2308664. Исправить только census raw NPC coordinates и regression в двух разрешённых Java-файлах: посторонние service NPC могут находиться вне bounds строгого topology point. Выбранные exemplars и новые points обязаны проходить world bounds; faction isolation, Geo и fresh native pre-CUT guards сохраняются. RED отсутствующих API и GREEN source-contract сохранены; read-only review Critical/Important не выявил. Native результат ещё не объявлен.
+
+Ruling: штатный `autonomous009EvaluationEveryCycles=2` выбран до первого seal E вместо1. Оставшиеся3starts предназначены двум collection cycles и одной независимой EVAL после второго цикла; objective16/8/8,2classes/2scopes, paid evidence и независимые splits не меняются. Если evidence недостаточно, сохраняется честный PARTIAL без ослабления условий. Исходный E protocol и failed7 evidence сохранены, изменение записано отдельным `acceptance-e-amendment.json`; журнал не изменялся.
+
+GUI проверен настоящими WinForms handlers через opt-in Button.PerformClick, с двумя реальными окнами, всеми6командами, отдельным Director, фактическим завершением GUI PID и продолжившимся native game.ready/socket. Desktop input / Computer Use не использовался. Physical human click и Visual Studio Designer round-trip не проверялись.
+
+Ruling после завершённой E:60results/145raw paid/56terminal, но реальный objective дал14TRAIN/10TUNING/9AUDIT. Два потерянных controls сократили применимые TRAIN comparisons;16/8/8 не ослабляются. Read-only `diagnose-cohort` в существующем native test entrypoint восстанавливает actual immutable bins и считает targets в памяти, без SQL/fit/записи cohort. Первый diagnostic вызов ошибочно потребовал остановленный SQL; для чистого read-only route это заменено требованием physical completed cohort. Native/SQL training guards не менялись.
+
+Ruling: в новой F campaign использовать повторения с reserve в том же ограниченном budget. Старый one-argument schedule4A/4B/2T/2AUDIT сохранён. Budget-aware overload для episodeBudget≥51 даёт5independent A/6B/3T/3AUDIT на cell; при допустимом config budget60 сформируются3cells/51slots:18TRAIN_B/9TUNING/9AUDIT. При потере одного control остаются≥3independent controls после исключения собственного block. Дополнительный B имеет собственный block без A и использует остальные independent controls. Минимальные objective, paid divergence, class/scope требования и rewardCONFIG_SHA неизменны; это дополнительные реальные повторы, не новые labels на старых episodes. Focused RED missingAPI→GREEN и canonical autonomous/008/007/JAR exit0/153s; read-only reviewer Critical/Important не обнаружил.
+
+F сохраняет8starts/3773996ms=62.899933min и все A–E artifacts. Предел10/90 тот же, новый Goal не создаётся. F имеет один bounded cycle с новым collection и независимым EVAL, если достаточность и время позволят. E со sealed cohort/JAR не возобновляется под изменённым source. Cold export после E подтвердил raw12/Adam887/207 и42applications008 без изменений.
+
+Временной Ruling: E batch.complete→native exit занял примерно6s. Для F использован штатный validated shutdownTimeoutSeconds60 вместо180; дополнительный30s reserve и hard90min deadline остаются. Stop по-прежнему проверяет собственную process incarnation и при timeout сохраняет SQL, без force kill. Расчёт51collection+6EVAL episodes по медиане22.765s оставляет около3.97min на2boot/planning/drain после90s reserve; запас тесный, завершение EVAL не обещано. Обычный source default и protected environments не изменены. Validated episodeBudget60 сохранён, значение51 как config не задавалось. Первое Configure-F было отклонено validator из-за model0 до записи; повтор использовал холодно подтверждённый model12 pin и тот же проверенный backup, native budget не расходовался.

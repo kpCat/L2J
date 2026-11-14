@@ -11,18 +11,23 @@
   "sourceScopeMaximum": 25,
   "deliveryScopeMaximum": 14,
   "nativeBudget": {
-    "gameServerStarts": 6,
-    "ceilingStarts": 6,
-    "nativeMinutes": 37.196967,
+    "gameServerStarts": 10,
+    "ceilingStarts": 10,
+    "nativeMinutes": 96.720667,
     "headlessNativeCompletedMillis": 142313,
     "headlessNativeStarts": 3,
-    "gameServerNativeMillis": 2089505,
+    "gameServerNativeMillis": 5660927,
     "ceilingMinutes": 90,
     "pendingNative": false,
-    "completedNativeMillis": 2231818
+    "completedNativeMillis": 5803240,
+    "conservativeRecovery": true,
+    "exactFinalNativeExitTimeKnown": false,
+    "chargedMillisIncludeRecoveryDelay": true,
+    "withinLimit": false,
+    "verdict": "FAIL_STOP_UNCONFIRMED_CEILING_NOT_PROVEN_AND_CONSERVATIVE_CHARGE_OVER_90"
   },
-  "newFits": 0,
-  "newCheckpoints": 0,
+  "newFits": 1,
+  "newCheckpoints": 1,
   "productionPromotion": false,
   "preflight": {
     "exitCode": 0,
@@ -130,7 +135,7 @@
     "classBalanced": true,
     "maximumPaidCreditsPerEpisode": 1,
     "oldCodecsModified": false,
-    "actualFit": false
+    "actualFit": true
   },
   "coldReadWithV2Store": {
     "exitCode": 0,
@@ -1214,24 +1219,24 @@
     "historicalTableDigest": "NOT_RUN"
   },
   "gates": {
-    "G0": "PASS_EXACT_BASE_39_SCOPE_TEST_OWNERSHIP_GEO203_PROTECTED207_POSTFLIGHT",
-    "G1": "PASS_CANONICAL_103_CLASSES_ACTUAL_ACQUIRED_5_CLASSES",
-    "G2": "PARTIAL_NATIVE_CASTS_FINAL_TARGET_BOUND_PLANNING_NO_LAWFUL_CELLS",
-    "G3": "PARTIAL_AUTOMATIC_NO_DATA_LOOPS_NO_ACTUAL_OPTIMIZER_UPDATE",
-    "G4": "PARTIAL_REAL_START_PAUSE_STOP_RESUME_OLD_ADAM_EXACT_NEW_COMMIT_FAULTS_NOT_RUN",
-    "G5": "PARTIAL_GUI_COMPILED_STATUS_READ_BUTTONS_NOT_VERIFIED",
-    "G6": "NOT_RUN_INDEPENDENT_NATIVE_009_EVAL",
-    "G7": "PARTIAL_COMPILE_TARGETED_F7_F8_PASS_STOPPED_NATIVE_TRAIN_ACCEPTANCE_INSUFFICIENT",
-    "G8": "PASS_SCOPED_NONFORCE_009_REMOTE_EXACT39_25SOURCE_EVIDENCE_ARCHIVE_BLOBS"
+    "G0": "PASS_EXACT_BASE_SCOPE39_OWN_TEST_GEO203_PROTECTED207_FINAL_STOPPED",
+    "G1": "PASS_CANONICAL103_CLASSES_ACTUAL_ACQUIRED5_CLASSES_UNSUPPORTED_EXPLICIT",
+    "G2": "PARTIAL_REAL_MULTICLASS_DAMAGE_HEAL_E_F_BUT_EVAL_LAWFUL_COVERAGE_FAILED",
+    "G3": "PARTIAL_ONE_ACTUAL_FIT_SQL_CHECKPOINT_NO_TWO_COMPLETED_TRAINED_CYCLES",
+    "G4": "PARTIAL_COLD_TWO_COMMIT_FAULTS_EXACTLY_ONCE_PASS_NATIVE_STOP_UNCONFIRMED",
+    "G5": "PASS_REAL_SIX_WINFORMS_HANDLERS_TWO_WINDOWS_CLOSE_INDEPENDENCE",
+    "G6": "FAIL_NATIVE_EVAL_ZERO_LAWFUL_CELLS_ZERO_PAIRS_NO_BEHAVIOR_VERDICT",
+    "G7": "FAIL_NATIVE90_LIMIT_PROOF_STOP_UNCONFIRMED_REGRESSIONS_AND_FINAL_CLEANUP_PASS",
+    "G8": "PENDING_SCOPED009_PUBLICATION_AND_INDEPENDENT_GITHUB_READBACK"
   },
-  "executionSnapshotUtc": "2026-11-13T20:59:54.628323+00:00",
+  "executionSnapshotUtc": "2026-11-14T00:14:49.225823+00:00",
   "directorSnapshot": {
-    "generation": 45,
+    "generation": 54,
     "phase": "STOPPED",
     "reason": "Собственные процессы остановлены и порты свободны.",
-    "attemptId": "18d1aface6b64a69b1632a23053874b6",
-    "heartbeatUtc": "2026-11-13T20:55:55.8018457Z",
-    "autonomousCampaign": "autonomous009-goal009-20261113-d"
+    "attemptId": "",
+    "heartbeatUtc": "2026-11-14T00:08:25.0448804Z",
+    "autonomousCampaign": "autonomous009-goal009-20261114-f"
   },
   "canonicalAdmissionFixBuild": {
     "exitCode": 0,
@@ -1248,7 +1253,7 @@
     "config": {
       "legacyInvalid": 7,
       "foreignIdentity": 6,
-      "autonomousInvalid": 6,
+      "autonomousInvalid": 9,
       "exitCode": 0
     },
     "arguments": {
@@ -1264,18 +1269,20 @@
       "cases": 3,
       "exitCode": 0
     },
-    "episodeSummary": {
-      "cases": 3,
-      "exitCode": 0
-    }
+    "autonomousInvalid": 9,
+    "extendedBudget": "10_STARTS_90_MINUTES_PRIOR6_2231818_RETAINED"
   },
   "gui": {
     "compile": "PASS_WINDOWS_POWERSHELL_ADD_TYPE_EXE",
     "actualWindowStatus": "READ_VIA_ACCESSIBILITY",
-    "buttons": "NOT_VERIFIED",
+    "buttons": "PASS_REAL_SIX_BUTTON_HANDLERS",
     "screenshotError": "window capture timed out: timed out waiting on channel",
     "inputError": "coordinate input geometry is unavailable",
-    "computerUse": "STOPPED_AT_USER_REQUEST_USE_OTHER_TOOLS"
+    "computerUse": "STOPPED_AT_USER_REQUEST_USE_OTHER_TOOLS",
+    "twoWindowsOneDirector": true,
+    "actualGuiExitAndNativeSurvived": true,
+    "inputMethod": "WINFORMS_PERFORMCLICK_NOT_DESKTOP_INPUT",
+    "designerRoundTrip": "NOT_RUN"
   },
   "firstNativeAutonomous": {
     "attempt": "3095caf6366d436d9de6ec80f1d2263d",
@@ -1324,12 +1331,13 @@
   },
   "f7": {
     "exitCode": 0,
-    "log": "f7-canonical-cwd.log",
+    "log": "f7-final-f.log",
     "dbConnections": 0,
     "actors": 0
   },
   "f8": {
     "exitCode": 0,
+    "log": "f8-final-f.log",
     "total": 14,
     "passed": 14,
     "failed": 0,
@@ -1388,142 +1396,7 @@
     "docs/phantoms/COMBAT-AI-ROADMAP.md",
     "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java"
   ],
-  "result": "PARTIAL009_INSUFFICIENT_NATIVE_EVIDENCE",
-  "postflight": {
-    "schema": "GOAL009_POSTFLIGHT_V1",
-    "utc": "2026-11-13T20:59:01.1430143Z",
-    "phase": "STOPPED",
-    "processes": [
-      {
-        "ownedProcessAbsent": true,
-        "record": "owner-process.json"
-      },
-      {
-        "ownedProcessAbsent": true,
-        "record": "native-process.json"
-      },
-      {
-        "ownedProcessAbsent": true,
-        "record": "worker-process.json"
-      },
-      {
-        "ownedProcessAbsent": true,
-        "record": "sql\\process.json"
-      }
-    ],
-    "ports": [
-      33357,
-      18001,
-      19301
-    ],
-    "listeners": 0,
-    "geo203": "PASS_EXACT_HASHES",
-    "protected207": "PASS_EXACT_HASHES",
-    "starts": 6,
-    "nativeMillis": 2231818,
-    "pending": false,
-    "fits": 0,
-    "faultFlagsDisabled": true,
-    "autonomousEnabled": false,
-    "configPhase": "OFF",
-    "campaignRetained": "autonomous009-goal009-20261113-d",
-    "acceptanceLimitRetained": "true",
-    "currentOwnFiles": 33340,
-    "currentOwnBytes": 2555034135,
-    "availableDiskBytes": 384569659392,
-    "configSha": "F655482B2411D175824F716C512A82EA26BA36ACFA898ACFFACEEA533681E2B5",
-    "backupSha": "6D40D15EE2A37D220A0A95D1924C21BAB27CF472A8B9DD43139BEA0DA346707C",
-    "promotion": false
-  },
-  "finalColdExport": {
-    "archive": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-103f926cec56469189070c338206bab3.zip",
-    "preserved": "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\13\\01a1d543-450f-7951-9679-4380f7f7b85a\\goal009\\preserved\\final-cold\\model-2-103f926cec56469189070c338206bab3.zip",
-    "archiveSha256": "89bebd7480285c65299343d742a0fe109961981fc7bbb2bd06b6ae41fa2fe17e",
-    "manifest": {
-      "format": 3,
-      "createdUtc": "2026-11-13T20:56:46.084110100Z",
-      "algorithm": 3,
-      "algorithmHash": "75b1e5ba26da9f1542454cec3e3d2093a6541fa03fb135af4fdb4e403a466d90",
-      "featureSchema": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
-      "actionSpace": "e6292efa77156bb840ce8bd29920cf90821982324f4b92408bf3c07224aff982",
-      "normalization": "4d224f2256dc9b16a5cf7c50f2b8ebd33e68d18e6f7e37f95d7d426fbd21274d",
-      "origin": "NATIVE_HEAL",
-      "status": "ACCEPTED_TEST",
-      "productionPromotion": false,
-      "modelVersion": 2,
-      "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
-      "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
-      "weightBytes": 4741508,
-      "metrics": {
-        "seed": 183,
-        "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
-        "origin": "NATIVE_HEAL",
-        "train": 64,
-        "tuning": 32,
-        "audit": 24,
-        "auditActors": 24,
-        "auditContexts": 24,
-        "epochs": 42,
-        "trainingNanos": 12155789500,
-        "tuningInitialMse": 0.5404271486560249,
-        "tuningMse": 0.014236471492589208,
-        "auditMse": 0.015467628967592325,
-        "constantMse": 0.015723296413069764,
-        "priorVersion": 0,
-        "priorMse": null,
-        "stockMatchedEvents": 120,
-        "differentSelectionEvents": 0,
-        "stockCounterfactualMse": null,
-        "nativeColdDecisionChange": null,
-        "limitation": "Only chosen actions have native outcomes; MSE does not prove tactical superiority or cold behavior"
-      },
-      "workingModelVersion": 12,
-      "workingStatus": "DRAFT",
-      "workingWeightsSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
-      "optimizerSha": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
-      "optimizerUpdates": 887,
-      "completedEpochs": 207,
-      "optimizerWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
-      "replaySha": "6d1b4010682018ae18ebf0bdbcc602e07584bf845b5b7f26e47845f7866e9418",
-      "contextReplaySha": "529b3f6129d0f1d9e65d6983bd2ef3e013cadb51b1454e7d831c5742c3491606",
-      "terminalDatasetSha": null,
-      "advantageDatasetSha": null,
-      "advantageConfigSha": null,
-      "residualDatasetSha": "02ff9c654a1e5c7881494937304ee798be6a2623e6db770e16495ccdeca6c08c",
-      "residualConfigSha": "f2940869ea88f424c66c5f4af58b105d3b427a656dd0e165cee7738d515745e2",
-      "rewardConfigSha": null,
-      "workingRunId": "1bd4a0d92a804b54b49373bc0d37e5e1",
-      "episodeCounts": {
-        "total": 200,
-        "completed": 151,
-        "failed": 7,
-        "incomplete": 42,
-        "started": 0,
-        "lastCreatedUtc": "2026-11-13 20:41:50.689611"
-      }
-    },
-    "entrySha256": {
-      "weights.bin": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
-      "manifest.json": "d2a6c2146674484ebf99a205b7473266ab97b16245094c99b319c05f9285db5f",
-      "events.bin": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
-      "optimizer.bin": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
-      "replay.bin": "6d1b4010682018ae18ebf0bdbcc602e07584bf845b5b7f26e47845f7866e9418",
-      "residual-targets.bin": "02ff9c654a1e5c7881494937304ee798be6a2623e6db770e16495ccdeca6c08c",
-      "residual-applications.jsonl": "7c6561485f4663b4a6a627007aeef9cc46eacdf92b6e995e8a8ecc3b000a708d",
-      "residual-labels.jsonl": "df3f105d3d3041d8df4b93aae277ca9ea2b8ece9d2719a36d1aaa6eb25be52bc",
-      "context-replay.bin": "529b3f6129d0f1d9e65d6983bd2ef3e013cadb51b1454e7d831c5742c3491606",
-      "working-weights.bin": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
-      "working-metrics.json": "5c3e0c346dc677ac541629459b1759d415c8b68575198c821941031cb4540232",
-      "dataset.jsonl": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39"
-    },
-    "adamUpdates": 887,
-    "adamEpochs": 207,
-    "terminalWeightsSha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
-    "applications": 42,
-    "gradientEpisodes": 12,
-    "checkpointUsedForTraining": false,
-    "nativeGameServerStarted": false
-  },
+  "result": "PARTIAL009_REAL_FIT_NO_TUNING_IMPROVEMENT_EVAL_AND_NATIVE_LIMIT_FAILED",
   "historicalLineagePreserved": {
     "selected": true,
     "rawAdam": true,
@@ -1536,18 +1409,10 @@
   "existing004005006Regressions": {
     "exitCode": 0,
     "cases": 10,
+    "log": "final-regressions-f.log",
     "dbConnections": 0,
-    "gameServerStarts": 0,
-    "initialSandboxRun": "TEMP_ACL_ACCESS_DENIED_IN_005",
-    "authorizedRerun": "ALL_TEN_EXISTING_RUNNERS_PASS"
+    "gameServerStarts": 0
   },
-  "blockers": [
-    "No lawful target-bound cohort in final D:111 insufficient alternative refusals +10helper envelope refusals,0sealedcells.",
-    "No actual optimizer update or newly trained checkpoint; Adam remains887/207.",
-    "Pre-COMMIT and post-COMMIT cold recovery faults NOT_RUN:fit sufficiency gate was never reached.",
-    "Independent native EVAL009 NOT_RUN; cumulative6GameServer starts exhausted, no seventhstart authorized.",
-    "Live GUI button operations and VisualStudio Designer round-trip NOT_VERIFIED; ComputerUse stopped at user request."
-  ],
   "nativeAcceptanceD": {
     "planningRefusals": 121,
     "insufficientAlternatives": 111,
@@ -1559,282 +1424,13 @@
     "failClosed": true
   },
   "nightReady": false,
-  "acceptanceFaults": {
-    "preCommit": "NOT_RUN_INSUFFICIENT_EVIDENCE",
-    "afterCommitBeforeJournal": "NOT_RUN_INSUFFICIENT_EVIDENCE",
-    "disabledAtHandoff": true
-  },
   "finalCodeReview": {
-    "status": "NO_CONCRETE_CRITICAL_OR_IMPORTANT",
-    "evidence": "READ_ONLY_FRESH_REVIEWER",
-    "limitations": "NATIVE_TRAIN_FIT_GUI_EVAL_GATES_REMAIN_PARTIAL_OR_NOT_RUN",
-    "minorStaleGs6Sentence": "CORRECTED"
-  },
-  "finalEncoding": {
-    "changedTextFiles": 38,
-    "mojibake": {
-      "patterns": 27,
-      "matches": 0,
-      "exitCode": 0
-    },
-    "escapedCyrillic": {
-      "patterns": 6,
-      "matches": 0,
-      "exitCode": 0
-    }
-  },
-  "finalScope": {
-    "exactAllowlist": 39,
-    "source": 25,
-    "delivery": 14,
-    "sourceHashes": {
-      "build.xml": "94C5405BA312DA540E032D7E6200F4B826B1B6862D059B8A6B9280BC88463C94",
-      "java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java": "F62F2C33064CC68499BDF3B63D7362E50B9FDC8FFC63968C6D595F4B68585880",
-      "java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java": "A4A9B87C8C976C413A5682314CF097FE263F10837F7D99FD0968E90F94636576",
-      "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java": "D941BA33728F0249E3C09E2D054772093EC9A742813FD37672B003EC7BDF1193",
-      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java": "DA6509D7B7C97C263E35260CE3A99F905E145F36271A37BE3EB3CD8967F08042",
-      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java": "C0869CB4A51B41014F7E8B09B91A989D4C1DF9F06707DBD85FFA0E80BB3F8E34",
-      "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java": "20321806B2914EE0475ADD737228EBF3FBB6E491AE708EC925494DC71219B796",
-      "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java": "C41560BABF2B4FEAF8857D93F1FB92D4B77A47A00CE6EFC1DE0E0E06A9D71D6B",
-      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java": "3418E2ACB1ABA816ECC253C0EAAEAAD36A7A139D12D88D0D9B18F3171D9F06A9",
-      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java": "03443900E0599B376FCD44EF229B8290014DB04C69422C0468E787937F122FAE",
-      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "8EC544254B6C14D6F92B6A2075866DA808F01B6DDF21D1ADDEBDFB534AACB13A",
-      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java": "0BB677EAE31F810AD51EA25722A9EF90C0660BB92018CEFE27768BC5A16E7AA3",
-      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "4623BDCD5C7B7C19FC898D9CBB8BD3392E6020B342648CCE7D679DDA30C1D7CD",
-      "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java": "78D3887B315FD4C13D182C26E4151F6B232CA121D1A6556BB0A8306C04E6B0A6",
-      "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java": "5407232B2BF415DF44D731260EB71C4A38911E4D2B0D48D507DB209F9F949876",
-      "tools/phantom-runtime/training/Training.ps1": "0CEC35584F2FDEBC988DA5E419B559407AF6BF799194DB55650822DCFD4462B2",
-      "tools/phantom-runtime/training/TrainingOwner.ps1": "222FBBD2E0D266FA1AE509084108B09176FFF252A27EFC8F9AB44A8F76FFF335",
-      "tools/phantom-runtime/training/Test-Training.ps1": "9DF6E19C60CD1F318F35775E15FB881B9A2E1F8FDBE97E37F57C4F12A4B3F6DA",
-      "tools/phantom-runtime/training/AutonomousTraining.ini": "2A257500A722D0C8988357CC3F8146EFF5D1A2D144B77D4FC0A1E271B8B0EA88",
-      "tools/phantom-runtime/training/TrainingGui.ps1": "D6D0551F1AD8AE6403A5FD17F828C65AAFC4555C2BA1BAED74BA143D00039862",
-      "tools/phantom-runtime/training/TrainingGui.cs": "DA52F0B49981306B3CCF2986201D834AFCE668B138A95DAC91CB311C9F086B82",
-      "tools/phantom-runtime/training/TrainingGui.Designer.cs": "6309BC126835F879DC3636C4761AEF11B83B003E9E7EDF85DCBCFB2530A6C5F3",
-      "tools/phantom-runtime/training/TRAIN_GUI.cmd": "0F4AAFC2DDA7746BF2072E378B7EBD987A95F3D982B2B522085B26B2B2A73705",
-      "tools/phantom-runtime/training/RUNBOOK_RU.md": "45A62FCBDBEBF047CCCF8EEF0B2D1FC39AFD234AC26FE782E78A5DF0929B68F6",
-      "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java": "B1B8E6DE2B87B4D9AB20722E9F500DEF7A91703CB7B1E714C13CDFA82E64635B"
-    },
-    "textStageEqualsDeployed": true,
-    "outsideScope": 0,
-    "originalByteBackupsVerified": true,
-    "finalIncludingArchive": "PASS"
-  },
-  "archive": {
-    "crc": "PASS",
-    "shaReadback": "PASS",
-    "entries": 123,
-    "bytes": 603672,
-    "sha256": "11ff591029f101de100bc86b2e96b6c74177306608bfc545ecb9fb018bb836db",
-    "layout": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/",
-    "snapshot": "REVIEWABLE_SOURCE_BEFORE_FINAL_STATUS_FIX_PUBLICATION",
-    "sourceFilesIncluded": 25,
-    "credentialsOrDatadirIncluded": false
-  },
-  "publication": {
-    "sourceCommit": "ac712dbb0fef304daffb528a4d33b2dd52b3c63f",
-    "parent": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96",
-    "branch": "wip/phantom-learning-009",
-    "repository": "kpCat/L2J",
-    "nonForcePush": "PASS",
-    "independentConnector": "GitHub",
-    "remoteBranchAgainstCommit": {
-      "status": "identical",
-      "ahead": 0,
-      "behind": 0,
-      "commits": 0
-    },
-    "compare": {
-      "status": "ahead",
-      "totalCommits": 1,
-      "paths": 39,
-      "exactDiff": true
-    },
-    "blobReadback": [
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
-        "blob": "6bdfcde83df620b65c64128723bb187eb296911f",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
-        "blob": "8e07dbdcc9ccfbeec0e384fd638085d78ba816ae",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
-        "blob": "f37fbadde248e7e11d2e40aa3220633197b1e6c3",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
-        "blob": "eaeebb77aaee040a95ce8e582d17084f6c804af4",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
-        "blob": "18719e1bc9434fc745b69b6eddc3a494f7acfa28",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
-        "blob": "6d14bfe878f37e448a5215a4d105b752f8a5aec4",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
-        "blob": "85a93696baa9c75e1c8ed3fc21c9a9ef14ca804d",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
-        "blob": "fa10efabeed907fadead26c0d21045731e200626",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
-        "blob": "83b5afe98f34cb01fe3f83cc629b6b9accd9b81a",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
-        "blob": "66943c7e68cb6b5aadc19ba945b09e162e90985a",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
-        "blob": "9c66ca292a73c84e1f1db9d156eefc7be1c4b137",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
-        "blob": "ce7b4e0f5fa41c2495818c73a4a43fd957a8a5ca",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
-        "blob": "fcdcb1251ebf0ebfa081e0eba62ac74421e071ae",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
-        "blob": "df3cd5bd6acc0b7f9d0f27f9deb7f4123fffb07c",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
-        "blob": "6c36129fc43689c19a700a4d034934e7bcb70541",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
-        "blob": "659999af99c61ba61dcc938231c0e9f1c7de2900",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
-        "blob": "13562da77985c731adaa7bdffa98c3bc03a89ef0",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
-        "blob": "358863e75fcc07a1d4e76f342a932ce8a3bc6c5b",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
-        "blob": "f640b54de95fd05a8cfe9252b74ab7f329b3aaf4",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
-        "blob": "b1944f6eb1754e7130cc03d5b2393abe8a7d1726",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TRAIN_GUI.cmd",
-        "blob": "1c30633105dde14151d81a3b8d4198e3f610f301",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
-        "blob": "b929a95c02be083d2285fd2fda14321f15774aad",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
-        "blob": "5774750bccacf330a51aa0db65c2abd6f0b689bd",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.Designer.cs",
-        "blob": "570c5c34babc60f617c51040b47d475284ecba8a",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
-        "blob": "554db5e872f41e5c19c63988b221c353560f4096",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
-        "blob": "64dd17326e1ba3840048733387aa164dbbff9c6f",
-        "match": true,
-        "readEncoding": "base64"
-      },
-      {
-        "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
-        "blob": "d64836cca84f4c2295b8d0d8f2e124aa5ad619f1",
-        "match": true,
-        "readEncoding": "base64"
-      }
-    ],
-    "remoteFacts": {
-      "status": "PARTIAL",
-      "goalComplete": false,
-      "gate": "REQUIRED",
-      "budget": {
-        "gameServerStarts": 6,
-        "ceilingStarts": 6,
-        "nativeMinutes": 37.196967,
-        "headlessNativeCompletedMillis": 142313,
-        "headlessNativeStarts": 3,
-        "gameServerNativeMillis": 2089505,
-        "ceilingMinutes": 90,
-        "pendingNative": false,
-        "completedNativeMillis": 2231818,
-        "pendingElapsedMillisAtSnapshot": 103524
-      },
-      "newFits": 0,
-      "nightReady": false,
-      "archiveSha": "bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652"
-    },
-    "sourceFiles": 25,
-    "evidenceAndArchive": true
+    "reviewer": "review_goal009_implementation",
+    "mode": "READ_ONLY",
+    "documentationImportantCorrected": true,
+    "recheck": "NO_CRITICAL_OR_IMPORTANT_FOR_HONEST_PARTIAL_PUBLICATION",
+    "remainingNativeFailures": "DOCUMENTED_UNCLOSED_G2_G3_G4_G6_G7",
+    "fullClaim": false
   },
   "mainCheckoutFinalHeadReadOnly": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
   "postPublicationStatusFix": {
@@ -1882,5 +1478,931 @@
       "docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
       "docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md"
     ]
+  },
+  "extendedBudgetApproval": {
+    "goal": "PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER",
+    "authorization": "EXPLICIT_USER_REPLY",
+    "reply": "Разрешить максимум 10 запусков / 90 минут суммарно",
+    "ceilingGameServerStarts": 10,
+    "ceilingNativeMillis": 5400000,
+    "retainedPriorGameServerStarts": 6,
+    "retainedPriorNativeMillis": 2231818,
+    "exactScope": 39,
+    "newGoalCreated": false,
+    "budgetReset": false,
+    "computerUse": "PREFER_OTHER_TOOLS"
+  },
+  "historicalDPostflight": {
+    "schema": "GOAL009_POSTFLIGHT_V1",
+    "utc": "2026-11-13T20:59:01.1430143Z",
+    "phase": "STOPPED",
+    "processes": [
+      {
+        "ownedProcessAbsent": true,
+        "record": "owner-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "native-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "worker-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "sql\\process.json"
+      }
+    ],
+    "ports": [
+      33357,
+      18001,
+      19301
+    ],
+    "listeners": 0,
+    "geo203": "PASS_EXACT_HASHES",
+    "protected207": "PASS_EXACT_HASHES",
+    "starts": 6,
+    "nativeMillis": 2231818,
+    "pending": false,
+    "fits": 0,
+    "faultFlagsDisabled": true,
+    "autonomousEnabled": false,
+    "configPhase": "OFF",
+    "campaignRetained": "autonomous009-goal009-20261113-d",
+    "acceptanceLimitRetained": "true",
+    "currentOwnFiles": 33340,
+    "currentOwnBytes": 2555034135,
+    "availableDiskBytes": 384569659392,
+    "configSha": "F655482B2411D175824F716C512A82EA26BA36ACFA898ACFFACEEA533681E2B5",
+    "backupSha": "6D40D15EE2A37D220A0A95D1924C21BAB27CF472A8B9DD43139BEA0DA346707C",
+    "promotion": false
+  },
+  "activeCampaign": "autonomous009-goal009-20261114-f",
+  "isolatedTargetBuild": {
+    "exitCode": 0,
+    "seconds": 213,
+    "log": "isolated-census-build.log",
+    "legacy007008": "PASS",
+    "canonicalAutonomous": "PASS",
+    "registryAndStateSchema": "UNCHANGED"
+  },
+  "guiAcceptanceE": {
+    "nativePid": 96132,
+    "nativeGameReady": true,
+    "closingWindowsDidNotStopDirector": true,
+    "priorNativeMillis": 2231818,
+    "guiProcessExitConfirmed": true,
+    "status": "PASS_REAL_WINFORMS_BUTTONS_AND_OWNED_CLI",
+    "priorStarts": 6,
+    "resumedGeneration": 47,
+    "twoWindowsOneDirector": true,
+    "initialGeneration": 46,
+    "allButtons": [
+      "Start",
+      "Status",
+      "Pause",
+      "Resume",
+      "Stop",
+      "Export"
+    ],
+    "nativeStartedAfterRelease": true,
+    "nativeSocketAttested": true,
+    "inputMethod": "WINFORMS_PERFORMCLICK_NOT_DESKTOP_INPUT"
+  },
+  "reserveScheduleBuild": {
+    "exitCode": 0,
+    "seconds": 153,
+    "log": "reserve-controls-build.log",
+    "oldOneArgumentSchedule": "PRESERVED_4A4B2T2AUDIT",
+    "reserve": "5A6B3T3AUDIT_PER_CELL",
+    "currentObjectiveThresholds": "UNCHANGED_16_8_8_TWO_CLASSES_TWO_SCOPES"
+  },
+  "historicalBeforeF": {
+    "publication": {
+      "sourceCommit": "ac712dbb0fef304daffb528a4d33b2dd52b3c63f",
+      "parent": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96",
+      "branch": "wip/phantom-learning-009",
+      "repository": "kpCat/L2J",
+      "nonForcePush": "PASS",
+      "independentConnector": "GitHub",
+      "remoteBranchAgainstCommit": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "commits": 0
+      },
+      "compare": {
+        "status": "ahead",
+        "totalCommits": 1,
+        "paths": 39,
+        "exactDiff": true
+      },
+      "blobReadback": [
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+          "blob": "6bdfcde83df620b65c64128723bb187eb296911f",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+          "blob": "8e07dbdcc9ccfbeec0e384fd638085d78ba816ae",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+          "blob": "f37fbadde248e7e11d2e40aa3220633197b1e6c3",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
+          "blob": "eaeebb77aaee040a95ce8e582d17084f6c804af4",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
+          "blob": "18719e1bc9434fc745b69b6eddc3a494f7acfa28",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+          "blob": "6d14bfe878f37e448a5215a4d105b752f8a5aec4",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+          "blob": "85a93696baa9c75e1c8ed3fc21c9a9ef14ca804d",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+          "blob": "fa10efabeed907fadead26c0d21045731e200626",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+          "blob": "83b5afe98f34cb01fe3f83cc629b6b9accd9b81a",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+          "blob": "66943c7e68cb6b5aadc19ba945b09e162e90985a",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+          "blob": "9c66ca292a73c84e1f1db9d156eefc7be1c4b137",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+          "blob": "ce7b4e0f5fa41c2495818c73a4a43fd957a8a5ca",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+          "blob": "fcdcb1251ebf0ebfa081e0eba62ac74421e071ae",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+          "blob": "df3cd5bd6acc0b7f9d0f27f9deb7f4123fffb07c",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "blob": "6c36129fc43689c19a700a4d034934e7bcb70541",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+          "blob": "659999af99c61ba61dcc938231c0e9f1c7de2900",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "blob": "13562da77985c731adaa7bdffa98c3bc03a89ef0",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+          "blob": "358863e75fcc07a1d4e76f342a932ce8a3bc6c5b",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+          "blob": "f640b54de95fd05a8cfe9252b74ab7f329b3aaf4",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
+          "blob": "b1944f6eb1754e7130cc03d5b2393abe8a7d1726",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TRAIN_GUI.cmd",
+          "blob": "1c30633105dde14151d81a3b8d4198e3f610f301",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+          "blob": "b929a95c02be083d2285fd2fda14321f15774aad",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "blob": "5774750bccacf330a51aa0db65c2abd6f0b689bd",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.Designer.cs",
+          "blob": "570c5c34babc60f617c51040b47d475284ecba8a",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+          "blob": "554db5e872f41e5c19c63988b221c353560f4096",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
+          "blob": "64dd17326e1ba3840048733387aa164dbbff9c6f",
+          "match": true,
+          "readEncoding": "base64"
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+          "blob": "d64836cca84f4c2295b8d0d8f2e124aa5ad619f1",
+          "match": true,
+          "readEncoding": "base64"
+        }
+      ],
+      "remoteFacts": {
+        "status": "PARTIAL",
+        "goalComplete": false,
+        "gate": "REQUIRED",
+        "budget": {
+          "gameServerStarts": 6,
+          "ceilingStarts": 6,
+          "nativeMinutes": 37.196967,
+          "headlessNativeCompletedMillis": 142313,
+          "headlessNativeStarts": 3,
+          "gameServerNativeMillis": 2089505,
+          "ceilingMinutes": 90,
+          "pendingNative": false,
+          "completedNativeMillis": 2231818,
+          "pendingElapsedMillisAtSnapshot": 103524
+        },
+        "newFits": 0,
+        "nightReady": false,
+        "archiveSha": "bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652"
+      },
+      "sourceFiles": 25,
+      "evidenceAndArchive": true
+    },
+    "archive": {
+      "crc": "PASS",
+      "shaReadback": "PASS",
+      "entries": 123,
+      "bytes": 603672,
+      "sha256": "11ff591029f101de100bc86b2e96b6c74177306608bfc545ecb9fb018bb836db",
+      "layout": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/",
+      "snapshot": "REVIEWABLE_SOURCE_BEFORE_FINAL_STATUS_FIX_PUBLICATION",
+      "sourceFilesIncluded": 25,
+      "credentialsOrDatadirIncluded": false
+    },
+    "finalScope": {
+      "exactAllowlist": 39,
+      "source": 25,
+      "delivery": 14,
+      "sourceHashes": {
+        "build.xml": "94C5405BA312DA540E032D7E6200F4B826B1B6862D059B8A6B9280BC88463C94",
+        "java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java": "F62F2C33064CC68499BDF3B63D7362E50B9FDC8FFC63968C6D595F4B68585880",
+        "java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java": "A4A9B87C8C976C413A5682314CF097FE263F10837F7D99FD0968E90F94636576",
+        "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java": "D941BA33728F0249E3C09E2D054772093EC9A742813FD37672B003EC7BDF1193",
+        "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java": "DA6509D7B7C97C263E35260CE3A99F905E145F36271A37BE3EB3CD8967F08042",
+        "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java": "C0869CB4A51B41014F7E8B09B91A989D4C1DF9F06707DBD85FFA0E80BB3F8E34",
+        "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java": "20321806B2914EE0475ADD737228EBF3FBB6E491AE708EC925494DC71219B796",
+        "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java": "C41560BABF2B4FEAF8857D93F1FB92D4B77A47A00CE6EFC1DE0E0E06A9D71D6B",
+        "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java": "3418E2ACB1ABA816ECC253C0EAAEAAD36A7A139D12D88D0D9B18F3171D9F06A9",
+        "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java": "03443900E0599B376FCD44EF229B8290014DB04C69422C0468E787937F122FAE",
+        "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "8EC544254B6C14D6F92B6A2075866DA808F01B6DDF21D1ADDEBDFB534AACB13A",
+        "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java": "0BB677EAE31F810AD51EA25722A9EF90C0660BB92018CEFE27768BC5A16E7AA3",
+        "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "4623BDCD5C7B7C19FC898D9CBB8BD3392E6020B342648CCE7D679DDA30C1D7CD",
+        "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java": "78D3887B315FD4C13D182C26E4151F6B232CA121D1A6556BB0A8306C04E6B0A6",
+        "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java": "5407232B2BF415DF44D731260EB71C4A38911E4D2B0D48D507DB209F9F949876",
+        "tools/phantom-runtime/training/Training.ps1": "0CEC35584F2FDEBC988DA5E419B559407AF6BF799194DB55650822DCFD4462B2",
+        "tools/phantom-runtime/training/TrainingOwner.ps1": "222FBBD2E0D266FA1AE509084108B09176FFF252A27EFC8F9AB44A8F76FFF335",
+        "tools/phantom-runtime/training/Test-Training.ps1": "9DF6E19C60CD1F318F35775E15FB881B9A2E1F8FDBE97E37F57C4F12A4B3F6DA",
+        "tools/phantom-runtime/training/AutonomousTraining.ini": "2A257500A722D0C8988357CC3F8146EFF5D1A2D144B77D4FC0A1E271B8B0EA88",
+        "tools/phantom-runtime/training/TrainingGui.ps1": "D6D0551F1AD8AE6403A5FD17F828C65AAFC4555C2BA1BAED74BA143D00039862",
+        "tools/phantom-runtime/training/TrainingGui.cs": "DA52F0B49981306B3CCF2986201D834AFCE668B138A95DAC91CB311C9F086B82",
+        "tools/phantom-runtime/training/TrainingGui.Designer.cs": "6309BC126835F879DC3636C4761AEF11B83B003E9E7EDF85DCBCFB2530A6C5F3",
+        "tools/phantom-runtime/training/TRAIN_GUI.cmd": "0F4AAFC2DDA7746BF2072E378B7EBD987A95F3D982B2B522085B26B2B2A73705",
+        "tools/phantom-runtime/training/RUNBOOK_RU.md": "45A62FCBDBEBF047CCCF8EEF0B2D1FC39AFD234AC26FE782E78A5DF0929B68F6",
+        "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java": "B1B8E6DE2B87B4D9AB20722E9F500DEF7A91703CB7B1E714C13CDFA82E64635B"
+      },
+      "textStageEqualsDeployed": true,
+      "outsideScope": 0,
+      "originalByteBackupsVerified": true,
+      "finalIncludingArchive": "PASS"
+    },
+    "finalEncoding": {
+      "changedTextFiles": 38,
+      "mojibake": {
+        "patterns": 27,
+        "matches": 0,
+        "exitCode": 0
+      },
+      "escapedCyrillic": {
+        "patterns": 6,
+        "matches": 0,
+        "exitCode": 0
+      }
+    },
+    "blockers": [
+      "No lawful target-bound cohort in final D:111 insufficient alternative refusals +10helper envelope refusals,0sealedcells.",
+      "No actual optimizer update or newly trained checkpoint; Adam remains887/207.",
+      "Pre-COMMIT and post-COMMIT cold recovery faults NOT_RUN:fit sufficiency gate was never reached.",
+      "Independent native EVAL009 NOT_RUN; cumulative6GameServer starts exhausted, no seventhstart authorized.",
+      "Live GUI button operations and VisualStudio Designer round-trip NOT_VERIFIED; ComputerUse stopped at user request."
+    ],
+    "acceptanceFaults": {
+      "preCommit": "NOT_RUN_INSUFFICIENT_EVIDENCE",
+      "afterCommitBeforeJournal": "NOT_RUN_INSUFFICIENT_EVIDENCE",
+      "disabledAtHandoff": true
+    },
+    "finalColdExport": {
+      "archive": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-103f926cec56469189070c338206bab3.zip",
+      "preserved": "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\13\\01a1d543-450f-7951-9679-4380f7f7b85a\\goal009\\preserved\\final-cold\\model-2-103f926cec56469189070c338206bab3.zip",
+      "archiveSha256": "89bebd7480285c65299343d742a0fe109961981fc7bbb2bd06b6ae41fa2fe17e",
+      "manifest": {
+        "format": 3,
+        "createdUtc": "2026-11-13T20:56:46.084110100Z",
+        "algorithm": 3,
+        "algorithmHash": "75b1e5ba26da9f1542454cec3e3d2093a6541fa03fb135af4fdb4e403a466d90",
+        "featureSchema": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
+        "actionSpace": "e6292efa77156bb840ce8bd29920cf90821982324f4b92408bf3c07224aff982",
+        "normalization": "4d224f2256dc9b16a5cf7c50f2b8ebd33e68d18e6f7e37f95d7d426fbd21274d",
+        "origin": "NATIVE_HEAL",
+        "status": "ACCEPTED_TEST",
+        "productionPromotion": false,
+        "modelVersion": 2,
+        "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+        "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+        "weightBytes": 4741508,
+        "metrics": {
+          "seed": 183,
+          "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+          "origin": "NATIVE_HEAL",
+          "train": 64,
+          "tuning": 32,
+          "audit": 24,
+          "auditActors": 24,
+          "auditContexts": 24,
+          "epochs": 42,
+          "trainingNanos": 12155789500,
+          "tuningInitialMse": 0.5404271486560249,
+          "tuningMse": 0.014236471492589208,
+          "auditMse": 0.015467628967592325,
+          "constantMse": 0.015723296413069764,
+          "priorVersion": 0,
+          "priorMse": null,
+          "stockMatchedEvents": 120,
+          "differentSelectionEvents": 0,
+          "stockCounterfactualMse": null,
+          "nativeColdDecisionChange": null,
+          "limitation": "Only chosen actions have native outcomes; MSE does not prove tactical superiority or cold behavior"
+        },
+        "workingModelVersion": 12,
+        "workingStatus": "DRAFT",
+        "workingWeightsSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+        "optimizerSha": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+        "optimizerUpdates": 887,
+        "completedEpochs": 207,
+        "optimizerWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+        "replaySha": "6d1b4010682018ae18ebf0bdbcc602e07584bf845b5b7f26e47845f7866e9418",
+        "contextReplaySha": "529b3f6129d0f1d9e65d6983bd2ef3e013cadb51b1454e7d831c5742c3491606",
+        "terminalDatasetSha": null,
+        "advantageDatasetSha": null,
+        "advantageConfigSha": null,
+        "residualDatasetSha": "02ff9c654a1e5c7881494937304ee798be6a2623e6db770e16495ccdeca6c08c",
+        "residualConfigSha": "f2940869ea88f424c66c5f4af58b105d3b427a656dd0e165cee7738d515745e2",
+        "rewardConfigSha": null,
+        "workingRunId": "1bd4a0d92a804b54b49373bc0d37e5e1",
+        "episodeCounts": {
+          "total": 200,
+          "completed": 151,
+          "failed": 7,
+          "incomplete": 42,
+          "started": 0,
+          "lastCreatedUtc": "2026-11-13 20:41:50.689611"
+        }
+      },
+      "entrySha256": {
+        "weights.bin": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+        "manifest.json": "d2a6c2146674484ebf99a205b7473266ab97b16245094c99b319c05f9285db5f",
+        "events.bin": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+        "optimizer.bin": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+        "replay.bin": "6d1b4010682018ae18ebf0bdbcc602e07584bf845b5b7f26e47845f7866e9418",
+        "residual-targets.bin": "02ff9c654a1e5c7881494937304ee798be6a2623e6db770e16495ccdeca6c08c",
+        "residual-applications.jsonl": "7c6561485f4663b4a6a627007aeef9cc46eacdf92b6e995e8a8ecc3b000a708d",
+        "residual-labels.jsonl": "df3f105d3d3041d8df4b93aae277ca9ea2b8ece9d2719a36d1aaa6eb25be52bc",
+        "context-replay.bin": "529b3f6129d0f1d9e65d6983bd2ef3e013cadb51b1454e7d831c5742c3491606",
+        "working-weights.bin": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+        "working-metrics.json": "5c3e0c346dc677ac541629459b1759d415c8b68575198c821941031cb4540232",
+        "dataset.jsonl": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39"
+      },
+      "adamUpdates": 887,
+      "adamEpochs": 207,
+      "terminalWeightsSha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "applications": 42,
+      "gradientEpisodes": 12,
+      "checkpointUsedForTraining": false,
+      "nativeGameServerStarted": false
+    }
+  },
+  "finalizationRequestedByOwner": true,
+  "postflight": {
+    "schema": "GOAL009_POSTFLIGHT_F_V1",
+    "utc": "2026-11-14T00:08:49.2653768Z",
+    "phase": "STOPPED",
+    "processes": [
+      {
+        "ownedProcessAbsent": true,
+        "record": "owner-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "native-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "worker-process.json"
+      },
+      {
+        "ownedProcessAbsent": true,
+        "record": "sql\\owned-process.json"
+      }
+    ],
+    "ports": [
+      33357,
+      18001,
+      19301
+    ],
+    "listeners": 0,
+    "geo203": "PASS_EXACT_HASHES",
+    "protected207": "PASS_EXACT_HASHES",
+    "starts": 10,
+    "nativeMillis": 5803240,
+    "pending": false,
+    "fits": 1,
+    "faultFlagsDisabled": true,
+    "autonomousEnabled": false,
+    "configPhase": "OFF",
+    "campaignRetained": "autonomous009-goal009-20261114-f",
+    "maxTotalStarts": 10,
+    "maxTotalNativeMillis": 5400000,
+    "currentOwnFiles": 35623,
+    "currentOwnBytes": 2772716649,
+    "availableDiskBytes": 428055465984,
+    "budgetWithinLimit": false,
+    "conservativeRecovery": true,
+    "actualNativeExitTimeKnown": false,
+    "shutdownWaitRestoredSeconds": 180,
+    "nativeLimitProof": "FAILED_STOP_UNCONFIRMED_AND_CONSERVATIVE_CHARGE_OVER_90",
+    "configSha": "D5DC26D44A2870D2E3E299C45D31F14D6D6FC8C1632AFFB44F37F0E4988F36F1",
+    "backupSha": "D72413CEAF8A8F5494C296EC43579935FFAF85CD77622A9367D11B8E4FF0DC71",
+    "promotion": false
+  },
+  "recoveryF": {
+    "status": "PASS_COLD_ROLLBACK_AND_EXACTLY_ONCE_COMMIT_RECOVERY",
+    "preCommitWorkerExit": 74,
+    "rollbackUpdates": 887,
+    "rollbackEpochs": 207,
+    "postCommitModel": 14,
+    "sameFrozenRun": true,
+    "frozenRunId": "8c5a529d67aa41f4a680096b6c8462a8",
+    "frozenTargetSha": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+    "updates": 903,
+    "epochs": 223,
+    "applications": 48,
+    "gradientEpisodes": 16,
+    "gradientClasses": [
+      103,
+      105,
+      110
+    ],
+    "labelsBySplit": {
+      "TRAIN": 16,
+      "TUNING": 9,
+      "AUDIT": 9
+    },
+    "postCommitAndFinalMembersEqual": [
+      "weights.bin",
+      "working-weights.bin",
+      "optimizer.bin",
+      "autonomous-targets.bin",
+      "autonomous-applications.jsonl",
+      "autonomous-labels.jsonl",
+      "working-metrics.json"
+    ],
+    "duplicateTrainingCredit": false,
+    "acceptedTestUnchanged": true,
+    "historical117RowsEqual": "E0BD464544A67AC4D14292DED4BF32EFBF82F6DDF86E2D4937264929063F2309",
+    "autonomousCompletedCycles": 0,
+    "forcedNativeKillPerformed": false
+  },
+  "nativeEvaluationF": {
+    "status": "FAIL_NO_LAWFUL_NATIVE_EVAL_COHORT",
+    "modelVersion": 14,
+    "plannedCells": 0,
+    "planningRefusals": 222,
+    "episodes": 0,
+    "pairs": 0,
+    "evaluationComplete": false,
+    "trainingStateUnchangedAttested": true,
+    "modelOptimizerApplicationsUnchangedAfterEval": true,
+    "productionPromotion": false
+  },
+  "finalColdExportF": {
+    "archive": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-698a6a8dbd0d4d23ad22303fa0dd3fad.zip",
+    "preserved": "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\13\\01a1d543-450f-7951-9679-4380f7f7b85a\\goal009\\preserved\\final-f\\model-2-698a6a8dbd0d4d23ad22303fa0dd3fad.zip",
+    "archiveSha256": "bcbbcb0c460db5810eeccf36bc1fea7b1a5be658dfc8b8e7ad3d2c295593f272",
+    "crc": "PASS",
+    "rawBytesPreserved": true,
+    "manifest": {
+      "format": 3,
+      "createdUtc": "2026-11-14T00:08:39.614018400Z",
+      "algorithm": 3,
+      "algorithmHash": "75b1e5ba26da9f1542454cec3e3d2093a6541fa03fb135af4fdb4e403a466d90",
+      "featureSchema": "a3648815c4afab480c4217c54e5a16e9b7e09118cbd50774c4e4f3ca83e15c58",
+      "actionSpace": "e6292efa77156bb840ce8bd29920cf90821982324f4b92408bf3c07224aff982",
+      "normalization": "4d224f2256dc9b16a5cf7c50f2b8ebd33e68d18e6f7e37f95d7d426fbd21274d",
+      "origin": "NATIVE_HEAL",
+      "status": "ACCEPTED_TEST",
+      "productionPromotion": false,
+      "modelVersion": 2,
+      "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+      "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "weightBytes": 4741508,
+      "metrics": {
+        "seed": 183,
+        "datasetSha": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+        "origin": "NATIVE_HEAL",
+        "train": 64,
+        "tuning": 32,
+        "audit": 24,
+        "auditActors": 24,
+        "auditContexts": 24,
+        "epochs": 42,
+        "trainingNanos": 12155789500,
+        "tuningInitialMse": 0.5404271486560249,
+        "tuningMse": 0.014236471492589208,
+        "auditMse": 0.015467628967592325,
+        "constantMse": 0.015723296413069764,
+        "priorVersion": 0,
+        "priorMse": null,
+        "stockMatchedEvents": 120,
+        "differentSelectionEvents": 0,
+        "stockCounterfactualMse": null,
+        "nativeColdDecisionChange": null,
+        "limitation": "Only chosen actions have native outcomes; MSE does not prove tactical superiority or cold behavior"
+      },
+      "workingModelVersion": 14,
+      "workingStatus": "DRAFT",
+      "workingWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "optimizerSha": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+      "optimizerUpdates": 903,
+      "completedEpochs": 223,
+      "optimizerWeightsSha": "f830a1cc4ead23f36dd6153fd1d818bbb0ae3b830d9e666f1988a4c82f05e9bf",
+      "replaySha": "a04ff79daa82e61debcfce46807ae484fffd97af9e7a1e7e4a4a32ed16038947",
+      "contextReplaySha": "8ff1e3e9fbb36e03cff2575115efaed8f632ffcb2772af95fa9692c3780f7746",
+      "terminalDatasetSha": null,
+      "advantageDatasetSha": null,
+      "advantageConfigSha": null,
+      "autonomousDatasetSha": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+      "autonomousConfigSha": "df46df5c067af1e108d854b3dbebf7ad36aa091279fc6b743086cf006d09c314",
+      "rewardConfigSha": null,
+      "workingRunId": "8c5a529d67aa41f4a680096b6c8462a8",
+      "episodeCounts": {
+        "total": 311,
+        "completed": 163,
+        "failed": 7,
+        "incomplete": 141,
+        "started": 0,
+        "lastCreatedUtc": "2026-11-13 23:46:57.461900"
+      }
+    },
+    "entrySha256": {
+      "weights.bin": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+      "manifest.json": "1448dbc711b3235cf7bf0b3405ccc8b10fe428d6c1ac2287a47ec7265b6dcf3b",
+      "events.bin": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+      "optimizer.bin": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+      "replay.bin": "a04ff79daa82e61debcfce46807ae484fffd97af9e7a1e7e4a4a32ed16038947",
+      "autonomous-targets.bin": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+      "autonomous-applications.jsonl": "dd62b00a43e1cb7ff76a1f37c9b693edb3c33f2f123d959cbd79b729b4ba487d",
+      "autonomous-labels.jsonl": "5eedb7e61036c1df9fc5c64770ca39ce22109ba4ba49c80afffe276e4ef81f71",
+      "context-replay.bin": "8ff1e3e9fbb36e03cff2575115efaed8f632ffcb2772af95fa9692c3780f7746",
+      "working-weights.bin": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "working-metrics.json": "5179722f41d9afdba3172e974a8f15e0aada360b4e519e804912b4420b304cfe",
+      "dataset.jsonl": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39"
+    },
+    "adamUpdates": 903,
+    "adamEpochs": 223,
+    "terminalWeightsSha256": "f830a1cc4ead23f36dd6153fd1d818bbb0ae3b830d9e666f1988a4c82f05e9bf",
+    "applications": 48,
+    "gradientEpisodes": 16,
+    "gradientClasses": [
+      103,
+      105,
+      110
+    ],
+    "labelsBySplit": {
+      "TRAIN": 16,
+      "TUNING": 9,
+      "AUDIT": 9
+    },
+    "nativeGameServerStarted": false,
+    "acceptedTestUnchanged": true,
+    "productionPromotion": false
+  },
+  "acceptanceFaults": {
+    "preCommit": "PASS_EXIT74_COLD_ROLLBACK",
+    "afterCommitBeforeJournal": "PASS_SAME_SQL_RUN_NO_REAPPLY",
+    "disabledAtHandoff": true
+  },
+  "currentFitSummary": "Получен реальный autonomous SQL checkpoint DRAFT14: Adam887/207→903/223,48applications/16gradient episodes,3classes. Холодный rollback до COMMIT и recovery после COMMIT проверены; после EVAL raw weights/Adam/apps совпадают, повторного credit нет. TUNING не улучшился, best selected epoch0; selected14 — прежние terminal12 weights, новый terminal Adam14 другой. AUDIT MSE14=0.014208027 против collection teacher12=0.005066568; улучшение поведения не доказано. Завершённых полных F cycles0: EVAL и graceful exit сорвали переход к cycle CHECKPOINT. Долговечность нового SQL checkpoint подтверждена cold export.",
+  "currentEvaluationSummary": "Независимый EVAL GS10:0lawful cells/222planning refusals/0episodes/0pairs; evaluation.complete отсутствует. batch.complete подтверждает trainingStateUnchanged=true, cold export подтверждает отсутствие градиента. После budget stop получен STOP_UNCONFIRMED; JVM позднее вышел сам, identity guard отказал до Kill. Финально STOPPED/ports0/OFF. Списано консервативно5803240ms=96.720667min при разрешённых90; эта верхняя оценка включает задержку recovery после выхода. Точное время native exit не доказано; строгий90min gate FAILED. Новых GS/сбора/обучения после указания владельца не выполнялось.",
+  "blockers": [
+    "Native EVAL has no lawful cells or independent pairs.",
+    "No TUNING improvement; AUDIT prediction loss worse than collection teacher12.",
+    "Only one new trained SQL checkpoint; two complete autonomous trained cycles not demonstrated.",
+    "EVAL JVM did not exit within graceful waits; strict90native-minute gate failed. Exact exit time unknown; conservative charge96.720667min includes recovery delay.",
+    "VisualStudio Designer round-trip and24h soak NOT_RUN; ordinary night readiness not declared."
+  ],
+  "finalizationPolicy": "OWNER_REQUEST_CLOSE_CURRENT_GOAL_WITH_OBJECTIVE_PARTIAL_NO_NEW_GS_DATA_TRAINING_OR_BUDGET",
+  "readOnlyMainHeadRecheck": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+  "lastCompletedCycleColdPointer": {
+    "modelVersion": 12,
+    "modelSha": "6f3dfa43ef8a8335c9ebee16498d7a6406de629c6a85bdd66755675fb55b9546",
+    "optimizerSha": "85cea56889abeef7b82807ddeba950f588d9bc4e84340c6d454a84bafe72670e",
+    "terminalWeightsSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "optimizerUpdates": 887,
+    "completedEpochs": 207,
+    "acceptedTestVersion": 2,
+    "acceptedTestSha": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+    "productionPromotion": false
+  },
+  "taskClosure": {
+    "request": "OWNER_EXPLICIT_FINALIZE_PARTIAL_NO_MORE_NATIVE",
+    "finalized": true,
+    "technicalFullAchieved": false,
+    "finalManualGate": "REQUIRED",
+    "nextGoalCreated": false,
+    "coldPointerLimitation": "Cycle pointer remains12 after interrupted EVAL; working SQL14 cold export verified independently"
+  },
+  "scopeBeforeArchive": {
+    "status": "PASS",
+    "exactPaths": 38,
+    "allPaths": [
+      "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/AUTONOMY_PROTOCOL.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PLAN.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RUNBOOK_RU.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/SKILL_COVERAGE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/TASK.md",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TRAIN_GUI.cmd",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.Designer.cs",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
+    ],
+    "sourcePaths": 25,
+    "sourceHashes": {
+      "build.xml": "94C5405BA312DA540E032D7E6200F4B826B1B6862D059B8A6B9280BC88463C94",
+      "java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java": "F62F2C33064CC68499BDF3B63D7362E50B9FDC8FFC63968C6D595F4B68585880",
+      "java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java": "C54551E9063548FDF202D0A9E325E45EC31D20A9587DFBD5D49DC3110AA6556A",
+      "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java": "D941BA33728F0249E3C09E2D054772093EC9A742813FD37672B003EC7BDF1193",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java": "DA6509D7B7C97C263E35260CE3A99F905E145F36271A37BE3EB3CD8967F08042",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java": "C0869CB4A51B41014F7E8B09B91A989D4C1DF9F06707DBD85FFA0E80BB3F8E34",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java": "75EF0D0F50035B681277A9C71FFEBF2ED4CE0580A04EB168FF51DAE063F7AE94",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java": "C41560BABF2B4FEAF8857D93F1FB92D4B77A47A00CE6EFC1DE0E0E06A9D71D6B",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java": "F888379FD0DDB8F2E901C8AEBF3C2AE6704BC4B60C31FDEE9935B2F3F7E8C275",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java": "03443900E0599B376FCD44EF229B8290014DB04C69422C0468E787937F122FAE",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "8EC544254B6C14D6F92B6A2075866DA808F01B6DDF21D1ADDEBDFB534AACB13A",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java": "0BB677EAE31F810AD51EA25722A9EF90C0660BB92018CEFE27768BC5A16E7AA3",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "4623BDCD5C7B7C19FC898D9CBB8BD3392E6020B342648CCE7D679DDA30C1D7CD",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java": "C79218E82729001192AE454D784659914E0358FC34D777C001C2413CB678E9A3",
+      "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java": "4A1E0EFC35DEC5D21BE39C3D9F18D3A22D7330143B4B5B42A2C76F75E553E05F",
+      "tools/phantom-runtime/training/Training.ps1": "678121AE9DF7BAC58F3A5CB1F001FAFA36E8B5738342BA4941170679BA227B6E",
+      "tools/phantom-runtime/training/TrainingOwner.ps1": "99990E1CD942BC687EA3CCDC2A08D2B925BB503ECA410390C99AF310CB1A384F",
+      "tools/phantom-runtime/training/Test-Training.ps1": "19F4926A609D34875B28F67E625D42ADA968C0EFA5F9AE513C6139C478A95996",
+      "tools/phantom-runtime/training/AutonomousTraining.ini": "2A257500A722D0C8988357CC3F8146EFF5D1A2D144B77D4FC0A1E271B8B0EA88",
+      "tools/phantom-runtime/training/TrainingGui.ps1": "2D00A62F3AC3F17D5B756FDA60D06B7E224F04BF54D12A97CD9A1A5A9C12667A",
+      "tools/phantom-runtime/training/TrainingGui.cs": "FFD44C4226DAC58982F1BE521F02E10FCB9F6EC64A5EB95169399E1D8559E35F",
+      "tools/phantom-runtime/training/TrainingGui.Designer.cs": "6309BC126835F879DC3636C4761AEF11B83B003E9E7EDF85DCBCFB2530A6C5F3",
+      "tools/phantom-runtime/training/TRAIN_GUI.cmd": "0F4AAFC2DDA7746BF2072E378B7EBD987A95F3D982B2B522085B26B2B2A73705",
+      "tools/phantom-runtime/training/RUNBOOK_RU.md": "D63EE84302F0EF0FB8AC21CFF141A7A6A4DAEC2B0954FD78017C82B4F989E5FC",
+      "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java": "B1B8E6DE2B87B4D9AB20722E9F500DEF7A91703CB7B1E714C13CDFA82E64635B"
+    },
+    "stageEqualsDeployed": true,
+    "originalByteBackupsVerified": true,
+    "outsideScope": [],
+    "privateRuntimeExcludedFromGit": ".phantom-local",
+    "baseHead": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96"
+  },
+  "finalEncoding": {
+    "mojibake": {
+      "checkedFiles": 38,
+      "patterns": 27,
+      "matches": 0,
+      "exitCode": 0
+    },
+    "escapedCyrillic": {
+      "checkedFiles": 38,
+      "patterns": 6,
+      "matches": 0,
+      "exitCode": 0
+    }
+  },
+  "publication": {
+    "state": "PENDING_NON_FORCE009_AND_INDEPENDENT_READBACK",
+    "previousHead": "c36e2a2c757d1fb72f754e9710d65c5da3d1761c",
+    "branch": "wip/phantom-learning-009",
+    "exactScope": 39
+  },
+  "gitUsage": {
+    "authorizedBy": "TASK_SECTION1_AND_PROJECT_AGENTS_BOUNDED_INSPECTION_AND_EXPLICIT009_PUBLICATION",
+    "branch": "wip/phantom-learning-009",
+    "force": false,
+    "merge": false,
+    "mainWritten": false,
+    "exactCommandsLocation": "COMMANDS.md_AND_PUBLICATION_RECEIPT_PATHS"
+  },
+  "finalScope": {
+    "status": "PASS",
+    "exactPaths": 39,
+    "allPaths": [
+      "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/ACCEPTANCE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/AUTONOMY_PROTOCOL.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/COMMANDS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/EVIDENCE.json",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/HANDOFF.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PLAN.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/PROGRESS.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RUNBOOK_RU.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/SKILL_COVERAGE.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/TASK.md",
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/artifacts/learning009-evidence.zip",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+      "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/RUNBOOK_RU.md",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TRAIN_GUI.cmd",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.Designer.cs",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.cs",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingGui.ps1",
+      "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1"
+    ],
+    "sourcePaths": 25,
+    "sourceHashes": {
+      "build.xml": "94C5405BA312DA540E032D7E6200F4B826B1B6862D059B8A6B9280BC88463C94",
+      "java/org/l2jmobius/gameserver/phantoms/combat/PhantomSkillInventory.java": "F62F2C33064CC68499BDF3B63D7362E50B9FDC8FFC63968C6D595F4B68585880",
+      "java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingV1.java": "C54551E9063548FDF202D0A9E325E45EC31D20A9587DFBD5D49DC3110AA6556A",
+      "java/org/l2jmobius/gameserver/phantoms/learning/ActionAdvantageV2.java": "D941BA33728F0249E3C09E2D054772093EC9A742813FD37672B003EC7BDF1193",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalStoreV3.java": "DA6509D7B7C97C263E35260CE3A99F905E145F36271A37BE3EB3CD8967F08042",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TacticalTrainerV3.java": "C0869CB4A51B41014F7E8B09B91A989D4C1DF9F06707DBD85FFA0E80BB3F8E34",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java": "75EF0D0F50035B681277A9C71FFEBF2ED4CE0580A04EB168FF51DAE063F7AE94",
+      "java/org/l2jmobius/gameserver/phantoms/learning/TrainExplorationV1.java": "C41560BABF2B4FEAF8857D93F1FB92D4B77A47A00CE6EFC1DE0E0E06A9D71D6B",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java": "F888379FD0DDB8F2E901C8AEBF3C2AE6704BC4B60C31FDEE9935B2F3F7E8C275",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingActors.java": "03443900E0599B376FCD44EF229B8290014DB04C69422C0468E787937F122FAE",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java": "8EC544254B6C14D6F92B6A2075866DA808F01B6DDF21D1ADDEBDFB534AACB13A",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java": "0BB677EAE31F810AD51EA25722A9EF90C0660BB92018CEFE27768BC5A16E7AA3",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java": "4623BDCD5C7B7C19FC898D9CBB8BD3392E6020B342648CCE7D679DDA30C1D7CD",
+      "test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java": "C79218E82729001192AE454D784659914E0358FC34D777C001C2413CB678E9A3",
+      "test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java": "4A1E0EFC35DEC5D21BE39C3D9F18D3A22D7330143B4B5B42A2C76F75E553E05F",
+      "tools/phantom-runtime/training/Training.ps1": "678121AE9DF7BAC58F3A5CB1F001FAFA36E8B5738342BA4941170679BA227B6E",
+      "tools/phantom-runtime/training/TrainingOwner.ps1": "99990E1CD942BC687EA3CCDC2A08D2B925BB503ECA410390C99AF310CB1A384F",
+      "tools/phantom-runtime/training/Test-Training.ps1": "19F4926A609D34875B28F67E625D42ADA968C0EFA5F9AE513C6139C478A95996",
+      "tools/phantom-runtime/training/AutonomousTraining.ini": "2A257500A722D0C8988357CC3F8146EFF5D1A2D144B77D4FC0A1E271B8B0EA88",
+      "tools/phantom-runtime/training/TrainingGui.ps1": "2D00A62F3AC3F17D5B756FDA60D06B7E224F04BF54D12A97CD9A1A5A9C12667A",
+      "tools/phantom-runtime/training/TrainingGui.cs": "FFD44C4226DAC58982F1BE521F02E10FCB9F6EC64A5EB95169399E1D8559E35F",
+      "tools/phantom-runtime/training/TrainingGui.Designer.cs": "6309BC126835F879DC3636C4761AEF11B83B003E9E7EDF85DCBCFB2530A6C5F3",
+      "tools/phantom-runtime/training/TRAIN_GUI.cmd": "0F4AAFC2DDA7746BF2072E378B7EBD987A95F3D982B2B522085B26B2B2A73705",
+      "tools/phantom-runtime/training/RUNBOOK_RU.md": "D63EE84302F0EF0FB8AC21CFF141A7A6A4DAEC2B0954FD78017C82B4F989E5FC",
+      "java/org/l2jmobius/gameserver/phantoms/party/L2jPhantomPartyBackend.java": "B1B8E6DE2B87B4D9AB20722E9F500DEF7A91703CB7B1E714C13CDFA82E64635B"
+    },
+    "stageEqualsDeployed": true,
+    "originalByteBackupsVerified": true,
+    "outsideScope": [],
+    "privateRuntimeExcludedFromGit": ".phantom-local",
+    "baseHead": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96"
+  },
+  "historicalArchiveRevisions": [
+    {
+      "crc": "PASS",
+      "shaReadback": "PASS",
+      "entries": 1102,
+      "bytes": 3589932,
+      "sha256": "74206448fcfe486fe88365d075cdcfbb93708e960915a448b85fb03d94cb24d4",
+      "layout": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/",
+      "snapshot": "FINAL_F_PARTIAL_BEFORE_CONTINUATION_PUBLICATION",
+      "sourceFilesIncluded": 25,
+      "credentialsOrDatadirIncluded": false,
+      "exactCredentialValuesAbsent": true,
+      "snapshotSemantics": "Pre-publication source/evidence snapshot; later archive/scope/publication receipts outside ZIP self-reference"
+    }
+  ],
+  "publicationFirstAttempt": {
+    "commitCreated": false,
+    "pushPerformed": false,
+    "failure": "FOUR_MARKDOWN_EXTRA_EOF_BLANK_LINES",
+    "correctedWithinApprovedPaths": true,
+    "scopeExpanded": false
+  },
+  "archive": {
+    "crc": "PASS",
+    "shaReadback": "PASS",
+    "entries": 1102,
+    "bytes": 3591637,
+    "sha256": "5baed08e6749cd1964c4e260242ba3621b858e5a73ebb3bfa30620bf194e6569",
+    "layout": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/",
+    "snapshot": "FINAL_F_PARTIAL_BEFORE_CONTINUATION_PUBLICATION",
+    "sourceFilesIncluded": 25,
+    "credentialsOrDatadirIncluded": false,
+    "exactCredentialValuesAbsent": true,
+    "snapshotSemantics": "Pre-publication source/evidence snapshot; later archive/scope/publication receipts outside ZIP self-reference"
   }
 }

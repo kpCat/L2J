@@ -25,20 +25,34 @@ public final class AutonomousTrainingV1
 	public record CohortSlot(int ordinal, String cell, String block, String split, boolean experimental) { }
 	/** Four independent A/B blocks leave three controls after excluding the paid block. */
 	public static List<CohortSlot> cohortSlots(List<String> cells)
+	{ return cohortSlots(cells, false); }
+	/** More independent repeats tolerate one missing native control without weakening the objective. */
+	public static int cohortCellLimit(int episodeBudget)
+	{
+		if (episodeBudget < 48 || episodeBudget > 256) { throw new IllegalArgumentException("Bounded cohort episode budget required"); }
+		return episodeBudget >= 51 ? episodeBudget / 17 : episodeBudget / 12;
+	}
+	public static List<CohortSlot> cohortSlots(List<String> cells, int episodeBudget)
+	{
+		if (cells == null || cells.size() > cohortCellLimit(episodeBudget)) { throw new IllegalArgumentException("Cohort exceeds its native episode budget"); }
+		return cohortSlots(cells, episodeBudget >= 51);
+	}
+	private static List<CohortSlot> cohortSlots(List<String> cells, boolean reserve)
 	{
 		if (cells == null || cells.isEmpty() || cells.size() > 32 || cells.stream().anyMatch(c -> c == null || !c.matches("[A-Za-z0-9_-]{1,80}"))
 			|| cells.stream().distinct().count() != cells.size()) { throw new IllegalArgumentException("Недопустимые или повторные cohort cells."); }
 		final var result = new ArrayList<CohortSlot>();
 		for (String cell : cells)
 		{
-			for (int block = 0; block < 4; block++)
+			for (int block = 0; block < (reserve ? 5 : 4); block++)
 			{
 				final String key = hash(cell + "/TRAIN/" + block);
 				// Alternate order without selecting on outcomes or native RNG.
 				for (int side = 0; side < 2; side++) { result.add(new CohortSlot(result.size(), cell, key, "TRAIN", (block + side) % 2 == 1)); }
 			}
+			if (reserve) { result.add(new CohortSlot(result.size(), cell, hash(cell + "/TRAIN/5"), "TRAIN", true)); }
 			for (String split : List.of("TUNING", "AUDIT"))
-			{ for (int block = 0; block < 2; block++) { result.add(new CohortSlot(result.size(), cell, hash(cell + "/" + split + "/" + block), split, false)); } }
+			{ for (int block = 0; block < (reserve ? 3 : 2); block++) { result.add(new CohortSlot(result.size(), cell, hash(cell + "/" + split + "/" + block), split, false)); } }
 		}
 		return List.copyOf(result);
 	}

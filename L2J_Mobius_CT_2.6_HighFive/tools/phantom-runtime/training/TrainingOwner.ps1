@@ -204,7 +204,9 @@ function Assert-TrainAutonomousConfig($Values) {
     }
     $bounds=@{autonomous009Version=@(1,1);autonomous009MinLevel=@(1,85);autonomous009MaxLevel=@(1,85);autonomous009MemoryBudgetMb=@(1536,131072);autonomous009DurationMinutes=@(1,10080);autonomous009CheckpointMinutes=@(1,1440);autonomous009ReplayCapacity=@(48,512);autonomous009EvaluationEveryCycles=@(1,100);autonomous009StagnationLimit=@(3,3);autonomous009NoDataLimit=@(1,16);autonomous009CycleLimit=@(0,1000000);autonomous009SourceCursor=@(0,[long]::MaxValue)}
     foreach($key in $bounds.Keys){$number=0L;if(![long]::TryParse([string]$Values[$key],[ref]$number) -or $number -lt $bounds[$key][0] -or $number -gt $bounds[$key][1]){throw ('TRAIN009_CONFIG_RANGE:'+ $key)}}
-    foreach($key in @('autonomous009Enabled','autonomous009Exploration','autonomous009AcceptanceSmoke')){if($Values[$key] -cnotin @('true','false')){throw ('TRAIN009_CONFIG_BOOLEAN:'+ $key)}}
+    if(!$Values.ContainsKey('autonomous009GuiHoldBeforeNative')){$Values.autonomous009GuiHoldBeforeNative='false'}
+    foreach($key in @('autonomous009Enabled','autonomous009Exploration','autonomous009AcceptanceSmoke','autonomous009GuiHoldBeforeNative')){if($Values[$key] -cnotin @('true','false')){throw ('TRAIN009_CONFIG_BOOLEAN:'+ $key)}}
+    if($Values.autonomous009GuiHoldBeforeNative -ceq 'true' -and $Values.autonomous009AcceptanceSmoke -cne 'true'){throw 'TRAIN009_GUI_HOLD_REQUIRES_ACCEPTANCE'}
     if($Values['autonomous009Comparator'] -cne 'STOCK_ON_FROZEN_SHORTLIST_V1' -or $Values['v3Enabled'] -cne 'true' -or $Values.autonomous009Phase -cnotin @('OFF','PREPARE','COLLECT','FIT','EVAL')){throw 'TRAIN009_CONFIG_VERSION_OR_PHASE'}
     if($Values.autonomous009Enabled -ceq 'true'){
         if($Values['configProfile'] -cne 'OUTCOME006' -or $Values['outcome006Enabled'] -cne 'true' -or $Values['v3Terminal006'] -cne 'true' -or
@@ -219,7 +221,7 @@ function Assert-TrainAutonomousConfig($Values) {
     if([int]$Values.autonomous009MinLevel -gt [int]$Values.autonomous009MaxLevel){throw 'TRAIN009_LEVEL_INTERVAL'}
     if([int]$Values.autonomous009MemoryBudgetMb -lt ([int]$Values.maxHeapMb+512)){throw 'TRAIN009_MEMORY_HEADROOM'}
     if([int]$Values.episodesPerBatch -lt 48 -or [int]$Values.episodesPerBatch % 12 -ne 0 -or [int]$Values.episodesPerBatch -gt [int]$Values.autonomous009ReplayCapacity){throw 'TRAIN009_COHORT_CAPACITY'}
-    foreach($bound in @(@('autonomous009PriorStarts',6L),@('autonomous009PriorNativeMillis',5400000L))){if($Values.ContainsKey($bound[0])){$value=0L;if(![long]::TryParse([string]$Values[$bound[0]],[ref]$value) -or $value -lt 0 -or $value -gt $bound[1]){throw 'TRAIN009_PRIOR_BUDGET_INVALID'}}}
+    foreach($bound in @(@('autonomous009PriorStarts',10L),@('autonomous009PriorNativeMillis',5400000L))){if($Values.ContainsKey($bound[0])){$value=0L;if(![long]::TryParse([string]$Values[$bound[0]],[ref]$value) -or $value -lt 0 -or $value -gt $bound[1]){throw 'TRAIN009_PRIOR_BUDGET_INVALID'}}}
     $families=@($Values.autonomous009Families.Split(','))
     if(!$families.Count -or @($families|Select-Object -Unique).Count -ne $families.Count -or @($families|Where-Object {$_ -cnotin @('DAMAGE','HEAL')}).Count){throw 'TRAIN009_ACTION_FAMILIES'}
     if($Values.autonomous009ClassWeights -cne 'auto'){
@@ -232,7 +234,10 @@ function Assert-TrainAutonomousConfig($Values) {
         }
         # Actual PlayerClass membership is validated by Java; no second manual class catalog in PowerShell.
     }
-    if($Values.autonomous009AcceptanceSmoke -ceq 'true' -and ($Values.autonomous009SmokeMaxStarts -cne '6' -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90')){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
+    if($Values.autonomous009AcceptanceSmoke -ceq 'true'){
+        $starts=0
+        if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 6 -or $starts -gt 10 -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90'){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
+    }
 }
 function Assert-TrainConfig($Values) {
     foreach($entry in @{maxTrainingCohorts=32;maxStoredActors=4096;maxStoredProfiles=4096;cpuBudgetPercent=75;maxAdaptiveIdleSeconds=300}.GetEnumerator()){

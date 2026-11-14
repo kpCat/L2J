@@ -3,14 +3,16 @@
 
 /goal PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER
 
-Статус: **PARTIAL / INSUFFICIENT_NATIVE_EVIDENCE**. Final manual gate **REQUIRED**. FULL009 не подтверждён.
+Статус: **PARTIAL009_REAL_FIT_NO_TUNING_IMPROVEMENT_EVAL_AND_NATIVE_LIMIT_FAILED**. Final manual gate **REQUIRED**. FULL009 не подтверждён.
 008 остаётся PARTIAL / NO_TUNING_CHECKPOINT_IMPROVEMENT с отдельным непринятым gate.
 Исходный HEAD85b1c3558e35c1df0a7625fcf5a9e5c119c18b96; только wip/phantom-learning-009.
 Exact scope39:25source/config/test и14delivery. PLAN38 и39-й Party path явно утверждены владельцем.
 
 
-Срез UTC: 2026-11-13T21:01:53.448815+00:00. Director: STOPPED / Собственные процессы остановлены и порты свободны..
-Новых fit: 0; cumulative GS starts: 6/6; завершённые native minutes: 37.196967/90, pending=False.
+Срез UTC: 2026-11-14T00:16:32.076036+00:00. Director: STOPPED / Собственные процессы остановлены и порты свободны..
+Новых fit по journal: 1; cumulative GS starts: 10/10; консервативно списано 96.720667/90native min, pending=False. Последний charge включает задержку recovery; точное время выхода EVAL JVM неизвестно, строгий90min gate FAILED.
+Получен реальный autonomous SQL checkpoint DRAFT14: Adam887/207→903/223,48applications/16gradient episodes,3classes. Холодный rollback до COMMIT и recovery после COMMIT проверены; после EVAL raw weights/Adam/apps совпадают, повторного credit нет. TUNING не улучшился, best selected epoch0; selected14 — прежние terminal12 weights, новый terminal Adam14 другой. AUDIT MSE14=0.014208027 против collection teacher12=0.005066568; улучшение поведения не доказано. Завершённых полных F cycles0: EVAL и graceful exit сорвали переход к cycle CHECKPOINT. Долговечность нового SQL checkpoint подтверждена cold export.
+Независимый EVAL GS10:0lawful cells/222planning refusals/0episodes/0pairs; evaluation.complete отсутствует. batch.complete подтверждает trainingStateUnchanged=true, cold export подтверждает отсутствие градиента. После budget stop получен STOP_UNCONFIRMED; JVM позднее вышел сам, identity guard отказал до Kill. Финально STOPPED/ports0/OFF. Списано консервативно5803240ms=96.720667min при разрешённых90; эта верхняя оценка включает задержку recovery после выхода. Точное время native exit не доказано; строгий90min gate FAILED. Новых GS/сбора/обучения после указания владельца не выполнялось.
 
 ## Реализованные контракты
 
@@ -54,7 +56,7 @@ Theoretical counts не являются learned counts. Actor MAGE1 с непр
 |Skill/enchant coverage|Факт|
 |---|---|
 |Inherited learned refs|HydroBlast1235:28 фактически сохранён у103, без повторного auto-learning|
-|Rank refresh / enchant / subclass identity|Focused contract fixtures GREEN; native enchanted action не продемонстрирован|
+|Rank refresh / enchant / subclass identity|Focused contract fixtures GREEN; actual acquired enchanted versions в paid native receipts: 1230:101|
 |Точные actual levels|Полные native inventories с canonicalLevel включены в архив|
 |Origin / unknown metadata|UNKNOWN/null сохранены, не угаданы по Skill ID|
 
@@ -82,6 +84,15 @@ Theoretical counts не являются learned counts. Actor MAGE1 с непр
 |autonomous009-goal009-20261113-c-c000001|PARTY|HEAL|PRE_CUT_REFUSED|AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED|12|
 |autonomous009-goal009-20261113-c-c000001|SOLO|DAMAGE|FAILED|—|6|
 |autonomous009-goal009-20261113-c-c000001|SOLO|DAMAGE|INCOMPLETE|—|30|
+|autonomous009-goal009-20261114-e-c000001|PARTY|DAMAGE|INCOMPLETE|—|24|
+|autonomous009-goal009-20261114-e-c000001|PARTY|HEAL|COMPLETED|—|1|
+|autonomous009-goal009-20261114-e-c000001|PARTY|HEAL|INCOMPLETE|—|11|
+|autonomous009-goal009-20261114-e-c000001|SOLO|DAMAGE|COMPLETED|—|9|
+|autonomous009-goal009-20261114-e-c000001|SOLO|DAMAGE|INCOMPLETE|—|15|
+|autonomous009-goal009-20261114-f-c000001|PARTY|DAMAGE|INCOMPLETE|—|17|
+|autonomous009-goal009-20261114-f-c000001|PARTY|HEAL|INCOMPLETE|—|17|
+|autonomous009-goal009-20261114-f-c000001|SOLO|DAMAGE|COMPLETED|—|2|
+|autonomous009-goal009-20261114-f-c000001|SOLO|DAMAGE|INCOMPLETE|—|15|
 
 ## Автономные циклы и starts
 
@@ -91,9 +102,11 @@ Theoretical counts не являются learned counts. Actor MAGE1 с непр
 |autonomous009-goal009-20261113-b|4|1|0|16.810917|
 |autonomous009-goal009-20261113-c|5|1|0|35.604667|
 |autonomous009-goal009-20261113-d|6|1|0|37.196967|
+|autonomous009-goal009-20261114-e|8|1|0|62.899933|
+|autonomous009-goal009-20261114-f|10|0|1|96.720667|
 
-GS1 rejected SOLO level-band misuse до CUT; исправлен canonical forMember. GS2 useful HEAL без admitted terminal credit и matched-physical mismatch, реальная Pause/drain. GS3 B cohort1 иGS4 B cohort2 дали автоматический no-data loop без Codex между циклами. GS5 C завершила96результатов и cold checkpoint старой12без fit. GS6 D завершена:0cells/0episodes,121planning refusals (111insufficient alternatives+10helper envelope),0fit. Данные C не переписывались, cumulative budget сохранён; подробности EVIDENCE.
-Cold checkpoint с прежними весами и progress reference не считаются новым trained checkpoint. После6starts не запускать седьмой ради native EVAL.
+GS1 rejected SOLO level-band misuse до CUT; исправлен canonical forMember. GS2 useful HEAL без admitted terminal credit и matched-physical mismatch, реальная Pause/drain. GS3 B cohort1 иGS4 B cohort2 дали автоматический no-data loop без Codex между циклами. GS5 C завершила96результатов и cold checkpoint старой12без fit. GS6 D завершён с0lawful cells/121refusals. E затем дала60episodes без fit; F дала51episodes и настоящий fit. Все cumulative budgets сохранены; подробности EVIDENCE.
+Cold checkpoint с прежними весами и progress reference не считаются новым trained checkpoint. GS7 E упал до CUT на out-of-world service NPC; raw neighbor regression RED→GREEN, bounds выбранных scenes и faction guards сохранены. GS8 и дальнейшие результаты E приведены в таблицах и EVIDENCE. Предел10/90 не сбрасывался.
 
 ## Model / optimizer lineage
 
@@ -104,7 +117,12 @@ Cold checkpoint с прежними весами и progress reference не сч
 |Terminal Adam12 weights|7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37|
 |Initial optimizer counters|887updates /207epochs|
 |Accepted TEST2|6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc|
-|New fit count|0|
+|New fit count|1|
+|Final working model version|14|
+|Final working selected SHA|7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37|
+|Final raw Adam SHA|6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844|
+|Final terminal weights SHA|f830a1cc4ead23f36dd6153fd1d818bbb0ae3b830d9e666f1988a4c82f05e9bf|
+|Final Adam updates / epochs|903 / 223|
 |Production promotion|false|
 
 Old cold export ZIP31be59ec…CRC/raw Adam verified. Полный stopped SQL byte backup513files/460368518bytes, manifestc6be117f… сохранён вне checkout/private ACL. Старые007/008 codecs и model blobs не переписывались.
@@ -116,13 +134,13 @@ Old cold export ZIP31be59ec…CRC/raw Adam verified. Полный stopped SQL by
 |Headless native wall|142313ms суммарно, учтено в90min|
 |Headless peak working set|4219949056 /4529262592 /4607107072bytes, три probes|
 |Native resource metrics|attempt/native-resources.json сохранены в compact evidence, показываются отдельно от Director|
-|Director snapshot|cpuSeconds=37.516, workingSetBytes=138215424|
+|Director snapshot|cpuSeconds=11.906, workingSetBytes=133988352|
 |Policy latency|Per-episode policyTiming p50/p95/p99/max/allocations; не усреднять p95 разных episodes|
 |Safety fallback|5ms/.025/2000ms сохранены; warm read-only encoder/model до CUT|
 |CPU budget|JVM processor bound и adaptive idle; не жёсткий мгновенный OS throttle|
-|Memory/disk|Проверяются во время workers/native; suточный soak NOT_RUN|
+|Memory/disk|Проверяются во время workers/native; суточный soak NOT_RUN|
 
-Postflight currentOwnBytes=2555034135, availableDiskBytes=384569659392; исходный размер той же runtime не замерен, поэтому точный disk growth UNKNOWN. Peak/elapsed/CPU каждого последнего native attempt включены в native-evidence/summary.json. ДляD:elapsed93231ms,CPU201.3125s,peak4701855744bytes. Это реальные process metrics, не число logical/materialized actors.
+Postflight currentOwnBytes=2772716649, availableDiskBytes=428055465984; исходный размер той же runtime не замерен, поэтому точный disk growth UNKNOWN. Peak/elapsed/CPU каждого последнего native attempt включены в native-evidence/summary.json. ДляD:elapsed93231ms,CPU201.3125s,peak4701855744bytes. Это реальные process metrics, не число logical/materialized actors.
 
 ## GUI operations
 
@@ -130,8 +148,8 @@ Postflight currentOwnBytes=2555034135, availableDiskBytes=384569659392; исхо
 |---|---|
 |Add-Type Windows EXE / SHA manifest|PASS CompileOnly|
 |Настоящее окно и CLI status|Прочитано|
-|Кнопки Start/Pause/Stop/Resume/Export|NOT_VERIFIED|
-|Два GUI / закрытие / повторное открытие|Архитектурные locks/client contracts; live button verification NOT_VERIFIED|
+|Кнопки Start/Status/Pause/Stop/Resume/Export|PASS:6реальных handlers,2окна/1Director,фактический GUI exit и продолжившийся GS game.ready/socket; WINFORMS_PERFORMCLICK_NOT_DESKTOP_INPUT|
+|Два GUI / закрытие / повторное открытие|Реальные PID/creation identity и CLI receipts в gui-acceptance-e; закрытие обоих окон не остановило GS7|
 |Visual Studio Designer round-trip|NOT_RUN|
 |Computer Use|Прекращён по предпочтению владельца|
 
@@ -139,15 +157,15 @@ Postflight currentOwnBytes=2555034135, availableDiskBytes=384569659392; исхо
 
 |Gate|Фактическое состояние|
 |---|---|
-|G0|PASS_EXACT_BASE_39_SCOPE_TEST_OWNERSHIP_GEO203_PROTECTED207_POSTFLIGHT|
-|G1|PASS_CANONICAL_103_CLASSES_ACTUAL_ACQUIRED_5_CLASSES|
-|G2|PARTIAL_NATIVE_CASTS_FINAL_TARGET_BOUND_PLANNING_NO_LAWFUL_CELLS|
-|G3|PARTIAL_AUTOMATIC_NO_DATA_LOOPS_NO_ACTUAL_OPTIMIZER_UPDATE|
-|G4|PARTIAL_REAL_START_PAUSE_STOP_RESUME_OLD_ADAM_EXACT_NEW_COMMIT_FAULTS_NOT_RUN|
-|G5|PARTIAL_GUI_COMPILED_STATUS_READ_BUTTONS_NOT_VERIFIED|
-|G6|NOT_RUN_INDEPENDENT_NATIVE_009_EVAL|
-|G7|PARTIAL_COMPILE_TARGETED_F7_F8_PASS_STOPPED_NATIVE_TRAIN_ACCEPTANCE_INSUFFICIENT|
-|G8|PASS_SCOPED_NONFORCE_009_REMOTE_EXACT39_25SOURCE_EVIDENCE_ARCHIVE_BLOBS|
+|G0|PASS_EXACT_BASE_SCOPE39_OWN_TEST_GEO203_PROTECTED207_FINAL_STOPPED|
+|G1|PASS_CANONICAL103_CLASSES_ACTUAL_ACQUIRED5_CLASSES_UNSUPPORTED_EXPLICIT|
+|G2|PARTIAL_REAL_MULTICLASS_DAMAGE_HEAL_E_F_BUT_EVAL_LAWFUL_COVERAGE_FAILED|
+|G3|PARTIAL_ONE_ACTUAL_FIT_SQL_CHECKPOINT_NO_TWO_COMPLETED_TRAINED_CYCLES|
+|G4|PARTIAL_COLD_TWO_COMMIT_FAULTS_EXACTLY_ONCE_PASS_NATIVE_STOP_UNCONFIRMED|
+|G5|PASS_REAL_SIX_WINFORMS_HANDLERS_TWO_WINDOWS_CLOSE_INDEPENDENCE|
+|G6|FAIL_NATIVE_EVAL_ZERO_LAWFUL_CELLS_ZERO_PAIRS_NO_BEHAVIOR_VERDICT|
+|G7|FAIL_NATIVE90_LIMIT_PROOF_STOP_UNCONFIRMED_REGRESSIONS_AND_FINAL_CLEANUP_PASS|
+|G8|PENDING_SCOPED009_PUBLICATION_AND_INDEPENDENT_GITHUB_READBACK|
 
 Scoped commit/push разрешён TASK только в009. Exact Git commands, publication SHA и independent connector readback фиксируются в COMMANDS/EVIDENCE; merge/force/main публикации нет. Состояние008не принимается задним числом.
 009—задача№3из13 после006R1; осталось10дообязательного пересмотра. Новый Goal/Slice не создан.
@@ -260,25 +278,20 @@ Scoped commit/push разрешён TASK только в009. Exact Git commands,
 |135|INSPECTOR|458|UNKNOWN|UNKNOWN|NO_ADMISSIBLE_ACTUAL_SOURCE; навыки не выдавались|
 |136|JUDICATOR|467|UNKNOWN|UNKNOWN|NO_ADMISSIBLE_ACTUAL_SOURCE; навыки не выдавались|
 
-## Final scope и кодировки
+## Финальный итог по указанию владельца
 
-Exact allowlist39paths:25source/config/test+14delivery, перечислены вEVIDENCE. Перед архивом38textpaths, stage=deployed, outsideScope0, исходные byte backups проверены. Архив —39-й path; его финальный guard/CRC/SHA фиксируются вEVIDENCE.
+**PARTIAL. Задача закрывается без новых GS, опыта, обучения и увеличения бюджета. FULL009 не достигнут; final manual gate REQUIRED.**
 
-mojibake-маркеры в изменённых файлах проверены;27patterns,38textfiles,0matches,exit0.
-escaped Cyrillic в изменённых файлах проверены;6patterns,38textfiles,0matches,exit0.
+Получен реальный autonomous SQL checkpoint DRAFT14: Adam887/207→903/223,48applications/16gradient episodes,3classes. Холодный rollback до COMMIT и recovery после COMMIT проверены; после EVAL raw weights/Adam/apps совпадают, повторного credit нет. TUNING не улучшился, best selected epoch0; selected14 — прежние terminal12 weights, новый terminal Adam14 другой. AUDIT MSE14=0.014208027 против collection teacher12=0.005066568; улучшение поведения не доказано. Завершённых полных F cycles0: EVAL и graceful exit сорвали переход к cycle CHECKPOINT. Долговечность нового SQL checkpoint подтверждена cold export.
 
-Git-команды использовались только для разрешённых source/ref/scope checks и scoped публикации009. Полный перечень/авторизация —COMMANDS. Никаких merge/force/history changes, MAIN/feature/master записей нет.
+Независимый EVAL GS10:0lawful cells/222planning refusals/0episodes/0pairs; evaluation.complete отсутствует. batch.complete подтверждает trainingStateUnchanged=true, cold export подтверждает отсутствие градиента. После budget stop получен STOP_UNCONFIRMED; JVM позднее вышел сам, identity guard отказал до Kill. Финально STOPPED/ports0/OFF. Списано консервативно5803240ms=96.720667min при разрешённых90; эта верхняя оценка включает задержку recovery после выхода. Точное время native exit не доказано; строгий90min gate FAILED. Новых GS/сбора/обучения после указания владельца не выполнялось.
 
+Итог безопасности: own Director/native/worker/SQL отсутствуют; порты33357/18001/19301 свободны; Geo203/protected207 exact hashes PASS. Config OFF, обе fault flags и GUI hold выключены; shutdown wait возвращён180s. Accepted TEST2 и MAIN/PLAY не менялись. Аварийный Kill не выполнялся: перед действием exact identity guard вернул PROCESS_UNAVAILABLE, JVM уже завершился; затем штатный Stop закрыл свой SQL.
 
-## Публикация и независимый readback
+Консервативный счётчик5803240ms включает время до pending recovery, в том числе задержку после фактического выхода JVM. Это не точный замер96.721мин активного JVM. Точное время выхода не установлено; соблюдение90мин не доказано, budget gate FAILED. Счётчик сохранён, не обнулён и не увеличен разрешённый ceiling. Starts10/10, pending=false. Нативных повторов не было.
 
-Source/evidence commit: `ac712dbb0fef304daffb528a4d33b2dd52b3c63f`, parent `85b1c3558e35c1df0a7625fcf5a9e5c119c18b96`. Обычный non-force push только `wip/phantom-learning-009`, exit0. GitHub connector независимо подтвердил branch=commit (compare identical/0ahead/0behind), один commit поверх008 и exact39diff paths. Все25source blobs, EVIDENCE и ZIP прочитаны connector с совпавшими Git blob IDs. Remote EVIDENCE:PARTIAL/fits0/nightReadyfalse/manualgateREQUIRED.
-Исторический архив до Status fix:591282bytes/119entries, SHA256 `bd1217e0dda844869056e6a5807ba41d83e4865642af63dbe01c4b24e1381652`, local CRC и every-entry SHAreadbackPASS. Архив — pre-publication snapshot; поздний docs-only receipt не включён в него. MAIN/feature HEAD повторно прочитан:7e997636dbac9d5e1754e00c793cd6fac858b0c6, записи не выполнялись.
+Cold SQL working14 подтверждён двумя независимыми экспортами до и после recovery/EVAL: raw selected/Adam/targets/apps/labels совпали;48applications,16gradient episodes,3classes. Исторические117строк моделей/Adam/apps1–12 дали прежнийSHA E0BD464544A67AC4D14292DED4BF32EFBF82F6DDF86E2D4937264929063F2309. Отрицательные raw outcomes и legacy settlement flags не переписаны; фактический training credit определяется SQL applications.
 
-Final docs-only publication receipt меняет только6изужеутверждённых39paths: EVIDENCE/RESULT/ACCEPTANCE/HANDOFF/COMMANDS иполныйreport. Source25/ZIP/runtime не меняются. Следующий Goal/Slice не создан; manualgateREQUIRED, FULL009неподтверждён.
+`cold-checkpoint.json` содержит последний завершённый cycle pointer model12; после срыва EVAL фаза cycle CHECKPOINT не достигнута. Это отдельный незакрытый аспект статуса; долговечный SQL checkpoint14 и его terminal Adam903/223 проверены холодным экспортом, pointer вручную не переименовывался.
 
-
-## Последняя проверка CLI Status
-
-После publication receipt11425af7366… read-only `Status -Json` выявил StrictMode PropertyNotFound на пустойDкогорте: Measure-Object не давал Sum; pre-CUT rows также не обязаны содержать outcome/paidRawEffects. Минимальный fix только в3ранее разрешённыхPSpaths: optional field-safe Get-TrainEpisodeSummary; учёт только reserved.json directories;3focused cases empty/pre-CUT/mixed. REDmissinghelper→GREEN, Test-Configexit0; реальныйStatusexit0:STOPPED/directorLivefalse/attempted0/paidEffects0/starts6/fits0. Independentread-onlyreviewCritical/Importantнеобнаружил. SQL/GameServer не запускались, model/Adam/runtimeconfig/budget не менялись.
-Архив пересобран с обновлённымиPSsource; старый архивbd1217e0… сохранён побайтно внеcheckout. Его SHA в предыдущем publication receipt является историческим. Актуальный архив и source hashes — EVIDENCE. Новый bounded commit/push затрагивает только тежеapproved39paths; дополнительныхGoal/Slice/nativebudget нет. Перед окончательным ответом требуется independent remote HEAD/diff/PS-source/EVIDENCE/ZIP readback.
+Незакрыты G2/G3/G4/G6/G7: неполная lawful coverage, нет двух завершённых обученных cycles, STOP_UNCONFIRMED,0EVAL pairs и провал native90-limit proof. G0/G1/G5 подтверждены в указанном bounded scope. G8 завершается только обычной публикацией009 и независимым GitHub readback. Низкий MSE и факт Adam updates не считаются улучшением поведения. VisualStudio Designer round-trip и24h soak NOT_RUN; nightReady=false.

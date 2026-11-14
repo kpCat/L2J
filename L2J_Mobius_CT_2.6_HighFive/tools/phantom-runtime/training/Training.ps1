@@ -558,7 +558,18 @@ function Save-TrainAutonomousProgressCheckpoint {
 function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[string]$JournalPath) {
     Assert-TrainAutonomousResources
     $smoke=$script:Config.autonomous009AcceptanceSmoke -ceq 'true'
-    if($smoke -and ([int]$Journal.starts -ge 6 -or [long]$Journal.nativeMillis -ge 5400000L)){throw 'TRAIN009_NATIVE_BUDGET_EXHAUSTED'}
+    if($smoke -and ([int]$Journal.starts -ge [int]$script:Config.autonomous009SmokeMaxStarts -or [long]$Journal.nativeMillis -ge 5400000L)){throw 'TRAIN009_NATIVE_BUDGET_EXHAUSTED'}
+    if($script:Config.autonomous009GuiHoldBeforeNative -ceq 'true'){
+        if(!$smoke){throw 'TRAIN009_GUI_HOLD_REQUIRES_ACCEPTANCE'}
+        $holdDeadline=[DateTime]::UtcNow.AddMinutes(3)
+        while(!(Test-TrainRequest 'stop') -and !(Test-TrainRequest 'pause')){
+            if([DateTime]::UtcNow -ge $holdDeadline){throw 'TRAIN009_GUI_HOLD_TIMEOUT'}
+            Assert-TrainAutonomousResources
+            Publish-TrainState 'GUI_HOLD' 'Acceptance: проверка кнопок до запуска GameServer; native budget не расходуется.'
+            Start-Sleep -Milliseconds 500
+        }
+        return
+    }
     if($Journal.pending){throw 'TRAIN009_PENDING_NATIVE_REQUIRES_EXIT_RECOVERY'}
     $Journal.starts=[int]$Journal.starts+1;$Journal.pending=$true;$Journal.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $JournalPath $Journal
     $timer=[Diagnostics.Stopwatch]::StartNew()
