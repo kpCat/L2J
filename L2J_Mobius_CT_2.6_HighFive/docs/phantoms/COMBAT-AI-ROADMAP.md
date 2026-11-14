@@ -1,3 +1,17 @@
+<!-- GOAL010_CURRENT -->
+# Текущее состояние после010
+
+010 — задача№4/13: CONSOLIDATION **VERIFIED**, EVAL_CLOSURE **PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED**, game **INCONCLUSIVE**. feature/phantom-world — единственная постоянная development branch; новые WIP только по явному разрешению владельца. Merge8752 сохраняет feature cleanup и всю009, source6c97/ccd93 опубликован прямо в feature. Основной dirty checkout сохранён.
+
+010: 3/3GS, 10.016917/45nativeмин; DRAFT14/Adam903/223/48applications frozen, fit0, acceptedTEST2/MAIN/PLAY сохранены. Последний EVAL: 0completed pairs, AB0/BA0; отрицательные A/B и ограничения HEAL/control сохранены. Финально STOPPED/OFF/owned0/portsfree.009 остаётся PARTIAL/manual REQUIRED и10starts/96.720667мин;008manual REQUIRED. После выдачи010 осталось9задач до пересмотра. Следующий Goal не запущен.
+
+Будущая перспектива: проверяемая командная тактика танк/ДД/хилер, затем отдельные bounded рейдовые и PvP сравнения. Нужны явные contracts ролей, coordinated decisions и канонические native effect/terminal proof с независимыми splits и controls. Это запись направления, без нового AI, provider/LLM, рейдовой/PvP логики либо изменения safety/game mechanics в010. Конкретный следующий scope определяет владелец после review.
+
+[RESULT010](../../../docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md), [EVIDENCE010](../../../docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json).
+
+Ниже сохранены исторические записи до010; их старые WIP-публикации не являются новым workflow.
+
+<!-- GOAL010_END -->
 # Combat AI — бюджет и проверяемые результаты
 
 009 — задача№3 из13: **PARTIAL**, final manual gate REQUIRED. Реальный autonomous SQL DRAFT14/Adam903/223,16gradient episodes/3classes; cold rollback и exactly-once recovery PASS. TUNING не улучшился, AUDIT хуже collection teacher12; native EVAL0lawfulcells/0pairs. STOP_UNCONFIRMED и strict90min gate FAILED: консервативно списано96.720667min/10starts, точный native exit неизвестен. Финально STOPPED/OFF/ports0, acceptedTEST2/MAIN/PLAY сохранены. GUI6handlers/2windows/close independence PASS. [RESULT009](tasks/PHANTOM-LEARNING-009-UNIVERSAL-AUTONOMOUS-TRAINER/RESULT.md). После выдачи009 осталось10задач до пересмотра.008 остаётся PARTIAL с отдельным gate;010 не начиналась.

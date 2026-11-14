@@ -13,6 +13,8 @@
 
 ## Git и сохранность
 
+Начиная с PHANTOM-LEARNING-010, `feature/phantom-world` — единственная постоянная ветка разработки. Новые WIP-ветки допустимы только по явному разрешению владельца. Обычные scoped commit/push выполняются непосредственно в feature после проверки свежего origin и собственных исходников; dirty основной checkout не перезаписывается.
+
 Для bounded проверки ветки и scope разрешены `git rev-parse`, `git symbolic-ref`, `git status`, `git worktree list`, `git for-each-ref`, `git diff -- <exact paths>`, `git ls-tree` и `git merge-base`. При необходимости записи, commit/push или удаления refs требуется явное разрешение текущей задачи. Публикация только обычным push в feature/phantom-world.
 
 Сохранять чужой dirt. До замены или переноса уникальных файлов — побайтовые копии вне checkout и проверка SHA-256. Не применять clean, reset --hard, массовый stash, force checkout, add ., Stage All, force push или переписывание истории. Исторические отчёты и task packages не переписывать ради текущего состояния.
