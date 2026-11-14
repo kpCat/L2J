@@ -213,7 +213,7 @@ final class PhantomTrainingScenarios
 	}
 	static List<AcquiredScene> acquiredScenes(AutonomousTrainingV1.Proposal proposal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
 		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum, Map<String, Long> diagnostics,
-		java.util.function.Predicate<AcquiredScene> lawful, java.util.function.BooleanSupplier requested)
+		java.util.function.Predicate<Monster> targetEligible, java.util.function.Predicate<AcquiredScene> lawful, java.util.function.BooleanSupplier requested)
 	{
 		if (maximum < 1 || maximum > 64 || rosterLevels.isEmpty() || !rosterLevels.contains(proposal.actor().level()) || proposal.shortlist().candidates().isEmpty())
 		{ throw new IllegalArgumentException("AUTONOMOUS_SCENE_INPUT"); }
@@ -248,6 +248,8 @@ final class PhantomTrainingScenarios
 				|| !PhantomCombatPolicy.farmRewardAvailable(proposal.actor().level() - npc.getLevel(), RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE,
 					npc.getExpReward(proposal.actor().level()), npc.getSpReward(proposal.actor().level()))) { continue; }
 			diagnostics.merge("LEVEL_REWARD_GEO_ACCEPTED", 1L, Long::sum);
+			if (!targetEligible.test(npc)) { diagnostics.merge("SOURCE_SKILLS_OR_MAGIC_LEVEL", 1L, Long::sum); continue; }
+			diagnostics.merge("CAPABILITY_TARGET_ACCEPTED", 1L, Long::sum);
 			final var target = new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0);
 			for (var anchor : authority.topology().nearestAnchors(target, PhantomTopologyAnchorRole.FARMING, 12, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
 			{
@@ -299,18 +301,17 @@ final class PhantomTrainingScenarios
 	}
 	private static List<PhantomTopologyPoint> acquiredTargetPoints(Monster npc, PhantomTopologyAnchor anchor, long seed)
 	{
-		if (npc.getTemplate().getClans() == null || npc.getTemplate().getClans().isEmpty()) { return List.of(new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0)); }
-		final var result = new ArrayList<PhantomTopologyPoint>(); final var geo = GeoEngine.getInstance();
-		for (var offset : acquiredTargetOffsets())
-		{
-			final int x = anchor.point().x() + offset.x(), y = anchor.point().y() + offset.y();
-			if (!geo.hasGeo(x, y)) { continue; }
-			final int z = geo.getHeight(x, y, npc.getZ());
-			if (!inWorldBounds(x, y, z)) { continue; }
-			final var point = new PhantomTopologyPoint(x, y, z, 0);
-			if (point.distance3D(anchor.point()) <= PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE && Math.abs((long) point.z() - anchor.point().z()) <= 200) { result.add(point); }
-		}
+		// Only factual native current/spawn positions. Historical offset fixtures remain read-only compatibility checks.
+		final var result = sourceTargetPoints(new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId()),
+			npc.getSpawn() == null ? null : new PhantomTopologyPoint(npc.getSpawn().getX(), npc.getSpawn().getY(), npc.getSpawn().getZ(), npc.getInstanceId()));
 		return result.stream().sorted(Comparator.comparing(point -> hash(seed + "/isolated-target/" + point))).toList();
+	}
+	static List<PhantomTopologyPoint> sourceTargetPoints(PhantomTopologyPoint current, PhantomTopologyPoint spawn)
+	{
+		final var result = new ArrayList<PhantomTopologyPoint>();
+		if (current != null && inWorldBounds(current.x(), current.y(), current.z())) { result.add(current); }
+		if (spawn != null && current != null && spawn.instanceId() == current.instanceId() && inWorldBounds(spawn.x(), spawn.y(), spawn.z())) { result.add(spawn); }
+		return result.stream().distinct().toList();
 	}
 	static List<PhantomTopologyPoint> acquiredTargetOffsets()
 	{
@@ -356,8 +357,8 @@ final class PhantomTrainingScenarios
 	static boolean factionIsolated(Monster exemplar, PhantomTopologyPoint point, Monster ignored)
 	{
 		final var template = exemplar.getTemplate(); if (template.getClans() == null || template.getClans().isEmpty()) { return true; }
-		final int queryRange = Math.addExact(PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE * 2 + 900, Math.addExact(template.getClanHelpRange(), template.getCollisionRadius()));
-		final var neighbors = new ArrayList<>(World.getInstance().getVisibleObjectsInRange(exemplar, Attackable.class, queryRange).stream()
+		// Preparation-only census: a World-region query cannot prove isolation across its own region boundary.
+		final var neighbors = new ArrayList<>(World.getInstance().getVisibleObjects().stream().filter(Attackable.class::isInstance).map(Attackable.class::cast)
 			.filter(other -> other != ignored && other.isSpawned() && !other.isAlikeDead() && other.getInstanceId() == point.instanceId())
 			.map(other -> new ClanNeighbor(other.getX(), other.getY(), other.getZ(), other.getInstanceId(), other.getTemplate().getClans() == null ? Set.of() : other.getTemplate().getClans())).toList());
 		if (exemplar != ignored) { neighbors.add(new ClanNeighbor(exemplar.getX(), exemplar.getY(), exemplar.getZ(), exemplar.getInstanceId(), template.getClans())); }

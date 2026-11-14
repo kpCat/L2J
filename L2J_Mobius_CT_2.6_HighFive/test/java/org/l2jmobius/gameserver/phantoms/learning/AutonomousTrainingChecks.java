@@ -33,6 +33,7 @@ public final class AutonomousTrainingChecks
 			case "objective" -> objective();
 			case "config" -> configuration();
 			case "curriculum" -> curriculum();
+			case "encounter" -> encounter();
 			default -> throw new IllegalArgumentException("Unknown autonomous contract group");
 		}
 		System.out.println("AUTONOMOUS_TRAINING_GREEN " + args[0]);
@@ -246,6 +247,29 @@ public final class AutonomousTrainingChecks
 			}
 		}
 		finally { java.nio.file.Files.deleteIfExists(path); }
+	}
+
+	private static void encounter()
+	{
+		final var entity = new EncounterAdmissionV1.Entity("LEARNER", "a".repeat(64), "b".repeat(64));
+		final var actions = List.of(new SkillRef(7001, 101), new SkillRef(7002, 2));
+		final var proposal = new EncounterAdmissionV1.Proposal(EncounterAdmissionV1.Mode.SOLO_PVE, LegalActionV3.Family.DAMAGE,
+			List.of(entity), "20000@farm-source", "c".repeat(64), "d".repeat(64), 120000, actions);
+		check(proposal.requestTimeoutMillis() == 120000, "SOLO request boundary changed");
+		final var changed = new EncounterAdmissionV1.Proposal(proposal.mode(), proposal.family(),
+			List.of(new EncounterAdmissionV1.Entity("LEARNER", entity.sourceSha(), "e".repeat(64))), proposal.targetSource(), proposal.placementSha(), proposal.configSha(), proposal.observationMillis(), actions);
+		check(!proposal.fingerprint().equals(changed.fingerprint()), "Changed acquired rank/enchant inventory retained proposal identity");
+		reject(() -> new EncounterAdmissionV1.Proposal(proposal.mode(), proposal.family(), proposal.entities(), proposal.targetSource(), proposal.placementSha(), proposal.configSha(), 180000, actions), "180s SOLO request accepted before native start");
+		reject(() -> new EncounterAdmissionV1.Proposal(EncounterAdmissionV1.Mode.PVP_1V1, proposal.family(), proposal.entities(), proposal.targetSource(), proposal.placementSha(), proposal.configSha(), 30000, actions), "Reserved PvP mode was advertised as implemented");
+		final var headless = new EncounterAdmissionV1.Receipt(proposal, EncounterAdmissionV1.Stage.HEADLESS_READY, "f".repeat(64), List.of());
+		check(!headless.sealable(), "Headless readiness became a live physical seal");
+		final var live = new EncounterAdmissionV1.Receipt(proposal, EncounterAdmissionV1.Stage.LIVE_ADMITTED, headless.physicalSha(), List.of());
+		check(live.sealable() && EncounterAdmissionV1.parity(headless, live).isEmpty(), "Equal live facts rejected");
+		final var drifted = new EncounterAdmissionV1.Receipt(proposal, live.stage(), "0".repeat(64), List.of(EncounterAdmissionV1.Reason.WORLD_AI_MOVEMENT));
+		check(!drifted.sealable() && EncounterAdmissionV1.parity(headless, drifted).contains("PHYSICAL_FACTS"), "Changed live World was silently sealed");
+		final var party = new EncounterAdmissionV1.Proposal(EncounterAdmissionV1.Mode.PARTY_PVE, proposal.family(),
+			List.of(entity, new EncounterAdmissionV1.Entity("HELPER", "1".repeat(64), "2".repeat(64))), proposal.targetSource(), proposal.placementSha(), proposal.configSha(), 120000, actions);
+		check(party.requestTimeoutMillis() == 60000 && party.observationMillis() == 120000, "Party request timeout was confused with observation window");
 	}
 
 	private static Skill skill(int id, int level, boolean passive, EffectType type, int mp, int power, int area)
