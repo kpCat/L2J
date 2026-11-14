@@ -34,3 +34,16 @@ Baseline before010: штатный coldExport exit0, DRAFT14/Adam903/223/48appli
 
 
 Финальное дополнение: source6c97 опубликован, затем live mismatch010B устранён bounded placement catalogue CCD93. Три headless receipts, 3GS, cumulative601015мс. G0 дополнен read-only ignored inventory2716584paths и сохранением288682source/docs (4956unique streams), оригиналы не менялись. PostflightSTOPPED/OFF/owned0/portsfree/Geo203/protected207PASS; SQL lineage183rowsidentical. Итог CONSOLIDATION=VERIFIED; EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED; gates{"G0": "PASS", "G1": "PASS", "G2": "PASS", "G3": "PASS", "G4": "FAIL", "G5": "PASS", "G6": "PASS", "G7": "PASS", "G8": "PASS"}. Required final publication readback basis: 009066e51d88725fa568bb86b41602f1550f6ebf. Никакой следующий Goal не начат.
+
+
+## Явное продолжение владельца14.11.2026 — тот же Goal010
+
+Владелец после опубликованного PARTIAL010 разрешил ограниченное продолжение текущего Goal, без новой задачи из бюджета13. Этот раздел заменяет первоначальный лимит GS3 на **5 суммарно**. Общий native time остаётся **45минут**. Уже израсходованные **3запуска/601015мс** и все ошибки/отрицательные результаты сохраняются;00910/5803240мс неизменно. Новых WIP/Goal не создавать.
+
+Перед четвёртым GS обязателен полный дешёвый preflight: все planned legal scenes, actual acquired skills/ranks, NPC/Geo/LOS/faction, ordinary Party admission, native risk, fresh matched pre-CUT arms и совместимость всех EVAL параметров с CombatRequest, включая120с. Используются реальные Player/NPC и constructors, без CUT/dispatch/credits. Для DAMAGE Solo проверяется фактический profile/target/mode и окно≤120000мс; Party — authority roles и canonical request60000мс. Каждая planned cell проходит STOCK+LEARNED passive admission.
+
+Разрешены только independent EVAL и проверка исправлений. FIT/weightsDRAFT14/Adam903/223/reward/safety/training credits запрещены к изменению. Published feature/phantom-world остаётся единственной веткой. Критерий G4 прежний: минимум2completed matchedpairs, Solo+Party, balancedAB/BA, настоящие native receipts.
+
+Если цель достигнута после4-гоGS — немедленно завершить, пятый не расходовать. Если после двух дополнительных GS критерии не выполнены — итогPARTIAL с точной причиной; расширение бюджета автоматически не запрашивать. Затем STOP/SQL/ports/models/GitHub/finalacceptance. Это по-прежнему задача№4/13; после её выдачи9до пересмотра.
+
+Bounded scope продолжения: шесть existing source paths (TrainingConfig,AutonomousTrainingChecks,TrainingOwner,Test-Training,AutonomousTrainingNative и ближайший ShadowNative test-adapter для passive constructor proof). Суммарный product scopeGoal0109paths, плюс16ранее запрошенных docs. CoreCombat/Party/Player, UI, models/schema не меняются. Native результат продолжения до запусков NOT_RUN, G4FAIL исходного этапа сохраняется как история.

@@ -612,6 +612,9 @@ public final class PhantomAutonomousTrainingNative
 				}
 				if (family == LegalActionV3.Family.DAMAGE)
 				{
+					// Passive constructor proof with the exact native SOLO parameter shape; no dispatch.
+					final var request = soloRequestProbe(cell.party(), Long.parseLong(roster.get(cell.learnerIndex())[2]), target.getObjectId(), proposal.pool().mode(), config.episodeSeconds() * 1000L);
+					if (request != null) { immutable(work.resolve("combat-request.json"), "{\"validated\":true,\"dispatched\":false,\"profile\":" + request.profileId() + ",\"target\":" + request.targetObjectId() + ",\"mode\":" + q(request.mode().name()) + ",\"timeoutMillis\":" + request.timeoutMillis() + ",\"maximumTimeoutMillis\":" + org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS + "}"); }
 					final Monster exactTarget = target; final var inventory = PhantomSkillInventory.acquired(learner, authority.progression());
 					final var readiness = proposal.shortlist().candidates().stream().map(ref -> { final var ability = inventory.abilities().stream().filter(a -> a.skill().equals(ref)).findFirst().orElseThrow(); return ref + ":" + PhantomSkillInventory.eligibility(learner, exactTarget, ability, owner::isCurrent, true).reasons(); }).toList();
 					immutable(work.resolve("readiness.txt"), readiness.toString());
@@ -634,6 +637,7 @@ public final class PhantomAutonomousTrainingNative
 				{
 					final var admission = runtime.acquiredPartyAdmission(); immutable(work.resolve("party-admission.json"), PhantomLearning005Evaluation.mapJson(admission));
 					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED"); }
+					if (evaluation && !Boolean.TRUE.equals(admission.get("combatRequestValidated"))) { throw new IllegalStateException("AUTONOMOUS_PARTY_REQUEST_PREFLIGHT_REQUIRED"); }
 				}
 				final Path match = directory.resolve(cell.key() + ".physical.sha"); if (Files.exists(match) && !Files.readString(match).equals(physical)) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_MATCHED_PHYSICAL_FACTS_DIFFER"); } immutable(match, physical);
 				immutable(work.resolve("precut.json"), "{\"comparisonCellSha\":" + q(physical) + ",\"facts\":" + PhantomLearning005Evaluation.mapJson(facts) + ",\"actorProfile\":" + roster.get(cell.learnerIndex())[2] + "}");
@@ -736,22 +740,25 @@ public final class PhantomAutonomousTrainingNative
 		if (stock == null) { throw new IllegalStateException("AUTONOMOUS_STOCK_OBSERVER_UNAVAILABLE"); }
 		final var sources = evaluationSources(root, directory, discoverSources(root, directory, config, authority, () -> requested(directory)), config);
 		final var cells = planCells(directory, sources, config, authority, () -> requested(directory)); requireEvaluationCoverage(cells);
-		final var selected = new ArrayList<Cell>();
-		selected.add(cells.stream().filter(c -> evaluationDirection(c).equals("SOLO_DAMAGE")).findFirst().orElseThrow());
-		selected.add(cells.stream().filter(c -> evaluationDirection(c).equals("PARTY_HEAL")).findFirst()
-			.orElseGet(() -> cells.stream().filter(c -> evaluationDirection(c).equals("PARTY_DAMAGE")).findFirst().orElseThrow()));
+		final List<Cell> selected = cells; // Every planned native cell receives the paired passive preflight.
 		for (var cell : selected)
 		{
 			PhantomTrainingScenarios.requirePlanningActive(() -> requested(directory)); final String id = hash("ADMISSION/" + cell.key());
-			final Path work = directory.resolve(id); Files.createDirectory(work);
-			collectEpisode(root, directory, config, authority, store, model, stock.model(), directory, work, id,
-				new AutonomousTrainingV1.CohortSlot(selected.indexOf(cell), cell.key(), hash(id), "EVAL", false), cell, "STOCK", true);
-			if (!Files.exists(work.resolve("admission-only.json"))) { throw new IllegalStateException("AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE"); }
+			final var arms = new ArrayList<EvaluationArm>();
+			for (String side : List.of("STOCK", "LEARNED"))
+			{
+				final String armId = hash(id + "/" + side); final Path work = directory.resolve(armId); Files.createDirectory(work);
+				arms.add(collectEpisode(root, directory, config, authority, store, model, stock.model(), directory, work, armId,
+					new AutonomousTrainingV1.CohortSlot(selected.indexOf(cell), cell.key(), hash(id), "EVAL", false), cell, side, true));
+				if (!Files.exists(work.resolve("admission-only.json"))) { throw new IllegalStateException("AUTONOMOUS_BLOCKED_EVAL_NO_LAWFUL_SCENE"); }
+			}
+			if (!arms.getFirst().physical().equals(arms.getLast().physical()) || arms.getFirst().target().equals(arms.getLast().target())
+				|| arms.getFirst().actors().stream().anyMatch(arms.getLast().actors()::contains)) { throw new IllegalStateException("AUTONOMOUS_PREFLIGHT_MATCH_OR_FRESHNESS_FAILED"); }
 		}
 		if (!before.equals(PhantomLearning005Native.trainingState(root, true))) { throw new IllegalStateException("AUTONOMOUS_EVAL_CHANGED_TRAINING_STATE"); }
-		immutable(directory.resolve("admission.complete.json"), "{\"admittedScenes\":2,\"directions\":[" + selected.stream().map(c -> q(evaluationDirection(c))).collect(java.util.stream.Collectors.joining(","))
-			+ "],\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"trainingStateSha\":" + q(hash(before)) + ",\"afterCut\":false,\"gameServerStarted\":false,\"trainingStateUnchanged\":true,\"trainingCredit\":false}");
-		System.out.println("AUTONOMOUS_EVAL_ADMISSION_GREEN scenes=2 gameServerStarted=false afterCut=false session=" + directory);
+		immutable(directory.resolve("admission.complete.json"), "{\"admittedScenes\":" + selected.size() + ",\"directions\":[" + selected.stream().map(c -> q(evaluationDirection(c))).collect(java.util.stream.Collectors.joining(","))
+			+ "],\"modelVersion\":" + model.id() + ",\"modelSha\":" + q(model.sha()) + ",\"trainingStateSha\":" + q(hash(before)) + ",\"precutArms\":" + (2 * selected.size()) + ",\"matchedPrecutFacts\":true,\"riskMatched\":true,\"episodeSeconds\":" + config.episodeSeconds() + ",\"afterCut\":false,\"gameServerStarted\":false,\"trainingStateUnchanged\":true,\"trainingCredit\":false}");
+		System.out.println("AUTONOMOUS_EVAL_ADMISSION_GREEN scenes=" + selected.size() + " gameServerStarted=false afterCut=false session=" + directory);
 	}
 	private static void prepareSources(Path installation, boolean admissionOnly) throws Exception
 	{
@@ -873,8 +880,16 @@ public final class PhantomAutonomousTrainingNative
 		Files.createDirectories(directory);
 		if (!directory.equals(directory.toRealPath())) { throw new IllegalStateException("AUTONOMOUS_SOURCE_REPARSE_PATH"); }
 	}
+	private static org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest soloRequestProbe(boolean party, long profile, int target, PhantomCombatMode mode, long timeout)
+	{
+		if (party) { return null; }
+		return new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(profile, target, mode, true, true, timeout, () -> false, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest.LearningScope.SOLO, null, () -> false);
+	}
 	private static void sourceContract()
 	{
+		if (soloRequestProbe(true, 1, 1, PhantomCombatMode.RANGED_MAGIC, 180000) != null) { throw new AssertionError("Party inherited the SOLO observation-window request"); }
+		if (soloRequestProbe(false, 1, 1, PhantomCombatMode.RANGED_MAGIC, 120000).timeoutMillis() != 120000) { throw new AssertionError("Canonical120s SOLO boundary changed"); }
+		try { soloRequestProbe(false, 1, 1, PhantomCombatMode.RANGED_MAGIC, 180000); throw new AssertionError("Native SOLO maximum relaxed"); } catch (IllegalArgumentException expected) { }
 		final var geometryFirst = java.util.stream.IntStream.range(0, 14).boxed().toList();
 		final var lawful = PhantomTrainingScenarios.lawfulPage(geometryFirst.stream(), value -> value >= 12, 12, () -> false);
 		if (!lawful.equals(List.of(12, 13))) { throw new AssertionError("Geometric candidate cap starved later lawful native scenes"); }

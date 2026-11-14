@@ -165,7 +165,7 @@ public final class TrainingConfig
 		integer("cpuBudgetPercent", 75, 1, 100);
 		if (text("autonomous009AcceptanceSmoke", "false").equals("true"))
 		{
-			if (evaluationOnly) { integer("autonomous009SmokeMaxStarts", 3, 1, 3); integer("autonomous009SmokeMaxNativeMinutes", 45, 1, 45); }
+			if (evaluationOnly) { integer("autonomous009SmokeMaxStarts", 3, 1, 5); integer("autonomous009SmokeMaxNativeMinutes", 45, 1, 45); }
 			else { integer("autonomous009SmokeMaxStarts", 6, 6, 10); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
 		}
 		autonomousClassWeights(); autonomousFamilies();

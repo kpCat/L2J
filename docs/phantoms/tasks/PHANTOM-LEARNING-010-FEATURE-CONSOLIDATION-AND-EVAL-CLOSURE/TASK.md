@@ -95,3 +95,16 @@ GitHub: `https://github.com/kpCat/L2J`
 Доказательства: `LOCAL-AUDIT.md`, `MERGE.md`, `PLAN.md`, `PROGRESS.md`, `RESULT.md`, `HANDOFF.md`, `EVIDENCE.json`, `COMMANDS.md`, `ACCEPTANCE.md`, `EVAL-REPAIR.md` в этом task folder; общий отчёт `docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md`, обновление `docs/phantoms/COMBAT-AI-ROADMAP.md`.
 
 Бюджет задач: 007 — №1/13, 008 — №2/13 PARTIAL, 009 — №3/13 PARTIAL, **010 — №4/13**, после выдачи 9 осталось. R1/R2 и новый `/goal` тоже считаются задачами; не молча расширять оценку.
+
+
+## Явное продолжение владельца14.11.2026 — тот же Goal010
+
+Владелец после опубликованного PARTIAL010 разрешил ограниченное продолжение текущего Goal, без новой задачи из бюджета13. Этот раздел заменяет первоначальный лимит GS3 на **5 суммарно**. Общий native time остаётся **45минут**. Уже израсходованные **3запуска/601015мс** и все ошибки/отрицательные результаты сохраняются;00910/5803240мс неизменно. Новых WIP/Goal не создавать.
+
+Перед четвёртым GS обязателен полный дешёвый preflight: все planned legal scenes, actual acquired skills/ranks, NPC/Geo/LOS/faction, ordinary Party admission, native risk, fresh matched pre-CUT arms и совместимость всех EVAL параметров с CombatRequest, включая120с. Используются реальные Player/NPC и constructors, без CUT/dispatch/credits. Для DAMAGE Solo проверяется фактический profile/target/mode и окно≤120000мс; Party — authority roles и canonical request60000мс. Каждая planned cell проходит STOCK+LEARNED passive admission.
+
+Разрешены только independent EVAL и проверка исправлений. FIT/weightsDRAFT14/Adam903/223/reward/safety/training credits запрещены к изменению. Published feature/phantom-world остаётся единственной веткой. Критерий G4 прежний: минимум2completed matchedpairs, Solo+Party, balancedAB/BA, настоящие native receipts.
+
+Если цель достигнута после4-гоGS — немедленно завершить, пятый не расходовать. Если после двух дополнительных GS критерии не выполнены — итогPARTIAL с точной причиной; расширение бюджета автоматически не запрашивать. Затем STOP/SQL/ports/models/GitHub/finalacceptance. Это по-прежнему задача№4/13; после её выдачи9до пересмотра.
+
+Bounded scope продолжения: шесть existing source paths (TrainingConfig,AutonomousTrainingChecks,TrainingOwner,Test-Training,AutonomousTrainingNative и ближайший ShadowNative test-adapter для passive constructor proof). Суммарный product scopeGoal0109paths, плюс16ранее запрошенных docs. CoreCombat/Party/Player, UI, models/schema не меняются. Native результат продолжения до запусков NOT_RUN, G4FAIL исходного этапа сохраняется как история.

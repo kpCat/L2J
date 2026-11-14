@@ -546,7 +546,22 @@ public final class PhantomLearning001ShadowNative
 			final var supports = authority.assignments().stream().filter(row -> row.roleKey().startsWith("support.")).map(row -> row.member()).collect(java.util.stream.Collectors.toSet());
 			final var farm = PhantomAutonomousFarmParty.farmSource(goals.load(leader).orElseThrow().goal()); final var reasons = new java.util.ArrayList<String>();
 			final int target = backend.autonomousFarmTarget(party, supports, farm, value -> { if (reasons.size() < 64) { reasons.add(value); } }).orElse(0);
-			return java.util.Map.of("admitted", target == evaluationTarget.getObjectId(), "target", target, "wait", backend.autonomousFarmWaitReason(party.leader()), "reasons", reasons.toString());
+			final var roles = new PhantomCombatRequest.PartyRoles(authority.phantomMembers().stream().map(row -> row.characterObjectId()).collect(java.util.stream.Collectors.toUnmodifiableSet()),
+				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("frontline.guardian")).count(),
+				(int) authority.assignments().stream().filter(role -> role.roleKey().equals("support.healer")).count(),
+				(int) authority.assignments().stream().filter(role -> role.roleKey().startsWith("damage.")).count());
+			int requestProofs = 0;
+			for (int member = 0; member < trainingPlayers.size(); member++)
+			{
+				final var player = trainingPlayers.get(member); final long profile = Long.parseLong(trainingRows.get(member)[2]);
+				for (var mode : PhantomCombatMode.values())
+				{
+					if (acquiredCapabilitySource.capabilities(player.getActiveClass()).stream().noneMatch(cap -> cap.capabilityKey().equals(mode.capabilityKey()) && !cap.skills().isEmpty())) { continue; }
+					new PhantomCombatRequest(profile, evaluationTarget.getObjectId(), mode, true, true, 60000, () -> false, LearningScope.PARTY, roles, () -> false); requestProofs++;
+				}
+			}
+			return java.util.Map.of("admitted", target == evaluationTarget.getObjectId(), "target", target, "wait", backend.autonomousFarmWaitReason(party.leader()), "reasons", reasons.toString(),
+				"combatRequestValidated", requestProofs > 0, "combatRequestProofs", requestProofs, "combatRequestTimeoutMillis", 60000, "combatRequestScope", "PARTY", "roles", roles.toString());
 		}
 
 		String prepareTraining(PhantomTrainingScenarios.Scene scene, List<String[]> roster, boolean grouped, int preparationSeconds, BooleanSupplier requested) throws Exception

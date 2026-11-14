@@ -256,7 +256,7 @@ function Assert-TrainAutonomousConfig($Values) {
         $starts=0
         if($Values.autonomous009EvaluationOnly -ceq 'true'){
             $minutes=0
-            if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 1 -or $starts -gt 3 -or ![int]::TryParse([string]$Values.autonomous009SmokeMaxNativeMinutes,[ref]$minutes) -or $minutes -lt 1 -or $minutes -gt 45){throw 'TRAIN010_EVALUATION_BUDGET'}
+            if(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 1 -or $starts -gt 5 -or ![int]::TryParse([string]$Values.autonomous009SmokeMaxNativeMinutes,[ref]$minutes) -or $minutes -lt 1 -or $minutes -gt 45){throw 'TRAIN010_EVALUATION_BUDGET'}
         }elseif(![int]::TryParse([string]$Values.autonomous009SmokeMaxStarts,[ref]$starts) -or $starts -lt 6 -or $starts -gt 10 -or $Values.autonomous009SmokeMaxNativeMinutes -cne '90'){throw 'TRAIN009_ACCEPTANCE_BUDGET_FIXED'}
     }
 }
