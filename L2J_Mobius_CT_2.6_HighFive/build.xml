@@ -1275,6 +1275,12 @@
 		</java>
 	</target>
 
+	<target name="phantom-learning012-test" depends="compile-tests" description="Run outcome-aware V2, negative evidence, codec and pre-CUT curriculum contracts without database access.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomEvaluationOutcomeV2Checks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+		</java>
+	</target>
+
 	<target name="phantom-learning011-test" depends="compile-tests" description="Run shared encounter protocol and pre-CUT dispatch lifecycle checks without database access.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomEncounterLocalSourceChecks" classpathref="test.classpath" dir="${basedir}/dist/game" fork="true" failonerror="true" timeout="120000" maxmemory="512m" />
 		<java classname="org.l2jmobius.tests.phantoms.PhantomEncounterLocalSourceChecks" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" maxmemory="512m">

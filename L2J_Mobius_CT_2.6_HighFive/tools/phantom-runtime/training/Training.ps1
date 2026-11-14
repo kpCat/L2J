@@ -26,6 +26,24 @@ $script:NativeRecord=$null
 $script:WorkerRecord=$null
 $script:Config=$null
 $script:AutonomousCheckpointContext=$null
+function Test-TrainOutcomeV2($Values) {
+    if(!$Values.ContainsKey('evaluationOutcomeVersion') -or $Values.evaluationOutcomeVersion -ceq '1'){return $false}
+    if($Values.evaluationOutcomeVersion -cne '2' -or $Values.autonomous009EvaluationOnly -cne 'true' -or $Values.autonomous009Exploration -cne 'false' -or
+       $Values.autonomous009Phase -cnotin @('OFF','EVAL') -or [int]$Values.autonomous009SmokeMaxStarts -gt 2 -or [int]$Values.autonomous009SmokeMaxNativeMinutes -gt 35){throw 'EVAL012_ONLY_FROZEN_BOUNDED_EVAL'}
+    return $true
+}
+function Assert-TrainOutcomeV2Proof($NativeProof,$Pairs) {
+    if($NativeProof.schema -cne 'EVAL_COMPLETE_V2' -or $NativeProof.trainingStateUnchanged -ne $true -or $NativeProof.trainingCredit -ne $false -or
+       $NativeProof.productionPromotion -ne $false -or $Pairs.schema -cne 'EVAL_PAIRS_V2' -or $Pairs.trainingCredit -ne $false){throw 'EVAL012_PROOF_SCHEMA_OR_CREDIT'}
+    $matched=@($Pairs.pairs|Where-Object {$_.terminalComparable -eq $true -and $_.status -cin @('TERMINAL_COMPARABLE','COMPARABLE_WITH_TIMEOUT')})
+    if([int]$Pairs.terminalComparablePairs -ne $matched.Count -or @($Pairs.pairs|Group-Object cell|Where-Object {$_.Count -ne 1}).Count){throw 'EVAL012_PAIR_COUNT_OR_REUSE'}
+    foreach($scope in @('SOLO','PARTY')){
+        $group=@($matched|Where-Object {$_.direction.StartsWith($scope+'_',[StringComparison]::Ordinal)})
+        $ab=@($group|Where-Object {$_.order -ceq 'STOCK_LEARNED'}).Count;$ba=@($group|Where-Object {$_.order -ceq 'LEARNED_STOCK'}).Count
+        $tiers=@($group|ForEach-Object {$_.stratum}|Select-Object -Unique)
+        if($group.Count -lt 2 -or $ab -lt 1 -or $ba -lt 1 -or $ab -ne $ba -or $tiers -cnotcontains 'LOWER_PRECUT_BURDEN' -or $tiers -cnotcontains 'HIGHER_PRECUT_BURDEN'){throw ('EVAL012_TERMINAL_PAIR_COVERAGE_'+$scope)}
+    }
+}
 function Read-TrainSourceConfig {
     $profile=$ConfigProfile
     $current=$null
@@ -616,6 +634,7 @@ function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[strin
     }
 }
 function Invoke-TrainAutonomousDirector($Dependencies,[string]$Jar) {
+    $outcomeV2=Test-TrainOutcomeV2 $script:Config
     $campaign=$script:Config.autonomous009Campaign
     $directory=Join-Path $layout.Root ('autonomous\v1\campaigns\'+$campaign);$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
     $path=Join-Path $directory 'director-state.json'
@@ -693,13 +712,18 @@ function Invoke-TrainAutonomousDirector($Dependencies,[string]$Jar) {
             if($script:Config.autonomous009EvaluationOnly -ceq 'true' -or [int]$journal.cycle % [int]$script:Config.autonomous009EvaluationEveryCycles -eq 0){
                 $script:Config.autonomous009Phase='EVAL';$script:Config.autonomous009ModelVersion=[string]$journal.lastEvaluation.candidateVersion;$script:Config.autonomous009ModelSha=$journal.lastEvaluation.candidateSha;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
                 $evaluationDirectory=Join-Path $directory ('evaluations\'+$journal.dataset+'-'+$journal.lastEvaluation.candidateVersion)
-                if(!(Test-Path -LiteralPath (Join-Path $evaluationDirectory 'evaluation.complete'))){Publish-TrainState 'AUDITING' 'Независимые native A/B; без training credits.';Invoke-TrainAutonomousNative $Dependencies $Jar $journal $path}
+                $completionName=if($outcomeV2){'evaluation-v2.complete'}else{'evaluation.complete'}
+                if(!(Test-Path -LiteralPath (Join-Path $evaluationDirectory $completionName))){Publish-TrainState 'AUDITING' 'Независимые native A/B; без training credits.';Invoke-TrainAutonomousNative $Dependencies $Jar $journal $path}
                 if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
             }
             if($script:Config.autonomous009EvaluationOnly -ceq 'true'){
-                $complete=Join-Path $evaluationDirectory 'evaluation.complete';$pairPath=Join-Path $evaluationDirectory 'evaluation-pairs.json'
+                $complete=Join-Path $evaluationDirectory $(if($outcomeV2){'evaluation-v2.complete'}else{'evaluation.complete'});$pairPath=Join-Path $evaluationDirectory $(if($outcomeV2){'evaluation-pairs-v2.json'}else{'evaluation-pairs.json'})
                 if(!(Test-Path -LiteralPath $complete) -or !(Test-Path -LiteralPath $pairPath)){throw 'TRAIN010_EVAL_PROOF_MISSING'}
                 $nativeProof=Read-TrainJson $complete;$pairs=Read-TrainJson $pairPath
+                if($outcomeV2){
+                    Assert-TrainOutcomeV2Proof $nativeProof $pairs
+                    $journal.phase='EVAL_COMPLETE';Write-TrainJson $path $journal;Publish-TrainState 'PAUSED' 'Независимая V2 EVAL завершена; терминальные исходы учтены, обучение и cycle pointer сохранены.';return
+                }
                 $matched=@($pairs.pairs|Where-Object {$_.status -ceq 'MATCHED_COMPLETED'});$directions=@($matched|ForEach-Object {$_.direction})
                 $ab=@($matched|Where-Object {$_.order -ceq 'STOCK_LEARNED'}).Count;$ba=@($matched|Where-Object {$_.order -ceq 'LEARNED_STOCK'}).Count
                 if($nativeProof.trainingStateUnchanged -ne $true -or [int]$pairs.completedPairs -ne $matched.Count -or $matched.Count -lt 2 -or $ab -ne $ba -or
@@ -1181,6 +1205,7 @@ try {
                 Assert-TrainPortsFree @([int]$script:Config.gamePort,[int]$script:Config.loginPort)
                 if($Action -eq 'Export' -and (Get-TrainExportAdmission $false $true $true) -cne 'OFFLINE'){throw 'TRAIN002_EXPORT_ADMISSION'}
                 if($Autonomous -and $Action -in @('Report','Prepare')){
+                    $null=Test-TrainOutcomeV2 $script:Config
                     $jar=Ensure-TrainBuild $dependencies
                     $assets=Get-TrainAssets;Ensure-TrainStage $jar $assets
                     $script:SqlRecord=Start-TrainSql $dependencies
