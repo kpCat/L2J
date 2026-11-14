@@ -148,8 +148,14 @@ public final class PhantomAutonomousTrainingNative
 		return EncounterAdmissionV1.catalogFingerprint(config.sha256(), Files.readString(directory.resolve("cells.tsv")),
 			bindings);
 	}
-	private static Path preparedDirectory(Path root, TrainingConfig config)
-	{ return root.resolve("autonomous/v1/prepared").resolve(config.sha256()); }
+	private static Path preparedDirectory(Path root, TrainingConfig config) throws Exception
+	{ return preparedDirectory(root, config.sha256(), NeuralPolicy.sha256(Files.readAllBytes(root.resolve("game/libs/GameServer.jar")))); }
+	private static Path preparedDirectory(Path root, String configSha, String jarSha)
+	{
+		if (configSha == null || jarSha == null || !configSha.matches("[a-f0-9]{64}") || !jarSha.matches("[a-f0-9]{64}"))
+		{ throw new IllegalArgumentException("AUTONOMOUS_PREPARED_IDENTITY"); }
+		return root.resolve("autonomous/v1/prepared").resolve(configSha).resolve(jarSha);
+	}
 	private static void loadPreparedCatalog(Path root, Path directory, List<Source> sources, TrainingConfig config) throws Exception
 	{
 		final Path prepared = preparedDirectory(root, config);
@@ -327,7 +333,8 @@ public final class PhantomAutonomousTrainingNative
 				if (requested(attempt)) { allSettled = false; break; }
 				final var arms = new ArrayList<EvaluationArm>();
 				final var slot = new AutonomousTrainingV1.CohortSlot(cells.indexOf(cell), cell.key(), hash("EVAL/" + cell.key()), "EVAL", false);
-				for (String side : cells.indexOf(cell) % 2 == 0 ? List.of("STOCK", "LEARNED") : List.of("LEARNED", "STOCK"))
+				final var order = evaluationOrder(cells.stream().map(PhantomAutonomousTrainingNative::evaluationDirection).toList(), cells.indexOf(cell));
+				for (String side : order)
 				{
 					if (requested(attempt)) { break; }
 					final String id = hash("EVAL/" + config.text("outcome006DatasetId", "") + "/" + cell.key() + "/" + side); final var work = directory.resolve(id);
@@ -343,7 +350,7 @@ public final class PhantomAutonomousTrainingNative
 				}
 				if (arms.size() != 2) { allSettled = false; continue; }
 				final String status = pairStatus(arms); if (status.equals("MATCHED_COMPLETED")) { completedPairs++; }
-				final String receipt = "{\"cell\":" + q(cell.key()) + ",\"direction\":" + q(evaluationDirection(cell)) + ",\"order\":" + q(cells.indexOf(cell) % 2 == 0 ? "STOCK_LEARNED" : "LEARNED_STOCK") + ",\"arms\":" + arms.size() + ",\"status\":" + q(status) + ",\"trainingCredit\":false}";
+				final String receipt = "{\"cell\":" + q(cell.key()) + ",\"direction\":" + q(evaluationDirection(cell)) + ",\"order\":" + q(order.getFirst().equals("STOCK") ? "STOCK_LEARNED" : "LEARNED_STOCK") + ",\"arms\":" + arms.size() + ",\"status\":" + q(status) + ",\"trainingCredit\":false}";
 				immutable(directory.resolve(cell.key() + ".pair.json"), receipt); paired.add(receipt);
 			}
 			if (allSettled && !requested(attempt)) { immutable(directory.resolve("evaluation-pairs.json"), "{\"completedPairs\":" + completedPairs + ",\"pairs\":[" + String.join(",", paired) + "],\"trainingCredit\":false,\"verdict\":\"INCONCLUSIVE\"}"); }
@@ -377,6 +384,12 @@ public final class PhantomAutonomousTrainingNative
 	}
 	private static String evaluationDirection(Cell cell)
 	{ return (cell.party() ? "PARTY_" : "SOLO_") + cell.proposal().pool().family(); }
+	private static List<String> evaluationOrder(List<String> directions, int ordinal)
+	{
+		if (ordinal < 0 || ordinal >= directions.size()) { throw new IllegalArgumentException("AUTONOMOUS_EVAL_ORDER_ORDINAL"); }
+		final long prior = java.util.stream.IntStream.range(0, ordinal).filter(index -> directions.get(index).equals(directions.get(ordinal))).count();
+		return prior % 2 == 0 ? List.of("STOCK", "LEARNED") : List.of("LEARNED", "STOCK");
+	}
 	private static void requireEvaluationCoverage(List<Cell> cells)
 	{
 		final var directions = cells.stream().map(PhantomAutonomousTrainingNative::evaluationDirection).collect(java.util.stream.Collectors.toSet());
@@ -1329,6 +1342,13 @@ public final class PhantomAutonomousTrainingNative
 			|| retryableHeadlessRefusal(partyAdmissionFailure(Map.of("admitted", false, "wait", "WAIT_GROUP_SOURCE", "reasons", "[]")))
 			|| retryableHeadlessRefusal(partyAdmissionFailure(Map.of("admitted", false, "wait", damageWait, "reasons", "[" + damageWait + ", source_changed]"))))
 		{ throw new AssertionError("Party owner/source/mixed diagnostics were misclassified as a pure damage-envelope refusal"); }
+		final var orderDirections = List.of("SOLO_DAMAGE", "PARTY_DAMAGE", "SOLO_DAMAGE", "PARTY_DAMAGE");
+		if (!evaluationOrder(orderDirections, 0).equals(List.of("STOCK", "LEARNED")) || !evaluationOrder(orderDirections, 1).equals(List.of("STOCK", "LEARNED"))
+			|| !evaluationOrder(orderDirections, 2).equals(List.of("LEARNED", "STOCK")) || !evaluationOrder(orderDirections, 3).equals(List.of("LEARNED", "STOCK")))
+		{ throw new AssertionError("AB/BA was balanced globally but remained confounded with Solo/Party direction"); }
+		final var cacheRoot = Path.of("fixture-root");
+		if (preparedDirectory(cacheRoot, "a".repeat(64), "b".repeat(64)).equals(preparedDirectory(cacheRoot, "a".repeat(64), "c".repeat(64))))
+		{ throw new AssertionError("A new pinned JAR collided with an immutable earlier headless catalog"); }
 		System.out.println("AUTONOMOUS_SOURCE_CONTRACT_GREEN");
 	}
 
