@@ -36,3 +36,9 @@
 5. Если global semantics нельзя сохранить — остановиться с конкретными альтернативами. Не менять Player/Combat/Party/Geo, rates, SQL schema, MAIN/PLAY или protected assets.
 
 Пока не подтверждены: native transfer local source identity, фактический headless coverage, живой CUT/paid/terminal и matched Solo/Party AB/BA. Новый локальный contract сам по себе не доказывает полный combat admission.
+
+## Первый фактический local preflight
+
+Source `eea088af…` опубликован и9полных GitHub bodies проверены по Git blob SHA1. Preflight PASS, SQL183 SHA совпал с историей. Fresh headless session `4e4c34805e5a46f1a41a518fd8ab39d0` построила2SoloDAMAGE+2PartyDAMAGE, все четыре на canonical SilentValley local witnesses (20970/20966). Первый arm отказал до native admission/CUT: legacy reproduceRoster вызвал global planInitial, а L2jPhantomBackgroundAuthority.exactAnchor закономерно не знает ephemeral local anchor. Worker86816 exit2, wall56095ms, CPU119.5s; GS0.
+
+Это проверенный integration RED переноса local witness, не причина ослаблять exactAnchor. Local fixture теперь создаёт явный ordinary Party intent непосредственно из validated witness; global planInitial/replanLogicalRendezvous вызываются только для global source. Existing Party parser round-trip проверяется focused test. Новый intent не даёт background permissions; native Combat/Party/Geo/faction/risk допускаются отдельно.

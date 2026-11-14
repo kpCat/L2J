@@ -643,11 +643,15 @@ public final class PhantomAutonomousTrainingNative
 				if (!pinned.isEmpty() && (profile != expectedProfile || !riskLine.equals(String.join("\t", pinned.get(index))))) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PROFILE_CHANGED"); }
 				riskLines.add(riskLine);
 				final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
-				final var initial = planner.planInitial(profile, player, config.seed(), 1); final var baseline = (initial.ready() ? initial : planner.idleInitial(profile, player, config.seed(), 1)).goal();
-				if (baseline == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_UNAVAILABLE"); }
 				final var local = PhantomEncounterLocalSource.resolve(authority, cell.scene(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(cell.x(), cell.y(), cell.z(), 0));
-				final var goal = local.isPresent() ? PhantomEncounterLocalSource.goal(baseline, local.orElseThrow())
-					: planner.replanLogicalRendezvous(profile, authority.authority().capture(profile, player, baseline, null), baseline, config.seed(), 2, new PhantomDomainRef("background.farm", cell.scene().source())).goal();
+				final org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal;
+				if (local.isPresent()) { goal = PhantomEncounterLocalSource.goal(profile, local.orElseThrow()); }
+				else
+				{
+					final var initial = planner.planInitial(profile, player, config.seed(), 1); final var baseline = (initial.ready() ? initial : planner.idleInitial(profile, player, config.seed(), 1)).goal();
+					if (baseline == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_UNAVAILABLE"); }
+					goal = planner.replanLogicalRendezvous(profile, authority.authority().capture(profile, player, baseline, null), baseline, config.seed(), 2, new PhantomDomainRef("background.farm", cell.scene().source())).goal();
+				}
 				if (goal == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_REFUSED"); }
 				final var goals = new PhantomGoalStateStore(profiles); goals.insert(profile, goal);
 				if (!goals.load(profile).orElseThrow().goal().equals(goal)) { throw new IllegalStateException("AUTONOMOUS_GOAL_READBACK_CHANGED"); }

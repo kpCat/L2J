@@ -38,13 +38,13 @@ final class PhantomEncounterLocalSource
 	{ return binding != null && geometry.test(binding.target()) && geometry.test(binding.anchor().point()) && faction.getAsBoolean(); }
 	static boolean local(String source) { return source.contains("@" + PREFIX); }
 	/** Ordinary native Party intent shape, not permission for global background simulation. */
-	static org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal(org.l2jmobius.gameserver.phantoms.decision.PhantomGoal previous, Binding binding)
+	static org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal(long profile, Binding binding)
 	{
-		return new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(previous.goalId(), "farm.background",
-			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, previous.subject(),
+		return new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(profile, "farm.background",
+			org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(profile)),
 			new PhantomDomainRef("npc", Integer.toString(binding.fact().npcId())), 1, 0, "background.farm", List.of(binding.source()),
 			new PhantomDomainRef("topology.anchor", binding.anchor().id()), "farm.background", 500, 0, 0, 0,
-			previous.constraints(), "encounter.local.source", Math.addExact(previous.revision(), 1));
+			java.util.Map.of(), "encounter.local.source", 1);
 	}
 	static Optional<GeometrySnapshot> observed(SpawnFact fact)
 	{

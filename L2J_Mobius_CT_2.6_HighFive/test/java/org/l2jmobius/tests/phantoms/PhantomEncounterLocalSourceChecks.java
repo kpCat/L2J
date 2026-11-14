@@ -36,6 +36,9 @@ public final class PhantomEncounterLocalSourceChecks
 		final var actor = new PhantomTopologyPoint(target.x() + 180, target.y(), target.z(), 0);
 		final var binding = PhantomEncounterLocalSource.bind(fact, observed, actor, target).orElseThrow(() -> new AssertionError("RED: canonical wide SilentValley local encounter refused"));
 		check(geometry.contains(target.x(), target.y(), target.z()) && geometry.contains(actor.x(), actor.y(), actor.z()), "Fixture must use real source geometry");
+		final var intent = PhantomEncounterLocalSource.goal(110011, binding);
+		check(binding.source().equals(org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.farmSource(intent))
+			&& org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(intent).npcId() == npc, "Local native intent did not round-trip through ordinary Party source parser");
 		final var wrong = new NpcSpawnTerritory(observed.territoryName(), new ZoneNPoly(x, y, polygon.lowZ(), polygon.highZ()), "data/spawns/wrong.xml").geometrySnapshot().orElseThrow();
 		check(!PhantomGameKnowledgeBuilder.localEncounterSource(fact, wrong, binding.anchor(), target), "Wrong source identity accepted");
 		check(PhantomEncounterLocalSource.worldReady(binding, _ -> true, () -> true), "Positive world guards refused");
