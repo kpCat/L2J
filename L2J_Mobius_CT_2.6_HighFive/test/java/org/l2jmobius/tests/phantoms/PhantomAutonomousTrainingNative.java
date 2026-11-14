@@ -708,18 +708,22 @@ public final class PhantomAutonomousTrainingNative
 			{
 				final var roster = reproduceRoster(authority, cell, work, slot.split(), config, evaluation && cell.party() ? directory.resolve(cell.key() + ".risk.tsv") : null); final var inventories = new HashMap<Long, String>();
 				for (int i = 0; i < roster.size(); i++) { inventories.put(Long.parseLong(roster.get(i)[2]), cell.roster().get(i).inventory().fingerprint()); }
-				runtime.localEncounterSource(PhantomEncounterLocalSource.resolve(authority, scene,
-					new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(cell.x(), cell.y(), cell.z(), 0)).orElse(null));
+				final var localSource = PhantomEncounterLocalSource.resolve(authority, scene,
+					new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(cell.x(), cell.y(), cell.z(), 0));
+				runtime.localEncounterSource(localSource.orElse(null));
 				runtime.prepareAcquired(scene, roster, cell.party(), proposal.pool().mode(), proposal.shortlist().candidates(), inventories, config.preparationSeconds(), () -> requested(attempt));
 				immutable(work.resolve("shared-source.txt"), runtime.acquiredSourceFacts());
 				for (int candidate = 0; candidate < 4; candidate++)
 				{
-					final var spawn = new Spawn(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(scene.npc())); spawn.setXYZ(cell.x(), cell.y(), cell.z()); final var npc = (Monster) spawn.doSpawn(false); spawn.stopRespawn();
+					final var spawn = localSource.isPresent() ? PhantomEncounterLocalSource.realize(localSource.orElseThrow()) : new Spawn(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(scene.npc()));
+					if (localSource.isEmpty()) { spawn.setXYZ(cell.x(), cell.y(), cell.z()); }
+					final var npc = (Monster) spawn.doSpawn(false); spawn.stopRespawn();
 					final boolean admitted = !npc.isChampion() && !npc.isRaid() && !npc.isAggressive() && !npc.isAlikeDead() && npc.getCurrentHp() == npc.getMaxHp();
 					Files.writeString(work.resolve("admissions.jsonl"), "{\"candidate\":" + candidate + ",\"objectId\":" + npc.getObjectId() + ",\"admitted\":" + admitted + "}\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 					if (admitted) { target = npc; break; } npc.deleteMe();
 				}
 				if (target == null || !openingGeometry(scene, cell.x(), cell.y(), cell.z())) { throw new IllegalStateException("AUTONOMOUS_FRESH_TARGET_OR_GEO_REFUSED"); }
+				if (localSource.isPresent()) { immutable(work.resolve("local-source-binding.json"), PhantomLearning005Evaluation.mapJson(PhantomEncounterLocalSource.diagnostics(localSource.orElseThrow(), target))); }
 				target.setHeading(0); runtime.prepareAcquiredOutcome(target);
 				// A proposal is not a frozen World. Refuse drift before CUT instead of resetting native NPC state.
 				if (target.getX() != cell.x() || target.getY() != cell.y() || target.getZ() != cell.z() || target.isMoving()

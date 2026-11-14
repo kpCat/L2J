@@ -42,3 +42,11 @@
 Source `eea088af…` опубликован и9полных GitHub bodies проверены по Git blob SHA1. Preflight PASS, SQL183 SHA совпал с историей. Fresh headless session `4e4c34805e5a46f1a41a518fd8ab39d0` построила2SoloDAMAGE+2PartyDAMAGE, все четыре на canonical SilentValley local witnesses (20970/20966). Первый arm отказал до native admission/CUT: legacy reproduceRoster вызвал global planInitial, а L2jPhantomBackgroundAuthority.exactAnchor закономерно не знает ephemeral local anchor. Worker86816 exit2, wall56095ms, CPU119.5s; GS0.
 
 Это проверенный integration RED переноса local witness, не причина ослаблять exactAnchor. Local fixture теперь создаёт явный ordinary Party intent непосредственно из validated witness; global planInitial/replanLogicalRendezvous вызываются только для global source. Existing Party parser round-trip проверяется focused test. Новый intent не даёт background permissions; native Combat/Party/Geo/faction/risk допускаются отдельно.
+
+## Native realization contract
+
+Вторая session `4fdda1d381a34321be595b470008b505` (sourcec458637d…) прошла roster/source restoration, но первый Solo arm отказал до CUT с AUTONOMOUS_LOCAL_SOURCE_NATIVE_BINDING. Worker48008 exit2, wall59031ms, CPU122.21875s; GS0. Разделены canonical origin, declared target point и owned native clone.
+
+Native Spawn применяет RandomSpawns к exact spawn при heading != -1. Реальный TEST config включает RandomSpawns. Первичная гипотеза о различии default heading уточнена review: Spawn наследует Location.setHeading, а он clamping преобразует -1 в0 даже для canonical territory source. Отдельный focused runner `PhantomEncounterLocalSourceChecks spawn-sentinel` подтвердил behavioral RED: requested=-1, actual=0. Это реальный native contract defect, не основание обходить setter или менять config.
+
+В рамках разрешённого fixture scope добавлены pin/copy фактических heading/randomWalking/chaseRange и bounded origin/realized diagnostics. Они сохраняют source parity, но не объявляются исправлением native sentinel. Один диагностический headless pass должен сохранить фактические координаты до запроса отдельного решения о native Spawn. Location/Spawn/gameplay configs не изменены. Не запускать GS и не заявлять FULL при этом отказе.

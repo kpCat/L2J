@@ -19,6 +19,16 @@ public final class PhantomEncounterLocalSourceChecks
 {
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 1 && args[0].equals("spawn-sentinel"))
+		{
+			final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(null);
+			spawn.setHeading(-1);
+			System.out.println("NATIVE_SPAWN_SENTINEL requested=-1 actual=" + spawn.getHeading());
+			check(spawn.getHeading() == -1, "RED: native Spawn loses its random-heading sentinel in inherited Location setter");
+			spawn.setHeading(0); check(spawn.getHeading() == 0, "Exact heading0 changed");
+			spawn.setHeading(65536); check(spawn.getHeading() == 65535, "Ordinary heading clamp changed");
+			return;
+		}
 		final String path = "data/spawns/Aden/SilentValley.xml";
 		final var document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(Path.of(path).toFile());
 		final var spawn = (Element) document.getElementsByTagName("spawn").item(0);
@@ -34,7 +44,10 @@ public final class PhantomEncounterLocalSourceChecks
 		final var fact = new SpawnFact(npc, 0, 0, 0, 0, 0, Integer.parseInt(npcElement.getAttribute("count")), 0, SpawnPointKind.TERRITORY_POLYGON, null, null, PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT, geometry);
 		final var target = new PhantomTopologyPoint((int) java.util.Arrays.stream(x).average().orElseThrow(), (int) java.util.Arrays.stream(y).average().orElseThrow(), (polygon.lowZ() + polygon.highZ()) / 2, 0);
 		final var actor = new PhantomTopologyPoint(target.x() + 180, target.y(), target.z(), 0);
-		final var binding = PhantomEncounterLocalSource.bind(fact, observed, actor, target).orElseThrow(() -> new AssertionError("RED: canonical wide SilentValley local encounter refused"));
+		final var behaviorFixture = new PhantomEncounterLocalSource.SpawnBehavior(0, false, 0);
+		final var binding = PhantomEncounterLocalSource.bind(fact, observed, actor, target, behaviorFixture).orElseThrow(() -> new AssertionError("RED: canonical wide SilentValley local encounter refused"));
+		check(!binding.source().equals(PhantomEncounterLocalSource.bind(fact, observed, actor, target,
+			new PhantomEncounterLocalSource.SpawnBehavior(1, false, 0)).orElseThrow().source()), "Changed spawn behavior retained source identity");
 		check(geometry.contains(target.x(), target.y(), target.z()) && geometry.contains(actor.x(), actor.y(), actor.z()), "Fixture must use real source geometry");
 		final var intent = PhantomEncounterLocalSource.goal(110011, binding);
 		check(binding.source().equals(org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.farmSource(intent))
