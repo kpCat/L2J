@@ -33,6 +33,7 @@
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/CURRICULUM-CANDIDATES.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FINAL-SAFETY.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FROZEN-PARITY.json",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-DOCS-READBACK.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-MP-FIX-READBACK.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-SOURCE-READBACK.json",
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/HEADLESS-SUMMARY.json",
@@ -49,5 +50,7 @@
   "boundedException": "7approved sources plus required012 docs/evidence/report/counter family",
   "historical011FilesUnchanged": true,
   "roadmapPriorBytesPreserved": true,
-  "manualGate": "REQUIRED"
+  "manualGate": "REQUIRED",
+  "independentDocsReadback": "bf40ab2ba342d873e012ba5509360480428c2325",
+  "finalReceiptOnlyFollowup": true
 }

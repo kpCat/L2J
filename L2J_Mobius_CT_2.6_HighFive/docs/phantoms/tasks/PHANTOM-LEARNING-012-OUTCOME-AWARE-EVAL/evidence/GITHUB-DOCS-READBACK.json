@@ -1,0 +1,268 @@
+{
+  "head": "bf40ab2ba342d873e012ba5509360480428c2325",
+  "parent": "9bd77193eeb4f03617aa82972dc1ae5cfbfa2c6a",
+  "tree": "17bbb5b083d44fe0690c7617407aba78ec2f91a9",
+  "exactDocumentationDelta": 22,
+  "exactCumulativePaths": 42,
+  "sourceFiles": 7,
+  "fullBodies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 331928,
+      "gitBlobSha": "4ba2a595c7d47d5fa81b08d1c83a72b8de093e18",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "bytes": 10455,
+      "gitBlobSha": "62aab0fb76683379fa603be33acd6a417c5f0917",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL.md",
+      "bytes": 9155,
+      "gitBlobSha": "148dc93e939bbeacd1d466ca4b8009c6c56d36b7",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE.md",
+      "bytes": 2885,
+      "gitBlobSha": "a840c6d8cc2ab6658f126acfabf8570941e13d3c",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE_RESULT.md",
+      "bytes": 985,
+      "gitBlobSha": "d72e8f0ac75d370002fb69fbbd886dafc7c38c3e",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/COMMANDS.md",
+      "bytes": 3766,
+      "gitBlobSha": "74fab290333098076810e88e77d0ff689a0727f8",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/CURRICULUM.md",
+      "bytes": 4181,
+      "gitBlobSha": "6b90f5bdd40be4c2d96cc9453477ab79836d9e9d",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/DELIVERY_HANDOFF.md",
+      "bytes": 1632,
+      "gitBlobSha": "29d849ad386adc57322a998dfcd9634ff176506b",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/EVIDENCE.json",
+      "bytes": 15966,
+      "gitBlobSha": "b8427881e7d2bc1c18204c2f6f6efaa0b3a5c800",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/FINAL-SCOPE-GUARD.json",
+      "bytes": 4938,
+      "gitBlobSha": "c43735313e0b753b139dbad26d8950ec097994fd",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT-COMMANDS.json",
+      "bytes": 15047,
+      "gitBlobSha": "d3970d6f1ce2d7517fd06faea9c8300d60c16fb8",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT_POLICY.md",
+      "bytes": 3079,
+      "gitBlobSha": "79903480022ed7057b770b967231e12ff28385a3",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GOAL.txt",
+      "bytes": 214,
+      "gitBlobSha": "c488b1433f541c7f43f0894129c3c4ba1701a330",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/HANDOFF.md",
+      "bytes": 1611,
+      "gitBlobSha": "aef6fe3549a34493a6a3a31a31812c4e2bfa49c7",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/IMPLEMENTATION_PLAN.md",
+      "bytes": 9544,
+      "gitBlobSha": "ce3f4c0631ac37c3b38898e62e0020cb068b5a9f",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/MANIFEST.sha256",
+      "bytes": 785,
+      "gitBlobSha": "d6429e37f662f7dd8645a9e80268a38f73fb1beb",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PLAN.md",
+      "bytes": 3141,
+      "gitBlobSha": "a49d8d292e6de694a645ac51755028b05e5f5eef",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PRE_AUDIT.md",
+      "bytes": 3692,
+      "gitBlobSha": "e2cf5b5fe06a32d909d96809124a231be5b8e40b",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL.md",
+      "bytes": 5621,
+      "gitBlobSha": "3dea3f81901d7113fe7e991e499c09bc4012aba0",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL_V2.md",
+      "bytes": 6514,
+      "gitBlobSha": "debc5898bebb0f0e8a6400df0835ec4c0727bfac",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/README_RU.md",
+      "bytes": 2809,
+      "gitBlobSha": "4a07a7163d7aad3076140488d05630eccd5fbd45",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/REGRESSION.md",
+      "bytes": 2500,
+      "gitBlobSha": "77ddf4d6b67ff7a8e6955d968b80c1a8c3786f9b",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/RESULT.md",
+      "bytes": 9106,
+      "gitBlobSha": "0a590e326a5804245a88080014b0d901450728f9",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/SOURCE-HASHES.json",
+      "bytes": 1510,
+      "gitBlobSha": "47c9e9853e3d5f6f5abfb8287a891e5f71f3401b",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/STATISTICS.md",
+      "bytes": 3040,
+      "gitBlobSha": "3aced24931eb280776cc8e773ed28fd57fd2a9cd",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TASK.md",
+      "bytes": 14656,
+      "gitBlobSha": "218afdd5e3dd698e162740a2a1fca7369c412764",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TEST_MATRIX.md",
+      "bytes": 3470,
+      "gitBlobSha": "4e7e3c044063e68e00c983e5b462e43adc50753f",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/CURRICULUM-CANDIDATES.json",
+      "bytes": 124148,
+      "gitBlobSha": "8be65aa5cf71ef6fbff1bb73a906e4da5481c68a",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FINAL-SAFETY.json",
+      "bytes": 996,
+      "gitBlobSha": "262542bfd75b4b1cf740c21372e5083656e08eb5",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FROZEN-PARITY.json",
+      "bytes": 12278,
+      "gitBlobSha": "e0966ba5b7ac8bd9e7eee5a9f227a0e83ffad0af",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-MP-FIX-READBACK.json",
+      "bytes": 776,
+      "gitBlobSha": "6e2f146b33fb57c8e8cea0099b2368e5f5591d7c",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-SOURCE-READBACK.json",
+      "bytes": 5145,
+      "gitBlobSha": "95c302da63d7bf481ae63e3787d7bcce032cdb08",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/HEADLESS-SUMMARY.json",
+      "bytes": 122230,
+      "gitBlobSha": "e26f182b19acf51e2f105ca20a8ef78a7842776e",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/LEGACY011-REPLAY-V2.json",
+      "bytes": 130862,
+      "gitBlobSha": "bceb03ed38cb65713be3381797b8d25feb44dd0c",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/TESTS-AND-LOGS.json",
+      "bytes": 6469,
+      "gitBlobSha": "a6cbb943392a9758fc5019c0b11b5382762229e4",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/V1-SCOPE-GUARD.json",
+      "bytes": 1501,
+      "gitBlobSha": "bbce85aef6ed3b718b95fb29441459d703e482d9",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 156172,
+      "gitBlobSha": "14120ad03810dbbd365bcf74e18f401aec749897",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+      "bytes": 3972,
+      "gitBlobSha": "b12ee06488ae7d1a9714daabe165746683b81e6f",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+      "bytes": 21886,
+      "gitBlobSha": "1d703a02ed4a0ec8782b032e14b3dd9c54548d99",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+      "bytes": 14212,
+      "gitBlobSha": "1f3d4ea390baaad13829d4ce84db713dd428083e",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+      "bytes": 28799,
+      "gitBlobSha": "de59ffb0019abe8d62a771ee6ff9976db7cb8f43",
+      "fullBodyVerified": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "bytes": 109600,
+      "gitBlobSha": "56d243839898e934404960bb368ffc673a8917fb",
+      "fullBodyVerified": true
+    }
+  ],
+  "gates": {
+    "G8": "PASS",
+    "G4": "FAIL_NATIVE_NOT_RUN_PRE_CUT_COVERAGE_GAP"
+  },
+  "manualGate": "REQUIRED",
+  "selfHashEmbedded": false
+}

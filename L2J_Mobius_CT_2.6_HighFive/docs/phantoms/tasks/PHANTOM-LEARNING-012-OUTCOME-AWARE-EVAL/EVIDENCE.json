@@ -14,7 +14,7 @@
     "G5": "PASS_HONEST_N0_AND_UNKNOWN_REPORTING",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PENDING_FINAL_DOCS_READBACK"
+    "G8": "PASS"
   },
   "protocolV2": "IMPLEMENTED_OFFLINE_VERIFIED",
   "newNativeV2": "NOT_RUN_PRE_CUT_COVERAGE_GAP",
@@ -534,8 +534,18 @@
   "manualGate": "REQUIRED",
   "nextGoalStarted": false,
   "rulings": [
-    "Утверждённый external workspace вместо generic skill workspace сохраняет exact allowlist.",
-    "Party cast owner может отличаться от initial reservation session; новый typed callback witness обязателен, legacy011 только full hash-pinned replay.",
-    "Только чистый canonical pre-CUT MP refusal исключает кандидата V2 в прежнем cap12; V1 и mixed/owner/Geo/source отказы сохраняются."
-  ]
+    "РЈС‚РІРµСЂР¶РґС‘РЅРЅС‹Р№ external workspace РІРјРµСЃС‚Рѕ generic skill workspace СЃРѕС…СЂР°РЅСЏРµС‚ exact allowlist.",
+    "Party cast owner РјРѕР¶РµС‚ РѕС‚Р»РёС‡Р°С‚СЊСЃСЏ РѕС‚ initial reservation session; РЅРѕРІС‹Р№ typed callback witness РѕР±СЏР·Р°С‚РµР»РµРЅ, legacy011 С‚РѕР»СЊРєРѕ full hash-pinned replay.",
+    "РўРѕР»СЊРєРѕ С‡РёСЃС‚С‹Р№ canonical pre-CUT MP refusal РёСЃРєР»СЋС‡Р°РµС‚ РєР°РЅРґРёРґР°С‚Р° V2 РІ РїСЂРµР¶РЅРµРј cap12; V1 Рё mixed/owner/Geo/source РѕС‚РєР°Р·С‹ СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ."
+  ],
+  "delivery": {
+    "verifiedDocsHead": "bf40ab2ba342d873e012ba5509360480428c2325",
+    "parent": "9bd77193eeb4f03617aa82972dc1ae5cfbfa2c6a",
+    "tree": "17bbb5b083d44fe0690c7617407aba78ec2f91a9",
+    "exactCumulativePaths": 42,
+    "fullBodiesVerified": 42,
+    "sourceFiles": 7,
+    "receiptOnlyFollowup": "INDEPENDENT_FINAL_GET_BEFORE_REPLY",
+    "selfHashEmbedded": false
+  }
 }

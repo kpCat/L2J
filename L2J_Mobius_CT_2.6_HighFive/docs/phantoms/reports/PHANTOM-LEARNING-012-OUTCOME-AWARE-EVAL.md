@@ -41,7 +41,7 @@ Canonical Stop/Postflight exit0: **STOPPED/OFF/owned0**,33357/18001/19301free, G
 
 ## Gates и публикация
 
-G0/G1/G2/G3/G5/G6/G7PASS; **G4 FAIL/NEW_NATIVE_NOT_RUN**; **G8 PENDING_FINAL_DOCS_READBACK**. FULL012 отсутствует независимо от успешной компиляции/replay. G5PASS означает честность отчёта n0/UNKNOWN, а не новый положительный игровой результат.
+G0/G1/G2/G3/G5/G6/G7PASS; **G4 FAIL/NEW_NATIVE_NOT_RUN**; **G8 PASS**. FULL012 отсутствует независимо от успешной компиляции/replay. G5PASS означает честность отчёта n0/UNKNOWN, а не новый положительный игровой результат.
 
 Code commits:75203e123d07ffe0f9993f1218dadde2f8585c64 и9bd77193eeb4f03617aa82972dc1ae5cfbfa2c6a, ordinary push только feature/phantom-world. GitHub независимо проверил HEAD/parent/exactdiff и полные20+2 bodies. Финальные docs проходят отдельный readback перед передачей. Exact inventory — FINAL-SCOPE-GUARD.json; команды/exit — COMMANDS.md и evidence/TESTS-AND-LOGS.json.
 
@@ -51,3 +51,5 @@ Code commits:75203e123d07ffe0f9993f1218dadde2f8585c64 и9bd77193eeb4f03617aa8297
 Git использовался по прямому разрешению пользователя/TASK012: bounded inspection, exact staging/commits, ordinary non-force push feature и tracked-clean TEST fast-forward. Force/reset/clean/stash/history rewrite/new WIP не выполнялись. Точные argv — GIT-COMMANDS.json.
 
 Решения: approved external workspace сохраняет exact scope; последующий законный Party cast owner не обязан равняться initial reservation session (новый V2 требует собственный callback witness, legacy011 — полный immutable hash proof); чистый MP refusal остаётся отказом кандидата, без ослабления native MP policy. Цена ошибочной интерпретации — неверное исключение evidence/категории; отдельные негативные regressions и source hashes сохраняют проверяемость. Native V2 end-to-end, реальный no-paid death/timeout и широкое OOD покрытие012 **NOT_RUN**. Дальнейшие runtime действия остановлены на требуемом review gate.
+
+Независимый GitHub readback docs commit `bf40ab2ba342d873e012ba5509360480428c2325` подтвердил parent9bd77193, exact42cumulative paths/7source и все42полных bodies по Git blobSHA/size. G8PASS; G4FAIL/PARTIAL неизменны. Финальный receipt-only follow-up получает отдельный GET перед ответом; self hash не встраивается.

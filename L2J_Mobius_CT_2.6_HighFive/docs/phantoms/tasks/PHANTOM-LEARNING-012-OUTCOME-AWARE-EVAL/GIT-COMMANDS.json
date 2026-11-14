@@ -435,8 +435,148 @@
         "--ff-only",
         "origin/feature/phantom-world"
       ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "fetch",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE_RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/COMMANDS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/DELIVERY_HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/EVIDENCE.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/FINAL-SCOPE-GUARD.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT-COMMANDS.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GOAL.txt",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/REGRESSION.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/SOURCE-HASHES.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/STATISTICS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/CURRICULUM-CANDIDATES.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FINAL-SAFETY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FROZEN-PARITY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-MP-FIX-READBACK.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-SOURCE-READBACK.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/HEADLESS-SUMMARY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/LEGACY011-REPLAY-V2.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/TESTS-AND-LOGS.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/V1-SCOPE-GUARD.json"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "add",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE_RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/COMMANDS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/DELIVERY_HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/EVIDENCE.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/FINAL-SCOPE-GUARD.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT-COMMANDS.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GOAL.txt",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/REGRESSION.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/SOURCE-HASHES.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/STATISTICS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/CURRICULUM-CANDIDATES.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FINAL-SAFETY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FROZEN-PARITY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-MP-FIX-READBACK.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-SOURCE-READBACK.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/HEADLESS-SUMMARY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/LEGACY011-REPLAY-V2.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/TESTS-AND-LOGS.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/V1-SCOPE-GUARD.json"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--name-only"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "docs(learning012): preserve authentic replay and pre-CUT coverage gap"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "push",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-l",
+        "HEAD",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE_RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/COMMANDS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/DELIVERY_HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/EVIDENCE.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/FINAL-SCOPE-GUARD.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT-COMMANDS.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GOAL.txt",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/REGRESSION.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/RESULT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/SOURCE-HASHES.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/STATISTICS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/CURRICULUM-CANDIDATES.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FINAL-SAFETY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/FROZEN-PARITY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-MP-FIX-READBACK.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/GITHUB-SOURCE-READBACK.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/HEADLESS-SUMMARY.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/LEGACY011-REPLAY-V2.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/TESTS-AND-LOGS.json",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/evidence/V1-SCOPE-GUARD.json"
+      ]
     }
   ],
   "repeatedCommands": "Unique actual argv inventory; repeated guards/fetch/FF share the same argv. Final docs staging argv are recorded in final publication receipts.",
-  "historyRewriteOrWip": false
+  "historyRewriteOrWip": false,
+  "finalReceiptOnlyFollowup": "Exact final staged paths/message/HEAD are preserved in final delivery archive after the independent GET."
 }

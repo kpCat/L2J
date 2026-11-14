@@ -10,6 +10,8 @@
 |G5|PASS reporting: честные historic n2+2 и новое n0/UNKNOWN, advantage INCONCLUSIVE|
 |G6|PASS: DRAFT14/Adam903/223/apps48/accepted2/pointer12/183SQL hashes unchanged|
 |G7|PASS: focused RED→GREEN/Ant/JAR, STOPPED/OFF/owned0/ports/2GS35min bound|
-|G8|PENDING_FINAL_DOCS_READBACK|
+|G8|PASS|
 
 FULL012 запрещён. Manual acceptance владельца REQUIRED. №6/13, осталось7. Следующий Goal не начинался. Подготовительные native admissions/compile/replay не подменяют новый end-to-end EVAL.
+
+Независимый GitHub readback docs commit `bf40ab2ba342d873e012ba5509360480428c2325` подтвердил parent9bd77193, exact42cumulative paths/7source и все42полных bodies по Git blobSHA/size. G8PASS; G4FAIL/PARTIAL неизменны. Финальный receipt-only follow-up получает отдельный GET перед ответом; self hash не встраивается.
