@@ -1,6 +1,6 @@
 # HANDOFF010
 
-CONSOLIDATION=VERIFIED. EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED. Gates: {"G0": "PASS", "G1": "PASS", "G2": "PASS", "G3": "PASS", "G4": "FAIL", "G5": "PASS", "G6": "PASS", "G7": "PASS", "G8": "PENDING_READBACK"}. Game verdict INCONCLUSIVE, преимущества модели не доказаны. Подробнее RESULT, EVIDENCE, COMMANDS и EVAL-REPAIR.
+CONSOLIDATION=VERIFIED. EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED. Gates: {"G0": "PASS", "G1": "PASS", "G2": "PASS", "G3": "PASS", "G4": "FAIL", "G5": "PASS", "G6": "PASS", "G7": "PASS", "G8": "PASS"}. Game verdict INCONCLUSIVE, преимущества модели не доказаны. Подробнее RESULT, EVIDENCE, COMMANDS и EVAL-REPAIR.
 
 - Единственная постоянная ветка feature/phantom-world. Merge8752 сохраняет обе истории; product6c97, ccd93 и add152 — потомки. Новая WIP запрещена без явного разрешения.
 - Основной dirty checkout7e997636 оставлен на месте и защищён protected207. Не делать в нём FF до отдельной проверки его runtime/source guard. Использованы уже существующие004(source) и006(TEST), source branch feature.

@@ -88,6 +88,19 @@ Read-Lineage before и after выполняют только SELECT на identit
 
 ## Independent GitHub readback
 
+Exact commit subjects использованных `git commit -m`:
+
+```text
+Merge published learning006-009 into feature/phantom-world
+Fix lawful evaluation admission and owned native exit accounting
+Expand bounded lawful target placement coverage
+Reject evaluation windows beyond native combat request bound
+Document Goal010 consolidation and bounded partial evaluation
+Record independent Goal010 GitHub verification
+```
+
+Заключительный scope/readback использует `git show <verifiedCommit>:<exact allowlisted path>` (24blobs), `git show -s --format=%H %s <8752> <6c97> <ccd93> <add152>`, `git diff --name-only 8752d88a8a963b5e283e0ecd0f69c6c319ac5e62`, `git diff --cached --name-only`, `git ls-files --others --exclude-standard`, `git add -- <24exactpaths>`; exit0. Receipt commit содержит только запрошенные docs; его фактический HEAD/parent/tree/diff дополнительно читается с GitHub после ordinary push. Source8blob SHA в финальном HEAD сверяются с независимо прочитанными полными телами в родителе. Последующий final status/check читает только004/006/основнойroot и свои процессы/порты, без запуска GS/SQL.
+
 GitHub connector GET commit/ref, `/git/commits/<sha>` parents/tree, fetch_file полных восьми critical sources и final docs, локальный Git blob SHA-1 + SHA-256: exact comparison, без записи через connector. После каждого обычного push branch HEAD проверяется самостоятельно. StageA receipt отдельно, финальный publication receipt содержит HEAD/parent/tree/source hashes/diff scope. Локальный `git` push/status сам по себе не засчитан независимым readback.
 
 ## Первоначальные точные audit команды

@@ -37,6 +37,6 @@
 - [ ] В рамках 3 starts/45min провести actual EVAL ≥2 matched pairs суммарно по поддерживаемым Solo и Party; честный split/negative controls.
 - [x] Cold model/Adam/applications before-after, сборка/регрессии/cpu/ram/disk/resource.
 - [x] Final postflight `STOPPED`, owned PID=0, ports free, flags OFF, private SQL preserved.
-- [ ] Scoped commits directly feature, push/readback; заполнить EVIDENCE, COMMANDS, ACCEPTANCE, RESULT/HANDOFF.
+- [x] Scoped commits directly feature, push/readback; заполнить EVIDENCE, COMMANDS, ACCEPTANCE, RESULT/HANDOFF.
 
 Не начинать B, если A не прошёл. Не выдавать найденные проблемы за исправленные. Нет обязательного нового fit и auto-promotion.

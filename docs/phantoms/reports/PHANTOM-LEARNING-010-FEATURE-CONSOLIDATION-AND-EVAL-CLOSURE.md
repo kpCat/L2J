@@ -16,7 +16,7 @@
 | G5 | PASS | 183SQL lineage rows byte-identical; DRAFT14/Adam903/223/48applications, acceptedTEST2 и pointer12 сохранены. |
 | G6 | PASS | OS kernel exit по original held handle; STOPPED, owned0,3ports free, активные modesOFF, Geo203/protected207 PASS. |
 | G7 | PASS | 3/3GS, 601015/2700000мс;00910/5803240неизменно. CPU/RAM/headless стоимость отдельно. |
-| G8 | PENDING_READBACK | Source8752/6c97/ccd93 опубликованы и проверены; финальные документы ещё требуют push/readback. |
+| G8 | PASS | Независимый readback source и опубликованного пакета 009066e51d88725fa568bb86b41602f1550f6ebf. Финальный receipt commit повторно проверяется после обычного push. |
 
 ## Реальная EVAL
 
