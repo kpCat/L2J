@@ -89,6 +89,14 @@ public final class PhantomAutonomousTrainingNative
 			&& String.valueOf(admission.get("reasons")).equals("[" + wait + "]")
 			? "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED" : "AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED";
 	}
+	static String preCutSelectionRefusal(Map<String, Object> admission, boolean v2)
+	{
+		final String wait = String.valueOf(admission.get("wait"));
+		return v2 && Boolean.FALSE.equals(admission.get("admitted")) && wait.startsWith("WAIT_GROUP_MP:") && String.valueOf(admission.get("reasons")).equals("[" + wait + "]")
+			? "AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED" : partyAdmissionFailure(admission);
+	}
+	static boolean retryableSelectionRefusal(String reason, boolean v2)
+	{ return retryableHeadlessRefusal(reason) || v2 && reason.equals("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED"); }
 	private static final class Refusals
 	{
 		private final List<String> samples = new ArrayList<>();
@@ -556,6 +564,11 @@ public final class PhantomAutonomousTrainingNative
 					}
 				}
 				final var tiers = outcomeV2(config) ? PhantomEvaluationCurriculumV2.classify(candidateFacts) : Map.<String, String>of();
+				if (outcomeV2(config))
+				{
+					final String catalog = PhantomEvaluationCurriculumV2.catalog(candidateFacts, directionOrdinal, config.seed());
+					immutable(directory.resolve("curriculum-candidates-v2." + hash(catalog) + ".json"), catalog);
+				}
 				final var candidateOrder = outcomeV2(config) ? PhantomEvaluationCurriculumV2.order(candidateFacts, directionOrdinal, config.seed()).stream().map(f -> scenes.stream().filter(c -> c.scene().id().equals(f.key())).findFirst().orElseThrow()).toList() : scenes;
 				if (outcomeV2(config) && candidateOrder.isEmpty()) { refusals.add("EVAL012_NO_DISTINCT_PRECUT_BURDEN:" + (party ? "PARTY" : "SOLO")); }
 				for (var candidate : candidateOrder)
@@ -918,7 +931,7 @@ public final class PhantomAutonomousTrainingNative
 				if (cell.party())
 				{
 					final var admission = runtime.acquiredPartyAdmission(); immutable(work.resolve("party-admission.json"), PhantomLearning005Evaluation.mapJson(admission));
-					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException(partyAdmissionFailure(admission)); }
+					if (!Boolean.TRUE.equals(admission.get("admitted"))) { throw new IllegalStateException(preCutSelectionRefusal(admission, evaluation && outcomeV2(config))); }
 					if (evaluation && !Boolean.TRUE.equals(admission.get("combatRequestValidated"))) { throw new IllegalStateException("AUTONOMOUS_PARTY_REQUEST_PREFLIGHT_REQUIRED"); }
 				}
 				final var nativeAdmission = runtime.acquiredEncounterAdmission(config.episodeSeconds() * 1000L);
@@ -1100,7 +1113,7 @@ public final class PhantomAutonomousTrainingNative
 				new AutonomousTrainingV1.CohortSlot(ordinal, cell.key(), hash(id), "EVAL", false), cell, side, true);
 			if (!Files.exists(work.resolve("admission-only.json")))
 			{
-				if (retryableHeadlessRefusal(arm.preCutRefusal())) { return false; }
+				if (retryableSelectionRefusal(arm.preCutRefusal(), outcomeV2(config))) { return false; }
 				throw new IllegalStateException(arm.preCutRefusal().isEmpty() ? "AUTONOMOUS_HEADLESS_RECEIPT_MISSING" : arm.preCutRefusal());
 			}
 			arms.add(arm);

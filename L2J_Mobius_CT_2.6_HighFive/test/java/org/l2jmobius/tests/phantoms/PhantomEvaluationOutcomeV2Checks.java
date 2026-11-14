@@ -123,12 +123,23 @@ public final class PhantomEvaluationOutcomeV2Checks
 		}
 		check(failures.isEmpty(), "REVIEW012_RAW_READER_ACCEPTED_" + failures);
 	}
+	static void resourceSelection()
+	{
+		final String wait = "WAIT_GROUP_MP:target=12:actor=13:actionMPRequired=2484.0:MP=2739.0";
+		final var refusal = Map.<String, Object>of("admitted", false, "wait", wait, "reasons", "[" + wait + "]");
+		final String reason = PhantomAutonomousTrainingNative.preCutSelectionRefusal(refusal, true);
+		check(reason.equals("AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED") && PhantomAutonomousTrainingNative.retryableSelectionRefusal(reason, true), "PURE_PRE_CUT_MP_REFUSAL_MUST_EXCLUDE_CANDIDATE_WITHIN_BOUNDED_SELECTION");
+		check(PhantomAutonomousTrainingNative.preCutSelectionRefusal(refusal, false).equals("AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED") && !PhantomAutonomousTrainingNative.retryableSelectionRefusal(reason, false), "V1_REFUSAL_CONTRACT_UNCHANGED");
+		check(PhantomAutonomousTrainingNative.preCutSelectionRefusal(Map.of("admitted", false, "wait", wait, "reasons", "[" + wait + ", OWNER]"), true).equals("AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED"), "MIXED_OWNER_REFUSAL_MUST_STAY_FATAL");
+	}
 	public static void main(String[] args) throws Exception
 	{
 		if (args.length > 0 && args[0].equals("review")) { reviewRegressions(); return; }
 		if (args.length > 0 && args[0].equals("reader")) { authenticReaderMutations(); return; }
+		if (args.length > 0 && args[0].equals("resource")) { resourceSelection(); return; }
 		outcomes(); invalidEvidence(); codecAndStatistics(); curriculum();
 		reviewRegressions(); authenticReaderMutations();
+		resourceSelection();
 		System.out.println("EVAL012_OUTCOMES_NEGATIVE_CODEC_STATISTICS_GREEN");
 	}
 }
