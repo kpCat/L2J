@@ -943,6 +943,14 @@ public final class PhantomAutonomousTrainingNative
 		final var driftClan = new PhantomTrainingScenarios.ClanNeighbor(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(1000, 0, 0, 0), Set.of(1));
 		if (!PhantomTrainingScenarios.factionClear(Set.of(1), 300, 20, point, List.of(driftClan)) || PhantomTrainingScenarios.planningFactionClear(Set.of(1), 300, 20, point, List.of(driftClan), 300))
 		{ throw new AssertionError("Planning ignored canonical NPC drift or changed the live faction guard"); }
+		final var homeClan = new PhantomTrainingScenarios.ClanNeighbor(950, 0, 0, 0, Set.of(1));
+		final var currentClan = new PhantomTrainingScenarios.ClanNeighbor(700, 0, 0, 0, Set.of(1));
+		final var homeEnvelope = PhantomTrainingScenarios.planningNeighbor(currentClan, homeClan, false, 300);
+		if (!homeEnvelope.spawnCentered() || !PhantomTrainingScenarios.planningFactionClear(Set.of(1), 300, 20, point, List.of(homeEnvelope), 300)
+			|| PhantomTrainingScenarios.planningNeighbor(currentClan, homeClan, true, 300).spawnCentered()
+			|| PhantomTrainingScenarios.planningNeighbor(currentClan, new PhantomTrainingScenarios.ClanNeighbor(1100, 0, 0, 0, Set.of(1)), false, 300).spawnCentered()
+			|| PhantomTrainingScenarios.planningFactionClear(Set.of(1), 300, 20, point, List.of(new PhantomTrainingScenarios.ClanNeighbor(900, 0, 0, 0, Set.of(1), true)), 300))
+		{ throw new AssertionError("Planning lost the complete canonical spawn drift envelope or accepted an unbounded walker"); }
 		final var nearClan = new PhantomTrainingScenarios.ClanNeighbor(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(400, 0, 0, 0), Set.of(1));
 		if (PhantomTrainingScenarios.factionClear(Set.of(1), 300, 20, point, List.of(nearClan)))
 		{ throw new AssertionError("A nearby same-clan NPC crossed the native help-range reserve"); }

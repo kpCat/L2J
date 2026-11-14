@@ -201,8 +201,9 @@ final class PhantomTrainingScenarios
 	}
 	static void requirePlanningActive(java.util.function.BooleanSupplier requested)
 	{ if (requested.getAsBoolean()) { throw new IllegalStateException("AUTONOMOUS_PLANNING_REQUESTED_DRAIN"); } }
-	static record ClanNeighbor(int x, int y, int z, int instanceId, Set<Integer> clans)
+	static record ClanNeighbor(int x, int y, int z, int instanceId, Set<Integer> clans, boolean spawnCentered)
 	{
+		ClanNeighbor(int x, int y, int z, int instanceId, Set<Integer> clans) { this(x, y, z, instanceId, clans, false); }
 		ClanNeighbor(PhantomTopologyPoint point, Set<Integer> clans) { this(point.x(), point.y(), point.z(), point.instanceId(), clans); }
 	}
 	static boolean inWorldBounds(int x, int y, int z)
@@ -223,7 +224,12 @@ final class PhantomTrainingScenarios
 		// the actual clone still performs a fresh native-region check immediately before CUT.
 		final var factionNeighbors = World.getInstance().getVisibleObjects().stream().filter(Attackable.class::isInstance).map(Attackable.class::cast)
 			.filter(other -> other.isSpawned() && !other.isAlikeDead() && other.getInstanceId() == 0 && other.getTemplate().getClans() != null && !other.getTemplate().getClans().isEmpty())
-			.map(other -> new ClanNeighbor(other.getX(), other.getY(), other.getZ(), 0, other.getTemplate().getClans())).toList();
+			.map(other -> planningNeighbor(new ClanNeighbor(other.getX(), other.getY(), other.getZ(), 0, other.getTemplate().getClans()),
+				other.getSpawn() == null ? null : new ClanNeighbor(other.getSpawn().getX(), other.getSpawn().getY(), other.getSpawn().getZ(), 0, other.getTemplate().getClans()),
+				other.isWalker() || other.getLeader() != null || other.isFakePlayer() || other.isMoving() || other.isInCombat() || other.isAttackingOrCastingNow()
+					|| !other.hasAI() || other.getAI().getClass() != org.l2jmobius.gameserver.ai.AttackableAI.class
+					|| !Set.of(org.l2jmobius.gameserver.ai.Intention.IDLE, org.l2jmobius.gameserver.ai.Intention.ACTIVE).contains(other.getAI().getIntention()),
+				org.l2jmobius.gameserver.config.NpcConfig.MAX_DRIFT_RANGE)).toList();
 		// Order by frozen identity/seed, never by outcomes, score or speed of an easy victory.
 		final var monsters = World.getInstance().getVisibleObjects().stream().filter(Monster.class::isInstance).map(Monster.class::cast)
 			.filter(npc -> npc.isSpawned() && !npc.isAlikeDead() && npc.getInstanceId() == 0 && !npc.isAggressive() && !npc.isRaid() && !npc.isChampion()
@@ -324,10 +330,19 @@ final class PhantomTrainingScenarios
 		} }
 		return result.stream().filter(point -> Math.hypot(point.x(), point.y()) <= bound).distinct().toList();
 	}
+	static ClanNeighbor planningNeighbor(ClanNeighbor current, ClanNeighbor spawn, boolean walker, int drift)
+	{
+		if (drift < 0) { throw new IllegalArgumentException("Negative native drift"); }
+		if (!walker && spawn != null && current.instanceId() == spawn.instanceId()
+			&& inWorldBounds(current.x(), current.y(), current.z()) && inWorldBounds(spawn.x(), spawn.y(), spawn.z())
+			&& Math.hypot((long) current.x() - spawn.x(), (long) current.y() - spawn.y()) <= drift)
+		{ return new ClanNeighbor(spawn.x(), spawn.y(), spawn.z(), spawn.instanceId(), current.clans(), true); }
+		return current;
+	}
 	static boolean planningFactionClear(Set<Integer> clans, int helpRange, int collision, PhantomTopologyPoint point, List<ClanNeighbor> neighbors, int drift)
 	{
 		if (drift < 0) { throw new IllegalArgumentException("Negative native drift"); }
-		return factionClear(clans, Math.addExact(helpRange, Math.multiplyExact(drift, 2)), collision, point, neighbors);
+		return neighbors.stream().allMatch(other -> factionClear(clans, Math.addExact(helpRange, Math.multiplyExact(drift, other.spawnCentered() ? 1 : 2)), collision, point, List.of(other)));
 	}
 	/** Conservative pre-CUT placement proof. Native faction AI and all post-CUT threats remain ordinary. */
 	static boolean factionClear(Set<Integer> clans, int helpRange, int collision, PhantomTopologyPoint point, List<ClanNeighbor> neighbors)
