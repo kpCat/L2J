@@ -14,7 +14,7 @@
 | G5 | PASS |
 | G6 | PASS |
 | G7 | PASS |
-| G8 | PENDING_READBACK |
+| G8 | PASS |
 
 | Кампания | Lawful cells | Settled arms | Completed pairs |
 |---|---:|---:|---:|
@@ -45,12 +45,15 @@ Planning273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe использует штатн
 
 Финально STOPPED/OFF, owned Director/GS/Worker/SQL=0, порты33357/18001/19301free; Geo203/protected207 PASS. MAIN/PLAY и dirty main7e997636 сохранены, foreign mysqld8692 от28октября не затронут. Immutable histories4096/4417файлов и исходные3716 проверены по SHA, changed0; изменяемый TRAIN_CONFIG исключён и его версии сохранены отдельно.
 
-Scope bounded exception: **10 product +16 documentation =26 exact paths**, один artifact family EVAL/preflight/closure. Переиспользованы native fixture, planner, ordinary admission, canonical config/bootstrap и held-process receipts. Runtime Combat/Party/Player, UI/schema/optimizer не менялись. Ant RED1→GREEN0/JAR98с для последнего planning fix; ранее targeted009/008/007/JAR и config/Party/remaining-window checks PASS. Независимый review последних2файлов PASS. Полные10исходников273b2d8 независимо прочитаны через GitHub и совпали SHA256/blobSHA1. Публикация текущих доков ожидает readback; source baseline `273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe`.
+Scope bounded exception: **10 product +16 documentation =26 exact paths**, один artifact family EVAL/preflight/closure. Переиспользованы native fixture, planner, ordinary admission, canonical config/bootstrap и held-process receipts. Runtime Combat/Party/Player, UI/schema/optimizer не менялись. Ant RED1→GREEN0/JAR98с для последнего planning fix; ранее targeted009/008/007/JAR и config/Party/remaining-window checks PASS. Независимый review последних2файлов PASS. Полные10исходников273b2d8 независимо прочитаны через GitHub и совпали SHA256/blobSHA1. Readback текущих доков90db4a3 PASS; source baseline `273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe`.
 
 - mojibake-маркеры в изменённых файлах проверены отдельно,27patterns/0matches.
 - escaped Cyrillic в изменённых файлах проверены отдельно,6regex/0matches.
 
 Git использован по явному разрешению TASK010 и продолжения владельца: audit/merge, scoped diff/add/commit, обычный push feature, TEST fetch/FF и независимый readback. Точные команды и exit codes — COMMANDS. Новые WIP/worktree, squash/rebase/reset/clean/force и удаления refs/stash не выполнялись.
+
+
+Независимый GitHub readback публикации `90db4a383e29cb3989f09b3a74f07ae409610d30`: HEAD/parent/tree/diff совпали;16полных documentation bodies и10полных source bodies273b2d8 совпали SHA256/blobSHA1. master16d61833 иwip00901e04537 неизменны. G8=PASS; G3/G4=FAIL, EVAL_CLOSURE PARTIAL. Финальный receipt-only commit проверяется отдельно, содержимого исходников он не меняет.
 
 <details>
 <summary>История первичного закрытия при прежнем лимите3GS</summary>

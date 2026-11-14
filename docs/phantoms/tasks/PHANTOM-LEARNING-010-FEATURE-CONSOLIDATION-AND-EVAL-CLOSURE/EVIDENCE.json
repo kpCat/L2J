@@ -19,7 +19,7 @@
     "G5": "PASS",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PENDING_READBACK"
+    "G8": "PASS"
   },
   "git": {
     "branch": "feature/phantom-world",
@@ -38,7 +38,7 @@
       "afd37fdeec72469a6c680f0a1bd19ea2a8782a46",
       "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe"
     ],
-    "verifiedPublication": "009066e51d88725fa568bb86b41602f1550f6ebf",
+    "verifiedPublication": "90db4a383e29cb3989f09b3a74f07ae409610d30",
     "ordinaryPushOnly": true,
     "mainDirtyPreserved": true,
     "noNewWip": true
@@ -4452,9 +4452,92 @@
     "mojibake": "27patterns/0matches",
     "escapedCyrillic": "6regex/0matches",
     "scopeGuard": {
-      "status": "PENDING_DOCUMENTATION_STAGE",
+      "status": "PASS",
+      "baseline": "8752d88a8a963b5e283e0ecd0f69c6c319ac5e62",
+      "head": "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe",
+      "branch": "feature/phantom-world",
+      "exactAllowlist": [
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+        "AGENTS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java"
+      ],
+      "actualChanged": [
+        "AGENTS.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md"
+      ],
+      "unexpected": [],
+      "missing": [],
+      "stagedFiles": [
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+        "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md"
+      ],
       "productPaths": 10,
-      "documentationPaths": 16
+      "documentationPaths": 16,
+      "diffCheckExit": 0,
+      "commands": [
+        "git diff --name-only 8752d88a8a963b5e283e0ecd0f69c6c319ac5e62",
+        "git diff --cached --name-only",
+        "git ls-files --others --exclude-standard",
+        "git add -- <26 exact paths>",
+        "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check"
+      ]
     },
     "antDSeconds": 80,
     "regressions004005006": [
@@ -4532,6 +4615,20 @@
       "seconds": 98,
       "review": "PASS",
       "liveFactionGuardUnchanged": true
+    },
+    "mojibakeScan": {
+      "mode": "mojibake",
+      "files": 26,
+      "patterns": 27,
+      "rgExit": 1,
+      "matches": 0
+    },
+    "escapedCyrillicScan": {
+      "mode": "escaped",
+      "files": 26,
+      "patterns": 6,
+      "rgExit": 1,
+      "matches": 0
     }
   },
   "limitations": [
@@ -4545,10 +4642,316 @@
     "Budget is a ceiling: stopped at4/5 after mandatory preflight refusal; no sixth start or automatic budget extension requested."
   ],
   "githubReadback": {
-    "status": "PENDING_CURRENT_DOCS_READBACK",
-    "sourceHead": "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe",
-    "sourceFilesVerified": 10,
-    "sourceFullBodiesVerified": 10
+    "head": "90db4a383e29cb3989f09b3a74f07ae409610d30",
+    "parents": [
+      "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe"
+    ],
+    "tree": "5823310fc26c4ae945d3046488d635b8f8058ac8",
+    "independentReadback": "PASS",
+    "sourceFullBodyProof": {
+      "ref": "273b2d823dff2e5f12cbeaaf2126ac2d265ef9fe",
+      "method": "Independent GitHub connector full UTF8 body SHA256 + API blobSHA1 against canonical git show",
+      "files": [
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",
+          "bytes": 16755,
+          "gitBlobSha1": "3cbbe00a5d3daba3335ddf7bc4a42f41d288490d",
+          "sha256": "481ac91a4f0a3485d0a1830e1c5aa5edb1e72b72bd5f8aa9ff4fc32481b2524e",
+          "githubBlobSha": "3cbbe00a5d3daba3335ddf7bc4a42f41d288490d",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+          "bytes": 26432,
+          "gitBlobSha1": "cae475a50b96c8d1444045bf4a85b0f7bd3894f9",
+          "sha256": "47963c0a30cd05bd934bb3ec110b60928f727108b12dcb4adafd7cf3515d93e0",
+          "githubBlobSha": "cae475a50b96c8d1444045bf4a85b0f7bd3894f9",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+          "bytes": 119707,
+          "gitBlobSha1": "74253408c378e9228f53f2b16b9a5a402f62e68a",
+          "sha256": "0c28e53ac1e00ed6555d64fec8e91c9d31d738d447d08aca5dcf2b985def98dc",
+          "githubBlobSha": "74253408c378e9228f53f2b16b9a5a402f62e68a",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+          "bytes": 28842,
+          "gitBlobSha1": "ef6722a19416447388aa900a79de4894453b829a",
+          "sha256": "4904a63fae5b11f123716d9b547a6dbb0e8b562d3a837f328bbb3c2a75ad7941",
+          "githubBlobSha": "ef6722a19416447388aa900a79de4894453b829a",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/AutonomousTraining.ini",
+          "bytes": 2574,
+          "gitBlobSha1": "8dc2dfe26fd313c321351241382bd8d1f42bba5c",
+          "sha256": "4e102e3ee33884922dea5a4edba77b3dba4c2740b4b7e4b7817602ace0bfba9c",
+          "githubBlobSha": "8dc2dfe26fd313c321351241382bd8d1f42bba5c",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Test-Training.ps1",
+          "bytes": 63474,
+          "gitBlobSha1": "ca63687ccdc3e52f6c8eb671b8b926dd21399adf",
+          "sha256": "b1c46209282a7d11b125ab7d417a832d805fcf388c658774624e33da9abe0085",
+          "githubBlobSha": "ca63687ccdc3e52f6c8eb671b8b926dd21399adf",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+          "bytes": 107074,
+          "gitBlobSha1": "8e372c64bb5f484bccb101d82dc29ca9c5c55427",
+          "sha256": "befbeab4bff547f9f981bb6db26351ec51e0ffdacd395ca5e78675f3726753f0",
+          "githubBlobSha": "8e372c64bb5f484bccb101d82dc29ca9c5c55427",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/TrainingOwner.ps1",
+          "bytes": 43777,
+          "gitBlobSha1": "73d51ed751b5418aeded9a96fbe30bf6e5eca7cb",
+          "sha256": "37daff8e0a8ae2aedf3ec39e54fe38d6b3de09038a335a88fc0056bf44d8752f",
+          "githubBlobSha": "73d51ed751b5418aeded9a96fbe30bf6e5eca7cb",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+          "bytes": 90878,
+          "gitBlobSha1": "d5163961b1cd43563952ce3a276c6b1c620a947e",
+          "sha256": "a0941b0f73ebd5eb64548442e5686d6194a359b3a1bdd862702fc18897212e3b",
+          "githubBlobSha": "d5163961b1cd43563952ce3a276c6b1c620a947e",
+          "fullBodyMatch": true
+        },
+        {
+          "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingNative.java",
+          "bytes": 15876,
+          "gitBlobSha1": "88a425579776efedb5c297b70b56f5d7fe533261",
+          "sha256": "95f5348cd477d3d73b6af8d514d7d33a3af109880ca82621e3d90f7d326b203b",
+          "githubBlobSha": "88a425579776efedb5c297b70b56f5d7fe533261",
+          "fullBodyMatch": true
+        }
+      ]
+    },
+    "documentationFullBodyProof": [
+      {
+        "path": "AGENTS.md",
+        "bytes": 7372,
+        "gitBlobSha1": "502e6f8a61b8dc6c13e04346ee38fe838e444950",
+        "sha256": "08a9dcaa38fe480767161c17d35195a6255bf0aa193a309078115d586f1e881b",
+        "fullBodyMatch": true,
+        "githubBlobSha": "502e6f8a61b8dc6c13e04346ee38fe838e444950"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/CODEX_WORKFLOW_CONTRACT.md",
+        "bytes": 6954,
+        "gitBlobSha1": "2ac883b669f47b2a6cda15e4fc120099348500f2",
+        "sha256": "af56dcb2b08225ea94b64a135fe39bd036fc5925c54aa733a783481d2f561518",
+        "fullBodyMatch": true,
+        "githubBlobSha": "2ac883b669f47b2a6cda15e4fc120099348500f2"
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+        "bytes": 7827,
+        "gitBlobSha1": "b19b789bd1e4fd697ca33197645551c59f1bfd45",
+        "sha256": "aa48e228750524788dce7011dffe03e4771a6a0e1784514cd8c4b2eb7b99181e",
+        "fullBodyMatch": true,
+        "githubBlobSha": "b19b789bd1e4fd697ca33197645551c59f1bfd45"
+      },
+      {
+        "path": "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
+        "bytes": 19467,
+        "gitBlobSha1": "8a2b3cf83d16fe9b9a01fa7835bf14e8e0bbfe11",
+        "sha256": "ad512f06f6de91ba34591f6a4d54c9c5f9b2ecab6d613d5f24d9a03b08be8b2a",
+        "fullBodyMatch": true,
+        "githubBlobSha": "8a2b3cf83d16fe9b9a01fa7835bf14e8e0bbfe11"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md",
+        "bytes": 22584,
+        "gitBlobSha1": "0f7a37d1c417a02663b51ca2679b26c594e080b8",
+        "sha256": "957c45366b10d5d4a82dba70d28a3fe70a06aee3b79ab381e3e2a5d04d2e2145",
+        "fullBodyMatch": true,
+        "githubBlobSha": "0f7a37d1c417a02663b51ca2679b26c594e080b8"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
+        "bytes": 8795,
+        "gitBlobSha1": "acc986a98cea2734cfc4650ddda89efde085b676",
+        "sha256": "cc7654dd5d1306514a258005299cefec75244616372f79786fe37c65d411850c",
+        "fullBodyMatch": true,
+        "githubBlobSha": "acc986a98cea2734cfc4650ddda89efde085b676"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
+        "bytes": 9231,
+        "gitBlobSha1": "77d572a2ef594fe7d30483b7989a6ea8fbce49e7",
+        "sha256": "6f65c05a434b5d34b704e0dedc46b203b766bc9abbc8af4acf40358deba541ad",
+        "fullBodyMatch": true,
+        "githubBlobSha": "77d572a2ef594fe7d30483b7989a6ea8fbce49e7"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
+        "bytes": 7077,
+        "gitBlobSha1": "37d3dcc001de5bb1eb5b1b7171479f0e3de9b15b",
+        "sha256": "140b324f190f85f0bde77245c8495d076a205d93f09ff6530caabebcd6af35cc",
+        "fullBodyMatch": true,
+        "githubBlobSha": "37d3dcc001de5bb1eb5b1b7171479f0e3de9b15b"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/GIT-POLICY.md",
+        "bytes": 1795,
+        "gitBlobSha1": "c134c004849fd3d8380cd00bd167fd263dd1724b",
+        "sha256": "9967ece932a7cfba30d555bbc5e20d034ee1d23fdfa181a54443b72b0a64197d",
+        "fullBodyMatch": true,
+        "githubBlobSha": "c134c004849fd3d8380cd00bd167fd263dd1724b"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
+        "bytes": 5192,
+        "gitBlobSha1": "d7aed42c36a7117aff31e51151c04aa9997d1700",
+        "sha256": "d7604a5b35b3b939464834e10d0697b033ed456d3f075e6c4ea45e783e7e350d",
+        "fullBodyMatch": true,
+        "githubBlobSha": "d7aed42c36a7117aff31e51151c04aa9997d1700"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
+        "bytes": 14928,
+        "gitBlobSha1": "6aad11c38fdb5f8f9ee625dbd043b87019899579",
+        "sha256": "0364da74a99e3bbfe9a69a298f2718e972bdbf12529affe483c01471b0611686",
+        "fullBodyMatch": true,
+        "githubBlobSha": "6aad11c38fdb5f8f9ee625dbd043b87019899579"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/MERGE.md",
+        "bytes": 4717,
+        "gitBlobSha1": "61b7abab46525349bd41aff8add879eef5b547c3",
+        "sha256": "500c2e94ef93b9b03da8ba7e7b09e032e00b833f991075130bdfc461e5e561a0",
+        "fullBodyMatch": true,
+        "githubBlobSha": "61b7abab46525349bd41aff8add879eef5b547c3"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+        "bytes": 19115,
+        "gitBlobSha1": "cd1a2e5b12f05a027020fc13f026cca5f6953b42",
+        "sha256": "c0290032ed5cfcd221aedc308c4721313365b081852cd322dc9442f1415e8d14",
+        "fullBodyMatch": true,
+        "githubBlobSha": "cd1a2e5b12f05a027020fc13f026cca5f6953b42"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+        "bytes": 335400,
+        "gitBlobSha1": "1689b848f10c27b8c4b8c3575cbfe9395da3cf88",
+        "sha256": "62bd8bae54e61f102e12d6ab5ed9933a0bcb6561e4cc2234fcf6eb8d30eb4971",
+        "fullBodyMatch": true,
+        "githubBlobSha": "1689b848f10c27b8c4b8c3575cbfe9395da3cf88"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
+        "bytes": 23230,
+        "gitBlobSha1": "b977cf7141a7a0c137af5b27a956cf1eec0c4633",
+        "sha256": "2f17c06906822508b83aecc16dbdca48500c4e3afaae488d322abc661e98cfe6",
+        "fullBodyMatch": true,
+        "githubBlobSha": "b977cf7141a7a0c137af5b27a956cf1eec0c4633"
+      },
+      {
+        "path": "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+        "bytes": 13820,
+        "gitBlobSha1": "ff9d4d05aa11a3b48ec9d9c285704591e309b76a",
+        "sha256": "30c436ff026556ae3fa95b5a9aa5771c0485d84a08701846a3549770b3b2a4ce",
+        "fullBodyMatch": true,
+        "githubBlobSha": "ff9d4d05aa11a3b48ec9d9c285704591e309b76a"
+      }
+    ],
+    "branchRefs": [
+      {
+        "name": "experiment/m1-candidate007-observe008",
+        "sha": "d0993c1933951f020fde5883c7079c437b97cf3c"
+      },
+      {
+        "name": "feature/phantom-world",
+        "sha": "90db4a383e29cb3989f09b3a74f07ae409610d30"
+      },
+      {
+        "name": "master",
+        "sha": "16d61833b3983a3976583d0e4813e0de9457a52f"
+      },
+      {
+        "name": "wip/coordination-130-preserved",
+        "sha": "c5b81f89ce02030eff8441395b0411137a110b2f"
+      },
+      {
+        "name": "wip/phantom-learning",
+        "sha": "b85dd2a3a5f6f153c77b02f1e4887c490eb08ea8"
+      },
+      {
+        "name": "wip/phantom-learning-002",
+        "sha": "b7b5575457c12c1b0438bcbaa646675a67778391"
+      },
+      {
+        "name": "wip/phantom-learning-003",
+        "sha": "06d42410fbfe1ca9b7f462b0816e0da1784630d6"
+      },
+      {
+        "name": "wip/phantom-learning-004",
+        "sha": "dff800f4b95232c132b374f8ec97c932eda4a6b1"
+      },
+      {
+        "name": "wip/phantom-learning-005",
+        "sha": "dfcba154fa1f459be6082a559744d2b4a5c9b47a"
+      },
+      {
+        "name": "wip/phantom-learning-006r1",
+        "sha": "3bfdce560a24882519a3358d405bfe4b99bb25de"
+      },
+      {
+        "name": "wip/phantom-learning-006",
+        "sha": "5a38d35194c914c5dda90f8d57763a916201e977"
+      },
+      {
+        "name": "wip/phantom-learning-007",
+        "sha": "062862eca8e0bcedd4107d7b91720627307f736c"
+      },
+      {
+        "name": "wip/phantom-learning-008",
+        "sha": "85b1c3558e35c1df0a7625fcf5a9e5c119c18b96"
+      },
+      {
+        "name": "wip/phantom-learning-009",
+        "sha": "01e04537eec0a4f6b19236c4e547df7b2a22efb5"
+      },
+      {
+        "name": "wip/task129-preserved-20261106",
+        "sha": "5cb04fe8a669ebf68e5f9ae0fa927055f81a4efe"
+      }
+    ],
+    "diffFiles": [
+      "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "docs/phantoms/reports/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/ACCEPTANCE.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/COMMANDS.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVAL-REPAIR.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/EVIDENCE.json",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/HANDOFF.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/LOCAL-AUDIT.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PLAN.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/PROGRESS.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/RESULT.md",
+      "docs/phantoms/tasks/PHANTOM-LEARNING-010-FEATURE-CONSOLIDATION-AND-EVAL-CLOSURE/TASK.md"
+    ],
+    "gates": {
+      "G0": "PASS",
+      "G1": "PASS",
+      "G2": "PASS",
+      "G3": "FAIL",
+      "G4": "FAIL",
+      "G5": "PASS",
+      "G6": "PASS",
+      "G7": "PASS",
+      "G8": "PASS"
+    },
+    "verdict": "PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED"
   },
   "exactAllowlist": [
     "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/TrainingConfig.java",

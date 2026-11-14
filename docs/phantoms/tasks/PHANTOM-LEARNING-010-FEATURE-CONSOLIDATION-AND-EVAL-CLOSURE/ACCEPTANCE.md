@@ -12,11 +12,14 @@ CONSOLIDATION=VERIFIED; EVAL_CLOSURE=PARTIAL010_NATIVE_EVAL_COVERAGE_FAILED; GAM
 | G5 | PASS |
 | G6 | PASS |
 | G7 | PASS |
-| G8 | PENDING_READBACK |
+| G8 | PASS |
 
 Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
 
 Владелец разрешил5GS/45мин суммарно в том же Goal010; фактически4/5 и715447/2700000мс. Предыдущие3/601015 сохранены. STOPPED/OFF, owned0, SQL/ports33357/18001/19301free, protected207/Geo203 PASS; frozen183SQL rows SHA9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D, DRAFT14/Adam903/223/48applications unchanged. НовыхFIT/credits/promotion нет. Основной dirty checkout7e997636 не обновлять; source004/TEST006 на feature, без новойWIP. Следующий Goal не запущен. Manual review владельца REQUIRED. Исторические008/009 PARTIAL/manual REQUIRED сохранены. №4/13,9remaining after issue. RESULT/EVIDENCE/COMMANDS содержат детали.
+
+
+Независимый GitHub readback публикации `90db4a383e29cb3989f09b3a74f07ae409610d30`: HEAD/parent/tree/diff совпали;16полных documentation bodies и10полных source bodies273b2d8 совпали SHA256/blobSHA1. master16d61833 иwip00901e04537 неизменны. G8=PASS; G3/G4=FAIL, EVAL_CLOSURE PARTIAL. Финальный receipt-only commit проверяется отдельно, содержимого исходников он не меняет.
 
 <details>
 <summary>Первичная приёмка/передача до разрешённого продолжения</summary>

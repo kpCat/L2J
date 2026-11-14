@@ -63,3 +63,7 @@ E paired preflight f8de7b555b1a489dbbb3e2f93d2c3954 running. Старые4096/44
 Последний mandatory preflight `f8de7b555b1a489dbbb3e2f93d2c3954`: **0 lawful cells**, 84 TARGET_BOUND_ALTERNATIVES и 1656 NO_ISOLATED_TARGET_POINT. Нет допустимого пересечения actual acquired alternatives и безопасного NPC/Geo/LOS/faction placement в bounded каталоге. Актуальный G3=FAIL; прежние lawful receipts A/D и первичный G3 PASS сохранены как история, но не доказывают актуальный paired preflight. GS5 **NOT_STARTED**, точные runtime HP/config parity исправления послеGS4 headless/native повторно не подтверждены. Новые source fixes не выдаются за native PASS. Неиспользованный последний старт не позволяет обойти обязательный preflight. Продолжение завершено PARTIAL, автоматического расширения или нового Goal нет.
 
 Read-only SQL after183rows SHA9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D =before. Cold CRC PASS, Adam903/223/48apps preserved. Postflight STOPPED/OFF owned0 portsfree assetsPASS;4/715447. G4 FAIL, никакой compile PASS не заменяет EVAL closure.
+
+## Финальный readback продолжения
+
+Независимый GitHub readback публикации `90db4a383e29cb3989f09b3a74f07ae409610d30`: HEAD/parent/tree/diff совпали;16полных documentation bodies и10полных source bodies273b2d8 совпали SHA256/blobSHA1. master16d61833 иwip00901e04537 неизменны. G8=PASS; G3/G4=FAIL, EVAL_CLOSURE PARTIAL. Финальный receipt-only commit проверяется отдельно, содержимого исходников он не меняет.
