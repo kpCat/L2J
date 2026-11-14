@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "task": "PHANTOM-LEARNING-006-PVE-OUTCOME",
+  "status": "PARTIAL_INSUFFICIENT_TRAIN",
+  "preliminaryResult": "PARTIAL",
+  "full006OutcomeCore": false,
+  "recordedUtc": "2026-11-12T15:56:31.165365+00:00",
+  "source": {
+    "repository": "kpCat/L2J",
+    "baseHead": "dfcba154fa1f459be6082a559744d2b4a5c9b47a",
+    "branch": "wip/phantom-learning-006",
+    "independentClone": true,
+    "source005IsAncestor": true,
+    "base004IsAncestor": true,
+    "initialCloneClean": true,
+    "githubConnectorBaseHeadReadback": "dfcba154fa1f459be6082a559744d2b4a5c9b47a",
+    "originalCheckoutWritesByThisTask": false,
+    "implementationSourcePathsChanged": 17,
+    "implementationSourcePathsProposed": 22
+  },
+  "protectedRemoteRefsBeforePublication": {
+    "feature/phantom-world": "dfcba154fa1f459be6082a559744d2b4a5c9b47a",
+    "master": "16d61833b3983a3976583d0e4813e0de9457a52f",
+    "wip/phantom-learning-004": "dff800f4b95232c132b374f8ec97c932eda4a6b1",
+    "wip/phantom-learning-005": "dfcba154fa1f459be6082a559744d2b4a5c9b47a",
+    "wip/phantom-learning-006": null
+  },
+  "baseline": {
+    "proof": "evidence/baseline.json",
+    "protectedChecked": 207,
+    "unchangedAgainst005": 206,
+    "expectedBuildXmlChangeOnly": true,
+    "oldManifestSha256": "a523f7ffe87682d2c1bbb0d23f40cad8db9634f7f2bfced83232c3e6703d754a",
+    "newManifestSha256": "246ac12cd718e698b18e6ab2b338622b24d505f75ba492eb1cd348bca2e335cd",
+    "oldManifestByteExactCopy": true,
+    "geoPhysicalFilesHashVerified": 203,
+    "geoBytes": 1063452308,
+    "guardIntegration": "PROFILE006_ONLY_PIN_R12_RED_GREEN",
+    "runtimePreflight": "PASS_BEFORE_OWN_SQL_BOOTSTRAP"
+  },
+  "diagnostics005": {
+    "proof": "evidence/diagnostics005.json",
+    "historicalDataUsedForTraining": false,
+    "arms": 16,
+    "castRejections": {
+      "execution-lease": 7,
+      "no-exact-hp": 2
+    },
+    "exactRejectionToArmAttribution": "NOT_RECORDED_IN_005",
+    "rejectedArmsWithIndependentNativeKill": 2,
+    "soloPair3Cause": "PINNED_TARGET_DISTANCE_42_591M_BELOW_EXISTING_MINIMUM_100M",
+    "healScoreCalls": 8,
+    "healTimedCallsIncludingEarlyReturns": 20,
+    "healMaxTotalNanos": 19031400,
+    "healTimedCallsOver5msLowerBound": 1,
+    "healExactOverBudgetCount": null,
+    "healPerReasonCounters": "UNKNOWN_NOT_RECORDED",
+    "completeDeaths": "UNKNOWN",
+    "legacy005StatusChanged": false
+  },
+  "checkpoint8": {
+    "zipSha256Verified": "f689100ec7e20aebcefb91648c9b5109c8fb82c67fc0d5b30343923639bdc798",
+    "declaredSelectedWeightsSha256": "ab62799a566c4cf52807978a12bea023be864d58915b3a72beaf7934d6a96016",
+    "declaredOptimizerSha256": "56cc26c43a2b2edfba23bb2a6e56a207dd10ca7243af7796611a10d7b1f58c0f",
+    "declaredUpdates": 769,
+    "declaredCompletedEpochs": 124,
+    "fullSqlParentsContainedInPortableZip": false,
+    "importInto006": "OWN_SQL_FULL_PARENT_TRAVERSAL_VERIFIED",
+    "restoredTerminalWeightsSha256": "fad52efe1757ae86b234314c8c15ece54b281fdcd3de370f8d6a215f3179709c",
+    "existingAncestryGuardChanged": "EXTENDED_FAIL_CLOSED_FOR_TERMINAL_CHILDREN_LEGACY_TRAVERSAL_RETAINED",
+    "coldReadback": "PASS_EXISTING_ADAM8_NOT_NEW006_UPDATE"
+  },
+  "design": {
+    "plan": "PLAN.md",
+    "rewardConfig": "reward-config.v1.json",
+    "rewardConfigSha256": "3d1ae88c1e8cfc2da6e7c465254b5e8a561373c5fc047b8d0947f63c9f48f8ae",
+    "healEligibilityChangeProposed": false,
+    "independentBuilderCheck": "TWO_MATERIAL_FINDINGS_INCORPORATED",
+    "findings": [
+      "NATIVE_TERMINAL_AND_EFFECT_WRITE_BOUNDARIES",
+      "NATURAL_EXACTLY_ONCE_IDENTITY_OUTSIDE_DATASET_CONFIG"
+    ],
+    "humanPlanApproval": "APPROVED_CONTINUE_AUTONOMOUSLY",
+    "plannedCollectionAttempts": 16,
+    "plannedAbPairs": 8,
+    "plannedStockVsStockControlPairs": 2
+  },
+  "execution006": {
+    "gameServerStarts": 3,
+    "canonicalSqlGenerations": 7,
+    "ownColdShadowStarts": 2,
+    "collectionDenominator": 16,
+    "preCutSetupRefusals": 6,
+    "requestedPreCutInterruption": 1,
+    "nativeEpisodes": 9,
+    "nativeTrainEpisodes": 1,
+    "terminalTrainingReceipts": 1,
+    "terminalReceipts": 9,
+    "splitActions": {
+      "TRAIN": 3,
+      "TUNING": 13,
+      "AUDIT": 11
+    },
+    "newOptimizerUpdates": 0,
+    "applicationMarkers": 0,
+    "terminalRewardUsedForTraining": false,
+    "newDraft": null,
+    "changedNativeAction": "NOT_RUN_NO_NEW_CANDIDATE",
+    "independentAb": "NOT_RUN_NO_NEW_CANDIDATE",
+    "coldResume": "PASS_STAGED_RECEIPTS_AND_ADAM8_ONLY",
+    "canonicalBuild": "PASS",
+    "targetedTests": "PASS_SCOPE_IN_CHECKS006",
+    "performance": "SHADOW_ONLY_PARTIAL",
+    "nativeBatchSupervisor": "REJECTED_MISSING_BATCH_MARKER_SOURCE_FIXED_NO_RERUN",
+    "finalStop": "CONFIRMED_OWN_PORTS_FREE",
+    "proofs": [
+      "evidence/collection006.json",
+      "evidence/cold006.json",
+      "evidence/checks006.json",
+      "evidence/review006.json"
+    ]
+  },
+  "gates": {
+    "G0": "PASS",
+    "G1": "PARTIAL",
+    "G2": "PARTIAL",
+    "G3": "NOT_RUN",
+    "G4": "NOT_RUN",
+    "G5": "PARTIAL",
+    "G6": "PARTIAL",
+    "G7": "PARTIAL",
+    "G8": "PARTIAL"
+  },
+  "gameVerdict": "INCONCLUSIVE",
+  "gameVerdictScope": "NO_NEW_TRAINED_CANDIDATE_NO_INDEPENDENT_AB",
+  "manualFullGate": "REQUIRED",
+  "publication": "SCOPED_WIP006_ONLY_FINAL_SHA_AND_GITHUB_READBACK_IN_EXTERNAL_DELIVERY_RECEIPT"
+}

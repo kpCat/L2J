@@ -12,6 +12,36 @@ CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_events` (
   UNIQUE KEY `tactical_native_action` (`action_key`)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_terminal_rewards` (
+  `natural_key` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `goal_key` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  `episode_id` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `owner_nonce` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `split` ENUM('TRAIN','TUNING','AUDIT') NOT NULL,
+  `dataset_id` VARCHAR(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `config_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `receipt_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `receipt_blob` MEDIUMBLOB NOT NULL,
+  `created_at` TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`natural_key`),
+  UNIQUE KEY `terminal_episode_credit` (`episode_id`),
+  UNIQUE KEY `terminal_native_goal_credit` (`goal_key`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_terminal_applications` (
+  `natural_key` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `run_id` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `model_id` BIGINT UNSIGNED NOT NULL,
+  `dataset_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `receipt_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `optimizer_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `fit_role` ENUM('TRAIN','TUNING','AUDIT') NOT NULL,
+  `terminal_reward_used` BOOLEAN NOT NULL,
+  `created_at` TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`natural_key`),
+  KEY `terminal_fit_run` (`run_id`)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_optimizers` (
   `model_id` BIGINT UNSIGNED NOT NULL,
   `run_id` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -124,4 +154,30 @@ CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_models` (
   `created_at` TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`model_id`),
   UNIQUE KEY `tactical_run_model` (`run_id`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_advantage_snapshots` (
+  `run_id` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `target_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `config_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `snapshot_blob` LONGBLOB NOT NULL,
+  PRIMARY KEY (`run_id`),
+  UNIQUE KEY `advantage_frozen_target` (`target_sha`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `phantom_tactical_v3_advantage_applications` (
+  `natural_key` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `action_key` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `run_id` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `model_id` BIGINT UNSIGNED NOT NULL,
+  `target_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `receipt_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `selection_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `optimizer_sha` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `split` ENUM('TRAIN','TUNING','AUDIT') NOT NULL,
+  `fit_role` ENUM('BASELINE','GRADIENT','HELD_OUT','EXCLUDED') NOT NULL,
+  `gradient_used` BOOLEAN NOT NULL,
+  PRIMARY KEY (`natural_key`),
+  UNIQUE KEY `advantage_single_action_credit` (`action_key`),
+  KEY `advantage_fit_run` (`run_id`)
 ) ENGINE=InnoDB;

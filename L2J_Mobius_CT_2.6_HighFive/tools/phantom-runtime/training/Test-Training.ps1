@@ -1,7 +1,8 @@
 ﻿[CmdletBinding()]
 param(
-    [ValidateSet('Test-Config','Test-Arguments','Test-Atomic','Test-ColdBaseline','Test-ExportAdmission','Test-PrivateBootstrap','Test-EmptyBootstrapRecovery','Test-ErrorHistory','Test-CimExitRace','Test-AdaptiveIdle','Test-StartupHandshake','Test-JobLifetime','Test-Broker','Test-Crash','Test-Isolation','Test-Generate','Test-Native','Test-Detached','Test-Resume','Test-Training','Test-Export')][string]$Action='Test-Config',
+    [ValidateSet('Test-Config','Test-Arguments','Test-Atomic','Test-ColdBaseline','Test-ExportAdmission','Test-PrivateBootstrap','Test-EmptyBootstrapRecovery','Test-ErrorHistory','Test-CimExitRace','Test-AdaptiveIdle','Test-StartupHandshake','Test-JobLifetime','Test-Broker','Test-Crash','Test-Isolation','Test-Generate','Test-Native','Test-Detached','Test-Resume','Test-Training','Test-Export','Test-GuiOwner')][string]$Action='Test-Config',
     [string]$Root,
+    [string]$GuiEvidenceRoot,
     [switch]$LegacyArguments,
     [switch]$ConfirmOwnedCrash,
     [ValidateRange(1,120)][int]$ObserveSeconds=3
@@ -17,6 +18,113 @@ function Reject([scriptblock]$Code,[string]$Reason) {
     $rejected=$false
     try { & $Code | Out-Null } catch { $rejected=$true }
     Require $rejected $Reason
+}
+if($Action -eq 'Test-GuiOwner'){
+    Initialize-TrainWin32;Assert-TrainInstallation $layout
+    $config=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
+    Require ($config.autonomous009AcceptanceSmoke -ceq 'true' -and $config.autonomous009GuiHoldBeforeNative -ceq 'true') 'GUI_SMOKE_REQUIRES_PRE_NATIVE_HOLD'
+    $baseStarts=[int]$config.autonomous009PriorStarts;$baseMillis=[long]$config.autonomous009PriorNativeMillis
+    Require ($baseStarts -eq 6 -and $baseMillis -eq 2231818 -and $config.autonomous009SmokeMaxStarts -ceq '10') 'GUI_SMOKE_EXACT_AUTHORIZED_BUDGET_REQUIRED'
+    foreach($name in @('owner-process.json','native-process.json','worker-process.json','sql\process.json')){
+        $path=Join-Path $layout.Root $name
+        Require (!(Test-Path -LiteralPath $path) -or (Test-TrainProcessAbsent (Read-TrainJson $path))) ('GUI_SMOKE_OWN_PROCESS_RUNNING:'+ $name)
+    }
+    Assert-TrainPortsFree @([int]$config.sqlPort,[int]$config.gamePort,[int]$config.loginPort)
+    if(!$GuiEvidenceRoot){throw 'GUI_SMOKE_OUTSIDE_CHECKOUT_EVIDENCE_REQUIRED'}
+    $evidence=[IO.Path]::GetFullPath($GuiEvidenceRoot)
+    Require (![string]::IsNullOrEmpty([IO.Path]::GetPathRoot($evidence)) -and !$evidence.StartsWith($layout.Clone.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)) 'GUI_SMOKE_EVIDENCE_MUST_BE_OUTSIDE_CHECKOUT'
+    if(Test-Path -LiteralPath $evidence){throw 'GUI_SMOKE_FRESH_EVIDENCE_REQUIRED'}
+    $null=[IO.Directory]::CreateDirectory($evidence);Assert-TrainDirectory $evidence
+    $controlParent=Join-Path $layout.Root 'gui-smoke';$null=[IO.Directory]::CreateDirectory($controlParent);Assert-TrainDirectory $controlParent
+    $controls=@();$receipts=[Collections.Generic.List[object]]::new();$closed=[Collections.Generic.HashSet[string]]::new();$released=$false
+    function New-GuiControl {
+        $directory=Join-Path $controlParent ([guid]::NewGuid().ToString('N'));$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
+        & $layout.PowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'TrainingGui.ps1') -Root $layout.Root -SmokeControl $directory
+        if($LASTEXITCODE -ne 0){throw 'GUI_SMOKE_LAUNCH_FAILED'}
+        return $directory
+    }
+    function Invoke-GuiButton([string]$Directory,[string]$Button){
+        $id=[guid]::NewGuid().ToString('N');Write-TrainJson (Join-Path $Directory 'request.json') @{id=$id;action=$Button}
+        $path=Join-Path $Directory ('responses\'+$id+'.json');$deadline=[DateTime]::UtcNow.AddMinutes(5)
+        while(!(Test-Path -LiteralPath $path) -and [DateTime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 250}
+        if(!(Test-Path -LiteralPath $path)){throw ('GUI_SMOKE_RESPONSE_TIMEOUT:'+ $Button)}
+        $response=Read-TrainJson $path;$receipts.Add($response)
+        Require ($response.id -ceq $id -and $response.action -ceq $Button -and [int]$response.exitCode -eq 0) ('GUI_SMOKE_COMMAND_FAILED:'+ $Button)
+        Require ($response.invokedVia -ceq $(if($Button -ceq 'Close'){'FORM_CLOSE'}else{'WINFORMS_BUTTON_PERFORMCLICK'})) 'GUI_SMOKE_REAL_BUTTON_REQUIRED'
+        if($Button -ceq 'Close'){
+            $gui=Get-Process -Id ([int]$response.guiPid) -ErrorAction SilentlyContinue
+            if($gui){
+                try{
+                    Require ($gui.StartTime.ToUniversalTime() -eq [DateTime]::Parse($response.guiCreatedUtc).ToUniversalTime() -and $gui.MainModule.FileName.StartsWith((Join-Path $layout.Root 'gui\'),[StringComparison]::OrdinalIgnoreCase)) 'GUI_SMOKE_CLOSE_IDENTITY_CHANGED'
+                    Require ($gui.WaitForExit(20000)) 'GUI_SMOKE_WINDOW_PROCESS_DID_NOT_EXIT'
+                }finally{$gui.Dispose()}
+            }
+            $response|Add-Member -NotePropertyName guiExitConfirmed -NotePropertyValue $true
+            $null=$closed.Add($Directory)
+        }
+        return $response
+    }
+    function Wait-GuiPhase([string]$Directory,[string]$Phase,[bool]$Live){
+        $deadline=[DateTime]::UtcNow.AddMinutes(6)
+        do{
+            $response=Invoke-GuiButton $Directory 'Status';$facts=$response.facts
+            if($facts.phase -ceq $Phase -and [bool]$facts.directorLive -eq $Live){return $facts}
+            Start-Sleep -Milliseconds 500
+        }while([DateTime]::UtcNow -lt $deadline)
+        throw ('GUI_SMOKE_PHASE_TIMEOUT:'+ $Phase)
+    }
+    function Assert-GuiPriorBudget($Facts){
+        Require ($Facts.autonomous.starts -eq $baseStarts -and $Facts.autonomous.nativeMillis -eq $baseMillis -and !$Facts.autonomous.pending) 'GUI_SMOKE_CONSUMED_NATIVE_BEFORE_RELEASE'
+    }
+    try{
+        $first=New-GuiControl;$controls+=@($first)
+        $initial=Invoke-GuiButton $first 'Status';Require (!$initial.facts.directorLive) 'GUI_SMOKE_EXPECTED_STOPPED'
+        $null=Invoke-GuiButton $first 'Start';$hold=Wait-GuiPhase $first 'GUI_HOLD' $true;Assert-GuiPriorBudget $hold
+        $firstNonce=$hold.director.nonce;$firstGeneration=$hold.director.generation
+        $second=New-GuiControl;$controls+=@($second)
+        $null=Invoke-GuiButton $second 'Start';$joined=Wait-GuiPhase $second 'GUI_HOLD' $true
+        Require ($joined.director.nonce -ceq $firstNonce -and $joined.director.generation -eq $firstGeneration) 'GUI_SMOKE_DUPLICATE_DIRECTOR'
+        $null=Invoke-GuiButton $first 'Close'
+        $survived=Wait-GuiPhase $second 'GUI_HOLD' $true;Assert-GuiPriorBudget $survived
+        Require ($survived.director.nonce -ceq $firstNonce) 'GUI_SMOKE_CLOSING_WINDOW_STOPPED_DIRECTOR'
+        $null=Invoke-GuiButton $second 'Pause';$paused=Wait-GuiPhase $second 'PAUSED' $false;Assert-GuiPriorBudget $paused
+        $null=Invoke-GuiButton $second 'Resume';$resumed=Wait-GuiPhase $second 'GUI_HOLD' $true;Assert-GuiPriorBudget $resumed
+        Require ($resumed.director.nonce -cne $firstNonce -and $resumed.director.generation -gt $firstGeneration) 'GUI_SMOKE_RESUME_DID_NOT_CREATE_NEW_DIRECTOR'
+        $null=Invoke-GuiButton $second 'Stop';$stopped=Wait-GuiPhase $second 'STOPPED' $false;Assert-GuiPriorBudget $stopped
+        $null=Invoke-GuiButton $second 'Export'
+        $lock=Enter-TrainLock $layout
+        try{
+            $current=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
+            Assert-TrainPortsFree @([int]$current.sqlPort,[int]$current.gamePort,[int]$current.loginPort)
+            $before=Join-Path $layout.Root 'TRAIN_CONFIG.ini';$backup=Join-Path $evidence 'before-native-release.ini'
+            [IO.File]::Copy($before,$backup,$false);Assert-TrainHash $backup (Get-FileHash -LiteralPath $before).Hash
+            $current.autonomous009GuiHoldBeforeNative='false';Write-TrainConfig $before $current
+        }finally{$lock.Dispose()}
+        $released=$true;$null=Invoke-GuiButton $second 'Resume';$null=Invoke-GuiButton $second 'Close'
+        $deadline=[DateTime]::UtcNow.AddMinutes(6);$native=$null
+        do{
+            $record=Join-Path $layout.Root 'native-process.json'
+            if(Test-Path -LiteralPath $record){$candidate=Read-TrainJson $record;if(!(Test-TrainProcessAbsent $candidate)){Assert-TrainProcess $candidate -Kind Native;$native=$candidate;break}}
+            Start-Sleep -Milliseconds 500
+        }while([DateTime]::UtcNow -lt $deadline)
+        Require ($null -ne $native) 'GUI_SMOKE_NATIVE_DID_NOT_SURVIVE_CLOSED_WINDOWS'
+        $state=Read-TrainJson (Join-Path $layout.Root 'director.json');$attempt=Join-Path $layout.Root ('attempts\'+$state.attemptId)
+        $ready=Join-Path $attempt 'game.ready';$socket=Join-Path $attempt 'socket.ok';$deadline=[DateTime]::UtcNow.AddMinutes(6)
+        while((!(Test-Path -LiteralPath $ready) -or !(Test-Path -LiteralPath $socket)) -and [DateTime]::UtcNow -lt $deadline){
+            Assert-TrainProcess $native -Kind Native;Start-Sleep -Milliseconds 500
+        }
+        Require ((Test-Path -LiteralPath $ready) -and (Test-Path -LiteralPath $socket) -and [IO.File]::ReadAllText($ready).Trim() -ceq [string]$native.pid -and [IO.File]::ReadAllText($socket).Trim() -ceq [string]$native.pid) 'GUI_SMOKE_NATIVE_GAME_OR_SOCKET_NOT_READY'
+        $journal=Read-TrainJson (Join-Path $layout.Root ('autonomous\v1\campaigns\'+$config.autonomous009Campaign+'\director-state.json'))
+        Require ($journal.starts -eq ($baseStarts+1) -and $journal.nativeMillis -eq $baseMillis -and $journal.pending) 'GUI_SMOKE_RELEASE_BUDGET_MISMATCH'
+        Write-TrainJson (Join-Path $evidence 'gui-acceptance.json') @{status='PASS_REAL_WINFORMS_BUTTONS_AND_OWNED_CLI';initialGeneration=$firstGeneration;resumedGeneration=$resumed.director.generation;twoWindowsOneDirector=$true;closingWindowsDidNotStopDirector=$true;guiProcessExitConfirmed=$true;allButtons=@('Start','Status','Pause','Resume','Stop','Export');nativeStartedAfterRelease=$true;nativeGameReady=$true;nativeSocketAttested=$true;priorStarts=$baseStarts;priorNativeMillis=$baseMillis;nativePid=$native.pid;receipts=$receipts.ToArray();inputMethod='WINFORMS_PERFORMCLICK_NOT_DESKTOP_INPUT'}
+        Write-Host ('TRAIN009_GUI_OWNER_GREEN buttons=6 windows=2 oneDirector=1 closeIndependent=1 resumedNativeStart='+$journal.starts+' evidence='+$evidence)
+    }catch{
+        if(!$released){& $layout.PowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Training.ps1') -Action Stop -Root $layout.Root|Out-Null}
+        throw
+    }finally{
+        foreach($directory in $controls){if(!$closed.Contains($directory)){try{Write-TrainJson (Join-Path $directory 'request.json') @{id=[guid]::NewGuid().ToString('N');action='Close'}}catch{}}}
+    }
+    return
 }
 if($Action -eq 'Test-StartupHandshake'){
     . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
@@ -389,7 +497,32 @@ if ($Action -eq 'Test-Config') {
         $invalid=@{}; foreach($key in $fact.Keys){$invalid[$key]=$fact[$key]}; foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
         Reject { Assert-TrainIdentitySnapshot $invalid $expected } ('FOREIGN_IDENTITY_ACCEPTED:'+($change.Keys -join ','))
     }
-    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 SQL=0 NATIVE=0'
+    $auto=@{};foreach($key in $config.Keys){$auto[$key]=[string]$config[$key]}
+    foreach($entry in @{autonomous009Version='1';autonomous009Enabled='false';autonomous009Phase='OFF';autonomous009Comparator='STOCK_ON_FROZEN_SHORTLIST_V1';v3Enabled='true';classes='auto';levels='auto';autonomous009MinLevel='20';autonomous009MaxLevel='21';autonomous009ClassWeights='88:3';autonomous009MemoryBudgetMb='8192';episodesPerBatch='48'}.GetEnumerator()){$auto[$entry.Key]=$entry.Value}
+    Assert-TrainConfig $auto
+    $profile=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini')
+    Require ($profile.autonomous009Enabled -ceq 'false' -and $profile.classes -ceq 'auto' -and $profile.levels -ceq 'auto') 'AUTONOMOUS_PROFILE_OFF_DEFAULT'
+    $extended=@{};foreach($key in $auto.Keys){$extended[$key]=[string]$auto[$key]}
+    foreach($entry in @{autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='10';autonomous009SmokeMaxNativeMinutes='90';autonomous009PriorStarts='6';autonomous009PriorNativeMillis='2231818'}.GetEnumerator()){$extended[$entry.Key]=$entry.Value}
+    Assert-TrainConfig $extended
+    $extended.autonomous009GuiHoldBeforeNative='true';Assert-TrainConfig $extended
+    Require ($extended.autonomous009PriorStarts -ceq '6' -and $extended.autonomous009PriorNativeMillis -ceq '2231818') 'EXTENDED_BUDGET_RESET_PRIOR_USAGE'
+    foreach($change in @(@{autonomous009Version='2'},@{autonomous009MinLevel='22'},@{autonomous009MemoryBudgetMb='4096'},@{autonomous009ClassWeights='999:3'},@{episodesPerBatch='50'},@{autonomous009PriorStarts='11'},@{autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='11'},@{autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='10';autonomous009SmokeMaxNativeMinutes='91'},@{autonomous009GuiHoldBeforeNative='true'})){
+        $invalid=@{};foreach($key in $auto.Keys){$invalid[$key]=[string]$auto[$key]};foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
+        Reject {Assert-TrainConfig $invalid} ('INVALID_AUTONOMOUS_CONFIG_ACCEPTED:'+($change.Keys -join ','))
+    }
+    $now=[DateTime]::UtcNow
+    Require ((Get-TrainHeartbeat ($now.ToString('o')) $now).state -ceq 'FRESH') 'FRESH_HEARTBEAT_REJECTED'
+    Require ((Get-TrainHeartbeat ($now.AddMinutes(-2).ToString('o')) $now).state -ceq 'STALE') 'STALE_HEARTBEAT_PRESENTED_AS_CURRENT'
+    Require ((Get-TrainHeartbeat 'broken' $now).state -ceq 'UNKNOWN') 'INVALID_HEARTBEAT_PRESENTED_AS_CURRENT'
+    $empty=Get-TrainEpisodeSummary @() 0
+    Require ($empty.attempted -eq 0 -and $empty.settled -eq 0 -and $empty.paidEffects -eq 0 -and $empty.classes.Count -eq 0) 'EMPTY_COHORT_STATUS_FAILED'
+    $refused=[pscustomobject]@{classId=103;exclusion='PRE_CUT_REFUSED'}
+    $precut=Get-TrainEpisodeSummary @($refused) 1
+    Require ($precut.settled -eq 1 -and $precut.completed -eq 0 -and $precut.failed -eq 0 -and $precut.paidEffects -eq 0 -and $precut.classes.Count -eq 0) 'PRE_CUT_STATUS_INVENTED_EFFECTS'
+    $native=Get-TrainEpisodeSummary @($refused,[pscustomobject]@{classId=94;afterCut=$true;outcome='COMPLETED';paidRawEffects=2},[pscustomobject]@{classId=110;afterCut=$true;outcome='FAILED';paidRawEffects=0}) 3
+    Require ($native.attempted -eq 3 -and $native.settled -eq 3 -and $native.completed -eq 1 -and $native.failed -eq 1 -and $native.paidEffects -eq 2 -and ($native.classes -join ',') -ceq '94,110') 'MIXED_COHORT_STATUS_INCORRECT'
+    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=9 heartbeat=3 episodeSummary=3 extendedBudget=10/90 SQL=0 NATIVE=0'
     return
 }
 # Authorized OWN disposable TEST fault only: active package TEST_CASES.md T08/T14

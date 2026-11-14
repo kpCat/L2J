@@ -1,0 +1,95 @@
+{
+  "canonicalCompileTests": {
+    "exitCode": 0,
+    "seconds": 36,
+    "warnings": 5,
+    "logSha256": "83b039a246826d34ffbf8a65c4785ea2e64a5ccf96871e3763c3011001c227f0"
+  },
+  "canonicalJar": {
+    "exitCode": 0,
+    "sha256": "7787c07accc40aa664c5f984bd392b5c03aa8b1b5d2b220967642ae7bfca770e"
+  },
+  "affectedAssertions": {
+    "passed": 143,
+    "total": 143
+  },
+  "legacy005Assertions": {
+    "passed": 28,
+    "total": 28
+  },
+  "F7": {
+    "exitCode": 0,
+    "dbConnections": 0
+  },
+  "F8": {
+    "exitCode": 0,
+    "passed": 14,
+    "total": 14
+  },
+  "focused006": [
+    "receipt/replay codec and negative contracts",
+    "first-terminal/deadline/admission/STOP boundaries",
+    "exact additive schema",
+    "baseline pin new/legacy/wrong"
+  ],
+  "nativeAndColdSyntheticFixtures": false,
+  "syntheticContractFixturesNeverFitted": true,
+  "commands": [
+    {
+      "exitCode": 0,
+      "check": "learning001"
+    },
+    {
+      "exitCode": 0,
+      "check": "combat-core"
+    },
+    {
+      "exitCode": 0,
+      "check": "combat-action-ownership"
+    },
+    {
+      "exitCode": 0,
+      "check": "party-tactics"
+    },
+    {
+      "exitCode": 0,
+      "check": "training-contracts"
+    },
+    {
+      "exitCode": 0,
+      "check": "post002-support"
+    },
+    {
+      "exitCode": 0,
+      "check": "004-model"
+    },
+    {
+      "exitCode": 0,
+      "check": "004-replay"
+    },
+    {
+      "exitCode": 0,
+      "check": "004-damage"
+    },
+    {
+      "exitCode": 0,
+      "check": "004-episode"
+    },
+    {
+      "exitCode": 0,
+      "check": "004-failure"
+    },
+    {
+      "exitCode": 0,
+      "check": "005-contracts"
+    },
+    {
+      "exitCode": 0,
+      "check": "F7"
+    },
+    {
+      "exitCode": 0,
+      "check": "F8"
+    }
+  ]
+}

@@ -27,9 +27,24 @@ public final class TacticalPolicyV3
 	private final Consumer<HealEvidenceV3.Receipt> _sink;
 	private volatile Consumer<TacticalReceiptV3> _damageSink = _ -> { };
 	private volatile Consumer<TacticalFailureV3> _failureSink = _ -> { };
+	private volatile TrainExplorationV1 _exploration;
 	private final ConcurrentHashMap<Long, Long> _last = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, HealEvidenceV3.Attempt> _pending = new ConcurrentHashMap<>();
 	private final AtomicLong _generation = new AtomicLong();
+	private final ConcurrentHashMap<String,LongAdder> _reasons=new ConcurrentHashMap<>();
+	private final java.util.concurrent.ConcurrentLinkedQueue<String> _reasonSamples=new java.util.concurrent.ConcurrentLinkedQueue<>();
+	private final AtomicLong _reasonSampleCount=new AtomicLong();
+	private volatile Float _lastMargin;
+	private void reason(String reason,long actor,int target)
+	{
+		_reasons.computeIfAbsent(reason,_ -> new LongAdder()).increment();
+		if(_reasonSampleCount.getAndIncrement()<64){_reasonSamples.add("{\"reason\":"+TrainingStore.quote(reason)+",\"actorProfile\":"+actor+",\"target\":"+target+"}");}
+	}
+	public String diagnostics()
+	{
+		final var sorted=new TreeMap<String,Long>(_reasons.entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,e->e.getValue().sum())));
+		return "{\"counters\":{"+sorted.entrySet().stream().map(e->TrainingStore.quote(e.getKey())+":"+e.getValue()).collect(java.util.stream.Collectors.joining(","))+"},\"samples\":["+String.join(",",_reasonSamples)+"],\"sampleLimit\":64,\"lastMargin\":"+_lastMargin+"}";
+	}
 	public final LongAdder evaluated = new LongAdder(), reordered = new LongAdder(), overBudget = new LongAdder(), fallback = new LongAdder();
 	private volatile HealEvidenceV3.Attempt _latest;
 	private final Timing _snapshotTime = new Timing(), _encodeTime = new Timing(), _scoreTime = new Timing(), _totalTime = new Timing(), _dispatchTime = new Timing(), _cpuTime = new Timing(), _allocations = new Timing();
@@ -42,6 +57,13 @@ public final class TacticalPolicyV3
 	}
 	public HealEvidenceV3.Attempt latest() { return _latest; }
 	public Mode mode() { return _mode; }
+	/** Explicit pre-CUT owned TRAIN binding. Ordinary ON inference cannot receive an exploration window. */
+	public void trainExploration(TrainExplorationV1 session)
+	{
+		if(session!=null&&(_mode!=Mode.SHADOW||_model==null||session.modelVersion()!=_version||!session.modelSha().equals(_model.sha256())))
+		{throw new IllegalArgumentException("Exploration requires exact SHADOW TEST model authority");}
+		_exploration=session;
+	}
 	public void damageObserver(Consumer<TacticalReceiptV3> sink) { _damageSink = Objects.requireNonNull(sink); }
 	void recordDamage(TacticalReceiptV3 receipt) { _damageSink.accept(receipt); }
 	public void failureObserver(Consumer<TacticalFailureV3> sink) { _failureSink = Objects.requireNonNull(sink); }
@@ -52,10 +74,10 @@ public final class TacticalPolicyV3
 	DamageChoice damage(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest request, int actorObjectId,
 		List<LearningPolicy.Candidate> candidates, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill baseline)
 	{
-		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { return null; }
+		if (_mode == Mode.OFF || candidates.size() < 2 || candidates.size() > _maximumActions || SkillData.getInstance().catalogReloaded()) { reason("DAMAGE_OFFER_OR_MODE",request.profileId(),request.targetObjectId());return null; }
 		final long now = System.nanoTime(), profile = request.profileId();
-		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { return null; }
-		if (!CPU_SLOT.tryAcquire()) { fallback.increment(); return null; }
+		if (_last.containsKey(profile) && now - _last.get(profile) < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(profile)) { reason("COOLDOWN_OR_ACTOR_CAP",profile,request.targetObjectId());return null; }
+		if (!CPU_SLOT.tryAcquire()) { reason("CPU_SLOT",profile,request.targetObjectId());fallback.increment(); return null; }
 		final long allocated = allocated(), cpu = THREADS.getCurrentThreadCpuTime();
 		try
 		{
@@ -96,9 +118,23 @@ public final class TacticalPolicyV3
 					if (score > best) { second = best; best = score; selected = i; } else { second = Math.max(second, score); }
 				}
 				_scoreTime.add(System.nanoTime() - scoreStarted); evaluated.increment();
-				if (_mode != Mode.ON || best - second < .025f) { selected = stock; }
+				_lastMargin=best-second;
+				if (_mode != Mode.ON || best - second < .025f) { reason(_mode!=Mode.ON?"SHADOW":"MARGIN",profile,target.getObjectId());selected = stock; }
 			}
-			if (System.nanoTime() - now > 5_000_000L) { overBudget.increment(); selected = stock; }
+			if (System.nanoTime() - now > 5_000_000L) { reason("BUDGET_5MS",profile,target.getObjectId());overBudget.increment(); selected = stock; }
+			else if(_exploration!=null&&!_exploration.spent())
+			{
+				var session=_exploration;
+				var decision=session.offer(observation,offered,offered.get(stock),actor.getNativeWorkOwner()!=null&&actor.getNativeWorkOwner().isCurrent()
+					&&candidates.stream().allMatch(c->c.exact().getAsBoolean()),actor.getCurrentHp()>actor.getMaxHp()*.30);
+				if(decision!=null)
+				{
+					if(System.nanoTime()-now>5_000_000L){decision=decision.failed("BUDGET_5MS");overBudget.increment();selected=stock;}
+					else{selected=offered.indexOf(decision.selected());}
+					session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),profile,target.getObjectId());
+				}
+			}
+			reason(selected==stock?"DAMAGE_STOCK":"DAMAGE_REORDER",profile,target.getObjectId());
 			if (selected != stock) { reordered.increment(); }
 			return new DamageChoice(candidates.get(selected), new TacticalReceiptV3.Attempt(observation, offered, offered.get(selected), offered.get(stock), _version));
 		}
@@ -120,10 +156,11 @@ public final class TacticalPolicyV3
 		for (MemberRef ref : actors)
 		{
 			final var choices = stock.stream().filter(v -> v.actor().equals(ref) && v.kind() == DirectiveKind.HEAL_MEMBER).toList();
-			if (choices.size() < 2 || choices.size() > _maximumActions || !safeToRank(choices, snapshots)) { continue; }
+			if (choices.size() < 2 || choices.size() > _maximumActions) {reason("HEAL_OFFER_COUNT",ref.profileId(),0);continue;}
+			if (!safeToRank(choices, snapshots)) {reason(safetyReason(choices,snapshots),ref.profileId(),choices.getFirst().targetObjectId());continue;}
 			final long now = System.nanoTime(), previous = _last.getOrDefault(ref.profileId(), Long.MIN_VALUE);
-			if (_last.containsKey(ref.profileId()) && now - previous < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(ref.profileId())) { continue; }
-			if (!CPU_SLOT.tryAcquire()) { fallback.increment(); continue; }
+			if (_last.containsKey(ref.profileId()) && now - previous < _cooldownNanos || _last.size() >= 256 && !_last.containsKey(ref.profileId())) {reason("COOLDOWN_OR_ACTOR_CAP",ref.profileId(),0);continue;}
+			if (!CPU_SLOT.tryAcquire()) { reason("CPU_SLOT",ref.profileId(),0);fallback.increment(); continue; }
 			final long allocated = allocated(), cpu = THREADS.getCurrentThreadCpuTime();
 			try
 			{
@@ -154,9 +191,25 @@ public final class TacticalPolicyV3
 						if (score > best) { second = best; best = score; selected = index; } else { second = Math.max(second, score); }
 					}
 					_scoreTime.add(System.nanoTime() - scoreStarted); evaluated.increment();
-					if (best - second < .025f || _mode != Mode.ON) { selected = 0; }
+					_lastMargin=best-second;
+					if (best - second < .025f || _mode != Mode.ON) { reason(_mode!=Mode.ON?"SHADOW":"MARGIN",ref.profileId(),0);selected = 0; }
 				}
-				if (System.nanoTime() - now > 5_000_000L) { overBudget.increment(); selected = 0; }
+				if (System.nanoTime() - now > 5_000_000L) { reason("BUDGET_5MS",ref.profileId(),0);overBudget.increment(); selected = 0; }
+				else if(_exploration!=null&&!_exploration.spent())
+				{
+					var session=_exploration;
+					var decision=session.offer(observation,offered,offered.getFirst(),actor.getNativeWorkOwner()!=null&&actor.getNativeWorkOwner().isCurrent()
+						&&offered.stream().allMatch(a->World.getInstance().findObject(a.targetObjectId()) instanceof Player p&&p.getNativeWorkOwner()!=null&&p.getNativeWorkOwner().isCurrent()&&TacticalSnapshotV3.epoch(p)==a.targetEpoch()),safeToRank(choices,snapshots)
+						&&actor.getCurrentHp()>actor.getMaxHp()*.30&&actor.getAttackByList().isEmpty()
+						&&offered.stream().allMatch(a->World.getInstance().findObject(a.targetObjectId()) instanceof Player p&&p.getCurrentHp()>p.getMaxHp()*.25&&p.getAttackByList().isEmpty()));
+					if(decision!=null)
+					{
+						if(System.nanoTime()-now>5_000_000L){decision=decision.failed("BUDGET_5MS");overBudget.increment();selected=0;}
+						else{selected=offered.indexOf(decision.selected());}
+						session.record(decision);reason(decision.fallback().isEmpty()?decision.reason():decision.fallback(),ref.profileId(),decision.selected().targetObjectId());
+					}
+				}
+				reason(selected==0?"HEAL_STOCK":"HEAL_REORDER",ref.profileId(),offered.get(selected).targetObjectId());
 				if (selected > 0)
 				{
 					final int first = result.indexOf(choices.getFirst()), chosen = result.indexOf(choices.get(selected));
@@ -188,13 +241,26 @@ public final class TacticalPolicyV3
 		}
 		return true;
 	}
-	private static LegalActionV3 legal(Player actor, TacticalDirective directive, TacticalObservationV3 observation, long generation)
+	static String safetyReason(List<TacticalDirective> choices,Map<MemberRef,MemberSnapshot> snapshots)
 	{
-		if (!(World.getInstance().findObject(directive.targetObjectId()) instanceof Player target) || target.getParty() != actor.getParty() || target.isAlikeDead() || target.getNativeWorkOwner() == null || !target.getNativeWorkOwner().isCurrent()) { return null; }
+		if(choices.size()<2){return "HEAL_OFFER_COUNT";}
+		for(var choice:choices)
+		{
+			final var source=snapshots.get(choice.actor());final var target=snapshots.get(choice.targetMember());
+			if(source==null||target==null){return "STALE_SNAPSHOT";}
+			if(!source.attackerObjectIds().isEmpty()){return "ACTOR_UNDER_ATTACK";}
+			if(!target.attackerObjectIds().isEmpty()){return "TARGET_UNDER_ATTACK";}
+			if(target.hpPercent()<=25||source.hpPercent()<=30||choice.priority()>=9000){return "EMERGENCY";}
+		}
+		return "UNSAFE_PREDICATE";
+	}
+	private LegalActionV3 legal(Player actor, TacticalDirective directive, TacticalObservationV3 observation, long generation)
+	{
+		if (!(World.getInstance().findObject(directive.targetObjectId()) instanceof Player target) || target.getParty() != actor.getParty() || target.isAlikeDead() || target.getNativeWorkOwner() == null || !target.getNativeWorkOwner().isCurrent()) { reason("STALE_OWNER_OR_TARGET",directive.actor().profileId(),directive.targetObjectId());return null; }
 		final var skill = actor.getKnownSkill(directive.actionSkillId()); final var entity = observation.entity(target.getObjectId());
 		if (skill == null || entity == null || skill.getLevel() != directive.actionSkillLevel() || !PhantomSupportEffectAuthority.supportsCapability(skill, "combat.heal") || skill.getAffectRange() > 0
 			|| skill.isChanneling() || skill.isSimultaneousCast() || skill.getFlyType() != null || actor.isSkillDisabled(skill) || !actor.checkDoCastConditions(skill) || !skill.checkCondition(actor, target, false)
-			|| actor.calculateDistance3D(target) > actor.getMagicalAttackRange(skill) || !entity.fact(Field.LOS).known() || entity.fact(Field.LOS).value() != 1) { return null; }
+			|| actor.calculateDistance3D(target) > actor.getMagicalAttackRange(skill) || !entity.fact(Field.LOS).known() || entity.fact(Field.LOS).value() != 1) { reason(skill==null?"MISSING_SKILL":entity==null?"STALE_SNAPSHOT":!entity.fact(Field.LOS).known()||entity.fact(Field.LOS).value()!=1?"MISSING_LOS":"SKILL_NOT_READY_OR_LEGAL",directive.actor().profileId(),directive.targetObjectId());return null; }
 		final double cost = actor.getStat().getMpConsume(skill) + actor.getStat().getMpInitialConsume(skill);
 		if (cost <= 0 || actor.getCurrentMp() < cost) { return null; }
 		return new LegalActionV3(LegalActionV3.Family.HEAL, "PartyTactics", directive.actor().profileId(), actor.getObjectId(), TacticalSnapshotV3.epoch(actor), generation,

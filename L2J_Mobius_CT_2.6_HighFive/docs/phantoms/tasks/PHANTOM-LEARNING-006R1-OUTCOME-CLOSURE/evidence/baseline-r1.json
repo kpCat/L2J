@@ -1,0 +1,111 @@
+{
+  "sourceBase": "5a38d35194c914c5dda90f8d57763a916201e977",
+  "historicalCollectionFiles": 96,
+  "historicalCollectionInventorySha256": "a2036279c91b92914b90075fa02440f82e05a63dc954a1aef76ddce550440f7c",
+  "historicalCollectionUnchanged": true,
+  "protected207ManifestSha256": "246ac12cd718e698b18e6ab2b338622b24d505f75ba492eb1cd348bca2e335cd",
+  "geo203ManifestSha256": "a8a4b73bc7b53bed28f545cd889f489492b585b369f8e84988f8db8a91c973d5",
+  "freshPreflightExitCode": 0,
+  "preflightLogSha256": "4ec760942f4e998305f8aa3f762cde6eb93a4442993440296b051be007110d5e",
+  "finalBuild": {
+    "builtUtc": "2026-11-12T19:59:54.1460823Z",
+    "sourceFingerprint": "802e829a52f589961371bcc91b80506dc65fe9f605c5b6dcb573776521f27409",
+    "jarSha": "89AC4950208CBD3FD88E9921E58CC0B271A78272D360016FF1DADACE77506262"
+  },
+  "sourceHashes": {
+    "Learning006OutcomeChecks.java": "fcb9614f75291c169a7f9e764e5b8e56715ce76bc4009d30d2992a28967602c2",
+    "Outcome006.ini": "0c4ab291f2ba39226719b8dda9ca0f9e194874806285a3d6dcafee044a06fa11",
+    "PhantomLearning001ShadowNative.java": "524da031f4d859dae787af0222336ff7b159d0a3adc880a6a16578f883a48171",
+    "PhantomLearning004Native.java": "3a4309e67d0e3db945698c48add751c6b70777962da5f4b78d968002eb68f12f",
+    "PhantomLearning005Evaluation.java": "e76dab6f8f3fc5e2af7292bfc13a817168bc34eef5da76154fff0ef773f10435",
+    "PhantomLearning005Ledger.java": "1629d52459ecc358c83ca060534d29ba2c0dd99fd50ce58e14d84a6c199328a7",
+    "PhantomLearning005Native.java": "5db96d419734ad94e67073fb2294fcc52f97594df948a3d03657e6414b97c120",
+    "PhantomLearning006Checks.java": "14d85dfa26784123b7e811d3d6f057d571f12cbb8b258c8f785c6e65d8ec0c60",
+    "PhantomTrainingNative.java": "6eefbfb0283c5a3bb220cad1cdff851cbe2fb69e3d134a688cad0fa34d35c66f",
+    "TacticalStoreV3.java": "8913d866cafe122b603cee433a3973bcc716d728284c7a2aeee3e5bd5f742859",
+    "TacticalTrainerV3.java": "b194f167b5b89509118fdc3dc05dcdf1a5cbeb94a78e7c3d43670ab45ec0774d",
+    "TerminalReplayV1.java": "0d331228eb88a0c75d4ed78b8efae62b07ccc9008415163e4ffa30c773cb2868",
+    "Training.ps1": "9ca2fc7d6d21d4e07faf4a9d66423c19531a2058d9f2807c40243b2b5ec05987"
+  },
+  "phasePins": [
+    {
+      "phase": "CONTROL",
+      "pins": {
+        "outcome006Phase": "CONTROL",
+        "outcome006EvaluationCampaign": "control-r2",
+        "outcome006DraftId": "9",
+        "outcome006DraftSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+        "outcome006TerminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+        "outcome006OptimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "outcome006RunId": "6610167d6f044536954e926e5df843dc"
+      },
+      "oldConfigSha": "df9802431fa9d05008f09d902fd99d8da1d9a6f60920f4b18a28195ae1d9a863",
+      "newConfigSha": "71160ae9cc8d6784df7eae90f114f290f2666bcf7fbd208e7bb973c096d88c2b",
+      "export": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-b69c2f1271854fc38e35b2a183be17f3.zip",
+      "exportSha": "291474aff0bfe16b4ad580a9e18b9d9135058fb36d74bc3f21542f4daad1dd1d",
+      "accepted2Unchanged": true,
+      "workingStatus": "DRAFT",
+      "optimizerUpdates": 817,
+      "completedEpochs": 172
+    },
+    {
+      "phase": "EVALUATE",
+      "pins": {
+        "outcome006Phase": "EVALUATE",
+        "outcome006EvaluationCampaign": "evaluate-r2",
+        "outcome006DraftId": "9",
+        "outcome006DraftSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+        "outcome006TerminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+        "outcome006OptimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "outcome006RunId": "6610167d6f044536954e926e5df843dc"
+      },
+      "oldConfigSha": "2afb643fe2cb738bc1f4f62376e23f44659599999afb630c0eb398a822fc7ee1",
+      "newConfigSha": "df9802431fa9d05008f09d902fd99d8da1d9a6f60920f4b18a28195ae1d9a863",
+      "export": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-b69c2f1271854fc38e35b2a183be17f3.zip",
+      "exportSha": "291474aff0bfe16b4ad580a9e18b9d9135058fb36d74bc3f21542f4daad1dd1d",
+      "accepted2Unchanged": true,
+      "workingStatus": "DRAFT",
+      "optimizerUpdates": 817,
+      "completedEpochs": 172
+    },
+    {
+      "phase": "PROOF",
+      "pins": {
+        "outcome006Phase": "PROOF",
+        "outcome006EvaluationCampaign": "proof-r2",
+        "outcome006DraftId": "9",
+        "outcome006DraftSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+        "outcome006TerminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+        "outcome006OptimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "outcome006RunId": "6610167d6f044536954e926e5df843dc"
+      },
+      "oldConfigSha": "a118df438c295f3341f42c5d1fc8c66c23d58c94ffc42c664b413eadb080f313",
+      "newConfigSha": "2afb643fe2cb738bc1f4f62376e23f44659599999afb630c0eb398a822fc7ee1",
+      "export": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-b69c2f1271854fc38e35b2a183be17f3.zip",
+      "exportSha": "291474aff0bfe16b4ad580a9e18b9d9135058fb36d74bc3f21542f4daad1dd1d",
+      "accepted2Unchanged": true,
+      "workingStatus": "DRAFT",
+      "optimizerUpdates": 817,
+      "completedEpochs": 172
+    },
+    {
+      "phase": "PROOF",
+      "pins": {
+        "outcome006Phase": "PROOF",
+        "outcome006DraftId": "9",
+        "outcome006DraftSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+        "outcome006TerminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+        "outcome006OptimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+        "outcome006RunId": "6610167d6f044536954e926e5df843dc"
+      },
+      "oldConfigSha": "01428367e9fc6a9c04a290c9acef0616854064d5fb84b10586f74d8704b1c3d6",
+      "newConfigSha": "a118df438c295f3341f42c5d1fc8c66c23d58c94ffc42c664b413eadb080f313",
+      "export": "D:\\Codex\\repos\\L2J-learning-006\\.phantom-local\\learning002\\train\\tactical-v3-exports\\model-2-b69c2f1271854fc38e35b2a183be17f3.zip",
+      "exportSha": "291474aff0bfe16b4ad580a9e18b9d9135058fb36d74bc3f21542f4daad1dd1d",
+      "accepted2Unchanged": true,
+      "workingStatus": "DRAFT",
+      "optimizerUpdates": 817,
+      "completedEpochs": 172
+    }
+  ]
+}

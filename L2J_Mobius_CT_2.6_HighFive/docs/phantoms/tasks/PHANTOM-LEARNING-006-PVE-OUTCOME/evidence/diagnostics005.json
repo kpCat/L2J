@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "dfcba154fa1f459be6082a559744d2b4a5c9b47a",
+  "campaign": "eval005d",
+  "historicalEvidenceOnly": true,
+  "trainingCredit": false,
+  "armCount": 16,
+  "armReasons": {
+    "NATIVE_ACTOR_DIED": 1,
+    "NATIVE_KILL": 11,
+    "EVIDENCE_REJECTED_1": 2,
+    "NO_TRACKED_NATIVE_EFFECT": 2
+  },
+  "healTiming": [
+    {
+      "arm": "PARTY_HEAL_V3-0-LEARNED",
+      "scored": 1,
+      "timedCalls": 4,
+      "p50Nanos": 20000,
+      "p95Nanos": 19031400,
+      "p99Nanos": 19031400,
+      "maxNanos": 19031400
+    },
+    {
+      "arm": "PARTY_HEAL_V3-0-STOCK",
+      "scored": 1,
+      "timedCalls": 4,
+      "p50Nanos": 27700,
+      "p95Nanos": 3056300,
+      "p99Nanos": 3056300,
+      "maxNanos": 3056300
+    },
+    {
+      "arm": "PARTY_HEAL_V3-1-LEARNED",
+      "scored": 1,
+      "timedCalls": 2,
+      "p50Nanos": 43600,
+      "p95Nanos": 2052200,
+      "p99Nanos": 2052200,
+      "maxNanos": 2052200
+    },
+    {
+      "arm": "PARTY_HEAL_V3-1-STOCK",
+      "scored": 1,
+      "timedCalls": 2,
+      "p50Nanos": 43400,
+      "p95Nanos": 1984100,
+      "p99Nanos": 1984100,
+      "maxNanos": 1984100
+    },
+    {
+      "arm": "PARTY_HEAL_V3-2-LEARNED",
+      "scored": 1,
+      "timedCalls": 2,
+      "p50Nanos": 23100,
+      "p95Nanos": 2089600,
+      "p99Nanos": 2089600,
+      "maxNanos": 2089600
+    },
+    {
+      "arm": "PARTY_HEAL_V3-2-STOCK",
+      "scored": 1,
+      "timedCalls": 2,
+      "p50Nanos": 23100,
+      "p95Nanos": 2067800,
+      "p99Nanos": 2067800,
+      "maxNanos": 2067800
+    },
+    {
+      "arm": "PARTY_HEAL_V3-3-LEARNED",
+      "scored": 1,
+      "timedCalls": 2,
+      "p50Nanos": 23300,
+      "p95Nanos": 1851000,
+      "p99Nanos": 1851000,
+      "maxNanos": 1851000
+    },
+    {
+      "arm": "PARTY_HEAL_V3-3-STOCK",
+      "scored": 1,
+      "timedCalls": 2,
+      "p50Nanos": 21300,
+      "p95Nanos": 2415200,
+      "p99Nanos": 2415200,
+      "maxNanos": 2415200
+    }
+  ],
+  "policyScoredCalls": 8,
+  "v3OverBudgetCount": null,
+  "v3TimedCallOver5msLowerBound": 1,
+  "healPerReasonCounters": "UNKNOWN_NOT_RECORDED_IN_005",
+  "castRejections": [
+    {
+      "log": "native.err",
+      "line": 447,
+      "text": "[12/11 14:38:09] LEARNING_CAST_REJECTED scope=PARTY skill=1339 generation=2 sequence=8 stage=effects reason=execution-lease"
+    },
+    {
+      "log": "native.err",
+      "line": 474,
+      "text": "[12/11 14:38:54] LEARNING_CAST_REJECTED scope=PARTY skill=1230 generation=2 sequence=1 stage=publish reason=no-exact-hp"
+    },
+    {
+      "log": "native.err",
+      "line": 500,
+      "text": "[12/11 14:39:36] LEARNING_CAST_REJECTED scope=PARTY skill=1230 generation=2 sequence=7 stage=effects reason=execution-lease"
+    },
+    {
+      "log": "native.err",
+      "line": 503,
+      "text": "[12/11 14:39:41] LEARNING_CAST_REJECTED scope=PARTY skill=1339 generation=4 sequence=2 stage=publish reason=no-exact-hp"
+    },
+    {
+      "log": "native.err",
+      "line": 551,
+      "text": "[12/11 14:40:52] LEARNING_CAST_REJECTED scope=PARTY skill=1230 generation=4 sequence=3 stage=effects reason=execution-lease"
+    },
+    {
+      "log": "native.err",
+      "line": 555,
+      "text": "[12/11 14:40:57] LEARNING_CAST_REJECTED scope=PARTY skill=1339 generation=7 sequence=2 stage=effects reason=execution-lease"
+    },
+    {
+      "log": "native.err",
+      "line": 580,
+      "text": "[12/11 14:41:30] LEARNING_CAST_REJECTED scope=PARTY skill=1230 generation=4 sequence=3 stage=effects reason=execution-lease"
+    },
+    {
+      "log": "native.err",
+      "line": 584,
+      "text": "[12/11 14:41:35] LEARNING_CAST_REJECTED scope=PARTY skill=1339 generation=7 sequence=2 stage=effects reason=execution-lease"
+    },
+    {
+      "log": "native.err",
+      "line": 635,
+      "text": "[12/11 14:42:51] LEARNING_CAST_REJECTED scope=PARTY skill=1339 generation=6 sequence=2 stage=effects reason=execution-lease"
+    }
+  ],
+  "castRejectionReasons": {
+    "execution-lease": 7,
+    "no-exact-hp": 2
+  },
+  "solo3Opening": [
+    {
+      "log": "native.out",
+      "line": 97,
+      "text": "LEARNING001_COLD_SOLO_TARGET actor=268516861 npc=21798 object=268522338 hp=4827.0/4827 distance=42.59107887809371 range=900 exposure=1634.4738887539468 ordinaryOpening=false champion=false"
+    },
+    {
+      "log": "native.out",
+      "line": 114,
+      "text": "LEARNING001_COLD_SOLO_TARGET actor=268522371 npc=21798 object=268527848 hp=4827.0/4827 distance=42.59107887809371 range=900 exposure=1634.4738887539468 ordinaryOpening=false champion=false"
+    }
+  ],
+  "sourceLogsSha256": {
+    "native.out": "d506bbc793b08e93d2bb21aea84d24ef34b6c93773a79e5630a765fdb036f000",
+    "native.err": "34e0c509e7714343df3e6e13b6c7d4786996c899715a25084a68503dbeea975f"
+  },
+  "rejectedArmNativeOutcome": [
+    {
+      "arm": "PARTY_HEAL_V3-1/STOCK",
+      "evaluatorOutcome": "INCOMPLETE",
+      "reason": "EVIDENCE_REJECTED_1",
+      "nativeOutcome": "COMPLETED"
+    },
+    {
+      "arm": "PARTY_HEAL_V3-0/STOCK",
+      "evaluatorOutcome": "INCOMPLETE",
+      "reason": "EVIDENCE_REJECTED_1",
+      "nativeOutcome": "COMPLETED"
+    }
+  ],
+  "sourceFilesSha256": {
+    "java/org/l2jmobius/gameserver/phantoms/learning/TacticalPolicyV3.java": "917d9862b7740d8e8e87118a9b40f844ea4b07551df5db8874d34f9306562126",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java": "50d0702592dd9d849d7520ab82833e4f2d64b4055ce53155a7ca8de8cc84041f",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ActorFixture.java": "53b432d1a1a81911b09a40f7999bac91d8f3e4442afaf27a284a9a2f8d2cb362",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Evaluation.java": "70efab8e8314fde0b9c2ef37fc85ac05e1b81f86821a5c00f3c3e8ce9b927cb8"
+  }
+}

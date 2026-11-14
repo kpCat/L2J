@@ -54,6 +54,8 @@ public final class LearningCastEvidence
 	private boolean _failed;
 	private boolean _failurePublished;
 	private double _damage;
+	private long _hpStart,_hpEnd,_mpStart,_mpEnd;
+	private boolean _lethal;
 	private double _mp, _beforeHp = Double.NaN, _afterHp;
 	private String _captureRejection = "no-native-task";
 
@@ -218,13 +220,18 @@ public final class LearningCastEvidence
 		restore(DAMAGE, ticket != null && target == ticket._target && attacker == ticket._actor && skill == ticket._skill && !dot ? ticket : null);
 		try
 		{
+			if(DAMAGE.get()!=null){final long stamp=System.nanoTime();if(ticket._hpStart==0){ticket._hpStart=stamp;}}
 			write.run();
 		}
 		finally
 		{
+			if(DAMAGE.get()!=null){ticket._hpEnd=System.nanoTime();}
 			restore(DAMAGE, previous);
 		}
 	}
+	/** Synchronous Creature.doDie observer binds a lethal write to this exact native damage scope. */
+	public static void terminalDeath(Creature target)
+	{final var ticket=DAMAGE.get();if(ticket!=null&&ticket==EFFECT.get()&&target==ticket._target){ticket._lethal=true;}}
 
 	public static void actualDamage(Player attacker, PlayerNativeWork.Owner owner, PlayerNativeEvidence.Target target, double hp)
 	{ actualDamage(attacker, owner, target, hp, Double.NaN, Double.NaN); }
@@ -249,7 +256,7 @@ public final class LearningCastEvidence
 		if (!TRAIN || regeneration || !Double.isFinite(before) || !Double.isFinite(after) || before <= after) { return; }
 		LearningCastEvidence ticket = MP.get(); if (ticket == null) { ticket = DISPATCH.get(); }
 		if (ticket != null && ticket._attempt.tactical() != null && actor == ticket._actor && !ticket._published && ticket.lifetimeRejection() == null)
-		{ ticket._mp += before - after; }
+		{ ticket._mp += before - after;final long stamp=System.nanoTime();if(ticket._mpStart==0){ticket._mpStart=stamp;}ticket._mpEnd=stamp; }
 	}
 
 	private synchronized void issued()
@@ -298,6 +305,7 @@ public final class LearningCastEvidence
 			{
 				final var tactical = _attempt.tactical();
 				final long elapsed = Math.max(1, System.nanoTime() - _created);
+				TerminalRewardReceiptV1.nativeTiming(new TerminalRewardReceiptV1.NativeTiming(eventKey,_actor.getInstanceId(),_hpStart,_hpEnd,_mpStart,_mpEnd,_lethal));
 				_attempt.policy().recordTactical(new TacticalReceiptV3(eventKey, tactical, _beforeHp, _afterHp, _damage, _mp, elapsed,
 					TacticalReceiptV3.reward(_damage, _maxHp, _mp, elapsed), new HealEvidenceV3.SourceOwner(_attempt.generation(),
 						"Combat/" + _attempt.request().profileId() + "/" + _attempt.generation() + "/" + _attempt.sequence())));

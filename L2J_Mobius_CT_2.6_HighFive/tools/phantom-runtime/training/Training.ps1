@@ -1,8 +1,13 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('Start','Run','Status','Pause','Resume','Stop','Report','Export','Preflight','Prepare')][string]$Action,
     [string]$Root,
-    [ValidateSet('V1','V3','EVAL005')][string]$ConfigProfile='V1',
+    [ValidateSet('V1','V3','EVAL005','OUTCOME006')][string]$ConfigProfile='V1',
+    [switch]$EnableOutcome006,
+    [switch]$EnableExploration007,
+    [switch]$EnableExploration008,
+    [switch]$Autonomous,
+    [switch]$Json,
     [switch]$EnableEvaluation005,
     [ValidateRange(1,4)][int]$Evaluation005PairLimit=4,
     [ValidatePattern('^[A-Za-z0-9._-]{1,64}$')][string]$Evaluation005Campaign='learning005',
@@ -10,6 +15,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'TrainingOwner.ps1')
 . (Join-Path $PSScriptRoot 'TrainingBroker.ps1')
 $layout=Get-TrainLayout $Root
@@ -19,13 +25,45 @@ $script:SqlRecord=$null
 $script:NativeRecord=$null
 $script:WorkerRecord=$null
 $script:Config=$null
+$script:AutonomousCheckpointContext=$null
 function Read-TrainSourceConfig {
     $profile=$ConfigProfile
     $current=$null
     $saved=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
     if(Test-Path -LiteralPath $saved){$current=Read-TrainConfig $saved;if($current.ContainsKey('configProfile')){$profile=$current.configProfile}}
-    $name=if($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
+    if($Autonomous -or ($current -and $current.ContainsKey('autonomous009Version'))){
+        if($EnableExploration007 -or $EnableExploration008 -or $EnableEvaluation005){throw 'TRAIN009_EXCLUSIVE_OPT_IN_REQUIRED'}
+        $values=Read-TrainConfig (Join-Path $PSScriptRoot 'AutonomousTraining.ini')
+        if($current -and $current.ContainsKey('autonomous009Version')){foreach($key in $current.Keys){$values[$key]=$current[$key]}}
+        elseif($current){foreach($key in @('sqlPort','gamePort','loginPort','assetSourceRoot')){if($current.ContainsKey($key)){$values[$key]=$current[$key]}}}
+        if($Action -in @('Start','Resume')){
+            $values.autonomous009Enabled='true';$values.outcome006Enabled='true'
+            if($values.autonomous009Campaign -ceq 'autonomous009-uninitialized'){$values.autonomous009Campaign='autonomous009-'+[guid]::NewGuid().ToString('N');$values.outcome006DatasetId=$values.autonomous009Campaign+'-c000001'}
+            if($values.autonomous009Phase -ceq 'OFF'){$values.autonomous009Phase='PREPARE'}
+        }
+        Assert-TrainConfig $values;return $values
+    }
+    if($EnableExploration007 -and $EnableExploration008){throw 'TRAIN008_EXCLUSIVE_OPT_IN_REQUIRED'}
+    $is008=$EnableExploration008 -or ($current -and $current.ContainsKey('exploration008Enabled') -and $current.exploration008Enabled -ceq 'true')
+    $is007=!$is008 -and ($EnableExploration007 -or ($current -and $current.ContainsKey('exploration007Enabled') -and $current.exploration007Enabled -ceq 'true'))
+    if($is007 -or $is008){$profile='OUTCOME006'}
+    $name=if($is008){'Exploration008.ini'}elseif($is007){'Exploration007.ini'}elseif($profile -ceq 'OUTCOME006'){'Outcome006.ini'}elseif($profile -ceq 'EVAL005'){'Evaluation005.ini'}elseif($profile -ceq 'V3'){'TrainingV3.ini'}else{'TRAIN_CONFIG.ini'}
     $values=Read-TrainConfig (Join-Path $PSScriptRoot $name)
+    if($is008){
+        if($EnableExploration008){$values.exploration008Enabled='true';$values.outcome006Enabled='true'}
+        elseif($current){foreach($key in @($values.Keys | Where-Object {$_ -like 'exploration008*' -or $_ -eq 'outcome006Enabled'})){if($current.ContainsKey($key)){$values[$key]=$current[$key]}}}
+        if($values.exploration008Campaign -cne 'learning008-pve-generalization-v1' -or $values.exploration008Dataset -cne 'learning008-residual-v1' -or $values.exploration007Enabled -cne 'false'){throw 'TRAIN008_EXACT_CAMPAIGN_REQUIRED'}
+    }
+    if($is007){
+        if($EnableExploration007){$values.exploration007Enabled='true';$values.outcome006Enabled='true'}
+        elseif($current){$values.exploration007Enabled=$current.exploration007Enabled;$values.outcome006Enabled=$current.outcome006Enabled}
+        if($values.exploration007Campaign -cne 'learning007-causal-v1' -or $values.exploration007Dataset -cne 'learning007-advantage-v1'){throw 'TRAIN007_EXACT_CAMPAIGN_REQUIRED'}
+    }
+    if($profile -ceq 'OUTCOME006'){
+        if($EnableOutcome006){$values.outcome006Enabled='true'}
+        elseif($current -and $current.ContainsKey('outcome006Enabled')){$values.outcome006Enabled=$current.outcome006Enabled}
+        if($Action -in @('Start','Resume','Run') -and $values.outcome006Enabled -cne 'true'){throw 'OUTCOME006_EXPLICIT_OPT_IN_REQUIRED'}
+    }
     if($profile -ceq 'EVAL005'){
         if($EnableEvaluation005){$values.evaluation005Enabled='true';$values.evaluation005MaxPairsPerScope=[string]$Evaluation005PairLimit;$values.evaluation005Campaign=$Evaluation005Campaign}
         elseif($current -and $current.ContainsKey('evaluation005Enabled')){foreach($key in @('evaluation005Enabled','evaluation005MaxPairsPerScope','evaluation005Campaign')){$values[$key]=$current[$key]}}
@@ -97,6 +135,10 @@ function Get-TrainAssets {
         Assert-TrainDirectory $previous
     }
     $protectedManifest=Join-Path $previous 'protected207.json'
+    if($script:Config -and $script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'OUTCOME006'){
+        $protectedManifest=Join-Path $layout.Clone '.phantom-local\learning006-baseline\protected207.006.json'
+        Assert-TrainHash $protectedManifest (Get-TrainProtectedPin $script:Config)
+    }
     if($script:Config -and $script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'EVAL005'){
         $protectedManifest=Join-Path $layout.Root 'protected207.005.json'
         Assert-TrainHash $protectedManifest (Get-TrainProtectedPin $script:Config)
@@ -191,8 +233,17 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
     $workerId=[guid]::NewGuid().ToString('N');$directory=Join-Path $layout.Root ('workers\'+$workerId)
     $null=[IO.Directory]::CreateDirectory($directory)
     $javaArguments=@(Get-TrainJavaArguments $Class $Arguments $layout.ClassPath $workerId ([int]$script:Config.cpuCount) ([int]$script:Config.maxHeapMb))
+    if($script:Config.ContainsKey('autonomous009FaultOnce') -and $script:Config.autonomous009FaultOnce -ceq 'true' -and $Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train'){
+        if($script:Config.autonomous009Phase -cne 'FIT'){throw 'TRAIN009_FAULT_OFFLINE_FIT_ONLY'}
+        $javaArguments=@('-Dphantom.learning009.preCommitFault=true')+$javaArguments
+    }
+    if($script:Config.ContainsKey('exploration007FaultOnce') -and $script:Config.exploration007FaultOnce -ceq 'true' -and $Class -ceq 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' -and $Arguments[0] -ceq 'train'){
+        if($script:Config.exploration007Phase -cne 'FIT'){throw 'TRAIN007_FAULT_OFFLINE_FIT_ONLY'}
+        $javaArguments=@('-Dphantom.learning007.preCommitFault=true')+$javaArguments
+    }
     $process=Start-Process -FilePath $Dependencies.Java -ArgumentList $javaArguments -WorkingDirectory $layout.Game -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $directory 'worker.out') -RedirectStandardError (Join-Path $directory 'worker.err')
     $handle=Hold-ProcessHandle $process
+    $workerResources=Get-TrainProcessResources $process
     try{
     $record=New-TrainProcessRecord $process $Dependencies.Java $workerId Worker (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
     $script:WorkerRecord=$record
@@ -200,6 +251,8 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
     Write-TrainJson (Join-Path $layout.Root 'worker-process.json') $record
     $deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     while(!$process.WaitForExit(1000)){
+        $workerResources=Get-TrainProcessResources $process $workerResources
+        Assert-TrainAutonomousResources
         if($process.HasExited){Save-TrainProcessObservation $record $null 'OWN_WORKER_EXIT_AFTER_WAIT' (Get-TrackedProcessExitCode $process $handle);break}
         try{Assert-TrainProcess $record -Kind Worker}catch{
             if(Test-TrainTerminatedCimRace $_ $record $process $handle){
@@ -217,6 +270,8 @@ function Invoke-TrainJava($Dependencies,[string]$Class,[string[]]$Arguments,[int
         if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_WORKER_TIMEOUT_NO_FORCE'}
     }
     $exit=Get-TrackedProcessExitCode $process $handle
+    $workerResources=Get-TrainProcessResources $process $workerResources
+    Write-TrainJson (Join-Path $directory 'resources.json') $workerResources
     Assert-TrainHash $record.image $record.imageHash
     Assert-TrainHash $record.configPath $record.configHash
     Write-TrainExitReceipt $layout $record $process $handle $Class
@@ -240,12 +295,83 @@ function Wait-TrainWorker([int]$Seconds) {
         Start-Sleep -Milliseconds 500
     }
 }
+function Invoke-Train007Native($Dependencies,[string]$Jar) {
+    $campaign=Join-Path $layout.Root 'outcome006\campaigns\learning007-causal-v1'
+    $budgetPath=Join-Path $campaign 'budget.json'
+    if(Test-Path -LiteralPath $budgetPath){$budget=Read-TrainJson $budgetPath}else{
+        $budget=[pscustomobject]@{schemaVersion=7;starts=0;collectionStarts=0;wallMillis=0L;collectionWallMillis=0L;pending=$false;pendingStartedUtc='';lastAttempt='';conservativeRecovery=$false}
+    }
+    if($budget.pending){throw 'TRAIN007_PENDING_NATIVE_RESERVATION_REQUIRES_OWN_EXIT_AUDIT'}
+    $collection=$script:Config.exploration007Phase -ceq 'COLLECT'
+    if([int]$budget.starts -ge 8 -or [long]$budget.wallMillis -ge 5400000 -or ($collection -and ([int]$budget.collectionStarts -ge 3 -or [long]$budget.collectionWallMillis -ge 3600000))){throw 'TRAIN007_NATIVE_BUDGET_EXHAUSTED'}
+    $budget.starts=[int]$budget.starts+1;if($collection){$budget.collectionStarts=[int]$budget.collectionStarts+1}
+    $budget.pending=$true;$budget.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $budgetPath $budget
+    $budgetTimer=[Diagnostics.Stopwatch]::StartNew()
+    try{Invoke-TrainNative $Dependencies $Jar}finally{
+        $nativePath=Join-Path $layout.Root 'native-process.json'
+        if((Test-Path -LiteralPath $nativePath) -and (Test-TrainProcessAbsent (Read-TrainJson $nativePath))){
+            $elapsed=[long]$budgetTimer.ElapsedMilliseconds
+            $budget.wallMillis=[long]$budget.wallMillis+$elapsed;if($collection){$budget.collectionWallMillis=[long]$budget.collectionWallMillis+$elapsed}
+            $budget.lastAttempt=$script:State.attemptId;$budget.pending=$false;Write-TrainJson $budgetPath $budget
+        }
+    }
+}
+function Invoke-Train008Native($Dependencies,[string]$Jar) {
+    $budgetPath=Join-Path $layout.Root 'outcome006\campaigns\learning008-pve-generalization-v1\budget.json'
+    if(Test-Path -LiteralPath $budgetPath){$budget=Read-TrainJson $budgetPath}else{
+        $budget=[pscustomobject]@{schemaVersion=8;starts=0;collectionStarts=0;wallMillis=0L;collectionWallMillis=0L;pending=$false;pendingStartedUtc='';lastAttempt='';conservativeRecovery=$false}
+    }
+    if($budget.schemaVersion -ne 8 -or $budget.pending){throw 'TRAIN008_PENDING_NATIVE_RESERVATION_REQUIRES_OWN_EXIT_AUDIT'}
+    $collection=$script:Config.exploration008Phase -ceq 'COLLECT'
+    $recovery=$script:Config.ContainsKey('exploration008Recovery') -and $script:Config.exploration008Recovery -ceq 'true'
+    $minimumSlotMillis=([long]$script:Config.startupTimeoutSeconds+[long]$script:Config.preparationSeconds+[long]$script:Config.episodeSeconds+[long]$script:Config.shutdownTimeoutSeconds+150L)*1000L
+    if([int]$budget.starts -ge 8 -or [long]$budget.wallMillis+$minimumSlotMillis -ge 5400000 -or ($collection -and (([int]$budget.collectionStarts -ge 3 -and (!$recovery -or [int]$budget.collectionStarts -ge 4)) -or [long]$budget.collectionWallMillis+$minimumSlotMillis -ge 3600000))){throw 'TRAIN008_NATIVE_BUDGET_EXHAUSTED_WITH_BOOT_SETTLEMENT_RESERVE'}
+    $budget.starts=[int]$budget.starts+1;if($collection){$budget.collectionStarts=[int]$budget.collectionStarts+1}
+    $budget | Add-Member -MemberType NoteProperty -Name recoveryStarts -Value ([Math]::Max(0,[int]$budget.collectionStarts-3)) -Force
+    $budget.pending=$true;$budget.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $budgetPath $budget
+    $budgetTimer=[Diagnostics.Stopwatch]::StartNew()
+    $remainingMillis=5400000L-[long]$budget.wallMillis
+    if($collection){$remainingMillis=[Math]::Min($remainingMillis,3600000L-[long]$budget.collectionWallMillis)}
+    $nativeDeadline=[DateTime]::UtcNow.AddMilliseconds($remainingMillis-([long]$script:Config.shutdownTimeoutSeconds+30L)*1000L)
+    try{Invoke-TrainNative $Dependencies $Jar -BudgetDeadline $nativeDeadline}finally{
+        # Charge teardown as well, including a failed boot/timeout. Unconfirmed exit leaves pending fail-closed.
+        Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
+        $nativePath=Join-Path $layout.Root 'native-process.json'
+        if((Test-Path -LiteralPath $nativePath) -and (Test-TrainProcessAbsent (Read-TrainJson $nativePath))){
+            $elapsed=[long]$budgetTimer.ElapsedMilliseconds;$budget.wallMillis=[long]$budget.wallMillis+$elapsed
+            if($collection){$budget.collectionWallMillis=[long]$budget.collectionWallMillis+$elapsed}
+            $budget.lastAttempt=$script:State.attemptId;$budget.pending=$false;Write-TrainJson $budgetPath $budget
+        }
+    }
+}
+function Wait-TrainSqlReady($Record) {
+    $client=Join-Path $layout.Sql 'admin.client.ini'
+    Assert-G0PhysicalFile $client;Assert-G0PhysicalFile $layout.Admin
+    $probe=[guid]::NewGuid().ToString('N')
+    $out=Join-Path $layout.Root ('logs\sql-ready-'+$probe+'.out')
+    $err=Join-Path $layout.Root ('logs\sql-ready-'+$probe+'.err')
+    $deadline=[DateTime]::UtcNow.AddSeconds(30)
+    do {
+        Assert-TrainProcess $Record -Kind Sql -Port ([int]$script:Config.sqlPort)
+        $process=Start-Process -FilePath $layout.Admin -ArgumentList @(('--defaults-extra-file="'+$client+'"'),'--connect-timeout=2','--silent','ping') -WindowStyle Hidden -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+        $handle=Hold-ProcessHandle $process
+        try {
+            if(!$process.WaitForExit(5000)){throw 'TRAIN002_SQL_READY_PROBE_NOT_STOPPED'}
+            if((Get-TrackedProcessExitCode $process $handle) -eq 0){
+                Assert-TrainProcess $Record -Kind Sql -Port ([int]$script:Config.sqlPort)
+                return
+            }
+        } finally {$process.Dispose()}
+        Start-Sleep -Milliseconds 200
+    } while([DateTime]::UtcNow -lt $deadline)
+    throw 'TRAIN002_SQL_READY_TIMEOUT'
+}
 function Start-TrainSql($Dependencies) {
     $initialized=Join-Path $layout.Sql 'initialized.json'
     $receipt=Join-Path $layout.Sql 'owned-process.json'
     if(Test-Path -LiteralPath $receipt){
         $existing=Read-TrainJson $receipt
-        if(!(Test-TrainProcessAbsent $existing)){Assert-TrainSqlOptions $layout $script:Config $existing;Assert-TrainProcess $existing -Kind Sql -Port ([int]$script:Config.sqlPort);return $existing}
+        if(!(Test-TrainProcessAbsent $existing)){Assert-TrainSqlOptions $layout $script:Config $existing;Assert-TrainProcess $existing -Kind Sql -Port ([int]$script:Config.sqlPort);$script:SqlRecord=$existing;Wait-TrainSqlReady $existing;return $existing}
     }
     Assert-TrainPortsFree @([int]$script:Config.sqlPort)
     if(!(Test-Path -LiteralPath $initialized)){
@@ -273,9 +399,11 @@ function Start-TrainSql($Dependencies) {
     $null=$process.Handle
     $record=New-TrainProcessRecord $process $layout.Daemon $settings.nonce Sql $settings.configPath
     Write-TrainJson $receipt $record
+    $script:SqlRecord=$record
     $deadline=[DateTime]::UtcNow.AddSeconds(30)
     while(!@([Win32SqlIdentity]::Listeners([int]$script:Config.sqlPort)).Count -and !$process.HasExited -and [DateTime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 200}
     Assert-TrainSqlOptions $layout $script:Config $record;Assert-TrainProcess $record -Kind Sql -Port ([int]$script:Config.sqlPort)
+    Wait-TrainSqlReady $record
     return $record
 }
 function Stop-TrainNative([int]$Seconds) {
@@ -346,7 +474,7 @@ function Invoke-TrainQueuedExport($Dependencies) {
     Write-TrainJson (Join-Path $layout.Root ('export-requests\'+$request.id+'.result.json')) $result
     Write-TrainJson $resultPath $result
 }
-function Invoke-TrainNative($Dependencies,[string]$JarSha) {
+function Invoke-TrainNative($Dependencies,[string]$JarSha,[datetime]$BudgetDeadline=[datetime]::MaxValue) {
     Reset-TrainColdBaseline
     Assert-TrainPortsFree @([int]$script:Config.gamePort,[int]$script:Config.loginPort)
     Assert-TrainProcess $script:SqlRecord -Kind Sql -Port ([int]$script:Config.sqlPort)
@@ -366,6 +494,7 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha) {
         $resources=Get-TrainProcessResources $process $resources
         Publish-TrainState 'NATIVE_BOOT'
         if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce}
+        if([DateTime]::UtcNow -ge $BudgetDeadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BOOT_BUDGET_DEADLINE'}
         if([DateTime]::UtcNow -gt $deadline){throw 'TRAIN002_NATIVE_BOOT_TIMEOUT'}
         Start-Sleep -Milliseconds 500
     }
@@ -378,16 +507,23 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha) {
     $deadline=[DateTime]::UtcNow.AddSeconds([int]$script:Config.batchTimeoutSeconds)
     while(!$process.WaitForExit(1000)){
         $resources=Get-TrainProcessResources $process $resources
+        Assert-TrainAutonomousResources
         Publish-TrainState 'NATIVE'
+        Save-TrainAutonomousProgressCheckpoint
         if(Test-TrainRequest 'stop'){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce}
         if(Test-TrainRequest 'pause'){Write-TrainText (Join-Path $directory 'pause.request') $script:DirectorNonce}
+        if([DateTime]::UtcNow -ge $BudgetDeadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN008_NATIVE_BUDGET_DEADLINE'}
         if([DateTime]::UtcNow -gt $deadline){Write-TrainText (Join-Path $directory 'stop.request') $script:DirectorNonce;throw 'TRAIN002_NATIVE_BATCH_TIMEOUT'}
     }
     $exit=Get-TrackedProcessExitCode $process $handle
     Assert-TrainPortsFree @([int]$script:Config.gamePort,[int]$script:Config.loginPort)
     Assert-TrainHash (Join-Path $layout.Game 'libs\GameServer.jar') $JarSha
     Write-TrainExitReceipt $layout $record $process $handle
-    if($exit -ne 0 -or !(Test-Path -LiteralPath (Join-Path $directory 'batch.complete'))){throw 'TRAIN002_NATIVE_BATCH_INCOMPLETE'}
+    if($exit -ne 0 -or !(Test-Path -LiteralPath (Join-Path $directory 'batch.complete'))){
+        $failure=Join-Path $directory 'batch.failed'
+        if($script:Config.ContainsKey('autonomous009Version') -and (Test-Path -LiteralPath $failure) -and [IO.File]::ReadAllText($failure) -match 'AUTONOMOUS_ACTOR_CAPACITY_OR_SCOPE'){throw 'TRAIN009_RESOURCE_ACTOR_CAPACITY_OR_SCOPE'}
+        throw 'TRAIN002_NATIVE_BATCH_INCOMPLETE'
+    }
     $script:State.batchesCompleted=[int]$script:State.batchesCompleted+1
     $script:NativeRecord=$null
     }finally{
@@ -397,7 +533,172 @@ function Invoke-TrainNative($Dependencies,[string]$JarSha) {
         $process.Dispose()
     }
 }
+function Assert-TrainAutonomousResources {
+    if(!$script:Config -or !$script:Config.ContainsKey('autonomous009Version')){return}
+    $drive=[IO.DriveInfo]::new([IO.Path]::GetPathRoot($layout.Root));$free=[long]$drive.AvailableFreeSpace
+    if($free -lt [long]$script:Config.minFreeDiskMb*1048576L){throw 'TRAIN009_RESOURCE_DISK_LIMIT'}
+    $memory=[long][Diagnostics.Process]::GetCurrentProcess().WorkingSet64
+    foreach($record in @($script:NativeRecord,$script:WorkerRecord,$script:SqlRecord)){
+        if(!$record){continue}
+        $owned=Get-Process -Id $record.pid -ErrorAction SilentlyContinue
+        if($owned){try{if($owned.StartTime.ToUniversalTime().ToFileTimeUtc() -eq [long]$record.created){$memory+=$owned.WorkingSet64}}finally{$owned.Dispose()}}
+    }
+    if($memory -gt [long]$script:Config.autonomous009MemoryBudgetMb*1048576L){throw 'TRAIN009_RESOURCE_MEMORY_LIMIT'}
+    if($script:State){$script:State['freeDiskBytes']=$free;$script:State['ownedWorkingSetBytes']=$memory}
+}
+function Save-TrainAutonomousProgressCheckpoint {
+    $context=$script:AutonomousCheckpointContext
+    if(!$context -or ([DateTime]::UtcNow-$context.lastUtc).TotalMinutes -lt [int]$script:Config.autonomous009CheckpointMinutes){return}
+    $directory=Join-Path (Split-Path $context.journalPath -Parent) 'progress-checkpoints';$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
+    $path=Join-Path $directory ([DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffffffZ')+'.json')
+    $coldPath=Join-Path $layout.Root 'autonomous\v1\cold-checkpoint.json';$cold=Read-TrainJson $coldPath
+    Write-TrainJson $path @{schemaVersion=9;kind='INFLIGHT_PROGRESS_REFERENCE';modelChangedByCheckpoint=$false;phase=$context.journal.phase;dataset=$context.journal.dataset;attemptId=$script:State.attemptId;activeModelVersion=$script:Config.autonomous009ModelVersion;activeModelSha=$script:Config.autonomous009ModelSha;lastVerifiedColdCheckpoint=$cold;directorGeneration=$script:State.generation;completedNativeMillis=$context.journal.nativeMillis;pendingStartedUtc=$context.journal.pendingStartedUtc;nativeProcess=$script:NativeRecord;createdUtc=[DateTime]::UtcNow.ToString('o');reservedSlotsNeverReplayed=$true}
+    $context.journal.lastCheckpoint=$path;Write-TrainJson $context.journalPath $context.journal;$context.lastUtc=[DateTime]::UtcNow
+}
+function Invoke-TrainAutonomousNative($Dependencies,[string]$Jar,$Journal,[string]$JournalPath) {
+    Assert-TrainAutonomousResources
+    $smoke=$script:Config.autonomous009AcceptanceSmoke -ceq 'true'
+    if($smoke -and ([int]$Journal.starts -ge [int]$script:Config.autonomous009SmokeMaxStarts -or [long]$Journal.nativeMillis -ge 5400000L)){throw 'TRAIN009_NATIVE_BUDGET_EXHAUSTED'}
+    if($script:Config.autonomous009GuiHoldBeforeNative -ceq 'true'){
+        if(!$smoke){throw 'TRAIN009_GUI_HOLD_REQUIRES_ACCEPTANCE'}
+        $holdDeadline=[DateTime]::UtcNow.AddMinutes(3)
+        while(!(Test-TrainRequest 'stop') -and !(Test-TrainRequest 'pause')){
+            if([DateTime]::UtcNow -ge $holdDeadline){throw 'TRAIN009_GUI_HOLD_TIMEOUT'}
+            Assert-TrainAutonomousResources
+            Publish-TrainState 'GUI_HOLD' 'Acceptance: проверка кнопок до запуска GameServer; native budget не расходуется.'
+            Start-Sleep -Milliseconds 500
+        }
+        return
+    }
+    if($Journal.pending){throw 'TRAIN009_PENDING_NATIVE_REQUIRES_EXIT_RECOVERY'}
+    $Journal.starts=[int]$Journal.starts+1;$Journal.pending=$true;$Journal.pendingStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $JournalPath $Journal
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    $script:AutonomousCheckpointContext=@{journal=$Journal;journalPath=$JournalPath;lastUtc=[DateTime]::UtcNow}
+    $deadline=if($smoke){[DateTime]::UtcNow.AddMilliseconds(5400000L-[long]$Journal.nativeMillis-([long]$script:Config.shutdownTimeoutSeconds+30L)*1000L)}else{[DateTime]::Parse($Journal.sessionStartedUtc).ToUniversalTime().AddMinutes([int]$script:Config.autonomous009DurationMinutes)}
+    try{Invoke-TrainNative $Dependencies $Jar -BudgetDeadline $deadline}finally{
+        Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
+        $script:AutonomousCheckpointContext=$null
+        $path=Join-Path $layout.Root 'native-process.json'
+        if((Test-Path -LiteralPath $path) -and (Test-TrainProcessAbsent (Read-TrainJson $path))){$Journal.nativeMillis=[long]$Journal.nativeMillis+$timer.ElapsedMilliseconds;$Journal.pending=$false;$Journal.lastAttempt=$script:State.attemptId;Write-TrainJson $JournalPath $Journal}
+    }
+}
+function Invoke-TrainAutonomousDirector($Dependencies,[string]$Jar) {
+    $campaign=$script:Config.autonomous009Campaign
+    $directory=Join-Path $layout.Root ('autonomous\v1\campaigns\'+$campaign);$null=[IO.Directory]::CreateDirectory($directory);Assert-TrainDirectory $directory
+    $path=Join-Path $directory 'director-state.json'
+    if(Test-Path -LiteralPath $path){
+        $journal=Read-TrainJson $path
+        if($journal.schemaVersion -ne 9 -or $journal.campaign -cne $campaign -or $journal.ownerSha -cne (Get-FileHash -LiteralPath (Join-Path $layout.Root 'owner.txt')).Hash){throw 'TRAIN009_CAMPAIGN_PIN_CHANGED'}
+        if($journal.jarSha -cne $Jar){
+            $sealed=@(Get-ChildItem -LiteralPath $directory -File -Recurse | Where-Object {$_.Name -in @('protocol.json','cells.tsv','reserved.json','collection.complete')})
+            if($sealed.Count -gt 0 -or $journal.phase -cne 'COLLECT' -or [int]$journal.completedCycles -ne 0 -or $journal.pending){throw 'TRAIN009_CAMPAIGN_PIN_CHANGED'}
+            # No cohort has been sealed or dispatched. Preserve the failed pre-CUT source revision and cumulative budget.
+            Write-TrainJson (Join-Path $directory ('precut-source-revision.'+[guid]::NewGuid().ToString('N')+'.json')) @{oldJarSha=$journal.jarSha;newJarSha=$Jar;priorStarts=$journal.starts;priorNativeMillis=$journal.nativeMillis;reason='NO_SEALED_COHORT_NO_RESERVED_SLOT';journalBefore=$journal}
+            $journal.jarSha=$Jar
+        }
+        if($journal.pending){
+            $native=Join-Path $layout.Root 'native-process.json'
+            if(!(Test-Path -LiteralPath $native) -or !(Test-TrainProcessAbsent (Read-TrainJson $native))){throw 'TRAIN009_PENDING_NATIVE_EXIT_UNPROVEN'}
+            $journal.nativeMillis=[long]$journal.nativeMillis+[long][Math]::Ceiling(([DateTime]::UtcNow-[DateTime]::Parse($journal.pendingStartedUtc).ToUniversalTime()).TotalMilliseconds);$journal.pending=$false;$journal.conservativeRecovery=$true
+        }
+    }else{
+        $prior=0L;if($script:Config.ContainsKey('autonomous009PriorNativeMillis')){$prior=[long]$script:Config.autonomous009PriorNativeMillis;if($prior -lt 0 -or $prior -gt 5400000){throw 'TRAIN009_PRIOR_BUDGET_INVALID'}}
+        $priorStarts=0;if($script:Config.ContainsKey('autonomous009PriorStarts')){$priorStarts=[int]$script:Config.autonomous009PriorStarts}
+        $journal=[pscustomobject]@{schemaVersion=9;campaign=$campaign;jarSha=$Jar;ownerSha=(Get-FileHash -LiteralPath (Join-Path $layout.Root 'owner.txt')).Hash;cycle=1;phase='NEW';dataset='';teacherVersion=0L;teacherSha='';starts=$priorStarts;nativeMillis=$prior;pending=$false;pendingStartedUtc='';lastAttempt='';conservativeRecovery=$false;sessionStartedUtc=[DateTime]::UtcNow.ToString('o');completedCycles=0;fits=0;noData=0;stagnation=0;lastCheckpoint='';lastEvaluation='';improved=$false}
+    }
+    $journal.sessionStartedUtc=[DateTime]::UtcNow.ToString('o');Write-TrainJson $path $journal
+    while(!(Test-TrainRequest 'stop')){
+        Assert-TrainAutonomousResources
+        if(Test-TrainRequest 'pause'){Publish-TrainState 'PAUSED' 'Текущая атомарная операция сохранена.';return}
+        if(([DateTime]::UtcNow-[DateTime]::Parse($journal.sessionStartedUtc).ToUniversalTime()).TotalMinutes -ge [int]$script:Config.autonomous009DurationMinutes){Publish-TrainState 'RESOURCE_LIMIT' 'DURATION_LIMIT';return}
+        $script:State['autonomousCampaign']=$campaign;$script:State['autonomousCycle']=$journal.cycle;$script:State['autonomousFits']=$journal.fits;$script:State['autonomousNativeStarts']=$journal.starts;$script:State['autonomousNativeMillis']=$journal.nativeMillis
+        $script:State['autonomousCheckpoint']=$journal.lastCheckpoint;$script:State['autonomousImproved']=$journal.improved
+        if($journal.phase -ceq 'NEW'){
+            Publish-TrainState 'CHECKPOINTING' 'Холодная проверка выбранных весов и terminal Adam.'
+            Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('checkpoint',$layout.Root)
+            $cold=Read-TrainJson (Join-Path $layout.Root 'autonomous\v1\cold-checkpoint.json')
+            $journal.teacherVersion=[long]$cold.modelVersion;$journal.teacherSha=$cold.modelSha;$journal.dataset=$campaign+('-c{0:D6}' -f [int]$journal.cycle);$journal.phase='COLLECT';Write-TrainJson $path $journal
+        }
+        $script:Config.autonomous009ModelVersion=[string]$journal.teacherVersion;$script:Config.autonomous009ModelSha=$journal.teacherSha;$script:Config.outcome006DatasetId=$journal.dataset;$script:Config.autonomous009SourceCursor=[string]([int]$journal.cycle-1)
+        $cohort=Join-Path $directory ('cohorts\'+$journal.dataset)
+        if($journal.phase -ceq 'COLLECT'){
+            $script:Config.autonomous009Phase='COLLECT';Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
+            if(!(Test-Path -LiteralPath (Join-Path $cohort 'collection.complete'))){Publish-TrainState 'COLLECTING';Invoke-TrainAutonomousNative $Dependencies $Jar $journal $path}
+            if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
+            $journal.phase='FIT';Write-TrainJson $path $journal
+        }
+        if($journal.phase -ceq 'FIT'){
+            $script:Config.autonomous009Phase='FIT';Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config;Publish-TrainState 'FITTING'
+            Invoke-TrainJava $Dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+            $evaluation=Read-TrainJson (Join-Path $layout.Root 'tactical-v3-evaluation.json')
+            if($script:Config.ContainsKey('autonomous009AfterCommitFaultOnce') -and $script:Config.autonomous009AfterCommitFaultOnce -ceq 'true' -and [long]$evaluation.candidateVersion -gt 0){
+                $fault=Join-Path $cohort 'after-commit-before-journal.once.json'
+                if(!(Test-Path -LiteralPath $fault)){
+                    Write-TrainJson $fault @{candidateVersion=$evaluation.candidateVersion;candidateSha=$evaluation.candidateSha;dataset=$journal.dataset;reason='OWN_ACCEPTANCE_POST_COMMIT_PRE_JOURNAL_FAULT';generation=$script:State.generation}
+                    throw 'TRAIN009_AFTER_COMMIT_FAULT_ONCE'
+                }
+            }
+            $journal.lastEvaluation=$evaluation
+            if([long]$evaluation.candidateVersion -gt 0){$journal.fits=[int]$journal.fits+1;$journal.noData=0;$journal.phase='EVAL';$journal.improved=([double]$evaluation.metrics.tuningMse -lt [double]$evaluation.metrics.tuningInitialMse);if($journal.improved){$journal.stagnation=0}else{$journal.stagnation=[int]$journal.stagnation+1}}
+            else{$journal.noData=[int]$journal.noData+1;$journal.phase='CHECKPOINT'}
+            Write-TrainJson $path $journal
+        }
+        if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
+        if($journal.phase -ceq 'EVAL'){
+            if([int]$journal.cycle % [int]$script:Config.autonomous009EvaluationEveryCycles -eq 0){
+                $script:Config.autonomous009Phase='EVAL';$script:Config.autonomous009ModelVersion=[string]$journal.lastEvaluation.candidateVersion;$script:Config.autonomous009ModelSha=$journal.lastEvaluation.candidateSha;Write-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini') $script:Config
+                $evaluationDirectory=Join-Path $directory ('evaluations\'+$journal.dataset+'-'+$journal.lastEvaluation.candidateVersion)
+                if(!(Test-Path -LiteralPath (Join-Path $evaluationDirectory 'evaluation.complete'))){Publish-TrainState 'AUDITING' 'Независимые native A/B; без training credits.';Invoke-TrainAutonomousNative $Dependencies $Jar $journal $path}
+                if((Test-TrainRequest 'stop') -or (Test-TrainRequest 'pause')){continue}
+            }
+            $journal.phase='CHECKPOINT';Write-TrainJson $path $journal
+        }
+        if($journal.phase -ceq 'CHECKPOINT'){
+            Publish-TrainState 'CHECKPOINTING';Invoke-TrainJava $Dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @('checkpoint',$layout.Root)
+            $checkpoint=Join-Path $directory ('checkpoint-{0:D6}.json' -f [int]$journal.cycle)
+            $cold=Read-TrainJson (Join-Path $layout.Root 'autonomous\v1\cold-checkpoint.json')
+            if(Test-Path -LiteralPath $checkpoint){$prior=Read-TrainJson $checkpoint;if($prior.optimizerSha -cne $cold.optimizerSha){throw 'TRAIN009_CHECKPOINT_CHANGED'}}else{Write-TrainJson $checkpoint $cold}
+            $journal.lastCheckpoint=$checkpoint;$journal.completedCycles=[int]$journal.completedCycles+1;$journal.cycle=[int]$journal.cycle+1;$journal.phase='NEW';Write-TrainJson $path $journal
+            Invoke-TrainQueuedExport $Dependencies
+            if([int]$journal.stagnation -ge 3){Publish-TrainState 'PAUSED' 'STAGNATION_LIMIT_3: кандидат сохранён; продвижения нет.';return}
+            if([int]$journal.noData -ge [int]$script:Config.autonomous009NoDataLimit){Publish-TrainState 'INSUFFICIENT_EVIDENCE' 'Недостаточно независимых paid данных; сохранены и неудачные попытки.';return}
+            if([int]$script:Config.autonomous009CycleLimit -gt 0 -and [int]$journal.completedCycles -ge [int]$script:Config.autonomous009CycleLimit){Publish-TrainState 'PAUSED' 'CYCLE_LIMIT';return}
+            $resource=Join-Path $layout.Root ('attempts\'+$script:State.attemptId+'\native-resources.json');$facts=$null;if(Test-Path -LiteralPath $resource){$facts=Read-TrainJson $resource};$idle=Get-TrainAdaptiveIdle $script:Config $facts
+            for($second=0;$second -lt $idle.idleSeconds -and !(Test-TrainRequest 'stop') -and !(Test-TrainRequest 'pause');$second++){Publish-TrainState 'COLLECTING' 'Ожидание CPU budget перед новым cohort.';Start-Sleep -Seconds 1}
+        }
+    }
+}
 function Publish-TrainStatus {
+    if($Json){
+        $result=[ordered]@{schemaVersion=9;installation=$layout.Root;directorLive=$false;phase='IDLE';reason='';sampledUtc=[DateTime]::UtcNow.ToString('o');director=$null;autonomous=$null;checkpoint=$null;episodes=$null}
+        if(Test-Path -LiteralPath $layout.Root){
+            Assert-TrainInstallation $layout;$live=Get-TrainLiveDirector;$result.directorLive=($null -ne $live)
+            $statePath=Join-Path $layout.Root 'director.json'
+            if(Test-Path -LiteralPath $statePath){
+                $state=Read-TrainJson $statePath;$result.director=$state;$result.phase=$state.phase;$result.reason=$state.reason
+                $heartbeat=Get-TrainHeartbeat $(if($state.PSObject.Properties['heartbeatUtc']){[string]$state.heartbeatUtc}else{''}) ([DateTime]::UtcNow)
+                $result['heartbeat']=$heartbeat
+                if($live -and $heartbeat.state -cne 'FRESH'){$result.phase='STALE';$result.reason='PID жив, но свежий heartbeat не подтверждён. Последняя фаза: '+$state.phase}
+                if(!$live -and $state.phase -notin @('STOPPED','PAUSED','FAILED','RESOURCE_LIMIT','INSUFFICIENT_EVIDENCE')){$result.phase='STOPPED';$result.reason='Процесс Director завершён; требуется продолжение с проверкой журналов.'}
+            }
+            $config=Read-TrainConfig (Join-Path $layout.Root 'TRAIN_CONFIG.ini')
+            if($config.ContainsKey('autonomous009Version') -and $config.autonomous009Campaign -cmatch '^autonomous009-[A-Za-z0-9_-]{1,64}$'){
+                $campaign=Join-Path $layout.Root ('autonomous\v1\campaigns\'+$config.autonomous009Campaign);$journal=Join-Path $campaign 'director-state.json'
+                if(Test-Path -LiteralPath $journal){$result.autonomous=Read-TrainJson $journal}
+                $checkpoint=Join-Path $layout.Root 'autonomous\v1\cold-checkpoint.json';if(Test-Path -LiteralPath $checkpoint){$result.checkpoint=Read-TrainJson $checkpoint}
+                if($result.autonomous -and $result.autonomous.dataset){
+                    $cohort=Join-Path $campaign ('cohorts\'+$result.autonomous.dataset)
+                    if(Test-Path -LiteralPath $cohort){
+                        Assert-TrainDirectory $cohort
+                        $reserved=@(Get-ChildItem -LiteralPath $cohort -Directory | Where-Object {Test-Path -LiteralPath (Join-Path $_.FullName 'reserved.json')} | Select-Object -First 512)
+                        $rows=@($reserved | ForEach-Object{$item=Join-Path $_.FullName 'result.json';if(Test-Path -LiteralPath $item){Read-TrainJson $item}})
+                        $result.episodes=Get-TrainEpisodeSummary $rows $reserved.Count
+                    }
+                }
+            }
+        }
+        [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);Write-Output ($result|ConvertTo-Json -Depth 20 -Compress);return
+    }
     $evaluationConfigPath=Join-Path $layout.Root 'TRAIN_CONFIG.ini'
     if(Test-Path -LiteralPath $evaluationConfigPath){
         $evaluationConfig=Read-TrainConfig $evaluationConfigPath
@@ -463,6 +764,94 @@ function Invoke-TrainDirector {
         $script:SqlRecord=Start-TrainSql $dependencies
         Publish-TrainState 'SQL_PREPARE'
         Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomTrainingSql' @('prepare',$layout.Root,$layout.Module)
+        if($script:Config.ContainsKey('autonomous009Version')){Invoke-TrainAutonomousDirector $dependencies $jar;return}
+        if($script:Config.ContainsKey('exploration008Enabled') -and $script:Config.exploration008Enabled -ceq 'true'){
+            if($script:Config.exploration008Campaign -cne 'learning008-pve-generalization-v1' -or $script:Config.exploration008Dataset -cne 'learning008-residual-v1' -or $script:Config.exploration007Enabled -cne 'false'){throw 'TRAIN008_EXACT_CAMPAIGN_REQUIRED'}
+            Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning008Native' @('prepare',$layout.Root)
+            if($script:Config.exploration008Phase -ceq 'COLLECT'){
+                $complete=Join-Path $layout.Root 'outcome006\campaigns\learning008-pve-generalization-v1\native.complete'
+                if(!(Test-Path -LiteralPath $complete)){Reset-TrainColdBaseline;Invoke-Train008Native $dependencies $jar}
+            }elseif($script:Config.exploration008Phase -ceq 'FIT'){
+                Publish-TrainState 'EVALUATING' 'Factual residual008 fit; native collection is stopped.'
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning008Checks' @('offline',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('export',$layout.Root)
+            }elseif($script:Config.exploration008Phase -in @('EVALUATE','CONTROL')){
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+                $complete=Join-Path $layout.Root ('outcome006\evaluation008\'+$script:Config.exploration008EvaluationCampaign+'\native.complete')
+                if(!(Test-Path -LiteralPath $complete)){Reset-TrainColdBaseline;Invoke-Train008Native $dependencies $jar}
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)
+            }elseif($script:Config.exploration008Phase -cne 'PREPARE'){throw 'TRAIN008_UNKNOWN_PHASE'}
+            Publish-TrainState 'PAUSED' 'Граница008: сохранены native reservations, optimizer и история; автоматического повышения нет.'
+            while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}
+            return
+        }
+        if($script:Config.ContainsKey('exploration007Enabled') -and $script:Config.exploration007Enabled -ceq 'true'){
+            if($script:Config.exploration007Campaign -cne 'learning007-causal-v1' -or $script:Config.exploration007Dataset -cne 'learning007-advantage-v1'){throw 'TRAIN007_EXACT_CAMPAIGN_REQUIRED'}
+            Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning007Native' @('prepare',$layout.Root)
+            if($script:Config.exploration007Phase -ceq 'COLLECT'){
+                $complete=Join-Path $layout.Root 'outcome006\campaigns\learning007-causal-v1\native.complete'
+                if(!(Test-Path -LiteralPath $complete)){Reset-TrainColdBaseline;Invoke-Train007Native $dependencies $jar}
+            }elseif($script:Config.exploration007Phase -ceq 'FIT'){
+                if($script:Config.ContainsKey('exploration007VerifyRollback') -and $script:Config.exploration007VerifyRollback -ceq 'true'){
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning007Checks' @('fault-readback',$layout.Root)
+                }
+                Publish-TrainState 'EVALUATING' 'Advantage007 offline fit; native collection is stopped.'
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning007Checks' @('offline',$layout.Root)
+                Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('export',$layout.Root)
+            }elseif($script:Config.exploration007Phase -in @('EVALUATE','CONTROL')){
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+                Reset-TrainColdBaseline;Invoke-Train007Native $dependencies $jar
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)
+            }elseif($script:Config.exploration007Phase -cne 'PREPARE'){throw 'TRAIN007_UNKNOWN_PHASE'}
+            Publish-TrainState 'PAUSED' 'Advantage007 segment settled; history and native reservations retained.'
+            while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}
+            return
+        }
+        if($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'OUTCOME006'){
+            if(!$script:Config.ContainsKey('outcome006Phase') -or $script:Config.outcome006Phase -notin @('PREPARE','COLLECT','PROOF','EVALUATE','CONTROL')){throw 'OUTCOME006_PHASE_NOT_IMPLEMENTED'}
+            if($script:Config.outcome006Phase -ceq 'COLLECT'){
+                $outcomeCampaign=Join-Path $layout.Root 'outcome006\collection'
+                if($script:Config.ContainsKey('outcome006Campaign') -and $script:Config.outcome006Campaign){
+                    if($script:Config.outcome006Campaign -cne 'learning006r1' -or $script:Config.outcome006DatasetId -cne 'outcome006r1-v1'){throw 'OUTCOME006R1_EXACT_CAMPAIGN_REQUIRED'}
+                    $outcomeCampaign=Join-Path $layout.Root 'outcome006\campaigns\learning006r1'
+                    $clock=Join-Path $outcomeCampaign 'active.nanos'
+                    if((Test-Path -LiteralPath $clock) -and !(Test-Path -LiteralPath (Join-Path $outcomeCampaign 'native.complete'))){
+                        Assert-G0PhysicalFile $clock
+                        if([long][IO.File]::ReadAllText($clock) -ge 5400000000000){Write-TrainText (Join-Path $outcomeCampaign 'native.complete') "TIME_BUDGET_EXHAUSTED_OR_UNCLOSED_SEGMENT`n"}
+                    }
+                }
+                # Consumed slots remain immutable across native segments and fresh Director generations.
+                if(!(Test-Path -LiteralPath (Join-Path $outcomeCampaign 'native.complete'))){
+                    if($script:Config.ContainsKey('outcome006Campaign') -and $script:Config.outcome006Campaign -ceq 'learning006r1'){
+                        Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning006OutcomeChecks' @('before-r1',$layout.Root)
+                    }
+                    Reset-TrainColdBaseline
+                    Invoke-TrainNative $dependencies $jar
+                }
+                if(!(Test-TrainRequest 'stop') -and (Test-Path -LiteralPath (Join-Path $outcomeCampaign 'native.complete'))){
+                    Publish-TrainState 'EVALUATING' 'Проверка terminal targets006; только existing optimizer continuation.'
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('train',$layout.Root)
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.TrainingEvaluator' @('report',$layout.Root)
+                }
+            }
+            elseif($script:Config.outcome006Phase -in @('PROOF','EVALUATE','CONTROL')){
+                if(!$script:Config.ContainsKey('outcome006Campaign') -or $script:Config.outcome006Campaign -cne 'learning006r1'){throw 'OUTCOME006R1_EXPLICIT_EVALUATION_CAMPAIGN_REQUIRED'}
+                Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('prepare',$layout.Root)
+                if($script:Config.outcome006Phase -ceq 'PROOF'){Invoke-TrainJava $dependencies 'org.l2jmobius.gameserver.phantoms.learning.Learning006OutcomeChecks' @('commit-r1',$layout.Root)}
+                $evaluationName=$script:Config.outcome006Phase.ToLowerInvariant()
+                if($script:Config.ContainsKey('outcome006EvaluationCampaign')){$evaluationName=$script:Config.outcome006EvaluationCampaign}
+                if($evaluationName -cnotmatch '^[a-z][a-z0-9_-]{0,63}$' -or !$evaluationName.StartsWith($script:Config.outcome006Phase.ToLowerInvariant(),[StringComparison]::Ordinal)){throw 'OUTCOME006R1_EVALUATION_NAMESPACE_REQUIRED'}
+                $evaluationDirectory=Join-Path $layout.Root ('outcome006\evaluation006r1\'+$evaluationName)
+                if(!(Test-Path -LiteralPath (Join-Path $evaluationDirectory 'native.complete'))){Reset-TrainColdBaseline;Invoke-TrainNative $dependencies $jar}
+                if(!(Test-TrainRequest 'stop')){Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @('report',$layout.Root)}
+            }
+            Publish-TrainState 'PAUSED' 'Граница006: native budget сохранён; следующая фаза требует отдельного exact candidate pin.'
+            while(!(Test-TrainRequest 'stop')){Invoke-TrainQueuedExport $dependencies;Start-Sleep -Milliseconds 500}
+            return
+        }
         $isEvaluationIdentity005=($script:Config.ContainsKey('configProfile') -and $script:Config.configProfile -ceq 'EVAL005') -or ($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true')
         if($isEvaluationIdentity005 -and (!$script:Config.ContainsKey('evaluation005Enabled') -or $script:Config.evaluation005Enabled -cne 'true' -or ($script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'))){throw 'EVAL005_TRAINING_RECOVERY_FORBIDDEN'}
         if(!$isEvaluationIdentity005 -and $script:Config.ContainsKey('v3Core004') -and $script:Config.v3Core004 -ceq 'true'){
@@ -541,8 +930,8 @@ function Invoke-TrainDirector {
         Publish-TrainState 'STOPPING'
     }catch{
         $null=Save-TrainFailure $layout $script:State $_ 'PRIMARY'
-        $reason=if($_.Exception.Message -match 'TRAIN002_[A-Z0-9_:]+'){$Matches[0]}else{$_.Exception.GetType().Name}
-        Publish-TrainState 'FAILED' $reason
+        $reason=if($_.Exception.Message -match 'TRAIN(?:002|009)_[A-Z0-9_:]+'){$Matches[0]}else{$_.Exception.GetType().Name}
+        Publish-TrainState $(if($reason -like 'TRAIN009_RESOURCE_*'){'RESOURCE_LIMIT'}else{'FAILED'}) $reason
         throw
     }finally{
         $clean=$false
@@ -553,7 +942,7 @@ function Invoke-TrainDirector {
             if($script:Config){Assert-TrainPortsFree @([int]$script:Config.sqlPort,[int]$script:Config.gamePort,[int]$script:Config.loginPort)}
             if(Test-Path -LiteralPath (Join-Path $layout.Root 'protected207.json')){Assert-TrainAssets (Join-Path $layout.Game 'geodata') (Join-Path $layout.Root 'geo203.json') (Join-Path $layout.Root 'protected207.json') $script:Config}
             $clean=$true
-            if($script:State.phase -ne 'FAILED'){Publish-TrainState 'STOPPED'}
+            if($script:State.phase -notin @('FAILED','PAUSED','RESOURCE_LIMIT','INSUFFICIENT_EVIDENCE')){Publish-TrainState 'STOPPED'}
         }catch{
             $null=Save-TrainFailure $layout $script:State $_ 'CLEANUP'
             throw
@@ -566,6 +955,7 @@ function Invoke-TrainDirector {
 
 # Status does not require Java, SQL, build artifacts or asset copies.
 try {
+    if($Action -eq 'Prepare' -and !$Autonomous){throw 'TRAIN002_PREPARE_AUTONOMOUS_REQUIRED'}
     Initialize-TrainWin32
     if($Action -eq 'Status'){Publish-TrainStatus;exit 0}
     if($Action -eq 'Preflight'){
@@ -617,6 +1007,12 @@ try {
             # Probe the lifetime lock before launch. The initialization mutex closes
             # the fresh-root race; the detached Run owns this file lock for its life.
             $probe=Enter-TrainLock $layout;$probe.Dispose()
+            if($Autonomous -or $script:Config.ContainsKey('autonomous009Version')){
+                $configPath=Join-Path $layout.Root 'TRAIN_CONFIG.ini';$configSha=(Get-FileHash -LiteralPath $configPath).Hash
+                $archive=Join-Path $layout.Root ('archives\TRAIN_CONFIG.pre-start.'+$configSha.ToLowerInvariant()+'.ini')
+                if(Test-Path -LiteralPath $archive){Assert-TrainHash $archive $configSha}else{[IO.File]::Copy($configPath,$archive,$false);Assert-TrainHash $archive $configSha}
+                $script:Config=Read-TrainSourceConfig;Write-TrainConfig $configPath $script:Config
+            }
             Assert-TrainNoPendingBootstrap $layout
             $token=[guid]::NewGuid().ToString('N')
             $launch=Start-TrainBroker $layout $token
@@ -706,11 +1102,12 @@ try {
             Write-Host 'Собственные процессы остановлены, порты свободны. История, модели и логи сохранены.'
             exit 0
         }
-        if($Action -in @('Report','Export')){
+        if($Action -in @('Report','Export','Prepare')){
             $dependencies=Get-TrainDependencies
             # A live director owns SQL/worker scheduling, including its evaluation
             # boundary. Export gets a separate durable queue, never a new client.
             if($live){
+                if($Action -eq 'Prepare'){throw 'TRAIN002_PREPARE_REQUIRES_STOPPED_DIRECTOR'}
                 if($Action -eq 'Export'){
                     if((Get-TrainExportAdmission $true $false $false) -cne 'QUEUE'){throw 'TRAIN002_EXPORT_ADMISSION'}
                     $request=Submit-TrainExportRequest
@@ -728,7 +1125,13 @@ try {
                 Stop-TrainNative ([int]$script:Config.shutdownTimeoutSeconds)
                 Assert-TrainPortsFree @([int]$script:Config.gamePort,[int]$script:Config.loginPort)
                 if($Action -eq 'Export' -and (Get-TrainExportAdmission $false $true $true) -cne 'OFFLINE'){throw 'TRAIN002_EXPORT_ADMISSION'}
-                if($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){
+                if($Autonomous -and $Action -in @('Report','Prepare')){
+                    $jar=Ensure-TrainBuild $dependencies
+                    $assets=Get-TrainAssets;Ensure-TrainStage $jar $assets
+                    $script:SqlRecord=Start-TrainSql $dependencies
+                    $operation=if($Action -eq 'Prepare'){'prepare'}else{'inspect'}
+                    Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomAutonomousTrainingNative' @($operation,$layout.Root)
+                }elseif($script:Config.ContainsKey('evaluation005Enabled') -and $script:Config.evaluation005Enabled -ceq 'true'){
                     Invoke-TrainJava $dependencies 'org.l2jmobius.tests.phantoms.PhantomLearning005Native' @($Action.ToLowerInvariant(),$layout.Root)
                 }else{
                     $script:SqlRecord=Start-TrainSql $dependencies

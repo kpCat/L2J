@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "goal": "PHANTOM-LEARNING-006R1-OUTCOME-CLOSURE",
+  "status": "PARTIAL",
+  "manualGate": "REQUIRED",
+  "gameVerdict": "INCONCLUSIVE",
+  "sourceBase": "5a38d35194c914c5dda90f8d57763a916201e977",
+  "branch": "wip/phantom-learning-006r1",
+  "gates": {
+    "G0": "PASS",
+    "G1": "PASS",
+    "G2": "PASS",
+    "G3": "PARTIAL",
+    "G4": "PASS",
+    "G5": "PARTIAL",
+    "G6": "PASS",
+    "G7": "PASS",
+    "G8": "PASS"
+  },
+  "blockers": [
+    "Ни одного подтверждённого paid stock≠neural действия новой модели в bounded proof/A/B.",
+    "Controlled crash между model/Adam/application writes перед COMMIT не выполнялся; SQL duplicate ROLLBACK и cold closure не подменяют этот planned fault injection."
+  ],
+  "draft": {
+    "id": 9,
+    "sha256": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+    "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+    "datasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+    "runId": "6610167d6f044536954e926e5df843dc",
+    "newUpdates": 48,
+    "newCompletedEpochs": 48,
+    "productionPromotion": false
+  },
+  "coverage": {
+    "TRAIN/SOLO": {
+      "episodes": 4,
+      "completed": 4,
+      "actions": 9
+    },
+    "TRAIN/PARTY": {
+      "episodes": 3,
+      "completed": 3,
+      "actions": 7
+    },
+    "TUNING/SOLO": {
+      "episodes": 2,
+      "completed": 2,
+      "actions": 4
+    },
+    "TUNING/PARTY": {
+      "episodes": 2,
+      "completed": 2,
+      "actions": 7
+    },
+    "AUDIT/SOLO": {
+      "episodes": 2,
+      "completed": 2,
+      "actions": 4
+    }
+  },
+  "reservedSlots": 14,
+  "rejectedSlots": 1,
+  "paidDivergences": [],
+  "learnedUsefulHealReceipts": 4,
+  "independentAB": {
+    "schemaVersion": 6,
+    "split": "EVAL006R1",
+    "campaign": "learning006r1-evaluate-r2",
+    "authority": {
+      "namespace": "EVAL006R1",
+      "modelId": 9,
+      "modelSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+      "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "runId": "6610167d6f044536954e926e5df843dc"
+    },
+    "jarSha": "89ac4950208cbd3fd88e9921e58cc0b271a78272d360016ff1dadace77506262",
+    "protocolSha": "0bb0e1ddc6b366f285a30d0ace565a8ed19b374c7ffd7950f78d2ae004dd6f10",
+    "arms": 16,
+    "quota": true,
+    "budgetSettled": true,
+    "modes": [
+      {
+        "mode": "SOLO_DAMAGE_V3",
+        "fairPairs": 4,
+        "attemptedPairs": 4,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 0,
+        "completedAFirst": 2,
+        "completedBFirst": 2,
+        "diagnostic": "NO_POLICY_DIVERGENCE",
+        "gameVerdict": "INCONCLUSIVE"
+      },
+      {
+        "mode": "PARTY_HEAL_V3",
+        "fairPairs": 4,
+        "attemptedPairs": 4,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 0,
+        "completedAFirst": 2,
+        "completedBFirst": 2,
+        "diagnostic": "NO_POLICY_DIVERGENCE",
+        "gameVerdict": "INCONCLUSIVE"
+      }
+    ],
+    "trainingCredit": false,
+    "gameVerdict": "INCONCLUSIVE"
+  },
+  "control": {
+    "schemaVersion": 6,
+    "split": "EVAL006R1",
+    "campaign": "learning006r1-control-r2",
+    "authority": {
+      "namespace": "EVAL006R1",
+      "modelId": 9,
+      "modelSha": "5eacf0b7619c82de3950c0203fcf599c149156d13d31d67cfc9e408362b416dc",
+      "terminalDatasetSha": "37ef5f6a259cbbcb7deed3425772ec9bd4a422a13d133bfc8475eae672720c0f",
+      "optimizerSha": "f76ea960288f3cdb1ba85bb203a33cb327937fdffb99bc6bc4503b90cd54990c",
+      "runId": "6610167d6f044536954e926e5df843dc"
+    },
+    "jarSha": "89ac4950208cbd3fd88e9921e58cc0b271a78272d360016ff1dadace77506262",
+    "protocolSha": "c70c63b37319a90887030015f546df9dc5362e3267baca40424cc1bafff2a57e",
+    "arms": 4,
+    "quota": false,
+    "budgetSettled": true,
+    "modes": [
+      {
+        "mode": "SOLO_DAMAGE_V3",
+        "fairPairs": 1,
+        "attemptedPairs": 1,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 0,
+        "completedAFirst": 0,
+        "completedBFirst": 1,
+        "diagnostic": "NO_POLICY_DIVERGENCE",
+        "gameVerdict": "INCONCLUSIVE"
+      },
+      {
+        "mode": "PARTY_HEAL_V3",
+        "fairPairs": 1,
+        "attemptedPairs": 1,
+        "incompletePairs": 0,
+        "unmatched": 0,
+        "divergences": 0,
+        "completedAFirst": 0,
+        "completedBFirst": 1,
+        "diagnostic": "NO_POLICY_DIVERGENCE",
+        "gameVerdict": "INCONCLUSIVE"
+      }
+    ],
+    "trainingCredit": false,
+    "gameVerdict": "INCONCLUSIVE"
+  },
+  "resources": {
+    "starts": 7,
+    "wallSeconds": 2028.929,
+    "cpuSeconds": 1702.125,
+    "peakWorkingSetBytes": 4699561984
+  },
+  "nativeArchive": {
+    "file": "native-evidence-r1.zip",
+    "bytes": 863628,
+    "sha256": "0ff89822a9d808a80d7ec08821428bfb5a296225cb78210b0e80878ae181a443",
+    "files": 555,
+    "verified": true
+  },
+  "postflight": {
+    "checkedUtc": "2026-11-12T20:22:53.1686521Z",
+    "generation": 16,
+    "ports": [
+      33357,
+      18001,
+      19301
+    ],
+    "ownedListeners": 0,
+    "phase": "STOPPED",
+    "processFacts": [
+      {
+        "created": 134389882137221934,
+        "pid": 44208,
+        "absent": true,
+        "kind": "Director"
+      },
+      {
+        "created": 134389882495921829,
+        "pid": 66064,
+        "absent": true,
+        "kind": "Native"
+      },
+      {
+        "created": 134389885184534857,
+        "pid": 67100,
+        "absent": true,
+        "kind": "Worker"
+      },
+      {
+        "created": 134389882367987518,
+        "pid": 83152,
+        "absent": true,
+        "kind": "Sql"
+      }
+    ],
+    "stopConfirmation": {
+      "processes": [
+        {
+          "created": 134389882137221934,
+          "pid": 44208,
+          "absent": true,
+          "kind": "Director"
+        },
+        {
+          "created": 134389882495921829,
+          "pid": 66064,
+          "absent": true,
+          "kind": "Native"
+        },
+        {
+          "created": 134389885184534857,
+          "pid": 67100,
+          "absent": true,
+          "kind": "Worker"
+        },
+        {
+          "created": 134389882367987518,
+          "pid": 83152,
+          "absent": true,
+          "kind": "Sql"
+        }
+      ],
+      "stopNonce": "12a0a1fb59a747c3aa27d3aa2aa1c6b9",
+      "confirmedUtc": "2026-11-12T20:22:28.9866897Z",
+      "ownerNonce": "085d31cd990446ecbd9ecd8161ffa64d",
+      "ports": [
+        33357,
+        18001,
+        19301
+      ]
+    },
+    "ownedProcesses": 0
+  },
+  "encoding": {
+    "mojibake": "separate final gate;27markers",
+    "escapedCyrillic": "separate final gate;6patterns"
+  },
+  "githubDelivery": {
+    "sourceCommit": "bec388c3923e7a2c4b4872d9ecbf946fd7cb731c",
+    "sourceBase": "5a38d35194c914c5dda90f8d57763a916201e977",
+    "branch": "wip/phantom-learning-006r1",
+    "remoteShaMatch": true,
+    "githubReadback": true,
+    "githubCommitBlobMatches": 28,
+    "githubFileReadbacks": [
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-006R1-OUTCOME-CLOSURE/EVIDENCE.json",
+        "blobSha": "545cc2b864078ad60773a98644f38a71d0076f0a",
+        "contentRead": true
+      },
+      {
+        "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning005Native.java",
+        "blobSha": "5a6dcfeca1b9d8e6500dc0ec146ef23a853bc55a",
+        "contentRead": true
+      }
+    ],
+    "protectedRefsUnchanged": true,
+    "remoteRefs": {
+      "refs/heads/feature/phantom-world": "7e997636dbac9d5e1754e00c793cd6fac858b0c6",
+      "refs/heads/master": "16d61833b3983a3976583d0e4813e0de9457a52f",
+      "refs/heads/wip/phantom-learning-006": "5a38d35194c914c5dda90f8d57763a916201e977",
+      "refs/heads/wip/phantom-learning-006r1": "bec388c3923e7a2c4b4872d9ecbf946fd7cb731c"
+    },
+    "scopeVerified": true,
+    "nonForcePush": true,
+    "checkedUtc": "2026-11-12 20:27:40 UTC",
+    "state": "PUBLISHED_SOURCE_VERIFIED",
+    "finalDeliveryCommit": "This receipt is committed after source readback; final branch HEAD independently checked in external delivery006r1.json"
+  },
+  "evidenceFiles": [
+    {
+      "path": "evidence/ab-r1.json",
+      "sha256": "b98a77251f27df648aaece3ac9bcbf51c48b0da79eb8e4658a6eb493b5b2c416"
+    },
+    {
+      "path": "evidence/baseline-r1.json",
+      "sha256": "f95a1970049adcb9f189902422830dd4ee607ede6de249bd6634d170aea0bf3e"
+    },
+    {
+      "path": "evidence/checks-r1.json",
+      "sha256": "6d7ac33fe4e3d9e64cb75d4c173d90fbba4aa8f6ddb8ad9c0fff0764c05db321"
+    },
+    {
+      "path": "evidence/cold-r1.json",
+      "sha256": "430acb0b83f1c67ca75e52d041092c7e538b1ee0d01a15c6eda4177560dfa937"
+    },
+    {
+      "path": "evidence/collection-r1.json",
+      "sha256": "d2f6cbfccbd5a16323bb0f118e2e50d750a6817b7a42317b36684bfbce6c8177"
+    },
+    {
+      "path": "evidence/fit-r1.json",
+      "sha256": "b62f8db473c08ee5b1b991ee6afa3379dde070b5861e514234309ca94491d2ce"
+    },
+    {
+      "path": "evidence/proof-r1.json",
+      "sha256": "ae1ab7cef6decc2474669bf4ac22237690e01641a95297441c7bce3b0e46aff0"
+    },
+    {
+      "path": "evidence/resources-r1.json",
+      "sha256": "7800f7b55303d723ef831ecd1f39ffe89ae4eb847beeda2365d226b42e023d39"
+    }
+  ]
+}

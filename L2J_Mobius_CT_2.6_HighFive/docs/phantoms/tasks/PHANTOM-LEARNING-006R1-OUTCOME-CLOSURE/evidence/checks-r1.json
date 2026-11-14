@@ -1,0 +1,439 @@
+{
+  "latestCommands": [
+    {
+      "check": "learning001",
+      "exitCode": 0,
+      "seconds": 1.469,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomTestLauncher",
+        "learning001",
+        "183"
+      ]
+    },
+    {
+      "check": "combat-core",
+      "exitCode": 0,
+      "seconds": 0.375,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomTestLauncher",
+        "combat-core",
+        "183"
+      ]
+    },
+    {
+      "check": "combat-action-ownership",
+      "exitCode": 0,
+      "seconds": 0.36,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomTestLauncher",
+        "combat-action-ownership",
+        "183"
+      ]
+    },
+    {
+      "check": "party-tactics",
+      "exitCode": 0,
+      "seconds": 2.5,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomTestLauncher",
+        "party-tactics",
+        "183"
+      ]
+    },
+    {
+      "check": "training-contracts",
+      "exitCode": 0,
+      "seconds": 0.281,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomTestLauncher",
+        "training-contracts",
+        "183"
+      ]
+    },
+    {
+      "check": "post002-support",
+      "exitCode": 0,
+      "seconds": 0.344,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomTestLauncher",
+        "post002-support",
+        "183"
+      ]
+    },
+    {
+      "check": "004-Model",
+      "exitCode": 0,
+      "seconds": 15.25,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning004ModelChecks"
+      ]
+    },
+    {
+      "check": "004-Replay",
+      "exitCode": 0,
+      "seconds": 5.454,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.learning.Learning004ReplayChecks"
+      ]
+    },
+    {
+      "check": "004-Damage",
+      "exitCode": 0,
+      "seconds": 0.234,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.learning.Learning004DamageChecks"
+      ]
+    },
+    {
+      "check": "004-Episode",
+      "exitCode": 0,
+      "seconds": 0.156,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.learning.Learning004EpisodeChecks"
+      ]
+    },
+    {
+      "check": "004-Failure",
+      "exitCode": 0,
+      "seconds": 0.25,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.learning.Learning004FailureChecks"
+      ]
+    },
+    {
+      "check": "005-contracts",
+      "exitCode": 0,
+      "seconds": 0.484,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning005Checks"
+      ]
+    },
+    {
+      "check": "006-contracts",
+      "exitCode": 0,
+      "seconds": 0.344,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.learning.Learning006OutcomeChecks",
+        "contracts"
+      ]
+    },
+    {
+      "check": "006r1-quota",
+      "exitCode": 0,
+      "seconds": 0.391,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.learning.Learning006OutcomeChecks",
+        "quota-r1"
+      ]
+    },
+    {
+      "check": "006r1-campaign",
+      "exitCode": 0,
+      "seconds": 0.203,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "campaign-r1"
+      ]
+    },
+    {
+      "check": "006r1-authority",
+      "exitCode": 0,
+      "seconds": 0.297,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "authority-r1"
+      ]
+    },
+    {
+      "check": "006r1-routing",
+      "exitCode": 0,
+      "seconds": 0.219,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "routing-r1",
+        "D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive"
+      ]
+    },
+    {
+      "check": "006r1-clock",
+      "exitCode": 0,
+      "seconds": 0.203,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "clock-r1"
+      ]
+    },
+    {
+      "check": "006r1-heal-totals",
+      "exitCode": 0,
+      "seconds": 0.265,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "heal-totals-r1"
+      ]
+    },
+    {
+      "check": "006-boundaries",
+      "exitCode": 0,
+      "seconds": 0.14,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "boundaries"
+      ]
+    },
+    {
+      "check": "006-baseline",
+      "exitCode": 0,
+      "seconds": 1.14,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "baseline",
+        "D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive"
+      ]
+    },
+    {
+      "check": "006-schema",
+      "exitCode": 0,
+      "seconds": 0.141,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning006Checks",
+        "schema",
+        "D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive"
+      ]
+    },
+    {
+      "check": "004-schema",
+      "exitCode": 0,
+      "seconds": 0.187,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomLearning004Schema",
+        "D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive"
+      ]
+    },
+    {
+      "check": "F7",
+      "exitCode": 0,
+      "seconds": 0.938,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.gameserver.phantoms.background.PhantomVisibleItinerary068Checks"
+      ]
+    },
+    {
+      "check": "F8",
+      "exitCode": 0,
+      "seconds": 0.328,
+      "command": [
+        "C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe",
+        "-Dphantom.module.root=D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "-Dphantom.test.reports=C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports",
+        "-cp",
+        "D:\\Codex\\repos\\L2J-learning-006\\build\\phantom-test\\bin;D:\\Codex\\repos\\L2J-learning-006\\build\\bin;D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\*",
+        "org.l2jmobius.tests.phantoms.PhantomNativeEvidenceContinuation022Suite",
+        "D:\\Codex\\repos\\L2J-learning-006\\L2J_Mobius_CT_2.6_HighFive",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\12\\01a1d0e4-f415-7610-b2ed-513f464339fa\\checks006r1\\reports"
+      ]
+    }
+  ],
+  "affectedReports": [
+    {
+      "mode": "learning001",
+      "attributes": {
+        "name": "learning001",
+        "seed": "183",
+        "tests": "4",
+        "passed": "4",
+        "failures": "0"
+      },
+      "sha256": "cbbe35c0bca99de69b1327f434c1a0ad1f727268e8f6bab43f1155015a8cee1c"
+    },
+    {
+      "mode": "combat-core",
+      "attributes": {
+        "name": "combat-core",
+        "seed": "183",
+        "tests": "72",
+        "passed": "72",
+        "failures": "0"
+      },
+      "sha256": "64b17c895fddac89ec0b630e89991a6104958b636c8d9d249fb5543c5239a7bb"
+    },
+    {
+      "mode": "combat-action-ownership",
+      "attributes": {
+        "name": "combat-action-ownership",
+        "seed": "183",
+        "tests": "38",
+        "passed": "38",
+        "failures": "0"
+      },
+      "sha256": "38f0ba035cc6f8b03051681063e3b3dd5fee9626d3946d5e918977ea786dc88a"
+    },
+    {
+      "mode": "party-tactics",
+      "attributes": {
+        "name": "party-tactics",
+        "seed": "183",
+        "tests": "14",
+        "passed": "14",
+        "failures": "0"
+      },
+      "sha256": "6d3937776691aea3307771fa80e0b2df02173a4b5281b7562bda9e950d1cd3d0"
+    },
+    {
+      "mode": "training-contracts",
+      "attributes": {
+        "name": "training-contracts",
+        "seed": "183",
+        "tests": "6",
+        "passed": "6",
+        "failures": "0"
+      },
+      "sha256": "1837c34058d196715fd073491793383435fd3648cc7cc40451078fb4d880113c"
+    },
+    {
+      "mode": "post002-support",
+      "attributes": {
+        "name": "post002-support",
+        "seed": "183",
+        "tests": "9",
+        "passed": "9",
+        "failures": "0"
+      },
+      "sha256": "f36408825da01bc6461906697da8bb593221056660eba32971945c8728fd861b"
+    }
+  ],
+  "review": {
+    "critical": 0,
+    "important": 2,
+    "fixed": [
+      "late HEAL outcome totals admitted-only; raw drain excluded from deltas",
+      "durable conservative clock; controlled close; bootstrap and slot/drain reserve"
+    ],
+    "focusedRedGreen": [
+      "clock-r1",
+      "heal-totals-r1"
+    ],
+    "minor": 0,
+    "nativeExecutionReviewedByAgent": false
+  }
+}

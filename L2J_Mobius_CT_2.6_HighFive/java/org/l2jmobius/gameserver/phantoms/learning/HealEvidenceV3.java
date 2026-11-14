@@ -62,6 +62,7 @@ public final class HealEvidenceV3
 	private final long _created = System.nanoTime();
 	private boolean _bound, _issued, _effects, _finished, _published, _invalid, _failurePublished;
 	private double _hp, _mp, _beforeHp = Double.NaN, _afterHp;
+	private long _hpStart,_hpEnd,_mpStart,_mpEnd;
 	private HealEvidenceV3(Attempt attempt, Player actor, Player target, Skill skill, BooleanSupplier authority)
 	{
 		_attempt = attempt; _actor = actor; _target = target; _skill = skill; _authority = authority;
@@ -132,7 +133,8 @@ public final class HealEvidenceV3
 		final boolean exact = ticket != null && actor == ticket._actor && target == ticket._target && skill == ticket._skill
 			&& type == org.l2jmobius.gameserver.model.effects.EffectType.HEAL;
 		restore(HP_EFFECT, exact ? ticket : null);
-		try { nativeEffect.run(); } finally { restore(HP_EFFECT, previous); }
+		try { if(exact&&ticket._hpStart==0){ticket._hpStart=System.nanoTime();}nativeEffect.run(); }
+		finally { if(exact){ticket._hpEnd=System.nanoTime();}restore(HP_EFFECT, previous); }
 	}
 	public static void failedEffect() { final var ticket = EFFECT.get(); if (ticket != null) { synchronized (ticket) { ticket._invalid = true; } } }
 
@@ -152,7 +154,7 @@ public final class HealEvidenceV3
 	{
 		HealEvidenceV3 ticket = DISPATCH.get(); if (ticket == null) { ticket = HIT.get(); } if (ticket == null) { ticket = EFFECT.get(); }
 		if (ticket == null || regeneration || actor != ticket._actor || !Double.isFinite(before) || !Double.isFinite(after) || before <= after) { return; }
-		synchronized (ticket) { if (ticket.current() && !ticket._published) { ticket._mp += before - after; } else { ticket._invalid = true; } }
+		synchronized (ticket) { if (ticket.current() && !ticket._published) { ticket._mp += before - after;final long stamp=System.nanoTime();if(ticket._mpStart==0){ticket._mpStart=stamp;}ticket._mpEnd=stamp; } else { ticket._invalid = true; } }
 	}
 	private boolean current()
 	{
@@ -175,7 +177,7 @@ public final class HealEvidenceV3
 		final String key = TacticalObservationV3.hash((_attempt.observation().partyIdentity() + '/' + _actor.getObjectId() + '/' + _owner.epoch() + '/' + _target.getObjectId()
 			+ '/' + _targetOwner.epoch() + '/' + _attempt.selected().generation() + '/' + _actionOwner.identity().generation() + '/' + _actionOwner.identity().operationKey() + '/' + _skill.getId() + '/' + _created).getBytes(StandardCharsets.UTF_8));
 		final float reward = reward(_hp, maximum, _mp, elapsed);
-		try { _attempt.sink().accept(new Receipt(key, _attempt, _beforeHp, _afterHp, _hp, _mp, elapsed, reward, _actionOwner.identity())); ACCEPTED.increment(); }
+		try { TerminalRewardReceiptV1.nativeTiming(new TerminalRewardReceiptV1.NativeTiming(key,_actor.getInstanceId(),_hpStart,_hpEnd,_mpStart,_mpEnd,false));_attempt.sink().accept(new Receipt(key, _attempt, _beforeHp, _afterHp, _hp, _mp, elapsed, reward, _actionOwner.identity())); ACCEPTED.increment(); }
 		catch (RuntimeException unavailable) { REJECTED.increment(); failure("RECEIPT_REJECTED",true); }
 	}
 	public synchronized void cancelled() { if (!_published) { failure("CAST_CANCELLED",false); _published = true; } }

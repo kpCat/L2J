@@ -125,13 +125,20 @@ public final class PhantomLearning003Damage
 	{
 		final var profiles = PhantomProfileRepository.open();
 		int next;
+		final boolean outcome="OUTCOME006".equals(config.text("configProfile",""))&&"true".equals(config.text("v3Terminal006","false"));
 		try (var connection = DatabaseFactory.getConnection(); var sql = connection.createStatement(); var rows = sql.executeQuery(
-			"SELECT COALESCE(MAX(profile_id),0)+1,(SELECT COUNT(*) FROM characters WHERE account_name IS NULL OR account_name<>'learn001fixture'),(SELECT COUNT(*) FROM characters) FROM phantom_profiles"))
+			"SELECT "+(outcome?"GREATEST(COALESCE(MAX(profile_id),0),(SELECT COALESCE(MAX(actor_profile),0) FROM phantom_tactical_v3_events))":"COALESCE(MAX(profile_id),0)")+"+1,(SELECT COUNT(*) FROM characters WHERE account_name IS NULL OR account_name<>'learn001fixture'),(SELECT COUNT(*) FROM characters) FROM phantom_profiles"))
 		{
 			if (!rows.next() || rows.getLong(2) != 0 || rows.getLong(3) + 5 > config.integer("maxStoredActors", 4096, 32, 32768)
 				|| rows.getLong(1) + 4 > config.integer("maxStoredProfiles", 4096, 64, 32768))
 			{ throw new IllegalStateException("Owned DAMAGE actor capacity/identity refused"); }
 			next = Math.toIntExact(rows.getLong(1));
+		}
+		if(outcome)
+		{
+			// Fresh owned006 profile sequence must stay disjoint from the imported tactical lineage.
+			try(var connection=DatabaseFactory.getConnection();var sql=connection.createStatement())
+			{sql.executeUpdate("ALTER TABLE phantom_profiles AUTO_INCREMENT="+next);}
 		}
 		final var resolver = PhantomCombatCapabilityResolver.fromProgression(source::progression);
 		final var rows = new ArrayList<String[]>();

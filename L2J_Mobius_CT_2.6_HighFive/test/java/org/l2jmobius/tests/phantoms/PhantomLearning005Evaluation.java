@@ -16,7 +16,23 @@ public final class PhantomLearning005Evaluation
 	public enum Side { STOCK, LEARNED }
 	public enum Outcome { COMPLETED, FAILED, INCOMPLETE, SKIP }
 	public enum Family { DAMAGE, HEAL }
-	public record Pin(Mode mode,long id,String status,String sha,String schema,int algorithm) { }
+	public record DraftAuthority(long modelId,String modelSha,String terminalDatasetSha,String optimizerSha,String runId,String namespace)
+	{
+		public DraftAuthority(long modelId,String modelSha,String terminalDatasetSha,String optimizerSha,String runId)
+		{this(modelId,modelSha,terminalDatasetSha,optimizerSha,runId,"EVAL006R1");}
+		public DraftAuthority
+		{
+			if(!Set.of("EVAL006R1","EVAL007","EVAL008").contains(namespace)||modelId<=(namespace.equals("EVAL008")?11:namespace.equals("EVAL007")?9:8)||runId==null||!runId.matches("[a-f0-9]{32}")){throw new IllegalArgumentException("New frozen DRAFT authority required");}
+			PhantomLearning005Evaluation.sha(modelSha);PhantomLearning005Evaluation.sha(terminalDatasetSha);PhantomLearning005Evaluation.sha(optimizerSha);
+		}
+		String json(){return "{\"namespace\":"+q(namespace)+",\"modelId\":"+modelId+",\"modelSha\":"+q(modelSha)+","+q(namespace.equals("EVAL008")?"residualDatasetSha":namespace.equals("EVAL007")?"advantageDatasetSha":"terminalDatasetSha")+":"+q(terminalDatasetSha)+",\"optimizerSha\":"+q(optimizerSha)+",\"runId\":"+q(runId)+"}";}
+		int schemaVersion(){return namespace.equals("EVAL008")?8:namespace.equals("EVAL007")?7:6;}
+		String fingerprint(){return hash(json());}
+	}
+	public record Pin(Mode mode,long id,String status,String sha,String schema,int algorithm,DraftAuthority authority)
+	{
+		public Pin(Mode mode,long id,String status,String sha,String schema,int algorithm){this(mode,id,status,sha,schema,algorithm,null);}
+	}
 	public record Incarnation(int objectId,long epoch,int instance)
 	{
 		public Incarnation(int objectId,long epoch){this(objectId,epoch,0);}
@@ -24,8 +40,10 @@ public final class PhantomLearning005Evaluation
 	}
 	public record Kill(int target,long spawn,int instance,int creditedActor)
 	{ public Kill { if(target<=0||spawn<=0||instance<0||creditedActor<=0){throw new IllegalArgumentException("Native kill identity required");} } }
-	public record Effect(String key,int actor,long actorEpoch,int target,long targetEpoch,int instance,String selected,String baseline,List<String> legal,Family family,double hp,Double mp,String sourceSha,String sourceJson)
+	public record Effect(String key,int actor,long actorEpoch,int target,long targetEpoch,int instance,String selected,String baseline,List<String> legal,Family family,double hp,Double mp,String sourceSha,String sourceJson,Pin evaluationPin)
 	{
+		public Effect(String key,int actor,long actorEpoch,int target,long targetEpoch,int instance,String selected,String baseline,List<String> legal,Family family,double hp,Double mp,String sourceSha,String sourceJson)
+		{this(key,actor,actorEpoch,target,targetEpoch,instance,selected,baseline,legal,family,hp,mp,sourceSha,sourceJson,null);}
 		public Effect
 		{
 			legal=List.copyOf(legal); sha(key);sha(sourceSha);
@@ -36,9 +54,19 @@ public final class PhantomLearning005Evaluation
 			requireRaw(sourceJson,"eventKey",q(key));requireRaw(sourceJson,"actor",Integer.toString(actor));requireRaw(sourceJson,"actorEpoch",Long.toString(actorEpoch));
 			requireRaw(sourceJson,"target",Integer.toString(target));requireRaw(sourceJson,"targetEpoch",Long.toString(targetEpoch));requireRaw(sourceJson,"instance",Integer.toString(instance));
 			requireRaw(sourceJson,"selected",q(selected));requireRaw(sourceJson,"baseline",q(baseline));requireRaw(sourceJson,"legalSha",q(hash(arrayJson(legal))));
-			requireRaw(sourceJson,"modelSha",q(approved(family==Family.DAMAGE?Mode.SOLO_DAMAGE_V1:Mode.PARTY_HEAL_V3).sha()));
-			requireRaw(sourceJson,"modelVersion",family==Family.DAMAGE?"1":"2");
-			requireRaw(sourceJson,"origin",q(family==Family.DAMAGE?"NATIVE_V1_EXACT_CAST_HP":"NATIVE_V3_EXACT_HEAL_HP"));
+			if(evaluationPin==null)
+			{
+				requireRaw(sourceJson,"modelSha",q(approved(family==Family.DAMAGE?Mode.SOLO_DAMAGE_V1:Mode.PARTY_HEAL_V3).sha()));
+				requireRaw(sourceJson,"modelVersion",family==Family.DAMAGE?"1":"2");
+				requireRaw(sourceJson,"origin",q(family==Family.DAMAGE?"NATIVE_V1_EXACT_CAST_HP":"NATIVE_V3_EXACT_HEAL_HP"));
+			}
+			else
+			{
+				admitDraft(evaluationPin,evaluationPin.authority());
+				requireRaw(sourceJson,"modelSha",q(evaluationPin.sha()));requireRaw(sourceJson,"modelVersion",Long.toString(evaluationPin.id()));
+				requireRaw(sourceJson,"origin",q(family==Family.DAMAGE?"NATIVE_V3_EXACT_CAST_HP":"NATIVE_V3_EXACT_HEAL_HP"));
+				requireRaw(sourceJson,"authoritySha",q(evaluationPin.authority().fingerprint()));requireRaw(sourceJson,"trainingCredit","false");
+			}
 			if(Double.parseDouble(rawField(sourceJson,family==Family.DAMAGE?"actualDamage":"usefulHp"))!=hp){throw new IllegalArgumentException("Source HP differs");}
 			if(mp!=null&&Double.parseDouble(rawField(sourceJson,"actualMp"))!=mp){throw new IllegalArgumentException("Source MP differs");}
 			if(family==Family.HEAL&&(mp==null||mp<=0||Double.parseDouble(rawField(sourceJson,"elapsedNanos"))<=0
@@ -56,7 +84,7 @@ public final class PhantomLearning005Evaluation
 			if(pair==null||!pair.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,95}")||side==null||mode==null||outcome==null||pin==null||position<0||position>1
 				||scenario==null||scenario.isBlank()||scenario.length()>256||reason==null||reason.isBlank()||reason.length()>256||!nonnegative(elapsedMillis)||!nonnegative(preparationMillis))
 			{throw new IllegalArgumentException("Invalid arm envelope");}
-			sha(buildSha);sha(configSha); admit(pin);
+			sha(buildSha);sha(configSha); if(pin.authority()==null){admit(pin);}else{admitDraft(pin,pin.authority());}
 			if(pin.mode()!=mode){throw new IllegalArgumentException("Wrong model family");}
 			facts=Collections.unmodifiableMap(new TreeMap<>(facts));actors=List.copyOf(actors);effects=List.copyOf(effects);kills=List.copyOf(kills);
 			metrics=Collections.unmodifiableMap(new TreeMap<>(metrics));
@@ -66,6 +94,7 @@ public final class PhantomLearning005Evaluation
 			if(outcome!=Outcome.SKIP && (actors.isEmpty()||target==null||!facts.keySet().containsAll(REQUIRED_FACTS))) {throw new IllegalArgumentException("Missing pre-CUT facts");}
 			for(var event:effects)
 			{
+				if(pin.authority()!=null&&!pin.equals(event.evaluationPin())||pin.authority()==null&&event.evaluationPin()!=null){throw new IllegalArgumentException("Foreign evaluation effect authority");}
 				if(actors.stream().noneMatch(a->a.objectId()==event.actor()&&a.epoch()==event.actorEpoch()&&a.instance()==event.instance())){throw new IllegalArgumentException("Foreign native actor");}
 				if(event.family()==Family.DAMAGE&&(target==null||target.objectId()!=event.target()||target.epoch()!=event.targetEpoch()||target.instance()!=event.instance())){throw new IllegalArgumentException("Foreign damage recipient");}
 				if(event.family()==Family.HEAL&&(mode!=Mode.PARTY_HEAL_V3||actors.stream().noneMatch(a->a.objectId()==event.target()&&a.epoch()==event.targetEpoch()&&a.instance()==event.instance()))){throw new IllegalArgumentException("Foreign heal recipient");}
@@ -75,14 +104,15 @@ public final class PhantomLearning005Evaluation
 			if(outcome==Outcome.COMPLETED && (!nativeSource||elapsedMillis<=0||kills.isEmpty()||effects.isEmpty()||!reason.equals("NATIVE_KILL"))) {throw new IllegalArgumentException("Unproven completed encounter");}
 		}
 		public String id(){return hash(pair+'/'+side);}
-		public String fingerprint(){return hash(mode+"/"+q(scenario)+"/"+mapJson(facts));}
+		public String modeLabel(){return pin.authority()!=null&&mode==Mode.SOLO_DAMAGE_V1?"SOLO_DAMAGE_V3":mode.name();}
+		public String fingerprint(){return hash(modeLabel()+"/"+q(scenario)+"/"+mapJson(facts));}
 		public String json()
 		{
-			return "{\"schemaVersion\":5,\"split\":\"EVAL005\",\"armId\":"+q(id())+",\"pairId\":"+q(pair)+",\"side\":"+q(side.name())+",\"mode\":"+q(mode.name())
+			return "{\"schemaVersion\":"+(pin.authority()==null?5:pin.authority().schemaVersion())+",\"split\":"+q(pin.authority()==null?"EVAL005":pin.authority().namespace())+",\"armId\":"+q(id())+",\"pairId\":"+q(pair)+",\"side\":"+q(side.name())+",\"mode\":"+q(modeLabel())
 				+",\"seed\":"+seed+",\"position\":"+position+",\"buildSha\":"+q(buildSha)+",\"configSha\":"+q(configSha)+",\"scenario\":"+q(scenario)+",\"fingerprint\":"+q(fingerprint())
 				+",\"facts\":"+mapJson(facts)+",\"actors\":["+actors.stream().map(a->"{\"id\":"+a.objectId()+",\"epoch\":"+a.epoch()+",\"instance\":"+a.instance()+"}").collect(java.util.stream.Collectors.joining(","))+"]"
 				+",\"target\":"+(target==null?"null":"{\"id\":"+target.objectId()+",\"epoch\":"+target.epoch()+",\"instance\":"+target.instance()+"}")+",\"modelId\":"+pin.id()+",\"modelSha\":"+q(pin.sha())+",\"modelStatus\":"+q(pin.status())
-				+",\"outcome\":"+q(outcome.name())+",\"reason\":"+q(reason)+",\"elapsedMillis\":"+elapsedMillis+",\"preparationMillis\":"+preparationMillis+",\"metrics\":"+mapJson(metrics)
+				+(pin.authority()==null?"":",\"evaluationAuthority\":"+pin.authority().json())+",\"outcome\":"+q(outcome.name())+",\"reason\":"+q(reason)+",\"elapsedMillis\":"+elapsedMillis+",\"preparationMillis\":"+preparationMillis+",\"metrics\":"+mapJson(metrics)
 				+",\"effects\":["+effects.stream().map(e->"{\"key\":"+q(e.key())+",\"actor\":"+e.actor()+",\"actorEpoch\":"+e.actorEpoch()+",\"target\":"+e.target()+",\"targetEpoch\":"+e.targetEpoch()+",\"instance\":"+e.instance()
 					+",\"selected\":"+q(e.selected())+",\"stock\":"+q(e.baseline())+",\"legal\":["+e.legal().stream().map(PhantomLearning005Evaluation::q).collect(java.util.stream.Collectors.joining(","))+"]"
 					+",\"family\":"+q(e.family().name())+",\"hp\":"+e.hp()+",\"mp\":"+e.mp()+",\"sourceSha\":"+q(e.sourceSha())+",\"sourceReceipt\":"+e.sourceJson()+"}").collect(java.util.stream.Collectors.joining(","))+"]"
@@ -98,12 +128,18 @@ public final class PhantomLearning005Evaluation
 			:new Pin(mode,2,"ACCEPTED_TEST","6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",TacticalObservationV3.SCHEMA,3);
 	}
 	public static void admit(Pin pin) {if(pin==null||pin.mode()==null||!approved(pin.mode()).equals(pin)){throw new IllegalArgumentException("Only exact accepted model1/model2 admitted; DRAFT8 forbidden");}}
+	public static void admitDraft(Pin pin,DraftAuthority authority)
+	{
+		if(pin==null||pin.mode()==null||authority==null||!authority.equals(pin.authority())||pin.id()!=authority.modelId()||!pin.sha().equals(authority.modelSha())
+			||!pin.status().equals("DRAFT")||pin.algorithm()!=3||!pin.schema().equals(TacticalObservationV3.SCHEMA)){throw new IllegalArgumentException("Exact EVAL006R1 terminal DRAFT authority required");}
+	}
 	public static Side order(long seed,int pairOrdinal) {return ((seed+pairOrdinal)&1)==0?Side.STOCK:Side.LEARNED;}
 	public static Pair compare(Arm first,Arm second)
 	{
 		final var a=first.side()==Side.STOCK?first:second; final var b=first.side()==Side.STOCK?second:first;
 		String reason=null;
 		if(a.side()!=Side.STOCK||b.side()!=Side.LEARNED||!a.pair().equals(b.pair())){reason="PAIR_ID_OR_SIDE";}
+		else if(!Objects.equals(a.pin().authority(),b.pin().authority())){reason="EVALUATION_AUTHORITY";}
 		else if(a.mode()!=b.mode()||a.seed()!=b.seed()||a.position()==b.position()||!a.buildSha().equals(b.buildSha())||!a.configSha().equals(b.configSha())){reason="CAMPAIGN_OR_ORDER";}
 		else if(!a.nativeSource()||!b.nativeSource()){reason="NON_NATIVE_SOURCE";}
 		else if(!a.fingerprint().equals(b.fingerprint())){reason="PRE_CUT_FACTS_DIFFER";}
@@ -117,6 +153,7 @@ public final class PhantomLearning005Evaluation
 		final var deltas=new TreeMap<String,Double>();
 		final var keys=new TreeSet<String>(List.of("elapsedMillis","exp","sp","hp","mp","usefulHeal","deaths","loot","consumables","adenaNet","wholePartyDamage"));
 		keys.addAll(a.metrics().keySet());keys.addAll(b.metrics().keySet());
+		if(a.pin().authority()!=null){keys.removeIf(key->key.startsWith("rawObserved"));}
 		for(String key:keys){final var av=a.metrics().get(key);final var bv=b.metrics().get(key);deltas.put(key,av==null||bv==null?null:bv-av);}
 		return new Pair(a.pair(),"MATCHED_COMPLETED","PHYSICAL_FACTS_EQUAL_NATIVE_RANDOMNESS_INDEPENDENT",a,b,Collections.unmodifiableMap(deltas),changed);
 	}

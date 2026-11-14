@@ -25,6 +25,8 @@ import org.l2jmobius.gameserver.phantoms.learning.TrainingStore;
 /** One owned stock GameServer bootstrap, multiple exact native episodes, no offline simulator. */
 public final class PhantomTrainingNative
 {
+	static boolean evaluationOnly(TrainingConfig config)
+	{return "true".equals(config.text("evaluation005Enabled","false"))||PhantomLearning005Native.outcomeEvaluation(config);}
 	public static void main(String[] args) throws Exception
 	{
 		if (args.length != 4 || !args[1].matches("[a-f0-9]{32}") || !args[2].matches("[a-f0-9]{64}") || !Boolean.getBoolean("phantom.learning.train"))
@@ -33,6 +35,8 @@ public final class PhantomTrainingNative
 		final var configPath = Path.of(args[3]).toAbsolutePath().normalize();
 		if (!configPath.equals(root.resolve("TRAIN_CONFIG.ini")) || !configPath.toRealPath().equals(configPath)) { throw new IllegalArgumentException("Owned physical TRAIN_CONFIG.ini required"); }
 		final var config = TrainingConfig.load(configPath);
+		if (config.autonomousConfigured() && (!config.text("autonomous009Enabled", "false").equals("true") || !java.util.Set.of("COLLECT", "EVAL").contains(config.text("autonomous009Phase", ""))))
+		{ throw new IllegalArgumentException("AUTONOMOUS_NATIVE_PHASE_REFUSED"); }
 		final var database = PhantomTrainingActors.settings(root);
 		final boolean tacticalV3 = "true".equals(config.text("v3Enabled", "false"));
 		if (!tacticalV3) { PhantomTrainingActors.verify(root, config); }
@@ -80,7 +84,17 @@ public final class PhantomTrainingNative
 			if (PhantomPlayersConfig.isEnabled() || PhantomSystem.hasConfiguredInstance()) { throw new IllegalStateException("Global Phantom owner must remain inactive"); }
 			Files.writeString(phantomConfig, setting(phase, "EnablePhantomSystem", "True"));
 			PhantomPlayersConfig.load();
-			if ("true".equals(config.text("evaluation005Enabled", "false")))
+			if (config.autonomousConfigured()) { PhantomAutonomousTrainingNative.run(root, attempt, config); return; }
+			if(PhantomLearning008Native.enabled(config))
+			{
+				if(config.text("exploration008Phase","").equals("COLLECT")){PhantomLearning008Native.run(root,attempt,config);}
+				else if(PhantomLearning005Native.generalizationEvaluation(config)){PhantomLearning008Native.runEvaluation(root,attempt,config);}
+				else{throw new IllegalArgumentException("008 native phase refused");}
+				return;
+			}
+			if(PhantomLearning007Native.enabled(config)&&config.text("exploration007Phase","").equals("COLLECT"))
+			{PhantomLearning007Native.run(root,attempt,config);return;}
+			if (evaluationOnly(config))
 			{
 				PhantomLearning005Native.run(root, attempt, config);
 				return;

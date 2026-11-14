@@ -23,6 +23,8 @@ public final class TrainingConfig
 		_sha = sha;
 		if (integer("schemaVersion", 1, 1, 1) != 1) { throw new IllegalArgumentException("Неизвестная версия конфигурации."); }
 		seed();
+		if (text("autonomous009Enabled", "false").equals("true") && !autonomousConfigured()) { throw new IllegalArgumentException("Для автономного opt-in нужна явная версия конфигурации."); }
+		if (autonomousConfigured()) { validateAutonomous(); }
 		if (_values.containsKey("mode") && !Set.of("SOLO", "PARTY", "BOTH").contains(text("mode", "")))
 		{ throw new IllegalArgumentException("Запрошенный режим пока NOT_IMPLEMENTED."); }
 		for (String mode : strings(text("modes", text("mode", "SOLO,PARTY"))))
@@ -107,8 +109,93 @@ public final class TrainingConfig
 	public int scenarioLimit() { return integer("scenarioLimit", 12, 3, 64); }
 	public int trainingThreshold() { return integer("trainingThreshold", 40, 32, NeuralPolicy.MAX_EXAMPLES); }
 	public int retentionEpisodes() { return integer("retentionEpisodes", 10000, 100, 100000); }
-	public List<Integer> classes() { return integers("classes", "94", 0, 200, false); }
-	public List<Integer> levels() { return integers("levels", "77,78", 1, 85, false); }
+	public List<Integer> classes()
+	{
+		if (autonomousConfigured() && text("classes", "").equals("auto")) { return org.l2jmobius.gameserver.phantoms.combat.PhantomSkillInventory.classIds(); }
+		final var values = integers("classes", "94", 0, 200, false);
+		if (autonomousConfigured() && values.stream().anyMatch(id -> org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(id) == null))
+		{ throw new IllegalArgumentException("Неизвестная профессия в автономном фильтре."); }
+		return values;
+	}
+	public List<Integer> levels()
+	{
+		return autonomousConfigured() && text("levels", "").equals("auto")
+			? java.util.stream.IntStream.rangeClosed(integer("autonomous009MinLevel", 1, 1, 85), integer("autonomous009MaxLevel", 85, 1, 85)).boxed().toList()
+			: integers("levels", "77,78", 1, 85, false);
+	}
+	public boolean autonomousConfigured() { return _values.containsKey("autonomous009Version"); }
+	private void validateAutonomous()
+	{
+		integer("autonomous009Version", 1, 1, 1);
+		if (!text("autonomous009Comparator", "").equals(AutonomousTrainingV1.COMPARATOR) || !text("v3Enabled", "false").equals("true")
+			|| !Set.of("OFF", "PREPARE", "COLLECT", "FIT", "EVAL").contains(text("autonomous009Phase", "OFF")))
+		{ throw new IllegalArgumentException("Не совпадают автономная версия, comparator или V3 phase."); }
+		for (String flag : List.of("autonomous009Enabled", "autonomous009Exploration", "autonomous009AcceptanceSmoke", "autonomous009GuiHoldBeforeNative"))
+		{ if (!Set.of("true", "false").contains(text(flag, flag.equals("autonomous009Exploration") ? "true" : "false"))) { throw new IllegalArgumentException("Неверный автономный флаг: " + flag); } }
+		if (text("autonomous009GuiHoldBeforeNative", "false").equals("true") && !text("autonomous009AcceptanceSmoke", "false").equals("true"))
+		{ throw new IllegalArgumentException("Проверка GUI до native разрешена только в acceptance smoke."); }
+		if (text("autonomous009Enabled", "false").equals("true"))
+		{
+			if (!text("configProfile", "").equals("OUTCOME006") || !text("outcome006Enabled", "false").equals("true") || !text("v3Terminal006", "false").equals("true")
+				|| text("exploration007Enabled", "false").equals("true") || text("exploration008Enabled", "false").equals("true")
+				|| text("autonomous009Phase", "OFF").equals("OFF") || !text("v3DatasetContextPrefix", "").equals("autonomous009|")
+				|| !text("autonomous009Campaign", "").matches("autonomous009-[A-Za-z0-9_-]{1,64}") || !text("outcome006DatasetId", "").matches(ActionAdvantageV2.DATASET_PREFIX + "[A-Za-z0-9_-]{1,80}"))
+			{ throw new IllegalArgumentException("Не подтверждены отдельный автономный campaign и terminal authority."); }
+			if (Set.of("COLLECT", "FIT", "EVAL").contains(text("autonomous009Phase", ""))
+				&& (longValue("autonomous009ModelVersion", 0, 0, Long.MAX_VALUE) == 0 || !text("autonomous009ModelSha", "").matches("[a-f0-9]{64}")))
+			{ throw new IllegalArgumentException("До запуска native-фазы нужны точные версия и SHA автономной модели."); }
+		}
+		if (integer("autonomous009MinLevel", 1, 1, 85) > integer("autonomous009MaxLevel", 85, 1, 85)) { throw new IllegalArgumentException("Начало диапазона уровней больше конца."); }
+		final int memory = integer("autonomous009MemoryBudgetMb", 8192, 1536, 131072), heap = integer("maxHeapMb", 4096, 1024, 16384);
+		if (memory < heap + 512) { throw new IllegalArgumentException("Memory budget должен учитывать heap и минимум512MB native overhead."); }
+		integer("autonomous009DurationMinutes", 1440, 1, 10080); integer("autonomous009CheckpointMinutes", 15, 1, 1440);
+		integer("autonomous009ReplayCapacity", 128, 48, 512); integer("autonomous009EvaluationEveryCycles", 1, 1, 100);
+		integer("autonomous009StagnationLimit", 3, 3, 3); integer("autonomous009NoDataLimit", 3, 1, 16);
+		integer("autonomous009PriorStarts", 0, 0, 10); longValue("autonomous009PriorNativeMillis", 0, 0, 5400000);
+		if (integer("episodesPerBatch", 48, 48, 256) % 12 != 0 || integer("episodesPerBatch", 48, 48, 256) > integer("autonomous009ReplayCapacity", 128, 48, 512))
+		{ throw new IllegalArgumentException("Автономный batch должен вмещаться в replay и состоять из полных12-slot cells."); }
+		integer("autonomous009CycleLimit", 0, 0, 1000000); longValue("autonomous009SourceCursor", 0, 0, Long.MAX_VALUE);
+		integer("cpuBudgetPercent", 75, 1, 100);
+		if (text("autonomous009AcceptanceSmoke", "false").equals("true"))
+		{ integer("autonomous009SmokeMaxStarts", 6, 6, 10); integer("autonomous009SmokeMaxNativeMinutes", 90, 90, 90); }
+		autonomousClassWeights(); autonomousFamilies();
+	}
+	public Map<Integer, Integer> autonomousClassWeights()
+	{
+		final var result = new LinkedHashMap<Integer, Integer>();
+		for (int id : org.l2jmobius.gameserver.phantoms.combat.PhantomSkillInventory.classIds()) { result.put(id, 1); }
+		final String setting = text("autonomous009ClassWeights", "auto");
+		if (!setting.equals("auto"))
+		{
+			final var seen = new java.util.HashSet<Integer>();
+			for (String entry : strings(setting))
+			{
+				final var parts = entry.split(":", -1);
+				try
+				{
+					if (parts.length != 2) { throw new NumberFormatException(); }
+					final int id = Integer.parseInt(parts[0]), weight = Integer.parseInt(parts[1]);
+					if (!result.containsKey(id) || !seen.add(id) || weight < 1 || weight > 1000) { throw new NumberFormatException(); }
+					result.put(id, weight);
+				}
+				catch (NumberFormatException invalid) { throw new IllegalArgumentException("Неверное распределение классов: " + entry); }
+			}
+		}
+		return Map.copyOf(result);
+	}
+	public List<LegalActionV3.Family> autonomousFamilies()
+	{
+		final var result = new ArrayList<LegalActionV3.Family>();
+		for (String name : strings(text("autonomous009Families", "DAMAGE,HEAL")))
+		{
+			final LegalActionV3.Family family;
+			try { family = LegalActionV3.Family.valueOf(name); } catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("Неизвестное семейство автономных действий."); }
+			if (!Set.of(LegalActionV3.Family.DAMAGE, LegalActionV3.Family.HEAL).contains(family) || result.contains(family)) { throw new IllegalArgumentException("Неподдерживаемое или повторное семейство автономных действий."); }
+			result.add(family);
+		}
+		if (result.isEmpty()) { throw new IllegalArgumentException("Не выбраны поддерживаемые action families."); }
+		return List.copyOf(result);
+	}
 	public List<Integer> npcIds() { return integers("npcIds", "", 1, 1000000, true); }
 	public List<Integer> weaponEnchants() { return integers("weaponEnchants", "0,2,4", 0, 25, false); }
 	public List<String> grades()
