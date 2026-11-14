@@ -1,7 +1,617 @@
 {
-  "sourceHead": "0c331f738d082c9476754c6561f9e8ae51d4b464",
-  "sourceFilesVerified": 13,
-  "documentationReadback": "PENDING_AFTER_DOCS_PUSH",
+  "head": "ae68ab9b10651df4d2d0568a990c3b9a6929e1e7",
+  "tree": "c28159a3a96dabe0ff76412d1f273c8447a37a0d",
+  "parent": "0c331f738d082c9476754c6561f9e8ae51d4b464",
+  "fullPaths": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "sha": "779017d9494bb922e646c02f8477f83c6d03af9d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "sha": "2b3890eeb62a3118be41616e67b437fe4a609cb4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE.md",
+      "sha": "d98cab8c945041edab7a56feea3f8b16fbfe65ce"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ACCEPTANCE.md",
+      "sha": "9ed1653a1d71eb52abccdd91b89f0eefb450fcf5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ARCHITECTURE.md",
+      "sha": "060c2a1f4adcb1b089d00fe9d33f0cb3c345809b"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/COMMANDS.md",
+      "sha": "a588eed8eabbbda5226ff9c5b22dc0e00804a38d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ENCODING-CHECK.json",
+      "sha": "e0783f92974cd1cb8c0b332ef4ce23627c33cbbb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/EVIDENCE.json",
+      "sha": "d42a7b969aeb3dd70de1a3f014f7fafc2ab12afb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/FAILURES.md",
+      "sha": "a4e4ff59890add19dceccc8f48a94d57def9507b"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GITHUB-CONTINUATION-READBACK.json",
+      "sha": "92712cf66548c01dcd4df309628e68119f03fb34"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GITHUB-FINAL-READBACK.json",
+      "sha": "69a6635ef6b8ba0e9368f0482f0d28a3d020dbbe"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GITHUB-SOURCE-READBACK.json",
+      "sha": "f72e90a23140f71a62ee9792d826137d87289fc1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GIT_AND_PRESERVATION.md",
+      "sha": "9c54eb0bc321edf4dc691b83fb81338a3b87536a"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-LIFECYCLE.log",
+      "sha": "188ab092e0d8119bf24085d8095a1aac3d7cd461"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-REVIEW-FINAL.log",
+      "sha": "dfbff07b10678f3f5c22fb1e580bda51a0408bdd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-REVIEW.log",
+      "sha": "dfbff07b10678f3f5c22fb1e580bda51a0408bdd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GREEN-TESTS.log",
+      "sha": "81ac392e250b8d78aecc5753d423218cc6e9a63c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/HANDOFF.md",
+      "sha": "278d87543163e9262d6780d57b7e83bfe1879f7f"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/IMPLEMENTATION_PLAN.md",
+      "sha": "7f9b308c289f86d11f1ddcbff7acf3e4caf780fd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/LOCAL_ENCOUNTER_PLAN.md",
+      "sha": "c6d8f5f15426123d91948f4630f4a761c18307d5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/PLAN.md",
+      "sha": "a6a3ee94fc42b618cbbba0f50674b6422155e47e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/PROGRESS.md",
+      "sha": "a33180d4d4b882223716f80bcbce5f6b4ec38041"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RAW-LOGS-INDEX.json",
+      "sha": "2438cccc71bf0ec14150bb02afebbf18474447c2"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/README.md",
+      "sha": "39b5273f43b94095deecb55c76343b5f6ccd41ad"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-CATALOG.log",
+      "sha": "146412fe4039d6382d87e3394e48544af78c026e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-DISPATCH.log",
+      "sha": "6aefae07b1a2930c4a32326a26f960185b7d92dd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-LIFECYCLE.log",
+      "sha": "1cb22b845437f4517da60f1961a2fc837558956f"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-PROTOCOL.log",
+      "sha": "ac7a55076d4568f3232e086b7a21c71792158413"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RED-REASONS.log",
+      "sha": "f0fb20569ef5570ca10a11c16a110c0dfee1233d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RESULT.md",
+      "sha": "7be0616052abd254072d1ce9bc4f3d1d4eb8f42d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RUNBOOK_RU.md",
+      "sha": "7d17c6b15c3884bfd9260b4900d76d42c021d422"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCENARIO_COVERAGE.md",
+      "sha": "35239fabae4e4d8b0c957958cd233d6ca7938c03"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCOPE-GUARD.json",
+      "sha": "529bb33b1a68d5f8e3958ff9c19b27c367838ede"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SOURCE-HASHES.json",
+      "sha": "2b87d2eae827ff32d3e91ea316e203a5fbed003f"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SPAWN_SENTINEL_PROPOSAL.patch",
+      "sha": "0b2074947b3579204be616dd4ea6780f532a782f"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/TASK.md",
+      "sha": "312f04cb46eeb0f522f5d0064b0bd5bf27bf2e54"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/TEST_MATRIX.md",
+      "sha": "7b8ee9c133a7ba5d185f5cef9e86b1161e4e0e4c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/build-compile-tests-20261114174723639.log",
+      "sha": "75b5f6e7fd231852a63b5fb58b43eeca8d87da50"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/build-jar-20261114174815685.log",
+      "sha": "721fe563efab8bd30a0f86c551af51a1716ac2e6"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/cold-export.json",
+      "sha": "219100f764fc945199934e28efbeb8233e0ef6f7"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/contracts.json",
+      "sha": "99f05ef99b58bd188045a77e06010708ec4720ff"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/github-source.json",
+      "sha": "1c085ec18de64258b7e8685b04c1773e45606d41"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/headless.json",
+      "sha": "75dc6ff5b1903f8476820122e23006de828f2376"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/lineage-after.json",
+      "sha": "8c1a76603170d69b9ced0b79b694c9ca3f6d65b1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/lineage-before.json",
+      "sha": "283f2ba0f4169c292961d2964caa21f04b7d3d34"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-evaluation.json",
+      "sha": "4a270fac8a79b1285e7d7e7fed7619aa7833d084"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-files.json",
+      "sha": "226649bdc955476fa6f39c8939d57dbcb5c47b46"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-paid-index.json",
+      "sha": "de35821aeda3d2b171270b40b9a976916849d72c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-paid-witnesses.json",
+      "sha": "2fd3b2bf0f412c822fcfb948964310f3ea9173b3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-process.json",
+      "sha": "7c604364269e9f4f74fc58c12eb0cca736d2aa5f"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-timing.json",
+      "sha": "4fa27a94755c1b6f65516422db660fa18dd019d4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/postflight.json",
+      "sha": "9032b318d841300a67881ab8b41140a251157007"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/prepared-preservation.json",
+      "sha": "406acf00cdcca47b8587b1122d66d8156a5c2cbc"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/review.json",
+      "sha": "7f064ae947196f08af569d5882c0d6d02741c7a9"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/tests.json",
+      "sha": "8fb02cbb2af6c85592f6698e39f9b8859170472e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/cells.tsv",
+      "sha": "b3832f5adf8f05c9d7413c8af99fa575d3e26fb8"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/independence.json",
+      "sha": "457b79ab801f6328425129d69b3a9844f4034789"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/planning-refusals.json",
+      "sha": "008e2ac39967462dec7fc0ee1093bc0dc569d4f3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/scene-catalog-counts.json",
+      "sha": "d3bcd6f384fbb529c29258e2b9dec61a0e662178"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/headless/source-coverage.json",
+      "sha": "e38b8fd3e1684715f367d9079abe9748c4d2504a"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/lineage-after.json",
+      "sha": "c43078074d289635c4f007f95983696f94f29ccb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/lineage-before.json",
+      "sha": "abf89bfac20655dedcd7a531b60f86ab814b28cd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java",
+      "sha": "acf41411adee34bf60831840e473d81829ce6dfb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+      "sha": "ccfef622674831671c77e3c0ea56fcc9a060892e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java",
+      "sha": "3cf947febeba6ec064a6c99d3470a868d21333a9"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+      "sha": "46f7c00f905281667fc19c4b3484bbeecb998ae0"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "sha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "sha": "fa3aafc418b81199309b260acbfa0afaa55a8996"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+      "sha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+      "sha": "e976cdcd00ab8dc441cd7704d1332a51591467c7"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSource.java",
+      "sha": "65ef5fac769f5b7ae84ed76df9c8c47a4c7a742c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSourceChecks.java",
+      "sha": "ea1357752b04a3eb2b655ec7a6219b82f66de210"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "sha": "6bf9e6d183f38c9afa504bab24fdc46786e3dbec"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "sha": "22703aa9feafb5c1b1caeb428ade69a15e272af5"
+    }
+  ],
+  "proofs": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/COMBAT-AI-ROADMAP.md",
+      "bytes": 9955,
+      "blobSha": "2b3890eeb62a3118be41616e67b437fe4a609cb4",
+      "sha256": "e6142d0da20f0d2acf784d39c6392fa80795af5abd9b5e4c259be83349f00206",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE.md",
+      "bytes": 5392,
+      "blobSha": "d98cab8c945041edab7a56feea3f8b16fbfe65ce",
+      "sha256": "73b5a22a6b2b4b317da1908045234f1146bd7e5e4b112059dd5722baf06d8a23",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ACCEPTANCE.md",
+      "bytes": 5473,
+      "blobSha": "9ed1653a1d71eb52abccdd91b89f0eefb450fcf5",
+      "sha256": "b00fbd7b28a865c436bf0640c0d5034fa1cb99401e7d0ce000d09a2459e69743",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/COMMANDS.md",
+      "bytes": 23844,
+      "blobSha": "a588eed8eabbbda5226ff9c5b22dc0e00804a38d",
+      "sha256": "eacfe76cdb21f6ded9fc879a82cfdad47570d1949f9b9bf58e711db019f4f513",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/ENCODING-CHECK.json",
+      "bytes": 644,
+      "blobSha": "e0783f92974cd1cb8c0b332ef4ce23627c33cbbb",
+      "sha256": "d9532436db51ce5ef4eb57242aea89a46d6184864246f0543cbeaacb53a9519b",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/EVIDENCE.json",
+      "bytes": 9207,
+      "blobSha": "d42a7b969aeb3dd70de1a3f014f7fafc2ab12afb",
+      "sha256": "2ad6093189a602981e620d0ec1926ba97c53b928d15171c720c773c72779b931",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/FAILURES.md",
+      "bytes": 8960,
+      "blobSha": "a4e4ff59890add19dceccc8f48a94d57def9507b",
+      "sha256": "804d555ef79da4b78248ead145b42678a3d129bb8f849cdf5884db22f92d5c30",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/GITHUB-CONTINUATION-READBACK.json",
+      "bytes": 203,
+      "blobSha": "92712cf66548c01dcd4df309628e68119f03fb34",
+      "sha256": "956ab0558596007f0fa96fdfbeb84be3d1080c299e9105e561bc3f560ac72812",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/HANDOFF.md",
+      "bytes": 6465,
+      "blobSha": "278d87543163e9262d6780d57b7e83bfe1879f7f",
+      "sha256": "5d210f8a0c04d0cb5f0e3bbe7f81ccb850172528b0aee330225bf0c5d0eb9820",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/LOCAL_ENCOUNTER_PLAN.md",
+      "bytes": 18255,
+      "blobSha": "c6d8f5f15426123d91948f4630f4a761c18307d5",
+      "sha256": "10efced9431a0af9aa59c021a2143a488d7593022289aa804e6f9cf155dd6887",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/PROGRESS.md",
+      "bytes": 8019,
+      "blobSha": "a33180d4d4b882223716f80bcbce5f6b4ec38041",
+      "sha256": "df8e01e0b6869c0bae041045c9fdefe8d9b7b2d43de2b9eff50152f5621424b7",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RAW-LOGS-INDEX.json",
+      "bytes": 5224,
+      "blobSha": "2438cccc71bf0ec14150bb02afebbf18474447c2",
+      "sha256": "5492c279dab50a6f7b89f22e52801f586a207d09d853bdea24377362cc033967",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/README.md",
+      "bytes": 2010,
+      "blobSha": "39b5273f43b94095deecb55c76343b5f6ccd41ad",
+      "sha256": "c283a030521b0dbe0c9d9cc9fdc72584855cb13b8c40aaca639c5051430a5159",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/RESULT.md",
+      "bytes": 18590,
+      "blobSha": "7be0616052abd254072d1ce9bc4f3d1d4eb8f42d",
+      "sha256": "387d94a9df38f40ab79ae974d6a36e97534abed2368d3b9538708051300ff5ea",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCENARIO_COVERAGE.md",
+      "bytes": 9169,
+      "blobSha": "35239fabae4e4d8b0c957958cd233d6ca7938c03",
+      "sha256": "f8814a2bac0e2260703c2061379981c320ef8e0c0f23a3cd7bceaedf6482c082",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SCOPE-GUARD.json",
+      "bytes": 9857,
+      "blobSha": "529bb33b1a68d5f8e3958ff9c19b27c367838ede",
+      "sha256": "cf182db460e009debf3a478caa2c30b43b6b62940c7a76f26980b594102b664e",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/SOURCE-HASHES.json",
+      "bytes": 3816,
+      "blobSha": "2b87d2eae827ff32d3e91ea316e203a5fbed003f",
+      "sha256": "92cc93fc66e80c126c438f3b8b838c2895183cc7eba926b1babe505a7794a58b",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/cold-export.json",
+      "bytes": 2527,
+      "blobSha": "219100f764fc945199934e28efbeb8233e0ef6f7",
+      "sha256": "e8b5b47adfc18782af60a132b8e73177f9a0d9c766be1afe6f331fea7e60a4c4",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/contracts.json",
+      "bytes": 898,
+      "blobSha": "99f05ef99b58bd188045a77e06010708ec4720ff",
+      "sha256": "eb22cb91efac83f864fb68a5d2aa203cff9faa9d2c1c57b41bc06912925f04d6",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/github-source.json",
+      "bytes": 2812,
+      "blobSha": "1c085ec18de64258b7e8685b04c1773e45606d41",
+      "sha256": "95917213569a506d0e87a864563a282acace82ec70bc7a974f8c6574f94757e5",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/headless.json",
+      "bytes": 45357,
+      "blobSha": "75dc6ff5b1903f8476820122e23006de828f2376",
+      "sha256": "1b4359e5175078d272d39237df69b761aba65e777da613905ecedb9b68ac9bda",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/lineage-after.json",
+      "bytes": 263,
+      "blobSha": "8c1a76603170d69b9ced0b79b694c9ca3f6d65b1",
+      "sha256": "ba013e0871df94de443f31a95447577a5437207df2d85d7730569ac10164363a",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/lineage-before.json",
+      "bytes": 265,
+      "blobSha": "283f2ba0f4169c292961d2964caa21f04b7d3d34",
+      "sha256": "64817e4f9fe29be55daa92fb3734a431a2733c69e2713296bee6037862f5ff8a",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-evaluation.json",
+      "bytes": 190839,
+      "blobSha": "4a270fac8a79b1285e7d7e7fed7619aa7833d084",
+      "sha256": "19d8e7be68689225ede7c2411fee43a65e4063bbe5f5dc493a6b1621d99a4ad7",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-files.json",
+      "bytes": 77899,
+      "blobSha": "226649bdc955476fa6f39c8939d57dbcb5c47b46",
+      "sha256": "4accb5c5352b53a2d58ee315d70e97a042dacb3dd25009a88df58104224ae8a6",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-paid-index.json",
+      "bytes": 63625,
+      "blobSha": "de35821aeda3d2b171270b40b9a976916849d72c",
+      "sha256": "a756ea7034f4844badc3c0780b4311b2c2d97adb9a8b6b15ea8dbf0161069dd4",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-paid-witnesses.json",
+      "bytes": 416168,
+      "blobSha": "2fd3b2bf0f412c822fcfb948964310f3ea9173b3",
+      "sha256": "779641a49cde1fe2bc87d420aadff940993083f0b19917140b87c226f7562c67",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-process.json",
+      "bytes": 5263,
+      "blobSha": "7c604364269e9f4f74fc58c12eb0cca736d2aa5f",
+      "sha256": "66c6cb5ec0b2227d4e4ae786953f072771aae74fbb1bcdad25ad3d1c44d41ffc",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/native-timing.json",
+      "bytes": 22171,
+      "blobSha": "4fa27a94755c1b6f65516422db660fa18dd019d4",
+      "sha256": "d6403a4bfc670bc9dd67f25e35d3da8655fb60057e375b9c6543bde7cbd8727f",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/postflight.json",
+      "bytes": 4840,
+      "blobSha": "9032b318d841300a67881ab8b41140a251157007",
+      "sha256": "2a388793d9ffea6f08c119204d52433cd2c516f6319f14c53165dd040e6f3505",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/prepared-preservation.json",
+      "bytes": 1841,
+      "blobSha": "406acf00cdcca47b8587b1122d66d8156a5c2cbc",
+      "sha256": "73c335a513b7beb3051121e7098733d1205661a963a3072f05b91f3d1d6f9360",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/review.json",
+      "bytes": 947,
+      "blobSha": "7f064ae947196f08af569d5882c0d6d02741c7a9",
+      "sha256": "a41c56b5375911eb6428df517afebf46189546613003173eaeef69df94b4ec59",
+      "fullBodyRetrieved": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation/tests.json",
+      "bytes": 3953,
+      "blobSha": "8fb02cbb2af6c85592f6698e39f9b8859170472e",
+      "sha256": "aba60f83c7c06a56f6bc02e663cfdd7ba95267c76e8060bb416103b0b1de41fd",
+      "fullBodyRetrieved": true
+    }
+  ],
+  "sourceProofs": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "bytes": 331488,
+      "blobSha": "779017d9494bb922e646c02f8477f83c6d03af9d"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/spawns/Spawn.java",
+      "bytes": 18934,
+      "blobSha": "acf41411adee34bf60831840e473d81829ce6dfb"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+      "bytes": 73774,
+      "blobSha": "ccfef622674831671c77e3c0ea56fcc9a060892e"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/knowledge/PhantomGameKnowledgeBuilder.java",
+      "bytes": 22527,
+      "blobSha": "3cf947febeba6ec064a6c99d3470a868d21333a9"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "bytes": 143353,
+      "blobSha": "fa3aafc418b81199309b260acbfa0afaa55a8996"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSource.java",
+      "bytes": 9719,
+      "blobSha": "65ef5fac769f5b7ae84ed76df9c8c47a4c7a742c"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterLocalSourceChecks.java",
+      "bytes": 13315,
+      "blobSha": "ea1357752b04a3eb2b655ec7a6219b82f66de210"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLearning001ShadowNative.java",
+      "bytes": 101457,
+      "blobSha": "6bf9e6d183f38c9afa504bab24fdc46786e3dbec"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTrainingScenarios.java",
+      "bytes": 30671,
+      "blobSha": "22703aa9feafb5c1b1caeb428ade69a15e272af5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/learning/EncounterAdmissionV1.java",
+      "bytes": 4934,
+      "blobSha": "46f7c00f905281667fc19c4b3484bbeecb998ae0"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/learning/AutonomousTrainingChecks.java",
+      "bytes": 29139,
+      "blobSha": "328c6ebfa8b42366771c67f7a7bf57c208a55acd"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGate.java",
+      "bytes": 3654,
+      "blobSha": "38f8ddcccf1b485cfbfbb246ba495585521e0e54"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEncounterDispatchGateChecks.java",
+      "bytes": 8630,
+      "blobSha": "e976cdcd00ab8dc441cd7704d1332a51591467c7"
+    }
+  ],
+  "documentationReadback": "PASS_FULL_33_CHANGED_BODIES",
+  "exactCumulativeScope": "PASS_74_PATHS",
+  "sourceUnchangedAfterNative": true,
+  "unchangedExistingArtifacts": {
+    "count": 28,
+    "comparedWithPreviousPublishedTree": true,
+    "priorBodyReceipts": [
+      "GITHUB-FINAL-READBACK.json",
+      "CURRENT-GITHUB-SOURCE-READBACK.json (external)"
+    ]
+  },
   "manualGate": "REQUIRED",
-  "selfHashEmbedded": false
+  "selfHashEmbedded": false,
+  "receiptOnlyCommitPolicy": "Receipt/report-only follow-up проверяется независимым final GET; его SHA сообщается в чате, без рекурсивного self hash."
 }

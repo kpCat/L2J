@@ -25,7 +25,7 @@
 
 ## Текущая проверка011 после согласованного продолжения
 
-**G0PASS; G1PASS; G2PASS; G3PASS; G4FAIL; G5PASS; G6PASS; G7PASS; G8 ожидает финальный documentation readback.** Verdict PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET. SCENARIO_ENGINE=READY, NATIVE_PVE_SOLO=PARTIAL, NATIVE_PVE_PARTY=PASS, GAME_ADVANTAGE=INCONCLUSIVE, PVP/RAID=NOT_IMPLEMENTED.
+**G0PASS; G1PASS; G2PASS; G3PASS; G4FAIL; G5PASS; G6PASS; G7PASS; G8PASS.** Verdict PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET. SCENARIO_ENGINE=READY, NATIVE_PVE_SOLO=PARTIAL, NATIVE_PVE_PARTY=PASS, GAME_ADVANTAGE=INCONCLUSIVE, PVP/RAID=NOT_IMPLEMENTED. G8readbackae68ab9b106 подтвердил exact74paths/13source/33changed docs bodies; receipt/report-only follow-up проверяется отдельно перед ответом.
 
 Последний paired headless:2Solo+2Party,8native pre-CUT arms, exact current JAR/source/config. Реальный GS:8CUT,47included paid events,8terminal arms;5COMPLETED/3FAILED. Party2MATCHED_COMPLETED сAB/BA, Solo0сAB/BA. `TRAIN010_EVAL_MATCHED_PAIR_COVERAGE` честно отклонил отсутствие required Solo. FULL011 запрещён.
 

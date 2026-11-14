@@ -88,5 +88,5 @@
   "globalFarmPriorBytesUnchanged": true,
   "spawnPriorBytesExceptApprovedOverrideUnchanged": true,
   "newWipBranches": 0,
-  "validation": "Перед staging и после push exact status/index/GitHub compare обязаны совпасть с allowlist."
+  "validation": "GitHub ae68ab9b106:HEAD/parent/tree,74exact paths,13unchanged source blobs и33full changed docs/evidence bodies verified; final receipt/report-only follow-up получает отдельный final GET."
 }

@@ -1,6 +1,6 @@
 # PHANTOM-LEARNING-011 — текущий PARTIAL после native
 
-**PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET.** Engine READY, native PartyPASS(2completed matched AB/BA пары), native SoloPARTIAL(0пар,3смерти/1kill), gameINCONCLUSIVE. G0/G1/G2/G3/G5/G6/G7PASS, G4FAIL; FULL запрещён. Final manual gate REQUIRED.011№5/13, осталось8; следующий Goal не начинался.
+**PARTIAL011_NATIVE_SOLO_COMPLETION_UNMET.** Engine READY, native PartyPASS(2completed matched AB/BA пары), native SoloPARTIAL(0пар,3смерти/1kill), gameINCONCLUSIVE. G0/G1/G2/G3/G5/G6/G7/G8PASS, G4FAIL; FULL запрещён. GitHubae68ab9b106 exact74paths/13source/33full changed bodies проверен, receipt-only follow-up проходит отдельный final GET. Final manual gate REQUIRED.011№5/13, осталось8; следующий Goal не начинался.
 
 Source13paths, HEAD0c331f738d082c9476754c6561f9e8ae51d4b464 вfeature/phantom-world. Общий native admission/real acquired contract, source-bound local geometry и разрешённый Spawn sentinel-1fix. Старые global farm/exactTerritoryNode bytes сохранены; Location/gameplay ограничения не менялись. Expected NPC Spawn/respawn effects и focused/native regressions раскрыты в RESULT.
 

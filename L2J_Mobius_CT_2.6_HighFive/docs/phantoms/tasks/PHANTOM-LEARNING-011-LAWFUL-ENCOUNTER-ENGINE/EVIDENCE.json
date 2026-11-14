@@ -90,7 +90,7 @@
     "G5": "PASS",
     "G6": "PASS",
     "G7": "PASS",
-    "G8": "PENDING_FINAL_READBACK"
+    "G8": "PASS"
   },
   "status": {
     "scenarioEngine": "READY",
@@ -131,7 +131,11 @@
     "uniquePaidEvents": 47,
     "replay": false,
     "strictCoverageFailure": "TRAIN010_EVAL_MATCHED_PAIR_COVERAGE",
-    "paidSelectedBaselineDivergences": {"solo": 6, "party": 0, "allInFirstLearnedSoloArm": true},
+    "paidSelectedBaselineDivergences": {
+      "solo": 6,
+      "party": 0,
+      "allInFirstLearnedSoloArm": true
+    },
     "partyLearnedLimitation": "Mode ON вычислялся, MARGIN gate сохранил stock action; completed pair не доказывает distinct learned action или преимущество.",
     "pairs": [
       {
@@ -256,5 +260,15 @@
     "Legacy native-admission sessions содержит Java Map text; raw не выдаётся за valid JSON.",
     "Публично8полных paid witnesses; все47 имеют timing/HP/MP/action индекс и hashes. Полные private raw receipts сохранены.",
     "Первоначальный PARTIAL011_LAWFUL_COVERAGE_BLOCKED сохранён в историиe9cf75a и внешнем byte archive."
-  ]
+  ],
+  "delivery": {
+    "verifiedDocsHead": "ae68ab9b10651df4d2d0568a990c3b9a6929e1e7",
+    "parent": "0c331f738d082c9476754c6561f9e8ae51d4b464",
+    "tree": "c28159a3a96dabe0ff76412d1f273c8447a37a0d",
+    "exactCumulativePaths": 74,
+    "fullChangedDocumentationBodies": 33,
+    "fullSourceBodies": 13,
+    "receiptOnlyFollowupVerification": "REQUIRED_BEFORE_FINAL_REPLY",
+    "selfHashEmbedded": false
+  }
 }
