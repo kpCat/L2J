@@ -1,0 +1,34 @@
+{
+  "codeHead": "9bd77193eeb4f03617aa82972dc1ae5cfbfa2c6a",
+  "sourcePaths": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+      "sha256": "d01d825eccbf3d9117fe32a7c0085af52d504c2f749f9b7b90279791e603cdd1"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+      "sha256": "37445fda6f5c2c7d265e2a4c0a6baabb817831a3744a9c35f35d08b9f17e00c4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+      "sha256": "6dcdd4fc2c6f47b992162afc437e233d3ac5a9a6bf6775fc0874729c9078aaed"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+      "sha256": "3f983f5df48429a9f21f724b032a94255d120e3e1f1b463f90d2c4074aa9a254"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+      "sha256": "0a665080cbdf5256ff03a7f7a8d4453ac6485cbfb6b77b273d3f4aa288f1c234"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/build.xml",
+      "sha256": "3dab222ae29e14bea976f713f8c0b64f87cc10acd7293d8ded4b3202fcf0a6b3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+      "sha256": "eb35030adeca6428981bde41bfe53af74e99d5f5b7278ae045b227903fe8d2a9"
+    }
+  ],
+  "sourcePathCount": 7
+}

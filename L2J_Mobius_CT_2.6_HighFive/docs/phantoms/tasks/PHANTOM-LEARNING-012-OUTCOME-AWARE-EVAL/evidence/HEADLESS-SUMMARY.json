@@ -1,0 +1,2077 @@
+[
+  {
+    "session": "03e46c0569c44287aed8608c12177ce6",
+    "workerPid": 77180,
+    "workerExit": 2,
+    "kernelWallMillis": 93256,
+    "cpuSeconds": 175.578125,
+    "peakWorkingSetBytes": 4661059584,
+    "preCutArms": 9,
+    "admissionOnlyArms": 6,
+    "pairedCells": 3,
+    "pairedSoloCells": 2,
+    "pairedPartyCells": 1,
+    "refusals": {
+      "AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED": 1,
+      "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED": 2
+    },
+    "nativeCut": 0,
+    "paidEffects": 0,
+    "fullCampaignReady": false,
+    "uniqueNativeCandidateProbes": 6,
+    "candidateBudgetReceipt": "NOT_WRITTEN_BECAUSE_PREPARATION_REFUSED",
+    "candidateCatalogFiles": 0,
+    "spawnContract": {
+      "cases": 8,
+      "passed": true,
+      "configFlagRestored": true,
+      "afterCut": false,
+      "trainingCredit": false
+    },
+    "sourceRecords": [
+      {
+        "source": 268574973,
+        "classId": 94,
+        "inventorySha": "4de4374eb697766182f605c76495aee319fe2557ba908171e4cb2f3efd4cfd31",
+        "learned": 60,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268560049,
+        "classId": 94,
+        "inventorySha": "9057c9be073f48573c98183652f58c3853008c2ae919452f2bcd33339a8eeff0",
+        "learned": 62,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268618477,
+        "classId": 90,
+        "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+        "learned": 40,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268502074,
+        "classId": 90,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+      },
+      {
+        "source": 268576142,
+        "classId": 105,
+        "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+        "learned": 53,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268501533,
+        "classId": 105,
+        "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+        "learned": 53,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268530957,
+        "classId": 103,
+        "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+        "learned": 61,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268676093,
+        "classId": 110,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+      },
+      {
+        "source": 268506392,
+        "classId": 90,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+      },
+      {
+        "source": 268564233,
+        "classId": 90,
+        "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+        "learned": 40,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268550789,
+        "classId": 110,
+        "inventorySha": "ca9e541bb190c55734eed2bd8f814b5d7d2dcae8c69b4dd4235ef87018e634e9",
+        "learned": 67,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268583777,
+        "classId": 103,
+        "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+        "learned": 61,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268484271,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268644486,
+        "classId": 110,
+        "inventorySha": "6cc150b64b5cc242940ab8ffd5f84f6b58ebacccda4fb9800d27ec8420eb7c9c",
+        "learned": 64,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268484387,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484293,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484336,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484315,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484366,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      }
+    ],
+    "independence": {
+      "referenceCampaign": "autonomous009-goal009-20261114-f",
+      "referenceDataset": "autonomous009-goal009-20261114-f-c000001",
+      "referenceCellsSha": "6a41998d543796899874267586a2eae69435b5d84193b3e69dbadd19b04b2a00",
+      "referenceModelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "excludedSourceSnapshots": [
+        "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+        "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+        "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+        "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+        "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+        "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+      ],
+      "selectedSourceSnapshots": [
+        "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+        "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+        "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+        "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+      ],
+      "authority": "PRE_CUT_SOURCE_PROVENANCE_ONLY",
+      "trainingCredit": false
+    },
+    "fileHashes": [
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/admission-facts.json",
+        "bytes": 7051,
+        "sha256": "9024eb6ec05a2068e5628652641c6bc42bcbf693b40eada40d1c8dd152b6940b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "4a4df9f2e17717d17a51b824b2c5f2e26279b9ea231f5759aea6398977304012"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "d5d41a89a1d9ed96e76932c7882038cd8e99ed2aa62eab978d42e7fbb4dca316"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/incarnations.tsv",
+        "bytes": 190,
+        "sha256": "e9c75c05d0f4c3d91e7e1dacfdfc7316db35bff725bdf96765edd0592eab1802"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "1b0a38620c2a70802007dcdd27b684c470bc8b42f7b29f296dd1546b498039cf"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/native-admission.json",
+        "bytes": 420,
+        "sha256": "830790dcc627445fe8c39e44f5128959e64fb4ffd02688d691eca38c8718a9a5"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/party-admission.json",
+        "bytes": 301,
+        "sha256": "593ee2e46ed695e73ec2a1345104c0181cb706f5f1ee4bc6041c8bd6c644a2f4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/precut.json",
+        "bytes": 7168,
+        "sha256": "b50f92ef9c93f38299edd2e8f355d295cb8cfceca67b10f0b19b4f254ca1c828"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/roster.tsv",
+        "bytes": 502,
+        "sha256": "60264de03862dfa5305063bf45655ae85f3683ed8dcd171873f77a1eb4f9400a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/088ccd2c56f0d602fbb9ae608603a8d7de4ef9dafd28c68bf778f78396e76f69/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "c5c1a4a4d41e80506c59396d35e6754adf5bee0f5e3318799aa8a04ac1f3216d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/admission-facts.json",
+        "bytes": 2406,
+        "sha256": "70cdc04c567b46886412c61f26de1a4d0690ff681580afde79c3f9e4d41574e2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "6aa258b784ba5f8a67cdd14216dfb33b91665ccf718e27a5b1bb33aaf7a7b732"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/combat-request.json",
+        "bytes": 146,
+        "sha256": "f9dfdd92fa262a8666d898b7805ba731f37be0463a33c816ab7f0285c70f63b5"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "a041be98dbdb584adf0ea7f848e6667fe4ed2691a71a43d9f147a3da629ef3f2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "412beb0f9aab2778b7bb5788fc5576e8f36a360f2006f3b024c0f5535cc1841d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "1b0a38620c2a70802007dcdd27b684c470bc8b42f7b29f296dd1546b498039cf"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/native-admission.json",
+        "bytes": 420,
+        "sha256": "7e7a1ae38635eab7f67edee11cfb148db5f2a8fa329d8d16d20cce6d8ce1f6da"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/precut.json",
+        "bytes": 2523,
+        "sha256": "6fbaa079bc9455421a28a27c7b5685a055f264781562cd9d72d63a66431e8741"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/roster.tsv",
+        "bytes": 124,
+        "sha256": "fffe95d7cc8ce27f6e30d93ddc0d4f55b49877e5ee2e0844997f2e9e7efb5caa"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/1a3fdc79e90c86bd0d38a99183058ca04956d48d2cf544c568e3ce26d4de7d8a/shared-source.txt",
+        "bytes": 1302,
+        "sha256": "15ca4f5b1479a585ea9d04a8e7da9e1f0a538d89c7fff7f9b1da7cb179e5a17a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/38ed2a2a75e522b17070babc659702e9d942df0eb2fb55118dc2b29e30f57c81.risk.tsv",
+        "bytes": 333,
+        "sha256": "e3f84abbec709a1ab3fdad2f64d1c2f9058944f339cd439a43fe109d9f91f5e0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/3c55d72eab247095e3a571c1c9dcf4f904fe3de35fb88b4658041ef126d96902.physical.sha",
+        "bytes": 64,
+        "sha256": "04e4a342404a8100ae7c0e3b248c117af8028c83da91ed409134cbb3929547a1"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/3c55d72eab247095e3a571c1c9dcf4f904fe3de35fb88b4658041ef126d96902.risk.tsv",
+        "bytes": 333,
+        "sha256": "253a9e18432a465c74e7fcea57cbd12e2919c15e10a91d3864f606804ed3c358"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "2f1c5ffbcb46e51bbcffc49946013ad62c23fd19aa8d56ab28d9985d749c81c9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "47867a48cd0add0ae214576b90a15d10050200108af0a59989a298b76e08de73"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/party-admission.json",
+        "bytes": 437,
+        "sha256": "edcde003acc56c26814a310c3625d1db1c17d332af64c9ab35ab633b9fa267e9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/precut-refused.json",
+        "bytes": 758,
+        "sha256": "97a5aae7fae664bcffb7bec53b8e8aa1f877c748500b62abdad4eb08cc4845d7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/result.json",
+        "bytes": 537,
+        "sha256": "09669c2b368d3ebaad805ece2267492480257347b0b64b7459311ba9c30cb88b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/roster.tsv",
+        "bytes": 502,
+        "sha256": "dd3284bd8ed3b646142df5dde57262289dcf0d7f68fd12661510613edaf2f732"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/481d060c572203c0394cbd3e45cc390fd0f71f89be105e50f1577025a1baf2d7/shared-source.txt",
+        "bytes": 1450,
+        "sha256": "aade7922cf44b58429d5fb244a702514542ea12cfce5e13b190dde9bb7f62546"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+        "bytes": 40627,
+        "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+        "bytes": 6597,
+        "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/5279da5d0f9c21e2b7c57b5039292f3dce3f326a7535fe25364560eed1357c19.physical.sha",
+        "bytes": 64,
+        "sha256": "369bfcf10c0adcf34271729b998332eed61968af95a8a442b992c21a148c163c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+        "bytes": 35067,
+        "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+        "bytes": 6573,
+        "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "c8f948b6f584acbb4ed708fb00929c7e5a093346653e76435e5a728477caa508"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "9d76575c8348cae5d015f407e125892b205511e86132ebe75ab38f1042831ce0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/party-admission.json",
+        "bytes": 459,
+        "sha256": "1d06b4bfdf4c34536face773384b7d677bd6bffac2eae32f5fe4e802b970d699"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/precut-refused.json",
+        "bytes": 758,
+        "sha256": "6fd895d2588853b194fa8227e9ac586e138d7a1eb01c7c8fc0ba13611a31ee90"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/result.json",
+        "bytes": 538,
+        "sha256": "32e548e518dd14e06f78e641ffc44cd11cf90149b5809e3d0f3949ee87a04186"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/roster.tsv",
+        "bytes": 502,
+        "sha256": "d25e275b72e7df11c0373635f510e68c9cd30fdf0065e246202c2a8c712c51c9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/6078a7afeb6d5c80c26a500c966afc93d25e7d1a02f4a756fa39a276ebc7ad5f/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "27ccf0f926b2e89f7e7e820057066fb7a3386b023d2f918d9ab4523539dcd997"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+        "bytes": 26456,
+        "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+        "bytes": 6146,
+        "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+        "bytes": 35067,
+        "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+        "bytes": 6570,
+        "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/76a50ea8ee63805801aeb806938787e3bf9e8acb0eb42628e372995085f826ef.risk.tsv",
+        "bytes": 336,
+        "sha256": "204c73416f0774b8a4cc615a4e59273998667d522ba0c2528e67f95bf2a6047c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+        "bytes": 26456,
+        "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+        "bytes": 6317,
+        "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+        "bytes": 40627,
+        "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+        "bytes": 6687,
+        "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "135c0f306930f5f975cd8aefcb3505c7776760f9a823c3df5aaaf939bf370f64"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "43637e3d0b4bf93840a6d4bbacf9c6bb976afeef56071b4b529754e776bb896f"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/party-admission.json",
+        "bytes": 459,
+        "sha256": "56522ed599b60633d3f583e0f4ce2988d0eab154666ca36d8057942be7947301"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/precut-refused.json",
+        "bytes": 758,
+        "sha256": "2c9f88c5ba672493fdfad9fd37214910706a18c34f0082b62271e062cfd58d0a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/result.json",
+        "bytes": 538,
+        "sha256": "9c1b06fba67264a1263182edde2c221c58621b97f67413bfaf094aee8b0f1c13"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/roster.tsv",
+        "bytes": 502,
+        "sha256": "ab97e6c7b7a9b314adc14e7ba493d7b8b5b7920f3ccdb92336092dc2dfb74249"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/8e620ad1ba7873cac4db781a88820378cac14a41b121dc9084f3eb3d6216236d/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "a589399d057ca2ed7089c41c3ccc7c6d596992a2d40faf7b40be25458c17e4e2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9029383d03015dcaf927928c4c0e9e4658bb9b9c7cee1c245c86d485ee48178d.risk.tsv",
+        "bytes": 334,
+        "sha256": "9b4cbd58242d29a4cceede42f6ac3ea56949c48c4edce32e8ee4c5ee0d79a13d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+        "bytes": 42343,
+        "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+        "bytes": 6683,
+        "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+        "bytes": 44254,
+        "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+        "bytes": 6768,
+        "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/admission-facts.json",
+        "bytes": 2408,
+        "sha256": "9605e8c1d3b7a04106527e8f3aae2a97ca707d8f9d8d6ee7c2a6cfa3a0daafde"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/admissions.jsonl",
+        "bytes": 107,
+        "sha256": "6d3826a029ed6660bc9584fc6d084068ee392328f6f0cec026bdb400aff2dcc7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/combat-request.json",
+        "bytes": 146,
+        "sha256": "07b10dbf366d2e8e4701e80f9880f05daaba7e546e6d119fc25d1ceb5363b074"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "5f3ac9aa7da10f1c3a4c6b5f339fe706033ba3dae871156d180a3ed52563a960"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "baac2d169f066448ce598542ccc02fbd4585e68b93936bd93ffbc43e1bee8b6d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "a494dfdc0840012921fef4e2b251ed009cf8a7eb78c7ab7a4b08482c3664d154"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/native-admission.json",
+        "bytes": 419,
+        "sha256": "d5cc31437d8b54c762ef669b0981dafe75cd3d39ef3194d69db678971bee6140"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/precut.json",
+        "bytes": 2525,
+        "sha256": "7955a3674c66820497fe226d0694763432327d55e52af4ac3725c279cc96f30a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/roster.tsv",
+        "bytes": 124,
+        "sha256": "bd9a1600040e9d926b82042815531552a831fd610680be563819b8b49914626b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/9789a3349377de023b11e59b3759eb3b7bebb4a31d48c7a6bdf89e78f2f1c29e/shared-source.txt",
+        "bytes": 1302,
+        "sha256": "b9db0488856021e5171271ff80ffdf6b7f008e6f658e1b6ce13e6c907c23def4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/admission-facts.json",
+        "bytes": 7051,
+        "sha256": "9024eb6ec05a2068e5628652641c6bc42bcbf693b40eada40d1c8dd152b6940b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "8cc872e520f2c3cea666fe960c25d954263a76571e521506eb24972049a1b965"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "d5d41a89a1d9ed96e76932c7882038cd8e99ed2aa62eab978d42e7fbb4dca316"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/incarnations.tsv",
+        "bytes": 190,
+        "sha256": "e9765fb708fab431d20c1a6d15ea608c622f47bdbcb96e16d82e1c98cced5728"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "1b0a38620c2a70802007dcdd27b684c470bc8b42f7b29f296dd1546b498039cf"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/native-admission.json",
+        "bytes": 420,
+        "sha256": "e970ce1f3b2c9952c0d82687b9d4652237d0b5e9b2ca5de28b95521e55469bdc"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/party-admission.json",
+        "bytes": 301,
+        "sha256": "0c15a23a4bea57940cc8f2df38b587be8c57a8bdda1caf5a71177ee10c15b4a2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/precut.json",
+        "bytes": 7168,
+        "sha256": "06170a86e3f7af4e3176a9c09fe348dea6205c07f637c65586136872b9e42386"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/roster.tsv",
+        "bytes": 502,
+        "sha256": "72307e81b4a3f4f57de4a9bd58732b33a3d509c8f8da3b94bf18efc4b765041d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/a5f2e74d48c8725c81bbd3eb2dedb6969e4b3e1b83801e4038e0ced8391e7692/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "c5c1a4a4d41e80506c59396d35e6754adf5bee0f5e3318799aa8a04ac1f3216d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/adfa105d813d5af9c2edf4cc10a5c3860bd8b197a5c870515c17bb4318236704.physical.sha",
+        "bytes": 64,
+        "sha256": "be2b798c11ca17bae302cca46dcdd175a1274ecdec10af6188e302ee07a978fc"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+        "bytes": 40982,
+        "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+        "bytes": 6711,
+        "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+        "bytes": 39625,
+        "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+        "bytes": 6565,
+        "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/admission-facts.json",
+        "bytes": 2408,
+        "sha256": "9605e8c1d3b7a04106527e8f3aae2a97ca707d8f9d8d6ee7c2a6cfa3a0daafde"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "242c2662467f9dd4e7fb473014e1bf60ea1a489b37918d7243c985f515d8d330"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/combat-request.json",
+        "bytes": 146,
+        "sha256": "da6f9449a5320eaad24b1fda2d96052e8a361d5e283d6ea67d9a30601da14234"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "5f3ac9aa7da10f1c3a4c6b5f339fe706033ba3dae871156d180a3ed52563a960"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "83839a8361137746697ff48e8737a89306c12ddfe9e148f826e0f5eb2a031240"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "a494dfdc0840012921fef4e2b251ed009cf8a7eb78c7ab7a4b08482c3664d154"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/native-admission.json",
+        "bytes": 419,
+        "sha256": "8abc8dadfbc20466337de645cb975027202083e4d7af8268cd5b2da2b250142c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/precut.json",
+        "bytes": 2525,
+        "sha256": "e1c140e3344a45ad841fa39a33e0b3be88d805cfd02a1aec6e8989a2e73a0d02"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/roster.tsv",
+        "bytes": 124,
+        "sha256": "0ffa218d0937cb50b0754653d5a43956a2cfb7d73f5e48cfc398a47fd41d90a9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/df2b100fb4069ac97920ae5a06bbf31a68f510d46bb99f019251fc8d8bf90258/shared-source.txt",
+        "bytes": 1302,
+        "sha256": "b9db0488856021e5171271ff80ffdf6b7f008e6f658e1b6ce13e6c907c23def4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/admission-facts.json",
+        "bytes": 2406,
+        "sha256": "70cdc04c567b46886412c61f26de1a4d0690ff681580afde79c3f9e4d41574e2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "cefb2591fb080e376c2cd5e065ab3087f28099e8e55e92d730d2e580b777007d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/combat-request.json",
+        "bytes": 146,
+        "sha256": "3878122f8944b0ed20d7e81e0bce58d69da0dc0e61c83bf774615973861c9b86"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "a041be98dbdb584adf0ea7f848e6667fe4ed2691a71a43d9f147a3da629ef3f2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "856baa3d27d93e7a8320e67f590260d6fc8f359796dd0711242c7ee5b7ddcde9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "1b0a38620c2a70802007dcdd27b684c470bc8b42f7b29f296dd1546b498039cf"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/native-admission.json",
+        "bytes": 421,
+        "sha256": "434da92c0425fb5cee378b74a440fa9bee0ef4ff4bf4309f3cc29a03f4b41eeb"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/precut.json",
+        "bytes": 2523,
+        "sha256": "0db9b3bece5989b4ba73d8f96133696652debc0cbd52bbc6f3a6377808cc5c7b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/roster.tsv",
+        "bytes": 124,
+        "sha256": "69d4680f6ed2207a8dd5094ebf28c2915006ba5a81c2863c89ace35109463ee7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/ff345090372383002a6bd3d30fce0b1d86e54417b025942bdb3e137f5f1888f9/shared-source.txt",
+        "bytes": 1302,
+        "sha256": "15ca4f5b1479a585ea9d04a8e7da9e1f0a538d89c7fff7f9b1da7cb179e5a17a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/independence.json",
+        "bytes": 1086,
+        "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/native-spawn-contract.complete.json",
+        "bytes": 92,
+        "sha256": "20e588eac5ad3592ab970c2141795960ee174c1cc62fe9726dea5aca7631c210"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/native-spawn-contract.jsonl",
+        "bytes": 2724,
+        "sha256": "636c0e6d887f825e30714eed901c0350c70b9c7668a645c2d09949a158900297"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/03e46c0569c44287aed8608c12177ce6/source-coverage.json",
+        "bytes": 9996,
+        "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5"
+      }
+    ]
+  },
+  {
+    "session": "f4664eb7f3ea4b0dbc28a1a1c9de7de0",
+    "workerPid": 91344,
+    "workerExit": 2,
+    "kernelWallMillis": 154298,
+    "cpuSeconds": 255.75,
+    "peakWorkingSetBytes": 4656701440,
+    "preCutArms": 15,
+    "admissionOnlyArms": 6,
+    "pairedCells": 3,
+    "pairedSoloCells": 2,
+    "pairedPartyCells": 1,
+    "refusals": {
+      "AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED": 4,
+      "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED": 5
+    },
+    "nativeCut": 0,
+    "paidEffects": 0,
+    "fullCampaignReady": false,
+    "uniqueNativeCandidateProbes": 12,
+    "candidateBudgetReceipt": "NOT_WRITTEN_BECAUSE_PREPARATION_REFUSED",
+    "candidateCatalogFiles": 23,
+    "spawnContract": {
+      "cases": 8,
+      "passed": true,
+      "configFlagRestored": true,
+      "afterCut": false,
+      "trainingCredit": false
+    },
+    "sourceRecords": [
+      {
+        "source": 268574973,
+        "classId": 94,
+        "inventorySha": "4de4374eb697766182f605c76495aee319fe2557ba908171e4cb2f3efd4cfd31",
+        "learned": 60,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268560049,
+        "classId": 94,
+        "inventorySha": "9057c9be073f48573c98183652f58c3853008c2ae919452f2bcd33339a8eeff0",
+        "learned": 62,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268618477,
+        "classId": 90,
+        "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+        "learned": 40,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268502074,
+        "classId": 90,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+      },
+      {
+        "source": 268576142,
+        "classId": 105,
+        "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+        "learned": 53,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268501533,
+        "classId": 105,
+        "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+        "learned": 53,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268530957,
+        "classId": 103,
+        "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+        "learned": 61,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268676093,
+        "classId": 110,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+      },
+      {
+        "source": 268506392,
+        "classId": 90,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+      },
+      {
+        "source": 268564233,
+        "classId": 90,
+        "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+        "learned": 40,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268550789,
+        "classId": 110,
+        "inventorySha": "ca9e541bb190c55734eed2bd8f814b5d7d2dcae8c69b4dd4235ef87018e634e9",
+        "learned": 67,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268583777,
+        "classId": 103,
+        "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+        "learned": 61,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268484271,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268644486,
+        "classId": 110,
+        "inventorySha": "6cc150b64b5cc242940ab8ffd5f84f6b58ebacccda4fb9800d27ec8420eb7c9c",
+        "learned": 64,
+        "status": "ACQUIRED"
+      },
+      {
+        "source": 268484387,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484293,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484336,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484315,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      },
+      {
+        "source": 268484366,
+        "classId": 10,
+        "status": "REJECTED",
+        "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+      }
+    ],
+    "independence": {
+      "referenceCampaign": "autonomous009-goal009-20261114-f",
+      "referenceDataset": "autonomous009-goal009-20261114-f-c000001",
+      "referenceCellsSha": "6a41998d543796899874267586a2eae69435b5d84193b3e69dbadd19b04b2a00",
+      "referenceModelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+      "excludedSourceSnapshots": [
+        "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd",
+        "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66",
+        "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348",
+        "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8",
+        "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45",
+        "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+      ],
+      "selectedSourceSnapshots": [
+        "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d",
+        "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e",
+        "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f",
+        "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+      ],
+      "authority": "PRE_CUT_SOURCE_PROVENANCE_ONLY",
+      "trainingCredit": false
+    },
+    "fileHashes": [
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/admission-facts.json",
+        "bytes": 2406,
+        "sha256": "eeca4994a5980e90d6658eeedb38eb2e4b392522aca312d71867cfff77eaaac2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/admissions.jsonl",
+        "bytes": 107,
+        "sha256": "843583e1550338c2e6a685b4257a8b11fa193fcdbb156f5e6f6c714ad787d3db"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/combat-request.json",
+        "bytes": 146,
+        "sha256": "a35875c2f81f6340b753dcc686c301d53e7a401975a10ffc7825c506e1223f50"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "86ffb67abe2da77c13295b4da46108bad514bfb3f613a1fb8404f97e3b18d853"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "743c05dc072cc00dd87624291785ca55e2741e5b823ab0b2e0bb463ca885ae8a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "79366ed47fa235c7417a1e44e07de0160e9cf291d26cad370d65912c14e58a84"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/native-admission.json",
+        "bytes": 420,
+        "sha256": "08b32cba769ce572df2db932083344c626fd6ea33c768bd249867b55ae449483"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/precut.json",
+        "bytes": 2523,
+        "sha256": "ec5f6195ab5b60e73ec4930b0bdc8e65d1b4acf10d8bdfa78bc10670bb678760"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/roster.tsv",
+        "bytes": 124,
+        "sha256": "32fdb44ae97bbcb83adf05d756659bf0b9929d27a0fafb6978c4102a8a9651e7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1bc53ed80a432cd455af47816dedc5f2d381b07729f649e7a372cb5e7cdf56dd/shared-source.txt",
+        "bytes": 1302,
+        "sha256": "54ba2f1a938b77f4f1bf4b3ce16fbd2e97664a7c4ddd5c380024c7f50bd25c17"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/admissions.jsonl",
+        "bytes": 107,
+        "sha256": "668209c82bd209d2a9ecbe6593a70d9c86b9c7db09f858aebd79ff1447f619f1"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "0f701673642331e9c42745fe62923aecf2beebaa26a25b1f9b7bd8f3163c92b4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/party-admission.json",
+        "bytes": 437,
+        "sha256": "2f3b19379a519ebae5a6dc5fcd49f84c986f15c09f063b4261d1188e0cdf75fc"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/precut-refused.json",
+        "bytes": 754,
+        "sha256": "3b58be177f9fc7b245c664711194506505a0e3d81b136706cc2957d1515c2395"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/result.json",
+        "bytes": 533,
+        "sha256": "56edec968cfd08053610bef64f772b951eddb346749089e9a70fb6c35b639ee0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/roster.tsv",
+        "bytes": 502,
+        "sha256": "1b25fa98cf8b82658d90353d902dce761cae75bccb66ab5078157d8c3a4a655d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/1f4cdbc1abbe91951d85a275b99c79eb864b9f7f2e5815b334b0d06cf24ee8e2/shared-source.txt",
+        "bytes": 1487,
+        "sha256": "3c58a0172691521110db51e0fd684c764c8ccc1f637ece55eda72541e49be26a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "9c6d93c55690506d12932b063013f3d466a36d27fd80d3ed99b83fd66c1a522b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "2859192feed4bf150d18ce8a8c480d9cdb74e74858e3e00aadc38905e6ef72e5"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/party-admission.json",
+        "bytes": 459,
+        "sha256": "71ff4e4d1bbac1ec6b00bdd2f3a200267c808e18514774934b201272dd16d6ec"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/precut-refused.json",
+        "bytes": 758,
+        "sha256": "2c6d2e7d3a34fd304632f99a30f8c56c55f6948f43fe57e19a1bdaf716d533a1"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/result.json",
+        "bytes": 538,
+        "sha256": "150b1aacfd4c9eb660cddda78e1a7acf65599c237e18f5b10b039b2a20d79bf6"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/roster.tsv",
+        "bytes": 502,
+        "sha256": "fb089ebc71f0a3c150d96216897383e59ad968ad462f70a1cb90620848b12c0c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/27ebfd0172e1de046644c030e0b4878be472db5a80076e3fd1383161c5ec7766/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "f8077122c0d65eac1410c618a979ef7728f6c324b8c4aca68d41961f26b5e5f7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2a0e435180f77987ea0dff9faf1ba042a7f547e4550b2e0e2a38c20c6d751840.risk.tsv",
+        "bytes": 333,
+        "sha256": "36d8cb7aa15edf38d60065d6391ce1c892e0f21ad47f154aea2fd9c0cd5477d6"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/admission-facts.json",
+        "bytes": 2408,
+        "sha256": "39dd4c1e5718a8a6969c47e6162d98e8bc2a8c58e73045a6c08253c81cc0d541"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "ff545bf75410aefc24f868c4acfe6d60cd55bf39bba3deb351167f4798c9fae6"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/combat-request.json",
+        "bytes": 146,
+        "sha256": "9ad1a4c4a8c2bb72766f19ea5e02acb34e8522f6d62fc05e33f65033d0842e26"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "673eca5d1e24999d8e796e58bb230ee1cf08de7a9d0d75f40995dfdf9d2c4b7d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "473496883a57aeeb21a8f343d8e42b52a761ca9914b887e75a8278386fbd3225"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "640b3d097e9dcb69b37574ca462841f502fb1a3abb203e963ec1d7e8d585b83d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/native-admission.json",
+        "bytes": 420,
+        "sha256": "17558b783d79258dc363aff511f8a455b26450c882d9410b0fe4a81e7617a5f2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/precut.json",
+        "bytes": 2525,
+        "sha256": "000b835e62a079421d16062ae3f12f1d903bd811b5999e1b3e1121ea9f056bf7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/roster.tsv",
+        "bytes": 124,
+        "sha256": "f1770c6fb3d8784503e082a77f0d574e94201eb5947a93970cc10ba5526c158f"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/2d7f9ef6864f7b685af7ef599d736b4a7e52145e67d70d228220a96dd6a9a46a/shared-source.txt",
+        "bytes": 1265,
+        "sha256": "2ad20bdf3e885eca9f2461dec10fe6c5968daf9877cc6e1423382a68c6f88457"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/340375f8273dc9ede4ad7ca27ac5ef2be06c73e4852bd353916e78d254275d62.risk.tsv",
+        "bytes": 335,
+        "sha256": "f65bd0e2a265ca2f023dad0e20bb53698bfe45d4d5b6ddb531ab468939eec722"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/3ef7b3eae5f138a172bdd7bc38e1ccf326b45402be89d285b7697691c264eaa6.risk.tsv",
+        "bytes": 334,
+        "sha256": "1d092ca717a6bc801bd4db9400e2fcab2f553e0d3b72637086a08f528438b41e"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "05de587e46f17a117618135f1381b1dc4391fe8bf6640a958a291875496ad617"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "cc3097ae8dcbb92c2cd4392a32faeca0df57904134538c8ec9837aa669dbd4e3"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/party-admission.json",
+        "bytes": 437,
+        "sha256": "6af0d0b648590ef4430c780b18a83240df8eedc3572bb247b4241f23a7903038"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/precut-refused.json",
+        "bytes": 754,
+        "sha256": "d1b2379355e5efd7c8b1ffc614ce602c4b6b869e361ed72526ef3f2c6b9bbaaf"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/result.json",
+        "bytes": 533,
+        "sha256": "24de3f2065474c7783f7f18222cc79af93248289bfe432e9bc2b1f149b07a8f7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/roster.tsv",
+        "bytes": 502,
+        "sha256": "b181389b9e321247a99f86cd72a6f7bb90071c970ff3ad00f6151bd8ff1cff55"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/401977b1272649ff59a8ef1e612858dd6b1a66c3a8de97323ea057383b62649c/shared-source.txt",
+        "bytes": 1487,
+        "sha256": "af132689c422b3fbf0eab2911386322329a7828bf41680fbec52d378f9377c8f"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/admission-facts.json",
+        "bytes": 7051,
+        "sha256": "b89e36342495a85ea9932ede6f4babd907231fb05fec5a320dab186472b0cef4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "197d88a2115c8d64664c288dbf818fe33ddff701ba9c54fbf8cce818e8f7ba35"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "17bda1c4ca74df77c08c45be7b875b13433d56f8d00c838c40423a0dd33bcd34"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/incarnations.tsv",
+        "bytes": 190,
+        "sha256": "49973db2d9e1d0217347bf54d8b7aecde981af544e8ac00c6006a0f41ffc0f1c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "9321fa6e6f019c841bf9108ab87fb0e873ac08ae7f7b802493d6092e59285afd"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/native-admission.json",
+        "bytes": 420,
+        "sha256": "6413f22b227ebdb69e3012b7b16b52812b5abd910f334d24f0be22953e4583ea"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/party-admission.json",
+        "bytes": 301,
+        "sha256": "7ddaadddd5d8111038dfeba77e2c387bf5cc48f51cdd9e282fe0e7a532568fc4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/precut.json",
+        "bytes": 7168,
+        "sha256": "5652900940cfdfd6180f59501a86c5214a80125f340ae030b9c94fd3acd30648"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/roster.tsv",
+        "bytes": 502,
+        "sha256": "24e2267cb9f7810d636c289b50a091a8481563790983427f604da2298f67f59b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4379644b0b58ea7b52bb174574b2eb7b3545f93ebf8b26548bd9fa240cf207dd/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "b2e26544532f66c43d37f55e2dc80a287160c475d6b4901156fef1f0ad99cf59"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/46bb267af1662a718ca7007bec0226c24034b9b1ff19830615d50cefa95106db.physical.sha",
+        "bytes": 64,
+        "sha256": "50f5c73c327728137e565275ed70263e74a28610000a46a86cc3cb68b79ba289"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4afcac971478fc0c85d5f2676a7c79e779ded9b76f3204573dd451ff68b1d477.risk.tsv",
+        "bytes": 334,
+        "sha256": "aabc29658b875eaac3fb5e006dacac33d16e0c42260200cef38d26edac176a9c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/admission-facts.json",
+        "bytes": 2406,
+        "sha256": "eeca4994a5980e90d6658eeedb38eb2e4b392522aca312d71867cfff77eaaac2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "6c1b122307044a7323f73493a7c7a418fceef4f36f8a7c767f6f840e924f3632"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/combat-request.json",
+        "bytes": 146,
+        "sha256": "4d0ac97ad6e538b6e5e043f5e48425c544688864f22dbba4c61c626ea055251c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "86ffb67abe2da77c13295b4da46108bad514bfb3f613a1fb8404f97e3b18d853"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "4293dcf2e0e8e0492558eeccd02bd8b68d57a29fe1566ddbed4e73a860f7a7ad"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "79366ed47fa235c7417a1e44e07de0160e9cf291d26cad370d65912c14e58a84"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/native-admission.json",
+        "bytes": 421,
+        "sha256": "f8a83cdaf4e8a4112b337d8a019365da9839aa3a9abc8338fa859cc52bdb2cae"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/precut.json",
+        "bytes": 2523,
+        "sha256": "85cbaf1bd9c2e0bcec0abca5c38619f8af3ea95688bfa9a6f892d6dd688b83aa"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/roster.tsv",
+        "bytes": 124,
+        "sha256": "b1939394cfb30b44c7024736fd20928abc181fe3276a917b09e928d000fb30f2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/4c33bb4835da9dbf999828b569b8a268667b15f58e49ad718be71764ee0dc53e/shared-source.txt",
+        "bytes": 1302,
+        "sha256": "54ba2f1a938b77f4f1bf4b3ce16fbd2e97664a7c4ddd5c380024c7f50bd25c17"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.inventory.json",
+        "bytes": 40627,
+        "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd.source.json",
+        "bytes": 6597,
+        "sha256": "519fc8fd71afa741b65e9b79ca0047a9b8baddee8c68ce474a2f98d0eddffebd"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "cf69da8963c82b6f35795cfcf5d732b5a0b8c313c17fb383201395aefad17380"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "0f701673642331e9c42745fe62923aecf2beebaa26a25b1f9b7bd8f3163c92b4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/party-admission.json",
+        "bytes": 459,
+        "sha256": "c3a605743a76190eee762839622ab396c9bd7328cace6dcbbfa778de47643910"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/precut-refused.json",
+        "bytes": 758,
+        "sha256": "186149d15ed332bd8dabeca8873cd8a4755956e97d83a3ac63fb250ce5b43bda"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/result.json",
+        "bytes": 538,
+        "sha256": "2e81f6b324ae554f9fc3142156612f77574cb3b130da93f53a8c2e46e51d3bf7"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/roster.tsv",
+        "bytes": 502,
+        "sha256": "bbd8af20426f2f39e06345559ec2d36158a32e472553a90b8be8b92d6b70cf53"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/52cc183b44232e8af8a0f73f56a9bfddefdb8cbd330a30e295fae4be7cc4ba43/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "d4cf6e9822240e59a41f35b39d6a466100e5d3410236c76977a0ac4cfafec9dc"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5415de935737cf2625a7cc1785c13e028b0b76c247e4f29d040a4227eeb7d973.risk.tsv",
+        "bytes": 335,
+        "sha256": "01c012e5af404020a2f65cd20ffcb1f27eb5df1efa8103cc7c758de0b69b0a84"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.inventory.json",
+        "bytes": 35067,
+        "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66.source.json",
+        "bytes": 6573,
+        "sha256": "563d7e304db696ee996b13f53fb088f9df74b10ca1cb628dcdc96e935e9b3a66"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/admission-facts.json",
+        "bytes": 7051,
+        "sha256": "b89e36342495a85ea9932ede6f4babd907231fb05fec5a320dab186472b0cef4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "4bf15fa8489c2463e2976d433f975894889be4f5d17207047331c7dc0b779cef"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "17bda1c4ca74df77c08c45be7b875b13433d56f8d00c838c40423a0dd33bcd34"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/incarnations.tsv",
+        "bytes": 190,
+        "sha256": "ba14364084a4baff74cd9a0af352ddde058a792f73db640623bf337ab367e6bd"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "9321fa6e6f019c841bf9108ab87fb0e873ac08ae7f7b802493d6092e59285afd"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/native-admission.json",
+        "bytes": 420,
+        "sha256": "211a84a045e0d76feafc9bb2ad969f0d03c19562c83b8974d1f61a2be6ed0e6c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/party-admission.json",
+        "bytes": 301,
+        "sha256": "f70afde448619494087b51c27cc718e3187c0dcc5d18032ac659793fbbab2188"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/precut.json",
+        "bytes": 7168,
+        "sha256": "5235c323dff048b02ede93873dcb13be131e7a837c82989c318e0d649312a9df"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/roster.tsv",
+        "bytes": 502,
+        "sha256": "cf6ee02cc08001566a41b8b2a7daba9d2c0efe466283824de60aa5764b4232af"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/5c0c3e94234738c0738e6bde73a2b005b15c193a06fa17daf42b1b338881244b/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "b2e26544532f66c43d37f55e2dc80a287160c475d6b4901156fef1f0ad99cf59"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.inventory.json",
+        "bytes": 26456,
+        "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e.source.json",
+        "bytes": 6146,
+        "sha256": "623c2ade81a7ce5efbf85a89cfce17c364cafb91eed6383ae4233b189620889e"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.inventory.json",
+        "bytes": 35067,
+        "sha256": "0208dbef19228f0c56914c48b1dc99f78b0b84497b8b30d79710e947566e3e79"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f.source.json",
+        "bytes": 6570,
+        "sha256": "667b7dab700fa0db2691bb148b8851a96b6bd6bda0e34769ed1228134633408f"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/6fa82389cb95a7e2e48fe3b5818cd506a42ef08f9eb86e6e6b6aa9a22461fdef.risk.tsv",
+        "bytes": 333,
+        "sha256": "83b437fb52cbee837e6b6ba4bd6fc019a33befc3a97d3feda28b85499e789fc4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.inventory.json",
+        "bytes": 26456,
+        "sha256": "197c0a5a14c1d30d281d2280a9d6bf6989aadb738c7774bcc08702a832b0d800"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348.source.json",
+        "bytes": 6317,
+        "sha256": "7bd9e1c473bf47d95908d3886c892eea58fd7474e410e87d11adf0f7fb229348"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.inventory.json",
+        "bytes": 40627,
+        "sha256": "4a6a9bbc0df2e75a22a69539045395b6a529aec68b5940aa1e06ada2577b2096"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8.source.json",
+        "bytes": 6687,
+        "sha256": "83947c1c07461a0e97ab850a90747fd98186fe86fd984a5de1bf1abd8ec006b8"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.inventory.json",
+        "bytes": 42343,
+        "sha256": "1b79e58c8fd12e93a3bde3ce3463818b3b64254b46671738d31e67d702d3c1b2"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d.source.json",
+        "bytes": 6683,
+        "sha256": "92dd8c02eab102961a80cfb8b96b0767ae1cb96d3ccf43ee6ecf07165f9f590d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.inventory.json",
+        "bytes": 44254,
+        "sha256": "29dbbcc6b5470c4820ba4d207058bc35c648d3306782e7a14e2e64f720ea31d9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45.source.json",
+        "bytes": 6768,
+        "sha256": "9390c2462d2a217151500c25a74f49b9ac357d4698748bb3cbfa40c8feb08e45"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a017912cf349c77e7d9072e9915622176a6f8412e8781e984b8aca596da31c2f.physical.sha",
+        "bytes": 64,
+        "sha256": "df1c9de009da557e52540fc0f3ac5e4852a0273270e6ffba779c2773cbb2dd35"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a017912cf349c77e7d9072e9915622176a6f8412e8781e984b8aca596da31c2f.risk.tsv",
+        "bytes": 333,
+        "sha256": "3b8a64f235831f4f386327c4ffb1f077d6eb628e535c4124ab5f3f211ef16248"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "958062a007e51fc4907288b4cf30a0594b09a8bb5292cb2ba6c22e37b910fab4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "be7ff5a94bf65497ec789ffbdf35b190d23c344c56346f8e5ed5da20d7f0fa49"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/party-admission.json",
+        "bytes": 459,
+        "sha256": "b8e4b4fcfc6b7f012ec317af6c33710f7b706fce2b3bfbd820650b3b80cb0ac1"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/precut-refused.json",
+        "bytes": 758,
+        "sha256": "a305451868ea545c383ea020fc8044c43f60238913564182986560aeba70cb47"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/result.json",
+        "bytes": 538,
+        "sha256": "4d5bd79d08e9bf8e14bdd52a26db011bb6a4029b713d30b3a1e8a8a7b2bd7f91"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/roster.tsv",
+        "bytes": 502,
+        "sha256": "739865a8d9220a23c1f3f8a8aee0e3605edcf6ff0c77a16a8ded0ed0faa9c704"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/a9c5e5f4d2820681812a71be5f7fe06967ad940cf8f6ba7edd1d751ee8e69488/shared-source.txt",
+        "bytes": 1531,
+        "sha256": "edf5cf23eaee31708400f4dd1d0d6e0c1e3393b2ccd11abdd4e8a05d40e6f530"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/abafff6db52d4bc75272665821d0ff9be9224ab9e44b0bb3f789acb352e34053.risk.tsv",
+        "bytes": 334,
+        "sha256": "49fe5fb1a30bcca2338af966eeb3a83921e04e06f4c7dc681127472ece01913d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/af373b28fa47c09169742cbf821d43f27d080c53e89f16e4e88035e4fe17d1a4.physical.sha",
+        "bytes": 64,
+        "sha256": "d122f5582f7816b37ff897beff0d8574f2ae06419de2b65538059b01624b5595"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "01a3cd473dc046a21cc728b0fa19a9011b734dd5e964ed6275bcc3a49afb18dd"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "2b6cce4d19a235c7e19d000fe0bbac03e9e03de9d1b8849437f7fa99d717c877"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/party-admission.json",
+        "bytes": 459,
+        "sha256": "7a60565e528cfdf1219501571b314c8dfc795c4b66cee2ab973920873a0110c4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/precut-refused.json",
+        "bytes": 758,
+        "sha256": "20df6089a4dfe37579b42ec5c24337c8b8e556639fd29dc14634554ad642b95a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/result.json",
+        "bytes": 538,
+        "sha256": "11cf19bef741b5ce0aa8b9dc6555ca5a38b66bfc625bbd637ca422d9672cda94"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/roster.tsv",
+        "bytes": 502,
+        "sha256": "d3c4fbb9601e79c3a2ce917ee6db7b5bbf0d22c031ae601a40be5b663844f4c3"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b35a53c3744f422d72861162e44f7f8155ae051c9f2d72438b88d648d1ceb2d5/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "0ea6ed1ffe4d22ecc7a4a0dec8610e32b5339c663c5b002e4b159ca4edbd8a5d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "cc1b0b23beaf4cc69ca5c5512bc7e09af8866619f5ac0f7c07f9b701125d2681"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "0c8e524b4f94c1eb1a2adfdbc830b6678a0ecf62e8bbcee20d1f347d46c7af30"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/party-admission.json",
+        "bytes": 459,
+        "sha256": "f38ad1c221a9cbadced6e6251cb9cbd0493ee46315f7c50ca42f66670977aa06"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/precut-refused.json",
+        "bytes": 758,
+        "sha256": "efd16b37365fd5666b78dd7fd30cfece1d1ed3b1e83e0dec62b77a6f14d63c1e"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/readiness.txt",
+        "bytes": 168,
+        "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/result.json",
+        "bytes": 538,
+        "sha256": "823035d99ff505654b2dfe3b96e89f57cb0138d5c58554c01b271e2ec7732035"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/roster.tsv",
+        "bytes": 502,
+        "sha256": "4111dffaeafe9238e8dbccabf6f1bd4a6ddaa945bfd2fbf264bb12d3d2698253"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/b7e7341a13cb820e6d0f19c00b7796fe2e8196d95bade8835e0d4b9e1615410b/shared-source.txt",
+        "bytes": 1568,
+        "sha256": "26e10947d711020a04609b2a84d4a4cf4a366be972f763b900d834381a708b02"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.inventory.json",
+        "bytes": 40982,
+        "sha256": "677a2528ba64949138812aeb2d4ae1eeac90e416814f8c2d671d469306d9d401"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041.source.json",
+        "bytes": 6711,
+        "sha256": "bcfe5fbf4fb6ecc35f50ce5aeabf9ed8b7aaba38261ae17091e9d16918585041"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/admission-facts.json",
+        "bytes": 2408,
+        "sha256": "39dd4c1e5718a8a6969c47e6162d98e8bc2a8c58e73045a6c08253c81cc0d541"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/admission-only.json",
+        "bytes": 109,
+        "sha256": "df0447968142323842eefe9abaf737cfa1d34fa67d18ea341ac3a5b237fa2e27"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/admissions.jsonl",
+        "bytes": 107,
+        "sha256": "b1d059172808e5472b2294f7c18106e17dbdc4e0a5acbbab6ce96a3516bd3563"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/combat-request.json",
+        "bytes": 146,
+        "sha256": "9db23fe0e5a2de65aba1d68bbdf34624732a7e959c6eed2cc598792e1bb17b01"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/encounter-admission.json",
+        "bytes": 279,
+        "sha256": "673eca5d1e24999d8e796e58bb230ee1cf08de7a9d0d75f40995dfdf9d2c4b7d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/incarnations.tsv",
+        "bytes": 85,
+        "sha256": "d3ea555901b0f10f17ee23b1be0b3e6cf5f4097b27d8bd7071d8c7ef14700f52"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "640b3d097e9dcb69b37574ca462841f502fb1a3abb203e963ec1d7e8d585b83d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/native-admission.json",
+        "bytes": 420,
+        "sha256": "1bbd92ef0d607d6b4067c496fa0c7819d959bbf37d99020406c8f8856b7cf660"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/precut.json",
+        "bytes": 2525,
+        "sha256": "45482563710e6a0fe4bdb9f48a8f804175190b7ff9ec394c7ae9085ec32cbf3d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/roster.tsv",
+        "bytes": 124,
+        "sha256": "0f27427a36079f165cda412428f98d5b886b04b05c35b090b4cacf975514534d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/c78374285282d000fc7d61ce705ba21993fa7787d58274c19ab32ac82bf6e743/shared-source.txt",
+        "bytes": 1265,
+        "sha256": "2ad20bdf3e885eca9f2461dec10fe6c5968daf9877cc6e1423382a68c6f88457"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/cd879797e756cd84df32648a16223c297aefb4bdc5699aed5f47fad651ee0274.risk.tsv",
+        "bytes": 335,
+        "sha256": "d4af87ca0a0c99308117d5f3b674373a63738b069c4a4af131bbd9de58ba2037"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.0375245e62cd4e90168bcd93033117202e5ef1555cf86db408dcd786585a11d9.json",
+        "bytes": 3760,
+        "sha256": "0375245e62cd4e90168bcd93033117202e5ef1555cf86db408dcd786585a11d9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.06bc21d979d79d71d713d46b34bea2d99595806c1681272b4fdce15db75954ca.json",
+        "bytes": 3760,
+        "sha256": "06bc21d979d79d71d713d46b34bea2d99595806c1681272b4fdce15db75954ca"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.0991177018c6f3b76fdb71ff7e1e26644167556d4d4de52638fad4201b25a0a0.json",
+        "bytes": 3760,
+        "sha256": "0991177018c6f3b76fdb71ff7e1e26644167556d4d4de52638fad4201b25a0a0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.0dc5b00915f597a3c86094ed791a937d16c8cf66244cd9656e73b10d5301729d.json",
+        "bytes": 3760,
+        "sha256": "0dc5b00915f597a3c86094ed791a937d16c8cf66244cd9656e73b10d5301729d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.1a51589300fe25387710d0eb2c4cbc9d5acce31fe742f87150e5ea73f7856456.json",
+        "bytes": 3760,
+        "sha256": "1a51589300fe25387710d0eb2c4cbc9d5acce31fe742f87150e5ea73f7856456"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.2a16fa8455618e6ba700a7abf0ab4f91f9c3bc010e0667ac2825f48b4bde0b51.json",
+        "bytes": 213,
+        "sha256": "2a16fa8455618e6ba700a7abf0ab4f91f9c3bc010e0667ac2825f48b4bde0b51"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.38cbc71ded8ac297c86af910b22b5db54fb6bb6ddde3344149901dba0db2ed39.json",
+        "bytes": 3760,
+        "sha256": "38cbc71ded8ac297c86af910b22b5db54fb6bb6ddde3344149901dba0db2ed39"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.41aafbd64c9e3049f6f2550a39046a5086c1080dc5ae2e58d8cb278c972be493.json",
+        "bytes": 3760,
+        "sha256": "41aafbd64c9e3049f6f2550a39046a5086c1080dc5ae2e58d8cb278c972be493"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.59c36f3599f8a91ec5c86090e88ac700afa6a801d854e0b5964268e6d52cb19d.json",
+        "bytes": 3760,
+        "sha256": "59c36f3599f8a91ec5c86090e88ac700afa6a801d854e0b5964268e6d52cb19d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.5ad27c45786c8a0572ca98e520bc83c27d5f9545f5e4ea3cd958f18f889aa538.json",
+        "bytes": 212,
+        "sha256": "5ad27c45786c8a0572ca98e520bc83c27d5f9545f5e4ea3cd958f18f889aa538"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.5b9ca2b07a7a89377eef1d4d8549d8936c75b66ce91340065447161115de2ac0.json",
+        "bytes": 3760,
+        "sha256": "5b9ca2b07a7a89377eef1d4d8549d8936c75b66ce91340065447161115de2ac0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.5baf8d50bbc67b815fcb0e457f6e3d5d9ce7f03e260ada86c521165adb682a68.json",
+        "bytes": 3760,
+        "sha256": "5baf8d50bbc67b815fcb0e457f6e3d5d9ce7f03e260ada86c521165adb682a68"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.5dc526ada4c25a69e3b1470e071b32f7138bf8a48cdad20e631af850944bc613.json",
+        "bytes": 3760,
+        "sha256": "5dc526ada4c25a69e3b1470e071b32f7138bf8a48cdad20e631af850944bc613"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.74f1f20c604f099be6aaf548ac9c9fc6f8570ec635d151695de2b9392fc93378.json",
+        "bytes": 3760,
+        "sha256": "74f1f20c604f099be6aaf548ac9c9fc6f8570ec635d151695de2b9392fc93378"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.8725d45dc526cc84728961989c778f11999f470d41dc46b07a6d315516655772.json",
+        "bytes": 3138,
+        "sha256": "8725d45dc526cc84728961989c778f11999f470d41dc46b07a6d315516655772"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.a21b153849e3efa63bf9aaa50d17de8b1f072f4092cdc21ad52b1b7cba1fdf4e.json",
+        "bytes": 3158,
+        "sha256": "a21b153849e3efa63bf9aaa50d17de8b1f072f4092cdc21ad52b1b7cba1fdf4e"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.a589f7cfd86e27503843bfdd92948bf7dac79747545050bab4cf52bc096afb6e.json",
+        "bytes": 3760,
+        "sha256": "a589f7cfd86e27503843bfdd92948bf7dac79747545050bab4cf52bc096afb6e"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.a7ce69edfc66e4bb0e3d7ba2b10a594262b663bf5b32a033885c54ad6607079a.json",
+        "bytes": 3760,
+        "sha256": "a7ce69edfc66e4bb0e3d7ba2b10a594262b663bf5b32a033885c54ad6607079a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.b3533186ed9a19567c5e62f7b8c5a7ebf7ca28469bd15d91e6293f143f80a2b9.json",
+        "bytes": 3760,
+        "sha256": "b3533186ed9a19567c5e62f7b8c5a7ebf7ca28469bd15d91e6293f143f80a2b9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.c4aa12021e8c445b66b1f98caad4a20aca5bc990c7ab609723cc4b5a1a375044.json",
+        "bytes": 3736,
+        "sha256": "c4aa12021e8c445b66b1f98caad4a20aca5bc990c7ab609723cc4b5a1a375044"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.ca625e65e434fbc2e61f253ebc4f6cf9aadd9a88a9985a783bc37354cdf61153.json",
+        "bytes": 3760,
+        "sha256": "ca625e65e434fbc2e61f253ebc4f6cf9aadd9a88a9985a783bc37354cdf61153"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.e3b450d870abdf2b4af676730fda981a0f41ac7b6295bed447f63484f6c7b67d.json",
+        "bytes": 3760,
+        "sha256": "e3b450d870abdf2b4af676730fda981a0f41ac7b6295bed447f63484f6c7b67d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/curriculum-candidates-v2.fdbe7e9df79525c73cf9cc9cb6d426e86bb9a24079c5acc7bf558732d3fa3e11.json",
+        "bytes": 3760,
+        "sha256": "fdbe7e9df79525c73cf9cc9cb6d426e86bb9a24079c5acc7bf558732d3fa3e11"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.inventory.json",
+        "bytes": 39625,
+        "sha256": "944cc1ea09a4545a54caf98a634c123414f730d708bcc61fce1e671f7dcf51d0"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d.source.json",
+        "bytes": 6565,
+        "sha256": "d0597ae962a00838d8edf41e793317f66faf2ab6010304aca8ae61fb7229e25d"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/admissions.jsonl",
+        "bytes": 215,
+        "sha256": "d2170acb311f11b734e8b68d9ba39e5f1542588539beb83e8ff74049eca6f4cf"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "2b6cce4d19a235c7e19d000fe0bbac03e9e03de9d1b8849437f7fa99d717c877"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/party-admission.json",
+        "bytes": 437,
+        "sha256": "83bf00047947f7e7964386533757c582069f3253df5c381edbef29a08ca238da"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/precut-refused.json",
+        "bytes": 754,
+        "sha256": "ee553ef72cd536ea7a4e3dcf2ef1b2d46776c8948ef6363454f23bd216264cde"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/result.json",
+        "bytes": 533,
+        "sha256": "6dd8bc1f14368c70d223951f52e6960a0030a6c9369e7df3ea60f97c7c2ae662"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/roster.tsv",
+        "bytes": 502,
+        "sha256": "cb5da9168e0de2deaa97c872d5dd615a2d9cc60447cb4a6f12a31d52238919e6"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4247f764e55c6160063174a62645a6a99fdbc356d47cf04bba1df71136fc46d/shared-source.txt",
+        "bytes": 1487,
+        "sha256": "26f801136d57d9ceaeb3eedd343fbb2c23cc062dd269a90724a4d647817d677b"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/d4cb902d620e09c1c44c7f093ce71d03c50a9728c9e4311e1d0afcdd63d2ea75.risk.tsv",
+        "bytes": 335,
+        "sha256": "b295bc0b3d3ac9885780434efd865c8991a36d02e57a6f74615c8d4ec61721c4"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/admissions.jsonl",
+        "bytes": 53,
+        "sha256": "bfbcaf1b08432dbf1d602b6ddf08382402e40ee63ccc8cb3d09a42d0790a67c6"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/evaluation-arm.tsv",
+        "bytes": 22,
+        "sha256": "fb3b9c6de72cbc77b00263901e3d631f0d1aa25bb6bad2b8ef124193d879bb4a"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/local-source-binding.json",
+        "bytes": 713,
+        "sha256": "be7ff5a94bf65497ec789ffbdf35b190d23c344c56346f8e5ed5da20d7f0fa49"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/party-admission.json",
+        "bytes": 437,
+        "sha256": "7be1b1e270bad926b43ed0cc7d4e7c09168926f3def902fccac25229f8f10d9c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/precut-refused.json",
+        "bytes": 754,
+        "sha256": "5d0486829621ed21df1935e61222fb80a44ad7e68cce8bc3dabbcdf1a865dcb9"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/readiness.txt",
+        "bytes": 85,
+        "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/result.json",
+        "bytes": 533,
+        "sha256": "d8a1a714418ecc9a68f6bada97a31b2938427f2a88335a5c4fbbd273f300a6bc"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/roster.tsv",
+        "bytes": 502,
+        "sha256": "3a3ba7f8d1e503986bdd44a0f8856968c6665bc05140f12364186ea7ee8ba53c"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/f18f7cbe7e3d6bbea060b5b16a27c84c2aa74503411d1fbf0d762fb57ae3a5f8/shared-source.txt",
+        "bytes": 1450,
+        "sha256": "3ca4125a3465df2a40f5a9a3b4edf8b467716bf6789289dae8ba8705fad92e38"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/independence.json",
+        "bytes": 1086,
+        "sha256": "b630807d2a17b86aee4d23d67c8929d3aba8d9f423f3b8c745d55b5ce4829890"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/native-spawn-contract.complete.json",
+        "bytes": 92,
+        "sha256": "20e588eac5ad3592ab970c2141795960ee174c1cc62fe9726dea5aca7631c210"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/native-spawn-contract.jsonl",
+        "bytes": 2724,
+        "sha256": "d14fb15f8b9af94e2aaa6564017800ff9730115376923cd162252e2244d22ace"
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal012-20261115/admission/f4664eb7f3ea4b0dbc28a1a1c9de7de0/source-coverage.json",
+        "bytes": 9996,
+        "sha256": "df35993aabbd2ff714b4ad7da96df35f241497d2f3dcef3d9cf090381616cfa5"
+      }
+    ]
+  }
+]

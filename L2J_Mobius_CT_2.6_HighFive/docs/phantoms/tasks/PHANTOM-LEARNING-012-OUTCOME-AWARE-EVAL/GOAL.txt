@@ -1,0 +1,3 @@
+/goal PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL
+
+Задача №6 из13, осталось7. Передача PARTIAL; manual gate REQUIRED. Следующий Goal автоматически не начинать.

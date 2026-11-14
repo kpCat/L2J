@@ -1,0 +1,1945 @@
+{
+  "analysisRevision": "012/authentic-native011/typed-v2",
+  "pairs": [
+    {
+      "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+      "direction": "SOLO_DAMAGE",
+      "order": "STOCK_LEARNED",
+      "legacyStatus": "MATCHED_INCOMPLETE",
+      "evidenceTerminalComparable": true,
+      "stock": "NATIVE_ACTOR_DIED",
+      "learned": "NATIVE_KILL",
+      "bothGoalSucceeded": false,
+      "successDifference": 1
+    },
+    {
+      "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+      "direction": "PARTY_DAMAGE",
+      "order": "STOCK_LEARNED",
+      "legacyStatus": "MATCHED_COMPLETED",
+      "evidenceTerminalComparable": true,
+      "stock": "NATIVE_KILL",
+      "learned": "NATIVE_KILL",
+      "bothGoalSucceeded": true,
+      "successDifference": 0
+    },
+    {
+      "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+      "direction": "SOLO_DAMAGE",
+      "order": "LEARNED_STOCK",
+      "legacyStatus": "MATCHED_INCOMPLETE",
+      "evidenceTerminalComparable": true,
+      "stock": "NATIVE_ACTOR_DIED",
+      "learned": "NATIVE_ACTOR_DIED",
+      "bothGoalSucceeded": false,
+      "successDifference": 0
+    },
+    {
+      "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+      "direction": "PARTY_DAMAGE",
+      "order": "LEARNED_STOCK",
+      "legacyStatus": "MATCHED_COMPLETED",
+      "evidenceTerminalComparable": true,
+      "stock": "NATIVE_KILL",
+      "learned": "NATIVE_KILL",
+      "bothGoalSucceeded": true,
+      "successDifference": 0
+    }
+  ],
+  "arms": [
+    {
+      "arm": "47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b",
+      "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+      "side": "LEARNED",
+      "scope": "PARTY",
+      "reason": "NATIVE_KILL",
+      "goalSuccess": true,
+      "terminalDead": false,
+      "observedDeathsLowerBound": 0,
+      "cutNanos": 1487652466242700,
+      "terminalNanos": 1487665069632000,
+      "settledNanos": 1487669202132900,
+      "physicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "96b73a0122d936182cdb595d0b96652fc51a3d49581908cd8532b58e329d857f",
+        "settlement.json": "1039375f08df2973786017e3a5da78a13b406f8837076590eba718a2739d0176",
+        "cut.json": "4f3c0b6581f832b7266225c5a9e940e4ffff23e452320af602be8612cd4d8ce6",
+        "incarnations.tsv": "f10f58cd145913ba6b2b415ed8fbdb2c9c73424887fed002a39931b5f58d903b",
+        "encounter-admission.json": "e76a99549c2acfb20fd0bb6243d689743ef9b166dc13e93deb6b58756c48e360",
+        "result.json": "a9c44fe4a7f1baad3ea3f2a32ca49f8018da6b9e270a6c1bae29ece080370bba"
+      },
+      "paidEvents": 1,
+      "legacyCompleted": true
+    },
+    {
+      "arm": "5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3",
+      "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+      "side": "STOCK",
+      "scope": "PARTY",
+      "reason": "NATIVE_KILL",
+      "goalSuccess": true,
+      "terminalDead": false,
+      "observedDeathsLowerBound": 0,
+      "cutNanos": 1487776717691500,
+      "terminalNanos": 1487794747016800,
+      "settledNanos": 1487796790451400,
+      "physicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "3c77313feb24afb6190d0f10983c8f18e33a78c92b539a18bf8f0138bdf7c1a6",
+        "settlement.json": "9214a331c00ca1fe3a07f91a05b291cb5648bd93a354c31914778276d9355862",
+        "cut.json": "2bdd23110cfbe765a6744d3cb4ae1b5d7e86616e1adfdab4ef3e026d7239075e",
+        "incarnations.tsv": "d46d4dcb373ff897089f47e18967cb6292c725529be2c06e97dbf2064805bb9f",
+        "encounter-admission.json": "0f3f2eb74cc79cb6be6a6d34293d72b4b7da0b5c50473beee307e2f2429bb373",
+        "result.json": "a71c5a92ccd708d05e9d3711475391b22110a303352a66870e22c6724634e2ec"
+      },
+      "paidEvents": 2,
+      "legacyCompleted": true
+    },
+    {
+      "arm": "746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0",
+      "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+      "side": "STOCK",
+      "scope": "SOLO",
+      "reason": "NATIVE_ACTOR_DIED",
+      "goalSuccess": false,
+      "terminalDead": true,
+      "observedDeathsLowerBound": 1,
+      "cutNanos": 1487548363416000,
+      "terminalNanos": 1487589537796100,
+      "settledNanos": 1487589554704300,
+      "physicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "e30949542e958a0d49d1f2f954b5b3328c789857cd82136d3fbc5902bf9f0fd2",
+        "settlement.json": "de6d1392b6175e515493d9b8041c452e505a1669d8c73eea9dc6063d4935e0da",
+        "cut.json": "5cb1024cb37e1a02a806e9dfdbac7d89ebc61b6d458c3614e077546a10684850",
+        "incarnations.tsv": "9733255c8f35bd00d4328541c4a852b4a36d3b3e331088aa79f780f985b37d03",
+        "encounter-admission.json": "2c58d7aa3dfbbe3e0d3e30fa6d0b821de3a96e078b6dc1522db99c0a963363f3",
+        "result.json": "d11baeb95bae1ebfbc9e78488c305491612e872e48069fab6ba09d39e31af7bb"
+      },
+      "paidEvents": 10,
+      "legacyCompleted": false
+    },
+    {
+      "arm": "7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f",
+      "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+      "side": "LEARNED",
+      "scope": "SOLO",
+      "reason": "NATIVE_ACTOR_DIED",
+      "goalSuccess": false,
+      "terminalDead": true,
+      "observedDeathsLowerBound": 1,
+      "cutNanos": 1487673242171400,
+      "terminalNanos": 1487704931400900,
+      "settledNanos": 1487704988345600,
+      "physicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "4980cbb95a1c8afc16921813a728800bc723d6144f86e0cecbf63463c606c0fb",
+        "settlement.json": "2227b161fd7b58e4d3bb94d7a427946d9e32b5c5022c3a0990deef4e864cccb9",
+        "cut.json": "1fbd2566883cda939301717fc656d5150babf28fa8de9980149931da9d6022ee",
+        "incarnations.tsv": "651a68306467cd87a8da88996b98c63cc0d1b908980b77610fd7755f95f029c8",
+        "encounter-admission.json": "ab4acc4f79691bf207dfaa74529d713aa3be367987857926eb544c45a5c2a797",
+        "result.json": "129b6657043495e8d002c780037c2127b94194cc8e1caacda3aa9b6c548e84d8"
+      },
+      "paidEvents": 10,
+      "legacyCompleted": false
+    },
+    {
+      "arm": "86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747",
+      "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+      "side": "LEARNED",
+      "scope": "PARTY",
+      "reason": "NATIVE_KILL",
+      "goalSuccess": true,
+      "terminalDead": false,
+      "observedDeathsLowerBound": 0,
+      "cutNanos": 1487750096554400,
+      "terminalNanos": 1487764316920800,
+      "settledNanos": 1487769398566000,
+      "physicalSha": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "87910618988e0661c2b3095a15d6edafe569984449b327910261699518ef9061",
+        "settlement.json": "11afab8bb3e700e3c0ca9f295dcfdcc764100e15f70589c95dbf8feead13101f",
+        "cut.json": "3d1f77d991761933751f5b8798f2a09dddc35d09de06ce59508ea9880906384c",
+        "incarnations.tsv": "651d79f7d7f4400073e7f64c87f21e91528c1d88d67806b5dc824016ec476172",
+        "encounter-admission.json": "0f3f2eb74cc79cb6be6a6d34293d72b4b7da0b5c50473beee307e2f2429bb373",
+        "result.json": "a2082fd7677e51f96aa9d3ade27b6d16bc98fd0e315534eceea68ffae3f09a25"
+      },
+      "paidEvents": 3,
+      "legacyCompleted": true
+    },
+    {
+      "arm": "c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa",
+      "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+      "side": "STOCK",
+      "scope": "PARTY",
+      "reason": "NATIVE_KILL",
+      "goalSuccess": true,
+      "terminalDead": false,
+      "observedDeathsLowerBound": 0,
+      "cutNanos": 1487629498502000,
+      "terminalNanos": 1487640613650000,
+      "settledNanos": 1487646966551100,
+      "physicalSha": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "f040b7ee9f64899a35640165e493617f1eab116291b918edd27e7a073a0cd0c2",
+        "settlement.json": "b0aaf1c6e8fab41a72b0ab77e98ac883730df5abc673b0a6cdf07cd9f19f9d40",
+        "cut.json": "03fe4476d998b32ba3d07e260a80fd05972eb0074fc00f6ecddef4479e41bac8",
+        "incarnations.tsv": "1ba7f65254e25db463f565fdb403835b7682d7d830c893a62ebff28d4eb483d7",
+        "encounter-admission.json": "e76a99549c2acfb20fd0bb6243d689743ef9b166dc13e93deb6b58756c48e360",
+        "result.json": "f5781add52a55e99c078904614da3638242194cee910d9cfdc55433bc5512889"
+      },
+      "paidEvents": 3,
+      "legacyCompleted": true
+    },
+    {
+      "arm": "cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b",
+      "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+      "side": "STOCK",
+      "scope": "SOLO",
+      "reason": "NATIVE_ACTOR_DIED",
+      "goalSuccess": false,
+      "terminalDead": true,
+      "observedDeathsLowerBound": 1,
+      "cutNanos": 1487709968014700,
+      "terminalNanos": 1487743537786800,
+      "settledNanos": 1487743698588600,
+      "physicalSha": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "d13c54d2a659b6926b29a92eb8407a6f7ff4f3e7bcf649f2c814fa469da11f49",
+        "settlement.json": "9805d7092726eb81678fa45004afbbf39c3afeba6a87aa4740c894825fcb0cbd",
+        "cut.json": "dcdbde1dea358ab350405cb9588c41e7e2108643555403ea84ead737b1c62908",
+        "incarnations.tsv": "fceb8fcf5c106b957c48168566cacfead58f52adc1be0146a6a82ebc150747f1",
+        "encounter-admission.json": "ab4acc4f79691bf207dfaa74529d713aa3be367987857926eb544c45a5c2a797",
+        "result.json": "3d9c086a85da87ab15f5db2b2d87afea99ab082cc52ab36fee7508d94db95350"
+      },
+      "paidEvents": 7,
+      "legacyCompleted": false
+    },
+    {
+      "arm": "f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95",
+      "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+      "side": "LEARNED",
+      "scope": "SOLO",
+      "reason": "NATIVE_KILL",
+      "goalSuccess": true,
+      "terminalDead": false,
+      "observedDeathsLowerBound": 0,
+      "cutNanos": 1487594311485100,
+      "terminalNanos": 1487620711248600,
+      "settledNanos": 1487623362365600,
+      "physicalSha": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+      "sourceReceiptHashes": {
+        "evaluation-arm.tsv": "3085728cc3bddccf5c7d77e7fe4397a8d15a23cc3f9929a39a1d18f55bcd508d",
+        "settlement.json": "0b33dffb404ea1c6aa79b4a9012f8fa8bc47d63e737862ed6ebabbd5738a0d87",
+        "cut.json": "a402f35f3fe5d82d7d974f4a3e0e498d21e29d98512f2fbf98041736584ba814",
+        "incarnations.tsv": "bcd43d967bc7ff5898a69d4bb7032ef61d188ba18e23065ecc4804631d26b4d3",
+        "encounter-admission.json": "2c58d7aa3dfbbe3e0d3e30fa6d0b821de3a96e078b6dc1522db99c0a963363f3",
+        "result.json": "3441fd9bb00e9ebb9a2a37ff049b9c1dcc88822ba5385ecf56ea40d710dba2e5"
+      },
+      "paidEvents": 11,
+      "legacyCompleted": true
+    }
+  ],
+  "statistics": {
+    "SOLO": {
+      "terminalComparablePairs": 2,
+      "bothGoalSucceededPairs": 0,
+      "withDeathPairs": 2,
+      "boundedTimeoutPairs": 0,
+      "incomparablePairs": 0,
+      "learnedWinsOnly": 1,
+      "stockWinsOnly": 0,
+      "bothWin": 0,
+      "neitherWin": 1,
+      "timeoutsUnknownFuture": 0,
+      "discordantPairs": 1,
+      "exactTwoSidedSignP": 1.0,
+      "sides": {
+        "STOCK": {
+          "wins": 0,
+          "deathArms": 2,
+          "timeouts": 0,
+          "successRateWilson95": {
+            "lower": 0.0,
+            "upper": 0.6576197724933469,
+            "nIndependentPairs": 2
+          },
+          "paidLegalDivergences": 0
+        },
+        "LEARNED": {
+          "wins": 1,
+          "deathArms": 1,
+          "timeouts": 0,
+          "successRateWilson95": {
+            "lower": 0.09453120573423074,
+            "upper": 0.9054687942657693,
+            "nIndependentPairs": 2
+          },
+          "paidLegalDivergences": 6
+        }
+      },
+      "strata": [
+        "HISTORICAL_UNCLASSIFIED"
+      ],
+      "gameVerdict": "INCONCLUSIVE",
+      "confidence": "SMALL_N_DESCRIPTIVE_ONLY"
+    },
+    "PARTY": {
+      "terminalComparablePairs": 2,
+      "bothGoalSucceededPairs": 2,
+      "withDeathPairs": 0,
+      "boundedTimeoutPairs": 0,
+      "incomparablePairs": 0,
+      "learnedWinsOnly": 0,
+      "stockWinsOnly": 0,
+      "bothWin": 2,
+      "neitherWin": 0,
+      "timeoutsUnknownFuture": 0,
+      "discordantPairs": 0,
+      "exactTwoSidedSignP": null,
+      "sides": {
+        "STOCK": {
+          "wins": 2,
+          "deathArms": 0,
+          "timeouts": 0,
+          "successRateWilson95": {
+            "lower": 0.34238022750665303,
+            "upper": 1.0,
+            "nIndependentPairs": 2
+          },
+          "paidLegalDivergences": 0
+        },
+        "LEARNED": {
+          "wins": 2,
+          "deathArms": 0,
+          "timeouts": 0,
+          "successRateWilson95": {
+            "lower": 0.34238022750665303,
+            "upper": 1.0,
+            "nIndependentPairs": 2
+          },
+          "paidLegalDivergences": 0
+        }
+      },
+      "strata": [
+        "HISTORICAL_UNCLASSIFIED"
+      ],
+      "gameVerdict": "INCONCLUSIVE",
+      "confidence": "SMALL_N_DESCRIPTIVE_ONLY"
+    }
+  },
+  "originalFiles": [
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/a79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "f8785b0b3791a36ef23b7b00d4ff87ea3f4c6255e1fffd70cafcb79074451afe"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/a79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298.native.json",
+      "bytes": 57482,
+      "sha256": "b4d7665143b9f6244b1c7e7f3bea9232e3400cb9a966f17d64118e426918a9f9"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/admission-facts.json",
+      "bytes": 7052,
+      "sha256": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/admissions.jsonl",
+      "bytes": 53,
+      "sha256": "49bce675a98ce8929d0421ef81a68377c001e83d4363306bc9bbb9fae922893e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/cut.json",
+      "bytes": 1190,
+      "sha256": "4f3c0b6581f832b7266225c5a9e940e4ffff23e452320af602be8612cd4d8ce6"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "e76a99549c2acfb20fd0bb6243d689743ef9b166dc13e93deb6b58756c48e360"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/evaluation-arm.tsv",
+      "bytes": 277,
+      "sha256": "96b73a0122d936182cdb595d0b96652fc51a3d49581908cd8532b58e329d857f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "6f35adad99a461070b9ddf257f783ef1bd74cc5b401a3211af027889025ea0c8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/incarnations.tsv",
+      "bytes": 190,
+      "sha256": "f10f58cd145913ba6b2b415ed8fbdb2c9c73424887fed002a39931b5f58d903b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "cfb1cdc834771783c5e43ec7cfe6df9db013ce1a9d871010b2a43de4d853d1df"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/native-admission.json",
+      "bytes": 419,
+      "sha256": "b9c183a20298ec2f5f12f293738752290e862c2bd2aa26ee327b5c4ee23b7137"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/party-admission.json",
+      "bytes": 301,
+      "sha256": "385c750b92696e25c76dc10e1ef8bad25e2ed1b5c7db9c992404dca712aac78a"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/precut.json",
+      "bytes": 7169,
+      "sha256": "9a318f5fd4780bf2b970680c16494e59fa727b9dfb3f1e14698100c02148fa4f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/readiness.txt",
+      "bytes": 168,
+      "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/reserved.json",
+      "bytes": 133,
+      "sha256": "06642928dcb53a8646be2ffa8fdd0be232e59556f4b32713f3c1b4ea658095bc"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/result.json",
+      "bytes": 4722,
+      "sha256": "a9c44fe4a7f1baad3ea3f2a32ca49f8018da6b9e270a6c1bae29ece080370bba"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/roster.tsv",
+      "bytes": 502,
+      "sha256": "fc4fce0b81accf1e6e4119a0c1b3d435f8198b72d5ec586b9d073f96c2d6a721"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/settlement.json",
+      "bytes": 1804,
+      "sha256": "1039375f08df2973786017e3a5da78a13b406f8837076590eba718a2739d0176"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/47a80bf0381b060db4ec8a4082061a269b0efa9b1445e7302217dc7d1eacc63b/shared-source.txt",
+      "bytes": 1568,
+      "sha256": "0b0a60cac609a2cbf034f96fb13dd49ecdb11170e0c1d77edc16bd35fee63667"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/admission-facts.json",
+      "bytes": 7053,
+      "sha256": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/admissions.jsonl",
+      "bytes": 107,
+      "sha256": "f2f40ad46757b05a79148947ef6705061e3e0e4b1e8fb513eae5bbf81e6ea1fd"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "6e383b6c2ffc6dbaabc1e83bd1f143b3eef0b8835077173d1ea9375f7e19b155"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4.native.json",
+      "bytes": 57096,
+      "sha256": "a15b860aa8bb5ad0e444a0dda87a0dc8805a47f1bbf878fded3856c7cafb08dc"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/cut.json",
+      "bytes": 1190,
+      "sha256": "2bdd23110cfbe765a6744d3cb4ae1b5d7e86616e1adfdab4ef3e026d7239075e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/e1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "200368aa1cc02731d763d4e7e6d22b94f3bc1a37150e17d14ed99c33a9af1e4a"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/e1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c.native.json",
+      "bytes": 57467,
+      "sha256": "4f3287de944597302093b9264d8e8b1be349abd5616bcc8cd6032f60f6342a92"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "0f3f2eb74cc79cb6be6a6d34293d72b4b7da0b5c50473beee307e2f2429bb373"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/evaluation-arm.tsv",
+      "bytes": 342,
+      "sha256": "3c77313feb24afb6190d0f10983c8f18e33a78c92b539a18bf8f0138bdf7c1a6"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "f79366a3042d226452d4139e3882c284f456dd2302d14dc2f946b29a003643a9"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/incarnations.tsv",
+      "bytes": 190,
+      "sha256": "d46d4dcb373ff897089f47e18967cb6292c725529be2c06e97dbf2064805bb9f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "3ecbf8abf124e5657358395a7392a1fae113242902cf2d0044ef8784768cf29e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/native-admission.json",
+      "bytes": 419,
+      "sha256": "f452203993c7a20e339f5abe21db9aeb6315358b2366f2cc3b2a5180ed381e11"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/party-admission.json",
+      "bytes": 301,
+      "sha256": "a151169d39cac22da7fc1a663db562981e0f819f0c64076c8613d4e95319955b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/precut.json",
+      "bytes": 7170,
+      "sha256": "3b461c1d95562dbb3243ea128a78ace7bee90cfb9a95aeb2531d93ae8fc8968e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/readiness.txt",
+      "bytes": 168,
+      "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/reserved.json",
+      "bytes": 131,
+      "sha256": "8bf3f9fd679fd0ab46a191fd7e3f8041a8fc18e59b8be294abe70e66f79c7567"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/result.json",
+      "bytes": 3224,
+      "sha256": "a71c5a92ccd708d05e9d3711475391b22110a303352a66870e22c6724634e2ec"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/roster.tsv",
+      "bytes": 502,
+      "sha256": "56b448e3fa5328f0e780057fdcc79cbf7e21653b49234ff50ec50d34438741fd"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/settlement.json",
+      "bytes": 1868,
+      "sha256": "9214a331c00ca1fe3a07f91a05b291cb5648bd93a354c31914778276d9355862"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/5eff2248620f09485801a2eef6639e8d993b64c4529a49a83cfa922b66ceb2d3/shared-source.txt",
+      "bytes": 1568,
+      "sha256": "3a61e8b9ea216d2c006815af47d2a55f20a5621c4f93da33b6f369915c29d92e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "ad450c783a92e28a95fae41702cfcaa7ec8f5c63bd03a6fc1e47196e62e7251b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd.native.json",
+      "bytes": 46493,
+      "sha256": "0688792844831f6bd6a0e5872466b1a3399a8c54eb7185678cd5a99e9ef5ad68"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "ba8bc4f45fe77bf69949568168df6a17f0291c4cf082ad740956bff0eab3163c"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595.native.json",
+      "bytes": 46509,
+      "sha256": "498f8529b916cbcc8982392f276cf882336f36217b517736526e5cae497e2cbf"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "ddd13a092ed9ae6f086dc19a2d4625f6432fdba587a4d7f9d6e6a97c212773a0"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac.native.json",
+      "bytes": 46506,
+      "sha256": "881d3388a3b81bd24c81dda7377dc877acd580296a48fa73c17e9fb8458bd401"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "d3babdf857c0d0ed43b6aa9d083813b1e92e6094ebdf5b861b9000e9acfb4647"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0.native.json",
+      "bytes": 46411,
+      "sha256": "04c1ecee382bb7a6200bc056895edf27efa73e1ed1711fc5471073baf4101817"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "876e59413c0383e36226710e5284968f78d19034fc37130fbec7b91036999f15"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23.native.json",
+      "bytes": 46494,
+      "sha256": "f9446ee48ee76918637573c305fba61b54054dbfa83d0f9f9b0649a42aa20adb"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "a4f2e3adb97701655d120e15bcf3b43a8e4c3eebbca844b0b89893415ce974fa"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210.native.json",
+      "bytes": 46408,
+      "sha256": "9b81fdd526a3013c952dac8f1a6c841cd175cfe7d181a2b701c0e4932ba8e17e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "283112f220af0680861927e923cb3f9abf24464289ec1217702a2c5f6facdb3f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab.native.json",
+      "bytes": 46401,
+      "sha256": "c2ddf47aee112b889f22a135d598834813cfeff08c40495edb13f826a33b606f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/admission-facts.json",
+      "bytes": 2408,
+      "sha256": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/admissions.jsonl",
+      "bytes": 53,
+      "sha256": "5454d04b7d9d127cf7a6ac771f944d78553405742c2d2fb84a3824991275eb1c"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/b2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "f5ebbd9cbbca8f0e7949639ea028bfb9a9f011c5c1930a7d12d8c26143e6d4be"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/b2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a.native.json",
+      "bytes": 46337,
+      "sha256": "e473a227304d8ac71b5594f90d562e05b47b522a4d37e0e60fc59b194b12fe7a"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "05e7e0713ed7943ddc1fa1ce958001ea2727d38ef951703b3f9a01d86080ef18"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb.native.json",
+      "bytes": 46409,
+      "sha256": "25fdddb4c53288bcb8356710dcbac76aea855ea03261333a9da95bd4beb31248"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/combat-request.json",
+      "bytes": 146,
+      "sha256": "c66fd73babfc53176ada8e8ef4cd546e3f72f9bcc91c56c7d65d00d5a9e8818f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/cut.json",
+      "bytes": 551,
+      "sha256": "5cb1024cb37e1a02a806e9dfdbac7d89ebc61b6d458c3614e077546a10684850"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "337a6007e9989dc44fff2ef755134962d27801c02b21face92d3eb1475526920"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9.native.json",
+      "bytes": 46499,
+      "sha256": "94923babdb669a44eb663427b9877d56ae16300a3b40687f5a0dd3d51ce49ec4"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "2c58d7aa3dfbbe3e0d3e30fa6d0b821de3a96e078b6dc1522db99c0a963363f3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/evaluation-arm.tsv",
+      "bytes": 776,
+      "sha256": "e30949542e958a0d49d1f2f954b5b3328c789857cd82136d3fbc5902bf9f0fd2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "57589c86e86a362251d3badbf6d95506fa85fb765de2776ace20a8d919875b32"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/incarnations.tsv",
+      "bytes": 85,
+      "sha256": "9733255c8f35bd00d4328541c4a852b4a36d3b3e331088aa79f780f985b37d03"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "c8ade8b667bdc69c9d6b935376f30ed6d7d6a06d673426d95babf020a85b5f0e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/native-admission.json",
+      "bytes": 421,
+      "sha256": "8ae4461a5dc4676292370accf0500f80afaa71a612ab4d1ebb00e6cf1b0e1c7d"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/precut.json",
+      "bytes": 2525,
+      "sha256": "5b0b03efcd30178bbbacdcf7c11f9f2a8c43875c97a2b4752a5644c19bf2c8fd"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/readiness.txt",
+      "bytes": 85,
+      "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/reserved.json",
+      "bytes": 131,
+      "sha256": "32516987039461998a9f967593cf3e2e96976fdbd54555213040b0c69b548b7c"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/result.json",
+      "bytes": 2784,
+      "sha256": "d11baeb95bae1ebfbc9e78488c305491612e872e48069fab6ba09d39e31af7bb"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/roster.tsv",
+      "bytes": 124,
+      "sha256": "13d9578d54083bc08f2d01a292434878f8be564e23bce0f8eeebcd81e3a70834"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/settlement.json",
+      "bytes": 1545,
+      "sha256": "de6d1392b6175e515493d9b8041c452e505a1669d8c73eea9dc6063d4935e0da"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/746531e1f531cf0e1048eb5c3fdafc49402cb8ed8255acac5e4a3cc064b486f0/shared-source.txt",
+      "bytes": 1302,
+      "sha256": "a8a96d976fa3cd653e712c12d00ad8fa38f7590021003be69dce792970ec58d4"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "72b1b9ba6a40362ead4290374d3cfb3c82df54c02f72afe43d5deef2c8a04b2b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248.native.json",
+      "bytes": 46513,
+      "sha256": "d70e1000922cca6fda26baaaecb45397da78a955132069bd9d82103d94275c70"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "c9130eb09f8a5785e6ba1af6b26d219321ae54a01b8734edcd8810923a606d26"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2.native.json",
+      "bytes": 46489,
+      "sha256": "a8702bcbcdea8be142a2845b8b1b2ff1f777328617b1a283694b138e9e54deab"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "c8819b3910542930d7376779e180242ca5cfa2618f80d52405b91dace347b6c9"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1.native.json",
+      "bytes": 46495,
+      "sha256": "e1893cb3f1bee5bb94d023ea646e007026be684855c0d45dcf8f14600517f716"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "d055325b26323f412b8831172b9084847694ff4fe9453ff20a7f45d1fc8a405b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd.native.json",
+      "bytes": 46519,
+      "sha256": "cfbbf78efcb85baae192efbf624ef109497a88d1c4df8befc56244917cefdec8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "dafc58c7cc62f905cfa3162b54645e6fcec5d76344765dea71c8b8745013baae"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c.native.json",
+      "bytes": 46499,
+      "sha256": "aac4be69d4eb7368c096b3b48cb720f910115dd75a73324200def056752aef67"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "fe83a068a96bd1855241b4a8b61995f1a279e40e60bcc5b3f81cb4d3d9a8f920"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835.native.json",
+      "bytes": 46409,
+      "sha256": "ef72901f00401b8e1600ad5f13adea087f73b6e26b27276368f95aab4b8421c2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "4ac63e26dde3261cacb4e8453af74b6432588c75bf2f6041c7bb57339e5bb9d1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02.native.json",
+      "bytes": 46392,
+      "sha256": "1ba542684e66c6647286e595a95daa2fc11b478e25c21369ef58efa8467685ec"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/admission-facts.json",
+      "bytes": 2408,
+      "sha256": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/admissions.jsonl",
+      "bytes": 107,
+      "sha256": "00a2af5024f4727b1f761f537e3191c4a626f52ed6bff92acb1dadc7b3d34e08"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/combat-request.json",
+      "bytes": 146,
+      "sha256": "5ae9842e0645681884c6c549d039f8f841ebda3d419ff73469aa605635bdd5dc"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/cut.json",
+      "bytes": 551,
+      "sha256": "1fbd2566883cda939301717fc656d5150babf28fa8de9980149931da9d6022ee"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "cc2bc18530b94a35fbdefadc29b490748f549e4a3dde26892da90f4255277982"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391.native.json",
+      "bytes": 46511,
+      "sha256": "94c77e2c7c790386a4a603beb5316a2db8bf79911665ec1812984ccc68ef39e3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "ab4acc4f79691bf207dfaa74529d713aa3be367987857926eb544c45a5c2a797"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/evaluation-arm.tsv",
+      "bytes": 776,
+      "sha256": "4980cbb95a1c8afc16921813a728800bc723d6144f86e0cecbf63463c606c0fb"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/f60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "1cdffc72df293fa2db21661f60ea9623303a638d6148509839356c60ce117051"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/f60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f.native.json",
+      "bytes": 46338,
+      "sha256": "274093ba98f1142b9cb5a6d23eb33e38e9c7bef4c985c6366951b632a95d51f3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "0b4db8c34a74423f853562b13dfb1989dd8792bbcb2d9d28fd47bb3e56f04f99"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e.native.json",
+      "bytes": 46405,
+      "sha256": "9af48bbc161fc1e884b4814727528d97db105d2d4c28bb6c7117c875354872b6"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "c8b50c7d283c9f63efef1e7ce2696897b8f01c6619c9c209d54bbd826f36a5f2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/incarnations.tsv",
+      "bytes": 85,
+      "sha256": "651a68306467cd87a8da88996b98c63cc0d1b908980b77610fd7755f95f029c8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "ee11e8d7ca8663c3a0546712bdfe584c6d50e9920374714ebb42dab2be2ada2b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/native-admission.json",
+      "bytes": 420,
+      "sha256": "4ba6ab2dd44d47a050eaf711ee99b4fea47498b42521d8e9318f226ff655e7e7"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/precut.json",
+      "bytes": 2525,
+      "sha256": "d83f98d2af4006f777bd0fc60410a9ce8e00b4bde6e0bda3c1d48208b1f1dd90"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/readiness.txt",
+      "bytes": 85,
+      "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/reserved.json",
+      "bytes": 133,
+      "sha256": "934efd8a9649f2f088711dceb8a0546bfe52e52c976f3ba09259e6d59a60482f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/result.json",
+      "bytes": 2543,
+      "sha256": "129b6657043495e8d002c780037c2127b94194cc8e1caacda3aa9b6c548e84d8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/roster.tsv",
+      "bytes": 124,
+      "sha256": "da982a9d7000d866fa9c7775b583742d61defe7559d5acc60960700fb759f502"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/settlement.json",
+      "bytes": 1559,
+      "sha256": "2227b161fd7b58e4d3bb94d7a427946d9e32b5c5022c3a0990deef4e864cccb9"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/7deb408f2d02452d3aeb9b684a279aa1fac403aa3dfa871eadece04ce4d12f6f/shared-source.txt",
+      "bytes": 1302,
+      "sha256": "0d5fffcb742cefc41b8fb5e8c8f6f57163487315d6f6a9c58ff15308646a49be"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd.evaluation-timing.json",
+      "bytes": 337,
+      "sha256": "ee4a8630bc282a3924df1caf67d7cdf19011d34c60e9666553e58996e7eddba8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd.native.json",
+      "bytes": 57039,
+      "sha256": "61be5b43ccd1e735a43a9653eb9157d8c67a136645f152e6c0343f284d3883e8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "c753d60befa23a39e5d8a9966a843980bffc039b92b5d83a401dd69f7e38636a"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338.native.json",
+      "bytes": 57461,
+      "sha256": "7cf0117814938f752d01475c1eb882c27abbc1bffc9bef194090ed8bb9768ebf"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/admission-facts.json",
+      "bytes": 7053,
+      "sha256": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/admissions.jsonl",
+      "bytes": 53,
+      "sha256": "0028bfe718a740818eac5a8617d9b9f4625daf3328fee1305ac5eb42b1eb1c1b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "ffea8dc4b9e459fda5e7e8276b1eb3bb63e5d55ef359964643c1e34485d37b99"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425.native.json",
+      "bytes": 57447,
+      "sha256": "51b82e8ff3a126ae94c1b5516c44707ab1c1ca65a3dc09d7b7bcbfce050c4811"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/cut.json",
+      "bytes": 1190,
+      "sha256": "3d1f77d991761933751f5b8798f2a09dddc35d09de06ce59508ea9880906384c"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "0f3f2eb74cc79cb6be6a6d34293d72b4b7da0b5c50473beee307e2f2429bb373"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/evaluation-arm.tsv",
+      "bytes": 407,
+      "sha256": "87910618988e0661c2b3095a15d6edafe569984449b327910261699518ef9061"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "f79366a3042d226452d4139e3882c284f456dd2302d14dc2f946b29a003643a9"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/incarnations.tsv",
+      "bytes": 190,
+      "sha256": "651d79f7d7f4400073e7f64c87f21e91528c1d88d67806b5dc824016ec476172"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "3ecbf8abf124e5657358395a7392a1fae113242902cf2d0044ef8784768cf29e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/native-admission.json",
+      "bytes": 419,
+      "sha256": "a4bc45c3f914077531bfdf35f9eacb7ca5634a30e1cca93ba297a6a4a759094a"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/party-admission.json",
+      "bytes": 301,
+      "sha256": "f8db0614068b13ce7bd15059420917a08fe76b3d04d1a42fd6760836c783874e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/precut.json",
+      "bytes": 7170,
+      "sha256": "94dee2623f29bce2ca3206a79b1bf4879ea0f0544d49a715efd2a0293a563b06"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/readiness.txt",
+      "bytes": 168,
+      "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/reserved.json",
+      "bytes": 133,
+      "sha256": "f3c7c7f3dc1704f0ed03d29e9df4e99247a4bb8d6390a31267846e10ed728258"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/result.json",
+      "bytes": 4763,
+      "sha256": "a2082fd7677e51f96aa9d3ade27b6d16bc98fd0e315534eceea68ffae3f09a25"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/roster.tsv",
+      "bytes": 502,
+      "sha256": "ed5df29235f4e75098d9722b48f43bbc369d964fce88f718c13c8111a57b7280"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/settlement.json",
+      "bytes": 1940,
+      "sha256": "11afab8bb3e700e3c0ca9f295dcfdcc764100e15f70589c95dbf8feead13101f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/86c98097dfaf2c75f5ee462dace27969c88f36ba3bf24c95ab8f707012f6d747/shared-source.txt",
+      "bytes": 1568,
+      "sha256": "3a61e8b9ea216d2c006815af47d2a55f20a5621c4f93da33b6f369915c29d92e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "fe7b5f28cb3fb75fa1f486676ff2bd0db02d806ded979a20ce2205bb3d2d60ad"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1.native.json",
+      "bytes": 57036,
+      "sha256": "8cd7d198946eb9d1a356af946d5253c8ef30e3eefebbbd4e679a3f91f1cc5613"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "333141cb4d10e17e1b3a9a0f749a16ad13003d942bcbc2a611af87f853a4af00"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0.native.json",
+      "bytes": 57457,
+      "sha256": "ee6102c603eea1020e6cda025f03ce9d25e99e4db319d3284f53c8bc9736c19c"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/admission-facts.json",
+      "bytes": 7052,
+      "sha256": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/admissions.jsonl",
+      "bytes": 107,
+      "sha256": "a8acb17bf477ce71d37cfa232f12669bb9ea4cdc47f4a9de5780319167b466e1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/cut.json",
+      "bytes": 1190,
+      "sha256": "03fe4476d998b32ba3d07e260a80fd05972eb0074fc00f6ecddef4479e41bac8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3.evaluation-timing.json",
+      "bytes": 337,
+      "sha256": "8d11a147f12b976048961937e487c6f286241f2bf66537b971780f60afd16513"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3.native.json",
+      "bytes": 57432,
+      "sha256": "a3475d66b0f762f782dd30d6cc3d16d702078808dab3bd5aa2c44c995cac0062"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "e76a99549c2acfb20fd0bb6243d689743ef9b166dc13e93deb6b58756c48e360"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/evaluation-arm.tsv",
+      "bytes": 407,
+      "sha256": "f040b7ee9f64899a35640165e493617f1eab116291b918edd27e7a073a0cd0c2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "6f35adad99a461070b9ddf257f783ef1bd74cc5b401a3211af027889025ea0c8"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/incarnations.tsv",
+      "bytes": 190,
+      "sha256": "1ba7f65254e25db463f565fdb403835b7682d7d830c893a62ebff28d4eb483d7"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "cfb1cdc834771783c5e43ec7cfe6df9db013ce1a9d871010b2a43de4d853d1df"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/native-admission.json",
+      "bytes": 420,
+      "sha256": "f0f2a0ce7cdc44b71d215d305ce85431467b87485b277643ac7eee052ffb3ef1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/party-admission.json",
+      "bytes": 301,
+      "sha256": "37d2382a2ac53a30b02e47e3bb66b802b1c57b7e8430a268fb5ca16671a45287"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/precut.json",
+      "bytes": 7169,
+      "sha256": "85ab39d77d8901e8114715cee9b2ef76588de4415592b88504d011e332c87645"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/readiness.txt",
+      "bytes": 168,
+      "sha256": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/reserved.json",
+      "bytes": 131,
+      "sha256": "e6a12ea5013c68ae7db4d1a82c1a1393428d16e289f13b747bf2c7d5051ff322"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/result.json",
+      "bytes": 1448,
+      "sha256": "f5781add52a55e99c078904614da3638242194cee910d9cfdc55433bc5512889"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/roster.tsv",
+      "bytes": 502,
+      "sha256": "a79ea5c9f09a4a4db71fe5fbe7cd3c1b46543ff5249907240cf6a80ee60f4c5f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/settlement.json",
+      "bytes": 1916,
+      "sha256": "b0aaf1c6e8fab41a72b0ab77e98ac883730df5abc673b0a6cdf07cd9f19f9d40"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/c3b80aeed7f7378092d6554170860128cb9c9ea47d8094551de17b8e295eabaa/shared-source.txt",
+      "bytes": 1568,
+      "sha256": "0b0a60cac609a2cbf034f96fb13dd49ecdb11170e0c1d77edc16bd35fee63667"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "44de8a1b878532e9b7a9ede159a797a5897ba098e023fd7b46e057e2e263b0a5"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524.native.json",
+      "bytes": 46409,
+      "sha256": "64a718f901f25bfc5a353a86c5c6e982042068f7f2eebd658a50b6d091cd7300"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "0454736807806f0f646648f203c378e1446a45a40635d6101ba39b32dbfc49b2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7.native.json",
+      "bytes": 46395,
+      "sha256": "96e79b9ed70e8ee2aa57724746fd6f017c90159a37c3dcebce6c28722791cc2e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "652c6bfe23360bfaf8a694ad61272d164ad96d68a1d0b34ec0c26df250a2a3fe"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0.native.json",
+      "bytes": 46418,
+      "sha256": "ebc5c1b9e3eb6fadf6fbc531d05429032dc5e778c893f535ef20111de6897b64"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/admission-facts.json",
+      "bytes": 2408,
+      "sha256": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/admissions.jsonl",
+      "bytes": 53,
+      "sha256": "ff342901f414b0cb3570e930664a93bb06aee763c1f1dc1a810df7b7ef534a12"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/b4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "b0a0ddd879c7823107b95604c667b612c4af97a06979a673ec3ff6bfe03918b9"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/b4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb.native.json",
+      "bytes": 46333,
+      "sha256": "6ca1534dad5cd709504471eafa3ff0f3a05d3feb05965d8313f65ad713205025"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/combat-request.json",
+      "bytes": 146,
+      "sha256": "f0971f1e2629f5609cbd4b33b904c03a470609a71f62f4b42edcd78c8898a5b2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/cut.json",
+      "bytes": 551,
+      "sha256": "dcdbde1dea358ab350405cb9588c41e7e2108643555403ea84ead737b1c62908"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "73d84f96eadfa699c5243d0993edf9a2bd3e5a543699493eb6f412d8f1c661ab"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b.native.json",
+      "bytes": 46417,
+      "sha256": "11a12a0536dd35e816c15330efd906ed842ca2d3f794e53d3c6cc198e6704aab"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "7eeb5019a67f9806bc078f79b9bf5cf873f72a5839bfdb81fb9395dc69931dce"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963.native.json",
+      "bytes": 46487,
+      "sha256": "9a184fefcd0249f81e3364b04fa0790abee6e05a3fc222f9b251fad1a772ba41"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "ab4acc4f79691bf207dfaa74529d713aa3be367987857926eb544c45a5c2a797"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/evaluation-arm.tsv",
+      "bytes": 581,
+      "sha256": "d13c54d2a659b6926b29a92eb8407a6f7ff4f3e7bcf649f2c814fa469da11f49"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "1a0b40baa84aa25ad166cfb311a737657e078c537d0f94741ffd9bf079591e8b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b.native.json",
+      "bytes": 46406,
+      "sha256": "774484588d27a4aee2fa67493d85ac5c25c3df85d95b421162d0832238511d6a"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "c8b50c7d283c9f63efef1e7ce2696897b8f01c6619c9c209d54bbd826f36a5f2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/incarnations.tsv",
+      "bytes": 85,
+      "sha256": "fceb8fcf5c106b957c48168566cacfead58f52adc1be0146a6a82ebc150747f1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "ee11e8d7ca8663c3a0546712bdfe584c6d50e9920374714ebb42dab2be2ada2b"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/native-admission.json",
+      "bytes": 419,
+      "sha256": "51c65b69960d25d0985c759e43eb6b9f71b55c881c1317fadf3036714841caba"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/precut.json",
+      "bytes": 2525,
+      "sha256": "9eb30199ed4a62391401423d77e55536da0ca5ba0167090b9d3f9cc9ea686fdd"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/readiness.txt",
+      "bytes": 85,
+      "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/reserved.json",
+      "bytes": 131,
+      "sha256": "e6757f8842e835f63b84712f150cd40616df06b4eb2558353806e8622f7412e3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/result.json",
+      "bytes": 2388,
+      "sha256": "3d9c086a85da87ab15f5db2b2d87afea99ab082cc52ab36fee7508d94db95350"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/roster.tsv",
+      "bytes": 124,
+      "sha256": "a27e899a600633b2092a8ff6510004cd803a436d7cc20c625b475e10bb88296e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/settlement.json",
+      "bytes": 1344,
+      "sha256": "9805d7092726eb81678fa45004afbbf39c3afeba6a87aa4740c894825fcb0cbd"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/cad4a99069cf5d7e5c0bd8872e77dff60fc7c12878c1048af7912b759f80d20b/shared-source.txt",
+      "bytes": 1302,
+      "sha256": "0d5fffcb742cefc41b8fb5e8c8f6f57163487315d6f6a9c58ff15308646a49be"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "770a0881f227ba39a101617ab5bae6fba9b8904494e18ee6561f6a8d9ece699d"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed.native.json",
+      "bytes": 46515,
+      "sha256": "74b53f24901fa779a7b8fec89665ed8f8f981e2f1c9ef0b11157960a06075dba"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "1512f90bec1509f1d95d5615ab9ffa5ad6999a9a166ed91a552afbd01a8965ec"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5.native.json",
+      "bytes": 46501,
+      "sha256": "46a62ab0d5c4263735ab8a7ec5f9b77a542c06b48d29850545cf034232332d1d"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "2484a983d70344e52b055a02a4306782cd98f96e6f05e4eb2655c0f85497d0c0"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27.native.json",
+      "bytes": 46338,
+      "sha256": "7beb862be689489f4021bdec8eb46966618bb269e27c77368433c40f8a2009b3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "25f8fe645bf7253a0967a2dfa5321fc191b0af15740571a3e6025e71a9eb90ff"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639.native.json",
+      "bytes": 46409,
+      "sha256": "88e4b66a476648a25bfc471192e13edb90a8e0a491235ac9df4492ebc4240b2d"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "1afa73332fec9254d6860eb71907509d565451a70a6885244cded4a5fc9d3b6e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf.native.json",
+      "bytes": 46419,
+      "sha256": "4b7df12f9c11656f6dd83d1f9dfb0e08952c25e82216ef054a9131e019694f26"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b.evaluation-timing.json",
+      "bytes": 337,
+      "sha256": "e8e6b882d3e556fbd9926547e3e95772aef50867a32c0a3d2ca3f0df668d5d5e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b.native.json",
+      "bytes": 46503,
+      "sha256": "bbdbf6cea432423c6578b597e937a33ac1e08e5be1aac6cebc330c91860f5243"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "55faf675f59641035ea503ceb2ecb625462e083eb95dca459f6722da194178ef"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e.native.json",
+      "bytes": 46499,
+      "sha256": "962db05385c655ee70ece42b1cd45e25482895107942f8729f6a3e249f6c334e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/admission-facts.json",
+      "bytes": 2408,
+      "sha256": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/admissions.jsonl",
+      "bytes": 53,
+      "sha256": "0543729997832668b361267292cce573a0dbb199728a70723e27adc6935d1f72"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "b75a4a9e226ad34f2758e06c944af8a1f808020cddd047625216871e0fd1b40f"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15.native.json",
+      "bytes": 46501,
+      "sha256": "48ee97212b9b5070006834746d18f4b1a8fa1c1a096e4985acca99bde724c4d1"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "75d175d22db835af6ef739ec91404a34f05cc9057f848e0f01bda95f66b6a5fc"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406.native.json",
+      "bytes": 46499,
+      "sha256": "85514485a9403f29b7ab2cf187344f0c9b8b353ef6b1abe13e47545711b3d426"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/combat-request.json",
+      "bytes": 146,
+      "sha256": "ac87d2e145986981d90c25ccadca33711e454a26b68acc6d7a5928e6dc1751b5"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/cut.json",
+      "bytes": 551,
+      "sha256": "a402f35f3fe5d82d7d974f4a3e0e498d21e29d98512f2fbf98041736584ba814"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "7f077ea312acbb80f39a9cd89072303eb6900cddde84617d62e6bd808f303a13"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6.native.json",
+      "bytes": 46516,
+      "sha256": "a12d087f6106a35a9b6db5f0ce7b0bb33e575f62a5c4bdac88e37f0ed443d00c"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc.evaluation-timing.json",
+      "bytes": 338,
+      "sha256": "38391c1772ce0882c2b600afbdc0714dacdf5d24a04d4e1fde7d33d42291a2d2"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc.native.json",
+      "bytes": 46411,
+      "sha256": "4c2a4aa54c502a6c309a0d00b4bd36fcb2901b65f3d519d2b24c3c8434285daf"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/encounter-admission.json",
+      "bytes": 277,
+      "sha256": "2c58d7aa3dfbbe3e0d3e30fa6d0b821de3a96e078b6dc1522db99c0a963363f3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/evaluation-arm.tsv",
+      "bytes": 840,
+      "sha256": "3085728cc3bddccf5c7d77e7fe4397a8d15a23cc3f9929a39a1d18f55bcd508d"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/headless-live-parity.json",
+      "bytes": 270,
+      "sha256": "57589c86e86a362251d3badbf6d95506fa85fb765de2776ace20a8d919875b32"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/incarnations.tsv",
+      "bytes": 85,
+      "sha256": "bcd43d967bc7ff5898a69d4bb7032ef61d188ba18e23065ecc4804631d26b4d3"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/local-source-binding.json",
+      "bytes": 713,
+      "sha256": "c8ade8b667bdc69c9d6b935376f30ed6d7d6a06d673426d95babf020a85b5f0e"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/native-admission.json",
+      "bytes": 420,
+      "sha256": "31a881801d2676607b5b49754bfa8f9446ce5f315c4c55228a7f6a88f7e6112d"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/precut.json",
+      "bytes": 2525,
+      "sha256": "3c41cb23da17eebe4299d74ec82f372365f0b0cbb9281214efd543592a289b22"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/readiness.txt",
+      "bytes": 85,
+      "sha256": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/reserved.json",
+      "bytes": 133,
+      "sha256": "120f413eeb3594dde5693aabc4adad5dfc8c0665ab8ba476de4338bb142d5457"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/result.json",
+      "bytes": 2380,
+      "sha256": "3441fd9bb00e9ebb9a2a37ff049b9c1dcc88822ba5385ecf56ea40d710dba2e5"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/roster.tsv",
+      "bytes": 124,
+      "sha256": "9b084e44978839ba15be278576f9dcd82482536471a8c423d6201dabca7ed841"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/settlement.json",
+      "bytes": 1760,
+      "sha256": "0b33dffb404ea1c6aa79b4a9012f8fa8bc47d63e737862ed6ebabbd5738a0d87"
+    },
+    {
+      "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/evaluations/autonomous009-goal011-20261114-eval-14/f8fe181381d9a91b43869e01a119ba2606c577ce74ed55821725022ed4071a95/shared-source.txt",
+      "bytes": 1302,
+      "sha256": "a8a96d976fa3cd653e712c12d00ad8fa38f7590021003be69dce792970ec58d4"
+    }
+  ],
+  "historicalG4": "FAIL_UNCHANGED",
+  "native012Starts": 0,
+  "sourceAuthority": {
+    "sourceFingerprint": "071f21a41e91e4f98cdd2b845cc757e2c6cea346117f3eb256ac93c8b1112002",
+    "buildSha": "c38f64ba54557cf6a0451bb06a8b657a277af53b9245eff461f55bdbb6915017",
+    "configSha": "90ff81476f8ea87a9a621bc8d8a5e2ce7113c0a9d948d52f36d42dba60d303ff",
+    "seed": 183,
+    "modelVersion": 14,
+    "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "comparator": "STOCK_ON_FROZEN_SHORTLIST_V1",
+    "trainingStateSha": "e4a2d2c882bc03565eea38901dbccb7c8f73fdcf2284eaefc930790f3b84466d",
+    "verdict": "INCONCLUSIVE_UNTIL_NATIVE_PAIRS",
+    "trainingCredit": false
+  },
+  "typedPairMetrics": [
+    {
+      "cell": "5cea2f4d42c1e1340f9e20b36c237db685ab0e539a20a0464e995b60830f7577",
+      "direction": "SOLO_DAMAGE",
+      "order": "STOCK_LEARNED",
+      "status": "TERMINAL_COMPARABLE",
+      "winDifference": 1,
+      "killTimeDeltaMillis": null,
+      "terminalDurationDeltaMillis": -14774.616600000001,
+      "observedPaidMpDelta": 1.0,
+      "stock": {
+        "terminalReason": "NATIVE_ACTOR_DIED",
+        "goalSuccess": false,
+        "terminalDead": true,
+        "observedDeathsLowerBound": 1,
+        "cutNanos": 1487548363416000,
+        "terminalNanos": 1487589537796100,
+        "settledNanos": 1487589554704300,
+        "terminalDurationMillis": 41174.3801,
+        "timeToKillMillis": null,
+        "paidActions": 10,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 6208.0,
+        "selectedPaidMp": 452.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd.evaluation-timing.json": "ad450c783a92e28a95fae41702cfcaa7ec8f5c63bd03a6fc1e47196e62e7251b",
+          "07c3c77585fe0eb37ba62d7125bea95765c698491919b1885c5a8491e2c991fd.native.json": "0688792844831f6bd6a0e5872466b1a3399a8c54eb7185678cd5a99e9ef5ad68",
+          "319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595.evaluation-timing.json": "ba8bc4f45fe77bf69949568168df6a17f0291c4cf082ad740956bff0eab3163c",
+          "319405b1fecbecb76fc1084e281c08648ff1037fccce5ab6e11718b141930595.native.json": "498f8529b916cbcc8982392f276cf882336f36217b517736526e5cae497e2cbf",
+          "3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac.evaluation-timing.json": "ddd13a092ed9ae6f086dc19a2d4625f6432fdba587a4d7f9d6e6a97c212773a0",
+          "3b3c7279bbd7057d1f95a6a5250aa653fa44698f83451824603d851050e515ac.native.json": "881d3388a3b81bd24c81dda7377dc877acd580296a48fa73c17e9fb8458bd401",
+          "3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0.evaluation-timing.json": "d3babdf857c0d0ed43b6aa9d083813b1e92e6094ebdf5b861b9000e9acfb4647",
+          "3d38106385578313c9b770529a1af5f2dff7c48d97d760968b1184e5bdcd78b0.native.json": "04c1ecee382bb7a6200bc056895edf27efa73e1ed1711fc5471073baf4101817",
+          "51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23.evaluation-timing.json": "876e59413c0383e36226710e5284968f78d19034fc37130fbec7b91036999f15",
+          "51284053053829a373f82a6098044dba3822d48a3e3751ea3d440ca571163c23.native.json": "f9446ee48ee76918637573c305fba61b54054dbfa83d0f9f9b0649a42aa20adb",
+          "7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210.evaluation-timing.json": "a4f2e3adb97701655d120e15bcf3b43a8e4c3eebbca844b0b89893415ce974fa",
+          "7508d7cc4e8194aba9be1dad5a96549264b973a337c8751818b0a4333008c210.native.json": "9b81fdd526a3013c952dac8f1a6c841cd175cfe7d181a2b701c0e4932ba8e17e",
+          "8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab.evaluation-timing.json": "283112f220af0680861927e923cb3f9abf24464289ec1217702a2c5f6facdb3f",
+          "8c90af0a3dad7fc44a183c4285cecacbc8c8eafef66532eae212456a337f27ab.native.json": "c2ddf47aee112b889f22a135d598834813cfeff08c40495edb13f826a33b606f",
+          "admission-facts.json": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+          "admissions.jsonl": "5454d04b7d9d127cf7a6ac771f944d78553405742c2d2fb84a3824991275eb1c",
+          "b2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a.evaluation-timing.json": "f5ebbd9cbbca8f0e7949639ea028bfb9a9f011c5c1930a7d12d8c26143e6d4be",
+          "b2bcea2a7b0d271ef33dd14b73a362605af722a6e6753107a47ec230b21e266a.native.json": "e473a227304d8ac71b5594f90d562e05b47b522a4d37e0e60fc59b194b12fe7a",
+          "cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb.evaluation-timing.json": "05e7e0713ed7943ddc1fa1ce958001ea2727d38ef951703b3f9a01d86080ef18",
+          "cd914a9b6b436e0e5825db0b85afaf3ec244d87bed03a90d0711c178d2e887eb.native.json": "25fdddb4c53288bcb8356710dcbac76aea855ea03261333a9da95bd4beb31248",
+          "combat-request.json": "c66fd73babfc53176ada8e8ef4cd546e3f72f9bcc91c56c7d65d00d5a9e8818f",
+          "cut.json": "5cb1024cb37e1a02a806e9dfdbac7d89ebc61b6d458c3614e077546a10684850",
+          "d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9.evaluation-timing.json": "337a6007e9989dc44fff2ef755134962d27801c02b21face92d3eb1475526920",
+          "d5e8b42690d1cc2bb99b9dc64e49e1762f189db7de5d548b01ad3b14705196b9.native.json": "94923babdb669a44eb663427b9877d56ae16300a3b40687f5a0dd3d51ce49ec4",
+          "encounter-admission.json": "2c58d7aa3dfbbe3e0d3e30fa6d0b821de3a96e078b6dc1522db99c0a963363f3",
+          "evaluation-arm.tsv": "e30949542e958a0d49d1f2f954b5b3328c789857cd82136d3fbc5902bf9f0fd2",
+          "headless-live-parity.json": "57589c86e86a362251d3badbf6d95506fa85fb765de2776ace20a8d919875b32",
+          "incarnations.tsv": "9733255c8f35bd00d4328541c4a852b4a36d3b3e331088aa79f780f985b37d03",
+          "local-source-binding.json": "c8ade8b667bdc69c9d6b935376f30ed6d7d6a06d673426d95babf020a85b5f0e",
+          "native-admission.json": "8ae4461a5dc4676292370accf0500f80afaa71a612ab4d1ebb00e6cf1b0e1c7d",
+          "precut.json": "5b0b03efcd30178bbbacdcf7c11f9f2a8c43875c97a2b4752a5644c19bf2c8fd",
+          "readiness.txt": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995",
+          "reserved.json": "32516987039461998a9f967593cf3e2e96976fdbd54555213040b0c69b548b7c",
+          "result.json": "d11baeb95bae1ebfbc9e78488c305491612e872e48069fab6ba09d39e31af7bb",
+          "roster.tsv": "13d9578d54083bc08f2d01a292434878f8be564e23bce0f8eeebcd81e3a70834",
+          "settlement.json": "de6d1392b6175e515493d9b8041c452e505a1669d8c73eea9dc6063d4935e0da",
+          "shared-source.txt": "a8a96d976fa3cd653e712c12d00ad8fa38f7590021003be69dce792970ec58d4"
+        },
+        "armV2Sha": "59ff95ce7f0b22e668b25b572ac6794f77a863504a27ddce95adc37a5ca7988f"
+      },
+      "learned": {
+        "terminalReason": "NATIVE_KILL",
+        "goalSuccess": true,
+        "terminalDead": false,
+        "observedDeathsLowerBound": 0,
+        "cutNanos": 1487594311485100,
+        "terminalNanos": 1487620711248600,
+        "settledNanos": 1487623362365600,
+        "terminalDurationMillis": 26399.7635,
+        "timeToKillMillis": 26399.7635,
+        "paidActions": 11,
+        "paidLegalDivergences": 6,
+        "selectedPaidHp": 7309.5,
+        "selectedPaidMp": 453.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed.evaluation-timing.json": "770a0881f227ba39a101617ab5bae6fba9b8904494e18ee6561f6a8d9ece699d",
+          "10032fbcc5828f9c18f0b33d7038c08c5e3575d06427aa7508acd6fc87aedaed.native.json": "74b53f24901fa779a7b8fec89665ed8f8f981e2f1c9ef0b11157960a06075dba",
+          "21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5.evaluation-timing.json": "1512f90bec1509f1d95d5615ab9ffa5ad6999a9a166ed91a552afbd01a8965ec",
+          "21fc1e3ce03a4b9376350fcdf41da8544ae67ef77f2fc01a4586affe296f5ee5.native.json": "46a62ab0d5c4263735ab8a7ec5f9b77a542c06b48d29850545cf034232332d1d",
+          "2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27.evaluation-timing.json": "2484a983d70344e52b055a02a4306782cd98f96e6f05e4eb2655c0f85497d0c0",
+          "2dc60999cf4aaf40153a46752d4ac0e6d75cb48184928d076b895175b039cd27.native.json": "7beb862be689489f4021bdec8eb46966618bb269e27c77368433c40f8a2009b3",
+          "50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639.evaluation-timing.json": "25f8fe645bf7253a0967a2dfa5321fc191b0af15740571a3e6025e71a9eb90ff",
+          "50da162f277ca71bb8820922d542a305de417aa78caaa4530b226f08b59bb639.native.json": "88e4b66a476648a25bfc471192e13edb90a8e0a491235ac9df4492ebc4240b2d",
+          "893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf.evaluation-timing.json": "1afa73332fec9254d6860eb71907509d565451a70a6885244cded4a5fc9d3b6e",
+          "893b849e709d26c18722076bf1a89d29e1bdbbb38cd2165c67202a550bacb2bf.native.json": "4b7df12f9c11656f6dd83d1f9dfb0e08952c25e82216ef054a9131e019694f26",
+          "89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b.evaluation-timing.json": "e8e6b882d3e556fbd9926547e3e95772aef50867a32c0a3d2ca3f0df668d5d5e",
+          "89e215288df7ed8737891b82b814cfe43c47c075ea6d05dcab6c5a385a88685b.native.json": "bbdbf6cea432423c6578b597e937a33ac1e08e5be1aac6cebc330c91860f5243",
+          "92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e.evaluation-timing.json": "55faf675f59641035ea503ceb2ecb625462e083eb95dca459f6722da194178ef",
+          "92afecaccf964c90ab04c20ffa29b339d8128cac64cab65ac1c05f426366585e.native.json": "962db05385c655ee70ece42b1cd45e25482895107942f8729f6a3e249f6c334e",
+          "admission-facts.json": "e738b8c83d42c62704ad70ce02efcc0b143f5ffccb721b3d70e6d986f80ebe47",
+          "admissions.jsonl": "0543729997832668b361267292cce573a0dbb199728a70723e27adc6935d1f72",
+          "bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15.evaluation-timing.json": "b75a4a9e226ad34f2758e06c944af8a1f808020cddd047625216871e0fd1b40f",
+          "bd60405924b989ee77a0de8df8e2518609ce794dec1fa75507c53947641a9a15.native.json": "48ee97212b9b5070006834746d18f4b1a8fa1c1a096e4985acca99bde724c4d1",
+          "ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406.evaluation-timing.json": "75d175d22db835af6ef739ec91404a34f05cc9057f848e0f01bda95f66b6a5fc",
+          "ccf986c96c4c13b647134cb1281d78a8d421e151637e5cee4ac5397402ca3406.native.json": "85514485a9403f29b7ab2cf187344f0c9b8b353ef6b1abe13e47545711b3d426",
+          "combat-request.json": "ac87d2e145986981d90c25ccadca33711e454a26b68acc6d7a5928e6dc1751b5",
+          "cut.json": "a402f35f3fe5d82d7d974f4a3e0e498d21e29d98512f2fbf98041736584ba814",
+          "d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6.evaluation-timing.json": "7f077ea312acbb80f39a9cd89072303eb6900cddde84617d62e6bd808f303a13",
+          "d33f33e1589c2a1316ba699715c2f7d265981a5773ec4ac7ab5cc761672765a6.native.json": "a12d087f6106a35a9b6db5f0ce7b0bb33e575f62a5c4bdac88e37f0ed443d00c",
+          "ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc.evaluation-timing.json": "38391c1772ce0882c2b600afbdc0714dacdf5d24a04d4e1fde7d33d42291a2d2",
+          "ee7d5187e0a4689312e4f5fcb5de3286ae8dafbd9b381b4060b4272d81546bbc.native.json": "4c2a4aa54c502a6c309a0d00b4bd36fcb2901b65f3d519d2b24c3c8434285daf",
+          "encounter-admission.json": "2c58d7aa3dfbbe3e0d3e30fa6d0b821de3a96e078b6dc1522db99c0a963363f3",
+          "evaluation-arm.tsv": "3085728cc3bddccf5c7d77e7fe4397a8d15a23cc3f9929a39a1d18f55bcd508d",
+          "headless-live-parity.json": "57589c86e86a362251d3badbf6d95506fa85fb765de2776ace20a8d919875b32",
+          "incarnations.tsv": "bcd43d967bc7ff5898a69d4bb7032ef61d188ba18e23065ecc4804631d26b4d3",
+          "local-source-binding.json": "c8ade8b667bdc69c9d6b935376f30ed6d7d6a06d673426d95babf020a85b5f0e",
+          "native-admission.json": "31a881801d2676607b5b49754bfa8f9446ce5f315c4c55228a7f6a88f7e6112d",
+          "precut.json": "3c41cb23da17eebe4299d74ec82f372365f0b0cbb9281214efd543592a289b22",
+          "readiness.txt": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995",
+          "reserved.json": "120f413eeb3594dde5693aabc4adad5dfc8c0665ab8ba476de4338bb142d5457",
+          "result.json": "3441fd9bb00e9ebb9a2a37ff049b9c1dcc88822ba5385ecf56ea40d710dba2e5",
+          "roster.tsv": "9b084e44978839ba15be278576f9dcd82482536471a8c423d6201dabca7ed841",
+          "settlement.json": "0b33dffb404ea1c6aa79b4a9012f8fa8bc47d63e737862ed6ebabbd5738a0d87",
+          "shared-source.txt": "a8a96d976fa3cd653e712c12d00ad8fa38f7590021003be69dce792970ec58d4"
+        },
+        "armV2Sha": "f47379f64d8d26dae4d83ceb515d17385bf7f710c641f3ab27020d3e4aac2777"
+      }
+    },
+    {
+      "cell": "78e15c5fe50892cae474e8cc7e4e6a6d79e0a1c6847ff4856cbee90b760cc576",
+      "direction": "PARTY_DAMAGE",
+      "order": "STOCK_LEARNED",
+      "status": "TERMINAL_COMPARABLE",
+      "winDifference": 0,
+      "killTimeDeltaMillis": 1488.2413,
+      "terminalDurationDeltaMillis": 1488.2413000000015,
+      "observedPaidMpDelta": -208.0,
+      "stock": {
+        "terminalReason": "NATIVE_KILL",
+        "goalSuccess": true,
+        "terminalDead": false,
+        "observedDeathsLowerBound": 0,
+        "cutNanos": 1487629498502000,
+        "terminalNanos": 1487640613650000,
+        "settledNanos": 1487646966551100,
+        "terminalDurationMillis": 11115.148,
+        "timeToKillMillis": 11115.148,
+        "paidActions": 3,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 2937.0,
+        "selectedPaidMp": 258.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1.evaluation-timing.json": "fe7b5f28cb3fb75fa1f486676ff2bd0db02d806ded979a20ce2205bb3d2d60ad",
+          "5c18d54dcb40bbb0ffb1739e44521acc884eb52c721e2a895a8da73391122ad1.native.json": "8cd7d198946eb9d1a356af946d5253c8ef30e3eefebbbd4e679a3f91f1cc5613",
+          "99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0.evaluation-timing.json": "333141cb4d10e17e1b3a9a0f749a16ad13003d942bcbc2a611af87f853a4af00",
+          "99aedf6b4393b25f25a1b97e1bb1ae4c4e63a57ce922fa3c9e05bbb11b57bef0.native.json": "ee6102c603eea1020e6cda025f03ce9d25e99e4db319d3284f53c8bc9736c19c",
+          "admission-facts.json": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+          "admissions.jsonl": "a8acb17bf477ce71d37cfa232f12669bb9ea4cdc47f4a9de5780319167b466e1",
+          "cut.json": "03fe4476d998b32ba3d07e260a80fd05972eb0074fc00f6ecddef4479e41bac8",
+          "d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3.evaluation-timing.json": "8d11a147f12b976048961937e487c6f286241f2bf66537b971780f60afd16513",
+          "d9f8651569e248cd9bc586e3409106f0a4e57ddd0d3cd35bdeef1ab5ed5ea6a3.native.json": "a3475d66b0f762f782dd30d6cc3d16d702078808dab3bd5aa2c44c995cac0062",
+          "encounter-admission.json": "e76a99549c2acfb20fd0bb6243d689743ef9b166dc13e93deb6b58756c48e360",
+          "evaluation-arm.tsv": "f040b7ee9f64899a35640165e493617f1eab116291b918edd27e7a073a0cd0c2",
+          "headless-live-parity.json": "6f35adad99a461070b9ddf257f783ef1bd74cc5b401a3211af027889025ea0c8",
+          "incarnations.tsv": "1ba7f65254e25db463f565fdb403835b7682d7d830c893a62ebff28d4eb483d7",
+          "local-source-binding.json": "cfb1cdc834771783c5e43ec7cfe6df9db013ce1a9d871010b2a43de4d853d1df",
+          "native-admission.json": "f0f2a0ce7cdc44b71d215d305ce85431467b87485b277643ac7eee052ffb3ef1",
+          "party-admission.json": "37d2382a2ac53a30b02e47e3bb66b802b1c57b7e8430a268fb5ca16671a45287",
+          "precut.json": "85ab39d77d8901e8114715cee9b2ef76588de4415592b88504d011e332c87645",
+          "readiness.txt": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807",
+          "reserved.json": "e6a12ea5013c68ae7db4d1a82c1a1393428d16e289f13b747bf2c7d5051ff322",
+          "result.json": "f5781add52a55e99c078904614da3638242194cee910d9cfdc55433bc5512889",
+          "roster.tsv": "a79ea5c9f09a4a4db71fe5fbe7cd3c1b46543ff5249907240cf6a80ee60f4c5f",
+          "settlement.json": "b0aaf1c6e8fab41a72b0ab77e98ac883730df5abc673b0a6cdf07cd9f19f9d40",
+          "shared-source.txt": "0b0a60cac609a2cbf034f96fb13dd49ecdb11170e0c1d77edc16bd35fee63667"
+        },
+        "armV2Sha": "611b6a824682d18df185523a087929122a4fcf58e6ef866daa1ec62524b7afd5"
+      },
+      "learned": {
+        "terminalReason": "NATIVE_KILL",
+        "goalSuccess": true,
+        "terminalDead": false,
+        "observedDeathsLowerBound": 0,
+        "cutNanos": 1487652466242700,
+        "terminalNanos": 1487665069632000,
+        "settledNanos": 1487669202132900,
+        "terminalDurationMillis": 12603.3893,
+        "timeToKillMillis": 12603.3893,
+        "paidActions": 1,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 509.0,
+        "selectedPaidMp": 50.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "a79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298.evaluation-timing.json": "f8785b0b3791a36ef23b7b00d4ff87ea3f4c6255e1fffd70cafcb79074451afe",
+          "a79cda1483032d1f3f615e293d49e14f33893e45201a19c3cc18ff4a9782a298.native.json": "b4d7665143b9f6244b1c7e7f3bea9232e3400cb9a966f17d64118e426918a9f9",
+          "admission-facts.json": "7e54be73cac318847bf8ef3837716438af7c66d8725a4a9e3ac3cfd7c917233b",
+          "admissions.jsonl": "49bce675a98ce8929d0421ef81a68377c001e83d4363306bc9bbb9fae922893e",
+          "cut.json": "4f3c0b6581f832b7266225c5a9e940e4ffff23e452320af602be8612cd4d8ce6",
+          "encounter-admission.json": "e76a99549c2acfb20fd0bb6243d689743ef9b166dc13e93deb6b58756c48e360",
+          "evaluation-arm.tsv": "96b73a0122d936182cdb595d0b96652fc51a3d49581908cd8532b58e329d857f",
+          "headless-live-parity.json": "6f35adad99a461070b9ddf257f783ef1bd74cc5b401a3211af027889025ea0c8",
+          "incarnations.tsv": "f10f58cd145913ba6b2b415ed8fbdb2c9c73424887fed002a39931b5f58d903b",
+          "local-source-binding.json": "cfb1cdc834771783c5e43ec7cfe6df9db013ce1a9d871010b2a43de4d853d1df",
+          "native-admission.json": "b9c183a20298ec2f5f12f293738752290e862c2bd2aa26ee327b5c4ee23b7137",
+          "party-admission.json": "385c750b92696e25c76dc10e1ef8bad25e2ed1b5c7db9c992404dca712aac78a",
+          "precut.json": "9a318f5fd4780bf2b970680c16494e59fa727b9dfb3f1e14698100c02148fa4f",
+          "readiness.txt": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807",
+          "reserved.json": "06642928dcb53a8646be2ffa8fdd0be232e59556f4b32713f3c1b4ea658095bc",
+          "result.json": "a9c44fe4a7f1baad3ea3f2a32ca49f8018da6b9e270a6c1bae29ece080370bba",
+          "roster.tsv": "fc4fce0b81accf1e6e4119a0c1b3d435f8198b72d5ec586b9d073f96c2d6a721",
+          "settlement.json": "1039375f08df2973786017e3a5da78a13b406f8837076590eba718a2739d0176",
+          "shared-source.txt": "0b0a60cac609a2cbf034f96fb13dd49ecdb11170e0c1d77edc16bd35fee63667"
+        },
+        "armV2Sha": "6982c8385dc056d59db8d42c6975fb97306ba87b40762cd2d60abf170abf1dd9"
+      }
+    },
+    {
+      "cell": "7382860a778ca342a19431d47a50f00ffcd24a00c01da72ec4fe868f0d442d89",
+      "direction": "SOLO_DAMAGE",
+      "order": "LEARNED_STOCK",
+      "status": "TERMINAL_COMPARABLE",
+      "winDifference": 0,
+      "killTimeDeltaMillis": null,
+      "terminalDurationDeltaMillis": -1880.5426000000007,
+      "observedPaidMpDelta": 157.80031999999983,
+      "stock": {
+        "terminalReason": "NATIVE_ACTOR_DIED",
+        "goalSuccess": false,
+        "terminalDead": true,
+        "observedDeathsLowerBound": 1,
+        "cutNanos": 1487709968014700,
+        "terminalNanos": 1487743537786800,
+        "settledNanos": 1487743698588600,
+        "terminalDurationMillis": 33569.7721,
+        "timeToKillMillis": null,
+        "paidActions": 7,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 4343.0,
+        "selectedPaidMp": 313.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524.evaluation-timing.json": "44de8a1b878532e9b7a9ede159a797a5897ba098e023fd7b46e057e2e263b0a5",
+          "1dd3d860d6afff1d397ba95afe7e643d99ac8d2e3cb5735346e6c5663d274524.native.json": "64a718f901f25bfc5a353a86c5c6e982042068f7f2eebd658a50b6d091cd7300",
+          "2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7.evaluation-timing.json": "0454736807806f0f646648f203c378e1446a45a40635d6101ba39b32dbfc49b2",
+          "2503fde5e2fb0ff8ae12e0397360a7bd1040278ee8c9de8bf440a85f003e46d7.native.json": "96e79b9ed70e8ee2aa57724746fd6f017c90159a37c3dcebce6c28722791cc2e",
+          "8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0.evaluation-timing.json": "652c6bfe23360bfaf8a694ad61272d164ad96d68a1d0b34ec0c26df250a2a3fe",
+          "8247e8c0e9f161c409d3a67ac9015fbef33eafb469a9d575f0f1f9abbc36b2c0.native.json": "ebc5c1b9e3eb6fadf6fbc531d05429032dc5e778c893f535ef20111de6897b64",
+          "admission-facts.json": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+          "admissions.jsonl": "ff342901f414b0cb3570e930664a93bb06aee763c1f1dc1a810df7b7ef534a12",
+          "b4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb.evaluation-timing.json": "b0a0ddd879c7823107b95604c667b612c4af97a06979a673ec3ff6bfe03918b9",
+          "b4ce7d7e6f6b5a4072be56485ec586653aac0bfcf9e8b94630b3ff178f2a4bbb.native.json": "6ca1534dad5cd709504471eafa3ff0f3a05d3feb05965d8313f65ad713205025",
+          "combat-request.json": "f0971f1e2629f5609cbd4b33b904c03a470609a71f62f4b42edcd78c8898a5b2",
+          "cut.json": "dcdbde1dea358ab350405cb9588c41e7e2108643555403ea84ead737b1c62908",
+          "d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b.evaluation-timing.json": "73d84f96eadfa699c5243d0993edf9a2bd3e5a543699493eb6f412d8f1c661ab",
+          "d8ec7ef1192431e28281ed5ce3d0a41bab6ee677c1c7307eb81e02a67d16157b.native.json": "11a12a0536dd35e816c15330efd906ed842ca2d3f794e53d3c6cc198e6704aab",
+          "ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963.evaluation-timing.json": "7eeb5019a67f9806bc078f79b9bf5cf873f72a5839bfdb81fb9395dc69931dce",
+          "ee6ddac5c5990186ac72659f070efbc27a6b0c9dc8984ba638847a95f75db963.native.json": "9a184fefcd0249f81e3364b04fa0790abee6e05a3fc222f9b251fad1a772ba41",
+          "encounter-admission.json": "ab4acc4f79691bf207dfaa74529d713aa3be367987857926eb544c45a5c2a797",
+          "evaluation-arm.tsv": "d13c54d2a659b6926b29a92eb8407a6f7ff4f3e7bcf649f2c814fa469da11f49",
+          "fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b.evaluation-timing.json": "1a0b40baa84aa25ad166cfb311a737657e078c537d0f94741ffd9bf079591e8b",
+          "fa7366d47786ae06a9f30bf06fb4d9b721b28ea4947f3349ffcc8d8a4bc0bb3b.native.json": "774484588d27a4aee2fa67493d85ac5c25c3df85d95b421162d0832238511d6a",
+          "headless-live-parity.json": "c8b50c7d283c9f63efef1e7ce2696897b8f01c6619c9c209d54bbd826f36a5f2",
+          "incarnations.tsv": "fceb8fcf5c106b957c48168566cacfead58f52adc1be0146a6a82ebc150747f1",
+          "local-source-binding.json": "ee11e8d7ca8663c3a0546712bdfe584c6d50e9920374714ebb42dab2be2ada2b",
+          "native-admission.json": "51c65b69960d25d0985c759e43eb6b9f71b55c881c1317fadf3036714841caba",
+          "precut.json": "9eb30199ed4a62391401423d77e55536da0ca5ba0167090b9d3f9cc9ea686fdd",
+          "readiness.txt": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995",
+          "reserved.json": "e6757f8842e835f63b84712f150cd40616df06b4eb2558353806e8622f7412e3",
+          "result.json": "3d9c086a85da87ab15f5db2b2d87afea99ab082cc52ab36fee7508d94db95350",
+          "roster.tsv": "a27e899a600633b2092a8ff6510004cd803a436d7cc20c625b475e10bb88296e",
+          "settlement.json": "9805d7092726eb81678fa45004afbbf39c3afeba6a87aa4740c894825fcb0cbd",
+          "shared-source.txt": "0d5fffcb742cefc41b8fb5e8c8f6f57163487315d6f6a9c58ff15308646a49be"
+        },
+        "armV2Sha": "e8f7a80d7dafc087d27c92799358489a3ea0cde0642a736c5fbe0b125f4c805b"
+      },
+      "learned": {
+        "terminalReason": "NATIVE_ACTOR_DIED",
+        "goalSuccess": false,
+        "terminalDead": true,
+        "observedDeathsLowerBound": 1,
+        "cutNanos": 1487673242171400,
+        "terminalNanos": 1487704931400900,
+        "settledNanos": 1487704988345600,
+        "terminalDurationMillis": 31689.2295,
+        "timeToKillMillis": null,
+        "paidActions": 10,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 6807.0,
+        "selectedPaidMp": 470.80031999999983,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248.evaluation-timing.json": "72b1b9ba6a40362ead4290374d3cfb3c82df54c02f72afe43d5deef2c8a04b2b",
+          "19cdb3c6bc477896d68e9b0e41b053ac2842589856d18d5d97336eb4de1b6248.native.json": "d70e1000922cca6fda26baaaecb45397da78a955132069bd9d82103d94275c70",
+          "3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2.evaluation-timing.json": "c9130eb09f8a5785e6ba1af6b26d219321ae54a01b8734edcd8810923a606d26",
+          "3ffc0a6db1fc3b784a02ff2cf1cb91a45bb641f2e7dca0ad27b2763d65a9a6d2.native.json": "a8702bcbcdea8be142a2845b8b1b2ff1f777328617b1a283694b138e9e54deab",
+          "53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1.evaluation-timing.json": "c8819b3910542930d7376779e180242ca5cfa2618f80d52405b91dace347b6c9",
+          "53385be96d4da1209b6997aefbc362648610e031efb0d61c59cb1ae2b1e039d1.native.json": "e1893cb3f1bee5bb94d023ea646e007026be684855c0d45dcf8f14600517f716",
+          "5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd.evaluation-timing.json": "d055325b26323f412b8831172b9084847694ff4fe9453ff20a7f45d1fc8a405b",
+          "5935c554f784d1ec657e5ff8a592225c27cbf5ecc3dae73f88a5a2c7b666e2fd.native.json": "cfbbf78efcb85baae192efbf624ef109497a88d1c4df8befc56244917cefdec8",
+          "654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c.evaluation-timing.json": "dafc58c7cc62f905cfa3162b54645e6fcec5d76344765dea71c8b8745013baae",
+          "654070066405c841bf4574a357eca8fae81480378d86c06902f33702cdc33a5c.native.json": "aac4be69d4eb7368c096b3b48cb720f910115dd75a73324200def056752aef67",
+          "6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835.evaluation-timing.json": "fe83a068a96bd1855241b4a8b61995f1a279e40e60bcc5b3f81cb4d3d9a8f920",
+          "6c63ed26d21dfc82f4b5fc99690ab89094b1dc23e3a010177e6e12affa101835.native.json": "ef72901f00401b8e1600ad5f13adea087f73b6e26b27276368f95aab4b8421c2",
+          "6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02.evaluation-timing.json": "4ac63e26dde3261cacb4e8453af74b6432588c75bf2f6041c7bb57339e5bb9d1",
+          "6e786c00ead1533509a1269300142e76765f5fc04a4e43049c46756477fbef02.native.json": "1ba542684e66c6647286e595a95daa2fc11b478e25c21369ef58efa8467685ec",
+          "admission-facts.json": "83228ac36a49da9be4cf0a221ae72f20c4558f847aac9a8e7cf45fe924f2f1c1",
+          "admissions.jsonl": "00a2af5024f4727b1f761f537e3191c4a626f52ed6bff92acb1dadc7b3d34e08",
+          "combat-request.json": "5ae9842e0645681884c6c549d039f8f841ebda3d419ff73469aa605635bdd5dc",
+          "cut.json": "1fbd2566883cda939301717fc656d5150babf28fa8de9980149931da9d6022ee",
+          "d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391.evaluation-timing.json": "cc2bc18530b94a35fbdefadc29b490748f549e4a3dde26892da90f4255277982",
+          "d681ca8bdde439c77d8f8885d00301daa6a2ffe556fe0e4fd82a695771e29391.native.json": "94c77e2c7c790386a4a603beb5316a2db8bf79911665ec1812984ccc68ef39e3",
+          "encounter-admission.json": "ab4acc4f79691bf207dfaa74529d713aa3be367987857926eb544c45a5c2a797",
+          "evaluation-arm.tsv": "4980cbb95a1c8afc16921813a728800bc723d6144f86e0cecbf63463c606c0fb",
+          "f60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f.evaluation-timing.json": "1cdffc72df293fa2db21661f60ea9623303a638d6148509839356c60ce117051",
+          "f60f6126c8fc36dada0d7d112c4ce97b6f375a2a873c7cbad6946692d0f6217f.native.json": "274093ba98f1142b9cb5a6d23eb33e38e9c7bef4c985c6366951b632a95d51f3",
+          "f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e.evaluation-timing.json": "0b4db8c34a74423f853562b13dfb1989dd8792bbcb2d9d28fd47bb3e56f04f99",
+          "f7723d13dcf1eebdc260ad8f7601bf1d0b8c7686e3b4b1e7be5f7bfb23340f2e.native.json": "9af48bbc161fc1e884b4814727528d97db105d2d4c28bb6c7117c875354872b6",
+          "headless-live-parity.json": "c8b50c7d283c9f63efef1e7ce2696897b8f01c6619c9c209d54bbd826f36a5f2",
+          "incarnations.tsv": "651a68306467cd87a8da88996b98c63cc0d1b908980b77610fd7755f95f029c8",
+          "local-source-binding.json": "ee11e8d7ca8663c3a0546712bdfe584c6d50e9920374714ebb42dab2be2ada2b",
+          "native-admission.json": "4ba6ab2dd44d47a050eaf711ee99b4fea47498b42521d8e9318f226ff655e7e7",
+          "precut.json": "d83f98d2af4006f777bd0fc60410a9ce8e00b4bde6e0bda3c1d48208b1f1dd90",
+          "readiness.txt": "c87c8a07b06345abc46cbe276b356571fa2062a7ed5efd2168c6e46f7fc25995",
+          "reserved.json": "934efd8a9649f2f088711dceb8a0546bfe52e52c976f3ba09259e6d59a60482f",
+          "result.json": "129b6657043495e8d002c780037c2127b94194cc8e1caacda3aa9b6c548e84d8",
+          "roster.tsv": "da982a9d7000d866fa9c7775b583742d61defe7559d5acc60960700fb759f502",
+          "settlement.json": "2227b161fd7b58e4d3bb94d7a427946d9e32b5c5022c3a0990deef4e864cccb9",
+          "shared-source.txt": "0d5fffcb742cefc41b8fb5e8c8f6f57163487315d6f6a9c58ff15308646a49be"
+        },
+        "armV2Sha": "c4605535c8a934e1c4f8b33ad7d94edd7362f6a0f01ff5a86b1661a6b0297db6"
+      }
+    },
+    {
+      "cell": "bcf18aeffc28af2ed8ab87eddbaf7fd441f67453ec2bb13e0131af0c6cf2df0a",
+      "direction": "PARTY_DAMAGE",
+      "order": "LEARNED_STOCK",
+      "status": "TERMINAL_COMPARABLE",
+      "winDifference": 0,
+      "killTimeDeltaMillis": -3808.9589,
+      "terminalDurationDeltaMillis": -3808.9588999999996,
+      "observedPaidMpDelta": 158.0,
+      "stock": {
+        "terminalReason": "NATIVE_KILL",
+        "goalSuccess": true,
+        "terminalDead": false,
+        "observedDeathsLowerBound": 0,
+        "cutNanos": 1487776717691500,
+        "terminalNanos": 1487794747016800,
+        "settledNanos": 1487796790451400,
+        "terminalDurationMillis": 18029.3253,
+        "timeToKillMillis": 18029.3253,
+        "paidActions": 2,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 940.0,
+        "selectedPaidMp": 100.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "admission-facts.json": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+          "admissions.jsonl": "f2f40ad46757b05a79148947ef6705061e3e0e4b1e8fb513eae5bbf81e6ea1fd",
+          "cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4.evaluation-timing.json": "6e383b6c2ffc6dbaabc1e83bd1f143b3eef0b8835077173d1ea9375f7e19b155",
+          "cf54c2d49e72e292c22518c707d3ec7856b217c052b1f48f0d5844c452fa66f4.native.json": "a15b860aa8bb5ad0e444a0dda87a0dc8805a47f1bbf878fded3856c7cafb08dc",
+          "cut.json": "2bdd23110cfbe765a6744d3cb4ae1b5d7e86616e1adfdab4ef3e026d7239075e",
+          "e1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c.evaluation-timing.json": "200368aa1cc02731d763d4e7e6d22b94f3bc1a37150e17d14ed99c33a9af1e4a",
+          "e1a3c700ad5d2302363651032c9dd03becb65c8e3d0ce9698060d3f1f9a6e49c.native.json": "4f3287de944597302093b9264d8e8b1be349abd5616bcc8cd6032f60f6342a92",
+          "encounter-admission.json": "0f3f2eb74cc79cb6be6a6d34293d72b4b7da0b5c50473beee307e2f2429bb373",
+          "evaluation-arm.tsv": "3c77313feb24afb6190d0f10983c8f18e33a78c92b539a18bf8f0138bdf7c1a6",
+          "headless-live-parity.json": "f79366a3042d226452d4139e3882c284f456dd2302d14dc2f946b29a003643a9",
+          "incarnations.tsv": "d46d4dcb373ff897089f47e18967cb6292c725529be2c06e97dbf2064805bb9f",
+          "local-source-binding.json": "3ecbf8abf124e5657358395a7392a1fae113242902cf2d0044ef8784768cf29e",
+          "native-admission.json": "f452203993c7a20e339f5abe21db9aeb6315358b2366f2cc3b2a5180ed381e11",
+          "party-admission.json": "a151169d39cac22da7fc1a663db562981e0f819f0c64076c8613d4e95319955b",
+          "precut.json": "3b461c1d95562dbb3243ea128a78ace7bee90cfb9a95aeb2531d93ae8fc8968e",
+          "readiness.txt": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807",
+          "reserved.json": "8bf3f9fd679fd0ab46a191fd7e3f8041a8fc18e59b8be294abe70e66f79c7567",
+          "result.json": "a71c5a92ccd708d05e9d3711475391b22110a303352a66870e22c6724634e2ec",
+          "roster.tsv": "56b448e3fa5328f0e780057fdcc79cbf7e21653b49234ff50ec50d34438741fd",
+          "settlement.json": "9214a331c00ca1fe3a07f91a05b291cb5648bd93a354c31914778276d9355862",
+          "shared-source.txt": "3a61e8b9ea216d2c006815af47d2a55f20a5621c4f93da33b6f369915c29d92e"
+        },
+        "armV2Sha": "72369241891f4588fb96bd2b0e424cc58af17b6e404be64bcf35bda6c07e6bbd"
+      },
+      "learned": {
+        "terminalReason": "NATIVE_KILL",
+        "goalSuccess": true,
+        "terminalDead": false,
+        "observedDeathsLowerBound": 0,
+        "cutNanos": 1487750096554400,
+        "terminalNanos": 1487764316920800,
+        "settledNanos": 1487769398566000,
+        "terminalDurationMillis": 14220.3664,
+        "timeToKillMillis": 14220.3664,
+        "paidActions": 3,
+        "paidLegalDivergences": 0,
+        "selectedPaidHp": 1159.0,
+        "selectedPaidMp": 258.0,
+        "wholePartyDamage": null,
+        "wholePartyMp": null,
+        "completeDeaths": null,
+        "economy": null,
+        "sourceReceiptHashes": {
+          "3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd.evaluation-timing.json": "ee4a8630bc282a3924df1caf67d7cdf19011d34c60e9666553e58996e7eddba8",
+          "3ecb59541104ef6daf0aedd3bc9ae1bfda0db1a6b547124dc4b47f5d81c02ecd.native.json": "61be5b43ccd1e735a43a9653eb9157d8c67a136645f152e6c0343f284d3883e8",
+          "65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338.evaluation-timing.json": "c753d60befa23a39e5d8a9966a843980bffc039b92b5d83a401dd69f7e38636a",
+          "65c56b71a311896f496d2b5c385d2d40eb0abe966da723d5954e1e936e4cc338.native.json": "7cf0117814938f752d01475c1eb882c27abbc1bffc9bef194090ed8bb9768ebf",
+          "admission-facts.json": "d74b58d26e3051114d82328180d5b623ad7d387bccee1512313a742e99f83870",
+          "admissions.jsonl": "0028bfe718a740818eac5a8617d9b9f4625daf3328fee1305ac5eb42b1eb1c1b",
+          "c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425.evaluation-timing.json": "ffea8dc4b9e459fda5e7e8276b1eb3bb63e5d55ef359964643c1e34485d37b99",
+          "c50b32af16ce6465e01498088dc742993ae21e35718a092036a037b7aecb4425.native.json": "51b82e8ff3a126ae94c1b5516c44707ab1c1ca65a3dc09d7b7bcbfce050c4811",
+          "cut.json": "3d1f77d991761933751f5b8798f2a09dddc35d09de06ce59508ea9880906384c",
+          "encounter-admission.json": "0f3f2eb74cc79cb6be6a6d34293d72b4b7da0b5c50473beee307e2f2429bb373",
+          "evaluation-arm.tsv": "87910618988e0661c2b3095a15d6edafe569984449b327910261699518ef9061",
+          "headless-live-parity.json": "f79366a3042d226452d4139e3882c284f456dd2302d14dc2f946b29a003643a9",
+          "incarnations.tsv": "651d79f7d7f4400073e7f64c87f21e91528c1d88d67806b5dc824016ec476172",
+          "local-source-binding.json": "3ecbf8abf124e5657358395a7392a1fae113242902cf2d0044ef8784768cf29e",
+          "native-admission.json": "a4bc45c3f914077531bfdf35f9eacb7ca5634a30e1cca93ba297a6a4a759094a",
+          "party-admission.json": "f8db0614068b13ce7bd15059420917a08fe76b3d04d1a42fd6760836c783874e",
+          "precut.json": "94dee2623f29bce2ca3206a79b1bf4879ea0f0544d49a715efd2a0293a563b06",
+          "readiness.txt": "6d5e3f3706fbdf85dd4996c1ec3623cafdfe3e83cdc1413805009ee6ed4cc807",
+          "reserved.json": "f3c7c7f3dc1704f0ed03d29e9df4e99247a4bb8d6390a31267846e10ed728258",
+          "result.json": "a2082fd7677e51f96aa9d3ade27b6d16bc98fd0e315534eceea68ffae3f09a25",
+          "roster.tsv": "ed5df29235f4e75098d9722b48f43bbc369d964fce88f718c13c8111a57b7280",
+          "settlement.json": "11afab8bb3e700e3c0ca9f295dcfdcc764100e15f70589c95dbf8feead13101f",
+          "shared-source.txt": "3a61e8b9ea216d2c006815af47d2a55f20a5621c4f93da33b6f369915c29d92e"
+        },
+        "armV2Sha": "f0ebbbea4d3280cf47cd7ca4fcefa1b5fc34f9ed57cb4d704bdc3ab98a81872c"
+      }
+    }
+  ]
+}

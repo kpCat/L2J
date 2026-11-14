@@ -1,3 +1,7 @@
+<!-- GOAL012_COUNTER -->
+012 — выданная задача **№6 из13**, после выдачи осталось **7**. Manual gate REQUIRED; следующий Goal не начат. [Итог012](tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/RESULT.md). Исторические статусы ниже не изменены.
+<!-- GOAL012_COUNTER_END -->
+
 <!-- GOAL011_CURRENT -->
 # Текущее состояние после011
 

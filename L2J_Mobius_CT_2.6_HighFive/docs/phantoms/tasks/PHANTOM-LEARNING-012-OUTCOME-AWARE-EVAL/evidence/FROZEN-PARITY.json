@@ -1,0 +1,342 @@
+{
+  "before": {
+    "schema": "GOAL012_G0_FROZEN_SNAPSHOT",
+    "sql": {
+      "sqlPid": 90600,
+      "readOnly": true,
+      "equalBefore": false,
+      "observedUtc": "2026-11-14T21:44:28.9282676Z",
+      "rows": 183,
+      "tag": "before",
+      "sqlCreated": 134391662648098695,
+      "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D"
+    },
+    "freshExport": "model-2-e2007f5c705d4ed9a8940b44f8b2f4a3.zip",
+    "zipSha256": "c612b2030aa22a4a97b3b65f26df92a128301a857fed9217e37c04212d77ed19",
+    "crcPassed": true,
+    "frozenPayloadsEqual011": true,
+    "manifestChangedKeys": [
+      "createdUtc"
+    ],
+    "payloads": [
+      {
+        "name": "weights.bin",
+        "bytes": 4741580,
+        "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+        "equal011": true
+      },
+      {
+        "name": "manifest.json",
+        "bytes": 2290,
+        "sha256": "137df4636c048875b95165db8535a01b56c9e54e7de30489b2e1e96581e5bd3f",
+        "equal011": false
+      },
+      {
+        "name": "events.bin",
+        "bytes": 555348,
+        "sha256": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+        "equal011": true
+      },
+      {
+        "name": "optimizer.bin",
+        "bytes": 14224664,
+        "sha256": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+        "equal011": true
+      },
+      {
+        "name": "replay.bin",
+        "bytes": 1286917,
+        "sha256": "a04ff79daa82e61debcfce46807ae484fffd97af9e7a1e7e4a4a32ed16038947",
+        "equal011": true
+      },
+      {
+        "name": "autonomous-targets.bin",
+        "bytes": 2048395,
+        "sha256": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+        "equal011": true
+      },
+      {
+        "name": "autonomous-applications.jsonl",
+        "bytes": 22649,
+        "sha256": "dd62b00a43e1cb7ff76a1f37c9b693edb3c33f2f123d959cbd79b729b4ba487d",
+        "equal011": true
+      },
+      {
+        "name": "autonomous-labels.jsonl",
+        "bytes": 14549,
+        "sha256": "5eedb7e61036c1df9fc5c64770ca39ce22109ba4ba49c80afffe276e4ef81f71",
+        "equal011": true
+      },
+      {
+        "name": "context-replay.bin",
+        "bytes": 28874,
+        "sha256": "8ff1e3e9fbb36e03cff2575115efaed8f632ffcb2772af95fa9692c3780f7746",
+        "equal011": true
+      },
+      {
+        "name": "working-weights.bin",
+        "bytes": 4741580,
+        "sha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+        "equal011": true
+      },
+      {
+        "name": "working-metrics.json",
+        "bytes": 1560,
+        "sha256": "5179722f41d9afdba3172e974a8f15e0aada360b4e519e804912b4420b304cfe",
+        "equal011": true
+      },
+      {
+        "name": "dataset.jsonl",
+        "bytes": 903822,
+        "sha256": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39",
+        "equal011": true
+      }
+    ],
+    "pointerSha256": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+    "journals": [
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113/director-state.json",
+        "sha256": "18ab1aca2b01290bd5352dc5c82472767e8eac8fec2d7e2ea1524412746c9db3",
+        "starts": 2,
+        "nativeMillis": 478022
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-b/director-state.json",
+        "sha256": "61931738db1bc10cb494cf185c0ef37c8c76a766a02225a2e97d4d06834e85f6",
+        "starts": 4,
+        "nativeMillis": 1008655
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-c/director-state.json",
+        "sha256": "fc32ac2c69aa4ae4944f8bdd78148d161f5781ce1318b11b240b3682a897f9b8",
+        "starts": 5,
+        "nativeMillis": 2136280
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-d/director-state.json",
+        "sha256": "d42ea834555b9e44d4dbc3fc62743aab2347c57ade726beb9bf848632fcf8a10",
+        "starts": 6,
+        "nativeMillis": 2231818
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261114-e/director-state.json",
+        "sha256": "8aa2f13469cf0e98bac1294973fde4a3ccc395a79f4b2c6556310a8c488f986a",
+        "starts": 8,
+        "nativeMillis": 3773996
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261114-f/director-state.json",
+        "sha256": "235e5cb30422c09dc9fb2f4ae7f7af627fe75074416c71b09cb4709ef14a04ed",
+        "starts": 10,
+        "nativeMillis": 5803240
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114/director-state.json",
+        "sha256": "ca3bf09de604205b136c99ce2256680ed6c808d686f3585e1ce701d7e143684f",
+        "starts": 1,
+        "nativeMillis": 265981
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-b/director-state.json",
+        "sha256": "f03984fef6b0d8bc603167d353d27db0742db416af6992fdc8b473a01d5e65c0",
+        "starts": 2,
+        "nativeMillis": 487025
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-c/director-state.json",
+        "sha256": "f7f3a2e6f4e6928d286e45567b6e9a71ba4a3d0ad39e9386a6217248073a3172",
+        "starts": 3,
+        "nativeMillis": 601015
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/director-state.json",
+        "sha256": "5a779a4102b1d6f64082f09c98534e3f3e2d10812d71a7d57aaa1f484fd79228",
+        "starts": 4,
+        "nativeMillis": 715447
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/director-state.json",
+        "sha256": "4059c8a16dc410999161afa5aa57bca44f654f3318e72713218d17cb51363eaa",
+        "starts": 1,
+        "nativeMillis": 328635
+      }
+    ],
+    "state": "STOPPED",
+    "configSha256": "1e61a46fb7a2568a8e7dcb2c62edfa9e643af20baa5d3f48bba2a56d4277d6d4",
+    "gameServerJarSha256": "c38f64ba54557cf6a0451bb06a8b657a277af53b9245eff461f55bdbb6915017",
+    "nativeStarts012": 0,
+    "modelMutation": false
+  },
+  "after": {
+    "schema": "GOAL012_G6_FROZEN_POSTFLIGHT",
+    "sql": {
+      "sqlPid": 55436,
+      "readOnly": true,
+      "equalBefore": true,
+      "observedUtc": "2026-11-14T22:54:10.4039465Z",
+      "rows": 183,
+      "tag": "after",
+      "sqlCreated": 134391704464567264,
+      "sha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D"
+    },
+    "freshExport": "model-2-9de5a598ac4d44959e4edcdb6b0040d6.zip",
+    "zipSha256": "bdd14eb8e5523f6b477217e5f4a13f7e7c768a2923acfce4128b5bf49c1cba3a",
+    "crcPassed": true,
+    "frozenPayloadsEqual011": true,
+    "manifestChangedKeys": [
+      "createdUtc"
+    ],
+    "payloads": [
+      {
+        "name": "weights.bin",
+        "bytes": 4741580,
+        "sha256": "6b91706463f4e24f89f1c4f8be3a82d9ee58eadb07a4254c79449665e3fa97dc",
+        "equal011": true
+      },
+      {
+        "name": "manifest.json",
+        "bytes": 2290,
+        "sha256": "bb90b929708dfd6a18a16ce6a7e5b5f1d155d833c3ce6cb616e7002823245fa9",
+        "equal011": false
+      },
+      {
+        "name": "events.bin",
+        "bytes": 555348,
+        "sha256": "bf2039c39f18e4137593129deccf1781b5f4f73bf95d9b0eb7b252465079be6e",
+        "equal011": true
+      },
+      {
+        "name": "optimizer.bin",
+        "bytes": 14224664,
+        "sha256": "6a34b7ee503f35dff75e61ba59892be823f72e45402e1a20f4036b9740ade844",
+        "equal011": true
+      },
+      {
+        "name": "replay.bin",
+        "bytes": 1286917,
+        "sha256": "a04ff79daa82e61debcfce46807ae484fffd97af9e7a1e7e4a4a32ed16038947",
+        "equal011": true
+      },
+      {
+        "name": "autonomous-targets.bin",
+        "bytes": 2048395,
+        "sha256": "94c113fa028f5b488543ebdba2b051b870f4462d20ddc294d90ccd96079ef987",
+        "equal011": true
+      },
+      {
+        "name": "autonomous-applications.jsonl",
+        "bytes": 22649,
+        "sha256": "dd62b00a43e1cb7ff76a1f37c9b693edb3c33f2f123d959cbd79b729b4ba487d",
+        "equal011": true
+      },
+      {
+        "name": "autonomous-labels.jsonl",
+        "bytes": 14549,
+        "sha256": "5eedb7e61036c1df9fc5c64770ca39ce22109ba4ba49c80afffe276e4ef81f71",
+        "equal011": true
+      },
+      {
+        "name": "context-replay.bin",
+        "bytes": 28874,
+        "sha256": "8ff1e3e9fbb36e03cff2575115efaed8f632ffcb2772af95fa9692c3780f7746",
+        "equal011": true
+      },
+      {
+        "name": "working-weights.bin",
+        "bytes": 4741580,
+        "sha256": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+        "equal011": true
+      },
+      {
+        "name": "working-metrics.json",
+        "bytes": 1560,
+        "sha256": "5179722f41d9afdba3172e974a8f15e0aada360b4e519e804912b4420b304cfe",
+        "equal011": true
+      },
+      {
+        "name": "dataset.jsonl",
+        "bytes": 903822,
+        "sha256": "2feae65f78e239efaa7d8424d8059066c5629196e6c2c5eb07f2280bc1e7cf39",
+        "equal011": true
+      }
+    ],
+    "pointerSha256": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+    "journals": [
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113/director-state.json",
+        "sha256": "18ab1aca2b01290bd5352dc5c82472767e8eac8fec2d7e2ea1524412746c9db3",
+        "starts": 2,
+        "nativeMillis": 478022
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-b/director-state.json",
+        "sha256": "61931738db1bc10cb494cf185c0ef37c8c76a766a02225a2e97d4d06834e85f6",
+        "starts": 4,
+        "nativeMillis": 1008655
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-c/director-state.json",
+        "sha256": "fc32ac2c69aa4ae4944f8bdd78148d161f5781ce1318b11b240b3682a897f9b8",
+        "starts": 5,
+        "nativeMillis": 2136280
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261113-d/director-state.json",
+        "sha256": "d42ea834555b9e44d4dbc3fc62743aab2347c57ade726beb9bf848632fcf8a10",
+        "starts": 6,
+        "nativeMillis": 2231818
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261114-e/director-state.json",
+        "sha256": "8aa2f13469cf0e98bac1294973fde4a3ccc395a79f4b2c6556310a8c488f986a",
+        "starts": 8,
+        "nativeMillis": 3773996
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal009-20261114-f/director-state.json",
+        "sha256": "235e5cb30422c09dc9fb2f4ae7f7af627fe75074416c71b09cb4709ef14a04ed",
+        "starts": 10,
+        "nativeMillis": 5803240
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114/director-state.json",
+        "sha256": "ca3bf09de604205b136c99ce2256680ed6c808d686f3585e1ce701d7e143684f",
+        "starts": 1,
+        "nativeMillis": 265981
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-b/director-state.json",
+        "sha256": "f03984fef6b0d8bc603167d353d27db0742db416af6992fdc8b473a01d5e65c0",
+        "starts": 2,
+        "nativeMillis": 487025
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-c/director-state.json",
+        "sha256": "f7f3a2e6f4e6928d286e45567b6e9a71ba4a3d0ad39e9386a6217248073a3172",
+        "starts": 3,
+        "nativeMillis": 601015
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal010-20261114-d/director-state.json",
+        "sha256": "5a779a4102b1d6f64082f09c98534e3f3e2d10812d71a7d57aaa1f484fd79228",
+        "starts": 4,
+        "nativeMillis": 715447
+      },
+      {
+        "path": "autonomous/v1/campaigns/autonomous009-goal011-20261114/director-state.json",
+        "sha256": "4059c8a16dc410999161afa5aa57bca44f654f3318e72713218d17cb51363eaa",
+        "starts": 1,
+        "nativeMillis": 328635
+      }
+    ],
+    "state": "STOPPED",
+    "configSha256": "86c1b953e1ca0848b7cc0073264f1dedc7cfb4061774ea7028b803b8a986e6a3",
+    "gameServerJarSha256": "61d1d7a4441f3d3f475b10609f205555ea111a2dc7f9d8108ea4cb28d67aa59e",
+    "nativeStarts012": 0,
+    "modelMutation": false
+  },
+  "sqlEqual": true,
+  "pointerEqual": true,
+  "selectedModel14Applications": 48,
+  "selectedModel14GradientEpisodes": 16
+}

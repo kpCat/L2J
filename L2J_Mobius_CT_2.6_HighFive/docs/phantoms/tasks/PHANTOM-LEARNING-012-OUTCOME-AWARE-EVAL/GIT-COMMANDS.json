@@ -1,0 +1,442 @@
+{
+  "authorization": "Explicit user Goal012/GIT_POLICY012; bounded audit and exact scoped publication only feature/phantom-world.",
+  "commands": [
+    {
+      "cwd": "D:/Codex/repos/L2J-phantom-world",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-phantom-world",
+      "argv": [
+        "git",
+        "symbolic-ref",
+        "--short",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-phantom-world",
+      "argv": [
+        "git",
+        "status",
+        "--short"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-phantom-world",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=no"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "symbolic-ref",
+        "--short",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "status",
+        "--short"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=no"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "symbolic-ref",
+        "--short",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "status",
+        "--short"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=no"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-phantom-world",
+      "argv": [
+        "git",
+        "rev-parse",
+        "--show-toplevel"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-phantom-world",
+      "argv": [
+        "git",
+        "worktree",
+        "list",
+        "--porcelain"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "remote",
+        "-v"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "rev-parse",
+        "origin/feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=all"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "rev-parse",
+        "--git-dir"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "rev-parse",
+        "--git-common-dir"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "rev-parse",
+        "--show-superproject-working-tree"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--name-only"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--stat",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "fetch",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/CURRICULUM.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT_POLICY.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/IMPLEMENTATION_PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/MANIFEST.sha256",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PRE_AUDIT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL_V2.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/README_RU.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TASK.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TEST_MATRIX.md"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "add",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/CURRICULUM.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT_POLICY.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/IMPLEMENTATION_PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/MANIFEST.sha256",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PRE_AUDIT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL_V2.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/README_RU.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TASK.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TEST_MATRIX.md"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "phantom(learning012): add outcome-aware eval and sealed pre-CUT curriculum"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "push",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-l",
+        "HEAD",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationReplayV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationCurriculumV2.java",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "L2J_Mobius_CT_2.6_HighFive/tools/phantom-runtime/training/Training.ps1",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/ACCEPTANCE.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/CURRICULUM.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/GIT_POLICY.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/HANDOFF.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/IMPLEMENTATION_PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/MANIFEST.sha256",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PLAN.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PRE_AUDIT.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/PROTOCOL_V2.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/README_RU.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TASK.md",
+        "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-012-OUTCOME-AWARE-EVAL/TEST_MATRIX.md"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "fetch",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "add",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "fix(learning012): retain native MP refusals in bounded pre-CUT selection"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "push",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-004",
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-l",
+        "HEAD",
+        "--",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutonomousTrainingNative.java",
+        "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomEvaluationOutcomeV2Checks.java"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "fetch",
+        "origin",
+        "feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "rev-parse",
+        "origin/feature/phantom-world"
+      ]
+    },
+    {
+      "cwd": "D:/Codex/repos/L2J-learning-006",
+      "argv": [
+        "git",
+        "merge",
+        "--ff-only",
+        "origin/feature/phantom-world"
+      ]
+    }
+  ],
+  "repeatedCommands": "Unique actual argv inventory; repeated guards/fetch/FF share the same argv. Final docs staging argv are recorded in final publication receipts.",
+  "historyRewriteOrWip": false
+}

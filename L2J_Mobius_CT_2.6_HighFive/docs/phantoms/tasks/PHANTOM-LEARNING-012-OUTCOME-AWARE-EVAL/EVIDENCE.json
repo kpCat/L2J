@@ -1,0 +1,541 @@
+{
+  "schema": "PHANTOM_LEARNING012_EVIDENCE_V2",
+  "status": "PARTIAL012_PRE_CUT_PARTY_DIFFICULTY_COVERAGE_GAP",
+  "full012": false,
+  "codeHead": "9bd77193eeb4f03617aa82972dc1ae5cfbfa2c6a",
+  "baseHead": "9e78e3db1153126c616812bfeb8ff5bdbb8c8278",
+  "branch": "feature/phantom-world",
+  "gates": {
+    "G0": "PASS",
+    "G1": "PASS",
+    "G2": "PASS",
+    "G3": "PASS",
+    "G4": "FAIL_NATIVE_NOT_RUN_PRE_CUT_COVERAGE_GAP",
+    "G5": "PASS_HONEST_N0_AND_UNKNOWN_REPORTING",
+    "G6": "PASS",
+    "G7": "PASS",
+    "G8": "PENDING_FINAL_DOCS_READBACK"
+  },
+  "protocolV2": "IMPLEMENTED_OFFLINE_VERIFIED",
+  "newNativeV2": "NOT_RUN_PRE_CUT_COVERAGE_GAP",
+  "modelGameplayQuality": "INCONCLUSIVE",
+  "newNativeIndependentPairs": 0,
+  "legacy011": {
+    "originalFilesVerified": 230,
+    "arms": 8,
+    "terminalComparablePairs": 4,
+    "soloPairs": 2,
+    "partyPairs": 2,
+    "paidEvents": 47,
+    "legacyG4": "FAIL_UNCHANGED",
+    "historicalPairsSha": "c48a829154cfdb6064b8c44d007d5347b1affa7f1e18eb27a2caa2d7eac8bbc4",
+    "historicalCompleteSha": "afdbf4c504d5e446504876d2307f97ca1e6ab133c82d211f8ab158d2405b7584",
+    "statistics": {
+      "SOLO": {
+        "terminalComparablePairs": 2,
+        "bothGoalSucceededPairs": 0,
+        "withDeathPairs": 2,
+        "boundedTimeoutPairs": 0,
+        "incomparablePairs": 0,
+        "learnedWinsOnly": 1,
+        "stockWinsOnly": 0,
+        "bothWin": 0,
+        "neitherWin": 1,
+        "timeoutsUnknownFuture": 0,
+        "discordantPairs": 1,
+        "exactTwoSidedSignP": 1.0,
+        "sides": {
+          "STOCK": {
+            "wins": 0,
+            "deathArms": 2,
+            "timeouts": 0,
+            "successRateWilson95": {
+              "lower": 0.0,
+              "upper": 0.6576197724933469,
+              "nIndependentPairs": 2
+            },
+            "paidLegalDivergences": 0
+          },
+          "LEARNED": {
+            "wins": 1,
+            "deathArms": 1,
+            "timeouts": 0,
+            "successRateWilson95": {
+              "lower": 0.09453120573423074,
+              "upper": 0.9054687942657693,
+              "nIndependentPairs": 2
+            },
+            "paidLegalDivergences": 6
+          }
+        },
+        "strata": [
+          "HISTORICAL_UNCLASSIFIED"
+        ],
+        "gameVerdict": "INCONCLUSIVE",
+        "confidence": "SMALL_N_DESCRIPTIVE_ONLY"
+      },
+      "PARTY": {
+        "terminalComparablePairs": 2,
+        "bothGoalSucceededPairs": 2,
+        "withDeathPairs": 0,
+        "boundedTimeoutPairs": 0,
+        "incomparablePairs": 0,
+        "learnedWinsOnly": 0,
+        "stockWinsOnly": 0,
+        "bothWin": 2,
+        "neitherWin": 0,
+        "timeoutsUnknownFuture": 0,
+        "discordantPairs": 0,
+        "exactTwoSidedSignP": null,
+        "sides": {
+          "STOCK": {
+            "wins": 2,
+            "deathArms": 0,
+            "timeouts": 0,
+            "successRateWilson95": {
+              "lower": 0.34238022750665303,
+              "upper": 1.0,
+              "nIndependentPairs": 2
+            },
+            "paidLegalDivergences": 0
+          },
+          "LEARNED": {
+            "wins": 2,
+            "deathArms": 0,
+            "timeouts": 0,
+            "successRateWilson95": {
+              "lower": 0.34238022750665303,
+              "upper": 1.0,
+              "nIndependentPairs": 2
+            },
+            "paidLegalDivergences": 0
+          }
+        },
+        "strata": [
+          "HISTORICAL_UNCLASSIFIED"
+        ],
+        "gameVerdict": "INCONCLUSIVE",
+        "confidence": "SMALL_N_DESCRIPTIVE_ONLY"
+      }
+    }
+  },
+  "headless": [
+    {
+      "session": "03e46c0569c44287aed8608c12177ce6",
+      "workerPid": 77180,
+      "workerExit": 2,
+      "kernelWallMillis": 93256,
+      "cpuSeconds": 175.578125,
+      "peakWorkingSetBytes": 4661059584,
+      "preCutArms": 9,
+      "admissionOnlyArms": 6,
+      "pairedCells": 3,
+      "pairedSoloCells": 2,
+      "pairedPartyCells": 1,
+      "refusals": {
+        "AUTONOMOUS_PRE_CUT_PARTY_TARGET_REFUSED": 1,
+        "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED": 2
+      },
+      "nativeCut": 0,
+      "paidEffects": 0,
+      "fullCampaignReady": false,
+      "uniqueNativeCandidateProbes": 6,
+      "candidateBudgetReceipt": "NOT_WRITTEN_BECAUSE_PREPARATION_REFUSED",
+      "candidateCatalogFiles": 0,
+      "spawnContract": {
+        "cases": 8,
+        "passed": true,
+        "configFlagRestored": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "sourceRecords": [
+        {
+          "source": 268574973,
+          "classId": 94,
+          "inventorySha": "4de4374eb697766182f605c76495aee319fe2557ba908171e4cb2f3efd4cfd31",
+          "learned": 60,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268560049,
+          "classId": 94,
+          "inventorySha": "9057c9be073f48573c98183652f58c3853008c2ae919452f2bcd33339a8eeff0",
+          "learned": 62,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268618477,
+          "classId": 90,
+          "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+          "learned": 40,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268502074,
+          "classId": 90,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268576142,
+          "classId": 105,
+          "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+          "learned": 53,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268501533,
+          "classId": 105,
+          "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+          "learned": 53,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268530957,
+          "classId": 103,
+          "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+          "learned": 61,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268676093,
+          "classId": 110,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268506392,
+          "classId": 90,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268564233,
+          "classId": 90,
+          "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+          "learned": 40,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268550789,
+          "classId": 110,
+          "inventorySha": "ca9e541bb190c55734eed2bd8f814b5d7d2dcae8c69b4dd4235ef87018e634e9",
+          "learned": 67,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268583777,
+          "classId": 103,
+          "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+          "learned": 61,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268484271,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268644486,
+          "classId": 110,
+          "inventorySha": "6cc150b64b5cc242940ab8ffd5f84f6b58ebacccda4fb9800d27ec8420eb7c9c",
+          "learned": 64,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268484387,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484293,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484336,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484315,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484366,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        }
+      ]
+    },
+    {
+      "session": "f4664eb7f3ea4b0dbc28a1a1c9de7de0",
+      "workerPid": 91344,
+      "workerExit": 2,
+      "kernelWallMillis": 154298,
+      "cpuSeconds": 255.75,
+      "peakWorkingSetBytes": 4656701440,
+      "preCutArms": 15,
+      "admissionOnlyArms": 6,
+      "pairedCells": 3,
+      "pairedSoloCells": 2,
+      "pairedPartyCells": 1,
+      "refusals": {
+        "AUTONOMOUS_PRE_CUT_PARTY_MP_REFUSED": 4,
+        "AUTONOMOUS_PRE_CUT_PARTY_DAMAGE_REFUSED": 5
+      },
+      "nativeCut": 0,
+      "paidEffects": 0,
+      "fullCampaignReady": false,
+      "uniqueNativeCandidateProbes": 12,
+      "candidateBudgetReceipt": "NOT_WRITTEN_BECAUSE_PREPARATION_REFUSED",
+      "candidateCatalogFiles": 23,
+      "spawnContract": {
+        "cases": 8,
+        "passed": true,
+        "configFlagRestored": true,
+        "afterCut": false,
+        "trainingCredit": false
+      },
+      "sourceRecords": [
+        {
+          "source": 268574973,
+          "classId": 94,
+          "inventorySha": "4de4374eb697766182f605c76495aee319fe2557ba908171e4cb2f3efd4cfd31",
+          "learned": 60,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268560049,
+          "classId": 94,
+          "inventorySha": "9057c9be073f48573c98183652f58c3853008c2ae919452f2bcd33339a8eeff0",
+          "learned": 62,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268618477,
+          "classId": 90,
+          "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+          "learned": 40,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268502074,
+          "classId": 90,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268576142,
+          "classId": 105,
+          "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+          "learned": 53,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268501533,
+          "classId": 105,
+          "inventorySha": "517840202c45bba206b191c5df81f23dcaccabe794e5e44be17e2fe77e3c938d",
+          "learned": 53,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268530957,
+          "classId": 103,
+          "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+          "learned": 61,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268676093,
+          "classId": 110,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268506392,
+          "classId": 90,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_UNSUPPORTED_SAVED_CHARACTER_SKILLS_SAVE"
+        },
+        {
+          "source": 268564233,
+          "classId": 90,
+          "inventorySha": "d38e2298324c7749c99299eb2ce2ba3db294cb9ee30a9bdb7927a13980f5d40b",
+          "learned": 40,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268550789,
+          "classId": 110,
+          "inventorySha": "ca9e541bb190c55734eed2bd8f814b5d7d2dcae8c69b4dd4235ef87018e634e9",
+          "learned": 67,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268583777,
+          "classId": 103,
+          "inventorySha": "fe1948dd322913563d7760aaaadd9e77fa57247c06a36f37f85b922011e9633f",
+          "learned": 61,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268484271,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268644486,
+          "classId": 110,
+          "inventorySha": "6cc150b64b5cc242940ab8ffd5f84f6b58ebacccda4fb9800d27ec8420eb7c9c",
+          "learned": 64,
+          "status": "ACQUIRED"
+        },
+        {
+          "source": 268484387,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484293,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484336,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484315,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        },
+        {
+          "source": 268484366,
+          "classId": 10,
+          "status": "REJECTED",
+          "reason": "AUTONOMOUS_DEAD_OR_INCOMPLETE_SOURCE"
+        }
+      ]
+    }
+  ],
+  "native012": {
+    "starts": 0,
+    "maximumStarts": 2,
+    "elapsedMillis": 0,
+    "maximumMillis": 2100000,
+    "reservedCombatEpisodes": 0,
+    "fit": 0,
+    "trainingCredits": 0,
+    "promotion": 0
+  },
+  "frozen": {
+    "selectedDraft": 14,
+    "modelStatus": "DRAFT",
+    "modelSha": "7d3c8fc1f2ae5fc199cfb7517f71743189fdd3fbb4b959a318753637e2d3bc37",
+    "adamUpdates": 903,
+    "adamEpochs": 223,
+    "selectedModelApplications": 48,
+    "gradientEpisodes": 16,
+    "acceptedTest": 2,
+    "completedCyclePointer": 12,
+    "pointerSha256": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+    "sqlRows": 183,
+    "sqlSha256": "9A9C2D0EE9A2B8F37DA5DD6BCF625334B76BE96FE9B76E22490ED20B4DA70E7D",
+    "coldPayloadsEqual011": true,
+    "coldZipCrcPassed": true,
+    "manifestChangedKeys": [
+      "createdUtc"
+    ]
+  },
+  "historicalBudgetsUnchanged": {
+    "009": {
+      "starts": 10,
+      "nativeMillis": 5803240
+    },
+    "010": {
+      "starts": 4,
+      "nativeMillis": 715447
+    },
+    "011": {
+      "starts": 1,
+      "nativeMillis": 328635
+    }
+  },
+  "safety": {
+    "historicalBudgetHashesUnchanged": true,
+    "native012": {
+      "nativeMillis": 0,
+      "maxNativeMillis": 2100000,
+      "maxStarts": 2,
+      "starts": 0
+    },
+    "records": [
+      {
+        "created": 134391627289948191,
+        "pid": 86628,
+        "absent": true,
+        "kind": "Director"
+      },
+      {
+        "created": 134391627556513003,
+        "pid": 60792,
+        "absent": true,
+        "kind": "Native"
+      },
+      {
+        "created": 134391704517715872,
+        "pid": 20376,
+        "absent": true,
+        "kind": "Worker"
+      },
+      {
+        "created": 134391704464567264,
+        "pid": 55436,
+        "absent": true,
+        "kind": "Sql"
+      }
+    ],
+    "ownedProcesses": 0,
+    "pointerSha256": "acc21bed707b518fb58e23fec006e7d658723763c73c237a039d950e14c9b010",
+    "portsFree": [
+      33357,
+      18001,
+      19301
+    ],
+    "stopped": true,
+    "off": true,
+    "foreignSql": {
+      "pid": 8692,
+      "unchanged": true,
+      "createdUtc": "2026-10-28T15:34:43.9827010Z"
+    },
+    "fullHistoricalAssetInventoryRehashed": false
+  },
+  "counter": {
+    "issued": 6,
+    "total": 13,
+    "remaining": 7
+  },
+  "manualGate": "REQUIRED",
+  "nextGoalStarted": false,
+  "rulings": [
+    "Утверждённый external workspace вместо generic skill workspace сохраняет exact allowlist.",
+    "Party cast owner может отличаться от initial reservation session; новый typed callback witness обязателен, legacy011 только full hash-pinned replay.",
+    "Только чистый canonical pre-CUT MP refusal исключает кандидата V2 в прежнем cap12; V1 и mixed/owner/Geo/source отказы сохраняются."
+  ]
+}

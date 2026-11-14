@@ -1,0 +1,211 @@
+{
+  "runs": [
+    {
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "phantom-learning008-test",
+        "phantom-learning007-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T22:06:25.083133+00:00",
+      "seconds": 251.6569999998901,
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "phantom-learning008-test",
+        "phantom-learning007-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T22:23:23.360801+00:00",
+      "seconds": 260.625,
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "cmd",
+        "/c",
+        "ant",
+        "-f",
+        "L2J_Mobius_CT_2.6_HighFive/build.xml",
+        "phantom-learning012-test",
+        "phantom-learning011-test",
+        "phantom-autonomous-training-test",
+        "jar"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T22:43:27.061789+00:00",
+      "seconds": 162.48500000010245,
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "java",
+        "-cp",
+        "build/phantom-test/bin;build/bin;L2J_Mobius_CT_2.6_HighFive/dist/libs/*",
+        "org.l2jmobius.tests.phantoms.PhantomEvaluationReplayV2",
+        "legacy011",
+        "D:\\Codex\\repos\\L2J-learning-006/.phantom-local/learning002/train",
+        "D:\\Codex\\repos\\L2J-learning-004/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LEARNING-011-LAWFUL-ENCOUNTER-ENGINE/evidence/continuation",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\14\\01a1db01-6116-7f50-81e0-2c7043f906e9\\goal011\\final-active-config.ini",
+        "C:\\Users\\ZBook\\.codex\\visualizations\\2026\\11\\14\\01a1dbfb-ba96-7fe0-971b-8d0db34ab00b\\derived011-v2-final"
+      ],
+      "cwd": "D:\\Codex\\repos\\L2J-learning-004",
+      "startedUtc": "2026-11-14T22:23:19.688064+00:00",
+      "seconds": 0.75,
+      "exitCode": 0
+    }
+  ],
+  "rawLogs": [
+    {
+      "name": "ANT012-FINAL.log",
+      "bytes": 47191,
+      "sha256": "3b6cc6c3d94f35b4292132da41cdc0946d5b3aefa139e26ebc1b73042fd2f56d",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "ANT012-MP-FIX.log",
+      "bytes": 31067,
+      "sha256": "d0f0faa142ced02b2b8030f35d7126589c96ce17c37ba2463040b1f80374b00e",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "ANT012-REGRESSION.log",
+      "bytes": 47191,
+      "sha256": "3236e1882859f2398229cc2439559cabbe9233acb8b058c440a73a2af6c7a631",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "EXPORT012-AFTER.log",
+      "bytes": 130,
+      "sha256": "f16eba023c15c9927e0a4c029c2f294d685d323475c75417ef17061e0baae318",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "GREEN012-MP-SELECTION.log",
+      "bytes": 50,
+      "sha256": "f4b78deeb726d954d2913bdd8a13f084b1af24fb4598dc600ab747585e99c25b",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "GREEN012-OUTCOME.log",
+      "bytes": 50,
+      "sha256": "f4b78deeb726d954d2913bdd8a13f084b1af24fb4598dc600ab747585e99c25b",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "GREEN012-REVIEW.log",
+      "bytes": 50,
+      "sha256": "f4b78deeb726d954d2913bdd8a13f084b1af24fb4598dc600ab747585e99c25b",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "POSTFLIGHT012.log",
+      "bytes": 215,
+      "sha256": "4ec760942f4e998305f8aa3f762cde6eb93a4442993440296b051be007110d5e",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "PREFLIGHT012-DIRECT.log",
+      "bytes": 215,
+      "sha256": "4ec760942f4e998305f8aa3f762cde6eb93a4442993440296b051be007110d5e",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "PREFLIGHT012.log",
+      "bytes": 973,
+      "sha256": "db57585f84814f1d0b361d6c7f5409ceb5438076ddfc4244faf641edbb1556f4",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "PREPARE012-AFTER-MP-FIX.log",
+      "bytes": 697,
+      "sha256": "eccdccf2a7b1edffd06ff73dd0cfaa88e89c3fe59aabee4a7e74a40c6562cdca",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "PREPARE012.log",
+      "bytes": 697,
+      "sha256": "3bbffd760b5615adc97f67d34ce755f1194f9ffa9159386ec0da5f394411f8fb",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "RED012-MP-SELECTION.log",
+      "bytes": 484,
+      "sha256": "8827bc616a6b8f9032081dadff66179c0a67413e1582e64ff6f4e6ae87d35c5f",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "RED012-OUTCOME.log",
+      "bytes": 458,
+      "sha256": "5ca723d2eb75c143c923c5d1c7b118a8a6457bf457bdc33be8ef68ecc0260b50",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "RED012-READER.log",
+      "bytes": 467,
+      "sha256": "0a840b7e3c867fb8e6cde7ab2bb77645b8f7d9335220ae59d376df24d1080aae",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "RED012-REVIEW.log",
+      "bytes": 529,
+      "sha256": "00d5533da45a369b95ac66129f5175737bdedf050219352636def4e2c041a7b0",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "STOP012.log",
+      "bytes": 155,
+      "sha256": "ce192770bf567df5c6e95066011bfbebd16483de2c0dc231a3f08473664d9d35",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "TYPED011-FINAL.log",
+      "bytes": 81,
+      "sha256": "5b0010e545a0208603f7dc34a1bb68556931fed7f9a1b133eee7ffa534c6ea75",
+      "rawPreservedOutsideCheckout": true
+    },
+    {
+      "name": "TYPED011-REPLAY.log",
+      "bytes": 81,
+      "sha256": "5b0010e545a0208603f7dc34a1bb68556931fed7f9a1b133eee7ffa534c6ea75",
+      "rawPreservedOutsideCheckout": true
+    }
+  ],
+  "behavioralRed": [
+    "RED012-OUTCOME.log",
+    "RED012-REVIEW.log",
+    "RED012-READER.log",
+    "RED012-MP-SELECTION.log"
+  ],
+  "compileErrorsNotBehavioralRed": true,
+  "canonicalPrepareExits": [
+    1,
+    1
+  ],
+  "workerExits": [
+    2,
+    2
+  ],
+  "stopExit": 0,
+  "postflightExit": 0,
+  "directorFocusedExit": 0,
+  "fullVerify": "NOT_RUN_TARGETED_DB_FREE_ONLY"
+}
