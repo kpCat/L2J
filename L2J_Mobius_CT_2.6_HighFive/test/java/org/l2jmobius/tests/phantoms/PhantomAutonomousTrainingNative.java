@@ -474,7 +474,7 @@ public final class PhantomAutonomousTrainingNative
 	private static java.util.Optional<AutonomousTrainingV1.Proposal> admitTarget(AutonomousTrainingV1.Proposal proposal, Source source,
 		Monster target, Player actor, Refusals refusals)
 	{
-		actor.setXYZ(target.getX() + 180, target.getY(), target.getZ()); actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp());
+		actor.setXYZ(target.getX() + 180, target.getY(), target.getZ());
 		var admitted = java.util.Optional.of(proposal);
 		if (proposal.pool().family() == LegalActionV3.Family.DAMAGE)
 		{
@@ -637,8 +637,7 @@ public final class PhantomAutonomousTrainingNative
 			try
 			{
 				player.setXYZ(cell.scene().x(), cell.scene().y(), cell.scene().z()); player.setHeading(0);
-				// Declared scene input before preparation/CUT. No skill/item grants and no post-CUT resource writes.
-				player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.setCurrentCp(player.getMaxCp());
+				// Preserve restored resources. Preparation uses ordinary native recovery, without synthetic injuries.
 				final long profile = profiles.create(player.getObjectId()).profileId();
 				final String riskLine = index + "\t" + source.image().physicalFingerprint() + "\t" + risk.limitPercent(profile, false) + "\t" + risk.limitPercent(profile, true);
 				if (!pinned.isEmpty() && (profile != expectedProfile || !riskLine.equals(String.join("\t", pinned.get(index))))) { throw new IllegalStateException("AUTONOMOUS_EVAL_RISK_PROFILE_CHANGED"); }
@@ -646,10 +645,12 @@ public final class PhantomAutonomousTrainingNative
 				final var planner = new PhantomHistoricalBackgroundPlanner(authority.knowledge(), authority.topology(), authority.authority());
 				final var initial = planner.planInitial(profile, player, config.seed(), 1); final var baseline = (initial.ready() ? initial : planner.idleInitial(profile, player, config.seed(), 1)).goal();
 				if (baseline == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_UNAVAILABLE"); }
-				final var result = planner.replanLogicalRendezvous(profile, authority.authority().capture(profile, player, baseline, null), baseline, config.seed(), 2, new PhantomDomainRef("background.farm", cell.scene().source()));
-				if (result.goal() == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_REFUSED"); }
-				final var goals = new PhantomGoalStateStore(profiles); goals.insert(profile, result.goal());
-				if (!goals.load(profile).orElseThrow().goal().equals(result.goal())) { throw new IllegalStateException("AUTONOMOUS_GOAL_READBACK_CHANGED"); }
+				final var local = PhantomEncounterLocalSource.resolve(authority, cell.scene(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(cell.x(), cell.y(), cell.z(), 0));
+				final var goal = local.isPresent() ? PhantomEncounterLocalSource.goal(baseline, local.orElseThrow())
+					: planner.replanLogicalRendezvous(profile, authority.authority().capture(profile, player, baseline, null), baseline, config.seed(), 2, new PhantomDomainRef("background.farm", cell.scene().source())).goal();
+				if (goal == null) { throw new IllegalStateException("AUTONOMOUS_ORDINARY_GOAL_REFUSED"); }
+				final var goals = new PhantomGoalStateStore(profiles); goals.insert(profile, goal);
+				if (!goals.load(profile).orElseThrow().goal().equals(goal)) { throw new IllegalStateException("AUTONOMOUS_GOAL_READBACK_CHANGED"); }
 				player.getInventory().updateDatabase(); player.storeMe();
 				roster.add(new String[] { split, cell.party() ? "PARTY" : "SOLO", Long.toString(profile), Integer.toString(player.getObjectId()), Integer.toString(source.seed().classId()), Integer.toString(source.seed().level()), "ACQUIRED", source.inventory().fingerprint(), Integer.toString(cell.scene().x()), Integer.toString(cell.scene().y()), Integer.toString(cell.scene().z()) });
 			}
@@ -703,6 +704,8 @@ public final class PhantomAutonomousTrainingNative
 			{
 				final var roster = reproduceRoster(authority, cell, work, slot.split(), config, evaluation && cell.party() ? directory.resolve(cell.key() + ".risk.tsv") : null); final var inventories = new HashMap<Long, String>();
 				for (int i = 0; i < roster.size(); i++) { inventories.put(Long.parseLong(roster.get(i)[2]), cell.roster().get(i).inventory().fingerprint()); }
+				runtime.localEncounterSource(PhantomEncounterLocalSource.resolve(authority, scene,
+					new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(cell.x(), cell.y(), cell.z(), 0)).orElse(null));
 				runtime.prepareAcquired(scene, roster, cell.party(), proposal.pool().mode(), proposal.shortlist().candidates(), inventories, config.preparationSeconds(), () -> requested(attempt));
 				immutable(work.resolve("shared-source.txt"), runtime.acquiredSourceFacts());
 				for (int candidate = 0; candidate < 4; candidate++)
@@ -718,7 +721,7 @@ public final class PhantomAutonomousTrainingNative
 				if (target.getX() != cell.x() || target.getY() != cell.y() || target.getZ() != cell.z() || target.isMoving()
 					|| target.isInCombat() || !target.getAttackByList().isEmpty()) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_WORLD_AI_MOVEMENT"); }
 				final var players = runtime.evaluationPlayers();
-				// Warm read-only snapshot/encoder paths before declared injuries and the native 5ms decision budget.
+				// Warm read-only snapshot/encoder paths before the native decision budget; resources remain natural.
 				for (int warm = 0; warm < 3; warm++)
 				{
 					final var observation = org.l2jmobius.gameserver.phantoms.learning.TacticalSnapshotV3.collect(players.get(cell.learnerIndex()), Long.parseLong(roster.get(cell.learnerIndex())[2]), warm + 1, 20);
@@ -729,7 +732,6 @@ public final class PhantomAutonomousTrainingNative
 					final var player = players.get(i); final int offset = 180 + i * 20;
 					if (!GeoEngine.getInstance().canMoveToTarget(scene.x(), scene.y(), scene.z(), target.getX() + offset, target.getY(), target.getZ(), player.getInstanceId())) { throw new IllegalStateException("AUTONOMOUS_PRE_CUT_OFFSET_GEO"); }
 					player.teleToLocation(target.getX() + offset, target.getY(), target.getZ(), 0, false); player.setHeading(0); if (player.hasHeadlessOutboundSession() && player.isTeleporting()) { player.onTeleported(); }
-					player.setCurrentHp(player.getMaxHp() * (family == LegalActionV3.Family.HEAL && i != cell.learnerIndex() && (i == 0 || i == 2) ? .50 : 1)); player.setCurrentMp(player.getMaxMp()); player.setCurrentCp(player.getMaxCp());
 					PhantomLearning001ActorFixture.requireSafePartySpawn(player.getX(), player.getY(), player.getZ());
 				}
 				final var learner = players.get(cell.learnerIndex()); final var owner = learner.getNativeWorkOwner();

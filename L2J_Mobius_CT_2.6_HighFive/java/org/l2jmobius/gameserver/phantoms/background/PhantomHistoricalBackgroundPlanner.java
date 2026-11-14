@@ -449,6 +449,18 @@ public final class PhantomHistoricalBackgroundPlanner
 			&& anchor.point().distance3D(point) <= org.l2jmobius.gameserver.phantoms.party.PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE
 			&& _knowledge.snapshot().spawnAreasByNpc().getOrDefault(npcId, List.of()).stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId()));
 	}
+	/** Explicit concrete encounter witness; never contributes to global partySourceAvailable/rendezvous planning. */
+	public boolean localEncounterTarget(PhantomDomainRef source,
+		org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact fact,
+		org.l2jmobius.gameserver.model.zone.type.NpcSpawnTerritory.GeometrySnapshot observed,
+		PhantomTopologyAnchor anchor, PhantomTopologyPoint point)
+	{
+		if (source == null || fact == null || anchor == null || !source.namespace().equals("background.farm")
+			|| !source.key().equals(fact.npcId() + "@" + anchor.id()) || !_knowledge.snapshot().spawnFacts().contains(fact)) { return false; }
+		final var npc = _knowledge.findNpc(fact.npcId()).orElse(null);
+		return npc != null && npc.kind() == NpcKind.MONSTER && npc.attackable() && npc.targetable()
+			&& org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder.localEncounterSource(fact, observed, anchor, point);
+	}
 	/** Legacy affinity for old diagnostic consumers only. Production uses durable learned evidence. */
 	public static String logicalRole(PhantomBackgroundState state)
 	{

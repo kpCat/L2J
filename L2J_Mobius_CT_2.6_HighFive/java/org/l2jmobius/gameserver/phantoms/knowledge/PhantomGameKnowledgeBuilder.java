@@ -65,6 +65,31 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 public final class PhantomGameKnowledgeBuilder
 {
 	private static final int ACTIVE_TARGET_DISTANCE = 2000;
+	/** Concrete encounter witness only; never maps a territory into the global farm index. */
+	public static boolean localEncounterSource(SpawnFact fact, org.l2jmobius.gameserver.model.zone.type.NpcSpawnTerritory.GeometrySnapshot observed,
+		PhantomTopologyAnchor anchor, PhantomTopologyPoint target)
+	{
+		if (fact == null || observed == null || anchor == null || target == null || fact.amount() <= 0 || fact.instanceId() != 0
+			|| fact.pointKind() != SpawnPointKind.TERRITORY_POLYGON || target.instanceId() != fact.instanceId()
+			|| anchor.role() != PhantomTopologyAnchorRole.FARMING || anchor.point().instanceId() != fact.instanceId()
+			|| anchor.npcId() == null || anchor.npcId() != fact.npcId()) { return false; }
+		final var geometry = fact.territoryGeometry();
+		return geometry.territoryName().equals(observed.territoryName()) && geometry.sourcePath().equals(observed.sourcePath())
+			&& geometry.geometryHash().equals(observed.hash()) && sameLocalPolygon(geometry.main(), observed.main())
+			&& geometry.banned().size() == observed.banned().size()
+			&& java.util.stream.IntStream.range(0, geometry.banned().size()).allMatch(i -> sameLocalPolygon(geometry.banned().get(i), observed.banned().get(i)))
+			&& anchor.sourceRefs().equals(List.of(geometry.sourcePath())) && geometry.contains(target.x(), target.y(), target.z())
+			&& geometry.contains(anchor.point().x(), anchor.point().y(), anchor.point().z())
+			&& target.x() >= World.WORLD_X_MIN && target.x() <= World.WORLD_X_MAX && target.y() >= World.WORLD_Y_MIN && target.y() <= World.WORLD_Y_MAX
+			&& Math.abs((long) anchor.point().z() - target.z()) <= 200 && anchor.point().distance3D(target) <= ACTIVE_TARGET_DISTANCE;
+	}
+	private static boolean sameLocalPolygon(PhantomGameKnowledgeModel.TerritoryPolygon expected,
+		org.l2jmobius.gameserver.model.zone.type.NpcSpawnTerritory.PolygonGeometry observed)
+	{
+		return expected.lowZ() == observed.lowZ() && expected.highZ() == observed.highZ()
+			&& expected.vertices().equals(observed.vertices().stream().map(v -> new TerritoryVertex(v.x(), v.y())).toList());
+	}
+
 	public static final Set<String> REQUIRED_CAPABILITIES = Set.of(
 		"combat.tank",
 		"combat.heal",

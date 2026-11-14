@@ -379,8 +379,7 @@ public final class PhantomLearning001ShadowNative
 			policy.tactical(rankDamageWithV3 ? tactical : org.l2jmobius.gameserver.phantoms.learning.TacticalPolicyV3.OFF);
 			backend = new L2jPhantomPartyBackend(profiles, materialization, progression, frozenCapabilities);
 			sourcePlanner = new PhantomHistoricalBackgroundPlanner(source.knowledge(), source.topology(), source.authority());
-			backend.installFarmSourcePolicy((farm, target) -> (evaluationTarget == null || target == evaluationTarget) && sourcePlanner.partyNativeTarget(farm, target.asNpc().getId(),
-				new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())));
+			backend.installFarmSourcePolicy((farm, target) -> (evaluationTarget == null || target == evaluationTarget) && nativeSourceTarget(farm, target.asNpc()));
 			final Path rules = game.resolve("data/phantoms/party");
 			final var roleCatalog = PhantomPartyRoleCatalog.load(rules.resolve("high-five-party-roles-v1.xml"));
 			roles = new PhantomPartyRoleMatcher(roleCatalog);
@@ -456,6 +455,22 @@ public final class PhantomLearning001ShadowNative
 
 		/** Director-only admission; ordinary 001 entrypoints retain their original lifecycle. */
 		private boolean acquiredTraining;
+		private PhantomEncounterLocalSource.Binding localEncounterSource;
+		private org.l2jmobius.gameserver.model.spawns.Spawn localEncounterSpawn;
+		void localEncounterSource(PhantomEncounterLocalSource.Binding binding)
+		{
+			check(acquiredCapabilitySource != null && trainingRows.isEmpty() && evaluationTarget == null, "AUTONOMOUS_LOCAL_SOURCE_LIFECYCLE");
+			localEncounterSource = binding;
+		}
+		private boolean nativeSourceTarget(org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef farm, org.l2jmobius.gameserver.model.actor.Npc target)
+		{
+			if (localEncounterSource == null)
+			{ return sourcePlanner.partyNativeTarget(farm, target.getId(), new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())); }
+			final var expected = localEncounterSource.target();
+			return target == evaluationTarget && target instanceof Monster monster && target.getSpawn() != null && target.getSpawn() == localEncounterSpawn
+				&& localEncounterSpawn.getX() == expected.x() && localEncounterSpawn.getY() == expected.y() && localEncounterSpawn.getZ() == expected.z()
+				&& PhantomEncounterLocalSource.sourceReady(sourcePlanner, localEncounterSource, farm, monster);
+		}
 		private PhantomCombatMode acquiredMode;
 		private List<org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef> acquiredActions = List.of();
 		/** Separate acquired-state admission; historical fixture provisioning/recovery branches are not called. */
@@ -503,7 +518,8 @@ public final class PhantomLearning001ShadowNative
 					minimumMp = Math.max(minimumMp, player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
 				}
 			}
-			if (player.getCurrentHp() < player.getMaxHp() * .9 || !PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), minimumMp * 3, player.isSitting()))
+			if (player.getCurrentHp() < player.getMaxHp() || player.getCurrentMp() < player.getMaxMp()
+				|| !PhantomCombatPolicy.pveResourcesReady(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), minimumMp * 3, player.isSitting()))
 			{ if (!player.isSitting()) { player.sitDown(); } return true; }
 			if (player.isSitting()) { player.standUp(); return true; }
 			return false;
@@ -512,6 +528,7 @@ public final class PhantomLearning001ShadowNative
 		{
 			check(acquiredTraining && acquiredCapabilitySource != null, "AUTONOMOUS_FROZEN_SOURCE_REQUIRED");
 			final var facts = new java.util.ArrayList<String>();
+			if (localEncounterSource != null) { facts.add("local-source:" + localEncounterSource); }
 			for (int index = 0; index < trainingPlayers.size(); index++)
 			{
 				final var player = trainingPlayers.get(index); final long profile = Long.parseLong(trainingRows.get(index)[2]);
@@ -532,6 +549,11 @@ public final class PhantomLearning001ShadowNative
 			check(acquiredTraining && evaluationTarget == null && !trainingPlayers.isEmpty() && !target.isAlikeDead() && !target.isChampion() && !target.isRaid()
 				&& !target.isAggressive() && target.getCurrentHp() == target.getMaxHp(), "AUTONOMOUS_FRESH_STOCK_TARGET_REQUIRED");
 			evaluationTarget = target;
+			if (localEncounterSource != null)
+			{
+				localEncounterSpawn = target.getSpawn();
+				check(nativeSourceTarget(localEncounterSource.source(), target), "AUTONOMOUS_LOCAL_SOURCE_NATIVE_BINDING");
+			}
 			if (trainingParty)
 			{
 				final var profiles = trainingRows.stream().map(row -> Long.parseLong(row[2])).toList();
@@ -641,6 +663,7 @@ public final class PhantomLearning001ShadowNative
 			check(acquiredEncounterReservedNanos > 0 && now - acquiredEncounterReservedNanos <= Duration.ofMillis(1000).toNanos(), "AUTONOMOUS_ENCOUNTER_RESERVATION_EXPIRED");
 			check(!Files.exists(stop) && evaluationTarget != null && evaluationTarget.isSpawned() && !evaluationTarget.isAlikeDead()
 				&& evaluationTarget.getCurrentHp() == evaluationTarget.getMaxHp() && evaluationTarget.getAttackByList().isEmpty(), "AUTONOMOUS_ENCOUNTER_TARGET_OR_STOP_CHANGED");
+			check(nativeSourceTarget(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", trainingScene.source()), evaluationTarget), "AUTONOMOUS_ENCOUNTER_SOURCE_CHANGED");
 			if (trainingParty)
 			{
 				final var party = trainingPlayers.getFirst().getParty();
@@ -779,7 +802,7 @@ public final class PhantomLearning001ShadowNative
 							final var source = new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", trainingScene.source());
 							final var target = evaluationTarget;
 							if (target != null && !target.isAlikeDead() && target.getId() == trainingScene.npc()
-								&& sourcePlanner.partyNativeTarget(source, target.getId(), new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), target.getInstanceId())))
+								&& nativeSourceTarget(source, target))
 							{
 								final var request = acquiredSoloRequest(profile, target.getObjectId(), acquiredMode, (deadline - System.nanoTime()) / 1_000_000L);
 								if (request != null) { final var accepted = combat.startSession(request); encountered |= accepted.accepted(); outcomeEncounterAdmitted |= accepted.accepted(); }

@@ -211,6 +211,32 @@ final class PhantomTrainingScenarios
 		return x >= World.WORLD_X_MIN && x <= World.WORLD_X_MAX && y >= World.WORLD_Y_MIN && y <= World.WORLD_Y_MAX
 			&& z >= World.WORLD_Z_MIN && z <= World.WORLD_Z_MAX;
 	}
+	private record SourceAnchor(PhantomDomainRef source, PhantomTopologyAnchor anchor,
+		org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea area, PhantomEncounterLocalSource.Binding local)
+	{
+		boolean targetBound(PhantomHistoricalBackgroundPlanner planner, int npc, PhantomTopologyPoint point)
+		{
+			return local == null ? planner.partyNativeTarget(source, npc, point)
+				: planner.localEncounterTarget(source, local.fact(), PhantomEncounterLocalSource.observed(local.fact()).orElse(null), anchor, point);
+		}
+	}
+	private static List<SourceAnchor> acquiredSourceAnchors(PhantomBackgroundSuite.ProductionAuthorityFixture authority, Monster npc, PhantomTopologyPoint target)
+	{
+		final var result = new ArrayList<SourceAnchor>();
+		for (var anchor : authority.topology().nearestAnchors(target, PhantomTopologyAnchorRole.FARMING, 12, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
+		{
+			result.add(new SourceAnchor(new PhantomDomainRef("background.farm", npc.getId() + "@" + anchor.id()), anchor,
+				authority.topology().findNode(anchor.nodeId()).orElseThrow().area(), null));
+		}
+		PhantomEncounterLocalSource.propose(authority, npc, target).ifPresent(binding ->
+		{
+			final var polygon = binding.fact().territoryGeometry().main();
+			final var area = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.polygon(0, polygon.lowZ(), polygon.highZ(),
+				polygon.vertices().stream().map(v -> new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.Vertex(v.x(), v.y())).toList());
+			result.add(new SourceAnchor(binding.source(), binding.anchor(), area, binding));
+		});
+		return List.copyOf(result);
+	}
 	static List<AcquiredScene> acquiredScenes(AutonomousTrainingV1.Proposal proposal, PhantomBackgroundSuite.ProductionAuthorityFixture authority,
 		List<Integer> rosterLevels, String grade, int enchant, long seed, int maximum, Map<String, Long> diagnostics,
 		java.util.function.Predicate<Monster> targetEligible, java.util.function.Predicate<AcquiredScene> lawful, java.util.function.BooleanSupplier requested)
@@ -251,13 +277,13 @@ final class PhantomTrainingScenarios
 			if (!targetEligible.test(npc)) { diagnostics.merge("SOURCE_SKILLS_OR_MAGIC_LEVEL", 1L, Long::sum); continue; }
 			diagnostics.merge("CAPABILITY_TARGET_ACCEPTED", 1L, Long::sum);
 			final var target = new PhantomTopologyPoint(npc.getX(), npc.getY(), npc.getZ(), 0);
-			for (var anchor : authority.topology().nearestAnchors(target, PhantomTopologyAnchorRole.FARMING, 12, PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE))
+			for (var placement : acquiredSourceAnchors(authority, npc, target))
 			{
 				requirePlanningActive(requested);
-				final var source = new PhantomDomainRef("background.farm", npc.getId() + "@" + anchor.id());
-				if (!planner.partyNativeTarget(source, npc.getId(), target)) { continue; }
+				final var anchor = placement.anchor(); final var source = placement.source();
+				if (!placement.targetBound(planner, npc.getId(), target)) { continue; }
 				diagnostics.merge("CANONICAL_ANCHOR_ACCEPTED", 1L, Long::sum);
-				final var area = authority.topology().findNode(anchor.nodeId()).orElseThrow().area(); final var point = preparationPoint(anchor);
+				final var area = placement.area(); final var point = preparationPoint(anchor);
 				if (!geo.hasGeo(point.x(), point.y()) || geo.getHeight(point.x(), point.y(), point.z()) != point.z() || !area.contains(point)
 					|| org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(point.x(), point.y(), point.z(), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null
 					|| point.distance3D(target) < 100 || point.distance3D(target) > PhantomAutonomousFarmParty.MAXIMUM_TARGET_DISTANCE || Math.abs(point.z() - target.z()) > 200
@@ -267,10 +293,10 @@ final class PhantomTrainingScenarios
 				try { PhantomLearning001ActorFixture.requireSafePartySpawn(point.x(), point.y(), point.z()); }
 				catch (IllegalStateException unsafe) { diagnostics.merge("ANCHOR_AGGRO_REFUSED", 1L, Long::sum); continue; }
 				PhantomTopologyPoint isolated = null;
-				for (var desired : acquiredTargetPoints(npc, anchor, seed))
+				for (var desired : placement.local() == null ? acquiredTargetPoints(npc, anchor, seed) : List.of(placement.local().target()))
 				{
 					requirePlanningActive(requested);
-					if (!area.contains(desired) || !planner.partyNativeTarget(source, npc.getId(), desired) || point.distance3D(desired) < 100
+					if (!area.contains(desired) || !placement.targetBound(planner, npc.getId(), desired) || point.distance3D(desired) < 100
 						|| !geo.canSeeTarget(point.x(), point.y(), point.z(), 0, desired.x(), desired.y(), desired.z(), 0)
 						|| !geo.canMoveToTarget(point.x(), point.y(), point.z(), desired.x() + 180, desired.y(), desired.z(), 0)
 						|| !geo.canMoveToTarget(desired.x() + 180, desired.y(), desired.z(), desired.x(), desired.y(), desired.z(), 0)
