@@ -135,6 +135,8 @@ public final class TrainingConfig
 		final boolean evaluationOnly = text("autonomous009EvaluationOnly", "false").equals("true");
 		if (evaluationOnly && (!Set.of("OFF", "EVAL").contains(text("autonomous009Phase", "OFF")) || !text("autonomous009Exploration", "true").equals("false") || !text("autonomous009AcceptanceSmoke", "false").equals("true")))
 		{ throw new IllegalArgumentException("Независимая EVAL допускает только OFF/EVAL без exploration и с отдельным acceptance budget."); }
+		if (evaluationOnly && episodeSeconds() * 1000L > org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS)
+		{ throw new IllegalArgumentException("Окно независимой EVAL превышает допустимый срок native combat request."); }
 		if (evaluationOnly && integer("autonomous009EvaluationEveryCycles", 1, 1, 100) != 1)
 		{ throw new IllegalArgumentException("Независимая EVAL требует отдельный единственный evaluation cycle."); }
 		if (text("autonomous009GuiHoldBeforeNative", "false").equals("true") && !text("autonomous009AcceptanceSmoke", "false").equals("true"))

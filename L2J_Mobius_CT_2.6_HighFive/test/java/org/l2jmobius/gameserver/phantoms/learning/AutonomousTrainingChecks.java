@@ -224,7 +224,7 @@ public final class AutonomousTrainingChecks
 			check(bounded.text("autonomous009EvaluationOnly", "false").equals("true") && bounded.integer("autonomous009SmokeMaxStarts", 3, 1, 3) == 3, "Bounded independent evaluation3/45 rejected");
 			for (String invalidEvaluation : List.of(evaluation.replace("EvaluationOnly=true", "EvaluationOnly=TRUE"), evaluation.replace("Phase=OFF", "Phase=FIT"), evaluation.replace("Exploration=false", "Exploration=true"),
 				evaluation.replace("AcceptanceSmoke=true", "AcceptanceSmoke=false"), evaluation.replace("MaxStarts=3", "MaxStarts=4"), evaluation.replace("MaxStarts=3", "MaxStarts=0"), evaluation.replace("MaxNativeMinutes=45", "MaxNativeMinutes=46"),
-				evaluation.replace("MaxNativeMinutes=45", "MaxNativeMinutes=0"), evaluation.replace("EvaluationOnly=true", "EvaluationOnly=false"), evaluation + "autonomous009EvaluationEveryCycles=2\n"))
+				evaluation.replace("MaxNativeMinutes=45", "MaxNativeMinutes=0"), evaluation.replace("EvaluationOnly=true", "EvaluationOnly=false"), evaluation + "autonomous009EvaluationEveryCycles=2\n", evaluation + "episodeSeconds=180\n"))
 			{
 				java.nio.file.Files.writeString(path, invalidEvaluation, java.nio.charset.StandardCharsets.UTF_8);
 				boolean rejected = false; try { TrainingConfig.load(path); } catch (IllegalArgumentException expected) { rejected = true; }

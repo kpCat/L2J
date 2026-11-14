@@ -518,7 +518,7 @@ if ($Action -eq 'Test-Config') {
     $evalOnly=@{};foreach($key in $profile.Keys){$evalOnly[$key]=[string]$profile[$key]}
     foreach($entry in @{autonomous009EvaluationOnly='true';autonomous009Exploration='false';autonomous009AcceptanceSmoke='true';autonomous009SmokeMaxStarts='3';autonomous009SmokeMaxNativeMinutes='45';autonomous009Phase='OFF'}.GetEnumerator()){$evalOnly[$entry.Key]=$entry.Value}
     Assert-TrainConfig $evalOnly
-    foreach($change in @(@{autonomous009Phase='COLLECT'},@{autonomous009Phase='FIT'},@{autonomous009SmokeMaxStarts='4'},@{autonomous009SmokeMaxNativeMinutes='46'},@{autonomous009EvaluationEveryCycles='2'})){
+    foreach($change in @(@{autonomous009Phase='COLLECT'},@{autonomous009Phase='FIT'},@{autonomous009SmokeMaxStarts='4'},@{autonomous009SmokeMaxNativeMinutes='46'},@{autonomous009EvaluationEveryCycles='2'},@{episodeSeconds='180'})){
         $invalid=@{};foreach($key in $evalOnly.Keys){$invalid[$key]=[string]$evalOnly[$key]};foreach($key in $change.Keys){$invalid[$key]=$change[$key]}
         Reject {Assert-TrainConfig $invalid} ('EVALUATION_ONLY_SCOPE_ACCEPTED:'+($change.Keys -join ','))
     }
@@ -538,7 +538,7 @@ if ($Action -eq 'Test-Config') {
     Require ($precut.settled -eq 1 -and $precut.completed -eq 0 -and $precut.failed -eq 0 -and $precut.paidEffects -eq 0 -and $precut.classes.Count -eq 0) 'PRE_CUT_STATUS_INVENTED_EFFECTS'
     $native=Get-TrainEpisodeSummary @($refused,[pscustomobject]@{classId=94;afterCut=$true;outcome='COMPLETED';paidRawEffects=2},[pscustomobject]@{classId=110;afterCut=$true;outcome='FAILED';paidRawEffects=0}) 3
     Require ($native.attempted -eq 3 -and $native.settled -eq 3 -and $native.completed -eq 1 -and $native.failed -eq 1 -and $native.paidEffects -eq 2 -and ($native.classes -join ',') -ceq '94,110') 'MIXED_COHORT_STATUS_INCORRECT'
-    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=9 heartbeat=3 episodeSummary=3 extendedBudget=10/90 evalOnlyBudget=3/45 evalOnlyInvalid=5 SQL=0 NATIVE=0'
+    Write-Output 'TRAIN002_CONFIG_GREEN invalidConfig=7 foreignIdentity=6 autonomousInvalid=9 heartbeat=3 episodeSummary=3 extendedBudget=10/90 evalOnlyBudget=3/45 evalOnlyInvalid=6 SQL=0 NATIVE=0'
     return
 }
 # Authorized OWN disposable TEST fault only: active package TEST_CASES.md T08/T14

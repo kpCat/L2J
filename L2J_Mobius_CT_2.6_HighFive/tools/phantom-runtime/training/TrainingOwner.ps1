@@ -219,6 +219,8 @@ function Assert-TrainAutonomousConfig($Values) {
     foreach($key in $bounds.Keys){$number=0L;if(![long]::TryParse([string]$Values[$key],[ref]$number) -or $number -lt $bounds[$key][0] -or $number -gt $bounds[$key][1]){throw ('TRAIN009_CONFIG_RANGE:'+ $key)}}
     if(!$Values.ContainsKey('autonomous009EvaluationOnly')){$Values.autonomous009EvaluationOnly='false'}
     if($Values.autonomous009EvaluationOnly -cnotin @('true','false')){throw 'TRAIN010_EVAL_BOOLEAN'}
+    # Same 120-second request bound as PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS; fail before GS.
+    if($Values.autonomous009EvaluationOnly -ceq 'true' -and [long]$Values.episodeSeconds -gt 120){throw 'TRAIN010_EVALUATION_EPISODE_NATIVE_BOUND'}
     if($Values.autonomous009EvaluationOnly -ceq 'true' -and ($Values.autonomous009Phase -cnotin @('OFF','EVAL') -or $Values.autonomous009Exploration -cne 'false' -or $Values.autonomous009AcceptanceSmoke -cne 'true' -or [int]$Values.autonomous009EvaluationEveryCycles -ne 1)){throw 'TRAIN010_EVALUATION_ONLY_SCOPE'}
     if(!$Values.ContainsKey('autonomous009GuiHoldBeforeNative')){$Values.autonomous009GuiHoldBeforeNative='false'}
     foreach($key in @('autonomous009Enabled','autonomous009Exploration','autonomous009AcceptanceSmoke','autonomous009GuiHoldBeforeNative')){if($Values[$key] -cnotin @('true','false')){throw ('TRAIN009_CONFIG_BOOLEAN:'+ $key)}}
